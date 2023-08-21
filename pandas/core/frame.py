@@ -64,6 +64,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -1229,6 +1230,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_string"
+    )
     @Substitution(
         header_type="bool or list of str",
         header="Write out the column names. If a list of columns "
@@ -2796,6 +2800,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         to_feather(self, path, **kwargs)
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_markdown"
+    )
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
@@ -2909,10 +2916,7 @@ class DataFrame(NDFrame, OpsMixin):
             'pyarrow' is unavailable.
         compression : str or None, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
-            The supported compression methods actually depend on which engine
-            is used. For 'pyarrow', 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'
-            are all supported. For 'fastparquet', only 'gzip' and 'snappy' are
-            supported.
+            Supported options: 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -3416,7 +3420,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
-        TreeBuilder: type[EtreeXMLFormatter] | type[LxmlXMLFormatter]
+        TreeBuilder: type[EtreeXMLFormatter | LxmlXMLFormatter]
 
         if parser == "lxml":
             if lxml is not None:
@@ -11109,14 +11113,20 @@ class DataFrame(NDFrame, OpsMixin):
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)
 
+        dtype_has_keepdims: dict[ExtensionDtype, bool] = {}
+
         def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
                 if not is_1d_only_ea_dtype(values.dtype) and not isinstance(
                     self._mgr, ArrayManager
                 ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                sign = signature(values._reduce)
-                if "keepdims" in sign.parameters:
+                has_keepdims = dtype_has_keepdims.get(values.dtype)
+                if has_keepdims is None:
+                    sign = signature(values._reduce)
+                    has_keepdims = "keepdims" in sign.parameters
+                    dtype_has_keepdims[values.dtype] = has_keepdims
+                if has_keepdims:
                     return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
                 else:
                     warnings.warn(
@@ -11166,6 +11176,32 @@ class DataFrame(NDFrame, OpsMixin):
                 ).iloc[:0]
                 result.index = df.index
                 return result
+
+            # kurtosis excluded since groupby does not implement it
+            if df.shape[1] and name != "kurt":
+                dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
+                if isinstance(dtype, ExtensionDtype):
+                    # GH 54341: fastpath for EA-backed axis=1 reductions
+                    # This flattens the frame into a single 1D array while keeping
+                    # track of the row and column indices of the original frame. Once
+                    # flattened, grouping by the row indices and aggregating should
+                    # be equivalent to transposing the original frame and aggregating
+                    # with axis=0.
+                    name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
+                    df = df.astype(dtype, copy=False)
+                    arr = concat_compat(list(df._iter_column_arrays()))
+                    nrows, ncols = df.shape
+                    row_index = np.tile(np.arange(nrows), ncols)
+                    col_index = np.repeat(np.arange(ncols), nrows)
+                    ser = Series(arr, index=col_index, copy=False)
+                    result = ser.groupby(row_index).agg(name, **kwds)
+                    result.index = df.index
+                    if not skipna and name not in ("any", "all"):
+                        mask = df.isna().to_numpy(dtype=np.bool_).any(axis=1)
+                        other = -1 if name in ("idxmax", "idxmin") else lib.no_default
+                        result = result.mask(mask, other)
+                    return result
+
             df = df.T
 
         # After possibly _get_data and transposing, we are now in the
