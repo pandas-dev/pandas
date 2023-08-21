@@ -832,9 +832,6 @@ The following table summarizes the results of merging ``Categoricals``:
 | category (int)    | category (float)       | False                | float (dtype is inferred)   |
 +-------------------+------------------------+----------------------+-----------------------------+
 
-See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about
-preserving merge dtypes and performance.
-
 .. _categorical.union:
 
 Unioning
