@@ -347,7 +347,7 @@ Enhancements
       .. ipython:: python
 
           df = pd.DataFrame({'A': range(5), 'B': range(5)})
-          df.to_hdf('store.h5', 'table', append=True)
+          df.to_hdf('store.h5', key='table', append=True)
           pd.read_hdf('store.h5', 'table', where=['index > 2'])
 
       .. ipython:: python
