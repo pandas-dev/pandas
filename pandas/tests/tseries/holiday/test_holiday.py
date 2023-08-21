@@ -313,13 +313,20 @@ def test_half_open_interval_with_observance():
     tm.assert_index_equal(date_window_edge, expected_results)
     tm.assert_index_equal(date_interval_high, expected_results)
 
+
 def test_holidays_with_timezone_specified_but_no_occurences():
     # GH 54580
     # _apply_rule() in holiday.py was silently dropping timezones if you passed it
     # an empty list of holiday dates that had timezone information
-    TestCalendar = USFederalHolidayCalendar()
-    start_date = Timestamp('2018-01-01', tz = 'America/Chicago')
-    end_date = Timestamp('2018-01-11', tz = 'America/Chicago')
-    expected_results = DatetimeIndex(['2018-01-01 00:00:00-06:00'], dtype='datetime64[ns, America/Chicago]', freq=None)
+    USFederalHolidayCalendar()
+    start_date = Timestamp("2018-01-01", tz="America/Chicago")
+    end_date = Timestamp("2018-01-11", tz="America/Chicago")
+    expected_results = DatetimeIndex(
+        ["2018-01-01 00:00:00-06:00"],
+        dtype="datetime64[ns, America/Chicago]",
+        freq=None,
+    )
 
-    tm.assert_equal(USFederalHolidayCalendar().holidays(start_date, end_date), expected_results)
+    tm.assert_equal(
+        USFederalHolidayCalendar().holidays(start_date, end_date), expected_results
+    )
