@@ -458,6 +458,14 @@ class TestGetitemSlice:
         ):
             df["2011-01-01":"2011-11-01"]
 
+    def test_getitem_slice_same_dim_only_one_axis(self):
+        # GH#54622
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 8)))
+        result = df.iloc[(slice(None, None, 2),)]
+        assert result.shape == (5, 8)
+        expected = df.iloc[slice(None, None, 2), slice(None)]
+        tm.assert_frame_equal(result, expected)
+
 
 class TestGetitemDeprecatedIndexers:
     @pytest.mark.parametrize("key", [{"a", "b"}, {"a": "a"}])

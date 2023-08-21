@@ -985,8 +985,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         retval = self.obj
         # Selecting columns before rows is signficiantly faster
+        start_val = (self.ndim - len(tup)) + 1
         for i, key in enumerate(reversed(tup)):
-            i = self.ndim - i - 1
+            i = self.ndim - i - start_val
             if com.is_null_slice(key):
                 continue
 
