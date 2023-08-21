@@ -12,6 +12,7 @@ from pandas import (
     Series,
     _testing as tm,
 )
+from pandas.tests.strings import _convert_na_value
 
 
 @pytest.mark.parametrize("method", ["split", "rsplit"])
@@ -20,9 +21,7 @@ def test_split(any_string_dtype, method):
 
     result = getattr(values.str, method)("_")
     exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
-    if values.dtype != object:
-        # GH#18463
-        exp = exp.fillna(pd.NA)
+    exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
 
@@ -32,9 +31,7 @@ def test_split_more_than_one_char(any_string_dtype, method):
     values = Series(["a__b__c", "c__d__e", np.nan, "f__g__h"], dtype=any_string_dtype)
     result = getattr(values.str, method)("__")
     exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
-    if values.dtype != object:
-        # GH#18463
-        exp = exp.fillna(pd.NA)
+    exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
     result = getattr(values.str, method)("__", expand=False)
@@ -46,9 +43,7 @@ def test_split_more_regex_split(any_string_dtype):
     values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
     result = values.str.split("[,_]")
     exp = Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
-    if values.dtype != object:
-        # GH#18463
-        exp = exp.fillna(pd.NA)
+    exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
 
@@ -128,9 +123,7 @@ def test_rsplit(any_string_dtype):
     values = Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
     result = values.str.rsplit("[,_]")
     exp = Series([["a,b_c"], ["c_d,e"], np.nan, ["f,g,h"]])
-    if values.dtype != object:
-        # GH#18463
-        exp = exp.fillna(pd.NA)
+    exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
 
@@ -139,9 +132,7 @@ def test_rsplit_max_number(any_string_dtype):
     values = Series(["a_b_c", "c_d_e", np.nan, "f_g_h"], dtype=any_string_dtype)
     result = values.str.rsplit("_", n=1)
     exp = Series([["a_b", "c"], ["c_d", "e"], np.nan, ["f_g", "h"]])
-    if values.dtype != object:
-        # GH#18463
-        exp = exp.fillna(pd.NA)
+    exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
 
 
@@ -455,9 +446,7 @@ def test_partition_series_more_than_one_char(method, exp, any_string_dtype):
     s = Series(["a__b__c", "c__d__e", np.nan, "f__g__h", None], dtype=any_string_dtype)
     result = getattr(s.str, method)("__", expand=False)
     expected = Series(exp)
-    if s.dtype != object:
-        # GH#18463
-        expected = expected.fillna(pd.NA)
+    expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
 
@@ -480,9 +469,7 @@ def test_partition_series_none(any_string_dtype, method, exp):
     s = Series(["a b c", "c d e", np.nan, "f g h", None], dtype=any_string_dtype)
     result = getattr(s.str, method)(expand=False)
     expected = Series(exp)
-    if s.dtype != object:
-        # GH#18463
-        expected = expected.fillna(pd.NA)
+    expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
 
@@ -505,9 +492,7 @@ def test_partition_series_not_split(any_string_dtype, method, exp):
     s = Series(["abc", "cde", np.nan, "fgh", None], dtype=any_string_dtype)
     result = getattr(s.str, method)("_", expand=False)
     expected = Series(exp)
-    if s.dtype != object:
-        # GH#18463
-        expected = expected.fillna(pd.NA)
+    expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
 
@@ -531,9 +516,7 @@ def test_partition_series_unicode(any_string_dtype, method, exp):
 
     result = getattr(s.str, method)("_", expand=False)
     expected = Series(exp)
-    if s.dtype != object:
-        # GH#18463
-        expected = expected.fillna(pd.NA)
+    expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
 
