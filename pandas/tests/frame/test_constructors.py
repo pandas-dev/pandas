@@ -2729,6 +2729,11 @@ class TestDataFrameConstructors:
             df = DataFrame({"a": np.array(["a", "b"])})
         tm.assert_frame_equal(df, expected)
 
+        expected = DataFrame({0: ["a", "b"], 1: ["c", "d"]}, dtype=dtype)
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame(np.array([["a", "c"], ["b", "d"]]))
+        tm.assert_frame_equal(df, expected)
+
         expected = DataFrame(
             {"a": ["a", "b"], "b": ["c", "d"]},
             dtype=dtype,
