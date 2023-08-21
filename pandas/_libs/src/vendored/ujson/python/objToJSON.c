@@ -262,21 +262,6 @@ static Py_ssize_t get_attr_length(PyObject *obj, char *attr) {
     return ret;
 }
 
-static int is_simple_frame(PyObject *obj) {
-    PyObject *mgr = PyObject_GetAttrString(obj, "_mgr");
-    if (!mgr) {
-        return 0;
-    }
-    int ret;
-    if (PyObject_HasAttrString(mgr, "blocks")) {
-        ret = (get_attr_length(mgr, "blocks") <= 1);
-    } else {
-        ret = 0;
-    }
-
-    Py_DECREF(mgr);
-    return ret;
-}
 
 static npy_int64 get_long_attr(PyObject *o, const char *attr) {
     // NB we are implicitly assuming that o is a Timedelta or Timestamp, or NaT
@@ -1140,15 +1125,8 @@ int DataFrame_iterNext(JSOBJ obj, JSONTypeContext *tc) {
         GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "index");
     } else if (index == 2) {
         memcpy(GET_TC(tc)->cStr, "data", sizeof(char) * 5);
-        if (is_simple_frame(obj)) {
-            GET_TC(tc)->itemValue = PyObject_GetAttrString(obj, "values");
-            if (!GET_TC(tc)->itemValue) {
-                return 0;
-            }
-        } else {
-            Py_INCREF(obj);
-            GET_TC(tc)->itemValue = obj;
-        }
+        Py_INCREF(obj);
+        GET_TC(tc)->itemValue = obj;
     } else {
         return 0;
     }
@@ -1756,22 +1734,10 @@ ISITERABLE:
             return;
         }
 
-        if (is_simple_frame(obj)) {
-            pc->iterBegin = NpyArr_iterBegin;
-            pc->iterEnd = NpyArr_iterEnd;
-            pc->iterNext = NpyArr_iterNext;
-            pc->iterGetName = NpyArr_iterGetName;
-
-            pc->newObj = PyObject_GetAttrString(obj, "values");
-            if (!pc->newObj) {
-                goto INVALID;
-            }
-        } else {
-            pc->iterBegin = PdBlock_iterBegin;
-            pc->iterEnd = PdBlock_iterEnd;
-            pc->iterNext = PdBlock_iterNext;
-            pc->iterGetName = PdBlock_iterGetName;
-        }
+        pc->iterBegin = PdBlock_iterBegin;
+        pc->iterEnd = PdBlock_iterEnd;
+        pc->iterNext = PdBlock_iterNext;
+        pc->iterGetName = PdBlock_iterGetName;
         pc->iterGetValue = NpyArr_iterGetValue;
 
         if (enc->outputFormat == VALUES) {
