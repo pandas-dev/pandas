@@ -484,7 +484,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
                     mask.view("uint8"),
                     convert=False,
                     na_value=na_value,
-                    dtype=np.dtype(dtype),
+                    dtype=np.dtype(dtype),  # type: ignore[arg-type]
                 )
                 return result
 
