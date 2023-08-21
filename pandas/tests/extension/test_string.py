@@ -168,6 +168,17 @@ class TestReduce(base.BaseReduceTests):
         with pytest.raises(TypeError):
             getattr(ser, op_name)(skipna=skipna)
 
+    def check_reduce(self, s, op_name, skipna):
+        res_op = getattr(s, op_name)
+        alt = s.astype("object")
+        exp_op = getattr(alt, op_name)
+        result = res_op(skipna=skipna)
+        expected = exp_op(skipna=skipna)
+        tm.assert_almost_equal(result, expected)
+
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return obj.dtype.storage == "pyarrow_numpy"
+
 
 class TestMethods(base.BaseMethodsTests):
     pass
