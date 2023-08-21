@@ -8,7 +8,6 @@ from typing import (
 )
 
 cimport cython
-from cpython cimport PyErr_Clear
 from cpython.datetime cimport (
     PyDate_Check,
     PyDateTime_Check,
@@ -1243,11 +1242,13 @@ def is_null_slice(obj):
     """
     cdef Py_ssize_t start, stop, step
     if isinstance(obj, slice):
-        if PySlice_Unpack(obj, &start, &stop, &step) == 0:
-            if start == 0 and stop == PY_SSIZE_T_MAX and step == 1:
-                return True
-        else:
-            PyErr_Clear()
+        try:
+            PySlice_Unpack(obj, &start, &stop, &step)
+        except TypeError:
+            return False
+
+        if start == 0 and stop == PY_SSIZE_T_MAX and step == 1:
+            return True
 
     return False
 
