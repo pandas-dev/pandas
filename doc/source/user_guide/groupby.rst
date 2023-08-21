@@ -211,9 +211,9 @@ For example, the groups created by ``groupby()`` below are in the order they app
 .. ipython:: python
 
    df3 = pd.DataFrame({"X": ["A", "B", "A", "B"], "Y": [1, 4, 3, 2]})
-   df3.groupby(["X"]).get_group("A")
+   df3.groupby("X").get_group("A")
 
-   df3.groupby(["X"]).get_group("B")
+   df3.groupby(["X"]).get_group(("B",))
 
 
 .. _groupby.dropna:
