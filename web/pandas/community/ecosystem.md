@@ -518,8 +518,8 @@ which work well with pandas' data containers.
 
 Awkward-pandas provides an extension type for storing [Awkward
 Arrays](https://awkward-array.org/) inside pandas' Series and
-DataFrame. It also provides an accessor to operate on Series that are
-backed by awkward arrays.
+DataFrame. It also provides an accessor for using awkward functions
+on Series that are of awkward type.
 
 ### [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)
 
@@ -560,6 +560,7 @@ authors to coordinate on the namespace.
 
   | Library                                                              | Accessor   | Classes               |
   | -------------------------------------------------------------------- | ---------- | --------------------- |
+  | [awkward-pandas](https://awkward-pandas.readthedocs.io/en/latest/)   | `ak`       | `Series`              |
   | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)          | `ip`       | `Series`              |
   | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
