@@ -9874,6 +9874,8 @@ class DataFrame(NDFrame, OpsMixin):
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
         by_row: Literal[False, "compat"] = "compat",
+        engine: str = "python",
+        engine_kwargs: dict = {},
         **kwargs,
     ):
         """
@@ -9933,6 +9935,27 @@ class DataFrame(NDFrame, OpsMixin):
             If False, the funcs will be passed the whole Series at once.
 
             .. versionadded:: 2.1.0
+
+        engine: {'python', 'numba'}, default 'python'
+            Choose between the python (default) engine or the numba engine in apply.
+
+            The numba engine will attempt to JIT compile the passed function,
+            which may result in speedups for large DataFrames.
+            It also supports the following engine_kwargs
+                - nopython (compile the function in nopython mode)
+                - nogil (release the GIL inside the JIT compiled function)
+                - parallel (try to apply the function in parallel over the DataFrame)
+
+            .. note::
+
+               As of right now, the numba engine can only be used with raw=True.
+
+            .. versionadded:: 2.2.0
+
+        engine_kwargs: dict
+            Pass keyword arguments to the engine.
+            This is currently only used by the numba engine,
+            see the documentation for the engine argument for more information.
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -10033,6 +10056,8 @@ class DataFrame(NDFrame, OpsMixin):
             raw=raw,
             result_type=result_type,
             by_row=by_row,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
             args=args,
             kwargs=kwargs,
         )
