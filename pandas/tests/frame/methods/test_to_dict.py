@@ -494,3 +494,13 @@ class TestDataFrameToDict:
         df = DataFrame({"a": Series([1, NA], dtype="Int64"), "B": 1})
         result = df.to_dict(orient="records")
         assert isinstance(result[0]["a"], int)
+
+    def test_to_dict_pos_args_deprecation(self):
+        # GH-54229
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"Starting with pandas version 3.0 all arguments of to_dict except for the "
+            r"argument 'orient' will be keyword-only."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_dict("records", {})
