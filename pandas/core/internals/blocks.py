@@ -460,7 +460,13 @@ class Block(PandasObject, libinternals.Block):
 
         # In a future version of pandas, the default will be that
         # setting `nan` into an integer series won't raise.
-        if is_scalar(other) and is_integer_dtype(self.values.dtype):
+        if is_scalar(other) and (
+            is_integer_dtype(self.values.dtype)
+            or (
+                isinstance(self.values.dtype, IntervalDtype)
+                and is_integer_dtype(self.values.dtype.subtype)
+            )
+        ):
             try:
                 is_nan = np.isnan(other)
             except TypeError:
