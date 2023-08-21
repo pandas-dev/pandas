@@ -203,7 +203,7 @@ class TestFrameComparisons:
                 "dates2": pd.date_range("20010102", periods=10),
                 "intcol": np.random.default_rng(2).integers(1000000000, size=10),
                 "floatcol": np.random.default_rng(2).standard_normal(10),
-                "stringcol": list(tm.rands(10)),
+                "stringcol": [chr(100 + i) for i in range(10)],
             }
         )
         df.loc[np.random.default_rng(2).random(len(df)) > 0.5, "dates2"] = pd.NaT
@@ -1766,7 +1766,12 @@ class TestFrameArithmeticUnsorted:
         [
             "add",
             "and",
-            "div",
+            pytest.param(
+                "div",
+                marks=pytest.mark.xfail(
+                    raises=AttributeError, reason="__idiv__ not implemented"
+                ),
+            ),
             "floordiv",
             "mod",
             "mul",
@@ -1778,9 +1783,6 @@ class TestFrameArithmeticUnsorted:
         ],
     )
     def test_inplace_ops_identity2(self, op):
-        if op == "div":
-            return
-
         df = DataFrame({"a": [1.0, 2.0, 3.0], "b": [1, 2, 3]})
 
         operand = 2

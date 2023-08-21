@@ -2,7 +2,6 @@
 Testing that we work in the downstream packages
 """
 import array
-import importlib
 import subprocess
 import sys
 
@@ -28,16 +27,6 @@ from pandas.core.arrays.datetimes import _sequence_to_dt64ns
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
-def import_module(name):
-    # we *only* want to skip if the module is truly not available
-    # and NOT just an actual import error because of pandas changes
-
-    try:
-        return importlib.import_module(name)
-    except ModuleNotFoundError:
-        pytest.skip(f"skipping as {name} not available")
-
-
 @pytest.fixture
 def df():
     return DataFrame({"A": [1, 2, 3]})
@@ -49,10 +38,8 @@ def test_dask(df):
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
-        toolz = import_module("toolz")  # noqa: F841
-        dask = import_module("dask")  # noqa: F841
-
-        import dask.dataframe as dd
+        pytest.importorskip("toolz")
+        dd = pytest.importorskip("dask.dataframe")
 
         ddf = dd.from_pandas(df, npartitions=3)
         assert ddf.A is not None
@@ -67,9 +54,8 @@ def test_dask_ufunc():
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
-        dask = import_module("dask")  # noqa: F841
-        import dask.array as da
-        import dask.dataframe as dd
+        da = pytest.importorskip("dask.array")
+        dd = pytest.importorskip("dask.dataframe")
 
         s = Series([1.5, 2.3, 3.7, 4.0])
         ds = dd.from_pandas(s, npartitions=2)
@@ -81,11 +67,10 @@ def test_dask_ufunc():
         pd.set_option("compute.use_numexpr", olduse)
 
 
-@td.skip_if_no("dask")
 def test_construct_dask_float_array_int_dtype_match_ndarray():
     # GH#40110 make sure we treat a float-dtype dask array with the same
     #  rules we would for an ndarray
-    import dask.dataframe as dd
+    dd = pytest.importorskip("dask.dataframe")
 
     arr = np.array([1, 2.5, 3])
     darr = dd.from_array(arr)
@@ -109,17 +94,15 @@ def test_construct_dask_float_array_int_dtype_match_ndarray():
 
 
 def test_xarray(df):
-    xarray = import_module("xarray")  # noqa: F841
+    pytest.importorskip("xarray")
 
     assert df.to_xarray() is not None
 
 
-@td.skip_if_no("cftime")
-@td.skip_if_no("xarray", "0.21.0")
 def test_xarray_cftimeindex_nearest():
     # https://github.com/pydata/xarray/issues/3751
-    import cftime
-    import xarray
+    cftime = pytest.importorskip("cftime")
+    xarray = pytest.importorskip("xarray", minversion="0.21.0")
 
     times = xarray.cftime_range("0001", periods=2)
     key = cftime.DatetimeGregorian(2000, 1, 1)
@@ -151,8 +134,7 @@ def test_oo_optimized_datetime_index_unpickle():
 
 
 def test_statsmodels():
-    statsmodels = import_module("statsmodels")  # noqa: F841
-    import statsmodels.formula.api as smf
+    smf = pytest.importorskip("statsmodels.formula.api")
 
     df = DataFrame(
         {"Lottery": range(5), "Literacy": range(5), "Pop1831": range(100, 105)}
@@ -161,7 +143,7 @@ def test_statsmodels():
 
 
 def test_scikit_learn():
-    sklearn = import_module("sklearn")  # noqa: F841
+    pytest.importorskip("sklearn")
     from sklearn import (
         datasets,
         svm,
@@ -174,7 +156,7 @@ def test_scikit_learn():
 
 
 def test_seaborn():
-    seaborn = import_module("seaborn")
+    seaborn = pytest.importorskip("seaborn")
     tips = DataFrame(
         {"day": pd.date_range("2023", freq="D", periods=5), "total_bill": range(5)}
     )
@@ -184,15 +166,14 @@ def test_seaborn():
 def test_pandas_gbq():
     # Older versions import from non-public, non-existent pandas funcs
     pytest.importorskip("pandas_gbq", minversion="0.10.0")
-    pandas_gbq = import_module("pandas_gbq")  # noqa: F841
 
 
 def test_pandas_datareader():
-    pandas_datareader = import_module("pandas_datareader")  # noqa: F841
+    pytest.importorskip("pandas_datareader")
 
 
 def test_pyarrow(df):
-    pyarrow = import_module("pyarrow")
+    pyarrow = pytest.importorskip("pyarrow")
     table = pyarrow.Table.from_pandas(df)
     result = table.to_pandas()
     tm.assert_frame_equal(result, df)
@@ -200,7 +181,7 @@ def test_pyarrow(df):
 
 def test_yaml_dump(df):
     # GH#42748
-    yaml = import_module("yaml")
+    yaml = pytest.importorskip("yaml")
 
     dumped = yaml.dump(df)
 
@@ -256,9 +237,7 @@ def test_frame_setitem_dask_array_into_new_col():
     olduse = pd.get_option("compute.use_numexpr")
 
     try:
-        dask = import_module("dask")  # noqa: F841
-
-        import dask.array as da
+        da = pytest.importorskip("dask.array")
 
         dda = da.array([1, 2])
         df = DataFrame({"a": ["a", "b"]})
@@ -352,4 +331,43 @@ def test_from_obscure_array(dtype, array_likes):
     idx_cls = {"M8[ns]": DatetimeIndex, "m8[ns]": TimedeltaIndex}[dtype]
     result = idx_cls(arr)
     expected = idx_cls(data)
+    tm.assert_index_equal(result, expected)
+
+
+def test_dataframe_consortium() -> None:
+    """
+    Test some basic methods of the dataframe consortium standard.
+
+    Full testing is done at https://github.com/data-apis/dataframe-api-compat,
+    this is just to check that the entry point works as expected.
+    """
+    pytest.importorskip("dataframe_api_compat")
+    df_pd = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df = df_pd.__dataframe_consortium_standard__()
+    result_1 = df.get_column_names()
+    expected_1 = ["a", "b"]
+    assert result_1 == expected_1
+
+    ser = Series([1, 2, 3])
+    col = ser.__column_consortium_standard__()
+    result_2 = col.get_value(1)
+    expected_2 = 2
+    assert result_2 == expected_2
+
+
+def test_xarray_coerce_unit():
+    # GH44053
+    xr = pytest.importorskip("xarray")
+
+    arr = xr.DataArray([1, 2, 3])
+    result = pd.to_datetime(arr, unit="ns")
+    expected = DatetimeIndex(
+        [
+            "1970-01-01 00:00:00.000000001",
+            "1970-01-01 00:00:00.000000002",
+            "1970-01-01 00:00:00.000000003",
+        ],
+        dtype="datetime64[ns]",
+        freq=None,
+    )
     tm.assert_index_equal(result, expected)

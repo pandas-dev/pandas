@@ -889,3 +889,14 @@ with cf.config_prefix("styler"):
         styler_environment,
         validator=is_instance_factory([type(None), str]),
     )
+
+
+with cf.config_prefix("future"):
+    cf.register_option(
+        "infer_string",
+        False,
+        "Whether to infer sequence of str objects as pyarrow string "
+        "dtype, which will be the default in pandas 3.0 "
+        "(at which point this option will be deprecated).",
+        validator=is_one_of_factory([True, False]),
+    )

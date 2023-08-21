@@ -4220,7 +4220,7 @@ similar to how ``read_csv`` and ``to_csv`` work.
 .. ipython:: python
 
    df_tl = pd.DataFrame({"A": list(range(5)), "B": list(range(5))})
-   df_tl.to_hdf("store_tl.h5", "table", append=True)
+   df_tl.to_hdf("store_tl.h5", key="table", append=True)
    pd.read_hdf("store_tl.h5", "table", where=["index>2"])
 
 .. ipython:: python
@@ -4243,12 +4243,12 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
    )
    df_with_missing
 
-   df_with_missing.to_hdf("file.h5", "df_with_missing", format="table", mode="w")
+   df_with_missing.to_hdf("file.h5", key="df_with_missing", format="table", mode="w")
 
    pd.read_hdf("file.h5", "df_with_missing")
 
    df_with_missing.to_hdf(
-       "file.h5", "df_with_missing", format="table", mode="w", dropna=True
+       "file.h5", key="df_with_missing", format="table", mode="w", dropna=True
    )
    pd.read_hdf("file.h5", "df_with_missing")
 
@@ -4278,7 +4278,7 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
    .. ipython:: python
       :okexcept:
 
-      pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", "df")
+      pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", key="df")
       pd.read_hdf("test_fixed.h5", "df", where="index>5")
 
    .. ipython:: python
@@ -4881,7 +4881,7 @@ unspecified columns of the given DataFrame. The argument ``selector``
 defines which table is the selector table (which you can make queries from).
 The argument ``dropna`` will drop rows from the input ``DataFrame`` to ensure
 tables are synchronized.  This means that if a row for one of the tables
-being written to is entirely ``np.NaN``, that row will be dropped from all tables.
+being written to is entirely ``np.nan``, that row will be dropped from all tables.
 
 If ``dropna`` is False, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**.
 Remember that entirely ``np.Nan`` rows are not written to the HDFStore, so if
@@ -5651,7 +5651,7 @@ the database using :func:`~pandas.DataFrame.to_sql`.
    data = pd.DataFrame(d, columns=c)
 
    data
-   data.to_sql("data", engine)
+   data.to_sql("data", con=engine)
 
 With some databases, writing large DataFrames can result in errors due to
 packet size limitations being exceeded. This can be avoided by setting the
@@ -5660,7 +5660,7 @@ writes ``data`` to the database in batches of 1000 rows at a time:
 
 .. ipython:: python
 
-    data.to_sql("data_chunked", engine, chunksize=1000)
+    data.to_sql("data_chunked", con=engine, chunksize=1000)
 
 SQL data types
 ++++++++++++++
@@ -5680,7 +5680,7 @@ default ``Text`` type for string columns:
 
     from sqlalchemy.types import String
 
-    data.to_sql("data_dtype", engine, dtype={"Col_1": String})
+    data.to_sql("data_dtype", con=engine, dtype={"Col_1": String})
 
 .. note::
 
@@ -5849,7 +5849,7 @@ have schema's). For example:
 
 .. code-block:: python
 
-   df.to_sql("table", engine, schema="other_schema")
+   df.to_sql(name="table", con=engine, schema="other_schema")
    pd.read_sql_table("table", engine, schema="other_schema")
 
 Querying
@@ -5876,7 +5876,7 @@ Specifying this will return an iterator through chunks of the query result:
 .. ipython:: python
 
     df = pd.DataFrame(np.random.randn(20, 3), columns=list("abc"))
-    df.to_sql("data_chunks", engine, index=False)
+    df.to_sql(name="data_chunks", con=engine, index=False)
 
 .. ipython:: python
 
@@ -6321,7 +6321,7 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_fixed_write(df):
-       df.to_hdf("test_fixed.hdf", "test", mode="w")
+       df.to_hdf("test_fixed.hdf", key="test", mode="w")
 
 
    def test_hdf_fixed_read():
@@ -6329,7 +6329,7 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_fixed_write_compress(df):
-       df.to_hdf("test_fixed_compress.hdf", "test", mode="w", complib="blosc")
+       df.to_hdf("test_fixed_compress.hdf", key="test", mode="w", complib="blosc")
 
 
    def test_hdf_fixed_read_compress():
@@ -6337,7 +6337,7 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_table_write(df):
-       df.to_hdf("test_table.hdf", "test", mode="w", format="table")
+       df.to_hdf("test_table.hdf", key="test", mode="w", format="table")
 
 
    def test_hdf_table_read():
@@ -6346,7 +6346,7 @@ The following test functions will be used below to compare the performance of se
 
    def test_hdf_table_write_compress(df):
        df.to_hdf(
-           "test_table_compress.hdf", "test", mode="w", complib="blosc", format="table"
+           "test_table_compress.hdf", key="test", mode="w", complib="blosc", format="table"
        )
 
 

@@ -157,6 +157,11 @@ if TYPE_CHECKING:
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
 
 
+def _make_unpacked_invalid_op(op_name: str):
+    op = make_invalid_op(op_name)
+    return unpack_zerodim_and_defer(op_name)(op)
+
+
 def _period_dispatch(meth: F) -> F:
     """
     For PeriodArray methods, dispatch to DatetimeArray and re-wrap the results
@@ -979,18 +984,18 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
     # pow is invalid for all three subclasses; TimedeltaArray will override
     #  the multiplication and division ops
-    __pow__ = make_invalid_op("__pow__")
-    __rpow__ = make_invalid_op("__rpow__")
-    __mul__ = make_invalid_op("__mul__")
-    __rmul__ = make_invalid_op("__rmul__")
-    __truediv__ = make_invalid_op("__truediv__")
-    __rtruediv__ = make_invalid_op("__rtruediv__")
-    __floordiv__ = make_invalid_op("__floordiv__")
-    __rfloordiv__ = make_invalid_op("__rfloordiv__")
-    __mod__ = make_invalid_op("__mod__")
-    __rmod__ = make_invalid_op("__rmod__")
-    __divmod__ = make_invalid_op("__divmod__")
-    __rdivmod__ = make_invalid_op("__rdivmod__")
+    __pow__ = _make_unpacked_invalid_op("__pow__")
+    __rpow__ = _make_unpacked_invalid_op("__rpow__")
+    __mul__ = _make_unpacked_invalid_op("__mul__")
+    __rmul__ = _make_unpacked_invalid_op("__rmul__")
+    __truediv__ = _make_unpacked_invalid_op("__truediv__")
+    __rtruediv__ = _make_unpacked_invalid_op("__rtruediv__")
+    __floordiv__ = _make_unpacked_invalid_op("__floordiv__")
+    __rfloordiv__ = _make_unpacked_invalid_op("__rfloordiv__")
+    __mod__ = _make_unpacked_invalid_op("__mod__")
+    __rmod__ = _make_unpacked_invalid_op("__rmod__")
+    __divmod__ = _make_unpacked_invalid_op("__divmod__")
+    __rdivmod__ = _make_unpacked_invalid_op("__rdivmod__")
 
     @final
     def _get_i8_values_and_mask(

@@ -201,7 +201,7 @@ class TestLoc:
         df = DataFrame(
             data={
                 "channel": [1, 2, 3],
-                "A": ["String 1", np.NaN, "String 2"],
+                "A": ["String 1", np.nan, "String 2"],
                 "B": [
                     Timestamp("2019-06-11 11:00:00"),
                     pd.NaT,
@@ -1292,11 +1292,10 @@ class TestLocBaseIndependent:
 
     @pytest.mark.parametrize("spmatrix_t", ["coo_matrix", "csc_matrix", "csr_matrix"])
     @pytest.mark.parametrize("dtype", [np.int64, np.float64, complex])
-    @td.skip_if_no_scipy
     def test_loc_getitem_range_from_spmatrix(self, spmatrix_t, dtype):
-        import scipy.sparse
+        sp_sparse = pytest.importorskip("scipy.sparse")
 
-        spmatrix_t = getattr(scipy.sparse, spmatrix_t)
+        spmatrix_t = getattr(sp_sparse, spmatrix_t)
 
         # The bug is triggered by a sparse matrix with purely sparse columns.  So the
         # recipe below generates a rectangular matrix of dimension (5, 7) where all the
@@ -1321,12 +1320,11 @@ class TestLocBaseIndependent:
         result = df.loc[[0, 1]]
         tm.assert_frame_equal(result, df)
 
-    @td.skip_if_no_scipy
     def test_loc_getitem_sparse_frame(self):
         # GH34687
-        from scipy.sparse import eye
+        sp_sparse = pytest.importorskip("scipy.sparse")
 
-        df = DataFrame.sparse.from_spmatrix(eye(5))
+        df = DataFrame.sparse.from_spmatrix(sp_sparse.eye(5))
         result = df.loc[range(2)]
         expected = DataFrame(
             [[1.0, 0.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0, 0.0]],
@@ -2101,7 +2099,7 @@ class TestLocSetitemWithExpansion:
     def test_loc_setitem_with_expansion_nonunique_index(self, index):
         # GH#40096
         if not len(index):
-            return
+            pytest.skip("Not relevant for empty Index")
 
         index = index.repeat(2)  # ensure non-unique
         N = len(index)
@@ -2646,6 +2644,13 @@ class TestLocBooleanMask:
         df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
         expected = df.copy()
         df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"]
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_indexer_length_one(self):
+        # GH#51435
+        df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
+        expected = DataFrame({"a": ["y"], "b": ["y"]}, dtype=object)
+        df.loc[np.array([True], dtype=np.bool_), ["a"]] = df["b"]
         tm.assert_frame_equal(df, expected)
 
 

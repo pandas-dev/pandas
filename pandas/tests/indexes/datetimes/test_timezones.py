@@ -538,8 +538,8 @@ class TestDatetimeIndexTimezones:
 
         times = [
             "11/06/2011 00:00",
-            np.NaN,
-            np.NaN,
+            np.nan,
+            np.nan,
             "11/06/2011 02:00",
             "11/06/2011 03:00",
         ]

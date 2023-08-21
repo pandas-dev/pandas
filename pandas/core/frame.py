@@ -64,6 +64,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -932,6 +933,21 @@ class DataFrame(NDFrame, OpsMixin):
 
         return PandasDataFrameXchg(self, nan_as_null, allow_copy)
 
+    def __dataframe_consortium_standard__(
+        self, *, api_version: str | None = None
+    ) -> Any:
+        """
+        Provide entry point to the Consortium DataFrame Standard API.
+
+        This is developed and maintained outside of pandas.
+        Please report any issues to https://github.com/data-apis/dataframe-api-compat.
+        """
+        dataframe_api_compat = import_optional_dependency("dataframe_api_compat")
+        convert_to_standard_compliant_dataframe = (
+            dataframe_api_compat.pandas_standard.convert_to_standard_compliant_dataframe
+        )
+        return convert_to_standard_compliant_dataframe(self, api_version=api_version)
+
     # ----------------------------------------------------------------------
 
     @property
@@ -1214,6 +1230,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_string"
+    )
     @Substitution(
         header_type="bool or list of str",
         header="Write out the column names. If a list of columns "
@@ -1781,7 +1800,7 @@ class DataFrame(NDFrame, OpsMixin):
         if orient == "index":
             if len(data) > 0:
                 # TODO speed up Series case
-                if isinstance(list(data.values())[0], (Series, dict)):
+                if isinstance(next(iter(data.values())), (Series, dict)):
                     data = _from_nested_dict(data)
                 else:
                     index = list(data.keys())
@@ -2781,6 +2800,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         to_feather(self, path, **kwargs)
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_markdown"
+    )
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
@@ -2894,10 +2916,7 @@ class DataFrame(NDFrame, OpsMixin):
             'pyarrow' is unavailable.
         compression : str or None, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
-            The supported compression methods actually depend on which engine
-            is used. For 'pyarrow', 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'
-            are all supported. For 'fastparquet', only 'gzip' and 'snappy' are
-            supported.
+            Supported options: 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -3176,8 +3195,29 @@ class DataFrame(NDFrame, OpsMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
-        >>> df.to_html()  # doctest: +SKIP
+        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [4, 3]})
+        >>> html_string = '''<table border="1" class="dataframe">
+        ...   <thead>
+        ...     <tr style="text-align: right;">
+        ...       <th></th>
+        ...       <th>col1</th>
+        ...       <th>col2</th>
+        ...     </tr>
+        ...   </thead>
+        ...   <tbody>
+        ...     <tr>
+        ...       <th>0</th>
+        ...       <td>1</td>
+        ...       <td>4</td>
+        ...     </tr>
+        ...     <tr>
+        ...       <th>1</th>
+        ...       <td>2</td>
+        ...       <td>3</td>
+        ...     </tr>
+        ...   </tbody>
+        ... </table>'''
+        >>> assert html_string == df.to_html()
         """
         if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
@@ -3380,7 +3420,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
-        TreeBuilder: type[EtreeXMLFormatter] | type[LxmlXMLFormatter]
+        TreeBuilder: type[EtreeXMLFormatter | LxmlXMLFormatter]
 
         if parser == "lxml":
             if lxml is not None:
@@ -10991,9 +11031,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        Series or DataFrame
+        Series
             For each column/row the number of non-NA/null entries.
-            If `level` is specified returns a `DataFrame`.
 
         See Also
         --------
@@ -11051,7 +11090,7 @@ class DataFrame(NDFrame, OpsMixin):
         else:
             result = notna(frame).sum(axis=axis)
 
-        return result.astype("int64").__finalize__(self, method="count")
+        return result.astype("int64", copy=False).__finalize__(self, method="count")
 
     def _reduce(
         self,
@@ -11074,14 +11113,20 @@ class DataFrame(NDFrame, OpsMixin):
             # We only use this in the case that operates on self.values
             return op(values, axis=axis, skipna=skipna, **kwds)
 
+        dtype_has_keepdims: dict[ExtensionDtype, bool] = {}
+
         def blk_func(values, axis: Axis = 1):
             if isinstance(values, ExtensionArray):
                 if not is_1d_only_ea_dtype(values.dtype) and not isinstance(
                     self._mgr, ArrayManager
                 ):
                     return values._reduce(name, axis=1, skipna=skipna, **kwds)
-                sign = signature(values._reduce)
-                if "keepdims" in sign.parameters:
+                has_keepdims = dtype_has_keepdims.get(values.dtype)
+                if has_keepdims is None:
+                    sign = signature(values._reduce)
+                    has_keepdims = "keepdims" in sign.parameters
+                    dtype_has_keepdims[values.dtype] = has_keepdims
+                if has_keepdims:
                     return values._reduce(name, skipna=skipna, keepdims=True, **kwds)
                 else:
                     warnings.warn(
@@ -11131,6 +11176,32 @@ class DataFrame(NDFrame, OpsMixin):
                 ).iloc[:0]
                 result.index = df.index
                 return result
+
+            # kurtosis excluded since groupby does not implement it
+            if df.shape[1] and name != "kurt":
+                dtype = find_common_type([arr.dtype for arr in df._mgr.arrays])
+                if isinstance(dtype, ExtensionDtype):
+                    # GH 54341: fastpath for EA-backed axis=1 reductions
+                    # This flattens the frame into a single 1D array while keeping
+                    # track of the row and column indices of the original frame. Once
+                    # flattened, grouping by the row indices and aggregating should
+                    # be equivalent to transposing the original frame and aggregating
+                    # with axis=0.
+                    name = {"argmax": "idxmax", "argmin": "idxmin"}.get(name, name)
+                    df = df.astype(dtype, copy=False)
+                    arr = concat_compat(list(df._iter_column_arrays()))
+                    nrows, ncols = df.shape
+                    row_index = np.tile(np.arange(nrows), ncols)
+                    col_index = np.repeat(np.arange(ncols), nrows)
+                    ser = Series(arr, index=col_index, copy=False)
+                    result = ser.groupby(row_index).agg(name, **kwds)
+                    result.index = df.index
+                    if not skipna and name not in ("any", "all"):
+                        mask = df.isna().to_numpy(dtype=np.bool_).any(axis=1)
+                        other = -1 if name in ("idxmax", "idxmin") else lib.no_default
+                        result = result.mask(mask, other)
+                    return result
+
             df = df.T
 
         # After possibly _get_data and transposing, we are now in the

@@ -1003,7 +1003,7 @@ def raise_on_incompatible(left, right):
 
 def period_array(
     data: Sequence[Period | str | None] | AnyArrayLike,
-    freq: str | Tick | None = None,
+    freq: str | Tick | BaseOffset | None = None,
     copy: bool = False,
 ) -> PeriodArray:
     """

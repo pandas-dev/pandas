@@ -173,7 +173,7 @@ class TestSetitemDT64Values:
 
 class TestSetitemScalarIndexer:
     def test_setitem_negative_out_of_bounds(self):
-        ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
+        ser = Series(["a"] * 10, index=["a"] * 10)
 
         msg = "index -11 is out of bounds for axis 0 with size 10"
         warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
@@ -422,11 +422,10 @@ class TestSetitemBooleanMask:
         ser2.mask(mask, alt, inplace=True)
         tm.assert_series_equal(ser2, expected)
 
-        # FIXME: don't leave commented-out
-        # FIXME: ser.where(~mask, alt) unnecessarily upcasts to int64
-        # ser3 = orig.copy()
-        # res = ser3.where(~mask, alt)
-        # tm.assert_series_equal(res, expected)
+        # TODO: ser.where(~mask, alt) unnecessarily upcasts to int64
+        ser3 = orig.copy()
+        res = ser3.where(~mask, alt)
+        tm.assert_series_equal(res, expected, check_dtype=False)
 
 
 class TestSetitemViewCopySemantics:
@@ -750,7 +749,7 @@ class SetitemCastingEquivalents:
 
     def test_int_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
         if not isinstance(key, int):
-            return
+            pytest.skip("Not relevant for int key")
 
         with tm.assert_produces_warning(warn, match="incompatible dtype"):
             self.check_indexer(obj, key, expected, val, indexer_sli, is_inplace)
@@ -786,7 +785,7 @@ class SetitemCastingEquivalents:
 
     def test_slice_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
         if not isinstance(key, slice):
-            return
+            pytest.skip("Not relevant for slice key")
 
         if indexer_sli is not tm.loc:
             # Note: no .loc because that handles slice edges differently
@@ -1437,7 +1436,7 @@ class TestCoercionFloat32(CoercionTest):
     def test_slice_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
         super().test_slice_key(obj, key, expected, warn, val, indexer_sli, is_inplace)
 
-        if type(val) is float:
+        if isinstance(val, float):
             # the xfail would xpass bc test_slice_key short-circuits
             raise AssertionError("xfail not relevant for this test.")
 

@@ -39,7 +39,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -264,9 +263,7 @@ class BaseBlockManager(DataManager):
             return
         for i, blk in enumerate(self.blocks):
             blk.refs = mgr.blocks[i].refs
-            # Argument 1 to "add_reference" of "BlockValuesRefs" has incompatible type
-            # "Block"; expected "SharedBlock"
-            blk.refs.add_reference(blk)  # type: ignore[arg-type]
+            blk.refs.add_reference(blk)
 
     def references_same_values(self, mgr: BaseBlockManager, blkno: int) -> bool:
         """
@@ -371,8 +368,30 @@ class BaseBlockManager(DataManager):
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
         if using_copy_on_write() and not self._has_no_reference(0):
-            # if being referenced -> perform Copy-on-Write and clear the reference
             # this method is only called if there is a single block -> hardcoded 0
+            # Split blocks to only copy the columns we want to modify
+            if self.ndim == 2 and isinstance(indexer, tuple):
+                blk_loc = self.blklocs[indexer[1]]
+                if is_list_like(blk_loc) and blk_loc.ndim == 2:
+                    blk_loc = np.squeeze(blk_loc, axis=0)
+                elif not is_list_like(blk_loc):
+                    # Keep dimension and copy data later
+                    blk_loc = [blk_loc]  # type: ignore[assignment]
+                if len(blk_loc) == 0:
+                    return self.copy(deep=False)
+
+                values = self.blocks[0].values
+                if values.ndim == 2:
+                    values = values[blk_loc]
+                    # "T" has no attribute "_iset_split_block"
+                    self._iset_split_block(  # type: ignore[attr-defined]
+                        0, blk_loc, values
+                    )
+                    # first block equals values
+                    self.blocks[0].setitem((indexer[0], np.arange(len(blk_loc))), value)
+                    return self
+            # No need to split if we either set all columns or on a single block
+            # manager
             self = self.copy()
 
         return self.apply("setitem", indexer=indexer, value=value)
@@ -547,7 +566,10 @@ class BaseBlockManager(DataManager):
 
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
-            new_axes = list(self.axes)
+            if using_copy_on_write():
+                new_axes = [ax.view() for ax in self.axes]
+            else:
+                new_axes = list(self.axes)
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
@@ -671,6 +693,7 @@ class BaseBlockManager(DataManager):
         only_slice: bool = False,
         *,
         use_na_proxy: bool = False,
+        ref_inplace_op: bool = False,
     ) -> list[Block]:
         """
         Slice/take blocks along axis=0.
@@ -686,6 +709,8 @@ class BaseBlockManager(DataManager):
             This is used when called from ops.blockwise.operate_blockwise.
         use_na_proxy : bool, default False
             Whether to use a np.void ndarray for newly introduced columns.
+        ref_inplace_op: bool, default False
+            Don't track refs if True because we operate inplace
 
         Returns
         -------
@@ -716,7 +741,9 @@ class BaseBlockManager(DataManager):
                     #  views instead of copies
                     blocks = [
                         blk.getitem_block_columns(
-                            slice(ml, ml + 1), new_mgr_locs=BlockPlacement(i)
+                            slice(ml, ml + 1),
+                            new_mgr_locs=BlockPlacement(i),
+                            ref_inplace_op=ref_inplace_op,
                         )
                         for i, ml in enumerate(slobj)
                     ]
@@ -940,7 +967,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         n = len(self)
 
         # GH#46406
-        immutable_ea = isinstance(dtype, SparseDtype)
+        immutable_ea = isinstance(dtype, ExtensionDtype) and dtype._is_immutable
 
         if isinstance(dtype, ExtensionDtype) and not immutable_ea:
             cls = dtype.construct_array_type()
@@ -1378,7 +1405,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         is_deleted[indexer] = True
         taker = (~is_deleted).nonzero()[0]
 
-        nbs = self._slice_take_blocks_ax0(taker, only_slice=True)
+        nbs = self._slice_take_blocks_ax0(taker, only_slice=True, ref_inplace_op=True)
         new_columns = self.items[~is_deleted]
         axes = [new_columns, self.axes[1]]
         return type(self)(tuple(nbs), axes, verify_integrity=False)

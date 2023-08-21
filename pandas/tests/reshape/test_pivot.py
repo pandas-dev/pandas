@@ -1950,7 +1950,7 @@ class TestPivotTable:
 
         result = df.pivot_table("col1", index="col3", columns="col2", aggfunc="sum")
         expected = DataFrame(
-            [[3, np.NaN, np.NaN], [np.NaN, 4, np.NaN], [np.NaN, np.NaN, 5]],
+            [[3, np.nan, np.nan], [np.nan, 4, np.nan], [np.nan, np.nan, 5]],
             index=Index([1, 3, 9], name="col3"),
             columns=Index(["C", "D", "E"], name="col2"),
         )
@@ -2424,7 +2424,7 @@ class TestPivotTable:
             ],
             names=(None, None, "b"),
         )
-        nparr = np.full((10, 10), np.NaN)
+        nparr = np.full((10, 10), np.nan)
         np.fill_diagonal(nparr, 1.0)
 
         expected = DataFrame(nparr, index=Index(range(10), name="a"), columns=columnval)

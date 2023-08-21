@@ -239,6 +239,12 @@ class ExtensionArray:
 
     By default, ExtensionArrays are not hashable.  Immutable subclasses may
     override this behavior.
+
+    Examples
+    --------
+    Please see the following:
+
+    https://github.com/pandas-dev/pandas/blob/main/pandas/tests/extension/list/array.py
     """
 
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
@@ -473,7 +479,7 @@ class ExtensionArray:
             return (item == self).any()  # type: ignore[union-attr]
 
     # error: Signature of "__eq__" incompatible with supertype "object"
-    def __eq__(self, other: Any) -> ArrayLike:  # type: ignore[override]
+    def __eq__(self, other: object) -> ArrayLike:  # type: ignore[override]
         """
         Return for `self == other` (element-wise equality).
         """
@@ -486,11 +492,12 @@ class ExtensionArray:
         raise AbstractMethodError(self)
 
     # error: Signature of "__ne__" incompatible with supertype "object"
-    def __ne__(self, other: Any) -> ArrayLike:  # type: ignore[override]
+    def __ne__(self, other: object) -> ArrayLike:  # type: ignore[override]
         """
         Return for `self != other` (element-wise in-equality).
         """
-        return ~(self == other)
+        # error: Unsupported operand type for ~ ("ExtensionArray")
+        return ~(self == other)  # type: ignore[operator]
 
     def to_numpy(
         self,
