@@ -93,11 +93,14 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_hdf` except ``path_or_buf``. (:issue:`54229`)
+- Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_html` except ``buf``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_json` except ``path_or_buf``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_latex` except ``buf``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_markdown` except ``buf``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_pickle` except ``path``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_string` except ``buf``. (:issue:`54229`)
+- Deprecated not passing a tuple to :class:`DataFrameGroupBy.get_group` or :class:`SeriesGroupBy.get_group` when grouping by a length-1 list-like (:issue:`25971`)
+
 -
 
 .. ---------------------------------------------------------------------------
@@ -171,8 +174,7 @@ MultiIndex
 
 I/O
 ^^^
--
--
+- Bug in :func:`read_excel`, with ``engine="xlrd"`` (``xls`` files) erroring when file contains NaNs/Infs (:issue:`54564`)
 
 Period
 ^^^^^^
