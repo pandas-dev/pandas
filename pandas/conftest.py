@@ -777,7 +777,7 @@ def series_with_multilevel_index() -> Series:
     index = MultiIndex.from_tuples(tuples)
     data = np.random.default_rng(2).standard_normal(8)
     ser = Series(data, index=index)
-    ser.iloc[3] = np.NaN
+    ser.iloc[3] = np.nan
     return ser
 
 
@@ -1998,3 +1998,8 @@ def warsaw(request) -> str:
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
     """
     return request.param
+
+
+@pytest.fixture()
+def arrow_string_storage():
+    return ("pyarrow",)
