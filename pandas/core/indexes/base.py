@@ -600,24 +600,7 @@ class Index(IndexOpsMixin, PandasObject):
         # Delay import for perf. https://github.com/pandas-dev/pandas/pull/31423
 
         if isinstance(dtype, ExtensionDtype):
-            if isinstance(dtype, DatetimeTZDtype):
-                from pandas import DatetimeIndex
-
-                return DatetimeIndex
-            elif isinstance(dtype, CategoricalDtype):
-                from pandas import CategoricalIndex
-
-                return CategoricalIndex
-            elif isinstance(dtype, IntervalDtype):
-                from pandas import IntervalIndex
-
-                return IntervalIndex
-            elif isinstance(dtype, PeriodDtype):
-                from pandas import PeriodIndex
-
-                return PeriodIndex
-
-            return Index
+            return dtype.index_class
 
         if dtype.kind == "M":
             from pandas import DatetimeIndex
@@ -2854,7 +2837,7 @@ class Index(IndexOpsMixin, PandasObject):
         Show which entries in a pandas.Index are NA. The result is an
         array.
 
-        >>> idx = pd.Index([5.2, 6.0, np.NaN])
+        >>> idx = pd.Index([5.2, 6.0, np.nan])
         >>> idx
         Index([5.2, 6.0, nan], dtype='float64')
         >>> idx.isna()
@@ -2910,7 +2893,7 @@ class Index(IndexOpsMixin, PandasObject):
         Show which entries in an Index are not NA. The result is an
         array.
 
-        >>> idx = pd.Index([5.2, 6.0, np.NaN])
+        >>> idx = pd.Index([5.2, 6.0, np.nan])
         >>> idx
         Index([5.2, 6.0, nan], dtype='float64')
         >>> idx.notna()
@@ -6165,19 +6148,7 @@ class Index(IndexOpsMixin, PandasObject):
         nmissing = missing_mask.sum()
 
         if nmissing:
-            # TODO: remove special-case; this is just to keep exception
-            #  message tests from raising while debugging
-            use_interval_msg = isinstance(self.dtype, IntervalDtype) or (
-                isinstance(self.dtype, CategoricalDtype)
-                # "Index" has no attribute "categories"  [attr-defined]
-                and isinstance(
-                    self.categories.dtype, IntervalDtype  # type: ignore[attr-defined]
-                )
-            )
-
             if nmissing == len(indexer):
-                if use_interval_msg:
-                    key = list(key)
                 raise KeyError(f"None of [{key}] are in the [{axis_name}]")
 
             not_found = list(ensure_index(key)[missing_mask.nonzero()[0]].unique())

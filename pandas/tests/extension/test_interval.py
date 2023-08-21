@@ -13,6 +13,10 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pytest
 
@@ -21,6 +25,9 @@ from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas import Interval
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 def make_data():
@@ -73,7 +80,7 @@ def data_for_grouping():
 class TestIntervalArray(base.ExtensionTests):
     divmod_exc = TypeError
 
-    def _supports_reduction(self, obj, op_name: str) -> bool:
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return op_name in ["min", "max"]
 
     @pytest.mark.xfail(
@@ -88,12 +95,6 @@ class TestIntervalArray(base.ExtensionTests):
         expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
             super().test_EA_types(engine, data)
-
-    @pytest.mark.xfail(
-        reason="Looks like the test (incorrectly) implicitly assumes int/bool dtype"
-    )
-    def test_invert(self, data):
-        super().test_invert(data)
 
 
 # TODO: either belongs in tests.arrays.interval or move into base tests.
