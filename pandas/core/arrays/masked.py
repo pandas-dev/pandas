@@ -191,10 +191,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __getitem__(self, item: PositionalIndexer) -> Self | Any:
         item = check_array_indexer(self, item)
 
-        # TODO: need to change this to special case multiple
-        # indexers versus just scalar
-        np_mask = self._mask.to_numpy()
-        newmask = np_mask[item]
+        newmask = self._mask[item]
         if is_bool(newmask):
             # This is a scalar indexing
             if newmask:
@@ -202,7 +199,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return self._data[item]
 
         # sending self._mask avoids copy of buffer
-        if np.array_equal(newmask, np_mask):
+        if isinstance(newmask, BitMaskArray) and newmask == self._mask:
             return self._simple_new(self._data[item], self._mask)
 
         return self._simple_new(self._data[item], newmask)

@@ -11,14 +11,18 @@ from libc.stdlib cimport (
     free,
     malloc,
 )
-from libc.string cimport memcpy
+from libc.string cimport (
+    memcmp,
+    memcpy,
+)
 from numpy cimport (
     int8_t,
     int64_t,
     ndarray,
     uint8_t,
 )
-from pandas.core.common import is_empty_slice
+
+from pandas.core.common import is_null_slice
 
 cnp.import_array()
 
@@ -292,7 +296,7 @@ cdef class BitMaskArray:
         # We may want to upstream a BitmapCopy function instead
         ArrowBitmapInit(&bitmap)
         buf = <uint8_t*>malloc(old_bma.bitmap.size_bits)
-        memcpy(buf, old_bma.bitmap.buffer.data, old_bma.bitmap.size_bits)
+        memcpy(buf, old_bma.bitmap.buffer.data, old_bma.bitmap.buffer.size_bytes)
         bitmap.buffer.size_bytes = old_bma.bitmap.buffer.size_bytes
         bitmap.size_bits = old_bma.bitmap.size_bits
         bitmap.buffer.data = buf
@@ -332,7 +336,7 @@ cdef class BitMaskArray:
 
         # TODO: implement fastpaths here for equal sized containers
         # to avoid the to_numpy() call
-        if is_empty_slice(key) and isinstance(value, (int, bool)):
+        if is_null_slice(key) and isinstance(value, (int, bool)):
             cvalue = value  # blindly assuming ints are 0 or 1
             ArrowBitsSetTo(
                 self.bitmap.buffer.data,
@@ -355,16 +359,35 @@ cdef class BitMaskArray:
 
     def __getitem__(self, key):
         cdef Py_ssize_t ckey
+        # to_numpy can be expensive, so try to avoid for simple cases
         if isinstance(key, int):
             ckey = key
             if ckey >= 0 and ckey < self.bitmap.size_bits:
-                return ArrowBitGet(self.bitmap.buffer.data, ckey)
+                return bool(ArrowBitGet(self.bitmap.buffer.data, ckey))
+        elif is_null_slice(key):
+            return self.copy()
 
         return self.to_numpy()[key]
 
     def __invert__(self):
         # TODO: could invert the buffer first then go to numpy
         return ~self.to_numpy()
+
+    def __eq__(self, other):
+        cdef BitMaskArray other_bma
+        if isinstance(other, type(self)):
+            other_bma = other
+            if (
+                    self.bitmap.size_bits == other_bma.bitmap.size_bits
+                    and memcmp(
+                        self.bitmap.buffer.data,
+                        other_bma.bitmap.buffer.data,
+                        self.bitmap.buffer.size_bytes
+                    ) == 0
+            ):
+                return True
+
+        return False
 
     def __and__(self, other):
         cdef ndarray[uint8_t] result
