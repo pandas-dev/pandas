@@ -3,7 +3,10 @@ from datetime import datetime
 import pytest
 from pytz import utc
 
-from pandas import DatetimeIndex
+from pandas import (
+    DatetimeIndex,
+    Series,
+)
 import pandas._testing as tm
 
 from pandas.tseries.holiday import (
@@ -318,15 +321,11 @@ def test_holidays_with_timezone_specified_but_no_occurences():
     # GH 54580
     # _apply_rule() in holiday.py was silently dropping timezones if you passed it
     # an empty list of holiday dates that had timezone information
-    USFederalHolidayCalendar()
     start_date = Timestamp("2018-01-01", tz="America/Chicago")
     end_date = Timestamp("2018-01-11", tz="America/Chicago")
-    expected_results = DatetimeIndex(
-        ["2018-01-01 00:00:00-06:00"],
-        dtype="datetime64[ns, America/Chicago]",
-        freq=None,
+    test_case = USFederalHolidayCalendar().holidays(
+        start_date, end_date, return_name=True
     )
+    expected_results = Series("New Year's Day", index=[start_date])
 
-    tm.assert_equal(
-        USFederalHolidayCalendar().holidays(start_date, end_date), expected_results
-    )
+    tm.assert_equal(test_case, expected_results)
