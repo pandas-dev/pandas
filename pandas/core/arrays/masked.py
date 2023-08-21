@@ -1479,21 +1479,33 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         nv.validate_all((), kwargs)
 
-        values = self._data.copy()
-        # error: Argument 3 to "putmask" has incompatible type "object";
-        # expected "Union[_SupportsArray[dtype[Any]],
-        # _NestedSequence[_SupportsArray[dtype[Any]]],
-        # bool, int, float, complex, str, bytes,
-        # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
-        np.putmask(
-            values, self._mask.to_numpy(), self._truthy_value  # type: ignore[arg-type]
-        )
+        # attempt to avoid to_numpy call on mask for best performance
+        is_all_na = self._mask.all()
+        is_any_na = self._mask.any()
+        if len(self) == 0 or (skipna and is_all_na):
+            return True
+
+        if is_any_na:
+            values = self._data.copy()
+            # error: Argument 3 to "putmask" has incompatible type "object";
+            # expected "Union[_SupportsArray[dtype[Any]],
+            # _NestedSequence[_SupportsArray[dtype[Any]]],
+            # bool, int, float, complex, str, bytes,
+            # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
+            np.putmask(
+                values,
+                self._mask.to_numpy(),
+                self._truthy_value,  # type: ignore[arg-type]
+            )
+        else:
+            values = self._data
+
         result = values.all(axis=axis)
 
         if skipna:
             return result
         else:
-            if not result or len(self) == 0 or not self._mask.any():
+            if not result or not self._mask.any():
                 return result
             else:
                 return self.dtype.na_value
