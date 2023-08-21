@@ -55,6 +55,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     BaseMaskedDtype,
     CategoricalDtype,
     ExtensionDtype,
@@ -996,9 +997,13 @@ def duplicated(
     -------
     duplicated : ndarray[bool]
     """
-    if hasattr(values, "dtype") and isinstance(values.dtype, BaseMaskedDtype):
-        values = cast("BaseMaskedArray", values)
-        return htable.duplicated(values._data, keep=keep, mask=values._mask)
+    if hasattr(values, "dtype"):
+        if isinstance(values.dtype, ArrowDtype):
+            values = values._to_masked()
+
+        if isinstance(values.dtype, BaseMaskedDtype):
+            values = cast("BaseMaskedArray", values)
+            return htable.duplicated(values._data, keep=keep, mask=values._mask)
 
     values = _ensure_data(values)
     return htable.duplicated(values, keep=keep)
