@@ -11,10 +11,7 @@ from libc.stdlib cimport (
     free,
     malloc,
 )
-from libc.string cimport (
-    memcmp,
-    memcpy,
-)
+from libc.string cimport memcpy
 from numpy cimport (
     int8_t,
     int64_t,
@@ -372,22 +369,6 @@ cdef class BitMaskArray:
     def __invert__(self):
         # TODO: could invert the buffer first then go to numpy
         return ~self.to_numpy()
-
-    def __eq__(self, other):
-        cdef BitMaskArray other_bma
-        if isinstance(other, type(self)):
-            other_bma = other
-            if (
-                    self.bitmap.size_bits == other_bma.bitmap.size_bits
-                    and memcmp(
-                        self.bitmap.buffer.data,
-                        other_bma.bitmap.buffer.data,
-                        self.bitmap.buffer.size_bytes
-                    ) == 0
-            ):
-                return True
-
-        return False
 
     def __and__(self, other):
         cdef ndarray[uint8_t] result
