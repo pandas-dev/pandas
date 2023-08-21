@@ -60,8 +60,10 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
+    is_float_dtype,
     is_integer_dtype,
     is_list_like,
+    is_scalar,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -454,11 +456,19 @@ class Block(PandasObject):
         we can also safely try to coerce to the same dtype
         and will receive the same block
         """
-        if isna(other) and is_integer_dtype(self.values.dtype):
+        new_dtype = find_result_type(self.values.dtype, other)
+
+        if (
+            is_scalar(other) and isna(other) and is_integer_dtype(self.values.dtype)
+        ) or (
+            is_integer_dtype(self.values.dtype)
+            and is_float_dtype(other.dtype)
+            and lib.has_only_ints_or_nan(other)
+        ):
             # In a future version of pandas, the default will be that
             # setting `nan` into an integer series won't raise.
             warn_on_upcast = False
-        new_dtype = find_result_type(self.values.dtype, other)
+
         if warn_on_upcast:
             warnings.warn(
                 f"Setting an item of incompatible dtype is deprecated "
