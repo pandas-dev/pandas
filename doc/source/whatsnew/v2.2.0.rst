@@ -113,7 +113,7 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
-
+- Bug in :meth:`apply_rule` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
 Categorical
 ^^^^^^^^^^^
 -
