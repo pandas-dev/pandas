@@ -2002,4 +2002,4 @@ def warsaw(request) -> str:
 
 @pytest.fixture()
 def arrow_string_storage():
-    return ("pyarrow",)
+    return ("pyarrow", "pyarrow_numpy")
