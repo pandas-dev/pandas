@@ -348,7 +348,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _internal_names_set = {"index", "name"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
     _hidden_attrs = (
-        base.IndexOpsMixin._hidden_attrs | NDFrame._hidden_attrs | frozenset([])
+            base.IndexOpsMixin._hidden_attrs | NDFrame._hidden_attrs | frozenset([])
     )
 
     # similar to __array_priority__, positions Series after DataFrame
@@ -369,19 +369,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # Constructors
 
     def __init__(
-        self,
-        data=None,
-        index=None,
-        dtype: Dtype | None = None,
-        name=None,
-        copy: bool | None = None,
-        fastpath: bool = False,
+            self,
+            data=None,
+            index=None,
+            dtype: Dtype | None = None,
+            name=None,
+            copy: bool | None = None,
+            fastpath: bool = False,
     ) -> None:
         if (
-            isinstance(data, (SingleBlockManager, SingleArrayManager))
-            and index is None
-            and dtype is None
-            and (copy is False or copy is None)
+                isinstance(data, (SingleBlockManager, SingleArrayManager))
+                and index is None
+                and dtype is None
+                and (copy is False or copy is None)
         ):
             if using_copy_on_write():
                 data = data.copy(deep=False)
@@ -522,7 +522,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self._set_axis(0, index)
 
     def _init_dict(
-        self, data, index: Index | None = None, dtype: DtypeObj | None = None
+            self, data, index: Index | None = None, dtype: DtypeObj | None = None
     ):
         """
         Derive the "_mgr" and "index" attributes of a new Series from a
@@ -1240,10 +1240,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 key = np.asarray(key, dtype=bool)
 
                 if (
-                    is_list_like(value)
-                    and len(value) != len(self)
-                    and not isinstance(value, Series)
-                    and not is_object_dtype(self.dtype)
+                        is_list_like(value)
+                        and len(value) != len(self)
+                        and not isinstance(value, Series)
+                        and not is_object_dtype(self.dtype)
                 ):
                     # Series will be reindexed to have matching length inside
                     #  _where call below
@@ -1394,7 +1394,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return super()._check_is_chained_assignment_possible()
 
     def _maybe_update_cacher(
-        self, clear: bool = False, verify_is_copy: bool = True, inplace: bool = False
+            self, clear: bool = False, verify_is_copy: bool = True, inplace: bool = False
     ) -> None:
         """
         See NDFrame._maybe_update_cacher.__doc__
@@ -1488,48 +1488,48 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @overload
     def reset_index(
-        self,
-        level: IndexLabel = ...,
-        *,
-        drop: Literal[False] = ...,
-        name: Level = ...,
-        inplace: Literal[False] = ...,
-        allow_duplicates: bool = ...,
+            self,
+            level: IndexLabel = ...,
+            *,
+            drop: Literal[False] = ...,
+            name: Level = ...,
+            inplace: Literal[False] = ...,
+            allow_duplicates: bool = ...,
     ) -> DataFrame:
         ...
 
     @overload
     def reset_index(
-        self,
-        level: IndexLabel = ...,
-        *,
-        drop: Literal[True],
-        name: Level = ...,
-        inplace: Literal[False] = ...,
-        allow_duplicates: bool = ...,
+            self,
+            level: IndexLabel = ...,
+            *,
+            drop: Literal[True],
+            name: Level = ...,
+            inplace: Literal[False] = ...,
+            allow_duplicates: bool = ...,
     ) -> Series:
         ...
 
     @overload
     def reset_index(
-        self,
-        level: IndexLabel = ...,
-        *,
-        drop: bool = ...,
-        name: Level = ...,
-        inplace: Literal[True],
-        allow_duplicates: bool = ...,
+            self,
+            level: IndexLabel = ...,
+            *,
+            drop: bool = ...,
+            name: Level = ...,
+            inplace: Literal[True],
+            allow_duplicates: bool = ...,
     ) -> None:
         ...
 
     def reset_index(
-        self,
-        level: IndexLabel | None = None,
-        *,
-        drop: bool = False,
-        name: Level = lib.no_default,
-        inplace: bool = False,
-        allow_duplicates: bool = False,
+            self,
+            level: IndexLabel | None = None,
+            *,
+            drop: bool = False,
+            name: Level = lib.no_default,
+            inplace: bool = False,
+            allow_duplicates: bool = False,
     ) -> DataFrame | Series | None:
         """
         Generate a new DataFrame or Series with the index reset.
@@ -1686,48 +1686,48 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @overload
     def to_string(
-        self,
-        buf: None = ...,
-        na_rep: str = ...,
-        float_format: str | None = ...,
-        header: bool = ...,
-        index: bool = ...,
-        length: bool = ...,
-        dtype=...,
-        name=...,
-        max_rows: int | None = ...,
-        min_rows: int | None = ...,
+            self,
+            buf: None = ...,
+            na_rep: str = ...,
+            float_format: str | None = ...,
+            header: bool = ...,
+            index: bool = ...,
+            length: bool = ...,
+            dtype=...,
+            name=...,
+            max_rows: int | None = ...,
+            min_rows: int | None = ...,
     ) -> str:
         ...
 
     @overload
     def to_string(
-        self,
-        buf: FilePath | WriteBuffer[str],
-        na_rep: str = ...,
-        float_format: str | None = ...,
-        header: bool = ...,
-        index: bool = ...,
-        length: bool = ...,
-        dtype=...,
-        name=...,
-        max_rows: int | None = ...,
-        min_rows: int | None = ...,
+            self,
+            buf: FilePath | WriteBuffer[str],
+            na_rep: str = ...,
+            float_format: str | None = ...,
+            header: bool = ...,
+            index: bool = ...,
+            length: bool = ...,
+            dtype=...,
+            name=...,
+            max_rows: int | None = ...,
+            min_rows: int | None = ...,
     ) -> None:
         ...
 
     def to_string(
-        self,
-        buf: FilePath | WriteBuffer[str] | None = None,
-        na_rep: str = "NaN",
-        float_format: str | None = None,
-        header: bool = True,
-        index: bool = True,
-        length: bool = False,
-        dtype: bool = False,
-        name: bool = False,
-        max_rows: int | None = None,
-        min_rows: int | None = None,
+            self,
+            buf: FilePath | WriteBuffer[str] | None = None,
+            na_rep: str = "NaN",
+            float_format: str | None = None,
+            header: bool = True,
+            index: bool = True,
+            length: bool = False,
+            dtype: bool = False,
+            name: bool = False,
+            max_rows: int | None = None,
+            min_rows: int | None = None,
     ) -> str | None:
         """
         Render a string representation of the Series.
@@ -1832,12 +1832,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ),
     )
     def to_markdown(
-        self,
-        buf: IO[str] | None = None,
-        mode: str = "wt",
-        index: bool = True,
-        storage_options: StorageOptions | None = None,
-        **kwargs,
+            self,
+            buf: IO[str] | None = None,
+            mode: str = "wt",
+            index: bool = True,
+            storage_options: StorageOptions | None = None,
+            **kwargs,
     ) -> str | None:
         """
         Print {klass} in Markdown-friendly format.
@@ -1875,6 +1875,142 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     # ----------------------------------------------------------------------
+
+    @overload
+    def to_parquet(
+            self,
+            path: None = ...,
+            engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
+            compression: str | None = ...,
+            index: bool | None = ...,
+            partition_cols: list[str] | None = ...,
+            storage_options: StorageOptions = ...,
+            **kwargs,
+    ) -> bytes:
+        ...
+
+    @overload
+    def to_parquet(
+            self,
+            path: FilePath | WriteBuffer[bytes],
+            engine: Literal["auto", "pyarrow", "fastparquet"] = ...,
+            compression: str | None = ...,
+            index: bool | None = ...,
+            partition_cols: list[str] | None = ...,
+            storage_options: StorageOptions = ...,
+            **kwargs,
+    ) -> None:
+        ...
+
+    @doc(storage_options=_shared_docs["storage_options"])
+    def to_parquet(
+            self,
+            path: FilePath | WriteBuffer[bytes] | None = None,
+            engine: Literal["auto", "pyarrow", "fastparquet"] = "auto",
+            compression: str | None = "snappy",
+            index: bool | None = None,
+            partition_cols: list[str] | None = None,
+            storage_options: StorageOptions | None = None,
+            **kwargs,
+    ) -> bytes | None:
+        """
+        Write a DataFrame to the binary parquet format.
+
+        This function writes the dataframe as a `parquet file
+        <https://parquet.apache.org/>`_. You can choose different parquet
+        backends, and have the option of compression. See
+        :ref:`the user guide <io.parquet>` for more details.
+
+        Parameters
+        ----------
+        path : str, path object, file-like object, or None, default None
+            String, path object (implementing ``os.PathLike[str]``), or file-like
+            object implementing a binary ``write()`` function. If None, the result is
+            returned as bytes. If a string or path, it will be used as Root Directory
+            path when writing a partitioned dataset.
+
+            .. versionchanged:: 1.2.0
+
+            Previously this was "fname"
+
+        engine : {{'auto', 'pyarrow', 'fastparquet'}}, default 'auto'
+            Parquet library to use. If 'auto', then the option
+            ``io.parquet.engine`` is used. The default ``io.parquet.engine``
+            behavior is to try 'pyarrow', falling back to 'fastparquet' if
+            'pyarrow' is unavailable.
+        compression : str or None, default 'snappy'
+            Name of the compression to use. Use ``None`` for no compression.
+            Supported options: 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'.
+        index : bool, default None
+            If ``True``, include the dataframe's index(es) in the file output.
+            If ``False``, they will not be written to the file.
+            If ``None``, similar to ``True`` the dataframe's index(es)
+            will be saved. However, instead of being saved as values,
+            the RangeIndex will be stored as a range in the metadata so it
+            doesn't require much space and is faster. Other indexes will
+            be included as columns in the file output.
+        partition_cols : list, optional, default None
+            Column names by which to partition the dataset.
+            Columns are partitioned in the order they are given.
+            Must be None if path is not a string.
+        {storage_options}
+
+            .. versionadded:: 1.2.0
+
+        **kwargs
+            Additional arguments passed to the parquet library. See
+            :ref:`pandas io <io.parquet>` for more details.
+
+        Returns
+        -------
+        bytes if no path argument is provided else None
+
+        See Also
+        --------
+        read_parquet : Read a parquet file.
+        DataFrame.to_orc : Write an orc file.
+        DataFrame.to_csv : Write a csv file.
+        DataFrame.to_sql : Write to a sql table.
+        DataFrame.to_hdf : Write to hdf.
+
+        Notes
+        -----
+        This function requires either the `fastparquet
+        <https://pypi.org/project/fastparquet>`_ or `pyarrow
+        <https://arrow.apache.org/docs/python/>`_ library.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(data={{'col1': [1, 2], 'col2': [3, 4]}})
+        >>> df.to_parquet('df.parquet.gzip',
+        ...               compression='gzip')  # doctest: +SKIP
+        >>> pd.read_parquet('df.parquet.gzip')  # doctest: +SKIP
+           col1  col2
+        0     1     3
+        1     2     4
+
+        If you want to get a buffer to the parquet content you can use a io.BytesIO
+        object, as long as you don't use partition_cols, which creates multiple files.
+
+        >>> import io
+        >>> f = io.BytesIO()
+        >>> df.to_parquet(f)
+        >>> f.seek(0)
+        0
+        >>> content = f.read()
+        """
+        from pandas.io.parquet import to_parquet
+
+        return to_parquet(
+            self,
+            path,
+            engine,
+            compression=compression,
+            index=index,
+            partition_cols=partition_cols,
+            storage_options=storage_options,
+            **kwargs,
+        )
 
     def items(self) -> Iterable[tuple[Hashable, Any]]:
         """
@@ -2005,7 +2141,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return df.__finalize__(self, method="to_frame")
 
     def _set_name(
-        self, name, inplace: bool = False, deep: bool | None = None
+            self, name, inplace: bool = False, deep: bool | None = None
     ) -> Series:
         """
         Set the Series name.
@@ -2110,15 +2246,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     )
     @Appender(_shared_docs["groupby"] % _shared_doc_kwargs)
     def groupby(
-        self,
-        by=None,
-        axis: Axis = 0,
-        level: IndexLabel | None = None,
-        as_index: bool = True,
-        sort: bool = True,
-        group_keys: bool = True,
-        observed: bool | lib.NoDefault = lib.no_default,
-        dropna: bool = True,
+            self,
+            by=None,
+            axis: Axis = 0,
+            level: IndexLabel | None = None,
+            as_index: bool = True,
+            sort: bool = True,
+            group_keys: bool = True,
+            observed: bool | lib.NoDefault = lib.no_default,
+            dropna: bool = True,
     ) -> SeriesGroupBy:
         from pandas.core.groupby.generic import SeriesGroupBy
 
@@ -2288,32 +2424,32 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @overload
     def drop_duplicates(
-        self,
-        *,
-        keep: DropKeep = ...,
-        inplace: Literal[False] = ...,
-        ignore_index: bool = ...,
+            self,
+            *,
+            keep: DropKeep = ...,
+            inplace: Literal[False] = ...,
+            ignore_index: bool = ...,
     ) -> Series:
         ...
 
     @overload
     def drop_duplicates(
-        self, *, keep: DropKeep = ..., inplace: Literal[True], ignore_index: bool = ...
+            self, *, keep: DropKeep = ..., inplace: Literal[True], ignore_index: bool = ...
     ) -> None:
         ...
 
     @overload
     def drop_duplicates(
-        self, *, keep: DropKeep = ..., inplace: bool = ..., ignore_index: bool = ...
+            self, *, keep: DropKeep = ..., inplace: bool = ..., ignore_index: bool = ...
     ) -> Series | None:
         ...
 
     def drop_duplicates(
-        self,
-        *,
-        keep: DropKeep = "first",
-        inplace: bool = False,
-        ignore_index: bool = False,
+            self,
+            *,
+            keep: DropKeep = "first",
+            inplace: bool = False,
+            ignore_index: bool = False,
     ) -> Series | None:
         """
         Return Series with duplicate values removed.
@@ -2694,30 +2830,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @overload
     def quantile(
-        self, q: float = ..., interpolation: QuantileInterpolation = ...
+            self, q: float = ..., interpolation: QuantileInterpolation = ...
     ) -> float:
         ...
 
     @overload
     def quantile(
-        self,
-        q: Sequence[float] | AnyArrayLike,
-        interpolation: QuantileInterpolation = ...,
+            self,
+            q: Sequence[float] | AnyArrayLike,
+            interpolation: QuantileInterpolation = ...,
     ) -> Series:
         ...
 
     @overload
     def quantile(
-        self,
-        q: float | Sequence[float] | AnyArrayLike = ...,
-        interpolation: QuantileInterpolation = ...,
+            self,
+            q: float | Sequence[float] | AnyArrayLike = ...,
+            interpolation: QuantileInterpolation = ...,
     ) -> float | Series:
         ...
 
     def quantile(
-        self,
-        q: float | Sequence[float] | AnyArrayLike = 0.5,
-        interpolation: QuantileInterpolation = "linear",
+            self,
+            q: float | Sequence[float] | AnyArrayLike = 0.5,
+            interpolation: QuantileInterpolation = "linear",
     ) -> float | Series:
         """
         Return value at the given quantile.
@@ -2779,10 +2915,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result.iloc[0]
 
     def corr(
-        self,
-        other: Series,
-        method: CorrelationMethod = "pearson",
-        min_periods: int | None = None,
+            self,
+            other: Series,
+            method: CorrelationMethod = "pearson",
+            min_periods: int | None = None,
     ) -> float:
         """
         Compute correlation with `other` Series, excluding missing values.
@@ -2867,10 +3003,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     def cov(
-        self,
-        other: Series,
-        min_periods: int | None = None,
-        ddof: int | None = 1,
+            self,
+            other: Series,
+            min_periods: int | None = None,
+            ddof: int | None = 1,
     ) -> float:
         """
         Compute covariance with Series, excluding missing values.
@@ -3142,10 +3278,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @doc(base.IndexOpsMixin.searchsorted, klass="Series")
     # Signature of "searchsorted" incompatible with supertype "IndexOpsMixin"
     def searchsorted(  # type: ignore[override]
-        self,
-        value: NumpyValueArrayLike | ExtensionArray,
-        side: Literal["left", "right"] = "left",
-        sorter: NumpySorter | None = None,
+            self,
+            value: NumpyValueArrayLike | ExtensionArray,
+            side: Literal["left", "right"] = "left",
+            sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         return base.IndexOpsMixin.searchsorted(self, value, side=side, sorter=sorter)
 
@@ -3153,7 +3289,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # Combination
 
     def _append(
-        self, to_append, ignore_index: bool = False, verify_integrity: bool = False
+            self, to_append, ignore_index: bool = False, verify_integrity: bool = False
     ):
         from pandas.core.reshape.concat import concat
 
@@ -3236,12 +3372,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         klass=_shared_doc_kwargs["klass"],
     )
     def compare(
-        self,
-        other: Series,
-        align_axis: Axis = 1,
-        keep_shape: bool = False,
-        keep_equal: bool = False,
-        result_names: Suffixes = ("self", "other"),
+            self,
+            other: Series,
+            align_axis: Axis = 1,
+            keep_shape: bool = False,
+            keep_equal: bool = False,
+            result_names: Suffixes = ("self", "other"),
     ) -> DataFrame | Series:
         return super().compare(
             other=other,
@@ -3252,10 +3388,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     def combine(
-        self,
-        other: Series | Hashable,
-        func: Callable[[Hashable, Hashable], Hashable],
-        fill_value: Hashable | None = None,
+            self,
+            other: Series | Hashable,
+            func: Callable[[Hashable, Hashable], Hashable],
+            fill_value: Hashable | None = None,
     ) -> Series:
         """
         Combine the Series with a Series or scalar according to `func`.
@@ -3502,56 +3638,56 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @overload
     def sort_values(
-        self,
-        *,
-        axis: Axis = ...,
-        ascending: bool | Sequence[bool] = ...,
-        inplace: Literal[False] = ...,
-        kind: SortKind = ...,
-        na_position: NaPosition = ...,
-        ignore_index: bool = ...,
-        key: ValueKeyFunc = ...,
+            self,
+            *,
+            axis: Axis = ...,
+            ascending: bool | Sequence[bool] = ...,
+            inplace: Literal[False] = ...,
+            kind: SortKind = ...,
+            na_position: NaPosition = ...,
+            ignore_index: bool = ...,
+            key: ValueKeyFunc = ...,
     ) -> Series:
         ...
 
     @overload
     def sort_values(
-        self,
-        *,
-        axis: Axis = ...,
-        ascending: bool | Sequence[bool] = ...,
-        inplace: Literal[True],
-        kind: SortKind = ...,
-        na_position: NaPosition = ...,
-        ignore_index: bool = ...,
-        key: ValueKeyFunc = ...,
+            self,
+            *,
+            axis: Axis = ...,
+            ascending: bool | Sequence[bool] = ...,
+            inplace: Literal[True],
+            kind: SortKind = ...,
+            na_position: NaPosition = ...,
+            ignore_index: bool = ...,
+            key: ValueKeyFunc = ...,
     ) -> None:
         ...
 
     @overload
     def sort_values(
-        self,
-        *,
-        axis: Axis = ...,
-        ascending: bool | Sequence[bool] = ...,
-        inplace: bool = ...,
-        kind: SortKind = ...,
-        na_position: NaPosition = ...,
-        ignore_index: bool = ...,
-        key: ValueKeyFunc = ...,
+            self,
+            *,
+            axis: Axis = ...,
+            ascending: bool | Sequence[bool] = ...,
+            inplace: bool = ...,
+            kind: SortKind = ...,
+            na_position: NaPosition = ...,
+            ignore_index: bool = ...,
+            key: ValueKeyFunc = ...,
     ) -> Series | None:
         ...
 
     def sort_values(
-        self,
-        *,
-        axis: Axis = 0,
-        ascending: bool | Sequence[bool] = True,
-        inplace: bool = False,
-        kind: SortKind = "quicksort",
-        na_position: NaPosition = "last",
-        ignore_index: bool = False,
-        key: ValueKeyFunc | None = None,
+            self,
+            *,
+            axis: Axis = 0,
+            ascending: bool | Sequence[bool] = True,
+            inplace: bool = False,
+            kind: SortKind = "quicksort",
+            na_position: NaPosition = "last",
+            ignore_index: bool = False,
+            key: ValueKeyFunc | None = None,
     ) -> Series | None:
         """
         Sort by the values.
@@ -3745,64 +3881,64 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @overload
     def sort_index(
-        self,
-        *,
-        axis: Axis = ...,
-        level: IndexLabel = ...,
-        ascending: bool | Sequence[bool] = ...,
-        inplace: Literal[True],
-        kind: SortKind = ...,
-        na_position: NaPosition = ...,
-        sort_remaining: bool = ...,
-        ignore_index: bool = ...,
-        key: IndexKeyFunc = ...,
+            self,
+            *,
+            axis: Axis = ...,
+            level: IndexLabel = ...,
+            ascending: bool | Sequence[bool] = ...,
+            inplace: Literal[True],
+            kind: SortKind = ...,
+            na_position: NaPosition = ...,
+            sort_remaining: bool = ...,
+            ignore_index: bool = ...,
+            key: IndexKeyFunc = ...,
     ) -> None:
         ...
 
     @overload
     def sort_index(
-        self,
-        *,
-        axis: Axis = ...,
-        level: IndexLabel = ...,
-        ascending: bool | Sequence[bool] = ...,
-        inplace: Literal[False] = ...,
-        kind: SortKind = ...,
-        na_position: NaPosition = ...,
-        sort_remaining: bool = ...,
-        ignore_index: bool = ...,
-        key: IndexKeyFunc = ...,
+            self,
+            *,
+            axis: Axis = ...,
+            level: IndexLabel = ...,
+            ascending: bool | Sequence[bool] = ...,
+            inplace: Literal[False] = ...,
+            kind: SortKind = ...,
+            na_position: NaPosition = ...,
+            sort_remaining: bool = ...,
+            ignore_index: bool = ...,
+            key: IndexKeyFunc = ...,
     ) -> Series:
         ...
 
     @overload
     def sort_index(
-        self,
-        *,
-        axis: Axis = ...,
-        level: IndexLabel = ...,
-        ascending: bool | Sequence[bool] = ...,
-        inplace: bool = ...,
-        kind: SortKind = ...,
-        na_position: NaPosition = ...,
-        sort_remaining: bool = ...,
-        ignore_index: bool = ...,
-        key: IndexKeyFunc = ...,
+            self,
+            *,
+            axis: Axis = ...,
+            level: IndexLabel = ...,
+            ascending: bool | Sequence[bool] = ...,
+            inplace: bool = ...,
+            kind: SortKind = ...,
+            na_position: NaPosition = ...,
+            sort_remaining: bool = ...,
+            ignore_index: bool = ...,
+            key: IndexKeyFunc = ...,
     ) -> Series | None:
         ...
 
     def sort_index(
-        self,
-        *,
-        axis: Axis = 0,
-        level: IndexLabel | None = None,
-        ascending: bool | Sequence[bool] = True,
-        inplace: bool = False,
-        kind: SortKind = "quicksort",
-        na_position: NaPosition = "last",
-        sort_remaining: bool = True,
-        ignore_index: bool = False,
-        key: IndexKeyFunc | None = None,
+            self,
+            *,
+            axis: Axis = 0,
+            level: IndexLabel | None = None,
+            ascending: bool | Sequence[bool] = True,
+            inplace: bool = False,
+            kind: SortKind = "quicksort",
+            na_position: NaPosition = "last",
+            sort_remaining: bool = True,
+            ignore_index: bool = False,
+            key: IndexKeyFunc | None = None,
     ) -> Series | None:
         """
         Sort Series by index labels.
@@ -3937,10 +4073,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     def argsort(
-        self,
-        axis: Axis = 0,
-        kind: SortKind = "quicksort",
-        order: None = None,
+            self,
+            axis: Axis = 0,
+            kind: SortKind = "quicksort",
+            order: None = None,
     ) -> Series:
         """
         Return the integer indices that would sort the Series values.
@@ -4004,7 +4140,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return res.__finalize__(self, method="argsort")
 
     def nlargest(
-        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
+            self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         """
         Return the largest `n` elements.
@@ -4104,7 +4240,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return selectn.SelectNSeries(self, n=n, keep=keep).nlargest()
 
     def nsmallest(
-        self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
+            self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         """
         Return the smallest `n` elements.
@@ -4263,7 +4399,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ),
     )
     def swaplevel(
-        self, i: Level = -2, j: Level = -1, copy: bool | None = None
+            self, i: Level = -2, j: Level = -1, copy: bool | None = None
     ) -> Series:
         """
         Swap levels i and j in a :class:`MultiIndex`.
@@ -4402,10 +4538,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self._constructor(values, index=index, name=self.name, copy=False)
 
     def unstack(
-        self,
-        level: IndexLabel = -1,
-        fill_value: Hashable | None = None,
-        sort: bool = True,
+            self,
+            level: IndexLabel = -1,
+            fill_value: Hashable | None = None,
+            sort: bool = True,
     ) -> DataFrame:
         """
         Unstack, also known as pivot, Series with MultiIndex to produce DataFrame.
@@ -4458,9 +4594,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # function application
 
     def map(
-        self,
-        arg: Callable | Mapping | Series,
-        na_action: Literal["ignore"] | None = None,
+            self,
+            arg: Callable | Mapping | Series,
+            na_action: Literal["ignore"] | None = None,
     ) -> Series:
         """
         Map values of Series according to an input mapping or function.
@@ -4614,7 +4750,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis=_shared_doc_kwargs["axis"],
     )
     def transform(
-        self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
+            self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
@@ -4623,13 +4759,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return result
 
     def apply(
-        self,
-        func: AggFuncType,
-        convert_dtype: bool | lib.NoDefault = lib.no_default,
-        args: tuple[Any, ...] = (),
-        *,
-        by_row: Literal[False, "compat"] = "compat",
-        **kwargs,
+            self,
+            func: AggFuncType,
+            convert_dtype: bool | lib.NoDefault = lib.no_default,
+            args: tuple[Any, ...] = (),
+            *,
+            by_row: Literal[False, "compat"] = "compat",
+            **kwargs,
     ) -> DataFrame | Series:
         """
         Invoke function on values of Series.
@@ -4765,15 +4901,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ).apply()
 
     def _reindex_indexer(
-        self,
-        new_index: Index | None,
-        indexer: npt.NDArray[np.intp] | None,
-        copy: bool | None,
+            self,
+            new_index: Index | None,
+            indexer: npt.NDArray[np.intp] | None,
+            copy: bool | None,
     ) -> Series:
         # Note: new_index is None iff indexer is None
         # if not None, indexer is np.intp
         if indexer is None and (
-            new_index is None or new_index.names == self.index.names
+                new_index is None or new_index.names == self.index.names
         ):
             if using_copy_on_write():
                 return self.copy(deep=copy)
@@ -4795,52 +4931,52 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @overload
     def rename(
-        self,
-        index: Renamer | Hashable | None = ...,
-        *,
-        axis: Axis | None = ...,
-        copy: bool = ...,
-        inplace: Literal[True],
-        level: Level | None = ...,
-        errors: IgnoreRaise = ...,
+            self,
+            index: Renamer | Hashable | None = ...,
+            *,
+            axis: Axis | None = ...,
+            copy: bool = ...,
+            inplace: Literal[True],
+            level: Level | None = ...,
+            errors: IgnoreRaise = ...,
     ) -> None:
         ...
 
     @overload
     def rename(
-        self,
-        index: Renamer | Hashable | None = ...,
-        *,
-        axis: Axis | None = ...,
-        copy: bool = ...,
-        inplace: Literal[False] = ...,
-        level: Level | None = ...,
-        errors: IgnoreRaise = ...,
+            self,
+            index: Renamer | Hashable | None = ...,
+            *,
+            axis: Axis | None = ...,
+            copy: bool = ...,
+            inplace: Literal[False] = ...,
+            level: Level | None = ...,
+            errors: IgnoreRaise = ...,
     ) -> Series:
         ...
 
     @overload
     def rename(
-        self,
-        index: Renamer | Hashable | None = ...,
-        *,
-        axis: Axis | None = ...,
-        copy: bool = ...,
-        inplace: bool = ...,
-        level: Level | None = ...,
-        errors: IgnoreRaise = ...,
+            self,
+            index: Renamer | Hashable | None = ...,
+            *,
+            axis: Axis | None = ...,
+            copy: bool = ...,
+            inplace: bool = ...,
+            level: Level | None = ...,
+            errors: IgnoreRaise = ...,
     ) -> Series | None:
         ...
 
     def rename(
-        self,
-        index: Renamer | Hashable | None = None,
-        *,
-        axis: Axis | None = None,
-        copy: bool | None = None,
-        inplace: bool = False,
-        level: Level | None = None,
-        errors: IgnoreRaise = "ignore",
+            self,
+            index: Renamer | Hashable | None = None,
+            *,
+            axis: Axis | None = None,
+            copy: bool | None = None,
+            inplace: bool = False,
+            level: Level | None = None,
+            errors: IgnoreRaise = "ignore",
     ) -> Series | None:
         """
         Alter Series index labels or name.
@@ -4953,11 +5089,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     )
     @Appender(NDFrame.set_axis.__doc__)
     def set_axis(
-        self,
-        labels,
-        *,
-        axis: Axis = 0,
-        copy: bool | None = None,
+            self,
+            labels,
+            *,
+            axis: Axis = 0,
+            copy: bool | None = None,
     ) -> Series:
         return super().set_axis(labels, axis=axis, copy=copy)
 
@@ -4968,16 +5104,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         optional_reindex=_shared_doc_kwargs["optional_reindex"],
     )
     def reindex(  # type: ignore[override]
-        self,
-        index=None,
-        *,
-        axis: Axis | None = None,
-        method: ReindexMethod | None = None,
-        copy: bool | None = None,
-        level: Level | None = None,
-        fill_value: Scalar | None = None,
-        limit: int | None = None,
-        tolerance=None,
+            self,
+            index=None,
+            *,
+            axis: Axis | None = None,
+            method: ReindexMethod | None = None,
+            copy: bool | None = None,
+            level: Level | None = None,
+            fill_value: Scalar | None = None,
+            limit: int | None = None,
+            tolerance=None,
     ) -> Series:
         return super().reindex(
             index=index,
@@ -4991,13 +5127,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @doc(NDFrame.rename_axis)
     def rename_axis(  # type: ignore[override]
-        self,
-        mapper: IndexLabel | lib.NoDefault = lib.no_default,
-        *,
-        index=lib.no_default,
-        axis: Axis = 0,
-        copy: bool = True,
-        inplace: bool = False,
+            self,
+            mapper: IndexLabel | lib.NoDefault = lib.no_default,
+            *,
+            index=lib.no_default,
+            axis: Axis = 0,
+            copy: bool = True,
+            inplace: bool = False,
     ) -> Self | None:
         return super().rename_axis(
             mapper=mapper,
@@ -5009,56 +5145,56 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @overload
     def drop(
-        self,
-        labels: IndexLabel = ...,
-        *,
-        axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
-        level: Level | None = ...,
-        inplace: Literal[True],
-        errors: IgnoreRaise = ...,
+            self,
+            labels: IndexLabel = ...,
+            *,
+            axis: Axis = ...,
+            index: IndexLabel = ...,
+            columns: IndexLabel = ...,
+            level: Level | None = ...,
+            inplace: Literal[True],
+            errors: IgnoreRaise = ...,
     ) -> None:
         ...
 
     @overload
     def drop(
-        self,
-        labels: IndexLabel = ...,
-        *,
-        axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
-        level: Level | None = ...,
-        inplace: Literal[False] = ...,
-        errors: IgnoreRaise = ...,
+            self,
+            labels: IndexLabel = ...,
+            *,
+            axis: Axis = ...,
+            index: IndexLabel = ...,
+            columns: IndexLabel = ...,
+            level: Level | None = ...,
+            inplace: Literal[False] = ...,
+            errors: IgnoreRaise = ...,
     ) -> Series:
         ...
 
     @overload
     def drop(
-        self,
-        labels: IndexLabel = ...,
-        *,
-        axis: Axis = ...,
-        index: IndexLabel = ...,
-        columns: IndexLabel = ...,
-        level: Level | None = ...,
-        inplace: bool = ...,
-        errors: IgnoreRaise = ...,
+            self,
+            labels: IndexLabel = ...,
+            *,
+            axis: Axis = ...,
+            index: IndexLabel = ...,
+            columns: IndexLabel = ...,
+            level: Level | None = ...,
+            inplace: bool = ...,
+            errors: IgnoreRaise = ...,
     ) -> Series | None:
         ...
 
     def drop(
-        self,
-        labels: IndexLabel | None = None,
-        *,
-        axis: Axis = 0,
-        index: IndexLabel | None = None,
-        columns: IndexLabel | None = None,
-        level: Level | None = None,
-        inplace: bool = False,
-        errors: IgnoreRaise = "raise",
+            self,
+            labels: IndexLabel | None = None,
+            *,
+            axis: Axis = 0,
+            index: IndexLabel | None = None,
+            columns: IndexLabel | None = None,
+            level: Level | None = None,
+            inplace: bool = False,
+            errors: IgnoreRaise = "raise",
     ) -> Series | None:
         """
         Return Series with specified index labels removed.
@@ -5185,12 +5321,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @doc(INFO_DOCSTRING, **series_sub_kwargs)
     def info(
-        self,
-        verbose: bool | None = None,
-        buf: IO[str] | None = None,
-        max_cols: int | None = None,
-        memory_usage: bool | str | None = None,
-        show_counts: bool = True,
+            self,
+            verbose: bool | None = None,
+            buf: IO[str] | None = None,
+            max_cols: int | None = None,
+            memory_usage: bool | str | None = None,
+            show_counts: bool = True,
     ) -> None:
         return SeriesInfo(self, memory_usage).render(
             buf=buf,
@@ -5354,10 +5490,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         )
 
     def between(
-        self,
-        left,
-        right,
-        inclusive: Literal["both", "neither", "left", "right"] = "both",
+            self,
+            left,
+            right,
+            inclusive: Literal["both", "neither", "left", "right"] = "both",
     ) -> Series:
         """
         Return boolean Series equivalent to left <= series <= right.
@@ -5450,13 +5586,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # Convert to types that support pd.NA
 
     def _convert_dtypes(
-        self,
-        infer_objects: bool = True,
-        convert_string: bool = True,
-        convert_integer: bool = True,
-        convert_boolean: bool = True,
-        convert_floating: bool = True,
-        dtype_backend: DtypeBackend = "numpy_nullable",
+            self,
+            infer_objects: bool = True,
+            convert_string: bool = True,
+            convert_integer: bool = True,
+            convert_boolean: bool = True,
+            convert_floating: bool = True,
+            dtype_backend: DtypeBackend = "numpy_nullable",
     ) -> Series:
         input_series = self
         if infer_objects:
@@ -5507,33 +5643,33 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @overload
     def dropna(
-        self,
-        *,
-        axis: Axis = ...,
-        inplace: Literal[False] = ...,
-        how: AnyAll | None = ...,
-        ignore_index: bool = ...,
+            self,
+            *,
+            axis: Axis = ...,
+            inplace: Literal[False] = ...,
+            how: AnyAll | None = ...,
+            ignore_index: bool = ...,
     ) -> Series:
         ...
 
     @overload
     def dropna(
-        self,
-        *,
-        axis: Axis = ...,
-        inplace: Literal[True],
-        how: AnyAll | None = ...,
-        ignore_index: bool = ...,
+            self,
+            *,
+            axis: Axis = ...,
+            inplace: Literal[True],
+            how: AnyAll | None = ...,
+            ignore_index: bool = ...,
     ) -> None:
         ...
 
     def dropna(
-        self,
-        *,
-        axis: Axis = 0,
-        inplace: bool = False,
-        how: AnyAll | None = None,
-        ignore_index: bool = False,
+            self,
+            *,
+            axis: Axis = 0,
+            inplace: bool = False,
+            how: AnyAll | None = None,
+            ignore_index: bool = False,
     ) -> Series | None:
         """
         Return a new Series with missing values removed.
@@ -5626,10 +5762,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # Time series-oriented methods
 
     def to_timestamp(
-        self,
-        freq=None,
-        how: Literal["s", "e", "start", "end"] = "start",
-        copy: bool | None = None,
+            self,
+            freq=None,
+            how: Literal["s", "e", "start", "end"] = "start",
+            copy: bool | None = None,
     ) -> Series:
         """
         Cast to DatetimeIndex of Timestamps, at *beginning* of period.
@@ -5831,8 +5967,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             if not left.index.equals(right.index):
                 if align_asobject:
                     if left.dtype not in (object, np.bool_) or right.dtype not in (
-                        object,
-                        np.bool_,
+                            object,
+                            np.bool_,
                     ):
                         warnings.warn(
                             "Operation between non boolean Series with different "
@@ -5884,7 +6020,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return cast(Series, out)
 
     def _construct_result(
-        self, result: ArrayLike | tuple[ArrayLike, ArrayLike], name: Hashable
+            self, result: ArrayLike | tuple[ArrayLike, ArrayLike], name: Hashable
     ) -> Series | tuple[Series, Series]:
         """
         Construct an appropriately-labelled Series from the result of an op.
@@ -6006,11 +6142,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @Appender(ops.make_flex_doc("mul", "series"))
     def mul(
-        self,
-        other,
-        level: Level | None = None,
-        fill_value: float | None = None,
-        axis: Axis = 0,
+            self,
+            other,
+            level: Level | None = None,
+            fill_value: float | None = None,
+            axis: Axis = 0,
     ):
         return self._flex_method(
             other, operator.mul, level=level, fill_value=fill_value, axis=axis
@@ -6093,16 +6229,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # Reductions
 
     def _reduce(
-        self,
-        op,
-        # error: Variable "pandas.core.series.Series.str" is not valid as a type
-        name: str,  # type: ignore[valid-type]
-        *,
-        axis: Axis = 0,
-        skipna: bool = True,
-        numeric_only: bool = False,
-        filter_type=None,
-        **kwds,
+            self,
+            op,
+            # error: Variable "pandas.core.series.Series.str" is not valid as a type
+            name: str,  # type: ignore[valid-type]
+            *,
+            axis: Axis = 0,
+            skipna: bool = True,
+            numeric_only: bool = False,
+            filter_type=None,
+            **kwds,
     ):
         """
         Perform a reduction operation.
@@ -6136,12 +6272,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     @Appender(make_doc("any", ndim=1))
     # error: Signature of "any" incompatible with supertype "NDFrame"
     def any(  # type: ignore[override]
-        self,
-        *,
-        axis: Axis = 0,
-        bool_only: bool = False,
-        skipna: bool = True,
-        **kwargs,
+            self,
+            *,
+            axis: Axis = 0,
+            bool_only: bool = False,
+            skipna: bool = True,
+            **kwargs,
     ) -> bool:
         nv.validate_logical_func((), kwargs, fname="any")
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
@@ -6156,11 +6292,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @Appender(make_doc("all", ndim=1))
     def all(
-        self,
-        axis: Axis = 0,
-        bool_only: bool = False,
-        skipna: bool = True,
-        **kwargs,
+            self,
+            axis: Axis = 0,
+            bool_only: bool = False,
+            skipna: bool = True,
+            **kwargs,
     ) -> bool:
         nv.validate_logical_func((), kwargs, fname="all")
         validate_bool_kwarg(skipna, "skipna", none_allowed=False)
@@ -6175,116 +6311,116 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     @doc(make_doc("min", ndim=1))
     def min(
-        self,
-        axis: Axis | None = 0,
-        skipna: bool = True,
-        numeric_only: bool = False,
-        **kwargs,
+            self,
+            axis: Axis | None = 0,
+            skipna: bool = True,
+            numeric_only: bool = False,
+            **kwargs,
     ):
         return NDFrame.min(self, axis, skipna, numeric_only, **kwargs)
 
     @doc(make_doc("max", ndim=1))
     def max(
-        self,
-        axis: Axis | None = 0,
-        skipna: bool = True,
-        numeric_only: bool = False,
-        **kwargs,
+            self,
+            axis: Axis | None = 0,
+            skipna: bool = True,
+            numeric_only: bool = False,
+            **kwargs,
     ):
         return NDFrame.max(self, axis, skipna, numeric_only, **kwargs)
 
     @doc(make_doc("sum", ndim=1))
     def sum(
-        self,
-        axis: Axis | None = None,
-        skipna: bool = True,
-        numeric_only: bool = False,
-        min_count: int = 0,
-        **kwargs,
+            self,
+            axis: Axis | None = None,
+            skipna: bool = True,
+            numeric_only: bool = False,
+            min_count: int = 0,
+            **kwargs,
     ):
         return NDFrame.sum(self, axis, skipna, numeric_only, min_count, **kwargs)
 
     @doc(make_doc("prod", ndim=1))
     def prod(
-        self,
-        axis: Axis | None = None,
-        skipna: bool = True,
-        numeric_only: bool = False,
-        min_count: int = 0,
-        **kwargs,
+            self,
+            axis: Axis | None = None,
+            skipna: bool = True,
+            numeric_only: bool = False,
+            min_count: int = 0,
+            **kwargs,
     ):
         return NDFrame.prod(self, axis, skipna, numeric_only, min_count, **kwargs)
 
     @doc(make_doc("mean", ndim=1))
     def mean(
-        self,
-        axis: Axis | None = 0,
-        skipna: bool = True,
-        numeric_only: bool = False,
-        **kwargs,
+            self,
+            axis: Axis | None = 0,
+            skipna: bool = True,
+            numeric_only: bool = False,
+            **kwargs,
     ):
         return NDFrame.mean(self, axis, skipna, numeric_only, **kwargs)
 
     @doc(make_doc("median", ndim=1))
     def median(
-        self,
-        axis: Axis | None = 0,
-        skipna: bool = True,
-        numeric_only: bool = False,
-        **kwargs,
+            self,
+            axis: Axis | None = 0,
+            skipna: bool = True,
+            numeric_only: bool = False,
+            **kwargs,
     ):
         return NDFrame.median(self, axis, skipna, numeric_only, **kwargs)
 
     @doc(make_doc("sem", ndim=1))
     def sem(
-        self,
-        axis: Axis | None = None,
-        skipna: bool = True,
-        ddof: int = 1,
-        numeric_only: bool = False,
-        **kwargs,
+            self,
+            axis: Axis | None = None,
+            skipna: bool = True,
+            ddof: int = 1,
+            numeric_only: bool = False,
+            **kwargs,
     ):
         return NDFrame.sem(self, axis, skipna, ddof, numeric_only, **kwargs)
 
     @doc(make_doc("var", ndim=1))
     def var(
-        self,
-        axis: Axis | None = None,
-        skipna: bool = True,
-        ddof: int = 1,
-        numeric_only: bool = False,
-        **kwargs,
+            self,
+            axis: Axis | None = None,
+            skipna: bool = True,
+            ddof: int = 1,
+            numeric_only: bool = False,
+            **kwargs,
     ):
         return NDFrame.var(self, axis, skipna, ddof, numeric_only, **kwargs)
 
     @doc(make_doc("std", ndim=1))
     def std(
-        self,
-        axis: Axis | None = None,
-        skipna: bool = True,
-        ddof: int = 1,
-        numeric_only: bool = False,
-        **kwargs,
+            self,
+            axis: Axis | None = None,
+            skipna: bool = True,
+            ddof: int = 1,
+            numeric_only: bool = False,
+            **kwargs,
     ):
         return NDFrame.std(self, axis, skipna, ddof, numeric_only, **kwargs)
 
     @doc(make_doc("skew", ndim=1))
     def skew(
-        self,
-        axis: Axis | None = 0,
-        skipna: bool = True,
-        numeric_only: bool = False,
-        **kwargs,
+            self,
+            axis: Axis | None = 0,
+            skipna: bool = True,
+            numeric_only: bool = False,
+            **kwargs,
     ):
         return NDFrame.skew(self, axis, skipna, numeric_only, **kwargs)
 
     @doc(make_doc("kurt", ndim=1))
     def kurt(
-        self,
-        axis: Axis | None = 0,
-        skipna: bool = True,
-        numeric_only: bool = False,
-        **kwargs,
+            self,
+            axis: Axis | None = 0,
+            skipna: bool = True,
+            numeric_only: bool = False,
+            **kwargs,
     ):
         return NDFrame.kurt(self, axis, skipna, numeric_only, **kwargs)
 

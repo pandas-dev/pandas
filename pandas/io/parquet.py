@@ -8,6 +8,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    overload,
 )
 import warnings
 from warnings import catch_warnings
@@ -25,6 +26,7 @@ import pandas as pd
 from pandas import (
     DataFrame,
     get_option,
+    Series,
 )
 from pandas.core.shared_docs import _shared_docs
 
@@ -82,11 +84,11 @@ def get_engine(engine: str) -> BaseImpl:
 
 
 def _get_path_or_handle(
-    path: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
-    fs: Any,
-    storage_options: StorageOptions | None = None,
-    mode: str = "rb",
-    is_dir: bool = False,
+        path: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
+        fs: Any,
+        storage_options: StorageOptions | None = None,
+        mode: str = "rb",
+        is_dir: bool = False,
 ) -> tuple[
     FilePath | ReadBuffer[bytes] | WriteBuffer[bytes], IOHandles[bytes] | None, Any
 ]:
@@ -128,10 +130,10 @@ def _get_path_or_handle(
 
     handles = None
     if (
-        not fs
-        and not is_dir
-        and isinstance(path_or_handle, str)
-        and not os.path.isdir(path_or_handle)
+            not fs
+            and not is_dir
+            and isinstance(path_or_handle, str)
+            and not os.path.isdir(path_or_handle)
     ):
         # use get_handle only when we are very certain that it is not a directory
         # fsspec resources can also point to directories
@@ -146,9 +148,9 @@ def _get_path_or_handle(
 
 class BaseImpl:
     @staticmethod
-    def validate_dataframe(df: DataFrame) -> None:
-        if not isinstance(df, DataFrame):
-            raise ValueError("to_parquet only supports IO with DataFrames")
+    def validate_data(data: DataFrame | Series) -> None:
+        if not isinstance(data, DataFrame) and not isinstance(data, Series):
+            raise ValueError("to_parquet only supports IO with DataFrames and Series")
 
     def write(self, df: DataFrame, path, compression, **kwargs):
         raise AbstractMethodError(self)
@@ -169,29 +171,32 @@ class PyArrowImpl(BaseImpl):
 
         self.api = pyarrow
 
+
     def write(
-        self,
-        df: DataFrame,
-        path: FilePath | WriteBuffer[bytes],
-        compression: str | None = "snappy",
-        index: bool | None = None,
-        storage_options: StorageOptions | None = None,
-        partition_cols: list[str] | None = None,
-        filesystem=None,
-        **kwargs,
+            self,
+            data: DataFrame | Series,
+            path: FilePath | WriteBuffer[bytes],
+            compression: str | None = "snappy",
+            index: bool | None = None,
+            storage_options: StorageOptions | None = None,
+            partition_cols: list[str] | None = None,
+            filesystem=None,
+            **kwargs,
     ) -> None:
-        self.validate_dataframe(df)
+        self.validate_data(data)
 
         from_pandas_kwargs: dict[str, Any] = {"schema": kwargs.pop("schema", None)}
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
+        if isinstance(data, Series):
+            table = self.api.Table.from_pandas(data.to_frame(), **from_pandas_kwargs)
+        else:
+            table = self.api.Table.from_pandas(data, **from_pandas_kwargs)
 
-        table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
-
-        if df.attrs:
-            df_metadata = {"PANDAS_ATTRS": json.dumps(df.attrs)}
+        if data.attrs:
+            data_metadata = {"PANDAS_ATTRS": json.dumps(data.attrs)}
             existing_metadata = table.schema.metadata
-            merged_metadata = {**existing_metadata, **df_metadata}
+            merged_metadata = {**existing_metadata, **data_metadata}
             table = table.replace_schema_metadata(merged_metadata)
 
         path_or_handle, handles, filesystem = _get_path_or_handle(
@@ -202,9 +207,9 @@ class PyArrowImpl(BaseImpl):
             is_dir=partition_cols is not None,
         )
         if (
-            isinstance(path_or_handle, io.BufferedWriter)
-            and hasattr(path_or_handle, "name")
-            and isinstance(path_or_handle.name, (str, bytes))
+                isinstance(path_or_handle, io.BufferedWriter)
+                and hasattr(path_or_handle, "name")
+                and isinstance(path_or_handle.name, (str, bytes))
         ):
             path_or_handle = path_or_handle.name
             if isinstance(path_or_handle, bytes):
@@ -235,15 +240,15 @@ class PyArrowImpl(BaseImpl):
                 handles.close()
 
     def read(
-        self,
-        path,
-        columns=None,
-        filters=None,
-        use_nullable_dtypes: bool = False,
-        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-        storage_options: StorageOptions | None = None,
-        filesystem=None,
-        **kwargs,
+            self,
+            path,
+            columns=None,
+            filters=None,
+            use_nullable_dtypes: bool = False,
+            dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+            storage_options: StorageOptions | None = None,
+            filesystem=None,
+            **kwargs,
     ) -> DataFrame:
         kwargs["use_pandas_metadata"] = True
 
@@ -301,17 +306,17 @@ class FastParquetImpl(BaseImpl):
         self.api = fastparquet
 
     def write(
-        self,
-        df: DataFrame,
-        path,
-        compression: Literal["snappy", "gzip", "brotli"] | None = "snappy",
-        index=None,
-        partition_cols=None,
-        storage_options: StorageOptions | None = None,
-        filesystem=None,
-        **kwargs,
+            self,
+            data: DataFrame | Series,
+            path,
+            compression: Literal["snappy", "gzip", "brotli"] | None = "snappy",
+            index=None,
+            partition_cols=None,
+            storage_options: StorageOptions | None = None,
+            filesystem=None,
+            **kwargs,
     ) -> None:
-        self.validate_dataframe(df)
+        self.validate_data(data)
 
         if "partition_on" in kwargs and partition_cols is not None:
             raise ValueError(
@@ -346,7 +351,7 @@ class FastParquetImpl(BaseImpl):
         with catch_warnings(record=True):
             self.api.write(
                 path,
-                df,
+                data,
                 compression=compression,
                 write_index=index,
                 partition_on=partition_cols,
@@ -354,13 +359,13 @@ class FastParquetImpl(BaseImpl):
             )
 
     def read(
-        self,
-        path,
-        columns=None,
-        filters=None,
-        storage_options: StorageOptions | None = None,
-        filesystem=None,
-        **kwargs,
+            self,
+            path,
+            columns=None,
+            filters=None,
+            storage_options: StorageOptions | None = None,
+            filesystem=None,
+            **kwargs,
     ) -> DataFrame:
         parquet_kwargs: dict[str, Any] = {}
         use_nullable_dtypes = kwargs.pop("use_nullable_dtypes", False)
@@ -404,24 +409,54 @@ class FastParquetImpl(BaseImpl):
                 handles.close()
 
 
+@overload
+def to_parquet(
+        data: DataFrame,
+        path: FilePath | WriteBuffer[bytes] | None = None,
+        engine: str = "auto",
+        compression: str | None = "snappy",
+        index: bool | None = None,
+        storage_options: StorageOptions | None = None,
+        partition_cols: list[str] | None = None,
+        filesystem: Any = None,
+        **kwargs,
+) -> bytes | None:
+    ...
+
+
+@overload
+def to_parquet(
+        data: Series,
+        path: FilePath | WriteBuffer[bytes] | None = None,
+        engine: str = "auto",
+        compression: str | None = "snappy",
+        index: bool | None = None,
+        storage_options: StorageOptions | None = None,
+        partition_cols: list[str] | None = None,
+        filesystem: Any = None,
+        **kwargs,
+) -> bytes | None:
+    ...
+
+
 @doc(storage_options=_shared_docs["storage_options"])
 def to_parquet(
-    df: DataFrame,
-    path: FilePath | WriteBuffer[bytes] | None = None,
-    engine: str = "auto",
-    compression: str | None = "snappy",
-    index: bool | None = None,
-    storage_options: StorageOptions | None = None,
-    partition_cols: list[str] | None = None,
-    filesystem: Any = None,
-    **kwargs,
+        data: DataFrame | Series,
+        path: FilePath | WriteBuffer[bytes] | None = None,
+        engine: str = "auto",
+        compression: str | None = "snappy",
+        index: bool | None = None,
+        storage_options: StorageOptions | None = None,
+        partition_cols: list[str] | None = None,
+        filesystem: Any = None,
+        **kwargs,
 ) -> bytes | None:
     """
-    Write a DataFrame to the parquet format.
+    Write a DataFrame or a Series to the parquet format.
 
     Parameters
     ----------
-    df : DataFrame
+    data : DataFrame or Series
     path : str, path object, file-like object, or None, default None
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``write()`` function. If None, the result is
@@ -481,7 +516,7 @@ def to_parquet(
     path_or_buf: FilePath | WriteBuffer[bytes] = io.BytesIO() if path is None else path
 
     impl.write(
-        df,
+        data,
         path_or_buf,
         compression=compression,
         index=index,
@@ -500,15 +535,15 @@ def to_parquet(
 
 @doc(storage_options=_shared_docs["storage_options"])
 def read_parquet(
-    path: FilePath | ReadBuffer[bytes],
-    engine: str = "auto",
-    columns: list[str] | None = None,
-    storage_options: StorageOptions | None = None,
-    use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
-    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    filesystem: Any = None,
-    filters: list[tuple] | list[list[tuple]] | None = None,
-    **kwargs,
+        path: FilePath | ReadBuffer[bytes],
+        engine: str = "auto",
+        columns: list[str] | None = None,
+        storage_options: StorageOptions | None = None,
+        use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+        filesystem: Any = None,
+        filters: list[tuple] | list[list[tuple]] | None = None,
+        **kwargs,
 ) -> DataFrame:
     """
     Load a parquet object from the file path, returning a DataFrame.
