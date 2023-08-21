@@ -354,7 +354,9 @@ class Holiday:
         Dates with rules applied
         """
         if dates.empty:
-            return DatetimeIndex([])
+            # Handle case where we get an empty series of dates with a
+            # defined timezone
+            return DatetimeIndex([]).tz_localize(dates.tz)
 
         if self.observance is not None:
             return dates.map(lambda d: self.observance(d))
