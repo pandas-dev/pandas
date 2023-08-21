@@ -2919,10 +2919,7 @@ class DataFrame(NDFrame, OpsMixin):
             'pyarrow' is unavailable.
         compression : str or None, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
-            The supported compression methods actually depend on which engine
-            is used. For 'pyarrow', 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'
-            are all supported. For 'fastparquet', only 'gzip' and 'snappy' are
-            supported.
+            Supported options: 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -3140,6 +3137,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_html"
+    )
     @Substitution(
         header_type="bool",
         header="Whether to print column labels, default True",
