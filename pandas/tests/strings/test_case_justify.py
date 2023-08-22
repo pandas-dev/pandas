@@ -282,7 +282,7 @@ def test_center_ljust_rjust_fillchar(any_string_dtype):
         pytest.skip(
             "Arrow logic is different, "
             "see https://github.com/pandas-dev/pandas/pull/54533/files#r1299808126",
-            )
+        )
     s = Series(["a", "bb", "cccc", "ddddd", "eeeeee"], dtype=any_string_dtype)
 
     result = s.str.center(5, fillchar="X")
