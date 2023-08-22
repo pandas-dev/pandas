@@ -283,11 +283,11 @@ class Holiday:
         holiday_dates = self._apply_rule(dates)
         if self.days_of_week is not None:
             holiday_dates = holiday_dates[
-                np.in1d(
+                np.isin(
                     # error: "DatetimeIndex" has no attribute "dayofweek"
                     holiday_dates.dayofweek,  # type: ignore[attr-defined]
                     self.days_of_week,
-                )
+                ).ravel()
             ]
 
         if self.start_date is not None:
