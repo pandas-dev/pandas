@@ -90,13 +90,14 @@ class ArrowParserWrapper(ParserBase):
         }
 
         if "on_bad_lines" in self.kwds:
-            if callable(self.kwds["on_bad_lines"]):
-                self.parse_options["invalid_row_handler"] = self.kwds["on_bad_lines"]
-            elif self.kwds["on_bad_lines"] == ParserBase.BadLineHandleMethod.ERROR:
+            on_bad_lines = self.kwds["on_bad_lines"]
+            if callable(on_bad_lines):
+                self.parse_options["invalid_row_handler"] = on_bad_lines
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.ERROR:
                 self.parse_options[
                     "invalid_row_handler"
                 ] = None  # PyArrow raises an exception by default
-            elif self.kwds["on_bad_lines"] == ParserBase.BadLineHandleMethod.WARN:
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.WARN:
 
                 def handle_warning(invalid_row):
                     warnings.warn(
@@ -108,7 +109,7 @@ class ArrowParserWrapper(ParserBase):
                     return "skip"
 
                 self.parse_options["invalid_row_handler"] = handle_warning
-            elif self.kwds["on_bad_lines"] == ParserBase.BadLineHandleMethod.SKIP:
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.SKIP:
                 self.parse_options["invalid_row_handler"] = lambda _: "skip"
 
         self.convert_options = {
