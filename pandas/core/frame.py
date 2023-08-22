@@ -1944,6 +1944,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(self, orient: Literal["records"], into: type[dict] = ...) -> list[dict]:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "orient"], name="to_dict"
+    )
     def to_dict(
         self,
         orient: Literal[
@@ -2889,6 +2892,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "path"], name="to_parquet"
+    )
     @doc(storage_options=_shared_docs["storage_options"])
     def to_parquet(
         self,

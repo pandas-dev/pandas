@@ -4017,6 +4017,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mask = isna(values)
 
         if mask.any():
+            # TODO(3.0): once this deprecation is enforced we can call
+            #  self.array.argsort directly, which will close GH#43840
             warnings.warn(
                 "The behavior of Series.argsort in the presence of NA values is "
                 "deprecated. In a future version, NA values will be ordered "
@@ -5231,6 +5233,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             show_counts=show_counts,
         )
 
+    # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
     def _replace_single(self, to_replace, method: str, inplace: bool, limit):
         """
         Replaces values in a Series using the fill method specified when no
