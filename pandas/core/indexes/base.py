@@ -3782,9 +3782,15 @@ class Index(IndexOpsMixin, PandasObject):
             self._check_indexing_error(key)
             raise
 
-    _index_shared_docs[
-        "get_indexer"
-    ] = """
+    @final
+    def get_indexer(
+        self,
+        target,
+        method: ReindexMethod | None = None,
+        limit: int | None = None,
+        tolerance=None,
+    ) -> npt.NDArray[np.intp]:
+        """
         Compute indexer and mask for new index given the current index.
 
         The indexer should be then used as an input to ndarray.take to align the
@@ -3792,7 +3798,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        target : %(target_klass)s
+        target : Index
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
@@ -3819,7 +3825,7 @@ class Index(IndexOpsMixin, PandasObject):
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
-        %(raises_section)s
+
         Notes
         -----
         Returns -1 for unmatched values, for further explanation see the
@@ -3834,16 +3840,6 @@ class Index(IndexOpsMixin, PandasObject):
         Notice that the return value is an array of locations in ``index``
         and ``x`` is marked by -1, as it is not in ``index``.
         """
-
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    @final
-    def get_indexer(
-        self,
-        target,
-        method: ReindexMethod | None = None,
-        limit: int | None = None,
-        tolerance=None,
-    ) -> npt.NDArray[np.intp]:
         method = clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
@@ -3898,7 +3894,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             return ensure_platform_int(indexer)
 
-        pself, ptarget = self._maybe_promote(target)
+        pself, ptarget = self._maybe_downcast_for_indexing(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer(
                 ptarget, method=method, limit=limit, tolerance=tolerance
@@ -4582,7 +4578,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_multi and not other._is_multi:
             # We have specific handling for MultiIndex below
-            pself, pother = self._maybe_promote(other)
+            pself, pother = self._maybe_downcast_for_indexing(other)
             if pself is not self or pother is not other:
                 return pself.join(
                     pother, how=how, level=level, return_indexers=True, sort=sort
@@ -6046,7 +6042,7 @@ class Index(IndexOpsMixin, PandasObject):
             #  that can be matched to Interval scalars.
             return self._get_indexer_non_comparable(target, method=None, unique=False)
 
-        pself, ptarget = self._maybe_promote(target)
+        pself, ptarget = self._maybe_downcast_for_indexing(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
@@ -6062,8 +6058,8 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO: get_indexer has fastpaths for both Categorical-self and
         #  Categorical-target. Can we do something similar here?
 
-        # Note: _maybe_promote ensures we never get here with MultiIndex
-        #  self and non-Multi target
+        # Note: _maybe_downcast_for_indexing ensures we never get here
+        #  with MultiIndex self and non-Multi target
         tgt_values = target._get_engine_target()
         if self._is_multi and target._is_multi:
             engine = self._engine
@@ -6237,7 +6233,7 @@ class Index(IndexOpsMixin, PandasObject):
     _requires_unique_msg = "Reindexing only valid with uniquely valued Index objects"
 
     @final
-    def _maybe_promote(self, other: Index) -> tuple[Index, Index]:
+    def _maybe_downcast_for_indexing(self, other: Index) -> tuple[Index, Index]:
         """
         When dealing with an object-dtype Index and a non-object Index, see
         if we can upcast the object-dtype one to improve performance.
@@ -6278,7 +6274,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
-            other, self = other._maybe_promote(self)
+            other, self = other._maybe_downcast_for_indexing(self)
 
         return self, other
 
