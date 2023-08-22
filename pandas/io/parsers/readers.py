@@ -391,7 +391,7 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.
           Only supported when ``engine='python'``
 
-    .. versionchanged:: 1.4.1
+    .. versionchanged:: 2.2.0
 
         - Callable, function with signature
           as described in `pyarrow documentation
