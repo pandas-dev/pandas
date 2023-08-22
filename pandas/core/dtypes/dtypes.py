@@ -985,6 +985,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
         if isinstance(freq, BDay):
             # GH#53446
+            # TODO(3.0): enforcing this will close GH#10575
             warnings.warn(
                 "PeriodDtype[B] is deprecated and will be removed in a future "
                 "version. Use a DatetimeIndex with freq='B' instead",
