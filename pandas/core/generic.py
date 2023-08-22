@@ -12340,9 +12340,6 @@ axis : {axis_descr}
     Axis for the function to be applied on.
     For `Series` this parameter is unused and defaults to 0.
 
-    For DataFrames, specifying ``axis=None`` will apply the aggregation
-    across both axes.
-
     .. versionadded:: 2.0.0
 
 skipna : bool, default True
