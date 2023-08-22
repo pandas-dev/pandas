@@ -493,7 +493,7 @@ cdef class BitMaskArray:
         cdef bint value
         cdef Py_ssize_t i
         cdef int64_t index
-        cdef nindices = indices.shape[0]
+        cdef Py_ssize_t nindices = indices.shape[0]
 
         for i in range(nindices):
             index = indices[i]
