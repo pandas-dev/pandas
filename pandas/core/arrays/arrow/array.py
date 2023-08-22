@@ -84,6 +84,15 @@ if not pa_version_under7p0:
         "rxor": lambda x, y: pc.xor(y, x),
     }
 
+    ARROW_BIT_WISE_FUNCS = {
+        "and_": pc.bit_wise_and,
+        "rand_": lambda x, y: pc.bit_wise_and(y, x),
+        "or_": pc.bit_wise_or,
+        "ror_": lambda x, y: pc.bit_wise_or(y, x),
+        "xor": pc.bit_wise_xor,
+        "rxor": lambda x, y: pc.bit_wise_xor(y, x),
+    }
+
     def cast_for_truediv(
         arrow_array: pa.ChunkedArray, pa_object: pa.Array | pa.Scalar
     ) -> pa.ChunkedArray:
@@ -582,7 +591,11 @@ class ArrowExtensionArray(
         return self.to_numpy(dtype=dtype)
 
     def __invert__(self) -> Self:
-        return type(self)(pc.invert(self._pa_array))
+        # This is a bit wise op for integer types
+        if pa.types.is_integer(self._pa_array.type):
+            return type(self)(pc.bit_wise_not(self._pa_array))
+        else:
+            return type(self)(pc.invert(self._pa_array))
 
     def __neg__(self) -> Self:
         return type(self)(pc.negate_checked(self._pa_array))
@@ -657,7 +670,12 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _logical_method(self, other, op):
-        return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
+        # For integer types `^`, `|`, `&` are bitwise operators and return
+        # integer types. Otherwise these are boolean ops.
+        if pa.types.is_integer(self._pa_array.type):
+            return self._evaluate_op_method(other, op, ARROW_BIT_WISE_FUNCS)
+        else:
+            return self._evaluate_op_method(other, op, ARROW_LOGICAL_FUNCS)
 
     def _arith_method(self, other, op):
         return self._evaluate_op_method(other, op, ARROW_ARITHMETIC_FUNCS)
@@ -952,6 +970,9 @@ class ArrowExtensionArray(
                 return value
             if isinstance(value, (pa.Scalar, pa.Array, pa.ChunkedArray)):
                 return value
+            if isinstance(value, Timedelta) and value.unit in ("s", "ms"):
+                # Workaround https://github.com/apache/arrow/issues/37291
+                value = value.to_numpy()
             if is_array_like(value):
                 pa_box = pa.array
             else:

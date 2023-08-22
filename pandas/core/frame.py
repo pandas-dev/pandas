@@ -1933,6 +1933,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(self, orient: Literal["records"], into: type[dict] = ...) -> list[dict]:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "orient"], name="to_dict"
+    )
     def to_dict(
         self,
         orient: Literal[
@@ -2800,6 +2803,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         to_feather(self, path, **kwargs)
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_markdown"
+    )
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
@@ -2875,6 +2881,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "path"], name="to_parquet"
+    )
     @doc(storage_options=_shared_docs["storage_options"])
     def to_parquet(
         self,
@@ -2913,10 +2922,7 @@ class DataFrame(NDFrame, OpsMixin):
             'pyarrow' is unavailable.
         compression : str or None, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
-            The supported compression methods actually depend on which engine
-            is used. For 'pyarrow', 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'
-            are all supported. For 'fastparquet', only 'gzip' and 'snappy' are
-            supported.
+            Supported options: 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -3134,6 +3140,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_html"
+    )
     @Substitution(
         header_type="bool",
         header="Whether to print column labels, default True",

@@ -373,9 +373,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         # similar but not identical to ov.searchsorted(sv)
         return libjoin.left_join_indexer_unique(sv, ov)
 
@@ -386,9 +383,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.left_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -400,9 +394,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.inner_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -414,9 +405,6 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        # can_use_libjoin assures sv and ov are ndarrays
-        sv = cast(np.ndarray, sv)
-        ov = cast(np.ndarray, ov)
         joined_ndarray, lidx, ridx = libjoin.outer_join_indexer(sv, ov)
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
@@ -2184,11 +2172,6 @@ class Index(IndexOpsMixin, PandasObject):
     @final
     def _can_hold_na(self) -> bool:
         if isinstance(self.dtype, ExtensionDtype):
-            if isinstance(self.dtype, IntervalDtype):
-                # FIXME(GH#45720): this is inaccurate for integer-backed
-                #  IntervalArray, but without it other.categories.take raises
-                #  in IntervalArray._cmp_method
-                return True
             return self.dtype._can_hold_na
         if self.dtype.kind in "iub":
             return False
@@ -3354,6 +3337,7 @@ class Index(IndexOpsMixin, PandasObject):
             and other.is_monotonic_increasing
             and not (self.has_duplicates and other.has_duplicates)
             and self._can_use_libjoin
+            and other._can_use_libjoin
         ):
             # Both are monotonic and at least one is unique, so can use outer join
             #  (actually don't need either unique, but without this restriction
@@ -3452,7 +3436,7 @@ class Index(IndexOpsMixin, PandasObject):
             self, other = self._dti_setop_align_tzs(other, "intersection")
 
         if self.equals(other):
-            if self.has_duplicates:
+            if not self.is_unique:
                 result = self.unique()._get_reconciled_name_object(other)
             else:
                 result = self._get_reconciled_name_object(other)
@@ -3507,7 +3491,9 @@ class Index(IndexOpsMixin, PandasObject):
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
+            and other._can_use_libjoin
             and not isinstance(self, ABCMultiIndex)
+            and not isinstance(other, ABCMultiIndex)
         ):
             try:
                 res_indexer, indexer, _ = self._inner_indexer(other)
@@ -3791,9 +3777,15 @@ class Index(IndexOpsMixin, PandasObject):
             self._check_indexing_error(key)
             raise
 
-    _index_shared_docs[
-        "get_indexer"
-    ] = """
+    @final
+    def get_indexer(
+        self,
+        target,
+        method: ReindexMethod | None = None,
+        limit: int | None = None,
+        tolerance=None,
+    ) -> npt.NDArray[np.intp]:
+        """
         Compute indexer and mask for new index given the current index.
 
         The indexer should be then used as an input to ndarray.take to align the
@@ -3801,7 +3793,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        target : %(target_klass)s
+        target : Index
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
@@ -3828,7 +3820,7 @@ class Index(IndexOpsMixin, PandasObject):
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
-        %(raises_section)s
+
         Notes
         -----
         Returns -1 for unmatched values, for further explanation see the
@@ -3843,16 +3835,6 @@ class Index(IndexOpsMixin, PandasObject):
         Notice that the return value is an array of locations in ``index``
         and ``x`` is marked by -1, as it is not in ``index``.
         """
-
-    @Appender(_index_shared_docs["get_indexer"] % _index_doc_kwargs)
-    @final
-    def get_indexer(
-        self,
-        target,
-        method: ReindexMethod | None = None,
-        limit: int | None = None,
-        tolerance=None,
-    ) -> npt.NDArray[np.intp]:
         method = clean_reindex_fill_method(method)
         orig_target = target
         target = self._maybe_cast_listlike_indexer(target)
@@ -3907,7 +3889,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             return ensure_platform_int(indexer)
 
-        pself, ptarget = self._maybe_promote(target)
+        pself, ptarget = self._maybe_downcast_for_indexing(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer(
                 ptarget, method=method, limit=limit, tolerance=tolerance
@@ -4591,7 +4573,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_multi and not other._is_multi:
             # We have specific handling for MultiIndex below
-            pself, pother = self._maybe_promote(other)
+            pself, pother = self._maybe_downcast_for_indexing(other)
             if pself is not self or pother is not other:
                 return pself.join(
                     pother, how=how, level=level, return_indexers=True, sort=sort
@@ -4654,7 +4636,10 @@ class Index(IndexOpsMixin, PandasObject):
             return self._join_non_unique(other, how=how, sort=sort)
         elif not self.is_unique or not other.is_unique:
             if self.is_monotonic_increasing and other.is_monotonic_increasing:
-                if not isinstance(self.dtype, IntervalDtype):
+                # Note: 2023-08-15 we *do* have tests that get here with
+                #  Categorical, string[python] (can use libjoin)
+                #  and Interval (cannot)
+                if self._can_use_libjoin and other._can_use_libjoin:
                     # otherwise we will fall through to _join_via_get_indexer
                     # GH#39133
                     # go through object dtype for ea till engine is supported properly
@@ -4666,6 +4651,7 @@ class Index(IndexOpsMixin, PandasObject):
             self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
+            and other._can_use_libjoin
             and not isinstance(self, ABCMultiIndex)
             and not isinstance(self.dtype, CategoricalDtype)
         ):
@@ -4968,6 +4954,7 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp] | None]:
         # We only get here with matching dtypes and both monotonic increasing
         assert other.dtype == self.dtype
+        assert self._can_use_libjoin and other._can_use_libjoin
 
         if self.equals(other):
             # This is a convenient place for this check, but its correctness
@@ -5036,19 +5023,28 @@ class Index(IndexOpsMixin, PandasObject):
             name = get_op_result_name(self, other)
             return self._constructor._with_infer(joined, name=name, dtype=self.dtype)
 
+    @final
     @cache_readonly
     def _can_use_libjoin(self) -> bool:
         """
-        Whether we can use the fastpaths implement in _libs.join
+        Whether we can use the fastpaths implemented in _libs.join.
+
+        This is driven by whether (in monotonic increasing cases that are
+        guaranteed not to have NAs) we can convert to a np.ndarray without
+        making a copy. If we cannot, this negates the performance benefit
+        of using libjoin.
         """
         if type(self) is Index:
             # excludes EAs, but include masks, we get here with monotonic
             # values only, meaning no NA
             return (
                 isinstance(self.dtype, np.dtype)
-                or isinstance(self.values, BaseMaskedArray)
-                or isinstance(self._values, ArrowExtensionArray)
+                or isinstance(self._values, (ArrowExtensionArray, BaseMaskedArray))
+                or self.dtype == "string[python]"
             )
+        # For IntervalIndex, the conversion to numpy converts
+        #  to object dtype, which negates the performance benefit of libjoin
+        # TODO: exclude RangeIndex and MultiIndex as these also make copies?
         return not isinstance(self.dtype, IntervalDtype)
 
     # --------------------------------------------------------------------
@@ -5170,7 +5166,8 @@ class Index(IndexOpsMixin, PandasObject):
             return self._values.astype(object)
         return vals
 
-    def _get_join_target(self) -> ArrayLike:
+    @final
+    def _get_join_target(self) -> np.ndarray:
         """
         Get the ndarray or ExtensionArray that we can pass to the join
         functions.
@@ -5182,7 +5179,13 @@ class Index(IndexOpsMixin, PandasObject):
             # This is only used if our array is monotonic, so no missing values
             # present
             return self._values.to_numpy()
-        return self._get_engine_target()
+
+        # TODO: exclude ABCRangeIndex, ABCMultiIndex cases here as those create
+        #  copies.
+        target = self._get_engine_target()
+        if not isinstance(target, np.ndarray):
+            raise ValueError("_can_use_libjoin should return False.")
+        return target
 
     def _from_join_target(self, result: np.ndarray) -> ArrayLike:
         """
@@ -6032,7 +6035,7 @@ class Index(IndexOpsMixin, PandasObject):
             #  that can be matched to Interval scalars.
             return self._get_indexer_non_comparable(target, method=None, unique=False)
 
-        pself, ptarget = self._maybe_promote(target)
+        pself, ptarget = self._maybe_downcast_for_indexing(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
 
@@ -6048,8 +6051,8 @@ class Index(IndexOpsMixin, PandasObject):
         # TODO: get_indexer has fastpaths for both Categorical-self and
         #  Categorical-target. Can we do something similar here?
 
-        # Note: _maybe_promote ensures we never get here with MultiIndex
-        #  self and non-Multi target
+        # Note: _maybe_downcast_for_indexing ensures we never get here
+        #  with MultiIndex self and non-Multi target
         tgt_values = target._get_engine_target()
         if self._is_multi and target._is_multi:
             engine = self._engine
@@ -6223,7 +6226,7 @@ class Index(IndexOpsMixin, PandasObject):
     _requires_unique_msg = "Reindexing only valid with uniquely valued Index objects"
 
     @final
-    def _maybe_promote(self, other: Index) -> tuple[Index, Index]:
+    def _maybe_downcast_for_indexing(self, other: Index) -> tuple[Index, Index]:
         """
         When dealing with an object-dtype Index and a non-object Index, see
         if we can upcast the object-dtype one to improve performance.
@@ -6264,7 +6267,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not is_object_dtype(self.dtype) and is_object_dtype(other.dtype):
             # Reverse op so we dont need to re-implement on the subclasses
-            other, self = other._maybe_promote(self)
+            other, self = other._maybe_downcast_for_indexing(self)
 
         return self, other
 
@@ -7190,11 +7193,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         nv.validate_any(args, kwargs)
         self._maybe_disable_logical_methods("any")
-        # error: Argument 1 to "any" has incompatible type "ArrayLike"; expected
-        # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
-        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
-        # _SupportsArray]"
-        return np.any(self.values)  # type: ignore[arg-type]
+        vals = self._values
+        if not isinstance(vals, np.ndarray):
+            # i.e. EA, call _reduce instead of "any" to get TypeError instead
+            #  of AttributeError
+            return vals._reduce("any")
+        return np.any(vals)
 
     def all(self, *args, **kwargs):
         """
@@ -7237,11 +7241,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         nv.validate_all(args, kwargs)
         self._maybe_disable_logical_methods("all")
-        # error: Argument 1 to "all" has incompatible type "ArrayLike"; expected
-        # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
-        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
-        # _SupportsArray]"
-        return np.all(self.values)  # type: ignore[arg-type]
+        vals = self._values
+        if not isinstance(vals, np.ndarray):
+            # i.e. EA, call _reduce instead of "all" to get TypeError instead
+            #  of AttributeError
+            return vals._reduce("all")
+        return np.all(vals)
 
     @final
     def _maybe_disable_logical_methods(self, opname: str_t) -> None:
@@ -7250,9 +7255,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if (
             isinstance(self, ABCMultiIndex)
-            or needs_i8_conversion(self.dtype)
-            or isinstance(self.dtype, (IntervalDtype, CategoricalDtype))
-            or is_float_dtype(self.dtype)
+            # TODO(3.0): PeriodArray and DatetimeArray any/all will raise,
+            #  so checking needs_i8_conversion will be unnecessary
+            or (needs_i8_conversion(self.dtype) and self.dtype.kind != "m")
         ):
             # This call will raise
             make_invalid_op(opname)(self)
@@ -7526,7 +7531,7 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
         index_like = list(index_like)
 
     if isinstance(index_like, list):
-        if type(index_like) is not list:
+        if type(index_like) is not list:  # noqa: E721
             # must check for exactly list here because of strict type
             # check in clean_index_list
             index_like = list(index_like)

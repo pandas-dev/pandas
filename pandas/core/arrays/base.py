@@ -2042,6 +2042,7 @@ class ExtensionArray:
         result[~mask] = val
         return result
 
+    # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
     def _fill_mask_inplace(
         self, method: str, limit: int | None, mask: npt.NDArray[np.bool_]
     ) -> None:
