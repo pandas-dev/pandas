@@ -1033,7 +1033,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         owl     1  2  3
         toucan  1  5  6
         eagle   7  8  9
-        >>> df.groupby(by=["a"]).get_group(1)
+        >>> df.groupby(by=["a"]).get_group((1,))
                 a  b  c
         owl     1  2  3
         toucan  1  5  6
@@ -1053,6 +1053,26 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-01-15    2
         dtype: int64
         """
+        keys = self.keys
+        level = self.level
+        # mypy doesn't recognize level/keys as being sized when passed to len
+        if (is_list_like(level) and len(level) == 1) or (  # type: ignore[arg-type]
+            is_list_like(keys) and len(keys) == 1  # type: ignore[arg-type]
+        ):
+            # GH#25971
+            if isinstance(name, tuple) and len(name) == 1:
+                # Allow users to pass tuples of length 1 to silence warning
+                name = name[0]
+            elif not isinstance(name, tuple):
+                warnings.warn(
+                    "When grouping with a length-1 list-like, "
+                    "you will need to pass a length-1 tuple to get_group in a future "
+                    "version of pandas. Pass `(name,)` instead of `name` to silence "
+                    "this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         inds = self._get_index(name)
         if not len(inds):
             raise KeyError(name)
