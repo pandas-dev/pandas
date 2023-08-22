@@ -145,7 +145,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- When :meth:`.astype(str)` was called on an array that was loaded from pickle, the array might change inplace (:issue:`54654`)
 -
 
 Strings
