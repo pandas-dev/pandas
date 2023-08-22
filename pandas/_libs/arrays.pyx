@@ -356,8 +356,19 @@ cdef class BitMaskArray:
         return self.to_numpy()[key]
 
     def __invert__(self):
-        # TODO: could invert the buffer first then go to numpy
-        return ~self.to_numpy()
+        # TODO: should we return a mask here instead of a NumPy array?
+        cdef Py_ssize_t i
+        cdef BitMaskArray self_ = self
+        cdef ndarray[uint8_t] result = np.empty(self_.bitmap.size_bits, dtype=bool)
+
+        cdef uint8_t* buf = <uint8_t*>malloc(self_.bitmap.buffer.size_bytes)
+        for i in range(self_.bitmap.buffer.size_bytes):
+            buf[i] = ~self_.bitmap.buffer.data[i]
+
+        BitMaskArray.buffer_to_array_1d(result, buf, self_.bitmap.size_bits)
+        free(buf)
+
+        return result
 
     def __and__(self, other):
         cdef ndarray[uint8_t] result
