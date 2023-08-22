@@ -281,7 +281,7 @@ cdef class BitMaskArray:
         # TODO: this leaks a bit into the internals of the nanoarrow bitmap
         # We may want to upstream a BitmapCopy function instead
         ArrowBitmapInit(&bitmap)
-        buf = <uint8_t*>malloc(old_bma.bitmap.size_bytes)
+        buf = <uint8_t*>malloc(old_bma.bitmap.buffer.size_bytes)
         memcpy(buf, old_bma.bitmap.buffer.data, old_bma.bitmap.buffer.size_bytes)
         bitmap.buffer.size_bytes = old_bma.bitmap.buffer.size_bytes
         bitmap.size_bits = old_bma.bitmap.size_bits
