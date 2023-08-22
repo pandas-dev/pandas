@@ -265,7 +265,7 @@ pc_max_seq_items = """
 """
 
 pc_max_info_rows_doc = """
-: int or None
+: int
     df.info() will usually show null-counts for each column.
     For large frames this can be quite slow. max_info_rows and max_info_cols
     limit this null check only to frames with smaller dimensions than
@@ -322,7 +322,7 @@ with cf.config_prefix("display"):
         "max_info_rows",
         1690785,
         pc_max_info_rows_doc,
-        validator=is_instance_factory((int, type(None))),
+        validator=is_int,
     )
     cf.register_option("max_rows", 60, pc_max_rows_doc, validator=is_nonnegative_int)
     cf.register_option(
