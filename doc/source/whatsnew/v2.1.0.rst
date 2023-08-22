@@ -626,6 +626,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.transpose` when transposing a DataFrame with a single masked dtype, e.g. :class:`Int64` (:issue:`52836`)
 - Performance improvement in :meth:`Series.add` for PyArrow string and binary dtypes (:issue:`53150`)
 - Performance improvement in :meth:`Series.corr` and :meth:`Series.cov` for extension dtypes (:issue:`52502`)
+- Performance improvement in :meth:`Series.drop_duplicates` for ``ArrowDtype`` (:issue:`54667`).
 - Performance improvement in :meth:`Series.ffill`, :meth:`Series.bfill`, :meth:`DataFrame.ffill`, :meth:`DataFrame.bfill` with PyArrow dtypes (:issue:`53950`)
 - Performance improvement in :meth:`Series.str.get_dummies` for PyArrow-backed strings (:issue:`53655`)
 - Performance improvement in :meth:`Series.str.get` for PyArrow-backed strings (:issue:`53152`)
@@ -830,6 +831,7 @@ ExtensionArray
 - Bug in :class:`~arrays.ArrowExtensionArray` converting pandas non-nanosecond temporal objects from non-zero values to zero values (:issue:`53171`)
 - Bug in :meth:`Series.quantile` for PyArrow temporal types raising ``ArrowInvalid`` (:issue:`52678`)
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
+- Bug in :meth:`Series.unique` for boolean ``ArrowDtype`` with ``NA`` values (:issue:`54667`)
 - Bug in :meth:`~arrays.ArrowExtensionArray.__iter__` and :meth:`~arrays.ArrowExtensionArray.__getitem__` returning python datetime and timedelta objects for non-nano dtypes (:issue:`53326`)
 - Bug where the :class:`DataFrame` repr would not work when a column had an :class:`ArrowDtype` with a ``pyarrow.ExtensionDtype`` (:issue:`54063`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes (e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept PyArrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
