@@ -366,9 +366,11 @@ def test_parquet_pos_args_deprecation(engine):
         r"Starting with pandas version 3.0 all arguments of to_parquet except for the "
         r"argument 'path' will be keyword-only."
     )
-    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
-        buffer = BytesIO()
-        df.to_parquet(buffer, engine)
+    with tm.ensure_clean() as path:
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            df.to_parquet(path, engine)
 
 
 class Base:
