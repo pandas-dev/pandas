@@ -268,6 +268,7 @@ Other enhancements
 - :meth:`Series.cummax`, :meth:`Series.cummin` and :meth:`Series.cumprod` are now supported for pyarrow dtypes with pyarrow version 13.0 and above (:issue:`52085`)
 - Added support for the DataFrame Consortium Standard (:issue:`54383`)
 - Performance improvement in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile` (:issue:`51722`)
+- PyArrow-backed integer dtypes now support bitwise operations (:issue:`54495`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.api_breaking:
