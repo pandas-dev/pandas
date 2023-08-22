@@ -65,6 +65,7 @@ from pandas.io.parsers.python_parser import (
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Iterable,
         Mapping,
         Sequence,
     )
@@ -79,6 +80,7 @@ if TYPE_CHECKING:
         HashableT,
         IndexLabel,
         ReadCsvBuffer,
+        Self,
         StorageOptions,
     )
 _doc_read_csv_and_table = (
@@ -637,8 +639,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
-    keep_default_na: bool = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
@@ -694,7 +698,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -751,7 +758,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -808,7 +818,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -878,7 +891,10 @@ def read_csv(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = None,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
@@ -1776,7 +1792,7 @@ class TextFileReader(abc.Iterator):
             size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
 
-    def __enter__(self) -> TextFileReader:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(

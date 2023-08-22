@@ -1059,7 +1059,7 @@ usually resulting in an invalid comparison, returning an empty result frame. The
 .. ipython:: python
 
    df = pd.DataFrame({'unparsed_date': ['2014-01-01', '2014-01-01']})
-   df.to_hdf('store.h5', 'key', format='table', data_columns=True)
+   df.to_hdf('store.h5', key='key', format='table', data_columns=True)
    df.dtypes
 
 Previous behavior:

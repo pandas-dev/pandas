@@ -1,5 +1,4 @@
 from datetime import datetime
-import random
 
 import numpy as np
 import pytest
@@ -33,7 +32,7 @@ def string_data():
             "234,3245.67",
             "gSaf,qWer|Gre",
             "asd3,4sad|",
-            np.NaN,
+            np.nan,
         ]
     }
 
@@ -129,14 +128,14 @@ def test_bitmasks_pyarrow(offset, length, expected_values):
 @pytest.mark.parametrize(
     "data",
     [
-        lambda: random.randint(-100, 100),
-        lambda: random.randint(1, 100),
-        lambda: random.random(),
-        lambda: random.choice([True, False]),
+        lambda: np.random.default_rng(2).integers(-100, 100),
+        lambda: np.random.default_rng(2).integers(1, 100),
+        lambda: np.random.default_rng(2).random(),
+        lambda: np.random.default_rng(2).choice([True, False]),
         lambda: datetime(
-            year=random.randint(1900, 2100),
-            month=random.randint(1, 12),
-            day=random.randint(1, 20),
+            year=np.random.default_rng(2).integers(1900, 2100),
+            month=np.random.default_rng(2).integers(1, 12),
+            day=np.random.default_rng(2).integers(1, 20),
         ),
     ],
 )
@@ -177,8 +176,8 @@ def test_missing_from_masked():
 
     df2 = df.__dataframe__()
 
-    rng = np.random.RandomState(42)
-    dict_null = {col: rng.randint(low=0, high=len(df)) for col in df.columns}
+    rng = np.random.default_rng(2)
+    dict_null = {col: rng.integers(low=0, high=len(df)) for col in df.columns}
     for col, num_nulls in dict_null.items():
         null_idx = df.index[
             rng.choice(np.arange(len(df)), size=num_nulls, replace=False)

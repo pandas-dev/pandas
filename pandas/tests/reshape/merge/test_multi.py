@@ -22,7 +22,7 @@ def left():
     key1 = ["bar", "bar", "bar", "foo", "foo", "baz", "baz", "qux", "qux", "snap"]
     key2 = ["two", "one", "three", "one", "two", "one", "two", "two", "three", "one"]
 
-    data = np.random.randn(len(key1))
+    data = np.random.default_rng(2).standard_normal(len(key1))
     return DataFrame({"key1": key1, "key2": key2, "data": data})
 
 
@@ -123,11 +123,17 @@ class TestMergeMulti:
             tm.assert_frame_equal(out, res)
 
         lc = list(map(chr, np.arange(ord("a"), ord("z") + 1)))
-        left = DataFrame(np.random.choice(lc, (5000, 2)), columns=["1st", "3rd"])
+        left = DataFrame(
+            np.random.default_rng(2).choice(lc, (5000, 2)), columns=["1st", "3rd"]
+        )
         # Explicit cast to float to avoid implicit cast when setting nan
-        left.insert(1, "2nd", np.random.randint(0, 1000, len(left)).astype("float"))
+        left.insert(
+            1,
+            "2nd",
+            np.random.default_rng(2).integers(0, 1000, len(left)).astype("float"),
+        )
 
-        i = np.random.permutation(len(left))
+        i = np.random.default_rng(2).permutation(len(left))
         right = left.iloc[i].copy()
 
         left["4th"] = bind_cols(left)
@@ -142,7 +148,7 @@ class TestMergeMulti:
         left.loc[3::43, "3rd"] = np.nan
         left["4th"] = bind_cols(left)
 
-        i = np.random.permutation(len(left))
+        i = np.random.default_rng(2).permutation(len(left))
         right = left.iloc[i, :-1]
         right["5th"] = -bind_cols(right)
         right.set_index(icols, inplace=True)
@@ -187,14 +193,24 @@ class TestMergeMulti:
 
     def test_compress_group_combinations(self):
         # ~ 40000000 possible unique groups
-        key1 = tm.rands_array(10, 10000)
+        key1 = tm.makeStringIndex(10000)
         key1 = np.tile(key1, 2)
         key2 = key1[::-1]
 
-        df = DataFrame({"key1": key1, "key2": key2, "value1": np.random.randn(20000)})
+        df = DataFrame(
+            {
+                "key1": key1,
+                "key2": key2,
+                "value1": np.random.default_rng(2).standard_normal(20000),
+            }
+        )
 
         df2 = DataFrame(
-            {"key1": key1[::2], "key2": key2[::2], "value2": np.random.randn(10000)}
+            {
+                "key1": key1[::2],
+                "key2": key2[::2],
+                "value2": np.random.default_rng(2).standard_normal(10000),
+            }
         )
 
         # just to hit the label compression code path
@@ -377,10 +393,10 @@ class TestMergeMulti:
         left = DataFrame(
             {
                 "id": list("abcde"),
-                "v1": np.random.randn(5),
-                "v2": np.random.randn(5),
+                "v1": np.random.default_rng(2).standard_normal(5),
+                "v2": np.random.default_rng(2).standard_normal(5),
                 "dummy": list("abcde"),
-                "v3": np.random.randn(5),
+                "v3": np.random.default_rng(2).standard_normal(5),
             },
             columns=["id", "v1", "v2", "dummy", "v3"],
         )

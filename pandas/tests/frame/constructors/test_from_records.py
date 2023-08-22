@@ -59,13 +59,21 @@ class TestFromRecords:
     def test_from_records_sequencelike(self):
         df = DataFrame(
             {
-                "A": np.array(np.random.randn(6), dtype=np.float64),
-                "A1": np.array(np.random.randn(6), dtype=np.float64),
+                "A": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float64
+                ),
+                "A1": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float64
+                ),
                 "B": np.array(np.arange(6), dtype=np.int64),
                 "C": ["foo"] * 6,
                 "D": np.array([True, False] * 3, dtype=bool),
-                "E": np.array(np.random.randn(6), dtype=np.float32),
-                "E1": np.array(np.random.randn(6), dtype=np.float32),
+                "E": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float32
+                ),
+                "E1": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float32
+                ),
                 "F": np.array(np.arange(6), dtype=np.int32),
             }
         )
@@ -140,13 +148,21 @@ class TestFromRecords:
         # test the dict methods
         df = DataFrame(
             {
-                "A": np.array(np.random.randn(6), dtype=np.float64),
-                "A1": np.array(np.random.randn(6), dtype=np.float64),
+                "A": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float64
+                ),
+                "A1": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float64
+                ),
                 "B": np.array(np.arange(6), dtype=np.int64),
                 "C": ["foo"] * 6,
                 "D": np.array([True, False] * 3, dtype=bool),
-                "E": np.array(np.random.randn(6), dtype=np.float32),
-                "E1": np.array(np.random.randn(6), dtype=np.float32),
+                "E": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float32
+                ),
+                "E1": np.array(
+                    np.random.default_rng(2).standard_normal(6), dtype=np.float32
+                ),
                 "F": np.array(np.arange(6), dtype=np.int32),
             }
         )
@@ -175,15 +191,19 @@ class TestFromRecords:
             tm.assert_frame_equal(r, df)
 
     def test_from_records_with_index_data(self):
-        df = DataFrame(np.random.randn(10, 3), columns=["A", "B", "C"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
+        )
 
-        data = np.random.randn(10)
+        data = np.random.default_rng(2).standard_normal(10)
         with tm.assert_produces_warning(FutureWarning):
             df1 = DataFrame.from_records(df, index=data)
         tm.assert_index_equal(df1.index, Index(data))
 
     def test_from_records_bad_index_column(self):
-        df = DataFrame(np.random.randn(10, 3), columns=["A", "B", "C"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 3)), columns=["A", "B", "C"]
+        )
 
         # should pass
         with tm.assert_produces_warning(FutureWarning):
@@ -249,7 +269,7 @@ class TestFromRecords:
         series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
         frame = DataFrame.from_records(series_of_dicts, index=index)
         expected = DataFrame(
-            {"a": [1, 2, np.NaN], "b": [np.NaN, np.NaN, 3]}, index=index
+            {"a": [1, 2, np.nan], "b": [np.nan, np.nan, 3]}, index=index
         )
         tm.assert_frame_equal(frame, expected)
 
@@ -390,8 +410,8 @@ class TestFromRecords:
         def create_dict(order_id):
             return {
                 "order_id": order_id,
-                "quantity": np.random.randint(1, 10),
-                "price": np.random.randint(1, 10),
+                "quantity": np.random.default_rng(2).integers(1, 10),
+                "price": np.random.default_rng(2).integers(1, 10),
             }
 
         documents = [create_dict(i) for i in range(10)]

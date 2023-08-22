@@ -771,7 +771,9 @@ class TestDataFrameQuantile:
     ):
         # previous behavior incorrect retained an invalid _item_cache entry
         interpolation, method = interp_method
-        df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
+        )
         df["D"] = df["A"] * 2
         ser = df["A"]
         if not using_array_manager:
@@ -842,7 +844,7 @@ class TestQuantileExtensionDtype:
     def test_quantile_ea(self, request, obj, index):
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
-        np.random.shuffle(indexer)
+        np.random.default_rng(2).shuffle(indexer)
         obj = obj.iloc[indexer]
 
         qs = [0.5, 0, 1]
@@ -867,7 +869,7 @@ class TestQuantileExtensionDtype:
 
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
-        np.random.shuffle(indexer)
+        np.random.default_rng(2).shuffle(indexer)
         obj = obj.iloc[indexer]
 
         qs = [0.5, 0, 1]
@@ -887,7 +889,7 @@ class TestQuantileExtensionDtype:
 
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
-        np.random.shuffle(indexer)
+        np.random.default_rng(2).shuffle(indexer)
         obj = obj.iloc[indexer]
 
         qs = [0.5, 0, 1]
@@ -903,7 +905,7 @@ class TestQuantileExtensionDtype:
 
         # result should be invariant to shuffling
         indexer = np.arange(len(index), dtype=np.intp)
-        np.random.shuffle(indexer)
+        np.random.default_rng(2).shuffle(indexer)
         obj = obj.iloc[indexer]
 
         qs = 0.5

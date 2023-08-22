@@ -76,10 +76,10 @@ def tips_df(datapath):
 @pytest.mark.usefixtures("s3_resource")
 @td.skip_if_not_us_locale()
 class TestS3:
-    @td.skip_if_no("s3fs")
     def test_parse_public_s3_bucket(self, s3_public_bucket_with_data, tips_df, s3so):
         # more of an integration test due to the not-public contents portion
         # can probably mock this though.
+        pytest.importorskip("s3fs")
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
             df = read_csv(
                 f"s3://{s3_public_bucket_with_data.name}/tips.csv" + ext,
@@ -90,9 +90,9 @@ class TestS3:
             assert not df.empty
             tm.assert_frame_equal(df, tips_df)
 
-    @td.skip_if_no("s3fs")
     def test_parse_private_s3_bucket(self, s3_private_bucket_with_data, tips_df, s3so):
         # Read public file from bucket with not-public contents
+        pytest.importorskip("s3fs")
         df = read_csv(
             f"s3://{s3_private_bucket_with_data.name}/tips.csv", storage_options=s3so
         )
@@ -254,10 +254,10 @@ class TestS3:
             )
 
     @pytest.mark.xfail(reason="GH#39155 s3fs upgrade", strict=False)
-    @td.skip_if_no("pyarrow")
     def test_write_s3_parquet_fails(self, tips_df, s3so):
         # GH 27679
         # Attempting to write to an invalid S3 path should raise
+        pytest.importorskip("pyarrow")
         import botocore
 
         # GH 34087
@@ -296,7 +296,9 @@ class TestS3:
         # 8 MB, S3FS uses 5MB chunks
         import s3fs
 
-        df = DataFrame(np.random.randn(100000, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((100000, 4)), columns=list("abcd")
+        )
         str_buf = StringIO()
 
         df.to_csv(str_buf)
@@ -327,11 +329,11 @@ class TestS3:
         )
         tm.assert_frame_equal(tips_df, result)
 
-    @td.skip_if_no("pyarrow")
     def test_read_feather_s3_file_path(
         self, s3_public_bucket_with_data, feather_file, s3so
     ):
         # GH 29055
+        pytest.importorskip("pyarrow")
         expected = read_feather(feather_file)
         res = read_feather(
             f"s3://{s3_public_bucket_with_data.name}/simple_dataset.feather",

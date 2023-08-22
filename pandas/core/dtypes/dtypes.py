@@ -81,7 +81,11 @@ if TYPE_CHECKING:
 
     from pandas import (
         Categorical,
+        CategoricalIndex,
+        DatetimeIndex,
         Index,
+        IntervalIndex,
+        PeriodIndex,
     )
     from pandas.core.arrays import (
         BaseMaskedArray,
@@ -388,7 +392,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         # We *do* want to include the real self.ordered here
         return int(self._hash_categories)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Rules for CDT equality:
         1) Any CDT is equal to the string 'category'
@@ -671,6 +675,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return find_common_type(non_cat_dtypes)
 
+    @cache_readonly
+    def index_class(self) -> type_t[CategoricalIndex]:
+        from pandas import CategoricalIndex
+
+        return CategoricalIndex
+
     def _find_compatible_dtype(self, item) -> tuple[DtypeObj, Any]:
         from pandas.core.dtypes.missing import is_valid_na_for_dtype
 
@@ -869,7 +879,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         # TODO: update this.
         return hash(str(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             if other.startswith("M8["):
                 other = f"datetime64[{other[3:]}"
@@ -919,6 +929,12 @@ class DatetimeTZDtype(PandasExtensionDtype):
         # pickle -> need to set the settable private ones here (see GH26067)
         self._tz = state["tz"]
         self._unit = state["unit"]
+
+    @cache_readonly
+    def index_class(self) -> type_t[DatetimeIndex]:
+        from pandas import DatetimeIndex
+
+        return DatetimeIndex
 
 
 @register_extension_dtype
@@ -1061,13 +1077,13 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     def na_value(self) -> NaTType:
         return NaT
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return other in [self.name, self.name.title()]
 
         return super().__eq__(other)
 
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
     @classmethod
@@ -1129,6 +1145,12 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         if not results:
             return PeriodArray(np.array([], dtype="int64"), dtype=self, copy=False)
         return PeriodArray._concat_same_type(results)
+
+    @cache_readonly
+    def index_class(self) -> type_t[PeriodIndex]:
+        from pandas import PeriodIndex
+
+        return PeriodIndex
 
 
 @register_extension_dtype
@@ -1310,7 +1332,7 @@ class IntervalDtype(PandasExtensionDtype):
         # make myself hashable
         return hash(str(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return other.lower() in (self.name.lower(), str(self).lower())
         elif not isinstance(other, IntervalDtype):
@@ -1392,6 +1414,12 @@ class IntervalDtype(PandasExtensionDtype):
         if common == object:
             return np.dtype(object)
         return IntervalDtype(common, closed=closed)
+
+    @cache_readonly
+    def index_class(self) -> type_t[IntervalIndex]:
+        from pandas import IntervalIndex
+
+        return IntervalIndex
 
 
 class NumpyEADtype(ExtensionDtype):
@@ -1629,6 +1657,8 @@ class SparseDtype(ExtensionDtype):
     0.3333333333333333
     """
 
+    _is_immutable = True
+
     # We include `_is_na_fill_value` in the metadata to avoid hash collisions
     # between SparseDtype(float, 0.0) and SparseDtype(float, nan).
     # Without is_na_fill_value in the comparison, those would be equal since
@@ -1666,7 +1696,7 @@ class SparseDtype(ExtensionDtype):
         # __eq__, so we explicitly do it here.
         return super().__hash__()
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         # We have to override __eq__ to handle NA values in _metadata.
         # The base class does simple == checks, which fail for NA.
         if isinstance(other, str):
@@ -2081,7 +2111,7 @@ class ArrowDtype(StorageExtensionDtype):
         # make myself hashable
         return hash(str(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, type(self)):
             return super().__eq__(other)
         return self.pyarrow_dtype == other.pyarrow_dtype

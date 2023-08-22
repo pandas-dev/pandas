@@ -343,6 +343,7 @@ Float64Index API change
   Slicing is ALWAYS on the values of the index, for ``[],ix,loc`` and ALWAYS positional with ``iloc``
 
   .. ipython:: python
+     :okwarning:
 
      s[2:4]
      s.loc[2:4]
@@ -384,7 +385,7 @@ HDFStore API changes
      dfq = pd.DataFrame(np.random.randn(10, 4),
                         columns=list('ABCD'),
                         index=pd.date_range('20130101', periods=10))
-     dfq.to_hdf(path, 'dfq', format='table', data_columns=True)
+     dfq.to_hdf(path, key='dfq', format='table', data_columns=True)
 
   Use boolean expressions, with in-line function evaluation.
 
@@ -414,9 +415,9 @@ HDFStore API changes
 
      path = 'test.h5'
      df = pd.DataFrame(np.random.randn(10, 2))
-     df.to_hdf(path, 'df_table', format='table')
-     df.to_hdf(path, 'df_table2', append=True)
-     df.to_hdf(path, 'df_fixed')
+     df.to_hdf(path, key='df_table', format='table')
+     df.to_hdf(path, key='df_table2', append=True)
+     df.to_hdf(path, key='df_fixed')
      with pd.HDFStore(path) as store:
          print(store)
 

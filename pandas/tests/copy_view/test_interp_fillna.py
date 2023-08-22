@@ -361,3 +361,17 @@ def test_fillna_chained_assignment(using_copy_on_write):
         with tm.raises_chained_assignment_error():
             df[["a"]].fillna(100, inplace=True)
         tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.parametrize("func", ["interpolate", "ffill", "bfill"])
+def test_interpolate_chained_assignment(using_copy_on_write, func):
+    df = DataFrame({"a": [1, np.nan, 2], "b": 1})
+    df_orig = df.copy()
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            getattr(df["a"], func)(inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+        with tm.raises_chained_assignment_error():
+            getattr(df[["a"]], func)(inplace=True)
+        tm.assert_frame_equal(df, df_orig)

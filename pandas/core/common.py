@@ -32,6 +32,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import lib
+from pandas.compat.numpy import np_version_gte1p24
 
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.core.dtypes.common import (
@@ -137,7 +138,7 @@ def is_bool_indexer(key: Any) -> bool:
     elif isinstance(key, list):
         # check if np.array(key).dtype would be bool
         if len(key) > 0:
-            if type(key) is not list:
+            if type(key) is not list:  # noqa: E721
                 # GH#42461 cython will raise TypeError if we pass a subclass
                 key = list(key)
             return lib.is_bool_list(key)
@@ -236,7 +237,8 @@ def asarray_tuplesafe(values: Iterable, dtype: NpDtype | None = None) -> ArrayLi
     try:
         with warnings.catch_warnings():
             # Can remove warning filter once NumPy 1.24 is min version
-            warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
+            if not np_version_gte1p24:
+                warnings.simplefilter("ignore", np.VisibleDeprecationWarning)
             result = np.asarray(values, dtype=dtype)
     except ValueError:
         # Using try/except since it's more performant than checking is_list_like
@@ -529,17 +531,24 @@ def convert_to_list_like(
 def temp_setattr(
     obj, attr: str, value, condition: bool = True
 ) -> Generator[None, None, None]:
-    """Temporarily set attribute on an object.
+    """
+    Temporarily set attribute on an object.
 
-    Args:
-        obj: Object whose attribute will be modified.
-        attr: Attribute to modify.
-        value: Value to temporarily set attribute to.
-        condition: Whether to set the attribute. Provided in order to not have to
-            conditionally use this context manager.
+    Parameters
+    ----------
+    obj : object
+        Object whose attribute will be modified.
+    attr : str
+        Attribute to modify.
+    value : Any
+        Value to temporarily set attribute to.
+    condition : bool, default True
+        Whether to set the attribute. Provided in order to not have to
+        conditionally use this context manager.
 
-    Yields:
-        obj with modified attribute.
+    Yields
+    ------
+    object : obj with modified attribute.
     """
     if condition:
         old_value = getattr(obj, attr)

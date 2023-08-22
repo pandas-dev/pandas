@@ -76,7 +76,7 @@ class TestSeriesMissingData:
     def test_logical_range_select(self, datetime_series):
         # NumPy limitation =(
         # https://github.com/pandas-dev/pandas/commit/9030dc021f07c76809848925cb34828f6c8484f3
-        np.random.seed(12345)
+
         selector = -0.5 <= datetime_series <= 0.5
         expected = (datetime_series >= -0.5) & (datetime_series <= 0.5)
         tm.assert_series_equal(selector, expected)
@@ -84,7 +84,7 @@ class TestSeriesMissingData:
     def test_valid(self, datetime_series):
         ts = datetime_series.copy()
         ts.index = ts.index._with_freq(None)
-        ts[::2] = np.NaN
+        ts[::2] = np.nan
 
         result = ts.dropna()
         assert len(result) == ts.count()
