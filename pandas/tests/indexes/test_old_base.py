@@ -209,17 +209,25 @@ class TestBase:
             1 // idx
 
     def test_logical_compat(self, simple_index):
-        if (
-            isinstance(simple_index, RangeIndex)
-            or is_numeric_dtype(simple_index.dtype)
-            or simple_index.dtype == object
-        ):
+        if simple_index.dtype == object:
             pytest.skip("Tested elsewhere.")
         idx = simple_index
-        with pytest.raises(TypeError, match="cannot perform all"):
-            idx.all()
-        with pytest.raises(TypeError, match="cannot perform any"):
-            idx.any()
+        if idx.dtype.kind in "iufcbm":
+            assert idx.all() == idx._values.all()
+            assert idx.all() == idx.to_series().all()
+            assert idx.any() == idx._values.any()
+            assert idx.any() == idx.to_series().any()
+        else:
+            msg = "cannot perform (any|all)"
+            if isinstance(idx, IntervalIndex):
+                msg = (
+                    r"'IntervalArray' with dtype interval\[.*\] does "
+                    "not support reduction '(any|all)'"
+                )
+            with pytest.raises(TypeError, match=msg):
+                idx.all()
+            with pytest.raises(TypeError, match=msg):
+                idx.any()
 
     def test_repr_roundtrip(self, simple_index):
         if isinstance(simple_index, IntervalIndex):

@@ -692,7 +692,12 @@ class TestIndex:
     @pytest.mark.parametrize("op", ["any", "all"])
     def test_logical_compat(self, op, simple_index):
         index = simple_index
-        assert getattr(index, op)() == getattr(index.values, op)()
+        left = getattr(index, op)()
+        assert left == getattr(index.values, op)()
+        right = getattr(index.to_series(), op)()
+        # left might not match right exactly in e.g. string cases where the
+        # because we use np.any/all instead of .any/all
+        assert bool(left) == bool(right)
 
     @pytest.mark.parametrize(
         "index", ["string", "int64", "int32", "float64", "float32"], indirect=True
