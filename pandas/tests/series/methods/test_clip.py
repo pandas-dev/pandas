@@ -48,7 +48,7 @@ class TestSeriesClip:
         if nulls_fixture is pd.NaT:
             # constructor will raise, see
             #  test_constructor_mismatched_null_nullable_dtype
-            return
+            pytest.skip("See test_constructor_mismatched_null_nullable_dtype")
 
         ser = Series([nulls_fixture, 1.0, 3.0], dtype=any_numeric_ea_dtype)
         s_clipped_upper = ser.clip(upper=2.0)

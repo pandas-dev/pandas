@@ -75,7 +75,7 @@ class TestSeriesFillNA:
 
         tm.assert_series_equal(ts, ts.fillna(method="ffill"))
 
-        ts.iloc[2] = np.NaN
+        ts.iloc[2] = np.nan
 
         exp = Series([0.0, 1.0, 1.0, 3.0, 4.0], index=ts.index)
         tm.assert_series_equal(ts.fillna(method="ffill"), exp)
@@ -168,7 +168,8 @@ class TestSeriesFillNA:
 
         # assignment
         ser2 = ser.copy()
-        ser2[1] = "foo"
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            ser2[1] = "foo"
         tm.assert_series_equal(ser2, expected)
 
     def test_fillna_downcast(self):
@@ -801,7 +802,7 @@ class TestSeriesFillNA:
             assert "ffil" in str(inst)
 
     def test_fillna_listlike_invalid(self):
-        ser = Series(np.random.randint(-100, 100, 50))
+        ser = Series(np.random.default_rng(2).integers(-100, 100, 50))
         msg = '"value" parameter must be a scalar or dict, but you passed a "list"'
         with pytest.raises(TypeError, match=msg):
             ser.fillna([1, 2])
@@ -880,7 +881,7 @@ class TestFillnaPad:
 
     def test_ffill(self):
         ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
-        ts.iloc[2] = np.NaN
+        ts.iloc[2] = np.nan
         tm.assert_series_equal(ts.ffill(), ts.fillna(method="ffill"))
 
     def test_ffill_mixed_dtypes_without_missing_data(self):
@@ -891,7 +892,7 @@ class TestFillnaPad:
 
     def test_bfill(self):
         ts = Series([0.0, 1.0, 2.0, 3.0, 4.0], index=tm.makeDateIndex(5))
-        ts.iloc[2] = np.NaN
+        ts.iloc[2] = np.nan
         tm.assert_series_equal(ts.bfill(), ts.fillna(method="bfill"))
 
     def test_pad_nan(self):
@@ -910,7 +911,7 @@ class TestFillnaPad:
 
     def test_series_fillna_limit(self):
         index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(10), index=index)
 
         result = s[:2].reindex(index)
         result = result.fillna(method="pad", limit=5)
@@ -928,7 +929,7 @@ class TestFillnaPad:
 
     def test_series_pad_backfill_limit(self):
         index = np.arange(10)
-        s = Series(np.random.randn(10), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(10), index=index)
 
         result = s[:2].reindex(index, method="pad", limit=5)
 
@@ -943,7 +944,7 @@ class TestFillnaPad:
         tm.assert_series_equal(result, expected)
 
     def test_fillna_int(self):
-        ser = Series(np.random.randint(-100, 100, 50))
+        ser = Series(np.random.default_rng(2).integers(-100, 100, 50))
         return_value = ser.fillna(method="ffill", inplace=True)
         assert return_value is None
         tm.assert_series_equal(ser.fillna(method="ffill", inplace=False), ser)

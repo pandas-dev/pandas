@@ -204,7 +204,7 @@ class TestCategoricalIndex:
 
         # long format
         # this is not reprable
-        ci = CategoricalIndex(np.random.randint(0, 5, size=100))
+        ci = CategoricalIndex(np.random.default_rng(2).integers(0, 5, size=100))
         str(ci)
 
     def test_isin(self):

@@ -149,7 +149,7 @@ class TestDataFrameToDict:
     @pytest.mark.parametrize("mapping", [list, defaultdict, []])
     def test_to_dict_errors(self, mapping):
         # GH#16122
-        df = DataFrame(np.random.randn(3, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)))
         msg = "|".join(
             [
                 "unsupported type: <class 'list'>",
@@ -489,8 +489,8 @@ class TestDataFrameToDict:
         # GH#34665
         df = DataFrame({"a": Series([1, 2], dtype="Int64"), "B": 1})
         result = df.to_dict(orient="records")
-        assert type(result[0]["a"]) is int
+        assert isinstance(result[0]["a"], int)
 
         df = DataFrame({"a": Series([1, NA], dtype="Int64"), "B": 1})
         result = df.to_dict(orient="records")
-        assert type(result[0]["a"]) is int
+        assert isinstance(result[0]["a"], int)

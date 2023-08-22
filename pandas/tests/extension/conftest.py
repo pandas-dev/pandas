@@ -26,8 +26,17 @@ def data():
 
 
 @pytest.fixture
-def data_for_twos():
-    """Length-100 array in which all the elements are two."""
+def data_for_twos(dtype):
+    """
+    Length-100 array in which all the elements are two.
+
+    Call pytest.skip in your fixture if the dtype does not support divmod.
+    """
+    if not (dtype._is_numeric or dtype.kind == "m"):
+        # Object-dtypes may want to allow this, but for the most part
+        #  only numeric and timedelta-like dtypes will need to implement this.
+        pytest.skip("Not a numeric dtype")
+
     raise NotImplementedError
 
 
@@ -76,6 +85,9 @@ def data_for_sorting():
 
     This should be three items [B, C, A] with
     A < B < C
+
+    For boolean dtypes (for which there are only 2 values available),
+    set B=C=True
     """
     raise NotImplementedError
 
@@ -105,9 +117,9 @@ def na_cmp():
 
 
 @pytest.fixture
-def na_value():
-    """The scalar missing value for this type. Default 'None'"""
-    return None
+def na_value(dtype):
+    """The scalar missing value for this type. Default dtype.na_value"""
+    return dtype.na_value
 
 
 @pytest.fixture
@@ -117,7 +129,10 @@ def data_for_grouping():
 
     Expected to be like [B, B, NA, NA, A, A, B, C]
 
-    Where A < B < C and NA is missing
+    Where A < B < C and NA is missing.
+
+    If a dtype has _is_boolean = True, i.e. only 2 unique non-NA entries,
+    then set C=B.
     """
     raise NotImplementedError
 

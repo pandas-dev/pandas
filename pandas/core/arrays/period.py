@@ -78,6 +78,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AnyArrayLike,
         Dtype,
+        FillnaOptions,
         NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
@@ -790,16 +791,37 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         m8arr = self._ndarray.view("M8[ns]")
         return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
+    ) -> Self:
+        # view as dt64 so we get treated as timelike in core.missing,
+        #  similar to dtl._period_dispatch
+        dta = self.view("M8[ns]")
+        result = dta.pad_or_backfill(
+            method=method, limit=limit, limit_area=limit_area, copy=copy
+        )
+        if copy:
+            return cast("Self", result.view(self.dtype))
+        else:
+            return self
+
+    def fillna(
+        self, value=None, method=None, limit: int | None = None, copy: bool = True
+    ) -> Self:
         if method is not None:
             # view as dt64 so we get treated as timelike in core.missing,
             #  similar to dtl._period_dispatch
             dta = self.view("M8[ns]")
-            result = dta.fillna(value=value, method=method, limit=limit)
+            result = dta.fillna(value=value, method=method, limit=limit, copy=copy)
             # error: Incompatible return value type (got "Union[ExtensionArray,
             # ndarray[Any, Any]]", expected "PeriodArray")
             return result.view(self.dtype)  # type: ignore[return-value]
-        return super().fillna(value=value, method=method, limit=limit)
+        return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -968,7 +990,7 @@ def raise_on_incompatible(left, right):
 
 def period_array(
     data: Sequence[Period | str | None] | AnyArrayLike,
-    freq: str | Tick | None = None,
+    freq: str | Tick | BaseOffset | None = None,
     copy: bool = False,
 ) -> PeriodArray:
     """

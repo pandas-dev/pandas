@@ -177,7 +177,7 @@ class _XMLFrameParser:
         self.stylesheet = stylesheet
         self.iterparse = iterparse
         self.is_style = None
-        self.compression = compression
+        self.compression: CompressionOptions = compression
         self.storage_options = storage_options
 
     def parse_data(self) -> list[dict[str, str | None]]:
@@ -501,7 +501,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 children = self.iterparse[next(iter(self.iterparse))]
             else:
                 parent = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
-                children = parent.findall("*") if parent else []
+                children = parent.findall("*") if parent is not None else []
 
             if is_list_like(self.names):
                 if len(self.names) < len(children):

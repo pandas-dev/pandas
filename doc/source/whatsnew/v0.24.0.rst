@@ -556,7 +556,7 @@ You must pass in the ``line_terminator`` explicitly, even in this case.
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
-Proper handling of ``np.NaN`` in a string data-typed column with the Python engine
+Proper handling of ``np.nan`` in a string data-typed column with the Python engine
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There was bug in :func:`read_excel` and :func:`read_csv` with the Python
@@ -632,13 +632,19 @@ Parsing datetime strings with the same UTC offset will preserve the UTC offset i
 Parsing datetime strings with different UTC offsets will now create an Index of
 ``datetime.datetime`` objects with different UTC offsets
 
-.. ipython:: python
+.. code-block:: ipython
 
-    idx = pd.to_datetime(["2015-11-18 15:30:00+05:30",
-                          "2015-11-18 16:30:00+06:30"])
-    idx
-    idx[0]
-    idx[1]
+    In [59]: idx = pd.to_datetime(["2015-11-18 15:30:00+05:30",
+                                   "2015-11-18 16:30:00+06:30"])
+
+    In[60]: idx
+    Out[60]: Index([2015-11-18 15:30:00+05:30, 2015-11-18 16:30:00+06:30], dtype='object')
+
+    In[61]: idx[0]
+    Out[61]: Timestamp('2015-11-18 15:30:00+0530', tz='UTC+05:30')
+
+    In[62]: idx[1]
+    Out[62]: Timestamp('2015-11-18 16:30:00+0630', tz='UTC+06:30')
 
 Passing ``utc=True`` will mimic the previous behavior but will correctly indicate
 that the dates have been converted to UTC
@@ -673,15 +679,22 @@ Parsing mixed-timezones with :func:`read_csv`
 
 *New behavior*
 
-.. ipython:: python
+.. code-block:: ipython
 
-   import io
-   content = """\
-   a
-   2000-01-01T00:00:00+05:00
-   2000-01-01T00:00:00+06:00"""
-   df = pd.read_csv(io.StringIO(content), parse_dates=['a'])
-   df.a
+   In[64]: import io
+
+   In[65]: content = """\
+      ...: a
+      ...: 2000-01-01T00:00:00+05:00
+      ...: 2000-01-01T00:00:00+06:00"""
+
+   In[66]: df = pd.read_csv(io.StringIO(content), parse_dates=['a'])
+
+   In[67]: df.a
+   Out[67]:
+   0   2000-01-01 00:00:00+05:00
+   1   2000-01-01 00:00:00+06:00
+   Name: a, Length: 2, dtype: object
 
 As can be seen, the ``dtype`` is object; each value in the column is a string.
 To convert the strings to an array of datetimes, the ``date_parser`` argument

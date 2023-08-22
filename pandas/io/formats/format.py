@@ -1715,7 +1715,7 @@ def format_percentiles(
     """
     percentiles = np.asarray(percentiles)
 
-    # It checks for np.NaN as well
+    # It checks for np.nan as well
     if (
         not is_numeric_dtype(percentiles)
         or not np.all(percentiles >= 0)
@@ -1960,6 +1960,8 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> list[s
     # in the array
     n = len(str_complexes)
     padded_parts = _trim_zeros_float(real_part + imag_part, decimal)
+    if len(padded_parts) == 0:
+        return []
     padded_length = max(len(part) for part in padded_parts) - 1
     padded = [
         real_pt  # real part, possibly NaN

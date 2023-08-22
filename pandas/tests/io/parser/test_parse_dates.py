@@ -46,7 +46,7 @@ skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 def test_read_csv_with_custom_date_parser(all_parsers):
     # GH36111
     def __custom_date_parser(time):
-        time = time.astype(np.float_)
+        time = time.astype(np.float64)
         time = time.astype(np.int_)  # convert float seconds to int type
         return pd.to_timedelta(time, unit="s")
 
@@ -86,7 +86,7 @@ def test_read_csv_with_custom_date_parser(all_parsers):
 def test_read_csv_with_custom_date_parser_parse_dates_false(all_parsers):
     # GH44366
     def __custom_date_parser(time):
-        time = time.astype(np.float_)
+        time = time.astype(np.float64)
         time = time.astype(np.int_)  # convert float seconds to int type
         return pd.to_timedelta(time, unit="s")
 
@@ -717,7 +717,11 @@ def test_date_parser_int_bug(all_parsers):
         StringIO(data),
         index_col=0,
         parse_dates=[0],
-        date_parser=lambda x: datetime.utcfromtimestamp(int(x)),
+        # Note: we must pass tz and then drop the tz attribute
+        # (if we don't CI will flake out depending on the runner's local time)
+        date_parser=lambda x: datetime.fromtimestamp(int(x), tz=timezone.utc).replace(
+            tzinfo=None
+        ),
     )
     expected = DataFrame(
         [
