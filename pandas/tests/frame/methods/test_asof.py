@@ -73,7 +73,7 @@ class TestFrameAsof:
         # no "missing", so "B" can retain int dtype (df["A"].dtype platform-dependent)
         expected["B"] = expected["B"].astype(df["B"].dtype)
 
-        # tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_missing(self, date_range_frame):
         # GH 15118

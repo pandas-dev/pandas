@@ -4480,7 +4480,7 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {"MS", "ms" , "s"}
+_dont_uppercase = {"MS", "ms", "s"}
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
