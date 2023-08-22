@@ -129,7 +129,8 @@ class BaseReduceTests:
         self.check_reduce_frame(ser, op_name, skipna)
 
 
-# TODO: deprecate BaseNoReduceTests, BaseNumericReduceTests, BaseBooleanReduceTests
+# TODO(3.0): remove BaseNoReduceTests, BaseNumericReduceTests,
+#  BaseBooleanReduceTests
 class BaseNoReduceTests(BaseReduceTests):
     """we don't define any reductions"""
 
