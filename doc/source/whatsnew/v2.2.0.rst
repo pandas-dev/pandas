@@ -16,11 +16,11 @@ Enhancements
 
 .. _whatsnew_220.enhancements.pyarrow_on_bad_lines:
 
-PyArrow engine support for handling misformatted lines in CSV
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PyArrow engine support for handling malformed lines in CSV
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Prior to this release, the ability to handle malformed lines in CSV files was
 limited to the ``python`` engine with the use of the ``on_bad_lines`` parameter.
-This release brings this capability to the `PyArrow <https://arrow.apache
+This release brings that capability to the `PyArrow <https://arrow.apache
 .org/docs/python/index.html>`_ engine as well.
 
 The implementation supports both specifying ``skip`` and ``warn`` values as
