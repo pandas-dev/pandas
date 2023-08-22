@@ -250,7 +250,7 @@ class TestSeriesDropDuplicates:
         expected = Series([1, 2, 3])
         tm.assert_series_equal(result, expected)
 
-    def test_duplicated_arrow_dtype(keep):
+    def test_duplicated_arrow_dtype(self):
         pytest.importorskip("pyarrow")
         ser = Series([True, False, None, False], dtype="bool[pyarrow]")
         result = ser.drop_duplicates()
