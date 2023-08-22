@@ -70,7 +70,8 @@ def kleene_or(
         if right is True:
             mask = np.zeros(left_mask.shape, left_mask.dtype)
         else:
-            left_mask = left_mask.to_numpy()
+            if isinstance(left_mask, BitMaskArray):
+                left_mask = left_mask.to_numpy()
             if right is libmissing.NA:
                 mask = (~left & ~left_mask) | left_mask
             else:
@@ -178,7 +179,7 @@ def kleene_and(
         # Scalar `right`
         if right is libmissing.NA:
             if left_mask.any():
-                mask = (left & ~left_mask) | left_mask
+                mask = (left & ~left_mask) | left_mask  # type: ignore[operator]
             else:
                 mask = left
         else:

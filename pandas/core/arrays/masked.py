@@ -938,7 +938,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
 
         try:
-            mask = self._mask.take_1d(indexer)
+            mask = self._mask.take_1d(indexer, axis=axis)
         except (TypeError, ValueError, NotImplementedError):
             mask = take(
                 self._mask.to_numpy(),

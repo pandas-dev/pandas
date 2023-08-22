@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import itertools
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     cast,
@@ -48,6 +49,10 @@ from pandas.core.dtypes.missing import (
     na_value_for_dtype,
     notna,
 )
+
+if TYPE_CHECKING:
+    from pandas._libs.arrays import BitMaskArray
+
 
 bn = import_optional_dependency("bottleneck", errors="warn")
 _BOTTLENECK_INSTALLED = bn is not None
@@ -1537,7 +1542,9 @@ def _maybe_null_out(
 
 
 def check_below_min_count(
-    shape: tuple[int, ...], mask: npt.NDArray[np.bool_] | None, min_count: int
+    shape: tuple[int, ...],
+    mask: npt.NDArray[np.bool_] | BitMaskArray | None,
+    min_count: int,
 ) -> bool:
     """
     Check for the `min_count` keyword. Returns True if below `min_count` (when
@@ -1561,7 +1568,7 @@ def check_below_min_count(
             # no missing values, only check size
             non_nulls = np.prod(shape)
         else:
-            non_nulls = mask.size - mask.sum()
+            non_nulls = mask.size - mask.sum()  # type: ignore[assignment]
         if non_nulls < min_count:
             return True
     return False
