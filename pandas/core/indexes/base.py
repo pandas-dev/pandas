@@ -7215,11 +7215,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         nv.validate_any(args, kwargs)
         self._maybe_disable_logical_methods("any")
-        # error: Argument 1 to "any" has incompatible type "ArrayLike"; expected
-        # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
-        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
-        # _SupportsArray]"
-        return np.any(self.values)  # type: ignore[arg-type]
+        vals = self._values
+        if not isinstance(vals, np.ndarray):
+            # i.e. EA, call _reduce instead of "any" to get TypeError instead
+            #  of AttributeError
+            return vals._reduce("any")
+        return np.any(vals)
 
     def all(self, *args, **kwargs):
         """
@@ -7262,11 +7263,12 @@ class Index(IndexOpsMixin, PandasObject):
         """
         nv.validate_all(args, kwargs)
         self._maybe_disable_logical_methods("all")
-        # error: Argument 1 to "all" has incompatible type "ArrayLike"; expected
-        # "Union[Union[int, float, complex, str, bytes, generic], Sequence[Union[int,
-        # float, complex, str, bytes, generic]], Sequence[Sequence[Any]],
-        # _SupportsArray]"
-        return np.all(self.values)  # type: ignore[arg-type]
+        vals = self._values
+        if not isinstance(vals, np.ndarray):
+            # i.e. EA, call _reduce instead of "all" to get TypeError instead
+            #  of AttributeError
+            return vals._reduce("all")
+        return np.all(vals)
 
     @final
     def _maybe_disable_logical_methods(self, opname: str_t) -> None:
@@ -7275,9 +7277,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if (
             isinstance(self, ABCMultiIndex)
-            or needs_i8_conversion(self.dtype)
-            or isinstance(self.dtype, (IntervalDtype, CategoricalDtype))
-            or is_float_dtype(self.dtype)
+            # TODO(3.0): PeriodArray and DatetimeArray any/all will raise,
+            #  so checking needs_i8_conversion will be unnecessary
+            or (needs_i8_conversion(self.dtype) and self.dtype.kind != "m")
         ):
             # This call will raise
             make_invalid_op(opname)(self)
