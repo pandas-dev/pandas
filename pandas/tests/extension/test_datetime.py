@@ -128,7 +128,10 @@ class TestDatetimeArray(base.ExtensionTests):
             result = res_op(skipna=skipna)
             expected = exp_op(skipna=skipna)
             if op_name in ["mean", "median"]:
-                expected = pd.Timestamp(expected, tz=ser.dtype.tz)
+                # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype"
+                # has no attribute "tz"
+                tz = ser.dtype.tz  # type: ignore[union-attr]
+                expected = pd.Timestamp(expected, tz=tz)
             else:
                 expected = pd.Timedelta(expected)
             tm.assert_almost_equal(result, expected)
