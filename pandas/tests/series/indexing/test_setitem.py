@@ -568,29 +568,26 @@ class TestSetitemWithExpansion:
         tm.assert_series_equal(ser, expected)
 
     @pytest.mark.parametrize(
-        "na, target_na, dtype, target_dtype, indexer, warn",
+        "na, target_na, dtype, target_dtype, indexer",
         [
-            (NA, NA, "Int64", "Int64", 1, None),
-            (NA, NA, "Int64", "Int64", 2, None),
-            (NA, np.nan, "int64", "float64", 1, None),
-            (NA, np.nan, "int64", "float64", 2, None),
-            (NaT, NaT, "int64", "object", 1, FutureWarning),
-            (NaT, NaT, "int64", "object", 2, None),
-            (np.nan, NA, "Int64", "Int64", 1, None),
-            (np.nan, NA, "Int64", "Int64", 2, None),
-            (np.nan, NA, "Float64", "Float64", 1, None),
-            (np.nan, NA, "Float64", "Float64", 2, None),
-            (np.nan, np.nan, "int64", "float64", 1, None),
-            (np.nan, np.nan, "int64", "float64", 2, None),
+            (NA, NA, "Int64", "Int64", 1),
+            (NA, NA, "Int64", "Int64", 2),
+            (NA, np.nan, "int64", "float64", 1),
+            (NA, np.nan, "int64", "float64", 2),
+            (NaT, NaT, "int64", "object", 1),
+            (NaT, NaT, "int64", "object", 2),
+            (np.nan, NA, "Int64", "Int64", 1),
+            (np.nan, NA, "Int64", "Int64", 2),
+            (np.nan, NA, "Float64", "Float64", 1),
+            (np.nan, NA, "Float64", "Float64", 2),
+            (np.nan, np.nan, "int64", "float64", 1),
+            (np.nan, np.nan, "int64", "float64", 2),
         ],
     )
-    def test_setitem_enlarge_with_na(
-        self, na, target_na, dtype, target_dtype, indexer, warn
-    ):
+    def test_setitem_enlarge_with_na(self, na, target_na, dtype, target_dtype, indexer):
         # GH#32346
         ser = Series([1, 2], dtype=dtype)
-        with tm.assert_produces_warning(warn, match="item of incompatible dtype"):
-            ser[indexer] = na
+        ser[indexer] = na
         expected_values = [1, target_na] if indexer == 1 else [1, 2, target_na]
         expected = Series(expected_values, dtype=target_dtype)
         tm.assert_series_equal(ser, expected)

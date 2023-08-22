@@ -460,20 +460,8 @@ class Block(PandasObject, libinternals.Block):
 
         # In a future version of pandas, the default will be that
         # setting `nan` into an integer series won't raise.
-        if is_scalar(other) and is_integer_dtype(self.values.dtype):
-            try:
-                is_nan = bool(np.isnan(other))
-            except TypeError:
-                # ufunc 'isnan' not supported for the input types
-                # boolean value of NA is ambiguous
-                is_nan = False
-            try:
-                is_nat = np.isnat(other)
-            except TypeError:
-                # ufunc 'isnat' is only defined for np.datetime64 and np.timedelta64
-                is_nat = False
-            if is_nan and not is_nat:
-                warn_on_upcast = False
+        if is_scalar(other) and is_integer_dtype(self.values.dtype) and isna(other):
+            warn_on_upcast = False
         elif (
             isinstance(other, np.ndarray)
             and other.ndim == 1
