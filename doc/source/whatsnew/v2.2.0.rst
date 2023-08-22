@@ -114,6 +114,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
+
 Categorical
 ^^^^^^^^^^^
 -
