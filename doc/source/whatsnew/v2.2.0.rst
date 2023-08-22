@@ -39,10 +39,49 @@ Notable bug fixes
 
 These are bug fixes that might have notable behavior changes.
 
-.. _whatsnew_220.notable_bug_fixes.notable_bug_fix1:
+.. _whatsnew_220.notable_bug_fixes.merge_sort_behavior:
 
-notable_bug_fix1
-^^^^^^^^^^^^^^^^
+:func:`merge` and :meth:`DataFrame.join` now consistently follow documented sort behavior
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, :func:`merge` and :meth:`DataFrame.join` did not
+always return a result that followed the documented sort behavior. pandas now
+follows the documented sort behavior in merge and join operations (:issue:`54611`).
+
+As documented, ``sort=True`` sorts the join keys lexicographically in the resulting
+:class:`DataFrame`. With ``sort=False``, the order of the join keys depends on the
+join type (``how`` keyword):
+
+- ``how="left"``: preserve the order of the left keys
+- ``how="right"``: preserve the order of the right keys
+- ``how="inner"``: preserve the order of the left keys
+- ``how="outer"``: sort keys lexicographically
+
+One example with changing behavior is inner joins with non-unique left join keys
+and ``sort=False``:
+
+.. ipython:: python
+
+    left = pd.DataFrame({"a": [1, 2, 1]})
+    right = pd.DataFrame({"a": [1, 2]})
+    result = pd.merge(left, right, how="inner", on="a", sort=False)
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [5]: result
+    Out[5]:
+       a
+    0  1
+    1  1
+    2  2
+
+*New Behavior*
+
+.. ipython:: python
+
+    result
 
 .. _whatsnew_220.notable_bug_fixes.notable_bug_fix2:
 
@@ -197,7 +236,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
-- Bug in :func:`merge` not following documented sort behavior in certain cases (:issue:`54611`)
+-
 -
 
 Sparse
