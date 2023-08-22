@@ -1,7 +1,12 @@
 """ feather-format compat """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
+
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -12,6 +17,7 @@ import pandas as pd
 from pandas.core.api import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
+from pandas.io._util import arrow_string_types_mapper
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
@@ -34,7 +40,7 @@ def to_feather(
     df: DataFrame,
     path: FilePath | WriteBuffer[bytes],
     storage_options: StorageOptions | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     Write a DataFrame to the binary Feather format.
@@ -70,7 +76,7 @@ def read_feather(
     use_threads: bool = True,
     storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-):
+) -> DataFrame:
     """
     Load a feather-format object from the file path.
 
@@ -103,6 +109,10 @@ def read_feather(
     Returns
     -------
     type of object stored in file
+
+    Examples
+    --------
+    >>> df = pd.read_feather("path/to/file.feather")  # doctest: +SKIP
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather
@@ -112,7 +122,7 @@ def read_feather(
     with get_handle(
         path, "rb", storage_options=storage_options, is_text=False
     ) as handles:
-        if dtype_backend is lib.no_default:
+        if dtype_backend is lib.no_default and not using_pyarrow_string_dtype():
             return feather.read_feather(
                 handles.handle, columns=columns, use_threads=bool(use_threads)
             )
@@ -128,3 +138,8 @@ def read_feather(
 
         elif dtype_backend == "pyarrow":
             return pa_table.to_pandas(types_mapper=pd.ArrowDtype)
+
+        elif using_pyarrow_string_dtype():
+            return pa_table.to_pandas(types_mapper=arrow_string_types_mapper())
+        else:
+            raise NotImplementedError

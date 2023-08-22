@@ -38,6 +38,7 @@ from pandas._typing import (
     IgnoreRaise,
     IndexLabel,
     Scalar,
+    Self,
     Shape,
     npt,
 )
@@ -330,7 +331,7 @@ class MultiIndex(Index):
         copy: bool = False,
         name=None,
         verify_integrity: bool = True,
-    ) -> MultiIndex:
+    ) -> Self:
         # compat with Index
         if name is not None:
             names = name
@@ -2440,6 +2441,10 @@ class MultiIndex(Index):
                    names=['y', 'x'])
         """
         order = [self._get_level_number(i) for i in order]
+        result = self._reorder_ilevels(order)
+        return result
+
+    def _reorder_ilevels(self, order) -> MultiIndex:
         if len(order) != self.nlevels:
             raise AssertionError(
                 f"Length of order must be same as number of levels ({self.nlevels}), "

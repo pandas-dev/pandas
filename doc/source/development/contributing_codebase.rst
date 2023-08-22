@@ -475,7 +475,7 @@ be located.
 
 8) Is your test for one of the pandas-provided ExtensionArrays (``Categorical``,
    ``DatetimeArray``, ``TimedeltaArray``, ``PeriodArray``, ``IntervalArray``,
-   ``PandasArray``, ``FloatArray``, ``BoolArray``, ``StringArray``)?
+   ``NumpyExtensionArray``, ``FloatArray``, ``BoolArray``, ``StringArray``)?
    This test likely belongs in one of:
 
    - tests.arrays
@@ -575,16 +575,6 @@ ignore the error.
     @pytest.mark.filterwarnings("ignore:msg:category")
     def test_thing(self):
         pass
-
-If you need finer-grained control, you can use Python's
-`warnings module <https://docs.python.org/3/library/warnings.html>`__
-to control whether a warning is ignored or raised at different places within
-a single test.
-
-.. code-block:: python
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", FutureWarning)
 
 Testing an exception
 ^^^^^^^^^^^^^^^^^^^^
@@ -764,7 +754,7 @@ install pandas) by typing::
     your installation is probably fine and you can start contributing!
 
 Often it is worth running only a subset of tests first around your changes before running the
-entire suite (tip: you can use the [pandas-coverage app](https://pandas-coverage-12d2130077bc.herokuapp.com/))
+entire suite (tip: you can use the `pandas-coverage app <https://pandas-coverage-12d2130077bc.herokuapp.com/>`_)
 to find out which tests hit the lines of code you've modified, and then run only those).
 
 The easiest way to do this is with::

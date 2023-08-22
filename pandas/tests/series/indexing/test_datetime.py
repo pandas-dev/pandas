@@ -77,7 +77,7 @@ def test_getitem_setitem_datetime_tz(tz_source):
     N = 50
     # testing with timezone, GH #2785
     rng = date_range("1/1/1990", periods=N, freq="H", tz=tzget("US/Eastern"))
-    ts = Series(np.random.randn(N), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
 
     # also test Timestamp tz handling, GH #2789
     result = ts.copy()
@@ -108,7 +108,7 @@ def test_getitem_setitem_datetimeindex():
     N = 50
     # testing with timezone, GH #2785
     rng = date_range("1/1/1990", periods=N, freq="H", tz="US/Eastern")
-    ts = Series(np.random.randn(N), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
 
     result = ts["1990-01-01 04:00:00"]
     expected = ts.iloc[4]
@@ -214,7 +214,7 @@ def test_getitem_setitem_datetimeindex():
 def test_getitem_setitem_periodindex():
     N = 50
     rng = period_range("1/1/1990", periods=N, freq="H")
-    ts = Series(np.random.randn(N), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
 
     result = ts["1990-01-01 04"]
     expected = ts.iloc[4]
@@ -330,11 +330,15 @@ def test_loc_getitem_over_size_cutoff(monkeypatch):
         d += 3 * sec
 
     # duplicate some values in the list
-    duplicate_positions = np.random.randint(0, len(dates) - 1, 20)
+    duplicate_positions = np.random.default_rng(2).integers(0, len(dates) - 1, 20)
     for p in duplicate_positions:
         dates[p + 1] = dates[p]
 
-    df = DataFrame(np.random.randn(len(dates), 4), index=dates, columns=list("ABCD"))
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((len(dates), 4)),
+        index=dates,
+        columns=list("ABCD"),
+    )
 
     pos = n * 3
     timestamp = df.index[pos]
@@ -354,7 +358,7 @@ def test_indexing_over_size_cutoff_period_index(monkeypatch):
     idx = period_range("1/1/2000", freq="T", periods=n)
     assert idx._engine.over_size_threshold
 
-    s = Series(np.random.randn(len(idx)), index=idx)
+    s = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
 
     pos = n - 1
     timestamp = idx[pos]
@@ -368,7 +372,7 @@ def test_indexing_over_size_cutoff_period_index(monkeypatch):
 def test_indexing_unordered():
     # GH 2437
     rng = date_range(start="2011-01-01", end="2011-01-15")
-    ts = Series(np.random.rand(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).random(len(rng)), index=rng)
     ts2 = pd.concat([ts[0:4], ts[-4:], ts[4:-4]])
 
     for t in ts.index:
@@ -384,15 +388,19 @@ def test_indexing_unordered():
         expected.index = expected.index._with_freq(None)
         tm.assert_series_equal(result, expected)
 
-    compare(slice("2011-01-01", "2011-01-15"))
-    with pytest.raises(KeyError, match="Value based partial slicing on non-monotonic"):
-        compare(slice("2010-12-30", "2011-01-15"))
-    compare(slice("2011-01-01", "2011-01-16"))
-
-    # partial ranges
-    compare(slice("2011-01-01", "2011-01-6"))
-    compare(slice("2011-01-06", "2011-01-8"))
-    compare(slice("2011-01-06", "2011-01-12"))
+    for key in [
+        slice("2011-01-01", "2011-01-15"),
+        slice("2010-12-30", "2011-01-15"),
+        slice("2011-01-01", "2011-01-16"),
+        # partial ranges
+        slice("2011-01-01", "2011-01-6"),
+        slice("2011-01-06", "2011-01-8"),
+        slice("2011-01-06", "2011-01-12"),
+    ]:
+        with pytest.raises(
+            KeyError, match="Value based partial slicing on non-monotonic"
+        ):
+            compare(key)
 
     # single values
     result = ts2["2011"].sort_index()
@@ -405,7 +413,7 @@ def test_indexing_unordered2():
     # diff freq
     rng = date_range(datetime(2005, 1, 1), periods=20, freq="M")
     ts = Series(np.arange(len(rng)), index=rng)
-    ts = ts.take(np.random.permutation(20))
+    ts = ts.take(np.random.default_rng(2).permutation(20))
 
     result = ts["2005"]
     for t in result.index:
@@ -414,7 +422,7 @@ def test_indexing_unordered2():
 
 def test_indexing():
     idx = date_range("2001-1-1", periods=20, freq="M")
-    ts = Series(np.random.rand(len(idx)), index=idx)
+    ts = Series(np.random.default_rng(2).random(len(idx)), index=idx)
 
     # getting
 
@@ -466,7 +474,7 @@ def test_getitem_str_year_with_datetimeindex():
 def test_getitem_str_second_with_datetimeindex():
     # GH14826, indexing with a seconds resolution string / datetime object
     df = DataFrame(
-        np.random.rand(5, 5),
+        np.random.default_rng(2).random((5, 5)),
         columns=["open", "high", "low", "close", "volume"],
         index=date_range("2012-01-02 18:01:00", periods=5, tz="US/Central", freq="s"),
     )

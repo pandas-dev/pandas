@@ -31,7 +31,7 @@ class TestSeriesCumulativeOps:
 
         # with missing values
         ts = datetime_series.copy()
-        ts[::2] = np.NaN
+        ts[::2] = np.nan
 
         result = func(ts)[1::2]
         expected = func(np.array(ts.dropna()))
@@ -47,7 +47,7 @@ class TestSeriesCumulativeOps:
 
         tm.assert_numpy_array_equal(result, expected)
         ts = datetime_series.copy()
-        ts[::2] = np.NaN
+        ts[::2] = np.nan
         result = getattr(ts, method)()[1::2]
         expected = ufunc(ts.dropna())
 

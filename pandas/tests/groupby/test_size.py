@@ -51,7 +51,7 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
 @pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])
 @pytest.mark.parametrize("sort", [True, False])
 def test_size_sort(sort, by):
-    df = DataFrame(np.random.choice(20, (1000, 3)), columns=list("ABC"))
+    df = DataFrame(np.random.default_rng(2).choice(20, (1000, 3)), columns=list("ABC"))
     left = df.groupby(by=by, sort=sort).size()
     right = df.groupby(by=by, sort=sort)["C"].apply(lambda a: a.shape[0])
     tm.assert_series_equal(left, right, check_names=False)
@@ -95,3 +95,12 @@ def test_size_on_categorical(as_index):
         expected = expected.set_index(["A", "B"])["size"].rename(None)
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+def test_size_series_masked_type_returns_Int64(dtype):
+    # GH 54132
+    ser = Series([1, 1, 1], index=["a", "a", "b"], dtype=dtype)
+    result = ser.groupby(level=0).size()
+    expected = Series([2, 1], dtype="Int64", index=["a", "b"])
+    tm.assert_series_equal(result, expected)

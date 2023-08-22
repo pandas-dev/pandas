@@ -42,6 +42,7 @@ from pandas._libs.tslibs.dtypes import (
     PeriodDtypeBase,
     abbrev_to_npy_unit,
 )
+from pandas._libs.tslibs.offsets import BDay
 from pandas.compat import pa_version_under7p0
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
@@ -80,13 +81,17 @@ if TYPE_CHECKING:
 
     from pandas import (
         Categorical,
+        CategoricalIndex,
+        DatetimeIndex,
         Index,
+        IntervalIndex,
+        PeriodIndex,
     )
     from pandas.core.arrays import (
         BaseMaskedArray,
         DatetimeArray,
         IntervalArray,
-        PandasArray,
+        NumpyExtensionArray,
         PeriodArray,
         SparseArray,
     )
@@ -387,7 +392,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         # We *do* want to include the real self.ordered here
         return int(self._hash_categories)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         Rules for CDT equality:
         1) Any CDT is equal to the string 'category'
@@ -670,6 +675,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         return find_common_type(non_cat_dtypes)
 
+    @cache_readonly
+    def index_class(self) -> type_t[CategoricalIndex]:
+        from pandas import CategoricalIndex
+
+        return CategoricalIndex
+
 
 @register_extension_dtype
 class DatetimeTZDtype(PandasExtensionDtype):
@@ -859,7 +870,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         # TODO: update this.
         return hash(str(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             if other.startswith("M8["):
                 other = f"datetime64[{other[3:]}"
@@ -910,6 +921,12 @@ class DatetimeTZDtype(PandasExtensionDtype):
         self._tz = state["tz"]
         self._unit = state["unit"]
 
+    @cache_readonly
+    def index_class(self) -> type_t[DatetimeIndex]:
+        from pandas import DatetimeIndex
+
+        return DatetimeIndex
+
 
 @register_extension_dtype
 class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
@@ -950,7 +967,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     # error: Incompatible types in assignment (expression has type
     # "Dict[int, PandasExtensionDtype]", base class "PandasExtensionDtype"
     # defined the type as "Dict[str, PandasExtensionDtype]")  [assignment]
-    _cache_dtypes: dict[BaseOffset, PeriodDtype] = {}  # type: ignore[assignment] # noqa: E501
+    _cache_dtypes: dict[BaseOffset, int] = {}  # type: ignore[assignment]
     __hash__ = PeriodDtypeBase.__hash__
     _freq: BaseOffset
 
@@ -966,14 +983,23 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         if not isinstance(freq, BaseOffset):
             freq = cls._parse_dtype_strict(freq)
 
+        if isinstance(freq, BDay):
+            # GH#53446
+            warnings.warn(
+                "PeriodDtype[B] is deprecated and will be removed in a future "
+                "version. Use a DatetimeIndex with freq='B' instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
         try:
-            return cls._cache_dtypes[freq]
+            dtype_code = cls._cache_dtypes[freq]
         except KeyError:
             dtype_code = freq._period_dtype_code
-            u = PeriodDtypeBase.__new__(cls, dtype_code, freq.n)
-            u._freq = freq
-            cls._cache_dtypes[freq] = u
-            return u
+            cls._cache_dtypes[freq] = dtype_code
+        u = PeriodDtypeBase.__new__(cls, dtype_code, freq.n)
+        u._freq = freq
+        return u
 
     def __reduce__(self):
         return type(self), (self.name,)
@@ -1042,13 +1068,13 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     def na_value(self) -> NaTType:
         return NaT
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return other in [self.name, self.name.title()]
 
         return super().__eq__(other)
 
-    def __ne__(self, other: Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         return not self.__eq__(other)
 
     @classmethod
@@ -1111,6 +1137,12 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
             return PeriodArray(np.array([], dtype="int64"), dtype=self, copy=False)
         return PeriodArray._concat_same_type(results)
 
+    @cache_readonly
+    def index_class(self) -> type_t[PeriodIndex]:
+        from pandas import PeriodIndex
+
+        return PeriodIndex
+
 
 @register_extension_dtype
 class IntervalDtype(PandasExtensionDtype):
@@ -1154,8 +1186,10 @@ class IntervalDtype(PandasExtensionDtype):
     )
 
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+    _subtype: None | np.dtype
+    _closed: IntervalClosedType | None
 
-    def __new__(cls, subtype=None, closed: IntervalClosedType | None = None):
+    def __init__(self, subtype=None, closed: IntervalClosedType | None = None) -> None:
         from pandas.core.dtypes.common import (
             is_string_dtype,
             pandas_dtype,
@@ -1170,19 +1204,19 @@ class IntervalDtype(PandasExtensionDtype):
                     "dtype.closed and 'closed' do not match. "
                     "Try IntervalDtype(dtype.subtype, closed) instead."
                 )
-            return subtype
+            self._subtype = subtype._subtype
+            self._closed = subtype._closed
         elif subtype is None:
             # we are called as an empty constructor
             # generally for pickle compat
-            u = object.__new__(cls)
-            u._subtype = None
-            u._closed = closed
-            return u
+            self._subtype = None
+            self._closed = closed
         elif isinstance(subtype, str) and subtype.lower() == "interval":
-            subtype = None
+            self._subtype = None
+            self._closed = closed
         else:
             if isinstance(subtype, str):
-                m = cls._match.search(subtype)
+                m = IntervalDtype._match.search(subtype)
                 if m is not None:
                     gd = m.groupdict()
                     subtype = gd["subtype"]
@@ -1199,24 +1233,15 @@ class IntervalDtype(PandasExtensionDtype):
                 subtype = pandas_dtype(subtype)
             except TypeError as err:
                 raise TypeError("could not construct IntervalDtype") from err
-
-        if CategoricalDtype.is_dtype(subtype) or is_string_dtype(subtype):
-            # GH 19016
-            msg = (
-                "category, object, and string subtypes are not supported "
-                "for IntervalDtype"
-            )
-            raise TypeError(msg)
-
-        key = f"{subtype}{closed}"
-        try:
-            return cls._cache_dtypes[key]
-        except KeyError:
-            u = object.__new__(cls)
-            u._subtype = subtype
-            u._closed = closed
-            cls._cache_dtypes[key] = u
-            return u
+            if CategoricalDtype.is_dtype(subtype) or is_string_dtype(subtype):
+                # GH 19016
+                msg = (
+                    "category, object, and string subtypes are not supported "
+                    "for IntervalDtype"
+                )
+                raise TypeError(msg)
+            self._subtype = subtype
+            self._closed = closed
 
     @cache_readonly
     def _can_hold_na(self) -> bool:
@@ -1232,7 +1257,7 @@ class IntervalDtype(PandasExtensionDtype):
 
     @property
     def closed(self) -> IntervalClosedType:
-        return self._closed
+        return self._closed  # type: ignore[return-value]
 
     @property
     def subtype(self):
@@ -1298,7 +1323,7 @@ class IntervalDtype(PandasExtensionDtype):
         # make myself hashable
         return hash(str(self))
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return other.lower() in (self.name.lower(), str(self).lower())
         elif not isinstance(other, IntervalDtype):
@@ -1381,8 +1406,14 @@ class IntervalDtype(PandasExtensionDtype):
             return np.dtype(object)
         return IntervalDtype(common, closed=closed)
 
+    @cache_readonly
+    def index_class(self) -> type_t[IntervalIndex]:
+        from pandas import IntervalIndex
 
-class PandasDtype(ExtensionDtype):
+        return IntervalIndex
+
+
+class NumpyEADtype(ExtensionDtype):
     """
     A Pandas ExtensionDtype for NumPy dtypes.
 
@@ -1401,19 +1432,19 @@ class PandasDtype(ExtensionDtype):
 
     _metadata = ("_dtype",)
 
-    def __init__(self, dtype: npt.DTypeLike | PandasDtype | None) -> None:
-        if isinstance(dtype, PandasDtype):
+    def __init__(self, dtype: npt.DTypeLike | NumpyEADtype | None) -> None:
+        if isinstance(dtype, NumpyEADtype):
             # make constructor univalent
             dtype = dtype.numpy_dtype
         self._dtype = np.dtype(dtype)
 
     def __repr__(self) -> str:
-        return f"PandasDtype({repr(self.name)})"
+        return f"NumpyEADtype({repr(self.name)})"
 
     @property
     def numpy_dtype(self) -> np.dtype:
         """
-        The NumPy dtype this PandasDtype wraps.
+        The NumPy dtype this NumpyEADtype wraps.
         """
         return self._dtype
 
@@ -1441,19 +1472,19 @@ class PandasDtype(ExtensionDtype):
         return self.kind == "b"
 
     @classmethod
-    def construct_from_string(cls, string: str) -> PandasDtype:
+    def construct_from_string(cls, string: str) -> NumpyEADtype:
         try:
             dtype = np.dtype(string)
         except TypeError as err:
             if not isinstance(string, str):
                 msg = f"'construct_from_string' expects a string, got {type(string)}"
             else:
-                msg = f"Cannot construct a 'PandasDtype' from '{string}'"
+                msg = f"Cannot construct a 'NumpyEADtype' from '{string}'"
             raise TypeError(msg) from err
         return cls(dtype)
 
     @classmethod
-    def construct_array_type(cls) -> type_t[PandasArray]:
+    def construct_array_type(cls) -> type_t[NumpyExtensionArray]:
         """
         Return the array type associated with this dtype.
 
@@ -1461,9 +1492,9 @@ class PandasDtype(ExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays import PandasArray
+        from pandas.core.arrays import NumpyExtensionArray
 
-        return PandasArray
+        return NumpyExtensionArray
 
     @property
     def kind(self) -> str:
@@ -1605,6 +1636,8 @@ class SparseDtype(ExtensionDtype):
     0.3333333333333333
     """
 
+    _is_immutable = True
+
     # We include `_is_na_fill_value` in the metadata to avoid hash collisions
     # between SparseDtype(float, 0.0) and SparseDtype(float, nan).
     # Without is_na_fill_value in the comparison, those would be equal since
@@ -1642,7 +1675,7 @@ class SparseDtype(ExtensionDtype):
         # __eq__, so we explicitly do it here.
         return super().__hash__()
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         # We have to override __eq__ to handle NA values in _metadata.
         # The base class does simple == checks, which fail for NA.
         if isinstance(other, str):
@@ -2053,6 +2086,15 @@ class ArrowDtype(StorageExtensionDtype):
     def __repr__(self) -> str:
         return self.name
 
+    def __hash__(self) -> int:
+        # make myself hashable
+        return hash(str(self))
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, type(self)):
+            return super().__eq__(other)
+        return self.pyarrow_dtype == other.pyarrow_dtype
+
     @property
     def type(self):
         """
@@ -2102,8 +2144,9 @@ class ArrowDtype(StorageExtensionDtype):
         elif pa.types.is_null(pa_type):
             # TODO: None? pd.NA? pa.null?
             return type(pa_type)
-        else:
-            raise NotImplementedError(pa_type)
+        elif isinstance(pa_type, pa.ExtensionType):
+            return type(self)(pa_type.storage_type).type
+        raise NotImplementedError(pa_type)
 
     @property
     def name(self) -> str:  # type: ignore[override]
