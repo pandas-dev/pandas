@@ -952,6 +952,9 @@ class ArrowExtensionArray(
                 return value
             if isinstance(value, (pa.Scalar, pa.Array, pa.ChunkedArray)):
                 return value
+            if isinstance(value, Timedelta) and value.unit in ("s", "ms"):
+                # Workaround https://github.com/apache/arrow/issues/37291
+                value = value.to_numpy()
             if is_array_like(value):
                 pa_box = pa.array
             else:
