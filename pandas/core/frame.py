@@ -1933,6 +1933,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(self, orient: Literal["records"], into: type[dict] = ...) -> list[dict]:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "orient"], name="to_dict"
+    )
     def to_dict(
         self,
         orient: Literal[
