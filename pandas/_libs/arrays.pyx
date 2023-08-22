@@ -224,11 +224,6 @@ cdef class NDArrayBacked:
         return to_concat[0]._from_backing_data(new_arr)
 
 
-def _unpickle_bitmaskarray(array, parent):
-    bma = BitMaskArray(array, parent)
-    return bma
-
-
 cdef class BitMaskArray:
     cdef:
         ArrowBitmap bitmap
@@ -257,23 +252,15 @@ cdef class BitMaskArray:
     def __cinit__(self):
         self.parent = False
 
-    def __init__(self, data, parent=None):
-        # parent is only required to reconstruct ref-counting from pickle
-        # but should not be called from user code
+    def __init__(self, data):
         if isinstance(data, np.ndarray):
             self.init_from_ndarray(data.ravel())
             self.array_shape = data.shape
-            if parent:
-                self.parent = parent
-            else:
-                self.parent = None
+            self.parent = None
         elif isinstance(data, type(self)):
             self.init_from_bitmaskarray(data)
             self.array_shape = data.array_shape
-            if parent:
-                self.parent = parent
-            else:
-                self.parent = data
+            self.parent = data
         else:
             raise TypeError("Unsupported argument to BitMaskArray constructor")
 
@@ -294,7 +281,7 @@ cdef class BitMaskArray:
         # TODO: this leaks a bit into the internals of the nanoarrow bitmap
         # We may want to upstream a BitmapCopy function instead
         ArrowBitmapInit(&bitmap)
-        buf = <uint8_t*>malloc(old_bma.bitmap.size_bits)
+        buf = <uint8_t*>malloc(old_bma.bitmap.size_bytes)
         memcpy(buf, old_bma.bitmap.buffer.data, old_bma.bitmap.buffer.size_bytes)
         bitmap.buffer.size_bytes = old_bma.bitmap.buffer.size_bytes
         bitmap.size_bits = old_bma.bitmap.size_bits
@@ -447,9 +434,53 @@ cdef class BitMaskArray:
 
         return self.to_numpy() ^ other
 
-    def __reduce__(self):
-        object_state = (self.to_numpy(), self.parent)
-        return (_unpickle_bitmaskarray, object_state, self.parent)
+    def __getstate__(self):
+        cdef BitMaskArray self_ = self
+        state = {
+            "parent": self.parent,
+            "array_shape": self.array_shape,
+            "buffer_owner": self_.buffer_owner,
+            # Private ArrowBitmap attributes below
+            "bitmap.buffer.size_bytes": self_.bitmap.buffer.size_bytes,
+            "bitmap.size_bits": self_.bitmap.size_bits
+        }
+
+        # Only parents own data
+        if self_.buffer_owner:
+            bitmap_data = bytearray(self_.bitmap.buffer.size_bytes)
+            for i in range(self_.bitmap.buffer.size_bytes):
+                bitmap_data[i] = self_.bitmap.buffer.data[i]
+
+            state["bitmap_data"] = bitmap_data
+
+        return state
+
+    def __setstate__(self, state):
+        cdef ArrowBitmap bitmap
+        cdef BitMaskArray self_ = self, other
+        self.parent = state["parent"]
+        self.array_shape = state["array_shape"]
+        self_.buffer_owner = state["buffer_owner"]
+
+        nbytes = state["bitmap.buffer.size_bytes"]
+        nbits = state["bitmap.size_bits"]
+        if not self_.buffer_owner:
+            other = self.parent
+            self_.bitmap = other.bitmap
+            self_.bitmap.size_bits = nbits
+            self_.bitmap.buffer.size_bytes = nbytes
+        else:
+            ArrowBitmapInit(&bitmap)
+
+            buf = <uint8_t*>malloc(nbytes)
+            data = state["bitmap_data"]
+            for i in range(nbytes):
+                buf[i] = data[i]
+
+            bitmap.buffer.data = buf
+            bitmap.buffer.size_bytes = nbytes
+            bitmap.size_bits = nbits
+            self_.bitmap = bitmap
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
