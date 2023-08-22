@@ -220,8 +220,10 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         super().test_fillna_no_op_returns_copy(data)
 
     @pytest.mark.xfail(reason="Unsupported")
-    def test_fillna_series(self):
+    def test_fillna_series(self, data_missing):
         # this one looks doable.
+        # TODO: this fails bc we do not pass through data_missing. If we did,
+        #  the 0-fill case would xpass
         super().test_fillna_series()
 
     def test_fillna_frame(self, data_missing):
@@ -349,7 +351,9 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
-    def test_astype_string(self, data):
+    def test_astype_string(self, data, nullable_string_dtype):
+        # TODO: this fails bc we do not pass through nullable_string_dtype;
+        #  If we did, the 0-cases would xpass
         super().test_astype_string(data)
 
 
