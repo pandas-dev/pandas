@@ -18,31 +18,13 @@ Enhancements
 
 PyArrow engine support for handling malformed lines in CSV files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Prior to this release, the ability to handle malformed lines in CSV files was
-limited to the ``python`` engine with the use of the ``on_bad_lines`` parameter.
-This release brings that capability to the `PyArrow <https://arrow.apache
-.org/docs/python/index.html>`_ engine as well.
-
-The implementation supports both specifying ``skip``, ``error`` and ``warn``
-values as well as passing down a callable as defined in the `PyArrow
-documentation <https://arrow.apache.org/docs/python/generated/pyarrow.csv.
-ParseOptions.html#pyarrow.csv.ParseOptions.invalid_row_handler>`_
-
-*Example Usage*
-
-.. ipython:: python
-
-    from io import StringIO
-
-    bad_csv = """a,b,c
-    acol1,bcol1,ccol1
-    acol2,ccol2
-    """
-    df_arrow = pd.read_csv(StringIO(bad_csv), engine='pyarrow',
-                           dtype_backend='pyarrow', on_bad_lines='skip')
-    df_arrow
-
-
+This release brings the capability to handle malformed lines in CSV files to
+the the `PyArrow <https://arrow.apache.org/docs/python/index.html>`_ engine
+using the ``on_bad_lines`` parameter.The implementation supports both specifying
+``skip``, ``error`` and ``warn`` values as well as passing down a callable as
+defined in the `PyArrow documentation <https://arrow.apache
+.org/docs/python/generated/pyarrow.csv.
+ParseOptions.html#pyarrow.csv.ParseOptions.invalid_row_handler>`_.
 
 .. _whatsnew_220.enhancements.enhancement2:
 
