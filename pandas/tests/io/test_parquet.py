@@ -359,6 +359,20 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
+def test_parquet_pos_args_deprecation(engine):
+    # GH-54229
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_parquet except for the "
+        r"argument 'path' will be keyword-only."
+    )
+    with tm.ensure_clean() as path:
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            df.to_parquet(path, engine)
+
+
 class Base:
     def check_error_on_write(self, df, engine, exc, err_msg):
         # check that we are raising the exception on writing
@@ -998,7 +1012,7 @@ class TestParquetPyArrow(Base):
         pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": list(range(0, 3))})
         with tm.ensure_clean() as path:
-            df.to_parquet(path, pa)
+            df.to_parquet(path, engine=pa)
             result = read_parquet(
                 path, pa, filters=[("a", "==", 0)], use_legacy_dataset=False
             )
@@ -1011,7 +1025,7 @@ class TestParquetPyArrow(Base):
         )
 
         with tm.ensure_clean() as path:
-            df.to_parquet(path, pa)
+            df.to_parquet(path, engine=pa)
             result = read_parquet(path, pa)
         if using_array_manager:
             assert isinstance(result._mgr, pd.core.internals.ArrayManager)
@@ -1177,7 +1191,7 @@ class TestParquetFastParquet(Base):
         d = {"a": list(range(0, 3))}
         df = pd.DataFrame(d)
         with tm.ensure_clean() as path:
-            df.to_parquet(path, fp, compression=None, row_group_offsets=1)
+            df.to_parquet(path, engine=fp, compression=None, row_group_offsets=1)
             result = read_parquet(path, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 
