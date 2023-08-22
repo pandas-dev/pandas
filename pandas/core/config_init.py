@@ -420,6 +420,7 @@ use_inf_as_na_doc = """
 
 
 def use_inf_as_na_cb(key) -> None:
+    # TODO(3.0): enforcing this deprecation will close GH#52501
     from pandas.core.dtypes.missing import _use_inf_as_na
 
     _use_inf_as_na(key)

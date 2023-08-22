@@ -777,7 +777,7 @@ class TestNamePreservation:
     @pytest.mark.parametrize("box", [list, tuple, np.array, Index, Series, pd.array])
     @pytest.mark.parametrize("flex", [True, False])
     def test_series_ops_name_retention(self, flex, box, names, all_binary_operators):
-        # GH#33930 consistent name renteiton
+        # GH#33930 consistent name-retention
         op = all_binary_operators
 
         left = Series(range(10), name=names[0])
