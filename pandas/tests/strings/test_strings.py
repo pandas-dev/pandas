@@ -14,6 +14,7 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.strings.accessor import StringMethods
+from pandas.tests.strings import object_pyarrow_numpy
 
 
 @pytest.mark.parametrize("pattern", [0, True, Series(["foo", "bar"])])
@@ -40,7 +41,7 @@ def test_iter_raises():
 def test_count(any_string_dtype):
     ser = Series(["foo", "foofoo", np.nan, "foooofooofommmfoo"], dtype=any_string_dtype)
     result = ser.str.count("f[o]+")
-    expected_dtype = np.float64 if any_string_dtype == "object" else "Int64"
+    expected_dtype = np.float64 if any_string_dtype in object_pyarrow_numpy else "Int64"
     expected = Series([1, 2, np.nan, 4], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -91,7 +92,7 @@ def test_repeat_with_null(any_string_dtype, arg, repeat):
 
 def test_empty_str_methods(any_string_dtype):
     empty_str = empty = Series(dtype=any_string_dtype)
-    if any_string_dtype == "object":
+    if any_string_dtype in object_pyarrow_numpy:
         empty_int = Series(dtype="int64")
         empty_bool = Series(dtype=bool)
     else:
@@ -205,7 +206,7 @@ def test_ismethods(method, expected, any_string_dtype):
     ser = Series(
         ["A", "b", "Xy", "4", "3A", "", "TT", "55", "-", "  "], dtype=any_string_dtype
     )
-    expected_dtype = "bool" if any_string_dtype == "object" else "boolean"
+    expected_dtype = "bool" if any_string_dtype in object_pyarrow_numpy else "boolean"
     expected = Series(expected, dtype=expected_dtype)
     result = getattr(ser.str, method)()
     tm.assert_series_equal(result, expected)
@@ -230,7 +231,7 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
     ser = Series(
         ["A", "3", "¼", "★", "፸", "３", "four"], dtype=any_string_dtype  # noqa: RUF001
     )
-    expected_dtype = "bool" if any_string_dtype == "object" else "boolean"
+    expected_dtype = "bool" if any_string_dtype in object_pyarrow_numpy else "boolean"
     expected = Series(expected, dtype=expected_dtype)
     result = getattr(ser.str, method)()
     tm.assert_series_equal(result, expected)
@@ -250,7 +251,7 @@ def test_isnumeric_unicode(method, expected, any_string_dtype):
 def test_isnumeric_unicode_missing(method, expected, any_string_dtype):
     values = ["A", np.nan, "¼", "★", np.nan, "３", "four"]  # noqa: RUF001
     ser = Series(values, dtype=any_string_dtype)
-    expected_dtype = "object" if any_string_dtype == "object" else "boolean"
+    expected_dtype = "object" if any_string_dtype in object_pyarrow_numpy else "boolean"
     expected = Series(expected, dtype=expected_dtype)
     result = getattr(ser.str, method)()
     tm.assert_series_equal(result, expected)
@@ -280,7 +281,7 @@ def test_len(any_string_dtype):
         dtype=any_string_dtype,
     )
     result = ser.str.len()
-    expected_dtype = "float64" if any_string_dtype == "object" else "Int64"
+    expected_dtype = "float64" if any_string_dtype in object_pyarrow_numpy else "Int64"
     expected = Series([3, 4, 6, np.nan, 8, 4, 1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
@@ -309,7 +310,7 @@ def test_index(method, sub, start, end, index_or_series, any_string_dtype, expec
     obj = index_or_series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF"], dtype=any_string_dtype
     )
-    expected_dtype = np.int64 if any_string_dtype == "object" else "Int64"
+    expected_dtype = np.int64 if any_string_dtype in object_pyarrow_numpy else "Int64"
     expected = index_or_series(expected, dtype=expected_dtype)
 
     result = getattr(obj.str, method)(sub, start, end)
@@ -350,7 +351,7 @@ def test_index_wrong_type_raises(index_or_series, any_string_dtype, method):
 )
 def test_index_missing(any_string_dtype, method, exp):
     ser = Series(["abcb", "ab", "bcbe", np.nan], dtype=any_string_dtype)
-    expected_dtype = np.float64 if any_string_dtype == "object" else "Int64"
+    expected_dtype = np.float64 if any_string_dtype in object_pyarrow_numpy else "Int64"
 
     result = getattr(ser.str, method)("b")
     expected = Series(exp + [np.nan], dtype=expected_dtype)

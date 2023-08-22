@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -325,6 +323,7 @@ class TestPairwise:
 
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
+    @pytest.mark.filterwarnings("ignore:RuntimeWarning")
     @pytest.mark.parametrize(
         "f",
         [
@@ -344,13 +343,11 @@ class TestPairwise:
             else None
         )
         if result is not None:
-            with warnings.catch_warnings(record=True):
-                warnings.simplefilter("ignore", RuntimeWarning)
-                # we can have int and str columns
-                expected_index = pairwise_frames.index.union(pairwise_other_frame.index)
-                expected_columns = pairwise_frames.columns.union(
-                    pairwise_other_frame.columns
-                )
+            # we can have int and str columns
+            expected_index = pairwise_frames.index.union(pairwise_other_frame.index)
+            expected_columns = pairwise_frames.columns.union(
+                pairwise_other_frame.columns
+            )
             tm.assert_index_equal(result.index, expected_index)
             tm.assert_index_equal(result.columns, expected_columns)
         else:
@@ -413,7 +410,7 @@ class TestPairwise:
         expected = DataFrame(
             np.vstack(
                 (
-                    np.full((8, 8), np.NaN),
+                    np.full((8, 8), np.nan),
                     np.full((8, 8), 32.000000),
                     np.full((8, 8), 63.881919),
                 )

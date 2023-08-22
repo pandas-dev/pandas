@@ -4,8 +4,6 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Index,
@@ -202,8 +200,8 @@ class TestSeriesPlots:
         ax = ts.plot.hist(align="left", stacked=True, ax=ax)
 
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
-    @td.skip_if_no_scipy
     def test_hist_kde(self, ts):
+        pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(logy=True, ax=ax)
         _check_ax_scales(ax, yaxis="log")
@@ -213,17 +211,17 @@ class TestSeriesPlots:
         ylabels = ax.get_yticklabels()
         _check_text_labels(ylabels, [""] * len(ylabels))
 
-    @td.skip_if_no_scipy
     def test_hist_kde_plot_works(self, ts):
+        pytest.importorskip("scipy")
         _check_plot_works(ts.plot.kde)
 
-    @td.skip_if_no_scipy
     def test_hist_kde_density_works(self, ts):
+        pytest.importorskip("scipy")
         _check_plot_works(ts.plot.density)
 
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
-    @td.skip_if_no_scipy
     def test_hist_kde_logy(self, ts):
+        pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.kde(logy=True, ax=ax)
         _check_ax_scales(ax, yaxis="log")
@@ -232,16 +230,16 @@ class TestSeriesPlots:
         ylabels = ax.get_yticklabels()
         _check_text_labels(ylabels, [""] * len(ylabels))
 
-    @td.skip_if_no_scipy
     def test_hist_kde_color_bins(self, ts):
+        pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.hist(logy=True, bins=10, color="b", ax=ax)
         _check_ax_scales(ax, yaxis="log")
         assert len(ax.patches) == 10
         _check_colors(ax.patches, facecolors=["b"] * 10)
 
-    @td.skip_if_no_scipy
     def test_hist_kde_color(self, ts):
+        pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.kde(logy=True, color="r", ax=ax)
         _check_ax_scales(ax, yaxis="log")
@@ -626,9 +624,9 @@ class TestDataFramePlots:
         assert ax.left_ax.get_yaxis().get_visible()
         assert ax.get_yaxis().get_visible()
 
-    @td.skip_if_no_mpl
     def test_hist_with_nans_and_weights(self):
         # GH 48884
+        mpl_patches = pytest.importorskip("matplotlib.patches")
         df = DataFrame(
             [[np.nan, 0.2, 0.3], [0.4, np.nan, np.nan], [0.7, 0.8, 0.9]],
             columns=list("abc"),
@@ -637,15 +635,15 @@ class TestDataFramePlots:
         no_nan_df = DataFrame([[0.4, 0.2, 0.3], [0.7, 0.8, 0.9]], columns=list("abc"))
         no_nan_weights = np.array([[0.3, 0.25, 0.25], [0.45, 0.45, 0.45]])
 
-        from matplotlib.patches import Rectangle
-
         _, ax0 = mpl.pyplot.subplots()
         df.plot.hist(ax=ax0, weights=weights)
-        rects = [x for x in ax0.get_children() if isinstance(x, Rectangle)]
+        rects = [x for x in ax0.get_children() if isinstance(x, mpl_patches.Rectangle)]
         heights = [rect.get_height() for rect in rects]
         _, ax1 = mpl.pyplot.subplots()
         no_nan_df.plot.hist(ax=ax1, weights=no_nan_weights)
-        no_nan_rects = [x for x in ax1.get_children() if isinstance(x, Rectangle)]
+        no_nan_rects = [
+            x for x in ax1.get_children() if isinstance(x, mpl_patches.Rectangle)
+        ]
         no_nan_heights = [rect.get_height() for rect in no_nan_rects]
         assert all(h0 == h1 for h0, h1 in zip(heights, no_nan_heights))
 

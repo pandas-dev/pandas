@@ -14,7 +14,6 @@ from datetime import (
 )
 import functools
 import re
-import warnings
 
 import numpy as np
 from numpy import ma
@@ -1054,6 +1053,9 @@ class TestDataFrameConstructors:
         frame = DataFrame(mat, columns=["A", "B", "C"], index=[1, 2])
         assert np.all(~np.asarray(frame == frame))
 
+    @pytest.mark.filterwarnings(
+        "ignore:elementwise comparison failed:DeprecationWarning"
+    )
     def test_constructor_maskedarray_nonfloat(self):
         # masked int promoted to float
         mat = ma.masked_all((2, 3), dtype=int)
@@ -1088,13 +1090,7 @@ class TestDataFrameConstructors:
         # cast type
         msg = r"datetime64\[ns\] values and dtype=int64 is not supported"
         with pytest.raises(TypeError, match=msg):
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    category=DeprecationWarning,
-                    message="elementwise comparison failed",
-                )
-                DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
+            DataFrame(mat, columns=["A", "B", "C"], index=[1, 2], dtype=np.int64)
 
         # Check non-masked values
         mat2 = ma.copy(mat)
@@ -1785,8 +1781,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype=np.str_)
         tm.assert_frame_equal(df, expected)
-        df = DataFrame(index=[0, 1], columns=[0, 1], dtype=np.unicode_)
-        tm.assert_frame_equal(df, expected)
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")
         tm.assert_frame_equal(df, expected)
 
@@ -1830,7 +1824,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_with_datetimes(self):
         intname = np.dtype(np.int_).name
-        floatname = np.dtype(np.float_).name
+        floatname = np.dtype(np.float64).name
         objectname = np.dtype(np.object_).name
 
         # single item
@@ -2518,7 +2512,7 @@ class TestDataFrameConstructors:
         b = np.array([3, 4], dtype=any_numpy_dtype)
         if b.dtype.kind in ["S", "U"]:
             # These get cast, making the checks below more cumbersome
-            return
+            pytest.skip(f"{b.dtype} get cast, making the checks below more cumbersome")
 
         c = pd.array([1, 2], dtype=any_numeric_ea_dtype)
         c_orig = c.copy()
@@ -2687,6 +2681,66 @@ class TestDataFrameConstructors:
         # GH#32218
         df = DataFrame(["1", "2", None], columns=["a"], dtype="str")
         expected = DataFrame({"a": ["1", "2", None]}, dtype="str")
+        tm.assert_frame_equal(df, expected)
+
+    def test_frame_string_inference(self):
+        # GH#54430
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.string())
+        expected = DataFrame(
+            {"a": ["a", "b"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame({"a": ["a", "b"]})
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame(
+            {"a": ["a", "b"]},
+            dtype=dtype,
+            columns=Index(["a"], dtype=dtype),
+            index=Index(["x", "y"], dtype=dtype),
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame({"a": ["a", "b"]}, index=["x", "y"])
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame(
+            {"a": ["a", 1]}, dtype="object", columns=Index(["a"], dtype=dtype)
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame({"a": ["a", 1]})
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame(
+            {"a": ["a", "b"]}, dtype="object", columns=Index(["a"], dtype=dtype)
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame({"a": ["a", "b"]}, dtype="object")
+        tm.assert_frame_equal(df, expected)
+
+    def test_frame_string_inference_array_string_dtype(self):
+        # GH#54496
+        pa = pytest.importorskip("pyarrow")
+        dtype = pd.ArrowDtype(pa.string())
+        expected = DataFrame(
+            {"a": ["a", "b"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame({"a": np.array(["a", "b"])})
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame({0: ["a", "b"], 1: ["c", "d"]}, dtype=dtype)
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame(np.array([["a", "c"], ["b", "d"]]))
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame(
+            {"a": ["a", "b"], "b": ["c", "d"]},
+            dtype=dtype,
+            columns=Index(["a", "b"], dtype=dtype),
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame(np.array([["a", "c"], ["b", "d"]]), columns=["a", "b"])
         tm.assert_frame_equal(df, expected)
 
 

@@ -177,7 +177,7 @@ class _XMLFrameParser:
         self.stylesheet = stylesheet
         self.iterparse = iterparse
         self.is_style = None
-        self.compression = compression
+        self.compression: CompressionOptions = compression
         self.storage_options = storage_options
 
     def parse_data(self) -> list[dict[str, str | None]]:

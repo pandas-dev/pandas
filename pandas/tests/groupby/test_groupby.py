@@ -1361,7 +1361,7 @@ def test_cython_grouper_series_bug_noncontig():
 
 
 def test_series_grouper_noncontig_index():
-    index = Index(tm.rands_array(10, 100))
+    index = Index(["a" * 10] * 100)
 
     values = Series(np.random.default_rng(2).standard_normal(50), index=index[::2])
     labels = np.random.default_rng(2).integers(0, 5, 50)
@@ -1817,9 +1817,6 @@ def test_groupby_multiindex_not_lexsorted():
     )
     not_lexsorted_df = not_lexsorted_df.reset_index()
     assert not not_lexsorted_df.columns._is_lexsorted()
-
-    # compare the results
-    tm.assert_frame_equal(lexsorted_df, not_lexsorted_df)
 
     expected = lexsorted_df.groupby("a").mean()
     with tm.assert_produces_warning(PerformanceWarning):
@@ -3162,3 +3159,31 @@ def test_groupby_series_with_datetimeindex_month_name():
     expected = Series([2, 1], name="jan")
     expected.index.name = "jan"
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize(
+    "kwarg, value, name, warn",
+    [
+        ("by", "a", 1, None),
+        ("by", ["a"], 1, FutureWarning),
+        ("by", ["a"], (1,), None),
+        ("level", 0, 1, None),
+        ("level", [0], 1, FutureWarning),
+        ("level", [0], (1,), None),
+    ],
+)
+def test_depr_get_group_len_1_list_likes(test_series, kwarg, value, name, warn):
+    # GH#25971
+    obj = DataFrame({"b": [3, 4, 5]}, index=Index([1, 1, 2], name="a"))
+    if test_series:
+        obj = obj["b"]
+    gb = obj.groupby(**{kwarg: value})
+    msg = "you will need to pass a length-1 tuple"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.get_group(name)
+    if test_series:
+        expected = Series([3, 4], index=Index([1, 1], name="a"), name="b")
+    else:
+        expected = DataFrame({"b": [3, 4]}, index=Index([1, 1], name="a"))
+    tm.assert_equal(result, expected)

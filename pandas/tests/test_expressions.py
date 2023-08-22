@@ -1,6 +1,5 @@
 import operator
 import re
-import warnings
 
 import numpy as np
 import pytest
@@ -189,11 +188,9 @@ class TestExpressions:
         assert used_numexpr, "Did not use numexpr as expected."
         tm.assert_equal(expected, result)
 
-        # FIXME: dont leave commented-out
-        # series doesn't uses vec_compare instead of numexpr...
-        # for i in range(len(df.columns)):
-        #     binary_comp = other.iloc[:, i] + 1
-        #     self.run_binary(df.iloc[:, i], binary_comp, flex)
+        for i in range(len(df.columns)):
+            binary_comp = other.iloc[:, i] + 1
+            self.call_op(df.iloc[:, i], binary_comp, flex, "add")
 
     def test_invalid(self):
         array = np.random.default_rng(2).standard_normal(1_000_001)
@@ -211,9 +208,7 @@ class TestExpressions:
         result = expr._can_use_numexpr(operator.add, "+", array, array2, "evaluate")
         assert result
 
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in true_divide:RuntimeWarning"
-    )
+    @pytest.mark.filterwarnings("ignore:invalid value encountered in:RuntimeWarning")
     @pytest.mark.parametrize(
         "opname,op_str",
         [("add", "+"), ("sub", "-"), ("mul", "*"), ("truediv", "/"), ("pow", "**")],
@@ -225,31 +220,27 @@ class TestExpressions:
         left = request.getfixturevalue(left_fix)
         right = request.getfixturevalue(right_fix)
 
-        def testit():
+        def testit(left, right, opname, op_str):
             if opname == "pow":
-                # TODO: get this working
-                return
+                left = np.abs(left)
 
             op = getattr(operator, opname)
 
-            with warnings.catch_warnings():
-                # array has 0s
-                msg = "invalid value encountered in divide|true_divide"
-                warnings.filterwarnings("ignore", msg, RuntimeWarning)
-                result = expr.evaluate(op, left, left, use_numexpr=True)
-                expected = expr.evaluate(op, left, left, use_numexpr=False)
+            # array has 0s
+            result = expr.evaluate(op, left, left, use_numexpr=True)
+            expected = expr.evaluate(op, left, left, use_numexpr=False)
             tm.assert_numpy_array_equal(result, expected)
 
             result = expr._can_use_numexpr(op, op_str, right, right, "evaluate")
             assert not result
 
         with option_context("compute.use_numexpr", False):
-            testit()
+            testit(left, right, opname, op_str)
 
         expr.set_numexpr_threads(1)
-        testit()
+        testit(left, right, opname, op_str)
         expr.set_numexpr_threads()
-        testit()
+        testit(left, right, opname, op_str)
 
     @pytest.mark.parametrize(
         "left_fix,right_fix", [("_array", "_array2"), ("_array_mixed", "_array_mixed2")]

@@ -11,10 +11,12 @@ from pandas.core.dtypes.common import (
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseGroupbyTests(BaseExtensionTests):
+@pytest.mark.filterwarnings(
+    "ignore:The default of observed=False is deprecated:FutureWarning"
+)
+class BaseGroupbyTests:
     """Groupby-specific tests."""
 
     def test_grouping_grouper(self, data_for_grouping):
@@ -65,30 +67,6 @@ class BaseGroupbyTests(BaseExtensionTests):
         tm.assert_frame_equal(result, expected)
 
         result = df.groupby("A").first()
-        tm.assert_frame_equal(result, expected)
-
-    def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation(self):
-        # GH#41720
-        expected = pd.DataFrame(
-            {
-                "td": {
-                    0: pd.Timedelta("0 days 01:00:00"),
-                    1: pd.Timedelta("0 days 01:15:00"),
-                    2: pd.Timedelta("0 days 01:15:00"),
-                }
-            }
-        )
-        df = pd.DataFrame(
-            {
-                "td": pd.Series(
-                    ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
-                    dtype="timedelta64[ns]",
-                ),
-                "grps": ["a", "a", "b"],
-            }
-        )
-        gb = df.groupby("grps")
-        result = gb.agg(td=("td", "cumsum"))
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_extension_no_sort(self, data_for_grouping):

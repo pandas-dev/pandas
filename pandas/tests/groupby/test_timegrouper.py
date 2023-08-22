@@ -11,8 +11,6 @@ import numpy as np
 import pytest
 import pytz
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -506,7 +504,7 @@ class TestGroupBy:
 
         # it works!
         groups = grouped.groups
-        assert isinstance(list(groups.keys())[0], datetime)
+        assert isinstance(next(iter(groups.keys())), datetime)
 
         # GH#11442
         index = date_range("2015/01/01", periods=5, name="date")
@@ -906,11 +904,12 @@ class TestGroupBy:
         )
         tm.assert_frame_equal(res, expected)
 
-    @td.skip_if_no("numba")
     @pytest.mark.single_cpu
     def test_groupby_agg_numba_timegrouper_with_nat(
         self, groupby_with_truncated_bingrouper
     ):
+        pytest.importorskip("numba")
+
         # See discussion in GH#43487
         gb = groupby_with_truncated_bingrouper
 

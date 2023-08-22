@@ -1570,8 +1570,8 @@ class TestToDatetime:
             (Series([""] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
             (Series([pd.NA] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
             (Series([pd.NA] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
-            (Series([np.NaN] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
-            (Series([np.NaN] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
+            (Series([np.nan] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([np.nan] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
         ),
     )
     def test_to_datetime_converts_null_like_to_nat(self, cache, input, expected):
@@ -1818,7 +1818,7 @@ class TestToDatetime:
 class TestToDatetimeUnit:
     @pytest.mark.parametrize("unit", ["Y", "M"])
     @pytest.mark.parametrize("item", [150, float(150)])
-    def test_to_datetime_month_or_year_unit_int(self, cache, unit, item):
+    def test_to_datetime_month_or_year_unit_int(self, cache, unit, item, request):
         # GH#50870 Note we have separate tests that pd.Timestamp gets these right
         ts = Timestamp(item, unit=unit)
         expected = DatetimeIndex([ts])
@@ -1826,11 +1826,17 @@ class TestToDatetimeUnit:
         result = to_datetime([item], unit=unit, cache=cache)
         tm.assert_index_equal(result, expected)
 
-        # TODO: this should also work
-        #  result = to_datetime(np.array([item]), unit=unit, cache=cache)
-        #  tm.assert_index_equal(result, expected)
-
         result = to_datetime(np.array([item], dtype=object), unit=unit, cache=cache)
+        tm.assert_index_equal(result, expected)
+
+        # TODO: this should also work
+        if isinstance(item, float):
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=f"{type(item).__name__} in np.array should work"
+                )
+            )
+        result = to_datetime(np.array([item]), unit=unit, cache=cache)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["Y", "M"])
@@ -1850,10 +1856,6 @@ class TestToDatetimeUnit:
         #  constructor; this may not be ideal
         with pytest.raises(ValueError, match=msg):
             to_datetime([1.5], unit=unit, errors="ignore")
-        # TODO: we are NOT consistent with the Timestamp behavior in the
-        #  float-like string case
-        # with pytest.raises(ValueError, match=msg):
-        #    to_datetime(["1.5"], unit=unit, errors="ignore")
 
         res = to_datetime([1.5], unit=unit, errors="coerce")
         expected = Index([NaT], dtype="M8[ns]")
@@ -3538,25 +3540,6 @@ def test_empty_string_datetime_coerce__unit():
     # verify that no exception is raised even when errors='raise' is set
     result = to_datetime([1, ""], unit="s", errors="raise")
     tm.assert_index_equal(expected, result)
-
-
-@td.skip_if_no("xarray")
-def test_xarray_coerce_unit():
-    # GH44053
-    import xarray as xr
-
-    arr = xr.DataArray([1, 2, 3])
-    result = to_datetime(arr, unit="ns")
-    expected = DatetimeIndex(
-        [
-            "1970-01-01 00:00:00.000000001",
-            "1970-01-01 00:00:00.000000002",
-            "1970-01-01 00:00:00.000000003",
-        ],
-        dtype="datetime64[ns]",
-        freq=None,
-    )
-    tm.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("cache", [True, False])

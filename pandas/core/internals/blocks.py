@@ -11,6 +11,7 @@ from typing import (
     final,
 )
 import warnings
+import weakref
 
 import numpy as np
 
@@ -26,7 +27,6 @@ from pandas._libs.internals import (
     BlockValuesRefs,
 )
 from pandas._libs.missing import NA
-from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -146,7 +146,7 @@ def maybe_split(meth: F) -> F:
     return cast(F, newfunc)
 
 
-class Block(PandasObject):
+class Block(PandasObject, libinternals.Block):
     """
     Canonical n-dimensional unit of homogeneous dtype contained in a pandas
     data structure
@@ -317,7 +317,7 @@ class Block(PandasObject):
 
     @final
     def getitem_block_columns(
-        self, slicer: slice, new_mgr_locs: BlockPlacement
+        self, slicer: slice, new_mgr_locs: BlockPlacement, ref_inplace_op: bool = False
     ) -> Self:
         """
         Perform __getitem__-like, return result as block.
@@ -325,7 +325,8 @@ class Block(PandasObject):
         Only supports slices that preserve dimensionality.
         """
         new_values = self._slice(slicer)
-        return type(self)(new_values, new_mgr_locs, self.ndim, refs=self.refs)
+        refs = self.refs if not ref_inplace_op or self.refs.has_reference() else None
+        return type(self)(new_values, new_mgr_locs, self.ndim, refs=refs)
 
     @final
     def _can_hold_element(self, element: Any) -> bool:
@@ -857,7 +858,7 @@ class Block(PandasObject):
         if inplace:
             masks = list(masks)
 
-        if using_cow and inplace:
+        if using_cow:
             # Don't set up refs here, otherwise we will think that we have
             # references when we check again later
             rb = [self]
@@ -890,6 +891,17 @@ class Block(PandasObject):
                     regex=regex,
                     using_cow=using_cow,
                 )
+
+                if using_cow and i != src_len:
+                    # This is ugly, but we have to get rid of intermediate refs
+                    # that did not go out of scope yet, otherwise we will trigger
+                    # many unnecessary copies
+                    for b in result:
+                        ref = weakref.ref(b)
+                        b.refs.referenced_blocks.pop(
+                            b.refs.referenced_blocks.index(ref)
+                        )
+
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
                     result = extend_blocks(
@@ -954,7 +966,7 @@ class Block(PandasObject):
                     putmask_inplace(nb.values, mask, value)
                     return [nb]
                 if using_cow:
-                    return [self.copy(deep=False)]
+                    return [self]
                 return [self] if inplace else [self.copy()]
             return self.replace(
                 to_replace=to_replace,
@@ -1740,9 +1752,7 @@ class EABackedBlock(Block):
 
         try:
             values[indexer] = value
-        except (ValueError, TypeError) as err:
-            _catch_deprecated_value_error(err)
-
+        except (ValueError, TypeError):
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
                 nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
@@ -1785,9 +1795,7 @@ class EABackedBlock(Block):
 
         try:
             res_values = arr._where(cond, other).T
-        except (ValueError, TypeError) as err:
-            _catch_deprecated_value_error(err)
-
+        except (ValueError, TypeError):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, IntervalDtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
@@ -1856,9 +1864,7 @@ class EABackedBlock(Block):
         try:
             # Caller is responsible for ensuring matching lengths
             values._putmask(mask, new)
-        except (TypeError, ValueError) as err:
-            _catch_deprecated_value_error(err)
-
+        except (TypeError, ValueError):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, IntervalDtype):
                     # Discussion about what we want to support in the general
@@ -1945,7 +1951,7 @@ class EABackedBlock(Block):
         return [self.make_block_same_class(new_values)]
 
 
-class ExtensionBlock(libinternals.Block, EABackedBlock):
+class ExtensionBlock(EABackedBlock):
     """
     Block for holding extension types.
 
@@ -2213,7 +2219,7 @@ class ExtensionBlock(libinternals.Block, EABackedBlock):
         return blocks, mask
 
 
-class NumpyBlock(libinternals.NumpyBlock, Block):
+class NumpyBlock(Block):
     values: np.ndarray
     __slots__ = ()
 
@@ -2251,7 +2257,7 @@ class ObjectBlock(NumpyBlock):
     __slots__ = ()
 
 
-class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock):
+class NDArrayBackedExtensionBlock(EABackedBlock):
     """
     Block backed by an NDArrayBackedExtensionArray
     """
@@ -2263,19 +2269,6 @@ class NDArrayBackedExtensionBlock(libinternals.NDArrayBackedBlock, EABackedBlock
         """return a boolean if I am possibly a view"""
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
-
-
-def _catch_deprecated_value_error(err: Exception) -> None:
-    """
-    We catch ValueError for now, but only a specific one raised by DatetimeArray
-    which will no longer be raised in version 2.0.
-    """
-    if isinstance(err, ValueError):
-        if isinstance(err, IncompatibleFrequency):
-            pass
-        elif "'value.closed' is" in str(err):
-            # IntervalDtype mismatched 'closed'
-            pass
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):

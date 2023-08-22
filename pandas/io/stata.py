@@ -23,7 +23,6 @@ import sys
 from typing import (
     IO,
     TYPE_CHECKING,
-    Any,
     AnyStr,
     Callable,
     Final,
@@ -84,6 +83,7 @@ if TYPE_CHECKING:
         CompressionOptions,
         FilePath,
         ReadBuffer,
+        Self,
         StorageOptions,
         WriteBuffer,
     )
@@ -935,7 +935,7 @@ class StataMissingValue:
     def __repr__(self) -> str:
         return f"{type(self)}({self})"
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return (
             isinstance(other, type(self))
             and self.string == other.string
@@ -1212,7 +1212,7 @@ class StataReader(StataParser, abc.Iterator):
         self._read_header()
         self._setup_dtype()
 
-    def __enter__(self) -> StataReader:
+    def __enter__(self) -> Self:
         """enter context manager"""
         self._entered = True
         return self
@@ -1293,7 +1293,9 @@ class StataReader(StataParser, abc.Iterator):
         else:
             self._read_old_header(first_char)
 
-        self._has_string_data = len([x for x in self._typlist if type(x) is int]) > 0
+        self._has_string_data = (
+            len([x for x in self._typlist if isinstance(x, int)]) > 0
+        )
 
         # calculate size of a data record
         self._col_sizes = [self._calcsize(typ) for typ in self._typlist]
@@ -1793,7 +1795,7 @@ the string values returned are correct."""
 
         # Decode strings
         for col, typ in zip(data, self._typlist):
-            if type(typ) is int:
+            if isinstance(typ, int):
                 data[col] = data[col].apply(self._decode)
 
         data = self._insert_strls(data)
@@ -2737,6 +2739,30 @@ supported types."""
     def write_file(self) -> None:
         """
         Export DataFrame object to Stata dta format.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"fully_labelled": [1, 2, 3, 3, 1],
+        ...                    "partially_labelled": [1.0, 2.0, np.nan, 9.0, np.nan],
+        ...                    "Y": [7, 7, 9, 8, 10],
+        ...                    "Z": pd.Categorical(["j", "k", "l", "k", "j"]),
+        ...                    })
+        >>> path = "/My_path/filename.dta"
+        >>> labels = {"fully_labelled": {1: "one", 2: "two", 3: "three"},
+        ...           "partially_labelled": {1.0: "one", 2.0: "two"},
+        ...           }
+        >>> writer = pd.io.stata.StataWriter(path,
+        ...                                  df,
+        ...                                  value_labels=labels)  # doctest: +SKIP
+        >>> writer.write_file()  # doctest: +SKIP
+        >>> df = pd.read_stata(path)  # doctest: +SKIP
+        >>> df  # doctest: +SKIP
+            index fully_labelled  partially_labeled  Y  Z
+        0       0            one                one  7  j
+        1       1            two                two  7  k
+        2       2          three                NaN  9  l
+        3       3          three                9.0  8  k
+        4       4            one                NaN 10  j
         """
         with get_handle(
             self._fname,
