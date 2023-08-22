@@ -359,7 +359,7 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
-def test_parquet_pos_args_deprecation():
+def test_parquet_pos_args_deprecation(engine):
     # GH-54229
     df = pd.DataFrame({"a": [1, 2, 3]})
     msg = (
@@ -368,7 +368,7 @@ def test_parquet_pos_args_deprecation():
     )
     with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
         buffer = BytesIO()
-        df.to_parquet(buffer, "auto")
+        df.to_parquet(buffer, engine)
 
 
 class Base:
