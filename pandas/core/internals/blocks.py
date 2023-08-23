@@ -15,7 +15,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    get_option,
+    using_copy_on_write,
+)
 
 from pandas._libs import (
     internals as libinternals,
@@ -490,6 +493,8 @@ class Block(PandasObject, libinternals.Block):
 
         elif downcast is None:
             return blocks
+        elif caller == "where" and get_option("future.no_silent_downcasting") is True:
+            return blocks
         else:
             nbs = extend_blocks([b._downcast_2d(downcast, using_cow) for b in blocks])
 
@@ -509,9 +514,11 @@ class Block(PandasObject, libinternals.Block):
                     "Downcasting behavior in Series and DataFrame methods 'where', "
                     "'mask', and 'clip' is deprecated. In a future "
                     "version this will not infer object dtypes or cast all-round "
-                    "floats to integers. For the old behavior, call "
+                    "floats to integers. Instead call "
                     "result.infer_objects(copy=False) for object inference, "
-                    "or cast round floats explicitly.",
+                    "or cast round floats explicitly. To opt-in to the future "
+                    "behavior, set "
+                    "`pd.set_option('future.no_silent_downcasting', True)`",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )

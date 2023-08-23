@@ -1000,6 +1000,12 @@ def test_where_downcast_to_td64():
     expected = Series([td, td, td], dtype="m8[ns]")
     tm.assert_series_equal(res, expected)
 
+    with pd.option_context("future.no_silent_downcasting", True):
+        with tm.assert_produces_warning(None, match=msg):
+            res2 = ser.where(mask, td)
+    expected2 = expected.astype(object)
+    tm.assert_series_equal(res2, expected2)
+
 
 def _check_where_equivalences(df, mask, other, expected):
     # similar to tests.series.indexing.test_setitem.SetitemCastingEquivalences
