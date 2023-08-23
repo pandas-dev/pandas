@@ -9,7 +9,6 @@ import os
 from pathlib import Path
 
 import numpy as np
-from pyarrow import ArrowInvalid
 import pytest
 
 from pandas.compat import PY311
@@ -21,6 +20,12 @@ from pandas.errors import (
 
 from pandas import DataFrame
 import pandas._testing as tm
+
+# PyArrow's error types are not available by default
+try:
+    from pyarrow import ArrowInvalid
+except ImportError:
+    pass
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
