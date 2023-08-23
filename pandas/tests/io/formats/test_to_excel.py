@@ -2,12 +2,17 @@
 
 ExcelFormatter is tested implicitly in pandas/tests/io/excel
 """
+import io
 import string
 
 import pytest
 
 from pandas.errors import CSSWarning
 
+from pandas import (
+    DataFrame,
+    ExcelWriter,
+)
 import pandas._testing as tm
 
 from pandas.io.formats.excel import (
@@ -427,3 +432,16 @@ def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
 
     assert cache_info.hits == cache_hits
     assert cache_info.misses == cache_misses
+
+
+def test_to_excel_pos_args_deprecation():
+    # GH-54229
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_excel except for the "
+        r"argument 'excel_writer' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buf = io.BytesIO()
+        writer = ExcelWriter(buf)
+        df.to_excel(writer, "Sheet_name_1")
