@@ -74,6 +74,17 @@ class UnsupportedFunctionCall(ValueError):
     Exception raised when attempting to call a unsupported numpy function.
 
     For example, ``np.cumsum(groupby_object)``.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"A": [0, 0, 1, 1],
+    ...                    "B": ["x", "x", "z", "y"],
+    ...                    "C": [1, 2, 3, 4]}
+    ...                   )
+    >>> np.cumsum(df.groupby(["A"]))
+    Traceback (most recent call last):
+    UnsupportedFunctionCall: numpy operations are not valid with groupby.
+    Use .groupby(...).cumsum() instead
     """
 
 
@@ -82,6 +93,25 @@ class UnsortedIndexError(KeyError):
     Error raised when slicing a MultiIndex which has not been lexsorted.
 
     Subclass of `KeyError`.
+
+    Examples
+    --------
+    >>> df = pd.DataFrame({"cat": [0, 0, 1, 1],
+    ...                    "color": ["white", "white", "brown", "black"],
+    ...                    "lives": [4, 4, 3, 7]},
+    ...                   )
+    >>> df = df.set_index(["cat", "color"])
+    >>> df
+                lives
+    cat  color
+    0    white    4
+         white    4
+    1    brown    3
+         black    7
+    >>> df.loc[(0, "black"):(1, "white")]
+    Traceback (most recent call last):
+    UnsortedIndexError: 'Key length (2) was greater
+    than MultiIndex lexsort depth (1)'
     """
 
 

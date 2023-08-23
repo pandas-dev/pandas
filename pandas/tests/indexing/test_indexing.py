@@ -81,7 +81,7 @@ class TestFancy:
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = indexer_sli(obj)
-        nd3 = np.random.randint(5, size=(2, 2, 2))
+        nd3 = np.random.default_rng(2).integers(5, size=(2, 2, 2))
 
         msgs = []
         if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
@@ -125,7 +125,7 @@ class TestFancy:
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = indexer_sli(obj)
-        nd3 = np.random.randint(5, size=(2, 2, 2))
+        nd3 = np.random.default_rng(2).integers(5, size=(2, 2, 2))
 
         if indexer_sli is tm.iloc:
             err = ValueError
@@ -288,7 +288,9 @@ class TestFancy:
 
     def test_dups_fancy_indexing_only_missing_label(self):
         # List containing only missing label
-        dfnu = DataFrame(np.random.randn(5, 3), index=list("AABCD"))
+        dfnu = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)), index=list("AABCD")
+        )
         with pytest.raises(
             KeyError,
             match=re.escape(
@@ -313,7 +315,10 @@ class TestFancy:
     def test_dups_fancy_indexing2(self):
         # GH 5835
         # dups on index and missing values
-        df = DataFrame(np.random.randn(5, 5), columns=["A", "B", "B", "B", "A"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 5)),
+            columns=["A", "B", "B", "B", "A"],
+        )
 
         with pytest.raises(KeyError, match="not in index"):
             df.loc[:, ["A", "B", "C"]]
@@ -321,7 +326,9 @@ class TestFancy:
     def test_dups_fancy_indexing3(self):
         # GH 6504, multi-axis indexing
         df = DataFrame(
-            np.random.randn(9, 2), index=[1, 1, 1, 2, 2, 2, 3, 3, 3], columns=["a", "b"]
+            np.random.default_rng(2).standard_normal((9, 2)),
+            index=[1, 1, 1, 2, 2, 2, 3, 3, 3],
+            columns=["a", "b"],
         )
 
         expected = df.iloc[0:6]
@@ -360,7 +367,9 @@ class TestFancy:
 
     def test_multitype_list_index_access(self):
         # GH 10610
-        df = DataFrame(np.random.random((10, 5)), columns=["a"] + [20, 21, 22, 23])
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 5)), columns=["a"] + [20, 21, 22, 23]
+        )
 
         with pytest.raises(KeyError, match=re.escape("'[26, -8] not in index'")):
             df[[22, 26, -8]]
@@ -643,7 +652,12 @@ class TestFancy:
 
 class TestMisc:
     def test_float_index_to_mixed(self):
-        df = DataFrame({0.0: np.random.rand(10), 1.0: np.random.rand(10)})
+        df = DataFrame(
+            {
+                0.0: np.random.default_rng(2).random(10),
+                1.0: np.random.default_rng(2).random(10),
+            }
+        )
         df["a"] = 10
 
         expected = DataFrame({0.0: df[0.0], 1.0: df[1.0], "a": [10] * 10})

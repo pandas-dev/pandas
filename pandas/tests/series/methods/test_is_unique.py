@@ -7,7 +7,7 @@ from pandas import Series
 @pytest.mark.parametrize(
     "data, expected",
     [
-        (np.random.randint(0, 10, size=1000), False),
+        (np.random.default_rng(2).integers(0, 10, size=1000), False),
         (np.arange(1000), True),
         ([], True),
         ([np.nan], True),
