@@ -66,7 +66,9 @@ jobs:
       - name: Build pandas_tests
         run: |
           cd pandas
-          python -m build --wheel
+          # we want to place the pandas_tests wheel in the same
+          # dist directory as the sdist
+          python -m build --wheel --outdir ../dist
 
       - uses: actions/upload-artifact@v3
         with:
@@ -140,13 +142,14 @@ jobs:
 
       - name: Output new sdist name (macOS)
         id: save-path2
+        if: ${{ matrix.buildplat[1] == 'macosx_*' }}
         shell: bash -el {0}
-        run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
+        run: echo "sdist_name=./dist/$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.15.0
         with:
-         package-dir: ./dist/${{ matrix.buildplat[1] == 'macosx_*' && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
+         package-dir: ${{ matrix.buildplat[1] == 'macosx_*' && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
