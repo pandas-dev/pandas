@@ -14,17 +14,25 @@ default_stages: [
 ]
 ci:
     autofix_prs: false
+    autoupdate_schedule: monthly
+    # manual stage hooks
+    skip: [pylint, pyright, mypy]
 repos:
 -   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
     # black compiled with mypyc
-    rev: 23.3.0
+    rev: 23.7.0
     hooks:
       - id: black
--   repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.0.270
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.285
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
+    -   id: ruff
+        # TODO: remove autofixe-only rules when they are checked by ruff
+        name: ruff-selected-autofixes
+        alias: ruff-selected-autofixes
+        args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
 -   repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.7'
     hooks:
@@ -33,7 +41,7 @@ repos:
         pass_filenames: true
         require_serial: false
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.2.4
+    rev: v2.2.5
     hooks:
     -   id: codespell
         types_or: [python, rst, markdown, cython, c]
@@ -46,14 +54,22 @@ repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
+    -   id: check-ast
+    -   id: check-case-conflict
+    -   id: check-toml
+    -   id: check-xml
+    -   id: check-yaml
+        exclude: ^ci/meta.yaml$
     -   id: debug-statements
     -   id: end-of-file-fixer
         exclude: \.txt$
-        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg,
-                 post-checkout, post-commit, post-merge, post-rewrite]
+    -   id: mixed-line-ending
+        args: [--fix=auto]
+        exclude: ^pandas/tests/io/parser/data/utf16_ex.txt$
+    -   id: fix-byte-order-marker
+    -   id: fix-encoding-pragma
+        args: [--remove]
     -   id: trailing-whitespace
-        stages: [commit, merge-commit, push, prepare-commit-msg, commit-msg,
-                 post-checkout, post-commit, post-merge, post-rewrite]
 -   repo: https://github.com/cpplint/cpplint
     rev: 1.6.1
     hooks:
@@ -91,13 +107,15 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.4.0
+    rev: v3.10.1
     hooks:
     -   id: pyupgrade
-        args: [--py38-plus]
+        args: [--py39-plus]
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
+      - id: python-check-blanket-noqa
+      - id: python-check-blanket-type-ignore
       - id: rst-backticks
       - id: rst-directive-colons
         types: [text]  # overwrite types: [rst]
@@ -120,8 +138,8 @@ repos:
         types: [python]
         stages: [manual]
         additional_dependencies: &pyright_dependencies
-        - pyright@1.1.292
-    -   id: pyright_reportGeneralTypeIssues
+        - pyright@1.1.318
+    -   id: pyright
         # note: assumes python env is setup and activated
         name: pyright reportGeneralTypeIssues
         entry: pyright --skipunannotated -p pyright_reportGeneralTypeIssues.json --level warning
@@ -138,7 +156,7 @@ repos:
         pass_filenames: false
         types: [python]
         stages: [manual]
-    -   id: stubtest
+    -   id: mypy
         # note: assumes python env is setup and activated
         # note: requires pandas dev to be installed
         name: mypy (stubtest)
@@ -154,33 +172,16 @@ repos:
         exclude: ^pandas/core/interchange/
         language: python
         types: [python]
-    -   id: no-os-remove
-        name: Check code for instances of os.remove
-        entry: os\.remove
-        language: pygrep
-        types: [python]
-        files: ^pandas/tests/
-        exclude: |
-            (?x)^
-            pandas/tests/io/pytables/test_store\.py$
     -   id: unwanted-patterns
         name: Unwanted patterns
         language: pygrep
         entry: |
             (?x)
-            # outdated annotation syntax, missing error codes
+            # outdated annotation syntax
             \#\ type:\ (?!ignore)
-            |\#\ type:\s?ignore(?!\[)
 
             # foo._class__ instead of type(foo)
             |\.__class__
-
-            # np.bool/np.object instead of np.bool_/np.object_
-            |np\.bool[^_8`]
-            |np\.object[^_8`]
-
-            # imports from collections.abc instead of `from collections import abc`
-            |from\ collections\.abc\ import
 
             # Numpy
             |from\ numpy\ import\ random
@@ -200,16 +201,8 @@ repos:
 
             # builtin filter function
             |(?<!def)[\(\s]filter\(
-
-            # exec
-            |[^a-zA-Z0-9_]exec\(
         types_or: [python, cython, rst]
         exclude: ^doc/source/development/code_style\.rst  # contains examples of patterns to avoid
-    -   id: cython-casting
-        name: Check Cython casting is `<type>obj`, not `<type> obj`
-        language: pygrep
-        entry: '[a-zA-Z0-9*]> '
-        files: (\.pyx|\.pxi.in)$
     -   id: incorrect-backticks
         name: Check for backticks incorrectly rendering because of missing spaces
         language: pygrep
@@ -222,19 +215,6 @@ repos:
         entry: 'np\.random\.seed'
         files: ^asv_bench/benchmarks
         exclude: ^asv_bench/benchmarks/pandas_vb_common\.py
-    -   id: np-testing-array-equal
-        name: Check for usage of numpy testing or array_equal
-        language: pygrep
-        entry: '(numpy|np)(\.testing|\.array_equal)'
-        files: ^pandas/tests/
-        types: [python]
-    -   id: invalid-ea-testing
-        name: Check for invalid EA testing
-        language: pygrep
-        entry: 'tm\.assert_(series|frame)_equal'
-        files: ^pandas/tests/extension/base
-        types: [python]
-        exclude: ^pandas/tests/extension/base/base\.py
     -   id: unwanted-patterns-in-tests
         name: Unwanted patterns in tests
         language: pygrep
@@ -268,16 +248,13 @@ repos:
 
             # pytest.warns (use tm.assert_produces_warning instead)
             |pytest\.warns
+
+            # os.remove
+            |os\.remove
+
+            # Unseeded numpy default_rng
+            |default_rng\(\)
         files: ^pandas/tests/
-        types_or: [python, cython, rst]
-    -   id: unwanted-patterns-in-ea-tests
-        name: Unwanted patterns in EA tests
-        language: pygrep
-        entry: |
-            (?x)
-            tm.assert_(series|frame)_equal
-        files: ^pandas/tests/extension/base/
-        exclude: ^pandas/tests/extension/base/base\.py$
         types_or: [python, cython, rst]
     -   id: unwanted-patterns-in-cython
         name: Unwanted patterns in Cython code
@@ -396,17 +373,6 @@ repos:
             /(__init__\.py)|(api\.py)|(_version\.py)|(testing\.py)|(conftest\.py)$
             |/tests/
             |/_testing/
-    -   id: autotyping
-        name: autotyping
-        entry: python -m scripts.run_autotyping
-        types_or: [python, pyi]
-        files: ^pandas
-        exclude: ^(pandas/tests|pandas/_version.py|pandas/io/clipboard)
-        language: python
-        stages: [manual]
-        additional_dependencies:
-        - autotyping==23.3.0
-        - libcst==0.4.9
     -   id: check-test-naming
         name: check that test names start with 'test'
         entry: python -m scripts.check_test_naming

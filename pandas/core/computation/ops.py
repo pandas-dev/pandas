@@ -8,9 +8,8 @@ from datetime import datetime
 from functools import partial
 import operator
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Iterable,
-    Iterator,
     Literal,
 )
 
@@ -34,6 +33,12 @@ from pandas.io.formats.printing import (
     pprint_thing,
     pprint_thing_encoded,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Iterator,
+    )
 
 REDUCTIONS = ("sum", "prod", "min", "max")
 
@@ -184,9 +189,6 @@ class Term:
 
 
 class Constant(Term):
-    def __init__(self, value, env, side=None, encoding=None) -> None:
-        super().__init__(value, env, side=side, encoding=encoding)
-
     def _resolve_name(self):
         return self._name
 
@@ -535,8 +537,8 @@ class Div(BinOp):
             )
 
         # do not upcast float32s to float64 un-necessarily
-        acceptable_dtypes = [np.float32, np.float_]
-        _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
+        acceptable_dtypes = [np.float32, np.float64]
+        _cast_inplace(com.flatten(self), acceptable_dtypes, np.float64)
 
 
 UNARY_OPS_SYMS = ("+", "-", "~", "not")

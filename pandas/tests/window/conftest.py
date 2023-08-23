@@ -124,9 +124,9 @@ def halflife_with_times(request):
 @pytest.fixture
 def series():
     """Make mocked series as fixture."""
-    arr = np.random.randn(100)
+    arr = np.random.default_rng(2).standard_normal(100)
     locs = np.arange(20, 40)
-    arr[locs] = np.NaN
+    arr[locs] = np.nan
     series = Series(arr, index=bdate_range(datetime(2009, 1, 1), periods=100))
     return series
 
@@ -135,7 +135,7 @@ def series():
 def frame():
     """Make mocked frame as fixture."""
     return DataFrame(
-        np.random.randn(100, 10),
+        np.random.default_rng(2).standard_normal((100, 10)),
         index=bdate_range(datetime(2009, 1, 1), periods=100),
     )
 

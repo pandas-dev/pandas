@@ -4,8 +4,6 @@ from contextlib import suppress
 import sys
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Sequence,
     cast,
     final,
 )
@@ -75,6 +73,11 @@ from pandas.core.indexes.api import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas._typing import (
         Axis,
         AxisInt,
@@ -739,7 +742,12 @@ class _LocationIndexer(NDFrameIndexerBase):
 
         ax = self.obj._get_axis(0)
 
-        if isinstance(ax, MultiIndex) and self.name != "iloc" and is_hashable(key):
+        if (
+            isinstance(ax, MultiIndex)
+            and self.name != "iloc"
+            and is_hashable(key)
+            and not isinstance(key, slice)
+        ):
             with suppress(KeyError, InvalidIndexError):
                 # TypeError e.g. passed a bool
                 return ax.get_loc(key)
@@ -977,8 +985,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         retval = self.obj
         # Selecting columns before rows is signficiantly faster
+        start_val = (self.ndim - len(tup)) + 1
         for i, key in enumerate(reversed(tup)):
-            i = self.ndim - i - 1
+            i = self.ndim - i - start_val
             if com.is_null_slice(key):
                 continue
 
@@ -1060,6 +1069,14 @@ class _LocationIndexer(NDFrameIndexerBase):
         # we have a nested tuple so have at least 1 multi-index level
         # we should be able to match up the dimensionality here
 
+        def _contains_slice(x: object) -> bool:
+            # Check if object is a slice or a tuple containing a slice
+            if isinstance(x, tuple):
+                return any(isinstance(v, slice) for v in x)
+            elif isinstance(x, slice):
+                return True
+            return False
+
         for key in tup:
             check_dict_or_set_indexers(key)
 
@@ -1070,7 +1087,10 @@ class _LocationIndexer(NDFrameIndexerBase):
             if self.name != "loc":
                 # This should never be reached, but let's be explicit about it
                 raise ValueError("Too many indices")  # pragma: no cover
-            if all(is_hashable(x) or com.is_null_slice(x) for x in tup):
+            if all(
+                (is_hashable(x) and not _contains_slice(x)) or com.is_null_slice(x)
+                for x in tup
+            ):
                 # GH#10521 Series should reduce MultiIndex dimensions instead of
                 #  DataFrame, IndexingError is not raised when slice(None,None,None)
                 #  with one row.
@@ -1419,7 +1439,15 @@ class _LocIndexer(_LocationIndexer):
         ):
             raise IndexingError("Too many indexers")
 
-        if is_scalar(key) or (isinstance(labels, MultiIndex) and is_hashable(key)):
+        # Slices are not valid keys passed in by the user,
+        # even though they are hashable in Python 3.12
+        contains_slice = False
+        if isinstance(key, tuple):
+            contains_slice = any(isinstance(v, slice) for v in key)
+
+        if is_scalar(key) or (
+            isinstance(labels, MultiIndex) and is_hashable(key) and not contains_slice
+        ):
             # Otherwise get_loc will raise InvalidIndexError
 
             # if we are a label return me
@@ -2459,7 +2487,7 @@ class _AtIndexer(_ScalarAccessIndexer):
 
         return super().__getitem__(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         if self.ndim == 2 and not self._axes_are_unique:
             # GH#33041 fall back to .loc
             if not isinstance(key, tuple) or not all(is_scalar(x) for x in key):

@@ -76,7 +76,6 @@ exclude_patterns = [
     # to ensure that include files (partial pages) aren't built, exclude them
     # https://github.com/sphinx-doc/sphinx/issues/1965#issuecomment-124732907
     "**/includes/**",
-    "**/api/pandas.Series.dt.rst",
 ]
 try:
     import nbconvert
@@ -130,6 +129,8 @@ autosummary_generate = True if include_api else ["index"]
 autodoc_typehints = "none"
 
 # numpydoc
+numpydoc_show_class_members = False
+numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
 
 # matplotlib plot directive
@@ -240,7 +241,10 @@ html_theme_options = {
     "footer_start": ["pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
-    "analytics": {"google_analytics_id": "G-5RE31C1RNW"},
+    "analytics": {
+        "plausible_analytics_domain": "pandas.pydata.org",
+        "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
+    },
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
     "switcher": {
@@ -348,10 +352,8 @@ for old, new in moved_classes:
     methods = [
         x for x in dir(klass) if not x.startswith("_") or x in ("__iter__", "__array__")
     ]
-
-    for method in methods:
-        # ... and each of its public methods
-        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}"))
+    # ... and each of its public methods
+    moved_api_pages.extend((f"{old}.{method}", f"{new}.{method}") for method in methods)
 
 if include_api:
     html_additional_pages = {
@@ -586,14 +588,7 @@ class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
     priority = 0.5
 
     def format_name(self):
-        if sys.version_info < (3, 9):
-            # NOTE pyupgrade will remove this when we run it with --py39-plus
-            # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removesuffix
-
-            return removesuffix(MethodDocumenter.format_name(self), ".__call__")
-        else:
-            return MethodDocumenter.format_name(self).removesuffix(".__call__")
+        return MethodDocumenter.format_name(self).removesuffix(".__call__")
 
 
 class PandasAutosummary(Autosummary):

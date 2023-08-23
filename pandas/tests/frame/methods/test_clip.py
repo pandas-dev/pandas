@@ -30,7 +30,7 @@ class TestDataFrameClip:
 
     def test_dataframe_clip(self):
         # GH#2747
-        df = DataFrame(np.random.randn(1000, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
 
         for lb, ub in [(-1, 1), (1, -1)]:
             clipped_df = df.clip(lb, ub)
@@ -60,8 +60,8 @@ class TestDataFrameClip:
     def test_clip_against_series(self, inplace):
         # GH#6966
 
-        df = DataFrame(np.random.randn(1000, 2))
-        lb = Series(np.random.randn(1000))
+        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
+        lb = Series(np.random.default_rng(2).standard_normal(1000))
         ub = lb + 1
 
         original = df.copy()
@@ -107,8 +107,8 @@ class TestDataFrameClip:
 
     @pytest.mark.parametrize("axis", [0, 1, None])
     def test_clip_against_frame(self, axis):
-        df = DataFrame(np.random.randn(1000, 2))
-        lb = DataFrame(np.random.randn(1000, 2))
+        df = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
+        lb = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
         ub = lb + 1
 
         clipped_df = df.clip(lb, ub, axis=axis)
@@ -123,8 +123,14 @@ class TestDataFrameClip:
 
     def test_clip_against_unordered_columns(self):
         # GH#20911
-        df1 = DataFrame(np.random.randn(1000, 4), columns=["A", "B", "C", "D"])
-        df2 = DataFrame(np.random.randn(1000, 4), columns=["D", "A", "B", "C"])
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((1000, 4)),
+            columns=["A", "B", "C", "D"],
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal((1000, 4)),
+            columns=["D", "A", "B", "C"],
+        )
         df3 = DataFrame(df2.values - 1, columns=["B", "D", "C", "A"])
         result_upper = df1.clip(lower=0, upper=df2)
         expected_upper = df1.clip(lower=0, upper=df2[df1.columns])
@@ -160,7 +166,7 @@ class TestDataFrameClip:
         # GH#40420
         data = {"col_0": [9, -3, 0, -1, 5], "col_1": [-2, -7, 6, 8, -5]}
         df = DataFrame(data)
-        t = Series([2, -4, np.NaN, 6, 3])
+        t = Series([2, -4, np.nan, 6, 3])
         result = df.clip(lower=t, axis=0)
         expected = DataFrame({"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]})
         tm.assert_frame_equal(result, expected)

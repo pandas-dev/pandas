@@ -1,5 +1,3 @@
-import warnings
-
 import dateutil.tz
 from dateutil.tz import tzlocal
 import pytest
@@ -93,20 +91,15 @@ class TestToPeriod:
             freq="5min",
         )
 
-        with tm.assert_produces_warning(None):
-            # Using simple filter because we are not checking for the warning here
-            warnings.simplefilter("ignore", UserWarning)
-
+        with tm.assert_produces_warning(UserWarning):
             pi1 = rng.to_period("5min")
 
-        with tm.assert_produces_warning(None):
-            # Using simple filter because we are not checking for the warning here
-            warnings.simplefilter("ignore", UserWarning)
-
+        with tm.assert_produces_warning(UserWarning):
             pi2 = rng.to_period()
 
         tm.assert_index_equal(pi1, pi2)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_period_dt64_round_trip(self):
         dti = date_range("1/1/2000", "1/7/2002", freq="B")
         pi = dti.to_period()

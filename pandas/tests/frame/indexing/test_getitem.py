@@ -37,7 +37,7 @@ class TestGetitem:
 
     def test_getitem_periodindex(self):
         rng = period_range("1/1/2000", periods=5)
-        df = DataFrame(np.random.randn(10, 5), columns=rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 5)), columns=rng)
 
         ts = df[rng[0]]
         tm.assert_series_equal(ts, df.iloc[:, 0])
@@ -93,7 +93,9 @@ class TestGetitemListLike:
 
     def test_getitem_list_duplicates(self):
         # GH#1943
-        df = DataFrame(np.random.randn(4, 4), columns=list("AABC"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 4)), columns=list("AABC")
+        )
         df.columns.name = "foo"
 
         result = df[["B", "C"]]
@@ -129,7 +131,7 @@ class TestGetitemListLike:
         else:
             # MultiIndex columns
             frame = DataFrame(
-                np.random.randn(8, 3),
+                np.random.default_rng(2).standard_normal((8, 3)),
                 columns=Index(
                     [("foo", "bar"), ("baz", "qux"), ("peek", "aboo")],
                     name=("sth", "sth2"),
@@ -425,7 +427,7 @@ class TestGetitemSlice:
 
         start, end = values[[5, 15]]
 
-        data = np.random.randn(20, 3)
+        data = np.random.default_rng(2).standard_normal((20, 3))
         if frame_or_series is not DataFrame:
             data = data[:, 0]
 
@@ -455,6 +457,14 @@ class TestGetitemSlice:
             KeyError, match="Value based partial slicing on non-monotonic"
         ):
             df["2011-01-01":"2011-11-01"]
+
+    def test_getitem_slice_same_dim_only_one_axis(self):
+        # GH#54622
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 8)))
+        result = df.iloc[(slice(None, None, 2),)]
+        assert result.shape == (5, 8)
+        expected = df.iloc[slice(None, None, 2), slice(None)]
+        tm.assert_frame_equal(result, expected)
 
 
 class TestGetitemDeprecatedIndexers:

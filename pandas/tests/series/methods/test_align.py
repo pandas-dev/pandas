@@ -127,16 +127,18 @@ def test_align_nocopy(datetime_series, using_copy_on_write):
 
 def test_align_same_index(datetime_series, using_copy_on_write):
     a, b = datetime_series.align(datetime_series, copy=False)
-    assert a.index is datetime_series.index
-    assert b.index is datetime_series.index
-
-    a, b = datetime_series.align(datetime_series, copy=True)
     if not using_copy_on_write:
-        assert a.index is not datetime_series.index
-        assert b.index is not datetime_series.index
-    else:
         assert a.index is datetime_series.index
         assert b.index is datetime_series.index
+    else:
+        assert a.index.is_(datetime_series.index)
+        assert b.index.is_(datetime_series.index)
+
+    a, b = datetime_series.align(datetime_series, copy=True)
+    assert a.index is not datetime_series.index
+    assert b.index is not datetime_series.index
+    assert a.index.is_(datetime_series.index)
+    assert b.index.is_(datetime_series.index)
 
 
 def test_align_multiindex():
@@ -192,7 +194,7 @@ def test_align_with_dataframe_method(method):
 
 def test_align_dt64tzindex_mismatched_tzs():
     idx1 = date_range("2001", periods=5, freq="H", tz="US/Eastern")
-    ser = Series(np.random.randn(len(idx1)), index=idx1)
+    ser = Series(np.random.default_rng(2).standard_normal(len(idx1)), index=idx1)
     ser_central = ser.tz_convert("US/Central")
     # different timezones convert to UTC
 
@@ -203,7 +205,7 @@ def test_align_dt64tzindex_mismatched_tzs():
 
 def test_align_periodindex(join_type):
     rng = period_range("1/1/2000", "1/1/2010", freq="A")
-    ts = Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     # TODO: assert something?
     ts.align(ts[::2], join=join_type)

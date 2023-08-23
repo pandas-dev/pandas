@@ -211,9 +211,9 @@ For example, the groups created by ``groupby()`` below are in the order they app
 .. ipython:: python
 
    df3 = pd.DataFrame({"X": ["A", "B", "A", "B"], "Y": [1, 4, 3, 2]})
-   df3.groupby(["X"]).get_group("A")
+   df3.groupby("X").get_group("A")
 
-   df3.groupby(["X"]).get_group("B")
+   df3.groupby(["X"]).get_group(("B",))
 
 
 .. _groupby.dropna:
@@ -271,7 +271,6 @@ the length of the ``groups`` dict, so it is largely just a convenience:
 ``GroupBy`` will tab complete column names (and other attributes):
 
 .. ipython:: python
-   :suppress:
 
    n = 10
    weight = np.random.normal(166, 20, size=n)
@@ -281,9 +280,6 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    df = pd.DataFrame(
        {"height": height, "weight": weight, "gender": gender}, index=time
    )
-
-.. ipython:: python
-
    df
    gb = df.groupby("gender")
 
@@ -334,19 +330,14 @@ number:
 Grouping with multiple levels is supported.
 
 .. ipython:: python
-   :suppress:
 
    arrays = [
        ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
        ["doo", "doo", "bee", "bee", "bop", "bop", "bop", "bop"],
        ["one", "two", "one", "two", "one", "two", "one", "two"],
    ]
-   tuples = list(zip(*arrays))
-   index = pd.MultiIndex.from_tuples(tuples, names=["first", "second", "third"])
+   index = pd.MultiIndex.from_arrays(arrays, names=["first", "second", "third"])
    s = pd.Series(np.random.randn(8), index=index)
-
-.. ipython:: python
-
    s
    s.groupby(level=["first", "second"]).sum()
 
@@ -878,7 +869,7 @@ will be broadcast across the group.
     grouped.transform("sum")
 
 In addition to string aliases, the :meth:`~.DataFrameGroupBy.transform` method can
-also except User-Defined functions (UDFs). The UDF must:
+also accept User-Defined Functions (UDFs). The UDF must:
 
 * Return a result that is either the same size as the group chunk or
   broadcastable to the size of the group chunk (e.g., a scalar,
@@ -963,7 +954,6 @@ match the shape of the input array.
 Another common data transform is to replace missing data with the group mean.
 
 .. ipython:: python
-   :suppress:
 
    cols = ["A", "B", "C"]
    values = np.random.randn(1000, 3)
@@ -971,9 +961,6 @@ Another common data transform is to replace missing data with the group mean.
    values[np.random.randint(0, 1000, 50), 1] = np.nan
    values[np.random.randint(0, 1000, 200), 2] = np.nan
    data_df = pd.DataFrame(values, columns=cols)
-
-.. ipython:: python
-
    data_df
 
    countries = np.array(["US", "UK", "GR", "JP"])
@@ -1363,7 +1350,7 @@ implementation headache).
 Grouping with ordered factors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Categorical variables represented as instance of pandas's ``Categorical`` class
+Categorical variables represented as instances of pandas's ``Categorical`` class
 can be used as group keys. If so, the order of the levels will be preserved:
 
 .. ipython:: python
@@ -1496,7 +1483,7 @@ You can also select multiple rows from each group by specifying multiple nth val
    # get the first, 4th, and last date index for each month
    df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
 
-You may also use a slices or lists of slices.
+You may also use slices or lists of slices.
 
 .. ipython:: python
 
@@ -1726,4 +1713,4 @@ column index name will be used as the name of the inserted column:
 
    result
 
-   result.stack()
+   result.stack(future_stack=True)

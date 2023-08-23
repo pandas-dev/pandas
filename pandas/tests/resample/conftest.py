@@ -1,4 +1,5 @@
 from datetime import datetime
+import warnings
 
 import numpy as np
 import pytest
@@ -51,7 +52,7 @@ def simple_date_range_series():
 
     def _simple_date_range_series(start, end, freq="D"):
         rng = date_range(start, end, freq=freq)
-        return Series(np.random.randn(len(rng)), index=rng)
+        return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     return _simple_date_range_series
 
@@ -63,8 +64,16 @@ def simple_period_range_series():
     """
 
     def _simple_period_range_series(start, end, freq="D"):
-        rng = period_range(start, end, freq=freq)
-        return Series(np.random.randn(len(rng)), index=rng)
+        with warnings.catch_warnings():
+            # suppress Period[B] deprecation warning
+            msg = "|".join(["Period with BDay freq", r"PeriodDtype\[B\] is deprecated"])
+            warnings.filterwarnings(
+                "ignore",
+                msg,
+                category=FutureWarning,
+            )
+            rng = period_range(start, end, freq=freq)
+        return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     return _simple_period_range_series
 

@@ -253,9 +253,9 @@ def frame_of_index_cols():
             "A": ["foo", "foo", "foo", "bar", "bar"],
             "B": ["one", "two", "three", "one", "two"],
             "C": ["a", "b", "c", "d", "e"],
-            "D": np.random.randn(5),
-            "E": np.random.randn(5),
-            ("tuple", "as", "label"): np.random.randn(5),
+            "D": np.random.default_rng(2).standard_normal(5),
+            "E": np.random.default_rng(2).standard_normal(5),
+            ("tuple", "as", "label"): np.random.default_rng(2).standard_normal(5),
         }
     )
     return df

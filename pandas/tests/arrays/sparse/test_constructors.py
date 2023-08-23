@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from pandas._libs.sparse import IntIndex
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -188,11 +187,10 @@ class TestConstructors:
 
     @pytest.mark.parametrize("format", ["coo", "csc", "csr"])
     @pytest.mark.parametrize("size", [0, 10])
-    @td.skip_if_no_scipy
     def test_from_spmatrix(self, size, format):
-        import scipy.sparse
+        sp_sparse = pytest.importorskip("scipy.sparse")
 
-        mat = scipy.sparse.random(size, 1, density=0.5, format=format)
+        mat = sp_sparse.random(size, 1, density=0.5, format=format)
         result = SparseArray.from_spmatrix(mat)
 
         result = np.asarray(result)
@@ -200,11 +198,10 @@ class TestConstructors:
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("format", ["coo", "csc", "csr"])
-    @td.skip_if_no_scipy
     def test_from_spmatrix_including_explicit_zero(self, format):
-        import scipy.sparse
+        sp_sparse = pytest.importorskip("scipy.sparse")
 
-        mat = scipy.sparse.random(10, 1, density=0.5, format=format)
+        mat = sp_sparse.random(10, 1, density=0.5, format=format)
         mat.data[0] = 0
         result = SparseArray.from_spmatrix(mat)
 
@@ -212,11 +209,10 @@ class TestConstructors:
         expected = mat.toarray().ravel()
         tm.assert_numpy_array_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_from_spmatrix_raises(self):
-        import scipy.sparse
+        sp_sparse = pytest.importorskip("scipy.sparse")
 
-        mat = scipy.sparse.eye(5, 4, format="csc")
+        mat = sp_sparse.eye(5, 4, format="csc")
 
         with pytest.raises(ValueError, match="not '4'"):
             SparseArray.from_spmatrix(mat)

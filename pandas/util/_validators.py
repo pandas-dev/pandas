@@ -4,9 +4,11 @@ for validating data or function arguments
 """
 from __future__ import annotations
 
-from typing import (
+from collections.abc import (
     Iterable,
     Sequence,
+)
+from typing import (
     TypeVar,
     overload,
 )
@@ -132,7 +134,7 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
     diff = set(kwargs) - set(compat_args)
 
     if diff:
-        bad_arg = list(diff)[0]
+        bad_arg = next(iter(diff))
         raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
 
 

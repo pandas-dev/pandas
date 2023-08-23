@@ -4,14 +4,17 @@ Module for formatting output data into CSV files.
 
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterable,
+    Iterator,
+    Sequence,
+)
 import csv as csvlib
 import os
 from typing import (
     TYPE_CHECKING,
     Any,
-    Hashable,
-    Iterator,
-    Sequence,
     cast,
 )
 
@@ -69,7 +72,7 @@ class CSVFormatter:
         date_format: str | None = None,
         doublequote: bool = True,
         escapechar: str | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> None:
         self.fmt = formatter
 
@@ -145,7 +148,7 @@ class CSVFormatter:
     def has_mi_columns(self) -> bool:
         return bool(isinstance(self.obj.columns, ABCMultiIndex))
 
-    def _initialize_columns(self, cols: Sequence[Hashable] | None) -> np.ndarray:
+    def _initialize_columns(self, cols: Iterable[Hashable] | None) -> np.ndarray:
         # validate mi options
         if self.has_mi_columns:
             if cols is not None:

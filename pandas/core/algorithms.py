@@ -55,10 +55,11 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     BaseMaskedDtype,
     CategoricalDtype,
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
@@ -470,12 +471,12 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     if not is_list_like(comps):
         raise TypeError(
             "only list-like objects are allowed to be passed "
-            f"to isin(), you passed a [{type(comps).__name__}]"
+            f"to isin(), you passed a `{type(comps).__name__}`"
         )
     if not is_list_like(values):
         raise TypeError(
             "only list-like objects are allowed to be passed "
-            f"to isin(), you passed a [{type(values).__name__}]"
+            f"to isin(), you passed a `{type(values).__name__}`"
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
@@ -517,9 +518,9 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         return isin(np.asarray(comps_array), np.asarray(values))
 
     # GH16012
-    # Ensure np.in1d doesn't get object types or it *may* throw an exception
+    # Ensure np.isin doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
-    # in1d is faster for small sizes
+    # isin is faster for small sizes
     if (
         len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
@@ -530,10 +531,10 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         if isna(values).any():
 
             def f(c, v):
-                return np.logical_or(np.in1d(c, v), np.isnan(c))
+                return np.logical_or(np.isin(c, v).ravel(), np.isnan(c))
 
         else:
-            f = np.in1d
+            f = lambda a, b: np.isin(a, b).ravel()
 
     else:
         common = np_find_common_type(values.dtype, comps_array.dtype)
@@ -996,9 +997,13 @@ def duplicated(
     -------
     duplicated : ndarray[bool]
     """
-    if hasattr(values, "dtype") and isinstance(values.dtype, BaseMaskedDtype):
-        values = cast("BaseMaskedArray", values)
-        return htable.duplicated(values._data, keep=keep, mask=values._mask)
+    if hasattr(values, "dtype"):
+        if isinstance(values.dtype, ArrowDtype):
+            values = values._to_masked()  # type: ignore[union-attr]
+
+        if isinstance(values.dtype, BaseMaskedDtype):
+            values = cast("BaseMaskedArray", values)
+            return htable.duplicated(values._data, keep=keep, mask=values._mask)
 
     values = _ensure_data(values)
     return htable.duplicated(values, keep=keep)
@@ -1322,7 +1327,7 @@ def searchsorted(
     arr: ArrayLike,
     value: NumpyValueArrayLike | ExtensionArray,
     side: Literal["left", "right"] = "left",
-    sorter: NumpySorter = None,
+    sorter: NumpySorter | None = None,
 ) -> npt.NDArray[np.intp] | np.intp:
     """
     Find indices where elements should be inserted to maintain order.
@@ -1439,8 +1444,8 @@ def diff(arr, n: int, axis: AxisInt = 0):
     else:
         op = operator.sub
 
-    if isinstance(dtype, PandasDtype):
-        # PandasArray cannot necessarily hold shifted versions of itself.
+    if isinstance(dtype, NumpyEADtype):
+        # NumpyExtensionArray cannot necessarily hold shifted versions of itself.
         arr = arr.to_numpy()
         dtype = arr.dtype
 
