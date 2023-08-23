@@ -518,9 +518,9 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         return isin(np.asarray(comps_array), np.asarray(values))
 
     # GH16012
-    # Ensure np.in1d doesn't get object types or it *may* throw an exception
+    # Ensure np.isin doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
-    # in1d is faster for small sizes
+    # isin is faster for small sizes
     if (
         len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
@@ -531,10 +531,10 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         if isna(values).any():
 
             def f(c, v):
-                return np.logical_or(np.in1d(c, v), np.isnan(c))
+                return np.logical_or(np.isin(c, v).ravel(), np.isnan(c))
 
         else:
-            f = np.in1d
+            f = lambda a, b: np.isin(a, b).ravel()
 
     else:
         common = np_find_common_type(values.dtype, comps_array.dtype)
