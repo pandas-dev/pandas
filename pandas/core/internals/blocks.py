@@ -709,6 +709,7 @@ class Block(PandasObject, libinternals.Block):
                 blocks = blk.convert(copy=False, using_cow=using_cow)
                 if len(blocks) > 1 or blocks[0].dtype != blk.dtype:
                     warnings.warn(
+                        # GH#54710
                         "Downcasting behavior in `replace` is deprecated and "
                         "will be removed in a future version. To retain the old "
                         "behavior, explicitly call `result.infer_objects(copy=False)`",
@@ -792,6 +793,7 @@ class Block(PandasObject, libinternals.Block):
         nbs = block.convert(copy=False, using_cow=using_cow)
         if len(nbs) > 1 or nbs[0].dtype != block.dtype:
             warnings.warn(
+                # GH#54710
                 "Downcasting behavior in `replace` is deprecated and "
                 "will be removed in a future version. To retain the old "
                 "behavior, explicitly call `result.infer_objects(copy=False)`",
@@ -910,6 +912,7 @@ class Block(PandasObject, libinternals.Block):
                         )
                         if len(converted) > 1 or converted[0].dtype != res_blk.dtype:
                             warnings.warn(
+                                # GH#54710
                                 "Downcasting behavior in `replace` is deprecated "
                                 "and will be removed in a future version. To "
                                 "retain the old behavior, explicitly call "
