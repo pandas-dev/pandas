@@ -501,7 +501,7 @@ with cf.config_prefix("mode"):
         "string_storage",
         "python",
         string_storage_doc,
-        validator=is_one_of_factory(["python", "pyarrow"]),
+        validator=is_one_of_factory(["python", "pyarrow", "pyarrow_numpy"]),
     )
 
 

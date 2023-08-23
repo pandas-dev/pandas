@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-object_pyarrow_numpy = ("object",)
+object_pyarrow_numpy = ("object", "string[pyarrow_numpy]")
 
 
 def _convert_na_value(ser, expected):

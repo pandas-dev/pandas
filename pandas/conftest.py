@@ -1321,6 +1321,7 @@ def nullable_string_dtype(request):
     params=[
         "python",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
+        pytest.param("pyarrow_numpy", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
@@ -1329,6 +1330,7 @@ def string_storage(request):
 
     * 'python'
     * 'pyarrow'
+    * 'pyarrow_numpy'
     """
     return request.param
 
@@ -1380,6 +1382,7 @@ def object_dtype(request):
         "object",
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def any_string_dtype(request):
@@ -2000,4 +2003,4 @@ def warsaw(request) -> str:
 
 @pytest.fixture()
 def arrow_string_storage():
-    return ("pyarrow",)
+    return ("pyarrow", "pyarrow_numpy")
