@@ -66,7 +66,7 @@ bool BitmapAny(const struct ArrowBitmap *bitmap) {
     }
   }
 
-  const size_t bits_remaining = nbits % 8;
+  const size_t bits_remaining = nbits - ((size_bytes - 1) * 8);
   for (size_t i = 0; i < bits_remaining; i++) {
     if (ArrowBitGet(buf, nbits - i - 1)) {
       return true;
@@ -91,7 +91,7 @@ bool BitmapAll(const struct ArrowBitmap *bitmap) {
     }
   }
 
-  const size_t bits_remaining = nbits % 8;
+  const size_t bits_remaining = nbits - ((size_bytes - 1) * 8);
   for (size_t i = 0; i < bits_remaining; i++) {
     if (ArrowBitGet(buf, nbits - i - 1) == 0) {
       return false;
