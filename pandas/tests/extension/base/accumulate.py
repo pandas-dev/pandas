@@ -16,7 +16,12 @@ class BaseAccumulateTests:
         return False
 
     def check_accumulate(self, ser: pd.Series, op_name: str, skipna: bool):
-        alt = ser.astype("float64")
+        try:
+            alt = ser.astype("float64")
+        except TypeError:
+            # e.g. Period can't be cast to float64
+            alt = ser.astype(object)
+
         result = getattr(ser, op_name)(skipna=skipna)
 
         if result.dtype == pd.Float32Dtype() and op_name == "cumprod" and skipna:
@@ -37,5 +42,6 @@ class BaseAccumulateTests:
         if self._supports_accumulation(ser, op_name):
             self.check_accumulate(ser, op_name, skipna)
         else:
-            with pytest.raises(NotImplementedError):
+            with pytest.raises((NotImplementedError, TypeError)):
+                # TODO: require TypeError for things that will _never_ work?
                 getattr(ser, op_name)(skipna=skipna)
