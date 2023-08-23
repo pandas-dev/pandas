@@ -76,7 +76,7 @@ class StringDtype(StorageExtensionDtype):
 
     Parameters
     ----------
-    storage : {"python", "pyarrow"}, optional
+    storage : {"python", "pyarrow", "pyarrow_numpy"}, optional
         If not given, the value of ``pd.options.mode.string_storage``.
 
     Attributes
@@ -108,11 +108,11 @@ class StringDtype(StorageExtensionDtype):
     def __init__(self, storage=None) -> None:
         if storage is None:
             storage = get_option("mode.string_storage")
-        if storage not in {"python", "pyarrow"}:
+        if storage not in {"python", "pyarrow", "pyarrow_numpy"}:
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under7p0:
+        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under7p0:
             raise ImportError(
                 "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
             )
@@ -160,6 +160,8 @@ class StringDtype(StorageExtensionDtype):
             return cls(storage="python")
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
+        elif string == "string[pyarrow_numpy]":
+            return cls(storage="pyarrow_numpy")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
@@ -176,12 +178,17 @@ class StringDtype(StorageExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays.string_arrow import ArrowStringArray
+        from pandas.core.arrays.string_arrow import (
+            ArrowStringArray,
+            ArrowStringArrayNumpySemantics,
+        )
 
         if self.storage == "python":
             return StringArray
-        else:
+        elif self.storage == "pyarrow":
             return ArrowStringArray
+        else:
+            return ArrowStringArrayNumpySemantics
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
@@ -193,6 +200,10 @@ class StringDtype(StorageExtensionDtype):
             from pandas.core.arrays.string_arrow import ArrowStringArray
 
             return ArrowStringArray(array)
+        elif self.storage == "pyarrow_numpy":
+            from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
+
+            return ArrowStringArrayNumpySemantics(array)
         else:
             import pyarrow
 

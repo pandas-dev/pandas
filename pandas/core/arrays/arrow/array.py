@@ -515,7 +515,10 @@ class ArrowExtensionArray(
         if isinstance(item, np.ndarray):
             if not len(item):
                 # Removable once we migrate StringDtype[pyarrow] to ArrowDtype[string]
-                if self._dtype.name == "string" and self._dtype.storage == "pyarrow":
+                if self._dtype.name == "string" and self._dtype.storage in (
+                    "pyarrow",
+                    "pyarrow_numpy",
+                ):
                     pa_dtype = pa.string()
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
