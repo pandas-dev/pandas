@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    ClassVar,
     Literal,
 )
 
@@ -96,7 +97,9 @@ class StringDtype(StorageExtensionDtype):
     string[pyarrow]
     """
 
-    name = "string"
+    # error: Cannot override instance variable (previously declared on
+    # base class "StorageExtensionDtype") with class variable
+    name: ClassVar[str] = "string"  # type: ignore[misc]
 
     #: StringDtype().na_value uses pandas.NA
     @property
