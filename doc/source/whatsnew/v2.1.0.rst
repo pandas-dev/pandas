@@ -624,6 +624,7 @@ Performance improvements
 - Performance improvement in :meth:`.ArrowExtensionArray.to_numpy` (:issue:`52525`)
 - Performance improvement in :meth:`.DataFrameGroupBy.groups` (:issue:`53088`)
 - Performance improvement in :meth:`DataFrame.astype` when ``dtype`` is an extension dtype (:issue:`54299`)
+- Performance improvement in :meth:`DataFrame.iloc` when input is an single integer and dataframe is backed by extension dtypes (:issue:`54508`)
 - Performance improvement in :meth:`DataFrame.isin` for extension dtypes (:issue:`53514`)
 - Performance improvement in :meth:`DataFrame.loc` when selecting rows and columns (:issue:`53014`)
 - Performance improvement in :meth:`DataFrame.transpose` when transposing a DataFrame with a single PyArrow dtype (:issue:`54224`)
@@ -669,6 +670,7 @@ Datetimelike
 - Bug in constructing a :class:`Timestamp` from a string representing a time without a date inferring an incorrect unit (:issue:`54097`)
 - Bug in constructing a :class:`Timestamp` with ``ts_input=pd.NA`` raising ``TypeError`` (:issue:`45481`)
 - Bug in parsing datetime strings with weekday but no day e.g. "2023 Sept Thu" incorrectly raising ``AttributeError`` instead of ``ValueError`` (:issue:`52659`)
+- Bug in the repr for :class:`Series` when dtype is a timezone aware datetime with non-nanosecond resolution raising ``OutOfBoundsDatetime`` (:issue:`54623`)
 
 Timedelta
 ^^^^^^^^^

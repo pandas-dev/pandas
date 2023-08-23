@@ -70,6 +70,9 @@ class BaseMethodsTests:
         ):
             # TODO: avoid special-casing
             expected = expected.astype("double[pyarrow]")
+        elif getattr(data.dtype, "storage", "") == "pyarrow_numpy":
+            # TODO: avoid special-casing
+            expected = expected.astype("float64")
         elif na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")
