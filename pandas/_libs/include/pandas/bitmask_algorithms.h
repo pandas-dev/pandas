@@ -31,3 +31,11 @@ int BitmapAnd(const struct ArrowBitmap *bitmap1,
 
 /* Returns -1 on failure. On success returns 0 and writes to out */
 int BitmapInvert(const struct ArrowBitmap *bitmap, struct ArrowBitmap *out);
+
+/* Returns -1 on failure. On success returns 0 and writes to out */
+int BitmapTake(const struct ArrowBitmap *bitmap, const int64_t *indices,
+               size_t nindices, struct ArrowBitmap *out);
+
+/* Returns -1 on failure. On success returns 0 and writes to out */
+int BitmapPutFromBufferMask(struct ArrowBitmap *bitmap, const uint8_t *buf,
+                            size_t n, uint8_t value);

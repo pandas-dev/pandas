@@ -146,17 +146,61 @@ int BitmapXor(const struct ArrowBitmap *bitmap1,
   return 0;
 }
 
-int BitmapInvert(const struct ArrowBitmap *bitmap1, struct ArrowBitmap *out) {
-  if (!(out->buffer.capacity_bytes >= bitmap1->buffer.size_bytes)) {
+int BitmapInvert(const struct ArrowBitmap *bitmap, struct ArrowBitmap *out) {
+  if (!(out->buffer.capacity_bytes >= bitmap->buffer.size_bytes)) {
     return -1;
   }
 
-  for (size_t i = 0; i < bitmap1->buffer.size_bytes; i++) {
-    out->buffer.data[i] = ~bitmap1->buffer.data[i];
+  for (size_t i = 0; i < bitmap->buffer.size_bytes; i++) {
+    out->buffer.data[i] = ~bitmap->buffer.data[i];
   }
 
-  out->size_bits = bitmap1->size_bits;
-  out->buffer.size_bytes = bitmap1->buffer.size_bytes;
+  out->size_bits = bitmap->size_bits;
+  out->buffer.size_bytes = bitmap->buffer.size_bytes;
+
+  return 0;
+}
+
+int BitmapTake(const struct ArrowBitmap *bitmap, const int64_t *indices,
+               size_t nindices, struct ArrowBitmap *out) {
+  int64_t bytes_needed = nindices / 8;
+  if ((nindices % 8) > 0) {
+    bytes_needed += 1;
+  }
+
+  if (!(out->buffer.capacity_bytes >= bytes_needed)) {
+    return -1;
+  }
+
+  for (size_t i = 0; i < nindices; i++) {
+    int64_t index = indices[i];
+    if (index < 0) {
+      return -1;
+    }
+
+    int8_t value = ArrowBitGet(bitmap->buffer.data, index);
+    ArrowBitmapAppendUnsafe(out, value, 1);
+  }
+
+  return 0;
+}
+
+int BitmapPutFromBufferMask(struct ArrowBitmap *bitmap, const uint8_t *buf,
+                            size_t n, uint8_t value) {
+  int64_t bytes_needed = n / 8;
+  if ((n % 8) > 0) {
+    bytes_needed += 1;
+  }
+
+  if (bytes_needed > bitmap->buffer.capacity_bytes) {
+    return -1;
+  }
+
+  for (size_t i = 0; i < n; i++) {
+    if (buf[i]) {
+      ArrowBitSetTo(bitmap->buffer.data, i, value);
+    }
+  }
 
   return 0;
 }

@@ -27,6 +27,7 @@ cdef extern from "pandas/vendored/nanoarrow.h":
     struct ArrowBuffer:
         uint8_t* data
         int64_t size_bytes
+        int64_t capacity_bytes
 
     struct ArrowBitmap:
         ArrowBuffer buffer
@@ -52,6 +53,8 @@ cdef extern from "pandas/bitmask_algorithms.h":
     bint BitmapXor(const ArrowBitmap*, const ArrowBitmap*, ArrowBitmap*)
     bint BitmapAnd(const ArrowBitmap*, const ArrowBitmap*, ArrowBitmap*)
     bint BitmapInvert(const ArrowBitmap*, ArrowBitmap*)
+    bint BitmapTake(const ArrowBitmap*, const int64_t*, size_t, ArrowBitmap*)
+    bint BitmapPutFromBufferMask(ArrowBitmap*, const uint8_t*, size_t, uint8_t)
 
 
 @cython.freelist(16)
@@ -293,6 +296,7 @@ cdef class BitMaskArray:
         buf = <uint8_t*>malloc(old_bma.bitmap.buffer.size_bytes)
         memcpy(buf, old_bma.bitmap.buffer.data, old_bma.bitmap.buffer.size_bytes)
         bitmap.buffer.size_bytes = old_bma.bitmap.buffer.size_bytes
+        bitmap.buffer.capacity_bytes = old_bma.bitmap.buffer.capacity_bytes
         bitmap.size_bits = old_bma.bitmap.size_bits
         bitmap.buffer.data = buf
 
@@ -339,12 +343,13 @@ cdef class BitMaskArray:
         ConcatenateBitmapData(bitmaps, nbitmaps, bitmap.buffer.data)
         free(bitmaps)
 
-        # TODO: avoid nanoarrow internals
+        # TODO: avoid nanoarrow internals - maybe handle in concat function?
         bitmap.size_bits = total_bits
         bytes_needed = total_bits // 8
         if total_bits % 8 != 0:
             bytes_needed += 1
         bitmap.buffer.size_bytes = bytes_needed
+        bitmap.buffer.capacity_bytes = bytes_needed
 
         bma.bitmap = bitmap
 
@@ -366,23 +371,13 @@ cdef class BitMaskArray:
 
         return BitMaskArray.c_concatenate(objs)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef _set_scalar_value_from_equal_sized_array(
-        self,
-        const uint8_t[:] data,
-        bint value
-    ):
-        cdef Py_ssize_t i
-        for i in range(self.bitmap.size_bits):
-            if data[i]:
-                ArrowBitSetTo(self.bitmap.buffer.data, i, value)
-
     def __setitem__(self, key, value):
+        cdef const uint8_t[:] keymask
         cdef const uint8_t[:] arr1d
         cdef Py_ssize_t i = 0
         cdef Py_ssize_t ckey
         cdef bint cvalue
+        cdef BitMaskArray self_ = self
 
         if isinstance(key, int):
             ckey = key
@@ -406,7 +401,14 @@ cdef class BitMaskArray:
                 and key.dtype == bool
                 and isinstance(value, (int, bool))
         ):
-            self._set_scalar_value_from_equal_sized_array(key, value)
+            keymask = key
+            if BitmapPutFromBufferMask(
+                    &self_.bitmap,
+                    &keymask[0],
+                    keymask.shape[0],
+                    value
+            ) != 0:
+                raise ValueError("BitMaskArray.__setitem__ failed!")
         else:
             arr = self.to_numpy()
             arr[key] = value
@@ -535,6 +537,7 @@ cdef class BitMaskArray:
             "buffer_owner": self_.buffer_owner,
             # Private ArrowBitmap attributes below
             "bitmap.buffer.size_bytes": self_.bitmap.buffer.size_bytes,
+            "bitmap.buffer.capacity_bytes": self_.bitmap.buffer.capacity_bytes,
             "bitmap.size_bits": self_.bitmap.size_bits
         }
 
@@ -556,12 +559,14 @@ cdef class BitMaskArray:
         self_.buffer_owner = state["buffer_owner"]
 
         nbytes = state["bitmap.buffer.size_bytes"]
+        capacity_bytes = state["bitmap.buffer.capacity_bytes"]
         nbits = state["bitmap.size_bits"]
         if not self_.buffer_owner:
             other = self.parent
             self_.bitmap = other.bitmap
             self_.bitmap.size_bits = nbits
             self_.bitmap.buffer.size_bytes = nbytes
+            self_.bitmap.buffer.capacity_bytes = capacity_bytes
         else:
             ArrowBitmapInit(&bitmap)
 
@@ -572,6 +577,7 @@ cdef class BitMaskArray:
 
             bitmap.buffer.data = buf
             bitmap.buffer.size_bytes = nbytes
+            bitmap.buffer.capacity_bytes = nbytes
             bitmap.size_bits = nbits
             self_.bitmap = bitmap
 
@@ -610,28 +616,12 @@ cdef class BitMaskArray:
     def sum(self) -> int:
         return ArrowBitCountSet(self.bitmap.buffer.data, 0, self.bitmap.size_bits)
 
-    @cython.wraparound(False)
-    @cython.boundscheck(False)
-    cdef int ctake_1d(self, const int64_t[:] indices, ArrowBitmap* out_bitmap):
-        """returns -1 in case a negative index is encountered, 0 on success"""
-        cdef bint value
-        cdef Py_ssize_t i
-        cdef int64_t index
-        cdef Py_ssize_t nindices = indices.shape[0]
-
-        for i in range(nindices):
-            index = indices[i]
-            if index < 0:
-                return -1
-
-            value = ArrowBitGet(self.bitmap.buffer.data, index)
-            ArrowBitmapAppendUnsafe(out_bitmap, value, 1)
-
     def take_1d(
         self,
-        indices,
+        const int64_t[:] indices,
         const int axis=0,
     ):
+        cdef BitMaskArray self_ = self
         cdef Py_ssize_t nindices = len(indices)
         if axis != 0:
             raise NotImplementedError(
@@ -651,12 +641,12 @@ cdef class BitMaskArray:
         ArrowBitmapInit(&bitmap)
         ArrowBitmapReserve(&bitmap, nindices)
 
-        if self.ctake_1d(indices, &bitmap) != 0:
+        if BitmapTake(&self_.bitmap, &indices[0], nindices, &bitmap) != 0:
             ArrowBitmapReset(&bitmap)
             raise ValueError("take_1d does not support negative indexing")
 
         bma.bitmap = bitmap
-        bma.array_shape = indices.shape
+        bma.array_shape = tuple((indices.shape[0],))
         bma.buffer_owner = True
         return bma
 
