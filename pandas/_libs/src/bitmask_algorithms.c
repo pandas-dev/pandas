@@ -24,7 +24,7 @@ void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
     if (start_bit_pos == 0) {
       memcpy(out_cursor, bitmap->buffer.data, nbytes);
     } else {
-      for (size_t j = 0; j < nbytes; j++) {
+      for (int64_t j = 0; j < nbytes; j++) {
         const uint8_t lshifted = bitmap->buffer.data[j] << start_bit_pos;
         out_cursor[j] = (out_cursor[j] & clear_mask[start_bit_pos]) | lshifted;
 
@@ -107,7 +107,7 @@ int BitmapOr(const struct ArrowBitmap *bitmap1,
     return -1;
   }
 
-  for (size_t i = 0; i < bitmap1->buffer.size_bytes; i++) {
+  for (int64_t i = 0; i < bitmap1->buffer.size_bytes; i++) {
     out->buffer.data[i] = bitmap1->buffer.data[i] | bitmap2->buffer.data[i];
   }
 
@@ -125,7 +125,7 @@ int BitmapAnd(const struct ArrowBitmap *bitmap1,
     return -1;
   }
 
-  for (size_t i = 0; i < bitmap1->buffer.size_bytes; i++) {
+  for (int64_t i = 0; i < bitmap1->buffer.size_bytes; i++) {
     out->buffer.data[i] = bitmap1->buffer.data[i] & bitmap2->buffer.data[i];
   }
 
@@ -143,7 +143,7 @@ int BitmapXor(const struct ArrowBitmap *bitmap1,
     return -1;
   }
 
-  for (size_t i = 0; i < bitmap1->buffer.size_bytes; i++) {
+  for (int64_t i = 0; i < bitmap1->buffer.size_bytes; i++) {
     out->buffer.data[i] = bitmap1->buffer.data[i] ^ bitmap2->buffer.data[i];
   }
 
@@ -158,7 +158,7 @@ int BitmapInvert(const struct ArrowBitmap *bitmap, struct ArrowBitmap *out) {
     return -1;
   }
 
-  for (size_t i = 0; i < bitmap->buffer.size_bytes; i++) {
+  for (int64_t i = 0; i < bitmap->buffer.size_bytes; i++) {
     out->buffer.data[i] = ~bitmap->buffer.data[i];
   }
 
