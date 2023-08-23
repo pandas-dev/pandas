@@ -9936,12 +9936,12 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 2.1.0
 
-        engine: {'python', 'numba'}, default 'python'
+        engine : {'python', 'numba'}, default 'python'
             Choose between the python (default) engine or the numba engine in apply.
 
             The numba engine will attempt to JIT compile the passed function,
             which may result in speedups for large DataFrames.
-            It also supports the following engine_kwargs
+            It also supports the following engine_kwargs:
                 - nopython (compile the function in nopython mode)
                 - nogil (release the GIL inside the JIT compiled function)
                 - parallel (try to apply the function in parallel over the DataFrame)
@@ -9952,7 +9952,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             .. versionadded:: 2.2.0
 
-        engine_kwargs: dict
+        engine_kwargs : dict
             Pass keyword arguments to the engine.
             This is currently only used by the numba engine,
             see the documentation for the engine argument for more information.

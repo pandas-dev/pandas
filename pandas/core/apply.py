@@ -933,7 +933,13 @@ class FrameApply(NDFrameApply):
             return wrapper
 
         if engine == "numba":
-            nb_looper = generate_apply_looper(self.func, **engine_kwargs)
+            # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
+            # incompatible type "Callable[..., Any] | str | list[Callable
+            # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
+            # list[Callable[..., Any] | str]]"; expected "Hashable"
+            nb_looper = generate_apply_looper(
+                self.func, **engine_kwargs
+            )  # type: ignore[arg-type]
             result = nb_looper(self.values, self.axis)
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
