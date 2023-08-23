@@ -353,8 +353,8 @@ cdef class BitMaskArray:
 
         return bma
 
-    @staticmethod
-    def concatenate(objs, axis):
+    @classmethod
+    def concatenate(cls, objs, axis):
         if axis != 0:
             raise NotImplementedError(
                 "BitMaskArray.concatenate only implemented for axis=0"
