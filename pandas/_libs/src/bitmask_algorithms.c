@@ -6,12 +6,13 @@ static const uint8_t clear_mask[8] = {0x0, 0x1,  0x3,  0x7,
                                       0xf, 0x1f, 0x3f, 0x7f};
 
 void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
-                           uint8_t *out) {
+                           struct ArrowBitmap *out) {
   if (nbitmaps == 0) {
     return;
   }
 
-  uint8_t *out_cursor = out;
+  int64_t bits_processed = 0;
+  uint8_t *out_cursor = out->buffer.data;
   size_t start_bit_pos = 0;
   for (size_t i = 0; i < nbitmaps; i++) {
     const struct ArrowBitmap *bitmap = bitmaps[i];
@@ -39,6 +40,14 @@ void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
     } else {
       out_cursor += nbytes - 1;
     }
+
+    bits_processed += bitmap->size_bits;
+  }
+
+  out->size_bits = bits_processed;
+  out->buffer.size_bytes = bits_processed / 8;
+  if ((bits_processed % 8) > 0) {
+    out->buffer.size_bytes += 1;
   }
 }
 

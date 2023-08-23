@@ -12,7 +12,7 @@
   enough bytes to hold all elements.
 */
 void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
-                           uint8_t *out);
+                           struct ArrowBitmap *out);
 
 bool BitmapAny(const struct ArrowBitmap *bitmap);
 bool BitmapAll(const struct ArrowBitmap *bitmap);

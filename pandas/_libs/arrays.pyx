@@ -46,7 +46,7 @@ cdef extern from "pandas/vendored/nanoarrow.h":
     void ArrowBitmapReset(ArrowBitmap*)
 
 cdef extern from "pandas/bitmask_algorithms.h":
-    void ConcatenateBitmapData(const ArrowBitmap**, size_t, const uint8_t*)
+    void ConcatenateBitmapData(const ArrowBitmap**, size_t, ArrowBitmap*)
     bint BitmapAny(const ArrowBitmap*)
     bint BitmapAll(const ArrowBitmap*)
     bint BitmapOr(const ArrowBitmap*, const ArrowBitmap*, ArrowBitmap*)
@@ -313,7 +313,7 @@ cdef class BitMaskArray:
     @staticmethod
     cdef BitMaskArray c_concatenate(list objs):
         cdef Py_ssize_t i
-        cdef int64_t bytes_needed, total_bits = 0
+        cdef int64_t total_bits = 0
         cdef BitMaskArray current_bma
         cdef Py_ssize_t nbitmaps = len(objs)
 
@@ -340,19 +340,10 @@ cdef class BitMaskArray:
 
         ArrowBitmapInit(&bitmap)
         ArrowBitmapReserve(&bitmap, total_bits)
-        ConcatenateBitmapData(bitmaps, nbitmaps, bitmap.buffer.data)
+        ConcatenateBitmapData(bitmaps, nbitmaps, &bitmap)
         free(bitmaps)
 
-        # TODO: avoid nanoarrow internals - maybe handle in concat function?
-        bitmap.size_bits = total_bits
-        bytes_needed = total_bits // 8
-        if total_bits % 8 != 0:
-            bytes_needed += 1
-        bitmap.buffer.size_bytes = bytes_needed
-        bitmap.buffer.capacity_bytes = bytes_needed
-
         bma.bitmap = bitmap
-
         if second_dim != 0:
             bma.array_shape = tuple((total_bits // second_dim, second_dim))
         else:
@@ -386,8 +377,6 @@ cdef class BitMaskArray:
                 ArrowBitSetTo(self.bitmap.buffer.data, ckey, cvalue)
                 return
 
-        # TODO: implement fastpaths here for equal sized containers
-        # to avoid the to_numpy() call
         if is_null_slice(key) and isinstance(value, (int, bool)):
             cvalue = value  # blindly assuming ints are 0 or 1
             ArrowBitsSetTo(
@@ -400,6 +389,7 @@ cdef class BitMaskArray:
                 isinstance(key, np.ndarray)
                 and key.dtype == bool
                 and isinstance(value, (int, bool))
+                and len(key) == len(self)
         ):
             keymask = key
             if BitmapPutFromBufferMask(
@@ -636,8 +626,6 @@ cdef class BitMaskArray:
         cdef ArrowBitmap bitmap
         cdef BitMaskArray bma = BitMaskArray.__new__(BitMaskArray)
 
-        # TODO: this leaks a bit into the internals of the nanoarrow bitmap
-        # We may want to upstream a BitmapCopy function instead
         ArrowBitmapInit(&bitmap)
         ArrowBitmapReserve(&bitmap, nindices)
 
