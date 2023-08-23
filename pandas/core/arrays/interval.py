@@ -764,7 +764,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 if self.closed != other.categories.closed:
                     return invalid_comparison(self, other, op)
 
-                other = other.categories.take(
+                other = other.categories._values.take(
                     other.codes, allow_fill=True, fill_value=other.categories._na_value
                 )
 
@@ -1844,14 +1844,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  complex128 ndarray is much more performant.
                 left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
-                # error: Argument 1 to "in1d" has incompatible type
+                # error: Argument 1 to "isin" has incompatible type
                 # "Union[ExtensionArray, ndarray[Any, Any],
                 # ndarray[Any, dtype[Any]]]"; expected
                 # "Union[_SupportsArray[dtype[Any]],
                 # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
                 # int, float, complex, str, bytes, _NestedSequence[
                 # Union[bool, int, float, complex, str, bytes]]]"
-                return np.in1d(left, right)  # type: ignore[arg-type]
+                return np.isin(left, right).ravel()  # type: ignore[arg-type]
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(
                 values.left.dtype
