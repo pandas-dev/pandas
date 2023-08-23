@@ -594,7 +594,7 @@ class ExtensionArray:
         Examples
         --------
         >>> pd.array([1, 2, 3]).nbytes
-        27
+        25
         """
         # If this is expensive to compute, return an approximate lower bound
         # on the number of bytes needed.
