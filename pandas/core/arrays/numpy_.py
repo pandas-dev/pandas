@@ -512,9 +512,16 @@ class NumpyExtensionArray(  # type: ignore[misc]
             if (
                 self.dtype
                 in [
+                    NumpyEADtype("int8"),
+                    NumpyEADtype("int16"),
+                    NumpyEADtype("int32"),
                     NumpyEADtype("int64"),
+                    NumpyEADtype("float32"),
                     NumpyEADtype("float64"),
+                    NumpyEADtype("uint8"),
                     NumpyEADtype("uint16"),
+                    NumpyEADtype("uint32"),
+                    NumpyEADtype("uint64"),
                     NumpyEADtype("object"),
                 ]
                 or self.dtype is None
@@ -522,7 +529,12 @@ class NumpyExtensionArray(  # type: ignore[misc]
                 return value
         elif type(value) == float:
             if (
-                self.dtype in [NumpyEADtype("float64"), NumpyEADtype("object")]
+                self.dtype
+                in [
+                    NumpyEADtype("float32"),
+                    NumpyEADtype("float64"),
+                    NumpyEADtype("object"),
+                ]
                 or self.dtype is None
             ):
                 return value
