@@ -689,7 +689,12 @@ class TestSeriesDatetimeValues:
         assert isinstance(ser.dt, DatetimeProperties)
 
     @pytest.mark.parametrize(
-        "ser", [Series(np.arange(5)), Series(list("abcde")), Series(np.random.randn(5))]
+        "ser",
+        [
+            Series(np.arange(5)),
+            Series(list("abcde")),
+            Series(np.random.default_rng(2).standard_normal(5)),
+        ],
     )
     def test_dt_accessor_invalid(self, ser):
         # GH#9322 check that series with incorrect dtypes don't have attr
@@ -734,9 +739,9 @@ class TestSeriesDatetimeValues:
         "input_series, expected_output",
         [
             [["2020-01-01"], [[2020, 1, 3]]],
-            [[pd.NaT], [[np.NaN, np.NaN, np.NaN]]],
+            [[pd.NaT], [[np.nan, np.nan, np.nan]]],
             [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]]],
-            [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.NaN, np.NaN, np.NaN]]],
+            [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.nan, np.nan, np.nan]]],
             # see GH#36032
             [["2016-01-08", "2016-01-04"], [[2016, 1, 5], [2016, 1, 1]]],
             [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],

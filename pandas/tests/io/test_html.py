@@ -70,10 +70,9 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
         assert not frame_i.empty, "frames are both empty"
 
 
-@td.skip_if_no("bs4")
-@td.skip_if_no("html5lib")
 def test_bs4_version_fails(monkeypatch, datapath):
-    import bs4
+    bs4 = pytest.importorskip("bs4")
+    pytest.importorskip("html5lib")
 
     monkeypatch.setattr(bs4, "__version__", "4.2")
     with pytest.raises(ImportError, match="Pandas requires version"):
@@ -89,10 +88,11 @@ def test_invalid_flavor():
         read_html(StringIO(url), match="google", flavor=flavor)
 
 
-@td.skip_if_no("bs4")
-@td.skip_if_no("lxml")
-@td.skip_if_no("html5lib")
 def test_same_ordering(datapath):
+    pytest.importorskip("bs4")
+    pytest.importorskip("lxml")
+    pytest.importorskip("html5lib")
+
     filename = datapath("io", "data", "html", "valid_markup.html")
     dfs_lxml = read_html(filename, index_col=0, flavor=["lxml"])
     dfs_bs4 = read_html(filename, index_col=0, flavor=["bs4"])
@@ -157,7 +157,7 @@ class TestReadHtml:
             tm.makeCustomDataframe(
                 4,
                 3,
-                data_gen_f=lambda *args: np.random.rand(),
+                data_gen_f=lambda *args: np.random.default_rng(2).random(),
                 c_idx_names=False,
                 r_idx_names=False,
             )
@@ -1278,7 +1278,7 @@ class TestReadHtml:
 
     def test_to_html_timestamp(self):
         rng = date_range("2000-01-01", periods=10)
-        df = DataFrame(np.random.randn(10, 4), index=rng)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)), index=rng)
 
         result = df.to_html()
         assert "2000-01-01" in result

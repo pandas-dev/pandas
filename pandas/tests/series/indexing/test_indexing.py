@@ -26,7 +26,9 @@ import pandas._testing as tm
 
 
 def test_basic_indexing():
-    s = Series(np.random.randn(5), index=["a", "b", "a", "a", "b"])
+    s = Series(
+        np.random.default_rng(2).standard_normal(5), index=["a", "b", "a", "a", "b"]
+    )
 
     warn_msg = "Series.__[sg]etitem__ treating keys as positions is deprecated"
     msg = "index 5 is out of bounds for axis 0 with size 5"
@@ -99,7 +101,7 @@ def test_basic_getitem_dt64tz_values():
 
 
 def test_getitem_setitem_ellipsis():
-    s = Series(np.random.randn(10))
+    s = Series(np.random.default_rng(2).standard_normal(10))
 
     result = s[...]
     tm.assert_series_equal(result, s)
@@ -194,9 +196,9 @@ def test_setitem_ambiguous_keyerror(indexer_sl):
 
 
 def test_setitem(datetime_series):
-    datetime_series[datetime_series.index[5]] = np.NaN
-    datetime_series.iloc[[1, 2, 17]] = np.NaN
-    datetime_series.iloc[6] = np.NaN
+    datetime_series[datetime_series.index[5]] = np.nan
+    datetime_series.iloc[[1, 2, 17]] = np.nan
+    datetime_series.iloc[6] = np.nan
     assert np.isnan(datetime_series.iloc[6])
     assert np.isnan(datetime_series.iloc[2])
     datetime_series[np.isnan(datetime_series)] = 5
@@ -302,13 +304,15 @@ def test_underlying_data_conversion(using_copy_on_write):
 
 def test_preserve_refs(datetime_series):
     seq = datetime_series.iloc[[5, 10, 15]]
-    seq.iloc[1] = np.NaN
+    seq.iloc[1] = np.nan
     assert not np.isnan(datetime_series.iloc[10])
 
 
 def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer_sl):
     index = lexsorted_two_level_string_multiindex
-    ser = Series(np.random.randn(len(index)), index=index, name="sth")
+    ser = Series(
+        np.random.default_rng(2).standard_normal(len(index)), index=index, name="sth"
+    )
 
     result = indexer_sl(ser)["foo"]
     assert result.name == ser.name

@@ -3,10 +3,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseSetitemTests(BaseExtensionTests):
+class BaseSetitemTests:
     @pytest.fixture(
         params=[
             lambda x: x.index,
@@ -36,6 +35,24 @@ class BaseSetitemTests(BaseExtensionTests):
         """
         return request.param
 
+    @pytest.fixture(autouse=True)
+    def skip_if_immutable(self, dtype, request):
+        if dtype._is_immutable:
+            node = request.node
+            if node.name.split("[")[0] == "test_is_immutable":
+                # This fixture is auto-used, but we want to not-skip
+                # test_is_immutable.
+                return
+            pytest.skip("__setitem__ test not applicable with immutable dtype")
+
+    def test_is_immutable(self, data):
+        if data.dtype._is_immutable:
+            with pytest.raises(TypeError):
+                data[0] = data[0]
+        else:
+            data[0] = data[1]
+            assert data[0] == data[1]
+
     def test_setitem_scalar_series(self, data, box_in_series):
         if box_in_series:
             data = pd.Series(data)
@@ -62,18 +79,18 @@ class BaseSetitemTests(BaseExtensionTests):
         with pytest.raises(ValueError, match=xpr.format("list-like")):
             ser[[0, 1]] = value
         # Ensure no modifications made before the exception
-        self.assert_series_equal(ser, original)
+        tm.assert_series_equal(ser, original)
 
         with pytest.raises(ValueError, match=xpr.format("slice")):
             ser[slice(3)] = value
-        self.assert_series_equal(ser, original)
+        tm.assert_series_equal(ser, original)
 
     def test_setitem_empty_indexer(self, data, box_in_series):
         if box_in_series:
             data = pd.Series(data)
         original = data.copy()
         data[np.array([], dtype=int)] = []
-        self.assert_equal(data, original)
+        tm.assert_equal(data, original)
 
     def test_setitem_sequence_broadcasts(self, data, box_in_series):
         if box_in_series:
@@ -135,7 +152,7 @@ class BaseSetitemTests(BaseExtensionTests):
             arr = pd.Series(arr)
             expected = pd.Series(expected)
         arr[mask] = data[0]
-        self.assert_equal(expected, arr)
+        tm.assert_equal(expected, arr)
 
     def test_setitem_mask_raises(self, data, box_in_series):
         # wrong length
@@ -177,7 +194,7 @@ class BaseSetitemTests(BaseExtensionTests):
             expected = pd.Series(expected)
 
         arr[idx] = arr[0]
-        self.assert_equal(arr, expected)
+        tm.assert_equal(arr, expected)
 
     @pytest.mark.parametrize(
         "idx, box_in_series",
@@ -197,7 +214,7 @@ class BaseSetitemTests(BaseExtensionTests):
         # TODO(xfail) this raises KeyError about labels not found (it tries label-based)
         # for list of labels with Series
         if box_in_series:
-            arr = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
+            arr = pd.Series(data, index=[chr(100 + i) for i in range(len(data))])
 
         msg = "Cannot index with an integer indexer containing NA values"
         with pytest.raises(ValueError, match=msg):
@@ -248,27 +265,27 @@ class BaseSetitemTests(BaseExtensionTests):
         result = df.copy()
         result["B"] = 1
         expected = pd.DataFrame({"A": data, "B": [1] * len(data)})
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.copy()
         result.loc[:, "B"] = 1
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # overwrite with new type
         result["B"] = data
         expected = pd.DataFrame({"A": data, "B": data})
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_setitem_expand_with_extension(self, data):
         df = pd.DataFrame({"A": [1] * len(data)})
         result = df.copy()
         result["B"] = data
         expected = pd.DataFrame({"A": [1] * len(data), "B": data})
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         result = df.copy()
         result.loc[:, "B"] = data
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_setitem_frame_invalid_length(self, data):
         df = pd.DataFrame({"A": [1] * len(data)})
@@ -283,7 +300,7 @@ class BaseSetitemTests(BaseExtensionTests):
         ser = pd.Series(data[:2], index=[(0, 0), (0, 1)])
         expected = pd.Series(data.take([1, 1]), index=ser.index)
         ser[(0, 0)] = data[1]
-        self.assert_series_equal(ser, expected)
+        tm.assert_series_equal(ser, expected)
 
     def test_setitem_slice(self, data, box_in_series):
         arr = data[:5].copy()
@@ -293,7 +310,7 @@ class BaseSetitemTests(BaseExtensionTests):
             expected = pd.Series(expected)
 
         arr[:3] = data[0]
-        self.assert_equal(arr, expected)
+        tm.assert_equal(arr, expected)
 
     def test_setitem_loc_iloc_slice(self, data):
         arr = data[:5].copy()
@@ -302,11 +319,11 @@ class BaseSetitemTests(BaseExtensionTests):
 
         result = s.copy()
         result.iloc[:3] = data[0]
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         result = s.copy()
         result.loc[:"c"] = data[0]
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     def test_setitem_slice_mismatch_length_raises(self, data):
         arr = data[:5]
@@ -316,7 +333,7 @@ class BaseSetitemTests(BaseExtensionTests):
     def test_setitem_slice_array(self, data):
         arr = data[:5].copy()
         arr[:5] = data[-5:]
-        self.assert_extension_array_equal(arr, data[-5:])
+        tm.assert_extension_array_equal(arr, data[-5:])
 
     def test_setitem_scalar_key_sequence_raise(self, data):
         arr = data[:5].copy()
@@ -340,21 +357,21 @@ class BaseSetitemTests(BaseExtensionTests):
         key = full_indexer(df)
         result.loc[key, "data"] = df["data"]
 
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
     def test_setitem_with_expansion_row(self, data, na_value):
         df = pd.DataFrame({"data": data[:1]})
 
         df.loc[1, "data"] = data[1]
         expected = pd.DataFrame({"data": data[:2]})
-        self.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
         # https://github.com/pandas-dev/pandas/issues/47284
         df.loc[2, "data"] = na_value
         expected = pd.DataFrame(
             {"data": pd.Series([data[0], data[1], na_value], dtype=data.dtype)}
         )
-        self.assert_frame_equal(df, expected)
+        tm.assert_frame_equal(df, expected)
 
     def test_setitem_series(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395
@@ -369,7 +386,7 @@ class BaseSetitemTests(BaseExtensionTests):
         expected = pd.Series(
             data.astype(object), index=ser.index, name="data", dtype=object
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_setitem_frame_2d_values(self, data):
         # GH#44514
@@ -385,20 +402,20 @@ class BaseSetitemTests(BaseExtensionTests):
         orig = df.copy()
 
         df.iloc[:] = df
-        self.assert_frame_equal(df, orig)
+        tm.assert_frame_equal(df, orig)
 
         df.iloc[:-1] = df.iloc[:-1]
-        self.assert_frame_equal(df, orig)
+        tm.assert_frame_equal(df, orig)
 
         df.iloc[:] = df.values
-        self.assert_frame_equal(df, orig)
+        tm.assert_frame_equal(df, orig)
         if not using_array_manager and not using_copy_on_write:
             # GH#33457 Check that this setting occurred in-place
             # FIXME(ArrayManager): this should work there too
             assert df._mgr.arrays[0] is blk_data
 
         df.iloc[:-1] = df.values[:-1]
-        self.assert_frame_equal(df, orig)
+        tm.assert_frame_equal(df, orig)
 
     def test_delitem_series(self, data):
         # GH#40763
@@ -409,7 +426,7 @@ class BaseSetitemTests(BaseExtensionTests):
 
         expected = ser[taker]
         del ser[1]
-        self.assert_series_equal(ser, expected)
+        tm.assert_series_equal(ser, expected)
 
     def test_setitem_invalid(self, data, invalid_scalar):
         msg = ""  # messages vary by subclass, so we do not test it

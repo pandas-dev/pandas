@@ -392,7 +392,7 @@ Sum/prod of all-NaN or empty Series/DataFrames is now consistently NaN
 The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames no longer depends on
 whether `bottleneck <https://bottleneck.readthedocs.io>`__ is installed, and return value of ``sum`` and ``prod`` on an empty Series has changed (:issue:`9422`, :issue:`15507`).
 
-Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.numeric_sum>`.
+Calling ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, will result in ``NaN``. See the :ref:`docs <missing_data.calculations>`.
 
 .. ipython:: python
 
@@ -440,7 +440,6 @@ Indexing with a list with missing labels is deprecated
 Previously, selecting with a list of labels, where one or more labels were missing would always succeed, returning ``NaN`` for missing labels.
 This will now show a ``FutureWarning``. In the future this will raise a ``KeyError`` (:issue:`15747`).
 This warning will trigger on a ``DataFrame`` or a ``Series`` for using ``.loc[]``  or ``[[]]`` when passing a list-of-labels with at least 1 missing label.
-See the :ref:`deprecation docs <indexing.deprecate_loc_reindex_listlike>`.
 
 
 .. ipython:: python
@@ -784,10 +783,15 @@ non-datetime-like item being assigned (:issue:`14145`).
 
 These now coerce to ``object`` dtype.
 
-.. ipython:: python
+.. code-block:: python
 
-   s[1] = 1
-   s
+   In [1]: s[1] = 1
+
+   In [2]: s
+   Out[2]:
+   0    2011-01-01 00:00:00
+   1                      1
+   dtype: object
 
 - Inconsistent behavior in ``.where()`` with datetimelikes which would raise rather than coerce to ``object`` (:issue:`16402`)
 - Bug in assignment against ``int64`` data with ``np.ndarray`` with ``float64`` dtype may keep ``int64`` dtype (:issue:`14001`)

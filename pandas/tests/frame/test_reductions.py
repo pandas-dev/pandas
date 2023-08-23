@@ -134,7 +134,7 @@ def assert_stat_op_calc(
 
     # all NA case
     if has_skipna:
-        all_na = frame * np.NaN
+        all_na = frame * np.nan
         r0 = getattr(all_na, opname)(axis=0)
         r1 = getattr(all_na, opname)(axis=1)
         if opname in ["sum", "prod"]:
@@ -280,21 +280,18 @@ class TestDataFrameAnalytics:
             check_dates=True,
         )
 
-    @td.skip_if_no_scipy
     def test_stat_op_calc_skew_kurtosis(self, float_frame_with_na):
-        def skewness(x):
-            from scipy.stats import skew
+        sp_stats = pytest.importorskip("scipy.stats")
 
+        def skewness(x):
             if len(x) < 3:
                 return np.nan
-            return skew(x, bias=False)
+            return sp_stats.skew(x, bias=False)
 
         def kurt(x):
-            from scipy.stats import kurtosis
-
             if len(x) < 4:
                 return np.nan
-            return kurtosis(x, bias=False)
+            return sp_stats.kurtosis(x, bias=False)
 
         assert_stat_op_calc("skew", skewness, float_frame_with_na)
         assert_stat_op_calc("kurt", kurt, float_frame_with_na)
@@ -458,7 +455,7 @@ class TestDataFrameAnalytics:
         expected = datetime_frame.apply(lambda x: x.var(ddof=4))
         tm.assert_almost_equal(result, expected)
 
-        arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
+        arr = np.repeat(np.random.default_rng(2).random((1, 1000)), 1000, 0)
         result = nanops.nanvar(arr, axis=0)
         assert not (result < 0).any()
 
@@ -469,13 +466,19 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("meth", ["sem", "var", "std"])
     def test_numeric_only_flag(self, meth):
         # GH 9201
-        df1 = DataFrame(np.random.randn(5, 3), columns=["foo", "bar", "baz"])
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)),
+            columns=["foo", "bar", "baz"],
+        )
         # Cast to object to avoid implicit cast when setting entry to "100" below
         df1 = df1.astype({"foo": object})
         # set one entry to a number in str format
         df1.loc[0, "foo"] = "100"
 
-        df2 = DataFrame(np.random.randn(5, 3), columns=["foo", "bar", "baz"])
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)),
+            columns=["foo", "bar", "baz"],
+        )
         # Cast to object to avoid implicit cast when setting entry to "a" below
         df2 = df2.astype({"foo": object})
         # set one entry to a non-number str
@@ -502,7 +505,7 @@ class TestDataFrameAnalytics:
         expected = datetime_frame.apply(lambda x: x.std(ddof=4) / np.sqrt(len(x)))
         tm.assert_almost_equal(result, expected)
 
-        arr = np.repeat(np.random.random((1, 1000)), 1000, 0)
+        arr = np.repeat(np.random.default_rng(2).random((1, 1000)), 1000, 0)
         result = nanops.nansem(arr, axis=0)
         assert not (result < 0).any()
 
@@ -831,9 +834,9 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize(
         "kwargs, expected_result",
         [
-            ({"axis": 1, "min_count": 2}, [3.2, 5.3, np.NaN]),
-            ({"axis": 1, "min_count": 3}, [np.NaN, np.NaN, np.NaN]),
-            ({"axis": 1, "skipna": False}, [3.2, 5.3, np.NaN]),
+            ({"axis": 1, "min_count": 2}, [3.2, 5.3, np.nan]),
+            ({"axis": 1, "min_count": 3}, [np.nan, np.nan, np.nan]),
+            ({"axis": 1, "skipna": False}, [3.2, 5.3, np.nan]),
         ],
     )
     def test_sum_nanops_dtype_min_count(self, float_type, kwargs, expected_result):
@@ -847,9 +850,9 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize(
         "kwargs, expected_result",
         [
-            ({"axis": 1, "min_count": 2}, [2.0, 4.0, np.NaN]),
-            ({"axis": 1, "min_count": 3}, [np.NaN, np.NaN, np.NaN]),
-            ({"axis": 1, "skipna": False}, [2.0, 4.0, np.NaN]),
+            ({"axis": 1, "min_count": 2}, [2.0, 4.0, np.nan]),
+            ({"axis": 1, "min_count": 3}, [np.nan, np.nan, np.nan]),
+            ({"axis": 1, "skipna": False}, [2.0, 4.0, np.nan]),
         ],
     )
     def test_prod_nanops_dtype_min_count(self, float_type, kwargs, expected_result):
@@ -937,7 +940,7 @@ class TestDataFrameAnalytics:
 
     def test_mean_extensionarray_numeric_only_true(self):
         # https://github.com/pandas-dev/pandas/issues/33256
-        arr = np.random.randint(1000, size=(10, 5))
+        arr = np.random.default_rng(2).integers(1000, size=(10, 5))
         df = DataFrame(arr, dtype="Int64")
         result = df.mean(numeric_only=True)
         expected = DataFrame(arr).mean().astype("Float64")
@@ -1143,7 +1146,7 @@ class TestDataFrameAnalytics:
     def test_any_all_mixed_float(self, opname, axis, bool_only, float_string_frame):
         # make sure op works on mixed-type frame
         mixed = float_string_frame
-        mixed["_bool_"] = np.random.randn(len(mixed)) > 0.5
+        mixed["_bool_"] = np.random.default_rng(2).standard_normal(len(mixed)) > 0.5
 
         getattr(mixed, opname)(axis=axis, bool_only=bool_only)
 
@@ -1186,7 +1189,7 @@ class TestDataFrameAnalytics:
             f(axis=2)
 
         # all NA case
-        all_na = frame * np.NaN
+        all_na = frame * np.nan
         r0 = getattr(all_na, opname)(axis=0)
         r1 = getattr(all_na, opname)(axis=1)
         if opname == "any":
@@ -1868,13 +1871,14 @@ def test_prod_sum_min_count_mixed_object():
 
 @pytest.mark.parametrize("method", ["min", "max", "mean", "median", "skew", "kurt"])
 @pytest.mark.parametrize("numeric_only", [True, False])
-def test_reduction_axis_none_returns_scalar(method, numeric_only):
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+def test_reduction_axis_none_returns_scalar(method, numeric_only, dtype):
     # GH#21597 As of 2.0, axis=None reduces over all axes.
 
-    df = DataFrame(np.random.randn(4, 4))
+    df = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), dtype=dtype)
 
     result = getattr(df, method)(axis=None, numeric_only=numeric_only)
-    np_arr = df.to_numpy()
+    np_arr = df.to_numpy(dtype=np.float64)
     if method in {"skew", "kurt"}:
         comp_mod = pytest.importorskip("scipy.stats")
         if method == "kurt":
@@ -1934,3 +1938,80 @@ def test_fails_on_non_numeric(kernel):
         msg = "|".join([msg1, msg2])
     with pytest.raises(TypeError, match=msg):
         getattr(df, kernel)(*args)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "all",
+        "any",
+        "count",
+        "idxmax",
+        "idxmin",
+        "kurt",
+        "kurtosis",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "nunique",
+        "prod",
+        "product",
+        "sem",
+        "skew",
+        "std",
+        "sum",
+        "var",
+    ],
+)
+@pytest.mark.parametrize("min_count", [0, 2])
+def test_numeric_ea_axis_1(method, skipna, min_count, any_numeric_ea_dtype):
+    # GH 54341
+    df = DataFrame(
+        {
+            "a": Series([0, 1, 2, 3], dtype=any_numeric_ea_dtype),
+            "b": Series([0, 1, pd.NA, 3], dtype=any_numeric_ea_dtype),
+        },
+    )
+    expected_df = DataFrame(
+        {
+            "a": [0.0, 1.0, 2.0, 3.0],
+            "b": [0.0, 1.0, np.nan, 3.0],
+        },
+    )
+    if method in ("count", "nunique"):
+        expected_dtype = "int64"
+    elif method in ("all", "any"):
+        expected_dtype = "boolean"
+    elif method in (
+        "kurt",
+        "kurtosis",
+        "mean",
+        "median",
+        "sem",
+        "skew",
+        "std",
+        "var",
+    ) and not any_numeric_ea_dtype.startswith("Float"):
+        expected_dtype = "Float64"
+    else:
+        expected_dtype = any_numeric_ea_dtype
+
+    kwargs = {}
+    if method not in ("count", "nunique", "quantile"):
+        kwargs["skipna"] = skipna
+    if method in ("prod", "product", "sum"):
+        kwargs["min_count"] = min_count
+
+    warn = None
+    msg = None
+    if not skipna and method in ("idxmax", "idxmin"):
+        warn = FutureWarning
+        msg = f"The behavior of DataFrame.{method} with all-NA values"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(df, method)(axis=1, **kwargs)
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = getattr(expected_df, method)(axis=1, **kwargs)
+    if method not in ("idxmax", "idxmin"):
+        expected = expected.astype(expected_dtype)
+    tm.assert_series_equal(result, expected)

@@ -46,20 +46,26 @@ class TestMultiLevel:
         tm.assert_frame_equal(reindexed, expected)
 
     def test_reindex_preserve_levels(
-        self, multiindex_year_month_day_dataframe_random_data
+        self, multiindex_year_month_day_dataframe_random_data, using_copy_on_write
     ):
         ymd = multiindex_year_month_day_dataframe_random_data
 
         new_index = ymd.index[::10]
         chunk = ymd.reindex(new_index)
-        assert chunk.index is new_index
+        if using_copy_on_write:
+            assert chunk.index.is_(new_index)
+        else:
+            assert chunk.index is new_index
 
         chunk = ymd.loc[new_index]
         assert chunk.index.equals(new_index)
 
         ymdT = ymd.T
         chunk = ymdT.reindex(columns=new_index)
-        assert chunk.columns is new_index
+        if using_copy_on_write:
+            assert chunk.columns.is_(new_index)
+        else:
+            assert chunk.columns is new_index
 
         chunk = ymdT.loc[:, new_index]
         assert chunk.columns.equals(new_index)
@@ -83,7 +89,11 @@ class TestMultiLevel:
             codes=[[0], [0], [0]],
             names=["one", "two", "three"],
         )
-        df = DataFrame([np.random.rand(4)], columns=["a", "b", "c", "d"], index=midx)
+        df = DataFrame(
+            [np.random.default_rng(2).random(4)],
+            columns=["a", "b", "c", "d"],
+            index=midx,
+        )
         # should work
         df.groupby(level="three")
 
@@ -159,7 +169,9 @@ class TestMultiLevel:
         index = MultiIndex.from_tuples(
             [("foo", "one"), ("foo", "two"), ("bar", "one"), ("bar", "two")]
         )
-        df = DataFrame(np.random.randn(4, 4), index=index, columns=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 4)), index=index, columns=index
+        )
         df["Totals", ""] = df.sum(1)
         df = df._consolidate()
 
@@ -169,8 +181,8 @@ class TestMultiLevel:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        series = Series(np.random.randn(6), index=index)
-        frame = DataFrame(np.random.randn(6, 4), index=index)
+        series = Series(np.random.default_rng(2).standard_normal(6), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
 
         result = series[("foo", "bar", 0)]
         result2 = series.loc[("foo", "bar", 0)]
@@ -194,8 +206,8 @@ class TestMultiLevel:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        series = Series(np.random.randn(6), index=index)
-        frame = DataFrame(np.random.randn(6, 4), index=index)
+        series = Series(np.random.default_rng(2).standard_normal(6), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
 
         result = series[("foo", "bar")]
         result2 = series.loc[("foo", "bar")]

@@ -28,7 +28,7 @@ class TestCategoricalMissing:
         # #1457
 
         categories = list(range(10))
-        labels = np.random.randint(0, 10, 20)
+        labels = np.random.default_rng(2).integers(0, 10, 20)
         labels[::5] = -1
 
         cat = Categorical(labels, categories)

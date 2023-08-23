@@ -41,7 +41,7 @@ async def test_tab_complete_ipython6_warning(ip):
 
     # GH 31324 newer jedi version raises Deprecation warning;
     #  appears resolved 2021-02-02
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
         with provisionalcompleter("ignore"):
             list(ip.Completer.completions("rs.", 1))
 
@@ -143,7 +143,7 @@ def test_groupby_with_origin():
 
     # test origin on 1970-01-01 00:00:00
     rng = date_range("1970-01-01 00:00:00", end, freq="1231min")  # prime number
-    ts = Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
     middle_ts = rng[len(rng) // 2]
     ts2 = ts[middle_ts:end]
 
@@ -155,7 +155,7 @@ def test_groupby_with_origin():
     tm.assert_series_equal(adjusted_count_ts, adjusted_count_ts2[middle_ts:end])
 
     rng = date_range(start, end, freq="1231min")  # prime number
-    ts = Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
     ts2 = ts[middle:end]
 
     # proves that grouper without a fixed origin does not work
@@ -170,7 +170,7 @@ def test_groupby_with_origin():
     # test origin on 2049-10-18 20:00:00
 
     rng = date_range(start, "2049-10-18 20:00:00", freq="1231min")  # prime number
-    ts = Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
     middle_ts = rng[len(rng) // 2]
     ts2 = ts[middle_ts:end]
     origin_future = Timestamp(0) + pd.Timedelta("1399min") * 30_000
@@ -278,7 +278,9 @@ def test_apply(test_frame):
 def test_apply_with_mutated_index():
     # GH 15169
     index = date_range("1-1-2015", "12-31-15", freq="D")
-    df = DataFrame(data={"col1": np.random.rand(len(index))}, index=index)
+    df = DataFrame(
+        data={"col1": np.random.default_rng(2).random(len(index))}, index=index
+    )
 
     def f(x):
         s = Series([1, 2], index=["a", "b"])
@@ -368,7 +370,7 @@ def test_median_duplicate_columns():
     # GH 14233
 
     df = DataFrame(
-        np.random.randn(20, 3),
+        np.random.default_rng(2).standard_normal((20, 3)),
         columns=list("aaa"),
         index=date_range("2012-01-01", periods=20, freq="s"),
     )

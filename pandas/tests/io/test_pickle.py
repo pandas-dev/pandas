@@ -23,7 +23,6 @@ import pickle
 import shutil
 import tarfile
 import uuid
-from warnings import catch_warnings
 import zipfile
 
 import numpy as np
@@ -44,6 +43,7 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
 import pandas.io.common as icom
 from pandas.tseries.offsets import (
@@ -55,10 +55,7 @@ from pandas.tseries.offsets import (
 @pytest.fixture
 def current_pickle_data():
     # our current version pickle data
-    from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
-
-    with catch_warnings():
-        return create_pickle_data()
+    return create_pickle_data()
 
 
 # ---------------------
@@ -456,8 +453,8 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
         tm.assert_frame_equal(df, result)
 
 
-@td.skip_if_no("fsspec")
 def test_pickle_fsspec_roundtrip():
+    pytest.importorskip("fsspec")
     with tm.ensure_clean():
         mockurl = "memory://mockfile"
         df = tm.makeDataFrame()
@@ -527,7 +524,7 @@ def test_pickle_dataframe_with_multilevel_index(
 def test_pickle_timeseries_periodindex():
     # GH#2891
     prng = period_range("1/1/2011", "1/1/2012", freq="M")
-    ts = Series(np.random.randn(len(prng)), prng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(prng)), prng)
     new_ts = tm.round_trip_pickle(ts)
     assert new_ts.index.freq == "M"
 
@@ -588,3 +585,15 @@ def test_pickle_frame_v124_unpickle_130(datapath):
 
     expected = pd.DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)
+
+
+def test_pickle_pos_args_deprecation():
+    # GH-54229
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_pickle except for the "
+        r"argument 'path' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buffer = io.BytesIO()
+        df.to_pickle(buffer, "infer")

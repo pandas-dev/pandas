@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    ClassVar,
     Literal,
 )
 
@@ -76,7 +77,7 @@ class StringDtype(StorageExtensionDtype):
 
     Parameters
     ----------
-    storage : {"python", "pyarrow"}, optional
+    storage : {"python", "pyarrow", "pyarrow_numpy"}, optional
         If not given, the value of ``pd.options.mode.string_storage``.
 
     Attributes
@@ -96,7 +97,9 @@ class StringDtype(StorageExtensionDtype):
     string[pyarrow]
     """
 
-    name = "string"
+    # error: Cannot override instance variable (previously declared on
+    # base class "StorageExtensionDtype") with class variable
+    name: ClassVar[str] = "string"  # type: ignore[misc]
 
     #: StringDtype().na_value uses pandas.NA
     @property
@@ -108,11 +111,11 @@ class StringDtype(StorageExtensionDtype):
     def __init__(self, storage=None) -> None:
         if storage is None:
             storage = get_option("mode.string_storage")
-        if storage not in {"python", "pyarrow"}:
+        if storage not in {"python", "pyarrow", "pyarrow_numpy"}:
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under7p0:
+        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under7p0:
             raise ImportError(
                 "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
             )
@@ -160,6 +163,8 @@ class StringDtype(StorageExtensionDtype):
             return cls(storage="python")
         elif string == "string[pyarrow]":
             return cls(storage="pyarrow")
+        elif string == "string[pyarrow_numpy]":
+            return cls(storage="pyarrow_numpy")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
@@ -176,12 +181,17 @@ class StringDtype(StorageExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays.string_arrow import ArrowStringArray
+        from pandas.core.arrays.string_arrow import (
+            ArrowStringArray,
+            ArrowStringArrayNumpySemantics,
+        )
 
         if self.storage == "python":
             return StringArray
-        else:
+        elif self.storage == "pyarrow":
             return ArrowStringArray
+        else:
+            return ArrowStringArrayNumpySemantics
 
     def __from_arrow__(
         self, array: pyarrow.Array | pyarrow.ChunkedArray
@@ -193,6 +203,10 @@ class StringDtype(StorageExtensionDtype):
             from pandas.core.arrays.string_arrow import ArrowStringArray
 
             return ArrowStringArray(array)
+        elif self.storage == "pyarrow_numpy":
+            from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
+
+            return ArrowStringArrayNumpySemantics(array)
         else:
             import pyarrow
 
@@ -401,7 +415,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         arr[mask] = None
         return arr, None
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
             # extract_array doesn't extract NumpyExtensionArray subclasses
@@ -574,7 +588,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         arr = np.asarray(self)
 
         if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray] | type[BooleanArray]
+            constructor: type[IntegerArray | BooleanArray]
             if is_integer_dtype(dtype):
                 constructor = IntegerArray
             else:

@@ -173,7 +173,7 @@ class TestSetitemDT64Values:
 
 class TestSetitemScalarIndexer:
     def test_setitem_negative_out_of_bounds(self):
-        ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
+        ser = Series(["a"] * 10, index=["a"] * 10)
 
         msg = "index -11 is out of bounds for axis 0 with size 10"
         warn_msg = "Series.__setitem__ treating keys as positions is deprecated"
@@ -224,7 +224,10 @@ class TestSetitemSlices:
         assert (ser == 0).all()
 
     def test_setitem_slice_integers(self):
-        ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
+        ser = Series(
+            np.random.default_rng(2).standard_normal(8),
+            index=[2, 4, 6, 8, 10, 12, 14, 16],
+        )
 
         ser[:4] = 0
         assert (ser[:4] == 0).all()
@@ -258,7 +261,9 @@ class TestSetitemBooleanMask:
 
     def test_setitem_mask_align_and_promote(self):
         # GH#8387: test that changing types does not break alignment
-        ts = Series(np.random.randn(100), index=np.arange(100, 0, -1)).round(5)
+        ts = Series(
+            np.random.default_rng(2).standard_normal(100), index=np.arange(100, 0, -1)
+        ).round(5)
         mask = ts > 0
         left = ts.copy()
         right = ts[mask].copy().map(str)
@@ -417,11 +422,10 @@ class TestSetitemBooleanMask:
         ser2.mask(mask, alt, inplace=True)
         tm.assert_series_equal(ser2, expected)
 
-        # FIXME: don't leave commented-out
-        # FIXME: ser.where(~mask, alt) unnecessarily upcasts to int64
-        # ser3 = orig.copy()
-        # res = ser3.where(~mask, alt)
-        # tm.assert_series_equal(res, expected)
+        # TODO: ser.where(~mask, alt) unnecessarily upcasts to int64
+        ser3 = orig.copy()
+        res = ser3.where(~mask, alt)
+        tm.assert_series_equal(res, expected, check_dtype=False)
 
 
 class TestSetitemViewCopySemantics:
@@ -745,7 +749,7 @@ class SetitemCastingEquivalents:
 
     def test_int_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
         if not isinstance(key, int):
-            return
+            pytest.skip("Not relevant for int key")
 
         with tm.assert_produces_warning(warn, match="incompatible dtype"):
             self.check_indexer(obj, key, expected, val, indexer_sli, is_inplace)
@@ -781,7 +785,7 @@ class SetitemCastingEquivalents:
 
     def test_slice_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
         if not isinstance(key, slice):
-            return
+            pytest.skip("Not relevant for slice key")
 
         if indexer_sli is not tm.loc:
             # Note: no .loc because that handles slice edges differently
@@ -872,7 +876,7 @@ class SetitemCastingEquivalents:
                 dtype="interval[float64]",
             ),
             1,
-            None,
+            FutureWarning,
             id="interval_int_na_value",
         ),
         pytest.param(
@@ -1090,8 +1094,8 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
         return 0
 
     @pytest.fixture
-    def warn(self):
-        return None
+    def warn(self, is_inplace):
+        return None if is_inplace else FutureWarning
 
 
 class TestSetitemMismatchedTZCastsToObject(SetitemCastingEquivalents):
@@ -1161,7 +1165,10 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
         obj = Series(idx)
         val = Interval(0.5, 1.5)
 
-        obj[0] = val
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            obj[0] = val
         assert obj.dtype == "Interval[float64, right]"
 
     @pytest.fixture
@@ -1185,7 +1192,7 @@ class TestSetitemFloatIntervalWithIntIntervalValues(SetitemCastingEquivalents):
 
     @pytest.fixture
     def warn(self):
-        return None
+        return FutureWarning
 
 
 class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
@@ -1429,14 +1436,18 @@ class TestCoercionFloat32(CoercionTest):
     def test_slice_key(self, obj, key, expected, warn, val, indexer_sli, is_inplace):
         super().test_slice_key(obj, key, expected, warn, val, indexer_sli, is_inplace)
 
-        if type(val) is float:
+        if isinstance(val, float):
             # the xfail would xpass bc test_slice_key short-circuits
             raise AssertionError("xfail not relevant for this test.")
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype",
-    [(Timestamp("2012-01-01"), "datetime64[ns]"), (1, object), ("x", object)],
+    "val,exp_dtype,warn",
+    [
+        (Timestamp("2012-01-01"), "datetime64[ns]", None),
+        (1, object, FutureWarning),
+        ("x", object, FutureWarning),
+    ],
 )
 class TestCoercionDatetime64(CoercionTest):
     # previously test_setitem_series_datetime64 in tests.indexing.test_coercion
@@ -1451,13 +1462,13 @@ class TestCoercionDatetime64(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype",
+    "val,exp_dtype,warn",
     [
-        (Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]"),
+        (Timestamp("2012-01-01", tz="US/Eastern"), "datetime64[ns, US/Eastern]", None),
         # pre-2.0, a mis-matched tz would end up casting to object
-        (Timestamp("2012-01-01", tz="US/Pacific"), "datetime64[ns, US/Eastern]"),
-        (Timestamp("2012-01-01"), object),
-        (1, object),
+        (Timestamp("2012-01-01", tz="US/Pacific"), "datetime64[ns, US/Eastern]", None),
+        (Timestamp("2012-01-01"), object, FutureWarning),
+        (1, object, FutureWarning),
     ],
 )
 class TestCoercionDatetime64TZ(CoercionTest):
@@ -1473,8 +1484,12 @@ class TestCoercionDatetime64TZ(CoercionTest):
 
 
 @pytest.mark.parametrize(
-    "val,exp_dtype",
-    [(Timedelta("12 day"), "timedelta64[ns]"), (1, object), ("x", object)],
+    "val,exp_dtype,warn",
+    [
+        (Timedelta("12 day"), "timedelta64[ns]", None),
+        (1, object, FutureWarning),
+        ("x", object, FutureWarning),
+    ],
 )
 class TestCoercionTimedelta64(CoercionTest):
     # previously test_setitem_series_timedelta64 in tests.indexing.test_coercion
@@ -1504,7 +1519,7 @@ class TestPeriodIntervalCoercion(CoercionTest):
 
     @pytest.fixture
     def warn(self):
-        return None
+        return FutureWarning
 
 
 def test_20643():
