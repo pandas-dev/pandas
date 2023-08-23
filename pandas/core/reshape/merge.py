@@ -1679,6 +1679,9 @@ def get_join_indexers(
         elif not sort and how in ["left", "outer"]:
             return _get_no_sort_one_missing_indexer(left_n, False)
 
+    if not sort and how == "outer":
+        sort = True
+
     # get left & right join labels and num. of levels at each location
     mapped = (
         _factorize_keys(left_keys[n], right_keys[n], sort=sort, how=how)
@@ -1697,7 +1700,7 @@ def get_join_indexers(
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = {}
-    if how in ("left", "right"):
+    if how in ("inner", "left", "right"):
         kwargs["sort"] = sort
     join_func = {
         "inner": libjoin.inner_join,

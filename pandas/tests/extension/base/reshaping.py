@@ -236,9 +236,9 @@ class BaseReshapingTests:
         result = pd.merge(df1, df2, on="key")
         expected = pd.DataFrame(
             {
-                "key": key.take([0, 0, 0, 0, 1]),
-                "val_x": [1, 1, 3, 3, 2],
-                "val_y": [1, 3, 1, 3, 2],
+                "key": key.take([0, 0, 1, 2, 2]),
+                "val_x": [1, 1, 2, 3, 3],
+                "val_y": [1, 3, 2, 1, 3],
             }
         )
         tm.assert_frame_equal(result, expected)

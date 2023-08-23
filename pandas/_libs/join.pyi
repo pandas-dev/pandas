@@ -6,6 +6,7 @@ def inner_join(
     left: np.ndarray,  # const intp_t[:]
     right: np.ndarray,  # const intp_t[:]
     max_groups: int,
+    sort: bool = ...,
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]: ...
 def left_outer_join(
     left: np.ndarray,  # const intp_t[:]

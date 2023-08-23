@@ -4633,7 +4633,7 @@ class Index(IndexOpsMixin, PandasObject):
         _validate_join_method(how)
 
         if not self.is_unique and not other.is_unique:
-            return self._join_non_unique(other, how=how)
+            return self._join_non_unique(other, how=how, sort=sort)
         elif not self.is_unique or not other.is_unique:
             if self.is_monotonic_increasing and other.is_monotonic_increasing:
                 # Note: 2023-08-15 we *do* have tests that get here with
@@ -4645,7 +4645,7 @@ class Index(IndexOpsMixin, PandasObject):
                     # go through object dtype for ea till engine is supported properly
                     return self._join_monotonic(other, how=how)
             else:
-                return self._join_non_unique(other, how=how)
+                return self._join_non_unique(other, how=how, sort=sort)
         elif (
             # GH48504: exclude MultiIndex to avoid going through MultiIndex._values
             self.is_monotonic_increasing
@@ -4679,15 +4679,13 @@ class Index(IndexOpsMixin, PandasObject):
         elif how == "right":
             join_index = other
         elif how == "inner":
-            # TODO: sort=False here for backwards compat. It may
-            # be better to use the sort parameter passed into join
-            join_index = self.intersection(other, sort=False)
+            join_index = self.intersection(other, sort=sort)
         elif how == "outer":
             # TODO: sort=True here for backwards compat. It may
             # be better to use the sort parameter passed into join
             join_index = self.union(other)
 
-        if sort:
+        if sort and how in ["left", "right"]:
             join_index = join_index.sort_values()
 
         if join_index is self:
@@ -4784,7 +4782,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def _join_non_unique(
-        self, other: Index, how: JoinHow = "left"
+        self, other: Index, how: JoinHow = "left", sort: bool = False
     ) -> tuple[Index, npt.NDArray[np.intp], npt.NDArray[np.intp]]:
         from pandas.core.reshape.merge import get_join_indexers
 
@@ -4792,7 +4790,7 @@ class Index(IndexOpsMixin, PandasObject):
         assert self.dtype == other.dtype
 
         left_idx, right_idx = get_join_indexers(
-            [self._values], [other._values], how=how, sort=True
+            [self._values], [other._values], how=how, sort=sort
         )
         mask = left_idx == -1
 

@@ -741,10 +741,8 @@ class TestMergeMulti:
         expected = (
             DataFrame(
                 {
-                    "household_id": [1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
+                    "household_id": [2, 2, 2, 3, 3, 3, 3, 3, 3, 1, 2, 4],
                     "asset_id": [
-                        "nl0000301109",
-                        "nl0000301109",
                         "gb00b03mlx29",
                         "gb00b03mlx29",
                         "gb00b03mlx29",
@@ -754,11 +752,11 @@ class TestMergeMulti:
                         "lu0197800237",
                         "lu0197800237",
                         "nl0000289965",
+                        "nl0000301109",
+                        "nl0000301109",
                         None,
                     ],
                     "t": [
-                        None,
-                        None,
                         233,
                         234,
                         235,
@@ -769,10 +767,10 @@ class TestMergeMulti:
                         181,
                         None,
                         None,
+                        None,
+                        None,
                     ],
                     "share": [
-                        1.0,
-                        0.4,
                         0.6,
                         0.6,
                         0.6,
@@ -783,10 +781,10 @@ class TestMergeMulti:
                         0.6,
                         0.25,
                         1.0,
+                        0.4,
+                        1.0,
                     ],
                     "log_return": [
-                        None,
-                        None,
                         0.09604978,
                         -0.06524096,
                         0.03532373,
@@ -795,6 +793,8 @@ class TestMergeMulti:
                         0.03532373,
                         0.03025441,
                         0.036997,
+                        None,
+                        None,
                         None,
                         None,
                     ],
