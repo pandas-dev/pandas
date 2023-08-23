@@ -510,42 +510,46 @@ class NumpyExtensionArray(  # type: ignore[misc]
     def _validate_setitem_value(self, value):
         if type(value) == int:
             if (
-                self.dtype == NumpyEADtype("int64")
-                or self.dtype == NumpyEADtype("float64")
-                or self.dtype == NumpyEADtype("uint16")
-                or self.dtype == NumpyEADtype("object")
+                self.dtype
+                in [
+                    NumpyEADtype("int64"),
+                    NumpyEADtype("float64"),
+                    NumpyEADtype("uint16"),
+                    NumpyEADtype("object"),
+                ]
                 or self.dtype is None
             ):
                 return value
         elif type(value) == float:
             if (
-                self.dtype == NumpyEADtype("float64")
-                or self.dtype == NumpyEADtype("object")
+                self.dtype in [NumpyEADtype("float64"), NumpyEADtype("object")]
                 or self.dtype is None
             ):
                 return value
-        elif type(value) == str:
-            if (
-                self.dtype == NumpyEADtype("str")
-                or self.dtype == NumpyEADtype("object")
-                or self.dtype is None
-                or self.dtype == NumpyEADtype("U32")
-            ):
-                return value
-        elif NumpyEADtype(type(value)) == NumpyEADtype(self.dtype) or NumpyEADtype(
-            type(value)
-        ) == NumpyEADtype(type(value)):
+        elif type(value) not in [int, float] and (
+            self.dtype
+            not in [
+                NumpyEADtype("int64"),
+                NumpyEADtype("float64"),
+                NumpyEADtype("uint16"),
+                NumpyEADtype("object"),
+            ]
+            or lib.is_list_like(value)
+        ):
             return value
-        else:
-            if self.dtype == NumpyEADtype("object") or self.dtype is None:
-                return value
-        if NumpyEADtype(type(value)) != self.dtype:
-            raise TypeError(
-                "value cannot be inserted without changing the dtype. value:"
-                f"{value}, type(value): {type(value)}, NumpyEADtype(type(value)):"
-                f"  {NumpyEADtype(type(value))}, self.dtype:  {self.dtype}"
-            )
-        return value
+        if (
+            NumpyEADtype(type(value)) == NumpyEADtype(self.dtype)
+            or NumpyEADtype(type(value)) == self.dtype
+        ):
+            return value
+        if self.dtype == NumpyEADtype("object") or self.dtype is None:
+            return value
+
+        raise TypeError(
+            "value cannot be inserted without changing the dtype. value:"
+            f"{value}, type(value): {type(value)}, NumpyEADtype(type(value)):"
+            f"  {NumpyEADtype(type(value))}, self.dtype:  {self.dtype}"
+        )
 
     # ------------------------------------------------------------------------
     # Ops
