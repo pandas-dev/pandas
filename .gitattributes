@@ -81,4 +81,7 @@ setup.py export-ignore
 # GH 39321
 # csv_dir_path fixture checks the existence of the directory
 # exclude the whole directory to avoid running related tests in sdist
-pandas/tests/io/parser/data export-ignore
+#pandas/tests/io/parser/data export-ignore
+
+# Strip tests from the distribution
+pandas/tests export-ignore

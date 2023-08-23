@@ -467,54 +467,6 @@ disable = [
   "using-constant-test"
 ]
 
-[tool.pytest.ini_options]
-# sync minversion with pyproject.toml & install.rst
-minversion = "7.3.2"
-addopts = "--strict-markers --strict-config --capture=no --durations=30 --junitxml=test-data.xml"
-empty_parameter_set_mark = "fail_at_collect"
-xfail_strict = true
-testpaths = "pandas"
-doctest_optionflags = [
-  "NORMALIZE_WHITESPACE",
-  "IGNORE_EXCEPTION_DETAIL",
-  "ELLIPSIS",
-]
-filterwarnings = [
-  "error:::pandas",
-  "error::ResourceWarning",
-  "error::pytest.PytestUnraisableExceptionWarning",
-  "ignore:.*ssl.SSLSocket:pytest.PytestUnraisableExceptionWarning",
-  "ignore:.*ssl.SSLSocket:ResourceWarning",
-  # GH 44844: Can remove once minimum matplotlib version >= 3.7
-  "ignore:.*FileIO:pytest.PytestUnraisableExceptionWarning",
-  "ignore:.*BufferedRandom:ResourceWarning",
-  "ignore::ResourceWarning:asyncio",
-  # From plotting doctests
-  "ignore:More than 20 figures have been opened:RuntimeWarning",
-  # Will be fixed in numba 0.56: https://github.com/numba/numba/issues/7758
-  "ignore:`np.MachAr` is deprecated:DeprecationWarning:numba",
-  "ignore:.*urllib3:DeprecationWarning:botocore",
-  "ignore:Setuptools is replacing distutils.:UserWarning:_distutils_hack",
-  # https://github.com/PyTables/PyTables/issues/822
-  "ignore:a closed node found in the registry:UserWarning:tables",
-  "ignore:`np.object` is a deprecated:DeprecationWarning:tables",
-  "ignore:tostring:DeprecationWarning:tables",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:pandas_datareader",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:numexpr",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:fastparquet",
-  "ignore:distutils Version classes are deprecated:DeprecationWarning:fsspec",
-]
-junit_family = "xunit2"
-markers = [
-  "single_cpu: tests that should run on a single cpu only",
-  "slow: mark a test as slow",
-  "network: mark a test as network",
-  "db: tests requiring a database (mysql or postgres)",
-  "clipboard: mark a pd.read_clipboard test",
-  "arm_slow: mark a test as slow for arm64 architecture",
-  "arraymanager: mark a test to run with ArrayManager enabled",
-]
-asyncio_mode = "strict"
 
 [tool.mypy]
 # Import discovery
