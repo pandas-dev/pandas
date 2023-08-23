@@ -44,6 +44,9 @@ cdef extern from "pandas/vendored/nanoarrow.h":
     int64_t ArrowBitCountSet(const uint8_t*, int64_t, int64_t)
     void ArrowBitmapReset(ArrowBitmap*)
 
+cdef extern from "pandas/bitmask_algorithms.h":
+    void ConcatenateBitmapData(ArrowBitmap*, size_t, uint8_t*)
+
 
 @cython.freelist(16)
 cdef class NDArrayBacked:
@@ -294,6 +297,66 @@ cdef class BitMaskArray:
 
     def __len__(self):
         return self.bitmap.size_bits
+
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    @staticmethod
+    cdef BitMaskArray c_concatenate(list objs):
+        cdef Py_ssize_t i
+        cdef int64_t bytes_needed, total_bits = 0
+        cdef BitMaskArray current_bma
+        cdef Py_ssize_t nbitmaps = len(objs)
+
+        cdef Py_ssize_t second_dim = 0
+        if any(len(x.array_shape) > 1 for x in objs):
+            second_dim = objs[0].array_shape[1]
+            for obj in objs:
+                if not obj.array_shape[1] == second_dim:
+                    raise NotImplementedError(
+                        "BitMaskArray.concatenate does not support broadcasting"
+                    )
+
+        cdef ArrowBitmap* bitmaps = <ArrowBitmap*>malloc(sizeof(ArrowBitmap) * nbitmaps)
+        for i in range(nbitmaps):
+            current_bma = <BitMaskArray?>objs[i]
+            total_bits += current_bma.bitmap.size_bits
+            bitmaps[i] = current_bma.bitmap
+
+        # Bypass __init__ calls
+        cdef BitMaskArray bma = BitMaskArray.__new__(BitMaskArray)
+        cdef ArrowBitmap bitmap
+
+        ArrowBitmapInit(&bitmap)
+        ArrowBitmapReserve(&bitmap, total_bits)
+        ConcatenateBitmapData(bitmaps, nbitmaps, bitmap.buffer.data)
+        free(bitmaps)
+
+        # TODO: avoid nanoarrow internals
+        bitmap.size_bits = total_bits
+        bytes_needed = total_bits // 8
+        if total_bits % 8 != 0:
+            bytes_needed += 1
+        bitmap.buffer.size_bytes = bytes_needed
+
+        bma.bitmap = bitmap
+
+        if second_dim != 0:
+            bma.array_shape = tuple((total_bits // second_dim, second_dim))
+        else:
+            bma.array_shape = tuple((total_bits,))
+        bma.buffer_owner = True
+        bma.parent = None
+
+        return bma
+
+    @staticmethod
+    def concatenate(objs, axis):
+        if axis != 0:
+            raise NotImplementedError(
+                "BitMaskArray.concatenate only implemented for axis=0"
+            )
+
+        return BitMaskArray.c_concatenate(objs)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

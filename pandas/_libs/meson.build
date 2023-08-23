@@ -62,7 +62,7 @@ libs_sources = {
     # Dict of extension name -> dict of {sources, include_dirs, and deps}
     # numpy include dir is implicitly included
     'algos': {'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper, _khash_primitive_helper]},
-    'arrays': {'sources': ['arrays.pyx', 'src/vendored/nanoarrow.c'], 'includes': ['include/pandas/vendored']},
+    'arrays': {'sources': ['arrays.pyx', 'src/vendored/nanoarrow.c', 'src/bitmask_algorithms.c'], 'includes': ['include/pandas/vendored']},
     'groupby': {'sources': ['groupby.pyx']},
     'hashing': {'sources': ['hashing.pyx']},
     'hashtable': {'sources': ['hashtable.pyx', _khash_primitive_helper, _hashtable_class_helper, _hashtable_func_helper]},

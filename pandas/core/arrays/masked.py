@@ -915,7 +915,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         axis: AxisInt = 0,
     ) -> Self:
         data = np.concatenate([x._data for x in to_concat], axis=axis)
-        mask = np.concatenate([x._mask.to_numpy() for x in to_concat], axis=axis)
+        try:
+            mask = BitMaskArray.concatenate([x._mask for x in to_concat], axis=axis)
+        except NotImplementedError:
+            mask = np.concatenate([x._mask.to_numpy() for x in to_concat], axis=axis)
         return cls(data, mask)
 
     def take(
