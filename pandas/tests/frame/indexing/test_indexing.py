@@ -1251,10 +1251,12 @@ class TestDataFrameIndexing:
 
         result = dg["x", 0]
         tm.assert_series_equal(result, expected)
-    
+
     def test_tuple_string_column_names(self):
         # GH#50372
-        mi = MultiIndex.from_tuples([("a", "aa"), ("a", "ab"), ("b", "ba"), ("b", "bb")])
+        mi = MultiIndex.from_tuples(
+            [("a", "aa"), ("a", "ab"), ("b", "ba"), ("b", "bb")]
+        )
         df = DataFrame([range(0, 4), range(1, 5), range(2, 6)], columns=mi)
         df["single_index"] = 0
 
@@ -1264,8 +1266,8 @@ class TestDataFrameIndexing:
 
         df_flat = df_flat[[("a", "aa"), "new_single_index"]]
 
-        assert df_flat.columns.equals(pd.Index([('a', 'aa'), 'new_single_index']))
-       
+        assert df_flat.columns.equals(Index([("a", "aa"), "new_single_index"]))
+
     def test_getitem_interval_index_partial_indexing(self):
         # GH#36490
         df = DataFrame(
