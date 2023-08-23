@@ -14,4 +14,20 @@
 void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
                            uint8_t *out);
 
-bool BitmapAny(const struct ArrowBitmap* bitmap);
+bool BitmapAny(const struct ArrowBitmap *bitmap);
+bool BitmapAll(const struct ArrowBitmap *bitmap);
+
+/* Returns -1 on failure. On success returns 0 and writes to out */
+int BitmapOr(const struct ArrowBitmap *bitmap1,
+             const struct ArrowBitmap *bitmap2, struct ArrowBitmap *out);
+
+/* Returns -1 on failure. On success returns 0 and writes to out */
+int BitmapXor(const struct ArrowBitmap *bitmap1,
+              const struct ArrowBitmap *bitmap2, struct ArrowBitmap *out);
+
+/* Returns -1 on failure. On success returns 0 and writes to out */
+int BitmapAnd(const struct ArrowBitmap *bitmap1,
+              const struct ArrowBitmap *bitmap2, struct ArrowBitmap *out);
+
+/* Returns -1 on failure. On success returns 0 and writes to out */
+int BitmapInvert(const struct ArrowBitmap *bitmap, struct ArrowBitmap *out);
