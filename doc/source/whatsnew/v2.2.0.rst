@@ -188,7 +188,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
-- When :meth:`.astype(str)` was called on an array that was loaded from pickle, the array might change inplace (:issue:`54654`)
+- Bug in :func:`astype` when called with ``str`` on unpickled array - the array might change in-place (:issue:`54654`)
 -
 
 Strings
