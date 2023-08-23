@@ -2048,6 +2048,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return to_dict(self, orient, into, index)
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "destination_table"], name="to_gbq"
+    )
     def to_gbq(
         self,
         destination_table: str,
