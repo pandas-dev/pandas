@@ -416,6 +416,17 @@ def test_str_escape_error():
     _str_escape(2.00, "bad_escape")  # OK since dtype is float
 
 
+def test_long_int_formatting():
+    df = DataFrame(data=[[1234567890123456789]], columns=["test"])
+    styler = df.style
+    ctx = styler._translate(True, True)
+    assert ctx["body"][0][1]["display_value"] == "1234567890123456789"
+
+    styler = df.style.format(thousands="_")
+    ctx = styler._translate(True, True)
+    assert ctx["body"][0][1]["display_value"] == "1_234_567_890_123_456_789"
+
+
 def test_format_options():
     df = DataFrame({"int": [2000, 1], "float": [1.009, None], "str": ["&<", "&~"]})
     ctx = df.style._translate(True, True)

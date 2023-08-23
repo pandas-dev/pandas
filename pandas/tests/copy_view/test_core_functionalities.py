@@ -47,7 +47,7 @@ def test_setitem_with_view_invalidated_does_not_copy(using_copy_on_write, reques
 
     df["b"] = 100
     arr = get_array(df, "a")
-    view = None  # noqa
+    view = None  # noqa: F841
     df.iloc[0, 0] = 100
     if using_copy_on_write:
         # Setitem split the block. Since the old block shared data with view
@@ -75,14 +75,26 @@ def test_out_of_scope(using_copy_on_write):
 
 
 def test_delete(using_copy_on_write):
-    df = DataFrame(np.random.randn(4, 3), columns=["a", "b", "c"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((4, 3)), columns=["a", "b", "c"]
+    )
     del df["b"]
     if using_copy_on_write:
-        # TODO: This should not have references, delete makes a shallow copy
-        # but keeps the blocks alive
-        assert df._mgr.blocks[0].refs.has_reference()
-        assert df._mgr.blocks[1].refs.has_reference()
+        assert not df._mgr.blocks[0].refs.has_reference()
+        assert not df._mgr.blocks[1].refs.has_reference()
 
     df = df[["a"]]
     if using_copy_on_write:
         assert not df._mgr.blocks[0].refs.has_reference()
+
+
+def test_delete_reference(using_copy_on_write):
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((4, 3)), columns=["a", "b", "c"]
+    )
+    x = df[:]
+    del df["b"]
+    if using_copy_on_write:
+        assert df._mgr.blocks[0].refs.has_reference()
+        assert df._mgr.blocks[1].refs.has_reference()
+        assert x._mgr.blocks[0].refs.has_reference()

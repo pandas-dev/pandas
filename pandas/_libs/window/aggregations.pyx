@@ -26,7 +26,7 @@ import cython
 from pandas._libs.algos import is_monotonic
 
 
-cdef extern from "../src/skiplist.h":
+cdef extern from "pandas/skiplist.h":
     ctypedef struct node_t:
         node_t **next
         int *width
@@ -51,13 +51,13 @@ cdef extern from "../src/skiplist.h":
     int skiplist_min_rank(skiplist_t*, double) nogil
 
 cdef:
-    float32_t MINfloat32 = np.NINF
-    float64_t MINfloat64 = np.NINF
+    float32_t MINfloat32 = -np.inf
+    float64_t MINfloat64 = -np.inf
 
     float32_t MAXfloat32 = np.inf
     float64_t MAXfloat64 = np.inf
 
-    float64_t NaN = <float64_t>np.NaN
+    float64_t NaN = <float64_t>np.nan
 
 cdef bint is_monotonic_increasing_start_end_bounds(
     ndarray[int64_t, ndim=1] start, ndarray[int64_t, ndim=1] end
@@ -70,7 +70,7 @@ cdef bint is_monotonic_increasing_start_end_bounds(
 
 cdef float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x,
                         int64_t num_consecutive_same_value, float64_t prev_value
-                        ) nogil:
+                        ) noexcept nogil:
     cdef:
         float64_t result
 
@@ -89,7 +89,7 @@ cdef float64_t calc_sum(int64_t minp, int64_t nobs, float64_t sum_x,
 
 cdef void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
                   float64_t *compensation, int64_t *num_consecutive_same_value,
-                  float64_t *prev_value) nogil:
+                  float64_t *prev_value) noexcept nogil:
     """ add a value from the sum calc using Kahan summation """
 
     cdef:
@@ -113,7 +113,7 @@ cdef void add_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
 
 
 cdef void remove_sum(float64_t val, int64_t *nobs, float64_t *sum_x,
-                     float64_t *compensation) nogil:
+                     float64_t *compensation) noexcept nogil:
     """ remove a value from the sum calc using Kahan summation """
 
     cdef:
@@ -189,7 +189,7 @@ def roll_sum(const float64_t[:] values, ndarray[int64_t] start,
 
 cdef float64_t calc_mean(int64_t minp, Py_ssize_t nobs, Py_ssize_t neg_ct,
                          float64_t sum_x, int64_t num_consecutive_same_value,
-                         float64_t prev_value) nogil:
+                         float64_t prev_value) noexcept nogil:
     cdef:
         float64_t result
 
@@ -218,7 +218,7 @@ cdef void add_mean(
     float64_t *compensation,
     int64_t *num_consecutive_same_value,
     float64_t *prev_value
-) nogil:
+) noexcept nogil:
     """ add a value from the mean calc using Kahan summation """
     cdef:
         float64_t y, t
@@ -243,7 +243,7 @@ cdef void add_mean(
 
 
 cdef void remove_mean(float64_t val, Py_ssize_t *nobs, float64_t *sum_x,
-                      Py_ssize_t *neg_ct, float64_t *compensation) nogil:
+                      Py_ssize_t *neg_ct, float64_t *compensation) noexcept nogil:
     """ remove a value from the mean calc using Kahan summation """
     cdef:
         float64_t y, t
@@ -324,7 +324,7 @@ cdef float64_t calc_var(
     float64_t nobs,
     float64_t ssqdm_x,
     int64_t num_consecutive_same_value
-) nogil:
+) noexcept nogil:
     cdef:
         float64_t result
 
@@ -350,7 +350,7 @@ cdef void add_var(
     float64_t *compensation,
     int64_t *num_consecutive_same_value,
     float64_t *prev_value,
-) nogil:
+) noexcept nogil:
     """ add a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
@@ -390,7 +390,7 @@ cdef void remove_var(
     float64_t *mean_x,
     float64_t *ssqdm_x,
     float64_t *compensation
-) nogil:
+) noexcept nogil:
     """ remove a value from the var calc """
     cdef:
         float64_t delta, prev_mean, y, t
@@ -482,7 +482,7 @@ def roll_var(const float64_t[:] values, ndarray[int64_t] start,
 cdef float64_t calc_skew(int64_t minp, int64_t nobs,
                          float64_t x, float64_t xx, float64_t xxx,
                          int64_t num_consecutive_same_value
-                         ) nogil:
+                         ) noexcept nogil:
     cdef:
         float64_t result, dnobs
         float64_t A, B, C, R
@@ -528,7 +528,7 @@ cdef void add_skew(float64_t val, int64_t *nobs,
                    float64_t *compensation_xxx,
                    int64_t *num_consecutive_same_value,
                    float64_t *prev_value,
-                   ) nogil:
+                   ) noexcept nogil:
     """ add a value from the skew calc """
     cdef:
         float64_t y, t
@@ -564,7 +564,7 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
                       float64_t *xxx,
                       float64_t *compensation_x,
                       float64_t *compensation_xx,
-                      float64_t *compensation_xxx) nogil:
+                      float64_t *compensation_xxx) noexcept nogil:
     """ remove a value from the skew calc """
     cdef:
         float64_t y, t
@@ -681,7 +681,7 @@ cdef float64_t calc_kurt(int64_t minp, int64_t nobs,
                          float64_t x, float64_t xx,
                          float64_t xxx, float64_t xxxx,
                          int64_t num_consecutive_same_value,
-                         ) nogil:
+                         ) noexcept nogil:
     cdef:
         float64_t result, dnobs
         float64_t A, B, C, D, R, K
@@ -732,7 +732,7 @@ cdef void add_kurt(float64_t val, int64_t *nobs,
                    float64_t *compensation_xxxx,
                    int64_t *num_consecutive_same_value,
                    float64_t *prev_value
-                   ) nogil:
+                   ) noexcept nogil:
     """ add a value from the kurotic calc """
     cdef:
         float64_t y, t
@@ -773,7 +773,7 @@ cdef void remove_kurt(float64_t val, int64_t *nobs,
                       float64_t *compensation_x,
                       float64_t *compensation_xx,
                       float64_t *compensation_xxx,
-                      float64_t *compensation_xxxx) nogil:
+                      float64_t *compensation_xxxx) noexcept nogil:
     """ remove a value from the kurotic calc """
     cdef:
         float64_t y, t
@@ -992,7 +992,7 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 # https://github.com/pydata/bottleneck
 
 
-cdef float64_t init_mm(float64_t ai, Py_ssize_t *nobs, bint is_max) nogil:
+cdef float64_t init_mm(float64_t ai, Py_ssize_t *nobs, bint is_max) noexcept nogil:
 
     if ai == ai:
         nobs[0] = nobs[0] + 1
@@ -1004,14 +1004,14 @@ cdef float64_t init_mm(float64_t ai, Py_ssize_t *nobs, bint is_max) nogil:
     return ai
 
 
-cdef void remove_mm(float64_t aold, Py_ssize_t *nobs) nogil:
+cdef void remove_mm(float64_t aold, Py_ssize_t *nobs) noexcept nogil:
     """ remove a value from the mm calc """
     if aold == aold:
         nobs[0] = nobs[0] - 1
 
 
 cdef float64_t calc_mm(int64_t minp, Py_ssize_t nobs,
-                       float64_t value) nogil:
+                       float64_t value) noexcept nogil:
     cdef:
         float64_t result
 
@@ -1522,7 +1522,7 @@ cdef float64_t calc_weighted_var(float64_t t,
                                  Py_ssize_t win_n,
                                  unsigned int ddof,
                                  float64_t nobs,
-                                 int64_t minp) nogil:
+                                 int64_t minp) noexcept nogil:
     """
     Calculate weighted variance for a window using West's method.
 
@@ -1573,7 +1573,7 @@ cdef void add_weighted_var(float64_t val,
                            float64_t *t,
                            float64_t *sum_w,
                            float64_t *mean,
-                           float64_t *nobs) nogil:
+                           float64_t *nobs) noexcept nogil:
     """
     Update weighted mean, sum of weights and sum of weighted squared
     differences to include value and weight pair in weighted variance
@@ -1619,7 +1619,7 @@ cdef void remove_weighted_var(float64_t val,
                               float64_t *t,
                               float64_t *sum_w,
                               float64_t *mean,
-                              float64_t *nobs) nogil:
+                              float64_t *nobs) noexcept nogil:
     """
     Update weighted mean, sum of weights and sum of weighted squared
     differences to remove value and weight pair from weighted variance

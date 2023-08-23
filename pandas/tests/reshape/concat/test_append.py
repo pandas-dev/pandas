@@ -123,9 +123,9 @@ class TestAppend:
     def test_append_different_columns(self, sort):
         df = DataFrame(
             {
-                "bools": np.random.randn(10) > 0,
-                "ints": np.random.randint(0, 10, 10),
-                "floats": np.random.randn(10),
+                "bools": np.random.default_rng(2).standard_normal(10) > 0,
+                "ints": np.random.default_rng(2).integers(0, 10, 10),
+                "floats": np.random.default_rng(2).standard_normal(10),
                 "strings": ["foo", "bar"] * 5,
             }
         )
@@ -162,7 +162,9 @@ class TestAppend:
         df2 = DataFrame(data=[[1, 4, 7], [2, 5, 8], [3, 6, 9]], columns=["A", "B", "C"])
         df2 = df2.set_index(["A"])
 
-        result = df1._append(df2)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df1._append(df2)
         assert result.index.name == "A"
 
     indexes_can_append = [
@@ -326,20 +328,22 @@ class TestAppend:
         result = df._append([ser, ser], ignore_index=True)
         tm.assert_frame_equal(result, expected)
 
-    def test_append_empty_tz_frame_with_datetime64ns(self):
+    def test_append_empty_tz_frame_with_datetime64ns(self, using_array_manager):
         # https://github.com/pandas-dev/pandas/issues/35460
         df = DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
 
         # pd.NaT gets inferred as tz-naive, so append result is tz-naive
         result = df._append({"a": pd.NaT}, ignore_index=True)
-        expected = DataFrame({"a": [pd.NaT]}).astype(object)
+        if using_array_manager:
+            expected = DataFrame({"a": [pd.NaT]}, dtype=object)
+        else:
+            expected = DataFrame({"a": [np.nan]}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
         # also test with typed value to append
         df = DataFrame(columns=["a"]).astype("datetime64[ns, UTC]")
         other = Series({"a": pd.NaT}, dtype="datetime64[ns]")
         result = df._append(other, ignore_index=True)
-        expected = DataFrame({"a": [pd.NaT]}).astype(object)
         tm.assert_frame_equal(result, expected)
 
         # mismatched tz
@@ -352,7 +356,9 @@ class TestAppend:
         "dtype_str", ["datetime64[ns, UTC]", "datetime64[ns]", "Int64", "int64"]
     )
     @pytest.mark.parametrize("val", [1, "NaT"])
-    def test_append_empty_frame_with_timedelta64ns_nat(self, dtype_str, val):
+    def test_append_empty_frame_with_timedelta64ns_nat(
+        self, dtype_str, val, using_array_manager
+    ):
         # https://github.com/pandas-dev/pandas/issues/35460
         df = DataFrame(columns=["a"]).astype(dtype_str)
 
@@ -360,6 +366,12 @@ class TestAppend:
         result = df._append(other, ignore_index=True)
 
         expected = other.astype(object)
+        if isinstance(val, str) and dtype_str != "int64" and not using_array_manager:
+            # TODO: expected used to be `other.astype(object)` which is a more
+            #  reasonable result.  This was changed when tightening
+            #  assert_frame_equal's treatment of mismatched NAs to match the
+            #  existing behavior.
+            expected = DataFrame({"a": [np.nan]}, dtype=object)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(

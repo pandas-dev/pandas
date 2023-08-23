@@ -214,10 +214,15 @@ class TestTimedeltas:
         actual = to_timedelta(ser)
         tm.assert_series_equal(actual, expected)
 
-    @pytest.mark.parametrize("val", [np.nan, pd.NaT])
+    @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
     def test_to_timedelta_on_missing_values_scalar(self, val):
         actual = to_timedelta(val)
         assert actual._value == np.timedelta64("NaT").astype("int64")
+
+    @pytest.mark.parametrize("val", [np.nan, pd.NaT, pd.NA])
+    def test_to_timedelta_on_missing_values_list(self, val):
+        actual = to_timedelta([val])
+        assert actual[0]._value == np.timedelta64("NaT").astype("int64")
 
     def test_to_timedelta_float(self):
         # https://github.com/pandas-dev/pandas/issues/25077
@@ -288,6 +293,11 @@ class TestTimedeltas:
         expected = Series([pd.Timedelta(1, unit="ns"), pd.NaT])
         tm.assert_series_equal(result, expected)
 
+    def test_to_timedelta_fraction(self):
+        result = to_timedelta(1.0 / 3, unit="h")
+        expected = pd.Timedelta("0 days 00:19:59.999999998")
+        assert result == expected
+
 
 def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     # GH 52425
@@ -295,4 +305,13 @@ def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
     ser = Series([1, 2], dtype=f"{any_numeric_ea_dtype.lower()}[pyarrow]")
     result = to_timedelta(ser)
     expected = Series([1, 2], dtype="timedelta64[ns]")
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("unit", ["ns", "ms"])
+def test_from_timedelta_arrow_dtype(unit):
+    # GH 54298
+    pytest.importorskip("pyarrow")
+    expected = Series([timedelta(1)], dtype=f"duration[{unit}][pyarrow]")
+    result = to_timedelta(expected)
     tm.assert_series_equal(result, expected)

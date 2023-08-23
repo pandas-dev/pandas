@@ -12,14 +12,11 @@ from abc import (
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Sequence,
     cast,
 )
 
 import numpy as np
 
-from pandas._libs import lib
 from pandas._libs.tslibs import Timestamp
 from pandas._typing import (
     DtypeObj,
@@ -33,17 +30,22 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     DatetimeTZDtype,
     ExtensionDtype,
 )
 
-from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.arrays.floating import Float64Dtype
 from pandas.core.reshape.concat import concat
 
 from pandas.io.formats.format import format_percentiles
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -194,16 +196,18 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
                 include=self.include,
                 exclude=self.exclude,
             )
-        return data  # pyright: ignore
+        return data  # pyright: ignore[reportGeneralTypeIssues]
 
 
 def reorder_columns(ldesc: Sequence[Series]) -> list[Hashable]:
     """Set a convenient order for rows for display."""
     names: list[Hashable] = []
+    seen_names: set[Hashable] = set()
     ldesc_indexes = sorted((x.index for x in ldesc), key=len)
     for idxnames in ldesc_indexes:
         for name in idxnames:
-            if name not in names:
+            if name not in seen_names:
+                seen_names.add(name)
                 names.append(name)
     return names
 
@@ -232,9 +236,13 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
     dtype: DtypeObj | None
     if isinstance(series.dtype, ExtensionDtype):
         if isinstance(series.dtype, ArrowDtype):
-            import pyarrow as pa
+            if series.dtype.kind == "m":
+                # GH53001: describe timedeltas with object dtype
+                dtype = None
+            else:
+                import pyarrow as pa
 
-            dtype = ArrowDtype(pa.float64())
+                dtype = ArrowDtype(pa.float64())
         else:
             dtype = Float64Dtype()
     elif series.dtype.kind in "iufb":
@@ -363,9 +371,9 @@ def select_describe_func(
         return describe_categorical_1d
     elif is_numeric_dtype(data):
         return describe_numeric_1d
-    elif lib.is_np_dtype(data.dtype, "M") or isinstance(data.dtype, DatetimeTZDtype):
+    elif data.dtype.kind == "M" or isinstance(data.dtype, DatetimeTZDtype):
         return describe_timestamp_1d
-    elif lib.is_np_dtype(data.dtype, "m"):
+    elif data.dtype.kind == "m":
         return describe_numeric_1d
     else:
         return describe_categorical_1d

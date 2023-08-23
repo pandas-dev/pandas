@@ -2,10 +2,6 @@
 
 from datetime import datetime
 import re
-from warnings import (
-    catch_warnings,
-    simplefilter,
-)
 
 import numpy as np
 import pytest
@@ -152,7 +148,7 @@ class TestiLocBaseIndependent:
     def test_iloc_exceeds_bounds(self):
         # GH6296
         # iloc should allow indexers that exceed the bounds
-        df = DataFrame(np.random.random_sample((20, 5)), columns=list("ABCDE"))
+        df = DataFrame(np.random.default_rng(2).random((20, 5)), columns=list("ABCDE"))
 
         # lists of positions should raise IndexError!
         msg = "positional indexers are out-of-bounds"
@@ -238,7 +234,9 @@ class TestiLocBaseIndependent:
             result.dtypes
             tm.assert_frame_equal(result, expected)
 
-        dfl = DataFrame(np.random.randn(5, 2), columns=list("AB"))
+        dfl = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 2)), columns=list("AB")
+        )
         check(dfl.iloc[:, 2:3], DataFrame(index=dfl.index, columns=[]))
         check(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
         check(dfl.iloc[4:6], dfl.iloc[[4]])
@@ -262,7 +260,9 @@ class TestiLocBaseIndependent:
     def test_iloc_non_integer_raises(self, index, columns, index_vals, column_vals):
         # GH 25753
         df = DataFrame(
-            np.random.randn(len(index), len(columns)), index=index, columns=columns
+            np.random.default_rng(2).standard_normal((len(index), len(columns))),
+            index=index,
+            columns=columns,
         )
         msg = ".iloc requires numeric indexers, got"
         with pytest.raises(IndexError, match=msg):
@@ -401,9 +401,13 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
     def test_iloc_getitem_slice_dups(self):
-        df1 = DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"])
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            columns=["A", "A", "B", "B"],
+        )
         df2 = DataFrame(
-            np.random.randint(0, 10, size=20).reshape(10, 2), columns=["A", "C"]
+            np.random.default_rng(2).integers(0, 10, size=20).reshape(10, 2),
+            columns=["A", "C"],
         )
 
         # axis=1
@@ -427,7 +431,9 @@ class TestiLocBaseIndependent:
 
     def test_iloc_setitem(self):
         df = DataFrame(
-            np.random.randn(4, 4), index=np.arange(0, 8, 2), columns=np.arange(0, 12, 3)
+            np.random.default_rng(2).standard_normal((4, 4)),
+            index=np.arange(0, 8, 2),
+            columns=np.arange(0, 12, 3),
         )
 
         df.iloc[1, 1] = 1
@@ -543,7 +549,9 @@ class TestiLocBaseIndependent:
     #  is redundant with another test comparing iloc against loc
     def test_iloc_getitem_frame(self):
         df = DataFrame(
-            np.random.randn(10, 4), index=range(0, 20, 2), columns=range(0, 8, 2)
+            np.random.default_rng(2).standard_normal((10, 4)),
+            index=range(0, 20, 2),
+            columns=range(0, 8, 2),
         )
 
         result = df.iloc[2]
@@ -591,7 +599,9 @@ class TestiLocBaseIndependent:
     def test_iloc_getitem_labelled_frame(self):
         # try with labelled frame
         df = DataFrame(
-            np.random.randn(10, 4), index=list("abcdefghij"), columns=list("ABCD")
+            np.random.default_rng(2).standard_normal((10, 4)),
+            index=list("abcdefghij"),
+            columns=list("ABCD"),
         )
 
         result = df.iloc[1, 1]
@@ -625,7 +635,7 @@ class TestiLocBaseIndependent:
         # multi axis slicing issue with single block
         # surfaced in GH 6059
 
-        arr = np.random.randn(6, 4)
+        arr = np.random.default_rng(2).standard_normal((6, 4))
         index = date_range("20130101", periods=6)
         columns = list("ABCD")
         df = DataFrame(arr, index=index, columns=columns)
@@ -650,7 +660,7 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(result, expected)
 
         # related
-        arr = np.random.randn(6, 4)
+        arr = np.random.default_rng(2).standard_normal((6, 4))
         index = list(range(0, 12, 2))
         columns = list(range(0, 8, 2))
         df = DataFrame(arr, index=index, columns=columns)
@@ -665,7 +675,9 @@ class TestiLocBaseIndependent:
 
     def test_iloc_setitem_series(self):
         df = DataFrame(
-            np.random.randn(10, 4), index=list("abcdefghij"), columns=list("ABCD")
+            np.random.default_rng(2).standard_normal((10, 4)),
+            index=list("abcdefghij"),
+            columns=list("ABCD"),
         )
 
         df.iloc[1, 1] = 1
@@ -677,7 +689,7 @@ class TestiLocBaseIndependent:
         result = df.iloc[:, 2:3]
         tm.assert_frame_equal(result, expected)
 
-        s = Series(np.random.randn(10), index=range(0, 20, 2))
+        s = Series(np.random.default_rng(2).standard_normal(10), index=range(0, 20, 2))
 
         s.iloc[1] = 1
         result = s.iloc[1]
@@ -719,12 +731,14 @@ class TestiLocBaseIndependent:
         # assigning like "df.iloc[0, [0]] = ['Z']" should be evaluated
         # elementwisely, not using "setter('A', ['Z'])".
 
-        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"])
+        # Set object type to avoid upcast when setting "Z"
+        df = DataFrame([[1, 2], [3, 4]], columns=["A", "B"]).astype({"A": object})
         df.iloc[0, indexer] = value
         result = df.iloc[0, 0]
 
         assert is_scalar(result) and result == "Z"
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     def test_iloc_mask(self):
         # GH 3631, iloc with a mask (of a series) should raise
         df = DataFrame(list(range(5)), index=list("ABCDE"), columns=["a"])
@@ -769,31 +783,30 @@ class TestiLocBaseIndependent:
         }
 
         # UserWarnings from reindex of a boolean mask
-        with catch_warnings(record=True):
-            simplefilter("ignore", UserWarning)
-            for idx in [None, "index", "locs"]:
-                mask = (df.nums > 2).values
-                if idx:
-                    mask = Series(mask, list(reversed(getattr(df, idx))))
-                for method in ["", ".loc", ".iloc"]:
-                    try:
-                        if method:
-                            accessor = getattr(df, method[1:])
-                        else:
-                            accessor = df
-                        answer = str(bin(accessor[mask]["nums"].sum()))
-                    except (ValueError, IndexingError, NotImplementedError) as e:
-                        answer = str(e)
+        for idx in [None, "index", "locs"]:
+            mask = (df.nums > 2).values
+            if idx:
+                mask_index = getattr(df, idx)[::-1]
+                mask = Series(mask, list(mask_index))
+            for method in ["", ".loc", ".iloc"]:
+                try:
+                    if method:
+                        accessor = getattr(df, method[1:])
+                    else:
+                        accessor = df
+                    answer = str(bin(accessor[mask]["nums"].sum()))
+                except (ValueError, IndexingError, NotImplementedError) as e:
+                    answer = str(e)
 
-                    key = (
-                        idx,
-                        method,
+                key = (
+                    idx,
+                    method,
+                )
+                r = expected.get(key)
+                if r != answer:
+                    raise AssertionError(
+                        f"[{key}] does not match [{answer}], received [{r}]"
                     )
-                    r = expected.get(key)
-                    if r != answer:
-                        raise AssertionError(
-                            f"[{key}] does not match [{answer}], received [{r}]"
-                        )
 
     def test_iloc_non_unique_indexing(self):
         # GH 4017, non-unique indexing (on the axis)
@@ -960,8 +973,12 @@ class TestiLocBaseIndependent:
 
     def test_iloc_setitem_empty_frame_raises_with_3d_ndarray(self):
         idx = Index([])
-        obj = DataFrame(np.random.randn(len(idx), len(idx)), index=idx, columns=idx)
-        nd3 = np.random.randint(5, size=(2, 2, 2))
+        obj = DataFrame(
+            np.random.default_rng(2).standard_normal((len(idx), len(idx))),
+            index=idx,
+            columns=idx,
+        )
+        nd3 = np.random.default_rng(2).integers(5, size=(2, 2, 2))
 
         msg = f"Cannot set values with ndim > {obj.ndim}"
         with pytest.raises(ValueError, match=msg):
@@ -1038,7 +1055,9 @@ class TestiLocBaseIndependent:
 
     def test_iloc_getitem_float_duplicates(self):
         df = DataFrame(
-            np.random.randn(3, 3), index=[0.1, 0.2, 0.2], columns=list("abc")
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=[0.1, 0.2, 0.2],
+            columns=list("abc"),
         )
         expect = df.iloc[1:]
         tm.assert_frame_equal(df.loc[0.2], expect)
@@ -1054,7 +1073,9 @@ class TestiLocBaseIndependent:
         tm.assert_series_equal(df.loc[0.2, "a"], expect)
 
         df = DataFrame(
-            np.random.randn(4, 3), index=[1, 0.2, 0.2, 1], columns=list("abc")
+            np.random.default_rng(2).standard_normal((4, 3)),
+            index=[1, 0.2, 0.2, 1],
+            columns=list("abc"),
         )
         expect = df.iloc[1:-1]
         tm.assert_frame_equal(df.loc[0.2], expect)
@@ -1104,7 +1125,11 @@ class TestiLocBaseIndependent:
         tm.assert_frame_equal(result, df)
 
     def test_iloc_getitem_with_duplicates(self):
-        df = DataFrame(np.random.rand(3, 3), columns=list("ABC"), index=list("aab"))
+        df = DataFrame(
+            np.random.default_rng(2).random((3, 3)),
+            columns=list("ABC"),
+            index=list("aab"),
+        )
 
         result = df.iloc[0]
         assert isinstance(result, Series)
@@ -1388,7 +1413,9 @@ class TestILocCallable:
 
 class TestILocSeries:
     def test_iloc(self, using_copy_on_write):
-        ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+        ser = Series(
+            np.random.default_rng(2).standard_normal(10), index=list(range(0, 20, 2))
+        )
         ser_original = ser.copy()
 
         for i in range(len(ser)):

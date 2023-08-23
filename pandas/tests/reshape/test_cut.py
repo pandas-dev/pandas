@@ -239,7 +239,7 @@ def test_labels(right, breaks, closed):
 
 def test_cut_pass_series_name_to_factor():
     name = "foo"
-    ser = Series(np.random.randn(100), name=name)
+    ser = Series(np.random.default_rng(2).standard_normal(100), name=name)
 
     factor = cut(ser, 4)
     assert factor.name == name
@@ -283,7 +283,7 @@ def test_inf_handling():
 
 
 def test_cut_out_of_bounds():
-    arr = np.random.randn(100)
+    arr = np.random.default_rng(2).standard_normal(100)
     result = cut(arr, [-1, 0, 1])
 
     mask = isna(result)
@@ -393,7 +393,7 @@ def test_cut_duplicates_bin(kwargs, msg):
             cut(values, bins, **kwargs)
     else:
         result = cut(values, bins, **kwargs)
-        expected = cut(values, pd.unique(bins))
+        expected = cut(values, pd.unique(np.asarray(bins)))
         tm.assert_series_equal(result, expected)
 
 
@@ -618,7 +618,7 @@ def test_cut_incorrect_labels(labels):
 @pytest.mark.parametrize("right", [True, False])
 @pytest.mark.parametrize("include_lowest", [True, False])
 def test_cut_nullable_integer(bins, right, include_lowest):
-    a = np.random.randint(0, 10, size=50).astype(float)
+    a = np.random.default_rng(2).integers(0, 10, size=50).astype(float)
     a[::2] = np.nan
     result = cut(
         pd.array(a, dtype="Int64"), bins, right=right, include_lowest=include_lowest
@@ -677,7 +677,7 @@ def test_cut_unordered_with_series_labels():
 
 
 def test_cut_no_warnings():
-    df = DataFrame({"value": np.random.randint(0, 100, 20)})
+    df = DataFrame({"value": np.random.default_rng(2).integers(0, 100, 20)})
     labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
     with tm.assert_produces_warning(False):
         df["group"] = cut(df.value, range(0, 105, 10), right=False, labels=labels)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    ClassVar,
     Literal,
 )
 
@@ -26,7 +27,6 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
-    is_dtype_equal,
     is_integer_dtype,
     is_object_dtype,
     is_string_dtype,
@@ -44,7 +44,7 @@ from pandas.core.arrays.integer import (
     IntegerArray,
     IntegerDtype,
 )
-from pandas.core.arrays.numpy_ import PandasArray
+from pandas.core.arrays.numpy_ import NumpyExtensionArray
 from pandas.core.construction import extract_array
 from pandas.core.indexers import check_array_indexer
 from pandas.core.missing import isna
@@ -97,7 +97,9 @@ class StringDtype(StorageExtensionDtype):
     string[pyarrow]
     """
 
-    name = "string"
+    # error: Cannot override instance variable (previously declared on
+    # base class "StorageExtensionDtype") with class variable
+    name: ClassVar[str] = "string"  # type: ignore[misc]
 
     #: StringDtype().na_value uses pandas.NA
     @property
@@ -232,7 +234,7 @@ class BaseStringArray(ExtensionArray):
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
 # incompatible with definition in base class "ExtensionArray"
-class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
+class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     """
     Extension array for string data.
 
@@ -295,7 +297,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     will convert the values to strings.
 
     >>> pd.array(['1', 1], dtype="object")
-    <PandasArray>
+    <NumpyExtensionArray>
     ['1', 1]
     Length: 2, dtype: object
     >>> pd.array(['1', 1], dtype="string")
@@ -313,7 +315,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     Length: 3, dtype: boolean
     """
 
-    # undo the PandasArray hack
+    # undo the NumpyExtensionArray hack
     _typ = "extension"
 
     def __init__(self, values, copy: bool = False) -> None:
@@ -356,7 +358,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
             result[na_values] = libmissing.NA
 
         else:
-            if hasattr(scalars, "type"):
+            if lib.is_pyarrow_array(scalars):
                 # pyarrow array; we cannot rely on the "to_numpy" check in
                 #  ensure_string_array because calling scalars.to_numpy would set
                 #  zero_copy_only to True which caused problems see GH#52076
@@ -402,10 +404,10 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         arr[mask] = None
         return arr, None
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value) -> None:
         value = extract_array(value, extract_numpy=True)
         if isinstance(value, type(self)):
-            # extract_array doesn't extract PandasArray subclasses
+            # extract_array doesn't extract NumpyExtensionArray subclasses
             value = value._ndarray
 
         key = check_array_indexer(self, key)
@@ -444,7 +446,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     def astype(self, dtype, copy: bool = True):
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
@@ -462,7 +464,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
             values = arr.astype(dtype.numpy_dtype)
             return FloatingArray(values, mask, copy=False)
         elif isinstance(dtype, ExtensionDtype):
-            # Skip the PandasArray.astype method
+            # Skip the NumpyExtensionArray.astype method
             return ExtensionArray.astype(self, dtype, copy)
         elif np.issubdtype(dtype, np.floating):
             arr = self._ndarray.copy()
@@ -497,7 +499,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna: bool = True) -> Series:
-        from pandas import value_counts
+        from pandas.core.algorithms import value_counts_internal as value_counts
 
         result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
         result.index = result.index.astype(self.dtype)
@@ -514,7 +516,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         if self._hasna:
             raise ValueError(
@@ -558,7 +560,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
     # ------------------------------------------------------------------------
     # String methods interface
     # error: Incompatible types in assignment (expression has type "NAType",
-    # base class "PandasArray" defined the type as "float")
+    # base class "NumpyExtensionArray" defined the type as "float")
     _str_na_value = libmissing.NA  # type: ignore[assignment]
 
     def _str_map(
@@ -575,7 +577,7 @@ class StringArray(BaseStringArray, PandasArray):  # type: ignore[misc]
         arr = np.asarray(self)
 
         if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray] | type[BooleanArray]
+            constructor: type[IntegerArray | BooleanArray]
             if is_integer_dtype(dtype):
                 constructor = IntegerArray
             else:

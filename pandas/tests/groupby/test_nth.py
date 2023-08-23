@@ -154,7 +154,7 @@ def test_first_last_nth_dtypes(df_mixed_floats):
 
 def test_first_last_nth_nan_dtype():
     # GH 33591
-    df = DataFrame({"data": ["A"], "nans": Series([np.nan], dtype=object)})
+    df = DataFrame({"data": ["A"], "nans": Series([None], dtype=object)})
     grouped = df.groupby("data")
 
     expected = df.set_index("data").nans
@@ -238,7 +238,7 @@ def test_nth():
 
     # GH 7559
     # from the vbench
-    df = DataFrame(np.random.randint(1, 10, (100, 2)), dtype="int64")
+    df = DataFrame(np.random.default_rng(2).integers(1, 10, (100, 2)), dtype="int64")
     s = df[1]
     g = df[0]
     expected = s.groupby(g).first()
@@ -852,3 +852,24 @@ def test_head_tail_dropna_false():
 
     result = df.groupby(["X", "Y"], dropna=False).nth(n=0)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("selection", ("b", ["b"], ["b", "c"]))
+@pytest.mark.parametrize("dropna", ["any", "all", None])
+def test_nth_after_selection(selection, dropna):
+    # GH#11038, GH#53518
+    df = DataFrame(
+        {
+            "a": [1, 1, 2],
+            "b": [np.nan, 3, 4],
+            "c": [5, 6, 7],
+        }
+    )
+    gb = df.groupby("a")[selection]
+    result = gb.nth(0, dropna=dropna)
+    if dropna == "any" or (dropna == "all" and selection != ["b", "c"]):
+        locs = [1, 2]
+    else:
+        locs = [0, 2]
+    expected = df.loc[locs, selection]
+    tm.assert_equal(result, expected)

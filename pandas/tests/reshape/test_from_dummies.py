@@ -163,6 +163,8 @@ def test_error_with_prefix_default_category_dict_not_complete(
 
 
 def test_error_with_prefix_contains_nan(dummies_basic):
+    # Set float64 dtype to avoid upcast when setting np.nan
+    dummies_basic["col2_c"] = dummies_basic["col2_c"].astype("float64")
     dummies_basic.loc[2, "col2_c"] = np.nan
     with pytest.raises(
         ValueError, match=r"Dummy DataFrame contains NA value in column: 'col2_c'"
@@ -171,6 +173,8 @@ def test_error_with_prefix_contains_nan(dummies_basic):
 
 
 def test_error_with_prefix_contains_non_dummies(dummies_basic):
+    # Set object dtype to avoid upcast when setting "str"
+    dummies_basic["col2_c"] = dummies_basic["col2_c"].astype(object)
     dummies_basic.loc[2, "col2_c"] = "str"
     with pytest.raises(TypeError, match=r"Passed DataFrame contains non-dummy data"):
         from_dummies(dummies_basic, sep="_")
@@ -253,7 +257,7 @@ def test_no_prefix_int_cats_basic():
     dummies = DataFrame(
         {1: [1, 0, 0, 0], 25: [0, 1, 0, 0], 2: [0, 0, 1, 0], 5: [0, 0, 0, 1]}
     )
-    expected = DataFrame({"": [1, 25, 2, 5]}, dtype="object")
+    expected = DataFrame({"": [1, 25, 2, 5]})
     result = from_dummies(dummies)
     tm.assert_frame_equal(result, expected)
 
@@ -262,7 +266,7 @@ def test_no_prefix_float_cats_basic():
     dummies = DataFrame(
         {1.0: [1, 0, 0, 0], 25.0: [0, 1, 0, 0], 2.5: [0, 0, 1, 0], 5.84: [0, 0, 0, 1]}
     )
-    expected = DataFrame({"": [1.0, 25.0, 2.5, 5.84]}, dtype="object")
+    expected = DataFrame({"": [1.0, 25.0, 2.5, 5.84]})
     result = from_dummies(dummies)
     tm.assert_frame_equal(result, expected)
 
@@ -394,4 +398,46 @@ def test_with_prefix_default_category(
     result = from_dummies(
         dummies_with_unassigned, sep="_", default_category=default_category
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ea_categories():
+    # GH 54300
+    df = DataFrame({"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]})
+    df.columns = df.columns.astype("string[python]")
+    result = from_dummies(df)
+    expected = DataFrame({"": Series(list("abca"), dtype="string[python]")})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ea_categories_with_sep():
+    # GH 54300
+    df = DataFrame(
+        {
+            "col1_a": [1, 0, 1],
+            "col1_b": [0, 1, 0],
+            "col2_a": [0, 1, 0],
+            "col2_b": [1, 0, 0],
+            "col2_c": [0, 0, 1],
+        }
+    )
+    df.columns = df.columns.astype("string[python]")
+    result = from_dummies(df, sep="_")
+    expected = DataFrame(
+        {
+            "col1": Series(list("aba"), dtype="string[python]"),
+            "col2": Series(list("bac"), dtype="string[python]"),
+        }
+    )
+    expected.columns = expected.columns.astype("string[python]")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_maintain_original_index():
+    # GH 54300
+    df = DataFrame(
+        {"a": [1, 0, 0, 1], "b": [0, 1, 0, 0], "c": [0, 0, 1, 0]}, index=list("abcd")
+    )
+    result = from_dummies(df)
+    expected = DataFrame({"": list("abca")}, index=list("abcd"))
     tm.assert_frame_equal(result, expected)

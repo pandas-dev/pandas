@@ -4,7 +4,6 @@ from cpython.datetime cimport (
     PyDelta_Check,
     datetime,
     import_datetime,
-    timedelta,
 )
 
 import_datetime()
@@ -257,7 +256,16 @@ cdef class _NaT(datetime):
 
     def to_datetime64(self) -> np.datetime64:
         """
-        Return a numpy.datetime64 object with 'ns' precision.
+        Return a numpy.datetime64 object with same precision.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(year=2023, month=1, day=1,
+        ...                   hour=10, second=15)
+        >>> ts
+        Timestamp('2023-01-01 10:00:15')
+        >>> ts.to_datetime64()
+        numpy.datetime64('2023-01-01T10:00:15.000000')
         """
         return np.datetime64("NaT", "ns")
 
@@ -351,6 +359,13 @@ cdef class _NaT(datetime):
 class NaTType(_NaT):
     """
     (N)ot-(A)-(T)ime, the time equivalent of NaN.
+
+    Examples
+    --------
+    >>> pd.DataFrame([pd.Timestamp("2023"), np.nan], columns=["col_1"])
+            col_1
+    0  2023-01-01
+    1         NaT
     """
 
     def __new__(cls):
@@ -430,6 +445,14 @@ class NaTType(_NaT):
         Return the day of the week represented by the date.
 
         Monday == 0 ... Sunday == 6.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01')
+        >>> ts
+        Timestamp('2023-01-01  00:00:00')
+        >>> ts.weekday()
+        6
         """,
     )
     isoweekday = _make_nan_func(
@@ -438,9 +461,30 @@ class NaTType(_NaT):
         Return the day of the week represented by the date.
 
         Monday == 1 ... Sunday == 7.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.isoweekday()
+        7
         """,
     )
-    total_seconds = _make_nan_func("total_seconds", timedelta.total_seconds.__doc__)
+    total_seconds = _make_nan_func(
+        "total_seconds",
+        """
+        Total seconds in the duration.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1min')
+        >>> td
+        Timedelta('0 days 00:01:00')
+        >>> td.total_seconds()
+        60.0
+        """,
+    )
     month_name = _make_nan_func(
         "month_name",
         """
@@ -494,18 +538,6 @@ class NaTType(_NaT):
         """,
     )
     # _nat_methods
-    date = _make_nat_func("date", datetime.date.__doc__)
-
-    utctimetuple = _make_error_func("utctimetuple", datetime)
-    timetz = _make_error_func("timetz", datetime)
-    timetuple = _make_error_func("timetuple", datetime)
-    isocalendar = _make_error_func("isocalendar", datetime)
-    dst = _make_error_func("dst", datetime)
-    ctime = _make_error_func("ctime", datetime)
-    time = _make_error_func("time", datetime)
-    toordinal = _make_error_func("toordinal", datetime)
-    tzname = _make_error_func("tzname", datetime)
-    utcoffset = _make_error_func("utcoffset", datetime)
 
     # "fromisocalendar" was introduced in 3.8
     fromisocalendar = _make_error_func("fromisocalendar", datetime)
@@ -513,6 +545,162 @@ class NaTType(_NaT):
     # ----------------------------------------------------------------------
     # The remaining methods have docstrings copy/pasted from the analogous
     # Timestamp methods.
+    isocalendar = _make_error_func(
+        "isocalendar",
+        """
+        Return a named tuple containing ISO year, week number, and weekday.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.isocalendar()
+        datetime.IsoCalendarDate(year=2022, week=52, weekday=7)
+        """
+        )
+    dst = _make_error_func(
+        "dst",
+        """
+        Return the daylight saving time (DST) adjustment.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2000-06-01 00:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2000-06-01 00:00:00+0200', tz='Europe/Brussels')
+        >>> ts.dst()
+        datetime.timedelta(seconds=3600)
+        """
+        )
+    date = _make_nat_func(
+        "date",
+        """
+        Return date object with same year, month and day.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00.00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.date()
+        datetime.date(2023, 1, 1)
+        """
+        )
+    utctimetuple = _make_error_func(
+        "utctimetuple",
+        """
+        Return UTC time tuple, compatible with time.localtime().
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.utctimetuple()
+        time.struct_time(tm_year=2023, tm_mon=1, tm_mday=1, tm_hour=9,
+        tm_min=0, tm_sec=0, tm_wday=6, tm_yday=1, tm_isdst=0)
+        """
+        )
+    utcoffset = _make_error_func(
+        "utcoffset",
+        """
+        Return utc offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.utcoffset()
+        datetime.timedelta(seconds=3600)
+        """
+        )
+    tzname = _make_error_func(
+        "tzname",
+        """
+        Return time zone name.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.tzname()
+        'CET'
+        """
+        )
+    time = _make_error_func(
+        "time",
+        """
+        Return time object with same time but with tzinfo=None.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.time()
+        datetime.time(10, 0)
+        """,
+        )
+    timetuple = _make_error_func(
+        "timetuple",
+        """
+        Return time tuple, compatible with time.localtime().
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.timetuple()
+        time.struct_time(tm_year=2023, tm_mon=1, tm_mday=1,
+        tm_hour=10, tm_min=0, tm_sec=0, tm_wday=6, tm_yday=1, tm_isdst=-1)
+        """
+        )
+    timetz = _make_error_func(
+        "timetz",
+        """
+        Return time object with same time and tzinfo.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.timetz()
+        datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
+        """
+        )
+    toordinal = _make_error_func(
+        "toordinal",
+        """
+        Return proleptic Gregorian ordinal. January 1 of year 1 is day 1.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:50')
+        >>> ts
+        Timestamp('2023-01-01 10:00:50')
+        >>> ts.toordinal()
+        738521
+        """
+        )
+    ctime = _make_error_func(
+        "ctime",
+        """
+        Return ctime() style string.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00.00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.ctime()
+        'Sun Jan  1 10:00:00 2023'
+        """,
+    )
 
     strftime = _make_error_func(
         "strftime",
@@ -540,6 +728,12 @@ class NaTType(_NaT):
         Timestamp.strptime(string, format)
 
         Function is not implemented. Use pd.to_datetime().
+
+        Examples
+        --------
+        >>> pd.Timestamp.strptime("2023-01-01", "%d/%m/%y")
+        Traceback (most recent call last):
+        NotImplementedError
         """,
     )
 
@@ -1210,6 +1404,19 @@ default 'raise'
         Returns
         -------
         Timestamp
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 00:00:00.01')
+        >>> ts
+        Timestamp('2023-01-01 00:00:00.010000')
+        >>> ts.unit
+        'ms'
+        >>> ts = ts.as_unit('s')
+        >>> ts
+        Timestamp('2023-01-01 00:00:00')
+        >>> ts.unit
+        's'
         """
         return c_NaT
 

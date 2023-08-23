@@ -30,10 +30,10 @@ from datetime import (
 from decimal import Decimal
 import operator
 import os
+from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterator,
 )
 
 from dateutil.tz import (
@@ -72,6 +72,12 @@ from pandas.core.indexes.api import (
     MultiIndex,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
+
 try:
     import pyarrow as pa
 except ImportError:
@@ -96,9 +102,9 @@ except zoneinfo.ZoneInfoNotFoundError:
 
 def pytest_addoption(parser) -> None:
     parser.addoption(
-        "--strict-data-files",
-        action="store_true",
-        help="Fail if a test is skipped for missing data file.",
+        "--no-strict-data-files",
+        action="store_false",
+        help="Don't fail if a test is skipped for missing data file.",
     )
 
 
@@ -134,6 +140,12 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_datetime64tz_dtype", "is_datetime64tz_dtype is deprecated"),
         ("is_categorical_dtype", "is_categorical_dtype is deprecated"),
         ("is_sparse", "is_sparse is deprecated"),
+        ("NDFrame.replace", "The 'method' keyword"),
+        ("NDFrame.replace", "Series.replace without 'value'"),
+        ("Series.idxmin", "The behavior of Series.idxmin"),
+        ("Series.idxmax", "The behavior of Series.idxmax"),
+        ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
+        ("SeriesGroupBy.idxmax", "The behavior of Series.idxmax"),
         # Docstring divides by zero to show behavior difference
         ("missing.mask_zero_div_zero", "divide by zero encountered"),
         (
@@ -144,6 +156,23 @@ def pytest_collection_modifyitems(items, config) -> None:
             "pandas.core.generic.NDFrame.bool",
             "(Series|DataFrame).bool is now deprecated and will be removed "
             "in future version of pandas",
+        ),
+        (
+            "pandas.core.generic.NDFrame.first",
+            "first is deprecated and will be removed in a future version. "
+            "Please create a mask and filter using `.loc` instead",
+        ),
+        (
+            "Resampler.fillna",
+            "DatetimeIndexResampler.fillna is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrameGroupBy.fillna with 'method' is deprecated",
+        ),
+        (
+            "DataFrameGroupBy.fillna",
+            "DataFrame.fillna with 'method' is deprecated",
         ),
     ]
 
@@ -532,7 +561,9 @@ def multiindex_dataframe_random_data(
     """DataFrame with 2 level MultiIndex with random data"""
     index = lexsorted_two_level_string_multiindex
     return DataFrame(
-        np.random.randn(10, 3), index=index, columns=Index(["A", "B", "C"], name="exp")
+        np.random.default_rng(2).standard_normal((10, 3)),
+        index=index,
+        columns=Index(["A", "B", "C"], name="exp"),
     )
 
 
@@ -585,7 +616,7 @@ indices_dict = {
     "float32": tm.makeFloatIndex(100, dtype="float32"),
     "float64": tm.makeFloatIndex(100, dtype="float64"),
     "bool-object": tm.makeBoolIndex(10).astype(object),
-    "bool-dtype": Index(np.random.randn(10) < 0),
+    "bool-dtype": Index(np.random.default_rng(2).standard_normal(10) < 0),
     "complex64": tm.makeNumericIndex(100, dtype="float64").astype("complex64"),
     "complex128": tm.makeNumericIndex(100, dtype="float64").astype("complex128"),
     "categorical": tm.makeCategoricalIndex(100),
@@ -666,7 +697,7 @@ def index_with_missing(request):
     # GH 35538. Use deep copy to avoid illusive bug on np-dev
     # GHA pipeline that writes into indices_dict despite copy
     ind = indices_dict[request.param].copy(deep=True)
-    vals = ind.values
+    vals = ind.values.copy()
     if request.param in ["tuples", "mi-with-dt64tz-level", "multi"]:
         # For setting missing values in the top level of MultiIndex
         vals = ind.tolist()
@@ -715,7 +746,7 @@ def datetime_series() -> Series:
 def _create_series(index):
     """Helper for the _series dict"""
     size = len(index)
-    data = np.random.randn(size)
+    data = np.random.default_rng(2).standard_normal(size)
     return Series(data, index=index, name="a", copy=False)
 
 
@@ -744,9 +775,9 @@ def series_with_multilevel_index() -> Series:
     ]
     tuples = zip(*arrays)
     index = MultiIndex.from_tuples(tuples)
-    data = np.random.randn(8)
+    data = np.random.default_rng(2).standard_normal(8)
     ser = Series(data, index=index)
-    ser[3] = np.NaN
+    ser.iloc[3] = np.nan
     return ser
 
 
@@ -917,7 +948,7 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
         datetime(2000, 1, 5),
     ]
 
-    return Series(np.random.randn(len(dates)), index=dates)
+    return Series(np.random.default_rng(2).standard_normal(len(dates)), index=dates)
 
 
 # ----------------------------------------------------------------
@@ -931,7 +962,7 @@ def rand_series_with_duplicate_datetimeindex() -> Series:
         (Period("2012-02-01", freq="D"), "period[D]"),
         (
             Timestamp("2011-01-01", tz="US/Eastern"),
-            DatetimeTZDtype(tz="US/Eastern"),
+            DatetimeTZDtype(unit="s", tz="US/Eastern"),
         ),
         (Timedelta(seconds=500), "timedelta64[ns]"),
     ]
@@ -943,25 +974,9 @@ def ea_scalar_and_dtype(request):
 # ----------------------------------------------------------------
 # Operators & Operations
 # ----------------------------------------------------------------
-_all_arithmetic_operators = [
-    "__add__",
-    "__radd__",
-    "__sub__",
-    "__rsub__",
-    "__mul__",
-    "__rmul__",
-    "__floordiv__",
-    "__rfloordiv__",
-    "__truediv__",
-    "__rtruediv__",
-    "__pow__",
-    "__rpow__",
-    "__mod__",
-    "__rmod__",
-]
 
 
-@pytest.fixture(params=_all_arithmetic_operators)
+@pytest.fixture(params=tm.arithmetic_dunder_methods)
 def all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations.
@@ -1143,9 +1158,19 @@ def all_numeric_accumulations(request):
 @pytest.fixture
 def strict_data_files(pytestconfig):
     """
-    Returns the configuration for the test setting `--strict-data-files`.
+    Returns the configuration for the test setting `--no-strict-data-files`.
     """
-    return pytestconfig.getoption("--strict-data-files")
+    return pytestconfig.getoption("--no-strict-data-files")
+
+
+@pytest.fixture
+def tests_path() -> Path:
+    return Path(__file__).parent / "tests"
+
+
+@pytest.fixture
+def tests_io_data_path(tests_path) -> Path:
+    return tests_path / "io" / "data"
 
 
 @pytest.fixture
@@ -1165,7 +1190,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
     Raises
     ------
     ValueError
-        If the path doesn't exist and the --strict-data-files option is set.
+        If the path doesn't exist and the --no-strict-data-files option is not set.
     """
     BASE_PATH = os.path.join(os.path.dirname(__file__), "")
 
@@ -1174,7 +1199,7 @@ def datapath(strict_data_files: str) -> Callable[..., str]:
         if not os.path.exists(path):
             if strict_data_files:
                 raise ValueError(
-                    f"Could not find file {path} and --strict-data-files is set."
+                    f"Could not find file {path} and --no-strict-data-files is not set."
                 )
             pytest.skip(f"Could not find {path}.")
         return path
@@ -1740,8 +1765,8 @@ _any_skipna_inferred_dtype = [
     ("datetime64", [np.datetime64("2013-01-01"), np.nan, np.datetime64("2018-01-01")]),
     ("datetime", [Timestamp("20130101"), np.nan, Timestamp("20180101")]),
     ("date", [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
-    # The following two dtypes are commented out due to GH 23554
-    # ('complex', [1 + 1j, np.nan, 2 + 2j]),
+    ("complex", [1 + 1j, np.nan, 2 + 2j]),
+    # The following dtype is commented out due to GH 23554
     # ('timedelta64', [np.timedelta64(1, 'D'),
     #                  np.nan, np.timedelta64(2, 'D')]),
     ("timedelta", [timedelta(1), np.nan, timedelta(2)]),
@@ -1827,7 +1852,7 @@ def spmatrix(request):
     """
     Yields scipy sparse matrix classes.
     """
-    from scipy import sparse
+    sparse = pytest.importorskip("scipy.sparse")
 
     return getattr(sparse, request.param + "_matrix")
 
@@ -1971,3 +1996,8 @@ def warsaw(request) -> str:
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
     """
     return request.param
+
+
+@pytest.fixture()
+def arrow_string_storage():
+    return ("pyarrow",)

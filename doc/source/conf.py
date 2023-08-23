@@ -56,7 +56,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
     "numpydoc",
     "sphinx_copybutton",
-    "sphinx_panels",
+    "sphinx_design",
     "sphinx_toggleprompt",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
@@ -76,7 +76,6 @@ exclude_patterns = [
     # to ensure that include files (partial pages) aren't built, exclude them
     # https://github.com/sphinx-doc/sphinx/issues/1965#issuecomment-124732907
     "**/includes/**",
-    "**/api/pandas.Series.dt.rst",
 ]
 try:
     import nbconvert
@@ -117,9 +116,9 @@ if pattern:
                 elif single_doc and rel_fname != pattern:
                     exclude_patterns.append(rel_fname)
 
-with open(os.path.join(source_path, "index.rst.template")) as f:
+with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as f:
     t = jinja2.Template(f.read())
-with open(os.path.join(source_path, "index.rst"), "w") as f:
+with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     f.write(
         t.render(
             include_api=include_api,
@@ -130,6 +129,8 @@ autosummary_generate = True if include_api else ["index"]
 autodoc_typehints = "none"
 
 # numpydoc
+numpydoc_show_class_members = False
+numpydoc_show_inherited_class_members = False
 numpydoc_attributes_as_param_list = False
 
 # matplotlib plot directive
@@ -142,10 +143,6 @@ import pandas as pd"""
 
 # nbsphinx do not use requirejs (breaks bootstrap)
 nbsphinx_requirejs_path = ""
-
-# sphinx-panels shouldn't add bootstrap css since the pydata-sphinx-theme
-# already loads it
-panels_add_bootstrap_css = False
 
 # https://sphinx-toggleprompt.readthedocs.io/en/stable/#offset
 toggleprompt_offset_right = 35
@@ -241,14 +238,17 @@ elif "rc" in version:
 
 html_theme_options = {
     "external_links": [],
-    "footer_items": ["pandas_footer", "sphinx-version"],
+    "footer_start": ["pandas_footer", "sphinx-version"],
     "github_url": "https://github.com/pandas-dev/pandas",
     "twitter_url": "https://twitter.com/pandas_dev",
-    "google_analytics_id": "UA-27880019-2",
+    "analytics": {
+        "plausible_analytics_domain": "pandas.pydata.org",
+        "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
+    },
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
     "switcher": {
-        "json_url": "/versions.json",
+        "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
     },
     "icon_links": [
@@ -352,10 +352,8 @@ for old, new in moved_classes:
     methods = [
         x for x in dir(klass) if not x.startswith("_") or x in ("__iter__", "__array__")
     ]
-
-    for method in methods:
-        # ... and each of its public methods
-        moved_api_pages.append((f"{old}.{method}", f"{new}.{method}"))
+    # ... and each of its public methods
+    moved_api_pages.extend((f"{old}.{method}", f"{new}.{method}") for method in methods)
 
 if include_api:
     html_additional_pages = {
@@ -467,11 +465,10 @@ if include_api:
 
 # extlinks alias
 extlinks = {
-    "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH"),
+    "issue": ("https://github.com/pandas-dev/pandas/issues/%s", "GH %s"),
 }
 
 
-ipython_warning_is_error = False
 ipython_execlines = [
     "import numpy as np",
     "import pandas as pd",
@@ -591,14 +588,7 @@ class AccessorCallableDocumenter(AccessorLevelDocumenter, MethodDocumenter):
     priority = 0.5
 
     def format_name(self):
-        if sys.version_info < (3, 9):
-            # NOTE pyupgrade will remove this when we run it with --py39-plus
-            # so don't remove the unnecessary `else` statement below
-            from pandas.util._str_methods import removesuffix
-
-            return removesuffix(MethodDocumenter.format_name(self), ".__call__")
-        else:
-            return MethodDocumenter.format_name(self).removesuffix(".__call__")
+        return MethodDocumenter.format_name(self).removesuffix(".__call__")
 
 
 class PandasAutosummary(Autosummary):

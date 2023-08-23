@@ -7,6 +7,11 @@ from abc import (
 )
 import codecs
 from collections import defaultdict
+from collections.abc import (
+    Hashable,
+    Mapping,
+    Sequence,
+)
 import dataclasses
 import functools
 import gzip
@@ -25,14 +30,12 @@ import re
 import tarfile
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
     AnyStr,
     DefaultDict,
     Generic,
-    Hashable,
     Literal,
-    Mapping,
-    Sequence,
     TypeVar,
     cast,
     overload,
@@ -49,17 +52,13 @@ import zipfile
 
 from pandas._typing import (
     BaseBuffer,
-    CompressionDict,
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
     ReadCsvBuffer,
-    StorageOptions,
-    WriteBuffer,
 )
-from pandas.compat import get_lzma_file
+from pandas.compat import (
+    get_bz2_file,
+    get_lzma_file,
+)
 from pandas.compat._optional import import_optional_dependency
-from pandas.compat.compressors import BZ2File as _BZ2File
 from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 
@@ -78,6 +77,19 @@ _VALID_URLS.discard("")
 _RFC_3986_PATTERN = re.compile(r"^[A-Za-z][A-Za-z0-9+\-+.]*://")
 
 BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
+
+
+if TYPE_CHECKING:
+    from types import TracebackType
+
+    from pandas._typing import (
+        CompressionDict,
+        CompressionOptions,
+        FilePath,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
 
 
 @dataclasses.dataclass
@@ -134,7 +146,12 @@ class IOHandles(Generic[AnyStr]):
     def __enter__(self) -> IOHandles[AnyStr]:
         return self
 
-    def __exit__(self, *args: Any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
         self.close()
 
 
@@ -289,9 +306,9 @@ def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
 def _get_filepath_or_buffer(
     filepath_or_buffer: FilePath | BaseBuffer,
     encoding: str = "utf-8",
-    compression: CompressionOptions = None,
+    compression: CompressionOptions | None = None,
     mode: str = "r",
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> IOArgs:
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
@@ -651,11 +668,11 @@ def get_handle(
     mode: str,
     *,
     encoding: str | None = None,
-    compression: CompressionOptions = None,
+    compression: CompressionOptions | None = None,
     memory_map: bool = False,
     is_text: bool = True,
     errors: str | None = None,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> IOHandles[str] | IOHandles[bytes]:
     """
     Get file handle for given path/buffer and mode.
@@ -766,7 +783,7 @@ def get_handle(
         elif compression == "bz2":
             # Overload of "BZ2File" to handle pickle protocol 5
             # "Union[str, BaseBuffer]", "str", "Dict[str, Any]"
-            handle = _BZ2File(  # type: ignore[call-overload]
+            handle = get_bz2_file()(  # type: ignore[call-overload]
                 handle,
                 mode=ioargs.mode,
                 **compression_args,
@@ -825,8 +842,10 @@ def get_handle(
         elif compression == "xz":
             # error: Argument 1 to "LZMAFile" has incompatible type "Union[str,
             # BaseBuffer]"; expected "Optional[Union[Union[str, bytes, PathLike[str],
-            # PathLike[bytes]], IO[bytes]]]"
-            handle = get_lzma_file()(handle, ioargs.mode)  # type: ignore[arg-type]
+            # PathLike[bytes]], IO[bytes]], None]"
+            handle = get_lzma_file()(
+                handle, ioargs.mode, **compression_args  # type: ignore[arg-type]
+            )
 
         # Zstd Compression
         elif compression == "zstd":
@@ -929,6 +948,8 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
     This wrapper writes to the underlying buffer on close.
     """
 
+    buffer = BytesIO()
+
     @abstractmethod
     def write_to_buffer(self) -> None:
         ...
@@ -937,15 +958,13 @@ class _BufferedWriter(BytesIO, ABC):  # type: ignore[misc]
         if self.closed:
             # already closed
             return
-        if self.getvalue():
+        if self.getbuffer().nbytes:
             # write to buffer
             self.seek(0)
-            # error: "_BufferedWriter" has no attribute "buffer"
-            with self.buffer:  # type: ignore[attr-defined]
+            with self.buffer:
                 self.write_to_buffer()
         else:
-            # error: "_BufferedWriter" has no attribute "buffer"
-            self.buffer.close()  # type: ignore[attr-defined]
+            self.buffer.close()
         super().close()
 
 
@@ -961,13 +980,12 @@ class _BytesTarFile(_BufferedWriter):
         super().__init__()
         self.archive_name = archive_name
         self.name = name
-        # error: Argument "fileobj" to "open" of "TarFile" has incompatible
-        # type "Union[ReadBuffer[bytes], WriteBuffer[bytes], None]"; expected
-        # "Optional[IO[bytes]]"
-        self.buffer = tarfile.TarFile.open(
+        # error: Incompatible types in assignment (expression has type "TarFile",
+        # base class "_BufferedWriter" defined the type as "BytesIO")
+        self.buffer: tarfile.TarFile = tarfile.TarFile.open(  # type: ignore[assignment]
             name=name,
             mode=self.extend_mode(mode),
-            fileobj=fileobj,  # type: ignore[arg-type]
+            fileobj=fileobj,
             **kwargs,
         )
 
@@ -1017,10 +1035,11 @@ class _BytesZipFile(_BufferedWriter):
         self.archive_name = archive_name
 
         kwargs.setdefault("compression", zipfile.ZIP_DEFLATED)
-        # error: Argument 1 to "ZipFile" has incompatible type "Union[
-        # Union[str, PathLike[str]], ReadBuffer[bytes], WriteBuffer[bytes]]";
-        # expected "Union[Union[str, PathLike[str]], IO[bytes]]"
-        self.buffer = zipfile.ZipFile(file, mode, **kwargs)  # type: ignore[arg-type]
+        # error: Incompatible types in assignment (expression has type "ZipFile",
+        # base class "_BufferedWriter" defined the type as "BytesIO")
+        self.buffer: zipfile.ZipFile = zipfile.ZipFile(  # type: ignore[assignment]
+            file, mode, **kwargs
+        )
 
     def infer_filename(self) -> str | None:
         """

@@ -324,8 +324,10 @@ def _get_values(
 def _get_dtype_max(dtype: np.dtype) -> np.dtype:
     # return a platform independent precision dtype
     dtype_max = dtype
-    if dtype.kind in "biu":
+    if dtype.kind in "bi":
         dtype_max = np.dtype(np.int64)
+    elif dtype.kind == "u":
+        dtype_max = np.dtype(np.uint64)
     elif dtype.kind == "f":
         dtype_max = np.dtype(np.float64)
     return dtype_max
@@ -803,7 +805,13 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
                     warnings.filterwarnings(
                         "ignore", "All-NaN slice encountered", RuntimeWarning
                     )
-                    res = np.nanmedian(values, axis)
+                    if (values.shape[1] == 1 and axis == 0) or (
+                        values.shape[0] == 1 and axis == 1
+                    ):
+                        # GH52788: fastpath when squeezable, nanmedian for 2D array slow
+                        res = np.nanmedian(np.squeeze(values), keepdims=True)
+                    else:
+                        res = np.nanmedian(values, axis=axis)
 
         else:
             # must return the correct shape, but median is not defined for the
@@ -1092,7 +1100,6 @@ nanmin = _nanminmax("min", fill_value_typ="+inf")
 nanmax = _nanminmax("max", fill_value_typ="-inf")
 
 
-@disallow("O")
 def nanargmax(
     values: np.ndarray,
     *,
@@ -1138,7 +1145,6 @@ def nanargmax(
     return result
 
 
-@disallow("O")
 def nanargmin(
     values: np.ndarray,
     *,
@@ -1265,7 +1271,7 @@ def nanskew(
         result = np.where(m2 == 0, 0, result)
         result[count < 3] = np.nan
     else:
-        result = 0 if m2 == 0 else result
+        result = dtype.type(0) if m2 == 0 else result
         if count < 3:
             return np.nan
 
@@ -1353,7 +1359,7 @@ def nankurt(
         if count < 4:
             return np.nan
         if denominator == 0:
-            return 0
+            return values.dtype.type(0)
 
     with np.errstate(invalid="ignore", divide="ignore"):
         result = numerator / denominator - adj

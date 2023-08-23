@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from datetime import (
     datetime,
-    time,
     timedelta,
     tzinfo,
 )
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     cast,
 )
 import warnings
@@ -50,7 +48,6 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     INT64_DTYPE,
     is_bool_dtype,
-    is_dtype_equal,
     is_float_dtype,
     is_string_dtype,
     pandas_dtype,
@@ -64,7 +61,6 @@ from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import generate_regular_range
-from pandas.core.arrays.sparse.dtype import SparseDtype
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
@@ -74,6 +70,8 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pandas._typing import (
         DateTimeErrorChoices,
         IntervalClosedType,
@@ -85,8 +83,6 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
-
-_midnight = time(0, 0)
 
 
 def tz_to_dtype(
@@ -185,6 +181,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> pd.arrays.DatetimeArray(pd.DatetimeIndex(['2023-01-01', '2023-01-02']),
+    ...                         freq='D')
+    <DatetimeArray>
+    ['2023-01-01 00:00:00', '2023-01-02 00:00:00']
+    Length: 2, dtype: datetime64[ns]
     """
 
     _typ = "datetimearray"
@@ -536,7 +540,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     # error: Return type "Union[dtype, DatetimeTZDtype]" of "dtype"
     # incompatible with return type "ExtensionDtype" in supertype
     # "ExtensionArray"
-    def dtype(self) -> np.dtype[np.datetime64] | DatetimeTZDtype:  # type: ignore[override]  # noqa:E501
+    def dtype(self) -> np.dtype[np.datetime64] | DatetimeTZDtype:  # type: ignore[override]  # noqa: E501
         """
         The dtype for the DatetimeArray.
 
@@ -566,6 +570,26 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         -------
         datetime.tzinfo, pytz.tzinfo.BaseTZInfo, dateutil.tz.tz.tzfile, or None
             Returns None when the array is tz-naive.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
+        >>> s = pd.to_datetime(s)
+        >>> s
+        0   2020-01-01 10:00:00+00:00
+        1   2020-02-01 11:00:00+00:00
+        dtype: datetime64[ns, UTC]
+        >>> s.dt.tz
+        datetime.timezone.utc
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.tz
+        datetime.timezone.utc
         """
         # GH 18595
         return getattr(self.dtype, "tz", None)
@@ -642,7 +666,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         # DatetimeLikeArrayMixin Super handles the rest.
         dtype = pandas_dtype(dtype)
 
-        if is_dtype_equal(dtype, self.dtype):
+        if dtype == self.dtype:
             if copy:
                 return self.copy()
             return self
@@ -1064,11 +1088,19 @@ default 'raise'
 
     def to_pydatetime(self) -> npt.NDArray[np.object_]:
         """
-        Return an ndarray of datetime.datetime objects.
+        Return an ndarray of ``datetime.datetime`` objects.
 
         Returns
         -------
         numpy.ndarray
+
+        Examples
+        --------
+        >>> idx = pd.date_range('2018-02-27', periods=3)
+        >>> idx.to_pydatetime()
+        array([datetime.datetime(2018, 2, 27, 0, 0),
+               datetime.datetime(2018, 2, 28, 0, 0),
+               datetime.datetime(2018, 3, 1, 0, 0)], dtype=object)
         """
         return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._creso)
 
@@ -1121,19 +1153,19 @@ default 'raise'
 
     def to_period(self, freq=None) -> PeriodArray:
         """
-        Cast to PeriodArray/Index at a particular frequency.
+        Cast to PeriodArray/PeriodIndex at a particular frequency.
 
-        Converts DatetimeArray/Index to PeriodArray/Index.
+        Converts DatetimeArray/Index to PeriodArray/PeriodIndex.
 
         Parameters
         ----------
-        freq : str or Offset, optional
-            One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
-            or an Offset object. Will be inferred by default.
+        freq : str or Period, optional
+            One of pandas' :ref:`period aliases <timeseries.period_aliases>`
+            or an Period object. Will be inferred by default.
 
         Returns
         -------
-        PeriodArray/Index
+        PeriodArray/PeriodIndex
 
         Raises
         ------
@@ -1314,6 +1346,28 @@ default 'raise'
         Returns numpy array of :class:`datetime.time` objects.
 
         The time part of the Timestamps.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
+        >>> s = pd.to_datetime(s)
+        >>> s
+        0   2020-01-01 10:00:00+00:00
+        1   2020-02-01 11:00:00+00:00
+        dtype: datetime64[ns, UTC]
+        >>> s.dt.time
+        0    10:00:00
+        1    11:00:00
+        dtype: object
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.time
+        array([datetime.time(10, 0), datetime.time(11, 0)], dtype=object)
         """
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
@@ -1328,6 +1382,29 @@ default 'raise'
         Returns numpy array of :class:`datetime.time` objects with timezones.
 
         The time part of the Timestamps.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
+        >>> s = pd.to_datetime(s)
+        >>> s
+        0   2020-01-01 10:00:00+00:00
+        1   2020-02-01 11:00:00+00:00
+        dtype: datetime64[ns, UTC]
+        >>> s.dt.timetz
+        0    10:00:00+00:00
+        1    11:00:00+00:00
+        dtype: object
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.timetz
+        array([datetime.time(10, 0, tzinfo=datetime.timezone.utc),
+        datetime.time(11, 0, tzinfo=datetime.timezone.utc)], dtype=object)
         """
         return ints_to_pydatetime(self.asi8, self.tz, box="time", reso=self._creso)
 
@@ -1338,6 +1415,28 @@ default 'raise'
 
         Namely, the date part of Timestamps without time and
         timezone information.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
+        >>> s = pd.to_datetime(s)
+        >>> s
+        0   2020-01-01 10:00:00+00:00
+        1   2020-02-01 11:00:00+00:00
+        dtype: datetime64[ns, UTC]
+        >>> s.dt.date
+        0    2020-01-01
+        1    2020-02-01
+        dtype: object
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.date
+        array([datetime.date(2020, 1, 1), datetime.date(2020, 2, 1)], dtype=object)
         """
         # If the Timestamps have a timezone that is not UTC,
         # convert them into their i8 representation while
@@ -1616,6 +1715,28 @@ default 'raise'
         "doy",
         """
         The ordinal day of the year.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
+        >>> s = pd.to_datetime(s)
+        >>> s
+        0   2020-01-01 10:00:00+00:00
+        1   2020-02-01 11:00:00+00:00
+        dtype: datetime64[ns, UTC]
+        >>> s.dt.dayofyear
+        0    1
+        1   32
+        dtype: int32
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.dayofyear
+        Index([1, 32], dtype='int32')
         """,
     )
     dayofyear = day_of_year
@@ -1624,6 +1745,28 @@ default 'raise'
         "q",
         """
         The quarter of the date.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "4/1/2020 11:00:00+00:00"])
+        >>> s = pd.to_datetime(s)
+        >>> s
+        0   2020-01-01 10:00:00+00:00
+        1   2020-04-01 11:00:00+00:00
+        dtype: datetime64[ns, UTC]
+        >>> s.dt.quarter
+        0    1
+        1    2
+        dtype: int32
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(["1/1/2020 10:00:00+00:00",
+        ...                         "2/1/2020 11:00:00+00:00"])
+        >>> idx.quarter
+        Index([1, 1], dtype='int32')
         """,
     )
     days_in_month = _field_accessor(
@@ -1631,6 +1774,19 @@ default 'raise'
         "dim",
         """
         The number of days in the month.
+
+        Examples
+        --------
+        >>> s = pd.Series(["1/1/2020 10:00:00+00:00", "2/1/2020 11:00:00+00:00"])
+        >>> s = pd.to_datetime(s)
+        >>> s
+        0   2020-01-01 10:00:00+00:00
+        1   2020-02-01 11:00:00+00:00
+        dtype: datetime64[ns, UTC]
+        >>> s.dt.daysinmonth
+        0    31
+        1    29
+        dtype: int32
         """,
     )
     daysinmonth = days_in_month
@@ -1947,23 +2103,40 @@ default 'raise'
         """
         Return sample standard deviation over requested axis.
 
-        Normalized by N-1 by default. This can be changed using the ddof argument
+        Normalized by `N-1` by default. This can be changed using ``ddof``.
 
         Parameters
         ----------
-        axis : int optional, default None
-            Axis for the function to be applied on.
-            For `Series` this parameter is unused and defaults to `None`.
+        axis : int, optional
+            Axis for the function to be applied on. For :class:`pandas.Series`
+            this parameter is unused and defaults to ``None``.
         ddof : int, default 1
-            Degrees of Freedom. The divisor used in calculations is N - ddof,
-            where N represents the number of elements.
+            Degrees of Freedom. The divisor used in calculations is `N - ddof`,
+            where `N` represents the number of elements.
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result will be
-            NA.
+            Exclude NA/null values. If an entire row/column is ``NA``, the result
+            will be ``NA``.
 
         Returns
         -------
         Timedelta
+
+        See Also
+        --------
+        numpy.ndarray.std : Returns the standard deviation of the array elements
+            along given axis.
+        Series.std : Return sample standard deviation over requested axis.
+
+        Examples
+        --------
+        For :class:`pandas.DatetimeIndex`:
+
+        >>> idx = pd.date_range('2001-01-01 00:00', periods=3)
+        >>> idx
+        DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
+                      dtype='datetime64[ns]', freq='D')
+        >>> idx.std()
+        Timedelta('1 days 00:00:00')
         """
         # Because std is translation-invariant, we can get self.std
         #  by calculating (self - Timestamp(0)).std, and we can do it
@@ -2036,11 +2209,7 @@ def _sequence_to_dt64ns(
     if out_unit is not None:
         out_dtype = np.dtype(f"M8[{out_unit}]")
 
-    if (
-        data_dtype == object
-        or is_string_dtype(data_dtype)
-        or isinstance(data_dtype, SparseDtype)
-    ):
+    if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
         #  also complex or categorical or other extension
         copy = False
@@ -2316,7 +2485,7 @@ def _validate_dt64_dtype(dtype):
     """
     if dtype is not None:
         dtype = pandas_dtype(dtype)
-        if is_dtype_equal(dtype, np.dtype("M8")):
+        if dtype == np.dtype("M8"):
             # no precision, disallowed GH#24806
             msg = (
                 "Passing in 'datetime64' dtype with no precision is not allowed. "

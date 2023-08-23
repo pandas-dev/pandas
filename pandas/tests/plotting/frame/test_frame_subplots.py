@@ -1,14 +1,12 @@
 """ Test cases for DataFrame.plot """
 
 import string
-import warnings
 
 import numpy as np
 import pytest
 
 from pandas.compat import is_platform_linux
 from pandas.compat.numpy import np_version_gte1p24
-import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -17,85 +15,118 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.tests.plotting.common import TestPlotBase
+from pandas.tests.plotting.common import (
+    _check_axes_shape,
+    _check_box_return_type,
+    _check_legend_labels,
+    _check_ticks_props,
+    _check_visible,
+    _flatten_visible,
+)
 
 from pandas.io.formats.printing import pprint_thing
 
+mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 
-@td.skip_if_no_mpl
-class TestDataFramePlotsSubplots(TestPlotBase):
+
+class TestDataFramePlotsSubplots:
     @pytest.mark.slow
-    def test_subplots(self):
-        df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
+    @pytest.mark.parametrize("kind", ["bar", "barh", "line", "area"])
+    def test_subplots(self, kind):
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
 
-        for kind in ["bar", "barh", "line", "area"]:
-            axes = df.plot(kind=kind, subplots=True, sharex=True, legend=True)
-            self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
-            assert axes.shape == (3,)
+        axes = df.plot(kind=kind, subplots=True, sharex=True, legend=True)
+        _check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        assert axes.shape == (3,)
 
-            for ax, column in zip(axes, df.columns):
-                self._check_legend_labels(ax, labels=[pprint_thing(column)])
+        for ax, column in zip(axes, df.columns):
+            _check_legend_labels(ax, labels=[pprint_thing(column)])
 
-            for ax in axes[:-2]:
-                self._check_visible(ax.xaxis)  # xaxis must be visible for grid
-                self._check_visible(ax.get_xticklabels(), visible=False)
-                if kind != "bar":
-                    # change https://github.com/pandas-dev/pandas/issues/26714
-                    self._check_visible(ax.get_xticklabels(minor=True), visible=False)
-                self._check_visible(ax.xaxis.get_label(), visible=False)
-                self._check_visible(ax.get_yticklabels())
+        for ax in axes[:-2]:
+            _check_visible(ax.xaxis)  # xaxis must be visible for grid
+            _check_visible(ax.get_xticklabels(), visible=False)
+            if kind != "bar":
+                # change https://github.com/pandas-dev/pandas/issues/26714
+                _check_visible(ax.get_xticklabels(minor=True), visible=False)
+            _check_visible(ax.xaxis.get_label(), visible=False)
+            _check_visible(ax.get_yticklabels())
 
-            self._check_visible(axes[-1].xaxis)
-            self._check_visible(axes[-1].get_xticklabels())
-            self._check_visible(axes[-1].get_xticklabels(minor=True))
-            self._check_visible(axes[-1].xaxis.get_label())
-            self._check_visible(axes[-1].get_yticklabels())
+        _check_visible(axes[-1].xaxis)
+        _check_visible(axes[-1].get_xticklabels())
+        _check_visible(axes[-1].get_xticklabels(minor=True))
+        _check_visible(axes[-1].xaxis.get_label())
+        _check_visible(axes[-1].get_yticklabels())
 
-            axes = df.plot(kind=kind, subplots=True, sharex=False)
-            for ax in axes:
-                self._check_visible(ax.xaxis)
-                self._check_visible(ax.get_xticklabels())
-                self._check_visible(ax.get_xticklabels(minor=True))
-                self._check_visible(ax.xaxis.get_label())
-                self._check_visible(ax.get_yticklabels())
+    @pytest.mark.slow
+    @pytest.mark.parametrize("kind", ["bar", "barh", "line", "area"])
+    def test_subplots_no_share_x(self, kind):
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
+        axes = df.plot(kind=kind, subplots=True, sharex=False)
+        for ax in axes:
+            _check_visible(ax.xaxis)
+            _check_visible(ax.get_xticklabels())
+            _check_visible(ax.get_xticklabels(minor=True))
+            _check_visible(ax.xaxis.get_label())
+            _check_visible(ax.get_yticklabels())
 
-            axes = df.plot(kind=kind, subplots=True, legend=False)
-            for ax in axes:
-                assert ax.get_legend() is None
+    @pytest.mark.slow
+    @pytest.mark.parametrize("kind", ["bar", "barh", "line", "area"])
+    def test_subplots_no_legend(self, kind):
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
+        axes = df.plot(kind=kind, subplots=True, legend=False)
+        for ax in axes:
+            assert ax.get_legend() is None
 
-    def test_subplots_timeseries(self):
+    @pytest.mark.parametrize("kind", ["line", "area"])
+    def test_subplots_timeseries(self, kind):
         idx = date_range(start="2014-07-01", freq="M", periods=10)
-        df = DataFrame(np.random.rand(10, 3), index=idx)
+        df = DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
 
-        for kind in ["line", "area"]:
-            axes = df.plot(kind=kind, subplots=True, sharex=True)
-            self._check_axes_shape(axes, axes_num=3, layout=(3, 1))
+        axes = df.plot(kind=kind, subplots=True, sharex=True)
+        _check_axes_shape(axes, axes_num=3, layout=(3, 1))
 
-            for ax in axes[:-2]:
-                # GH 7801
-                self._check_visible(ax.xaxis)  # xaxis must be visible for grid
-                self._check_visible(ax.get_xticklabels(), visible=False)
-                self._check_visible(ax.get_xticklabels(minor=True), visible=False)
-                self._check_visible(ax.xaxis.get_label(), visible=False)
-                self._check_visible(ax.get_yticklabels())
+        for ax in axes[:-2]:
+            # GH 7801
+            _check_visible(ax.xaxis)  # xaxis must be visible for grid
+            _check_visible(ax.get_xticklabels(), visible=False)
+            _check_visible(ax.get_xticklabels(minor=True), visible=False)
+            _check_visible(ax.xaxis.get_label(), visible=False)
+            _check_visible(ax.get_yticklabels())
 
-            self._check_visible(axes[-1].xaxis)
-            self._check_visible(axes[-1].get_xticklabels())
-            self._check_visible(axes[-1].get_xticklabels(minor=True))
-            self._check_visible(axes[-1].xaxis.get_label())
-            self._check_visible(axes[-1].get_yticklabels())
-            self._check_ticks_props(axes, xrot=0)
+        _check_visible(axes[-1].xaxis)
+        _check_visible(axes[-1].get_xticklabels())
+        _check_visible(axes[-1].get_xticklabels(minor=True))
+        _check_visible(axes[-1].xaxis.get_label())
+        _check_visible(axes[-1].get_yticklabels())
+        _check_ticks_props(axes, xrot=0)
 
-            axes = df.plot(kind=kind, subplots=True, sharex=False, rot=45, fontsize=7)
-            for ax in axes:
-                self._check_visible(ax.xaxis)
-                self._check_visible(ax.get_xticklabels())
-                self._check_visible(ax.get_xticklabels(minor=True))
-                self._check_visible(ax.xaxis.get_label())
-                self._check_visible(ax.get_yticklabels())
-                self._check_ticks_props(ax, xlabelsize=7, xrot=45, ylabelsize=7)
+    @pytest.mark.parametrize("kind", ["line", "area"])
+    def test_subplots_timeseries_rot(self, kind):
+        idx = date_range(start="2014-07-01", freq="M", periods=10)
+        df = DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
+        axes = df.plot(kind=kind, subplots=True, sharex=False, rot=45, fontsize=7)
+        for ax in axes:
+            _check_visible(ax.xaxis)
+            _check_visible(ax.get_xticklabels())
+            _check_visible(ax.get_xticklabels(minor=True))
+            _check_visible(ax.xaxis.get_label())
+            _check_visible(ax.get_yticklabels())
+            _check_ticks_props(ax, xlabelsize=7, xrot=45, ylabelsize=7)
 
-    def test_subplots_timeseries_y_axis(self):
+    @pytest.mark.parametrize(
+        "col", ["numeric", "timedelta", "datetime_no_tz", "datetime_all_tz"]
+    )
+    def test_subplots_timeseries_y_axis(self, col):
         # GH16953
         data = {
             "numeric": np.array([1, 2, 5]),
@@ -118,13 +149,18 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         }
         testdata = DataFrame(data)
 
-        y_cols = ["numeric", "timedelta", "datetime_no_tz", "datetime_all_tz"]
-        for col in y_cols:
-            ax = testdata.plot(y=col)
-            result = ax.get_lines()[0].get_data()[1]
-            expected = testdata[col].values
-            assert (result == expected).all()
+        ax = testdata.plot(y=col)
+        result = ax.get_lines()[0].get_data()[1]
+        expected = testdata[col].values
+        assert (result == expected).all()
 
+    def test_subplots_timeseries_y_text_error(self):
+        # GH16953
+        data = {
+            "numeric": np.array([1, 2, 5]),
+            "text": ["This", "should", "fail"],
+        }
+        testdata = DataFrame(data)
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
             testdata.plot(y="text")
@@ -180,34 +216,34 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             == testdata["datetime_mixed_tz"].values
         ).all()
 
-    def test_subplots_layout_multi_column(self):
+    @pytest.mark.parametrize(
+        "layout, exp_layout",
+        [
+            [(2, 2), (2, 2)],
+            [(-1, 2), (2, 2)],
+            [(2, -1), (2, 2)],
+            [(1, 4), (1, 4)],
+            [(-1, 4), (1, 4)],
+            [(4, -1), (4, 1)],
+        ],
+    )
+    def test_subplots_layout_multi_column(self, layout, exp_layout):
         # GH 6667
-        df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
 
-        axes = df.plot(subplots=True, layout=(2, 2))
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
-        assert axes.shape == (2, 2)
+        axes = df.plot(subplots=True, layout=layout)
+        _check_axes_shape(axes, axes_num=3, layout=exp_layout)
+        assert axes.shape == exp_layout
 
-        axes = df.plot(subplots=True, layout=(-1, 2))
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
-        assert axes.shape == (2, 2)
-
-        axes = df.plot(subplots=True, layout=(2, -1))
-        self._check_axes_shape(axes, axes_num=3, layout=(2, 2))
-        assert axes.shape == (2, 2)
-
-        axes = df.plot(subplots=True, layout=(1, 4))
-        self._check_axes_shape(axes, axes_num=3, layout=(1, 4))
-        assert axes.shape == (1, 4)
-
-        axes = df.plot(subplots=True, layout=(-1, 4))
-        self._check_axes_shape(axes, axes_num=3, layout=(1, 4))
-        assert axes.shape == (1, 4)
-
-        axes = df.plot(subplots=True, layout=(4, -1))
-        self._check_axes_shape(axes, axes_num=3, layout=(4, 1))
-        assert axes.shape == (4, 1)
-
+    def test_subplots_layout_multi_column_error(self):
+        # GH 6667
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
         msg = "Layout of 1x1 must be larger than required size 3"
 
         with pytest.raises(ValueError, match=msg):
@@ -228,9 +264,12 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         self, kwargs, expected_axes_num, expected_layout, expected_shape
     ):
         # GH 6667
-        df = DataFrame(np.random.rand(10, 1), index=list(string.ascii_letters[:10]))
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 1)),
+            index=list(string.ascii_letters[:10]),
+        )
         axes = df.plot(subplots=True, **kwargs)
-        self._check_axes_shape(
+        _check_axes_shape(
             axes,
             axes_num=expected_axes_num,
             layout=expected_layout,
@@ -238,82 +277,90 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         assert axes.shape == expected_shape
 
     @pytest.mark.slow
-    def test_subplots_warnings(self):
+    @pytest.mark.parametrize("idx", [range(5), date_range("1/1/2000", periods=5)])
+    def test_subplots_warnings(self, idx):
         # GH 9464
         with tm.assert_produces_warning(None):
-            df = DataFrame(np.random.randn(100, 4))
-            df.plot(subplots=True, layout=(3, 2))
-
-            df = DataFrame(
-                np.random.randn(100, 4), index=date_range("1/1/2000", periods=100)
-            )
+            df = DataFrame(np.random.default_rng(2).standard_normal((5, 4)), index=idx)
             df.plot(subplots=True, layout=(3, 2))
 
     def test_subplots_multiple_axes(self):
         # GH 5353, 6970, GH 7069
-        fig, axes = self.plt.subplots(2, 3)
-        df = DataFrame(np.random.rand(10, 3), index=list(string.ascii_letters[:10]))
+        fig, axes = mpl.pyplot.subplots(2, 3)
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
 
         returned = df.plot(subplots=True, ax=axes[0], sharex=False, sharey=False)
-        self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
+        _check_axes_shape(returned, axes_num=3, layout=(1, 3))
         assert returned.shape == (3,)
         assert returned[0].figure is fig
         # draw on second row
         returned = df.plot(subplots=True, ax=axes[1], sharex=False, sharey=False)
-        self._check_axes_shape(returned, axes_num=3, layout=(1, 3))
+        _check_axes_shape(returned, axes_num=3, layout=(1, 3))
         assert returned.shape == (3,)
         assert returned[0].figure is fig
-        self._check_axes_shape(axes, axes_num=6, layout=(2, 3))
-        tm.close()
+        _check_axes_shape(axes, axes_num=6, layout=(2, 3))
 
+    def test_subplots_multiple_axes_error(self):
+        # GH 5353, 6970, GH 7069
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 3)),
+            index=list(string.ascii_letters[:10]),
+        )
         msg = "The number of passed axes must be 3, the same as the output plot"
+        _, axes = mpl.pyplot.subplots(2, 3)
 
         with pytest.raises(ValueError, match=msg):
-            fig, axes = self.plt.subplots(2, 3)
             # pass different number of axes from required
             df.plot(subplots=True, ax=axes)
 
+    @pytest.mark.parametrize(
+        "layout, exp_layout",
+        [
+            [(2, 1), (2, 2)],
+            [(2, -1), (2, 2)],
+            [(-1, 2), (2, 2)],
+        ],
+    )
+    def test_subplots_multiple_axes_2_dim(self, layout, exp_layout):
+        # GH 5353, 6970, GH 7069
         # pass 2-dim axes and invalid layout
         # invalid lauout should not affect to input and return value
         # (show warning is tested in
         # TestDataFrameGroupByPlots.test_grouped_box_multiple_axes
-        fig, axes = self.plt.subplots(2, 2)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)
-            df = DataFrame(np.random.rand(10, 4), index=list(string.ascii_letters[:10]))
-
+        _, axes = mpl.pyplot.subplots(2, 2)
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 4)),
+            index=list(string.ascii_letters[:10]),
+        )
+        with tm.assert_produces_warning(UserWarning):
             returned = df.plot(
-                subplots=True, ax=axes, layout=(2, 1), sharex=False, sharey=False
+                subplots=True, ax=axes, layout=layout, sharex=False, sharey=False
             )
-            self._check_axes_shape(returned, axes_num=4, layout=(2, 2))
+            _check_axes_shape(returned, axes_num=4, layout=exp_layout)
             assert returned.shape == (4,)
 
-            returned = df.plot(
-                subplots=True, ax=axes, layout=(2, -1), sharex=False, sharey=False
-            )
-            self._check_axes_shape(returned, axes_num=4, layout=(2, 2))
-            assert returned.shape == (4,)
-
-            returned = df.plot(
-                subplots=True, ax=axes, layout=(-1, 2), sharex=False, sharey=False
-            )
-        self._check_axes_shape(returned, axes_num=4, layout=(2, 2))
-        assert returned.shape == (4,)
-
+    def test_subplots_multiple_axes_single_col(self):
+        # GH 5353, 6970, GH 7069
         # single column
-        fig, axes = self.plt.subplots(1, 1)
-        df = DataFrame(np.random.rand(10, 1), index=list(string.ascii_letters[:10]))
+        _, axes = mpl.pyplot.subplots(1, 1)
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 1)),
+            index=list(string.ascii_letters[:10]),
+        )
 
         axes = df.plot(subplots=True, ax=[axes], sharex=False, sharey=False)
-        self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
+        _check_axes_shape(axes, axes_num=1, layout=(1, 1))
         assert axes.shape == (1,)
 
     def test_subplots_ts_share_axes(self):
         # GH 3964
-        fig, axes = self.plt.subplots(3, 3, sharex=True, sharey=True)
-        self.plt.subplots_adjust(left=0.05, right=0.95, hspace=0.3, wspace=0.3)
+        _, axes = mpl.pyplot.subplots(3, 3, sharex=True, sharey=True)
+        mpl.pyplot.subplots_adjust(left=0.05, right=0.95, hspace=0.3, wspace=0.3)
         df = DataFrame(
-            np.random.randn(10, 9),
+            np.random.default_rng(2).standard_normal((10, 9)),
             index=date_range(start="2014-07-01", freq="M", periods=10),
         )
         for i, ax in enumerate(axes.ravel()):
@@ -321,21 +368,21 @@ class TestDataFramePlotsSubplots(TestPlotBase):
 
         # Rows other than bottom should not be visible
         for ax in axes[0:-1].ravel():
-            self._check_visible(ax.get_xticklabels(), visible=False)
+            _check_visible(ax.get_xticklabels(), visible=False)
 
         # Bottom row should be visible
         for ax in axes[-1].ravel():
-            self._check_visible(ax.get_xticklabels(), visible=True)
+            _check_visible(ax.get_xticklabels(), visible=True)
 
         # First column should be visible
         for ax in axes[[0, 1, 2], [0]].ravel():
-            self._check_visible(ax.get_yticklabels(), visible=True)
+            _check_visible(ax.get_yticklabels(), visible=True)
 
         # Other columns should not be visible
         for ax in axes[[0, 1, 2], [1]].ravel():
-            self._check_visible(ax.get_yticklabels(), visible=False)
+            _check_visible(ax.get_yticklabels(), visible=False)
         for ax in axes[[0, 1, 2], [2]].ravel():
-            self._check_visible(ax.get_yticklabels(), visible=False)
+            _check_visible(ax.get_yticklabels(), visible=False)
 
     def test_subplots_sharex_axes_existing_axes(self):
         # GH 9158
@@ -345,29 +392,33 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         axes = df[["A", "B"]].plot(subplots=True)
         df["C"].plot(ax=axes[0], secondary_y=True)
 
-        self._check_visible(axes[0].get_xticklabels(), visible=False)
-        self._check_visible(axes[1].get_xticklabels(), visible=True)
+        _check_visible(axes[0].get_xticklabels(), visible=False)
+        _check_visible(axes[1].get_xticklabels(), visible=True)
         for ax in axes.ravel():
-            self._check_visible(ax.get_yticklabels(), visible=True)
+            _check_visible(ax.get_yticklabels(), visible=True)
 
     def test_subplots_dup_columns(self):
         # GH 10962
-        df = DataFrame(np.random.rand(5, 5), columns=list("aaaaa"))
+        df = DataFrame(np.random.default_rng(2).random((5, 5)), columns=list("aaaaa"))
         axes = df.plot(subplots=True)
         for ax in axes:
-            self._check_legend_labels(ax, labels=["a"])
+            _check_legend_labels(ax, labels=["a"])
             assert len(ax.lines) == 1
-        tm.close()
 
+    def test_subplots_dup_columns_secondary_y(self):
+        # GH 10962
+        df = DataFrame(np.random.default_rng(2).random((5, 5)), columns=list("aaaaa"))
         axes = df.plot(subplots=True, secondary_y="a")
         for ax in axes:
             # (right) is only attached when subplots=False
-            self._check_legend_labels(ax, labels=["a"])
+            _check_legend_labels(ax, labels=["a"])
             assert len(ax.lines) == 1
-        tm.close()
 
+    def test_subplots_dup_columns_secondary_y_no_subplot(self):
+        # GH 10962
+        df = DataFrame(np.random.default_rng(2).random((5, 5)), columns=list("aaaaa"))
         ax = df.plot(secondary_y="a")
-        self._check_legend_labels(ax, labels=["a (right)"] * 5)
+        _check_legend_labels(ax, labels=["a (right)"] * 5)
         assert len(ax.lines) == 0
         assert len(ax.right_ax.lines) == 5
 
@@ -401,79 +452,90 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         tm.assert_numpy_array_equal(ax[0].yaxis.get_ticklocs(), expected)
         tm.assert_numpy_array_equal(ax[1].yaxis.get_ticklocs(), expected)
 
-    def test_boxplot_subplots_return_type(self, hist_df):
+    def test_boxplot_subplots_return_type_default(self, hist_df):
         df = hist_df
 
         # normal style: return_type=None
         result = df.plot.box(subplots=True)
         assert isinstance(result, Series)
-        self._check_box_return_type(
+        _check_box_return_type(
             result, None, expected_keys=["height", "weight", "category"]
         )
 
-        for t in ["dict", "axes", "both"]:
-            returned = df.plot.box(return_type=t, subplots=True)
-            self._check_box_return_type(
-                returned,
-                t,
-                expected_keys=["height", "weight", "category"],
-                check_ax_title=False,
-            )
+    @pytest.mark.parametrize("rt", ["dict", "axes", "both"])
+    def test_boxplot_subplots_return_type(self, hist_df, rt):
+        df = hist_df
+        returned = df.plot.box(return_type=rt, subplots=True)
+        _check_box_return_type(
+            returned,
+            rt,
+            expected_keys=["height", "weight", "category"],
+            check_ax_title=False,
+        )
 
     def test_df_subplots_patterns_minorticks(self):
         # GH 10657
-        import matplotlib.pyplot as plt
-
         df = DataFrame(
-            np.random.randn(10, 2),
+            np.random.default_rng(2).standard_normal((10, 2)),
             index=date_range("1/1/2000", periods=10),
             columns=list("AB"),
         )
 
         # shared subplots
-        fig, axes = plt.subplots(2, 1, sharex=True)
+        _, axes = plt.subplots(2, 1, sharex=True)
         axes = df.plot(subplots=True, ax=axes)
         for ax in axes:
             assert len(ax.lines) == 1
-            self._check_visible(ax.get_yticklabels(), visible=True)
+            _check_visible(ax.get_yticklabels(), visible=True)
         # xaxis of 1st ax must be hidden
-        self._check_visible(axes[0].get_xticklabels(), visible=False)
-        self._check_visible(axes[0].get_xticklabels(minor=True), visible=False)
-        self._check_visible(axes[1].get_xticklabels(), visible=True)
-        self._check_visible(axes[1].get_xticklabels(minor=True), visible=True)
-        tm.close()
+        _check_visible(axes[0].get_xticklabels(), visible=False)
+        _check_visible(axes[0].get_xticklabels(minor=True), visible=False)
+        _check_visible(axes[1].get_xticklabels(), visible=True)
+        _check_visible(axes[1].get_xticklabels(minor=True), visible=True)
 
-        fig, axes = plt.subplots(2, 1)
+    def test_df_subplots_patterns_minorticks_1st_ax_hidden(self):
+        # GH 10657
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)),
+            index=date_range("1/1/2000", periods=10),
+            columns=list("AB"),
+        )
+        _, axes = plt.subplots(2, 1)
         with tm.assert_produces_warning(UserWarning):
             axes = df.plot(subplots=True, ax=axes, sharex=True)
         for ax in axes:
             assert len(ax.lines) == 1
-            self._check_visible(ax.get_yticklabels(), visible=True)
+            _check_visible(ax.get_yticklabels(), visible=True)
         # xaxis of 1st ax must be hidden
-        self._check_visible(axes[0].get_xticklabels(), visible=False)
-        self._check_visible(axes[0].get_xticklabels(minor=True), visible=False)
-        self._check_visible(axes[1].get_xticklabels(), visible=True)
-        self._check_visible(axes[1].get_xticklabels(minor=True), visible=True)
-        tm.close()
+        _check_visible(axes[0].get_xticklabels(), visible=False)
+        _check_visible(axes[0].get_xticklabels(minor=True), visible=False)
+        _check_visible(axes[1].get_xticklabels(), visible=True)
+        _check_visible(axes[1].get_xticklabels(minor=True), visible=True)
 
+    def test_df_subplots_patterns_minorticks_not_shared(self):
+        # GH 10657
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)),
+            index=date_range("1/1/2000", periods=10),
+            columns=list("AB"),
+        )
         # not shared
-        fig, axes = plt.subplots(2, 1)
+        _, axes = plt.subplots(2, 1)
         axes = df.plot(subplots=True, ax=axes)
         for ax in axes:
             assert len(ax.lines) == 1
-            self._check_visible(ax.get_yticklabels(), visible=True)
-            self._check_visible(ax.get_xticklabels(), visible=True)
-            self._check_visible(ax.get_xticklabels(minor=True), visible=True)
-        tm.close()
+            _check_visible(ax.get_yticklabels(), visible=True)
+            _check_visible(ax.get_xticklabels(), visible=True)
+            _check_visible(ax.get_xticklabels(minor=True), visible=True)
 
     def test_subplots_sharex_false(self):
         # test when sharex is set to False, two plots should have different
         # labels, GH 25160
-        df = DataFrame(np.random.rand(10, 2))
+        df = DataFrame(np.random.default_rng(2).random((10, 2)))
         df.iloc[5:, 1] = np.nan
         df.iloc[:5, 0] = np.nan
 
-        figs, axs = self.plt.subplots(2, 1)
+        _, axs = mpl.pyplot.subplots(2, 1)
         df.plot.line(ax=axs, subplots=True, sharex=False)
 
         expected_ax1 = np.arange(4.5, 10, 0.5)
@@ -485,15 +547,15 @@ class TestDataFramePlotsSubplots(TestPlotBase):
     def test_subplots_constrained_layout(self):
         # GH 25261
         idx = date_range(start="now", periods=10)
-        df = DataFrame(np.random.rand(10, 3), index=idx)
+        df = DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
         kwargs = {}
-        if hasattr(self.plt.Figure, "get_constrained_layout"):
+        if hasattr(mpl.pyplot.Figure, "get_constrained_layout"):
             kwargs["constrained_layout"] = True
-        fig, axes = self.plt.subplots(2, **kwargs)
+        _, axes = mpl.pyplot.subplots(2, **kwargs)
         with tm.assert_produces_warning(None):
             df.plot(ax=axes[0])
             with tm.ensure_clean(return_filelike=True) as path:
-                self.plt.savefig(path)
+                mpl.pyplot.savefig(path)
 
     @pytest.mark.parametrize(
         "index_name, old_label, new_label",
@@ -573,7 +635,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         ],
     )
     def test_bar_align_single_column(self, kwargs):
-        df = DataFrame(np.random.randn(5))
+        df = DataFrame(np.random.default_rng(2).standard_normal(5))
         self._check_bar_alignment(df, **kwargs)
 
     @pytest.mark.parametrize(
@@ -588,13 +650,13 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         ],
     )
     def test_bar_barwidth_position(self, kwargs):
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         self._check_bar_alignment(df, width=0.9, position=0.2, **kwargs)
 
     @pytest.mark.parametrize("w", [1, 1.0])
     def test_bar_barwidth_position_int(self, w):
         # GH 12979
-        df = DataFrame(np.random.randn(5, 5))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         ax = df.plot.bar(stacked=True, width=w)
         ticks = ax.xaxis.get_ticklocs()
         tm.assert_numpy_array_equal(ticks, np.array([0, 1, 2, 3, 4]))
@@ -603,14 +665,20 @@ class TestDataFramePlotsSubplots(TestPlotBase):
         assert ax.patches[0].get_x() == -0.5
         assert ax.patches[-1].get_x() == 3.5
 
-    def test_bar_barwidth_position_int_width_1(self):
+    @pytest.mark.parametrize(
+        "kind, kwargs",
+        [
+            ["bar", {"stacked": True}],
+            ["barh", {"stacked": False}],
+            ["barh", {"stacked": True}],
+            ["bar", {"subplots": True}],
+            ["barh", {"subplots": True}],
+        ],
+    )
+    def test_bar_barwidth_position_int_width_1(self, kind, kwargs):
         # GH 12979
-        df = DataFrame(np.random.randn(5, 5))
-        self._check_bar_alignment(df, kind="bar", stacked=True, width=1)
-        self._check_bar_alignment(df, kind="barh", stacked=False, width=1)
-        self._check_bar_alignment(df, kind="barh", stacked=True, width=1)
-        self._check_bar_alignment(df, kind="bar", subplots=True, width=1)
-        self._check_bar_alignment(df, kind="barh", subplots=True, width=1)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
+        self._check_bar_alignment(df, kind=kind, width=1, **kwargs)
 
     def _check_bar_alignment(
         self,
@@ -632,7 +700,7 @@ class TestDataFramePlotsSubplots(TestPlotBase):
             grid=True,
         )
 
-        axes = self._flatten_visible(axes)
+        axes = _flatten_visible(axes)
 
         for ax in axes:
             if kind == "bar":

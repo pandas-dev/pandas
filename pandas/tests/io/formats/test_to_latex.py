@@ -34,7 +34,7 @@ class TestToLatex:
     def test_to_latex_to_file(self, float_frame):
         with tm.ensure_clean("test.tex") as path:
             float_frame.to_latex(path)
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 assert float_frame.to_latex() == f.read()
 
     def test_to_latex_to_file_utf8_with_encoding(self):
@@ -186,6 +186,22 @@ class TestToLatex:
             """
         )
         assert result == expected
+
+    def test_to_latex_pos_args_deprecation(self):
+        # GH-54229
+        df = DataFrame(
+            {
+                "name": ["Raphael", "Donatello"],
+                "age": [26, 45],
+                "height": [181.23, 177.65],
+            }
+        )
+        msg = (
+            r"Starting with pandas version 3.0 all arguments of to_latex except for "
+            r"the argument 'buf' will be keyword-only."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_latex(None, None)
 
 
 class TestToLatexLongtable:
@@ -1407,16 +1423,3 @@ class TestToLatexMultiindex:
             """
         )
         assert result == expected
-
-
-def test_to_latex_exceeding_float_point_double():
-    df = DataFrame(data=[[1234567890123456789]], columns=["test"])
-    expected = _dedent(
-        r"""
-        \begin{tabular}{lr}
-         & test \\
-        0 & 1234567890123456789 \\
-        \end{tabular}
-        """
-    )
-    assert df.style.to_latex() == expected

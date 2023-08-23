@@ -20,7 +20,10 @@ import pandas._testing as tm
 class TestSlicing:
     def test_string_index_series_name_converted(self):
         # GH#1644
-        df = DataFrame(np.random.randn(10, 4), index=date_range("1/1/2000", periods=10))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)),
+            index=date_range("1/1/2000", periods=10),
+        )
 
         result = df.loc["1/3/2000"]
         assert result.name == df.index[2]
@@ -124,7 +127,7 @@ class TestSlicing:
         expected = s[s.index.year == 2005]
         tm.assert_series_equal(result, expected)
 
-        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
+        df = DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
         result = df.loc["2005"]
         expected = df[df.index.year == 2005]
         tm.assert_frame_equal(result, expected)
@@ -155,7 +158,7 @@ class TestSlicing:
         s = Series(np.arange(len(dti)), index=dti)
         assert len(s["2001Q1"]) == 90
 
-        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
+        df = DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
         assert len(df.loc["1Q01"]) == 90
 
     def test_slice_month(self):
@@ -163,7 +166,7 @@ class TestSlicing:
         s = Series(np.arange(len(dti)), index=dti)
         assert len(s["2005-11"]) == 30
 
-        df = DataFrame(np.random.rand(len(dti), 5), index=dti)
+        df = DataFrame(np.random.default_rng(2).random((len(dti), 5)), index=dti)
         assert len(df.loc["2005-11"]) == 30
 
         tm.assert_series_equal(s["2005-11"], s["11-2005"])
@@ -358,8 +361,9 @@ class TestSlicing:
         # GH 4294
         # partial slice on a series mi
         ser = DataFrame(
-            np.random.rand(1000, 1000), index=date_range("2000-1-1", periods=1000)
-        ).stack()
+            np.random.default_rng(2).random((1000, 1000)),
+            index=date_range("2000-1-1", periods=1000),
+        ).stack(future_stack=True)
 
         s2 = ser[:-1].copy()
         expected = s2["2000-1-4"]
@@ -379,7 +383,7 @@ class TestSlicing:
         # Disallowed since 2.0 (GH 37819)
         ser = Series(np.arange(10), date_range("2014-01-01", periods=10))
 
-        nonmonotonic = ser[[3, 5, 4]]
+        nonmonotonic = ser.iloc[[3, 5, 4]]
         timestamp = Timestamp("2014-01-10")
         with pytest.raises(
             KeyError, match="Value based partial slicing on non-monotonic"

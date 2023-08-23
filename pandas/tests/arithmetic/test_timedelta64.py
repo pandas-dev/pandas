@@ -27,7 +27,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PandasArray
+from pandas.core.arrays import NumpyExtensionArray
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,
@@ -1002,7 +1002,7 @@ class TestTimedeltaArraylikeAddSubOps:
             ts = dt_scalar.to_pydatetime()
         elif cls is np.datetime64:
             if tz_naive_fixture is not None:
-                return
+                pytest.skip(f"{cls} doesn support {tz_naive_fixture}")
             ts = dt_scalar.to_datetime64()
         else:
             ts = dt_scalar
@@ -1716,7 +1716,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         expected = Index([1.0, np.timedelta64("NaT", "ns"), orig[0], 1.5], dtype=object)
         expected = tm.box_expected(expected, box_with_array, transpose=False)
-        if isinstance(expected, PandasArray):
+        if isinstance(expected, NumpyExtensionArray):
             expected = expected.to_numpy()
         tm.assert_equal(res, expected)
         if box_with_array is DataFrame:
@@ -1727,7 +1727,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         expected = Index([1, np.timedelta64("NaT", "ns"), orig[0], 1], dtype=object)
         expected = tm.box_expected(expected, box_with_array, transpose=False)
-        if isinstance(expected, PandasArray):
+        if isinstance(expected, NumpyExtensionArray):
             expected = expected.to_numpy()
         tm.assert_equal(res, expected)
         if box_with_array is DataFrame:
@@ -2037,6 +2037,12 @@ class TestTimedeltaArraylikeMulDivOps:
         if box_with_array is DataFrame:
             expected = [tdser.iloc[0, n] / vector[n] for n in range(len(vector))]
             expected = tm.box_expected(expected, xbox).astype(object)
+            # We specifically expect timedelta64("NaT") here, not pd.NA
+            msg = "The 'downcast' keyword in fillna"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                expected[2] = expected[2].fillna(
+                    np.timedelta64("NaT", "ns"), downcast=False
+                )
         else:
             expected = [tdser[n] / vector[n] for n in range(len(tdser))]
             expected = [
@@ -2113,9 +2119,14 @@ class TestTimedeltaArraylikeMulDivOps:
         left = tm.box_expected(tdi, box_with_array)
         right = np.array([2, 2.0], dtype=object)
 
-        expected = Index([np.timedelta64("NaT", "ns")] * 2, dtype=object)
+        tdnat = np.timedelta64("NaT", "ns")
+        expected = Index([tdnat] * 2, dtype=object)
         if box_with_array is not Index:
             expected = tm.box_expected(expected, box_with_array).astype(object)
+            if box_with_array in [Series, DataFrame]:
+                msg = "The 'downcast' keyword in fillna is deprecated"
+                with tm.assert_produces_warning(FutureWarning, match=msg):
+                    expected = expected.fillna(tdnat, downcast=False)  # GH#18463
 
         result = left / right
         tm.assert_equal(result, expected)

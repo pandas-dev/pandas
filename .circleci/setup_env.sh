@@ -48,16 +48,13 @@ source activate pandas-dev
 # downstream CI jobs that may also build pandas from source.
 export PANDAS_CI=1
 
-if pip list | grep -q ^pandas; then
+if pip show pandas 1>/dev/null; then
     echo
     echo "remove any installed pandas package w/o removing anything else"
-    pip uninstall -y pandas || true
+    pip uninstall -y pandas
 fi
 
-echo "Build extensions"
-python setup.py build_ext -q -j4
-
 echo "Install pandas"
-python -m pip install --no-build-isolation --no-use-pep517 -e .
+python -m pip install --no-build-isolation -ve .
 
 echo "done"

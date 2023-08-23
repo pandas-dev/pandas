@@ -19,6 +19,23 @@ import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
 
+def test_apply_func_that_appends_group_to_list_without_copy():
+    # GH: 17718
+
+    df = DataFrame(1, index=list(range(10)) * 10, columns=[0]).reset_index()
+    groups = []
+
+    def store(group):
+        groups.append(group)
+
+    df.groupby("index").apply(store)
+    expected_value = DataFrame(
+        {"index": [0] * 10, 0: [1] * 10}, index=pd.RangeIndex(0, 100, 10)
+    )
+
+    tm.assert_frame_equal(groups[0], expected_value)
+
+
 def test_apply_issues():
     # GH 5788
 
@@ -233,7 +250,7 @@ def test_apply_with_mixed_dtype():
     # GH3480, apply with mixed dtype on axis=1 breaks in 0.11
     df = DataFrame(
         {
-            "foo1": np.random.randn(6),
+            "foo1": np.random.default_rng(2).standard_normal(6),
             "foo2": ["one", "two", "two", "three", "one", "two"],
         }
     )
@@ -330,7 +347,7 @@ def test_apply_series_to_frame():
         )
 
     dr = bdate_range("1/1/2000", periods=100)
-    ts = Series(np.random.randn(100), index=dr)
+    ts = Series(np.random.default_rng(2).standard_normal(100), index=dr)
 
     grouped = ts.groupby(lambda x: x.month, group_keys=False)
     result = grouped.apply(f)
@@ -384,9 +401,9 @@ def test_apply_frame_concat_series():
 
     df = DataFrame(
         {
-            "A": np.random.randint(0, 5, 1000),
-            "B": np.random.randint(0, 5, 1000),
-            "C": np.random.randn(1000),
+            "A": np.random.default_rng(2).integers(0, 5, 1000),
+            "B": np.random.default_rng(2).integers(0, 5, 1000),
+            "C": np.random.default_rng(2).standard_normal(1000),
         }
     )
 
@@ -569,11 +586,11 @@ def test_apply_corner_cases():
     # #535, can't use sliding iterator
 
     N = 1000
-    labels = np.random.randint(0, 100, size=N)
+    labels = np.random.default_rng(2).integers(0, 100, size=N)
     df = DataFrame(
         {
             "key": labels,
-            "value1": np.random.randn(N),
+            "value1": np.random.default_rng(2).standard_normal(N),
             "value2": ["foo", "bar", "baz", "qux"] * (N // 4),
         }
     )
@@ -704,7 +721,9 @@ def test_time_field_bug():
     dfg_no_conversion_expected.index.name = "a"
 
     dfg_conversion = df.groupby(by=["a"]).apply(func_with_date)
-    dfg_conversion_expected = DataFrame({"b": datetime(2015, 1, 1), "c": 2}, index=[1])
+    dfg_conversion_expected = DataFrame(
+        {"b": pd.Timestamp(2015, 1, 1).as_unit("ns"), "c": 2}, index=[1]
+    )
     dfg_conversion_expected.index.name = "a"
 
     tm.assert_frame_equal(dfg_no_conversion, dfg_no_conversion_expected)
@@ -871,8 +890,7 @@ def test_apply_multi_level_name(category):
     if category:
         b = pd.Categorical(b, categories=[1, 2, 3])
         expected_index = pd.CategoricalIndex([1, 2, 3], categories=[1, 2, 3], name="B")
-        # GH#40669 - summing an empty frame gives float dtype
-        expected_values = [20.0, 25.0, 0.0]
+        expected_values = [20, 25, 0]
     else:
         expected_index = Index([1, 2], name="B")
         expected_values = [20, 25]
@@ -1053,14 +1071,17 @@ def test_apply_is_unchanged_when_other_methods_are_called_first(reduction_func):
 
     # Check output when no other methods are called before .apply()
     grp = df.groupby(by="a")
-    result = grp.apply(sum)
+    msg = "The behavior of DataFrame.sum with axis=None is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
 
     # Check output when another method is called before .apply()
     grp = df.groupby(by="a")
     args = get_groupby_method_args(reduction_func, df)
     _ = getattr(grp, reduction_func)(*args)
-    result = grp.apply(sum)
+    with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
+        result = grp.apply(sum)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1101,7 +1122,7 @@ def test_apply_by_cols_equals_apply_by_rows_transposed():
     # by_rows operation would work fine, but by_cols would throw a ValueError
 
     df = DataFrame(
-        np.random.random([6, 4]),
+        np.random.default_rng(2).random([6, 4]),
         columns=MultiIndex.from_product([["A", "B"], [1, 2]]),
     )
 
@@ -1386,4 +1407,16 @@ def test_apply_inconsistent_output(group_col):
         index=MultiIndex.from_product([[0.0], [1, 2, 3]], names=["group_col", 0.0]),
     )
 
+    tm.assert_series_equal(result, expected)
+
+
+def test_apply_array_output_multi_getitem():
+    # GH 18930
+    df = DataFrame(
+        {"A": {"a": 1, "b": 2}, "B": {"a": 1, "b": 2}, "C": {"a": 1, "b": 2}}
+    )
+    result = df.groupby("A")[["B", "C"]].apply(lambda x: np.array([0]))
+    expected = Series(
+        [np.array([0])] * 2, index=Index([1, 2], name="A"), name=("B", "C")
+    )
     tm.assert_series_equal(result, expected)

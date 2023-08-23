@@ -92,7 +92,7 @@ def test_series_nested_renamer(renamer):
 
 def test_apply_dict_depr():
     tsdf = DataFrame(
-        np.random.randn(10, 3),
+        np.random.default_rng(2).standard_normal((10, 3)),
         columns=["A", "B", "C"],
         index=date_range("1/1/2000", periods=10),
     )
@@ -189,9 +189,9 @@ def test_apply_modify_traceback():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -221,8 +221,10 @@ def test_apply_modify_traceback():
 def test_agg_cython_table_raises_frame(df, func, expected, axis):
     # GH 21224
     msg = "can't multiply sequence by non-int of type 'str'"
+    warn = None if isinstance(func, str) else FutureWarning
     with pytest.raises(expected, match=msg):
-        df.agg(func, axis=axis)
+        with tm.assert_produces_warning(warn, match="using DataFrame.cumprod"):
+            df.agg(func, axis=axis)
 
 
 @pytest.mark.parametrize(
@@ -246,10 +248,12 @@ def test_agg_cython_table_raises_series(series, func, expected):
     msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
     if func == "median" or func is np.nanmedian or func is np.median:
         msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
+    warn = None if isinstance(func, str) else FutureWarning
 
     with pytest.raises(expected, match=msg):
         # e.g. Series('a b'.split()).cumprod() will raise
-        series.agg(func)
+        with tm.assert_produces_warning(warn, match="is currently using Series.*"):
+            series.agg(func)
 
 
 def test_agg_none_to_type():
@@ -293,6 +297,7 @@ def test_transform_and_agg_err_agg(axis, float_frame):
             float_frame.agg(["max", "sqrt"], axis=axis)
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")  # GH53325
 @pytest.mark.parametrize(
     "func, msg",
     [

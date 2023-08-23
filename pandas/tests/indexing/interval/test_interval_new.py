@@ -149,7 +149,10 @@ class TestIntervalIndex:
         with pytest.raises(KeyError, match=re.escape("Interval(3, 5, closed='right')")):
             indexer_sl(ser)[Interval(3, 5)]
 
-        msg = r"None of \[\[Interval\(3, 5, closed='right'\)\]\]"
+        msg = (
+            r"None of \[IntervalIndex\(\[\(3, 5\]\], "
+            r"dtype='interval\[int64, right\]'\)\] are in the \[index\]"
+        )
         with pytest.raises(KeyError, match=msg):
             indexer_sl(ser)[[Interval(3, 5)]]
 

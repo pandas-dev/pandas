@@ -4,6 +4,13 @@ and latex files. This module also applies to display formatting.
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Generator,
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 from contextlib import contextmanager
 from csv import (
     QUOTE_NONE,
@@ -21,12 +28,6 @@ from typing import (
     Any,
     Callable,
     Final,
-    Generator,
-    Hashable,
-    Iterable,
-    List,
-    Mapping,
-    Sequence,
     cast,
 )
 from unicodedata import east_asian_width
@@ -856,7 +857,7 @@ class DataFrameFormatter:
 
         if is_list_like(self.header):
             # cast here since can't be bool if is_list_like
-            self.header = cast(List[str], self.header)
+            self.header = cast(list[str], self.header)
             if len(self.header) != len(self.columns):
                 raise ValueError(
                     f"Writing {len(self.columns)} cols "
@@ -880,7 +881,7 @@ class DataFrameFormatter:
                 fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
             )
 
-            max_len = max(max(self.adj.len(x) for x in fmt_values), header_colwidth)
+            max_len = max(*(self.adj.len(x) for x in fmt_values), header_colwidth)
             cheader = self.adj.justify(cheader, max_len, mode=self.justify)
             strcols.append(cheader + fmt_values)
 
@@ -1116,7 +1117,7 @@ class DataFrameRenderer:
         doublequote: bool = True,
         escapechar: str | None = None,
         errors: str = "strict",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> str | None:
         """
         Render dataframe as comma-separated file.
@@ -1391,7 +1392,7 @@ class GenericArrayFormatter:
 
         fmt_values = []
         for i, v in enumerate(vals):
-            if not is_float_type[i] and leading_space or self.formatter is not None:
+            if (not is_float_type[i] or self.formatter is not None) and leading_space:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
@@ -1492,6 +1493,35 @@ class FloatArrayFormatter(GenericArrayFormatter):
             ).reshape(values.shape)
             return formatted
 
+        def format_complex_with_na_rep(
+            values: ArrayLike, formatter: Callable, na_rep: str
+        ):
+            real_values = np.real(values).ravel()  # type: ignore[arg-type]
+            imag_values = np.imag(values).ravel()  # type: ignore[arg-type]
+            real_mask, imag_mask = isna(real_values), isna(imag_values)
+            formatted_lst = []
+            for val, real_val, imag_val, re_isna, im_isna in zip(
+                values.ravel(),
+                real_values,
+                imag_values,
+                real_mask,
+                imag_mask,
+            ):
+                if not re_isna and not im_isna:
+                    formatted_lst.append(formatter(val))
+                elif not re_isna:  # xxx+nanj
+                    formatted_lst.append(f"{formatter(real_val)}+{na_rep}j")
+                elif not im_isna:  # nan[+/-]xxxj
+                    # The imaginary part may either start with a "-" or a space
+                    imag_formatted = formatter(imag_val).strip()
+                    if imag_formatted.startswith("-"):
+                        formatted_lst.append(f"{na_rep}{imag_formatted}j")
+                    else:
+                        formatted_lst.append(f"{na_rep}+{imag_formatted}j")
+                else:  # nan+nanj
+                    formatted_lst.append(f"{na_rep}+{na_rep}j")
+            return np.array(formatted_lst).reshape(values.shape)
+
         if self.formatter is not None:
             return format_with_na_rep(self.values, self.formatter, self.na_rep)
 
@@ -1506,15 +1536,18 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # default formatter leaves a space to the left when formatting
             # floats, must be consistent for left-justifying NaNs (GH #25061)
-            if self.justify == "left":
-                na_rep = " " + self.na_rep
-            else:
-                na_rep = self.na_rep
+            na_rep = " " + self.na_rep if self.justify == "left" else self.na_rep
 
-            # separate the wheat from the chaff
+            # different formatting strategies for complex and non-complex data
+            # need to distinguish complex and float NaNs (GH #53762)
             values = self.values
             is_complex = is_complex_dtype(values)
-            values = format_with_na_rep(values, formatter, na_rep)
+
+            # separate the wheat from the chaff
+            if is_complex:
+                values = format_complex_with_na_rep(values, formatter, na_rep)
+            else:
+                values = format_with_na_rep(values, formatter, na_rep)
 
             if self.fixed_width:
                 if is_complex:
@@ -1682,7 +1715,7 @@ def format_percentiles(
     """
     percentiles = np.asarray(percentiles)
 
-    # It checks for np.NaN as well
+    # It checks for np.nan as well
     if (
         not is_numeric_dtype(percentiles)
         or not np.all(percentiles >= 0)
@@ -1797,8 +1830,8 @@ def get_format_datetime64_from_values(
 class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
+        ido = is_dates_only(self.values)
         values = self.values.astype(object)
-        ido = is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
             ido, date_format=self.date_format
         )
@@ -1912,22 +1945,30 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> list[s
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
     """
-    trimmed = [
-        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal))
-        for x in str_complexes
-    ]
+    real_part, imag_part = [], []
+    for x in str_complexes:
+        # Complex numbers are represented as "(-)xxx(+/-)xxxj"
+        # The split will give [{"", "-"}, "xxx", "+/-", "xxx", "j", ""]
+        # Therefore, the imaginary part is the 4th and 3rd last elements,
+        # and the real part is everything before the imaginary part
+        trimmed = re.split(r"([j+-])", x)
+        real_part.append("".join(trimmed[:-4]))
+        imag_part.append("".join(trimmed[-4:-2]))
 
-    # pad strings to the length of the longest trimmed string for alignment
-    lengths = [len(s) for s in trimmed]
-    max_length = max(lengths)
+    # We want to align the lengths of the real and imaginary parts of each complex
+    # number, as well as the lengths the real (resp. complex) parts of all numbers
+    # in the array
+    n = len(str_complexes)
+    padded_parts = _trim_zeros_float(real_part + imag_part, decimal)
+    if len(padded_parts) == 0:
+        return []
+    padded_length = max(len(part) for part in padded_parts) - 1
     padded = [
-        s[: -((k - 1) // 2 + 1)]  # real part
-        + (max_length - k) // 2 * "0"
-        + s[-((k - 1) // 2 + 1) : -((k - 1) // 2)]  # + / -
-        + s[-((k - 1) // 2) : -1]  # imaginary part
-        + (max_length - k) // 2 * "0"
-        + s[-1]
-        for s, k in zip(trimmed, lengths)
+        real_pt  # real part, possibly NaN
+        + imag_pt[0]  # +/-
+        + f"{imag_pt[1:]:>{padded_length}}"  # complex part (no sign), possibly nan
+        + "j"
+        for real_pt, imag_pt in zip(padded_parts[:n], padded_parts[n:])
     ]
     return padded
 

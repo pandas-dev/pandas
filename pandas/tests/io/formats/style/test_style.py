@@ -87,15 +87,13 @@ def blank_value():
 
 @pytest.fixture
 def df():
-    np.random.seed(24)
-    df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
+    df = DataFrame({"A": [0, 1], "B": np.random.default_rng(2).standard_normal(2)})
     return df
 
 
 @pytest.fixture
 def styler(df):
-    np.random.seed(24)
-    df = DataFrame({"A": [0, 1], "B": np.random.randn(2)})
+    df = DataFrame({"A": [0, 1], "B": np.random.default_rng(2).standard_normal(2)})
     return Styler(df)
 
 
@@ -733,7 +731,7 @@ class TestStyler:
 
         idx = MultiIndex.from_product([["a", "b"], [1, 2]])
         col = MultiIndex.from_product([["x", "y"], ["A", "B"]])
-        df = DataFrame(np.random.rand(4, 4), columns=col, index=idx)
+        df = DataFrame(np.random.default_rng(2).random((4, 4)), columns=col, index=idx)
 
         with ctx:
             df.style.map(lambda x: "color: red;", subset=slice_).to_html()

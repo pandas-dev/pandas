@@ -41,7 +41,7 @@ def get_test_data(ngroups=8, n=50):
     if len(arr) < n:
         arr = np.asarray(list(arr) + unique_groups[: n - len(arr)])
 
-    np.random.shuffle(arr)
+    np.random.default_rng(2).shuffle(arr)
     return arr
 
 
@@ -113,8 +113,8 @@ class TestMerge:
             {
                 "key1": get_test_data(),
                 "key2": get_test_data(),
-                "data1": np.random.randn(50),
-                "data2": np.random.randn(50),
+                "data1": np.random.default_rng(2).standard_normal(50),
+                "data2": np.random.default_rng(2).standard_normal(50),
             }
         )
 
@@ -128,19 +128,25 @@ class TestMerge:
             {
                 "key1": get_test_data(n=10),
                 "key2": get_test_data(ngroups=4, n=10),
-                "value": np.random.randn(10),
+                "value": np.random.default_rng(2).standard_normal(10),
             }
         )
 
     @pytest.fixture
     def left(self):
         return DataFrame(
-            {"key": ["a", "b", "c", "d", "e", "e", "a"], "v1": np.random.randn(7)}
+            {
+                "key": ["a", "b", "c", "d", "e", "e", "a"],
+                "v1": np.random.default_rng(2).standard_normal(7),
+            }
         )
 
     @pytest.fixture
     def right(self):
-        return DataFrame({"v2": np.random.randn(4)}, index=["d", "b", "c", "a"])
+        return DataFrame(
+            {"v2": np.random.default_rng(2).standard_normal(4)},
+            index=["d", "b", "c", "a"],
+        )
 
     def test_merge_inner_join_empty(self):
         # GH 15328
@@ -178,9 +184,15 @@ class TestMerge:
 
     def test_merge_index_singlekey_right_vs_left(self):
         left = DataFrame(
-            {"key": ["a", "b", "c", "d", "e", "e", "a"], "v1": np.random.randn(7)}
+            {
+                "key": ["a", "b", "c", "d", "e", "e", "a"],
+                "v1": np.random.default_rng(2).standard_normal(7),
+            }
         )
-        right = DataFrame({"v2": np.random.randn(4)}, index=["d", "b", "c", "a"])
+        right = DataFrame(
+            {"v2": np.random.default_rng(2).standard_normal(4)},
+            index=["d", "b", "c", "a"],
+        )
 
         merged1 = merge(
             left, right, left_on="key", right_index=True, how="left", sort=False
@@ -200,9 +212,15 @@ class TestMerge:
 
     def test_merge_index_singlekey_inner(self):
         left = DataFrame(
-            {"key": ["a", "b", "c", "d", "e", "e", "a"], "v1": np.random.randn(7)}
+            {
+                "key": ["a", "b", "c", "d", "e", "e", "a"],
+                "v1": np.random.default_rng(2).standard_normal(7),
+            }
         )
-        right = DataFrame({"v2": np.random.randn(4)}, index=["d", "b", "c", "a"])
+        right = DataFrame(
+            {"v2": np.random.default_rng(2).standard_normal(4)},
+            index=["d", "b", "c", "a"],
+        )
 
         # inner join
         result = merge(left, right, left_on="key", right_index=True, how="inner")
@@ -438,6 +456,15 @@ class TestMerge:
         result = merge(right, left, on="key", how="right")
         tm.assert_frame_equal(result, left)
 
+    @pytest.mark.parametrize("how", ["inner", "left", "right", "outer"])
+    def test_merge_empty_dataframe(self, index, how):
+        # GH52777
+        left = DataFrame([], index=index[:0])
+        right = left.copy()
+
+        result = left.join(right, how=how)
+        tm.assert_frame_equal(result, left)
+
     @pytest.mark.parametrize(
         "kwarg",
         [
@@ -589,8 +616,8 @@ class TestMerge:
         # GH#2098
 
         d = {
-            "var1": np.random.randint(0, 10, size=10),
-            "var2": np.random.randint(0, 10, size=10),
+            "var1": np.random.default_rng(2).integers(0, 10, size=10),
+            "var2": np.random.default_rng(2).integers(0, 10, size=10),
             "var3": [
                 datetime(2012, 1, 12),
                 datetime(2011, 2, 4),
@@ -607,7 +634,9 @@ class TestMerge:
         df = DataFrame.from_dict(d)
         var3 = df.var3.unique()
         var3 = np.sort(var3)
-        new = DataFrame.from_dict({"var3": var3, "var8": np.random.random(7)})
+        new = DataFrame.from_dict(
+            {"var3": var3, "var8": np.random.default_rng(2).random(7)}
+        )
 
         result = df.merge(new, on="var3", sort=False)
         exp = merge(df, new, on="var3", sort=False)
@@ -679,8 +708,13 @@ class TestMerge:
             {"d": [datetime(2013, 11, 5, 5, 56)], "t": [timedelta(0, 22500)]}
         )
         df = DataFrame(columns=list("dt"))
-        df = concat([df, d], ignore_index=True)
-        result = concat([df, d], ignore_index=True)
+        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+        warn = FutureWarning
+        if using_array_manager:
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
+            df = concat([df, d], ignore_index=True)
+            result = concat([df, d], ignore_index=True)
         expected = DataFrame(
             {
                 "d": [datetime(2013, 11, 5, 5, 56), datetime(2013, 11, 5, 5, 56)],
@@ -1428,13 +1462,14 @@ class TestMerge:
 
 def _check_merge(x, y):
     for how in ["inner", "left", "outer"]:
-        result = x.join(y, how=how)
+        for sort in [True, False]:
+            result = x.join(y, how=how, sort=sort)
 
-        expected = merge(x.reset_index(), y.reset_index(), how=how, sort=True)
-        expected = expected.set_index("index")
+            expected = merge(x.reset_index(), y.reset_index(), how=how, sort=sort)
+            expected = expected.set_index("index")
 
-        # TODO check_names on merge?
-        tm.assert_frame_equal(result, expected, check_names=False)
+            # TODO check_names on merge?
+            tm.assert_frame_equal(result, expected, check_names=False)
 
 
 class TestMergeDtypes:
@@ -1460,7 +1495,9 @@ class TestMergeDtypes:
         result = merge(left, right, on="A")
         assert is_object_dtype(result.A.dtype)
 
-    @pytest.mark.parametrize("d1", [np.int64, np.int32, np.int16, np.int8, np.uint8])
+    @pytest.mark.parametrize(
+        "d1", [np.int64, np.int32, np.intc, np.int16, np.int8, np.uint8]
+    )
     @pytest.mark.parametrize("d2", [np.int64, np.float64, np.float32, np.float16])
     def test_join_multi_dtypes(self, d1, d2):
         dtype1 = np.dtype(d1)
@@ -1715,7 +1752,7 @@ class TestMergeDtypes:
         "how, expected_data",
         [
             ("inner", [[True, 1, 4], [False, 5, 3]]),
-            ("outer", [[True, 1, 4], [False, 5, 3]]),
+            ("outer", [[False, 5, 3], [True, 1, 4]]),
             ("left", [[True, 1, 4], [False, 5, 3]]),
             ("right", [[False, 5, 3], [True, 1, 4]]),
         ],
@@ -1803,20 +1840,18 @@ class TestMergeDtypes:
 
 @pytest.fixture
 def left():
-    np.random.seed(1234)
     return DataFrame(
         {
-            "X": Series(np.random.choice(["foo", "bar"], size=(10,))).astype(
-                CDT(["foo", "bar"])
-            ),
-            "Y": np.random.choice(["one", "two", "three"], size=(10,)),
+            "X": Series(
+                np.random.default_rng(2).choice(["foo", "bar"], size=(10,))
+            ).astype(CDT(["foo", "bar"])),
+            "Y": np.random.default_rng(2).choice(["one", "two", "three"], size=(10,)),
         }
     )
 
 
 @pytest.fixture
 def right():
-    np.random.seed(1234)
     return DataFrame(
         {"X": Series(["foo", "bar"]).astype(CDT(["foo", "bar"])), "Z": [1, 2]}
     )
@@ -2297,9 +2332,9 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
             "outer",
             DataFrame(
                 {
-                    "A": [100, 200, 1, 300],
-                    "B1": [60, 70, 80, np.nan],
-                    "B2": [600, 700, np.nan, 800],
+                    "A": [1, 100, 200, 300],
+                    "B1": [80, 60, 70, np.nan],
+                    "B2": [np.nan, 600, 700, 800],
                 }
             ),
         ),
@@ -2718,9 +2753,9 @@ def test_merge_outer_with_NaN(dtype):
     result = merge(right, left, on="key", how="outer")
     expected = DataFrame(
         {
-            "key": [np.nan, np.nan, 1, 2],
-            "col2": [3, 4, np.nan, np.nan],
-            "col1": [np.nan, np.nan, 1, 2],
+            "key": [1, 2, np.nan, np.nan],
+            "col2": [np.nan, np.nan, 3, 4],
+            "col1": [1, 2, np.nan, np.nan],
         },
         dtype=dtype,
     )
@@ -2772,4 +2807,120 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
 
     result = df2.merge(df)
     expected = df2.copy()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["inner", "left", "outer", "right"])
+@pytest.mark.parametrize("tz", [None, "America/Chicago"])
+def test_merge_datetime_different_resolution(tz, how):
+    # https://github.com/pandas-dev/pandas/issues/53200
+    vals = [
+        pd.Timestamp(2023, 5, 12, tz=tz),
+        pd.Timestamp(2023, 5, 13, tz=tz),
+        pd.Timestamp(2023, 5, 14, tz=tz),
+    ]
+    df1 = DataFrame({"t": vals[:2], "a": [1.0, 2.0]})
+    df1["t"] = df1["t"].dt.as_unit("ns")
+    df2 = DataFrame({"t": vals[1:], "b": [1.0, 2.0]})
+    df2["t"] = df2["t"].dt.as_unit("s")
+
+    expected = DataFrame({"t": vals, "a": [1.0, 2.0, np.nan], "b": [np.nan, 1.0, 2.0]})
+    expected["t"] = expected["t"].dt.as_unit("ns")
+    if how == "inner":
+        expected = expected.iloc[[1]].reset_index(drop=True)
+    elif how == "left":
+        expected = expected.iloc[[0, 1]]
+    elif how == "right":
+        expected = expected.iloc[[1, 2]].reset_index(drop=True)
+
+    result = df1.merge(df2, on="t", how=how)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_multiindex_single_level():
+    # GH52331
+    df = DataFrame({"col": ["A", "B"]})
+    df2 = DataFrame(
+        data={"b": [100]},
+        index=MultiIndex.from_tuples([("A",), ("C",)], names=["col"]),
+    )
+    expected = DataFrame({"col": ["A", "B"], "b": [100, np.nan]})
+
+    result = df.merge(df2, left_on=["col"], right_index=True, how="left")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right", "inner", "outer"])
+@pytest.mark.parametrize("sort", [True, False])
+@pytest.mark.parametrize("on_index", [True, False])
+@pytest.mark.parametrize("left_unique", [True, False])
+@pytest.mark.parametrize("left_monotonic", [True, False])
+@pytest.mark.parametrize("right_unique", [True, False])
+@pytest.mark.parametrize("right_monotonic", [True, False])
+def test_merge_combinations(
+    how, sort, on_index, left_unique, left_monotonic, right_unique, right_monotonic
+):
+    # GH 54611
+    left = [2, 3]
+    if left_unique:
+        left.append(4 if left_monotonic else 1)
+    else:
+        left.append(3 if left_monotonic else 2)
+
+    right = [2, 3]
+    if right_unique:
+        right.append(4 if right_monotonic else 1)
+    else:
+        right.append(3 if right_monotonic else 2)
+
+    left = DataFrame({"key": left})
+    right = DataFrame({"key": right})
+
+    if on_index:
+        left = left.set_index("key")
+        right = right.set_index("key")
+        on_kwargs = {"left_index": True, "right_index": True}
+    else:
+        on_kwargs = {"on": "key"}
+
+    result = merge(left, right, how=how, sort=sort, **on_kwargs)
+
+    if on_index:
+        left = left.reset_index()
+        right = right.reset_index()
+
+    if how in ["left", "right", "inner"]:
+        if how in ["left", "inner"]:
+            expected, other, other_unique = left, right, right_unique
+        else:
+            expected, other, other_unique = right, left, left_unique
+        if how == "inner":
+            keep_values = set(left["key"].values).intersection(right["key"].values)
+            keep_mask = expected["key"].isin(keep_values)
+            expected = expected[keep_mask]
+        if sort:
+            expected = expected.sort_values("key")
+        if not other_unique:
+            other_value_counts = other["key"].value_counts()
+            repeats = other_value_counts.reindex(expected["key"].values, fill_value=1)
+            repeats = repeats.astype(np.intp)
+            expected = expected["key"].repeat(repeats.values)
+            expected = expected.to_frame()
+    elif how == "outer":
+        if on_index and left_unique and left["key"].equals(right["key"]):
+            expected = DataFrame({"key": left["key"]})
+        else:
+            left_counts = left["key"].value_counts()
+            right_counts = right["key"].value_counts()
+            expected_counts = left_counts.mul(right_counts, fill_value=1)
+            expected_counts = expected_counts.astype(np.intp)
+            expected = expected_counts.index.values.repeat(expected_counts.values)
+            expected = DataFrame({"key": expected})
+            expected = expected.sort_values("key")
+
+    if on_index:
+        expected = expected.set_index("key")
+    else:
+        expected = expected.reset_index(drop=True)
+
     tm.assert_frame_equal(result, expected)

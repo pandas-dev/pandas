@@ -91,7 +91,7 @@ class TestTZConvert:
             df4 = DataFrame(np.ones(5), MultiIndex.from_arrays([int_idx, l0]))
 
             # TODO: untested
-            df5 = getattr(df4, fn)("US/Pacific", level=1)  # noqa
+            getattr(df4, fn)("US/Pacific", level=1)
 
             tm.assert_index_equal(df3.index.levels[0], l0)
             assert not df3.index.levels[0].equals(l0_expected)

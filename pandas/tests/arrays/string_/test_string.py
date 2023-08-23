@@ -5,8 +5,6 @@ Tests for the str accessors are in pandas/tests/strings/test_string_array.py
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas.core.dtypes.common import is_dtype_equal
 
 import pandas as pd
@@ -96,6 +94,14 @@ def test_astype_roundtrip(dtype):
     result = casted.astype("datetime64[ns]")
     tm.assert_series_equal(result, ser)
 
+    # GH#38509 same thing for timedelta64
+    ser2 = ser - ser.iloc[-1]
+    casted2 = ser2.astype(dtype)
+    assert is_dtype_equal(casted2.dtype, dtype)
+
+    result2 = casted2.astype(ser2.dtype)
+    tm.assert_series_equal(result2, ser2)
+
 
 def test_add(dtype):
     a = pd.Series(["a", "b", "c", None, None], dtype=dtype)
@@ -117,8 +123,8 @@ def test_add(dtype):
     tm.assert_series_equal(result, expected)
 
 
-def test_add_2d(dtype, request):
-    if dtype.storage == "pyarrow":
+def test_add_2d(dtype, request, arrow_string_storage):
+    if dtype.storage in arrow_string_storage:
         reason = "Failed: DID NOT RAISE <class 'ValueError'>"
         mark = pytest.mark.xfail(raises=None, reason=reason)
         request.node.add_marker(mark)
@@ -146,8 +152,8 @@ def test_add_sequence(dtype):
     tm.assert_extension_array_equal(result, expected)
 
 
-def test_mul(dtype, request):
-    if dtype.storage == "pyarrow":
+def test_mul(dtype, request, arrow_string_storage):
+    if dtype.storage in arrow_string_storage:
         reason = "unsupported operand type(s) for *: 'ArrowStringArray' and 'int'"
         mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
         request.node.add_marker(mark)
@@ -371,8 +377,8 @@ def test_min_max(method, skipna, dtype, request):
 
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("box", [pd.Series, pd.array])
-def test_min_max_numpy(method, box, dtype, request):
-    if dtype.storage == "pyarrow" and box is pd.array:
+def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
+    if dtype.storage in arrow_string_storage and box is pd.array:
         if box is pd.array:
             reason = "'<=' not supported between instances of 'str' and 'NoneType'"
         else:
@@ -386,7 +392,7 @@ def test_min_max_numpy(method, box, dtype, request):
     assert result == expected
 
 
-def test_fillna_args(dtype, request):
+def test_fillna_args(dtype, request, arrow_string_storage):
     # GH 37987
 
     arr = pd.array(["a", pd.NA], dtype=dtype)
@@ -399,7 +405,7 @@ def test_fillna_args(dtype, request):
     expected = pd.array(["a", "b"], dtype=dtype)
     tm.assert_extension_array_equal(res, expected)
 
-    if dtype.storage == "pyarrow":
+    if dtype.storage in arrow_string_storage:
         msg = "Invalid value '1' for dtype string"
     else:
         msg = "Cannot set non-string value '1' into a StringArray."
@@ -420,10 +426,9 @@ def test_arrow_array(dtype):
     assert arr.equals(expected)
 
 
-@td.skip_if_no("pyarrow")
 def test_arrow_roundtrip(dtype, string_storage2):
     # roundtrip possible from arrow 1.0.0
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     data = pd.array(["a", "b", None], dtype=dtype)
     df = pd.DataFrame({"a": data})
@@ -438,10 +443,9 @@ def test_arrow_roundtrip(dtype, string_storage2):
     assert result.loc[2, "a"] is pd.NA
 
 
-@td.skip_if_no("pyarrow")
 def test_arrow_load_from_zero_chunks(dtype, string_storage2):
     # GH-41040
-    import pyarrow as pa
+    pa = pytest.importorskip("pyarrow")
 
     data = pd.array([], dtype=dtype)
     df = pd.DataFrame({"a": data})
@@ -492,23 +496,25 @@ def test_value_counts_with_normalize(dtype):
 def test_use_inf_as_na(values, expected, dtype):
     # https://github.com/pandas-dev/pandas/issues/33655
     values = pd.array(values, dtype=dtype)
-    with pd.option_context("mode.use_inf_as_na", True):
-        result = values.isna()
-        tm.assert_numpy_array_equal(result, expected)
+    msg = "use_inf_as_na option is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        with pd.option_context("mode.use_inf_as_na", True):
+            result = values.isna()
+            tm.assert_numpy_array_equal(result, expected)
 
-        result = pd.Series(values).isna()
-        expected = pd.Series(expected)
-        tm.assert_series_equal(result, expected)
+            result = pd.Series(values).isna()
+            expected = pd.Series(expected)
+            tm.assert_series_equal(result, expected)
 
-        result = pd.DataFrame(values).isna()
-        expected = pd.DataFrame(expected)
-        tm.assert_frame_equal(result, expected)
+            result = pd.DataFrame(values).isna()
+            expected = pd.DataFrame(expected)
+            tm.assert_frame_equal(result, expected)
 
 
-def test_memory_usage(dtype):
+def test_memory_usage(dtype, arrow_string_storage):
     # GH 33963
 
-    if dtype.storage == "pyarrow":
+    if dtype.storage in arrow_string_storage:
         pytest.skip(f"not applicable for {dtype.storage}")
 
     series = pd.Series(["a", "b", "c"], dtype=dtype)

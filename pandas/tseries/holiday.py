@@ -283,11 +283,11 @@ class Holiday:
         holiday_dates = self._apply_rule(dates)
         if self.days_of_week is not None:
             holiday_dates = holiday_dates[
-                np.in1d(
+                np.isin(
                     # error: "DatetimeIndex" has no attribute "dayofweek"
                     holiday_dates.dayofweek,  # type: ignore[attr-defined]
                     self.days_of_week,
-                )
+                ).ravel()
             ]
 
         if self.start_date is not None:
@@ -354,7 +354,7 @@ class Holiday:
         Dates with rules applied
         """
         if dates.empty:
-            return DatetimeIndex([])
+            return dates.copy()
 
         if self.observance is not None:
             return dates.map(lambda d: self.observance(d))
@@ -570,7 +570,7 @@ USMartinLutherKingJr = Holiday(
     offset=DateOffset(weekday=MO(3)),
 )
 USPresidentsDay = Holiday(
-    "Washington’s Birthday", month=2, day=1, offset=DateOffset(weekday=MO(3))
+    "Washington's Birthday", month=2, day=1, offset=DateOffset(weekday=MO(3))
 )
 GoodFriday = Holiday("Good Friday", month=1, day=1, offset=[Easter(), Day(-2)])
 

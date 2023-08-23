@@ -30,8 +30,8 @@ def test_agg_partial_failure_raises():
 
     df = DataFrame(
         {
-            "data1": np.random.randn(5),
-            "data2": np.random.randn(5),
+            "data1": np.random.default_rng(2).standard_normal(5),
+            "data2": np.random.default_rng(2).standard_normal(5),
             "key1": ["a", "a", "b", "b", "a"],
             "key2": ["one", "two", "one", "two", "one"],
         }
@@ -77,24 +77,24 @@ def test_agg_datetimes_mixed():
     )
 
     df1["weights"] = df1["value"] / df1["value"].sum()
-    gb1 = df1.groupby("date").aggregate(np.sum)
+    gb1 = df1.groupby("date").aggregate("sum")
 
     df2["weights"] = df1["value"] / df1["value"].sum()
-    gb2 = df2.groupby("date").aggregate(np.sum)
+    gb2 = df2.groupby("date").aggregate("sum")
 
     assert len(gb1) == len(gb2)
 
 
 def test_agg_period_index():
     prng = period_range("2012-1-1", freq="M", periods=3)
-    df = DataFrame(np.random.randn(3, 2), index=prng)
+    df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)), index=prng)
     rs = df.groupby(level=0).sum()
     assert isinstance(rs.index, PeriodIndex)
 
     # GH 3579
     index = period_range(start="1999-01", periods=5, freq="M")
-    s1 = Series(np.random.rand(len(index)), index=index)
-    s2 = Series(np.random.rand(len(index)), index=index)
+    s1 = Series(np.random.default_rng(2).random(len(index)), index=index)
+    s2 = Series(np.random.default_rng(2).random(len(index)), index=index)
     df = DataFrame.from_dict({"s1": s1, "s2": s2})
     grouped = df.groupby(df.index.month)
     list(grouped)
@@ -175,7 +175,7 @@ def test_aggregate_api_consistency():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
-            "C": np.random.randn(8) + 1.0,
+            "C": np.random.default_rng(2).standard_normal(8) + 1.0,
             "D": np.arange(8),
         }
     )
@@ -191,12 +191,12 @@ def test_aggregate_api_consistency():
     expected.columns = ["sum", "mean"]
     tm.assert_frame_equal(result, expected, check_like=True)
 
-    result = grouped.agg([np.sum, np.mean])
+    result = grouped.agg(["sum", "mean"])
     expected = pd.concat([c_sum, c_mean, d_sum, d_mean], axis=1)
     expected.columns = MultiIndex.from_product([["C", "D"], ["sum", "mean"]])
     tm.assert_frame_equal(result, expected, check_like=True)
 
-    result = grouped[["D", "C"]].agg([np.sum, np.mean])
+    result = grouped[["D", "C"]].agg(["sum", "mean"])
     expected = pd.concat([d_sum, d_mean, c_sum, c_mean], axis=1)
     expected.columns = MultiIndex.from_product([["D", "C"], ["sum", "mean"]])
     tm.assert_frame_equal(result, expected, check_like=True)
@@ -211,7 +211,7 @@ def test_aggregate_api_consistency():
 
     msg = r"Column\(s\) \['r', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
-        grouped[["D", "C"]].agg({"r": np.sum, "r2": np.mean})
+        grouped[["D", "C"]].agg({"r": "sum", "r2": "mean"})
 
 
 def test_agg_dict_renaming_deprecation():
@@ -239,7 +239,7 @@ def test_agg_compat():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
-            "C": np.random.randn(8) + 1.0,
+            "C": np.random.default_rng(2).standard_normal(8) + 1.0,
             "D": np.arange(8),
         }
     )
@@ -260,7 +260,7 @@ def test_agg_nested_dicts():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
-            "C": np.random.randn(8) + 1.0,
+            "C": np.random.default_rng(2).standard_normal(8) + 1.0,
             "D": np.arange(8),
         }
     )
@@ -284,7 +284,7 @@ def test_agg_nested_dicts():
 
 
 def test_agg_item_by_item_raise_typeerror():
-    df = DataFrame(np.random.randint(10, size=(20, 10)))
+    df = DataFrame(np.random.default_rng(2).integers(10, size=(20, 10)))
 
     def raiseException(df):
         pprint_thing("----------------------------------------")
@@ -299,7 +299,7 @@ def test_series_agg_multikey():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby([lambda x: x.year, lambda x: x.month])
 
-    result = grouped.agg(np.sum)
+    result = grouped.agg("sum")
     expected = grouped.sum()
     tm.assert_series_equal(result, expected)
 
@@ -346,9 +346,9 @@ def test_series_agg_multi_pure_python():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -406,9 +406,12 @@ def test_agg_callables():
         fn_class(),
     ]
 
-    expected = df.groupby("foo").agg(sum)
+    expected = df.groupby("foo").agg("sum")
     for ecall in equiv_callables:
-        result = df.groupby("foo").agg(ecall)
+        warn = FutureWarning if ecall is sum or ecall is np.sum else None
+        msg = "using DataFrameGroupBy.sum"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = df.groupby("foo").agg(ecall)
         tm.assert_frame_equal(result, expected)
 
 
@@ -476,7 +479,7 @@ def test_agg_timezone_round_trip():
     ts = pd.Timestamp("2016-01-01 12:00:00", tz="US/Pacific")
     df = DataFrame({"a": 1, "b": [ts + dt.timedelta(minutes=nn) for nn in range(10)]})
 
-    result1 = df.groupby("a")["b"].agg(np.min).iloc[0]
+    result1 = df.groupby("a")["b"].agg("min").iloc[0]
     result2 = df.groupby("a")["b"].agg(lambda x: np.min(x)).iloc[0]
     result3 = df.groupby("a")["b"].min().iloc[0]
 
@@ -580,7 +583,9 @@ def test_agg_category_nansum(observed):
     df = DataFrame(
         {"A": pd.Categorical(["a", "a", "b"], categories=categories), "B": [1, 2, 3]}
     )
-    result = df.groupby("A", observed=observed).B.agg(np.nansum)
+    msg = "using SeriesGroupBy.sum"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A", observed=observed).B.agg(np.nansum)
     expected = Series(
         [3, 3, 0],
         index=pd.CategoricalIndex(["a", "b", "c"], categories=categories, name="A"),

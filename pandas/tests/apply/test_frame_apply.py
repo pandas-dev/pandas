@@ -37,6 +37,13 @@ def test_apply(float_frame):
         assert result.index is float_frame.index
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+def test_apply_args(float_frame, axis):
+    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,))
+    expected = float_frame + 1
+    tm.assert_frame_equal(result, expected)
+
+
 def test_apply_categorical_func():
     # GH 9573
     df = DataFrame({"c0": ["A", "A", "B", "B"], "c1": ["C", "C", "D", "D"]})
@@ -286,6 +293,7 @@ def test_apply_mixed_dtype_corner_indexing():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 @pytest.mark.parametrize("ax", ["index", "columns"])
 @pytest.mark.parametrize(
     "func", [lambda x: x, lambda x: x.mean()], ids=["identity", "mean"]
@@ -296,9 +304,7 @@ def test_apply_empty_infer_type(ax, func, raw, axis):
     df = DataFrame(**{ax: ["a", "b", "c"]})
 
     with np.errstate(all="ignore"):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            test_res = func(np.array([], dtype="f8"))
+        test_res = func(np.array([], dtype="f8"))
         is_reduction = not isinstance(test_res, np.ndarray)
 
         result = df.apply(func, axis=axis, raw=raw)
@@ -369,7 +375,7 @@ def test_apply_reduce_to_dict():
 
 
 def test_apply_differently_indexed():
-    df = DataFrame(np.random.randn(20, 10))
+    df = DataFrame(np.random.default_rng(2).standard_normal((20, 10)))
 
     result = df.apply(Series.describe, axis=0)
     expected = DataFrame({i: v.describe() for i, v in df.items()}, columns=df.columns)
@@ -456,9 +462,9 @@ def test_apply_convert_objects():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -631,15 +637,15 @@ def test_apply_with_byte_string():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("val", ["asd", 12, None, np.NaN])
+@pytest.mark.parametrize("val", ["asd", 12, None, np.nan])
 def test_apply_category_equalness(val):
     # Check if categorical comparisons on apply, GH 21239
-    df_values = ["asd", None, 12, "asd", "cde", np.NaN]
+    df_values = ["asd", None, 12, "asd", "cde", np.nan]
     df = DataFrame({"a": df_values}, dtype="category")
 
     result = df.a.apply(lambda x: x == val)
     expected = Series(
-        [np.NaN if pd.isnull(x) else x == val for x in df_values], name="a"
+        [np.nan if pd.isnull(x) else x == val for x in df_values], name="a"
     )
     tm.assert_series_equal(result, expected)
 
@@ -652,12 +658,56 @@ def test_apply_category_equalness(val):
 def test_infer_row_shape():
     # GH 17437
     # if row shape is changing, infer it
-    df = DataFrame(np.random.rand(10, 2))
+    df = DataFrame(np.random.default_rng(2).random((10, 2)))
     result = df.apply(np.fft.fft, axis=0).shape
     assert result == (10, 2)
 
     result = df.apply(np.fft.rfft, axis=0).shape
     assert result == (6, 2)
+
+
+@pytest.mark.parametrize(
+    "ops, by_row, expected",
+    [
+        ({"a": lambda x: x + 1}, "compat", DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x + 1}, False, DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x.sum()}, "compat", Series({"a": 3})),
+        ({"a": lambda x: x.sum()}, False, Series({"a": 3})),
+        (
+            {"a": ["sum", np.sum, lambda x: x.sum()]},
+            "compat",
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            {"a": ["sum", np.sum, lambda x: x.sum()]},
+            False,
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        ({"a": lambda x: 1}, "compat", DataFrame({"a": [1, 1]})),
+        ({"a": lambda x: 1}, False, Series({"a": 1})),
+    ],
+)
+def test_dictlike_lambda(ops, by_row, expected):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    result = df.apply(ops, by_row=by_row)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        {"a": lambda x: x + 1},
+        {"a": lambda x: x.sum()},
+        {"a": ["sum", np.sum, lambda x: x.sum()]},
+        {"a": lambda x: 1},
+    ],
+)
+def test_dictlike_lambda_raises(ops):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    with pytest.raises(ValueError, match="by_row=True not allowed"):
+        df.apply(ops, by_row=True)
 
 
 def test_with_dictlike_columns():
@@ -709,11 +759,63 @@ def test_with_dictlike_columns_with_infer():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "ops, by_row, expected",
+    [
+        ([lambda x: x + 1], "compat", DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x + 1], False, DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x.sum()], "compat", DataFrame({"a": [3]}, index=["<lambda>"])),
+        ([lambda x: x.sum()], False, DataFrame({"a": [3]}, index=["<lambda>"])),
+        (
+            ["sum", np.sum, lambda x: x.sum()],
+            "compat",
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            ["sum", np.sum, lambda x: x.sum()],
+            False,
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            [lambda x: x + 1, lambda x: 3],
+            "compat",
+            DataFrame([[2, 3], [3, 3]], columns=[["a", "a"], ["<lambda>", "<lambda>"]]),
+        ),
+        (
+            [lambda x: 2, lambda x: 3],
+            False,
+            DataFrame({"a": [2, 3]}, ["<lambda>", "<lambda>"]),
+        ),
+    ],
+)
+def test_listlike_lambda(ops, by_row, expected):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    result = df.apply(ops, by_row=by_row)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        [lambda x: x + 1],
+        [lambda x: x.sum()],
+        ["sum", np.sum, lambda x: x.sum()],
+        [lambda x: x + 1, lambda x: 3],
+    ],
+)
+def test_listlike_lambda_raises(ops):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    with pytest.raises(ValueError, match="by_row=True not allowed"):
+        df.apply(ops, by_row=True)
+
+
 def test_with_listlike_columns():
     # GH 17348
     df = DataFrame(
         {
-            "a": Series(np.random.randn(4)),
+            "a": Series(np.random.default_rng(2).standard_normal(4)),
             "b": ["a", "list", "of", "words"],
             "ts": date_range("2016-10-01", periods=4, freq="H"),
         }
@@ -759,7 +861,9 @@ def test_infer_output_shape_columns():
 def test_infer_output_shape_listlike_columns():
     # GH 16353
 
-    df = DataFrame(np.random.randn(6, 3), columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((6, 3)), columns=["A", "B", "C"]
+    )
 
     result = df.apply(lambda x: [1, 2, 3], axis=1)
     expected = Series([[1, 2, 3] for t in df.itertuples()])
@@ -808,7 +912,9 @@ def test_infer_output_shape_listlike_columns_with_timestamp():
 def test_consistent_coerce_for_shapes(lst):
     # we want column names to NOT be propagated
     # just because the shape matches the input shape
-    df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
+    )
 
     result = df.apply(lambda x: lst, axis=1)
     expected = Series([lst for t in df.itertuples()])
@@ -1385,7 +1491,7 @@ def test_aggregation_func_column_order():
 def test_apply_getitem_axis_1():
     # GH 13427
     df = DataFrame({"a": [0, 1, 2], "b": [1, 2, 3]})
-    result = df[["a", "a"]].apply(lambda x: x[0] + x[1], axis=1)
+    result = df[["a", "a"]].apply(lambda x: x.iloc[0] + x.iloc[1], axis=1)
     expected = Series([0, 2, 4])
     tm.assert_series_equal(result, expected)
 
@@ -1471,8 +1577,8 @@ def test_any_apply_keyword_non_zero_axis_regression():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_list_like_func_with_args():
-    # GH 50624
+def test_agg_mapping_func_deprecated():
+    # GH 53325
     df = DataFrame({"x": [1, 2, 3]})
 
     def foo1(x, a=1, c=0):
@@ -1481,26 +1587,37 @@ def test_agg_list_like_func_with_args():
     def foo2(x, b=2, c=0):
         return x + b + c
 
-    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
-    with pytest.raises(TypeError, match=msg):
-        df.agg([foo1, foo2], 0, 3, b=3, c=4)
+    # single func already takes the vectorized path
+    result = df.agg(foo1, 0, 3, c=4)
+    expected = df + 7
+    tm.assert_frame_equal(result, expected)
 
-    result = df.agg([foo1, foo2], 0, 3, c=4)
+    msg = "using .+ in Series.agg cannot aggregate and"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.agg([foo1, foo2], 0, 3, c=4)
     expected = DataFrame(
-        [[8, 8], [9, 9], [10, 10]],
-        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+        [[8, 8], [9, 9], [10, 10]], columns=[["x", "x"], ["foo1", "foo2"]]
     )
+    tm.assert_frame_equal(result, expected)
+
+    # TODO: the result below is wrong, should be fixed (GH53325)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.agg({"x": foo1}, 0, 3, c=4)
+    expected = DataFrame([2, 3, 4], columns=["x"])
     tm.assert_frame_equal(result, expected)
 
 
 def test_agg_std():
     df = DataFrame(np.arange(6).reshape(3, 2), columns=["A", "B"])
 
-    result = df.agg(np.std)
+    with tm.assert_produces_warning(FutureWarning, match="using DataFrame.std"):
+        result = df.agg(np.std)
     expected = Series({"A": 2.0, "B": 2.0}, dtype=float)
     tm.assert_series_equal(result, expected)
 
-    result = df.agg([np.std])
+    with tm.assert_produces_warning(FutureWarning, match="using Series.std"):
+        result = df.agg([np.std])
     expected = DataFrame({"A": 2.0, "B": 2.0}, index=["std"])
     tm.assert_frame_equal(result, expected)
 

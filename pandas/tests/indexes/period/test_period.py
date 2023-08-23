@@ -14,30 +14,9 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
-from pandas.tests.indexes.datetimelike import DatetimeLike
 
 
-class TestPeriodIndex(DatetimeLike):
-    _index_cls = PeriodIndex
-
-    @pytest.fixture
-    def simple_index(self) -> Index:
-        return period_range("20130101", periods=5, freq="D")
-
-    @pytest.fixture(
-        params=[
-            tm.makePeriodIndex(10),
-            period_range("20130101", periods=10, freq="D")[::-1],
-        ],
-        ids=["index_inc", "index_dec"],
-    )
-    def index(self, request):
-        return request.param
-
-    def test_where(self):
-        # This is handled in test_indexing
-        pass
-
+class TestPeriodIndex:
     def test_make_time_series(self):
         index = period_range(freq="A", start="1/1/2001", end="12/1/2009")
         series = Series(1, index=index)
@@ -97,8 +76,10 @@ class TestPeriodIndex(DatetimeLike):
         pi = period_range(freq="M", start="1/1/2001", end="12/1/2009")
         assert len(pi) == 12 * 9
 
-        start = Period("02-Apr-2005", "B")
-        i1 = period_range(start=start, periods=20)
+        msg = "Period with BDay freq is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            start = Period("02-Apr-2005", "B")
+            i1 = period_range(start=start, periods=20)
         assert len(i1) == 20
         assert i1.freq == start.freq
         assert i1[0] == start
@@ -116,11 +97,15 @@ class TestPeriodIndex(DatetimeLike):
         assert i1.freq == i2.freq
 
         msg = "start and end must have same freq"
+        msg2 = "Period with BDay freq is deprecated"
         with pytest.raises(ValueError, match=msg):
-            period_range(start=start, end=end_intv)
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                period_range(start=start, end=end_intv)
 
-        end_intv = Period("2005-05-01", "B")
-        i1 = period_range(start=start, end=end_intv)
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            end_intv = Period("2005-05-01", "B")
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            i1 = period_range(start=start, end=end_intv)
 
         msg = (
             "Of the three parameters: start, end, and periods, exactly two "
@@ -130,11 +115,13 @@ class TestPeriodIndex(DatetimeLike):
             period_range(start=start)
 
         # infer freq from first element
-        i2 = PeriodIndex([end_intv, Period("2005-05-05", "B")])
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            i2 = PeriodIndex([end_intv, Period("2005-05-05", "B")])
         assert len(i2) == 2
         assert i2[0] == end_intv
 
-        i2 = PeriodIndex(np.array([end_intv, Period("2005-05-05", "B")]))
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            i2 = PeriodIndex(np.array([end_intv, Period("2005-05-05", "B")]))
         assert len(i2) == 2
         assert i2[0] == end_intv
 
@@ -147,42 +134,9 @@ class TestPeriodIndex(DatetimeLike):
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(vals)
 
-    def test_fields(self):
-        # year, month, day, hour, minute
-        # second, weekofyear, week, dayofweek, weekday, dayofyear, quarter
-        # qyear
-        pi = period_range(freq="A", start="1/1/2001", end="12/1/2005")
-        self._check_all_fields(pi)
-
-        pi = period_range(freq="Q", start="1/1/2001", end="12/1/2002")
-        self._check_all_fields(pi)
-
-        pi = period_range(freq="M", start="1/1/2001", end="1/1/2002")
-        self._check_all_fields(pi)
-
-        pi = period_range(freq="D", start="12/1/2001", end="6/1/2001")
-        self._check_all_fields(pi)
-
-        pi = period_range(freq="B", start="12/1/2001", end="6/1/2001")
-        self._check_all_fields(pi)
-
-        pi = period_range(freq="H", start="12/31/2001", end="1/1/2002 23:00")
-        self._check_all_fields(pi)
-
-        pi = period_range(freq="Min", start="12/31/2001", end="1/1/2002 00:20")
-        self._check_all_fields(pi)
-
-        pi = period_range(
-            freq="S", start="12/31/2001 00:00:00", end="12/31/2001 00:05:00"
-        )
-        self._check_all_fields(pi)
-
-        end_intv = Period("2006-12-31", "W")
-        i1 = period_range(end=end_intv, periods=10)
-        self._check_all_fields(i1)
-
-    def _check_all_fields(self, periodindex):
-        fields = [
+    @pytest.mark.parametrize(
+        "field",
+        [
             "year",
             "month",
             "day",
@@ -198,24 +152,39 @@ class TestPeriodIndex(DatetimeLike):
             "quarter",
             "qyear",
             "days_in_month",
-        ]
-
+        ],
+    )
+    @pytest.mark.parametrize(
+        "periodindex",
+        [
+            period_range(freq="A", start="1/1/2001", end="12/1/2005"),
+            period_range(freq="Q", start="1/1/2001", end="12/1/2002"),
+            period_range(freq="M", start="1/1/2001", end="1/1/2002"),
+            period_range(freq="D", start="12/1/2001", end="6/1/2001"),
+            period_range(freq="H", start="12/31/2001", end="1/1/2002 23:00"),
+            period_range(freq="Min", start="12/31/2001", end="1/1/2002 00:20"),
+            period_range(
+                freq="S", start="12/31/2001 00:00:00", end="12/31/2001 00:05:00"
+            ),
+            period_range(end=Period("2006-12-31", "W"), periods=10),
+        ],
+    )
+    def test_fields(self, periodindex, field):
         periods = list(periodindex)
         ser = Series(periodindex)
 
-        for field in fields:
-            field_idx = getattr(periodindex, field)
-            assert len(periodindex) == len(field_idx)
-            for x, val in zip(periods, field_idx):
-                assert getattr(x, field) == val
+        field_idx = getattr(periodindex, field)
+        assert len(periodindex) == len(field_idx)
+        for x, val in zip(periods, field_idx):
+            assert getattr(x, field) == val
 
-            if len(ser) == 0:
-                continue
+        if len(ser) == 0:
+            return
 
-            field_s = getattr(ser.dt, field)
-            assert len(periodindex) == len(field_s)
-            for x, val in zip(periods, field_s):
-                assert getattr(x, field) == val
+        field_s = getattr(ser.dt, field)
+        assert len(periodindex) == len(field_s)
+        for x, val in zip(periods, field_s):
+            assert getattr(x, field) == val
 
     def test_is_(self):
         create_index = lambda: period_range(freq="A", start="1/1/2001", end="12/1/2009")
@@ -240,10 +209,6 @@ class TestPeriodIndex(DatetimeLike):
         expected = PeriodIndex([2000, 2007, 2009], freq="A-JUN")
         tm.assert_index_equal(idx.unique(), expected)
         assert idx.nunique() == 3
-
-    def test_shift(self):
-        # This is tested in test_arithmetic
-        pass
 
     def test_negative_ordinals(self):
         Period(ordinal=-1000, freq="A")
@@ -279,6 +244,8 @@ class TestPeriodIndex(DatetimeLike):
         assert pi.freq == offsets.MonthEnd(2)
         assert pi.freqstr == "2M"
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Period with BDay freq:FutureWarning")
     def test_iteration(self):
         index = period_range(start="1/1/10", periods=4, freq="B")
 
@@ -307,7 +274,7 @@ class TestPeriodIndex(DatetimeLike):
 
     def test_format_empty(self):
         # GH35712
-        empty_idx = self._index_cls([], freq="A")
+        empty_idx = PeriodIndex([], freq="A")
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 

@@ -5,7 +5,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Mapping,
 )
 
 import numpy as np
@@ -29,6 +28,8 @@ from pandas.core.arrays.masked import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     import pyarrow
 
     from pandas._typing import (
@@ -100,7 +101,7 @@ class NumericDtype(BaseMaskedDtype):
         return array_class(data.copy(), ~mask, copy=False)
 
     @classmethod
-    def _str_to_dtype_mapping(cls) -> Mapping[str, NumericDtype]:
+    def _get_dtype_mapping(cls) -> Mapping[np.dtype, NumericDtype]:
         raise AbstractMethodError(cls)
 
     @classmethod
@@ -114,9 +115,9 @@ class NumericDtype(BaseMaskedDtype):
             dtype = dtype.lower()
 
         if not isinstance(dtype, NumericDtype):
-            mapping = cls._str_to_dtype_mapping()
+            mapping = cls._get_dtype_mapping()
             try:
-                dtype = mapping[str(np.dtype(dtype))]
+                dtype = mapping[np.dtype(dtype)]
             except KeyError as err:
                 raise ValueError(f"invalid dtype specified {dtype}") from err
         return dtype
@@ -250,8 +251,8 @@ class NumericArray(BaseMaskedArray):
 
     @cache_readonly
     def dtype(self) -> NumericDtype:
-        mapping = self._dtype_cls._str_to_dtype_mapping()
-        return mapping[str(self._data.dtype)]
+        mapping = self._dtype_cls._get_dtype_mapping()
+        return mapping[self._data.dtype]
 
     @classmethod
     def _coerce_to_array(

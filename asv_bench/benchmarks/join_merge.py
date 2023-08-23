@@ -171,12 +171,12 @@ class Join:
 
 class JoinIndex:
     def setup(self):
-        N = 50000
+        N = 5000
         self.left = DataFrame(
-            np.random.randint(1, N / 500, (N, 2)), columns=["jim", "joe"]
+            np.random.randint(1, N / 50, (N, 2)), columns=["jim", "joe"]
         )
         self.right = DataFrame(
-            np.random.randint(1, N / 500, (N, 2)), columns=["jolie", "jolia"]
+            np.random.randint(1, N / 50, (N, 2)), columns=["jolie", "jolia"]
         ).set_index("jolie")
 
     def time_left_outer_join_index(self):
@@ -322,6 +322,38 @@ class I8Merge:
 
     def time_i8merge(self, how):
         merge(self.left, self.right, how=how)
+
+
+class MergeDatetime:
+    params = [
+        [
+            ("ns", "ns"),
+            ("ms", "ms"),
+            ("ns", "ms"),
+        ],
+        [None, "Europe/Brussels"],
+    ]
+    param_names = ["units", "tz"]
+
+    def setup(self, units, tz):
+        unit_left, unit_right = units
+        N = 10_000
+        keys = Series(date_range("2012-01-01", freq="T", periods=N, tz=tz))
+        self.left = DataFrame(
+            {
+                "key": keys.sample(N * 10, replace=True).dt.as_unit(unit_left),
+                "value1": np.random.randn(N * 10),
+            }
+        )
+        self.right = DataFrame(
+            {
+                "key": keys[:8000].dt.as_unit(unit_right),
+                "value2": np.random.randn(8000),
+            }
+        )
+
+    def time_merge(self, units, tz):
+        merge(self.left, self.right)
 
 
 class MergeCategoricals:

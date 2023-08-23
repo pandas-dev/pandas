@@ -15,7 +15,7 @@ class TestPeriodIndex:
     def test_getitem_periodindex_duplicates_string_slice(self, using_copy_on_write):
         # monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
-        ts = Series(np.random.randn(len(idx)), index=idx)
+        ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
         original = ts.copy()
 
         result = ts["2007"]
@@ -29,7 +29,7 @@ class TestPeriodIndex:
 
         # not monotonic
         idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="A-JUN")
-        ts = Series(np.random.randn(len(idx)), index=idx)
+        ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
 
         result = ts["2007"]
         expected = ts[idx == "2007"]
@@ -37,13 +37,13 @@ class TestPeriodIndex:
 
     def test_getitem_periodindex_quarter_string(self):
         pi = PeriodIndex(["2Q05", "3Q05", "4Q05", "1Q06", "2Q06"], freq="Q")
-        ser = Series(np.random.rand(len(pi)), index=pi).cumsum()
+        ser = Series(np.random.default_rng(2).random(len(pi)), index=pi).cumsum()
         # Todo: fix these accessors!
-        assert ser["05Q4"] == ser[2]
+        assert ser["05Q4"] == ser.iloc[2]
 
     def test_pindex_slice_index(self):
         pi = period_range(start="1/1/10", end="12/31/12", freq="M")
-        s = Series(np.random.rand(len(pi)), index=pi)
+        s = Series(np.random.default_rng(2).random(len(pi)), index=pi)
         res = s["2010"]
         exp = s[0:12]
         tm.assert_series_equal(res, exp)
@@ -69,7 +69,7 @@ class TestPeriodIndex:
             with pytest.raises(TypeError, match=msg):
                 idx[v:]
 
-        s = Series(np.random.rand(len(idx)), index=idx)
+        s = Series(np.random.default_rng(2).random(len(idx)), index=idx)
 
         tm.assert_series_equal(s["2013/01/02":], s[1:])
         tm.assert_series_equal(s["2013/01/02":"2013/01/05"], s[1:5])
@@ -99,7 +99,7 @@ class TestPeriodIndex:
             with pytest.raises(TypeError, match=msg):
                 idx[v:]
 
-        s = Series(np.random.rand(len(idx)), index=idx)
+        s = Series(np.random.default_rng(2).random(len(idx)), index=idx)
 
         tm.assert_series_equal(s["2013/01/01 09:05":"2013/01/01 09:10"], s[300:660])
         tm.assert_series_equal(s["2013/01/01 10:00":"2013/01/01 10:05"], s[3600:3960])
@@ -160,7 +160,7 @@ class TestPeriodIndex:
         ser_montonic = Series(np.arange(30), index=pi)
 
         shuffler = list(range(0, 30, 2)) + list(range(1, 31, 2))
-        ser = ser_montonic[shuffler]
+        ser = ser_montonic.iloc[shuffler]
         nidx = ser.index
 
         # Manually identified locations of year==2014
@@ -173,7 +173,7 @@ class TestPeriodIndex:
         result = nidx.get_loc("2014")
         tm.assert_numpy_array_equal(result, indexer_2014)
 
-        expected = ser[indexer_2014]
+        expected = ser.iloc[indexer_2014]
         result = ser.loc["2014"]
         tm.assert_series_equal(result, expected)
 
@@ -187,7 +187,7 @@ class TestPeriodIndex:
         result = nidx.get_loc("May 2015")
         tm.assert_numpy_array_equal(result, indexer_may2015)
 
-        expected = ser[indexer_may2015]
+        expected = ser.iloc[indexer_may2015]
         result = ser.loc["May 2015"]
         tm.assert_series_equal(result, expected)
 

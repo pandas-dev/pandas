@@ -23,7 +23,7 @@ We use the standard convention for referencing the matplotlib API:
    plt.close("all")
 
 We provide the basics in pandas to easily create decent looking plots.
-See the :ref:`ecosystem <ecosystem.visualization>` section for visualization
+See `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_ for visualization
 libraries that go beyond the basics documented here.
 
 .. note::
@@ -42,11 +42,8 @@ The ``plot`` method on Series and DataFrame is just a simple wrapper around
 :meth:`plt.plot() <matplotlib.axes.Axes.plot>`:
 
 .. ipython:: python
-   :suppress:
 
    np.random.seed(123456)
-
-.. ipython:: python
 
    ts = pd.Series(np.random.randn(1000), index=pd.date_range("1/1/2000", periods=1000))
    ts = ts.cumsum()
@@ -1468,7 +1465,6 @@ otherwise you will see a warning.
 Another option is passing an ``ax`` argument to :meth:`Series.plot` to plot on a particular axis:
 
 .. ipython:: python
-   :suppress:
 
    np.random.seed(123456)
    ts = pd.Series(np.random.randn(1000), index=pd.date_range("1/1/2000", periods=1000))
@@ -1583,12 +1579,8 @@ Plotting tables
 Plotting with matplotlib table is now supported in  :meth:`DataFrame.plot` and :meth:`Series.plot` with a ``table`` keyword. The ``table`` keyword can accept ``bool``, :class:`DataFrame` or :class:`Series`. The simple way to draw a table is to specify ``table=True``. Data will be transposed to meet matplotlib's default layout.
 
 .. ipython:: python
-   :suppress:
 
    np.random.seed(123456)
-
-.. ipython:: python
-
    fig, ax = plt.subplots(1, 1, figsize=(7, 6.5))
    df = pd.DataFrame(np.random.rand(5, 3), columns=["a", "b", "c"])
    ax.xaxis.tick_top()  # Display x-axis ticks on top.
@@ -1663,12 +1655,8 @@ colormaps will produce lines that are not easily visible.
 To use the cubehelix colormap, we can pass ``colormap='cubehelix'``.
 
 .. ipython:: python
-   :suppress:
 
    np.random.seed(123456)
-
-.. ipython:: python
-
    df = pd.DataFrame(np.random.randn(1000, 10), index=ts.index)
    df = df.cumsum()
 
@@ -1701,12 +1689,8 @@ Alternatively, we can pass the colormap itself:
 Colormaps can also be used other plot types, like bar charts:
 
 .. ipython:: python
-   :suppress:
 
    np.random.seed(123456)
-
-.. ipython:: python
-
    dd = pd.DataFrame(np.random.randn(10, 10)).map(abs)
    dd = dd.cumsum()
 
@@ -1764,12 +1748,8 @@ level of refinement you would get when plotting via pandas, it can be faster
 when plotting a large number of points.
 
 .. ipython:: python
-   :suppress:
 
    np.random.seed(123456)
-
-.. ipython:: python
-
    price = pd.Series(
        np.random.randn(150).cumsum(),
        index=pd.date_range("2000-1-1", periods=150, freq="B"),
@@ -1827,7 +1807,7 @@ This would be more or less equivalent to:
 
 The backend module can then use other visualization tools (Bokeh, Altair, hvplot,...)
 to generate the plots. Some libraries implementing a backend for pandas are listed
-on the ecosystem :ref:`ecosystem.visualization` page.
+on `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_.
 
 Developers guide can be found at
 https://pandas.pydata.org/docs/dev/development/extending.html#plotting-backends

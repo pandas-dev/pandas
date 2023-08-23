@@ -1,6 +1,7 @@
 import string
 
 import numpy as np
+import pytest
 
 import pandas._config.config as cf
 
@@ -153,7 +154,9 @@ class TestTableSchemaRepr:
         # column MultiIndex
         # GH 15996
         midx = pd.MultiIndex.from_product([["A", "B"], ["a", "b", "c"]])
-        df = pd.DataFrame(np.random.randn(5, len(midx)), columns=midx)
+        df = pd.DataFrame(
+            np.random.default_rng(2).standard_normal((5, len(midx))), columns=midx
+        )
 
         opt = pd.option_context("display.html.table_schema", True)
 
@@ -196,3 +199,50 @@ class TestTableSchemaRepr:
             assert formatters[mimetype].enabled
             # smoke test that it works
             ip.instance(config=ip.config).display_formatter.format(cf)
+
+
+def test_multiindex_long_element():
+    # Non-regression test towards GH #52960
+    data = pd.MultiIndex.from_tuples([("c" * 62,)])
+
+    expected = (
+        "MultiIndex([('cccccccccccccccccccccccccccccccccccccccc"
+        "cccccccccccccccccccccc',)],\n           )"
+    )
+    assert str(data) == expected
+
+
+@pytest.mark.parametrize(
+    "data,output",
+    [
+        ([2, complex("nan"), 1], [" 2.0+0.0j", " NaN+0.0j", " 1.0+0.0j"]),
+        ([2, complex("nan"), -1], [" 2.0+0.0j", " NaN+0.0j", "-1.0+0.0j"]),
+        ([-2, complex("nan"), -1], ["-2.0+0.0j", " NaN+0.0j", "-1.0+0.0j"]),
+        ([-1.23j, complex("nan"), -1], ["-0.00-1.23j", "  NaN+0.00j", "-1.00+0.00j"]),
+        ([1.23j, complex("nan"), 1.23], [" 0.00+1.23j", "  NaN+0.00j", " 1.23+0.00j"]),
+        (
+            [-1.23j, complex(np.nan, np.nan), 1],
+            ["-0.00-1.23j", "  NaN+ NaNj", " 1.00+0.00j"],
+        ),
+        (
+            [-1.23j, complex(1.2, np.nan), 1],
+            ["-0.00-1.23j", " 1.20+ NaNj", " 1.00+0.00j"],
+        ),
+        (
+            [-1.23j, complex(np.nan, -1.2), 1],
+            ["-0.00-1.23j", "  NaN-1.20j", " 1.00+0.00j"],
+        ),
+    ],
+)
+@pytest.mark.parametrize("as_frame", [True, False])
+def test_ser_df_with_complex_nans(data, output, as_frame):
+    # GH#53762, GH#53841
+    obj = pd.Series(np.array(data))
+    if as_frame:
+        obj = obj.to_frame(name="val")
+        reprs = [f"{i} {val}" for i, val in enumerate(output)]
+        expected = f"{'val': >{len(reprs[0])}}\n" + "\n".join(reprs)
+    else:
+        reprs = [f"{i}   {val}" for i, val in enumerate(output)]
+        expected = "\n".join(reprs) + "\ndtype: complex128"
+    assert str(obj) == expected, f"\n{str(obj)}\n\n{expected}"

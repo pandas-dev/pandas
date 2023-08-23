@@ -1,0 +1,94 @@
+{% set version = "2.0.1" %}
+
+package:
+  name: pandas
+  version: {{ version }}
+
+source:
+  git_url: ../..
+
+build:
+  number: 1
+  script:
+    - export PYTHONUNBUFFERED=1  # [ppc64le]
+    - {{ PYTHON }} -m pip install -vv --no-deps --ignore-installed .  # [not unix]
+    - {{ PYTHON }} -m pip install -vv --no-deps --ignore-installed . --global-option="build_ext" --global-option="-j4" --no-use-pep517  # [unix]
+  skip: true  # [py<39]
+
+requirements:
+  build:
+    - python                                 # [build_platform != target_platform]
+    - cross-python_{{ target_platform }}     # [build_platform != target_platform]
+    - cython                                 # [build_platform != target_platform]
+    - numpy                                  # [build_platform != target_platform]
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
+    - python
+    - pip
+    - setuptools >=61.0.0
+    - cython >=0.29.33,<3
+    - numpy >=1.21.6  # [py<311]
+    - numpy >=1.23.2  # [py>=311]
+    - versioneer
+    - tomli  # [py<311]
+  run:
+    - python
+    - numpy >=1.21.6  # [py<311]
+    - numpy >=1.23.2  # [py>=311]
+    - python-dateutil >=2.8.2
+    - pytz >=2020.1
+    - python-tzdata >=2022.1
+
+test:
+  imports:
+    - pandas
+  commands:
+    - pip check
+    # Skip test suite on PyPy as it segfaults there
+    # xref: https://github.com/conda-forge/pandas-feedstock/issues/148
+    #
+    # Also skip `test_rolling_var_numerical_issues` on `ppc64le` as it is a known test failure.
+    # xref: https://github.com/conda-forge/pandas-feedstock/issues/149
+    {% set markers = ["not clipboard", "not single_cpu", "not db", "not network", "not slow"] %}
+    {% set markers = markers + ["not arm_slow"] %}   # [aarch64 or ppc64le]
+    {% set extra_args = ["-n=2 -m " + " and ".join(markers)] %}
+    {% set tests_to_skip = "_not_a_real_test" %}
+    {% set tests_to_skip = tests_to_skip + " or test_rolling_var_numerical_issues" %}           # [ppc64le]
+    {% set tests_to_skip = tests_to_skip + " or test_std_timedelta64_skipna_false" %}           # [ppc64le]
+    {% set tests_to_skip = tests_to_skip + " or test_value_counts_normalized[M8[ns]]" %}        # [ppc64le]
+    {% set tests_to_skip = tests_to_skip + " or test_to_datetime_format_YYYYMMDD_with_nat" %}   # [ppc64le]
+    {% set tests_to_skip = tests_to_skip + " or (TestReductions and test_median_2d)" %}         # [ppc64le]
+    {% set extra_args = extra_args + ["-k", "not (" + tests_to_skip + ")"] %}
+    - python -c "import pandas; pandas.test(extra_args={{ extra_args }})"  # [python_impl == "cpython"]
+  requires:
+    - pip
+    - pytest >=7.3.2
+    - pytest-asyncio >=0.17.0
+    - pytest-xdist >=2.2.0
+    - pytest-cov
+    - hypothesis >=6.46.1
+    - tomli  # [py<311]
+
+about:
+  home: http://pandas.pydata.org
+  license: BSD-3-Clause
+  license_file: LICENSE
+  summary: Powerful data structures for data analysis, time series, and statistics
+  doc_url: https://pandas.pydata.org/docs/
+  dev_url: https://github.com/pandas-dev/pandas
+
+extra:
+  recipe-maintainers:
+    - jreback
+    - jorisvandenbossche
+    - msarahan
+    - ocefpaf
+    - TomAugspurger
+    - WillAyd
+    - simonjayhawkins
+    - mroeschke
+    - datapythonista
+    - phofl
+    - lithomas1
+    - marcogorelli

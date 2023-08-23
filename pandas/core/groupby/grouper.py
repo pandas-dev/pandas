@@ -6,8 +6,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Iterator,
     final,
 )
 import warnings
@@ -17,6 +15,7 @@ import numpy as np
 from pandas._config import using_copy_on_write
 
 from pandas._libs import lib
+from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -46,6 +45,11 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
+
     from pandas._typing import (
         ArrayLike,
         Axis,
@@ -122,7 +126,7 @@ class Grouper:
 
     Examples
     --------
-    Syntactic sugar for ``df.groupby('A')``
+    ``df.groupby(pd.Grouper(key="Animal"))`` is equivalent to ``df.groupby('Animal')``
 
     >>> df = pd.DataFrame(
     ...     {
@@ -203,12 +207,12 @@ class Grouper:
     2000-10-02 00:26:00    24
     Freq: 17T, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq='17min', origin='2000-01-01')).sum()
-    2000-10-01 23:24:00     3
-    2000-10-01 23:41:00    15
-    2000-10-01 23:58:00    45
-    2000-10-02 00:15:00    45
-    Freq: 17T, dtype: int64
+    >>> ts.groupby(pd.Grouper(freq='17W', origin='2000-01-01')).sum()
+    2000-01-02      0
+    2000-04-30      0
+    2000-08-27      0
+    2000-12-24    108
+    Freq: 17W-SUN, dtype: int64
 
     If you want to adjust the start of the bins with an `offset` Timedelta, the two
     following lines are equivalent:
@@ -437,6 +441,8 @@ class Grouper:
     @final
     @property
     def obj(self):
+        # TODO(3.0): enforcing these deprecations on Grouper should close
+        #  GH#25564, GH#41930
         warnings.warn(
             f"{type(self).__name__}.obj is deprecated and will be removed "
             "in a future version. Use GroupBy.indexer instead.",
@@ -721,7 +727,7 @@ class Grouping:
             if self._sort and (codes == len(uniques)).any():
                 # Add NA value on the end when sorting
                 uniques = Categorical.from_codes(
-                    np.append(uniques.codes, [-1]), uniques.categories
+                    np.append(uniques.codes, [-1]), uniques.categories, validate=False
                 )
             elif len(codes) > 0:
                 # Need to determine proper placement of NA value when not sorting
@@ -730,8 +736,9 @@ class Grouping:
                 if cat.codes[na_idx] < 0:
                     # count number of unique codes that comes before the nan value
                     na_unique_idx = algorithms.nunique_ints(cat.codes[:na_idx])
+                    new_codes = np.insert(uniques.codes, na_unique_idx, -1)
                     uniques = Categorical.from_codes(
-                        np.insert(uniques.codes, na_unique_idx, -1), uniques.categories
+                        new_codes, uniques.categories, validate=False
                     )
         return Index._with_infer(uniques, name=self.name)
 
@@ -754,7 +761,7 @@ class Grouping:
                 ucodes = np.arange(len(categories))
 
             uniques = Categorical.from_codes(
-                codes=ucodes, categories=categories, ordered=cat.ordered
+                codes=ucodes, categories=categories, ordered=cat.ordered, validate=False
             )
 
             codes = cat.codes
@@ -800,7 +807,8 @@ class Grouping:
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
-        return self._index.groupby(Categorical.from_codes(self.codes, self.group_index))
+        cats = Categorical.from_codes(self.codes, self.group_index, validate=False)
+        return self._index.groupby(cats)
 
 
 def get_grouper(
@@ -964,7 +972,7 @@ def get_grouper(
             # series is part of the object
             try:
                 obj_gpr_column = obj[gpr.name]
-            except (KeyError, IndexError, InvalidIndexError):
+            except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
                 return gpr._mgr.references_same_values(  # type: ignore[union-attr]
@@ -973,11 +981,13 @@ def get_grouper(
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError, InvalidIndexError):
+        except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
             # IndexError reached in e.g. test_skip_group_keys when we pass
             #  lambda here
             # InvalidIndexError raised on key-types inappropriate for index,
             #  e.g. DatetimeIndex.get_loc(tuple())
+            # OutOfBoundsDatetime raised when obj is a Series with DatetimeIndex
+            # and gpr.name is month str
             return False
 
     for gpr, level in zip(keys, levels):

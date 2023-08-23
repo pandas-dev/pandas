@@ -1,11 +1,10 @@
 import datetime
 import decimal
+import re
 
 import numpy as np
 import pytest
 import pytz
-
-from pandas.core.dtypes.base import _registry as registry
 
 import pandas as pd
 import pandas._testing as tm
@@ -20,7 +19,7 @@ from pandas.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays import (
-    PandasArray,
+    NumpyExtensionArray,
     period_array,
 )
 from pandas.tests.extension.decimal import (
@@ -30,16 +29,36 @@ from pandas.tests.extension.decimal import (
 )
 
 
+@pytest.mark.parametrize("dtype_unit", ["M8[h]", "M8[m]", "m8[h]", "M8[m]"])
+def test_dt64_array(dtype_unit):
+    # PR 53817
+    dtype_var = np.dtype(dtype_unit)
+    msg = (
+        r"datetime64 and timedelta64 dtype resolutions other than "
+        r"'s', 'ms', 'us', and 'ns' are deprecated. "
+        r"In future releases passing unsupported resolutions will "
+        r"raise an exception."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=re.escape(msg)):
+        pd.array([], dtype=dtype_var)
+
+
 @pytest.mark.parametrize(
     "data, dtype, expected",
     [
         # Basic NumPy defaults.
+        ([], None, FloatingArray._from_sequence([])),
         ([1, 2], None, IntegerArray._from_sequence([1, 2])),
-        ([1, 2], object, PandasArray(np.array([1, 2], dtype=object))),
+        ([1, 2], object, NumpyExtensionArray(np.array([1, 2], dtype=object))),
         (
             [1, 2],
             np.dtype("float32"),
-            PandasArray(np.array([1.0, 2.0], dtype=np.dtype("float32"))),
+            NumpyExtensionArray(np.array([1.0, 2.0], dtype=np.dtype("float32"))),
+        ),
+        (
+            np.array([], dtype=object),
+            None,
+            NumpyExtensionArray(np.array([], dtype=object)),
         ),
         (np.array([1, 2], dtype="int64"), None, IntegerArray._from_sequence([1, 2])),
         (
@@ -48,19 +67,20 @@ from pandas.tests.extension.decimal import (
             FloatingArray._from_sequence([1.0, 2.0]),
         ),
         # String alias passes through to NumPy
-        ([1, 2], "float32", PandasArray(np.array([1, 2], dtype="float32"))),
-        ([1, 2], "int64", PandasArray(np.array([1, 2], dtype=np.int64))),
-        # GH#44715 FloatingArray does not support float16, so fall back to PandasArray
+        ([1, 2], "float32", NumpyExtensionArray(np.array([1, 2], dtype="float32"))),
+        ([1, 2], "int64", NumpyExtensionArray(np.array([1, 2], dtype=np.int64))),
+        # GH#44715 FloatingArray does not support float16, so fall
+        #  back to NumpyExtensionArray
         (
             np.array([1, 2], dtype=np.float16),
             None,
-            PandasArray(np.array([1, 2], dtype=np.float16)),
+            NumpyExtensionArray(np.array([1, 2], dtype=np.float16)),
         ),
         # idempotency with e.g. pd.array(pd.array([1, 2], dtype="int64"))
         (
-            PandasArray(np.array([1, 2], dtype=np.int32)),
+            NumpyExtensionArray(np.array([1, 2], dtype=np.int32)),
             None,
-            PandasArray(np.array([1, 2], dtype=np.int32)),
+            NumpyExtensionArray(np.array([1, 2], dtype=np.int32)),
         ),
         # Period alias
         (
@@ -79,6 +99,11 @@ from pandas.tests.extension.decimal import (
             [1, 2],
             np.dtype("datetime64[ns]"),
             DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[ns]")),
+        ),
+        (
+            [1, 2],
+            np.dtype("datetime64[s]"),
+            DatetimeArray._from_sequence(np.array([1, 2], dtype="datetime64[s]")),
         ),
         (
             np.array([1, 2], dtype="datetime64[ns]"),
@@ -120,12 +145,17 @@ from pandas.tests.extension.decimal import (
             TimedeltaArray._from_sequence(["1H", "2H"]),
         ),
         (
+            np.array([1, 2], dtype="m8[s]"),
+            np.dtype("timedelta64[s]"),
+            TimedeltaArray._from_sequence(np.array([1, 2], dtype="m8[s]")),
+        ),
+        (
             pd.TimedeltaIndex(["1H", "2H"]),
             None,
             TimedeltaArray._from_sequence(["1H", "2H"]),
         ),
         (
-            # preserve non-nano, i.e. don't cast to PandasArray
+            # preserve non-nano, i.e. don't cast to NumpyExtensionArray
             TimedeltaArray._simple_new(
                 np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
             ),
@@ -135,7 +165,7 @@ from pandas.tests.extension.decimal import (
             ),
         ),
         (
-            # preserve non-nano, i.e. don't cast to PandasArray
+            # preserve non-nano, i.e. don't cast to NumpyExtensionArray
             TimedeltaArray._simple_new(
                 np.arange(5, dtype=np.int64).view("m8[s]"), dtype=np.dtype("m8[s]")
             ),
@@ -161,7 +191,11 @@ from pandas.tests.extension.decimal import (
         ([0, 1], "Sparse[int64]", SparseArray([0, 1], dtype="int64")),
         # IntegerNA
         ([1, None], "Int16", pd.array([1, None], dtype="Int16")),
-        (pd.Series([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
+        (
+            pd.Series([1, 2]),
+            None,
+            NumpyExtensionArray(np.array([1, 2], dtype=np.int64)),
+        ),
         # String
         (
             ["a", None],
@@ -177,7 +211,7 @@ from pandas.tests.extension.decimal import (
         ([True, None], "boolean", BooleanArray._from_sequence([True, None])),
         ([True, None], pd.BooleanDtype(), BooleanArray._from_sequence([True, None])),
         # Index
-        (pd.Index([1, 2]), None, PandasArray(np.array([1, 2], dtype=np.int64))),
+        (pd.Index([1, 2]), None, NumpyExtensionArray(np.array([1, 2], dtype=np.int64))),
         # Series[EA] returns the EA
         (
             pd.Series(pd.Categorical(["a", "b"], categories=["a", "b", "c"])),
@@ -328,13 +362,13 @@ def test_array_inference(data, expected):
 )
 def test_array_inference_fails(data):
     result = pd.array(data)
-    expected = PandasArray(np.array(data, dtype=object))
+    expected = NumpyExtensionArray(np.array(data, dtype=object))
     tm.assert_extension_array_equal(result, expected)
 
 
 @pytest.mark.parametrize("data", [np.array(0)])
 def test_nd_raises(data):
-    with pytest.raises(ValueError, match="PandasArray must be 1-dimensional"):
+    with pytest.raises(ValueError, match="NumpyExtensionArray must be 1-dimensional"):
         pd.array(data, dtype="int64")
 
 
@@ -401,25 +435,6 @@ def test_array_unboxes(index_or_series):
 
     result = pd.array(data, dtype="decimal2")
     expected = DecimalArray2._from_sequence(data.values)
-    tm.assert_equal(result, expected)
-
-
-@pytest.fixture
-def registry_without_decimal():
-    """Fixture yielding 'registry' with no DecimalDtype entries"""
-    idx = registry.dtypes.index(DecimalDtype)
-    registry.dtypes.pop(idx)
-    yield
-    registry.dtypes.append(DecimalDtype)
-
-
-def test_array_not_registered(registry_without_decimal):
-    # check we aren't on it
-    assert registry.find("decimal") is None
-    data = [decimal.Decimal("1"), decimal.Decimal("2")]
-
-    result = pd.array(data, dtype=DecimalDtype)
-    expected = DecimalArray._from_sequence(data)
     tm.assert_equal(result, expected)
 
 

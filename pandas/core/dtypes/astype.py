@@ -18,14 +18,13 @@ from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas.errors import IntCastingNaNError
 
 from pandas.core.dtypes.common import (
-    is_dtype_equal,
     is_object_dtype,
     is_string_dtype,
     pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
 )
 
 if TYPE_CHECKING:
@@ -171,7 +170,7 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
     -------
     ndarray or ExtensionArray
     """
-    if is_dtype_equal(values.dtype, dtype):
+    if values.dtype == dtype:
         if copy:
             return values.copy()
         return values
@@ -231,8 +230,8 @@ def astype_array_safe(
         raise TypeError(msg)
 
     dtype = pandas_dtype(dtype)
-    if isinstance(dtype, PandasDtype):
-        # Ensure we don't end up with a PandasArray
+    if isinstance(dtype, NumpyEADtype):
+        # Ensure we don't end up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
 
     try:

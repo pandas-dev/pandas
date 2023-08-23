@@ -289,10 +289,10 @@ Invalid data
 
 The default behavior, ``errors='raise'``, is to raise when unparsable:
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-    In [2]: pd.to_datetime(['2009/07/31', 'asd'], errors='raise')
-    ValueError: Unknown datetime string format
+   pd.to_datetime(['2009/07/31', 'asd'], errors='raise')
 
 Pass ``errors='ignore'`` to return the original input when unparsable:
 
@@ -777,7 +777,7 @@ regularity will result in a ``DatetimeIndex``, although frequency is lost:
 
 .. ipython:: python
 
-   ts2[[0, 2, 6]].index
+   ts2.iloc[[0, 2, 6]].index
 
 .. _timeseries.components:
 
@@ -1299,6 +1299,31 @@ frequencies. We will refer to these aliases as *offset aliases*.
    given frequency it will roll to the next value for ``start_date``
    (respectively previous for the ``end_date``)
 
+.. _timeseries.period_aliases:
+
+Period aliases
+~~~~~~~~~~~~~~
+
+A number of string aliases are given to useful common time series
+frequencies. We will refer to these aliases as *period aliases*.
+
+.. csv-table::
+    :header: "Alias", "Description"
+    :widths: 15, 100
+
+    "B", "business day frequency"
+    "D", "calendar day frequency"
+    "W", "weekly frequency"
+    "M", "monthly frequency"
+    "Q", "quarterly frequency"
+    "A, Y", "yearly frequency"
+    "H", "hourly frequency"
+    "T, min", "minutely frequency"
+    "S", "secondly frequency"
+    "L, ms", "milliseconds"
+    "U, us", "microseconds"
+    "N", "nanoseconds"
+
 
 Combining aliases
 ~~~~~~~~~~~~~~~~~
@@ -1776,14 +1801,14 @@ You can pass a list or dict of functions to do aggregation with, outputting a ``
 
 .. ipython:: python
 
-   r["A"].agg([np.sum, np.mean, np.std])
+   r["A"].agg(["sum", "mean", "std"])
 
 On a resampled ``DataFrame``, you can pass a list of functions to apply to each
 column, which produces an aggregated result with a hierarchical index:
 
 .. ipython:: python
 
-   r.agg([np.sum, np.mean])
+   r.agg(["sum", "mean"])
 
 By passing a dict to ``aggregate`` you can apply a different aggregation to the
 columns of a ``DataFrame``:
@@ -1791,7 +1816,7 @@ columns of a ``DataFrame``:
 .. ipython:: python
    :okexcept:
 
-   r.agg({"A": np.sum, "B": lambda x: np.std(x, ddof=1)})
+   r.agg({"A": "sum", "B": lambda x: np.std(x, ddof=1)})
 
 The function names can also be strings. In order for a string to be valid it
 must be implemented on the resampled object:
@@ -1991,12 +2016,11 @@ If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``,
    p + datetime.timedelta(minutes=120)
    p + np.timedelta64(7200, "s")
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [1]: p + pd.offsets.Minute(5)
-   Traceback
-      ...
-   ValueError: Input has different freq from Period(freq=H)
+   p + pd.offsets.Minute(5)
+
 
 If ``Period`` has other frequencies, only the same ``offsets`` can be added. Otherwise, ``ValueError`` will be raised.
 
@@ -2005,12 +2029,11 @@ If ``Period`` has other frequencies, only the same ``offsets`` can be added. Oth
    p = pd.Period("2014-07", freq="M")
    p + pd.offsets.MonthEnd(3)
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [1]: p + pd.offsets.MonthBegin(3)
-   Traceback
-      ...
-   ValueError: Input has different freq from Period(freq=M)
+   p + pd.offsets.MonthBegin(3)
+
 
 Taking the difference of ``Period`` instances with the same frequency will
 return the number of frequency units between them:
@@ -2083,7 +2106,7 @@ Period dtypes
 dtype similar to the :ref:`timezone aware dtype <timeseries.timezone_series>` (``datetime64[ns, tz]``).
 
 The ``period`` dtype holds the ``freq`` attribute and is represented with
-``period[freq]`` like ``period[D]`` or ``period[M]``, using :ref:`frequency strings <timeseries.offset_aliases>`.
+``period[freq]`` like ``period[D]`` or ``period[M]``, using :ref:`frequency strings <timeseries.period_aliases>`.
 
 .. ipython:: python
 
@@ -2539,10 +2562,10 @@ twice within one day ("clocks fall back"). The following options are available:
 
 This will fail as there are ambiguous times (``'11/06/2011 01:00'``)
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [2]: rng_hourly.tz_localize('US/Eastern')
-   AmbiguousTimeError: Cannot infer dst time from Timestamp('2011-11-06 01:00:00'), try using the 'ambiguous' argument
+   rng_hourly.tz_localize('US/Eastern')
 
 Handle these ambiguous times by specifying the following.
 
@@ -2574,10 +2597,10 @@ can be controlled by the ``nonexistent`` argument. The following options are ava
 
 Localization of nonexistent times will raise an error by default.
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [2]: dti.tz_localize('Europe/Warsaw')
-   NonExistentTimeError: 2015-03-29 02:30:00
+   dti.tz_localize('Europe/Warsaw')
 
 Transform nonexistent times to ``NaT`` or shift the times.
 

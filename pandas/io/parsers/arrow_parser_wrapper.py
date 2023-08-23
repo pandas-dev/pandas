@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 
@@ -10,7 +12,10 @@ from pandas.core.dtypes.inference import is_integer
 import pandas as pd
 from pandas import DataFrame
 
-from pandas.io._util import _arrow_dtype_mapping
+from pandas.io._util import (
+    _arrow_dtype_mapping,
+    arrow_string_types_mapper,
+)
 from pandas.io.parsers.base_parser import ParserBase
 
 if TYPE_CHECKING:
@@ -36,9 +41,6 @@ class ArrowParserWrapper(ParserBase):
         encoding: str | None = self.kwds.get("encoding")
         self.encoding = "utf-8" if encoding is None else encoding
 
-        self.usecols, self.usecols_dtype = self._validate_usecols_arg(
-            self.kwds["usecols"]
-        )
         na_values = self.kwds["na_values"]
         if isinstance(na_values, dict):
             raise ValueError(
@@ -61,6 +63,21 @@ class ArrowParserWrapper(ParserBase):
             if pandas_name in self.kwds and self.kwds.get(pandas_name) is not None:
                 self.kwds[pyarrow_name] = self.kwds.pop(pandas_name)
 
+        # Date format handling
+        # If we get a string, we need to convert it into a list for pyarrow
+        # If we get a dict, we want to parse those separately
+        date_format = self.date_format
+        if isinstance(date_format, str):
+            date_format = [date_format]
+        else:
+            # In case of dict, we don't want to propagate through, so
+            # just set to pyarrow default of None
+
+            # Ideally, in future we disable pyarrow dtype inference (read in as string)
+            # to prevent misreads.
+            date_format = None
+        self.kwds["timestamp_parsers"] = date_format
+
         self.parse_options = {
             option_name: option_value
             for option_name, option_value in self.kwds.items()
@@ -79,6 +96,7 @@ class ArrowParserWrapper(ParserBase):
                 "true_values",
                 "false_values",
                 "decimal_point",
+                "timestamp_parsers",
             )
         }
         self.convert_options["strings_can_be_null"] = "" in self.kwds["null_values"]
@@ -119,22 +137,39 @@ class ArrowParserWrapper(ParserBase):
                 multi_index_named = False
             frame.columns = self.names
         # we only need the frame not the names
-        frame.columns, frame = self._do_date_conversions(frame.columns, frame)
+        _, frame = self._do_date_conversions(frame.columns, frame)
         if self.index_col is not None:
+            index_to_set = self.index_col.copy()
             for i, item in enumerate(self.index_col):
                 if is_integer(item):
-                    self.index_col[i] = frame.columns[item]
+                    index_to_set[i] = frame.columns[item]
                 # String case
                 elif item not in frame.columns:
                     raise ValueError(f"Index {item} invalid")
-            frame.set_index(self.index_col, drop=True, inplace=True)
+
+                # Process dtype for index_col and drop from dtypes
+                if self.dtype is not None:
+                    key, new_dtype = (
+                        (item, self.dtype.get(item))
+                        if self.dtype.get(item) is not None
+                        else (frame.columns[item], self.dtype.get(frame.columns[item]))
+                    )
+                    if new_dtype is not None:
+                        frame[key] = frame[key].astype(new_dtype)
+                        del self.dtype[key]
+
+            frame.set_index(index_to_set, drop=True, inplace=True)
             # Clear names if headerless and no name given
             if self.header is None and not multi_index_named:
                 frame.index.names = [None] * len(frame.index.names)
 
-        if self.kwds.get("dtype") is not None:
+        if self.dtype is not None:
+            # Ignore non-existent columns from dtype mapping
+            # like other parsers do
+            if isinstance(self.dtype, dict):
+                self.dtype = {k: v for k, v in self.dtype.items() if k in frame.columns}
             try:
-                frame = frame.astype(self.kwds.get("dtype"))
+                frame = frame.astype(self.dtype)
             except TypeError as e:
                 # GH#44901 reraise to keep api consistent
                 raise ValueError(e)
@@ -185,6 +220,8 @@ class ArrowParserWrapper(ParserBase):
             dtype_mapping = _arrow_dtype_mapping()
             dtype_mapping[pa.null()] = pd.Int64Dtype()
             frame = table.to_pandas(types_mapper=dtype_mapping.get)
+        elif using_pyarrow_string_dtype():
+            frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
         else:
             frame = table.to_pandas()
         return self._finalize_pandas_output(frame)

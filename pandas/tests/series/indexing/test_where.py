@@ -54,7 +54,13 @@ def test_where_unsafe_upcast(dtype, expected_dtype):
     values = [2.5, 3.5, 4.5, 5.5, 6.5]
     mask = s < 5
     expected = Series(values + list(range(5, 10)), dtype=expected_dtype)
-    s[mask] = values
+    warn = (
+        None
+        if np.dtype(dtype).kind == np.dtype(expected_dtype).kind == "f"
+        else FutureWarning
+    )
+    with tm.assert_produces_warning(warn, match="incompatible dtype"):
+        s[mask] = values
     tm.assert_series_equal(s, expected)
 
 
@@ -66,7 +72,8 @@ def test_where_unsafe():
     mask = s > 5
     expected = Series(list(range(6)) + values, dtype="float64")
 
-    s[mask] = values
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        s[mask] = values
     tm.assert_series_equal(s, expected)
 
     # see gh-3235
@@ -114,7 +121,7 @@ def test_where_unsafe():
 
 
 def test_where():
-    s = Series(np.random.randn(5))
+    s = Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     rs = s.where(cond).dropna()
@@ -143,7 +150,7 @@ def test_where():
 
 
 def test_where_error():
-    s = Series(np.random.randn(5))
+    s = Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     msg = "Array conditional must be same shape as self"
@@ -319,7 +326,7 @@ def test_broadcast(size, mask, item, box):
 
 
 def test_where_inplace():
-    s = Series(np.random.randn(5))
+    s = Series(np.random.default_rng(2).standard_normal(5))
     cond = s > 0
 
     rs = s.copy()
@@ -399,7 +406,7 @@ def test_where_datetimelike_coerce(dtype):
     tm.assert_series_equal(rs, expected)
 
     rs = ser.where(mask, [10.0, np.nan])
-    expected = Series([10, None], dtype="object")
+    expected = Series([10, np.nan], dtype="object")
     tm.assert_series_equal(rs, expected)
 
 

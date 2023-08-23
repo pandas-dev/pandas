@@ -6,6 +6,7 @@ from pandas import (
     DataFrame,
     isna,
 )
+import pandas._testing as tm
 
 
 class TestSetValue:
@@ -25,11 +26,17 @@ class TestSetValue:
         assert float_frame._get_value("foobar", "qux") == 0
 
         res = float_frame.copy()
-        res._set_value("foobar", "baz", "sam")
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            res._set_value("foobar", "baz", "sam")
         assert res["baz"].dtype == np.object_
 
         res = float_frame.copy()
-        res._set_value("foobar", "baz", True)
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            res._set_value("foobar", "baz", True)
         assert res["baz"].dtype == np.object_
 
         res = float_frame.copy()
@@ -37,11 +44,18 @@ class TestSetValue:
         assert is_float_dtype(res["baz"])
         assert isna(res["baz"].drop(["foobar"])).all()
 
-        res._set_value("foobar", "baz", "sam")
+        with tm.assert_produces_warning(
+            FutureWarning, match="Setting an item of incompatible dtype"
+        ):
+            res._set_value("foobar", "baz", "sam")
         assert res.loc["foobar", "baz"] == "sam"
 
     def test_set_value_with_index_dtype_change(self):
-        df_orig = DataFrame(np.random.randn(3, 3), index=range(3), columns=list("ABC"))
+        df_orig = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=range(3),
+            columns=list("ABC"),
+        )
 
         # this is actually ambiguous as the 2 is interpreted as a positional
         # so column is not created

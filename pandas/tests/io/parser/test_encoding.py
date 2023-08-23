@@ -223,11 +223,14 @@ def test_encoding_named_temp_file(all_parsers):
 def test_parse_encoded_special_characters(encoding):
     # GH16218 Verify parsing of data with encoded special characters
     # Data contains a Unicode 'FULLWIDTH COLON' (U+FF1A) at position (0,"a")
-    data = "a\tb\n：foo\t0\nbar\t1\nbaz\t2"
+    data = "a\tb\n：foo\t0\nbar\t1\nbaz\t2"  # noqa: RUF001
     encoded_data = BytesIO(data.encode(encoding))
     result = read_csv(encoded_data, delimiter="\t", encoding=encoding)
 
-    expected = DataFrame(data=[["：foo", 0], ["bar", 1], ["baz", 2]], columns=["a", "b"])
+    expected = DataFrame(
+        data=[["：foo", 0], ["bar", 1], ["baz", 2]],  # noqa: RUF001
+        columns=["a", "b"],
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -307,7 +310,7 @@ def test_not_readable(all_parsers, mode):
     content = b"abcd"
     if "t" in mode:
         content = "abcd"
-    with tempfile.SpooledTemporaryFile(mode=mode) as handle:
+    with tempfile.SpooledTemporaryFile(mode=mode, encoding="utf-8") as handle:
         handle.write(content)
         handle.seek(0)
         df = parser.read_csv(handle)
