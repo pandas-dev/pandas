@@ -13,6 +13,8 @@ from typing import (
 import numpy as np
 from numpy import ma
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 
 from pandas.core.dtypes.astype import astype_is_view
@@ -30,7 +32,10 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -65,6 +70,7 @@ from pandas.core.internals.array_manager import (
 from pandas.core.internals.blocks import (
     BlockPlacement,
     ensure_block_shape,
+    new_block,
     new_block_2d,
 )
 from pandas.core.internals.managers import (
@@ -372,6 +378,20 @@ def ndarray_to_mgr(
             bp = BlockPlacement(slice(len(columns)))
             nb = new_block_2d(values, placement=bp, refs=refs)
             block_values = [nb]
+    elif dtype is None and values.dtype.kind == "U" and using_pyarrow_string_dtype():
+        import pyarrow as pa
+
+        obj_columns = list(values)
+        dtype = ArrowDtype(pa.string())
+        block_values = [
+            new_block(
+                dtype.construct_array_type()._from_sequence(data, dtype=dtype),
+                BlockPlacement(slice(i, i + 1)),
+                ndim=1,
+            )
+            for i, data in enumerate(obj_columns)
+        ]
+
     else:
         bp = BlockPlacement(slice(len(columns)))
         nb = new_block_2d(values, placement=bp, refs=refs)
@@ -903,7 +923,7 @@ def _list_of_dict_to_arrays(
 
     # assure that they are of the base dict class and not of derived
     # classes
-    data = [d if type(d) is dict else dict(d) for d in data]
+    data = [d if type(d) is dict else dict(d) for d in data]  # noqa: E721
 
     content = lib.dicts_to_array(data, list(columns))
     return content, columns
