@@ -707,6 +707,14 @@ class Block(PandasObject, libinternals.Block):
                 # if the user *explicitly* gave None, we keep None, otherwise
                 #  may downcast to NaN
                 blocks = blk.convert(copy=False, using_cow=using_cow)
+                if len(blocks) > 1 or blocks[0].dtype != blk.dtype:
+                    warnings.warn(
+                        "Downcasting behavior in `replace` is deprecated and "
+                        "will be removed in a future version. To retain the old "
+                        "behavior, explicitly call `result.infer_objects(copy=False)`",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
             else:
                 blocks = [blk]
             return blocks
@@ -781,7 +789,16 @@ class Block(PandasObject, libinternals.Block):
 
         replace_regex(block.values, rx, value, mask)
 
-        return block.convert(copy=False, using_cow=using_cow)
+        nbs = block.convert(copy=False, using_cow=using_cow)
+        if len(nbs) > 1 or nbs[0].dtype != block.dtype:
+            warnings.warn(
+                "Downcasting behavior in `replace` is deprecated and "
+                "will be removed in a future version. To retain the old "
+                "behavior, explicitly call `result.infer_objects(copy=False)`",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return nbs
 
     @final
     def replace_list(
@@ -886,12 +903,22 @@ class Block(PandasObject, libinternals.Block):
 
                 if convert and blk.is_object and not all(x is None for x in dest_list):
                     # GH#44498 avoid unwanted cast-back
-                    result = extend_blocks(
-                        [
-                            b.convert(copy=True and not using_cow, using_cow=using_cow)
-                            for b in result
-                        ]
-                    )
+                    nbs = []
+                    for res_blk in result:
+                        converted = res_blk.convert(
+                            copy=True and not using_cow, using_cow=using_cow
+                        )
+                        if len(converted) > 1 or converted[0].dtype != res_blk.dtype:
+                            warnings.warn(
+                                "Downcasting behavior in `replace` is deprecated "
+                                "and will be removed in a future version. To "
+                                "retain the old behavior, explicitly call "
+                                "`result.infer_objects(copy=False)`",
+                                FutureWarning,
+                                stacklevel=find_stack_level(),
+                            )
+                        nbs.extend(converted)
+                    result = nbs
                 new_rb.extend(result)
             rb = new_rb
         return rb
