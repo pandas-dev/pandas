@@ -228,9 +228,9 @@ def test_comparison_methods_scalar(comparison_op, dtype):
     other = "a"
     result = getattr(a, op_name)(other)
     if dtype.storage == "pyarrow_numpy":
-        expected = np.array([getattr(item, op_name)(other) for item in a], dtype=object)
+        expected = np.array([getattr(item, op_name)(other) for item in a])
         expected[1] = False
-        tm.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected.astype(np.bool_))
     else:
         expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
         expected = np.array([getattr(item, op_name)(other) for item in a], dtype=object)
@@ -244,7 +244,7 @@ def test_comparison_methods_scalar_pd_na(comparison_op, dtype):
     result = getattr(a, op_name)(pd.NA)
 
     if dtype.storage == "pyarrow_numpy":
-        expected = np.array([False, False, False], dtype=object)
+        expected = np.array([False, False, False])
         tm.assert_numpy_array_equal(result, expected)
     else:
         expected_dtype = "boolean[pyarrow]" if dtype.storage == "pyarrow" else "boolean"
@@ -272,7 +272,7 @@ def test_comparison_methods_scalar_not_string(comparison_op, dtype):
             "__eq__": [False, False, False],
             "__ne__": [True, False, True],
         }[op_name]
-        expected = np.array(expected_data, dtype=object)
+        expected = np.array(expected_data)
         tm.assert_numpy_array_equal(result, expected)
     else:
         expected_data = {"__eq__": [False, None, False], "__ne__": [True, None, True]}[
@@ -290,12 +290,12 @@ def test_comparison_methods_array(comparison_op, dtype):
     other = [None, None, "c"]
     result = getattr(a, op_name)(other)
     if dtype.storage == "pyarrow_numpy":
-        expected = np.array([False, False, False], dtype=object)
+        expected = np.array([False, False, False])
         expected[-1] = getattr(other[-1], op_name)(a[-1])
         tm.assert_numpy_array_equal(result, expected)
 
         result = getattr(a, op_name)(pd.NA)
-        expected = np.array([False, False, False], dtype=object)
+        expected = np.array([False, False, False])
         tm.assert_numpy_array_equal(result, expected)
 
     else:
