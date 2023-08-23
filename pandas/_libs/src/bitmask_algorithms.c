@@ -17,7 +17,6 @@ void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
   for (size_t i = 0; i < nbitmaps; i++) {
     const struct ArrowBitmap *bitmap = bitmaps[i];
     const int64_t nbytes = bitmap->buffer.size_bytes;
-    const size_t trailing_nbits = bitmap->size_bits % 8;
 
     // As we loop through each array, any time we end up starting
     // on a word boundary we can simply use memcpy. If we are not
@@ -34,13 +33,12 @@ void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
       }
     }
 
-    start_bit_pos = (start_bit_pos + trailing_nbits) % 8;
-    if (start_bit_pos == 0) {
-      out_cursor += nbytes;
-    } else {
-      out_cursor += nbytes - 1;
+    out_cursor += nbytes - 1;
+    const int64_t new_bit_position = start_bit_pos + bitmap->size_bits;
+    if (new_bit_position >= 8) {
+      out_cursor += 1;
     }
-
+    start_bit_pos = new_bit_position % 8;
     bits_processed += bitmap->size_bits;
   }
 
