@@ -401,7 +401,7 @@ Limit the number of NA values filled
 
    df.ffill(limit=1)
 
-NA values can be replaced with corresponding value from a :class:`Series`` or :class:`DataFrame``
+NA values can be replaced with corresponding value from a :class:`Series` or :class:`DataFrame`
 where the index and column aligns between the original object and the filled object.
 
 .. ipython:: python
