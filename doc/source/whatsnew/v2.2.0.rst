@@ -139,7 +139,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in :func:`_read`, pyarrow engine not defaulting to float64 causing precision errors when specifying a dtype; fixed by explicitly setting dtype if dtype not none and isinstance of dict (:issue:`52505`)
 -
 
 Conversion
