@@ -45,7 +45,8 @@ cdef extern from "pandas/vendored/nanoarrow.h":
     void ArrowBitmapReset(ArrowBitmap*)
 
 cdef extern from "pandas/bitmask_algorithms.h":
-    void ConcatenateBitmapData(ArrowBitmap*, size_t, uint8_t*)
+    void ConcatenateBitmapData(const ArrowBitmap**, size_t, const uint8_t*)
+    bint BitmapAny(const ArrowBitmap*)
 
 
 @cython.freelist(16)
@@ -316,11 +317,13 @@ cdef class BitMaskArray:
                         "BitMaskArray.concatenate does not support broadcasting"
                     )
 
-        cdef ArrowBitmap* bitmaps = <ArrowBitmap*>malloc(sizeof(ArrowBitmap) * nbitmaps)
+        cdef ArrowBitmap** bitmaps = <ArrowBitmap**>malloc(
+            sizeof(ArrowBitmap*) * nbitmaps
+        )
         for i in range(nbitmaps):
             current_bma = <BitMaskArray?>objs[i]
             total_bits += current_bma.bitmap.size_bits
-            bitmaps[i] = current_bma.bitmap
+            bitmaps[i] = &current_bma.bitmap
 
         # Bypass __init__ calls
         cdef BitMaskArray bma = BitMaskArray.__new__(BitMaskArray)
@@ -591,7 +594,7 @@ cdef class BitMaskArray:
         return bool
 
     def any(self) -> bool:
-        return BitMaskArray.buf_any(&self.bitmap)
+        return BitmapAny(&self.bitmap)
 
     def all(self) -> bool:
         return BitMaskArray.buf_all(&self.bitmap)
@@ -657,27 +660,6 @@ cdef class BitMaskArray:
     @staticmethod
     cdef void buffer_to_array_1d(uint8_t[:] out, const uint8_t* buf, Py_ssize_t size):
         ArrowBitsUnpackInt8(buf, 0, size, <const int8_t*>&out[0])
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @staticmethod
-    cdef bint buf_any(const ArrowBitmap* bitmap):
-        cdef Py_ssize_t i, bits_remaining
-        cdef int64_t size_bits = bitmap.size_bits
-        cdef const uint8_t* buf = bitmap.buffer.data
-        if size_bits < 1:
-            return False
-
-        for i in range(bitmap.buffer.size_bytes):
-            if buf[i] > 0:
-                return True
-
-        bits_remaining = size_bits % 8
-        for i in range(bits_remaining):
-            if ArrowBitGet(buf, size_bits - i - 1):
-                return True
-
-        return False
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
