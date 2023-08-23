@@ -13,9 +13,7 @@ from typing import (
     Any,
     Callable,
     NamedTuple,
-    Optional,
     SupportsInt,
-    Tuple,
     Union,
 )
 
