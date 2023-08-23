@@ -1132,7 +1132,6 @@ class Block(PandasObject, libinternals.Block):
         # length checking
         check_setitem_lengths(indexer, value, values)
 
-        value = extract_array(value, extract_numpy=True)
         if self.dtype != _dtype_obj:
             # GH48933: extract_array would convert a pd.Series value to np.ndarray
             value = extract_array(value, extract_numpy=True)
