@@ -726,6 +726,7 @@ Indexing
 - Bug in :meth:`DataFrame.__setitem__` losing dtype when setting a :class:`DataFrame` into duplicated columns (:issue:`53143`)
 - Bug in :meth:`DataFrame.__setitem__` with a boolean mask and :meth:`DataFrame.putmask` with mixed non-numeric dtypes and a value other than ``NaN`` incorrectly raising ``TypeError`` (:issue:`53291`)
 - Bug in :meth:`DataFrame.iloc` when using ``nan`` as the only element (:issue:`52234`)
+- Bug in :meth:`Series.loc` casting :class:`Series` to ``np.dnarray`` when assigning :class:`Series` at predefined index of ``object`` dtype :class:`Series` (:issue:`48933`)
 
 Missing
 ^^^^^^^
