@@ -279,7 +279,7 @@ def test_setitem_no_coercion():
 
     # With a value that we do coerce, check that we coerce the value
     #  and not the underlying array.
-    arr[0] = 2.5
+    arr[0] = 2
     assert isinstance(arr[0], (int, np.integer)), type(arr[0])
 
 
@@ -295,7 +295,7 @@ def test_setitem_preserves_views():
     assert view2[0] == 9
     assert view3[0] == 9
 
-    arr[-1] = 2.5
+    arr[-1] = 2
     view1[-1] = 5
     assert arr[-1] == 5
 
@@ -327,7 +327,7 @@ def test_factorize_unsigned():
 def test_array_validate_setitem_value():
     # Issue# 51044
     arr = pd.Series(range(5)).array
-    with pytest.raises(TypeError, match="bad"):
+    with pytest.raises(TypeError, match="str"):
         arr._validate_setitem_value("foo")
-    with pytest.raises(TypeError, match="bad"):
+    with pytest.raises(TypeError, match="float"):
         arr._validate_setitem_value(1.5)
