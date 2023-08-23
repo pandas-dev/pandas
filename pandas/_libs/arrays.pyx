@@ -356,19 +356,27 @@ cdef class BitMaskArray:
         return self.to_numpy()[key]
 
     def __invert__(self):
-        # TODO: should we return a mask here instead of a NumPy array?
         cdef Py_ssize_t i
         cdef BitMaskArray self_ = self
-        cdef ndarray[uint8_t] result = np.empty(self_.bitmap.size_bits, dtype=bool)
+        cdef BitMaskArray bma = BitMaskArray.__new__(BitMaskArray)
+        cdef ArrowBitmap bitmap
 
-        cdef uint8_t* buf = <uint8_t*>malloc(self_.bitmap.buffer.size_bytes)
+        ArrowBitmapInit(&bitmap)
+        ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
+
         for i in range(self_.bitmap.buffer.size_bytes):
-            buf[i] = ~self_.bitmap.buffer.data[i]
+            bitmap.buffer.data[i] = ~self_.bitmap.buffer.data[i]
 
-        BitMaskArray.buffer_to_array_1d(result, buf, self_.bitmap.size_bits)
-        free(buf)
+        # TODO: avoid nanoarrow internals
+        bitmap.size_bits = self_.bitmap.size_bits
+        bitmap.buffer.size_bytes = self_.bitmap.buffer.size_bytes
 
-        return result
+        bma.bitmap = bitmap
+        bma.array_shape = self.array_shape
+        bma.buffer_owner = True
+        bma.parent = None
+
+        return bma
 
     def __and__(self, other):
         cdef ndarray[uint8_t] result
