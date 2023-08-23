@@ -153,7 +153,7 @@ jobs:
         env:
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
-          CIBW_ENVIRONMENT: PANDAS_TESTS_LOC=${{ needs.build_sdist.outputs.pandas_tests_loc }}
+          CIBW_BEFORE_TEST: pip install ${{ needs.build_sdist.outputs.pandas_tests_loc }}
 
       - name: Set up Python
         uses: mamba-org/setup-micromamba@v1
