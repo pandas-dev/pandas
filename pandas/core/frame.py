@@ -9946,6 +9946,7 @@ class DataFrame(NDFrame, OpsMixin):
                 - nogil (release the GIL inside the JIT compiled function)
                 - parallel (try to apply the function in parallel over the DataFrame)
 
+
             .. note::
 
                As of right now, the numba engine can only be used with raw=True.
