@@ -17,6 +17,9 @@ void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
   for (size_t i = 0; i < nbitmaps; i++) {
     const struct ArrowBitmap *bitmap = bitmaps[i];
     const int64_t nbytes = bitmap->buffer.size_bytes;
+    if (nbytes == 0) {
+      continue;
+    }
 
     // As we loop through each array, any time we end up starting
     // on a word boundary we can simply use memcpy. If we are not
