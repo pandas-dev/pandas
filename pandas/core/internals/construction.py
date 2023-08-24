@@ -32,10 +32,7 @@ from pandas.core.dtypes.common import (
     is_named_tuple,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
-    ExtensionDtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
@@ -379,10 +376,9 @@ def ndarray_to_mgr(
             nb = new_block_2d(values, placement=bp, refs=refs)
             block_values = [nb]
     elif dtype is None and values.dtype.kind == "U" and using_pyarrow_string_dtype():
-        import pyarrow as pa
+        dtype = StringDtype(storage="pyarrow_numpy")
 
         obj_columns = list(values)
-        dtype = ArrowDtype(pa.string())
         block_values = [
             new_block(
                 dtype.construct_array_type()._from_sequence(data, dtype=dtype),

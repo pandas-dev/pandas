@@ -222,14 +222,10 @@ class TestFeather:
 
     def test_string_inference(self, tmp_path):
         # GH#54431
-        import pyarrow as pa
-
         path = tmp_path / "test_string_inference.p"
         df = pd.DataFrame(data={"a": ["x", "y"]})
         df.to_feather(path)
         with pd.option_context("future.infer_string", True):
             result = read_feather(path)
-        expected = pd.DataFrame(
-            data={"a": ["x", "y"]}, dtype=pd.ArrowDtype(pa.string())
-        )
+        expected = pd.DataFrame(data={"a": ["x", "y"]}, dtype="string[pyarrow_numpy]")
         tm.assert_frame_equal(result, expected)

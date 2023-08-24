@@ -1113,8 +1113,6 @@ class TestParquetPyArrow(Base):
 
     def test_string_inference(self, tmp_path, pa):
         # GH#54431
-        import pyarrow as pa
-
         path = tmp_path / "test_string_inference.p"
         df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
         df.to_parquet(path, engine="pyarrow")
@@ -1122,8 +1120,8 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path, engine="pyarrow")
         expected = pd.DataFrame(
             data={"a": ["x", "y"]},
-            dtype=pd.ArrowDtype(pa.string()),
-            index=pd.Index(["a", "b"], dtype=pd.ArrowDtype(pa.string())),
+            dtype="string[pyarrow_numpy]",
+            index=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
         )
         tm.assert_frame_equal(result, expected)
 

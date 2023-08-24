@@ -2946,7 +2946,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
 
     def test_read_sql_string_inference(self):
         # GH#54430
-        pa = pytest.importorskip("pyarrow")
+        pytest.importorskip("pyarrow")
         table = "test"
         df = DataFrame({"a": ["x", "y"]})
         df.to_sql(table, con=self.conn, index=False, if_exists="replace")
@@ -2954,7 +2954,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         with pd.option_context("future.infer_string", True):
             result = read_sql_table(table, self.conn)
 
-        dtype = pd.ArrowDtype(pa.string())
+        dtype = "string[pyarrow_numpy]"
         expected = DataFrame(
             {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
         )

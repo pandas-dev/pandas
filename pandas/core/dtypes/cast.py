@@ -799,10 +799,9 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
 
         dtype = _dtype_obj
         if using_pyarrow_string_dtype():
-            import pyarrow as pa
+            from pandas.core.arrays.string_ import StringDtype
 
-            pa_dtype = pa.string()
-            dtype = ArrowDtype(pa_dtype)
+            dtype = StringDtype(storage="pyarrow_numpy")
 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:

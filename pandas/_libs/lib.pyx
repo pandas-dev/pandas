@@ -2682,11 +2682,9 @@ def maybe_convert_objects(ndarray[object] objects,
 
     elif seen.str_:
         if using_pyarrow_string_dtype() and is_string_array(objects, skipna=True):
-            import pyarrow as pa
+            from pandas.core.arrays.string_ import StringDtype
 
-            from pandas.core.dtypes.dtypes import ArrowDtype
-
-            dtype = ArrowDtype(pa.string())
+            dtype = StringDtype(storage="pyarrow_numpy")
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
