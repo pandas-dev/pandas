@@ -97,24 +97,24 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
         super().test_from_dtype(data)
 
     @pytest.mark.xfail(reason="RecursionError, GH-33900")
-    def test_series_constructor_no_data_with_index(self, dtype, na_value):
+    def test_series_constructor_no_data_with_index(self, dtype):
         # RecursionError: maximum recursion depth exceeded in comparison
         rec_limit = sys.getrecursionlimit()
         try:
             # Limit to avoid stack overflow on Windows CI
             sys.setrecursionlimit(100)
-            super().test_series_constructor_no_data_with_index(dtype, na_value)
+            super().test_series_constructor_no_data_with_index(dtype)
         finally:
             sys.setrecursionlimit(rec_limit)
 
     @pytest.mark.xfail(reason="RecursionError, GH-33900")
-    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
+    def test_series_constructor_scalar_na_with_index(self, dtype):
         # RecursionError: maximum recursion depth exceeded in comparison
         rec_limit = sys.getrecursionlimit()
         try:
             # Limit to avoid stack overflow on Windows CI
             sys.setrecursionlimit(100)
-            super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+            super().test_series_constructor_scalar_na_with_index(dtype)
         finally:
             sys.setrecursionlimit(rec_limit)
 
@@ -214,19 +214,19 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         super().test_combine_first(data)
 
     @pytest.mark.xfail(reason="broadcasting error")
-    def test_where_series(self, data, na_value):
+    def test_where_series(self, data):
         # Fails with
         # *** ValueError: operands could not be broadcast together
         # with shapes (4,) (4,) (0,)
-        super().test_where_series(data, na_value)
+        super().test_where_series(data)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
         super().test_searchsorted(data_for_sorting)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
-    def test_equals(self, data, na_value, as_series):
-        super().test_equals(data, na_value, as_series)
+    def test_equals(self, data, as_series):
+        super().test_equals(data, as_series)
 
     @pytest.mark.skip("fill-value is interpreted as a dict of values")
     def test_fillna_copy_frame(self, data_missing):
