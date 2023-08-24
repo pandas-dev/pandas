@@ -1465,8 +1465,6 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
     normalize : bool, default False
         Whether to round the result of a DateOffset addition down to the
         previous midnight.
-    **kwds
-        Temporal parameter that add to or replace the offset value.
     weekday : int {0, 1, ..., 6}, default 0
 
         A specific integer for the day of the week.
@@ -1488,6 +1486,9 @@ class DateOffset(RelativeDeltaOffset, metaclass=OffsetMeta):
         - FR is Friday
         - SA is Saturday
         - SU is Sunday.
+
+    **kwds
+        Temporal parameter that add to or replace the offset value.
 
         Parameters that **add** to the offset (like Timedelta):
 
