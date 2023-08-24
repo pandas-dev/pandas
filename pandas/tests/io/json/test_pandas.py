@@ -2099,7 +2099,7 @@ def test_pyarrow_engine_lines_false():
 
 
 def test_json_roundtrip_string_inference(orient):
-    pa = pytest.importorskip("pyarrow")
+    pytest.importorskip("pyarrow")
     df = DataFrame(
         [["a", "b"], ["c", "d"]], index=["row 1", "row 2"], columns=["col 1", "col 2"]
     )
@@ -2108,8 +2108,8 @@ def test_json_roundtrip_string_inference(orient):
         result = read_json(StringIO(out))
     expected = DataFrame(
         [["a", "b"], ["c", "d"]],
-        dtype=pd.ArrowDtype(pa.string()),
-        index=pd.Index(["row 1", "row 2"], dtype=pd.ArrowDtype(pa.string())),
-        columns=pd.Index(["col 1", "col 2"], dtype=pd.ArrowDtype(pa.string())),
+        dtype="string[pyarrow_numpy]",
+        index=pd.Index(["row 1", "row 2"], dtype="string[pyarrow_numpy]"),
+        columns=pd.Index(["col 1", "col 2"], dtype="string[pyarrow_numpy]"),
     )
     tm.assert_frame_equal(result, expected)
