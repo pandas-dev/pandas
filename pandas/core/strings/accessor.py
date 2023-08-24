@@ -145,7 +145,9 @@ def _map_and_wrap(name: str | None, docstring: str | None):
     @forbid_nonstring_types(["bytes"], name=name)
     def wrapper(self):
         result = getattr(self._data.array, f"_str_{name}")()
-        return self._wrap_result(result)
+        return self._wrap_result(
+            result, returns_string=name not in ("isnumeric", "isdecimal")
+        )
 
     wrapper.__doc__ = docstring
     return wrapper

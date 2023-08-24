@@ -724,7 +724,7 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_invert(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if not pa.types.is_boolean(pa_dtype):
+        if not (pa.types.is_boolean(pa_dtype) or pa.types.is_integer(pa_dtype)):
             request.node.add_marker(
                 pytest.mark.xfail(
                     raises=pa.ArrowNotImplementedError,
@@ -1285,6 +1285,31 @@ class TestLogicalOps:
         result = getattr(ser_pa, op)(ser_masked)
         expected = pd.Series([exp, False, None], dtype=ArrowDtype(pa.bool_()))
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("pa_type", tm.ALL_INT_PYARROW_DTYPES)
+def test_bitwise(pa_type):
+    # GH 54495
+    dtype = ArrowDtype(pa_type)
+    left = pd.Series([1, None, 3, 4], dtype=dtype)
+    right = pd.Series([None, 3, 5, 4], dtype=dtype)
+
+    result = left | right
+    expected = pd.Series([None, None, 3 | 5, 4 | 4], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = left & right
+    expected = pd.Series([None, None, 3 & 5, 4 & 4], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = left ^ right
+    expected = pd.Series([None, None, 3 ^ 5, 4 ^ 4], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ~left
+    expected = ~(left.fillna(0).to_numpy())
+    expected = pd.Series(expected, dtype=dtype).mask(left.isnull())
+    tm.assert_series_equal(result, expected)
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
@@ -2972,3 +2997,13 @@ def test_arrowextensiondtype_dataframe_repr():
     # pyarrow.ExtensionType values are displayed
     expected = "     col\n0  15340\n1  15341\n2  15342"
     assert result == expected
+
+
+@pytest.mark.parametrize("pa_type", tm.TIMEDELTA_PYARROW_DTYPES)
+def test_duration_fillna_numpy(pa_type):
+    # GH 54707
+    ser1 = pd.Series([None, 2], dtype=ArrowDtype(pa_type))
+    ser2 = pd.Series(np.array([1, 3], dtype=f"m8[{pa_type.unit}]"))
+    result = ser1.fillna(ser2)
+    expected = pd.Series([1, 2], dtype=ArrowDtype(pa_type))
+    tm.assert_series_equal(result, expected)
