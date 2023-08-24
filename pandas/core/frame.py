@@ -9941,15 +9941,13 @@ class DataFrame(NDFrame, OpsMixin):
 
             The numba engine will attempt to JIT compile the passed function,
             which may result in speedups for large DataFrames.
-            It also supports the following engine_kwargs:
-                - nopython (compile the function in nopython mode)
-                - nogil (release the GIL inside the JIT compiled function)
-                - parallel (try to apply the function in parallel over the DataFrame)
+            It also supports the following engine_kwargs :
 
+            - nopython (compile the function in nopython mode)
+            - nogil (release the GIL inside the JIT compiled function)
+            - parallel (try to apply the function in parallel over the DataFrame)
 
-            .. note::
-
-               As of right now, the numba engine can only be used with raw=True.
+            As of right now, the numba engine can only be used with raw=True.
 
             .. versionadded:: 2.2.0
 
