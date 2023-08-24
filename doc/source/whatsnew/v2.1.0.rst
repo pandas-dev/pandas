@@ -838,6 +838,7 @@ ExtensionArray
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
 - Bug in :meth:`Series.unique` for boolean ``ArrowDtype`` with ``NA`` values (:issue:`54667`)
 - Bug in :meth:`~arrays.ArrowExtensionArray.__iter__` and :meth:`~arrays.ArrowExtensionArray.__getitem__` returning python datetime and timedelta objects for non-nano dtypes (:issue:`53326`)
+- Bug when passing an :class:`ExtensionArray` subclass to ``dtype`` keywords. This will now raise a ``UserWarning`` to encourage passing an instance instead (:issue:`31356`, :issue:`54592`)
 - Bug where the :class:`DataFrame` repr would not work when a column had an :class:`ArrowDtype` with a ``pyarrow.ExtensionDtype`` (:issue:`54063`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes (e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept PyArrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
 
