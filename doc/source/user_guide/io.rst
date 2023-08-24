@@ -492,6 +492,21 @@ Setting ``dtype_backend="numpy_nullable"`` will result in nullable dtypes for ev
 
 .. _io.categorical:
 
+Setting ``dtype_backend="pyarrow"`` will result in pyarrow dtypes.
+
+.. ipython:: python
+
+   data = """a,b,c,d,e,f,g,h,i,j
+   1,2.5,True,a,,,,,12-31-2019,
+   3,4.5,False,b,6,7.5,True,a,12-31-2019,
+   """
+
+   df = pd.read_csv(StringIO(data), dtype_backend="pyarrow", parse_dates=["i"])
+   df
+   df.dtypes
+
+.. _io.categorical:
+
 Specifying categorical dtype
 ''''''''''''''''''''''''''''
 
