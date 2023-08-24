@@ -542,8 +542,8 @@ def test_ea_int_avoid_overflow(all_parsers):
 
 def test_string_inference(all_parsers):
     # GH#54430
-    pa = pytest.importorskip("pyarrow")
-    dtype = pd.ArrowDtype(pa.string())
+    pytest.importorskip("pyarrow")
+    dtype = "string[pyarrow_numpy]"
 
     data = """a,b
 x,1
