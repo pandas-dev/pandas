@@ -5630,7 +5630,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def to_timestamp(
         self,
-        freq=None,
+        freq: str | None = None,
         how: Literal["s", "e", "start", "end"] = "start",
         copy: bool | None = None,
     ) -> Series:
