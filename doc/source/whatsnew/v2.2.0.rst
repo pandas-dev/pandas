@@ -139,7 +139,7 @@ Timezones
 
 Numeric
 ^^^^^^^
-- Bug in :func:`_read`, pyarrow engine defaulting to float64 causing rounding errors for large integers; now processes input appropriately (:issue:`52505`)
+- Bug in :func:`read_csv` with ``engine="pyarrow"`` causing rounding errors for large integers (:issue:`52505`)
 -
 
 Conversion
