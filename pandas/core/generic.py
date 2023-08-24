@@ -7368,8 +7368,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
-        Fill NA/NaN values by propagating the last valid observation forward
-        to next valid.
+        Fill NA/NaN values by propagating the last valid observation to next valid.
 
         Returns
         -------
