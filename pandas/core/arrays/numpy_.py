@@ -15,7 +15,10 @@ from pandas._libs.tslibs import (
 from pandas.compat.numpy import function as nv
 
 from pandas.core.dtypes.astype import astype_array
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.core.dtypes.cast import (
+    construct_1d_object_array_from_listlike,
+    np_can_hold_element,
+)
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.missing import isna
@@ -509,24 +512,11 @@ class NumpyExtensionArray(  # type: ignore[misc]
 
     def _validate_setitem_value(self, value):
         if type(value) == int:
-            if (
-                self.dtype
-                in [
-                    NumpyEADtype("int8"),
-                    NumpyEADtype("int16"),
-                    NumpyEADtype("int32"),
-                    NumpyEADtype("int64"),
-                    NumpyEADtype("float32"),
-                    NumpyEADtype("float64"),
-                    NumpyEADtype("uint8"),
-                    NumpyEADtype("uint16"),
-                    NumpyEADtype("uint32"),
-                    NumpyEADtype("uint64"),
-                    NumpyEADtype("object"),
-                ]
-                or self.dtype is None
-            ):
-                return value
+            try:
+                np_can_hold_element(self.dtype, value)
+            except Exception:
+                pass
+            return value
         elif type(value) == float:
             if (
                 self.dtype
@@ -549,12 +539,16 @@ class NumpyExtensionArray(  # type: ignore[misc]
             or lib.is_list_like(value)
         ):
             return value
+        if self.dtype is None:
+            return value
+        if not isinstance(self.dtype, NumpyEADtype):
+            return value
         if (
             NumpyEADtype(type(value)) == NumpyEADtype(self.dtype)
             or NumpyEADtype(type(value)) == self.dtype
         ):
             return value
-        if self.dtype == NumpyEADtype("object") or self.dtype is None:
+        if self.dtype == NumpyEADtype("object"):
             return value
 
         raise TypeError(
