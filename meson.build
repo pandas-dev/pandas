@@ -16,10 +16,8 @@ project(
     ]
 )
 
-py_mod = import('python')
 fs = import('fs')
-py = py_mod.find_installation('python')
-py_dep = py.dependency()
+py = import('python').find_installation()
 tempita = files('generate_pxi.py')
 versioneer = files('generate_version.py')
 
