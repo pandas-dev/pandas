@@ -24,6 +24,7 @@ from pandas.core.dtypes.missing import array_equivalent
 
 
 cdef bint isiterable(obj):
+    # GH#54507
     if hasattr(obj, "__iter__"):
         try:
             iter(obj)
