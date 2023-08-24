@@ -223,5 +223,8 @@ class ArrowParserWrapper(ParserBase):
         elif using_pyarrow_string_dtype():
             frame = table.to_pandas(types_mapper=arrow_string_types_mapper())
         else:
-            frame = table.to_pandas()
+            if isinstance(self.kwds.get("dtype"), dict):
+                frame = table.to_pandas(types_mapper=self.kwds["dtype"].get)
+            else:
+                frame = table.to_pandas()
         return self._finalize_pandas_output(frame)
