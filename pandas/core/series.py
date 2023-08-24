@@ -5946,7 +5946,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return op(self, other)
 
     @Appender(ops.make_flex_doc("eq", "series"))
-    def eq(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
+    def eq(self, other, level: Level | None = None, fill_value: float | None = None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.eq, level=level, fill_value=fill_value, axis=axis
         )
