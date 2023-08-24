@@ -37,13 +37,13 @@ void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
       }
     }
 
-    start_bit_pos = (start_bit_pos + trailing_nbits) % 8;
-    if (start_bit_pos == 0) {
-      out_cursor += nbytes;
-    } else {
-      out_cursor += nbytes - 1;
+    out_cursor += nbytes;
+    const int64_t next_bit_pos = start_bit_pos + trailing_nbits;
+    if ((next_bit_pos > 0) && (next_bit_pos < 8)) {
+      out_cursor--;
     }
 
+    start_bit_pos = next_bit_pos % 8;
     bits_processed += bitmap->size_bits;
   }
 
