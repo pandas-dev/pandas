@@ -2856,7 +2856,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         df.to_sql("example", self.conn)
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_sql("example", self.conn, None)
+            df.to_sql("example", self.conn, None, if_exists="replace")
 
     def test_default_type_conversion(self):
         df = sql.read_sql_table("types", self.conn)
