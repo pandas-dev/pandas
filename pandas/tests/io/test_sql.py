@@ -2850,7 +2850,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         # GH 54397
         msg = (
             "tarting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
+            "argument 'name' and 'con' will be keyword-only."
         )
         df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
         df.to_sql("example", self.conn)
