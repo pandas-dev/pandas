@@ -309,18 +309,13 @@ cdef class BitMaskArray:
         return self.bitmap.size_bits
 
     def __repr__(self):
-        cdef Py_ssize_t i, nbytes = self.bitmap.buffer.size_bytes
-        arr_bytes = bytearray(nbytes)
-        for i in range(nbytes):
-            arr_bytes[i] = self.bitmap.buffer.data[i]
-
         if self.parent:
             par = object.__repr__(self.parent)
         else:
             par = None
 
         shape = self.array_shape
-        data = repr(arr_bytes)
+        data = self.bytes
 
         return (
             f"{object.__repr__(self)}\nparent: {par}\nshape: {shape}\ndata: {data}\n"
@@ -437,6 +432,10 @@ cdef class BitMaskArray:
         return self.to_numpy()[key]
 
     def __invert__(self):
+        # note that this inverts the entire byte, even if the
+        # bitmap only uses a few of the bits within that byte
+        # the remaining bits of the byte are of undefined value
+        # so be sure to only check bytes we need
         cdef BitMaskArray self_ = self
         cdef BitMaskArray bma = BitMaskArray.__new__(BitMaskArray)
         cdef ArrowBitmap bitmap
@@ -459,6 +458,7 @@ cdef class BitMaskArray:
         cdef ArrowBitmap bitmap
 
         if isinstance(other, type(self)):
+            # TODO: maybe should return Self here instead of ndarray
             other_bma = other
             if self_.bitmap.size_bits == 0:
                 return np.empty(dtype=bool).reshape(self.array_shape)
@@ -487,6 +487,7 @@ cdef class BitMaskArray:
         cdef ArrowBitmap bitmap
 
         if isinstance(other, type(self)):
+            # TODO: maybe should return Self here instead of ndarray
             other_bma = other
             if self_.bitmap.size_bits == 0:
                 return np.empty(dtype=bool).reshape(self.array_shape)
@@ -515,6 +516,7 @@ cdef class BitMaskArray:
         cdef ArrowBitmap bitmap
 
         if isinstance(other, type(self)):
+            # TODO: maybe should return Self here instead of ndarray
             other_bma = other
             if self_.bitmap.size_bits == 0:
                 return np.empty(dtype=bool).reshape(self.array_shape)
@@ -604,6 +606,15 @@ cdef class BitMaskArray:
     @property
     def nbytes(self) -> int:
         return self.bitmap.buffer.size_bytes
+
+    @property
+    def bytes(self):
+        cdef Py_ssize_t i, nbytes = self.bitmap.buffer.size_bytes
+        arr_bytes = bytearray(nbytes)
+        for i in range(nbytes):
+            arr_bytes[i] = self.bitmap.buffer.data[i]
+
+        return bytes(arr_bytes)
 
     @property
     def shape(self):
