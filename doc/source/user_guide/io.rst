@@ -2448,7 +2448,7 @@ Read a URL with no options:
 
 .. code-block:: ipython
 
-   In [320]: "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
+   In [320]: url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
    In [321]: pd.read_html(url)
    Out[321]:
    [                         Bank NameBank           CityCity StateSt  ...              Acquiring InstitutionAI Closing DateClosing FundFund

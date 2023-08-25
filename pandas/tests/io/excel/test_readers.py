@@ -591,7 +591,7 @@ class TestReaders:
             }
         )
         with tm.ensure_clean(read_ext) as file_path:
-            df.to_excel(file_path, "test", index=False)
+            df.to_excel(file_path, sheet_name="test", index=False)
             result = pd.read_excel(
                 file_path, sheet_name="test", dtype_backend=dtype_backend
             )
@@ -623,7 +623,7 @@ class TestReaders:
 
         df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
         with tm.ensure_clean(read_ext) as file_path:
-            df.to_excel(file_path, "test", index=False)
+            df.to_excel(file_path, sheet_name="test", index=False)
             result = pd.read_excel(
                 file_path,
                 sheet_name="test",
@@ -647,7 +647,7 @@ class TestReaders:
                 }
             )
             with tm.ensure_clean(read_ext) as file_path:
-                df.to_excel(file_path, "test", index=False)
+                df.to_excel(file_path, sheet_name="test", index=False)
                 result = pd.read_excel(
                     file_path, sheet_name="test", dtype_backend="numpy_nullable"
                 )
