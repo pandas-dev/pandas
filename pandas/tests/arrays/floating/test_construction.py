@@ -65,7 +65,6 @@ def test_floating_array_constructor_copy():
 
     result = FloatingArray(values, mask)
     assert result._data is values
-    # assert result._mask is mask
 
     result = FloatingArray(values, mask, copy=True)
     assert result._data is not values

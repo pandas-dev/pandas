@@ -103,7 +103,6 @@ def test_integer_array_constructor_copy():
 
     result = IntegerArray(values, mask)
     assert result._data is values
-    # assert result._mask is mask
 
     result = IntegerArray(values, mask, copy=True)
     assert result._data is not values

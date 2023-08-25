@@ -40,7 +40,6 @@ def test_boolean_array_constructor_copy():
 
     result = BooleanArray(values, mask)
     assert result._data is values
-    # assert result._mask is mask
 
     result = BooleanArray(values, mask, copy=True)
     assert result._data is not values
@@ -159,7 +158,7 @@ def test_coerce_to_array():
     expected = BooleanArray(values, mask)
     tm.assert_extension_array_equal(result, expected)
     assert result._data is values
-    # assert result._mask is mask
+
     result = BooleanArray(*coerce_to_array(values, mask=mask, copy=True))
     expected = BooleanArray(values, mask)
     tm.assert_extension_array_equal(result, expected)

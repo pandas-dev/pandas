@@ -43,7 +43,7 @@ class ComparisonOps(BaseOpsUtil):
             expected = pd.array([None, None, None], dtype="boolean")
         else:
             values = op(left._data, other)
-            expected = pd.arrays.BooleanArray(values, left._mask.to_numpy(), copy=True)
+            expected = pd.arrays.BooleanArray(values, left._mask, copy=True)
         tm.assert_extension_array_equal(result, expected)
 
         # ensure we haven't mutated anything inplace

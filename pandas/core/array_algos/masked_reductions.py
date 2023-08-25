@@ -60,7 +60,7 @@ def _reductions(
         ):
             return libmissing.NA
 
-        return func(values, where=~mask.to_numpy(), axis=axis, **kwargs)
+        return func(values, where=(~mask).to_numpy(), axis=axis, **kwargs)
 
 
 def sum(

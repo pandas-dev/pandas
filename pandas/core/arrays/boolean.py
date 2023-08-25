@@ -397,7 +397,7 @@ class BooleanArray(BaseMaskedArray):
         self, name: str, *, skipna: bool = True, **kwargs
     ) -> BaseMaskedArray:
         data = self._data
-        mask = self._mask.to_numpy()
+        mask = self._mask
         if name in ("cummin", "cummax"):
             op = getattr(masked_accumulations, name)
             data, mask = op(data, mask, skipna=skipna, **kwargs)
