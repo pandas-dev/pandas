@@ -6,10 +6,10 @@ cimport cython
 import numpy as np
 
 cimport numpy as cnp
-from cpython cimport PyErr_Clear
-from libc.stdlib cimport (
-    free,
-    malloc,
+from cpython cimport (
+    PyErr_Clear,
+    PyMem_Free,
+    PyMem_Malloc,
 )
 from libc.string cimport memcpy
 from numpy cimport (
@@ -293,7 +293,7 @@ cdef class BitMaskArray:
         # TODO: this leaks a bit into the internals of the nanoarrow bitmap
         # We may want to upstream a BitmapCopy function instead
         ArrowBitmapInit(&bitmap)
-        buf = <uint8_t*>malloc(old_bma.bitmap.buffer.size_bytes)
+        buf = <uint8_t*>PyMem_Malloc(old_bma.bitmap.buffer.size_bytes)
         memcpy(buf, old_bma.bitmap.buffer.data, old_bma.bitmap.buffer.size_bytes)
         bitmap.buffer.size_bytes = old_bma.bitmap.buffer.size_bytes
         bitmap.buffer.capacity_bytes = old_bma.bitmap.buffer.capacity_bytes
@@ -326,7 +326,7 @@ cdef class BitMaskArray:
                         "BitMaskArray.concatenate does not support broadcasting"
                     )
 
-        cdef ArrowBitmap** bitmaps = <ArrowBitmap**>malloc(
+        cdef ArrowBitmap** bitmaps = <ArrowBitmap**>PyMem_Malloc(
             sizeof(ArrowBitmap*) * nbitmaps
         )
         for i in range(nbitmaps):
@@ -341,7 +341,7 @@ cdef class BitMaskArray:
         ArrowBitmapInit(&bitmap)
         ArrowBitmapReserve(&bitmap, total_bits)
         ConcatenateBitmapData(bitmaps, nbitmaps, &bitmap)
-        free(bitmaps)
+        PyMem_Free(bitmaps)
 
         bma.bitmap = bitmap
         if second_dim != 0:
@@ -560,7 +560,7 @@ cdef class BitMaskArray:
         else:
             ArrowBitmapInit(&bitmap)
 
-            buf = <uint8_t*>malloc(nbytes)
+            buf = <uint8_t*>PyMem_Malloc(nbytes)
             data = state["bitmap_data"]
             for i in range(nbytes):
                 buf[i] = data[i]

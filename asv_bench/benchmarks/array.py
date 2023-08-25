@@ -28,6 +28,17 @@ class BooleanArray:
         pd.array(self.values_float, dtype="boolean")
 
 
+class BooleanArrayMem:
+    def setup_cache(self):
+        N = 250_000
+        data = np.array([True] * N)
+        mask = np.array([False] * N)
+        return [pd.arrays.BooleanArray(data, mask)] * 500
+
+    def peakmem_array(self, arrays):
+        return [~x for x in arrays]
+
+
 class IntegerArray:
     def setup(self):
         N = 250_000
