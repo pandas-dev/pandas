@@ -19,6 +19,7 @@ from typing import (
 import warnings
 
 import numpy as np
+import pandas as pd
 
 from pandas._config import (
     get_option,
@@ -3795,6 +3796,13 @@ class Index(IndexOpsMixin, PandasObject):
             ):
                 raise InvalidIndexError(key)
             raise KeyError(key) from err
+
+        except KeyError:
+            if not self.index.is_monotonic_increasing:
+                # Handle non-sorted index case
+                warnings.warn("The index is not sorted. Slicing may not behave as expected.")
+                return pd.DataFrame()  # Return an empty DataFrame
+
         except TypeError:
             # If we have a listlike key, _check_indexing_error will raise
             #  InvalidIndexError. Otherwise we fall through and re-raise
