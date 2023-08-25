@@ -308,6 +308,24 @@ cdef class BitMaskArray:
     def __len__(self):
         return self.bitmap.size_bits
 
+    def __repr__(self):
+        cdef Py_ssize_t i, nbytes = self.bitmap.buffer.size_bytes
+        arr_bytes = bytearray(nbytes)
+        for i in range(nbytes):
+            arr_bytes[i] = self.bitmap.buffer.data[i]
+
+        if self.parent:
+            par = object.__repr__(self.parent)
+        else:
+            par = None
+
+        shape = self.array_shape
+        data = repr(arr_bytes)
+
+        return (
+            f"{object.__repr__(self)}\nparent: {par}\nshape: {shape}\ndata: {data}\n"
+        )
+
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @staticmethod
