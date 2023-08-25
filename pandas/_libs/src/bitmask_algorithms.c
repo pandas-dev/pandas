@@ -20,31 +20,35 @@ void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
     if (nbytes == 0) {
       continue;
     }
-    const size_t trailing_nbits = bitmap->size_bits % 8;
+    const size_t bitmap_rem = bitmap->size_bits % 8;
 
     // As we loop through each array, any time we end up starting
     // on a word boundary we can simply use memcpy. If we are not
     // so lucky we fall back to bit shifting each element
     if (start_bit_pos == 0) {
-      memcpy(out_cursor, bitmap->buffer.data, nbytes);
+      const size_t index = bits_processed / 8;
+      memcpy(&out_cursor[index], bitmap->buffer.data, nbytes);
+      bits_processed += bitmap->size_bits;
     } else {
       for (int64_t j = 0; j < nbytes; j++) {
         const uint8_t lshifted = bitmap->buffer.data[j] << start_bit_pos;
-        out_cursor[j] = (out_cursor[j] & clear_mask[start_bit_pos]) | lshifted;
+        const size_t index = bits_processed / 8;
+        out_cursor[index] = (out_cursor[index] & clear_mask[start_bit_pos]) | lshifted;
 
-        const uint8_t rshifted = bitmap->buffer.data[j] >> (8 - start_bit_pos);
-        out_cursor[j + 1] = rshifted;
+        if (index < out->buffer.capacity_bytes - 1) {
+          const uint8_t rshifted = bitmap->buffer.data[j] >> (8 - start_bit_pos);
+          out_cursor[index + 1] = rshifted;
+        }
+
+        if ((j == nbytes - 1) && (bitmap_rem > 0)){
+          bits_processed += bitmap_rem;
+        } else {
+          bits_processed += 8;
+        }
       }
     }
 
-    out_cursor += nbytes;
-    const int64_t next_bit_pos = start_bit_pos + trailing_nbits;
-    if ((next_bit_pos > 0) && (next_bit_pos < 8)) {
-      out_cursor--;
-    }
-
-    start_bit_pos = next_bit_pos % 8;
-    bits_processed += bitmap->size_bits;
+    start_bit_pos = (start_bit_pos + bitmap_rem) % 8;
   }
 
   out->size_bits = bits_processed;
