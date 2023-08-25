@@ -21,7 +21,7 @@ PyArrow will become a required dependency with pandas 3.0
 
 `PyArrow <https://arrow.apache.org/docs/python/index.html>`_ will become a required
 dependency of pandas starting with pandas 3.0. This decision was made based on
-`PDEP 12 <https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html>`_.
+`PDEP 10 <https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html>`_.
 
 This will enable more changes that are hugely beneficial to pandas users, including
 but not limited to:
@@ -41,7 +41,9 @@ Avoid NumPy object dtype for strings by default
 
 Previously, all strings were stored in columns with NumPy object dtype.
 This release introduces an option ``future.infer_string`` that infers all
-strings as PyArrow backed strings with dtype ``pd.ArrowDtype(pa.string())`` instead.
+strings as PyArrow backed strings with dtype ``"string[pyarrow_numpy]"`` instead.
+This is a new string dtype implementation that follows NumPy semantics in comparison
+operations and will return ``np.nan`` as the missing value indicator.
 This option only works if PyArrow is installed. PyArrow backed strings have a
 significantly reduced memory footprint and provide a big performance improvement
 compared to NumPy object (:issue:`54430`).
