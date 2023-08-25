@@ -166,6 +166,7 @@ if TYPE_CHECKING:
         DtypeBackend,
         DtypeObj,
         FilePath,
+        Frequency,
         IgnoreRaise,
         IndexKeyFunc,
         IndexLabel,
@@ -5630,7 +5631,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def to_timestamp(
         self,
-        freq: str | None = None,
+        freq: Frequency | None = None,
         how: Literal["s", "e", "start", "end"] = "start",
         copy: bool | None = None,
     ) -> Series:
