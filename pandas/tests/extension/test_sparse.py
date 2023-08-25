@@ -213,11 +213,21 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
             super().test_fillna_limit_backfill(data_missing)
 
     def test_fillna_no_op_returns_copy(self, data, request):
+        if data.dtype.kind == "c":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "no cython implementation of "
+                        f"backfill(ndarray[{data.dtype.name}_t],"
+                        f"ndarray[{data.dtype.name}_t], int64_t) in libs/algos.pxd"
+                    )
+                )
+            )
         if np.isnan(data.fill_value):
             request.node.add_marker(
                 pytest.mark.xfail(reason="returns array with different fill value")
             )
-        super().test_fillna_no_op_returns_copy(data)
+        super().test_fillna_no_op_returns_copy(data, request)
 
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self, data_missing):
@@ -371,13 +381,13 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             # general, so we can't make the expected. This is tested elsewhere
             pytest.skip("Incorrected expected from Series.combine and tested elsewhere")
 
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         self._skip_if_different_combine(data)
-        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators, request)
 
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
+    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
         self._skip_if_different_combine(data)
-        super().test_arith_series_with_array(data, all_arithmetic_operators)
+        super().test_arith_series_with_array(data, all_arithmetic_operators, request)
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         if data.dtype.fill_value != 0:
@@ -393,7 +403,7 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
         ]:
             mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
             request.node.add_marker(mark)
-        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators, request)
 
 
 class TestComparisonOps(BaseSparseTests):
@@ -445,10 +455,10 @@ class TestPrinting(BaseSparseTests, base.BasePrintingTests):
 
 class TestParsing(BaseSparseTests, base.BaseParsingTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_EA_types(self, engine, data):
+    def test_EA_types(self, engine, data, request):
         expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
-            super().test_EA_types(engine, data)
+            super().test_EA_types(engine, data, request)
 
 
 class TestNoNumericAccumulations(base.BaseAccumulateTests):

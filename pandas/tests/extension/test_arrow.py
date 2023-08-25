@@ -659,7 +659,17 @@ class TestArrowArray(base.ExtensionTests):
     def test_view(self, data):
         super().test_view(data)
 
-    def test_fillna_no_op_returns_copy(self, data):
+    def test_fillna_no_op_returns_copy(self, data, request):
+        if data.dtype.kind == "c":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason=(
+                        "no cython implementation of "
+                        f"backfill(ndarray[{data.dtype.name}_t],"
+                        f"ndarray[{data.dtype.name}_t], int64_t) in libs/algos.pxd"
+                    )
+                )
+            )
         data = data[~data.isna()]
 
         valid = data[0]
@@ -926,7 +936,7 @@ class TestArrowArray(base.ExtensionTests):
         )
 
     def _get_expected_exception(
-        self, op_name: str, obj, other
+        self, op_name: str, obj, other, request
     ) -> type[Exception] | None:
         if op_name in ("__divmod__", "__rdivmod__"):
             return self.divmod_exc
@@ -1036,7 +1046,7 @@ class TestArrowArray(base.ExtensionTests):
         if mark is not None:
             request.node.add_marker(mark)
 
-        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators, request)
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1050,7 +1060,9 @@ class TestArrowArray(base.ExtensionTests):
         if mark is not None:
             request.node.add_marker(mark)
 
-        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+            super().test_arith_frame_with_scalar(
+                data, all_arithmetic_operators, request
+            )
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1084,7 +1096,7 @@ class TestArrowArray(base.ExtensionTests):
         # since ser.iloc[0] is a python scalar
         other = pd.Series(pd.array([ser.iloc[0]] * len(ser), dtype=data.dtype))
 
-        self.check_opname(ser, op_name, other)
+        self.check_opname(ser, op_name, other, request)
 
     def test_add_series_with_extension_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1096,7 +1108,7 @@ class TestArrowArray(base.ExtensionTests):
                     reason=f"raises on overflow for {pa_dtype}",
                 )
             )
-        super().test_add_series_with_extension_array(data)
+        super().test_add_series_with_extension_array(data, request)
 
     def test_invalid_other_comp(self, data, comparison_op):
         # GH 48833

@@ -67,7 +67,7 @@ def data_for_grouping():
 
 class TestDecimalArray(base.ExtensionTests):
     def _get_expected_exception(
-        self, op_name: str, obj, other
+        self, op_name: str, obj, other, request
     ) -> type[Exception] | None:
         return None
 
@@ -108,7 +108,7 @@ class TestDecimalArray(base.ExtensionTests):
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i)) for i in alter]
         self._compare_other(ser, data, comparison_op, other)
 
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
+    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
 
@@ -120,13 +120,13 @@ class TestDecimalArray(base.ExtensionTests):
 
         # Decimal supports ops with int, but not float
         other = pd.Series([int(d * 100) for d in data])
-        self.check_opname(ser, op_name, other)
+        self.check_opname(ser, op_name, other, request)
 
         if "mod" not in op_name:
-            self.check_opname(ser, op_name, ser * 2)
+            self.check_opname(ser, op_name, ser * 2, request)
 
-        self.check_opname(ser, op_name, 0)
-        self.check_opname(ser, op_name, 5)
+        self.check_opname(ser, op_name, 0, request)
+        self.check_opname(ser, op_name, 5, request)
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
 
@@ -156,12 +156,12 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_limit_backfill(data_missing)
 
-    def test_fillna_no_op_returns_copy(self, data):
+    def test_fillna_no_op_returns_copy(self, data, request):
         msg = "ExtensionArray.fillna 'method' keyword is deprecated"
         with tm.assert_produces_warning(
             FutureWarning, match=msg, check_stacklevel=False
         ):
-            super().test_fillna_no_op_returns_copy(data)
+            super().test_fillna_no_op_returns_copy(data, request)
 
     def test_fillna_series(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"
@@ -284,6 +284,53 @@ def test_astype_dispatches(frame):
         result = result["a"]
 
     assert result.dtype.context.prec == ctx.prec
+
+
+class TestArithmeticOps(base.BaseArithmeticOpsTests):
+    series_scalar_exc = None
+    frame_scalar_exc = None
+    series_array_exc = None
+
+    def _get_expected_exception(
+        self, op_name: str, obj, other, request
+    ) -> type[Exception] | None:
+        return None
+
+    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
+        op_name = all_arithmetic_operators
+        s = pd.Series(data)
+
+        context = decimal.getcontext()
+        divbyzerotrap = context.traps[decimal.DivisionByZero]
+        invalidoptrap = context.traps[decimal.InvalidOperation]
+        context.traps[decimal.DivisionByZero] = 0
+        context.traps[decimal.InvalidOperation] = 0
+
+        # Decimal supports ops with int, but not float
+        other = pd.Series([int(d * 100) for d in data])
+        self.check_opname(s, op_name, other, request)
+
+        if "mod" not in op_name:
+            self.check_opname(s, op_name, s * 2, request)
+
+        self.check_opname(s, op_name, 0, request)
+        self.check_opname(s, op_name, 5, request)
+        context.traps[decimal.DivisionByZero] = divbyzerotrap
+        context.traps[decimal.InvalidOperation] = invalidoptrap
+
+
+class TestComparisonOps(base.BaseComparisonOpsTests):
+    def test_compare_scalar(self, data, comparison_op):
+        s = pd.Series(data)
+        self._compare_other(s, data, comparison_op, 0.5)
+
+    def test_compare_array(self, data, comparison_op):
+        s = pd.Series(data)
+
+        alter = np.random.default_rng(2).choice([-1, 0, 1], len(data))
+        # Randomly double, halve or keep same value
+        other = pd.Series(data) * [decimal.Decimal(pow(2.0, i)) for i in alter]
+        self._compare_other(s, data, comparison_op, other)
 
 
 class DecimalArrayWithoutFromSequence(DecimalArray):

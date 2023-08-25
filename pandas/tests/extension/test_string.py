@@ -143,7 +143,7 @@ class TestMissing(base.BaseMissingTests):
         expected = data_missing[[1]]
         tm.assert_extension_array_equal(result, expected)
 
-    def test_fillna_no_op_returns_copy(self, data):
+    def test_fillna_no_op_returns_copy(self, data, request):
         data = data[~data.isna()]
 
         valid = data[0]
@@ -203,7 +203,7 @@ class TestGroupBy(base.BaseGroupbyTests):
 
 class Test2DCompat(base.Dim2CompatTests):
     @pytest.fixture(autouse=True)
-    def arrow_not_supported(self, data):
+    def arrow_not_supported(self, data, request):
         if isinstance(data, ArrowStringArray):
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
 

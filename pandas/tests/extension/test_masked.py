@@ -160,7 +160,7 @@ def data_for_grouping(dtype):
 
 
 class TestMaskedArrays(base.ExtensionTests):
-    def _get_expected_exception(self, op_name, obj, other):
+    def _get_expected_exception(self, op_name, obj, other, request):
         try:
             dtype = tm.get_dtype(obj)
         except AttributeError:
@@ -226,7 +226,7 @@ class TestMaskedArrays(base.ExtensionTests):
                 "non-masked bool dtype."
             )
             request.node.add_marker(mark)
-        super().test_divmod_series_array(data, data_for_twos)
+        super().test_divmod_series_array(data, data_for_twos, request)
 
     def test_combine_le(self, data_repeated):
         # TODO: patching self is a bad pattern here

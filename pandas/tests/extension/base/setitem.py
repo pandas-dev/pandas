@@ -337,7 +337,8 @@ class BaseSetitemTests:
 
     def test_setitem_scalar_key_sequence_raise(self, data):
         arr = data[:5].copy()
-        with pytest.raises(ValueError):
+        # complex128 data raises TypeError; other numeric types raise ValueError
+        with pytest.raises((ValueError, TypeError)):
             arr[0] = arr[[0, 1]]
 
     def test_setitem_preserves_views(self, data):
@@ -438,7 +439,7 @@ class BaseSetitemTests:
             data[:] = invalid_scalar
 
     def test_setitem_2d_values(self, data):
-        # GH50085
+        # GH54445
         original = data.copy()
         df = pd.DataFrame({"a": data, "b": data})
         df.loc[[0, 1], :] = df.loc[[1, 0], :].values

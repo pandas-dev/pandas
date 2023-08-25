@@ -1003,11 +1003,25 @@ def nanvar(
     # cancellation errors and relatively accurate for small numbers of
     # observations.
     #
-    # See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
+    # See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance...
+    if values.dtype.kind == "c":
+        avg = _ensure_numeric(values.sum(axis=axis, dtype=values.dtype)) / count
+    else:
+        avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)
-    sqr = _ensure_numeric((avg - values) ** 2)
+    # ...but also,
+    # see https://numpy.org/doc/stable/reference/generated/numpy.nanvar.html#numpy-nanvar
+    # which explains why computing the variance of complex numbers
+    # requires first normalizing the complex differences to magnitudes
+    if values.dtype.kind == "c":
+        deltas = _ensure_numeric(avg - values)
+        avg_re = np.real(deltas)
+        avg_im = np.imag(deltas)
+        sqr = avg_re**2 + avg_im**2
+    else:
+        sqr = _ensure_numeric((avg - values) ** 2)
+
     if mask is not None:
         np.putmask(sqr, mask, 0)
     result = sqr.sum(axis=axis, dtype=np.float64) / d

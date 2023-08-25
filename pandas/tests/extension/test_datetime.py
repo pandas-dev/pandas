@@ -83,10 +83,10 @@ def na_cmp():
 
 # ----------------------------------------------------------------------------
 class TestDatetimeArray(base.ExtensionTests):
-    def _get_expected_exception(self, op_name, obj, other):
+    def _get_expected_exception(self, op_name, obj, other, request):
         if op_name in ["__sub__", "__rsub__"]:
             return None
-        return super()._get_expected_exception(op_name, obj, other)
+        return super()._get_expected_exception(op_name, obj, other, request)
 
     def _supports_accumulation(self, ser, op_name: str) -> bool:
         return op_name in ["cummin", "cummax"]
@@ -114,10 +114,10 @@ class TestDatetimeArray(base.ExtensionTests):
         tm.assert_extension_array_equal(result, data)
 
     @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_EA_types(self, engine, data):
+    def test_EA_types(self, engine, data, request):
         expected_msg = r".*must implement _from_sequence_of_strings.*"
         with pytest.raises(NotImplementedError, match=expected_msg):
-            super().test_EA_types(engine, data)
+            super().test_EA_types(engine, data, request)
 
     def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name in ["median", "mean", "std"]:

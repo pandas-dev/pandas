@@ -15,6 +15,8 @@ be added to the array-specific tests in `pandas/tests/arrays/`.
 Note: we do not bother with base.BaseIndexTests because NumpyExtensionArray
 will never be held in an Index.
 """
+from __future__ import annotations
+
 import numpy as np
 import pytest
 
@@ -54,7 +56,7 @@ def _assert_attr_equal(attr: str, left, right, obj: str = "Attributes"):
     orig_assert_attr_equal(attr, left, right, obj)
 
 
-@pytest.fixture(params=["float", "object"])
+@pytest.fixture(params=["complex", "float", "object"])
 def dtype(request):
     return NumpyEADtype(np.dtype(request.param))
 
@@ -87,7 +89,10 @@ def allow_in_pandas(monkeypatch):
 def data(allow_in_pandas, dtype):
     if dtype.numpy_dtype == "object":
         return pd.Series([(i,) for i in range(100)]).array
-    return NumpyExtensionArray(np.arange(1, 101, dtype=dtype._dtype))
+    arr = np.arange(1, 101, dtype=dtype._dtype)
+    if dtype.kind == "c":
+        arr = arr + (arr * (0 + 1j))
+    return NumpyExtensionArray(arr)
 
 
 @pytest.fixture
@@ -277,24 +282,63 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     frame_scalar_exc = None
     series_array_exc = None
 
-    @skip_nested
-    def test_divmod(self, data):
-        super().test_divmod(data)
+    def _get_expected_exception(
+        self, op_name: str, obj, other, request
+    ) -> type[Exception] | None:
+        # Find the Exception, if any we expect to raise calling
+        #  obj.__op_name__(other)
+
+        if op_name in [
+            "__divmod__",
+            "__rdivmod__",
+            "floor_divide",
+            "remainder",
+            "__floordiv__",
+            "__rfloordiv__",
+            "__mod__",
+            "__rmod__",
+        ]:
+            for arg in [obj, other]:
+                marked_reason = None
+                if isinstance(arg, complex):
+                    marked_reason = type(arg).__name__
+                elif isinstance(arg, pd.Series):
+                    if arg.dtype.kind == "c":
+                        marked_reason = f"{arg.dtype.name} dtype"
+                elif isinstance(arg, pd.DataFrame):
+                    for i, dtype in enumerate(arg.dtypes):
+                        if dtype.kind == "c":
+                            marked_reason = f"{dtype.name} dtype"
+                            break
+                if marked_reason:
+                    request.node.add_marker(
+                        pytest.mark.xfail(
+                            raises=TypeError,
+                            reason=f"{marked_reason} does not support {op_name}",
+                            strict=False,
+                        )
+                    )
+                    return TypeError
+        return super()._get_expected_exception(op_name, obj, other, request)
 
     @skip_nested
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators, request)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
         opname = all_arithmetic_operators
         if data.dtype.numpy_dtype == object and opname not in ["__add__", "__radd__"]:
             mark = pytest.mark.xfail(reason="Fails for object dtype")
             request.node.add_marker(mark)
-        super().test_arith_series_with_array(data, all_arithmetic_operators)
+        super().test_arith_series_with_array(data, all_arithmetic_operators, request)
 
     @skip_nested
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
-        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators, request)
+
+    @skip_nested
+    def test_divmod(self, data, request):
+        super().test_divmod(data, request)
 
 
 class TestPrinting(BaseNumPyTests, base.BasePrintingTests):
@@ -339,6 +383,26 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
     def test_fillna_frame(self, data_missing):
         # Non-scalar "scalar" values.
         super().test_fillna_frame(data_missing)
+
+    def test_fillna_no_op_returns_copy(self, data, request):
+        data = data[~data.isna()]
+
+        valid = data[0]
+        result = data.fillna(valid)
+        assert result is not data
+        tm.assert_extension_array_equal(result, data)
+
+        if data.dtype.kind == "c":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="no cython implementation of "
+                    f"backfill(ndarray[{data.dtype.name}_t],"
+                    f"ndarray[{data.dtype.name}_t], int64_t) in libs/algos.pxd"
+                )
+            )
+        result = data.pad_or_backfill(method="backfill")
+        assert result is not data
+        tm.assert_extension_array_equal(result, data)
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
