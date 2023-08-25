@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- Addition of the capability to handle malformed lines in CSV files to the the `PyArrow <https://arrow.apache.org/docs/python/index.html>`_ engine using the ``on_bad_lines`` parameter. (:issue:`54480`)
+- :func:`read_csv` now supports ``on_bad_lines`` parameter with ``engine="pyarrow"``. (:issue:`54480`)
 
 
 .. ---------------------------------------------------------------------------

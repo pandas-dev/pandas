@@ -1,5 +1,5 @@
 """
-Tests that work on both the Python, C and PyArrow engines but do not have a
+Tests that work on the Python, C and PyArrow engines but do not have a
 specific classification into the other test modules.
 """
 import codecs
@@ -20,12 +20,6 @@ from pandas.errors import (
 
 from pandas import DataFrame
 import pandas._testing as tm
-
-# PyArrow's error types are not available by default
-try:
-    from pyarrow import ArrowInvalid
-except ImportError:
-    pass
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
@@ -175,8 +169,9 @@ def test_error_bad_lines(all_parsers):
     ex_type = ParserError
 
     if parser.engine == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        ex_type = pa.ArrowInvalid
         msg = "CSV parse error: Expected 1 columns, got 3: 1,2,3"
-        ex_type = ArrowInvalid
 
     with pytest.raises(ex_type, match=msg):
         parser.read_csv(StringIO(data), on_bad_lines="error")
@@ -217,8 +212,9 @@ def test_read_csv_wrong_num_columns(all_parsers):
     ex_type = ParserError
 
     if parser.engine == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        ex_type = pa.ArrowInvalid
         msg = "Expected 6 columns, got 7: 6,7,8,9,10,11,12"
-        ex_type = ArrowInvalid
 
     with pytest.raises(ex_type, match=msg):
         parser.read_csv(StringIO(data))
@@ -288,7 +284,8 @@ def test_bad_header_uniform_error(all_parsers):
             "number of columns, but 3 left to parse."
         )
     elif parser.engine == "pyarrow":
-        ex_type = ArrowInvalid
+        pa = pytest.importorskip("pyarrow")
+        ex_type = pa.ArrowInvalid
         msg = "CSV parse error: Expected 1 columns, got 4: col1,col2,col3,col4"
 
     with pytest.raises(ex_type, match=msg):
