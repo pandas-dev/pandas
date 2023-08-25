@@ -18,6 +18,7 @@ import numpy as np
 from pandas._config import using_copy_on_write
 
 from pandas._libs import (
+    NaT,
     internals as libinternals,
     lib,
     writers,
@@ -459,7 +460,12 @@ class Block(PandasObject, libinternals.Block):
 
         # In a future version of pandas, the default will be that
         # setting `nan` into an integer series won't raise.
-        if is_scalar(other) and is_integer_dtype(self.values.dtype) and isna(other):
+        if (
+            is_scalar(other)
+            and is_integer_dtype(self.values.dtype)
+            and isna(other)
+            and other is not NaT
+        ):
             warn_on_upcast = False
         elif (
             isinstance(other, np.ndarray)

@@ -1573,8 +1573,9 @@ class TestDataFrameIndexingUInt64:
         # With NaN: because uint64 has no NaN element,
         # the column should be cast to object.
         df2 = df.copy()
-        df2.iloc[1, 1] = pd.NaT
-        df2.iloc[1, 2] = pd.NaT
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df2.iloc[1, 1] = pd.NaT
+            df2.iloc[1, 2] = pd.NaT
         result = df2["B"]
         tm.assert_series_equal(notna(result), Series([True, False, True], name="B"))
         tm.assert_series_equal(
@@ -1931,7 +1932,7 @@ class TestSetitemValidation:
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
         df = DataFrame({"a": [1, 2, 3]}, dtype=any_int_numpy_dtype)
-        if isna(invalid):
+        if isna(invalid) and invalid is not pd.NaT:
             warn = None
         else:
             warn = FutureWarning

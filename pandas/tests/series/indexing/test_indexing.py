@@ -501,7 +501,7 @@ class TestSetitemValidation:
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
         ser = Series([1, 2, 3], dtype=any_int_numpy_dtype)
-        if isna(invalid):
+        if isna(invalid) and invalid is not NaT:
             warn = None
         else:
             warn = FutureWarning
