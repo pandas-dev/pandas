@@ -107,6 +107,7 @@ from pandas.core.arrays import (
     IntegerArray,
     SparseArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -2261,7 +2262,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return IntegerArray(
                     counted[0], mask=np.zeros(counted.shape[1], dtype=np.bool_)
                 )
-            elif isinstance(bvalues, ArrowExtensionArray):
+            elif isinstance(bvalues, ArrowExtensionArray) and not isinstance(
+                bvalues.dtype, StringDtype
+            ):
                 return type(bvalues)._from_sequence(counted[0])
             if is_series:
                 assert counted.ndim == 2
