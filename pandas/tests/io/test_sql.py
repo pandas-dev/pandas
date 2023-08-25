@@ -2849,8 +2849,8 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
     def test_keyword_deprecation(self):
         # GH 54397
         msg = (
-            "tarting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' and 'con' will be keyword-only."
+            "Starting with pandas version 3.0 all arguments of to_sql except for the  "
+            "arguments 'name' and 'con' will be keyword-only."
         )
         df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
         df.to_sql("example", self.conn)
