@@ -9818,12 +9818,12 @@ class DataFrame(NDFrame, OpsMixin):
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    core.groupby.GroupBy : Perform operations over groups.
-    core.resample.Resampler : Perform operations over resampled bins.
-    core.window.Rolling : Perform operations over rolling window.
-    core.window.Expanding : Perform operations over expanding window.
-    core.window.ExponentialMovingWindow : Perform operation over exponential weighted
-        window.
+    pandas.core.groupby.GroupBy : Perform operations over groups.
+    pandas.core.resample.Resampler : Perform operations over resampled bins.
+    pandas.core.window.Rolling : Perform operations over rolling window.
+    pandas.core.window.Expanding : Perform operations over expanding window.
+    pandas.core.window.ExponentialMovingWindow : Perform operation over exponential
+        weighted window.
     """
     )
 
