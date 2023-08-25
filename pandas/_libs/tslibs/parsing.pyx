@@ -796,7 +796,7 @@ def try_parse_year_month_day(
 # is not practical. In fact, using this class issues warnings (xref gh-21322).
 # Thus, we port the class over so that both issues are resolved.
 #
-# Copyright (c) 2017 - dateutil contributors
+# Licence at LICENSES/DATEUTIL_LICENSE
 class _timelex:
     def __init__(self, instream):
         if getattr(instream, "decode", None) is not None:
