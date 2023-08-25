@@ -28,7 +28,7 @@ from pandas.core.arrays.masked import (
 if TYPE_CHECKING:
     import pyarrow
 
-    from pandas._libs.arrays import BitMaskArray
+    from pandas._libs.arrays import BitmaskArray
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -301,14 +301,14 @@ class BooleanArray(BaseMaskedArray):
 
     @classmethod
     def _simple_new(
-        cls, values: np.ndarray, mask: npt.NDArray[np.bool_] | BitMaskArray
+        cls, values: np.ndarray, mask: npt.NDArray[np.bool_] | BitmaskArray
     ) -> Self:
         result = super()._simple_new(values, mask)
         result._dtype = BooleanDtype()
         return result
 
     def __init__(
-        self, values: np.ndarray, mask: np.ndarray | BitMaskArray, copy: bool = False
+        self, values: np.ndarray, mask: np.ndarray | BitmaskArray, copy: bool = False
     ) -> None:
         if not (isinstance(values, np.ndarray) and values.dtype == np.bool_):
             raise TypeError(

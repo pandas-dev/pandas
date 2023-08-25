@@ -15,7 +15,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._libs.arrays import BitMaskArray
+from pandas._libs.arrays import BitmaskArray
 from pandas._libs.tslibs import (
     get_unit_from_dtype,
     is_supported_unit,
@@ -113,7 +113,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     _internal_fill_value: Scalar
     # our underlying data and mask are each ndarrays
     _data: np.ndarray
-    _mask: BitMaskArray
+    _mask: BitmaskArray
 
     # Fill values used for any/all
     _truthy_value = Scalar  # bool(_truthy_value) = True
@@ -121,26 +121,26 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     @classmethod
     def _simple_new(
-        cls, values: np.ndarray, mask: npt.NDArray[np.bool_] | BitMaskArray
+        cls, values: np.ndarray, mask: npt.NDArray[np.bool_] | BitmaskArray
     ) -> Self:
         result = BaseMaskedArray.__new__(cls)
         result._data = values
-        result._mask = BitMaskArray(mask)
+        result._mask = BitmaskArray(mask)
         return result
 
     def __init__(
         self,
         values: np.ndarray,
-        mask: npt.NDArray[np.bool_] | BitMaskArray,
+        mask: npt.NDArray[np.bool_] | BitmaskArray,
         copy: bool = False,
     ) -> None:
         # values is supposed to already be validated in the subclass
         if not (
-            isinstance(mask, BitMaskArray)
+            isinstance(mask, BitmaskArray)
             or (isinstance(mask, np.ndarray) and mask.dtype == np.bool_)
         ):
             raise TypeError(
-                "mask should be boolean numpy array or BitMaskArray. "
+                "mask should be boolean numpy array or BitmaskArray. "
                 "Use the 'pd.array' function instead"
             )
         if isinstance(mask, np.ndarray):
@@ -152,7 +152,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             mask = mask.copy()
 
         self._data = values
-        self._mask = BitMaskArray(mask)
+        self._mask = BitmaskArray(mask)
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False) -> Self:
@@ -320,7 +320,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         value, mask = self._coerce_to_array(value, dtype=self.dtype)
 
         self._data[key] = value
-        if isinstance(mask, BitMaskArray):
+        if isinstance(mask, BitmaskArray):
             mask = mask.to_numpy()
 
         self._mask[key] = mask
@@ -329,7 +329,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if isna(key) and key is not self.dtype.na_value:
             # GH#52840
             if self._data.dtype.kind == "f" and lib.is_float(key):
-                # TODO: implement low level invert operator on BitMaskArray
+                # TODO: implement low level invert operator on BitmaskArray
                 return bool((np.isnan(self._data) & ~self._mask).any())
 
         return bool(super().__contains__(key))
@@ -696,7 +696,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._mask.any()
 
     def _propagate_mask(
-        self, mask: npt.NDArray[np.bool_] | BitMaskArray | None, other
+        self, mask: npt.NDArray[np.bool_] | BitmaskArray | None, other
     ) -> npt.NDArray[np.bool_]:
         if mask is None:
             mask = (
@@ -916,7 +916,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ) -> Self:
         data = np.concatenate([x._data for x in to_concat], axis=axis)
         try:
-            mask = BitMaskArray.concatenate([x._mask for x in to_concat], axis=axis)
+            mask = BitmaskArray.concatenate([x._mask for x in to_concat], axis=axis)
         except NotImplementedError:
             mask = np.concatenate([x._mask.to_numpy() for x in to_concat], axis=axis)
         return cls(data, mask)

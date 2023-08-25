@@ -13,7 +13,7 @@ import warnings
 import numpy as np
 
 from pandas._libs import missing as libmissing
-from pandas._libs.arrays import BitMaskArray
+from pandas._libs.arrays import BitmaskArray
 
 from pandas.core.nanops import check_below_min_count
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 def _reductions(
     func: Callable,
     values: np.ndarray,
-    mask: BitMaskArray,
+    mask: BitmaskArray,
     *,
     skipna: bool = True,
     min_count: int = 0,
@@ -65,7 +65,7 @@ def _reductions(
 
 def sum(
     values: np.ndarray,
-    mask: BitMaskArray,
+    mask: BitmaskArray,
     *,
     skipna: bool = True,
     min_count: int = 0,
@@ -78,7 +78,7 @@ def sum(
 
 def prod(
     values: np.ndarray,
-    mask: BitMaskArray,
+    mask: BitmaskArray,
     *,
     skipna: bool = True,
     min_count: int = 0,
@@ -92,7 +92,7 @@ def prod(
 def _minmax(
     func: Callable,
     values: np.ndarray,
-    mask: np.ndarray | BitMaskArray,
+    mask: np.ndarray | BitmaskArray,
     *,
     skipna: bool = True,
     axis: AxisInt | None = None,
@@ -119,7 +119,7 @@ def _minmax(
         else:
             return func(values, axis=axis)
     else:
-        if isinstance(mask, BitMaskArray):
+        if isinstance(mask, BitmaskArray):
             subset = values[(~mask).to_numpy()]
         else:
             subset = values[~mask]
@@ -132,7 +132,7 @@ def _minmax(
 
 def min(
     values: np.ndarray,
-    mask: np.ndarray | BitMaskArray,
+    mask: np.ndarray | BitmaskArray,
     *,
     skipna: bool = True,
     axis: AxisInt | None = None,
@@ -142,7 +142,7 @@ def min(
 
 def max(
     values: np.ndarray,
-    mask: np.ndarray | BitMaskArray,
+    mask: np.ndarray | BitmaskArray,
     *,
     skipna: bool = True,
     axis: AxisInt | None = None,
@@ -152,7 +152,7 @@ def max(
 
 def mean(
     values: np.ndarray,
-    mask: BitMaskArray,
+    mask: BitmaskArray,
     *,
     skipna: bool = True,
     axis: AxisInt | None = None,
@@ -164,7 +164,7 @@ def mean(
 
 def var(
     values: np.ndarray,
-    mask: BitMaskArray,
+    mask: BitmaskArray,
     *,
     skipna: bool = True,
     axis: AxisInt | None = None,
@@ -182,7 +182,7 @@ def var(
 
 def std(
     values: np.ndarray,
-    mask: BitMaskArray,
+    mask: BitmaskArray,
     *,
     skipna: bool = True,
     axis: AxisInt | None = None,

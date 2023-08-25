@@ -1298,7 +1298,7 @@ def take(
         warnings.warn(
             "pd.api.extensions.take accepting non-standard inputs is deprecated "
             "and will raise in a future version. Pass either a numpy.ndarray, "
-            "ExtensionArray, Index, Series, or BitMaskArray instead.",
+            "ExtensionArray, Index, Series, or BitmaskArray instead.",
             FutureWarning,
             stacklevel=find_stack_level(),
         )

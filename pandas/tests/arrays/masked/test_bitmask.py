@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 import pytest
 
-from pandas._libs.arrays import BitMaskArray
+from pandas._libs.arrays import BitmaskArray
 
 import pandas._testing as tm
 
@@ -20,7 +20,7 @@ import pandas._testing as tm
     ],
 )
 def test_constructor_ndarray(array, expected):
-    bma = BitMaskArray(array)
+    bma = BitmaskArray(array)
     assert bma.bytes == expected
     assert not bma.parent
     assert bma.array_shape == array.shape
@@ -29,27 +29,27 @@ def test_constructor_ndarray(array, expected):
 @pytest.mark.parametrize(
     "parent,expected",
     [
-        (BitMaskArray(np.array([False, False])), bytes([0x0])),
-        (BitMaskArray(np.array([True, False])), bytes([0x1])),
-        (BitMaskArray(np.array([False, True])), bytes([0x2])),
-        (BitMaskArray(np.array([True, True])), bytes([0x3])),
-        (BitMaskArray(np.array([True, False] * 8)), bytes([0x55, 0x55])),
+        (BitmaskArray(np.array([False, False])), bytes([0x0])),
+        (BitmaskArray(np.array([True, False])), bytes([0x1])),
+        (BitmaskArray(np.array([False, True])), bytes([0x2])),
+        (BitmaskArray(np.array([True, True])), bytes([0x3])),
+        (BitmaskArray(np.array([True, False] * 8)), bytes([0x55, 0x55])),
     ],
 )
 def test_constructor_bitmap(parent, expected):
-    bma = BitMaskArray(parent)
+    bma = BitmaskArray(parent)
     assert bma.bytes == expected
     assert bma.parent is parent
     assert bma.array_shape == parent.shape
 
 
 def test_len():
-    bma = BitMaskArray(np.array([True, False, False]))
+    bma = BitmaskArray(np.array([True, False, False]))
     assert len(bma) == 3
 
 
 def test_repr_no_parent():
-    bma = BitMaskArray(np.array([True, False, False]))
+    bma = BitmaskArray(np.array([True, False, False]))
     result = repr(bma)
     assert "parent: None" in result
     assert "shape: (3,)" in result
@@ -57,11 +57,11 @@ def test_repr_no_parent():
 
 
 def test_repr_parent():
-    parent = BitMaskArray(np.array([False, False, True]))
-    bma = BitMaskArray(parent)
+    parent = BitmaskArray(np.array([False, False, True]))
+    bma = BitmaskArray(parent)
     result = repr(bma)
     parent_id = hex(id(parent))
-    assert f"parent: <pandas._libs.arrays.BitMaskArray object at {parent_id}" in result
+    assert f"parent: <pandas._libs.arrays.BitmaskArray object at {parent_id}" in result
     assert "shape: (3,)" in result
     assert "data: b'\\x04'" in result
 
@@ -81,17 +81,17 @@ def test_repr_parent():
     ],
 )
 def test_concatenate(input_data):
-    masks = [BitMaskArray(np.array(x)) for x in input_data]
+    masks = [BitmaskArray(np.array(x)) for x in input_data]
 
-    result = BitMaskArray.concatenate(masks, axis=0)
-    expected = BitMaskArray(np.array(list(itertools.chain.from_iterable(input_data))))
+    result = BitmaskArray.concatenate(masks, axis=0)
+    expected = BitmaskArray(np.array(list(itertools.chain.from_iterable(input_data))))
 
     assert result.bytes == expected.bytes
 
 
 def test_concatenate_raises_not_axis0():
     with pytest.raises(NotImplementedError, match="only implemented for axis=0"):
-        BitMaskArray.concatenate([], axis=1)
+        BitmaskArray.concatenate([], axis=1)
 
 
 @pytest.mark.parametrize(
@@ -102,14 +102,14 @@ def test_concatenate_raises_not_axis0():
     ],
 )
 def test_getitem_scalar(indexer, expected):
-    bma = BitMaskArray(np.array([True, False, True]))
+    bma = BitmaskArray(np.array([True, False, True]))
     result = bma[indexer]
 
     assert result == expected
 
 
 def test_getitem_null_slice():
-    bma = BitMaskArray(np.array([True, False, True]))
+    bma = BitmaskArray(np.array([True, False, True]))
     result = bma[:]
 
     assert result.array_shape == bma.array_shape
@@ -129,14 +129,14 @@ def test_getitem_null_slice():
     ],
 )
 def test_getitem_numpy_fallback(indexer, expected):
-    bma = BitMaskArray(np.array([True, False, True]))
+    bma = BitmaskArray(np.array([True, False, True]))
     result = bma[indexer]
 
     tm.assert_numpy_array_equal(result, expected)
 
 
 def test_setitem_scalar():
-    bma = BitMaskArray(np.array([True, False, True]))
+    bma = BitmaskArray(np.array([True, False, True]))
 
     bma[0] = False
     assert not bma[0]
@@ -152,7 +152,7 @@ def test_setitem_scalar():
 
 
 def test_setitem_array():
-    bma = BitMaskArray(np.array([True, False, True]))
+    bma = BitmaskArray(np.array([True, False, True]))
 
     bma[:] = [False, True, False]
     assert not bma[0] and bma[1] and not bma[2]
@@ -162,11 +162,11 @@ def test_setitem_array():
 
 
 def test_invert():
-    result1 = ~BitMaskArray(np.array([True, False]))
+    result1 = ~BitmaskArray(np.array([True, False]))
     assert (result1.bytes[0] & 0x1) == 0
     assert ((result1.bytes[0] >> 1) & 0x1) == 1
 
-    result2 = ~BitMaskArray(np.array([False, True]))
+    result2 = ~BitmaskArray(np.array([False, True]))
     assert (result2.bytes[0] & 0x1) == 1
     assert ((result2.bytes[0] >> 1) & 0x1) == 0
 
@@ -183,10 +183,10 @@ def test_invert():
     ],
 )
 def test_and(rhs_as_bitmask, lhs, rhs, expected):
-    bma1 = BitMaskArray(np.array(lhs))
+    bma1 = BitmaskArray(np.array(lhs))
 
     if rhs_as_bitmask:
-        bma2 = BitMaskArray(np.array(rhs))
+        bma2 = BitmaskArray(np.array(rhs))
     else:
         bma2 = np.array(rhs)
 
@@ -207,10 +207,10 @@ def test_and(rhs_as_bitmask, lhs, rhs, expected):
     ],
 )
 def test_or(rhs_as_bitmask, lhs, rhs, expected):
-    bma1 = BitMaskArray(np.array(lhs))
+    bma1 = BitmaskArray(np.array(lhs))
 
     if rhs_as_bitmask:
-        bma2 = BitMaskArray(np.array(rhs))
+        bma2 = BitmaskArray(np.array(rhs))
     else:
         bma2 = np.array(rhs)
 
@@ -231,10 +231,10 @@ def test_or(rhs_as_bitmask, lhs, rhs, expected):
     ],
 )
 def test_xor(rhs_as_bitmask, lhs, rhs, expected):
-    bma1 = BitMaskArray(np.array(lhs))
+    bma1 = BitmaskArray(np.array(lhs))
 
     if rhs_as_bitmask:
-        bma2 = BitMaskArray(np.array(rhs))
+        bma2 = BitmaskArray(np.array(rhs))
     else:
         bma2 = np.array(rhs)
 
@@ -244,8 +244,8 @@ def test_xor(rhs_as_bitmask, lhs, rhs, expected):
 
 
 def test_pickle():
-    parent = BitMaskArray(np.array([True, False, True]))
-    child = BitMaskArray(parent)
+    parent = BitmaskArray(np.array([True, False, True]))
+    child = BitmaskArray(parent)
 
     result_child = pickle.loads(pickle.dumps(child))
 
@@ -258,7 +258,7 @@ def test_pickle():
 
 
 def test_iter():
-    bma = BitMaskArray(np.array([True, False, True]))
+    bma = BitmaskArray(np.array([True, False, True]))
     itr = iter(bma)
 
     assert next(itr) is True
@@ -279,7 +279,7 @@ def test_iter():
     ],
 )
 def test_size(data, expected):
-    bma = BitMaskArray(data)
+    bma = BitmaskArray(data)
     result = bma.size
     assert result == expected
 
@@ -294,7 +294,7 @@ def test_size(data, expected):
     ],
 )
 def test_nbytes(data, expected):
-    bma = BitMaskArray(data)
+    bma = BitmaskArray(data)
     result = bma.nbytes
     assert result == expected
 
@@ -308,7 +308,7 @@ def test_nbytes(data, expected):
     ],
 )
 def test_shape(data):
-    bma = BitMaskArray(data)
+    bma = BitmaskArray(data)
     assert bma.array_shape == data.shape
 
 
@@ -322,7 +322,7 @@ def test_shape(data):
     ],
 )
 def test_any(data, expected):
-    bma = BitMaskArray(data)
+    bma = BitmaskArray(data)
     assert bma.any() == expected
 
 
@@ -336,7 +336,7 @@ def test_any(data, expected):
     ],
 )
 def test_all(data, expected):
-    bma = BitMaskArray(data)
+    bma = BitmaskArray(data)
     assert bma.all() == expected
 
 
@@ -350,12 +350,12 @@ def test_all(data, expected):
     ],
 )
 def test_sum(data, expected):
-    bma = BitMaskArray(data)
+    bma = BitmaskArray(data)
     assert bma.sum() == expected
 
 
 def test_take1d():
-    bma = BitMaskArray(np.array([True, False, True, False]))
+    bma = BitmaskArray(np.array([True, False, True, False]))
 
     result1 = bma.take_1d(np.array([0]), axis=0)
     assert (result1.bytes[0] & 0x1) == 1
@@ -379,25 +379,25 @@ def test_take1d():
 
 
 def test_take1d_raises_not_axis0():
-    bma = BitMaskArray(np.array([True, False, True]))
+    bma = BitmaskArray(np.array([True, False, True]))
     with pytest.raises(NotImplementedError, match="only implemented for axis=0"):
         bma.take_1d(np.array([1]), axis=1)
 
 
 def test_take_1d_raises_empty_indices():
-    bma = BitMaskArray(np.array([True, False, True]))
+    bma = BitmaskArray(np.array([True, False, True]))
     with pytest.raises(NotImplementedError, match="does not support empty takes"):
         bma.take_1d(np.array([], dtype="int64"), axis=0)
 
 
 def test_take_1d_raises_negative_indices():
-    bma = BitMaskArray(np.array([True, False, True]))
+    bma = BitmaskArray(np.array([True, False, True]))
     with pytest.raises(NotImplementedError, match="does not support negative indexing"):
         bma.take_1d(np.array([-1], dtype="int64"), axis=0)
 
 
 def test_copy():
-    old_bma = BitMaskArray(np.array([True, False, True, False]))
+    old_bma = BitmaskArray(np.array([True, False, True, False]))
     bma = old_bma.copy()
 
     assert bma.bytes == old_bma.bytes
@@ -415,7 +415,7 @@ def test_copy():
     ],
 )
 def test_to_numpy(data):
-    bma = BitMaskArray(data)
+    bma = BitmaskArray(data)
 
     result = bma.to_numpy()
     tm.assert_numpy_array_equal(result, data)

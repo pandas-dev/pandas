@@ -51,7 +51,7 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
-    from pandas._libs.arrays import BitMaskArray
+    from pandas._libs.arrays import BitmaskArray
 
 
 bn = import_optional_dependency("bottleneck", errors="warn")
@@ -1543,7 +1543,7 @@ def _maybe_null_out(
 
 def check_below_min_count(
     shape: tuple[int, ...],
-    mask: npt.NDArray[np.bool_] | BitMaskArray | None,
+    mask: npt.NDArray[np.bool_] | BitmaskArray | None,
     min_count: int,
 ) -> bool:
     """

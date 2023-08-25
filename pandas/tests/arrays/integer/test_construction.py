@@ -81,7 +81,7 @@ def test_integer_array_constructor():
     tm.assert_extension_array_equal(result, expected)
 
     msg = (
-        r".* should be .* numpy array( or BitMaskArray)?. "
+        r".* should be .* numpy array( or BitmaskArray)?. "
         r"Use the 'pd.array' function instead"
     )
     with pytest.raises(TypeError, match=msg):

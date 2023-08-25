@@ -26,7 +26,7 @@ def test_floating_array_constructor():
     tm.assert_numpy_array_equal(result._mask.to_numpy(), mask)
 
     msg = (
-        r".* should be .* numpy array( or BitMaskArray)?. "
+        r".* should be .* numpy array( or BitmaskArray)?. "
         r"Use the 'pd.array' function instead"
     )
     with pytest.raises(TypeError, match=msg):

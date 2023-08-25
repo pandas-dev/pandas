@@ -236,7 +236,7 @@ cdef class NDArrayBacked:
         return to_concat[0]._from_backing_data(new_arr)
 
 
-cdef class BitMaskArray:
+cdef class BitmaskArray:
     cdef:
         ArrowBitmap bitmap
         bint buffer_owner  # set when parent is None, but gives C-level access
@@ -257,7 +257,7 @@ cdef class BitMaskArray:
         self.buffer_owner = True
         self.bitmap = bitmap
 
-    cdef void init_from_bitmaskarray(self, BitMaskArray bma):
+    cdef void init_from_bitmaskarray(self, BitmaskArray bma):
         self.buffer_owner = False
         self.bitmap = bma.bitmap
 
@@ -274,20 +274,20 @@ cdef class BitMaskArray:
             self.array_shape = data.array_shape
             self.parent = data
         else:
-            raise TypeError("Unsupported argument to BitMaskArray constructor")
+            raise TypeError("Unsupported argument to BitmaskArray constructor")
 
     def __dealloc__(self):
         if self.buffer_owner:
             ArrowBitmapReset(&self.bitmap)
 
     @staticmethod
-    cdef BitMaskArray copy_from_bitmaskarray(BitMaskArray old_bma):
+    cdef BitmaskArray copy_from_bitmaskarray(BitmaskArray old_bma):
         """
-        Constructs a new BitMaskArray from a bitmap pointer. Copies data
+        Constructs a new BitmaskArray from a bitmap pointer. Copies data
         and manages the subsequenty lifecycle of the bitmap.
         """
         # Bypass __init__ calls
-        cdef BitMaskArray bma = BitMaskArray.__new__(BitMaskArray)
+        cdef BitmaskArray bma = BitmaskArray.__new__(BitmaskArray)
         cdef uint8_t* buf
         cdef ArrowBitmap bitmap
         # TODO: this leaks a bit into the internals of the nanoarrow bitmap
@@ -324,10 +324,10 @@ cdef class BitMaskArray:
     @cython.wraparound(False)
     @cython.boundscheck(False)
     @staticmethod
-    cdef BitMaskArray c_concatenate(list objs):
+    cdef BitmaskArray c_concatenate(list objs):
         cdef Py_ssize_t i
         cdef int64_t total_bits = 0
-        cdef BitMaskArray current_bma
+        cdef BitmaskArray current_bma
         cdef Py_ssize_t nbitmaps = len(objs)
 
         cdef Py_ssize_t second_dim = 0
@@ -336,19 +336,19 @@ cdef class BitMaskArray:
             for obj in objs:
                 if not obj.array_shape[1] == second_dim:
                     raise NotImplementedError(
-                        "BitMaskArray.concatenate does not support broadcasting"
+                        "BitmaskArray.concatenate does not support broadcasting"
                     )
 
         cdef ArrowBitmap** bitmaps = <ArrowBitmap**>malloc(
             sizeof(ArrowBitmap*) * nbitmaps
         )
         for i in range(nbitmaps):
-            current_bma = <BitMaskArray?>objs[i]
+            current_bma = <BitmaskArray?>objs[i]
             total_bits += current_bma.bitmap.size_bits
             bitmaps[i] = &current_bma.bitmap
 
         # Bypass __init__ calls
-        cdef BitMaskArray bma = BitMaskArray.__new__(BitMaskArray)
+        cdef BitmaskArray bma = BitmaskArray.__new__(BitmaskArray)
         cdef ArrowBitmap bitmap
 
         ArrowBitmapInit(&bitmap)
@@ -370,10 +370,10 @@ cdef class BitMaskArray:
     def concatenate(cls, objs, axis):
         if axis != 0:
             raise NotImplementedError(
-                "BitMaskArray.concatenate only implemented for axis=0"
+                "BitmaskArray.concatenate only implemented for axis=0"
             )
 
-        return BitMaskArray.c_concatenate(objs)
+        return BitmaskArray.c_concatenate(objs)
 
     def __setitem__(self, key, value):
         cdef const uint8_t[:] keymask
@@ -381,7 +381,7 @@ cdef class BitMaskArray:
         cdef Py_ssize_t i = 0
         cdef Py_ssize_t ckey
         cdef bint cvalue
-        cdef BitMaskArray self_ = self
+        cdef BitmaskArray self_ = self
 
         if isinstance(key, int):
             ckey = key
@@ -411,7 +411,7 @@ cdef class BitMaskArray:
                     keymask.shape[0],
                     value
             ) != 0:
-                raise ValueError("BitMaskArray.__setitem__ failed!")
+                raise ValueError("BitmaskArray.__setitem__ failed!")
         else:
             arr = self.to_numpy()
             arr[key] = value
@@ -436,8 +436,8 @@ cdef class BitMaskArray:
         # bitmap only uses a few of the bits within that byte
         # the remaining bits of the byte are of undefined value
         # so be sure to only check bytes we need
-        cdef BitMaskArray self_ = self
-        cdef BitMaskArray bma = BitMaskArray.__new__(BitMaskArray)
+        cdef BitmaskArray self_ = self
+        cdef BitmaskArray bma = BitmaskArray.__new__(BitmaskArray)
         cdef ArrowBitmap bitmap
 
         ArrowBitmapInit(&bitmap)
@@ -454,7 +454,7 @@ cdef class BitMaskArray:
 
     def __and__(self, other):
         cdef ndarray[uint8_t] result
-        cdef BitMaskArray other_bma, self_ = self  # self_ required for Cython < 3
+        cdef BitmaskArray other_bma, self_ = self  # self_ required for Cython < 3
         cdef ArrowBitmap bitmap
 
         if isinstance(other, type(self)):
@@ -471,7 +471,7 @@ cdef class BitMaskArray:
             BitmapAnd(&self_.bitmap, &other_bma.bitmap, &bitmap)
 
             result = np.empty(self_.bitmap.size_bits, dtype=bool)
-            BitMaskArray.buffer_to_array_1d(
+            BitmaskArray.buffer_to_array_1d(
                 result,
                 bitmap.buffer.data,
                 bitmap.size_bits
@@ -483,7 +483,7 @@ cdef class BitMaskArray:
 
     def __or__(self, other):
         cdef ndarray[uint8_t] result
-        cdef BitMaskArray other_bma, self_ = self  # self_ required for Cython < 3
+        cdef BitmaskArray other_bma, self_ = self  # self_ required for Cython < 3
         cdef ArrowBitmap bitmap
 
         if isinstance(other, type(self)):
@@ -500,7 +500,7 @@ cdef class BitMaskArray:
             BitmapOr(&self_.bitmap, &other_bma.bitmap, &bitmap)
 
             result = np.empty(self_.bitmap.size_bits, dtype=bool)
-            BitMaskArray.buffer_to_array_1d(
+            BitmaskArray.buffer_to_array_1d(
                 result,
                 bitmap.buffer.data,
                 bitmap.size_bits
@@ -512,7 +512,7 @@ cdef class BitMaskArray:
 
     def __xor__(self, other):
         cdef ndarray[uint8_t] result
-        cdef BitMaskArray other_bma, self_ = self  # self_ required for Cython < 3
+        cdef BitmaskArray other_bma, self_ = self  # self_ required for Cython < 3
         cdef ArrowBitmap bitmap
 
         if isinstance(other, type(self)):
@@ -529,7 +529,7 @@ cdef class BitMaskArray:
             BitmapXor(&self_.bitmap, &other_bma.bitmap, &bitmap)
 
             result = np.empty(self_.bitmap.size_bits, dtype=bool)
-            BitMaskArray.buffer_to_array_1d(
+            BitmaskArray.buffer_to_array_1d(
                 result,
                 bitmap.buffer.data,
                 bitmap.size_bits
@@ -540,7 +540,7 @@ cdef class BitMaskArray:
         return self.to_numpy() ^ other
 
     def __getstate__(self):
-        cdef BitMaskArray self_ = self
+        cdef BitmaskArray self_ = self
         state = {
             "parent": self.parent,
             "array_shape": self.array_shape,
@@ -563,7 +563,7 @@ cdef class BitMaskArray:
 
     def __setstate__(self, state):
         cdef ArrowBitmap bitmap
-        cdef BitMaskArray self_ = self, other
+        cdef BitmaskArray self_ = self, other
         self.parent = state["parent"]
         self.array_shape = state["array_shape"]
         self_.buffer_owner = state["buffer_owner"]
@@ -595,7 +595,7 @@ cdef class BitMaskArray:
     @cython.wraparound(False)
     def __iter__(self):
         cdef Py_ssize_t i
-        cdef BitMaskArray self_ = self  # self_ required for Cython < 3
+        cdef BitmaskArray self_ = self  # self_ required for Cython < 3
         for i in range(self_.bitmap.size_bits):
             yield bool(ArrowBitGet(self_.bitmap.buffer.data, i))
 
@@ -640,11 +640,11 @@ cdef class BitMaskArray:
         const int64_t[:] indices,
         const int axis=0,
     ):
-        cdef BitMaskArray self_ = self
+        cdef BitmaskArray self_ = self
         cdef Py_ssize_t nindices = len(indices)
         if axis != 0:
             raise NotImplementedError(
-                "BitMaskArray.take_1d only implemented for axis=0"
+                "BitmaskArray.take_1d only implemented for axis=0"
             )
 
         if nindices <= 0:
@@ -653,7 +653,7 @@ cdef class BitMaskArray:
             )
 
         cdef ArrowBitmap bitmap
-        cdef BitMaskArray bma = BitMaskArray.__new__(BitMaskArray)
+        cdef BitmaskArray bma = BitmaskArray.__new__(BitmaskArray)
 
         ArrowBitmapInit(&bitmap)
         ArrowBitmapReserve(&bitmap, nindices)
@@ -668,7 +668,7 @@ cdef class BitMaskArray:
         return bma
 
     def copy(self):
-        return BitMaskArray.copy_from_bitmaskarray(self)
+        return BitmaskArray.copy_from_bitmaskarray(self)
 
     @cython.boundscheck(False)  # TODO: Removing this causes an IndexError? Zero size?
     @cython.wraparound(False)
@@ -678,7 +678,7 @@ cdef class BitMaskArray:
 
     def to_numpy(self) -> ndarray:
         cdef ndarray[uint8_t] result = np.empty(self.bitmap.size_bits, dtype=bool)
-        BitMaskArray.buffer_to_array_1d(
+        BitmaskArray.buffer_to_array_1d(
             result,
             self.bitmap.buffer.data,
             self.bitmap.size_bits
