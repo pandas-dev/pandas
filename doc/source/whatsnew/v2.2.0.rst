@@ -14,8 +14,10 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_220.enhancements.pyarrow_on_bad_lines:
+.. _whatsnew_220.enhancements.enhancement1:
 
+enhancement1
+^^^^^^^^^^^^
 
 .. _whatsnew_220.enhancements.enhancement2:
 
