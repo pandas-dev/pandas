@@ -28,14 +28,24 @@ void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
     if (start_bit_pos == 0) {
       memcpy(out_cursor, bitmap->buffer.data, nbytes);
     } else {
-      for (int64_t j = 0; j < nbytes; j++) {
+      for (int64_t j = 0; j < nbytes - 1; j++) {
         const uint8_t lshifted = bitmap->buffer.data[j] << start_bit_pos;
         out_cursor[j] = (out_cursor[j] & clear_mask[start_bit_pos]) | lshifted;
 
-        if (out_cursor - out->buffer.data < out->buffer.capacity_bytes - 1) {
-          const uint8_t rshifted = bitmap->buffer.data[j] >> (8 - start_bit_pos);
-          out_cursor[j + 1] = rshifted;
-        }
+        const uint8_t rshifted = bitmap->buffer.data[j] >> (8 - start_bit_pos);
+        out_cursor[j + 1] = rshifted;
+      }
+
+      // last byte can overrun - check outside loop for performance
+      const size_t index = nbytes - 1;
+      const uint8_t lshifted = bitmap->buffer.data[index] << start_bit_pos;
+      out_cursor[index] =
+          (out_cursor[index] & clear_mask[start_bit_pos]) | lshifted;
+
+      if (out_cursor - out->buffer.data < out->buffer.capacity_bytes - 1) {
+        const uint8_t rshifted =
+            bitmap->buffer.data[index] >> (8 - start_bit_pos);
+        out_cursor[index + 1] = rshifted;
       }
     }
 
