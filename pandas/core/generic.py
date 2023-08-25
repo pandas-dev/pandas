@@ -2187,6 +2187,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # I/O Methods
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "excel_writer"], name="to_excel"
+    )
     @doc(
         klass="object",
         storage_options=_shared_docs["storage_options"],
@@ -7365,7 +7368,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
-        Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
+        Fill NA/NaN values by propagating the last valid observation to next valid.
 
         Returns
         -------

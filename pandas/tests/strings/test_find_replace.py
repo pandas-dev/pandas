@@ -22,7 +22,7 @@ from pandas.tests.strings import (
 
 
 def using_pyarrow(dtype):
-    return dtype in ("string[pyarrow]",)
+    return dtype in ("string[pyarrow]", "string[pyarrow_numpy]")
 
 
 def test_contains(any_string_dtype):
@@ -223,6 +223,8 @@ def test_contains_nan(any_string_dtype):
     result = s.str.contains("foo", na="foo")
     if any_string_dtype == "object":
         expected = Series(["foo", "foo", "foo"], dtype=np.object_)
+    elif any_string_dtype == "string[pyarrow_numpy]":
+        expected = Series([True, True, True], dtype=np.bool_)
     else:
         expected = Series([True, True, True], dtype="boolean")
     tm.assert_series_equal(result, expected)
@@ -807,7 +809,7 @@ def test_find(any_string_dtype):
     ser = Series(
         ["ABCDEFG", "BCDEFEF", "DEFGHIJEF", "EFGHEF", "XXXX"], dtype=any_string_dtype
     )
-    expected_dtype = np.int64 if any_string_dtype == "object" else "Int64"
+    expected_dtype = np.int64 if any_string_dtype in object_pyarrow_numpy else "Int64"
 
     result = ser.str.find("EF")
     expected = Series([4, 3, 1, 0, -1], dtype=expected_dtype)

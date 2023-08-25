@@ -21,7 +21,7 @@ PyArrow will become a required dependency with pandas 3.0
 
 `PyArrow <https://arrow.apache.org/docs/python/index.html>`_ will become a required
 dependency of pandas starting with pandas 3.0. This decision was made based on
-`PDEP 12 <https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html>`_.
+`PDEP 10 <https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html>`_.
 
 This will enable more changes that are hugely beneficial to pandas users, including
 but not limited to:
@@ -41,7 +41,9 @@ Avoid NumPy object dtype for strings by default
 
 Previously, all strings were stored in columns with NumPy object dtype.
 This release introduces an option ``future.infer_string`` that infers all
-strings as PyArrow backed strings with dtype ``pd.ArrowDtype(pa.string())`` instead.
+strings as PyArrow backed strings with dtype ``"string[pyarrow_numpy]"`` instead.
+This is a new string dtype implementation that follows NumPy semantics in comparison
+operations and will return ``np.nan`` as the missing value indicator.
 This option only works if PyArrow is installed. PyArrow backed strings have a
 significantly reduced memory footprint and provide a big performance improvement
 compared to NumPy object (:issue:`54430`).
@@ -622,6 +624,7 @@ Performance improvements
 - Performance improvement in :meth:`.ArrowExtensionArray.to_numpy` (:issue:`52525`)
 - Performance improvement in :meth:`.DataFrameGroupBy.groups` (:issue:`53088`)
 - Performance improvement in :meth:`DataFrame.astype` when ``dtype`` is an extension dtype (:issue:`54299`)
+- Performance improvement in :meth:`DataFrame.iloc` when input is an single integer and dataframe is backed by extension dtypes (:issue:`54508`)
 - Performance improvement in :meth:`DataFrame.isin` for extension dtypes (:issue:`53514`)
 - Performance improvement in :meth:`DataFrame.loc` when selecting rows and columns (:issue:`53014`)
 - Performance improvement in :meth:`DataFrame.transpose` when transposing a DataFrame with a single PyArrow dtype (:issue:`54224`)
@@ -667,6 +670,7 @@ Datetimelike
 - Bug in constructing a :class:`Timestamp` from a string representing a time without a date inferring an incorrect unit (:issue:`54097`)
 - Bug in constructing a :class:`Timestamp` with ``ts_input=pd.NA`` raising ``TypeError`` (:issue:`45481`)
 - Bug in parsing datetime strings with weekday but no day e.g. "2023 Sept Thu" incorrectly raising ``AttributeError`` instead of ``ValueError`` (:issue:`52659`)
+- Bug in the repr for :class:`Series` when dtype is a timezone aware datetime with non-nanosecond resolution raising ``OutOfBoundsDatetime`` (:issue:`54623`)
 
 Timedelta
 ^^^^^^^^^
@@ -835,6 +839,7 @@ ExtensionArray
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
 - Bug in :meth:`Series.unique` for boolean ``ArrowDtype`` with ``NA`` values (:issue:`54667`)
 - Bug in :meth:`~arrays.ArrowExtensionArray.__iter__` and :meth:`~arrays.ArrowExtensionArray.__getitem__` returning python datetime and timedelta objects for non-nano dtypes (:issue:`53326`)
+- Bug when passing an :class:`ExtensionArray` subclass to ``dtype`` keywords. This will now raise a ``UserWarning`` to encourage passing an instance instead (:issue:`31356`, :issue:`54592`)
 - Bug where the :class:`DataFrame` repr would not work when a column had an :class:`ArrowDtype` with a ``pyarrow.ExtensionDtype`` (:issue:`54063`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes (e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept PyArrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
 

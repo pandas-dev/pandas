@@ -1517,7 +1517,6 @@ class BaseMaskedDtype(ExtensionDtype):
     Base class for dtypes for BaseMaskedArray subclasses.
     """
 
-    name: str
     base = None
     type: type
 

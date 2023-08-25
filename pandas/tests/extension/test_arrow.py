@@ -518,9 +518,7 @@ class TestArrowArray(base.ExtensionTests):
         super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_boolean(
-        self, data, all_boolean_reductions, skipna, na_value, request
-    ):
+    def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna, request):
         pa_dtype = data.dtype.pyarrow_dtype
         xfail_mark = pytest.mark.xfail(
             raises=TypeError,
@@ -753,9 +751,7 @@ class TestArrowArray(base.ExtensionTests):
         result = data.value_counts()
         assert result.dtype == ArrowDtype(pa.int64())
 
-    def test_argmin_argmax(
-        self, data_for_sorting, data_missing_for_sorting, na_value, request
-    ):
+    def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, request):
         pa_dtype = data_for_sorting.dtype.pyarrow_dtype
         if pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
             request.node.add_marker(
@@ -764,7 +760,7 @@ class TestArrowArray(base.ExtensionTests):
                     raises=pa.ArrowNotImplementedError,
                 )
             )
-        super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
+        super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting)
 
     @pytest.mark.parametrize(
         "op_name, skipna, expected",
@@ -1033,9 +1029,7 @@ class TestArrowArray(base.ExtensionTests):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
 
-        if all_arithmetic_operators == "__rmod__" and (
-            pa.types.is_string(pa_dtype) or pa.types.is_binary(pa_dtype)
-        ):
+        if all_arithmetic_operators == "__rmod__" and (pa.types.is_binary(pa_dtype)):
             pytest.skip("Skip testing Python string formatting")
 
         mark = self._get_arith_xfail_marker(all_arithmetic_operators, pa_dtype)
@@ -2997,3 +2991,13 @@ def test_arrowextensiondtype_dataframe_repr():
     # pyarrow.ExtensionType values are displayed
     expected = "     col\n0  15340\n1  15341\n2  15342"
     assert result == expected
+
+
+@pytest.mark.parametrize("pa_type", tm.TIMEDELTA_PYARROW_DTYPES)
+def test_duration_fillna_numpy(pa_type):
+    # GH 54707
+    ser1 = pd.Series([None, 2], dtype=ArrowDtype(pa_type))
+    ser2 = pd.Series(np.array([1, 3], dtype=f"m8[{pa_type.unit}]"))
+    result = ser1.fillna(ser2)
+    expected = pd.Series([1, 2], dtype=ArrowDtype(pa_type))
+    tm.assert_series_equal(result, expected)
