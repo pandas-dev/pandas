@@ -62,6 +62,7 @@ cdef buf_free(Buffer buf):
 # algorithm.  It is partially documented here:
 #
 # https://cran.r-project.org/package=sas7bdat/vignettes/sas7bdat.pdf
+# Licence at LICENSES/SAS7BDAT_LICENSE
 cdef int rle_decompress(Buffer inbuff, Buffer outbuff) except? 0:
 
     cdef:

@@ -4,7 +4,7 @@ Pyperclip
 A cross-platform clipboard module for Python,
 with copy & paste functions for plain text.
 By Al Sweigart al@inventwithpython.com
-BSD License
+Licence at LICENSES/PYPERCLIP_LICENSE
 
 Usage:
   import pyperclip

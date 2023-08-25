@@ -3,6 +3,7 @@
 TimeRE, _calc_julian_from_U_or_W are vendored
 from the standard library, see
 https://github.com/python/cpython/blob/main/Lib/_strptime.py
+Licence at LICENSES/PSF_LICENSE
 The original module-level docstring follows.
 
 Strptime-related classes and functions.
@@ -672,7 +673,8 @@ cdef tzinfo parse_timezone_directive(str z):
     Notes
     -----
     This is essentially similar to the cpython implementation
-    https://github.com/python/cpython/blob/master/Lib/_strptime.py#L457-L479
+    https://github.com/python/cpython/blob/546cab84448b892c92e68d9c1a3d3b58c13b3463/Lib/_strptime.py#L437-L454
+    Licence at LICENSES/PSF_LICENSE
     """
 
     cdef:

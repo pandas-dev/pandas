@@ -35,6 +35,8 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
  * Copyright (c) 1994 Sun Microsystems, Inc.
 */
 
+// Licence at LICENSES/ULTRAJSON_LICENSE
+
 #define PY_ARRAY_UNIQUE_SYMBOL UJSON_NUMPY
 #define NO_IMPORT_ARRAY
 #define PY_SSIZE_T_CLEAN

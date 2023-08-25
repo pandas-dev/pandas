@@ -1,3 +1,5 @@
+//Licence at LICENSES/KLIB_LICENSE
+
 #include <string.h>
 #include <Python.h>
 

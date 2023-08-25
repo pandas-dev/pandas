@@ -987,9 +987,8 @@ def roll_median_c(const float64_t[:] values, ndarray[int64_t] start,
 
 # ----------------------------------------------------------------------
 
-# Moving maximum / minimum code taken from Bottleneck under the terms
-# of its Simplified BSD license
-# https://github.com/pydata/bottleneck
+# Moving maximum / minimum code taken from Bottleneck
+# Licence at LICENSES/BOTTLENECK_LICENCE
 
 
 cdef float64_t init_mm(float64_t ai, Py_ssize_t *nobs, bint is_max) noexcept nogil:
