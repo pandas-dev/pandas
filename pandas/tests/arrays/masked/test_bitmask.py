@@ -392,7 +392,7 @@ def test_take_1d_raises_empty_indices():
 
 def test_take_1d_raises_negative_indices():
     bma = BitmaskArray(np.array([True, False, True]))
-    with pytest.raises(NotImplementedError, match="does not support negative indexing"):
+    with pytest.raises(ValueError, match="does not support negative indexing"):
         bma.take_1d(np.array([-1], dtype="int64"), axis=0)
 
 
