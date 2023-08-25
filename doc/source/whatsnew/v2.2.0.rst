@@ -105,7 +105,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- Increase the threshold to use binary search instead of a linear search in IndexEngine :issue:`54550`
+- Performance improvement when indexing with more than 4 keys (:issue:`54550`)
 -
 
 .. ---------------------------------------------------------------------------
