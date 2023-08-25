@@ -53,6 +53,7 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool,
     is_bool_dtype,
+    is_extension_array_dtype,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -1384,6 +1385,15 @@ class _MergeOperation:
             if is_numeric_dtype(lk.dtype) and is_numeric_dtype(rk.dtype):
                 if lk.dtype.kind == rk.dtype.kind:
                     continue
+
+                if is_extension_array_dtype(lk.dtype) and not is_extension_array_dtype(
+                    rk.dtype
+                ):
+                    ct = find_common_type([lk.dtype, rk.dtype])
+                    rk = ct.construct_array_type()._from_sequence(rk)
+                elif is_extension_array_dtype(rk.dtype):
+                    ct = find_common_type([lk.dtype, rk.dtype])
+                    lk = ct.construct_array_type()._from_sequence(lk)
 
                 # check whether ints and floats
                 if is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
