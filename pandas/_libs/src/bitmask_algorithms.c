@@ -1,3 +1,5 @@
+// The full license is in the LICENSE file, distributed with this software.
+
 #include <string.h>
 
 #include "pandas/bitmask_algorithms.h"
