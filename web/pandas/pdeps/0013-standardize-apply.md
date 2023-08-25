@@ -163,7 +163,7 @@ Note also that `.pipe` operates on the `Series` while `apply`currently operates 
 
 This PDEP proposes that callables will be applies to the whole `Series`, so we in the future `Series.apply` will be as fast as `Series.pipe`.
 
-### 4. ufuncs in `Series.apply` vs. noral functions
+### 4. ufuncs in `Series.apply` vs. normal functions
 
 Performance-wise, ufuncs are fine in `Series.apply`, but non-ufunc functions are not:
 
@@ -289,7 +289,7 @@ This PDEP proposes that the result from giving list-likes and dict-likes to `Ser
 With the above in mind, it is proposed that:
 
 1. When given a callable, `Series.apply` always operate on the series. I.e. let `series.apply(func)` be similar to `func(series)` + the needed additional functionality.
-2. When given a list-like or dict-like, `Series.apply` will apply each element of the list-like/dict-like to the series. I.e. `series.apply(func_list)` wil be similar to `[series.apply(func) for func in func_list]` + the needed additional functionality
+2. When given a list-like or dict-like, `Series.apply` will apply each element of the list-like/dict-like to the series. I.e. `series.apply(func_list)` will be similar to `[series.apply(func) for func in func_list]` + the needed additional functionality
 3. The changes made to `Series.apply`will propagate to `Series.agg` and `Series.transform` as needed.
 
 The difference between `Series.apply()` & `Series.map()` will then be that:
