@@ -1,5 +1,6 @@
 """ test parquet compat """
 import datetime
+from decimal import Decimal
 from io import BytesIO
 import os
 import pathlib
@@ -1123,6 +1124,17 @@ class TestParquetPyArrow(Base):
             dtype="string[pyarrow_numpy]",
             index=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_roundtrip_decimal(self, tmp_path, pa):
+        # GH#54768
+        import pyarrow as pa
+
+        path = tmp_path / "decimal.p"
+        df = pd.DataFrame({"a": [Decimal("123.00")]}, dtype="string[pyarrow]")
+        df.to_parquet(path, schema=pa.schema([("a", pa.decimal128(5))]))
+        result = read_parquet(path)
+        expected = pd.DataFrame({"a": ["123"]}, dtype="string[python]")
         tm.assert_frame_equal(result, expected)
 
 
