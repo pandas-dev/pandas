@@ -134,6 +134,7 @@ Deprecations
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_clipboard`. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_csv` except ``path_or_buf``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_dict`. (:issue:`54229`)
+- Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_excel` except ``excel_writer``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_gbq` except ``destination_table``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_hdf` except ``path_or_buf``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_html` except ``buf``. (:issue:`54229`)
@@ -184,7 +185,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in :func:`read_csv` with ``engine="pyarrow"`` causing rounding errors for large integers (:issue:`52505`)
 -
 
 Conversion
