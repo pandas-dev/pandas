@@ -4783,6 +4783,9 @@ class Index(IndexOpsMixin, PandasObject):
         join_idx = self.take(left_idx)
         right = other.take(right_idx)
         join_index = join_idx.putmask(mask, right)
+        if isinstance(join_index, ABCMultiIndex) and how == "outer":
+            # test_join_index_levels
+            join_index = join_index._sort_levels_monotonic()
         return join_index, left_idx, right_idx
 
     @final
