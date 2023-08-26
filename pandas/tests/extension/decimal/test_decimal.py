@@ -226,6 +226,12 @@ class TestDecimalArray(base.ExtensionTests):
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):
         super().test_unary_ufunc_dunder_equivalence(data, ufunc)
+    
+    @pytest.mark.xfail(
+        reason="DecimalArray.round is not implemented."
+    )
+    def test_round(self, data):
+        super().test_round(data)
 
 
 def test_take_na_value_other_decimal():

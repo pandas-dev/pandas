@@ -95,6 +95,12 @@ class TestIntervalArray(base.ExtensionTests):
     def test_invert(self, data):
         super().test_invert(data)
 
+    @pytest.mark.xfail(
+        reason="IntervalArray.round is not implemented."
+    )
+    def test_round(self, data):
+        super().test_round(data)
+
 
 # TODO: either belongs in tests.arrays.interval or move into base tests.
 def test_fillna_non_scalar_raises(data_missing):
