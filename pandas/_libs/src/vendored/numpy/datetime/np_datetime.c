@@ -14,6 +14,8 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 
 */
 
+// Licence at LICENSES/NUMPY_LICENSE
+
 #define NO_IMPORT
 
 #ifndef NPY_NO_DEPRECATED_API
