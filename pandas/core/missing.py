@@ -46,10 +46,12 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from pandas._libs.arrays import BitmaskArray
+
     from pandas import Index
 
 
-def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):
+def check_value_size(value, mask: npt.NDArray[np.bool_] | BitmaskArray, length: int):
     """
     Validate the size of the values passed to ExtensionArray.fillna.
     """

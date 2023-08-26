@@ -238,8 +238,8 @@ class TestLogicalOps(BaseOpsUtil):
         tm.assert_extension_array_equal(result, expected)
 
         if isinstance(other, BooleanArray):
-            other._data[other._mask.to_numpy()] = True
-            a._data[a._mask.to_numpy()] = False
+            other._data[other._mask] = True
+            a._data[a._mask] = False
 
             result = getattr(a, all_logical_operators)(other)
             expected = getattr(b, all_logical_operators)(other)

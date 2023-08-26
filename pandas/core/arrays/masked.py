@@ -216,13 +216,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         limit_area: Literal["inside", "outside"] | None = None,
         copy: bool = True,
     ) -> Self:
-        mask = self._mask.to_numpy()
+        mask = self._mask
 
         if mask.any():
             func = missing.get_fill_func(method, ndim=self.ndim)
 
             npvalues = self._data.T
-            new_mask = mask.T
+            new_mask = mask.to_numpy().T
             if copy:
                 npvalues = npvalues.copy()
                 new_mask = new_mask.copy()
@@ -244,7 +244,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ) -> Self:
         value, method = validate_fillna_kwargs(value, method)
 
-        mask = self._mask.to_numpy()
+        mask = self._mask
 
         value = missing.check_value_size(value, mask, len(self))
 
@@ -252,7 +252,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             if method is not None:
                 func = missing.get_fill_func(method, ndim=self.ndim)
                 npvalues = self._data.T
-                new_mask = mask.T
+                new_mask = mask.to_numpy().T
                 if copy:
                     npvalues = npvalues.copy()
                     new_mask = new_mask.copy()
@@ -368,7 +368,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
     def delete(self, loc, axis: AxisInt = 0) -> Self:
         data = np.delete(self._data, loc, axis=axis)
-        mask = np.delete(self._mask.to_numpy(), loc, axis=axis)
+        mask = np.delete(self._mask, loc, axis=axis)  # type: ignore[call-overload]
         return self._simple_new(data, mask)
 
     def reshape(self, *args, **kwargs) -> Self:
@@ -414,7 +414,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         values = np.round(self._data, decimals=decimals, **kwargs)
 
         # Usually we'll get same type as self, but ndarray[bool] casts to float
-        return self._maybe_mask_result(values, self._mask.to_numpy())
+        return self._maybe_mask_result(values, self._mask)
 
     # ------------------------------------------------------------------
     # Unary Methods
@@ -520,7 +520,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
                 data = self._data.astype(dtype)
-            data[self._mask.to_numpy()] = na_value
+            data[self._mask] = na_value
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -563,9 +563,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 data = self._data.astype(dtype.numpy_dtype, copy=copy)
             # mask is copied depending on whether the data was copied, and
             # not directly depending on the `copy` keyword
-            mask = self._mask if data is self._data else self._mask.to_numpy()
+            mask = self._mask if data is self._data else self._mask.copy()
             cls = dtype.construct_array_type()
-            return cls(data, mask, copy=False)  # type: ignore[arg-type]
+            return cls(data, mask, copy=False)
 
         if isinstance(dtype, ExtensionDtype):
             eacls = dtype.construct_array_type()
@@ -637,7 +637,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         inputs2 = []
         for x in inputs:
             if isinstance(x, BaseMaskedArray):
-                mask |= x._mask.to_numpy()
+                mask |= x._mask
                 inputs2.append(x._data)
             else:
                 inputs2.append(x)
@@ -699,9 +699,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         self, mask: npt.NDArray[np.bool_] | BitmaskArray | None, other
     ) -> npt.NDArray[np.bool_]:
         if mask is None:
-            mask = (
-                self._mask.to_numpy()
-            )  # TODO: need test for BooleanArray needing a copy
+            mask = self._mask.copy()  # TODO: need test for BooleanArray needing a copy
             if other is libmissing.NA:
                 # GH#45421 don't alter inplace
                 mask = mask | True
@@ -788,21 +786,21 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if op_name == "pow":
             # 1 ** x is 1.
-            mask = np.where((self._data == 1) & (~self._mask).to_numpy(), False, mask)
+            mask = np.where((self._data == 1) & ~self._mask, False, mask)
             # x ** 0 is 1.
             if omask is not None:
-                mask = np.where((other == 0) & (~omask).to_numpy(), False, mask)
+                mask = np.where((other == 0) & ~omask, False, mask)
             elif other is not libmissing.NA:
                 mask = np.where(other == 0, False, mask)
 
         elif op_name == "rpow":
             # 1 ** x is 1.
             if omask is not None:
-                mask = np.where((other == 1) & (~omask).to_numpy(), False, mask)
+                mask = np.where((other == 1) & ~omask, False, mask)
             elif other is not libmissing.NA:
                 mask = np.where(other == 1, False, mask)
             # x ** 0 is 1.
-            mask = np.where((self._data == 0) & (~self._mask).to_numpy(), False, mask)
+            mask = np.where((self._data == 0) & ~self._mask, False, mask)
 
         return self._maybe_mask_result(result, mask)
 
@@ -814,7 +812,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = None
 
         if isinstance(other, BaseMaskedArray):
-            other, mask = other._data, other._mask.to_numpy()
+            other, mask = other._data, other._mask
 
         elif is_list_like(other):
             other = np.asarray(other)
@@ -849,7 +847,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return BooleanArray(result, mask, copy=False)
 
     def _maybe_mask_result(
-        self, result: np.ndarray | tuple[np.ndarray, np.ndarray], mask: np.ndarray
+        self,
+        result: np.ndarray | tuple[np.ndarray, np.ndarray],
+        mask: np.ndarray | BitmaskArray,
     ):
         """
         Parameters
@@ -979,7 +979,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
             # For now, NA does not propagate so set result according to presence of NA,
             # see https://github.com/pandas-dev/pandas/pull/38379 for some discussion
-            result[self._mask.to_numpy()] = values_have_NA
+            result[self._mask] = values_have_NA
 
         mask = np.zeros(self._data.shape, dtype=bool)
         return BooleanArray(result, mask, copy=False)
@@ -997,7 +997,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         -------
         uniques : BaseMaskedArray
         """
-        uniques, mask = algos.unique_with_mask(self._data, self._mask.to_numpy())
+        uniques, mask = algos.unique_with_mask(self._data, self._mask)
         return self._simple_new(uniques, mask)
 
     @doc(ExtensionArray.searchsorted)
@@ -1023,7 +1023,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         use_na_sentinel: bool = True,
     ) -> tuple[np.ndarray, ExtensionArray]:
         arr = self._data
-        mask = self._mask.to_numpy()
+        mask = self._mask
 
         # Use a sentinel for na; recode and add NA to uniques if necessary below
         codes, uniques = factorize_array(arr, use_na_sentinel=True, mask=mask)
@@ -1039,7 +1039,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             size = len(uniques) + 1
         uniques_mask = np.zeros(size, dtype=bool)
         if not use_na_sentinel and has_na:
-            na_index = mask.argmax()
+            na_index = mask.to_numpy().argmax()
             # Insert na with the proper code
             if na_index == 0:
                 na_code = np.intp(0)
@@ -1082,7 +1082,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         from pandas.arrays import IntegerArray
 
         keys, value_counts = algos.value_counts_arraylike(
-            self._data, dropna=True, mask=self._mask.to_numpy()
+            self._data, dropna=True, mask=self._mask
         )
 
         if dropna:
@@ -1116,8 +1116,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if not np.array_equal(self._mask.to_numpy(), other._mask.to_numpy()):
             return False
 
-        left = self._data[(~self._mask).to_numpy()]
-        right = other._data[(~other._mask).to_numpy()]
+        left = self._data[~self._mask]  # type: ignore[call-overload]
+        right = other._data[~other._mask]
         return array_equivalent(left, right, strict_nan=True, dtype_equal=True)
 
     def _quantile(
@@ -1133,7 +1133,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         res = quantile_with_mask(
             self._data,
-            mask=self._mask.to_numpy(),
+            mask=self._mask,
             # TODO(GH#40932): na_value_for_dtype(self.dtype.numpy_dtype)
             #  instead of np.nan
             fill_value=np.nan,
@@ -1172,7 +1172,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             # median, skew, kurt, sem
             data = self._data
-            mask = self._mask.to_numpy()
+            mask = self._mask
             op = getattr(nanops, f"nan{name}")
             axis = kwargs.pop("axis", None)
             result = op(data, axis=axis, skipna=skipna, mask=mask, **kwargs)
@@ -1182,8 +1182,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return self._wrap_na_result(name=name, axis=0, mask_size=(1,))
             else:
                 result = result.reshape(1)
-                mask = np.zeros(1, dtype=bool)
-                return self._maybe_mask_result(result, mask)
+                np_mask = np.zeros(1, dtype=bool)
+                return self._maybe_mask_result(result, np_mask)
 
         if isna(result):
             return libmissing.NA
@@ -1406,7 +1406,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
             np.putmask(
                 values,
-                self._mask.to_numpy(),
+                self._mask,  # type: ignore[arg-type]
                 self._falsey_value,  # type: ignore[arg-type]
             )
         else:
@@ -1501,7 +1501,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             # _NestedSequence[Union[bool, int, float, complex, str, bytes]]]"
             np.putmask(
                 values,
-                self._mask.to_numpy(),
+                self._mask,  # type: ignore[arg-type]
                 self._truthy_value,  # type: ignore[arg-type]
             )
         else:
@@ -1547,9 +1547,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
 
         # libgroupby functions are responsible for NOT altering mask
-        mask = self._mask.to_numpy()
+        mask = self._mask
         if op.kind != "aggregate":
-            result_mask = mask.copy()
+            result_mask = mask.to_numpy()
         else:
             result_mask = np.zeros(ngroups, dtype=bool)
 
@@ -1558,7 +1558,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             min_count=min_count,
             ngroups=ngroups,
             comp_ids=ids,
-            mask=mask,
+            mask=mask.to_numpy(),
             result_mask=result_mask,
             **kwargs,
         )

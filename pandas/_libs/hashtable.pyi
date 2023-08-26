@@ -6,6 +6,7 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs.arrays import BitmaskArray
 from pandas._typing import npt
 
 def unique_label_indices(
@@ -239,7 +240,7 @@ def mode(
 def value_count(
     values: np.ndarray,
     dropna: bool,
-    mask: npt.NDArray[np.bool_] | None = ...,
+    mask: npt.NDArray[np.bool_] | BitmaskArray | None = ...,
 ) -> tuple[np.ndarray, npt.NDArray[np.int64]]: ...  # np.ndarray[same-as-values]
 
 # arr and values should have same dtype

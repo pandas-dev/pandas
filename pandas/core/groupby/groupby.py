@@ -143,6 +143,8 @@ from pandas.core.util.numba_ import (
 if TYPE_CHECKING:
     from typing import Any
 
+    from pandas._libs.arrays import BitmaskArray
+
     from pandas.core.window import (
         ExpandingGroupby,
         ExponentialMovingWindowGroupby,
@@ -4387,8 +4389,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         def blk_func(values: ArrayLike) -> ArrayLike:
             orig_vals = values
+            mask: np.ndarray | BitmaskArray
             if isinstance(values, BaseMaskedArray):
-                mask = values._mask.to_numpy()
+                mask = values._mask
                 result_mask = np.zeros((ngroups, nqs), dtype=np.bool_)
             else:
                 mask = isna(values)

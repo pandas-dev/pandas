@@ -10,6 +10,7 @@ from pandas.core.dtypes.missing import (
 )
 
 if TYPE_CHECKING:
+    from pandas._libs.arrays import BitmaskArray
     from pandas._typing import (
         ArrayLike,
         Scalar,
@@ -43,7 +44,7 @@ def quantile_compat(
 
 def quantile_with_mask(
     values: np.ndarray,
-    mask: npt.NDArray[np.bool_],
+    mask: npt.NDArray[np.bool_] | BitmaskArray,
     fill_value,
     qs: npt.NDArray[np.float64],
     interpolation: str,
@@ -80,7 +81,7 @@ def quantile_with_mask(
     if values.ndim == 1:
         # unsqueeze, operate, re-squeeze
         values = np.atleast_2d(values)
-        mask = np.atleast_2d(mask)
+        mask = np.atleast_2d(mask)  # type: ignore[arg-type]
         res_values = quantile_with_mask(values, mask, fill_value, qs, interpolation)
         return res_values[0]
 
@@ -157,7 +158,7 @@ def _nanpercentile(
     qs: npt.NDArray[np.float64],
     *,
     na_value,
-    mask: npt.NDArray[np.bool_],
+    mask: npt.NDArray[np.bool_] | BitmaskArray,
     interpolation: str,
 ):
     """

@@ -665,7 +665,7 @@ cdef class {{name}}HashTable(HashTable):
         rmd = result_mask.data
 
         if use_mask:
-            mask_values = mask.view("uint8")
+            mask_values = mask
 
         if use_na_value:
             # We need this na_value2 because we want to allow users

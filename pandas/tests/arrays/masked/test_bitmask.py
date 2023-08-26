@@ -12,18 +12,22 @@ import pandas._testing as tm
 @pytest.mark.parametrize(
     "array,expected",
     [
-        (np.array([False, False]), bytes([0x0])),
-        (np.array([True, False]), bytes([0x1])),
-        (np.array([False, True]), bytes([0x2])),
-        (np.array([True, True]), bytes([0x3])),
-        (np.array([True, False] * 8), bytes([0x55, 0x55])),
+        pytest.param(np.array([False, False]), bytes([0x0]), id="all_false"),
+        pytest.param(np.array([True, False]), bytes([0x1]), id="first_true"),
+        pytest.param(np.array([False, True]), bytes([0x2]), id="second_true"),
+        pytest.param(np.array([True, True]), bytes([0x3]), id="all_true"),
+        pytest.param(np.array([True, False] * 8), bytes([0x55, 0x55]), id="multibyte"),
+        pytest.param(
+            np.array([[False, False], [True, True], [False, False]])[:, 0],
+            [False, True, False],
+            id="non-contiguous",
+        ),
     ],
 )
 def test_constructor_ndarray(array, expected):
     bma = BitmaskArray(array)
     assert bma.bytes == expected
     assert not bma.parent
-    assert bma.array_shape == array.shape
 
 
 @pytest.mark.parametrize(
@@ -40,7 +44,6 @@ def test_constructor_bitmap(parent, expected):
     bma = BitmaskArray(parent)
     assert bma.bytes == expected
     assert bma.parent is parent
-    assert bma.array_shape == parent.shape
 
 
 def test_len():
@@ -52,7 +55,6 @@ def test_repr_no_parent():
     bma = BitmaskArray(np.array([True, False, False]))
     result = repr(bma)
     assert "parent: None" in result
-    assert "shape: (3,)" in result
     assert "data: b'\\x01'" in result
 
 
@@ -60,9 +62,8 @@ def test_repr_parent():
     parent = BitmaskArray(np.array([False, False, True]))
     bma = BitmaskArray(parent)
     result = repr(bma)
-    parent_id = hex(id(parent))
-    assert f"parent: <pandas._libs.arrays.BitmaskArray object at {parent_id}" in result
-    assert "shape: (3,)" in result
+    parent_repr = object.__repr__(parent)
+    assert parent_repr in result
     assert "data: b'\\x04'" in result
 
 
@@ -112,7 +113,6 @@ def test_getitem_null_slice():
     bma = BitmaskArray(np.array([True, False, True]))
     result = bma[:]
 
-    assert result.array_shape == bma.array_shape
     assert not result.parent
 
     assert result.bytes[0] & 1 == 1
@@ -309,7 +309,7 @@ def test_nbytes(data, expected):
 )
 def test_shape(data):
     bma = BitmaskArray(data)
-    assert bma.array_shape == data.shape
+    assert bma.shape == data.shape
 
 
 @pytest.mark.parametrize(
@@ -357,21 +357,21 @@ def test_sum(data, expected):
 def test_take1d():
     bma = BitmaskArray(np.array([True, False, True, False]))
 
-    result1 = bma.take_1d(np.array([0]), axis=0)
+    result1 = bma.take_1d(np.array([0], dtype=np.int64), axis=0)
     assert (result1.bytes[0] & 0x1) == 1
 
-    result2 = bma.take_1d(np.array([1]), axis=0)
+    result2 = bma.take_1d(np.array([1], dtype=np.int64), axis=0)
     assert (result2.bytes[0] & 0x1) == 0
 
-    result3 = bma.take_1d(np.array([0, 1]), axis=0)
+    result3 = bma.take_1d(np.array([0, 1], dtype=np.int64), axis=0)
     assert (result3.bytes[0] & 0x1) == 1
     assert ((result3.bytes[0] >> 1) & 0x1) == 0
 
-    result4 = bma.take_1d(np.array([0, 0]), axis=0)
+    result4 = bma.take_1d(np.array([0, 0], dtype=np.int64), axis=0)
     assert (result4.bytes[0] & 0x1) == 1
     assert ((result4.bytes[0] >> 1) & 0x1) == 1
 
-    result5 = bma.take_1d(np.array([3, 2, 1, 0]), axis=0)
+    result5 = bma.take_1d(np.array([3, 2, 1, 0], dtype=np.int64), axis=0)
     assert (result5.bytes[0] & 0x1) == 0
     assert ((result5.bytes[0] >> 1) & 0x1) == 1
     assert ((result5.bytes[0] >> 2) & 0x1) == 0
@@ -419,3 +419,24 @@ def test_to_numpy(data):
 
     result = bma.to_numpy()
     tm.assert_numpy_array_equal(result, data)
+
+
+@pytest.mark.parametrize(
+    "array,expected",
+    [
+        pytest.param(np.array([False, False]), [False, False], id="all_false"),
+        pytest.param(np.array([True, False]), [True, False], id="first_true"),
+        pytest.param(np.array([False, True]), [False, True], id="second_true"),
+        pytest.param(np.array([True, True]), [True, True], id="all_true"),
+        pytest.param(np.array([True, False] * 8), [True, False] * 8, id="multibyte"),
+        pytest.param(
+            np.array([[False, False], [True, True], [False, False]])[:, 0],
+            [False, True, False],
+            id="non-contiguous",
+        ),
+    ],
+)
+def test_memoryview(array, expected):
+    bma = BitmaskArray(array)
+    vw = memoryview(bma)
+    assert vw.tolist() == expected

@@ -16,7 +16,7 @@ class ComparisonOps(BaseOpsUtil):
         expected = pd.Series(op(data._data, other), dtype="boolean")
 
         # fill the nan locations
-        expected[data._mask.to_numpy()] = pd.NA
+        expected[data._mask.to_numpy()] = pd.NA  # TODO: have series accept memview
 
         tm.assert_series_equal(result, expected)
 

@@ -21,6 +21,7 @@ from pandas._libs import (
     iNaT,
     lib,
 )
+from pandas._libs.arrays import BitmaskArray
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -424,7 +425,7 @@ def nunique_ints(values: ArrayLike) -> int:
     return result
 
 
-def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
+def unique_with_mask(values, mask: npt.NDArray[np.bool_] | BitmaskArray | None = None):
     """See algorithms.unique for docs. Takes a mask for masked arrays."""
     values = _ensure_arraylike(values, func_name="unique")
 
@@ -442,10 +443,9 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
         return uniques
 
     else:
-        uniques, mask = table.unique(values, mask=mask)
+        uniques, np_mask = table.unique(values, mask=mask)
         uniques = _reconstruct_data(uniques, original.dtype, original)
-        assert mask is not None  # for mypy
-        return uniques, mask.astype("bool")
+        return uniques, np_mask.astype("bool")
 
 
 unique1d = unique
@@ -550,7 +550,7 @@ def factorize_array(
     use_na_sentinel: bool = True,
     size_hint: int | None = None,
     na_value: object = None,
-    mask: npt.NDArray[np.bool_] | None = None,
+    mask: npt.NDArray[np.bool_] | BitmaskArray | None = None,
 ) -> tuple[npt.NDArray[np.intp], np.ndarray]:
     """
     Factorize a numpy array to codes and uniques.
@@ -946,7 +946,9 @@ def value_counts_internal(
 
 # Called once from SparseArray, otherwise could be private
 def value_counts_arraylike(
-    values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
+    values: np.ndarray,
+    dropna: bool,
+    mask: npt.NDArray[np.bool_] | BitmaskArray | None = None,
 ) -> tuple[ArrayLike, npt.NDArray[np.int64]]:
     """
     Parameters
@@ -970,7 +972,7 @@ def value_counts_arraylike(
 
         if dropna:
             mask = keys != iNaT
-            keys, counts = keys[mask], counts[mask]
+            keys, counts = keys[mask], counts[mask]  # type: ignore[index]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
     return res_keys, counts
@@ -1293,7 +1295,9 @@ def take(
     ...      fill_value=-10)
     array([ 10,  10, -10])
     """
-    if not isinstance(arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries)):
+    if not isinstance(
+        arr, (np.ndarray, ABCExtensionArray, ABCIndex, ABCSeries, BitmaskArray)
+    ):
         # GH#52981
         warnings.warn(
             "pd.api.extensions.take accepting non-standard inputs is deprecated "

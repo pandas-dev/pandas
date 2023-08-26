@@ -240,8 +240,14 @@ cdef class BitmaskArray:
     cdef:
         ArrowBitmap bitmap
         bint buffer_owner  # set when parent is None, but gives C-level access
+        # NumPy compatibility
+        cdef Py_ssize_t ndim
+        cdef Py_ssize_t[2] shape
+        cdef Py_ssize_t[2] strides
+        # Buffer protocol support
+        int n_consumers
+        uint8_t* memview_buf
     cdef public:
-        object array_shape
         object parent  # assignments gives RC to ensure proper buffer lifecycle
 
     @cython.boundscheck(False)
@@ -254,24 +260,41 @@ cdef class BitmaskArray:
         ArrowBitmapInit(&bitmap)
         ArrowBitmapReserve(&bitmap, nobs)
         ArrowBitmapAppendInt8Unsafe(&bitmap, <const int8_t*>&arr[0], nobs)
-        self.buffer_owner = True
         self.bitmap = bitmap
+        self.buffer_owner = True
 
     cdef void init_from_bitmaskarray(self, BitmaskArray bma):
-        self.buffer_owner = False
         self.bitmap = bma.bitmap
+        self.buffer_owner = False
+        self.ndim = bma.ndim
+        self.shape[0] = bma.shape[0]
+        self.strides[0] = bma.strides[0]
+        if self.ndim == 2:
+            self.shape[1] = bma.shape[1]
+            self.strides[1] = bma.strides[1]
 
     def __cinit__(self):
+        cdef BitmaskArray self_ = self
         self.parent = False
+        self_.n_consumers = 0
+        self_.memview_buf = NULL
 
     def __init__(self, data):
+        cdef BitmaskArray self_ = self
         if isinstance(data, np.ndarray):
+            if not data.flags["C_CONTIGUOUS"]:
+                data = np.ascontiguousarray(data)
+
             self.init_from_ndarray(data.ravel())
-            self.array_shape = data.shape
             self.parent = None
+            self_.ndim = data.ndim
+            self_.shape[0] = data.shape[0]
+            self_.strides[0] = data.strides[0]
+            if (data.ndim == 2):
+                self_.shape[1] = data.shape[1]
+                self_.strides[1] = data.strides[1]
         elif isinstance(data, type(self)):
             self.init_from_bitmaskarray(data)
-            self.array_shape = data.array_shape
             self.parent = data
         else:
             raise TypeError("Unsupported argument to BitmaskArray constructor")
@@ -301,8 +324,12 @@ cdef class BitmaskArray:
         bitmap.buffer.data = buf
 
         bma.bitmap = bitmap
-        bma.array_shape = old_bma.array_shape
         bma.buffer_owner = True
+        bma.ndim = old_bma.ndim
+        bma.shape = old_bma.shape
+        bma.strides = old_bma.strides
+        bma.parent = False
+
         return bma
 
     def __len__(self):
@@ -314,11 +341,10 @@ cdef class BitmaskArray:
         else:
             par = None
 
-        shape = self.array_shape
         data = self.bytes
 
         return (
-            f"{object.__repr__(self)}\nparent: {par}\nshape: {shape}\ndata: {data}\n"
+            f"{object.__repr__(self)}\nparent: {par}\ndata: {data}\n"
         )
 
     @cython.wraparound(False)
@@ -330,22 +356,39 @@ cdef class BitmaskArray:
         cdef BitmaskArray current_bma
         cdef Py_ssize_t nbitmaps = len(objs)
 
-        cdef Py_ssize_t second_dim = 0
-        if any(len(x.array_shape) > 1 for x in objs):
-            second_dim = objs[0].array_shape[1]
-            for obj in objs:
-                if not obj.array_shape[1] == second_dim:
-                    raise NotImplementedError(
-                        "BitmaskArray.concatenate does not support broadcasting"
-                    )
+        cdef BitmaskArray first_bma = objs[0]
+        cdef int expected_ndim = first_bma.ndim
+        cdef Py_ssize_t expected_stride0 = first_bma.strides[0]
+        cdef Py_ssize_t expected_shape1, expected_stride1
+        if expected_ndim == 2:
+            expected_stride1 = first_bma.strides[1]
+            expected_shape1 = first_bma.shape[1]
+
+        cdef Py_ssize_t dim0shape = 0
 
         cdef ArrowBitmap** bitmaps = <ArrowBitmap**>malloc(
             sizeof(ArrowBitmap*) * nbitmaps
         )
+
         for i in range(nbitmaps):
             current_bma = <BitmaskArray?>objs[i]
+            if (
+                    current_bma.ndim != expected_ndim
+                    or current_bma.strides[0] != expected_stride0
+                    or (
+                        expected_ndim == 2 and (
+                            current_bma.shape[1] != expected_shape1
+                            or current_bma.strides[1] != expected_stride1
+                        )
+                    )
+            ):
+                free(bitmaps)
+                raise NotImplementedError(
+                    "BitmaskArray.concatenate does not support broadcasting"
+                )
             total_bits += current_bma.bitmap.size_bits
             bitmaps[i] = &current_bma.bitmap
+            dim0shape += current_bma.shape[0]
 
         # Bypass __init__ calls
         cdef BitmaskArray bma = BitmaskArray.__new__(BitmaskArray)
@@ -357,11 +400,15 @@ cdef class BitmaskArray:
         free(bitmaps)
 
         bma.bitmap = bitmap
-        if second_dim != 0:
-            bma.array_shape = tuple((total_bits // second_dim, second_dim))
-        else:
-            bma.array_shape = tuple((total_bits,))
         bma.buffer_owner = True
+
+        bma.ndim = expected_ndim
+        bma.shape[0] = dim0shape  # only allowed because of axis=0 assumption
+        bma.strides[0] = expected_stride0
+        if expected_ndim == 2:
+            bma.shape[1] = expected_shape1
+            bma.strides[1] = expected_stride1
+
         bma.parent = None
 
         return bma
@@ -446,8 +493,10 @@ cdef class BitmaskArray:
         BitmapInvert(&self_.bitmap, &bitmap)
 
         bma.bitmap = bitmap
-        bma.array_shape = self.array_shape
         bma.buffer_owner = True
+        bma.ndim = self_.ndim
+        bma.shape = self_.shape
+        bma.strides = self_.strides
         bma.parent = None
 
         return bma
@@ -461,7 +510,10 @@ cdef class BitmaskArray:
             # TODO: maybe should return Self here instead of ndarray
             other_bma = other
             if self_.bitmap.size_bits == 0:
-                return np.empty(dtype=bool).reshape(self.array_shape)
+                result = np.empty([], dtype=bool)
+                if self_.ndim == 2:
+                    return result.reshape(self_.shape[0], self_.shape[1])
+                return result
 
             if self_.bitmap.size_bits != other_bma.bitmap.size_bits:
                 raise ValueError("bitmaps are not equal size")
@@ -477,7 +529,10 @@ cdef class BitmaskArray:
                 bitmap.size_bits
             )
             ArrowBitmapReset(&bitmap)
-            return result.reshape(self.array_shape)
+
+            if self_.ndim == 2:
+                return result.reshape(self_.shape[0], self_.shape[1])
+            return result
 
         return self.to_numpy() & other
 
@@ -490,7 +545,10 @@ cdef class BitmaskArray:
             # TODO: maybe should return Self here instead of ndarray
             other_bma = other
             if self_.bitmap.size_bits == 0:
-                return np.empty(dtype=bool).reshape(self.array_shape)
+                result = np.empty([], dtype=bool)
+                if self_.ndim == 2:
+                    return result.reshape(self_.shape[0], self_.shape[1])
+                return result
 
             if self_.bitmap.size_bits != other_bma.bitmap.size_bits:
                 raise ValueError("bitmaps are not equal size")
@@ -506,7 +564,10 @@ cdef class BitmaskArray:
                 bitmap.size_bits
             )
             ArrowBitmapReset(&bitmap)
-            return result.reshape(self.array_shape)
+
+            if self_.ndim == 2:
+                return result.reshape(self_.shape[0], self_.shape[1])
+            return result
 
         return self.to_numpy() | other
 
@@ -519,7 +580,10 @@ cdef class BitmaskArray:
             # TODO: maybe should return Self here instead of ndarray
             other_bma = other
             if self_.bitmap.size_bits == 0:
-                return np.empty(dtype=bool).reshape(self.array_shape)
+                result = np.empty([], dtype=bool)
+                if self_.ndim == 2:
+                    return result.reshape(self_.shape[0], self_.shape[1])
+                return result
 
             if self_.bitmap.size_bits != other_bma.bitmap.size_bits:
                 raise ValueError("bitmaps are not equal size")
@@ -535,7 +599,9 @@ cdef class BitmaskArray:
                 bitmap.size_bits
             )
             ArrowBitmapReset(&bitmap)
-            return result.reshape(self.array_shape)
+            if self_.ndim == 2:
+                return result.reshape(self_.shape[0], self_.shape[1])
+            return result
 
         return self.to_numpy() ^ other
 
@@ -543,13 +609,28 @@ cdef class BitmaskArray:
         cdef BitmaskArray self_ = self
         state = {
             "parent": self.parent,
-            "array_shape": self.array_shape,
+            "ndim": self_.ndim,
+            "shape0": self_.shape[0],
+            "stride0": self_.strides[0],
+            "n_consumers": self_.n_consumers,
             "buffer_owner": self_.buffer_owner,
             # Private ArrowBitmap attributes below
             "bitmap.buffer.size_bytes": self_.bitmap.buffer.size_bytes,
             "bitmap.buffer.capacity_bytes": self_.bitmap.buffer.capacity_bytes,
             "bitmap.size_bits": self_.bitmap.size_bits
         }
+
+        if self_.ndim == 2:
+            state["shape1"] = self_.shape[1]
+            state["stride1"] = self_.strides[1]
+
+        # memview should only exist when n_consumers > 0
+        if self_.n_consumers > 0:
+            memview_buf_data = bytearray(len(self))
+            for i in range(len(self)):
+                memview_buf_data[i] = self_.memview_buf[i]
+
+            state["memview_buf_data"] = memview_buf_data
 
         # Only parents own data
         if self_.buffer_owner:
@@ -565,12 +646,26 @@ cdef class BitmaskArray:
         cdef ArrowBitmap bitmap
         cdef BitmaskArray self_ = self, other
         self.parent = state["parent"]
-        self.array_shape = state["array_shape"]
+        self_.ndim = state["ndim"]
+        self_.shape[0] = state["shape0"]
+        self_.strides[0] = state["stride0"]
+        self_.n_consumers = state["n_consumers"]
         self_.buffer_owner = state["buffer_owner"]
 
         nbytes = state["bitmap.buffer.size_bytes"]
         capacity_bytes = state["bitmap.buffer.capacity_bytes"]
         nbits = state["bitmap.size_bits"]
+
+        if self_.ndim == 2:
+            self_.shape[1] = state["shape1"]
+            self_.strides[1] = state["stride1"]
+
+        if self_.n_consumers > 0:
+            self_.memview_buf = <uint8_t *>malloc(nbits)
+            memview_buf_data = state["memview_buf_data"]
+            for i in range(nbits):
+                self_.memview_buf[i] = memview_buf_data[i]
+
         if not self_.buffer_owner:
             other = self.parent
             self_.bitmap = other.bitmap
@@ -599,6 +694,38 @@ cdef class BitmaskArray:
         for i in range(self_.bitmap.size_bits):
             yield bool(ArrowBitGet(self_.bitmap.buffer.data, i))
 
+    def __getbuffer__(self, Py_buffer *buffer, int flags):
+        cdef BitmaskArray self_ = self
+
+        if self_.n_consumers == 0:
+            self_.memview_buf = <uint8_t*>malloc(self_.bitmap.size_bits)
+            ArrowBitsUnpackInt8(
+                self_.bitmap.buffer.data,
+                0,
+                self_.bitmap.size_bits,
+                <const int8_t*>self_.memview_buf
+            )
+
+        buffer.buf = self_.memview_buf
+        buffer.format = "?"
+        buffer.internal = NULL
+        buffer.itemsize = 1
+        buffer.len = self_.bitmap.size_bits
+        buffer.ndim = self_.ndim
+        buffer.obj = self
+        buffer.readonly = 1
+        buffer.shape = self_.shape
+        buffer.strides = self_.strides
+        buffer.suboffsets = NULL
+
+        self_.n_consumers += 1
+
+    def __releasebuffer__(self, Py_buffer *buffer):
+        cdef BitmaskArray self_ = self
+        self_.n_consumers -= 1
+        if self_.n_consumers == 0:
+            free(self_.memview_buf)
+
     @property
     def size(self) -> int:
         return self.bitmap.size_bits
@@ -619,12 +746,15 @@ cdef class BitmaskArray:
     @property
     def shape(self):
         """Strictly for NumPy compat in mask_ops"""
-        return self.array_shape
+        cdef BitmaskArray self_ = self
+        if self_.ndim == 1:
+            return tuple((self_.shape[0],))
+        return tuple((self_.shape[0], self_.shape[1]))
 
     @property
     def dtype(self):
         """Strictly for NumPy compat in mask_ops"""
-        return bool
+        return np.dtype("bool")
 
     def any(self) -> bool:
         return BitmapAny(&self.bitmap)
@@ -663,8 +793,14 @@ cdef class BitmaskArray:
             raise ValueError("take_1d does not support negative indexing")
 
         bma.bitmap = bitmap
-        bma.array_shape = tuple((indices.shape[0],))
         bma.buffer_owner = True
+
+        bma.ndim = self_.ndim
+        bma.shape[0] = indices.shape[0]
+        bma.strides = self_.strides
+
+        bma.parent = None
+
         return bma
 
     def copy(self):
@@ -677,6 +813,7 @@ cdef class BitmaskArray:
         ArrowBitsUnpackInt8(buf, 0, size, <const int8_t*>&out[0])
 
     def to_numpy(self) -> ndarray:
+        cdef BitmaskArray self_ = self
         cdef ndarray[uint8_t] result = np.empty(self.bitmap.size_bits, dtype=bool)
         BitmaskArray.buffer_to_array_1d(
             result,
@@ -684,4 +821,6 @@ cdef class BitmaskArray:
             self.bitmap.size_bits
         )
 
-        return result.reshape(self.array_shape)
+        if self_.ndim == 2:
+            return result.reshape(self_.shape[0], self_.shape[1])
+        return result
