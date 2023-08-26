@@ -17,6 +17,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under7p0,
     pa_version_under8p0,
+    pa_version_under11p0,
     pa_version_under13p0,
 )
 
@@ -1126,6 +1127,7 @@ class TestParquetPyArrow(Base):
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.skipif(pa_version_under11p0, reason="not supported before 11.0")
     def test_roundtrip_decimal(self, tmp_path, pa):
         # GH#54768
         import pyarrow as pa
