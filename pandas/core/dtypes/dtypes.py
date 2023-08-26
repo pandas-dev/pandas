@@ -1727,7 +1727,7 @@ class SparseDtype(ExtensionDtype):
         """
         return self._fill_value
 
-    def _check_fill_value(self):
+    def _check_fill_value(self) -> None:
         if not lib.is_scalar(self._fill_value):
             raise ValueError(
                 f"fill_value must be a scalar. Got {self._fill_value} instead"

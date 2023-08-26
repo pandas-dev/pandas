@@ -1046,7 +1046,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         value: ArrayLike,
         inplace: bool = False,
         refs: BlockValuesRefs | None = None,
-    ):
+    ) -> None:
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -1080,7 +1080,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             blkno = self.blknos[loc]
             blk = self.blocks[blkno]
             if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
-                return self._iset_single(
+                self._iset_single(
                     loc,
                     value,
                     inplace=inplace,
@@ -1870,7 +1870,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         # compatibility with 0.13.1.
         return axes_array, block_values, block_items, extra_state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         def unpickle_block(values, mgr_locs, ndim: int) -> Block:
             # TODO(EA2D): ndim would be unnecessary with 2D EAs
             # older pickles may store e.g. DatetimeIndex instead of DatetimeArray

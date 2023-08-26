@@ -2823,7 +2823,7 @@ class Fixed:
             "cannot read on an abstract storer: subclasses should implement"
         )
 
-    def write(self, **kwargs):
+    def write(self, **kwargs) -> None:
         raise NotImplementedError(
             "cannot write on an abstract storer: subclasses should implement"
         )
@@ -4712,12 +4712,13 @@ class AppendableSeriesTable(AppendableFrameTable):
     def get_object(cls, obj, transposed: bool):
         return obj
 
-    def write(self, obj, data_columns=None, **kwargs):
+    # error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, data_columns=None, **kwargs) -> None:  # type: ignore[override]
         """we are going to write this as a frame table"""
         if not isinstance(obj, DataFrame):
             name = obj.name or "values"
             obj = obj.to_frame(name)
-        return super().write(obj=obj, data_columns=obj.columns.tolist(), **kwargs)
+        super().write(obj=obj, data_columns=obj.columns.tolist(), **kwargs)
 
     def read(
         self,
@@ -4750,7 +4751,8 @@ class AppendableMultiSeriesTable(AppendableSeriesTable):
     pandas_kind = "series_table"
     table_type = "appendable_multiseries"
 
-    def write(self, obj, **kwargs):
+    #  error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
         """we are going to write this as a frame table"""
         name = obj.name or "values"
         newobj, self.levels = self.validate_multiindex(obj)
@@ -4758,7 +4760,7 @@ class AppendableMultiSeriesTable(AppendableSeriesTable):
         cols = list(self.levels)
         cols.append(name)
         newobj.columns = Index(cols)
-        return super().write(obj=newobj, **kwargs)
+        super().write(obj=newobj, **kwargs)
 
 
 class GenericTable(AppendableFrameTable):
@@ -4823,7 +4825,8 @@ class GenericTable(AppendableFrameTable):
 
         return _indexables
 
-    def write(self, **kwargs):
+    # error: Signature of "write" incompatible with supertype "AppendableTable"
+    def write(self, **kwargs) -> None:  # type: ignore[override]
         raise NotImplementedError("cannot write on an generic table")
 
 
@@ -4839,7 +4842,8 @@ class AppendableMultiFrameTable(AppendableFrameTable):
     def table_type_short(self) -> str:
         return "appendable_multi"
 
-    def write(self, obj, data_columns=None, **kwargs):
+    # error: Signature of "write" incompatible with supertype "Fixed"
+    def write(self, obj, data_columns=None, **kwargs) -> None:  # type: ignore[override]
         if data_columns is None:
             data_columns = []
         elif data_columns is True:
@@ -4849,7 +4853,7 @@ class AppendableMultiFrameTable(AppendableFrameTable):
         for n in self.levels:
             if n not in data_columns:
                 data_columns.insert(0, n)
-        return super().write(obj=obj, data_columns=data_columns, **kwargs)
+        super().write(obj=obj, data_columns=data_columns, **kwargs)
 
     def read(
         self,
