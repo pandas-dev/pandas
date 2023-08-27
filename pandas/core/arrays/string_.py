@@ -14,6 +14,7 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.arrays import NDArrayBacked
+from pandas._libs.lib import ensure_string_array
 from pandas.compat import pa_version_under7p0
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
@@ -221,7 +222,7 @@ class StringDtype(StorageExtensionDtype):
             arr = np.array([], dtype=object)
         else:
             arr = pyarrow.concat_arrays(chunks).to_numpy(zero_copy_only=False)
-            arr = lib.convert_nans_to_NA(arr)
+            arr = ensure_string_array(arr, na_value=libmissing.NA)
         # Bypass validation inside StringArray constructor, see GH#47781
         new_string_array = StringArray.__new__(StringArray)
         NDArrayBacked.__init__(
