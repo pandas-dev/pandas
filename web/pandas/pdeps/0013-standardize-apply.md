@@ -10,21 +10,23 @@
 
 Currently, giving an input to `Series.apply` is treated differently depending on the type of the input:
 
-* if the input is a numpy `ufunc`, `series.apply(func)` is equivalent to `func(series)`, i.e. similar to `series.pipe(func)`.
-* if the input is a callable, but not a numpy `ufunc`, `series.apply(func)` is similar to `Series([func(val) for val in series], index=series.index)`, i.e. similar to `series.map(func)`
-* if the input is a list-like or dict-like, `series.apply(func)` is equivalent to `series.agg(func)` (which is subtly different than `series.apply`)
+1. if the input is a numpy `ufunc`, `series.apply(func)` is equivalent to `func(series)`, i.e. similar to `series.pipe(func)`.
+2. if the input is a callable, but not a numpy `ufunc`, `series.apply(func)` is similar to `Series([func(val) for val in series], index=series.index)`, i.e. similar to `series.map(func)`
+3. if the input is a list-like or dict-like, `series.apply(func_list)` is equivalent to `series.agg(func_list)` (which is subtly different than `series.apply`)
 
 In contrast, `DataFrame.apply` has a consistent behavior:
 
-* if the input is a callable, `df.apply(func)` always calls each columns in the DataFrame, so is similar to `func(col) for _, col in
+1. if the input is a callable, `df.apply(func)` always calls each columns in the DataFrame, so is similar to `func(col) for _, col in
 df.items()` + wrapping functionality
-* if the input is a list-like or dict-like, `df.apply` call each item in the list/dict and wraps the result as needed. So for example if the input is a list, `df.apply(func_list)` is equivalent to `[df.apply(func) for func in func_list]` + wrapping functionality
+2. if the input is a list-like or dict-like, `df.apply` call each item in the list/dict and wraps the result as needed. So for example if the input is a list, `df.apply(func_list)` is equivalent to `[df.apply(func) for func in func_list]` + wrapping functionality
+
+(it can be noted that `Series.apply` and  `DataFrame.apply` already treat string input equivalently, so this proposal will not change how `Series.apply` treats string input. For background information, it can also be noted that `df.apply(..., axis=1)` will iterate over each row of frame dataframe, which is the expected behavior).
 
 This PDEP proposes that:
 
-- The current complex current behavior of `Series.apply` will be deprecated in Pandas 2.2.
+- The current behavior of `Series.apply` described above will be deprecated in Pandas 2.2.
 - Single callables given to the `.apply` methods of `Series` will in Pandas 3.0 always be called on the whole `Series`, so `series.apply(func)` will become similar to `func(series)`,
-- Lists or dicts of callables given to the `Series.apply` will in Pandas 3.0 always call `Series.apply` on each element of the list/dict
+- Lists or dicts given to the `Series.apply` will in Pandas 3.0 always applied using `Series.apply` on each element of the list/dict, instead of being equivalent to calling `Series.agg` on it, i.e. `series.apply(func_list)` will be equivalent to `[series.apply(func) for func in func_list]` + wrapping functionality.
 
 In short, this PDEP proposes changing `Series.apply` to be more similar to how `DataFrame.apply` works on single dataframe columns, i.e. operate on the whole series. If a user wants to map a callable to each element of a Series, they should be directed to use `Series.map` instead of using `Series.apply`.
 
@@ -303,14 +305,15 @@ The result from the above change will be that `Series.apply` will operate simila
 
 ## Deprecation process
 
-To change the behavior to the current behavior will have to be deprecated. This can be done by adding a `by_row` parameter to `Series.apply`, which means, when `by_rows=False`, that `Series.apply` will not operate elementwise but Series-wise.
-
-So we will have in pandas v2.2:
+To change the behavior to the current behavior will have to be deprecated. This can be done by adding a `by_row` parameter to `Series.apply`, so when  `by_rows=True`, `Series.apply` will be backward compatible, and when `by_rows=False`, `Series.apply` will operate Series-wise. If the parameter is not set a warning will we emitted and the parameter will be set to `True`, i.e. be backward compatible. So we will have in pandas v2.2:
 
 ```python
 >>> def apply(self, ..., by_row: bool | NoDefault=no_default, ...):
     if by_row is no_default:
-        warn("The by_row parameter will be set to False in the future")
+        warn("The by_row parameter will be set to False in the future",
+            DeprecationWarning,
+            stacklevel=find_stack_level()
+        )
         by_row = True
     ...
 ```
@@ -320,11 +323,14 @@ In pandas v3.0 the signature will change to:
 ```python
 >>> def apply(self, ..., by_row: NoDefault=no_default, ...):
     if by_row is not no_default:
-        warn("Do not use the by_row parameter, it will be removed in the future")
+        warn("Do not use the by_row parameter, it will be removed in the future",
+            DeprecationWarning,
+            stacklevel=find_stack_level()
+        )
     ...
 ```
 
-I.e. the `by_row` parameter will be needed in the signature in v3.0 in order be backward compatible with v2.x, but will have no effect.
+I.e. the `by_row` parameter will be in the signature in v3.0 in order be backward compatible with v2.x, but will have no effect and will emit a warning if set in method calls.
 
 In Pandas v4.0, the `by_row` parameter will be removed.
 
