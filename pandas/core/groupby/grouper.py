@@ -289,12 +289,12 @@ class Grouper:
         self.dropna = dropna
 
         self._grouper_deprecated = None
-        self._indexer_deprecated = None
+        self._indexer_deprecated: npt.NDArray[np.intp] | None = None
         self._obj_deprecated = None
         self._gpr_index = None
         self.binner = None
         self._grouper = None
-        self._indexer = None
+        self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
@@ -329,8 +329,8 @@ class Grouper:
 
     @final
     def _set_grouper(
-        self, obj: NDFrame, sort: bool = False, *, gpr_index: Index | None = None
-    ):
+        self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
+    ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -349,8 +349,6 @@ class Grouper:
         np.ndarray[np.intp] | None
         """
         assert obj is not None
-
-        indexer = None
 
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
@@ -398,6 +396,7 @@ class Grouper:
                         raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
+        indexer: npt.NDArray[np.intp] | None = None
         if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?

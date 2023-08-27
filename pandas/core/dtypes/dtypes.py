@@ -75,6 +75,7 @@ if TYPE_CHECKING:
         DtypeObj,
         IntervalClosedType,
         Ordered,
+        Self,
         npt,
         type_t,
     )
@@ -968,10 +969,13 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     # "Dict[int, PandasExtensionDtype]", base class "PandasExtensionDtype"
     # defined the type as "Dict[str, PandasExtensionDtype]")  [assignment]
     _cache_dtypes: dict[BaseOffset, int] = {}  # type: ignore[assignment]
-    __hash__ = PeriodDtypeBase.__hash__
+    # error: Incompatible types in assignment (expression has type
+    # "Callable[[PeriodDtypeBase], int]", base class "PandasExtensionDtype" defined the
+    # type as "Callable[[PandasExtensionDtype], int]")
+    __hash__ = PeriodDtypeBase.__hash__  # type: ignore[assignment]
     _freq: BaseOffset
 
-    def __new__(cls, freq):
+    def __new__(cls, freq) -> PeriodDtype:  # noqa: PYI034
         """
         Parameters
         ----------
@@ -1002,11 +1006,11 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         u._freq = freq
         return u
 
-    def __reduce__(self):
+    def __reduce__(self) -> tuple[type_t[Self], tuple[str_type]]:
         return type(self), (self.name,)
 
     @property
-    def freq(self):
+    def freq(self) -> BaseOffset:
         """
         The frequency object of this PeriodDtype.
 

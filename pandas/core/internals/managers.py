@@ -93,6 +93,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.api.extensions import ExtensionArray
+
 
 class BaseBlockManager(DataManager):
     """
@@ -1959,7 +1961,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """The array that Series._values returns"""
         return self._block.values
 
-    def array_values(self):
+    def array_values(self) -> ExtensionArray:
         """The array that Series.array returns"""
         return self._block.array_values
 

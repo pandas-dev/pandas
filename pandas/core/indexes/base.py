@@ -136,6 +136,7 @@ from pandas.core.dtypes.missing import (
     isna,
 )
 
+from pandas import MultiIndex
 from pandas.core import (
     arraylike,
     nanops,
@@ -196,7 +197,6 @@ if TYPE_CHECKING:
     from pandas import (
         CategoricalIndex,
         DataFrame,
-        MultiIndex,
         Series,
     )
     from pandas.core.arrays import PeriodArray
@@ -1120,7 +1120,7 @@ class Index(IndexOpsMixin, PandasObject):
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
-    ):
+    ) -> Self:
         if kwargs:
             nv.validate_take((), kwargs)
         if is_scalar(indices):
@@ -1205,7 +1205,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
-    def repeat(self, repeats, axis=None):
+    def repeat(self, repeats, axis=None) -> Self:
         repeats = ensure_platform_int(repeats)
         nv.validate_repeat((), {"axis": axis})
         res_values = self._values.repeat(repeats)
@@ -3528,7 +3528,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        np.ndarray or ExtensionArray
+        np.ndarray or ExtensionArray or MultiIndex
             The returned array will be unique.
         """
         left_unique = self.unique()
@@ -3545,6 +3545,7 @@ class Index(IndexOpsMixin, PandasObject):
             # unnecessary in the case with sort=None bc we will sort later
             taker = np.sort(taker)
 
+        result: MultiIndex | ExtensionArray | np.ndarray
         if isinstance(left_unique, ABCMultiIndex):
             result = left_unique.take(taker)
         else:
@@ -4446,7 +4447,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         indexer, missing = self.get_indexer_non_unique(target)
         check = indexer != -1
-        new_labels = self.take(indexer[check])
+        new_labels: Index | np.ndarray = self.take(indexer[check])
         new_indexer = None
 
         if len(missing):
@@ -5016,7 +5017,7 @@ class Index(IndexOpsMixin, PandasObject):
             # expected "Self")
             mask = lidx == -1
             join_idx = self.take(lidx)
-            right = other.take(ridx)
+            right = cast(MultiIndex, other.take(ridx))
             join_index = join_idx.putmask(mask, right)._sort_levels_monotonic()
             return join_index.set_names(name)  # type: ignore[return-value]
         else:
@@ -7002,7 +7003,7 @@ class Index(IndexOpsMixin, PandasObject):
             result._references.add_index_reference(result)
         return result
 
-    def diff(self, periods: int = 1):
+    def diff(self, periods: int = 1) -> Self:
         """
         Computes the difference between consecutive values in the Index object.
 
@@ -7030,7 +7031,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._constructor(self.to_series().diff(periods))
 
-    def round(self, decimals: int = 0):
+    def round(self, decimals: int = 0) -> Self:
         """
         Round each value in the Index to the given number of decimals.
 

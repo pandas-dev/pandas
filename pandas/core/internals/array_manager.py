@@ -1103,11 +1103,16 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     def _normalize_axis(axis):
         return axis
 
-    def make_empty(self, axes=None) -> SingleArrayManager:
+    def make_empty(self, axes=None) -> Self:
         """Return an empty ArrayManager with index/array of length 0"""
         if axes is None:
             axes = [Index([], dtype=object)]
-        array: np.ndarray = np.array([], dtype=self.dtype)
+        #  error: No overload variant of "array" matches argument types
+        #  "list[<nothing>]", "ExtensionDtype"
+        array: np.ndarray = np.array(  # type: ignore[call-overload]
+            [], dtype=self.dtype
+        )
+        assert False  # is this even tested?
         return type(self)([array], axes)
 
     @classmethod
@@ -1124,7 +1129,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         return self._axes[0]
 
     @property
-    def dtype(self):
+    def dtype(self) -> ExtensionDtype:
         return self.array.dtype
 
     def external_values(self):
