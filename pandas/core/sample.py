@@ -145,6 +145,9 @@ def sample(
     -------
     np.ndarray[np.intp,np.intp]
     """
+    if n_samples is None:
+        n_samples = 1
+
     # GH 54714
     if weights is not None:
         weight_sum = weights.sum()

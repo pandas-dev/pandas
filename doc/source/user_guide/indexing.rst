@@ -729,7 +729,7 @@ One can also set a seed for ``sample``'s random number generator using the ``ran
     df4.sample(n=2, random_state=2)
     df4.sample(n=2, random_state=2)
 
-Finally, random selection of `n_samples` count of samples each with `n` rows or columns from a Series or DataFrame. Accepts `n_samples` count of different samples, and accepts a specific number of rows/columns to return, or a fraction of rows.
+Finally, random selection of ``n_samples`` count of samples each with ``n`` rows or columns from a Series or DataFrame. Accepts ``n_samples`` count of different samples, and accepts a specific number of rows/columns to return, or a fraction of rows.
 
 .. ipython:: python
 
