@@ -5194,7 +5194,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if isinstance(self.values, BaseMaskedArray):
             return type(self.values)(result, np.zeros(result.shape, dtype=np.bool_))
-        elif isinstance(self.values, ArrowExtensionArray | StringArray):
+        elif isinstance(self.values, (ArrowExtensionArray, StringArray)):
             return type(self.values)._from_sequence(result)
         return result
 
