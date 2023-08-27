@@ -5541,6 +5541,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         n: int | None = None,
         frac: float | None = None,
         replace: bool = False,
+        n_samples: int | None = None,
         weights: Sequence | Series | None = None,
         random_state: RandomState | None = None,
     ):
@@ -5559,6 +5560,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Fraction of items to return. Cannot be used with `n`.
         replace : bool, default False
             Allow or disallow sampling of the same row more than once.
+        n_samples : int, optional
+            Number of samples to be picked. Each sample will contain `n` rows or `frac` * len(`df`) rows.
         weights : list-like, optional
             Default None results in equal probability weighting.
             If passed a list-like then values must have the same length as
@@ -5628,6 +5631,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5  black  5
         2   blue  2
         0    red  0
+
+        >>> df.groupby("a").sample(
+        ...   n=1, 
+        ...   n_samples = 2, 
+        ...   random_state=1
+        ... )
+                a  b
+        4   black  4
+        5   black  5
+        2    blue  2
+        3    blue  3
+        1     red  1
+        0     red  0
         """  # noqa: E501
         if self._selected_obj.empty:
             # GH48459 prevent ValueError when object is empty
@@ -5656,6 +5672,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 group_size,
                 size=sample_size,
                 replace=replace,
+                n_samples=n_samples,
                 weights=None if weights is None else weights_arr[grp_indices],
                 random_state=random_state,
             )
