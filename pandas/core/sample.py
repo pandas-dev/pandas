@@ -113,16 +113,16 @@ def process_sampling_size(
 
     return n
 
-
 def sample(
     obj_len: int,
     size: int,
     replace: bool,
+    n_samples: int,
     weights: np.ndarray | None,
     random_state: np.random.RandomState | np.random.Generator,
 ) -> np.ndarray:
     """
-    Randomly sample `size` indices in `np.arange(obj_len)`
+    Randomly sample `size` indices in `np.arange(obj_len)` once or `n_samples` times
 
     Parameters
     ----------
@@ -132,6 +132,8 @@ def sample(
         The number of values to choose
     replace : bool
         Allow or disallow sampling of the same row more than once.
+    n_samples : int
+        Number of samples to pick from the vector space
     weights : np.ndarray[np.float64] or None
         If None, equal probability weighting, otherwise weights according
         to the vector normalized
@@ -140,8 +142,9 @@ def sample(
 
     Returns
     -------
-    np.ndarray[np.intp]
+    np.ndarray[np.intp,np.intp]
     """
+    # GH 54714
     if weights is not None:
         weight_sum = weights.sum()
         if weight_sum != 0:
@@ -149,6 +152,13 @@ def sample(
         else:
             raise ValueError("Invalid weights: weights sum to zero")
 
-    return random_state.choice(obj_len, size=size, replace=replace, p=weights).astype(
+    total_size = size * n_samples
+    
+    return random_state.choice(
+            obj_len, 
+            size=total_size, 
+            replace=replace, 
+            p=weights
+        ).astype(
         np.intp, copy=False
     )
