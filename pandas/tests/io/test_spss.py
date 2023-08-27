@@ -15,6 +15,7 @@ pyreadstat = pytest.importorskip("pyreadstat")
 @pytest.mark.parametrize("path_klass", [lambda p: p, Path])
 def test_spss_labelled_num(path_klass, datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
+    # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
     fname = path_klass(datapath("io", "data", "spss", "labelled-num.sav"))
 
     df = pd.read_spss(fname, convert_categoricals=True)
@@ -30,6 +31,7 @@ def test_spss_labelled_num(path_klass, datapath):
 @pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
 def test_spss_labelled_num_na(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
+    # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
     fname = datapath("io", "data", "spss", "labelled-num-na.sav")
 
     df = pd.read_spss(fname, convert_categoricals=True)
@@ -45,6 +47,7 @@ def test_spss_labelled_num_na(datapath):
 @pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
 def test_spss_labelled_str(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
+    # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
     fname = datapath("io", "data", "spss", "labelled-str.sav")
 
     df = pd.read_spss(fname, convert_categoricals=True)
@@ -60,6 +63,7 @@ def test_spss_labelled_str(datapath):
 @pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
 def test_spss_umlauts(datapath):
     # test file from the Haven project (https://haven.tidyverse.org/)
+    # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
     fname = datapath("io", "data", "spss", "umlauts.sav")
 
     df = pd.read_spss(fname, convert_categoricals=True)
@@ -84,6 +88,7 @@ def test_spss_usecols(datapath):
 
 def test_spss_umlauts_dtype_backend(datapath, dtype_backend):
     # test file from the Haven project (https://haven.tidyverse.org/)
+    # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
     fname = datapath("io", "data", "spss", "umlauts.sav")
 
     df = pd.read_spss(fname, convert_categoricals=False, dtype_backend=dtype_backend)

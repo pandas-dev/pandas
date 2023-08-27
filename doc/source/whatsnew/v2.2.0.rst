@@ -153,7 +153,7 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
--
+- Performance improvement when indexing with more than 4 keys (:issue:`54550`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -185,7 +185,7 @@ Timezones
 
 Numeric
 ^^^^^^^
--
+- Bug in :func:`read_csv` with ``engine="pyarrow"`` causing rounding errors for large integers (:issue:`52505`)
 -
 
 Conversion

@@ -21,7 +21,7 @@ PyArrow will become a required dependency with pandas 3.0
 
 `PyArrow <https://arrow.apache.org/docs/python/index.html>`_ will become a required
 dependency of pandas starting with pandas 3.0. This decision was made based on
-`PDEP 12 <https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html>`_.
+`PDEP 10 <https://pandas.pydata.org/pdeps/0010-required-pyarrow-dependency.html>`_.
 
 This will enable more changes that are hugely beneficial to pandas users, including
 but not limited to:
@@ -41,7 +41,9 @@ Avoid NumPy object dtype for strings by default
 
 Previously, all strings were stored in columns with NumPy object dtype.
 This release introduces an option ``future.infer_string`` that infers all
-strings as PyArrow backed strings with dtype ``pd.ArrowDtype(pa.string())`` instead.
+strings as PyArrow backed strings with dtype ``"string[pyarrow_numpy]"`` instead.
+This is a new string dtype implementation that follows NumPy semantics in comparison
+operations and will return ``np.nan`` as the missing value indicator.
 This option only works if PyArrow is installed. PyArrow backed strings have a
 significantly reduced memory footprint and provide a big performance improvement
 compared to NumPy object (:issue:`54430`).
@@ -584,7 +586,7 @@ Other Deprecations
 - Deprecated the use of non-supported datetime64 and timedelta64 resolutions with :func:`pandas.array`. Supported resolutions are: "s", "ms", "us", "ns" resolutions (:issue:`53058`)
 - Deprecated values ``"pad"``, ``"ffill"``, ``"bfill"``, ``"backfill"`` for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate`, use ``obj.ffill()`` or ``obj.bfill()`` instead (:issue:`53581`)
 - Deprecated the behavior of :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`Series.argmax`, :meth:`Series.argmin` with either all-NAs and ``skipna=True`` or any-NAs and ``skipna=False`` returning -1; in a future version this will raise ``ValueError`` (:issue:`33941`, :issue:`33942`)
-- Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_sql` except ``name`` (:issue:`54229`)
+- Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_sql` except ``name`` and ``con`` (:issue:`54229`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.performance:
@@ -727,6 +729,7 @@ Indexing
 - Bug in :meth:`DataFrame.__setitem__` losing dtype when setting a :class:`DataFrame` into duplicated columns (:issue:`53143`)
 - Bug in :meth:`DataFrame.__setitem__` with a boolean mask and :meth:`DataFrame.putmask` with mixed non-numeric dtypes and a value other than ``NaN`` incorrectly raising ``TypeError`` (:issue:`53291`)
 - Bug in :meth:`DataFrame.iloc` when using ``nan`` as the only element (:issue:`52234`)
+- Bug in :meth:`Series.loc` casting :class:`Series` to ``np.dnarray`` when assigning :class:`Series` at predefined index of ``object`` dtype :class:`Series` (:issue:`48933`)
 
 Missing
 ^^^^^^^
@@ -813,6 +816,7 @@ Reshaping
 - Bug in :func:`merge_asof` raising ``KeyError`` for extension dtypes (:issue:`52904`)
 - Bug in :func:`merge_asof` raising ``ValueError`` for data backed by read-only ndarrays (:issue:`53513`)
 - Bug in :func:`merge_asof` with ``left_index=True`` or ``right_index=True`` with mismatched index dtypes giving incorrect results in some cases instead of raising ``MergeError`` (:issue:`53870`)
+- Bug in :func:`merge` when merging on integer ``ExtensionDtype`` and float NumPy dtype raising ``TypeError`` (:issue:`46178`)
 - Bug in :meth:`DataFrame.agg` and :meth:`Series.agg` on non-unique columns would return incorrect type when dist-like argument passed in (:issue:`51099`)
 - Bug in :meth:`DataFrame.combine_first` ignoring other's columns if ``other`` is empty (:issue:`53792`)
 - Bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax`, where the axis dtype would be lost for empty frames (:issue:`53265`)
@@ -837,6 +841,7 @@ ExtensionArray
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
 - Bug in :meth:`Series.unique` for boolean ``ArrowDtype`` with ``NA`` values (:issue:`54667`)
 - Bug in :meth:`~arrays.ArrowExtensionArray.__iter__` and :meth:`~arrays.ArrowExtensionArray.__getitem__` returning python datetime and timedelta objects for non-nano dtypes (:issue:`53326`)
+- Bug when passing an :class:`ExtensionArray` subclass to ``dtype`` keywords. This will now raise a ``UserWarning`` to encourage passing an instance instead (:issue:`31356`, :issue:`54592`)
 - Bug where the :class:`DataFrame` repr would not work when a column had an :class:`ArrowDtype` with a ``pyarrow.ExtensionDtype`` (:issue:`54063`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes (e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept PyArrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
 
