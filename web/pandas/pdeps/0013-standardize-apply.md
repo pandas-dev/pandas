@@ -231,7 +231,7 @@ dtype: int64
 
 Users would expect these two to give the same result.
 
-This PDEP proposes that callables will be applies to the whole `Series`, so in the future we will have:
+This PDEP proposes that callables will be applied to the whole `Series`, so in the future we will have:
 
 ```python
 >>> small_ser.agg(np.sum)
