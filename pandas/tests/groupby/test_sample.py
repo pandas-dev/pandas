@@ -153,12 +153,13 @@ def test_groupby_sample_with_empty_inputs():
     expected = df
     tm.assert_frame_equal(result, expected)
 
+
 def test_groupby_sample_with_n_samples():
     # GH 54714
     values = [1] * 10 + [2] * 10
     df = DataFrame({"a": values, "b": values, "c": values})
     groupby_df = df.groupby("a")
 
-    result = groupby_df.sample(n_samples = 2)
+    result = groupby_df.sample(n_samples=2)
     expected = df
     tm.assert_frame_equal(result, expected)

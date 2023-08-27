@@ -6030,10 +6030,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is None:
             axis = 0
 
-        #if n_samples is None, set the number of samples to 1
+        # if n_samples is None, set the number of samples to 1
         if n_samples is None:
             n_samples = 1
-        
+
         axis = self._get_axis_number(axis)
         obj_len = self.shape[axis]
 
@@ -6047,18 +6047,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if weights is not None:
             weights = sample.preprocess_weights(self, weights, axis)
-        
-        sampled_indices = sample.sample(obj_len=obj_len,size=size,replace=replace,n_samples=n_samples,weights=weights,random_state=rs)
+
+        sampled_indices = sample.sample(
+            obj_len=obj_len,
+            size=size,
+            replace=replace,
+            n_samples=n_samples,
+            weights=weights,
+            random_state=rs,
+        )
         result = self.take(sampled_indices, axis=axis)
-        
-        if n_samples > 1: 
-            # create a list of sample_no with size repeatations of each in the range of n_samples
+
+        if n_samples > 1:
             sample_no = np.repeat(np.arange(n_samples), size)
-            
-            # reshape the sampled_indices to a 2D array with n_samples rows and size columns
+
             sampled_indices = np.reshape(sampled_indices, (n_samples, size))
-            
-            # add a column to the dataframe with the sample_no
+
             result = result.assign(sample_no=sample_no)
 
         if ignore_index:

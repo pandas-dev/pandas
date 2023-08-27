@@ -5633,8 +5633,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         0    red  0
 
         >>> df.groupby("a").sample(
-        ...   n=1, 
-        ...   n_samples = 2, 
+        ...   n=1,
+        ...   n_samples = 2,
         ...   random_state=1
         ... )
                 a  b

@@ -14,6 +14,16 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+Addition of ``n_sampling`` parameter to :meth:`DataFrame.sample` and :meth:`Groupby.sample`. (:issue:`54714`)
+
+Currently, there is no way to take repeated samples to create a sampling distribution using pandas alone.
+One would need to create a list comprehension to perform the same, and numpy.random.choice has been preferred for the same,
+as it takes ~700ms compared to the pandas sample method taking ~25s for 1M values.
+
+The new proposed method takes ~ 25ms for the same and performs the task 1000x faster than the current sample feature.
+
+
+
 .. _whatsnew_220.enhancements.enhancement1:
 
 enhancement1

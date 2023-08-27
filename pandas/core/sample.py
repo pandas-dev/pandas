@@ -113,6 +113,7 @@ def process_sampling_size(
 
     return n
 
+
 def sample(
     obj_len: int,
     size: int,
@@ -153,12 +154,7 @@ def sample(
             raise ValueError("Invalid weights: weights sum to zero")
 
     total_size = size * n_samples
-    
+
     return random_state.choice(
-            obj_len, 
-            size=total_size, 
-            replace=replace, 
-            p=weights
-        ).astype(
-        np.intp, copy=False
-    )
+        obj_len, size=total_size, replace=replace, p=weights
+    ).astype(np.intp, copy=False)
