@@ -8,7 +8,7 @@
 
 ## Abstract
 
-Currently, giving a input to `Series.apply` is treated differently depending on the type of the input:
+Currently, giving an input to `Series.apply` is treated differently depending on the type of the input:
 
 * if the input is a numpy `ufunc`, `series.apply(func)` is equivalent to `func(series)`, i.e. similar to `series.pipe(func)`.
 * if the input is a callable, but not a numpy `ufunc`, `series.apply(func)` is similar to `Series([func(val) for val in series], index=series.index)`, i.e. similar to `series.map(func)`
