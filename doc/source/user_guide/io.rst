@@ -505,8 +505,6 @@ Setting ``dtype_backend="pyarrow"`` will result in pyarrow dtypes.
    df
    df.dtypes
 
-.. _io.categorical:
-
 Specifying categorical dtype
 ''''''''''''''''''''''''''''
 
