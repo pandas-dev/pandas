@@ -5905,13 +5905,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         n: int | None = None,
         frac: float | None = None,
         replace: bool_t = False,
+        n_samples: int | None = None,
         weights=None,
         random_state: RandomState | None = None,
         axis: Axis | None = None,
         ignore_index: bool_t = False,
     ) -> Self:
         """
-        Return a random sample of items from an axis of object.
+        Return a random sample or array of samples of items from an axis of object.
 
         You can use `random_state` for reproducibility.
 
@@ -5924,6 +5925,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             Fraction of axis items to return. Cannot be used with `n`.
         replace : bool, default False
             Allow or disallow sampling of the same row more than once.
+        n_samples : int, optional
+            Number of samples to be picked. Each sample will contain `n` rows or `frac` * len(`df`) rows.
         weights : str or ndarray-like, optional
             Default 'None' results in equal probability weighting.
             If passed a Series, will align with target object on index. Index
@@ -6002,19 +6005,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dog          4          0                  2
         fish         0          0                  8
 
+        Sampling 3 times with a random sample of 2 elements each time, of the ``DataFrame`` with replacement:
+
         An upsample sample of the ``DataFrame`` with replacement:
         Note that `replace` parameter has to be `True` for `frac` parameter > 1.
 
-        >>> df.sample(frac=2, replace=True, random_state=1)
-                num_legs  num_wings  num_specimen_seen
-        dog            4          0                  2
-        fish           0          0                  8
-        falcon         2          2                 10
-        falcon         2          2                 10
-        fish           0          0                  8
-        dog            4          0                  2
-        fish           0          0                  8
-        dog            4          0                  2
+        >>> df.sample(n = 2,n_samples=3, replace=True, random_state=1)
+                num_legs  num_wings  num_specimen_seen  sample_no
+        dog            4          0                  2          0
+        fish           0          0                  8          0
+        falcon         2          2                 10          1
+        falcon         2          2                 10          1
+        fish           0          0                  8          2
+        dog            4          0                  2          2
 
         Using a DataFrame column as weights. Rows with larger value in the
         `num_specimen_seen` column are more likely to be sampled.
@@ -6027,6 +6030,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is None:
             axis = 0
 
+        #if n_samples is None, set the number of samples to 1
+        if n_samples is None:
+            n_samples = 1
+        
         axis = self._get_axis_number(axis)
         obj_len = self.shape[axis]
 
@@ -6040,9 +6047,19 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if weights is not None:
             weights = sample.preprocess_weights(self, weights, axis)
-
-        sampled_indices = sample.sample(obj_len, size, replace, weights, rs)
+        
+        sampled_indices = sample.sample(obj_len=obj_len,size=size,replace=replace,n_samples=n_samples,weights=weights,random_state=rs)
         result = self.take(sampled_indices, axis=axis)
+        
+        if n_samples > 1: 
+            # create a list of sample_no with size repeatations of each in the range of n_samples
+            sample_no = np.repeat(np.arange(n_samples), size)
+            
+            # reshape the sampled_indices to a 2D array with n_samples rows and size columns
+            sampled_indices = np.reshape(sampled_indices, (n_samples, size))
+            
+            # add a column to the dataframe with the sample_no
+            result = result.assign(sample_no=sample_no)
 
         if ignore_index:
             result.index = default_index(len(result))
