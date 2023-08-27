@@ -719,8 +719,7 @@ as a string.
 
     df3 = pd.DataFrame({'col1': [1, 2, 3], 'col2': [2, 3, 4]})
     df3.sample(n=1, axis=1)
-
-Finally, one can also set a seed for ``sample``'s random number generator using the ``random_state`` argument, which will accept either an integer (as a seed) or a NumPy RandomState object.
+One can also set a seed for ``sample``'s random number generator using the ``random_state`` argument, which will accept either an integer (as a seed) or a NumPy RandomState object.
 
 .. ipython:: python
 
@@ -730,6 +729,18 @@ Finally, one can also set a seed for ``sample``'s random number generator using 
     df4.sample(n=2, random_state=2)
     df4.sample(n=2, random_state=2)
 
+Finally, random selection of `n_samples` count of samples each with `n` rows or columns from a Series or DataFrame. Accepts `n_samples` count of different samples, and accepts a specific number of rows/columns to return, or a fraction of rows.
+
+.. ipython:: python
+
+    df5 = pd.Series([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    df5.sample(n=2, n_samples=2)
+
+    # Selecting 3 samples of 4 size with replacement:
+    df5.sample(n=4, n_samples=3, replace = True)
+
+    # Selecting 2 samples of 3 size without replacement:
+    df5.sample(n=3, n_samples=2, replace = False)
 
 
 Setting with enlargement
