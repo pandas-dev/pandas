@@ -4909,9 +4909,13 @@ class DataFrame(NDFrame, OpsMixin):
         column : str, number, or hashable object
             Label of the inserted column.
         value : Scalar, Series, or array-like
-            Column value to be inserted. It can be any datatype but it will set same value for all rows. 
+            Column Value to be inserted. It can be any datatype.
+            Also, single value, list of values or Series can be provided.
+            In can be single value, it will be used to populate
+            all rows from that column.
         allow_duplicates : bool, optional, default lib.no_default
-            allow_duplicates is a boolean value which checks if column with same name already exists or not.
+            This is a boolean value which checks if column
+            with same name already exists or not.
 
         See Also
         --------
