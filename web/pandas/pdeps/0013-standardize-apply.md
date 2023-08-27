@@ -205,7 +205,7 @@ dtype: int64
 
 Having callables fail when used in `Series.apply`, but work in `DataFrame.Apply` or vica versa is confusing for users.
 
-This PDEP proposes that callables will be applies to the whole `Series`, so callables given to `Series.apply` will work the same as when given to `DataFrame.apply`, so in the future we will have that:
+This PDEP proposes that callables will be applied to the whole `Series`, so callables given to `Series.apply` will work the same as when given to `DataFrame.apply`, so in the future we will have that:
 
 ```python
 >>> ser.apply(lambda x: x.sum())
