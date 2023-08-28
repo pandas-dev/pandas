@@ -397,6 +397,7 @@ cdef class BitmaskArray:
 
         ArrowBitmapInit(&bitmap)
         ArrowBitmapReserve(&bitmap, total_bits)
+
         ConcatenateBitmapData(bitmaps, nbitmaps, &bitmap)
         free(bitmaps)
 
@@ -492,14 +493,14 @@ cdef class BitmaskArray:
                 else:
                     nbits = stop
 
-                nbytes = (stop + 7) // 8
+                nbytes = (nbits + 7) // 8
 
                 bma = BitmaskArray.__new__(BitmaskArray)
                 ArrowBitmapInit(&bitmap)
                 ArrowBitmapReserve(&bitmap, nbits)
                 memcpy(bitmap.buffer.data, self_.bitmap.buffer.data, nbytes)
                 bitmap.buffer.size_bytes = nbytes
-                bitmap.size_bits = stop
+                bitmap.size_bits = nbits
 
                 bma.bitmap = bitmap
                 bma.buffer_owner = True
@@ -557,10 +558,11 @@ cdef class BitmaskArray:
             BitmapAnd(&self_.bitmap, &other_bma.bitmap, &bitmap)
 
             result = np.empty(self_.bitmap.size_bits, dtype=bool)
-            BitmaskArray.buffer_to_array_1d(
-                result,
+            ArrowBitsUnpackInt8(
                 bitmap.buffer.data,
-                bitmap.size_bits
+                0,
+                bitmap.size_bits,
+                <int8_t*>&result[0]
             )
             ArrowBitmapReset(&bitmap)
 
@@ -592,10 +594,11 @@ cdef class BitmaskArray:
             BitmapOr(&self_.bitmap, &other_bma.bitmap, &bitmap)
 
             result = np.empty(self_.bitmap.size_bits, dtype=bool)
-            BitmaskArray.buffer_to_array_1d(
-                result,
+            ArrowBitsUnpackInt8(
                 bitmap.buffer.data,
-                bitmap.size_bits
+                0,
+                bitmap.size_bits,
+                <int8_t*>&result[0]
             )
             ArrowBitmapReset(&bitmap)
 
@@ -627,10 +630,11 @@ cdef class BitmaskArray:
             BitmapXor(&self_.bitmap, &other_bma.bitmap, &bitmap)
 
             result = np.empty(self_.bitmap.size_bits, dtype=bool)
-            BitmaskArray.buffer_to_array_1d(
-                result,
+            ArrowBitsUnpackInt8(
                 bitmap.buffer.data,
-                bitmap.size_bits
+                0,
+                bitmap.size_bits,
+                <int8_t*>&result[0]
             )
             ArrowBitmapReset(&bitmap)
             if self_.ndim == 2:
@@ -737,7 +741,7 @@ cdef class BitmaskArray:
                 self_.bitmap.buffer.data,
                 0,
                 self_.bitmap.size_bits,
-                <const int8_t*>self_.memview_buf
+                <int8_t*>self_.memview_buf
             )
 
         buffer.buf = self_.memview_buf
@@ -840,19 +844,15 @@ cdef class BitmaskArray:
     def copy(self):
         return BitmaskArray.copy_from_bitmaskarray(self)
 
-    @cython.boundscheck(False)  # TODO: Removing this causes an IndexError? Zero size?
-    @cython.wraparound(False)
-    @staticmethod
-    cdef void buffer_to_array_1d(uint8_t[:] out, const uint8_t* buf, Py_ssize_t size):
-        ArrowBitsUnpackInt8(buf, 0, size, <const int8_t*>&out[0])
-
     def to_numpy(self) -> ndarray:
         cdef BitmaskArray self_ = self
-        cdef ndarray[uint8_t] result = np.empty(self.bitmap.size_bits, dtype=bool)
-        BitmaskArray.buffer_to_array_1d(
-            result,
-            self.bitmap.buffer.data,
-            self.bitmap.size_bits
+        cdef ndarray[uint8_t] result = np.empty(self_.bitmap.size_bits, dtype=bool)
+
+        ArrowBitsUnpackInt8(
+            self_.bitmap.buffer.data,
+            0,
+            self_.bitmap.size_bits,
+            <int8_t*>cnp.PyArray_BYTES(result),
         )
 
         if self_.ndim == 2:
