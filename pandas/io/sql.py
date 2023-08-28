@@ -2113,6 +2113,7 @@ class ADBCDatabase(PandasSQL):
         else:
             stmt = f"SELECT * FROM {table_name}"
 
+        mapping: type[ArrowDtype] | None | Callable
         if dtype_backend == "pyarrow":
             mapping = ArrowDtype
         elif dtype_backend == "numpy_nullable":
@@ -2171,6 +2172,7 @@ class ADBCDatabase(PandasSQL):
         if dtype:
             raise NotImplementedError("'dtype' is not implemented for ADBC drivers")
 
+        mapping: type[ArrowDtype] | None | Callable
         if dtype_backend == "pyarrow":
             mapping = ArrowDtype
         elif dtype_backend == "numpy_nullable":
