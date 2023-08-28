@@ -18,6 +18,7 @@ import numpy as np
 from pandas._config import using_copy_on_write
 
 from pandas._libs import (
+    NaT,
     internals as libinternals,
     lib,
     writers,
@@ -59,7 +60,10 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_platform_int,
     is_1d_only_ea_dtype,
+    is_float_dtype,
+    is_integer_dtype,
     is_list_like,
+    is_scalar,
     is_string_dtype,
 )
 from pandas.core.dtypes.dtypes import (
@@ -453,6 +457,25 @@ class Block(PandasObject, libinternals.Block):
         and will receive the same block
         """
         new_dtype = find_result_type(self.values.dtype, other)
+
+        # In a future version of pandas, the default will be that
+        # setting `nan` into an integer series won't raise.
+        if (
+            is_scalar(other)
+            and is_integer_dtype(self.values.dtype)
+            and isna(other)
+            and other is not NaT
+        ):
+            warn_on_upcast = False
+        elif (
+            isinstance(other, np.ndarray)
+            and other.ndim == 1
+            and is_integer_dtype(self.values.dtype)
+            and is_float_dtype(other.dtype)
+            and lib.has_only_ints_or_nan(other)
+        ):
+            warn_on_upcast = False
+
         if warn_on_upcast:
             warnings.warn(
                 f"Setting an item of incompatible dtype is deprecated "
@@ -1985,7 +2008,7 @@ class ExtensionBlock(EABackedBlock):
                     "need to implement this keyword or an exception will be "
                     "raised. In the interim, the keyword is ignored by "
                     f"{type(self.values).__name__}.",
-                    FutureWarning,
+                    DeprecationWarning,
                     stacklevel=find_stack_level(),
                 )
 
