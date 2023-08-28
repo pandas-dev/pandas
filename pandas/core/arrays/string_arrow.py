@@ -118,6 +118,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _storage = "pyarrow"
 
     def __init__(self, values) -> None:
+        if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_large_string(
+            values.type
+        ):
+            values = pc.cast(values, pa.string())
         super().__init__(values)
         self._dtype = StringDtype(storage=self._storage)
 
