@@ -27,7 +27,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.core.arrays import PandasArray
+from pandas.core.arrays import NumpyExtensionArray
 from pandas.tests.arithmetic.common import (
     assert_invalid_addsub_type,
     assert_invalid_comparison,
@@ -1002,7 +1002,7 @@ class TestTimedeltaArraylikeAddSubOps:
             ts = dt_scalar.to_pydatetime()
         elif cls is np.datetime64:
             if tz_naive_fixture is not None:
-                return
+                pytest.skip(f"{cls} doesn support {tz_naive_fixture}")
             ts = dt_scalar.to_datetime64()
         else:
             ts = dt_scalar
@@ -1716,7 +1716,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         expected = Index([1.0, np.timedelta64("NaT", "ns"), orig[0], 1.5], dtype=object)
         expected = tm.box_expected(expected, box_with_array, transpose=False)
-        if isinstance(expected, PandasArray):
+        if isinstance(expected, NumpyExtensionArray):
             expected = expected.to_numpy()
         tm.assert_equal(res, expected)
         if box_with_array is DataFrame:
@@ -1727,7 +1727,7 @@ class TestTimedeltaArraylikeMulDivOps:
 
         expected = Index([1, np.timedelta64("NaT", "ns"), orig[0], 1], dtype=object)
         expected = tm.box_expected(expected, box_with_array, transpose=False)
-        if isinstance(expected, PandasArray):
+        if isinstance(expected, NumpyExtensionArray):
             expected = expected.to_numpy()
         tm.assert_equal(res, expected)
         if box_with_array is DataFrame:

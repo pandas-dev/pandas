@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import abc
-from datetime import datetime
+from datetime import date
 from functools import partial
 from itertools import islice
 from typing import (
@@ -67,7 +67,7 @@ from pandas.core.dtypes.missing import notna
 from pandas.arrays import (
     DatetimeArray,
     IntegerArray,
-    PandasArray,
+    NumpyExtensionArray,
 )
 from pandas.core import algorithms
 from pandas.core.algorithms import unique
@@ -98,7 +98,7 @@ if TYPE_CHECKING:
 
 ArrayConvertible = Union[list, tuple, AnyArrayLike]
 Scalar = Union[float, str]
-DatetimeScalar = Union[Scalar, datetime]
+DatetimeScalar = Union[Scalar, date, np.datetime64]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
 
@@ -133,7 +133,7 @@ start_caching_at = 50
 def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str | None:
     # Try to guess the format based on the first non-NaN element, return None if can't
     if (first_non_null := tslib.first_non_null(arr)) != -1:
-        if type(first_non_nan_element := arr[first_non_null]) is str:
+        if type(first_non_nan_element := arr[first_non_null]) is str:  # noqa: E721
             # GH#32264 np.str_ object
             guessed_format = guess_datetime_format(
                 first_non_nan_element, dayfirst=dayfirst
@@ -340,6 +340,7 @@ def _return_parsed_timezone_results(
     tz_result : Index-like of parsed dates with timezone
     """
     tz_results = np.empty(len(result), dtype=object)
+    non_na_timezones = set()
     for zone in unique(timezones):
         mask = timezones == zone
         dta = DatetimeArray(result[mask]).tz_localize(zone)
@@ -348,8 +349,20 @@ def _return_parsed_timezone_results(
                 dta = dta.tz_localize("utc")
             else:
                 dta = dta.tz_convert("utc")
+        else:
+            if not dta.isna().all():
+                non_na_timezones.add(zone)
         tz_results[mask] = dta
-
+    if len(non_na_timezones) > 1:
+        warnings.warn(
+            "In a future version of pandas, parsing datetimes with mixed time "
+            "zones will raise a warning unless `utc=True`. Please specify `utc=True` "
+            "to opt in to the new behaviour and silence this warning. "
+            "To create a `Series` with mixed offsets and `object` dtype, "
+            "please use `apply` and `datetime.datetime.strptime`",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
     return Index(tz_results, name=name)
 
 
@@ -393,7 +406,7 @@ def _convert_listlike_datetimes(
     """
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype="O")
-    elif isinstance(arg, PandasArray):
+    elif isinstance(arg, NumpyExtensionArray):
         arg = np.array(arg)
 
     arg_dtype = getattr(arg, "dtype", None)
@@ -772,6 +785,14 @@ def to_datetime(
           offsets (typically, daylight savings), see :ref:`Examples
           <to_datetime_tz_examples>` section for details.
 
+        .. warning::
+
+            In a future version of pandas, parsing datetimes with mixed time
+            zones will raise a warning unless `utc=True`.
+            Please specify `utc=True` to opt in to the new behaviour
+            and silence this warning. To create a `Series` with mixed offsets and
+            `object` dtype, please use `apply` and `datetime.datetime.strptime`.
+
         See also: pandas general documentation about `timezone conversion and
         localization
         <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
@@ -895,7 +916,7 @@ def to_datetime(
     - **DataFrame/dict-like** are converted to :class:`Series` with
       :class:`datetime64` dtype. For each row a datetime is created from assembling
       the various dataframe columns. Column keys can be common abbreviations
-      like [‘year’, ‘month’, ‘day’, ‘minute’, ‘second’, ‘ms’, ‘us’, ‘ns’]) or
+      like ['year', 'month', 'day', 'minute', 'second', 'ms', 'us', 'ns']) or
       plurals of the same.
 
     The following causes are responsible for :class:`datetime.datetime` objects
@@ -993,11 +1014,19 @@ def to_datetime(
 
     - However, timezone-aware inputs *with mixed time offsets* (for example
       issued from a timezone with daylight savings, such as Europe/Paris)
-      are **not successfully converted** to a :class:`DatetimeIndex`. Instead a
-      simple :class:`Index` containing :class:`datetime.datetime` objects is
-      returned:
+      are **not successfully converted** to a :class:`DatetimeIndex`.
+      Parsing datetimes with mixed time zones will show a warning unless
+      `utc=True`. If you specify `utc=False` the warning below will be shown
+      and a simple :class:`Index` containing :class:`datetime.datetime`
+      objects will be returned:
 
-    >>> pd.to_datetime(['2020-10-25 02:00 +0200', '2020-10-25 04:00 +0100'])
+    >>> pd.to_datetime(['2020-10-25 02:00 +0200',
+    ...                 '2020-10-25 04:00 +0100'])  # doctest: +SKIP
+    FutureWarning: In a future version of pandas, parsing datetimes with mixed
+    time zones will raise a warning unless `utc=True`. Please specify `utc=True`
+    to opt in to the new behaviour and silence this warning. To create a `Series`
+    with mixed offsets and `object` dtype, please use `apply` and
+    `datetime.datetime.strptime`.
     Index([2020-10-25 02:00:00+02:00, 2020-10-25 04:00:00+01:00],
           dtype='object')
 
@@ -1005,7 +1034,13 @@ def to_datetime(
       a simple :class:`Index` containing :class:`datetime.datetime` objects:
 
     >>> from datetime import datetime
-    >>> pd.to_datetime(["2020-01-01 01:00:00-01:00", datetime(2020, 1, 1, 3, 0)])
+    >>> pd.to_datetime(["2020-01-01 01:00:00-01:00",
+    ...                 datetime(2020, 1, 1, 3, 0)])  # doctest: +SKIP
+    FutureWarning: In a future version of pandas, parsing datetimes with mixed
+    time zones will raise a warning unless `utc=True`. Please specify `utc=True`
+    to opt in to the new behaviour and silence this warning. To create a `Series`
+    with mixed offsets and `object` dtype, please use `apply` and
+    `datetime.datetime.strptime`.
     Index([2020-01-01 01:00:00-01:00, 2020-01-01 03:00:00], dtype='object')
 
     |

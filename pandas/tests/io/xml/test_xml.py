@@ -246,9 +246,9 @@ df_kml = DataFrame(
 )
 
 
-@td.skip_if_no("lxml")
 def test_literal_xml_deprecation():
     # GH 53809
+    pytest.importorskip("lxml")
     msg = (
         "Passing literal xml to 'read_xml' is deprecated and "
         "will be removed in a future version. To read from a "
@@ -287,8 +287,8 @@ def read_xml_iterparse_comp(comp_path, compression_only, **kwargs):
 # FILE / URL
 
 
-@td.skip_if_no("lxml")
 def test_parser_consistency_file(xml_books):
+    pytest.importorskip("lxml")
     df_file_lxml = read_xml(xml_books, parser="lxml")
     df_file_etree = read_xml(xml_books, parser="etree")
 
@@ -459,10 +459,9 @@ def test_file_handle_close(xml_books, parser):
         assert not f.closed
 
 
-@td.skip_if_no("lxml")
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_string_lxml(val):
-    from lxml.etree import XMLSyntaxError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
     msg = "|".join(
         [
@@ -471,7 +470,7 @@ def test_empty_string_lxml(val):
             r"None \(line 0\)",
         ]
     )
-    with pytest.raises(XMLSyntaxError, match=msg):
+    with pytest.raises(lxml_etree.XMLSyntaxError, match=msg):
         if isinstance(val, str):
             read_xml(StringIO(val), parser="lxml")
         else:
@@ -487,8 +486,7 @@ def test_empty_string_etree(val):
             read_xml(BytesIO(val), parser="etree")
 
 
-@td.skip_if_no("lxml")
-def test_wrong_file_path_lxml():
+def test_wrong_file_path(parser):
     msg = (
         "Passing literal xml to 'read_xml' is deprecated and "
         "will be removed in a future version. To read from a "
@@ -500,28 +498,13 @@ def test_wrong_file_path_lxml():
         FutureWarning,
         match=msg,
     ):
-        read_xml(filename, parser="lxml")
-
-
-def test_wrong_file_path_etree():
-    msg = (
-        "Passing literal xml to 'read_xml' is deprecated and "
-        "will be removed in a future version. To read from a "
-        "literal string, wrap it in a 'StringIO' object."
-    )
-    filename = os.path.join("data", "html", "books.xml")
-
-    with pytest.raises(
-        FutureWarning,
-        match=msg,
-    ):
-        read_xml(filename, parser="etree")
+        read_xml(filename, parser=parser)
 
 
 @pytest.mark.network
 @pytest.mark.single_cpu
-@td.skip_if_no("lxml")
 def test_url(httpserver, xml_file):
+    pytest.importorskip("lxml")
     with open(xml_file, encoding="utf-8") as f:
         httpserver.serve_content(content=f.read())
         df_url = read_xml(httpserver.url, xpath=".//book[count(*)=4]")
@@ -547,11 +530,63 @@ def test_wrong_url(parser, httpserver):
         read_xml(httpserver.url, xpath=".//book[count(*)=4]", parser=parser)
 
 
+# CONTENT
+
+
+def test_whitespace(parser):
+    xml = """
+      <data>
+        <row sides=" 4 ">
+          <shape>
+              square
+          </shape>
+          <degrees>&#009;360&#009;</degrees>
+        </row>
+        <row sides=" 0 ">
+          <shape>
+              circle
+          </shape>
+          <degrees>&#009;360&#009;</degrees>
+        </row>
+        <row sides=" 3 ">
+          <shape>
+              triangle
+          </shape>
+          <degrees>&#009;180&#009;</degrees>
+        </row>
+      </data>"""
+
+    df_xpath = read_xml(StringIO(xml), parser=parser, dtype="string")
+
+    df_iter = read_xml_iterparse(
+        xml,
+        parser=parser,
+        iterparse={"row": ["sides", "shape", "degrees"]},
+        dtype="string",
+    )
+
+    df_expected = DataFrame(
+        {
+            "sides": [" 4 ", " 0 ", " 3 "],
+            "shape": [
+                "\n              square\n          ",
+                "\n              circle\n          ",
+                "\n              triangle\n          ",
+            ],
+            "degrees": ["\t360\t", "\t360\t", "\t180\t"],
+        },
+        dtype="string",
+    )
+
+    tm.assert_frame_equal(df_xpath, df_expected)
+    tm.assert_frame_equal(df_iter, df_expected)
+
+
 # XPATH
 
 
-@td.skip_if_no("lxml")
 def test_empty_xpath_lxml(xml_books):
+    pytest.importorskip("lxml")
     with pytest.raises(ValueError, match=("xpath does not return any nodes")):
         read_xml(xml_books, xpath=".//python", parser="lxml")
 
@@ -563,11 +598,10 @@ def test_bad_xpath_etree(xml_books):
         read_xml(xml_books, xpath=".//[book]", parser="etree")
 
 
-@td.skip_if_no("lxml")
 def test_bad_xpath_lxml(xml_books):
-    from lxml.etree import XPathEvalError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
-    with pytest.raises(XPathEvalError, match=("Invalid expression")):
+    with pytest.raises(lxml_etree.XPathEvalError, match=("Invalid expression")):
         read_xml(xml_books, xpath=".//[book]", parser="lxml")
 
 
@@ -623,8 +657,8 @@ def test_prefix_namespace(parser):
     tm.assert_frame_equal(df_iter, df_expected)
 
 
-@td.skip_if_no("lxml")
 def test_consistency_default_namespace():
+    pytest.importorskip("lxml")
     df_lxml = read_xml(
         StringIO(xml_default_nmsp),
         xpath=".//ns:row",
@@ -642,8 +676,8 @@ def test_consistency_default_namespace():
     tm.assert_frame_equal(df_lxml, df_etree)
 
 
-@td.skip_if_no("lxml")
 def test_consistency_prefix_namespace():
+    pytest.importorskip("lxml")
     df_lxml = read_xml(
         StringIO(xml_prefix_nmsp),
         xpath=".//doc:row",
@@ -674,17 +708,16 @@ def test_missing_prefix_definition_etree(kml_cta_rail_lines):
         read_xml(kml_cta_rail_lines, xpath=".//kml:Placemark", parser="etree")
 
 
-@td.skip_if_no("lxml")
 def test_missing_prefix_definition_lxml(kml_cta_rail_lines):
-    from lxml.etree import XPathEvalError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
-    with pytest.raises(XPathEvalError, match=("Undefined namespace prefix")):
+    with pytest.raises(lxml_etree.XPathEvalError, match=("Undefined namespace prefix")):
         read_xml(kml_cta_rail_lines, xpath=".//kml:Placemark", parser="lxml")
 
 
-@td.skip_if_no("lxml")
 @pytest.mark.parametrize("key", ["", None])
 def test_none_namespace_prefix(key):
+    pytest.importorskip("lxml")
     with pytest.raises(
         TypeError, match=("empty namespace prefix is not supported in XPath")
     ):
@@ -796,8 +829,8 @@ def test_empty_elems_only(parser):
         read_xml(StringIO(xml), xpath="./row", elems_only=True, parser=parser)
 
 
-@td.skip_if_no("lxml")
 def test_attribute_centric_xml():
+    pytest.importorskip("lxml")
     xml = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <TrainSchedule>
@@ -1026,8 +1059,8 @@ def test_ascii_encoding(xml_baby_names, parser):
         read_xml(xml_baby_names, encoding="ascii", parser=parser)
 
 
-@td.skip_if_no("lxml")
 def test_parser_consistency_with_encoding(xml_baby_names):
+    pytest.importorskip("lxml")
     df_xpath_lxml = read_xml(xml_baby_names, parser="lxml", encoding="ISO-8859-1")
     df_xpath_etree = read_xml(xml_baby_names, parser="etree", encoding="iso-8859-1")
 
@@ -1049,8 +1082,8 @@ def test_parser_consistency_with_encoding(xml_baby_names):
     tm.assert_frame_equal(df_iter_lxml, df_iter_etree)
 
 
-@td.skip_if_no("lxml")
 def test_wrong_encoding_for_lxml():
+    pytest.importorskip("lxml")
     # GH#45133
     data = """<data>
   <row>
@@ -1096,8 +1129,8 @@ def test_wrong_parser(xml_books):
 # STYLESHEET
 
 
-@td.skip_if_no("lxml")
 def test_stylesheet_file(kml_cta_rail_lines, xsl_flatten_doc):
+    pytest.importorskip("lxml")
     df_style = read_xml(
         kml_cta_rail_lines,
         xpath=".//k:Placemark",
@@ -1123,8 +1156,8 @@ def test_stylesheet_file(kml_cta_rail_lines, xsl_flatten_doc):
     tm.assert_frame_equal(df_kml, df_iter)
 
 
-@td.skip_if_no("lxml")
 def test_stylesheet_file_like(kml_cta_rail_lines, xsl_flatten_doc, mode):
+    pytest.importorskip("lxml")
     with open(xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None) as f:
         df_style = read_xml(
             kml_cta_rail_lines,
@@ -1136,10 +1169,10 @@ def test_stylesheet_file_like(kml_cta_rail_lines, xsl_flatten_doc, mode):
     tm.assert_frame_equal(df_kml, df_style)
 
 
-@td.skip_if_no("lxml")
 def test_stylesheet_io(kml_cta_rail_lines, xsl_flatten_doc, mode):
     # note: By default the bodies of untyped functions are not checked,
     # consider using --check-untyped-defs
+    pytest.importorskip("lxml")
     xsl_obj: BytesIO | StringIO  # type: ignore[annotation-unchecked]
 
     with open(xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None) as f:
@@ -1158,8 +1191,8 @@ def test_stylesheet_io(kml_cta_rail_lines, xsl_flatten_doc, mode):
     tm.assert_frame_equal(df_kml, df_style)
 
 
-@td.skip_if_no("lxml")
 def test_stylesheet_buffered_reader(kml_cta_rail_lines, xsl_flatten_doc, mode):
+    pytest.importorskip("lxml")
     with open(xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None) as f:
         xsl_obj = f.read()
 
@@ -1173,8 +1206,8 @@ def test_stylesheet_buffered_reader(kml_cta_rail_lines, xsl_flatten_doc, mode):
     tm.assert_frame_equal(df_kml, df_style)
 
 
-@td.skip_if_no("lxml")
 def test_style_charset():
+    pytest.importorskip("lxml")
     xml = "<中文標籤><row><c1>1</c1><c2>2</c2></row></中文標籤>"
 
     xsl = """\
@@ -1202,17 +1235,17 @@ def test_style_charset():
     tm.assert_frame_equal(df_orig, df_style)
 
 
-@td.skip_if_no("lxml")
 def test_not_stylesheet(kml_cta_rail_lines, xml_books):
-    from lxml.etree import XSLTParseError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
-    with pytest.raises(XSLTParseError, match=("document is not a stylesheet")):
+    with pytest.raises(
+        lxml_etree.XSLTParseError, match=("document is not a stylesheet")
+    ):
         read_xml(kml_cta_rail_lines, stylesheet=xml_books)
 
 
-@td.skip_if_no("lxml")
 def test_incorrect_xsl_syntax(kml_cta_rail_lines):
-    from lxml.etree import XMLSyntaxError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
@@ -1235,14 +1268,13 @@ def test_incorrect_xsl_syntax(kml_cta_rail_lines):
 </xsl:stylesheet>"""
 
     with pytest.raises(
-        XMLSyntaxError, match=("Extra content at the end of the document")
+        lxml_etree.XMLSyntaxError, match=("Extra content at the end of the document")
     ):
         read_xml(kml_cta_rail_lines, stylesheet=xsl)
 
 
-@td.skip_if_no("lxml")
 def test_incorrect_xsl_eval(kml_cta_rail_lines):
-    from lxml.etree import XSLTParseError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
@@ -1264,13 +1296,12 @@ def test_incorrect_xsl_eval(kml_cta_rail_lines):
     <xsl:template match="k:description|k:Snippet|k:Style"/>
 </xsl:stylesheet>"""
 
-    with pytest.raises(XSLTParseError, match=("failed to compile")):
+    with pytest.raises(lxml_etree.XSLTParseError, match=("failed to compile")):
         read_xml(kml_cta_rail_lines, stylesheet=xsl)
 
 
-@td.skip_if_no("lxml")
 def test_incorrect_xsl_apply(kml_cta_rail_lines):
-    from lxml.etree import XSLTApplyError
+    lxml_etree = pytest.importorskip("lxml.etree")
 
     xsl = """\
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
@@ -1284,27 +1315,26 @@ def test_incorrect_xsl_apply(kml_cta_rail_lines):
     </xsl:template>
 </xsl:stylesheet>"""
 
-    with pytest.raises(XSLTApplyError, match=("Cannot resolve URI")):
+    with pytest.raises(lxml_etree.XSLTApplyError, match=("Cannot resolve URI")):
         read_xml(kml_cta_rail_lines, stylesheet=xsl)
 
 
-@td.skip_if_no("lxml")
 def test_wrong_stylesheet(kml_cta_rail_lines, xml_data_path):
-    from lxml.etree import XMLSyntaxError
+    xml_etree = pytest.importorskip("lxml.etree")
 
     xsl = xml_data_path / "flatten.xsl"
 
     with pytest.raises(
-        XMLSyntaxError,
+        xml_etree.XMLSyntaxError,
         match=("Start tag expected, '<' not found"),
     ):
         read_xml(kml_cta_rail_lines, stylesheet=xsl)
 
 
-@td.skip_if_no("lxml")
 def test_stylesheet_file_close(kml_cta_rail_lines, xsl_flatten_doc, mode):
     # note: By default the bodies of untyped functions are not checked,
     # consider using --check-untyped-defs
+    pytest.importorskip("lxml")
     xsl_obj: BytesIO | StringIO  # type: ignore[annotation-unchecked]
 
     with open(xsl_flatten_doc, mode, encoding="utf-8" if mode == "r" else None) as f:
@@ -1318,17 +1348,17 @@ def test_stylesheet_file_close(kml_cta_rail_lines, xsl_flatten_doc, mode):
         assert not f.closed
 
 
-@td.skip_if_no("lxml")
 def test_stylesheet_with_etree(kml_cta_rail_lines, xsl_flatten_doc):
+    pytest.importorskip("lxml")
     with pytest.raises(
         ValueError, match=("To use stylesheet, you need lxml installed")
     ):
         read_xml(kml_cta_rail_lines, parser="etree", stylesheet=xsl_flatten_doc)
 
 
-@td.skip_if_no("lxml")
 @pytest.mark.parametrize("val", ["", b""])
 def test_empty_stylesheet(val):
+    pytest.importorskip("lxml")
     msg = (
         "Passing literal xml to 'read_xml' is deprecated and "
         "will be removed in a future version. To read from a "
@@ -1631,8 +1661,8 @@ def test_empty_data(xml_books, parser):
         )
 
 
-@td.skip_if_no("lxml")
 def test_online_stylesheet():
+    pytest.importorskip("lxml")
     xml = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <catalog>
@@ -1928,7 +1958,7 @@ def test_wrong_compression(parser, compression, compression_only):
     attempted_compression = compression_only
 
     if actual_compression == attempted_compression:
-        return
+        pytest.skip(f"{actual_compression} == {attempted_compression}")
 
     errors = {
         "bz2": (OSError, "Invalid data stream"),
@@ -1962,9 +1992,9 @@ def test_unsuported_compression(parser):
 
 @pytest.mark.network
 @pytest.mark.single_cpu
-@td.skip_if_no("s3fs")
-@td.skip_if_no("lxml")
 def test_s3_parser_consistency(s3_public_bucket_with_data, s3so):
+    pytest.importorskip("s3fs")
+    pytest.importorskip("lxml")
     s3 = f"s3://{s3_public_bucket_with_data.name}/books.xml"
 
     df_lxml = read_xml(s3, parser="lxml", storage_options=s3so)

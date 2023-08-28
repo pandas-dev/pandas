@@ -4,11 +4,11 @@ import pytest
 import pandas.util._test_decorators as td
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.internals.blocks import NumpyBlock
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseCastingTests(BaseExtensionTests):
+class BaseCastingTests:
     """Casting to and from ExtensionDtypes"""
 
     def test_astype_object_series(self, all_data):
@@ -45,7 +45,7 @@ class BaseCastingTests(BaseExtensionTests):
     def test_astype_str(self, data):
         result = pd.Series(data[:5]).astype(str)
         expected = pd.Series([str(x) for x in data[:5]], dtype=str)
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
         "nullable_string_dtype",
@@ -61,22 +61,22 @@ class BaseCastingTests(BaseExtensionTests):
             [str(x) if not isinstance(x, bytes) else x.decode() for x in data[:5]],
             dtype=nullable_string_dtype,
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
     def test_to_numpy(self, data):
         expected = np.asarray(data)
 
         result = data.to_numpy()
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
         result = pd.Series(data).to_numpy()
-        self.assert_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     def test_astype_empty_dataframe(self, dtype):
         # https://github.com/pandas-dev/pandas/issues/33113
         df = pd.DataFrame()
         result = df.astype(dtype)
-        self.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize("copy", [True, False])
     def test_astype_own_type(self, data, copy):
@@ -84,4 +84,4 @@ class BaseCastingTests(BaseExtensionTests):
         # https://github.com/pandas-dev/pandas/issues/28488
         result = data.astype(data.dtype, copy=copy)
         assert (result is data) is (not copy)
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)

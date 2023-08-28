@@ -285,7 +285,7 @@ class TestMaybeCastSliceBound:
             tdi = tdi[::-1]
         elif monotonic is None:
             taker = np.arange(10, dtype=np.intp)
-            np.random.shuffle(taker)
+            np.random.default_rng(2).shuffle(taker)
             tdi = tdi.take(taker)
         return tdi
 

@@ -33,7 +33,6 @@ from pandas._libs import (
     missing as libmissing,
     ops as libops,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes import inference
 from pandas.core.dtypes.common import (
@@ -150,8 +149,9 @@ ll_params = [
     ((_ for _ in []), True, "generator-empty"),
     (Series([1]), True, "Series"),
     (Series([], dtype=object), True, "Series-empty"),
-    (Series(["a"]).str, False, "StringMethods"),
-    (Series([], dtype="O").str, False, "StringMethods-empty"),
+    # Series.str will still raise a TypeError if iterated
+    (Series(["a"]).str, True, "StringMethods"),
+    (Series([], dtype="O").str, True, "StringMethods-empty"),
     (Index([1]), True, "Index"),
     (Index([]), True, "Index-empty"),
     (DataFrame([[1]]), True, "DataFrame"),
@@ -536,7 +536,7 @@ class TestInference:
     )
     def test_maybe_convert_nullable_boolean(self, convert_to_masked_nullable, exp):
         # GH 40687
-        arr = np.array([True, np.NaN], dtype=object)
+        arr = np.array([True, np.nan], dtype=object)
         result = libops.maybe_convert_bool(
             arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
         )
@@ -862,7 +862,7 @@ class TestInference:
     )
     def test_maybe_convert_objects_nullable_integer(self, exp):
         # GH27335
-        arr = np.array([2, np.NaN], dtype=object)
+        arr = np.array([2, np.nan], dtype=object)
         result = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
 
         tm.assert_extension_array_equal(result, exp)
@@ -890,7 +890,7 @@ class TestInference:
         self, convert_to_masked_nullable, exp
     ):
         # GH 40687
-        arr = np.array([2, np.NaN], dtype=object)
+        arr = np.array([2, np.nan], dtype=object)
         result = lib.maybe_convert_numeric(
             arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
         )
@@ -1362,7 +1362,8 @@ class TestTypeInference:
                 pd.NaT,
             ]
         )
-        # with pd.array this becomes PandasArray which ends up as "unknown-array"
+        # with pd.array this becomes NumpyExtensionArray which ends up
+        #  as "unknown-array"
         exp = "unknown-array" if klass is pd.array else "mixed"
         assert lib.infer_dtype(values, skipna=skipna) == exp
 
@@ -1888,7 +1889,6 @@ class TestIsScalar:
         assert is_scalar(np.complex64(2))
         assert is_scalar(np.object_("foobar"))
         assert is_scalar(np.str_("foobar"))
-        assert is_scalar(np.unicode_("foobar"))
         assert is_scalar(np.bytes_(b"foobar"))
         assert is_scalar(np.datetime64("2014-01-01"))
         assert is_scalar(np.timedelta64(1, "h"))
@@ -1968,9 +1968,9 @@ def test_nan_to_nat_conversions():
     assert s[8] is pd.NaT
 
 
-@td.skip_if_no_scipy
 @pytest.mark.filterwarnings("ignore::PendingDeprecationWarning")
 def test_is_scipy_sparse(spmatrix):
+    pytest.importorskip("scipy")
     assert is_scipy_sparse(spmatrix([[0, 1]]))
     assert not is_scipy_sparse(np.array([1]))
 

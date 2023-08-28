@@ -376,8 +376,8 @@ class TestCategoricalAPI:
         assert out.tolist() == val
 
         alpha = list("abcdefghijklmnopqrstuvwxyz")
-        val = np.random.choice(alpha[::2], 10000).astype("object")
-        val[np.random.choice(len(val), 100)] = np.nan
+        val = np.random.default_rng(2).choice(alpha[::2], 10000).astype("object")
+        val[np.random.default_rng(2).choice(len(val), 100)] = np.nan
 
         cat = Categorical(values=val, categories=alpha)
         out = cat.remove_unused_categories()

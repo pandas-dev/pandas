@@ -11,7 +11,6 @@ from itertools import (
     starmap,
 )
 import operator
-import warnings
 
 import numpy as np
 import pytest
@@ -415,8 +414,7 @@ class TestDatetimeIndexComparisons:
         dti = date_range("2016-01-01", periods=2, tz=tz)
         if tz is not None:
             if isinstance(other, np.datetime64):
-                # no tzaware version available
-                return
+                pytest.skip("no tzaware version available")
             other = localize_pydatetime(other, dti.tzinfo)
 
         result = dti == other
@@ -1081,13 +1079,14 @@ class TestDatetime64Arithmetic:
     @pytest.mark.parametrize("freq", ["H", "D", "W", "M", "MS", "Q", "B", None])
     @pytest.mark.parametrize("dtype", [None, "uint8"])
     def test_dt64arr_addsub_intlike(
-        self, dtype, box_with_array, freq, tz_naive_fixture
+        self, request, dtype, box_with_array, freq, tz_naive_fixture
     ):
         # GH#19959, GH#19123, GH#19012
         tz = tz_naive_fixture
         if box_with_array is pd.DataFrame:
-            # alignment headaches
-            return
+            request.node.add_marker(
+                pytest.mark.xfail(raises=ValueError, reason="Axis alignment fails")
+            )
 
         if freq is None:
             dti = DatetimeIndex(["NaT", "2017-04-05 06:07:08"], tz=tz)
@@ -1166,6 +1165,7 @@ class TestDatetime64Arithmetic:
         )
         assert_invalid_addsub_type(dtarr, parr, msg)
 
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     def test_dt64arr_addsub_time_objects_raises(self, box_with_array, tz_naive_fixture):
         # https://github.com/pandas-dev/pandas/issues/10329
 
@@ -1183,14 +1183,10 @@ class TestDatetime64Arithmetic:
                 "cannot subtract DatetimeArray from ndarray",
             ]
         )
-
-        with warnings.catch_warnings(record=True):
-            # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
-            # applied to Series or DatetimeIndex
-            # we aren't testing that here, so ignore.
-            warnings.simplefilter("ignore", PerformanceWarning)
-
-            assert_invalid_addsub_type(obj1, obj2, msg=msg)
+        # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
+        # applied to Series or DatetimeIndex
+        # we aren't testing that here, so ignore.
+        assert_invalid_addsub_type(obj1, obj2, msg=msg)
 
     # -------------------------------------------------------------
     # Other invalid operations
@@ -1370,6 +1366,7 @@ class TestDatetime64DateOffsetArithmetic:
 
     # TODO: redundant with test_dt64arr_add_sub_DateOffset?  that includes
     #  tz-aware cases which this does not
+    @pytest.mark.filterwarnings("ignore::pandas.errors.PerformanceWarning")
     @pytest.mark.parametrize(
         "cls_and_kwargs",
         [
@@ -1458,28 +1455,26 @@ class TestDatetime64DateOffsetArithmetic:
 
         offset_cls = getattr(pd.offsets, cls_name)
 
-        with warnings.catch_warnings(record=True):
-            # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
-            # applied to Series or DatetimeIndex
-            # we aren't testing that here, so ignore.
-            warnings.simplefilter("ignore", PerformanceWarning)
+        # pandas.errors.PerformanceWarning: Non-vectorized DateOffset being
+        # applied to Series or DatetimeIndex
+        # we aren't testing that here, so ignore.
 
-            offset = offset_cls(n, normalize=normalize, **kwargs)
+        offset = offset_cls(n, normalize=normalize, **kwargs)
 
-            expected = DatetimeIndex([x + offset for x in vec_items])
-            expected = tm.box_expected(expected, box_with_array)
-            tm.assert_equal(expected, vec + offset)
+        expected = DatetimeIndex([x + offset for x in vec_items])
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(expected, vec + offset)
 
-            expected = DatetimeIndex([x - offset for x in vec_items])
-            expected = tm.box_expected(expected, box_with_array)
-            tm.assert_equal(expected, vec - offset)
+        expected = DatetimeIndex([x - offset for x in vec_items])
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(expected, vec - offset)
 
-            expected = DatetimeIndex([offset + x for x in vec_items])
-            expected = tm.box_expected(expected, box_with_array)
-            tm.assert_equal(expected, offset + vec)
-            msg = "(bad|unsupported) operand type for unary"
-            with pytest.raises(TypeError, match=msg):
-                offset - vec
+        expected = DatetimeIndex([offset + x for x in vec_items])
+        expected = tm.box_expected(expected, box_with_array)
+        tm.assert_equal(expected, offset + vec)
+        msg = "(bad|unsupported) operand type for unary"
+        with pytest.raises(TypeError, match=msg):
+            offset - vec
 
     def test_dt64arr_add_sub_DateOffset(self, box_with_array):
         # GH#10699
@@ -1570,7 +1565,7 @@ class TestDatetime64DateOffsetArithmetic:
         # Same thing but boxing other
         other = tm.box_expected(other, box_with_array)
         if box_with_array is pd.array and op is roperator.radd:
-            # We expect a PandasArray, not ndarray[object] here
+            # We expect a NumpyExtensionArray, not ndarray[object] here
             expected = pd.array(expected, dtype=object)
         with tm.assert_produces_warning(PerformanceWarning):
             res = op(dtarr, other)

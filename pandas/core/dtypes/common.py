@@ -1351,7 +1351,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
     False
     >>> is_complex_dtype(int)
     False
-    >>> is_complex_dtype(np.complex_)
+    >>> is_complex_dtype(np.complex128)
     True
     >>> is_complex_dtype(np.array(['a', 'b']))
     False
@@ -1614,6 +1614,15 @@ def pandas_dtype(dtype) -> DtypeObj:
     # registered extension types
     result = registry.find(dtype)
     if result is not None:
+        if isinstance(result, type):
+            # GH 31356, GH 54592
+            warnings.warn(
+                f"Instantiating {result.__name__} without any arguments."
+                f"Pass a {result.__name__} instance to silence this warning.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+            result = result()
         return result
 
     # try a numpy dtype
@@ -1634,7 +1643,13 @@ def pandas_dtype(dtype) -> DtypeObj:
     # also catch some valid dtypes such as object, np.object_ and 'object'
     # which we safeguard against by catching them earlier and returning
     # np.dtype(valid_dtype) before this condition is evaluated.
-    if is_hashable(dtype) and dtype in [object, np.object_, "object", "O"]:
+    if is_hashable(dtype) and dtype in [
+        object,
+        np.object_,
+        "object",
+        "O",
+        "object_",
+    ]:
         # check hashability to avoid errors/DeprecationWarning when we get
         # here and `dtype` is an array
         return npdtype

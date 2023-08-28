@@ -19,6 +19,7 @@ import numpy as np
 import pytest
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.api.types import is_string_dtype
 from pandas.core.arrays import ArrowStringArray
 from pandas.core.arrays.string_ import StringDtype
@@ -55,9 +56,9 @@ def dtype(string_storage):
 
 @pytest.fixture
 def data(dtype, chunked):
-    strings = np.random.choice(list(string.ascii_letters), size=100)
+    strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
     while strings[0] == strings[1]:
-        strings = np.random.choice(list(string.ascii_letters), size=100)
+        strings = np.random.default_rng(2).choice(list(string.ascii_letters), size=100)
 
     arr = dtype.construct_array_type()._from_sequence(strings)
     return split_array(arr) if chunked else arr
@@ -83,11 +84,6 @@ def data_missing_for_sorting(dtype, chunked):
 
 
 @pytest.fixture
-def na_value():
-    return pd.NA
-
-
-@pytest.fixture
 def data_for_grouping(dtype, chunked):
     arr = dtype.construct_array_type()._from_sequence(
         ["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"]
@@ -107,8 +103,8 @@ class TestDtype(base.BaseDtypeTests):
 
 
 class TestInterface(base.BaseInterfaceTests):
-    def test_view(self, data, request):
-        if data.dtype.storage == "pyarrow":
+    def test_view(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_view(data)
 
@@ -118,17 +114,10 @@ class TestConstructors(base.BaseConstructorsTests):
         # base test uses string representation of dtype
         pass
 
-    def test_constructor_from_list(self):
-        # GH 27673
-        pytest.importorskip("pyarrow", minversion="1.0.0")
-        result = pd.Series(["E"], dtype=StringDtype(storage="pyarrow"))
-        assert isinstance(result.dtype, StringDtype)
-        assert result.dtype.storage == "pyarrow"
-
 
 class TestReshaping(base.BaseReshapingTests):
-    def test_transpose(self, data, request):
-        if data.dtype.storage == "pyarrow":
+    def test_transpose(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_transpose(data)
 
@@ -138,8 +127,8 @@ class TestGetitem(base.BaseGetitemTests):
 
 
 class TestSetitem(base.BaseSetitemTests):
-    def test_setitem_preserves_views(self, data, request):
-        if data.dtype.storage == "pyarrow":
+    def test_setitem_preserves_views(self, data, request, arrow_string_storage):
+        if data.dtype.storage in arrow_string_storage:
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
         super().test_setitem_preserves_views(data)
 
@@ -152,7 +141,7 @@ class TestMissing(base.BaseMissingTests):
     def test_dropna_array(self, data_missing):
         result = data_missing.dropna()
         expected = data_missing[[1]]
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     def test_fillna_no_op_returns_copy(self, data):
         data = data[~data.isna()]
@@ -160,43 +149,24 @@ class TestMissing(base.BaseMissingTests):
         valid = data[0]
         result = data.fillna(valid)
         assert result is not data
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
         result = data.fillna(method="backfill")
         assert result is not data
-        self.assert_extension_array_equal(result, data)
+        tm.assert_extension_array_equal(result, data)
 
 
-class TestNoReduce(base.BaseNoReduceTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
-        op_name = all_numeric_reductions
-
-        if op_name in ["min", "max"]:
-            return None
-
-        ser = pd.Series(data)
-        with pytest.raises(TypeError):
-            getattr(ser, op_name)(skipna=skipna)
+class TestReduce(base.BaseReduceTests):
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        return (
+            op_name in ["min", "max"]
+            or ser.dtype.storage == "pyarrow_numpy"  # type: ignore[union-attr]
+            and op_name in ("any", "all")
+        )
 
 
 class TestMethods(base.BaseMethodsTests):
-    def test_value_counts_with_normalize(self, data):
-        data = data[:10].unique()
-        values = np.array(data[~data.isna()])
-        ser = pd.Series(data, dtype=data.dtype)
-
-        result = ser.value_counts(normalize=True).sort_index()
-
-        expected = pd.Series(
-            [1 / len(values)] * len(values), index=result.index, name="proportion"
-        )
-        if getattr(data.dtype, "storage", "") == "pyarrow":
-            expected = expected.astype("double[pyarrow]")
-        else:
-            expected = expected.astype("Float64")
-
-        self.assert_series_equal(result, expected)
+    pass
 
 
 class TestCasting(base.BaseCastingTests):
@@ -204,12 +174,17 @@ class TestCasting(base.BaseCastingTests):
 
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _compare_other(self, ser, data, op, other):
-        op_name = f"__{op.__name__}__"
-        result = getattr(ser, op_name)(other)
-        dtype = "boolean[pyarrow]" if ser.dtype.storage == "pyarrow" else "boolean"
-        expected = getattr(ser.astype(object), op_name)(other).astype(dtype)
-        self.assert_series_equal(result, expected)
+    def _cast_pointwise_result(self, op_name: str, obj, other, pointwise_result):
+        dtype = tm.get_dtype(obj)
+        # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
+        # attribute "storage"
+        if dtype.storage == "pyarrow":  # type: ignore[union-attr]
+            cast_to = "boolean[pyarrow]"
+        elif dtype.storage == "pyarrow_numpy":  # type: ignore[union-attr]
+            cast_to = np.bool_  # type: ignore[assignment]
+        else:
+            cast_to = "boolean"
+        return pointwise_result.astype(cast_to)
 
     def test_compare_scalar(self, data, comparison_op):
         ser = pd.Series(data)
@@ -225,20 +200,6 @@ class TestPrinting(base.BasePrintingTests):
 
 
 class TestGroupBy(base.BaseGroupbyTests):
-    @pytest.mark.parametrize("as_index", [True, False])
-    def test_groupby_extension_agg(self, as_index, data_for_grouping):
-        df = pd.DataFrame({"A": [1, 1, 2, 2, 3, 3, 1, 4], "B": data_for_grouping})
-        result = df.groupby("B", as_index=as_index).A.mean()
-        _, uniques = pd.factorize(data_for_grouping, sort=True)
-
-        if as_index:
-            index = pd.Index(uniques, name="B")
-            expected = pd.Series([3.0, 1.0, 4.0], index=index, name="A")
-            self.assert_series_equal(result, expected)
-        else:
-            expected = pd.DataFrame({"B": uniques, "A": [3.0, 1.0, 4.0]})
-            self.assert_frame_equal(result, expected)
-
     @pytest.mark.filterwarnings("ignore:Falling back:pandas.errors.PerformanceWarning")
     def test_groupby_extension_apply(self, data_for_grouping, groupby_apply_op):
         super().test_groupby_extension_apply(data_for_grouping, groupby_apply_op)
@@ -246,7 +207,7 @@ class TestGroupBy(base.BaseGroupbyTests):
 
 class Test2DCompat(base.Dim2CompatTests):
     @pytest.fixture(autouse=True)
-    def arrow_not_supported(self, data, request):
+    def arrow_not_supported(self, data):
         if isinstance(data, ArrowStringArray):
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
 

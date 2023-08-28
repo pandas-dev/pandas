@@ -5,10 +5,13 @@ from datetime import timedelta
 
 import numpy as np
 
+from pandas._libs.tslibs import BaseOffset
 from pandas._libs.window.indexers import calculate_variable_window_bounds
 from pandas.util._decorators import Appender
 
 from pandas.core.dtypes.common import ensure_platform_int
+
+from pandas.core.indexes.datetimes import DatetimeIndex
 
 from pandas.tseries.offsets import Nano
 
@@ -41,17 +44,34 @@ window
 
 
 class BaseIndexer:
-    """Base class for window bounds calculations."""
+    """
+    Base class for window bounds calculations.
+
+    Examples
+    --------
+    >>> from pandas.api.indexers import BaseIndexer
+    >>> class CustomIndexer(BaseIndexer):
+    ...     def get_window_bounds(self, num_values, min_periods, center, closed, step):
+    ...         start = np.empty(num_values, dtype=np.int64)
+    ...         end = np.empty(num_values, dtype=np.int64)
+    ...         for i in range(num_values):
+    ...             start[i] = i
+    ...             end[i] = i + self.window_size
+    ...         return start, end
+    >>> df = pd.DataFrame({"values": range(5)})
+    >>> indexer = CustomIndexer(window_size=2)
+    >>> df.rolling(indexer).sum()
+        values
+    0	1.0
+    1	3.0
+    2	5.0
+    3	7.0
+    4	4.0
+    """
 
     def __init__(
         self, index_array: np.ndarray | None = None, window_size: int = 0, **kwargs
     ) -> None:
-        """
-        Parameters
-        ----------
-        **kwargs :
-            keyword arguments that will be available when get_window_bounds is called
-        """
         self.index_array = index_array
         self.window_size = window_size
         # Set user defined kwargs as attributes that can be used in get_window_bounds
@@ -127,18 +147,55 @@ class VariableWindowIndexer(BaseIndexer):
 
 
 class VariableOffsetWindowIndexer(BaseIndexer):
-    """Calculate window boundaries based on a non-fixed offset such as a BusinessDay."""
+    """
+    Calculate window boundaries based on a non-fixed offset such as a BusinessDay.
+
+    Examples
+    --------
+    >>> from pandas.api.indexers import VariableOffsetWindowIndexer
+    >>> df = pd.DataFrame(range(10), index=pd.date_range("2020", periods=10))
+    >>> offset = pd.offsets.BDay(1)
+    >>> indexer = VariableOffsetWindowIndexer(index=df.index, offset=offset)
+    >>> df
+                0
+    2020-01-01  0
+    2020-01-02  1
+    2020-01-03  2
+    2020-01-04  3
+    2020-01-05  4
+    2020-01-06  5
+    2020-01-07  6
+    2020-01-08  7
+    2020-01-09  8
+    2020-01-10  9
+    >>> df.rolling(indexer).sum()
+                   0
+    2020-01-01   0.0
+    2020-01-02   1.0
+    2020-01-03   2.0
+    2020-01-04   3.0
+    2020-01-05   7.0
+    2020-01-06  12.0
+    2020-01-07   6.0
+    2020-01-08   7.0
+    2020-01-09   8.0
+    2020-01-10   9.0
+    """
 
     def __init__(
         self,
         index_array: np.ndarray | None = None,
         window_size: int = 0,
-        index=None,
-        offset=None,
+        index: DatetimeIndex | None = None,
+        offset: BaseOffset | None = None,
         **kwargs,
     ) -> None:
         super().__init__(index_array, window_size, **kwargs)
+        if not isinstance(index, DatetimeIndex):
+            raise ValueError("index must be a DatetimeIndex.")
         self.index = index
+        if not isinstance(offset, BaseOffset):
+            raise ValueError("offset must be a DateOffset-like object.")
         self.offset = offset
 
     @Appender(get_window_bounds_doc)
@@ -166,6 +223,7 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             index_growth_sign = -1
         else:
             index_growth_sign = 1
+        offset_diff = index_growth_sign * self.offset
 
         start = np.empty(num_values, dtype="int64")
         start.fill(-1)
@@ -181,11 +239,12 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         else:
             end[0] = 0
 
+        zero = timedelta(0)
         # start is start of slice interval (including)
         # end is end of slice interval (not including)
         for i in range(1, num_values):
             end_bound = self.index[i]
-            start_bound = self.index[i] - index_growth_sign * self.offset
+            start_bound = end_bound - offset_diff
 
             # left endpoint is closed
             if left_closed:
@@ -195,13 +254,15 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             # within the constraint
             start[i] = i
             for j in range(start[i - 1], i):
-                if (self.index[j] - start_bound) * index_growth_sign > timedelta(0):
+                start_diff = (self.index[j] - start_bound) * index_growth_sign
+                if start_diff > zero:
                     start[i] = j
                     break
 
             # end bound is previous end
             # or current index
-            if (self.index[end[i - 1]] - end_bound) * index_growth_sign <= timedelta(0):
+            end_diff = (self.index[end[i - 1]] - end_bound) * index_growth_sign
+            if end_diff <= zero:
                 end[i] = i + 1
             else:
                 end[i] = end[i - 1]

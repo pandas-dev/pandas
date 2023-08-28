@@ -219,3 +219,13 @@ class TestFeather:
             df.to_feather(path)
             with pytest.raises(ValueError, match=msg):
                 read_feather(path, dtype_backend="numpy")
+
+    def test_string_inference(self, tmp_path):
+        # GH#54431
+        path = tmp_path / "test_string_inference.p"
+        df = pd.DataFrame(data={"a": ["x", "y"]})
+        df.to_feather(path)
+        with pd.option_context("future.infer_string", True):
+            result = read_feather(path)
+        expected = pd.DataFrame(data={"a": ["x", "y"]}, dtype="string[pyarrow_numpy]")
+        tm.assert_frame_equal(result, expected)

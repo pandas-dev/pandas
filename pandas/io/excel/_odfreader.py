@@ -22,11 +22,13 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.excel._base import BaseExcelReader
 
 if TYPE_CHECKING:
+    from odf.opendocument import OpenDocument
+
     from pandas._libs.tslibs.nattype import NaTType
 
 
 @doc(storage_options=_shared_docs["storage_options"])
-class ODFReader(BaseExcelReader):
+class ODFReader(BaseExcelReader["OpenDocument"]):
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
@@ -52,14 +54,14 @@ class ODFReader(BaseExcelReader):
         )
 
     @property
-    def _workbook_class(self):
+    def _workbook_class(self) -> type[OpenDocument]:
         from odf.opendocument import OpenDocument
 
         return OpenDocument
 
     def load_workbook(
         self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
-    ):
+    ) -> OpenDocument:
         from odf.opendocument import load
 
         return load(filepath_or_buffer, **engine_kwargs)
@@ -154,8 +156,7 @@ class ODFReader(BaseExcelReader):
                 # add blank rows to our table
                 table.extend([[self.empty_value]] * empty_rows)
                 empty_rows = 0
-                for _ in range(row_repeat):
-                    table.append(table_row)
+                table.extend(table_row for _ in range(row_repeat))
             if file_rows_needed is not None and len(table) >= file_rows_needed:
                 break
 
