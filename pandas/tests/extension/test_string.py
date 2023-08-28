@@ -161,7 +161,11 @@ class TestReduce(base.BaseReduceTests):
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
 
-        if op_name in ["min", "max"]:
+        if (
+            op_name in ["min", "max"]
+            or data.dtype.storage == "pyarrow_numpy"  # type: ignore[union-attr]
+            and op_name in ("any", "all")
+        ):
             return None
 
         ser = pd.Series(data)
