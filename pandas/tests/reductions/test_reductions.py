@@ -1078,6 +1078,25 @@ class TestSeriesReductions:
         assert df.any().all()
         assert not df.all().any()
 
+    def test_any_all_pyarrow_string(self):
+        # GH#54591
+        pytest.importorskip("pyarrow")
+        ser = Series(["", "a"], dtype="string[pyarrow_numpy]")
+        assert ser.any()
+        assert not ser.all()
+
+        ser = Series([None, "a"], dtype="string[pyarrow_numpy]")
+        assert ser.any()
+        assert not ser.all()
+
+        ser = Series([None, ""], dtype="string[pyarrow_numpy]")
+        assert not ser.any()
+        assert not ser.all()
+
+        ser = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        assert ser.any()
+        assert ser.all()
+
     def test_timedelta64_analytics(self):
         # index min/max
         dti = date_range("2012-1-1", periods=3, freq="D")
@@ -1639,22 +1658,3 @@ class TestSeriesMode:
         # Complex numbers are sorted by their magnitude
         result = Series(array, dtype=dtype).mode()
         tm.assert_series_equal(result, expected)
-
-    def test_any_all(self):
-        # GH#54591
-        pytest.importorskip("pyarrow")
-        ser = Series(["", "a"], dtype="string[pyarrow_numpy]")
-        assert ser.any()
-        assert not ser.all()
-
-        ser = Series([None, "a"], dtype="string[pyarrow_numpy]")
-        assert ser.any()
-        assert not ser.all()
-
-        ser = Series([None, ""], dtype="string[pyarrow_numpy]")
-        assert not ser.any()
-        assert not ser.all()
-
-        ser = Series(["a", "b"], dtype="string[pyarrow_numpy]")
-        assert ser.any()
-        assert ser.all()
