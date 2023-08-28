@@ -2,10 +2,13 @@
 project(
     'pandas',
     'c', 'cpp', 'cython',
-    version: run_command(['python3', 'generate_version.py', '--print'], check: true).stdout().strip(),
+    version: run_command(['python', 'generate_version.py', '--print'], check: true).stdout().strip(),
     license: 'BSD-3',
     meson_version: '>=1.0.1',
     default_options: [
+        # TODO: investigate, does meson try to compile against debug Python
+        # when buildtype = debug, this seems to be causing problems on CI
+        # where provided Python is not compiled in debug mode
         'buildtype=release',
         # TODO: Reactivate werror, some warnings on Windows
         #'werror=true',
@@ -13,8 +16,10 @@ project(
     ]
 )
 
+py_mod = import('python')
 fs = import('fs')
-py = import('python').find_installation()
+py = py_mod.find_installation('python')
+py_dep = py.dependency()
 tempita = files('generate_pxi.py')
 versioneer = files('generate_version.py')
 
