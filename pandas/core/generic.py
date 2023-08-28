@@ -10704,7 +10704,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         freq=None,
         axis: Axis = 0,
         fill_value: Hashable = lib.no_default,
-        suffix: str | None = None,
     ) -> Self | DataFrame:
         """
         Shift index by desired number of periods with an optional time `freq`.
@@ -10741,9 +10740,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             For numeric data, ``np.nan`` is used.
             For datetime, timedelta, or period data, etc. :attr:`NaT` is used.
             For extension dtypes, ``self.dtype.na_value`` is used.
-        suffix : str, optional
-            If str and periods is an iterable, this is added after the column
-            name and before the shift value for each shifted column name.
 
         Returns
         -------
