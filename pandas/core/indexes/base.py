@@ -196,9 +196,9 @@ if TYPE_CHECKING:
     from pandas import (
         CategoricalIndex,
         DataFrame,
+        MultiIndex,
         Series,
     )
-    from pandas import MultiIndex  # noqa: TCH004
     from pandas.core.arrays import PeriodArray
 
 __all__ = ["Index"]
@@ -5017,7 +5017,7 @@ class Index(IndexOpsMixin, PandasObject):
             # expected "Self")
             mask = lidx == -1
             join_idx = self.take(lidx)
-            right = cast(MultiIndex, other.take(ridx))
+            right = cast("MultiIndex", other.take(ridx))
             join_index = join_idx.putmask(mask, right)._sort_levels_monotonic()
             return join_index.set_names(name)  # type: ignore[return-value]
         else:

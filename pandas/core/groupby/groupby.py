@@ -143,8 +143,7 @@ from pandas.core.util.numba_ import (
 if TYPE_CHECKING:
     from typing import Any
 
-    from padnas.core.resample import Resampler
-
+    from pandas.core.resample import Resampler
     from pandas.core.window import (
         ExpandingGroupby,
         ExponentialMovingWindowGroupby,
