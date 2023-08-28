@@ -133,7 +133,7 @@ class TestDecimalArray(base.ExtensionTests):
     def test_fillna_frame(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            DeprecationWarning, match=msg, check_stacklevel=False
         ):
             super().test_fillna_frame(data_missing)
 
@@ -166,7 +166,7 @@ class TestDecimalArray(base.ExtensionTests):
     def test_fillna_series(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            DeprecationWarning, match=msg, check_stacklevel=False
         ):
             super().test_fillna_series(data_missing)
 
@@ -178,13 +178,13 @@ class TestDecimalArray(base.ExtensionTests):
             super().test_fillna_series_method(data_missing, fillna_method)
 
     def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
-        warn = FutureWarning if not using_copy_on_write else None
+        warn = DeprecationWarning if not using_copy_on_write else None
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
             super().test_fillna_copy_frame(data_missing)
 
     def test_fillna_copy_series(self, data_missing, using_copy_on_write):
-        warn = FutureWarning if not using_copy_on_write else None
+        warn = DeprecationWarning if not using_copy_on_write else None
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
             super().test_fillna_copy_series(data_missing)
