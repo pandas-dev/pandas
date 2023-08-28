@@ -25,7 +25,7 @@ class BaseReduceTests:
 
         try:
             alt = s.astype("float64")
-        except TypeError:
+        except (TypeError, ValueError):
             # e.g. Interval can't cast, so let's cast to object and do
             #  the reduction pointwise
             alt = s.astype(object)

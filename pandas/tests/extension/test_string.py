@@ -157,15 +157,18 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestReduce(base.BaseReduceTests):
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
+        return (
+            op_name in ["min", "max"]
+            or ser.dtype.storage == "pyarrow_numpy"  # type: ignore[union-attr]
+            and op_name in ("any", "all")
+        )
+
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         op_name = all_numeric_reductions
 
-        if (
-            op_name in ["min", "max"]
-            or data.dtype.storage == "pyarrow_numpy"  # type: ignore[union-attr]
-            and op_name in ("any", "all")
-        ):
+        if op_name in ["min", "max"]:
             return None
 
         ser = pd.Series(data)
