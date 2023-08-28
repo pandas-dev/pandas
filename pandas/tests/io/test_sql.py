@@ -612,8 +612,8 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
         )
 
     if "adbc" in conn:
-        exp_warning = FutureWarning
-        match_str = "is_sparse is deprecated"
+        exp_warning = None
+        match_str = None
     else:
         exp_warning = UserWarning
         match_str = "time 'timedelta'"
