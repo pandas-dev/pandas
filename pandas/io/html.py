@@ -365,13 +365,13 @@ class _HtmlFrameParser:
         """
         raise AbstractMethodError(self)
 
-    def _parse_tables(self, doc, match, attrs):
+    def _parse_tables(self, document, match, attrs):
         """
         Return all tables from the parsed DOM.
 
         Parameters
         ----------
-        doc : the DOM from which to parse the table element.
+        document : the DOM from which to parse the table element.
 
         match : str or regular expression
             The text to search for in the DOM tree.
@@ -596,9 +596,9 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
         self._strainer = SoupStrainer("table")
 
-    def _parse_tables(self, doc, match, attrs):
+    def _parse_tables(self, document, match, attrs):
         element_name = self._strainer.name
-        tables = doc.find_all(element_name, attrs=attrs)
+        tables = document.find_all(element_name, attrs=attrs)
         if not tables:
             raise ValueError("No tables found")
 
@@ -728,7 +728,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         # <thead> or <tfoot> (see _parse_thead_tr).
         return row.xpath("./td|./th")
 
-    def _parse_tables(self, doc, match, kwargs):
+    def _parse_tables(self, document, match, kwargs):
         pattern = match.pattern
 
         # 1. check all descendants for the given pattern and only search tables
@@ -740,7 +740,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         if kwargs:
             xpath_expr += _build_xpath_expr(kwargs)
 
-        tables = doc.xpath(xpath_expr, namespaces=_re_namespace)
+        tables = document.xpath(xpath_expr, namespaces=_re_namespace)
 
         tables = self._handle_hidden_tables(tables, "attrib")
         if self.displayed_only:
