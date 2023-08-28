@@ -2117,6 +2117,7 @@ class TestSeriesConstructors:
 
     def test_series_string_inference_storage_definition(self):
         # GH#54793
+        pytest.importorskip("pyarrow")
         expected = Series(["a", "b"], dtype="string[pyarrow_numpy]")
         with pd.option_context("future.infer_string", True):
             result = Series(["a", "b"], dtype="string")
