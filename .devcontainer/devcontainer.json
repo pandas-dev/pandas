@@ -1,37 +1,54 @@
 // For format details, see https://aka.ms/vscode-remote/devcontainer.json or the definition README at
 // https://github.com/microsoft/vscode-dev-containers/tree/master/containers/python-3-miniconda
 {
-	"name": "pandas",
-	"containerUser": "pandas-dev",
-	"context": "..",
-	"dockerFile": "../Dockerfile",
-
-	// Use `customizations/vscode/settings` to set *default* container specific
-	// settings.json values on container create. You can edit these settings
-	// after create using File > Preferences > Settings > Remote.
-	"customizations": {
-		"vscode": {
-			"settings": {
-				"editor.tabSize": 4,
-				"editor.insertSpaces": true,
-				"editor.detectIndentation": false,
-				"terminal.integrated.defaultProfile.linux": "bash",
-				"python.formatting.provider": "black",
-				"python.linting.enabled": true,
-				"python.linting.flake8Enabled": true,
-				"python.linting.pylintEnabled": false,
-				"python.linting.mypyEnabled": true,
-				"python.testing.pytestEnabled": true,
-				"python.testing.pytestArgs": [
-					"pandas"
-				],
-				// Add the IDs of extensions you want installed when the
-				// container is created in the array below.
-				"extensions": [
-					"ms-python.python",
-					"ms-vscode.cpptools"
-				]
-			}
-		}
-	}
+    "name": "pandas",
+    "containerUser": "pandas-dev",
+    "context": "..",
+    "dockerFile": "../Dockerfile",
+    "postCreateCommand": "./.devcontainer/postCreateCommand.sh",
+    // Use `customizations/vscode/settings` to set *default* container specific
+    // settings.json values on container create. You can edit these settings
+    // after create using File > Preferences > Settings > Remote.
+    "customizations": {
+        "vscode": {
+            // Add the IDs of extensions you want installed when the
+            // container is created in the array below.
+            "extensions": [
+                "ms-python.python",
+                "ms-python.black-formatter",
+                "ms-python.flake8",
+                "ms-python.mypy-type-checker",
+                "ms-python.pylint",
+                "ms-vscode.cpptools",
+                "ms-azuretools.vscode-docker",
+                "GitHub.vscode-github-actions"
+            ],
+            "settings": {
+                "black-formatter.importStrategy": "fromEnvironment",
+                "editor.tabSize": 4,
+                "editor.insertSpaces": true,
+                "editor.detectIndentation": false,
+                "editor.formatOnSave": true,
+                //"extensions.autoCheckUpdates": false,
+                //"extensions.autoUpdate": false,
+                "terminal.integrated.defaultProfile.linux": "bash",
+                //"python.condaPath": "/home/pandas-dev/micromamba-bin/micromamba",
+                "python.defaultInterpreterPath": "/home/pandas-dev/micromamba/envs/test/bin/python",
+                //"python.formatting.provider": "none", // Taken care of by ms-python.black-formatter, as per current best practice
+                //"python.formatting.provider": "black",
+                //"python.linting.enabled": true,
+                //"python.linting.flake8Enabled": true,
+                //"python.linting.pylintEnabled": false,
+                //"python.linting.mypyEnabled": true,
+                "python.analysis.typeCheckingMode": "basic",
+                "python.testing.pytestEnabled": true,
+                "python.testing.pytestArgs": [
+                    "pandas"
+                ],
+                "[python]": {
+                    "editor.defaultFormatter": "ms-python.black-formatter"
+                }
+            }
+        }
+    }
 }
