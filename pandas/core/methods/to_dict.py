@@ -107,14 +107,15 @@ def to_dict(
 
     elif orient == "list":
         object_dtype_indices_as_set = set(box_native_indices)
+        values = df.values
         return into_c(
             (
-                k,
-                list(map(maybe_box_native, v.tolist()))
+                col,
+                list(map(maybe_box_native, values[:, i].tolist()))
                 if i in object_dtype_indices_as_set
-                else v.tolist(),
+                else values[:, i].tolist(),
             )
-            for i, (k, v) in enumerate(df.items())
+            for i, col in enumerate(df.columns)
         )
 
     elif orient == "split":
