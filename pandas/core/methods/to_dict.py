@@ -106,8 +106,8 @@ def to_dict(
         return into_c((k, v.to_dict(into)) for k, v in df.items())
 
     elif orient == "list":
-        object_dtype_indices_as_set = set(box_native_indices)
-        values = df.values
+        object_dtype_indices_as_set: set[int] = set(box_native_indices)
+        values: np.ndarray = df.values
         return into_c(
             (
                 col,
