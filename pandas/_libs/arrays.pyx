@@ -481,15 +481,16 @@ cdef class BitmaskArray:
                 return bool(ArrowBitGet(self.bitmap.buffer.data, ckey))
         elif is_null_slice(key):
             return self.copy()
-        elif isinstance(key, slice):
+        elif isinstance(key, slice) and self.ndim == 1:
             # fastpath for slices that start at 0 and step 1 at a time
             # towards a positive number.
             # TODO: upstream generic ArrowBitsGet function in nanoarrow
             PySlice_Unpack(key, &start, &stop, &step)
             if start == 0 and stop > 0 and step == 1:
+                if stop > self_.bitmap.size_bits:
+                    stop = self_.bitmap.size_bits
+
                 nbytes = (stop + 7) // 8
-                if nbytes > self_.bitmap.size_bits:
-                    nbytes = self_.bitmap.size_bits
 
                 bma = BitmaskArray.__new__(BitmaskArray)
                 ArrowBitmapInit(&bitmap)
@@ -501,7 +502,7 @@ cdef class BitmaskArray:
                 bma.bitmap = bitmap
                 bma.buffer_owner = True
                 bma.ndim = self_.ndim
-                bma.shape = self_.shape
+                bma.shape[0] = stop
                 bma.strides = self_.strides
                 bma.parent = False
 

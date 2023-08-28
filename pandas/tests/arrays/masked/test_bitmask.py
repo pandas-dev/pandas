@@ -460,3 +460,10 @@ def test_memoryview(array, expected):
     bma = BitmaskArray(array)
     vw = memoryview(bma)
     assert vw.tolist() == expected
+
+
+def test_bitmask_array_shape_from_sliced_bitmask():
+    orig_bma = BitmaskArray([True] * 100)
+    bma = BitmaskArray(orig_bma[:10])
+
+    assert bma.shape == (10,)
