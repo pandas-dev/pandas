@@ -1,5 +1,6 @@
 """ test parquet compat """
 import datetime
+from decimal import Decimal
 from io import BytesIO
 import os
 import pathlib
@@ -16,6 +17,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under7p0,
     pa_version_under8p0,
+    pa_version_under11p0,
     pa_version_under13p0,
 )
 
@@ -357,6 +359,20 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
 
         result = read_parquet(path, engine=pa, columns=["a", "d"])
         tm.assert_frame_equal(result, df[["a", "d"]])
+
+
+def test_parquet_pos_args_deprecation(engine):
+    # GH-54229
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_parquet except for the "
+        r"argument 'path' will be keyword-only."
+    )
+    with tm.ensure_clean() as path:
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            df.to_parquet(path, engine)
 
 
 class Base:
@@ -998,7 +1014,7 @@ class TestParquetPyArrow(Base):
         pytest.importorskip("pyarrow")
         df = pd.DataFrame({"a": list(range(0, 3))})
         with tm.ensure_clean() as path:
-            df.to_parquet(path, pa)
+            df.to_parquet(path, engine=pa)
             result = read_parquet(
                 path, pa, filters=[("a", "==", 0)], use_legacy_dataset=False
             )
@@ -1011,7 +1027,7 @@ class TestParquetPyArrow(Base):
         )
 
         with tm.ensure_clean() as path:
-            df.to_parquet(path, pa)
+            df.to_parquet(path, engine=pa)
             result = read_parquet(path, pa)
         if using_array_manager:
             assert isinstance(result._mgr, pd.core.internals.ArrayManager)
@@ -1099,8 +1115,6 @@ class TestParquetPyArrow(Base):
 
     def test_string_inference(self, tmp_path, pa):
         # GH#54431
-        import pyarrow as pa
-
         path = tmp_path / "test_string_inference.p"
         df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
         df.to_parquet(path, engine="pyarrow")
@@ -1108,9 +1122,21 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path, engine="pyarrow")
         expected = pd.DataFrame(
             data={"a": ["x", "y"]},
-            dtype=pd.ArrowDtype(pa.string()),
-            index=pd.Index(["a", "b"], dtype=pd.ArrowDtype(pa.string())),
+            dtype="string[pyarrow_numpy]",
+            index=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
         )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(pa_version_under11p0, reason="not supported before 11.0")
+    def test_roundtrip_decimal(self, tmp_path, pa):
+        # GH#54768
+        import pyarrow as pa
+
+        path = tmp_path / "decimal.p"
+        df = pd.DataFrame({"a": [Decimal("123.00")]}, dtype="string[pyarrow]")
+        df.to_parquet(path, schema=pa.schema([("a", pa.decimal128(5))]))
+        result = read_parquet(path)
+        expected = pd.DataFrame({"a": ["123"]}, dtype="string[python]")
         tm.assert_frame_equal(result, expected)
 
 
@@ -1177,7 +1203,7 @@ class TestParquetFastParquet(Base):
         d = {"a": list(range(0, 3))}
         df = pd.DataFrame(d)
         with tm.ensure_clean() as path:
-            df.to_parquet(path, fp, compression=None, row_group_offsets=1)
+            df.to_parquet(path, engine=fp, compression=None, row_group_offsets=1)
             result = read_parquet(path, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 

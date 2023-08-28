@@ -27,7 +27,6 @@ from pandas._libs.internals import (
     BlockValuesRefs,
 )
 from pandas._libs.missing import NA
-from pandas._libs.tslibs import IncompatibleFrequency
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -1133,7 +1132,9 @@ class Block(PandasObject, libinternals.Block):
         # length checking
         check_setitem_lengths(indexer, value, values)
 
-        value = extract_array(value, extract_numpy=True)
+        if self.dtype != _dtype_obj:
+            # GH48933: extract_array would convert a pd.Series value to np.ndarray
+            value = extract_array(value, extract_numpy=True)
         try:
             casted = np_can_hold_element(values.dtype, value)
         except LossySetitemError:
@@ -1731,9 +1732,7 @@ class EABackedBlock(Block):
 
         try:
             values[indexer] = value
-        except (ValueError, TypeError) as err:
-            _catch_deprecated_value_error(err)
-
+        except (ValueError, TypeError):
             if isinstance(self.dtype, IntervalDtype):
                 # see TestSetitemFloatIntervalWithIntIntervalValues
                 nb = self.coerce_to_target_dtype(orig_value, warn_on_upcast=True)
@@ -1776,9 +1775,7 @@ class EABackedBlock(Block):
 
         try:
             res_values = arr._where(cond, other).T
-        except (ValueError, TypeError) as err:
-            _catch_deprecated_value_error(err)
-
+        except (ValueError, TypeError):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, IntervalDtype):
                     # TestSetitemFloatIntervalWithIntIntervalValues
@@ -1847,9 +1844,7 @@ class EABackedBlock(Block):
         try:
             # Caller is responsible for ensuring matching lengths
             values._putmask(mask, new)
-        except (TypeError, ValueError) as err:
-            _catch_deprecated_value_error(err)
-
+        except (TypeError, ValueError):
             if self.ndim == 1 or self.shape[0] == 1:
                 if isinstance(self.dtype, IntervalDtype):
                     # Discussion about what we want to support in the general
@@ -2254,19 +2249,6 @@ class NDArrayBackedExtensionBlock(EABackedBlock):
         """return a boolean if I am possibly a view"""
         # check the ndarray values of the DatetimeIndex values
         return self.values._ndarray.base is not None
-
-
-def _catch_deprecated_value_error(err: Exception) -> None:
-    """
-    We catch ValueError for now, but only a specific one raised by DatetimeArray
-    which will no longer be raised in version 2.0.
-    """
-    if isinstance(err, ValueError):
-        if isinstance(err, IncompatibleFrequency):
-            pass
-        elif "'value.closed' is" in str(err):
-            # IntervalDtype mismatched 'closed'
-            pass
 
 
 class DatetimeLikeBlock(NDArrayBackedExtensionBlock):

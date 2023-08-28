@@ -255,8 +255,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         "_is_copy",
         "_name",
         "_metadata",
-        "__array_struct__",
-        "__array_interface__",
         "_flags",
     ]
     _internal_names_set: set[str] = set(_internal_names)
@@ -2189,6 +2187,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     # I/O Methods
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "excel_writer"], name="to_excel"
+    )
     @doc(
         klass="object",
         storage_options=_shared_docs["storage_options"],
@@ -2800,7 +2801,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     @final
     @deprecate_nonkeyword_arguments(
-        version="3.0", allowed_args=["self", "name"], name="to_sql"
+        version="3.0", allowed_args=["self", "name", "con"], name="to_sql"
     )
     def to_sql(
         self,
@@ -3098,6 +3099,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         )
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self"], name="to_clipboard"
+    )
     def to_clipboard(
         self, excel: bool_t = True, sep: str | None = None, **kwargs
     ) -> None:
@@ -3728,6 +3732,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @final
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "path_or_buf"], name="to_csv"
+    )
     @doc(
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"] % "path_or_buf",
@@ -6970,6 +6977,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         method = clean_fill_method(method)
 
         if not self._mgr.is_single_block and axis == 1:
+            # e.g. test_align_fill_method
+            # TODO(3.0): once downcast is removed, we can do the .T
+            #  in all axis=1 cases, and remove axis kward from mgr.pad_or_backfill.
             if inplace:
                 raise NotImplementedError()
             result = self.T._pad_or_backfill(method=method, limit=limit).T
@@ -7358,7 +7368,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
-        Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
+        Fill NA/NaN values by propagating the last valid observation to next valid.
 
         Returns
         -------

@@ -176,6 +176,8 @@ class TestComparisonOps(base.BaseComparisonOpsTests):
         # attribute "storage"
         if dtype.storage == "pyarrow":  # type: ignore[union-attr]
             cast_to = "boolean[pyarrow]"
+        elif dtype.storage == "pyarrow_numpy":  # type: ignore[union-attr]
+            cast_to = np.bool_  # type: ignore[assignment]
         else:
             cast_to = "boolean"
         return pointwise_result.astype(cast_to)
@@ -201,7 +203,7 @@ class TestGroupBy(base.BaseGroupbyTests):
 
 class Test2DCompat(base.Dim2CompatTests):
     @pytest.fixture(autouse=True)
-    def arrow_not_supported(self, data, request):
+    def arrow_not_supported(self, data):
         if isinstance(data, ArrowStringArray):
             pytest.skip(reason="2D support not implemented for ArrowStringArray")
 
