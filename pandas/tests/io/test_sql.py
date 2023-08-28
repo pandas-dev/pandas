@@ -604,10 +604,12 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
         df["timedelta"] = pd.array(
             [timedelta(1)], dtype="month_day_nano_interval[pyarrow]"
         )
-        exp_warning = None
+        exp_warning = FutureWarning  # warning thrown from pyarrow
+        msg = "is_sparce is deprecated"
     else:
         df["timedelta"] = pd.array([timedelta(1)], dtype="duration[ns][pyarrow]")
         exp_warning = UserWarning
+        msg = "the 'timedelta'"
 
     if conn == "sqlite_adbc_conn":
         request.node.add_marker(
@@ -618,7 +620,7 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
         )
 
     conn = request.getfixturevalue(conn)
-    with tm.assert_produces_warning(exp_warning, match="the 'timedelta'"):
+    with tm.assert_produces_warning(exp_warning, match=msg):
         df.to_sql(name="test_arrow", con=conn, if_exists="replace", index=False)
 
 
