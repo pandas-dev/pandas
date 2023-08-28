@@ -596,12 +596,18 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
                 [datetime(2023, 1, 1)], dtype="timestamp[ns][pyarrow]"
             ),
             "date": pd.array([date(2023, 1, 1)], dtype="date32[day][pyarrow]"),
-            "timedelta": pd.array(
-                [timedelta(1)], dtype="month_day_nano_interval[pyarrow]"
-            ),
             "string": pd.array(["a"], dtype="string[pyarrow]"),
         }
     )
+
+    if "adbc" in conn:
+        df["timedelta"] = pd.array(
+            [timedelta(1)], dtype="month_day_nano_interval[pyarrow]"
+        )
+        exp_warning = None
+    else:
+        df["timedelta"] = pd.array([timedelta(1)], dtype="duration[ns][pyarrow]")
+        exp_warning = UserWarning
 
     if conn == "sqlite_adbc_conn":
         request.node.add_marker(
@@ -611,18 +617,8 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
             )
         )
 
-    if "adbc" in conn:
-        exp_warning = None
-        match_str = None
-    else:
-        exp_warning = UserWarning
-        match_str = "time 'timedelta'"
-
     conn = request.getfixturevalue(conn)
-
-    with tm.assert_produces_warning(
-        exp_warning, match=match_str, check_stacklevel=False
-    ):
+    with tm.assert_produces_warning(exp_warning, match="the 'timedelta'"):
         df.to_sql(name="test_arrow", con=conn, if_exists="replace", index=False)
 
 
