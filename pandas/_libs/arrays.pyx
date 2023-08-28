@@ -481,7 +481,7 @@ cdef class BitmaskArray:
             if ckey >= 0 and ckey < self.bitmap.size_bits:
                 return bool(ArrowBitGet(self.bitmap.buffer.data, ckey))
         elif is_null_slice(key):
-            return self.copy()
+            return self
         elif isinstance(key, slice) and self.ndim == 1:
             # fastpath for slices that start at 0 and step 1 at a time
             # towards a positive number.
