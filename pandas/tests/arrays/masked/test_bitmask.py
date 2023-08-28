@@ -121,15 +121,23 @@ def test_getitem_null_slice():
     assert (result.bytes[0] >> 2) & 1 == 1
 
 
-def test_getitem_monotonic_slice():
+@pytest.mark.parametrize(
+    "indexer,mask,expected",
+    [
+        pytest.param(slice(2), bytes([0x3]), bytes([0x1]), id="basic_slice"),
+        pytest.param(
+            slice(1000), bytes([0x7]), bytes([0x05]), id="slice_exceeding_bounds"
+        ),
+    ],
+)
+def test_getitem_monotonic_slice(indexer, mask, expected):
     bma = BitmaskArray(np.array([True, False, True]))
-    result = bma[slice(2)]
+    result = bma[indexer]
 
     assert not result.parent
-    assert len(result) == 2
 
-    assert result.bytes[0] & 1 == 1
-    assert (result.bytes[0] >> 1) & 1 == 0
+    # the bits past the length of result are undefined, so explicitly mask them out
+    assert (result.bytes[0] & mask[0]) == expected[0]
 
 
 @pytest.mark.parametrize(

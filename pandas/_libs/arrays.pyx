@@ -487,9 +487,12 @@ cdef class BitmaskArray:
             # TODO: upstream generic ArrowBitsGet function in nanoarrow
             PySlice_Unpack(key, &start, &stop, &step)
             if start == 0 and stop > 0 and step == 1:
+                nbytes = (stop + 7) // 8
+                if nbytes > self_.bitmap.size_bits:
+                    nbytes = self_.bitmap.size_bits
+
                 bma = BitmaskArray.__new__(BitmaskArray)
                 ArrowBitmapInit(&bitmap)
-                nbytes = (stop + 7) // 8
                 ArrowBitmapReserve(&bitmap, nbytes)
                 memcpy(bitmap.buffer.data, self_.bitmap.buffer.data, nbytes)
                 bitmap.buffer.size_bytes = nbytes
