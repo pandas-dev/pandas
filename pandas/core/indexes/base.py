@@ -136,7 +136,6 @@ from pandas.core.dtypes.missing import (
     isna,
 )
 
-from pandas import MultiIndex
 from pandas.core import (
     arraylike,
     nanops,
@@ -197,6 +196,7 @@ if TYPE_CHECKING:
     from pandas import (
         CategoricalIndex,
         DataFrame,
+        MultiIndex,  # noqa: TCH004
         Series,
     )
     from pandas.core.arrays import PeriodArray
