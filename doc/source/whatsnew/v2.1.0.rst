@@ -587,7 +587,7 @@ Other Deprecations
 - Deprecated values ``"pad"``, ``"ffill"``, ``"bfill"``, ``"backfill"`` for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate`, use ``obj.ffill()`` or ``obj.bfill()`` instead (:issue:`53581`)
 - Deprecated the behavior of :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`Series.argmax`, :meth:`Series.argmin` with either all-NAs and ``skipna=True`` or any-NAs and ``skipna=False`` returning -1; in a future version this will raise ``ValueError`` (:issue:`33941`, :issue:`33942`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_sql` except ``name`` and ``con`` (:issue:`54229`)
-- Deprecated silently ignoring ``fill_value`` when passing both ``freq`` and ``fill_value`` to :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift`; in a future version this will raise ``ValueError`` (:issue:`53832`)
+- Deprecated silently ignoring ``fill_value`` when passing both ``freq`` and ``fill_value`` to :meth:`DataFrame.shift`, :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift`; in a future version this will raise ``ValueError`` (:issue:`53832`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.performance:

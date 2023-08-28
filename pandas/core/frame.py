@@ -5638,7 +5638,8 @@ class DataFrame(NDFrame, OpsMixin):
             # GH#53832
             warnings.warn(
                 "Passing a 'freq' together with a 'fill_value' silently ignores "
-                "the fill_value. This will raise in a future version.",
+                "the fill_value and is deprecated. This will raise in a future "
+                "version.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
