@@ -198,6 +198,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return self.dtype.na_value
             return self._data[item]
 
+        assert not isinstance(newmask, bool)  # for mypy
         return self._simple_new(self._data[item], newmask)
 
     def pad_or_backfill(
