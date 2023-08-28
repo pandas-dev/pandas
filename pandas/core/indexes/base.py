@@ -1395,6 +1395,8 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.io.formats.format import format_array
 
         values = self._values
+        if is_string_dtype(values.dtype):
+            values = np.asarray(values)
 
         if is_object_dtype(values.dtype):
             values = cast(np.ndarray, values)
