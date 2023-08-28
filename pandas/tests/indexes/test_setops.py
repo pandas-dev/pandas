@@ -899,3 +899,10 @@ class TestSetOpsUnsorted:
         result = idx.union(idx2)
         expected = Index([1, 2, 3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
         tm.assert_index_equal(result, expected)
+
+    def test_union_string_array(self, any_string_dtype):
+        idx1 = Index(["a"], dtype=any_string_dtype)
+        idx2 = Index(["b"], dtype=any_string_dtype)
+        result = idx1.union(idx2)
+        expected = Index(["a", "b"], dtype=any_string_dtype)
+        tm.assert_index_equal(result, expected)
