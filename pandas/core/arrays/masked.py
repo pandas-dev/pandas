@@ -191,20 +191,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def __getitem__(self, item: PositionalIndexer) -> Self | Any:
         item = check_array_indexer(self, item)
 
-        # TODO: some of the numpy semantics for handling 2D indexing
-        # are not implemented in the bitmaskarray, hence the to_numpy()
-        # requirement, though that slows things down
-        np_mask = self._mask.to_numpy()
-        newmask = np_mask[item]
+        newmask = self._mask[item]
         if is_bool(newmask):
             # This is a scalar indexing
             if newmask:
                 return self.dtype.na_value
             return self._data[item]
-
-        # sending self._mask avoids copy of buffer
-        if np.array_equal(newmask, np_mask):
-            return self._simple_new(self._data[item], self._mask)
 
         return self._simple_new(self._data[item], newmask)
 

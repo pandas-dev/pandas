@@ -19,7 +19,7 @@ import pandas._testing as tm
         pytest.param(np.array([True, False] * 8), bytes([0x55, 0x55]), id="multibyte"),
         pytest.param(
             np.array([[False, False], [True, True], [False, False]])[:, 0],
-            [False, True, False],
+            bytes([0x2]),
             id="non-contiguous",
         ),
     ],

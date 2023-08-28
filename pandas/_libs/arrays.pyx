@@ -469,7 +469,7 @@ cdef class BitmaskArray:
     def __getitem__(self, key):
         cdef Py_ssize_t ckey
         # to_numpy can be expensive, so try to avoid for simple cases
-        if isinstance(key, int):
+        if isinstance(key, int) and self.ndim == 1:
             ckey = key
             if ckey >= 0 and ckey < self.bitmap.size_bits:
                 return bool(ArrowBitGet(self.bitmap.buffer.data, ckey))
