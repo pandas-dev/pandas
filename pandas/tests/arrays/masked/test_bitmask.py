@@ -114,10 +114,22 @@ def test_getitem_null_slice():
     result = bma[:]
 
     assert not result.parent
+    assert len(result) == 3
 
     assert result.bytes[0] & 1 == 1
     assert (result.bytes[0] >> 1) & 1 == 0
     assert (result.bytes[0] >> 2) & 1 == 1
+
+
+def test_getitem_monotonic_slice():
+    bma = BitmaskArray(np.array([True, False, True]))
+    result = bma[slice(2)]
+
+    assert not result.parent
+    assert len(result) == 2
+
+    assert result.bytes[0] & 1 == 1
+    assert (result.bytes[0] >> 1) & 1 == 0
 
 
 @pytest.mark.parametrize(

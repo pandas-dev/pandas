@@ -7,6 +7,7 @@ import numpy as np
 
 cimport numpy as cnp
 from cpython cimport PyErr_Clear
+from cpython.slice cimport PySlice_Unpack
 from libc.stdlib cimport (
     free,
     malloc,
@@ -468,6 +469,11 @@ cdef class BitmaskArray:
 
     def __getitem__(self, key):
         cdef Py_ssize_t ckey
+        cdef Py_ssize_t start, stop, step
+        cdef BitmaskArray bma
+        cdef ArrowBitmap bitmap
+        cdef int64_t nbytes
+        cdef BitmaskArray self_ = self
         # to_numpy can be expensive, so try to avoid for simple cases
         if isinstance(key, int) and self.ndim == 1:
             ckey = key
@@ -475,6 +481,28 @@ cdef class BitmaskArray:
                 return bool(ArrowBitGet(self.bitmap.buffer.data, ckey))
         elif is_null_slice(key):
             return self.copy()
+        elif isinstance(key, slice):
+            # fastpath for slices that start at 0 and step 1 at a time
+            # towards a positive number.
+            # TODO: upstream generic ArrowBitsGet function in nanoarrow
+            PySlice_Unpack(key, &start, &stop, &step)
+            if start == 0 and stop > 0 and step == 1:
+                bma = BitmaskArray.__new__(BitmaskArray)
+                ArrowBitmapInit(&bitmap)
+                nbytes = (stop + 7) // 8
+                ArrowBitmapReserve(&bitmap, nbytes)
+                memcpy(bitmap.buffer.data, self_.bitmap.buffer.data, nbytes)
+                bitmap.buffer.size_bytes = nbytes
+                bitmap.size_bits = stop
+
+                bma.bitmap = bitmap
+                bma.buffer_owner = True
+                bma.ndim = self_.ndim
+                bma.shape = self_.shape
+                bma.strides = self_.strides
+                bma.parent = False
+
+                return bma
 
         return self.to_numpy()[key]
 
