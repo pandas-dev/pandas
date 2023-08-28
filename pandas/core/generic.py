@@ -7079,6 +7079,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         See Also
         --------
+        ffill : Fill values by propagating the last valid observation to next valid.
+        bfill : Fill values by using the next valid observation to fill the gap.
         interpolate : Fill NaN values using interpolation.
         reindex : Conform object to new index.
         asfreq : Convert TimeSeries to specified frequency.
@@ -7338,7 +7340,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @final
-    @doc(klass=_shared_doc_kwargs["klass"])
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
+    )
     def ffill(
         self,
         *,
@@ -7349,6 +7354,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     ) -> Self | None:
         """
         Fill NA/NaN values by propagating the last valid observation to next valid.
+
+        Parameters
+        ----------
+        axis : {axes_single_arg}
+            Axis along which to fill missing values. For `Series`
+            this parameter is unused and defaults to 0.
+        inplace : bool, default False
+            If True, fill in-place. Note: this will modify any
+            other views on this object (e.g., a no-copy slice for a column in a
+            DataFrame).
+        limit : int, default None
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled. Must be greater than 0 if not None.
+        downcast : dict, default is None
+            A dict of item->dtype of what to downcast if possible,
+            or the string 'infer' which will try to downcast to an appropriate
+            equal type (e.g. float64 to int64 if possible).
 
         Returns
         -------
@@ -7417,7 +7443,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
-        Synonym for :meth:`DataFrame.fillna` with ``method='ffill'``.
+        Fill NA/NaN values by propagating the last valid observation to next valid.
 
         .. deprecated:: 2.0
 
@@ -7474,7 +7500,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ...
 
     @final
-    @doc(klass=_shared_doc_kwargs["klass"])
+    @doc(
+        klass=_shared_doc_kwargs["klass"],
+        axes_single_arg=_shared_doc_kwargs["axes_single_arg"],
+    )
     def bfill(
         self,
         *,
@@ -7484,7 +7513,28 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
-        Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
+        Fill NA/NaN values by using the next valid observation to fill the gap.
+
+        Parameters
+        ----------
+        axis : {axes_single_arg}
+            Axis along which to fill missing values. For `Series`
+            this parameter is unused and defaults to 0.
+        inplace : bool, default False
+            If True, fill in-place. Note: this will modify any
+            other views on this object (e.g., a no-copy slice for a column in a
+            DataFrame).
+        limit : int, default None
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled. Must be greater than 0 if not None.
+        downcast : dict, default is None
+            A dict of item->dtype of what to downcast if possible,
+            or the string 'infer' which will try to downcast to an appropriate
+            equal type (e.g. float64 to int64 if possible).
 
         Returns
         -------
@@ -7563,7 +7613,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         downcast: dict | None | lib.NoDefault = lib.no_default,
     ) -> Self | None:
         """
-        Synonym for :meth:`DataFrame.fillna` with ``method='bfill'``.
+        Fill NA/NaN values by using the next valid observation to fill the gap.
 
         .. deprecated:: 2.0
 
