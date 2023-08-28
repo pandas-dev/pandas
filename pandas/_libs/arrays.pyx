@@ -472,7 +472,7 @@ cdef class BitmaskArray:
         cdef Py_ssize_t start, stop, step
         cdef BitmaskArray bma
         cdef ArrowBitmap bitmap
-        cdef int64_t nbytes
+        cdef int64_t nbytes, nbits
         cdef BitmaskArray self_ = self
         # to_numpy can be expensive, so try to avoid for simple cases
         if isinstance(key, int) and self.ndim == 1:
@@ -488,13 +488,15 @@ cdef class BitmaskArray:
             PySlice_Unpack(key, &start, &stop, &step)
             if start == 0 and stop > 0 and step == 1:
                 if stop > self_.bitmap.size_bits:
-                    stop = self_.bitmap.size_bits
+                    nbits = self_.bitmap.size_bits
+                else:
+                    nbits = stop
 
                 nbytes = (stop + 7) // 8
 
                 bma = BitmaskArray.__new__(BitmaskArray)
                 ArrowBitmapInit(&bitmap)
-                ArrowBitmapReserve(&bitmap, nbytes)
+                ArrowBitmapReserve(&bitmap, nbits)
                 memcpy(bitmap.buffer.data, self_.bitmap.buffer.data, nbytes)
                 bitmap.buffer.size_bytes = nbytes
                 bitmap.size_bits = stop
@@ -502,7 +504,7 @@ cdef class BitmaskArray:
                 bma.bitmap = bitmap
                 bma.buffer_owner = True
                 bma.ndim = self_.ndim
-                bma.shape[0] = stop
+                bma.shape[0] = nbits
                 bma.strides = self_.strides
                 bma.parent = False
 
