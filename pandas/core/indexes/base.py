@@ -1395,11 +1395,9 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas.io.formats.format import format_array
 
         values = self._values
-        if is_string_dtype(values.dtype):
-            values = np.asarray(values)
 
-        if is_object_dtype(values.dtype):
-            values = cast(np.ndarray, values)
+        if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
+            values = np.asarray(values)
             values = lib.maybe_convert_objects(values, safe=True)
 
             result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]
