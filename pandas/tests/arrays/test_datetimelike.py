@@ -324,7 +324,12 @@ class SharedTests:
         ):
             arr.searchsorted("foo")
 
-        arr_type = "StringArray" if string_storage == "python" else "ArrowStringArray"
+        if string_storage == "python":
+            arr_type = "StringArray"
+        elif string_storage == "pyarrow":
+            arr_type = "ArrowStringArray"
+        else:
+            arr_type = "ArrowStringArrayNumpySemantics"
 
         with pd.option_context("string_storage", string_storage):
             with pytest.raises(

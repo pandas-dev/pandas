@@ -206,17 +206,7 @@ class TestSeriesConvertDtypes:
         # Test that it is a copy
         copy = series.copy(deep=True)
 
-        if result.notna().sum() > 0 and result.dtype in [
-            "int8",
-            "uint8",
-            "int16",
-            "uint16",
-            "int32",
-            "uint32",
-            "int64",
-            "uint64",
-            "interval[int64, right]",
-        ]:
+        if result.notna().sum() > 0 and result.dtype in ["interval[int64, right]"]:
             with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
                 result[result.notna()] = np.nan
         else:

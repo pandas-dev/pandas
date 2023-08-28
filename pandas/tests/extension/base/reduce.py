@@ -83,6 +83,7 @@ class BaseReduceTests:
         ser = pd.Series(data)
 
         if not self._supports_reduction(ser, op_name):
+            # TODO: the message being checked here isn't actually checking anything
             msg = (
                 "[Cc]annot perform|Categorical is not ordered for operation|"
                 "does not support reduction|"
@@ -101,6 +102,7 @@ class BaseReduceTests:
         ser = pd.Series(data)
 
         if not self._supports_reduction(ser, op_name):
+            # TODO: the message being checked here isn't actually checking anything
             msg = (
                 "[Cc]annot perform|Categorical is not ordered for operation|"
                 "does not support reduction|"
@@ -129,7 +131,8 @@ class BaseReduceTests:
         self.check_reduce_frame(ser, op_name, skipna)
 
 
-# TODO: deprecate BaseNoReduceTests, BaseNumericReduceTests, BaseBooleanReduceTests
+# TODO(3.0): remove BaseNoReduceTests, BaseNumericReduceTests,
+#  BaseBooleanReduceTests
 class BaseNoReduceTests(BaseReduceTests):
     """we don't define any reductions"""
 

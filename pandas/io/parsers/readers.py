@@ -280,11 +280,20 @@ date_parser : Callable, optional
        Use ``date_format`` instead, or read in as ``object`` and then apply
        :func:`~pandas.to_datetime` as-needed.
 date_format : str or dict of column -> format, optional
-   Format to use for parsing dates when used in conjunction with ``parse_dates``.
-   For anything more complex, please read in as ``object`` and then apply
-   :func:`~pandas.to_datetime` as-needed.
+    Format to use for parsing dates when used in conjunction with ``parse_dates``.
+    The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
+    `strftime documentation
+    <https://docs.python.org/3/library/datetime.html
+    #strftime-and-strptime-behavior>`_ for more information on choices, though
+    note that :const:`"%f"` will parse all the way up to nanoseconds.
+    You can also pass:
 
-   .. versionadded:: 2.0.0
+    - "ISO8601", to parse any `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
+        time string (not necessarily in exactly the same format);
+    - "mixed", to infer the format for each element individually. This is risky,
+        and you should probably use it along with `dayfirst`.
+
+    .. versionadded:: 2.0.0
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
 cache_dates : bool, default True
