@@ -505,7 +505,11 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     """
     mask = ma.getmaskarray(data)
     if mask.any():
-        dtype, fill_value = maybe_promote(data.dtype, np.nan)
+        dtype, fill_value = maybe_promote(data.dtype, None)
+        # If array is masked then fill value has to be None
+        # BUG:numpy masked array of dtype=object produces NaN instead of None. #51872
+        if np.isnan(fill_value):
+            fill_value = None
         dtype = cast(np.dtype, dtype)
         data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True

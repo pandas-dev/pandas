@@ -181,6 +181,7 @@ def _assert_match(result_fill_value, expected_fill_value):
         ("uint64", np.iinfo("int16").min - 1, "object"),
         ("uint64", np.iinfo("int32").min - 1, "object"),
         ("uint64", np.iinfo("int64").min - 1, "object"),
+        ("<U1", np.nan, "O"),
     ],
 )
 def test_maybe_promote_int_with_int(dtype, fill_value, expected_dtype):
