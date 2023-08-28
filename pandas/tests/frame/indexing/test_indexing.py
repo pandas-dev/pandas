@@ -337,18 +337,12 @@ class TestDataFrameIndexing:
     def test_setitem2(self):
         # dtype changing GH4204
         df = DataFrame([[0, 0]])
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
-            df.iloc[0] = np.nan
+        df.iloc[0] = np.nan
         expected = DataFrame([[np.nan, np.nan]])
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame([[0, 0]])
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
-            df.loc[0] = np.nan
+        df.loc[0] = np.nan
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_boolean(self, float_frame):
@@ -1579,9 +1573,7 @@ class TestDataFrameIndexingUInt64:
         # With NaN: because uint64 has no NaN element,
         # the column should be cast to object.
         df2 = df.copy()
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
             df2.iloc[1, 1] = pd.NaT
             df2.iloc[1, 2] = pd.NaT
         result = df2["B"]
@@ -1901,19 +1893,19 @@ class TestDeprecatedIndexers:
 class TestSetitemValidation:
     # This is adapted from pandas/tests/arrays/masked/test_indexing.py
     # but checks for warnings instead of errors.
-    def _check_setitem_invalid(self, df, invalid, indexer):
+    def _check_setitem_invalid(self, df, invalid, indexer, warn):
         msg = "Setting an item of incompatible dtype is deprecated"
         msg = re.escape(msg)
 
         orig_df = df.copy()
 
         # iloc
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(warn, match=msg):
             df.iloc[indexer, 0] = invalid
             df = orig_df.copy()
 
         # loc
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(warn, match=msg):
             df.loc[indexer, "a"] = invalid
             df = orig_df.copy()
 
@@ -1934,16 +1926,20 @@ class TestSetitemValidation:
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_bool(self, invalid, indexer):
         df = DataFrame({"a": [True, False, False]}, dtype="bool")
-        self._check_setitem_invalid(df, invalid, indexer)
+        self._check_setitem_invalid(df, invalid, indexer, FutureWarning)
 
     @pytest.mark.parametrize("invalid", _invalid_scalars + [True, 1.5, np.float64(1.5)])
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_int(self, invalid, any_int_numpy_dtype, indexer):
         df = DataFrame({"a": [1, 2, 3]}, dtype=any_int_numpy_dtype)
-        self._check_setitem_invalid(df, invalid, indexer)
+        if isna(invalid) and invalid is not pd.NaT:
+            warn = None
+        else:
+            warn = FutureWarning
+        self._check_setitem_invalid(df, invalid, indexer, warn)
 
     @pytest.mark.parametrize("invalid", _invalid_scalars + [True])
     @pytest.mark.parametrize("indexer", _indexers)
     def test_setitem_validation_scalar_float(self, invalid, float_numpy_dtype, indexer):
         df = DataFrame({"a": [1, 2, None]}, dtype=float_numpy_dtype)
-        self._check_setitem_invalid(df, invalid, indexer)
+        self._check_setitem_invalid(df, invalid, indexer, FutureWarning)
