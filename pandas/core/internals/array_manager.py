@@ -1107,12 +1107,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """Return an empty ArrayManager with index/array of length 0"""
         if axes is None:
             axes = [Index([], dtype=object)]
-        #  error: No overload variant of "array" matches argument types
-        #  "list[<nothing>]", "ExtensionDtype"
-        array: np.ndarray = np.array(  # type: ignore[call-overload]
-            [], dtype=self.dtype
-        )
-        assert False  # is this even tested?
+        array: np.ndarray = np.array([], dtype=self.dtype)
         return type(self)([array], axes)
 
     @classmethod
@@ -1129,7 +1124,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         return self._axes[0]
 
     @property
-    def dtype(self) -> ExtensionDtype:
+    def dtype(self):
         return self.array.dtype
 
     def external_values(self):
