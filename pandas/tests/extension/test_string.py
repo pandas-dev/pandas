@@ -159,8 +159,7 @@ class TestMissing(base.BaseMissingTests):
 class TestReduce(base.BaseReduceTests):
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return (
-            op_name in ["min", "max"]
-            or ser.dtype.storage == "pyarrow_numpy"  # type: ignore[union-attr]
+            ser.dtype.storage == "pyarrow_numpy"  # type: ignore[union-attr]
             and op_name in ("any", "all")
         )
 
