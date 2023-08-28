@@ -4,7 +4,7 @@ Pickle compatibility to pandas version 1.0
 from __future__ import annotations
 
 import contextlib
-import copy
+import copyreg
 import io
 import pickle
 from typing import TYPE_CHECKING
@@ -47,21 +47,6 @@ _class_locations_map = {
 }
 
 
-# our Unpickler sub-class to override methods and some dispatcher
-# functions for compat and uses a non-public class of the pickle module.
-
-
-class Unpickler(pickle.Unpickler):
-    def find_class(self, module, name):
-        # override superclass
-        key = (module, name)
-        module, name = _class_locations_map.get(key, key)
-        return super().find_class(module, name)
-
-
-Unpickler.dispatch = copy.copy(Unpickler.dispatch)
-
-
 def load_reduce(self):
     stack = self.stack
     args = stack.pop()
@@ -87,9 +72,6 @@ def load_reduce(self):
         raise
 
 
-Unpickler.dispatch[pickle.REDUCE[0]] = load_reduce
-
-
 def load_newobj(self) -> None:
     args = self.stack.pop()
     cls = self.stack[-1]
@@ -109,7 +91,16 @@ def load_newobj(self) -> None:
     self.stack[-1] = obj
 
 
-Unpickler.dispatch[pickle.NEWOBJ[0]] = load_newobj
+class Unpickler(pickle.Unpickler):
+    dispatch_table = copyreg.dispatch_table.copy()
+    dispatch_table[pickle.REDUCE[0]] = load_reduce
+    dispatch_table[pickle.NEWOBJ[0]] = load_newobj
+
+    def find_class(self, module, name):
+        # override superclass
+        key = (module, name)
+        module, name = _class_locations_map.get(key, key)
+        return super().find_class(module, name)
 
 
 def load(fh, encoding: str | None = None):

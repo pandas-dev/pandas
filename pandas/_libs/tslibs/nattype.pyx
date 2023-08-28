@@ -80,7 +80,7 @@ cdef _nat_rdivide_op(self, other):
     return NotImplemented
 
 
-def __nat_unpickle(*args):
+def _nat_unpickle(*args):
     # return constant defined in the module
     return c_NaT
 
@@ -387,7 +387,7 @@ class NaTType(_NaT):
         return self.__reduce__()
 
     def __reduce__(self):
-        return (__nat_unpickle, (None, ))
+        return (_nat_unpickle, (None, ))
 
     def __rtruediv__(self, other):
         return _nat_rdivide_op(self, other)
