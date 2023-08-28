@@ -47,7 +47,7 @@ class TestDataFrameShift:
             obj.shift(1, fill_value=1, freq="H")
 
         if frame_or_series is DataFrame:
-            frame_or_series.columns = date_range("1/1/2000", periods=1, freq="H")
+            obj.columns = date_range("1/1/2000", periods=1, freq="H")
             with tm.assert_produces_warning(FutureWarning, match=msg):
                 obj.shift(1, axis=1, fill_value=1, freq="H")
 
@@ -720,8 +720,11 @@ class TestDataFrameShift:
             df.shift(1, freq="H"),
         )
 
-        msg = r"Cannot pass both 'freq' and 'fill_value' to.*"
-        with pytest.raises(ValueError, match=msg):
+        msg = (
+            "Passing a 'freq' together with a 'fill_value' silently ignores the "
+            "fill_value"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             df.shift([1, 2], fill_value=1, freq="H")
 
     def test_shift_with_iterable_check_other_arguments(self):
