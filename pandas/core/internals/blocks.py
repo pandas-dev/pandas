@@ -2008,7 +2008,7 @@ class ExtensionBlock(EABackedBlock):
                     "need to implement this keyword or an exception will be "
                     "raised. In the interim, the keyword is ignored by "
                     f"{type(self.values).__name__}.",
-                    FutureWarning,
+                    DeprecationWarning,
                     stacklevel=find_stack_level(),
                 )
 
