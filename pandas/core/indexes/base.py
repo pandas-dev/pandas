@@ -196,9 +196,9 @@ if TYPE_CHECKING:
     from pandas import (
         CategoricalIndex,
         DataFrame,
-        MultiIndex,  # noqa: TCH004
         Series,
     )
+    from pandas import MultiIndex  # noqa: TCH004
     from pandas.core.arrays import PeriodArray
 
 __all__ = ["Index"]
