@@ -14,10 +14,9 @@ from pandas.core.dtypes.common import (
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.integer import NUMPY_INT_TO_DTYPE
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class Dim2CompatTests(BaseExtensionTests):
+class Dim2CompatTests:
     # Note: these are ONLY for ExtensionArray subclasses that support 2D arrays.
     #  i.e. not for pyarrow-backed EAs.
 
@@ -161,9 +160,9 @@ class Dim2CompatTests(BaseExtensionTests):
         assert arr[0].isna().all()
         assert not arr[1].isna().any()
 
-        result = arr.pad_or_backfill(method=method, limit=None)
+        result = arr._pad_or_backfill(method=method, limit=None)
 
-        expected = data_missing.pad_or_backfill(method=method).repeat(2).reshape(2, 2)
+        expected = data_missing._pad_or_backfill(method=method).repeat(2).reshape(2, 2)
         tm.assert_extension_array_equal(result, expected)
 
         # Reverse so that backfill is not a no-op.
@@ -171,10 +170,10 @@ class Dim2CompatTests(BaseExtensionTests):
         assert not arr2[0].isna().any()
         assert arr2[1].isna().all()
 
-        result2 = arr2.pad_or_backfill(method=method, limit=None)
+        result2 = arr2._pad_or_backfill(method=method, limit=None)
 
         expected2 = (
-            data_missing[::-1].pad_or_backfill(method=method).repeat(2).reshape(2, 2)
+            data_missing[::-1]._pad_or_backfill(method=method).repeat(2).reshape(2, 2)
         )
         tm.assert_extension_array_equal(result2, expected2)
 

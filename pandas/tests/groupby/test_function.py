@@ -1118,7 +1118,7 @@ def test_series_describe_single():
     ts = tm.makeTimeSeries()
     grouped = ts.groupby(lambda x: x.month)
     result = grouped.apply(lambda x: x.describe())
-    expected = grouped.describe().stack()
+    expected = grouped.describe().stack(future_stack=True)
     tm.assert_series_equal(result, expected)
 
 
@@ -1356,6 +1356,29 @@ def test_apply_to_nullable_integer_returns_float(values, function):
     result = groups.agg([function])
     expected.columns = MultiIndex.from_tuples([("b", function)])
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("min_count", [0, 10])
+def test_groupby_sum_mincount_boolean(min_count):
+    b = True
+    a = False
+    na = np.nan
+    dfg = pd.array([b, b, na, na, a, a, b], dtype="boolean")
+
+    df = DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": dfg})
+    result = df.groupby("A").sum(min_count=min_count)
+    if min_count == 0:
+        expected = DataFrame(
+            {"B": pd.array([3, 0, 0], dtype="Int64")},
+            index=Index([1, 2, 3], name="A"),
+        )
+        tm.assert_frame_equal(result, expected)
+    else:
+        expected = DataFrame(
+            {"B": pd.array([pd.NA] * 3, dtype="Int64")},
+            index=Index([1, 2, 3], name="A"),
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 def test_groupby_sum_below_mincount_nullable_integer():

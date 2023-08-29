@@ -26,8 +26,17 @@ def data():
 
 
 @pytest.fixture
-def data_for_twos():
-    """Length-100 array in which all the elements are two."""
+def data_for_twos(dtype):
+    """
+    Length-100 array in which all the elements are two.
+
+    Call pytest.skip in your fixture if the dtype does not support divmod.
+    """
+    if not (dtype._is_numeric or dtype.kind == "m"):
+        # Object-dtypes may want to allow this, but for the most part
+        #  only numeric and timedelta-like dtypes will need to implement this.
+        pytest.skip("Not a numeric dtype")
+
     raise NotImplementedError
 
 
@@ -105,12 +114,6 @@ def na_cmp():
     By default, uses ``operator.is_``
     """
     return operator.is_
-
-
-@pytest.fixture
-def na_value():
-    """The scalar missing value for this type. Default 'None'"""
-    return None
 
 
 @pytest.fixture

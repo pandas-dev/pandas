@@ -95,6 +95,8 @@ def assert_filepath_or_buffer_equals(
     """
     Assertion helper for checking filepath_or_buffer.
     """
+    if encoding is None:
+        encoding = "utf-8"
 
     def _assert_filepath_or_buffer_equals(expected):
         if filepath_or_buffer_id == "string":
@@ -214,10 +216,9 @@ class TestDataFrameFormatting:
                 {
                     "A": np.random.default_rng(2).standard_normal(10),
                     "B": [
-                        tm.rands(
-                            np.random.default_rng(2).integers(max_len - 1, max_len + 1)
-                        )
-                        for i in range(10)
+                        "a"
+                        * np.random.default_rng(2).integers(max_len - 1, max_len + 1)
+                        for _ in range(10)
                     ],
                 }
             )
@@ -323,7 +324,7 @@ class TestDataFrameFormatting:
         index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
         cols = ["\u03c8"]
         df = DataFrame(data, columns=cols, index=index1)
-        assert type(df.__repr__()) == str  # both py2 / 3
+        assert isinstance(df.__repr__(), str)
 
     def test_repr_no_backslash(self):
         with option_context("mode.sim_interactive", True):
@@ -1177,7 +1178,7 @@ class TestDataFrameFormatting:
             20,
         ):
             max_cols = get_option("display.max_columns")
-            df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
+            df = DataFrame([["a" * 25] * (max_cols - 1)] * 10)
             with option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
 
@@ -1203,7 +1204,7 @@ class TestDataFrameFormatting:
     def test_wide_repr_named(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             max_cols = get_option("display.max_columns")
-            df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
+            df = DataFrame([["a" * 25] * (max_cols - 1)] * 10)
             df.index.name = "DataFrame Index"
             with option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
@@ -1220,9 +1221,9 @@ class TestDataFrameFormatting:
 
     def test_wide_repr_multiindex(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
-            midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
+            midx = MultiIndex.from_arrays([["a" * 5] * 10] * 2)
             max_cols = get_option("display.max_columns")
-            df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)), index=midx)
+            df = DataFrame([["a" * 25] * (max_cols - 1)] * 10, index=midx)
             df.index.names = ["Level 0", "Level 1"]
             with option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
@@ -1240,10 +1241,10 @@ class TestDataFrameFormatting:
     def test_wide_repr_multiindex_cols(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             max_cols = get_option("display.max_columns")
-            midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
-            mcols = MultiIndex.from_arrays(tm.rands_array(3, size=(2, max_cols - 1)))
+            midx = MultiIndex.from_arrays([["a" * 5] * 10] * 2)
+            mcols = MultiIndex.from_arrays([["b" * 3] * (max_cols - 1)] * 2)
             df = DataFrame(
-                tm.rands_array(25, (10, max_cols - 1)), index=midx, columns=mcols
+                [["c" * 25] * (max_cols - 1)] * 10, index=midx, columns=mcols
             )
             df.index.names = ["Level 0", "Level 1"]
             with option_context("display.expand_frame_repr", False):
@@ -1259,7 +1260,7 @@ class TestDataFrameFormatting:
     def test_wide_repr_unicode(self):
         with option_context("mode.sim_interactive", True, "display.max_columns", 20):
             max_cols = 20
-            df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
+            df = DataFrame([["a" * 25] * 10] * (max_cols - 1))
             with option_context("display.expand_frame_repr", False):
                 rep_str = repr(df)
             with option_context("display.expand_frame_repr", True):
@@ -1897,11 +1898,11 @@ c  10  11  12  13  14\
 
     def test_repr_html_wide(self):
         max_cols = 20
-        df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
+        df = DataFrame([["a" * 25] * (max_cols - 1)] * 10)
         with option_context("display.max_rows", 60, "display.max_columns", 20):
             assert "..." not in df._repr_html_()
 
-        wide_df = DataFrame(tm.rands_array(25, size=(10, max_cols + 1)))
+        wide_df = DataFrame([["a" * 25] * (max_cols + 1)] * 10)
         with option_context("display.max_rows", 60, "display.max_columns", 20):
             assert "..." in wide_df._repr_html_()
 
@@ -1911,14 +1912,14 @@ c  10  11  12  13  14\
         mcols = MultiIndex.from_product(
             [np.arange(max_cols // 2), ["foo", "bar"]], names=["first", "second"]
         )
-        df = DataFrame(tm.rands_array(25, size=(10, len(mcols))), columns=mcols)
+        df = DataFrame([["a" * 25] * len(mcols)] * 10, columns=mcols)
         reg_repr = df._repr_html_()
         assert "..." not in reg_repr
 
         mcols = MultiIndex.from_product(
             (np.arange(1 + (max_cols // 2)), ["foo", "bar"]), names=["first", "second"]
         )
-        df = DataFrame(tm.rands_array(25, size=(10, len(mcols))), columns=mcols)
+        df = DataFrame([["a" * 25] * len(mcols)] * 10, columns=mcols)
         with option_context("display.max_rows", 60, "display.max_columns", 20):
             assert "..." in df._repr_html_()
 
@@ -3290,7 +3291,7 @@ class TestDatetime64Formatter:
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:00.000004"
 
-        x = Series(date_range("20130101 09:00:00", periods=5, freq="N"))
+        x = Series(date_range("20130101 09:00:00", periods=5, freq="ns"))
         x.iloc[1] = np.nan
         result = fmt.Datetime64Formatter(x).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00.000000000"
@@ -3319,6 +3320,14 @@ class TestDatetime64Formatter:
         result = formatter.get_result()
         assert result == ["10:10", "12:12"]
 
+    def test_datetime64formatter_tz_ms(self):
+        x = Series(
+            np.array(["2999-01-01", "2999-01-02", "NaT"], dtype="datetime64[ms]")
+        ).dt.tz_localize("US/Pacific")
+        result = fmt.Datetime64TZFormatter(x).get_result()
+        assert result[0].strip() == "2999-01-01 00:00:00-08:00"
+        assert result[1].strip() == "2999-01-02 00:00:00-08:00"
+
 
 class TestNaTFormatting:
     def test_repr(self):
@@ -3341,7 +3350,7 @@ class TestPeriodIndexFormat:
         assert per.strftime(None)[1] is np.nan  # ...except for NaTs
 
         # Same test with nanoseconds freq
-        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
         formatted = per.format()
         assert (formatted == per.strftime(None)).all()
         assert formatted[0] == "2003-01-01 12:01:01.123456789"
@@ -3351,19 +3360,19 @@ class TestPeriodIndexFormat:
         # GH#46252 custom formatting directives %l (ms) and %u (us)
 
         # 3 digits
-        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
+        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="ms")
         formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123000 ns=123000000)"
         assert formatted[1] == "03 12:01:01 (ms=124 us=124000 ns=124000000)"
 
         # 6 digits
-        per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
+        per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="us")
         formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456000)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123457 ns=123457000)"
 
         # 9 digits
-        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
         formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456789)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123456 ns=123456790)"

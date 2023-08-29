@@ -160,7 +160,7 @@ class TestReaders:
             "ods": {"foo": "abcd"},
         }
 
-        if read_ext[1:] == "xls" or read_ext[1:] == "xlsb":
+        if read_ext[1:] in {"xls", "xlsb"}:
             msg = re.escape(r"open_workbook() got an unexpected keyword argument 'foo'")
         elif read_ext[1:] == "ods":
             msg = re.escape(r"load() got an unexpected keyword argument 'foo'")
@@ -591,7 +591,7 @@ class TestReaders:
             }
         )
         with tm.ensure_clean(read_ext) as file_path:
-            df.to_excel(file_path, "test", index=False)
+            df.to_excel(file_path, sheet_name="test", index=False)
             result = pd.read_excel(
                 file_path, sheet_name="test", dtype_backend=dtype_backend
             )
@@ -623,7 +623,7 @@ class TestReaders:
 
         df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
         with tm.ensure_clean(read_ext) as file_path:
-            df.to_excel(file_path, "test", index=False)
+            df.to_excel(file_path, sheet_name="test", index=False)
             result = pd.read_excel(
                 file_path,
                 sheet_name="test",
@@ -632,13 +632,12 @@ class TestReaders:
             )
         tm.assert_frame_equal(result, df)
 
-    @td.skip_if_no("pyarrow")
     def test_dtype_backend_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
-        import pyarrow as pa
+        pa = pytest.importorskip("pyarrow")
 
         with pd.option_context("mode.string_storage", string_storage):
             df = DataFrame(
@@ -648,7 +647,7 @@ class TestReaders:
                 }
             )
             with tm.ensure_clean(read_ext) as file_path:
-                df.to_excel(file_path, "test", index=False)
+                df.to_excel(file_path, sheet_name="test", index=False)
                 result = pd.read_excel(
                     file_path, sheet_name="test", dtype_backend="numpy_nullable"
                 )

@@ -360,16 +360,16 @@ def test_agg_multiple_functions_same_name():
     # GH 30880
     df = DataFrame(
         np.random.default_rng(2).standard_normal((1000, 3)),
-        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        index=pd.date_range("1/1/2012", freq="s", periods=1000),
         columns=["A", "B", "C"],
     )
-    result = df.resample("3T").agg(
+    result = df.resample("3min").agg(
         {"A": [partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
     )
-    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
+    expected_index = pd.date_range("1/1/2012", freq="3min", periods=6)
     expected_columns = MultiIndex.from_tuples([("A", "quantile"), ("A", "quantile")])
     expected_values = np.array(
-        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+        [df.resample("3min").A.quantile(q=q).values for q in [0.9999, 0.1111]]
     ).T
     expected = DataFrame(
         expected_values, columns=expected_columns, index=expected_index
@@ -382,13 +382,13 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
     # ohlc expands dimensions, so different test to the above is required.
     df = DataFrame(
         np.random.default_rng(2).standard_normal((1000, 3)),
-        index=pd.date_range("1/1/2012", freq="S", periods=1000, name="dti"),
+        index=pd.date_range("1/1/2012", freq="s", periods=1000, name="dti"),
         columns=Index(["A", "B", "C"], name="alpha"),
     )
-    result = df.resample("3T").agg(
+    result = df.resample("3min").agg(
         {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
     )
-    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6, name="dti")
+    expected_index = pd.date_range("1/1/2012", freq="3min", periods=6, name="dti")
     expected_columns = MultiIndex.from_tuples(
         [
             ("A", "ohlc", "open"),
@@ -401,9 +401,11 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
         names=["alpha", None, None],
     )
     non_ohlc_expected_values = np.array(
-        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+        [df.resample("3min").A.quantile(q=q).values for q in [0.9999, 0.1111]]
     ).T
-    expected_values = np.hstack([df.resample("3T").A.ohlc(), non_ohlc_expected_values])
+    expected_values = np.hstack(
+        [df.resample("3min").A.ohlc(), non_ohlc_expected_values]
+    )
     expected = DataFrame(
         expected_values, columns=expected_columns, index=expected_index
     )
@@ -1605,4 +1607,29 @@ def test_agg_with_as_index_false_with_list():
         data=[[0, 2, 4], [0, 3, 5], [1, 3, 6]],
         columns=MultiIndex.from_tuples([("a1", ""), ("a2", ""), ("b", "sum")]),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
+    # GH#41720
+    expected = DataFrame(
+        {
+            "td": {
+                0: pd.Timedelta("0 days 01:00:00"),
+                1: pd.Timedelta("0 days 01:15:00"),
+                2: pd.Timedelta("0 days 01:15:00"),
+            }
+        }
+    )
+    df = DataFrame(
+        {
+            "td": Series(
+                ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
+                dtype="timedelta64[ns]",
+            ),
+            "grps": ["a", "a", "b"],
+        }
+    )
+    gb = df.groupby("grps")
+    result = gb.agg(td=("td", "cumsum"))
     tm.assert_frame_equal(result, expected)

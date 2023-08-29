@@ -1,5 +1,3 @@
-import warnings
-
 import dateutil.tz
 from dateutil.tz import tzlocal
 import pytest
@@ -93,16 +91,10 @@ class TestToPeriod:
             freq="5min",
         )
 
-        with tm.assert_produces_warning(None):
-            # Using simple filter because we are not checking for the warning here
-            warnings.simplefilter("ignore", UserWarning)
-
+        with tm.assert_produces_warning(UserWarning):
             pi1 = rng.to_period("5min")
 
-        with tm.assert_produces_warning(None):
-            # Using simple filter because we are not checking for the warning here
-            warnings.simplefilter("ignore", UserWarning)
-
+        with tm.assert_produces_warning(UserWarning):
             pi2 = rng.to_period()
 
         tm.assert_index_equal(pi1, pi2)
@@ -127,10 +119,10 @@ class TestToPeriod:
 
         with tm.assert_produces_warning(UserWarning):
             # warning that timezone info will be lost
-            period = index.to_period(freq="L")
+            period = index.to_period(freq="ms")
         assert 2 == len(period)
-        assert period[0] == Period("2007-01-01 10:11:12.123Z", "L")
-        assert period[1] == Period("2007-01-01 10:11:13.789Z", "L")
+        assert period[0] == Period("2007-01-01 10:11:12.123Z", "ms")
+        assert period[1] == Period("2007-01-01 10:11:13.789Z", "ms")
 
     def test_to_period_microsecond(self):
         index = DatetimeIndex(
@@ -142,10 +134,10 @@ class TestToPeriod:
 
         with tm.assert_produces_warning(UserWarning):
             # warning that timezone info will be lost
-            period = index.to_period(freq="U")
+            period = index.to_period(freq="us")
         assert 2 == len(period)
-        assert period[0] == Period("2007-01-01 10:11:12.123456Z", "U")
-        assert period[1] == Period("2007-01-01 10:11:13.789123Z", "U")
+        assert period[0] == Period("2007-01-01 10:11:12.123456Z", "us")
+        assert period[1] == Period("2007-01-01 10:11:13.789123Z", "us")
 
     @pytest.mark.parametrize(
         "tz",

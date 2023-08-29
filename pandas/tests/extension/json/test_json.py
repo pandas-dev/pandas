@@ -53,11 +53,6 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def na_value(dtype):
-    return dtype.na_value
-
-
-@pytest.fixture
 def na_cmp():
     return operator.eq
 
@@ -102,24 +97,24 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
         super().test_from_dtype(data)
 
     @pytest.mark.xfail(reason="RecursionError, GH-33900")
-    def test_series_constructor_no_data_with_index(self, dtype, na_value):
+    def test_series_constructor_no_data_with_index(self, dtype):
         # RecursionError: maximum recursion depth exceeded in comparison
         rec_limit = sys.getrecursionlimit()
         try:
             # Limit to avoid stack overflow on Windows CI
             sys.setrecursionlimit(100)
-            super().test_series_constructor_no_data_with_index(dtype, na_value)
+            super().test_series_constructor_no_data_with_index(dtype)
         finally:
             sys.setrecursionlimit(rec_limit)
 
     @pytest.mark.xfail(reason="RecursionError, GH-33900")
-    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
+    def test_series_constructor_scalar_na_with_index(self, dtype):
         # RecursionError: maximum recursion depth exceeded in comparison
         rec_limit = sys.getrecursionlimit()
         try:
             # Limit to avoid stack overflow on Windows CI
             sys.setrecursionlimit(100)
-            super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+            super().test_series_constructor_scalar_na_with_index(dtype)
         finally:
             sys.setrecursionlimit(rec_limit)
 
@@ -139,7 +134,7 @@ class TestReshaping(BaseJSON, base.BaseReshapingTests):
     @pytest.mark.xfail(reason="Different definitions of NA")
     def test_stack(self):
         """
-        The test does .astype(object).stack(). If we happen to have
+        The test does .astype(object).stack(future_stack=True). If we happen to have
         any missing values in `data`, then we'll end up with different
         rows since we consider `{}` NA, but `.astype(object)` doesn't.
         """
@@ -175,7 +170,7 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
 unhashable = pytest.mark.xfail(reason="Unhashable")
 
 
-class TestReduce(base.BaseNoReduceTests):
+class TestReduce(base.BaseReduceTests):
     pass
 
 
@@ -209,10 +204,6 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_combine_le(self, data_repeated):
         super().test_combine_le(data_repeated)
 
-    @pytest.mark.xfail(reason="combine for JSONArray not supported")
-    def test_combine_add(self, data_repeated):
-        super().test_combine_add(data_repeated)
-
     @pytest.mark.xfail(
         reason="combine for JSONArray not supported - "
         "may pass depending on random data",
@@ -223,19 +214,19 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         super().test_combine_first(data)
 
     @pytest.mark.xfail(reason="broadcasting error")
-    def test_where_series(self, data, na_value):
+    def test_where_series(self, data):
         # Fails with
         # *** ValueError: operands could not be broadcast together
         # with shapes (4,) (4,) (0,)
-        super().test_where_series(data, na_value)
+        super().test_where_series(data)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
         super().test_searchsorted(data_for_sorting)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
-    def test_equals(self, data, na_value, as_series):
-        super().test_equals(data, na_value, as_series)
+    def test_equals(self, data, as_series):
+        super().test_equals(data, as_series)
 
     @pytest.mark.skip("fill-value is interpreted as a dict of values")
     def test_fillna_copy_frame(self, data_missing):
@@ -312,23 +303,13 @@ class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
             request.node.add_marker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
-    def test_add_series_with_extension_array(self, data):
-        ser = pd.Series(data)
-        with pytest.raises(TypeError, match="unsupported"):
-            ser + data
-
-    @pytest.mark.xfail(reason="not implemented")
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        super().test_divmod_series_array()
-
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super()._check_divmod_op(s, op, other, exc=TypeError)
-
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
-    pass
+    def test_compare_array(self, data, comparison_op, request):
+        if comparison_op.__name__ in ["eq", "ne"]:
+            mark = pytest.mark.xfail(reason="Comparison methods not implemented")
+            request.node.add_marker(mark)
+        super().test_compare_array(data, comparison_op)
 
 
 class TestPrinting(BaseJSON, base.BasePrintingTests):

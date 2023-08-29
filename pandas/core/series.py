@@ -39,6 +39,7 @@ from pandas._libs import (
 from pandas._libs.lib import is_range_indexer
 from pandas.compat import PYPY
 from pandas.compat._constants import REF_COUNT
+from pandas.compat._optional import import_optional_dependency
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     ChainedAssignmentError,
@@ -167,6 +168,7 @@ if TYPE_CHECKING:
         DtypeBackend,
         DtypeObj,
         FilePath,
+        Frequency,
         IgnoreRaise,
         IndexKeyFunc,
         IndexLabel,
@@ -898,7 +900,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if isinstance(res_ser._mgr, SingleBlockManager):
             blk = res_ser._mgr._block
             blk.refs = cast("BlockValuesRefs", self._references)
-            blk.refs.add_reference(blk)  # type: ignore[arg-type]
+            blk.refs.add_reference(blk)
         return res_ser.__finalize__(self, method="view")
 
     # ----------------------------------------------------------------------
@@ -956,6 +958,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             arr = arr.view()
             arr.flags.writeable = False
         return arr
+
+    # ----------------------------------------------------------------------
+
+    def __column_consortium_standard__(self, *, api_version: str | None = None) -> Any:
+        """
+        Provide entry point to the Consortium DataFrame Standard API.
+
+        This is developed and maintained outside of pandas.
+        Please report any issues to https://github.com/data-apis/dataframe-api-compat.
+        """
+        dataframe_api_compat = import_optional_dependency("dataframe_api_compat")
+        return (
+            dataframe_api_compat.pandas_standard.convert_to_standard_compliant_column(
+                self, api_version=api_version
+            )
+        )
 
     # ----------------------------------------------------------------------
     # Unary Methods
@@ -1856,7 +1874,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         {examples}
         """
         return self.to_frame().to_markdown(
-            buf, mode, index, storage_options=storage_options, **kwargs
+            buf, mode=mode, index=index, storage_options=storage_options, **kwargs
         )
 
     # ----------------------------------------------------------------------
@@ -2135,7 +2153,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Returns
         -------
-        int or Series (if level specified)
+        int
             Number of non-null values in the Series.
 
         See Also
@@ -3975,6 +3993,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         mask = isna(values)
 
         if mask.any():
+            # TODO(3.0): once this deprecation is enforced we can call
+            #  self.array.argsort directly, which will close GH#43840
             warnings.warn(
                 "The behavior of Series.argsort in the presence of NA values is "
                 "deprecated. In a future version, NA values will be ordered "
@@ -5189,6 +5209,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             show_counts=show_counts,
         )
 
+    # TODO(3.0): this can be removed once GH#33302 deprecation is enforced
     def _replace_single(self, to_replace, method: str, inplace: bool, limit):
         """
         Replaces values in a Series using the fill method specified when no
@@ -5576,7 +5597,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         Empty strings are not considered NA values. ``None`` is considered an
         NA value.
 
-        >>> ser = pd.Series([np.NaN, 2, pd.NaT, '', None, 'I stay'])
+        >>> ser = pd.Series([np.nan, 2, pd.NaT, '', None, 'I stay'])
         >>> ser
         0       NaN
         1         2
@@ -5617,7 +5638,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def to_timestamp(
         self,
-        freq=None,
+        freq: Frequency | None = None,
         how: Literal["s", "e", "start", "end"] = "start",
         copy: bool | None = None,
     ) -> Series:
@@ -5740,7 +5761,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         See Also
         --------
         Series.reindex : Conform Series to new index.
-        Series.set_index : Set Series as DataFrame index.
         Index : The base pandas index type.
 
         Notes
@@ -5933,55 +5953,61 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return op(self, other)
 
     @Appender(ops.make_flex_doc("eq", "series"))
-    def eq(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def eq(
+        self,
+        other,
+        level: Level | None = None,
+        fill_value: float | None = None,
+        axis: Axis = 0,
+    ) -> Series:
         return self._flex_method(
             other, operator.eq, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("ne", "series"))
-    def ne(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def ne(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.ne, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("le", "series"))
-    def le(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def le(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.le, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("lt", "series"))
-    def lt(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def lt(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.lt, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("ge", "series"))
-    def ge(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def ge(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.ge, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("gt", "series"))
-    def gt(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def gt(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.gt, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("add", "series"))
-    def add(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def add(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.add, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("radd", "series"))
-    def radd(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def radd(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, roperator.radd, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("sub", "series"))
-    def sub(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def sub(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.sub, level=level, fill_value=fill_value, axis=axis
         )
@@ -5989,7 +6015,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     subtract = sub
 
     @Appender(ops.make_flex_doc("rsub", "series"))
-    def rsub(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def rsub(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, roperator.rsub, level=level, fill_value=fill_value, axis=axis
         )
@@ -6001,7 +6027,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level: Level | None = None,
         fill_value: float | None = None,
         axis: Axis = 0,
-    ):
+    ) -> Series:
         return self._flex_method(
             other, operator.mul, level=level, fill_value=fill_value, axis=axis
         )
@@ -6009,13 +6035,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     multiply = mul
 
     @Appender(ops.make_flex_doc("rmul", "series"))
-    def rmul(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def rmul(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, roperator.rmul, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("truediv", "series"))
-    def truediv(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def truediv(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.truediv, level=level, fill_value=fill_value, axis=axis
         )
@@ -6024,7 +6050,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     divide = truediv
 
     @Appender(ops.make_flex_doc("rtruediv", "series"))
-    def rtruediv(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def rtruediv(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, roperator.rtruediv, level=level, fill_value=fill_value, axis=axis
         )
@@ -6032,49 +6058,49 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     rdiv = rtruediv
 
     @Appender(ops.make_flex_doc("floordiv", "series"))
-    def floordiv(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def floordiv(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.floordiv, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("rfloordiv", "series"))
-    def rfloordiv(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def rfloordiv(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, roperator.rfloordiv, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("mod", "series"))
-    def mod(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def mod(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.mod, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("rmod", "series"))
-    def rmod(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def rmod(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, roperator.rmod, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("pow", "series"))
-    def pow(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def pow(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, operator.pow, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("rpow", "series"))
-    def rpow(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def rpow(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, roperator.rpow, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("divmod", "series"))
-    def divmod(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def divmod(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, divmod, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("rdivmod", "series"))
-    def rdivmod(self, other, level=None, fill_value=None, axis: Axis = 0):
+    def rdivmod(self, other, level=None, fill_value=None, axis: Axis = 0) -> Series:
         return self._flex_method(
             other, roperator.rdivmod, level=level, fill_value=fill_value, axis=axis
         )

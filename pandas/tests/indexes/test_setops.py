@@ -194,7 +194,7 @@ class TestSetOps:
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_intersection_base(self, index):
         if isinstance(index, CategoricalIndex):
-            return
+            pytest.skip(f"Not relevant for {type(index).__name__}")
 
         first = index[:5]
         second = index[:3]
@@ -280,13 +280,13 @@ class TestSetOps:
     )
     def test_symmetric_difference(self, index):
         if isinstance(index, CategoricalIndex):
-            return
+            pytest.skip(f"Not relevant for {type(index).__name__}")
         if len(index) < 2:
-            return
+            pytest.skip("Too few values for test")
         if index[0] in index[1:] or index[-1] in index[:-1]:
             # index fixture has e.g. an index of bools that does not satisfy this,
             #  another with [0, 0, 1, 1, 2, 2]
-            return
+            pytest.skip("Index values no not satisfy test condition.")
 
         first = index[1:]
         second = index[:-1]
@@ -465,7 +465,7 @@ class TestSetOps:
         # If taking difference of a set and itself, it
         # needs to preserve the type of the index
         if not index.is_unique:
-            return
+            pytest.skip("Not relevant since index is not unique")
         result = index.difference(index, sort=sort)
         expected = index[:0]
         tm.assert_index_equal(result, expected, exact=True)
@@ -488,7 +488,7 @@ class TestSetOps:
         # empty index produces the same index as the difference
         # of an index with itself.  Test for all types
         if not index.is_unique:
-            return
+            pytest.skip("Not relevant because index is not unique")
         inter = index.intersection(index[:0])
         diff = index.difference(index, sort=sort)
         tm.assert_index_equal(inter, diff, exact=True)
@@ -521,7 +521,7 @@ def test_intersection_duplicates_all_indexes(index):
     # GH#38743
     if index.empty:
         # No duplicates in empty indexes
-        return
+        pytest.skip("Not relevant for empty Index")
 
     idx = index
     idx_non_unique = idx[[0, 0, 1, 2]]
@@ -898,4 +898,11 @@ class TestSetOpsUnsorted:
         idx2 = Index([3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
         result = idx.union(idx2)
         expected = Index([1, 2, 3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
+        tm.assert_index_equal(result, expected)
+
+    def test_union_string_array(self, any_string_dtype):
+        idx1 = Index(["a"], dtype=any_string_dtype)
+        idx2 = Index(["b"], dtype=any_string_dtype)
+        result = idx1.union(idx2)
+        expected = Index(["a", "b"], dtype=any_string_dtype)
         tm.assert_index_equal(result, expected)

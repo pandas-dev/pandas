@@ -4,8 +4,6 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas.util._test_decorators import skip_if_no
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -166,9 +164,9 @@ class TestSeriesMisc:
         result = s + 1
         assert result.attrs == {"version": 1}
 
-    @skip_if_no("jinja2")
     def test_inspect_getmembers(self):
         # GH38782
+        pytest.importorskip("jinja2")
         ser = Series(dtype=object)
         msg = "Series._data is deprecated"
         with tm.assert_produces_warning(

@@ -3,10 +3,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseGetitemTests(BaseExtensionTests):
+class BaseGetitemTests:
     """Tests for ExtensionArray.__getitem__."""
 
     def test_iloc_series(self, data):
@@ -149,7 +148,8 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(IndexError, match=msg):
             data[-ub - 1]
 
-    def test_getitem_scalar_na(self, data_missing, na_cmp, na_value):
+    def test_getitem_scalar_na(self, data_missing, na_cmp):
+        na_value = data_missing.dtype.na_value
         result = data_missing[0]
         assert na_cmp(result, na_value)
 
@@ -272,7 +272,7 @@ class BaseGetitemTests(BaseExtensionTests):
         msg = "Cannot index with an integer indexer containing NA values"
         # TODO: this raises KeyError about labels not found (it tries label-based)
 
-        ser = pd.Series(data, index=[tm.rands(4) for _ in range(len(data))])
+        ser = pd.Series(data, index=[chr(100 + i) for i in range(len(data))])
         with pytest.raises(ValueError, match=msg):
             ser[idx]
 
@@ -349,7 +349,8 @@ class BaseGetitemTests(BaseExtensionTests):
         assert result.iloc[1] == data[1]
         assert result.iloc[2] == data[3]
 
-    def test_take(self, data, na_value, na_cmp):
+    def test_take(self, data, na_cmp):
+        na_value = data.dtype.na_value
         result = data.take([0, -1])
         assert result.dtype == data.dtype
         assert result[0] == data[0]
@@ -362,7 +363,8 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(IndexError, match="out of bounds"):
             data.take([len(data) + 1])
 
-    def test_take_empty(self, data, na_value, na_cmp):
+    def test_take_empty(self, data, na_cmp):
+        na_value = data.dtype.na_value
         empty = data[:0]
 
         result = empty.take([-1], allow_fill=True)
@@ -394,7 +396,8 @@ class BaseGetitemTests(BaseExtensionTests):
         expected = arr.take([1, 1])
         tm.assert_extension_array_equal(result, expected)
 
-    def test_take_pandas_style_negative_raises(self, data, na_value):
+    def test_take_pandas_style_negative_raises(self, data):
+        na_value = data.dtype.na_value
         with pytest.raises(ValueError, match=""):
             data.take([0, -2], fill_value=na_value, allow_fill=True)
 
@@ -414,7 +417,8 @@ class BaseGetitemTests(BaseExtensionTests):
         )
         tm.assert_series_equal(result, expected)
 
-    def test_reindex(self, data, na_value):
+    def test_reindex(self, data):
+        na_value = data.dtype.na_value
         s = pd.Series(data)
         result = s.reindex([0, 1, 3])
         expected = pd.Series(data.take([0, 1, 3]), index=[0, 1, 3])
@@ -468,23 +472,3 @@ class BaseGetitemTests(BaseExtensionTests):
 
         with pytest.raises(ValueError, match=msg):
             s.item()
-
-    def test_ellipsis_index(self):
-        # GH42430 1D slices over extension types turn into N-dimensional slices over
-        #  ExtensionArrays
-        class CapturingStringArray(pd.arrays.StringArray):
-            """Extend StringArray to capture arguments to __getitem__"""
-
-            def __getitem__(self, item):
-                self.last_item_arg = item
-                return super().__getitem__(item)
-
-        df = pd.DataFrame(
-            {"col1": CapturingStringArray(np.array(["hello", "world"], dtype=object))}
-        )
-        _ = df.iloc[:1]
-
-        # String comparison because there's no native way to compare slices.
-        # Before the fix for GH42430, last_item_arg would get set to the 2D slice
-        # (Ellipsis, slice(None, 1, None))
-        tm.assert_equal(str(df["col1"].array.last_item_arg), "slice(None, 1, None)")

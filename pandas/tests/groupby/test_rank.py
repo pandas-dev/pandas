@@ -31,8 +31,8 @@ def test_rank_unordered_categorical_typeerror():
 
 
 def test_rank_apply():
-    lev1 = tm.rands_array(10, 100)
-    lev2 = tm.rands_array(10, 130)
+    lev1 = np.array(["a" * 10] * 100, dtype=object)
+    lev2 = np.array(["b" * 10] * 130, dtype=object)
     lab1 = np.random.default_rng(2).integers(0, 100, size=500, dtype=int)
     lab2 = np.random.default_rng(2).integers(0, 130, size=500, dtype=int)
 
@@ -578,7 +578,7 @@ def test_rank_min_int():
 
     result = df.groupby("grp").rank()
     expected = DataFrame(
-        {"int_col": [1.0, 2.0, 1.0], "datetimelike": [np.NaN, 1.0, np.NaN]}
+        {"int_col": [1.0, 2.0, 1.0], "datetimelike": [np.nan, 1.0, np.nan]}
     )
 
     tm.assert_frame_equal(result, expected)

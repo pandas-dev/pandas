@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import time
+import math
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -13,13 +14,15 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.excel._base import BaseExcelReader
 
 if TYPE_CHECKING:
+    from xlrd import Book
+
     from pandas._typing import (
         Scalar,
         StorageOptions,
     )
 
 
-class XlrdReader(BaseExcelReader):
+class XlrdReader(BaseExcelReader["Book"]):
     @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
@@ -47,12 +50,12 @@ class XlrdReader(BaseExcelReader):
         )
 
     @property
-    def _workbook_class(self):
+    def _workbook_class(self) -> type[Book]:
         from xlrd import Book
 
         return Book
 
-    def load_workbook(self, filepath_or_buffer, engine_kwargs):
+    def load_workbook(self, filepath_or_buffer, engine_kwargs) -> Book:
         from xlrd import open_workbook
 
         if hasattr(filepath_or_buffer, "read"):
@@ -118,9 +121,11 @@ class XlrdReader(BaseExcelReader):
             elif cell_typ == XL_CELL_NUMBER:
                 # GH5394 - Excel 'numbers' are always floats
                 # it's a minimal perf hit and less surprising
-                val = int(cell_contents)
-                if val == cell_contents:
-                    cell_contents = val
+                if math.isfinite(cell_contents):
+                    # GH54564 - don't attempt to convert NaN/Inf
+                    val = int(cell_contents)
+                    if val == cell_contents:
+                        cell_contents = val
             return cell_contents
 
         data = []

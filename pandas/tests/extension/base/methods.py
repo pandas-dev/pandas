@@ -12,10 +12,9 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseMethodsTests(BaseExtensionTests):
+class BaseMethodsTests:
     """Various Series and DataFrame methods."""
 
     def test_hash_pandas_object(self, data):
@@ -71,6 +70,9 @@ class BaseMethodsTests(BaseExtensionTests):
         ):
             # TODO: avoid special-casing
             expected = expected.astype("double[pyarrow]")
+        elif getattr(data.dtype, "storage", "") == "pyarrow_numpy":
+            # TODO: avoid special-casing
+            expected = expected.astype("float64")
         elif na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")
@@ -95,9 +97,9 @@ class BaseMethodsTests(BaseExtensionTests):
         assert isinstance(result, pd.Series)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
-    def test_map(self, data, na_action):
-        result = data.map(lambda x: x, na_action=na_action)
-        expected = data.to_numpy()
+    def test_map(self, data_missing, na_action):
+        result = data_missing.map(lambda x: x, na_action=na_action)
+        expected = data_missing.to_numpy()
         tm.assert_numpy_array_equal(result, expected)
 
     def test_argsort(self, data_for_sorting):
@@ -119,7 +121,7 @@ class BaseMethodsTests(BaseExtensionTests):
         expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
         tm.assert_series_equal(result, expected)
 
-    def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
+    def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
         # GH 24382
         is_bool = data_for_sorting.dtype._is_boolean
 
@@ -152,9 +154,10 @@ class BaseMethodsTests(BaseExtensionTests):
             getattr(data[:0], method)()
 
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
-    def test_argmin_argmax_all_na(self, method, data, na_value):
+    def test_argmin_argmax_all_na(self, method, data):
         # all missing with skipna=True is the same as empty
         err_msg = "attempt to get"
+        na_value = data.dtype.na_value
         data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
         with pytest.raises(ValueError, match=err_msg):
             getattr(data_na, method)()
@@ -345,13 +348,24 @@ class BaseMethodsTests(BaseExtensionTests):
         orig_data1, orig_data2 = data_repeated(2)
         s1 = pd.Series(orig_data1)
         s2 = pd.Series(orig_data2)
-        result = s1.combine(s2, lambda x1, x2: x1 + x2)
-        with np.errstate(over="ignore"):
-            expected = pd.Series(
-                orig_data1._from_sequence(
-                    [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+
+        # Check if the operation is supported pointwise for our scalars. If not,
+        #  we will expect Series.combine to raise as well.
+        try:
+            with np.errstate(over="ignore"):
+                expected = pd.Series(
+                    orig_data1._from_sequence(
+                        [a + b for (a, b) in zip(list(orig_data1), list(orig_data2))]
+                    )
                 )
-            )
+        except TypeError:
+            # If the operation is not supported pointwise for our scalars,
+            #  then Series.combine should also raise
+            with pytest.raises(TypeError):
+                s1.combine(s2, lambda x1, x2: x1 + x2)
+            return
+
+        result = s1.combine(s2, lambda x1, x2: x1 + x2)
         tm.assert_series_equal(result, expected)
 
         val = s1.iloc[0]
@@ -530,7 +544,8 @@ class BaseMethodsTests(BaseExtensionTests):
         sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
-    def test_where_series(self, data, na_value, as_frame):
+    def test_where_series(self, data, as_frame):
+        na_value = data.dtype.na_value
         assert data[0] != data[1]
         cls = type(data)
         a, b = data[:2]
@@ -657,7 +672,8 @@ class BaseMethodsTests(BaseExtensionTests):
             data.insert(1.5, data[0])
 
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
-    def test_equals(self, data, na_value, as_series, box):
+    def test_equals(self, data, as_series, box):
+        na_value = data.dtype.na_value
         data2 = type(data)._from_sequence([data[0]] * len(data), dtype=data.dtype)
         data_na = type(data)._from_sequence([na_value] * len(data), dtype=data.dtype)
 

@@ -777,7 +777,7 @@ def series_with_multilevel_index() -> Series:
     index = MultiIndex.from_tuples(tuples)
     data = np.random.default_rng(2).standard_normal(8)
     ser = Series(data, index=index)
-    ser.iloc[3] = np.NaN
+    ser.iloc[3] = np.nan
     return ser
 
 
@@ -974,25 +974,9 @@ def ea_scalar_and_dtype(request):
 # ----------------------------------------------------------------
 # Operators & Operations
 # ----------------------------------------------------------------
-_all_arithmetic_operators = [
-    "__add__",
-    "__radd__",
-    "__sub__",
-    "__rsub__",
-    "__mul__",
-    "__rmul__",
-    "__floordiv__",
-    "__rfloordiv__",
-    "__truediv__",
-    "__rtruediv__",
-    "__pow__",
-    "__rpow__",
-    "__mod__",
-    "__rmod__",
-]
 
 
-@pytest.fixture(params=_all_arithmetic_operators)
+@pytest.fixture(params=tm.arithmetic_dunder_methods)
 def all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations.
@@ -1337,6 +1321,7 @@ def nullable_string_dtype(request):
     params=[
         "python",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
+        pytest.param("pyarrow_numpy", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
@@ -1345,6 +1330,7 @@ def string_storage(request):
 
     * 'python'
     * 'pyarrow'
+    * 'pyarrow_numpy'
     """
     return request.param
 
@@ -1396,6 +1382,7 @@ def object_dtype(request):
         "object",
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def any_string_dtype(request):
@@ -1781,8 +1768,8 @@ _any_skipna_inferred_dtype = [
     ("datetime64", [np.datetime64("2013-01-01"), np.nan, np.datetime64("2018-01-01")]),
     ("datetime", [Timestamp("20130101"), np.nan, Timestamp("20180101")]),
     ("date", [date(2013, 1, 1), np.nan, date(2018, 1, 1)]),
-    # The following two dtypes are commented out due to GH 23554
-    # ('complex', [1 + 1j, np.nan, 2 + 2j]),
+    ("complex", [1 + 1j, np.nan, 2 + 2j]),
+    # The following dtype is commented out due to GH 23554
     # ('timedelta64', [np.timedelta64(1, 'D'),
     #                  np.nan, np.timedelta64(2, 'D')]),
     ("timedelta", [timedelta(1), np.nan, timedelta(2)]),
@@ -1868,7 +1855,7 @@ def spmatrix(request):
     """
     Yields scipy sparse matrix classes.
     """
-    from scipy import sparse
+    sparse = pytest.importorskip("scipy.sparse")
 
     return getattr(sparse, request.param + "_matrix")
 
@@ -2012,3 +1999,8 @@ def warsaw(request) -> str:
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
     """
     return request.param
+
+
+@pytest.fixture()
+def arrow_string_storage():
+    return ("pyarrow", "pyarrow_numpy")

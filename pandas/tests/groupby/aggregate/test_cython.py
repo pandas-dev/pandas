@@ -68,7 +68,7 @@ def test_cythonized_aggers(op_name):
     expd = {}
     for (cat1, cat2), group in grouped:
         expd.setdefault(cat1, {})[cat2] = op(group["C"])
-    exp = DataFrame(expd).T.stack(dropna=False)
+    exp = DataFrame(expd).T.stack(future_stack=True)
     exp.index.names = ["A", "B"]
     exp.name = "C"
 
@@ -118,7 +118,7 @@ def test_cython_agg_nothing_to_agg_with_dates():
         {
             "a": np.random.default_rng(2).integers(0, 5, 50),
             "b": ["foo", "bar"] * 25,
-            "dates": pd.date_range("now", periods=50, freq="T"),
+            "dates": pd.date_range("now", periods=50, freq="min"),
         }
     )
     msg = "Cannot use numeric_only=True with SeriesGroupBy.mean and non-numeric dtypes"
