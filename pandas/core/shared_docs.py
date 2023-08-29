@@ -213,7 +213,7 @@ var_name : scalar
     Name to use for the 'variable' column. If None it uses
     ``frame.columns.name`` or 'variable'.
 value_name : scalar, default 'value'
-    Name to use for the 'value' column, cant be an existing column name.
+    Name to use for the 'value' column, can't be an existing column name.
 col_level : int or str, optional
     If columns are a MultiIndex then use this level to melt.
 ignore_index : bool, default True
