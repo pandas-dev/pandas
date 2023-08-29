@@ -979,7 +979,7 @@ class ExtensionArray:
                 "In a future version. arr.pad_or_backfill will be called "
                 "instead. 3rd-party ExtensionArray authors need to implement "
                 "pad_or_backfill.",
-                FutureWarning,
+                DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
             return self.fillna(method=method, limit=limit)
