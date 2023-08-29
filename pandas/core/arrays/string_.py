@@ -112,7 +112,11 @@ class StringDtype(StorageExtensionDtype):
 
     def __init__(self, storage=None) -> None:
         if storage is None:
-            storage = get_option("mode.string_storage")
+            infer_string = get_option("future.infer_string")
+            if infer_string:
+                storage = "pyarrow_numpy"
+            else:
+                storage = get_option("mode.string_storage")
         if storage not in {"python", "pyarrow", "pyarrow_numpy"}:
             raise ValueError(
                 f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
