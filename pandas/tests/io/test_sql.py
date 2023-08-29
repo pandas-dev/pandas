@@ -605,7 +605,7 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
             [timedelta(1)], dtype="month_day_nano_interval[pyarrow]"
         )
         exp_warning = FutureWarning  # warning thrown from pyarrow
-        msg = "is_sparce is deprecated"
+        msg = "is_sparse is deprecated"
     else:
         df["timedelta"] = pd.array([timedelta(1)], dtype="duration[ns][pyarrow]")
         exp_warning = UserWarning
