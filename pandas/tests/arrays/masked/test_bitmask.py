@@ -401,7 +401,7 @@ def test_take1d():
 def test_take1d_raises_not_axis0():
     bma = BitmaskArray(np.array([True, False, True]))
     with pytest.raises(NotImplementedError, match="only implemented for axis=0"):
-        bma.take_1d(np.array([1]), axis=1)
+        bma.take_1d(np.array([1], dtype=np.int64), axis=1)
 
 
 def test_take_1d_raises_empty_indices():
