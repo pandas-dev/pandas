@@ -32,6 +32,7 @@
                     88
                 ],
                 "editor.tabSize": 4,
+                "files.insertFinalNewline": true,
                 // Python tooling:
                 "black-formatter.importStrategy": "fromEnvironment",
                 "flake8.args": [
