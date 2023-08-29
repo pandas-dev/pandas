@@ -72,6 +72,7 @@ def to_dict(
         Return a collections.abc.Mapping object representing the DataFrame.
         The resulting transformation depends on the `orient` parameter.
     """
+
     if not df.columns.is_unique:
         warnings.warn(
             "DataFrame columns are not unique, some columns will be omitted.",
@@ -107,13 +108,13 @@ def to_dict(
 
     elif orient == "list":
         object_dtype_indices_as_set: set[int] = set(box_native_indices)
-        values: np.ndarray = df.values
+
         return into_c(
             (
                 col,
-                list(map(maybe_box_native, values[:, i].tolist()))
+                list(map(maybe_box_native, df[col].values.tolist()))
                 if i in object_dtype_indices_as_set
-                else values[:, i].tolist(),
+                else df[col].values.tolist(),
             )
             for i, col in enumerate(df.columns)
         )
