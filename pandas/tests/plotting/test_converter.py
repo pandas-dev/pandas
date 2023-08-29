@@ -255,7 +255,7 @@ class TestDateTimeConverter:
         result = converter.TimeFormatter(None)(time)
         assert result == format_expected
 
-    @pytest.mark.parametrize("freq", ("B", "L", "S"))
+    @pytest.mark.parametrize("freq", ("B", "ms", "s"))
     def test_dateindex_conversion(self, freq, dtc):
         rtol = 10**-9
         dateindex = tm.makeDateIndex(k=10, freq=freq)

@@ -2077,8 +2077,8 @@ class TestSeriesConstructors:
 
     def test_series_string_inference(self):
         # GH#54430
-        pa = pytest.importorskip("pyarrow")
-        dtype = pd.ArrowDtype(pa.string())
+        pytest.importorskip("pyarrow")
+        dtype = "string[pyarrow_numpy]"
         expected = Series(["a", "b"], dtype=dtype)
         with pd.option_context("future.infer_string", True):
             ser = Series(["a", "b"])
@@ -2092,8 +2092,8 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
     def test_series_string_with_na_inference(self, na_value):
         # GH#54430
-        pa = pytest.importorskip("pyarrow")
-        dtype = pd.ArrowDtype(pa.string())
+        pytest.importorskip("pyarrow")
+        dtype = "string[pyarrow_numpy]"
         expected = Series(["a", na_value], dtype=dtype)
         with pd.option_context("future.infer_string", True):
             ser = Series(["a", na_value])
@@ -2101,11 +2101,27 @@ class TestSeriesConstructors:
 
     def test_series_string_inference_scalar(self):
         # GH#54430
-        pa = pytest.importorskip("pyarrow")
-        expected = Series("a", index=[1], dtype=pd.ArrowDtype(pa.string()))
+        pytest.importorskip("pyarrow")
+        expected = Series("a", index=[1], dtype="string[pyarrow_numpy]")
         with pd.option_context("future.infer_string", True):
             ser = Series("a", index=[1])
         tm.assert_series_equal(ser, expected)
+
+    def test_series_string_inference_array_string_dtype(self):
+        # GH#54496
+        pytest.importorskip("pyarrow")
+        expected = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        with pd.option_context("future.infer_string", True):
+            ser = Series(np.array(["a", "b"]))
+        tm.assert_series_equal(ser, expected)
+
+    def test_series_string_inference_storage_definition(self):
+        # GH#54793
+        pytest.importorskip("pyarrow")
+        expected = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        with pd.option_context("future.infer_string", True):
+            result = Series(["a", "b"], dtype="string")
+        tm.assert_series_equal(result, expected)
 
 
 class TestSeriesConstructorIndexCoercion:
