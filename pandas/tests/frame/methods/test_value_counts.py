@@ -193,13 +193,15 @@ def test_value_counts_categorical_future_warning():
 
 def test_value_counts_with_missing_category():
     # GH-54836
-    raw_cat = pd.Categorical([1, 2, 4], categories=[1, 2, 3, 4])
-    df = pd.DataFrame({"a": [1, 2, 3]}, dtype="category")
-    df["b"] = raw_cat
+    df = pd.DataFrame({"a": pd.Categorical([1, 2, 4], categories=[1, 2, 3, 4])})
     result = df.value_counts()
     expected = pd.Series(
         1,
-        index=pd.MultiIndex.from_frame(df),
+        index=pd.MultiIndex.from_arrays(
+            [pd.CategoricalIndex([1, 2, 4], categories=[1, 2, 3, 4], name="a")]
+        ),
         name="count",
     )
+    # result should include the missing category
+    expected[3] = 0
     tm.assert_series_equal(result, expected)
