@@ -88,9 +88,7 @@ class PandasDataFrameXchg(DataFrameXchg):
         if not isinstance(names, list):
             names = list(names)
 
-        return PandasDataFrameXchg(
-            self._df.loc[:, names], allow_copy=self._allow_copy
-        )
+        return PandasDataFrameXchg(self._df.loc[:, names], allow_copy=self._allow_copy)
 
     def get_chunks(self, n_chunks: int | None = None) -> Iterable[PandasDataFrameXchg]:
         """
