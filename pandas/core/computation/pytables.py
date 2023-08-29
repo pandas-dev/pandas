@@ -418,10 +418,7 @@ class UnaryOp(ops.UnaryOp):
 
 
 class PyTablesExprVisitor(BaseExprVisitor):
-    # error: Incompatible types in assignment (expression has type
-    # "type[pandas.core.computation.pytables.Constant]", base class "BaseExprVisitor"
-    # defined the type as "type[pandas.core.computation.ops.Constant]")
-    const_type: ClassVar[type[Constant]] = Constant  # type: ignore[assignment]
+    const_type: ClassVar[type[ops.Term]] = Constant
     term_type: ClassVar[type[Term]] = Term
 
     def __init__(self, env, engine, parser, **kwargs) -> None:
@@ -434,7 +431,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
                 lambda node, bin_op=bin_op: partial(BinOp, bin_op, **kwargs),
             )
 
-    def visit_UnaryOp(self, node, **kwargs) -> Constant | UnaryOp | None:
+    def visit_UnaryOp(self, node, **kwargs) -> ops.Term | UnaryOp | None:
         if isinstance(node.op, (ast.Not, ast.Invert)):
             return UnaryOp("~", self.visit(node.operand))
         elif isinstance(node.op, ast.USub):
@@ -454,7 +451,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
         )
         return self.visit(cmpr)
 
-    def visit_Subscript(self, node, **kwargs) -> Constant:
+    def visit_Subscript(self, node, **kwargs) -> ops.Term:
         # only allow simple subscripts
 
         value = self.visit(node.value)

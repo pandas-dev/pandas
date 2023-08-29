@@ -350,7 +350,7 @@ class BaseExprVisitor(ast.NodeVisitor):
     preparser : callable
     """
 
-    const_type: ClassVar[type[Constant]] = Constant
+    const_type: ClassVar[type[Term]] = Constant
     term_type: ClassVar[type[Term]] = Term
 
     binary_ops = CMP_OPS_SYMS + BOOL_OPS_SYMS + ARITH_OPS_SYMS
@@ -545,14 +545,14 @@ class BaseExprVisitor(ast.NodeVisitor):
         return self.term_type(node.id, self.env, **kwargs)
 
     # TODO(py314): deprecated since Python 3.8. Remove after Python 3.14 is min
-    def visit_NameConstant(self, node, **kwargs) -> Constant:
+    def visit_NameConstant(self, node, **kwargs) -> Term:
         return self.const_type(node.value, self.env)
 
     # TODO(py314): deprecated since Python 3.8. Remove after Python 3.14 is min
-    def visit_Num(self, node, **kwargs) -> Constant:
+    def visit_Num(self, node, **kwargs) -> Term:
         return self.const_type(node.value, self.env)
 
-    def visit_Constant(self, node, **kwargs) -> Constant:
+    def visit_Constant(self, node, **kwargs) -> Term:
         return self.const_type(node.value, self.env)
 
     # TODO(py314): deprecated since Python 3.8. Remove after Python 3.14 is min
