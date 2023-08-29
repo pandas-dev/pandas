@@ -28,9 +28,15 @@
                 "editor.detectIndentation": false,
                 "editor.formatOnSave": true,
                 "editor.insertSpaces": true,
+                "editor.rulers": [
+                    88
+                ],
                 "editor.tabSize": 4,
                 // Python tooling:
                 "black-formatter.importStrategy": "fromEnvironment",
+                "flake8.args": [
+                    "--max-line-length=88"
+                ],
                 "flake8.importStrategy": "fromEnvironment",
                 "mypy-type-checker.importStrategy": "fromEnvironment",
                 "pylint.importStrategy": "fromEnvironment",
