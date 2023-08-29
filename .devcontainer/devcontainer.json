@@ -24,24 +24,27 @@
                 "GitHub.vscode-github-actions"
             ],
             "settings": {
-                "black-formatter.importStrategy": "fromEnvironment",
-                "editor.tabSize": 4,
-                "editor.insertSpaces": true,
+                // Editor configuration:
                 "editor.detectIndentation": false,
                 "editor.formatOnSave": true,
+                "editor.insertSpaces": true,
+                "editor.tabSize": 4,
+                // Python tooling:
+                "black-formatter.importStrategy": "fromEnvironment",
                 "flake8.importStrategy": "fromEnvironment",
                 "mypy-type-checker.importStrategy": "fromEnvironment",
                 "pylint.importStrategy": "fromEnvironment",
-                "python.defaultInterpreterPath": "/home/pandas-dev/micromamba/envs/test/bin/python",
-                "python.analysis.typeCheckingMode": "basic",
-                "python.terminal.activateEnvironment": false,
-                "python.testing.pytestEnabled": true,
-                "python.testing.pytestArgs": [
-                    "pandas"
-                ],
                 "[python]": {
                     "editor.defaultFormatter": "ms-python.black-formatter"
                 },
+                "python.analysis.typeCheckingMode": "basic",
+                "python.testing.pytestArgs": [
+                    "pandas"
+                ],
+                "python.testing.pytestEnabled": true,
+                // Environment and terminal configuration:
+                "python.defaultInterpreterPath": "/home/pandas-dev/micromamba/envs/test/bin/python",
+                "python.terminal.activateEnvironment": false,
                 "terminal.integrated.defaultProfile.linux": "bash"
             }
         }
