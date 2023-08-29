@@ -161,7 +161,7 @@ class DocBuilder:
         fname = os.path.join(SOURCE_PATH, f"{page}.rst")
         doc = docutils.utils.new_document(
             "<doc>",
-            docutils.core.Publisher(parser=docutils.parsers.rst.Parser).get_settings(),
+            docutils.frontend.get_default_settings(docutils.parsers.rst.Parser),
         )
         with open(fname, encoding="utf-8") as f:
             data = f.read()
