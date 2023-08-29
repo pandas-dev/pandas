@@ -893,8 +893,8 @@ class DataFrame(NDFrame, OpsMixin):
         Parameters
         ----------
         nan_as_null : bool, default False
-            Whether to tell the DataFrame to overwrite null values in the data
-            with ``NaN`` (or ``NaT``).
+            `nan_as_null` is DEPRECATED and has no effect. Please avoid using
+            it; it will be removed in a future release (after Aug 2024).
         allow_copy : bool, default True
             Whether to allow memory copying when exporting. If set to False
             it would cause non-zero-copy exports to fail.
@@ -908,9 +908,6 @@ class DataFrame(NDFrame, OpsMixin):
         -----
         Details on the interchange protocol:
         https://data-apis.org/dataframe-protocol/latest/index.html
-
-        `nan_as_null` currently has no effect; once support for nullable extension
-        dtypes is added, this value should be propagated to columns.
 
         Examples
         --------
@@ -931,7 +928,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         from pandas.core.interchange.dataframe import PandasDataFrameXchg
 
-        return PandasDataFrameXchg(self, nan_as_null, allow_copy)
+        return PandasDataFrameXchg(self, allow_copy=allow_copy)
 
     def __dataframe_consortium_standard__(
         self, *, api_version: str | None = None
