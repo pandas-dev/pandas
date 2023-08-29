@@ -1459,7 +1459,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> df.equals(different_data_type)
         False
         """
-        if not (isinstance(other, type(self)) or isinstance(self, type(other))):
+        if not (isinstance(other, type(self)):
             return False
         other = cast(NDFrame, other)
         return self._mgr.equals(other._mgr)
