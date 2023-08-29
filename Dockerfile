@@ -7,7 +7,7 @@ RUN apt-get install -y build-essential
 # hdf5 needed for pytables installation
 RUN apt-get install -y libhdf5-dev
 
-RUN apt-get install -y vim
+RUN apt-get install -y vim less
 
 ARG USERNAME=pandas-dev
 ARG USER_UID=1000
