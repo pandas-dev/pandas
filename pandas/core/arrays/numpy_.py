@@ -243,7 +243,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
     # Base EA class (and all other EA classes) don't have limit_area keyword
     # This can be removed here as well when the interpolate ffill/bfill method
     # deprecation is enforced
-    def _pad_or_backfill(  # type: ignore[override]
+    def _pad_or_backfill(
         self,
         *,
         method: FillnaOptions,
