@@ -22,6 +22,7 @@ source ~/.mamba-bashrc
 
 if [[ $(git tag | wc -c) -eq 0 ]]
 then
+    echo -e '\n\nERROR:'
     echo Your repository has been cloned without tags.
     echo To fix this, add the original pandas GitHub repository as an upstream
     echo reference, e.g., via the following:
@@ -31,6 +32,8 @@ then
     echo to get the main repository\'s tags, and optionally run
     echo git push --tags
     echo to upload the tags to your GitHub fork.
+    echo
+    echo Finally, rebuild the devcontainer.
     exit 1
 fi
 
