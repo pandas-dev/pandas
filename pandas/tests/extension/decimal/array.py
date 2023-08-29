@@ -285,7 +285,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return value_counts(self.to_numpy(), dropna=dropna)
 
     # We override fillna here to simulate a 3rd party EA that has done so. This
-    #  lets us test the deprecation telling authors to implement pad_or_backfill
+    #  lets us test the deprecation telling authors to implement _pad_or_backfill
     # Simulate a 3rd-party EA that has not yet updated to include a "copy"
     #  keyword in its fillna method.
     # error: Signature of "fillna" incompatible with supertype "ExtensionArray"

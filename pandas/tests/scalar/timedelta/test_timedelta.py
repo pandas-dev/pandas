@@ -511,7 +511,6 @@ class TestTimedeltas:
                 "seconds",
                 "sec",
                 "second",
-                "S",
                 "Seconds",
                 "Sec",
                 "Second",
@@ -576,28 +575,35 @@ class TestTimedeltas:
             dtype="m8[ns]",
         )
         # TODO(2.0): the desired output dtype may have non-nano resolution
-        result = to_timedelta(wrapper(range(5)), unit=unit)
-        tm.assert_index_equal(result, expected)
-        result = TimedeltaIndex(wrapper(range(5)), unit=unit)
-        tm.assert_index_equal(result, expected)
+        msg = f"'{unit}' is deprecated and will be removed in a future version."
 
-        str_repr = [f"{x}{unit}" for x in np.arange(5)]
-        result = to_timedelta(wrapper(str_repr))
-        tm.assert_index_equal(result, expected)
-        result = to_timedelta(wrapper(str_repr))
-        tm.assert_index_equal(result, expected)
+        if (unit, np_unit) in (("u", "us"), ("U", "us"), ("n", "ns"), ("N", "ns")):
+            warn = FutureWarning
+        else:
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
+            result = to_timedelta(wrapper(range(5)), unit=unit)
+            tm.assert_index_equal(result, expected)
+            result = TimedeltaIndex(wrapper(range(5)), unit=unit)
+            tm.assert_index_equal(result, expected)
 
-        # scalar
-        expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
-        result = to_timedelta(2, unit=unit)
-        assert result == expected
-        result = Timedelta(2, unit=unit)
-        assert result == expected
+            str_repr = [f"{x}{unit}" for x in np.arange(5)]
+            result = to_timedelta(wrapper(str_repr))
+            tm.assert_index_equal(result, expected)
+            result = to_timedelta(wrapper(str_repr))
+            tm.assert_index_equal(result, expected)
 
-        result = to_timedelta(f"2{unit}")
-        assert result == expected
-        result = Timedelta(f"2{unit}")
-        assert result == expected
+            # scalar
+            expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
+            result = to_timedelta(2, unit=unit)
+            assert result == expected
+            result = Timedelta(2, unit=unit)
+            assert result == expected
+
+            result = to_timedelta(f"2{unit}")
+            assert result == expected
+            result = Timedelta(f"2{unit}")
+            assert result == expected
 
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
@@ -647,25 +653,25 @@ class TestTimedeltas:
         [
             # This first case has s1, s2 being the same as t1,t2 below
             (
-                "N",
+                "ns",
                 Timedelta("1 days 02:34:56.789123456"),
                 Timedelta("-1 days 02:34:56.789123456"),
             ),
             (
-                "U",
+                "us",
                 Timedelta("1 days 02:34:56.789123000"),
                 Timedelta("-1 days 02:34:56.789123000"),
             ),
             (
-                "L",
+                "ms",
                 Timedelta("1 days 02:34:56.789000000"),
                 Timedelta("-1 days 02:34:56.789000000"),
             ),
-            ("S", Timedelta("1 days 02:34:57"), Timedelta("-1 days 02:34:57")),
-            ("2S", Timedelta("1 days 02:34:56"), Timedelta("-1 days 02:34:56")),
-            ("5S", Timedelta("1 days 02:34:55"), Timedelta("-1 days 02:34:55")),
-            ("T", Timedelta("1 days 02:35:00"), Timedelta("-1 days 02:35:00")),
-            ("12T", Timedelta("1 days 02:36:00"), Timedelta("-1 days 02:36:00")),
+            ("s", Timedelta("1 days 02:34:57"), Timedelta("-1 days 02:34:57")),
+            ("2s", Timedelta("1 days 02:34:56"), Timedelta("-1 days 02:34:56")),
+            ("5s", Timedelta("1 days 02:34:55"), Timedelta("-1 days 02:34:55")),
+            ("min", Timedelta("1 days 02:35:00"), Timedelta("-1 days 02:35:00")),
+            ("12min", Timedelta("1 days 02:36:00"), Timedelta("-1 days 02:36:00")),
             ("H", Timedelta("1 days 03:00:00"), Timedelta("-1 days 03:00:00")),
             ("d", Timedelta("1 days"), Timedelta("-1 days")),
         ],
@@ -976,21 +982,21 @@ class TestTimedeltas:
 
     def test_total_seconds_precision(self):
         # GH 19458
-        assert Timedelta("30S").total_seconds() == 30.0
+        assert Timedelta("30s").total_seconds() == 30.0
         assert Timedelta("0").total_seconds() == 0.0
-        assert Timedelta("-2S").total_seconds() == -2.0
-        assert Timedelta("5.324S").total_seconds() == 5.324
-        assert (Timedelta("30S").total_seconds() - 30.0) < 1e-20
-        assert (30.0 - Timedelta("30S").total_seconds()) < 1e-20
+        assert Timedelta("-2s").total_seconds() == -2.0
+        assert Timedelta("5.324s").total_seconds() == 5.324
+        assert (Timedelta("30s").total_seconds() - 30.0) < 1e-20
+        assert (30.0 - Timedelta("30s").total_seconds()) < 1e-20
 
     def test_resolution_string(self):
         assert Timedelta(days=1).resolution_string == "D"
         assert Timedelta(days=1, hours=6).resolution_string == "H"
-        assert Timedelta(days=1, minutes=6).resolution_string == "T"
-        assert Timedelta(days=1, seconds=6).resolution_string == "S"
-        assert Timedelta(days=1, milliseconds=6).resolution_string == "L"
-        assert Timedelta(days=1, microseconds=6).resolution_string == "U"
-        assert Timedelta(days=1, nanoseconds=6).resolution_string == "N"
+        assert Timedelta(days=1, minutes=6).resolution_string == "min"
+        assert Timedelta(days=1, seconds=6).resolution_string == "s"
+        assert Timedelta(days=1, milliseconds=6).resolution_string == "ms"
+        assert Timedelta(days=1, microseconds=6).resolution_string == "us"
+        assert Timedelta(days=1, nanoseconds=6).resolution_string == "ns"
 
     def test_resolution_deprecated(self):
         # GH#21344
@@ -1007,8 +1013,8 @@ class TestTimedeltas:
 @pytest.mark.parametrize(
     "value, expected",
     [
-        (Timedelta("10S"), True),
-        (Timedelta("-10S"), True),
+        (Timedelta("10s"), True),
+        (Timedelta("-10s"), True),
         (Timedelta(10, unit="ns"), True),
         (Timedelta(0, unit="ns"), False),
         (Timedelta(-10, unit="ns"), True),
@@ -1032,3 +1038,23 @@ def test_timedelta_attribute_precision():
     result += td.nanoseconds
     expected = td._value
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "unit,unit_depr",
+    [
+        ("min", "T"),
+        ("s", "S"),
+        ("ms", "L"),
+        ("ns", "N"),
+        ("us", "U"),
+    ],
+)
+def test_units_t_l_u_n_deprecated(unit, unit_depr):
+    # GH 52536
+    msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
+
+    expected = Timedelta(1, unit=unit)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = Timedelta(1, unit=unit_depr)
+    tm.assert_equal(result, expected)
