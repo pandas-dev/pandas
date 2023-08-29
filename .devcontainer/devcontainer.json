@@ -29,17 +29,8 @@
                 "editor.insertSpaces": true,
                 "editor.detectIndentation": false,
                 "editor.formatOnSave": true,
-                //"extensions.autoCheckUpdates": false,
-                //"extensions.autoUpdate": false,
                 "terminal.integrated.defaultProfile.linux": "bash",
-                //"python.condaPath": "/home/pandas-dev/micromamba-bin/micromamba",
                 "python.defaultInterpreterPath": "/home/pandas-dev/micromamba/envs/test/bin/python",
-                //"python.formatting.provider": "none", // Taken care of by ms-python.black-formatter, as per current best practice
-                //"python.formatting.provider": "black",
-                //"python.linting.enabled": true,
-                //"python.linting.flake8Enabled": true,
-                //"python.linting.pylintEnabled": false,
-                //"python.linting.mypyEnabled": true,
                 "python.analysis.typeCheckingMode": "basic",
                 "python.testing.pytestEnabled": true,
                 "python.testing.pytestArgs": [
