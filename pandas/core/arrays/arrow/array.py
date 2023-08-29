@@ -931,7 +931,7 @@ class ArrowExtensionArray(
             # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
-        if limit is not None:
+        if limit is None:
             method = missing.clean_fill_method(method)
             try:
                 if method == "pad":
