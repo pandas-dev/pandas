@@ -341,7 +341,7 @@ def lexsort_indexer(
     elif orders is None:
         orders = [True] * len(keys)
 
-    keys = [ensure_key_mapped(k, key) for k in keys]
+    keys = (ensure_key_mapped(k, key) for k in keys)
     labels = []
 
     for k, order in zip(keys, orders):
