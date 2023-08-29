@@ -1047,16 +1047,6 @@ def test_where_dt64_2d():
     _check_where_equivalences(df, mask, other, expected)
 
 
-def test_where_producing_ea_cond_for_np_dtype():
-    # GH#44014
-    df = DataFrame({"a": Series([1, pd.NA, 2], dtype="Int64"), "b": [1, 2, 3]})
-    result = df.where(lambda x: x.apply(lambda y: y > 1, axis=1))
-    expected = DataFrame(
-        {"a": Series([pd.NA, pd.NA, 2], dtype="Int64"), "b": [np.nan, 2, 3]}
-    )
-    tm.assert_frame_equal(result, expected)
-
-
 @pytest.mark.parametrize(
     "replacement", [0.001, True, "snake", None, datetime(2022, 5, 4)]
 )
@@ -1079,13 +1069,10 @@ def test_where_inplace_no_other():
 
 
 def test_where_with_na():
-    # See GH #52955, if cond is NA, propagate in where
+    # GH#52955
     df = DataFrame([[1, pd.NA], [pd.NA, 2]], dtype=Int64Dtype())
+    msg = "The condition array cannot contain NA values"
 
-    result1 = df.where(df % 2 == 1, 0)
-    expected1 = DataFrame([[1, pd.NA], [pd.NA, 0]], dtype=Int64Dtype())
-    tm.assert_frame_equal(result1, expected1)
-
-    result2 = df.where(df[0] % 2 == 1, 0)
-    expected2 = DataFrame([[1, pd.NA], [pd.NA, 2]], dtype=Int64Dtype())
-    tm.assert_frame_equal(result2, expected2)
+    for cond_frame in [df, df[0]]:
+        with pytest.raises(ValueError, match=msg):
+            df.where(cond_frame % 2 == 1, 0)

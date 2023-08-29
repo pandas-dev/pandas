@@ -74,11 +74,10 @@ def test_mask_inplace():
 
 
 def test_mask_with_na():
-    # See GH #52955, if cond is NA, propagate in mask
-    s = Series([1, 2, NA], dtype=Int64Dtype())
-    res1 = s.mask(s % 2 == 1, 0)
-    res2 = s.mask(s.array % 2 == 1, 0)
+    # GH#52955
+    ser = Series([1, 2, NA], dtype=Int64Dtype())
+    msg = "The condition array cannot contain NA values"
 
-    exp = Series([0, 2, NA], dtype=Int64Dtype())
-    tm.assert_series_equal(res1, exp)
-    tm.assert_series_equal(res2, exp)
+    for cond_arr in [ser, ser.array]:
+        with pytest.raises(ValueError, match=msg):
+            ser.mask(cond_arr % 2 == 1, 0)

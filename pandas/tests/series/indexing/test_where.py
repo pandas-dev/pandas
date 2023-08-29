@@ -476,11 +476,10 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
 
 
 def test_where_with_na():
-    # See GH #52955, if cond is NA, propagate in where
-    s = Series([1, 2, NA], dtype=Int64Dtype())
-    res1 = s.where(s % 2 == 1, 0)
-    res2 = s.where(s.array % 2 == 1, 0)
+    # GH#52955
+    ser = Series([1, 2, NA], dtype=Int64Dtype())
+    msg = "The condition array cannot contain NA values"
 
-    exp = Series([1, 0, NA], dtype=Int64Dtype())
-    tm.assert_series_equal(res1, exp)
-    tm.assert_series_equal(res2, exp)
+    for cond_arr in [ser, ser.array]:
+        with pytest.raises(ValueError, match=msg):
+            ser.where(cond_arr % 2 == 1, 0)

@@ -10292,40 +10292,45 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = self._get_axis_number(axis)
 
         # align the cond to same shape as myself
-        # meanwhile make sure cond is boolean
+        cond_hasna: bool_t
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
-            # GH #52955: if cond is NA, element propagates in mask and where
-            cond = cond.fillna(True)
             # CoW: Make sure reference is not kept alive
-            if cond.ndim == 1 and self.ndim == 2:
-                cond = cond._constructor_expanddim(
-                    {i: cond for i in range(len(self.columns))},
-                    copy=False,
+            cond_hasna = cond.isna().any(axis=None)
+            if not cond_hasna:
+                if cond.ndim == 1 and self.ndim == 2:
+                    cond = cond._constructor_expanddim(
+                        {i: cond for i in range(len(self.columns))},
+                        copy=False,
+                    )
+                    cond.columns = self.columns
+                cond = cond.align(self, join="right", copy=False)[0].fillna(
+                    bool(inplace)
                 )
-                cond.columns = self.columns
-            # align can introduce na, make sure we are boolean
-            cond = cond.align(self, join="right", copy=False)[0].fillna(bool(inplace))
         else:
             if not hasattr(cond, "shape"):
                 cond = np.asanyarray(cond)
             if cond.shape != self.shape:
                 raise ValueError("Array conditional must be same shape as self")
             cond = self._constructor(cond, **self._construct_axes_dict(), copy=False)
-            # GH #52955: if cond is NA, element propagates in mask and where
-            cond = cond.fillna(True)
+            cond_hasna = cond.isna().any(axis=None)
 
         msg = "Boolean array expected for the condition, not {dtype}"
+        namsg = "The condition array cannot contain NA values"
 
         if not cond.empty:
             if not isinstance(cond, ABCDataFrame):
                 # This is a single-dimensional object.
                 if not is_bool_dtype(cond):
                     raise ValueError(msg.format(dtype=cond.dtype))
+                if cond_hasna:
+                    raise ValueError(namsg)
             else:
                 for _dt in cond.dtypes:
                     if not is_bool_dtype(_dt):
                         raise ValueError(msg.format(dtype=_dt))
+                if cond_hasna:
+                    raise ValueError(namsg)
                 if cond._mgr.any_extension_types:
                     # GH51574: avoid object ndarray conversion later on
                     cond = cond._constructor(

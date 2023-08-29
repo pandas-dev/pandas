@@ -3,6 +3,7 @@ Tests for DataFrame.mask; tests DataFrame.where as a side-effect.
 """
 
 import numpy as np
+import pytest
 
 from pandas import (
     NA,
@@ -154,13 +155,10 @@ def test_mask_inplace_no_other():
 
 
 def test_mask_with_na():
-    # See GH #52955, if cond is NA, propagate in mask
+    # GH#52955
     df = DataFrame([[1, NA], [NA, 2]], dtype=Int64Dtype())
+    msg = "The condition array cannot contain NA values"
 
-    result1 = df.mask(df % 2 == 1, 0)
-    expected1 = DataFrame([[0, NA], [NA, 2]], dtype=Int64Dtype())
-    tm.assert_frame_equal(result1, expected1)
-
-    result2 = df.mask(df[0] % 2 == 1, 0)
-    expected2 = DataFrame([[0, 0], [NA, 2]], dtype=Int64Dtype())
-    tm.assert_frame_equal(result2, expected2)
+    for cond_frame in [df, df[0]]:
+        with pytest.raises(ValueError, match=msg):
+            df.mask(cond_frame % 2 == 1, 0)
