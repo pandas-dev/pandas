@@ -625,15 +625,19 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         -------
         str
         """
+        if hasattr(value, "dtype") and getattr(value, "ndim", 0) > 0:
+            msg_got = f"{value.dtype} array"
+        else:
+            msg_got = f"'{type(value).__name__}'"
         if allow_listlike:
             msg = (
                 f"value should be a '{self._scalar_type.__name__}', 'NaT', "
-                f"or array of those. Got '{type(value).__name__}' instead."
+                f"or array of those. Got {msg_got} instead."
             )
         else:
             msg = (
                 f"value should be a '{self._scalar_type.__name__}' or 'NaT'. "
-                f"Got '{type(value).__name__}' instead."
+                f"Got {msg_got} instead."
             )
         return msg
 
