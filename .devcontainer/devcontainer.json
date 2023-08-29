@@ -39,6 +39,7 @@
                 ],
                 "flake8.importStrategy": "fromEnvironment",
                 "mypy-type-checker.importStrategy": "fromEnvironment",
+                "mypy-type-checker.showNotifications": "always",
                 "pylint.args": [
                     "--load-plugins=pylint.extensions.redefined_loop_name"
                 ],
@@ -47,6 +48,7 @@
                     "editor.defaultFormatter": "ms-python.black-formatter"
                 },
                 "python.analysis.typeCheckingMode": "basic",
+                "python.linting.mypyEnabled": true, // Deprecated, but seemingly required to get VSCode to display mypy diagnostics
                 "python.testing.pytestArgs": [
                     "pandas"
                 ],
