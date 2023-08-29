@@ -300,7 +300,7 @@ def decons_obs_group_ids(
 
 
 def lexsort_indexer(
-    keys: Sequence[ArrayLike] | Sequence[Series],
+    keys: Sequence[ArrayLike | Index | Series],
     orders=None,
     na_position: str = "last",
     key: Callable | None = None,
@@ -311,8 +311,8 @@ def lexsort_indexer(
 
     Parameters
     ----------
-    keys : Sequence[ArrayLike] | Sequence[Series]
-        Sequence of ndarrays to be sorted by the indexer
+    keys : Sequence[ArrayLike | Index | Series]
+        Sequence of arrays to be sorted by the indexer
         Sequence[Series] is only if key is not None.
     orders : bool or list of booleans, optional
         Determines the sorting order for each element in keys. If a list,
