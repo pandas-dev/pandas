@@ -201,13 +201,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         assert not isinstance(newmask, bool)  # for mypy
         return self._simple_new(self._data[item], newmask)
 
-    def pad_or_backfill(
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
+    def _pad_or_backfill(
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
     ) -> Self:
         mask = self._mask
 

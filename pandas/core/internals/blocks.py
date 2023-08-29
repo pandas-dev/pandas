@@ -1451,7 +1451,7 @@ class Block(PandasObject, libinternals.Block):
         vals = cast(NumpyExtensionArray, self.array_values)
         if axis == 1:
             vals = vals.T
-        new_values = vals.pad_or_backfill(
+        new_values = vals._pad_or_backfill(
             method=method,
             limit=limit,
             limit_area=limit_area,
@@ -1948,9 +1948,9 @@ class EABackedBlock(Block):
 
         if values.ndim == 2 and axis == 1:
             # NDArrayBackedExtensionArray.fillna assumes axis=0
-            new_values = values.T.pad_or_backfill(method=method, limit=limit).T
+            new_values = values.T._pad_or_backfill(method=method, limit=limit).T
         else:
-            new_values = values.pad_or_backfill(method=method, limit=limit)
+            new_values = values._pad_or_backfill(method=method, limit=limit)
         return [self.make_block_same_class(new_values)]
 
 
@@ -2008,7 +2008,7 @@ class ExtensionBlock(EABackedBlock):
                     "need to implement this keyword or an exception will be "
                     "raised. In the interim, the keyword is ignored by "
                     f"{type(self.values).__name__}.",
-                    FutureWarning,
+                    DeprecationWarning,
                     stacklevel=find_stack_level(),
                 )
 
