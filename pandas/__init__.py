@@ -2,7 +2,7 @@ from __future__ import annotations
 
 __docformat__ = "restructuredtext"
 
-# Let users know if they're missing any of our hard dependencies
+# Ensure users are informed if they lack any essential dependencies required for our software to function correctly.
 _hard_dependencies = ("numpy", "pytz", "dateutil")
 _missing_dependencies = []
 
