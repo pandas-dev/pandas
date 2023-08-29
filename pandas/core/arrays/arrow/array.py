@@ -1604,6 +1604,10 @@ class ArrowExtensionArray(
         """
         See Series.explode.__doc__.
         """
+        # child class explode method supports only list types; return
+        # default implementation for non list types.
+        if self.dtype.type != list:
+            return super()._explode()
         values = self
         counts = pa.compute.list_value_length(values._pa_array)
         counts = counts.fill_null(1).to_numpy()
