@@ -7,10 +7,7 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    Mapping,
     cast,
     overload,
 )
@@ -51,6 +48,12 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Mapping,
+    )
+
     from pandas._typing import (
         Axis,
         AxisInt,
@@ -494,24 +497,22 @@ class _Concatenator:
         if isinstance(objs, abc.Mapping):
             if keys is None:
                 keys = list(objs.keys())
-            objs = [objs[k] for k in keys]
+            objs_list = [objs[k] for k in keys]
         else:
-            objs = list(objs)
+            objs_list = list(objs)
 
-        if len(objs) == 0:
+        if len(objs_list) == 0:
             raise ValueError("No objects to concatenate")
 
         if keys is None:
-            objs = list(com.not_none(*objs))
+            objs_list = list(com.not_none(*objs_list))
         else:
             # GH#1649
             clean_keys = []
             clean_objs = []
             if is_iterator(keys):
                 keys = list(keys)
-            if is_iterator(objs):
-                objs = list(objs)
-            if len(keys) != len(objs):
+            if len(keys) != len(objs_list):
                 # GH#43485
                 warnings.warn(
                     "The behavior of pd.concat with len(keys) != len(objs) is "
@@ -520,12 +521,12 @@ class _Concatenator:
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )
-            for k, v in zip(keys, objs):
+            for k, v in zip(keys, objs_list):
                 if v is None:
                     continue
                 clean_keys.append(k)
                 clean_objs.append(v)
-            objs = clean_objs
+            objs_list = clean_objs
 
             if isinstance(keys, MultiIndex):
                 # TODO: retain levels?
@@ -534,10 +535,10 @@ class _Concatenator:
                 name = getattr(keys, "name", None)
                 keys = Index(clean_keys, name=name, dtype=getattr(keys, "dtype", None))
 
-        if len(objs) == 0:
+        if len(objs_list) == 0:
             raise ValueError("All objects passed were None")
 
-        return objs, keys
+        return objs_list, keys
 
     def _get_sample_object(
         self,
@@ -640,7 +641,8 @@ class _Concatenator:
 
                 mgr = type(sample._mgr).from_array(res, index=new_index)
 
-                result = cons(mgr, name=name, fastpath=True)
+                result = sample._constructor_from_mgr(mgr, axes=mgr.axes)
+                result._name = name
                 return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
@@ -681,8 +683,8 @@ class _Concatenator:
             if not self.copy and not using_copy_on_write():
                 new_data._consolidate_inplace()
 
-            cons = sample._constructor
-            return cons(new_data).__finalize__(self, method="concat")
+            out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
+            return out.__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.bm_axis == 1:

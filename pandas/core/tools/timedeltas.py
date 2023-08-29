@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -19,8 +20,10 @@ from pandas._libs.tslibs.timedeltas import (
     Timedelta,
     parse_timedelta_unit,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -29,6 +32,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
     from datetime import timedelta
 
     from pandas._libs.tslibs.timedeltas import UnitChoices
@@ -118,6 +122,9 @@ def to_timedelta(
 
         Must not be specified when `arg` context strings and ``errors="raise"``.
 
+        .. deprecated:: 2.1.0
+            Units 'T' and 'L' are deprecated and will be removed in a future version.
+
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaT.
@@ -169,6 +176,13 @@ def to_timedelta(
     TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
                    dtype='timedelta64[ns]', freq=None)
     """
+    if unit in {"T", "t", "L", "l"}:
+        warnings.warn(
+            f"Unit '{unit}' is deprecated and will be removed in a future version.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if unit is not None:
         unit = parse_timedelta_unit(unit)
 
@@ -230,10 +244,14 @@ def _coerce_scalar_to_timedelta_type(
 
 
 def _convert_listlike(
-    arg, unit=None, errors: DateTimeErrorChoices = "raise", name=None
+    arg,
+    unit: UnitChoices | None = None,
+    errors: DateTimeErrorChoices = "raise",
+    name: Hashable | None = None,
 ):
     """Convert a list of objects to a timedelta index object."""
-    if isinstance(arg, (list, tuple)) or not hasattr(arg, "dtype"):
+    arg_dtype = getattr(arg, "dtype", None)
+    if isinstance(arg, (list, tuple)) or arg_dtype is None:
         # This is needed only to ensure that in the case where we end up
         #  returning arg (errors == "ignore"), and where the input is a
         #  generator, we return a useful list-like instead of a
@@ -241,6 +259,8 @@ def _convert_listlike(
         if not hasattr(arg, "__array__"):
             arg = list(arg)
         arg = np.array(arg, dtype=object)
+    elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.kind == "m":
+        return arg
 
     try:
         td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]

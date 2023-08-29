@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Sequence,
+)
 import itertools
 from typing import (
     TYPE_CHECKING,
-    Any,
     Callable,
-    Hashable,
     Literal,
-    Sequence,
     cast,
 )
 import warnings
@@ -18,7 +19,6 @@ import numpy as np
 from pandas._config import using_copy_on_write
 
 from pandas._libs import (
-    algos as libalgos,
     internals as libinternals,
     lib,
 )
@@ -29,7 +29,6 @@ from pandas._libs.internals import (
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
-from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import infer_dtype_from_scalar
 from pandas.core.dtypes.common import (
@@ -40,7 +39,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -66,6 +64,7 @@ from pandas.core.indexes.api import (
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
+    ensure_np_dtype,
     interleaved_dtype,
 )
 from pandas.core.internals.blocks import (
@@ -264,9 +263,7 @@ class BaseBlockManager(DataManager):
             return
         for i, blk in enumerate(self.blocks):
             blk.refs = mgr.blocks[i].refs
-            # Argument 1 to "add_reference" of "BlockValuesRefs" has incompatible type
-            # "Block"; expected "SharedBlock"
-            blk.refs.add_reference(blk)  # type: ignore[arg-type]
+            blk.refs.add_reference(blk)
 
     def references_same_values(self, mgr: BaseBlockManager, blkno: int) -> bool:
         """
@@ -358,27 +355,8 @@ class BaseBlockManager(DataManager):
         out = type(self).from_blocks(result_blocks, self.axes)
         return out
 
-    def where(self, other, cond, align: bool) -> Self:
-        if align:
-            align_keys = ["other", "cond"]
-        else:
-            align_keys = ["cond"]
-            other = extract_array(other, extract_numpy=True)
-
-        return self.apply(
-            "where",
-            align_keys=align_keys,
-            other=other,
-            cond=cond,
-            using_cow=using_copy_on_write(),
-        )
-
-    def round(self, decimals: int, using_cow: bool = False) -> Self:
-        return self.apply(
-            "round",
-            decimals=decimals,
-            using_cow=using_cow,
-        )
+    # Alias so we can share code with ArrayManager
+    apply_with_block = apply
 
     def setitem(self, indexer, value) -> Self:
         """
@@ -390,57 +368,37 @@ class BaseBlockManager(DataManager):
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
         if using_copy_on_write() and not self._has_no_reference(0):
-            # if being referenced -> perform Copy-on-Write and clear the reference
             # this method is only called if there is a single block -> hardcoded 0
+            # Split blocks to only copy the columns we want to modify
+            if self.ndim == 2 and isinstance(indexer, tuple):
+                blk_loc = self.blklocs[indexer[1]]
+                if is_list_like(blk_loc) and blk_loc.ndim == 2:
+                    blk_loc = np.squeeze(blk_loc, axis=0)
+                elif not is_list_like(blk_loc):
+                    # Keep dimension and copy data later
+                    blk_loc = [blk_loc]  # type: ignore[assignment]
+                if len(blk_loc) == 0:
+                    return self.copy(deep=False)
+
+                values = self.blocks[0].values
+                if values.ndim == 2:
+                    values = values[blk_loc]
+                    # "T" has no attribute "_iset_split_block"
+                    self._iset_split_block(  # type: ignore[attr-defined]
+                        0, blk_loc, values
+                    )
+                    # first block equals values
+                    self.blocks[0].setitem((indexer[0], np.arange(len(blk_loc))), value)
+                    return self
+            # No need to split if we either set all columns or on a single block
+            # manager
             self = self.copy()
 
         return self.apply("setitem", indexer=indexer, value=value)
 
-    def putmask(self, mask, new, align: bool = True) -> Self:
-        if align:
-            align_keys = ["new", "mask"]
-        else:
-            align_keys = ["mask"]
-            new = extract_array(new, extract_numpy=True)
-
-        return self.apply(
-            "putmask",
-            align_keys=align_keys,
-            mask=mask,
-            new=new,
-            using_cow=using_copy_on_write(),
-        )
-
-    def diff(self, n: int, axis: AxisInt) -> Self:
-        # only reached with self.ndim == 2 and axis == 1
-        axis = self._normalize_axis(axis)
-        return self.apply("diff", n=n, axis=axis)
-
-    def interpolate(self, inplace: bool, **kwargs) -> Self:
-        return self.apply(
-            "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
-        )
-
-    def shift(self, periods: int, axis: AxisInt, fill_value) -> Self:
-        axis = self._normalize_axis(axis)
-        if fill_value is lib.no_default:
-            fill_value = None
-
-        return self.apply("shift", periods=periods, axis=axis, fill_value=fill_value)
-
-    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
-        if limit is not None:
-            # Do this validation even if we go through one of the no-op paths
-            limit = libalgos.validate_limit(None, limit=limit)
-
-        return self.apply(
-            "fillna",
-            value=value,
-            limit=limit,
-            inplace=inplace,
-            downcast=downcast,
-            using_cow=using_copy_on_write(),
-        )
+    def diff(self, n: int) -> Self:
+        # only reached with self.ndim == 2
+        return self.apply("diff", n=n)
 
     def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
         if copy is None:
@@ -469,43 +427,6 @@ class BaseBlockManager(DataManager):
             copy = False
 
         return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
-
-    def replace(self, to_replace, value, inplace: bool) -> Self:
-        inplace = validate_bool_kwarg(inplace, "inplace")
-        # NDFrame.replace ensures the not-is_list_likes here
-        assert not is_list_like(to_replace)
-        assert not is_list_like(value)
-        return self.apply(
-            "replace",
-            to_replace=to_replace,
-            value=value,
-            inplace=inplace,
-            using_cow=using_copy_on_write(),
-        )
-
-    def replace_regex(self, **kwargs) -> Self:
-        return self.apply("_replace_regex", **kwargs, using_cow=using_copy_on_write())
-
-    def replace_list(
-        self,
-        src_list: list[Any],
-        dest_list: list[Any],
-        inplace: bool = False,
-        regex: bool = False,
-    ) -> Self:
-        """do a list replace"""
-        inplace = validate_bool_kwarg(inplace, "inplace")
-
-        bm = self.apply(
-            "replace_list",
-            src_list=src_list,
-            dest_list=dest_list,
-            inplace=inplace,
-            regex=regex,
-            using_cow=using_copy_on_write(),
-        )
-        bm._consolidate_inplace()
-        return bm
 
     def to_native_types(self, **kwargs) -> Self:
         """
@@ -557,9 +478,7 @@ class BaseBlockManager(DataManager):
 
             elif blk.is_object:
                 nbs = blk._split()
-                for nb in nbs:
-                    if nb.is_bool:
-                        new_blocks.append(nb)
+                new_blocks.extend(nb for nb in nbs if nb.is_bool)
 
         return self._combine(new_blocks, copy)
 
@@ -647,7 +566,10 @@ class BaseBlockManager(DataManager):
 
             new_axes = [copy_func(ax) for ax in self.axes]
         else:
-            new_axes = list(self.axes)
+            if using_copy_on_write():
+                new_axes = [ax.view() for ax in self.axes]
+            else:
+                new_axes = list(self.axes)
 
         res = self.apply("copy", deep=deep)
         res.axes = new_axes
@@ -771,6 +693,7 @@ class BaseBlockManager(DataManager):
         only_slice: bool = False,
         *,
         use_na_proxy: bool = False,
+        ref_inplace_op: bool = False,
     ) -> list[Block]:
         """
         Slice/take blocks along axis=0.
@@ -786,6 +709,8 @@ class BaseBlockManager(DataManager):
             This is used when called from ops.blockwise.operate_blockwise.
         use_na_proxy : bool, default False
             Whether to use a np.void ndarray for newly introduced columns.
+        ref_inplace_op: bool, default False
+            Don't track refs if True because we operate inplace
 
         Returns
         -------
@@ -816,7 +741,9 @@ class BaseBlockManager(DataManager):
                     #  views instead of copies
                     blocks = [
                         blk.getitem_block_columns(
-                            slice(ml, ml + 1), new_mgr_locs=BlockPlacement(i)
+                            slice(ml, ml + 1),
+                            new_mgr_locs=BlockPlacement(i),
+                            ref_inplace_op=ref_inplace_op,
                         )
                         for i, ml in enumerate(slobj)
                     ]
@@ -939,8 +866,7 @@ class BaseBlockManager(DataManager):
         -------
         BlockManager
         """
-        assert isinstance(indexer, np.ndarray), type(indexer)
-        assert indexer.dtype == np.intp, indexer.dtype
+        # Caller is responsible for ensuring indexer annotation is accurate
 
         n = self.shape[axis]
         indexer = maybe_convert_indices(indexer, n, verify=verify)
@@ -1040,19 +966,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         n = len(self)
 
-        # GH#46406
-        immutable_ea = isinstance(dtype, SparseDtype)
-
-        if isinstance(dtype, ExtensionDtype) and not immutable_ea:
-            cls = dtype.construct_array_type()
-            result = cls._empty((n,), dtype=dtype)
+        if isinstance(dtype, ExtensionDtype):
+            result = np.empty(n, dtype=object)
         else:
-            # error: Argument "dtype" to "empty" has incompatible type
-            # "Union[Type[object], dtype[Any], ExtensionDtype, None]"; expected
-            # "None"
-            result = np.empty(
-                n, dtype=object if immutable_ea else dtype  # type: ignore[arg-type]
-            )
+            result = np.empty(n, dtype=dtype)
             result = ensure_wrapped_if_datetimelike(result)
 
         for blk in self.blocks:
@@ -1061,9 +978,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk.iget((i, loc))
 
-        if immutable_ea:
-            dtype = cast(ExtensionDtype, dtype)
-            result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
+        if isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            result = cls._from_sequence(result, dtype=dtype)
 
         bp = BlockPlacement(slice(0, len(result)))
         block = new_block(result, placement=bp, ndim=1)
@@ -1110,7 +1027,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         for blk in self.blocks:
             mgr_locs = blk._mgr_locs
-            values = blk.values_for_json()
+            values = blk.array_values._values_for_json()
             if values.ndim == 1:
                 # TODO(EA2D): special casing not needed with 2D EAs
                 result[mgr_locs[0]] = values
@@ -1201,7 +1118,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if inplace and blk.should_store(value):
                 # Updating inplace -> check if we need to do Copy-on-Write
                 if using_copy_on_write() and not self._has_no_reference_block(blkno_l):
-                    self._iset_split_block(blkno_l, blk_locs, value_getitem(val_locs))
+                    self._iset_split_block(
+                        blkno_l, blk_locs, value_getitem(val_locs), refs=refs
+                    )
                 else:
                     blk.set_inplace(blk_locs, value_getitem(val_locs))
                     continue
@@ -1477,7 +1396,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         is_deleted[indexer] = True
         taker = (~is_deleted).nonzero()[0]
 
-        nbs = self._slice_take_blocks_ax0(taker, only_slice=True)
+        nbs = self._slice_take_blocks_ax0(taker, only_slice=True, ref_inplace_op=True)
         new_columns = self.items[~is_deleted]
         axes = [new_columns, self.axes[1]]
         return type(self)(tuple(nbs), axes, verify_integrity=False)
@@ -1559,7 +1478,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self,
         *,
         qs: Index,  # with dtype float 64
-        axis: AxisInt = 0,
         interpolation: QuantileInterpolation = "linear",
     ) -> Self:
         """
@@ -1569,9 +1487,6 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         Parameters
         ----------
-        axis: reduction axis, default 0
-        consolidate: bool, default True. Join together blocks having same
-            dtype
         interpolation : type of interpolation, default 'linear'
         qs : list of the quantiles to be computed
 
@@ -1583,14 +1498,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         #  simplify some of the code here and in the blocks
         assert self.ndim >= 2
         assert is_list_like(qs)  # caller is responsible for this
-        assert axis == 1  # only ever called this way
 
         new_axes = list(self.axes)
         new_axes[1] = Index(qs, dtype=np.float64)
 
         blocks = [
-            blk.quantile(axis=axis, qs=qs, interpolation=interpolation)
-            for blk in self.blocks
+            blk.quantile(qs=qs, interpolation=interpolation) for blk in self.blocks
         ]
 
         return type(self)(blocks, new_axes)
@@ -1715,11 +1628,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             if na_value is not lib.no_default:
                 # We want to copy when na_value is provided to avoid
                 # mutating the original object
-                if (
-                    isinstance(blk.dtype, np.dtype)
-                    and blk.dtype.kind == "f"
-                    and passed_nan
-                ):
+                if lib.is_np_dtype(blk.dtype, "f") and passed_nan:
                     # We are already numpy-float and na_value=np.nan
                     pass
                 else:
@@ -1733,16 +1642,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 arr = blk.values.to_numpy(  # type: ignore[union-attr]
                     dtype=dtype,
                     na_value=na_value,
+                    copy=copy,
                 ).reshape(blk.shape)
             else:
-                arr = np.asarray(blk.get_values())
-                if dtype:
-                    arr = arr.astype(dtype, copy=copy)
-                    copy = False
+                arr = np.array(blk.values, dtype=dtype, copy=copy)
 
-            if copy:
-                arr = arr.copy()
-            elif using_copy_on_write():
+            if using_copy_on_write() and not copy:
                 arr = arr.view()
                 arr.flags.writeable = False
         else:
@@ -1776,16 +1681,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 [blk.dtype for blk in self.blocks]
             )
 
-        # TODO: https://github.com/pandas-dev/pandas/issues/22791
-        # Give EAs some input on what happens here. Sparse needs this.
-        if isinstance(dtype, SparseDtype):
-            dtype = dtype.subtype
-            dtype = cast(np.dtype, dtype)
-        elif isinstance(dtype, ExtensionDtype):
-            dtype = np.dtype("object")
-        elif dtype == np.dtype(str):
-            dtype = np.dtype("object")
-
+        # error: Argument 1 to "ensure_np_dtype" has incompatible type
+        # "Optional[dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"
+        dtype = ensure_np_dtype(dtype)  # type: ignore[arg-type]
         result = np.empty(self.shape, dtype=dtype)
 
         itemmask = np.zeros(self.shape[0])
@@ -2175,7 +2073,7 @@ def create_block_manager_from_column_arrays(
     # assert isinstance(axes, list)
     # assert all(isinstance(x, Index) for x in axes)
     # assert all(isinstance(x, (np.ndarray, ExtensionArray)) for x in arrays)
-    # assert all(type(x) is not PandasArray for x in arrays)
+    # assert all(type(x) is not NumpyExtensionArray for x in arrays)
     # assert all(x.ndim == 1 for x in arrays)
     # assert all(len(x) == len(axes[1]) for x in arrays)
     # assert len(arrays) == len(axes[0])

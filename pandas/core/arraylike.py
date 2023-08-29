@@ -349,7 +349,7 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             return result
         if isinstance(result, BlockManager):
             # we went through BlockManager.apply e.g. np.sqrt
-            result = self._constructor(result, **reconstruct_kwargs, copy=False)
+            result = self._constructor_from_mgr(result, axes=result.axes)
         else:
             # we converted an array, lost our axes
             result = self._constructor(

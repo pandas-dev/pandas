@@ -51,7 +51,7 @@ class TestSeriesReplace:
 
     def test_replace(self):
         N = 100
-        ser = pd.Series(np.random.randn(N))
+        ser = pd.Series(np.random.default_rng(2).standard_normal(N))
         ser[0:4] = np.nan
         ser[6:10] = 0
 
@@ -66,7 +66,11 @@ class TestSeriesReplace:
         ser[ser == 0.0] = np.nan
         tm.assert_series_equal(rs, ser)
 
-        ser = pd.Series(np.fabs(np.random.randn(N)), tm.makeDateIndex(N), dtype=object)
+        ser = pd.Series(
+            np.fabs(np.random.default_rng(2).standard_normal(N)),
+            tm.makeDateIndex(N),
+            dtype=object,
+        )
         ser[:5] = np.nan
         ser[6:10] = "foo"
         ser[20:30] = "bar"
@@ -131,12 +135,18 @@ class TestSeriesReplace:
         # GH 5319
         ser = pd.Series([0, np.nan, 2, 3, 4])
         expected = ser.ffill()
-        result = ser.replace([np.nan])
+        msg = (
+            "Series.replace without 'value' and with non-dict-like "
+            "'to_replace' is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.replace([np.nan])
         tm.assert_series_equal(result, expected)
 
         ser = pd.Series([0, np.nan, 2, 3, 4])
         expected = ser.ffill()
-        result = ser.replace(np.nan)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.replace(np.nan)
         tm.assert_series_equal(result, expected)
 
     def test_replace_datetime64(self):
@@ -169,11 +179,17 @@ class TestSeriesReplace:
 
     def test_replace_with_single_list(self):
         ser = pd.Series([0, 1, 2, 3, 4])
-        result = ser.replace([1, 2, 3])
+        msg2 = (
+            "Series.replace without 'value' and with non-dict-like "
+            "'to_replace' is deprecated"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            result = ser.replace([1, 2, 3])
         tm.assert_series_equal(result, pd.Series([0, 0, 0, 0, 4]))
 
         s = ser.copy()
-        return_value = s.replace([1, 2, 3], inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            return_value = s.replace([1, 2, 3], inplace=True)
         assert return_value is None
         tm.assert_series_equal(s, pd.Series([0, 0, 0, 0, 4]))
 
@@ -183,8 +199,10 @@ class TestSeriesReplace:
             r"Invalid fill method\. Expecting pad \(ffill\) or backfill "
             r"\(bfill\)\. Got crash_cymbal"
         )
+        msg3 = "The 'method' keyword in Series.replace is deprecated"
         with pytest.raises(ValueError, match=msg):
-            return_value = s.replace([1, 2, 3], inplace=True, method="crash_cymbal")
+            with tm.assert_produces_warning(FutureWarning, match=msg3):
+                return_value = s.replace([1, 2, 3], inplace=True, method="crash_cymbal")
             assert return_value is None
         tm.assert_series_equal(s, ser)
 
@@ -266,7 +284,11 @@ class TestSeriesReplace:
 
     def test_replace2(self):
         N = 100
-        ser = pd.Series(np.fabs(np.random.randn(N)), tm.makeDateIndex(N), dtype=object)
+        ser = pd.Series(
+            np.fabs(np.random.default_rng(2).standard_normal(N)),
+            tm.makeDateIndex(N),
+            dtype=object,
+        )
         ser[:5] = np.nan
         ser[6:10] = "foo"
         ser[20:30] = "bar"
@@ -373,6 +395,16 @@ class TestSeriesReplace:
             expected = expected.cat.add_categories(2)
         tm.assert_series_equal(expected, result)
 
+    @pytest.mark.parametrize(
+        "data, data_exp", [(["a", "b", "c"], ["b", "b", "c"]), (["a"], ["b"])]
+    )
+    def test_replace_categorical_inplace(self, data, data_exp):
+        # GH 53358
+        result = pd.Series(data, dtype="category")
+        result.replace(to_replace="a", value="b", inplace=True)
+        expected = pd.Series(data_exp, dtype="category")
+        tm.assert_series_equal(result, expected)
+
     def test_replace_categorical_single(self):
         # GH 26988
         dti = pd.date_range("2016-01-01", periods=3, tz="US/Pacific")
@@ -450,8 +482,13 @@ class TestSeriesReplace:
             r"Expecting 'to_replace' to be either a scalar, array-like, "
             r"dict or None, got invalid type.*"
         )
+        msg2 = (
+            "Series.replace without 'value' and with non-dict-like "
+            "'to_replace' is deprecated"
+        )
         with pytest.raises(TypeError, match=msg):
-            series.replace(lambda x: x.strip())
+            with tm.assert_produces_warning(FutureWarning, match=msg2):
+                series.replace(lambda x: x.strip())
 
     @pytest.mark.parametrize("frame", [False, True])
     def test_replace_nonbool_regex(self, frame):
@@ -502,19 +539,25 @@ class TestSeriesReplace:
     def _check_replace_with_method(self, ser: pd.Series):
         df = ser.to_frame()
 
-        res = ser.replace(ser[1], method="pad")
+        msg1 = "The 'method' keyword in Series.replace is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg1):
+            res = ser.replace(ser[1], method="pad")
         expected = pd.Series([ser[0], ser[0]] + list(ser[2:]), dtype=ser.dtype)
         tm.assert_series_equal(res, expected)
 
-        res_df = df.replace(ser[1], method="pad")
+        msg2 = "The 'method' keyword in DataFrame.replace is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            res_df = df.replace(ser[1], method="pad")
         tm.assert_frame_equal(res_df, expected.to_frame())
 
         ser2 = ser.copy()
-        res2 = ser2.replace(ser[1], method="pad", inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg1):
+            res2 = ser2.replace(ser[1], method="pad", inplace=True)
         assert res2 is None
         tm.assert_series_equal(ser2, expected)
 
-        res_df2 = df.replace(ser[1], method="pad", inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg2):
+            res_df2 = df.replace(ser[1], method="pad", inplace=True)
         assert res_df2 is None
         tm.assert_frame_equal(df, expected.to_frame())
 

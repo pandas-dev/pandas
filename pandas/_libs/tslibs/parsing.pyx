@@ -42,10 +42,7 @@ cnp.import_array()
 
 from decimal import InvalidOperation
 
-from dateutil.parser import (
-    DEFAULTPARSER,
-    parse as du_parse,
-)
+from dateutil.parser import DEFAULTPARSER
 from dateutil.tz import (
     tzlocal as _dateutil_tzlocal,
     tzoffset,
@@ -309,9 +306,12 @@ cdef datetime parse_datetime_string(
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
 
     if _does_string_look_like_time(date_string):
+        # time without date e.g. "01:01:01.111"
         # use current datetime as default, not pass _DEFAULT_DATETIME
-        dt = du_parse(date_string, dayfirst=dayfirst,
-                      yearfirst=yearfirst)
+        default = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        dt = dateutil_parse(date_string, default=default,
+                            dayfirst=dayfirst, yearfirst=yearfirst,
+                            ignoretz=False, out_bestunit=out_bestunit)
         return dt
 
     dt = _parse_delimited_date(date_string, dayfirst, out_bestunit)
@@ -704,7 +704,7 @@ cdef datetime dateutil_parse(
                 #  we get tzlocal, once the deprecation is enforced will get
                 #  timezone.utc, not raise.
                 warnings.warn(
-                    "Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
+                    f"Parsing '{res.tzname}' as tzlocal (dependent on system timezone) "
                     "is deprecated and will raise in a future version. Pass the 'tz' "
                     "keyword or call tz_localize after construction instead",
                     FutureWarning,
@@ -796,7 +796,7 @@ def try_parse_year_month_day(
 # is not practical. In fact, using this class issues warnings (xref gh-21322).
 # Thus, we port the class over so that both issues are resolved.
 #
-# Copyright (c) 2017 - dateutil contributors
+# Licence at LICENSES/DATEUTIL_LICENSE
 class _timelex:
     def __init__(self, instream):
         if getattr(instream, "decode", None) is not None:

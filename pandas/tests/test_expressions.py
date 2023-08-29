@@ -1,6 +1,5 @@
 import operator
 import re
-import warnings
 
 import numpy as np
 import pytest
@@ -17,12 +16,20 @@ from pandas.core.computation import expressions as expr
 
 @pytest.fixture
 def _frame():
-    return DataFrame(np.random.randn(10001, 4), columns=list("ABCD"), dtype="float64")
+    return DataFrame(
+        np.random.default_rng(2).standard_normal((10001, 4)),
+        columns=list("ABCD"),
+        dtype="float64",
+    )
 
 
 @pytest.fixture
 def _frame2():
-    return DataFrame(np.random.randn(100, 4), columns=list("ABCD"), dtype="float64")
+    return DataFrame(
+        np.random.default_rng(2).standard_normal((100, 4)),
+        columns=list("ABCD"),
+        dtype="float64",
+    )
 
 
 @pytest.fixture
@@ -52,20 +59,24 @@ def _mixed2(_frame2):
 @pytest.fixture
 def _integer():
     return DataFrame(
-        np.random.randint(1, 100, size=(10001, 4)), columns=list("ABCD"), dtype="int64"
+        np.random.default_rng(2).integers(1, 100, size=(10001, 4)),
+        columns=list("ABCD"),
+        dtype="int64",
     )
 
 
 @pytest.fixture
-def _integer_randint(_integer):
-    # randint to get a case with zeros
-    return _integer * np.random.randint(0, 2, size=np.shape(_integer))
+def _integer_integers(_integer):
+    # integers to get a case with zeros
+    return _integer * np.random.default_rng(2).integers(0, 2, size=np.shape(_integer))
 
 
 @pytest.fixture
 def _integer2():
     return DataFrame(
-        np.random.randint(1, 100, size=(101, 4)), columns=list("ABCD"), dtype="int64"
+        np.random.default_rng(2).integers(1, 100, size=(101, 4)),
+        columns=list("ABCD"),
+        dtype="int64",
     )
 
 
@@ -118,7 +129,7 @@ class TestExpressions:
         [
             "_integer",
             "_integer2",
-            "_integer_randint",
+            "_integer_integers",
             "_frame",
             "_frame2",
             "_mixed",
@@ -149,7 +160,7 @@ class TestExpressions:
         [
             "_integer",
             "_integer2",
-            "_integer_randint",
+            "_integer_integers",
             "_frame",
             "_frame2",
             "_mixed",
@@ -177,15 +188,13 @@ class TestExpressions:
         assert used_numexpr, "Did not use numexpr as expected."
         tm.assert_equal(expected, result)
 
-        # FIXME: dont leave commented-out
-        # series doesn't uses vec_compare instead of numexpr...
-        # for i in range(len(df.columns)):
-        #     binary_comp = other.iloc[:, i] + 1
-        #     self.run_binary(df.iloc[:, i], binary_comp, flex)
+        for i in range(len(df.columns)):
+            binary_comp = other.iloc[:, i] + 1
+            self.call_op(df.iloc[:, i], binary_comp, flex, "add")
 
     def test_invalid(self):
-        array = np.random.randn(1_000_001)
-        array2 = np.random.randn(100)
+        array = np.random.default_rng(2).standard_normal(1_000_001)
+        array2 = np.random.default_rng(2).standard_normal(100)
 
         # no op
         result = expr._can_use_numexpr(operator.add, None, array, array, "evaluate")
@@ -199,9 +208,7 @@ class TestExpressions:
         result = expr._can_use_numexpr(operator.add, "+", array, array2, "evaluate")
         assert result
 
-    @pytest.mark.filterwarnings(
-        "ignore:invalid value encountered in true_divide:RuntimeWarning"
-    )
+    @pytest.mark.filterwarnings("ignore:invalid value encountered in:RuntimeWarning")
     @pytest.mark.parametrize(
         "opname,op_str",
         [("add", "+"), ("sub", "-"), ("mul", "*"), ("truediv", "/"), ("pow", "**")],
@@ -213,31 +220,27 @@ class TestExpressions:
         left = request.getfixturevalue(left_fix)
         right = request.getfixturevalue(right_fix)
 
-        def testit():
+        def testit(left, right, opname, op_str):
             if opname == "pow":
-                # TODO: get this working
-                return
+                left = np.abs(left)
 
             op = getattr(operator, opname)
 
-            with warnings.catch_warnings():
-                # array has 0s
-                msg = "invalid value encountered in divide|true_divide"
-                warnings.filterwarnings("ignore", msg, RuntimeWarning)
-                result = expr.evaluate(op, left, left, use_numexpr=True)
-                expected = expr.evaluate(op, left, left, use_numexpr=False)
+            # array has 0s
+            result = expr.evaluate(op, left, left, use_numexpr=True)
+            expected = expr.evaluate(op, left, left, use_numexpr=False)
             tm.assert_numpy_array_equal(result, expected)
 
             result = expr._can_use_numexpr(op, op_str, right, right, "evaluate")
             assert not result
 
         with option_context("compute.use_numexpr", False):
-            testit()
+            testit(left, right, opname, op_str)
 
         expr.set_numexpr_threads(1)
-        testit()
+        testit(left, right, opname, op_str)
         expr.set_numexpr_threads()
-        testit()
+        testit(left, right, opname, op_str)
 
     @pytest.mark.parametrize(
         "left_fix,right_fix", [("_array", "_array2"), ("_array_mixed", "_array_mixed2")]
@@ -291,7 +294,12 @@ class TestExpressions:
         "op_str,opname", [("/", "truediv"), ("//", "floordiv"), ("**", "pow")]
     )
     def test_bool_ops_raise_on_arithmetic(self, op_str, opname):
-        df = DataFrame({"a": np.random.rand(10) > 0.5, "b": np.random.rand(10) > 0.5})
+        df = DataFrame(
+            {
+                "a": np.random.default_rng(2).random(10) > 0.5,
+                "b": np.random.default_rng(2).random(10) > 0.5,
+            }
+        )
 
         msg = f"operator '{opname}' not implemented for bool dtypes"
         f = getattr(operator, opname)
@@ -320,7 +328,12 @@ class TestExpressions:
     )
     def test_bool_ops_warn_on_arithmetic(self, op_str, opname):
         n = 10
-        df = DataFrame({"a": np.random.rand(n) > 0.5, "b": np.random.rand(n) > 0.5})
+        df = DataFrame(
+            {
+                "a": np.random.default_rng(2).random(n) > 0.5,
+                "b": np.random.default_rng(2).random(n) > 0.5,
+            }
+        )
 
         subs = {"+": "|", "*": "&", "-": "^"}
         sub_funcs = {"|": "or_", "&": "and_", "^": "xor"}

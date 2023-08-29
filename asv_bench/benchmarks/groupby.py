@@ -57,6 +57,38 @@ method_blocklist = {
     },
 }
 
+# These aggregations don't have a kernel implemented for them yet
+_numba_unsupported_methods = [
+    "all",
+    "any",
+    "bfill",
+    "count",
+    "cumcount",
+    "cummax",
+    "cummin",
+    "cumprod",
+    "cumsum",
+    "describe",
+    "diff",
+    "ffill",
+    "first",
+    "head",
+    "last",
+    "median",
+    "nunique",
+    "pct_change",
+    "prod",
+    "quantile",
+    "rank",
+    "sem",
+    "shift",
+    "size",
+    "skew",
+    "tail",
+    "unique",
+    "value_counts",
+]
+
 
 class ApplyDictReturn:
     def setup(self):
@@ -297,16 +329,11 @@ class AggFunctions:
             {"value1": "mean", "value2": "var", "value3": "sum"}
         )
 
-    def time_different_numpy_functions(self, df):
-        df.groupby(["key1", "key2"]).agg(
-            {"value1": np.mean, "value2": np.var, "value3": np.sum}
-        )
+    def time_different_str_functions_multicol(self, df):
+        df.groupby(["key1", "key2"]).agg(["sum", "min", "max"])
 
-    def time_different_python_functions_multicol(self, df):
-        df.groupby(["key1", "key2"]).agg([sum, min, max])
-
-    def time_different_python_functions_singlecol(self, df):
-        df.groupby("key1")[["value1", "value2", "value3"]].agg([sum, min, max])
+    def time_different_str_functions_singlecol(self, df):
+        df.groupby("key1").agg({"value1": "mean", "value2": "var", "value3": "sum"})
 
 
 class GroupStrings:
@@ -349,8 +376,8 @@ class MultiColumn:
     def time_col_select_lambda_sum(self, df):
         df.groupby(["key1", "key2"])["data1"].agg(lambda x: x.values.sum())
 
-    def time_col_select_numpy_sum(self, df):
-        df.groupby(["key1", "key2"])["data1"].agg(np.sum)
+    def time_col_select_str_sum(self, df):
+        df.groupby(["key1", "key2"])["data1"].agg("sum")
 
 
 class Size:
@@ -376,7 +403,7 @@ class Size:
         self.df.groupby(["key1", "key2"]).size()
 
     def time_category_size(self):
-        self.draws.groupby(self.cats).size()
+        self.draws.groupby(self.cats, observed=True).size()
 
 
 class Shift:
@@ -391,7 +418,7 @@ class Shift:
         self.df.groupby("g").shift(fill_value=99)
 
 
-class FillNA:
+class Fillna:
     def setup(self):
         N = 100
         self.df = DataFrame(
@@ -399,16 +426,16 @@ class FillNA:
         ).set_index("group")
 
     def time_df_ffill(self):
-        self.df.groupby("group").fillna(method="ffill")
+        self.df.groupby("group").ffill()
 
     def time_df_bfill(self):
-        self.df.groupby("group").fillna(method="bfill")
+        self.df.groupby("group").bfill()
 
     def time_srs_ffill(self):
-        self.df.groupby("group")["value"].fillna(method="ffill")
+        self.df.groupby("group")["value"].ffill()
 
     def time_srs_bfill(self):
-        self.df.groupby("group")["value"].fillna(method="bfill")
+        self.df.groupby("group")["value"].bfill()
 
 
 class GroupByMethods:
@@ -453,9 +480,10 @@ class GroupByMethods:
         ],
         ["direct", "transformation"],
         [1, 5],
+        ["cython", "numba"],
     ]
 
-    def setup(self, dtype, method, application, ncols):
+    def setup(self, dtype, method, application, ncols, engine):
         if method in method_blocklist.get(dtype, {}):
             raise NotImplementedError  # skip benchmark
 
@@ -472,6 +500,19 @@ class GroupByMethods:
             "size",
         ]:
             # DataFrameGroupBy doesn't have these methods
+            raise NotImplementedError
+
+        # Numba currently doesn't support
+        # multiple transform functions or strs for transform,
+        # grouping on multiple columns
+        # and we lack kernels for a bunch of methods
+        if (
+            engine == "numba"
+            and method in _numba_unsupported_methods
+            or ncols > 1
+            or application == "transformation"
+            or dtype == "datetime"
+        ):
             raise NotImplementedError
 
         if method == "describe":
@@ -505,17 +546,30 @@ class GroupByMethods:
         if len(cols) == 1:
             cols = cols[0]
 
-        if application == "transformation":
-            self.as_group_method = lambda: df.groupby("key")[cols].transform(method)
-            self.as_field_method = lambda: df.groupby(cols)["key"].transform(method)
-        else:
-            self.as_group_method = getattr(df.groupby("key")[cols], method)
-            self.as_field_method = getattr(df.groupby(cols)["key"], method)
+        # Not everything supports the engine keyword yet
+        kwargs = {}
+        if engine == "numba":
+            kwargs["engine"] = engine
 
-    def time_dtype_as_group(self, dtype, method, application, ncols):
+        if application == "transformation":
+            self.as_group_method = lambda: df.groupby("key")[cols].transform(
+                method, **kwargs
+            )
+            self.as_field_method = lambda: df.groupby(cols)["key"].transform(
+                method, **kwargs
+            )
+        else:
+            self.as_group_method = partial(
+                getattr(df.groupby("key")[cols], method), **kwargs
+            )
+            self.as_field_method = partial(
+                getattr(df.groupby(cols)["key"], method), **kwargs
+            )
+
+    def time_dtype_as_group(self, dtype, method, application, ncols, engine):
         self.as_group_method()
 
-    def time_dtype_as_field(self, dtype, method, application, ncols):
+    def time_dtype_as_field(self, dtype, method, application, ncols, engine):
         self.as_field_method()
 
 
@@ -552,6 +606,22 @@ class GroupByCythonAgg:
 
     def time_frame_agg(self, dtype, method):
         self.df.groupby("key").agg(method)
+
+
+class GroupByNumbaAgg(GroupByCythonAgg):
+    """
+    Benchmarks specifically targeting our numba aggregation algorithms
+    (using a big enough dataframe with simple key, so a large part of the
+    time is actually spent in the grouped aggregation).
+    """
+
+    def setup(self, dtype, method):
+        if method in _numba_unsupported_methods:
+            raise NotImplementedError
+        super().setup(dtype, method)
+
+    def time_frame_agg(self, dtype, method):
+        self.df.groupby("key").agg(method, engine="numba")
 
 
 class GroupByCythonAggEaDtypes:
@@ -688,7 +758,10 @@ class String:
 
 
 class Categories:
-    def setup(self):
+    params = [True, False]
+    param_names = ["observed"]
+
+    def setup(self, observed):
         N = 10**5
         arr = np.random.random(N)
         data = {"a": Categorical(np.random.randint(10000, size=N)), "b": arr}
@@ -706,23 +779,23 @@ class Categories:
         }
         self.df_extra_cat = DataFrame(data)
 
-    def time_groupby_sort(self):
-        self.df.groupby("a")["b"].count()
+    def time_groupby_sort(self, observed):
+        self.df.groupby("a", observed=observed)["b"].count()
 
-    def time_groupby_nosort(self):
-        self.df.groupby("a", sort=False)["b"].count()
+    def time_groupby_nosort(self, observed):
+        self.df.groupby("a", observed=observed, sort=False)["b"].count()
 
-    def time_groupby_ordered_sort(self):
-        self.df_ordered.groupby("a")["b"].count()
+    def time_groupby_ordered_sort(self, observed):
+        self.df_ordered.groupby("a", observed=observed)["b"].count()
 
-    def time_groupby_ordered_nosort(self):
-        self.df_ordered.groupby("a", sort=False)["b"].count()
+    def time_groupby_ordered_nosort(self, observed):
+        self.df_ordered.groupby("a", observed=observed, sort=False)["b"].count()
 
-    def time_groupby_extra_cat_sort(self):
-        self.df_extra_cat.groupby("a")["b"].count()
+    def time_groupby_extra_cat_sort(self, observed):
+        self.df_extra_cat.groupby("a", observed=observed)["b"].count()
 
-    def time_groupby_extra_cat_nosort(self):
-        self.df_extra_cat.groupby("a", sort=False)["b"].count()
+    def time_groupby_extra_cat_nosort(self, observed):
+        self.df_extra_cat.groupby("a", observed=observed, sort=False)["b"].count()
 
 
 class Datelike:
@@ -812,8 +885,8 @@ class Transform:
     def time_transform_lambda_max(self):
         self.df.groupby(level="lev1").transform(lambda x: max(x))
 
-    def time_transform_ufunc_max(self):
-        self.df.groupby(level="lev1").transform(np.max)
+    def time_transform_str_max(self):
+        self.df.groupby(level="lev1").transform("max")
 
     def time_transform_lambda_max_tall(self):
         self.df_tall.groupby(level=0).transform(lambda x: np.max(x, axis=0))
@@ -844,7 +917,7 @@ class TransformBools:
         self.df = DataFrame({"signal": np.random.rand(N)})
 
     def time_transform_mean(self):
-        self.df["signal"].groupby(self.g).transform(np.mean)
+        self.df["signal"].groupby(self.g).transform("mean")
 
 
 class TransformNaN:

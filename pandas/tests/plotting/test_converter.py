@@ -43,6 +43,7 @@ pytest.importorskip("matplotlib.pyplot")
 dates = pytest.importorskip("matplotlib.dates")
 
 
+@pytest.mark.single_cpu
 def test_registry_mpl_resets():
     # Check that Matplotlib converters are properly reset (see issue #27481)
     code = (
@@ -63,6 +64,7 @@ def test_timtetonum_accepts_unicode():
 
 
 class TestRegistration:
+    @pytest.mark.single_cpu
     def test_dont_register_by_default(self):
         # Run in subprocess to ensure a clean state
         code = (
@@ -222,17 +224,15 @@ class TestDateTimeConverter:
         rs = dtc.convert(datetime(2012, 1, 1, 1, 2, 3), None, None)
         tm.assert_almost_equal(rs, xp, rtol=rtol)
 
-    def test_conversion_outofbounds_datetime(self, dtc):
+    @pytest.mark.parametrize(
+        "values",
+        [
+            [date(1677, 1, 1), date(1677, 1, 2)],
+            [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)],
+        ],
+    )
+    def test_conversion_outofbounds_datetime(self, dtc, values):
         # 2579
-        values = [date(1677, 1, 1), date(1677, 1, 2)]
-        rs = dtc.convert(values, None, None)
-        xp = converter.mdates.date2num(values)
-        tm.assert_numpy_array_equal(rs, xp)
-        rs = dtc.convert(values[0], None, None)
-        xp = converter.mdates.date2num(values[0])
-        assert rs == xp
-
-        values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         rs = dtc.convert(values, None, None)
         xp = converter.mdates.date2num(values)
         tm.assert_numpy_array_equal(rs, xp)
@@ -386,8 +386,8 @@ def test_quarterly_finder(year_span):
     vmin = -1000
     vmax = vmin + year_span * 4
     span = vmax - vmin + 1
-    if span < 45:  # the quarterly finder is only invoked if the span is >= 45
-        return
+    if span < 45:
+        pytest.skip("the quarterly finder is only invoked if the span is >= 45")
     nyears = span / 4
     (min_anndef, maj_anndef) = converter._get_default_annual_spacing(nyears)
     result = converter._quarterly_finder(vmin, vmax, "Q")

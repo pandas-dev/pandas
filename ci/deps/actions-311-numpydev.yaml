@@ -10,7 +10,7 @@ dependencies:
   - meson-python=0.13.1
 
   # test dependencies
-  - pytest>=7.0.0
+  - pytest>=7.3.2
   - pytest-cov
   # Once pytest-cov > 4 comes out, unpin this
   # Right now, a DeprecationWarning related to rsyncdir
@@ -25,7 +25,7 @@ dependencies:
   - pip
 
   - pip:
-    - "cython"
+    - "cython<3.0.1"
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
     - "--pre"
     - "numpy"

@@ -779,6 +779,7 @@ Setting values by assigning categorical data will also check that the ``categori
 Assigning a ``Categorical`` to parts of a column of other types will use the values:
 
 .. ipython:: python
+    :okwarning:
 
     df = pd.DataFrame({"a": [1, 1, 1, 1, 1], "b": ["a", "a", "a", "a", "a"]})
     df.loc[1:2, "a"] = pd.Categorical(["b", "b"], categories=["a", "b"])
@@ -831,9 +832,6 @@ The following table summarizes the results of merging ``Categoricals``:
 | category (int)    | category (float)       | False                | float (dtype is inferred)   |
 +-------------------+------------------------+----------------------+-----------------------------+
 
-See also the section on :ref:`merge dtypes<merging.dtypes>` for notes about
-preserving merge dtypes and performance.
-
 .. _categorical.union:
 
 Unioning
@@ -872,13 +870,12 @@ categoricals of the same categories and order information
 
 The below raises ``TypeError`` because the categories are ordered and not identical.
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [1]: a = pd.Categorical(["a", "b"], ordered=True)
-   In [2]: b = pd.Categorical(["a", "b", "c"], ordered=True)
-   In [3]: union_categoricals([a, b])
-   Out[3]:
-   TypeError: to union ordered Categoricals, all categories must be the same
+   a = pd.Categorical(["a", "b"], ordered=True)
+   b = pd.Categorical(["a", "b", "c"], ordered=True)
+   union_categoricals([a, b])
 
 Ordered categoricals with different categories or orderings can be combined by
 using the ``ignore_ordered=True`` argument.

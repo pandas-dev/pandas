@@ -12,6 +12,7 @@ from pandas import (
     NaT,
     Period,
     PeriodIndex,
+    RangeIndex,
     Series,
     Timedelta,
     Timestamp,
@@ -24,12 +25,7 @@ import pandas._testing as tm
 def test_reindex(datetime_series, string_series):
     identity = string_series.reindex(string_series.index)
 
-    # __array_interface__ is not defined for older numpies
-    # and on some pythons
-    try:
-        assert np.may_share_memory(string_series.index, identity.index)
-    except AttributeError:
-        pass
+    assert np.may_share_memory(string_series.index, identity.index)
 
     assert identity.index.is_(string_series.index)
     assert identity.index.identical(string_series.index)
@@ -86,7 +82,7 @@ def test_reindex_series_add_nat():
 
 def test_reindex_with_datetimes():
     rng = date_range("1/1/2000", periods=20)
-    ts = Series(np.random.randn(20), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(20), index=rng)
 
     result = ts.reindex(list(ts.index[5:10]))
     expected = ts[5:10]
@@ -131,6 +127,8 @@ def test_reindex_pad():
     expected = Series([0, 0, 2, 2, 4, 4, 6, 6, 8, 8])
     tm.assert_series_equal(reindexed, expected)
 
+
+def test_reindex_pad2():
     # GH4604
     s = Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
     new_index = ["a", "g", "c", "f"]
@@ -140,13 +138,17 @@ def test_reindex_pad():
     result = s.reindex(new_index).ffill()
     tm.assert_series_equal(result, expected.astype("float64"))
 
-    result = s.reindex(new_index).ffill(downcast="infer")
+    msg = "The 'downcast' keyword in ffill is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.reindex(new_index).ffill(downcast="infer")
     tm.assert_series_equal(result, expected)
 
     expected = Series([1, 5, 3, 5], index=new_index)
     result = s.reindex(new_index, method="ffill")
     tm.assert_series_equal(result, expected)
 
+
+def test_reindex_inference():
     # inference of new dtype
     s = Series([True, False, False, True], index=list("abcd"))
     new_index = "agc"
@@ -154,6 +156,8 @@ def test_reindex_pad():
     expected = Series([True, True, False], index=list(new_index))
     tm.assert_series_equal(result, expected)
 
+
+def test_reindex_downcasting():
     # GH4618 shifted series downcasting
     s = Series(False, index=range(0, 5))
     result = s.shift(1).bfill()
@@ -185,7 +189,7 @@ def test_reindex_int(datetime_series):
     reindexed_int = int_ts.reindex(datetime_series.index)
 
     # if NaNs introduced
-    assert reindexed_int.dtype == np.float_
+    assert reindexed_int.dtype == np.float64
 
     # NO NaNs introduced
     reindexed_int = int_ts.reindex(int_ts.index[::2])
@@ -416,9 +420,20 @@ def test_reindexing_with_float64_NA_log():
     s = Series([1.0, NA], dtype=Float64Dtype())
     s_reindex = s.reindex(range(3))
     result = s_reindex.values._data
-    expected = np.array([1, np.NaN, np.NaN])
+    expected = np.array([1, np.nan, np.nan])
     tm.assert_numpy_array_equal(result, expected)
     with tm.assert_produces_warning(None):
         result_log = np.log(s_reindex)
-        expected_log = Series([0, np.NaN, np.NaN], dtype=Float64Dtype())
+        expected_log = Series([0, np.nan, np.nan], dtype=Float64Dtype())
         tm.assert_series_equal(result_log, expected_log)
+
+
+@pytest.mark.parametrize("dtype", ["timedelta64", "datetime64"])
+def test_reindex_expand_nonnano_nat(dtype):
+    # GH 53497
+    ser = Series(np.array([1], dtype=f"{dtype}[s]"))
+    result = ser.reindex(RangeIndex(2))
+    expected = Series(
+        np.array([1, getattr(np, dtype)("nat", "s")], dtype=f"{dtype}[s]")
+    )
+    tm.assert_series_equal(result, expected)

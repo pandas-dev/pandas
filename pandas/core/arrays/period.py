@@ -7,7 +7,6 @@ from typing import (
     Any,
     Callable,
     Literal,
-    Sequence,
     TypeVar,
     cast,
     overload,
@@ -74,9 +73,12 @@ from pandas.core.arrays import datetimelike as dtl
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         AnyArrayLike,
         Dtype,
+        FillnaOptions,
         NpDtype,
         NumpySorter,
         NumpyValueArrayLike,
@@ -163,6 +165,14 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
     The `freq` indicates the span covered by each element of the array.
     All elements in the PeriodArray have the same `freq`.
+
+    Examples
+    --------
+    >>> pd.arrays.PeriodArray(pd.PeriodIndex(['2023-01-01',
+    ...                                       '2023-01-02'], freq='D'))
+    <PeriodArray>
+    ['2023-01-01', '2023-01-02']
+    Length: 2, dtype: period[D]
     """
 
     # array priority higher than numpy scalars
@@ -772,7 +782,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         self,
         value: NumpyValueArrayLike | ExtensionArray,
         side: Literal["left", "right"] = "left",
-        sorter: NumpySorter = None,
+        sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         npvalue = self._validate_setitem_value(value).view("M8[ns]")
 
@@ -781,16 +791,37 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         m8arr = self._ndarray.view("M8[ns]")
         return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
 
-    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
+    def pad_or_backfill(
+        self,
+        *,
+        method: FillnaOptions,
+        limit: int | None = None,
+        limit_area: Literal["inside", "outside"] | None = None,
+        copy: bool = True,
+    ) -> Self:
+        # view as dt64 so we get treated as timelike in core.missing,
+        #  similar to dtl._period_dispatch
+        dta = self.view("M8[ns]")
+        result = dta.pad_or_backfill(
+            method=method, limit=limit, limit_area=limit_area, copy=copy
+        )
+        if copy:
+            return cast("Self", result.view(self.dtype))
+        else:
+            return self
+
+    def fillna(
+        self, value=None, method=None, limit: int | None = None, copy: bool = True
+    ) -> Self:
         if method is not None:
             # view as dt64 so we get treated as timelike in core.missing,
             #  similar to dtl._period_dispatch
             dta = self.view("M8[ns]")
-            result = dta.fillna(value=value, method=method, limit=limit)
+            result = dta.fillna(value=value, method=method, limit=limit, copy=copy)
             # error: Incompatible return value type (got "Union[ExtensionArray,
             # ndarray[Any, Any]]", expected "PeriodArray")
             return result.view(self.dtype)  # type: ignore[return-value]
-        return super().fillna(value=value, method=method, limit=limit)
+        return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -959,7 +990,7 @@ def raise_on_incompatible(left, right):
 
 def period_array(
     data: Sequence[Period | str | None] | AnyArrayLike,
-    freq: str | Tick | None = None,
+    freq: str | Tick | BaseOffset | None = None,
     copy: bool = False,
 ) -> PeriodArray:
     """
@@ -1175,6 +1206,7 @@ def _get_ordinal_range(start, end, periods, freq, mult: int = 1):
             freq = end.freq
         else:  # pragma: no cover
             raise ValueError("Could not infer freq from start/end")
+        mult = freq.n
 
     if periods is not None:
         periods = periods * mult

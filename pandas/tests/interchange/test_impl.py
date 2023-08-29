@@ -1,5 +1,4 @@
 from datetime import datetime
-import random
 
 import numpy as np
 import pytest
@@ -16,47 +15,31 @@ from pandas.core.interchange.dataframe_protocol import (
 )
 from pandas.core.interchange.from_dataframe import from_dataframe
 
-test_data_categorical = {
-    "ordered": pd.Categorical(list("testdata") * 30, ordered=True),
-    "unordered": pd.Categorical(list("testdata") * 30, ordered=False),
-}
 
-NCOLS, NROWS = 100, 200
-
-
-def _make_data(make_one):
+@pytest.fixture
+def data_categorical():
     return {
-        f"col{int((i - NCOLS / 2) % NCOLS + 1)}": [make_one() for _ in range(NROWS)]
-        for i in range(NCOLS)
+        "ordered": pd.Categorical(list("testdata") * 30, ordered=True),
+        "unordered": pd.Categorical(list("testdata") * 30, ordered=False),
     }
 
 
-int_data = _make_data(lambda: random.randint(-100, 100))
-uint_data = _make_data(lambda: random.randint(1, 100))
-bool_data = _make_data(lambda: random.choice([True, False]))
-float_data = _make_data(lambda: random.random())
-datetime_data = _make_data(
-    lambda: datetime(
-        year=random.randint(1900, 2100),
-        month=random.randint(1, 12),
-        day=random.randint(1, 20),
-    )
-)
-
-string_data = {
-    "separator data": [
-        "abC|DeF,Hik",
-        "234,3245.67",
-        "gSaf,qWer|Gre",
-        "asd3,4sad|",
-        np.NaN,
-    ]
-}
+@pytest.fixture
+def string_data():
+    return {
+        "separator data": [
+            "abC|DeF,Hik",
+            "234,3245.67",
+            "gSaf,qWer|Gre",
+            "asd3,4sad|",
+            np.nan,
+        ]
+    }
 
 
 @pytest.mark.parametrize("data", [("ordered", True), ("unordered", False)])
-def test_categorical_dtype(data):
-    df = pd.DataFrame({"A": (test_data_categorical[data[0]])})
+def test_categorical_dtype(data, data_categorical):
+    df = pd.DataFrame({"A": (data_categorical[data[0]])})
 
     col = df.__dataframe__().get_column_by_name("A")
     assert col.dtype[0] == DtypeKind.CATEGORICAL
@@ -143,9 +126,25 @@ def test_bitmasks_pyarrow(offset, length, expected_values):
 
 
 @pytest.mark.parametrize(
-    "data", [int_data, uint_data, float_data, bool_data, datetime_data]
+    "data",
+    [
+        lambda: np.random.default_rng(2).integers(-100, 100),
+        lambda: np.random.default_rng(2).integers(1, 100),
+        lambda: np.random.default_rng(2).random(),
+        lambda: np.random.default_rng(2).choice([True, False]),
+        lambda: datetime(
+            year=np.random.default_rng(2).integers(1900, 2100),
+            month=np.random.default_rng(2).integers(1, 12),
+            day=np.random.default_rng(2).integers(1, 20),
+        ),
+    ],
 )
 def test_dataframe(data):
+    NCOLS, NROWS = 10, 20
+    data = {
+        f"col{int((i - NCOLS / 2) % NCOLS + 1)}": [data() for _ in range(NROWS)]
+        for i in range(NCOLS)
+    }
     df = pd.DataFrame(data)
 
     df2 = df.__dataframe__()
@@ -177,8 +176,8 @@ def test_missing_from_masked():
 
     df2 = df.__dataframe__()
 
-    rng = np.random.RandomState(42)
-    dict_null = {col: rng.randint(low=0, high=len(df)) for col in df.columns}
+    rng = np.random.default_rng(2)
+    dict_null = {col: rng.integers(low=0, high=len(df)) for col in df.columns}
     for col, num_nulls in dict_null.items():
         null_idx = df.index[
             rng.choice(np.arange(len(df)), size=num_nulls, replace=False)
@@ -227,7 +226,7 @@ def test_mixed_missing():
         assert df2.get_column_by_name(col_name).null_count == 2
 
 
-def test_string():
+def test_string(string_data):
     test_str_data = string_data["separator data"] + [""]
     df = pd.DataFrame({"A": test_str_data})
     col = df.__dataframe__().get_column_by_name("A")
@@ -284,3 +283,46 @@ def test_empty_pyarrow(data):
     arrow_df = pa_from_dataframe(expected)
     result = from_dataframe(arrow_df)
     tm.assert_frame_equal(result, expected)
+
+
+def test_multi_chunk_pyarrow() -> None:
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+    n_legs = pa.chunked_array([[2, 2, 4], [4, 5, 100]])
+    names = ["n_legs"]
+    table = pa.table([n_legs], names=names)
+    with pytest.raises(
+        RuntimeError,
+        match="To join chunks a copy is required which is "
+        "forbidden by allow_copy=False",
+    ):
+        pd.api.interchange.from_dataframe(table, allow_copy=False)
+
+
+@pytest.mark.parametrize("tz", ["UTC", "US/Pacific"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_datetimetzdtype(tz, unit):
+    # GH 54239
+    tz_data = (
+        pd.date_range("2018-01-01", periods=5, freq="D").tz_localize(tz).as_unit(unit)
+    )
+    df = pd.DataFrame({"ts_tz": tz_data})
+    tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
+
+
+def test_interchange_from_non_pandas_tz_aware():
+    # GH 54239, 54287
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+    import pyarrow.compute as pc
+
+    arr = pa.array([datetime(2020, 1, 1), None, datetime(2020, 1, 2)])
+    arr = pc.assume_timezone(arr, "Asia/Kathmandu")
+    table = pa.table({"arr": arr})
+    exchange_df = table.__dataframe__()
+    result = from_dataframe(exchange_df)
+
+    expected = pd.DataFrame(
+        ["2020-01-01 00:00:00+05:45", "NaT", "2020-01-02 00:00:00+05:45"],
+        columns=["arr"],
+        dtype="datetime64[us, Asia/Kathmandu]",
+    )
+    tm.assert_frame_equal(expected, result)

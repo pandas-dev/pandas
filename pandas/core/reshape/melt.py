@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -27,6 +24,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import AnyArrayLike
 
     from pandas import DataFrame
@@ -142,8 +141,7 @@ def melt(
     else:
         mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
-        # asanyarray will keep the columns as an Index
-        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
+        mdata[col] = frame.columns._get_level_values(i).repeat(N)
 
     result = frame._constructor(mdata, columns=mcolumns)
 

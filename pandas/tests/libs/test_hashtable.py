@@ -1,8 +1,8 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 import re
 import struct
 import tracemalloc
-from typing import Generator
 
 import numpy as np
 import pytest
@@ -333,7 +333,7 @@ class TestHashTableUnsorted:
     ):
         # Test for memory errors after internal vector
         # reallocations (GH 7157)
-        # Changed from using np.random.rand to range
+        # Changed from using np.random.default_rng(2).rand to range
         # which could cause flaky CI failures when safely_resizes=False
         vals = np.array(range(1000), dtype=dtype)
 
@@ -461,7 +461,7 @@ def test_get_labels_groupby_for_Int64(writable):
 
 def test_tracemalloc_works_for_StringHashTable():
     N = 1000
-    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    keys = np.arange(N).astype(np.str_).astype(np.object_)
     with activated_tracemalloc():
         table = ht.StringHashTable()
         table.map_locations(keys)
@@ -484,7 +484,7 @@ def test_tracemalloc_for_empty_StringHashTable():
 
 @pytest.mark.parametrize("N", range(1, 110))
 def test_no_reallocation_StringHashTable(N):
-    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    keys = np.arange(N).astype(np.str_).astype(np.object_)
     preallocated_table = ht.StringHashTable(N)
     n_buckets_start = preallocated_table.get_state()["n_buckets"]
     preallocated_table.map_locations(keys)
@@ -660,14 +660,14 @@ def test_unique_label_indices_intp(writable):
 
 
 def test_unique_label_indices():
-    a = np.random.randint(1, 1 << 10, 1 << 15).astype(np.intp)
+    a = np.random.default_rng(2).integers(1, 1 << 10, 1 << 15).astype(np.intp)
 
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
 
     tm.assert_numpy_array_equal(left, right, check_dtype=False)
 
-    a[np.random.choice(len(a), 10)] = -1
+    a[np.random.default_rng(2).choice(len(a), 10)] = -1
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1][1:]
     tm.assert_numpy_array_equal(left, right, check_dtype=False)

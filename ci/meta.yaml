@@ -34,7 +34,8 @@ requirements:
     - tomli  # [py<311]
   run:
     - python
-    - {{ pin_compatible('numpy') }}
+    - numpy >=1.21.6  # [py<311]
+    - numpy >=1.23.2  # [py>=311]
     - python-dateutil >=2.8.2
     - pytz >=2020.1
     - python-tzdata >=2022.1
@@ -62,7 +63,7 @@ test:
     - python -c "import pandas; pandas.test(extra_args={{ extra_args }})"  # [python_impl == "cpython"]
   requires:
     - pip
-    - pytest >=7.0.0
+    - pytest >=7.3.2
     - pytest-asyncio >=0.17.0
     - pytest-xdist >=2.2.0
     - pytest-cov

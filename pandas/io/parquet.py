@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import json
 import os
 from typing import (
     TYPE_CHECKING,
@@ -10,6 +11,8 @@ from typing import (
 )
 import warnings
 from warnings import catch_warnings
+
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -25,6 +28,7 @@ from pandas import (
 )
 from pandas.core.shared_docs import _shared_docs
 
+from pandas.io._util import arrow_string_types_mapper
 from pandas.io.common import (
     IOHandles,
     get_handle,
@@ -80,7 +84,7 @@ def get_engine(engine: str) -> BaseImpl:
 def _get_path_or_handle(
     path: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
     fs: Any,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     mode: str = "rb",
     is_dir: bool = False,
 ) -> tuple[
@@ -171,7 +175,7 @@ class PyArrowImpl(BaseImpl):
         path: FilePath | WriteBuffer[bytes],
         compression: str | None = "snappy",
         index: bool | None = None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         partition_cols: list[str] | None = None,
         filesystem=None,
         **kwargs,
@@ -183,6 +187,12 @@ class PyArrowImpl(BaseImpl):
             from_pandas_kwargs["preserve_index"] = index
 
         table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
+
+        if df.attrs:
+            df_metadata = {"PANDAS_ATTRS": json.dumps(df.attrs)}
+            existing_metadata = table.schema.metadata
+            merged_metadata = {**existing_metadata, **df_metadata}
+            table = table.replace_schema_metadata(merged_metadata)
 
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
@@ -228,9 +238,10 @@ class PyArrowImpl(BaseImpl):
         self,
         path,
         columns=None,
+        filters=None,
         use_nullable_dtypes: bool = False,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         filesystem=None,
         **kwargs,
     ) -> DataFrame:
@@ -244,6 +255,8 @@ class PyArrowImpl(BaseImpl):
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
             to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa: E501
+        elif using_pyarrow_string_dtype():
+            to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
         manager = get_option("mode.data_manager")
         if manager == "array":
@@ -257,12 +270,21 @@ class PyArrowImpl(BaseImpl):
         )
         try:
             pa_table = self.api.parquet.read_table(
-                path_or_handle, columns=columns, filesystem=filesystem, **kwargs
+                path_or_handle,
+                columns=columns,
+                filesystem=filesystem,
+                filters=filters,
+                **kwargs,
             )
             result = pa_table.to_pandas(**to_pandas_kwargs)
 
             if manager == "array":
                 result = result._as_manager("array", copy=False)
+
+            if pa_table.schema.metadata:
+                if b"PANDAS_ATTRS" in pa_table.schema.metadata:
+                    df_metadata = pa_table.schema.metadata[b"PANDAS_ATTRS"]
+                    result.attrs = json.loads(df_metadata)
             return result
         finally:
             if handles is not None:
@@ -285,7 +307,7 @@ class FastParquetImpl(BaseImpl):
         compression: Literal["snappy", "gzip", "brotli"] | None = "snappy",
         index=None,
         partition_cols=None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         filesystem=None,
         **kwargs,
     ) -> None:
@@ -335,7 +357,8 @@ class FastParquetImpl(BaseImpl):
         self,
         path,
         columns=None,
-        storage_options: StorageOptions = None,
+        filters=None,
+        storage_options: StorageOptions | None = None,
         filesystem=None,
         **kwargs,
     ) -> DataFrame:
@@ -375,7 +398,7 @@ class FastParquetImpl(BaseImpl):
 
         try:
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-            return parquet_file.to_pandas(columns=columns, **kwargs)
+            return parquet_file.to_pandas(columns=columns, filters=filters, **kwargs)
         finally:
             if handles is not None:
                 handles.close()
@@ -388,7 +411,7 @@ def to_parquet(
     engine: str = "auto",
     compression: str | None = "snappy",
     index: bool | None = None,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     partition_cols: list[str] | None = None,
     filesystem: Any = None,
     **kwargs,
@@ -421,10 +444,7 @@ def to_parquet(
         if you wish to use its implementation.
     compression : {{'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None}},
         default 'snappy'. Name of the compression to use. Use ``None``
-        for no compression. The supported compression methods actually
-        depend on which engine is used. For 'pyarrow', 'snappy', 'gzip',
-        'brotli', 'lz4', 'zstd' are all supported. For 'fastparquet',
-        only 'gzip' and 'snappy' are supported.
+        for no compression.
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.
@@ -483,10 +503,11 @@ def read_parquet(
     path: FilePath | ReadBuffer[bytes],
     engine: str = "auto",
     columns: list[str] | None = None,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     use_nullable_dtypes: bool | lib.NoDefault = lib.no_default,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     filesystem: Any = None,
+    filters: list[tuple] | list[list[tuple]] | None = None,
     **kwargs,
 ) -> DataFrame:
     """
@@ -517,7 +538,6 @@ def read_parquet(
         if you wish to use its implementation.
     columns : list, default=None
         If not None, only these columns will be read from the file.
-
     {storage_options}
 
         .. versionadded:: 1.3.0
@@ -533,13 +553,14 @@ def read_parquet(
 
         .. deprecated:: 2.0
 
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -549,13 +570,87 @@ def read_parquet(
 
         .. versionadded:: 2.1.0
 
+    filters : List[Tuple] or List[List[Tuple]], default None
+        To filter out data.
+        Filter syntax: [[(column, op, val), ...],...]
+        where op is [==, =, >, >=, <, <=, !=, in, not in]
+        The innermost tuples are transposed into a set of filters applied
+        through an `AND` operation.
+        The outer list combines these sets of filters through an `OR`
+        operation.
+        A single list of tuples can also be used, meaning that no `OR`
+        operation between set of filters is to be conducted.
+
+        Using this argument will NOT result in row-wise filtering of the final
+        partitions unless ``engine="pyarrow"`` is also specified.  For
+        other engines, filtering is only performed at the partition level, that is,
+        to prevent the loading of some row-groups and/or files.
+
+        .. versionadded:: 2.1.0
+
     **kwargs
         Any additional kwargs are passed to the engine.
 
     Returns
     -------
     DataFrame
+
+    See Also
+    --------
+    DataFrame.to_parquet : Create a parquet object that serializes a DataFrame.
+
+    Examples
+    --------
+    >>> original_df = pd.DataFrame(
+    ...     {{"foo": range(5), "bar": range(5, 10)}}
+    ...    )
+    >>> original_df
+       foo  bar
+    0    0    5
+    1    1    6
+    2    2    7
+    3    3    8
+    4    4    9
+    >>> df_parquet_bytes = original_df.to_parquet()
+    >>> from io import BytesIO
+    >>> restored_df = pd.read_parquet(BytesIO(df_parquet_bytes))
+    >>> restored_df
+       foo  bar
+    0    0    5
+    1    1    6
+    2    2    7
+    3    3    8
+    4    4    9
+    >>> restored_df.equals(original_df)
+    True
+    >>> restored_bar = pd.read_parquet(BytesIO(df_parquet_bytes), columns=["bar"])
+    >>> restored_bar
+        bar
+    0    5
+    1    6
+    2    7
+    3    8
+    4    9
+    >>> restored_bar.equals(original_df[['bar']])
+    True
+
+    The function uses `kwargs` that are passed directly to the engine.
+    In the following example, we use the `filters` argument of the pyarrow
+    engine to filter the rows of the DataFrame.
+
+    Since `pyarrow` is the default engine, we can omit the `engine` argument.
+    Note that the `filters` argument is implemented by the `pyarrow` engine,
+    which can benefit from multithreading and also potentially be more
+    economical in terms of memory.
+
+    >>> sel = [("foo", ">", 2)]
+    >>> restored_part = pd.read_parquet(BytesIO(df_parquet_bytes), filters=sel)
+    >>> restored_part
+        foo  bar
+    0    3    8
+    1    4    9
     """
+
     impl = get_engine(engine)
 
     if use_nullable_dtypes is not lib.no_default:
@@ -575,6 +670,7 @@ def read_parquet(
     return impl.read(
         path,
         columns=columns,
+        filters=filters,
         storage_options=storage_options,
         use_nullable_dtypes=use_nullable_dtypes,
         dtype_backend=dtype_backend,

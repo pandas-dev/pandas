@@ -180,10 +180,8 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("idxmin")),
     (pd.DataFrame, frame_data, operator.methodcaller("idxmax")),
     (pd.DataFrame, frame_data, operator.methodcaller("mode")),
-    pytest.param(
-        (pd.Series, [0], operator.methodcaller("mode")),
-        marks=not_implemented_mark,
-    ),
+    (pd.Series, [0], operator.methodcaller("mode")),
+    (pd.DataFrame, frame_data, operator.methodcaller("median")),
     (
         pd.DataFrame,
         frame_data,
@@ -363,17 +361,24 @@ _all_methods = [
     # Cumulative reductions
     (pd.Series, ([1],), operator.methodcaller("cumsum")),
     (pd.DataFrame, frame_data, operator.methodcaller("cumsum")),
+    (pd.Series, ([1],), operator.methodcaller("cummin")),
+    (pd.DataFrame, frame_data, operator.methodcaller("cummin")),
+    (pd.Series, ([1],), operator.methodcaller("cummax")),
+    (pd.DataFrame, frame_data, operator.methodcaller("cummax")),
+    (pd.Series, ([1],), operator.methodcaller("cumprod")),
+    (pd.DataFrame, frame_data, operator.methodcaller("cumprod")),
     # Reductions
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("any")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("any")),
+    (pd.DataFrame, frame_data, operator.methodcaller("all")),
+    (pd.DataFrame, frame_data, operator.methodcaller("min")),
+    (pd.DataFrame, frame_data, operator.methodcaller("max")),
     (pd.DataFrame, frame_data, operator.methodcaller("sum")),
     (pd.DataFrame, frame_data, operator.methodcaller("std")),
-    pytest.param(
-        (pd.DataFrame, frame_data, operator.methodcaller("mean")),
-        marks=not_implemented_mark,
-    ),
+    (pd.DataFrame, frame_data, operator.methodcaller("mean")),
+    (pd.DataFrame, frame_data, operator.methodcaller("prod")),
+    (pd.DataFrame, frame_data, operator.methodcaller("sem")),
+    (pd.DataFrame, frame_data, operator.methodcaller("skew")),
+    (pd.DataFrame, frame_data, operator.methodcaller("kurt")),
 ]
 
 
@@ -395,7 +400,8 @@ def ndframe_method(request):
 
 
 @pytest.mark.filterwarnings(
-    "ignore:DataFrame.fillna with 'method' is deprecated:FutureWarning"
+    "ignore:DataFrame.fillna with 'method' is deprecated:FutureWarning",
+    "ignore:last is deprecated:FutureWarning",
 )
 def test_finalize_called(ndframe_method):
     cls, init_args, method = ndframe_method
@@ -420,6 +426,23 @@ def test_finalize_first(data):
     data.attrs = {"a": 1}
     with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
         result = data.first("3D")
+        assert result.attrs == {"a": 1}
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        pd.Series(1, pd.date_range("2000", periods=4)),
+        pd.DataFrame({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
+    ],
+)
+def test_finalize_last(data):
+    # GH 53710
+    deprecated_msg = "last is deprecated"
+
+    data.attrs = {"a": 1}
+    with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
+        result = data.last("3D")
         assert result.attrs == {"a": 1}
 
 

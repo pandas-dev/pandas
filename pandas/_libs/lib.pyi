@@ -8,6 +8,7 @@ from typing import (
     Generator,
     Hashable,
     Literal,
+    TypeAlias,
     overload,
 )
 
@@ -30,13 +31,13 @@ from enum import Enum
 class _NoDefault(Enum):
     no_default = ...
 
-no_default: Final = _NoDefault.no_default  # noqa: PYI015
-NoDefault = Literal[_NoDefault.no_default]
+no_default: Final = _NoDefault.no_default
+NoDefault: TypeAlias = Literal[_NoDefault.no_default]
 
 i8max: int
 u8max: int
 
-def is_np_dtype(dtype: object, kinds: str | None = ...) -> bool: ...
+def is_np_dtype(dtype: object, kinds: str | None = ...) -> TypeGuard[np.dtype]: ...
 def item_from_zerodim(val: object) -> object: ...
 def infer_dtype(value: object, skipna: bool = ...) -> str: ...
 def is_iterator(obj: object) -> bool: ...
@@ -194,6 +195,7 @@ def array_equivalent_object(
     right: npt.NDArray[np.object_],
 ) -> bool: ...
 def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
+def has_only_ints_or_nan(arr: np.ndarray) -> bool: ...  # const floating[:]
 def get_reverse_indexer(
     indexer: np.ndarray,  # const intp_t[:]
     length: int,

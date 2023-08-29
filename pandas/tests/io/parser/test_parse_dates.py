@@ -46,7 +46,7 @@ skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 def test_read_csv_with_custom_date_parser(all_parsers):
     # GH36111
     def __custom_date_parser(time):
-        time = time.astype(np.float_)
+        time = time.astype(np.float64)
         time = time.astype(np.int_)  # convert float seconds to int type
         return pd.to_timedelta(time, unit="s")
 
@@ -86,7 +86,7 @@ def test_read_csv_with_custom_date_parser(all_parsers):
 def test_read_csv_with_custom_date_parser_parse_dates_false(all_parsers):
     # GH44366
     def __custom_date_parser(time):
-        time = time.astype(np.float_)
+        time = time.astype(np.float64)
         time = time.astype(np.int_)  # convert float seconds to int type
         return pd.to_timedelta(time, unit="s")
 
@@ -717,7 +717,11 @@ def test_date_parser_int_bug(all_parsers):
         StringIO(data),
         index_col=0,
         parse_dates=[0],
-        date_parser=lambda x: datetime.utcfromtimestamp(int(x)),
+        # Note: we must pass tz and then drop the tz attribute
+        # (if we don't CI will flake out depending on the runner's local time)
+        date_parser=lambda x: datetime.fromtimestamp(int(x), tz=timezone.utc).replace(
+            tzinfo=None
+        ),
     )
     expected = DataFrame(
         [
@@ -2237,3 +2241,19 @@ def test_parse_dates_arrow_engine(all_parsers):
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow
+def test_from_csv_with_mixed_offsets(all_parsers):
+    parser = all_parsers
+    data = "a\n2020-01-01T00:00:00+01:00\n2020-01-01T00:00:00+00:00"
+    result = parser.read_csv(StringIO(data), parse_dates=["a"])["a"]
+    expected = Series(
+        [
+            Timestamp("2020-01-01 00:00:00+01:00"),
+            Timestamp("2020-01-01 00:00:00+00:00"),
+        ],
+        name="a",
+        index=[0, 1],
+    )
+    tm.assert_series_equal(result, expected)

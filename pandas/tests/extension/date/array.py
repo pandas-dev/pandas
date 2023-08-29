@@ -4,7 +4,6 @@ import datetime as dt
 from typing import (
     TYPE_CHECKING,
     Any,
-    Sequence,
     cast,
 )
 
@@ -19,6 +18,8 @@ from pandas.api.extensions import (
 from pandas.api.types import pandas_dtype
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         Dtype,
         PositionalIndexer,
@@ -147,7 +148,7 @@ class DateArray(ExtensionArray):
         else:
             raise NotImplementedError("only ints are supported as indexes")
 
-    def __setitem__(self, key: int | slice | np.ndarray, value: Any):
+    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
         if not isinstance(key, int):
             raise NotImplementedError("only ints are supported as indexes")
 
@@ -175,9 +176,13 @@ class DateArray(ExtensionArray):
     @classmethod
     def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         if isinstance(scalars, dt.date):
-            pass
+            raise TypeError
         elif isinstance(scalars, DateArray):
-            pass
+            if dtype is not None:
+                return scalars.astype(dtype, copy=copy)
+            if copy:
+                return scalars.copy()
+            return scalars[:]
         elif isinstance(scalars, np.ndarray):
             scalars = scalars.astype("U10")  # 10 chars for yyyy-mm-dd
             return DateArray(scalars)
