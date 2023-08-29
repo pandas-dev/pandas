@@ -40,7 +40,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import roperator
+from pandas.core import (
+    missing,
+    roperator,
+)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays.base import (
@@ -933,6 +936,20 @@ class ArrowExtensionArray(
             # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
+        if limit is not None and limit_area is not None:
+            method = missing.clean_fill_method(method)
+            try:
+                if method == "pad":
+                    return type(self)(pc.fill_null_forward(self._pa_array))
+                elif method == "backfill":
+                    return type(self)(pc.fill_null_backward(self._pa_array))
+            except pa.ArrowNotImplementedError:
+                # ArrowNotImplementedError: Function 'coalesce' has no kernel
+                #   matching input types (duration[ns], duration[ns])
+                # TODO: remove try/except wrapper if/when pyarrow implements
+                #   a kernel for duration types.
+                pass
+
         # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
         #  this method entirely.
         return super().pad_or_backfill(
@@ -953,8 +970,11 @@ class ArrowExtensionArray(
             # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
-        if limit is not None or method is not None:
+        if limit is not None:
             return super().fillna(value=value, method=method, limit=limit, copy=copy)
+
+        if method is not None:
+            return super().pad_or_backfill(method=method, limit=limit, copy=copy)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
             # Similar to check_value_size, but we do not mask here since we may
@@ -972,12 +992,7 @@ class ArrowExtensionArray(
             raise TypeError(msg) from err
 
         try:
-            if method is None:
-                return type(self)(pc.fill_null(self._pa_array, fill_value=fill_value))
-            elif method == "pad":
-                return type(self)(pc.fill_null_forward(self._pa_array))
-            elif method == "backfill":
-                return type(self)(pc.fill_null_backward(self._pa_array))
+            return type(self)(pc.fill_null(self._pa_array, fill_value=fill_value))
         except pa.ArrowNotImplementedError:
             # ArrowNotImplementedError: Function 'coalesce' has no kernel
             #   matching input types (duration[ns], duration[ns])
