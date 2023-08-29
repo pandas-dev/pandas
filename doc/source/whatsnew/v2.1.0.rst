@@ -250,7 +250,6 @@ Other enhancements
 - :meth:`.SeriesGroupBy.transform` and :meth:`.DataFrameGroupBy.transform` now support passing in a string as the function for ``engine="numba"`` (:issue:`53579`)
 - :meth:`DataFrame.stack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
 - :meth:`DataFrame.unstack` gained the ``sort`` keyword to dictate whether the resulting :class:`MultiIndex` levels are sorted (:issue:`15105`)
-- :meth:`ExtensionArray._explode` interface method added to allow extension type implementations of the ``explode`` method (:issue:`54833`)
 - :meth:`Series.explode` now supports PyArrow-backed list types (:issue:`53602`)
 - :meth:`Series.str.join` now supports ``ArrowDtype(pa.string())`` (:issue:`53646`)
 - Add ``validate`` parameter to :meth:`Categorical.from_codes` (:issue:`50975`)
