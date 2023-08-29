@@ -142,7 +142,7 @@ def create_data():
         "period": period_range("2013-01-01", freq="M", periods=10),
         "float": Index(np.arange(10, dtype=np.float64)),
         "uint": Index(np.arange(10, dtype=np.uint64)),
-        "timedelta": timedelta_range("00:00:00", freq="30T", periods=10),
+        "timedelta": timedelta_range("00:00:00", freq="30min", periods=10),
     }
 
     index["range"] = RangeIndex(10)

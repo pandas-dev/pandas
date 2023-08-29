@@ -1,6 +1,9 @@
 # period frequency constants corresponding to scikits timeseries
 # originals
 from enum import Enum
+import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
@@ -141,11 +144,11 @@ _period_code_map = {
     "B": PeriodDtypeCode.B,        # Business days
     "D": PeriodDtypeCode.D,        # Daily
     "H": PeriodDtypeCode.H,        # Hourly
-    "T": PeriodDtypeCode.T,        # Minutely
-    "S": PeriodDtypeCode.S,        # Secondly
-    "L": PeriodDtypeCode.L,       # Millisecondly
-    "U": PeriodDtypeCode.U,       # Microsecondly
-    "N": PeriodDtypeCode.N,       # Nanosecondly
+    "min": PeriodDtypeCode.T,      # Minutely
+    "s": PeriodDtypeCode.S,        # Secondly
+    "ms": PeriodDtypeCode.L,       # Millisecondly
+    "us": PeriodDtypeCode.U,       # Microsecondly
+    "ns": PeriodDtypeCode.N,       # Nanosecondly
 }
 
 _reverse_period_code_map = {
@@ -174,14 +177,28 @@ _attrname_to_abbrevs = {
     "month": "M",
     "day": "D",
     "hour": "H",
-    "minute": "T",
-    "second": "S",
-    "millisecond": "L",
-    "microsecond": "U",
-    "nanosecond": "N",
+    "minute": "min",
+    "second": "s",
+    "millisecond": "ms",
+    "microsecond": "us",
+    "nanosecond": "ns",
 }
 cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
 cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
+
+# Map deprecated resolution abbreviations to correct resolution abbreviations
+DEPR_ABBREVS: dict[str, str]= {
+    "T": "min",
+    "t": "min",
+    "S": "s",
+    "L": "ms",
+    "l": "ms",
+    "U": "us",
+    "u": "us",
+    "N": "ns",
+    "n": "ns",
+}
+cdef dict c_DEPR_ABBREVS = DEPR_ABBREVS
 
 
 class FreqGroup(Enum):
@@ -273,6 +290,15 @@ class Resolution(Enum):
         True
         """
         try:
+            if freq in DEPR_ABBREVS:
+                warnings.warn(
+                    f"\'{freq}\' is deprecated and will be removed in a future "
+                    f"version. Please use \'{DEPR_ABBREVS.get(freq)}\' "
+                    "instead of \'{freq}\'.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                freq = DEPR_ABBREVS[freq]
             attr_name = _abbrev_to_attrnames[freq]
         except KeyError:
             # For quarterly and yearly resolutions, we need to chop off
@@ -283,6 +309,15 @@ class Resolution(Enum):
             if split_freq[1] not in _month_names:
                 # i.e. we want e.g. "Q-DEC", not "Q-INVALID"
                 raise
+            if split_freq[0] in DEPR_ABBREVS:
+                warnings.warn(
+                    f"\'{split_freq[0]}\' is deprecated and will be removed in a "
+                    f"future version. Please use \'{DEPR_ABBREVS.get(split_freq[0])}\' "
+                    f"instead of \'{split_freq[0]}\'.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                split_freq[0] = DEPR_ABBREVS[split_freq[0]]
             attr_name = _abbrev_to_attrnames[split_freq[0]]
 
         return cls.from_attrname(attr_name)
