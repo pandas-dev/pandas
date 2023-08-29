@@ -10,7 +10,7 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize(
-    "array,expected",
+    "data,expected",
     [
         pytest.param(np.array([False, False]), bytes([0x0]), id="all_false"),
         pytest.param(np.array([True, False]), bytes([0x1]), id="first_true"),
@@ -24,23 +24,24 @@ import pandas._testing as tm
         ),
     ],
 )
-def test_constructor_ndarray(array, expected):
-    bma = BitmaskArray(array)
+def test_constructor_ndarray(data, expected):
+    bma = BitmaskArray(data)
     assert bma.bytes == expected
     assert not bma.parent
 
 
 @pytest.mark.parametrize(
-    "parent,expected",
+    "data,expected",
     [
-        (BitmaskArray(np.array([False, False])), bytes([0x0])),
-        (BitmaskArray(np.array([True, False])), bytes([0x1])),
-        (BitmaskArray(np.array([False, True])), bytes([0x2])),
-        (BitmaskArray(np.array([True, True])), bytes([0x3])),
-        (BitmaskArray(np.array([True, False] * 8)), bytes([0x55, 0x55])),
+        (np.array([False, False]), bytes([0x0])),
+        (np.array([True, False]), bytes([0x1])),
+        (np.array([False, True]), bytes([0x2])),
+        (np.array([True, True]), bytes([0x3])),
+        (np.array([True, False] * 8), bytes([0x55, 0x55])),
     ],
 )
-def test_constructor_bitmap(parent, expected):
+def test_constructor_bitmap(data, expected):
+    parent = BitmaskArray(data)
     bma = BitmaskArray(parent)
     assert bma.bytes == expected
     assert bma.parent is parent
