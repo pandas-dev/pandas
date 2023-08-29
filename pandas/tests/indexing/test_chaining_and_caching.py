@@ -24,7 +24,7 @@ msg = "A value is trying to be set on a copy of a slice from a DataFrame"
 
 def random_text(nobs=100):
     # Construct a DataFrame where each row is a random slice from 'letters'
-    idxs = np.random.randint(len(letters), size=(nobs, 2))
+    idxs = np.random.default_rng(2).integers(len(letters), size=(nobs, 2))
     idxs.sort(axis=1)
     strings = [letters[x[0] : x[1]] for x in idxs]
 
@@ -400,7 +400,7 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_sorting(self):
-        df = DataFrame(np.random.randn(10, 4))
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         ser = df.iloc[:, 0].sort_values()
 
         tm.assert_series_equal(ser, df.iloc[:, 0].sort_values())
@@ -445,7 +445,7 @@ class TestChaining:
         df = DataFrame(
             {
                 "A": date_range("20130101", periods=5),
-                "B": np.random.randn(5),
+                "B": np.random.default_rng(2).standard_normal(5),
                 "C": np.arange(5, dtype="int64"),
                 "D": ["a", "b", "c", "d", "e"],
             }
@@ -457,7 +457,7 @@ class TestChaining:
                 df.loc[2]["D"] = "foo"
             with tm.raises_chained_assignment_error():
                 df.loc[2]["C"] = "foo"
-            with tm.raises_chained_assignment_error():
+            with tm.raises_chained_assignment_error(extra_warnings=(FutureWarning,)):
                 df["C"][2] = "foo"
             tm.assert_frame_equal(df, df_original)
 

@@ -40,7 +40,7 @@ def test_groupby_agg_no_extra_calls():
 
 def test_agg_regression1(tsframe):
     grouped = tsframe.groupby([lambda x: x.year, lambda x: x.month])
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -141,8 +141,8 @@ def test_agg_apply_corner(ts, tsframe):
     # groupby float64 values results in a float64 Index
     exp = Series([], dtype=np.float64, index=Index([], dtype=np.float64))
     tm.assert_series_equal(grouped.sum(), exp)
-    tm.assert_series_equal(grouped.agg(np.sum), exp)
-    tm.assert_series_equal(grouped.apply(np.sum), exp, check_index_type=False)
+    tm.assert_series_equal(grouped.agg("sum"), exp)
+    tm.assert_series_equal(grouped.apply("sum"), exp, check_index_type=False)
 
     # DataFrame
     grouped = tsframe.groupby(tsframe["A"] * np.nan, group_keys=False)
@@ -152,7 +152,7 @@ def test_agg_apply_corner(ts, tsframe):
         index=Index([], name="A", dtype=np.float64),
     )
     tm.assert_frame_equal(grouped.sum(), exp_df)
-    tm.assert_frame_equal(grouped.agg(np.sum), exp_df)
+    tm.assert_frame_equal(grouped.agg("sum"), exp_df)
 
     msg = "The behavior of DataFrame.sum with axis=None is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg, check_stacklevel=False):
@@ -167,13 +167,13 @@ def test_agg_grouping_is_list_tuple(ts):
     grouper = grouped.grouper.groupings[0].grouping_vector
     grouped.grouper.groupings[0] = Grouping(ts.index, list(grouper))
 
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
     grouped.grouper.groupings[0] = Grouping(ts.index, tuple(grouper))
 
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -181,7 +181,7 @@ def test_agg_grouping_is_list_tuple(ts):
 def test_agg_python_multiindex(mframe):
     grouped = mframe.groupby(["A", "B"])
 
-    result = grouped.agg(np.mean)
+    result = grouped.agg("mean")
     expected = grouped.mean()
     tm.assert_frame_equal(result, expected)
 
@@ -235,7 +235,7 @@ def test_agg_str_with_kwarg_axis_1_raises(df, reduction_func):
     warn_msg = f"DataFrameGroupBy.{reduction_func} with axis=1 is deprecated"
     if reduction_func in ("idxmax", "idxmin"):
         error = TypeError
-        msg = "reduction operation '.*' not allowed for this dtype"
+        msg = "'[<>]' not supported between instances of 'float' and 'str'"
         warn = FutureWarning
     else:
         error = ValueError
@@ -348,7 +348,9 @@ def test_wrap_agg_out(three_group):
 def test_agg_multiple_functions_maintain_order(df):
     # GH #610
     funcs = [("mean", np.mean), ("max", np.max), ("min", np.min)]
-    result = df.groupby("A")["C"].agg(funcs)
+    msg = "is currently using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("A")["C"].agg(funcs)
     exp_cols = Index(["mean", "max", "min"])
 
     tm.assert_index_equal(result.columns, exp_cols)
@@ -357,17 +359,17 @@ def test_agg_multiple_functions_maintain_order(df):
 def test_agg_multiple_functions_same_name():
     # GH 30880
     df = DataFrame(
-        np.random.randn(1000, 3),
-        index=pd.date_range("1/1/2012", freq="S", periods=1000),
+        np.random.default_rng(2).standard_normal((1000, 3)),
+        index=pd.date_range("1/1/2012", freq="s", periods=1000),
         columns=["A", "B", "C"],
     )
-    result = df.resample("3T").agg(
+    result = df.resample("3min").agg(
         {"A": [partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
     )
-    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6)
+    expected_index = pd.date_range("1/1/2012", freq="3min", periods=6)
     expected_columns = MultiIndex.from_tuples([("A", "quantile"), ("A", "quantile")])
     expected_values = np.array(
-        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+        [df.resample("3min").A.quantile(q=q).values for q in [0.9999, 0.1111]]
     ).T
     expected = DataFrame(
         expected_values, columns=expected_columns, index=expected_index
@@ -379,14 +381,14 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
     # GH 30880
     # ohlc expands dimensions, so different test to the above is required.
     df = DataFrame(
-        np.random.randn(1000, 3),
-        index=pd.date_range("1/1/2012", freq="S", periods=1000, name="dti"),
+        np.random.default_rng(2).standard_normal((1000, 3)),
+        index=pd.date_range("1/1/2012", freq="s", periods=1000, name="dti"),
         columns=Index(["A", "B", "C"], name="alpha"),
     )
-    result = df.resample("3T").agg(
+    result = df.resample("3min").agg(
         {"A": ["ohlc", partial(np.quantile, q=0.9999), partial(np.quantile, q=0.1111)]}
     )
-    expected_index = pd.date_range("1/1/2012", freq="3T", periods=6, name="dti")
+    expected_index = pd.date_range("1/1/2012", freq="3min", periods=6, name="dti")
     expected_columns = MultiIndex.from_tuples(
         [
             ("A", "ohlc", "open"),
@@ -399,9 +401,11 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
         names=["alpha", None, None],
     )
     non_ohlc_expected_values = np.array(
-        [df.resample("3T").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+        [df.resample("3min").A.quantile(q=q).values for q in [0.9999, 0.1111]]
     ).T
-    expected_values = np.hstack([df.resample("3T").A.ohlc(), non_ohlc_expected_values])
+    expected_values = np.hstack(
+        [df.resample("3min").A.ohlc(), non_ohlc_expected_values]
+    )
     expected = DataFrame(
         expected_values, columns=expected_columns, index=expected_index
     )
@@ -428,20 +432,20 @@ def test_multiple_functions_tuples_and_non_tuples(df):
 def test_more_flexible_frame_multi_function(df):
     grouped = df.groupby("A")
 
-    exmean = grouped.agg({"C": np.mean, "D": np.mean})
-    exstd = grouped.agg({"C": np.std, "D": np.std})
+    exmean = grouped.agg({"C": "mean", "D": "mean"})
+    exstd = grouped.agg({"C": "std", "D": "std"})
 
     expected = concat([exmean, exstd], keys=["mean", "std"], axis=1)
     expected = expected.swaplevel(0, 1, axis=1).sort_index(level=0, axis=1)
 
-    d = {"C": [np.mean, np.std], "D": [np.mean, np.std]}
+    d = {"C": ["mean", "std"], "D": ["mean", "std"]}
     result = grouped.aggregate(d)
 
     tm.assert_frame_equal(result, expected)
 
     # be careful
-    result = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
-    expected = grouped.aggregate({"C": np.mean, "D": [np.mean, np.std]})
+    result = grouped.aggregate({"C": "mean", "D": ["mean", "std"]})
+    expected = grouped.aggregate({"C": "mean", "D": ["mean", "std"]})
     tm.assert_frame_equal(result, expected)
 
     def numpymean(x):
@@ -453,11 +457,11 @@ def test_more_flexible_frame_multi_function(df):
     # this uses column selection & renaming
     msg = r"nested renamer is not supported"
     with pytest.raises(SpecificationError, match=msg):
-        d = {"C": np.mean, "D": {"foo": np.mean, "bar": np.std}}
+        d = {"C": "mean", "D": {"foo": "mean", "bar": "std"}}
         grouped.aggregate(d)
 
     # But without renaming, these functions are OK
-    d = {"C": [np.mean], "D": [numpymean, numpystd]}
+    d = {"C": ["mean"], "D": [numpymean, numpystd]}
     grouped.aggregate(d)
 
 
@@ -774,8 +778,8 @@ class TestNamedAggregationDataFrame:
         p98 = functools.partial(np.percentile, q=98)
         result = df.groupby("group").agg(
             b_min=("B", "min"),
-            a_min=("A", min),
-            a_mean=("A", np.mean),
+            a_min=("A", "min"),
+            a_mean=("A", "mean"),
             a_max=("A", "max"),
             b_max=("B", "max"),
             a_98=("A", p98),
@@ -880,16 +884,16 @@ class TestNamedAggregationDataFrame:
     [
         (
             (("y", "A"), "max"),
-            (("y", "A"), np.min),
+            (("y", "A"), np.mean),
             (("y", "B"), "mean"),
             [1, 3],
-            [0, 2],
+            [0.5, 2.5],
             [5.5, 7.5],
         ),
         (
             (("y", "A"), lambda x: max(x)),
             (("y", "A"), lambda x: 1),
-            (("y", "B"), "mean"),
+            (("y", "B"), np.mean),
             [1, 3],
             [1, 1],
             [5.5, 7.5],
@@ -918,9 +922,11 @@ def test_agg_relabel_multiindex_column(
     expected = DataFrame({"a_max": [1, 3]}, index=idx)
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby(("x", "group")).agg(
-        col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
-    )
+    msg = "is currently using SeriesGroupBy.mean"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby(("x", "group")).agg(
+            col_1=agg_col1, col_2=agg_col2, col_3=agg_col3
+        )
     expected = DataFrame(
         {"col_1": agg_result1, "col_2": agg_result2, "col_3": agg_result3}, index=idx
     )
@@ -1309,8 +1315,7 @@ def test_groupby_combined_aggs_cat_cols(grp_col_dict, exp_data):
     multi_index_list = []
     for k, v in grp_col_dict.items():
         if isinstance(v, list):
-            for value in v:
-                multi_index_list.append([k, value])
+            multi_index_list.extend([k, value] for value in v)
         else:
             multi_index_list.append([k, v])
     multi_index = MultiIndex.from_tuples(tuple(multi_index_list))
@@ -1602,4 +1607,29 @@ def test_agg_with_as_index_false_with_list():
         data=[[0, 2, 4], [0, 3, 5], [1, 3, 6]],
         columns=MultiIndex.from_tuples([("a1", ""), ("a2", ""), ("b", "sum")]),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_extension_timedelta_cumsum_with_named_aggregation():
+    # GH#41720
+    expected = DataFrame(
+        {
+            "td": {
+                0: pd.Timedelta("0 days 01:00:00"),
+                1: pd.Timedelta("0 days 01:15:00"),
+                2: pd.Timedelta("0 days 01:15:00"),
+            }
+        }
+    )
+    df = DataFrame(
+        {
+            "td": Series(
+                ["0 days 01:00:00", "0 days 00:15:00", "0 days 01:15:00"],
+                dtype="timedelta64[ns]",
+            ),
+            "grps": ["a", "a", "b"],
+        }
+    )
+    gb = df.groupby("grps")
+    result = gb.agg(td=("td", "cumsum"))
     tm.assert_frame_equal(result, expected)

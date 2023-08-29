@@ -41,7 +41,7 @@ async def test_tab_complete_ipython6_warning(ip):
 
     # GH 31324 newer jedi version raises Deprecation warning;
     #  appears resolved 2021-02-02
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
         with provisionalcompleter("ignore"):
             list(ip.Completer.completions("rs.", 1))
 
@@ -141,8 +141,21 @@ def test_groupby_with_origin():
     start, end = "1/1/2000 00:00:00", "1/31/2000 00:00"
     middle = "1/15/2000 00:00:00"
 
+    # test origin on 1970-01-01 00:00:00
+    rng = date_range("1970-01-01 00:00:00", end, freq="1231min")  # prime number
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+    middle_ts = rng[len(rng) // 2]
+    ts2 = ts[middle_ts:end]
+
+    origin = Timestamp(0)
+    adjusted_grouper = pd.Grouper(freq=freq, origin=origin)
+    adjusted_count_ts = ts.groupby(adjusted_grouper).agg("count")
+    adjusted_count_ts = adjusted_count_ts[middle_ts:end]
+    adjusted_count_ts2 = ts2.groupby(adjusted_grouper).agg("count")
+    tm.assert_series_equal(adjusted_count_ts, adjusted_count_ts2[middle_ts:end])
+
     rng = date_range(start, end, freq="1231min")  # prime number
-    ts = Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
     ts2 = ts[middle:end]
 
     # proves that grouper without a fixed origin does not work
@@ -154,31 +167,24 @@ def test_groupby_with_origin():
     with pytest.raises(AssertionError, match="Index are different"):
         tm.assert_index_equal(count_ts.index, count_ts2.index)
 
-    # test origin on 1970-01-01 00:00:00
-    origin = Timestamp(0)
-    adjusted_grouper = pd.Grouper(freq=freq, origin=origin)
-    adjusted_count_ts = ts.groupby(adjusted_grouper).agg("count")
-    adjusted_count_ts = adjusted_count_ts[middle:end]
-    adjusted_count_ts2 = ts2.groupby(adjusted_grouper).agg("count")
-    tm.assert_series_equal(adjusted_count_ts, adjusted_count_ts2)
-
     # test origin on 2049-10-18 20:00:00
+
+    rng = date_range(start, "2049-10-18 20:00:00", freq="1231min")  # prime number
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
+    middle_ts = rng[len(rng) // 2]
+    ts2 = ts[middle_ts:end]
     origin_future = Timestamp(0) + pd.Timedelta("1399min") * 30_000
     adjusted_grouper2 = pd.Grouper(freq=freq, origin=origin_future)
     adjusted2_count_ts = ts.groupby(adjusted_grouper2).agg("count")
-    adjusted2_count_ts = adjusted2_count_ts[middle:end]
+    adjusted2_count_ts = adjusted2_count_ts[middle_ts:end]
     adjusted2_count_ts2 = ts2.groupby(adjusted_grouper2).agg("count")
     tm.assert_series_equal(adjusted2_count_ts, adjusted2_count_ts2)
-
-    # both grouper use an adjusted timestamp that is a multiple of 1399 min
-    # they should be equals even if the adjusted_timestamp is in the future
-    tm.assert_series_equal(adjusted_count_ts, adjusted2_count_ts2)
 
 
 def test_nearest():
     # GH 17496
     # Resample nearest
-    index = date_range("1/1/2000", periods=3, freq="T")
+    index = date_range("1/1/2000", periods=3, freq="min")
     result = Series(range(3), index=index).resample("20s").nearest()
 
     expected = Series(
@@ -194,7 +200,7 @@ def test_nearest():
                 "2000-01-01 00:02:00",
             ],
             dtype="datetime64[ns]",
-            freq="20S",
+            freq="20s",
         ),
     )
     tm.assert_series_equal(result, expected)
@@ -272,7 +278,9 @@ def test_apply(test_frame):
 def test_apply_with_mutated_index():
     # GH 15169
     index = date_range("1-1-2015", "12-31-15", freq="D")
-    df = DataFrame(data={"col1": np.random.rand(len(index))}, index=index)
+    df = DataFrame(
+        data={"col1": np.random.default_rng(2).random(len(index))}, index=index
+    )
 
     def f(x):
         s = Series([1, 2], index=["a", "b"])
@@ -313,7 +321,7 @@ def test_apply_non_naive_index():
         cutoff = cumsum.iloc[-1] * q
         return series[cumsum >= cutoff].iloc[0]
 
-    times = date_range("2017-6-23 18:00", periods=8, freq="15T", tz="UTC")
+    times = date_range("2017-6-23 18:00", periods=8, freq="15min", tz="UTC")
     data = Series([1.0, 1, 1, 1, 1, 2, 2, 0], index=times)
     weights = Series([160.0, 91, 65, 43, 24, 10, 1, 0], index=times)
 
@@ -362,7 +370,7 @@ def test_median_duplicate_columns():
     # GH 14233
 
     df = DataFrame(
-        np.random.randn(20, 3),
+        np.random.default_rng(2).standard_normal((20, 3)),
         columns=list("aaa"),
         index=date_range("2012-01-01", periods=20, freq="s"),
     )
@@ -662,3 +670,29 @@ def test_groupby_resample_on_index_with_list_of_keys_missing_column():
     )
     with pytest.raises(KeyError, match="Columns not found"):
         df.groupby("group").resample("2D")[["val_not_in_dataframe"]].mean()
+
+
+@pytest.mark.parametrize("kind", ["datetime", "period"])
+def test_groupby_resample_kind(kind):
+    # GH 24103
+    df = DataFrame(
+        {
+            "datetime": pd.to_datetime(
+                ["20181101 1100", "20181101 1200", "20181102 1300", "20181102 1400"]
+            ),
+            "group": ["A", "B", "A", "B"],
+            "value": [1, 2, 3, 4],
+        }
+    )
+    df = df.set_index("datetime")
+    result = df.groupby("group")["value"].resample("D", kind=kind).last()
+
+    dt_level = pd.DatetimeIndex(["2018-11-01", "2018-11-02"])
+    if kind == "period":
+        dt_level = dt_level.to_period(freq="D")
+    expected_index = pd.MultiIndex.from_product(
+        [["A", "B"], dt_level],
+        names=["group", "datetime"],
+    )
+    expected = Series([1, 3, 2, 4], index=expected_index, name="value")
+    tm.assert_series_equal(result, expected)

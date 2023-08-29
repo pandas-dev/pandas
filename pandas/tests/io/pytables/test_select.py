@@ -1,5 +1,3 @@
-from warnings import catch_warnings
-
 import numpy as np
 import pytest
 
@@ -40,7 +38,11 @@ def test_select_columns_in_where(setup_path):
     )
 
     # With a DataFrame
-    df = DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 3)),
+        index=index,
+        columns=["A", "B", "C"],
+    )
 
     with ensure_clean_store(setup_path) as store:
         store.put("df", df, format="table")
@@ -51,7 +53,7 @@ def test_select_columns_in_where(setup_path):
         tm.assert_frame_equal(store.select("df", where="columns=['A']"), expected)
 
     # With a Series
-    s = Series(np.random.randn(10), index=index, name="A")
+    s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="A")
     with ensure_clean_store(setup_path) as store:
         store.put("s", s, format="table")
         tm.assert_series_equal(store.select("s", where="columns=['A']"), s)
@@ -59,8 +61,10 @@ def test_select_columns_in_where(setup_path):
 
 def test_select_with_dups(setup_path):
     # single dtypes
-    df = DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"])
-    df.index = date_range("20130101 9:30", periods=10, freq="T")
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "A", "B", "B"]
+    )
+    df.index = date_range("20130101 9:30", periods=10, freq="min")
 
     with ensure_clean_store(setup_path) as store:
         store.append("df", df)
@@ -80,14 +84,18 @@ def test_select_with_dups(setup_path):
     # dups across dtypes
     df = concat(
         [
-            DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"]),
             DataFrame(
-                np.random.randint(0, 10, size=20).reshape(10, 2), columns=["A", "C"]
+                np.random.default_rng(2).standard_normal((10, 4)),
+                columns=["A", "A", "B", "B"],
+            ),
+            DataFrame(
+                np.random.default_rng(2).integers(0, 10, size=20).reshape(10, 2),
+                columns=["A", "C"],
             ),
         ],
         axis=1,
     )
-    df.index = date_range("20130101 9:30", periods=10, freq="T")
+    df.index = date_range("20130101 9:30", periods=10, freq="min")
 
     with ensure_clean_store(setup_path) as store:
         store.append("df", df)
@@ -121,40 +129,39 @@ def test_select_with_dups(setup_path):
 
 def test_select(setup_path):
     with ensure_clean_store(setup_path) as store:
-        with catch_warnings(record=True):
-            # select with columns=
-            df = tm.makeTimeDataFrame()
-            _maybe_remove(store, "df")
-            store.append("df", df)
-            result = store.select("df", columns=["A", "B"])
-            expected = df.reindex(columns=["A", "B"])
-            tm.assert_frame_equal(expected, result)
+        # select with columns=
+        df = tm.makeTimeDataFrame()
+        _maybe_remove(store, "df")
+        store.append("df", df)
+        result = store.select("df", columns=["A", "B"])
+        expected = df.reindex(columns=["A", "B"])
+        tm.assert_frame_equal(expected, result)
 
-            # equivalently
-            result = store.select("df", [("columns=['A', 'B']")])
-            expected = df.reindex(columns=["A", "B"])
-            tm.assert_frame_equal(expected, result)
+        # equivalently
+        result = store.select("df", [("columns=['A', 'B']")])
+        expected = df.reindex(columns=["A", "B"])
+        tm.assert_frame_equal(expected, result)
 
-            # with a data column
-            _maybe_remove(store, "df")
-            store.append("df", df, data_columns=["A"])
-            result = store.select("df", ["A > 0"], columns=["A", "B"])
-            expected = df[df.A > 0].reindex(columns=["A", "B"])
-            tm.assert_frame_equal(expected, result)
+        # with a data column
+        _maybe_remove(store, "df")
+        store.append("df", df, data_columns=["A"])
+        result = store.select("df", ["A > 0"], columns=["A", "B"])
+        expected = df[df.A > 0].reindex(columns=["A", "B"])
+        tm.assert_frame_equal(expected, result)
 
-            # all a data columns
-            _maybe_remove(store, "df")
-            store.append("df", df, data_columns=True)
-            result = store.select("df", ["A > 0"], columns=["A", "B"])
-            expected = df[df.A > 0].reindex(columns=["A", "B"])
-            tm.assert_frame_equal(expected, result)
+        # all a data columns
+        _maybe_remove(store, "df")
+        store.append("df", df, data_columns=True)
+        result = store.select("df", ["A > 0"], columns=["A", "B"])
+        expected = df[df.A > 0].reindex(columns=["A", "B"])
+        tm.assert_frame_equal(expected, result)
 
-            # with a data column, but different columns
-            _maybe_remove(store, "df")
-            store.append("df", df, data_columns=["A"])
-            result = store.select("df", ["A > 0"], columns=["C", "D"])
-            expected = df[df.A > 0].reindex(columns=["C", "D"])
-            tm.assert_frame_equal(expected, result)
+        # with a data column, but different columns
+        _maybe_remove(store, "df")
+        store.append("df", df, data_columns=["A"])
+        result = store.select("df", ["A > 0"], columns=["C", "D"])
+        expected = df[df.A > 0].reindex(columns=["C", "D"])
+        tm.assert_frame_equal(expected, result)
 
 
 def test_select_dtypes(setup_path):
@@ -163,7 +170,7 @@ def test_select_dtypes(setup_path):
         df = DataFrame(
             {
                 "ts": bdate_range("2012-01-01", periods=300),
-                "A": np.random.randn(300),
+                "A": np.random.default_rng(2).standard_normal(300),
             }
         )
         _maybe_remove(store, "df")
@@ -174,7 +181,9 @@ def test_select_dtypes(setup_path):
         tm.assert_frame_equal(expected, result)
 
         # bool columns (GH #2849)
-        df = DataFrame(np.random.randn(5, 2), columns=["A", "B"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 2)), columns=["A", "B"]
+        )
         df["object"] = "foo"
         df.loc[4:5, "object"] = "bar"
         df["boolv"] = df["A"] > 0
@@ -192,7 +201,12 @@ def test_select_dtypes(setup_path):
             tm.assert_frame_equal(expected, result)
 
         # integer index
-        df = DataFrame({"A": np.random.rand(20), "B": np.random.rand(20)})
+        df = DataFrame(
+            {
+                "A": np.random.default_rng(2).random(20),
+                "B": np.random.default_rng(2).random(20),
+            }
+        )
         _maybe_remove(store, "df_int")
         store.append("df_int", df)
         result = store.select("df_int", "index<10 and columns=['A']")
@@ -202,8 +216,8 @@ def test_select_dtypes(setup_path):
         # float index
         df = DataFrame(
             {
-                "A": np.random.rand(20),
-                "B": np.random.rand(20),
+                "A": np.random.default_rng(2).random(20),
+                "B": np.random.default_rng(2).random(20),
                 "index": np.arange(20, dtype="f8"),
             }
         )
@@ -267,7 +281,7 @@ def test_select_with_many_inputs(setup_path):
         df = DataFrame(
             {
                 "ts": bdate_range("2012-01-01", periods=300),
-                "A": np.random.randn(300),
+                "A": np.random.default_rng(2).standard_normal(300),
                 "B": range(300),
                 "users": ["a"] * 50
                 + ["b"] * 50
@@ -335,7 +349,7 @@ def test_select_iterator(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     df = tm.makeTimeDataFrame(500)
-    df.to_hdf(path, "df_non_table")
+    df.to_hdf(path, key="df_non_table")
 
     msg = "can only use an iterator or chunksize on a table"
     with pytest.raises(TypeError, match=msg):
@@ -347,7 +361,7 @@ def test_select_iterator(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     df = tm.makeTimeDataFrame(500)
-    df.to_hdf(path, "df", format="table")
+    df.to_hdf(path, key="df", format="table")
 
     results = list(read_hdf(path, "df", chunksize=100))
     result = concat(results)
@@ -383,7 +397,7 @@ def test_select_iterator_complete_8014(setup_path):
 
     # no iterator
     with ensure_clean_store(setup_path) as store:
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = tm.makeTimeDataFrame(100064, "s")
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -414,7 +428,7 @@ def test_select_iterator_complete_8014(setup_path):
 
     # with iterator, full range
     with ensure_clean_store(setup_path) as store:
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = tm.makeTimeDataFrame(100064, "s")
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -452,7 +466,7 @@ def test_select_iterator_non_complete_8014(setup_path):
 
     # with iterator, non complete range
     with ensure_clean_store(setup_path) as store:
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = tm.makeTimeDataFrame(100064, "s")
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -482,7 +496,7 @@ def test_select_iterator_non_complete_8014(setup_path):
 
     # with iterator, empty where
     with ensure_clean_store(setup_path) as store:
-        expected = tm.makeTimeDataFrame(100064, "S")
+        expected = tm.makeTimeDataFrame(100064, "s")
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -502,7 +516,7 @@ def test_select_iterator_many_empty_frames(setup_path):
 
     # with iterator, range limited to the first chunk
     with ensure_clean_store(setup_path) as store:
-        expected = tm.makeTimeDataFrame(100000, "S")
+        expected = tm.makeTimeDataFrame(100000, "s")
         _maybe_remove(store, "df")
         store.append("df", expected)
 
@@ -643,18 +657,18 @@ def test_frame_select_complex2(tmp_path):
 
     # use non-trivial selection criteria
     params = DataFrame({"A": [1, 1, 2, 2, 3]})
-    params.to_hdf(pp, "df", mode="w", format="table", data_columns=["A"])
+    params.to_hdf(pp, key="df", mode="w", format="table", data_columns=["A"])
 
     selection = read_hdf(pp, "df", where="A=[2,3]")
     hist = DataFrame(
-        np.random.randn(25, 1),
+        np.random.default_rng(2).standard_normal((25, 1)),
         columns=["data"],
         index=MultiIndex.from_tuples(
             [(i, j) for i in range(5) for j in range(5)], names=["l1", "l2"]
         ),
     )
 
-    hist.to_hdf(hh, "df", mode="w", format="table")
+    hist.to_hdf(hh, key="df", mode="w", format="table")
 
     expected = read_hdf(hh, "df", where="l1=[2, 3, 4]")
 
@@ -914,7 +928,7 @@ def test_query_compare_column_type(setup_path):
                 if col == "real_date":
                     msg = 'Given date string "a" not likely a datetime'
                 else:
-                    msg = "could not convert string to "
+                    msg = "could not convert string to"
                 with pytest.raises(ValueError, match=msg):
                     store.select("test", where=query)
 
@@ -943,3 +957,22 @@ def test_select_empty_where(tmp_path, where):
         store.put("df", df, "t")
         result = read_hdf(store, "df", where=where)
         tm.assert_frame_equal(result, df)
+
+
+def test_select_large_integer(tmp_path):
+    path = tmp_path / "large_int.h5"
+
+    df = DataFrame(
+        zip(
+            ["a", "b", "c", "d"],
+            [-9223372036854775801, -9223372036854775802, -9223372036854775803, 123],
+        ),
+        columns=["x", "y"],
+    )
+    result = None
+    with HDFStore(path) as s:
+        s.append("data", df, data_columns=True, index=False)
+        result = s.select("data", where="y==-9223372036854775801").get("y").get(0)
+    expected = df["y"][0]
+
+    assert expected == result

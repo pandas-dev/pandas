@@ -32,7 +32,9 @@ def test_insert_fallback_to_base_index():
     tm.assert_index_equal(result, expected)
 
     df = DataFrame(
-        np.random.randn(2, 3), columns=idx, index=Index([1, 2], name="string")
+        np.random.default_rng(2).standard_normal((2, 3)),
+        columns=idx,
+        index=Index([1, 2], name="string"),
     )
     result = df.reset_index()
     tm.assert_index_equal(result.columns, expected)

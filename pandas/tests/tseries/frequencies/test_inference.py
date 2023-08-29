@@ -39,11 +39,11 @@ from pandas.tseries import (
     params=[
         (timedelta(1), "D"),
         (timedelta(hours=1), "H"),
-        (timedelta(minutes=1), "T"),
-        (timedelta(seconds=1), "S"),
-        (np.timedelta64(1, "ns"), "N"),
-        (timedelta(microseconds=1), "U"),
-        (timedelta(microseconds=1000), "L"),
+        (timedelta(minutes=1), "min"),
+        (timedelta(seconds=1), "s"),
+        (np.timedelta64(1, "ns"), "ns"),
+        (timedelta(microseconds=1), "us"),
+        (timedelta(microseconds=1000), "ms"),
     ]
 )
 def base_delta_code_pair(request):
@@ -254,7 +254,8 @@ def test_infer_freq_tz_series(tz_naive_fixture):
     ],
 )
 @pytest.mark.parametrize(
-    "freq", ["H", "3H", "10T", "3601S", "3600001L", "3600000001U", "3600000000001N"]
+    "freq",
+    ["H", "3H", "10min", "3601s", "3600001ms", "3600000001us", "3600000000001ns"],
 )
 def test_infer_freq_tz_transition(tz_naive_fixture, date_pair, freq):
     # see gh-8772
@@ -437,7 +438,7 @@ def test_series_inconvertible_string():
         frequencies.infer_freq(Series(["foo", "bar"]))
 
 
-@pytest.mark.parametrize("freq", [None, "L"])
+@pytest.mark.parametrize("freq", [None, "ms"])
 def test_series_period_index(freq):
     # see gh-6407
     #
@@ -449,7 +450,7 @@ def test_series_period_index(freq):
         frequencies.infer_freq(s)
 
 
-@pytest.mark.parametrize("freq", ["M", "L", "S"])
+@pytest.mark.parametrize("freq", ["M", "ms", "s"])
 def test_series_datetime_index(freq):
     s = Series(date_range("20130101", periods=10, freq=freq))
     inferred = frequencies.infer_freq(s)
@@ -530,12 +531,12 @@ def test_infer_freq_non_nano():
     arr = np.arange(10).astype(np.int64).view("M8[s]")
     dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
     res = frequencies.infer_freq(dta)
-    assert res == "S"
+    assert res == "s"
 
     arr2 = arr.view("m8[ms]")
     tda = TimedeltaArray._simple_new(arr2, dtype=arr2.dtype)
     res2 = frequencies.infer_freq(tda)
-    assert res2 == "L"
+    assert res2 == "ms"
 
 
 def test_infer_freq_non_nano_tzaware(tz_aware_fixture):

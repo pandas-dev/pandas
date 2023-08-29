@@ -8,7 +8,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Generator,
 )
 import uuid
 
@@ -20,6 +19,8 @@ from pandas import set_option
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pandas._typing import (
         BaseBuffer,
         CompressionOptions,
@@ -127,6 +128,8 @@ def ensure_clean(
     encoding = kwargs.pop("encoding", None)
     if return_filelike:
         kwargs.setdefault("mode", "w+b")
+        if encoding is None and "b" not in kwargs["mode"]:
+            encoding = "utf-8"
         handle_or_str = open(path, encoding=encoding, **kwargs)
 
     try:

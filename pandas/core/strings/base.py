@@ -5,12 +5,12 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Literal,
-    Sequence,
 )
 
 import numpy as np
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     import re
 
     from pandas._typing import Scalar

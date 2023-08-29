@@ -3,6 +3,7 @@ from datetime import (
     time,
 )
 from functools import partial
+from io import BytesIO
 import os
 from pathlib import Path
 import platform
@@ -159,7 +160,7 @@ class TestReaders:
             "ods": {"foo": "abcd"},
         }
 
-        if read_ext[1:] == "xls" or read_ext[1:] == "xlsb":
+        if read_ext[1:] in {"xls", "xlsb"}:
             msg = re.escape(r"open_workbook() got an unexpected keyword argument 'foo'")
         elif read_ext[1:] == "ods":
             msg = re.escape(r"load() got an unexpected keyword argument 'foo'")
@@ -590,7 +591,7 @@ class TestReaders:
             }
         )
         with tm.ensure_clean(read_ext) as file_path:
-            df.to_excel(file_path, "test", index=False)
+            df.to_excel(file_path, sheet_name="test", index=False)
             result = pd.read_excel(
                 file_path, sheet_name="test", dtype_backend=dtype_backend
             )
@@ -622,7 +623,7 @@ class TestReaders:
 
         df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
         with tm.ensure_clean(read_ext) as file_path:
-            df.to_excel(file_path, "test", index=False)
+            df.to_excel(file_path, sheet_name="test", index=False)
             result = pd.read_excel(
                 file_path,
                 sheet_name="test",
@@ -631,13 +632,12 @@ class TestReaders:
             )
         tm.assert_frame_equal(result, df)
 
-    @td.skip_if_no("pyarrow")
     def test_dtype_backend_string(self, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
 
-        import pyarrow as pa
+        pa = pytest.importorskip("pyarrow")
 
         with pd.option_context("mode.string_storage", string_storage):
             df = DataFrame(
@@ -647,7 +647,7 @@ class TestReaders:
                 }
             )
             with tm.ensure_clean(read_ext) as file_path:
-                df.to_excel(file_path, "test", index=False)
+                df.to_excel(file_path, sheet_name="test", index=False)
                 result = pd.read_excel(
                     file_path, sheet_name="test", dtype_backend="numpy_nullable"
                 )
@@ -873,22 +873,14 @@ class TestReaders:
             error = BadZipFile
             msg = "File is not a zip file"
         with pytest.raises(error, match=msg):
-            pd.read_excel(bad_stream)
+            pd.read_excel(BytesIO(bad_stream))
 
     @pytest.mark.network
-    @tm.network(
-        url=(
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/excel/test1.xlsx"
-        ),
-        check_before_test=True,
-    )
-    def test_read_from_http_url(self, read_ext):
-        url = (
-            "https://raw.githubusercontent.com/pandas-dev/pandas/main/"
-            "pandas/tests/io/data/excel/test1" + read_ext
-        )
-        url_table = pd.read_excel(url)
+    @pytest.mark.single_cpu
+    def test_read_from_http_url(self, httpserver, read_ext):
+        with open("test1" + read_ext, "rb") as f:
+            httpserver.serve_content(content=f.read())
+        url_table = pd.read_excel(httpserver.url)
         local_table = pd.read_excel("test1" + read_ext)
         tm.assert_frame_equal(url_table, local_table)
 
@@ -1446,6 +1438,18 @@ class TestReaders:
 
 
 class TestExcelFileRead:
+    def test_deprecate_bytes_input(self, engine, read_ext):
+        # GH 53830
+        msg = (
+            "Passing bytes to 'read_excel' is deprecated and "
+            "will be removed in a future version. To read from a "
+            "byte string, wrap it in a `BytesIO` object."
+        )
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with open("test1" + read_ext, "rb") as f:
+                pd.read_excel(f.read(), engine=engine)
+
     @pytest.fixture(autouse=True)
     def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
@@ -1629,7 +1633,7 @@ class TestExcelFileRead:
         with open("test1" + read_ext, "rb") as f:
             data = f.read()
 
-        actual = pd.read_excel(data, engine=engine)
+        actual = pd.read_excel(BytesIO(data), engine=engine)
         tm.assert_frame_equal(expected, actual)
 
     def test_excel_read_binary_via_read_excel(self, read_ext, engine):

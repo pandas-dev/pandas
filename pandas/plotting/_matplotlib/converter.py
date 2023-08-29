@@ -12,7 +12,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Final,
-    Generator,
     cast,
 )
 
@@ -57,6 +56,8 @@ from pandas.core.indexes.period import (
 import pandas.core.tools.datetimes as tools
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pandas._libs.tslibs.offsets import BaseOffset
 
 # constants
@@ -411,7 +412,7 @@ class MilliSecondLocator(mdates.DateLocator):
             )
 
         interval = self._get_interval()
-        freq = f"{interval}L"
+        freq = f"{interval}ms"
         tz = self.tz.tzname(None)
         st = dmin.replace(tzinfo=None)
         ed = dmin.replace(tzinfo=None)

@@ -40,7 +40,7 @@ def test_bad_quote_char(all_parsers, kwargs, msg):
     "quoting,msg",
     [
         ("foo", '"quoting" must be an integer|Argument'),
-        (5, 'bad "quoting" value'),  # quoting must be in the range [0, 3]
+        (10, 'bad "quoting" value'),  # quoting must be in the range [0, 3]
     ],
 )
 def test_bad_quoting(all_parsers, quoting, msg):

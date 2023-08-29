@@ -56,10 +56,10 @@ class TestDatetimeIndex:
         # overflow.
         periods = np.int_(1000)
 
-        idx1 = date_range(start="2000", periods=periods, freq="S")
+        idx1 = date_range(start="2000", periods=periods, freq="s")
         assert len(idx1) == periods
 
-        idx2 = date_range(end="2000", periods=periods, freq="S")
+        idx2 = date_range(end="2000", periods=periods, freq="s")
         assert len(idx2) == periods
 
     def test_nat(self):
@@ -135,18 +135,21 @@ class TestDatetimeIndex:
     def test_misc_coverage(self):
         rng = date_range("1/1/2000", periods=5)
         result = rng.groupby(rng.day)
-        assert isinstance(list(result.values())[0][0], Timestamp)
+        assert isinstance(next(iter(result.values()))[0], Timestamp)
 
     def test_groupby_function_tuple_1677(self):
-        df = DataFrame(np.random.rand(100), index=date_range("1/1/2000", periods=100))
+        df = DataFrame(
+            np.random.default_rng(2).random(100),
+            index=date_range("1/1/2000", periods=100),
+        )
         monthly_group = df.groupby(lambda x: (x.year, x.month))
 
         result = monthly_group.mean()
         assert isinstance(result.index[0], tuple)
 
     def assert_index_parameters(self, index):
-        assert index.freq == "40960N"
-        assert index.inferred_freq == "40960N"
+        assert index.freq == "40960ns"
+        assert index.inferred_freq == "40960ns"
 
     def test_ns_index(self):
         nsamples = 400
