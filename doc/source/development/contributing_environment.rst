@@ -184,7 +184,7 @@ Run Container::
 **Visual Studio Code**
 
 You can use the DockerFile to launch a remote session with Visual Studio Code,
-a popular free IDE, using the ``.devcontainer.json`` file.
+a popular free IDE, using the ``.devcontainer`` directory.
 See https://code.visualstudio.com/docs/remote/containers for details.
 
 **PyCharm (Professional)**
