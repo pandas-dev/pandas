@@ -184,7 +184,7 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_limit_backfill(data_missing)
 
-    def test_fillna_no_op_returns_copy(self, data):
+    def test_fillna_no_op_returns_copy(self, data, request):
         msg = "|".join(
             [
                 "ExtensionArray.fillna 'method' keyword is deprecated",
@@ -228,7 +228,7 @@ class TestDecimalArray(base.ExtensionTests):
             super().test_fillna_copy_series(data_missing)
 
     @pytest.mark.parametrize("dropna", [True, False])
-    def test_value_counts(self, all_data, dropna, request):
+    def test_value_counts(self, all_data, dropna):
         all_data = all_data[:10]
         if dropna:
             other = np.array(all_data[~all_data.isna()])
