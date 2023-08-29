@@ -34,7 +34,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_integer,
     is_list_like,
-    is_object_dtype,
     is_scalar,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
@@ -1243,48 +1242,53 @@ class ArrowExtensionArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
+        pa_type = self._pa_array.type
+        if (
+            self._hasna
+            and na_value is not lib.no_default
+            and not isna(na_value)
+            and not pa.types.is_null(pa_type)
+        ):
+            data = self.fillna(na_value)
+            copy = False
+        else:
+            data = self
+
         if dtype is not None:
             dtype = np.dtype(dtype)
-        elif self._hasna:
+        elif data._hasna and not (pa.types.is_floating(pa_type) and na_value is np.nan):
             dtype = np.dtype(object)
 
         if na_value is lib.no_default:
             na_value = self.dtype.na_value
 
-        pa_type = self._pa_array.type
         if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
-            result = self._maybe_convert_datelike_array()
+            result = data._maybe_convert_datelike_array()
             if dtype is None or dtype.kind == "O":
                 result = result.to_numpy(dtype=object, na_value=na_value)
             else:
                 result = result.to_numpy(dtype=dtype)
-            return result
         elif pa.types.is_time(pa_type) or pa.types.is_date(pa_type):
             # convert to list of python datetime.time objects before
             # wrapping in ndarray
-            result = np.array(list(self), dtype=dtype)
-        elif is_object_dtype(dtype) and self._hasna:
-            result = np.empty(len(self), dtype=object)
-            mask = ~self.isna()
-            result[mask] = np.asarray(self[mask]._pa_array)
-        elif pa.types.is_null(self._pa_array.type):
-            fill_value = None if isna(na_value) else na_value
-            return np.full(len(self), fill_value=fill_value, dtype=dtype)
-        elif self._hasna:
-            data = self.fillna(na_value)
+            result = np.array(list(data), dtype=dtype)
+            if self._hasna:
+                result[self.isna()] = na_value
+        elif pa.types.is_null(pa_type):
+            if dtype != np.object_ and isna(na_value):
+                na_value = None
+            result = np.full(len(data), fill_value=na_value, dtype=dtype)
+        elif not data._hasna or (pa.types.is_floating(pa_type) and na_value is np.nan):
             result = data._pa_array.to_numpy()
-            if dtype is not None:
-                result = result.astype(dtype, copy=False)
-            return result
-        else:
-            result = self._pa_array.to_numpy()
             if dtype is not None:
                 result = result.astype(dtype, copy=False)
             if copy:
                 result = result.copy()
-            return result
-        if self._hasna:
-            result[self.isna()] = na_value
+        else:
+            result = np.empty(len(data), dtype=dtype)
+            mask = data.isna()
+            result[mask] = na_value
+            result[~mask] = np.asarray(data[~mask]._pa_array)
         return result
 
     def unique(self) -> Self:
