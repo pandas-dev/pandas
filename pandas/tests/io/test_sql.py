@@ -620,7 +620,7 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
         )
 
     conn = request.getfixturevalue(conn)
-    with tm.assert_produces_warning(exp_warning, match=msg):
+    with tm.assert_produces_warning(exp_warning, match=msg, check_stacklevel=False):
         df.to_sql(name="test_arrow", con=conn, if_exists="replace", index=False)
 
 
