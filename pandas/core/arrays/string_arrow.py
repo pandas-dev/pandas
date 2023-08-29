@@ -118,10 +118,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     _storage = "pyarrow"
 
     def __init__(self, values) -> None:
-        if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_large_string(
-            values.type
-        ):
-            values = pc.cast(values, pa.string())
         super().__init__(values)
         self._dtype = StringDtype(storage=self._storage)
 
@@ -451,6 +447,15 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _storage = "pyarrow_numpy"
+
+    def __init__(self, values) -> None:
+        _chk_pyarrow_available()
+
+        if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_large_string(
+            values.type
+        ):
+            values = pc.cast(values, pa.string())
+        super().__init__(values)
 
     @classmethod
     def _result_converter(cls, values, na=None):
