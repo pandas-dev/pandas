@@ -5636,10 +5636,14 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
-            raise ValueError(
-                "Cannot pass both 'freq' and 'fill_value' to "
-                f"{type(self).__name__}.shift"
+            warnings.warn(
+                "Passing a 'freq' together with a 'fill_value' silently ignores "
+                "the fill_value and is deprecated. This will raise in a future "
+                "version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
             )
+            fill_value = lib.no_default
 
         axis = self._get_axis_number(axis)
 
@@ -7279,7 +7283,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = self.columns.tolist()
 
         name = "proportion" if normalize else "count"
-        counts = self.groupby(subset, dropna=dropna).grouper.size()
+        counts = self.groupby(subset, dropna=dropna, observed=False).grouper.size()
         counts.name = name
 
         if sort:
@@ -7948,6 +7952,7 @@ class DataFrame(NDFrame, OpsMixin):
                     )
         elif isinstance(right, Series):
             # axis=1 is default for DataFrame-with-Series op
+            axis = axis if axis is not None else 1
             if not flex:
                 if not left.axes[axis].equals(right.index):
                     raise ValueError(
@@ -9818,12 +9823,12 @@ class DataFrame(NDFrame, OpsMixin):
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    core.groupby.GroupBy : Perform operations over groups.
-    core.resample.Resampler : Perform operations over resampled bins.
-    core.window.Rolling : Perform operations over rolling window.
-    core.window.Expanding : Perform operations over expanding window.
-    core.window.ExponentialMovingWindow : Perform operation over exponential weighted
-        window.
+    pandas.core.groupby.GroupBy : Perform operations over groups.
+    pandas.core.resample.Resampler : Perform operations over resampled bins.
+    pandas.core.window.Rolling : Perform operations over rolling window.
+    pandas.core.window.Expanding : Perform operations over expanding window.
+    pandas.core.window.ExponentialMovingWindow : Perform operation over exponential
+        weighted window.
     """
     )
 
