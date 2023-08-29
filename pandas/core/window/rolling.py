@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    Literal,
     cast,
 )
 
@@ -646,9 +647,14 @@ class BaseWindow(SelectionMixin):
         # xref #53214
         dtype_mapping = executor.float_dtype_mapping
         aggregator = executor.generate_shared_aggregator(
-            func, dtype_mapping, **get_jit_arguments(engine_kwargs)
+            func,
+            dtype_mapping,
+            is_grouped_kernel=False,
+            **get_jit_arguments(engine_kwargs),
         )
-        result = aggregator(values.T, start, end, min_periods, **func_kwargs).T
+        result = aggregator(
+            values.T, start=start, end=end, min_periods=min_periods, **func_kwargs
+        ).T
         result = result.T if self.axis == 1 else result
         index = self._slice_axis_for_step(obj.index, result)
         if obj.ndim == 1:
@@ -1458,7 +1464,7 @@ class RollingAndExpandingMixin(BaseWindow):
         self,
         func: Callable[..., Any],
         raw: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         args: tuple[Any, ...] | None = None,
         kwargs: dict[str, Any] | None = None,
@@ -1525,7 +1531,7 @@ class RollingAndExpandingMixin(BaseWindow):
     def sum(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
@@ -1547,7 +1553,7 @@ class RollingAndExpandingMixin(BaseWindow):
     def max(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
@@ -1569,7 +1575,7 @@ class RollingAndExpandingMixin(BaseWindow):
     def min(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
@@ -1591,7 +1597,7 @@ class RollingAndExpandingMixin(BaseWindow):
     def mean(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
@@ -1613,7 +1619,7 @@ class RollingAndExpandingMixin(BaseWindow):
     def median(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
@@ -1635,7 +1641,7 @@ class RollingAndExpandingMixin(BaseWindow):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
@@ -1659,7 +1665,7 @@ class RollingAndExpandingMixin(BaseWindow):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
@@ -2021,7 +2027,7 @@ class Rolling(RollingAndExpandingMixin):
         self,
         func: Callable[..., Any],
         raw: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         args: tuple[Any, ...] | None = None,
         kwargs: dict[str, Any] | None = None,
@@ -2101,7 +2107,7 @@ class Rolling(RollingAndExpandingMixin):
     def sum(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().sum(
@@ -2141,7 +2147,7 @@ class Rolling(RollingAndExpandingMixin):
         self,
         numeric_only: bool = False,
         *args,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
@@ -2184,7 +2190,7 @@ class Rolling(RollingAndExpandingMixin):
     def min(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().min(
@@ -2233,7 +2239,7 @@ class Rolling(RollingAndExpandingMixin):
     def mean(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().mean(
@@ -2275,7 +2281,7 @@ class Rolling(RollingAndExpandingMixin):
     def median(
         self,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().median(
@@ -2333,7 +2339,7 @@ class Rolling(RollingAndExpandingMixin):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().std(
@@ -2392,7 +2398,7 @@ class Rolling(RollingAndExpandingMixin):
         self,
         ddof: int = 1,
         numeric_only: bool = False,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         return super().var(

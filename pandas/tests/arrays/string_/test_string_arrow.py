@@ -49,10 +49,10 @@ def test_config_bad_storage_raises():
 @skip_if_no_pyarrow
 @pytest.mark.parametrize("chunked", [True, False])
 @pytest.mark.parametrize("array", ["numpy", "pyarrow"])
-def test_constructor_not_string_type_raises(array, chunked):
+def test_constructor_not_string_type_raises(array, chunked, arrow_string_storage):
     import pyarrow as pa
 
-    array = pa if array == "pyarrow" else np
+    array = pa if array in arrow_string_storage else np
 
     arr = array.array([1, 2, 3])
     if chunked:
@@ -94,6 +94,14 @@ def test_constructor_valid_string_type_value_dictionary(chunked):
 
     arr = ArrowStringArray(arr)
     assert pa.types.is_string(arr._pa_array.type.value_type)
+
+
+def test_constructor_from_list():
+    # GH#27673
+    pytest.importorskip("pyarrow", minversion="1.0.0")
+    result = pd.Series(["E"], dtype=StringDtype(storage="pyarrow"))
+    assert isinstance(result.dtype, StringDtype)
+    assert result.dtype.storage == "pyarrow"
 
 
 @skip_if_no_pyarrow

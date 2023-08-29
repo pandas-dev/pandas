@@ -65,6 +65,7 @@ from pandas.io.parsers.python_parser import (
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Iterable,
         Mapping,
         Sequence,
     )
@@ -79,6 +80,7 @@ if TYPE_CHECKING:
         HashableT,
         IndexLabel,
         ReadCsvBuffer,
+        Self,
         StorageOptions,
     )
 _doc_read_csv_and_table = (
@@ -98,7 +100,7 @@ filepath_or_buffer : str, path object or file-like object
     URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
     expected. A local file could be: file://localhost/path/to/table.csv.
 
-    If you want to pass in a path object, ``pandas`` accepts any ``os.PathLike``.
+    If you want to pass in a path object, pandas accepts any ``os.PathLike``.
 
     By file-like object, we refer to objects with a ``read()`` method, such as
     a file handle (e.g. via builtin ``open`` function) or ``StringIO``.
@@ -123,7 +125,7 @@ header : int, Sequence of int, 'infer' or None, default 'infer'
     ``header=None``. Explicitly pass ``header=0`` to be able to
     replace existing names. The header can be a list of integers that
     specify row locations for a :class:`~pandas.MultiIndex` on the columns
-    e.g. ``[0,1,3]``. Intervening rows that are not specified will be
+    e.g. ``[0, 1, 3]``. Intervening rows that are not specified will be
     skipped (e.g. 2 in this example is skipped). Note that this
     parameter ignores commented lines and empty lines if
     ``skip_blank_lines=True``, so ``header=0`` denotes the first line of
@@ -137,7 +139,7 @@ index_col : Hashable, Sequence of Hashable or False, optional
   indices.  If a sequence of labels or indices is given, :class:`~pandas.MultiIndex`
   will be formed for the row labels.
 
-  Note: ``index_col=False`` can be used to force ``pandas`` to *not* use the first
+  Note: ``index_col=False`` can be used to force pandas to *not* use the first
   column as the index, e.g., when you have a malformed file with delimiters at
   the end of each line.
 usecols : list of Hashable or Callable, optional
@@ -205,9 +207,10 @@ nrows : int, optional
 na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
     Additional strings to recognize as ``NA``/``NaN``. If ``dict`` passed, specific
     per-column ``NA`` values.  By default the following values are interpreted as
-    ``NaN``: '"""
-    + fill("', '".join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
-    + """'.
+    ``NaN``: " """
+    + fill('", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
+    + """ ".
+
 keep_default_na : bool, default True
     Whether or not to include the default ``NaN`` values when parsing the data.
     Depending on whether ``na_values`` is passed in, the behavior is as follows:
@@ -251,7 +254,7 @@ default False
 
     Note: A fast-path exists for iso8601-formatted dates.
 infer_datetime_format : bool, default False
-    If ``True`` and ``parse_dates`` is enabled, ``pandas`` will attempt to infer the
+    If ``True`` and ``parse_dates`` is enabled, pandas will attempt to infer the
     format of the ``datetime`` strings in the columns, and if it can be inferred,
     switch to a faster method of parsing them. In some cases this can increase
     the parsing speed by 5-10x.
@@ -265,7 +268,7 @@ keep_date_col : bool, default False
 date_parser : Callable, optional
     Function to use for converting a sequence of string columns to an array of
     ``datetime`` instances. The default uses ``dateutil.parser.parser`` to do the
-    conversion. ``pandas`` will try to call ``date_parser`` in three different ways,
+    conversion. pandas will try to call ``date_parser`` in three different ways,
     advancing to the next if an exception occurs: 1) Pass one or more arrays
     (as defined by ``parse_dates``) as arguments; 2) concatenate (row-wise) the
     string values from the columns defined by ``parse_dates`` into a single array
@@ -277,11 +280,20 @@ date_parser : Callable, optional
        Use ``date_format`` instead, or read in as ``object`` and then apply
        :func:`~pandas.to_datetime` as-needed.
 date_format : str or dict of column -> format, optional
-   Format to use for parsing dates when used in conjunction with ``parse_dates``.
-   For anything more complex, please read in as ``object`` and then apply
-   :func:`~pandas.to_datetime` as-needed.
+    Format to use for parsing dates when used in conjunction with ``parse_dates``.
+    The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
+    `strftime documentation
+    <https://docs.python.org/3/library/datetime.html
+    #strftime-and-strptime-behavior>`_ for more information on choices, though
+    note that :const:`"%f"` will parse all the way up to nanoseconds.
+    You can also pass:
 
-   .. versionadded:: 2.0.0
+    - "ISO8601", to parse any `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
+        time string (not necessarily in exactly the same format);
+    - "mixed", to infer the format for each element individually. This is risky,
+        and you should probably use it along with `dayfirst`.
+
+    .. versionadded:: 2.0.0
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
 cache_dates : bool, default True
@@ -407,7 +419,7 @@ memory_map : bool, default False
 float_precision : {{'high', 'legacy', 'round_trip'}}, optional
     Specifies which converter the C engine should use for floating-point
     values. The options are ``None`` or ``'high'`` for the ordinary converter,
-    ``'legacy'`` for the original lower precision ``pandas`` converter, and
+    ``'legacy'`` for the original lower precision pandas converter, and
     ``'round_trip'`` for the round-trip converter.
 
     .. versionchanged:: 1.2
@@ -636,8 +648,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
-    keep_default_na: bool = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
@@ -693,7 +707,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -750,7 +767,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -807,7 +827,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -877,7 +900,10 @@ def read_csv(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = None,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
@@ -1775,7 +1801,7 @@ class TextFileReader(abc.Iterator):
             size = min(size, self.nrows - self._currow)
         return self.read(nrows=size)
 
-    def __enter__(self) -> TextFileReader:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(

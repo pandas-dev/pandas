@@ -74,8 +74,8 @@ class _XMLFrameParser:
         URL schemes include http, ftp, s3, and file.
 
     xpath : str or regex
-        The XPath expression to parse required set of nodes for
-        migration to :class:`~pandas.DataFrame`. `etree` supports limited XPath.
+        The ``XPath`` expression to parse required set of nodes for
+        migration to :class:`~pandas.DataFrame`. ``etree`` supports limited ``XPath``.
 
     namespaces : dict
         The namespaces defined in XML document (``xmlns:namespace='URI'``)
@@ -112,7 +112,7 @@ class _XMLFrameParser:
 
     stylesheet : str or file-like
         URL, file, file-like object, or a raw string containing XSLT,
-        `etree` does not support XSLT but retained for consistency.
+        ``etree`` does not support XSLT but retained for consistency.
 
     iterparse : dict, optional
         Dict with row element as key and list of descendant elements
@@ -177,7 +177,7 @@ class _XMLFrameParser:
         self.stylesheet = stylesheet
         self.iterparse = iterparse
         self.is_style = None
-        self.compression = compression
+        self.compression: CompressionOptions = compression
         self.storage_options = storage_options
 
     def parse_data(self) -> list[dict[str, str | None]]:
@@ -185,7 +185,7 @@ class _XMLFrameParser:
         Parse xml data.
 
         This method will call the other internal methods to
-        validate xpath, names, parse and return specific nodes.
+        validate ``xpath``, names, parse and return specific nodes.
         """
 
         raise AbstractMethodError(self)
@@ -195,7 +195,7 @@ class _XMLFrameParser:
         Parse xml nodes.
 
         This method will parse the children and attributes of elements
-        in xpath, conditionally for only elements, only attributes
+        in ``xpath``, conditionally for only elements, only attributes
         or both while optionally renaming node names.
 
         Raises
@@ -219,12 +219,12 @@ class _XMLFrameParser:
                 dicts = [
                     {
                         **(
-                            {el.tag: el.text.strip()}
+                            {el.tag: el.text}
                             if el.text and not el.text.isspace()
                             else {}
                         ),
                         **{
-                            nm: ch.text.strip() if ch.text else None
+                            nm: ch.text if ch.text else None
                             for nm, ch in zip(self.names, el.findall("*"))
                         },
                     }
@@ -232,30 +232,22 @@ class _XMLFrameParser:
                 ]
             else:
                 dicts = [
-                    {
-                        ch.tag: ch.text.strip() if ch.text else None
-                        for ch in el.findall("*")
-                    }
+                    {ch.tag: ch.text if ch.text else None for ch in el.findall("*")}
                     for el in elems
                 ]
 
         elif self.attrs_only:
             dicts = [
-                {k: v.strip() if v else None for k, v in el.attrib.items()}
-                for el in elems
+                {k: v if v else None for k, v in el.attrib.items()} for el in elems
             ]
 
         elif self.names:
             dicts = [
                 {
                     **el.attrib,
-                    **(
-                        {el.tag: el.text.strip()}
-                        if el.text and not el.text.isspace()
-                        else {}
-                    ),
+                    **({el.tag: el.text} if el.text and not el.text.isspace() else {}),
                     **{
-                        nm: ch.text.strip() if ch.text else None
+                        nm: ch.text if ch.text else None
                         for nm, ch in zip(self.names, el.findall("*"))
                     },
                 }
@@ -266,15 +258,8 @@ class _XMLFrameParser:
             dicts = [
                 {
                     **el.attrib,
-                    **(
-                        {el.tag: el.text.strip()}
-                        if el.text and not el.text.isspace()
-                        else {}
-                    ),
-                    **{
-                        ch.tag: ch.text.strip() if ch.text else None
-                        for ch in el.findall("*")
-                    },
+                    **({el.tag: el.text} if el.text and not el.text.isspace() else {}),
+                    **{ch.tag: ch.text if ch.text else None for ch in el.findall("*")},
                 }
                 for el in elems
             ]
@@ -302,10 +287,10 @@ class _XMLFrameParser:
         Raises
         ------
         TypeError
-            * If `iterparse` is not a dict or its dict value is not list-like.
+            * If ``iterparse`` is not a dict or its dict value is not list-like.
         ParserError
-            * If `path_or_buffer` is not a physical file on disk or file-like object.
-            * If no data is returned from selected items in `iterparse`.
+            * If ``path_or_buffer`` is not a physical file on disk or file-like object.
+            * If no data is returned from selected items in ``iterparse``.
 
         Notes
         -----
@@ -359,7 +344,7 @@ class _XMLFrameParser:
                 if self.names and iterparse_repeats:
                     for col, nm in zip(self.iterparse[row_node], self.names):
                         if curr_elem == col:
-                            elem_val = elem.text.strip() if elem.text else None
+                            elem_val = elem.text if elem.text else None
                             if elem_val not in row.values() and nm not in row:
                                 row[nm] = elem_val
 
@@ -369,7 +354,7 @@ class _XMLFrameParser:
                 else:
                     for col in self.iterparse[row_node]:
                         if curr_elem == col:
-                            row[col] = elem.text.strip() if elem.text else None
+                            row[col] = elem.text if elem.text else None
                         if col in elem.attrib:
                             row[col] = elem.attrib[col]
 
@@ -398,7 +383,7 @@ class _XMLFrameParser:
 
     def _validate_path(self) -> list[Any]:
         """
-        Validate xpath.
+        Validate ``xpath``.
 
         This method checks for syntax, evaluation, or empty nodes return.
 
@@ -471,7 +456,7 @@ class _EtreeFrameParser(_XMLFrameParser):
         """
         Notes
         -----
-        `etree` supports limited XPath. If user attempts a more complex
+        ``etree`` supports limited ``XPath``. If user attempts a more complex
         expression syntax error will raise.
         """
 
@@ -516,7 +501,7 @@ class _EtreeFrameParser(_XMLFrameParser):
                 children = self.iterparse[next(iter(self.iterparse))]
             else:
                 parent = self.xml_doc.find(self.xpath, namespaces=self.namespaces)
-                children = parent.findall("*") if parent else []
+                children = parent.findall("*") if parent is not None else []
 
             if is_list_like(self.names):
                 if len(self.names) < len(children):
@@ -552,9 +537,9 @@ class _EtreeFrameParser(_XMLFrameParser):
 
 class _LxmlFrameParser(_XMLFrameParser):
     """
-    Internal class to parse XML into DataFrames with third-party
-    full-featured XML library, `lxml`, that supports
-    XPath 1.0 and XSLT 1.0.
+    Internal class to parse XML into :class:`~pandas.DataFrame` with third-party
+    full-featured XML library, ``lxml``, that supports
+    ``XPath`` 1.0 and XSLT 1.0.
     """
 
     def parse_data(self) -> list[dict[str, str | None]]:
@@ -562,7 +547,7 @@ class _LxmlFrameParser(_XMLFrameParser):
         Parse xml data.
 
         This method will call the other internal methods to
-        validate xpath, names, optionally parse and run XSLT,
+        validate ``xpath``, names, optionally parse and run XSLT,
         and parse original or transformed XML and return specific nodes.
         """
         from lxml.etree import iterparse
@@ -901,7 +886,7 @@ def read_xml(
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     r"""
-    Read XML document into a ``DataFrame`` object.
+    Read XML document into a :class:`~pandas.DataFrame` object.
 
     .. versionadded:: 1.3.0
 
@@ -918,10 +903,10 @@ def read_xml(
             Wrap literal xml input in ``io.StringIO`` or ``io.BytesIO`` instead.
 
     xpath : str, optional, default './\*'
-        The XPath to parse required set of nodes for migration to DataFrame.
-        XPath should return a collection of elements and not a single
-        element. Note: The ``etree`` parser supports limited XPath
-        expressions. For more complex XPath, use ``lxml`` which requires
+        The ``XPath`` to parse required set of nodes for migration to
+        :class:`~pandas.DataFrame`.``XPath`` should return a collection of elements
+        and not a single element. Note: The ``etree`` parser supports limited ``XPath``
+        expressions. For more complex ``XPath``, use ``lxml`` which requires
         installation.
 
     namespaces : dict, optional
@@ -982,7 +967,7 @@ def read_xml(
 
     parser : {{'lxml','etree'}}, default 'lxml'
         Parser module to use for retrieval of data. Only 'lxml' and
-        'etree' are supported. With 'lxml' more complex XPath searches
+        'etree' are supported. With 'lxml' more complex ``XPath`` searches
         and ability to use XSLT stylesheet are supported.
 
     stylesheet : str, path object or file-like object
@@ -999,7 +984,7 @@ def read_xml(
         as a dict with key being the name of repeating element and value being
         list of elements or attribute names that are descendants of the repeated
         element. Note: If this option is used, it will replace ``xpath`` parsing
-        and unlike xpath, descendants do not need to relate to each other but can
+        and unlike ``xpath``, descendants do not need to relate to each other but can
         exist any where in document under the repeating element. This memory-
         efficient method should be used for very large XML files (500MB, 1GB, or 5GB+).
         For example, ::

@@ -38,6 +38,8 @@ from cython cimport (
     floating,
 )
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs.missing import check_na_tuples_nonequal
 
 import_datetime()
@@ -142,7 +144,7 @@ cdef:
     object oINT64_MIN = <int64_t>INT64_MIN
     object oUINT64_MAX = <uint64_t>UINT64_MAX
 
-    float64_t NaN = <float64_t>np.NaN
+    float64_t NaN = <float64_t>np.nan
 
 # python-visible
 i8max = <int64_t>INT64_MAX
@@ -526,6 +528,22 @@ def has_infs(floating[:] arr) -> bool:
                 ret = True
                 break
     return ret
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def has_only_ints_or_nan(floating[:] arr) -> bool:
+    cdef:
+        floating val
+        intp_t i
+
+    for i in range(len(arr)):
+        val = arr[i]
+        if (val != val) or (val == <int64_t>val):
+            continue
+        else:
+            return False
+    return True
 
 
 def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
@@ -1299,6 +1317,7 @@ cdef class Seen:
         bint datetimetz_      # seen_datetimetz
         bint period_          # seen_period
         bint interval_        # seen_interval
+        bint str_             # seen_str
 
     def __cinit__(self, bint coerce_numeric=False):
         """
@@ -1325,6 +1344,7 @@ cdef class Seen:
         self.datetimetz_ = False
         self.period_ = False
         self.interval_ = False
+        self.str_ = False
         self.coerce_numeric = coerce_numeric
 
     cdef bint check_uint64_conflict(self) except -1:
@@ -2615,6 +2635,13 @@ def maybe_convert_objects(ndarray[object] objects,
             else:
                 seen.object_ = True
                 break
+        elif isinstance(val, str):
+            if convert_non_numeric:
+                seen.str_ = True
+                break
+            else:
+                seen.object_ = True
+                break
         else:
             seen.object_ = True
             break
@@ -2669,6 +2696,14 @@ def maybe_convert_objects(ndarray[object] objects,
             return pi._data
         seen.object_ = True
 
+    elif seen.str_:
+        if using_pyarrow_string_dtype() and is_string_array(objects, skipna=True):
+            from pandas.core.arrays.string_ import StringDtype
+
+            dtype = StringDtype(storage="pyarrow_numpy")
+            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+
+        seen.object_ = True
     elif seen.interval_:
         if is_interval_array(objects):
             from pandas import IntervalIndex

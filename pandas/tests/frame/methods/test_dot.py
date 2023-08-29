@@ -83,12 +83,16 @@ class DotSharedTests:
 class TestSeriesDot(DotSharedTests):
     @pytest.fixture
     def obj(self):
-        return Series(np.random.randn(4), index=["p", "q", "r", "s"])
+        return Series(
+            np.random.default_rng(2).standard_normal(4), index=["p", "q", "r", "s"]
+        )
 
     @pytest.fixture
     def other(self):
         return DataFrame(
-            np.random.randn(3, 4), index=["1", "2", "3"], columns=["p", "q", "r", "s"]
+            np.random.default_rng(2).standard_normal((3, 4)),
+            index=["1", "2", "3"],
+            columns=["p", "q", "r", "s"],
         ).T
 
     @pytest.fixture
@@ -107,13 +111,17 @@ class TestDataFrameDot(DotSharedTests):
     @pytest.fixture
     def obj(self):
         return DataFrame(
-            np.random.randn(3, 4), index=["a", "b", "c"], columns=["p", "q", "r", "s"]
+            np.random.default_rng(2).standard_normal((3, 4)),
+            index=["a", "b", "c"],
+            columns=["p", "q", "r", "s"],
         )
 
     @pytest.fixture
     def other(self):
         return DataFrame(
-            np.random.randn(4, 2), index=["p", "q", "r", "s"], columns=["1", "2"]
+            np.random.default_rng(2).standard_normal((4, 2)),
+            index=["p", "q", "r", "s"],
+            columns=["1", "2"],
         )
 
     @pytest.fixture
@@ -129,3 +137,19 @@ class TestDataFrameDot(DotSharedTests):
         """
         tm.assert_series_equal(result, expected, check_names=False)
         assert result.name is None
+
+
+@pytest.mark.parametrize(
+    "dtype,exp_dtype",
+    [("Float32", "Float64"), ("Int16", "Int32"), ("float[pyarrow]", "double[pyarrow]")],
+)
+def test_arrow_dtype(dtype, exp_dtype):
+    pytest.importorskip("pyarrow")
+
+    cols = ["a", "b"]
+    df_a = DataFrame([[1, 2], [3, 4], [5, 6]], columns=cols, dtype="int32")
+    df_b = DataFrame([[1, 0], [0, 1]], index=cols, dtype=dtype)
+    result = df_a.dot(df_b)
+    expected = DataFrame([[1, 2], [3, 4], [5, 6]], dtype=exp_dtype)
+
+    tm.assert_frame_equal(result, expected)

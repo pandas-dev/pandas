@@ -36,7 +36,7 @@ class TestCombineFirst:
         series = Series(values, index=tm.makeIntIndex(20))
 
         series_copy = series * 2
-        series_copy[::2] = np.NaN
+        series_copy[::2] = np.nan
 
         # nothing used from the input
         combined = series.combine_first(series_copy)
@@ -52,7 +52,7 @@ class TestCombineFirst:
 
         # mixed types
         index = tm.makeStringIndex(20)
-        floats = Series(np.random.randn(20), index=index)
+        floats = Series(np.random.default_rng(2).standard_normal(20), index=index)
         strings = Series(tm.makeStringIndex(10), index=index[::2])
 
         combined = strings.combine_first(floats)
@@ -70,14 +70,14 @@ class TestCombineFirst:
         tm.assert_series_equal(ser, result)
 
     def test_combine_first_dt64(self):
-        s0 = to_datetime(Series(["2010", np.NaN]))
-        s1 = to_datetime(Series([np.NaN, "2011"]))
+        s0 = to_datetime(Series(["2010", np.nan]))
+        s1 = to_datetime(Series([np.nan, "2011"]))
         rs = s0.combine_first(s1)
         xp = to_datetime(Series(["2010", "2011"]))
         tm.assert_series_equal(rs, xp)
 
-        s0 = to_datetime(Series(["2010", np.NaN]))
-        s1 = Series([np.NaN, "2011"])
+        s0 = to_datetime(Series(["2010", np.nan]))
+        s1 = Series([np.nan, "2011"])
         rs = s0.combine_first(s1)
 
         xp = Series([datetime(2010, 1, 1), "2011"], dtype="datetime64[ns]")

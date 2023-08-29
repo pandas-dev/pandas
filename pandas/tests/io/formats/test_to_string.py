@@ -5,20 +5,19 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Series,
     option_context,
     to_datetime,
 )
+import pandas._testing as tm
 
 
 def test_repr_embedded_ndarray():
     arr = np.empty(10, dtype=[("err", object)])
     for i in range(len(arr)):
-        arr["err"][i] = np.random.randn(i)
+        arr["err"][i] = np.random.default_rng(2).standard_normal(i)
 
     df = DataFrame(arr)
     repr(df["err"])
@@ -342,9 +341,9 @@ def test_to_string_max_rows_zero(data, expected):
     assert result == expected
 
 
-@td.skip_if_no("pyarrow")
 def test_to_string_string_dtype():
     # GH#50099
+    pytest.importorskip("pyarrow")
     df = DataFrame({"x": ["foo", "bar", "baz"], "y": ["a", "b", "c"], "z": [1, 2, 3]})
     df = df.astype(
         {"x": "string[pyarrow]", "y": "string[python]", "z": "int64[pyarrow]"}
@@ -357,3 +356,15 @@ def test_to_string_string_dtype():
         z     int64[pyarrow]"""
     )
     assert result == expected
+
+
+def test_to_string_pos_args_deprecation():
+    # GH-54229
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_string except for the "
+        r"argument 'buf' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buf = StringIO()
+        df.to_string(buf, None, None, True, True)

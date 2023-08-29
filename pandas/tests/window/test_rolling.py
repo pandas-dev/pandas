@@ -142,7 +142,7 @@ def test_constructor_timedelta_window_and_minperiods(window, raw):
         index=date_range("2017-08-08", periods=n, freq="D"),
     )
     expected = DataFrame(
-        {"value": np.append([np.NaN, 1.0], np.arange(3.0, 27.0, 3))},
+        {"value": np.append([np.nan, 1.0], np.arange(3.0, 27.0, 3))},
         index=date_range("2017-08-08", periods=n, freq="D"),
     )
     result_roll_sum = df.rolling(window=window, min_periods=2).sum()
@@ -599,103 +599,13 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "center, expected_data",
-    [
-        (
-            True,
-            (
-                [88.0] * 7
-                + [97.0] * 9
-                + [98.0]
-                + [99.0] * 21
-                + [95.0] * 16
-                + [93.0] * 5
-                + [89.0] * 5
-                + [96.0] * 21
-                + [94.0] * 14
-                + [90.0] * 13
-                + [88.0] * 2
-                + [90.0] * 9
-                + [96.0] * 21
-                + [95.0] * 6
-                + [91.0]
-                + [87.0] * 6
-                + [92.0] * 21
-                + [83.0] * 2
-                + [86.0] * 10
-                + [87.0] * 5
-                + [98.0] * 21
-                + [97.0] * 14
-                + [93.0] * 7
-                + [87.0] * 4
-                + [86.0] * 4
-                + [95.0] * 21
-                + [85.0] * 14
-                + [83.0] * 2
-                + [76.0] * 5
-                + [81.0] * 2
-                + [98.0] * 21
-                + [95.0] * 14
-                + [91.0] * 7
-                + [86.0]
-                + [93.0] * 3
-                + [95.0] * 29
-                + [77.0] * 2
-            ),
-        ),
-        (
-            False,
-            (
-                [np.nan] * 2
-                + [88.0] * 16
-                + [97.0] * 9
-                + [98.0]
-                + [99.0] * 21
-                + [95.0] * 16
-                + [93.0] * 5
-                + [89.0] * 5
-                + [96.0] * 21
-                + [94.0] * 14
-                + [90.0] * 13
-                + [88.0] * 2
-                + [90.0] * 9
-                + [96.0] * 21
-                + [95.0] * 6
-                + [91.0]
-                + [87.0] * 6
-                + [92.0] * 21
-                + [83.0] * 2
-                + [86.0] * 10
-                + [87.0] * 5
-                + [98.0] * 21
-                + [97.0] * 14
-                + [93.0] * 7
-                + [87.0] * 4
-                + [86.0] * 4
-                + [95.0] * 21
-                + [85.0] * 14
-                + [83.0] * 2
-                + [76.0] * 5
-                + [81.0] * 2
-                + [98.0] * 21
-                + [95.0] * 14
-                + [91.0] * 7
-                + [86.0]
-                + [93.0] * 3
-                + [95.0] * 20
-            ),
-        ),
-    ],
-)
-def test_rolling_window_as_string(center, expected_data):
+@pytest.mark.parametrize("center", [True, False])
+def test_rolling_window_as_string(center):
     # see gh-22590
     date_today = datetime.now()
     days = date_range(date_today, date_today + timedelta(365), freq="D")
 
-    npr = np.random.RandomState(seed=421)
-
-    data = npr.randint(1, high=100, size=len(days))
+    data = np.ones(len(days))
     df = DataFrame({"DateCol": days, "metric": data})
 
     df.set_index("DateCol", inplace=True)
@@ -705,6 +615,9 @@ def test_rolling_window_as_string(center, expected_data):
 
     index = days.rename("DateCol")
     index = index._with_freq(None)
+    expected_data = np.ones(len(days), dtype=np.float64)
+    if not center:
+        expected_data[:2] = np.nan
     expected = Series(expected_data, index=index, name="metric")
     tm.assert_series_equal(result, expected)
 
@@ -1038,7 +951,7 @@ def test_rolling_numerical_accuracy_jump():
     index = date_range(start="2020-01-01", end="2020-01-02", freq="60s").append(
         DatetimeIndex(["2020-01-03"])
     )
-    data = np.random.rand(len(index))
+    data = np.random.default_rng(2).random(len(index))
 
     df = DataFrame({"data": data}, index=index)
     result = df.rolling("60s").mean()
@@ -1465,7 +1378,7 @@ def test_groupby_rolling_nan_included():
 @pytest.mark.parametrize("method", ["skew", "kurt"])
 def test_rolling_skew_kurt_numerical_stability(method):
     # GH#6929
-    ser = Series(np.random.rand(10))
+    ser = Series(np.random.default_rng(2).random(10))
     ser_copy = ser.copy()
     expected = getattr(ser.rolling(3), method)()
     tm.assert_series_equal(ser, ser_copy)
@@ -1548,15 +1461,15 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
             0.03,
             0.03,
             0.001,
-            np.NaN,
+            np.nan,
             0.002,
             0.008,
-            np.NaN,
-            np.NaN,
-            np.NaN,
-            np.NaN,
-            np.NaN,
-            np.NaN,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
             0.005,
             0.2,
         ]
@@ -1567,8 +1480,8 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
         0.005,
         0.005,
         0.008,
-        np.NaN,
-        np.NaN,
+        np.nan,
+        np.nan,
         0.005,
         0.102500,
     ]
@@ -1582,7 +1495,7 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
 
 def test_rolling_sum_all_nan_window_floating_artifacts():
     # GH#41053
-    df = DataFrame([0.002, 0.008, 0.005, np.NaN, np.NaN, np.NaN])
+    df = DataFrame([0.002, 0.008, 0.005, np.nan, np.nan, np.nan])
     result = df.rolling(3, min_periods=0).sum()
     expected = DataFrame([0.002, 0.010, 0.015, 0.013, 0.005, 0.0])
     tm.assert_frame_equal(result, expected)
@@ -1654,12 +1567,14 @@ def test_rolling_numeric_dtypes():
 def test_rank(window, method, pct, ascending, test_data):
     length = 20
     if test_data == "default":
-        ser = Series(data=np.random.rand(length))
+        ser = Series(data=np.random.default_rng(2).random(length))
     elif test_data == "duplicates":
-        ser = Series(data=np.random.choice(3, length))
+        ser = Series(data=np.random.default_rng(2).choice(3, length))
     elif test_data == "nans":
         ser = Series(
-            data=np.random.choice([1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length)
+            data=np.random.default_rng(2).choice(
+                [1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length
+            )
         )
 
     expected = ser.rolling(window).apply(
@@ -1676,7 +1591,9 @@ def test_rolling_quantile_np_percentile():
     row = 10
     col = 5
     idx = date_range("20100101", periods=row, freq="B")
-    df = DataFrame(np.random.rand(row * col).reshape((row, -1)), index=idx)
+    df = DataFrame(
+        np.random.default_rng(2).random(row * col).reshape((row, -1)), index=idx
+    )
 
     df_quantile = df.quantile([0.25, 0.5, 0.75], axis=0)
     np_percentile = np.percentile(df, [25, 50, 75], axis=0)

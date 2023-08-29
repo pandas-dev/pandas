@@ -9,6 +9,7 @@ This is meant to be run as a pre-commit hook - to run it manually, you can do:
 
 The function `visit` is adapted from a function by the same name in pyupgrade:
 https://github.com/asottile/pyupgrade/blob/5495a248f2165941c5d3b82ac3226ba7ad1fa59d/pyupgrade/_data.py#L70-L113
+Licence at LICENSES/PYUPGRADE_LICENSE
 """
 from __future__ import annotations
 
@@ -42,9 +43,11 @@ def visit(tree: ast.Module) -> dict[int, list[int]]:
             if isinstance(value, ast.AST):
                 nodes.append((next_in_annotation, value))
             elif isinstance(value, list):
-                for value in reversed(value):
-                    if isinstance(value, ast.AST):
-                        nodes.append((next_in_annotation, value))
+                nodes.extend(
+                    (next_in_annotation, value)
+                    for value in reversed(value)
+                    if isinstance(value, ast.AST)
+                )
 
     return to_replace
 

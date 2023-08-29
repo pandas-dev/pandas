@@ -73,10 +73,16 @@ class HTMLFormatter:
         self.table_id = table_id
         self.render_links = render_links
 
-        self.col_space = {
-            column: f"{value}px" if isinstance(value, int) else value
-            for column, value in self.fmt.col_space.items()
-        }
+        self.col_space = {}
+        is_multi_index = isinstance(self.columns, MultiIndex)
+        for column, value in self.fmt.col_space.items():
+            col_space_value = f"{value}px" if isinstance(value, int) else value
+            self.col_space[column] = col_space_value
+            # GH 53885: Handling case where column is index
+            # Flatten the data in the multi index and add in the map
+            if is_multi_index and isinstance(column, tuple):
+                for column_index in column:
+                    self.col_space[str(column_index)] = col_space_value
 
     def to_string(self) -> str:
         lines = self.render()
@@ -88,7 +94,7 @@ class HTMLFormatter:
         self._write_table()
 
         if self.should_show_dimensions:
-            by = chr(215)  # ×
+            by = chr(215)  # ×  # noqa: RUF003
             self.write(
                 f"<p>{len(self.frame)} rows {by} {len(self.frame.columns)} columns</p>"
             )
@@ -627,7 +633,7 @@ class NotebookFormatter(HTMLFormatter):
         else:
             element_props.append(("thead th", "text-align", "right"))
         template_mid = "\n\n".join(template_select % t for t in element_props)
-        template = dedent("\n".join((template_first, template_mid, template_last)))
+        template = dedent(f"{template_first}\n{template_mid}\n{template_last}")
         self.write(template)
 
     def render(self) -> list[str]:

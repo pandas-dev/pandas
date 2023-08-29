@@ -32,35 +32,35 @@ def test_read_missing_key_close_store(tmp_path, setup_path):
     # GH 25766
     path = tmp_path / setup_path
     df = DataFrame({"a": range(2), "b": range(2)})
-    df.to_hdf(path, "k1")
+    df.to_hdf(path, key="k1")
 
     with pytest.raises(KeyError, match="'No object named k2 in the file'"):
         read_hdf(path, "k2")
 
     # smoke test to test that file is properly closed after
     # read with KeyError before another write
-    df.to_hdf(path, "k2")
+    df.to_hdf(path, key="k2")
 
 
 def test_read_index_error_close_store(tmp_path, setup_path):
     # GH 25766
     path = tmp_path / setup_path
     df = DataFrame({"A": [], "B": []}, index=[])
-    df.to_hdf(path, "k1")
+    df.to_hdf(path, key="k1")
 
     with pytest.raises(IndexError, match=r"list index out of range"):
         read_hdf(path, "k1", stop=0)
 
     # smoke test to test that file is properly closed after
     # read with IndexError before another write
-    df.to_hdf(path, "k1")
+    df.to_hdf(path, key="k1")
 
 
 def test_read_missing_key_opened_store(tmp_path, setup_path):
     # GH 28699
     path = tmp_path / setup_path
     df = DataFrame({"a": range(2), "b": range(2)})
-    df.to_hdf(path, "k1")
+    df.to_hdf(path, key="k1")
 
     with HDFStore(path, "r") as store:
         with pytest.raises(KeyError, match="'No object named k2 in the file'"):
@@ -142,7 +142,7 @@ def test_read_column(setup_path):
         tm.assert_almost_equal(result.values, df3["string"].values[-2:2])
 
         # GH 10392 - make sure column name is preserved
-        df4 = DataFrame({"A": np.random.randn(10), "B": "foo"})
+        df4 = DataFrame({"A": np.random.default_rng(2).standard_normal(10), "B": "foo"})
         store.append("df4", df4, data_columns=True)
         expected = df4["B"]
         result = store.select_column("df4", "B")
@@ -213,12 +213,16 @@ def test_legacy_table_read_py2(datapath):
 def test_read_hdf_open_store(tmp_path, setup_path):
     # GH10330
     # No check for non-string path_or-buf, and no test of open store
-    df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
+    df = DataFrame(
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
+    )
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)
 
     path = tmp_path / setup_path
-    df.to_hdf(path, "df", mode="w")
+    df.to_hdf(path, key="df", mode="w")
     direct = read_hdf(path, "df")
     with HDFStore(path, mode="r") as store:
         indirect = read_hdf(store, "df")
@@ -230,10 +234,14 @@ def test_read_hdf_index_not_view(tmp_path, setup_path):
     # GH 37441
     # Ensure that the index of the DataFrame is not a view
     # into the original recarray that pytables reads in
-    df = DataFrame(np.random.rand(4, 5), index=[0, 1, 2, 3], columns=list("ABCDE"))
+    df = DataFrame(
+        np.random.default_rng(2).random((4, 5)),
+        index=[0, 1, 2, 3],
+        columns=list("ABCDE"),
+    )
 
     path = tmp_path / setup_path
-    df.to_hdf(path, "df", mode="w", format="table")
+    df.to_hdf(path, key="df", mode="w", format="table")
 
     df2 = read_hdf(path, "df")
     assert df2.index._data.base is None
@@ -241,12 +249,16 @@ def test_read_hdf_index_not_view(tmp_path, setup_path):
 
 
 def test_read_hdf_iterator(tmp_path, setup_path):
-    df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
+    df = DataFrame(
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
+    )
     df.index.name = "letters"
     df = df.set_index(keys="E", append=True)
 
     path = tmp_path / setup_path
-    df.to_hdf(path, "df", mode="w", format="t")
+    df.to_hdf(path, key="df", mode="w", format="t")
     direct = read_hdf(path, "df")
     iterator = read_hdf(path, "df", iterator=True)
     with closing(iterator.store):
@@ -257,15 +269,19 @@ def test_read_hdf_iterator(tmp_path, setup_path):
 
 def test_read_nokey(tmp_path, setup_path):
     # GH10443
-    df = DataFrame(np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE"))
+    df = DataFrame(
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
+    )
 
     # Categorical dtype not supported for "fixed" format. So no need
     # to test with that dtype in the dataframe here.
     path = tmp_path / setup_path
-    df.to_hdf(path, "df", mode="a")
+    df.to_hdf(path, key="df", mode="a")
     reread = read_hdf(path)
     tm.assert_frame_equal(df, reread)
-    df.to_hdf(path, "df2", mode="a")
+    df.to_hdf(path, key="df2", mode="a")
 
     msg = "key must be provided when HDF5 file contains multiple datasets."
     with pytest.raises(ValueError, match=msg):
@@ -277,10 +293,10 @@ def test_read_nokey_table(tmp_path, setup_path):
     df = DataFrame({"i": range(5), "c": Series(list("abacd"), dtype="category")})
 
     path = tmp_path / setup_path
-    df.to_hdf(path, "df", mode="a", format="table")
+    df.to_hdf(path, key="df", mode="a", format="table")
     reread = read_hdf(path)
     tm.assert_frame_equal(df, reread)
-    df.to_hdf(path, "df2", mode="a", format="table")
+    df.to_hdf(path, key="df2", mode="a", format="table")
 
     msg = "key must be provided when HDF5 file contains multiple datasets."
     with pytest.raises(ValueError, match=msg):
@@ -302,13 +318,15 @@ def test_read_nokey_empty(tmp_path, setup_path):
 def test_read_from_pathlib_path(tmp_path, setup_path):
     # GH11773
     expected = DataFrame(
-        np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
     )
     filename = tmp_path / setup_path
     path_obj = Path(filename)
 
-    expected.to_hdf(path_obj, "df", mode="a")
-    actual = read_hdf(path_obj, "df")
+    expected.to_hdf(path_obj, key="df", mode="a")
+    actual = read_hdf(path_obj, key="df")
 
     tm.assert_frame_equal(expected, actual)
 
@@ -319,13 +337,15 @@ def test_read_from_py_localpath(tmp_path, setup_path):
     from py.path import local as LocalPath
 
     expected = DataFrame(
-        np.random.rand(4, 5), index=list("abcd"), columns=list("ABCDE")
+        np.random.default_rng(2).random((4, 5)),
+        index=list("abcd"),
+        columns=list("ABCDE"),
     )
     filename = tmp_path / setup_path
     path_obj = LocalPath(filename)
 
-    expected.to_hdf(path_obj, "df", mode="a")
-    actual = read_hdf(path_obj, "df")
+    expected.to_hdf(path_obj, key="df", mode="a")
+    actual = read_hdf(path_obj, key="df")
 
     tm.assert_frame_equal(expected, actual)
 
@@ -342,6 +362,8 @@ def test_read_hdf_series_mode_r(tmp_path, format, setup_path):
     tm.assert_series_equal(result, series)
 
 
+@pytest.mark.filterwarnings(r"ignore:Period with BDay freq is deprecated:FutureWarning")
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_read_py2_hdf_file_in_py3(datapath):
     # GH 16781
 
@@ -366,3 +388,19 @@ def test_read_py2_hdf_file_in_py3(datapath):
     ) as store:
         result = store["p"]
         tm.assert_frame_equal(result, expected)
+
+
+def test_read_infer_string(tmp_path, setup_path):
+    # GH#54431
+    pytest.importorskip("pyarrow")
+    df = DataFrame({"a": ["a", "b", None]})
+    path = tmp_path / setup_path
+    df.to_hdf(path, key="data", format="table")
+    with pd.option_context("future.infer_string", True):
+        result = read_hdf(path, key="data", mode="r")
+    expected = DataFrame(
+        {"a": ["a", "b", None]},
+        dtype="string[pyarrow_numpy]",
+        columns=Index(["a"], dtype="string[pyarrow_numpy]"),
+    )
+    tm.assert_frame_equal(result, expected)

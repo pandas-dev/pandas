@@ -81,6 +81,7 @@ class Fillna:
     params = [
         [
             "datetime64[ns]",
+            "float32",
             "float64",
             "Float64",
             "Int64",
@@ -88,11 +89,10 @@ class Fillna:
             "string",
             "string[pyarrow]",
         ],
-        [None, "pad", "backfill"],
     ]
-    param_names = ["dtype", "method"]
+    param_names = ["dtype"]
 
-    def setup(self, dtype, method):
+    def setup(self, dtype):
         N = 10**6
         if dtype == "datetime64[ns]":
             data = date_range("2000-01-01", freq="S", periods=N)
@@ -104,7 +104,7 @@ class Fillna:
             data = np.arange(N)
             na_value = NA
         elif dtype in ("string", "string[pyarrow]"):
-            data = tm.rands_array(5, N)
+            data = np.array([str(i) * 5 for i in range(N)], dtype=object)
             na_value = NA
         else:
             raise NotImplementedError
@@ -114,9 +114,14 @@ class Fillna:
         self.ser = ser
         self.fill_value = fill_value
 
-    def time_fillna(self, dtype, method):
-        value = self.fill_value if method is None else None
-        self.ser.fillna(value=value, method=method)
+    def time_fillna(self, dtype):
+        self.ser.fillna(value=self.fill_value)
+
+    def time_ffill(self, dtype):
+        self.ser.ffill()
+
+    def time_bfill(self, dtype):
+        self.ser.bfill()
 
 
 class SearchSorted:
