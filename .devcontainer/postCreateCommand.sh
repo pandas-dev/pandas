@@ -42,3 +42,4 @@ pip install black
 pip uninstall -y pandas
 pip install -e . --no-build-isolation -v
 
+pre-commit install
