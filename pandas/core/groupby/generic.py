@@ -1156,7 +1156,8 @@ class SeriesGroupBy(GroupBy[Series]):
     @property
     @doc(Series.plot.__doc__)
     def plot(self) -> GroupByPlot:
-        return GroupByPlot(self)
+        result = GroupByPlot(self)
+        return result
 
     @doc(Series.nlargest.__doc__)
     def nlargest(

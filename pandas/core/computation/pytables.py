@@ -441,6 +441,8 @@ class PyTablesExprVisitor(BaseExprVisitor):
             return self.const_type(-self.visit(node.operand).value, self.env)
         elif isinstance(node.op, ast.UAdd):
             raise NotImplementedError("Unary addition not supported")
+        # TODO: return None seems unreachable in the tests
+        assert False
         return None
 
     def visit_Index(self, node, **kwargs):

@@ -315,7 +315,7 @@ class Apply(metaclass=abc.ABCMeta):
         op_name: Literal["agg", "apply"],
         selected_obj: Series | DataFrame,
         kwargs: dict[str, Any],
-    ) -> tuple[list[Hashable], list[Any]]:
+    ) -> tuple[list[Hashable] | Index, list[Any]]:
         """
         Compute agg/apply results for like-like input.
 
@@ -377,7 +377,7 @@ class Apply(metaclass=abc.ABCMeta):
         return keys, results
 
     def wrap_results_list_like(
-        self, keys: list[Hashable], results: list[Series | DataFrame]
+        self, keys: Iterable[Hashable], results: list[Series | DataFrame]
     ):
         from pandas.core.reshape.concat import concat
 

@@ -1082,7 +1082,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             blkno = self.blknos[loc]
             blk = self.blocks[blkno]
             if len(blk._mgr_locs) == 1:  # TODO: fastest way to check this?
-                self._iset_single(
+                return self._iset_single(
                     loc,
                     value,
                     inplace=inplace,
