@@ -258,7 +258,7 @@ class SharedTests:
 
         fill_value = arr[3] if method == "pad" else arr[5]
 
-        result = arr.pad_or_backfill(method=method)
+        result = arr._pad_or_backfill(method=method)
         assert result[4] == fill_value
 
         # check that the original was not changed
@@ -324,7 +324,12 @@ class SharedTests:
         ):
             arr.searchsorted("foo")
 
-        arr_type = "StringArray" if string_storage == "python" else "ArrowStringArray"
+        if string_storage == "python":
+            arr_type = "StringArray"
+        elif string_storage == "pyarrow":
+            arr_type = "ArrowStringArray"
+        else:
+            arr_type = "ArrowStringArrayNumpySemantics"
 
         with pd.option_context("string_storage", string_storage):
             with pytest.raises(
@@ -622,13 +627,13 @@ class TestDatetimeArray(SharedTests):
         # GH#24064
         dti = self.index_cls(arr1d)
 
-        result = dti.round(freq="2T")
+        result = dti.round(freq="2min")
         expected = dti - pd.Timedelta(minutes=1)
         expected = expected._with_freq(None)
         tm.assert_index_equal(result, expected)
 
         dta = dti._data
-        result = dta.round(freq="2T")
+        result = dta.round(freq="2min")
         expected = expected._data._with_freq(None)
         tm.assert_datetime_array_equal(result, expected)
 

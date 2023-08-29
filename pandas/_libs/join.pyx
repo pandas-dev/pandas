@@ -23,7 +23,7 @@ from pandas._libs.dtypes cimport (
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def inner_join(const intp_t[:] left, const intp_t[:] right,
-               Py_ssize_t max_groups):
+               Py_ssize_t max_groups, bint sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
         intp_t[::1] left_sorter, right_sorter
@@ -70,7 +70,20 @@ def inner_join(const intp_t[:] left, const intp_t[:] right,
         _get_result_indexer(left_sorter, left_indexer)
         _get_result_indexer(right_sorter, right_indexer)
 
-    return np.asarray(left_indexer), np.asarray(right_indexer)
+    if not sort:
+        # if not asked to sort, revert to original order
+        if len(left) == len(left_indexer):
+            # no multiple matches for any row on the left
+            # this is a short-cut to avoid groupsort_indexer
+            # otherwise, the `else` path also works in this case
+            rev = np.empty(len(left), dtype=np.intp)
+            rev.put(np.asarray(left_sorter), np.arange(len(left)))
+        else:
+            rev, _ = groupsort_indexer(left_indexer, len(left))
+
+        return np.asarray(left_indexer).take(rev), np.asarray(right_indexer).take(rev)
+    else:
+        return np.asarray(left_indexer), np.asarray(right_indexer)
 
 
 @cython.wraparound(False)

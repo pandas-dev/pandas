@@ -61,6 +61,8 @@ from pandas.core.dtypes.inference import (
     is_list_like,
 )
 
+from pandas.util import capitalize_first_letter
+
 if not pa_version_under7p0:
     import pyarrow as pa
 
@@ -994,6 +996,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
         if isinstance(freq, BDay):
             # GH#53446
+            # TODO(3.0): enforcing this will close GH#10575
             warnings.warn(
                 "PeriodDtype[B] is deprecated and will be removed in a future "
                 "version. Use a DatetimeIndex with freq='B' instead",
@@ -1079,7 +1082,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
-            return other in [self.name, self.name.title()]
+            return other in [self.name, capitalize_first_letter(self.name)]
 
         return super().__eq__(other)
 
@@ -1525,7 +1528,6 @@ class BaseMaskedDtype(ExtensionDtype):
     Base class for dtypes for BaseMaskedArray subclasses.
     """
 
-    name: str
     base = None
     type: type
 

@@ -355,7 +355,7 @@ def test_indexing_over_size_cutoff_period_index(monkeypatch):
     monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 1000)
 
     n = 1100
-    idx = period_range("1/1/2000", freq="T", periods=n)
+    idx = period_range("1/1/2000", freq="min", periods=n)
     assert idx._engine.over_size_threshold
 
     s = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
@@ -455,7 +455,7 @@ def test_getitem_str_month_with_datetimeindex():
     expected = ts["2013-05"]
     tm.assert_series_equal(expected, ts)
 
-    idx = date_range(start="2013-05-31 00:00", end="2013-05-31 23:59", freq="S")
+    idx = date_range(start="2013-05-31 00:00", end="2013-05-31 23:59", freq="s")
     ts = Series(range(len(idx)), index=idx)
     expected = ts["2013-05"]
     tm.assert_series_equal(expected, ts)
