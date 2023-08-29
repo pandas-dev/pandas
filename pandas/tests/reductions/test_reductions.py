@@ -867,7 +867,7 @@ class TestSeriesReductions:
         string_series = tm.makeStringSeries().rename("series")
 
         # add some NaNs
-        string_series[5:15] = np.NaN
+        string_series[5:15] = np.nan
 
         # skipna or no
         assert string_series[string_series.idxmin()] == string_series.min()
@@ -900,7 +900,7 @@ class TestSeriesReductions:
         string_series = tm.makeStringSeries().rename("series")
 
         # add some NaNs
-        string_series[5:15] = np.NaN
+        string_series[5:15] = np.nan
 
         # skipna or no
         assert string_series[string_series.idxmax()] == string_series.max()
@@ -1077,6 +1077,25 @@ class TestSeriesReductions:
 
         assert df.any().all()
         assert not df.all().any()
+
+    def test_any_all_pyarrow_string(self):
+        # GH#54591
+        pytest.importorskip("pyarrow")
+        ser = Series(["", "a"], dtype="string[pyarrow_numpy]")
+        assert ser.any()
+        assert not ser.all()
+
+        ser = Series([None, "a"], dtype="string[pyarrow_numpy]")
+        assert ser.any()
+        assert not ser.all()
+
+        ser = Series([None, ""], dtype="string[pyarrow_numpy]")
+        assert not ser.any()
+        assert not ser.all()
+
+        ser = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        assert ser.any()
+        assert ser.all()
 
     def test_timedelta64_analytics(self):
         # index min/max

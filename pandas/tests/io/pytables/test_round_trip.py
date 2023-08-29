@@ -29,7 +29,7 @@ def test_conv_read_write():
     with tm.ensure_clean() as path:
 
         def roundtrip(key, obj, **kwargs):
-            obj.to_hdf(path, key, **kwargs)
+            obj.to_hdf(path, key=key, **kwargs)
             return read_hdf(path, key)
 
         o = tm.makeTimeSeries()
@@ -43,7 +43,7 @@ def test_conv_read_write():
 
         # table
         df = DataFrame({"A": range(5), "B": range(5)})
-        df.to_hdf(path, "table", append=True)
+        df.to_hdf(path, key="table", append=True)
         result = read_hdf(path, "table", where=["index>2"])
         tm.assert_frame_equal(df[df.index > 2], result)
 
@@ -65,13 +65,13 @@ def test_api(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     df = tm.makeDataFrame()
-    df.iloc[:10].to_hdf(path, "df", append=True, format="table")
-    df.iloc[10:].to_hdf(path, "df", append=True, format="table")
+    df.iloc[:10].to_hdf(path, key="df", append=True, format="table")
+    df.iloc[10:].to_hdf(path, key="df", append=True, format="table")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
     # append to False
-    df.iloc[:10].to_hdf(path, "df", append=False, format="table")
-    df.iloc[10:].to_hdf(path, "df", append=True, format="table")
+    df.iloc[:10].to_hdf(path, key="df", append=False, format="table")
+    df.iloc[10:].to_hdf(path, key="df", append=True, format="table")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
 
@@ -79,13 +79,13 @@ def test_api_append(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     df = tm.makeDataFrame()
-    df.iloc[:10].to_hdf(path, "df", append=True)
-    df.iloc[10:].to_hdf(path, "df", append=True, format="table")
+    df.iloc[:10].to_hdf(path, key="df", append=True)
+    df.iloc[10:].to_hdf(path, key="df", append=True, format="table")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
     # append to False
-    df.iloc[:10].to_hdf(path, "df", append=False, format="table")
-    df.iloc[10:].to_hdf(path, "df", append=True)
+    df.iloc[:10].to_hdf(path, key="df", append=False, format="table")
+    df.iloc[10:].to_hdf(path, key="df", append=True)
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
 
@@ -93,16 +93,16 @@ def test_api_2(tmp_path, setup_path):
     path = tmp_path / setup_path
 
     df = tm.makeDataFrame()
-    df.to_hdf(path, "df", append=False, format="fixed")
+    df.to_hdf(path, key="df", append=False, format="fixed")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
-    df.to_hdf(path, "df", append=False, format="f")
+    df.to_hdf(path, key="df", append=False, format="f")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
-    df.to_hdf(path, "df", append=False)
+    df.to_hdf(path, key="df", append=False)
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
-    df.to_hdf(path, "df")
+    df.to_hdf(path, key="df")
     tm.assert_frame_equal(read_hdf(path, "df"), df)
 
     with ensure_clean_store(setup_path) as store:
@@ -139,18 +139,18 @@ def test_api_invalid(tmp_path, setup_path):
     msg = "Can only append to Tables"
 
     with pytest.raises(ValueError, match=msg):
-        df.to_hdf(path, "df", append=True, format="f")
+        df.to_hdf(path, key="df", append=True, format="f")
 
     with pytest.raises(ValueError, match=msg):
-        df.to_hdf(path, "df", append=True, format="fixed")
+        df.to_hdf(path, key="df", append=True, format="fixed")
 
     msg = r"invalid HDFStore format specified \[foo\]"
 
     with pytest.raises(TypeError, match=msg):
-        df.to_hdf(path, "df", append=True, format="foo")
+        df.to_hdf(path, key="df", append=True, format="foo")
 
     with pytest.raises(TypeError, match=msg):
-        df.to_hdf(path, "df", append=False, format="foo")
+        df.to_hdf(path, key="df", append=False, format="foo")
 
     # File path doesn't exist
     path = ""
@@ -521,7 +521,7 @@ def test_round_trip_equals(tmp_path, setup_path):
     df = DataFrame({"B": [1, 2], "A": ["x", "y"]})
 
     path = tmp_path / setup_path
-    df.to_hdf(path, "df", format="table")
+    df.to_hdf(path, key="df", format="table")
     other = read_hdf(path, "df")
     tm.assert_frame_equal(df, other)
     assert df.equals(other)

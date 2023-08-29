@@ -1,7 +1,10 @@
 import datetime
 from datetime import timedelta
 from decimal import Decimal
-from io import StringIO
+from io import (
+    BytesIO,
+    StringIO,
+)
 import json
 import os
 import sys
@@ -27,6 +30,8 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
+
+from pandas.io.json import ujson_dumps
 
 
 def test_literal_json_deprecation():
@@ -865,14 +870,13 @@ class TestPandasContainer:
     )
     def test_convert_dates_infer(self, infer_word):
         # GH10747
-        from pandas.io.json import dumps
 
         data = [{"id": 1, infer_word: 1036713600000}, {"id": 2}]
         expected = DataFrame(
             [[1, Timestamp("2002-11-08")], [2, pd.NaT]], columns=["id", infer_word]
         )
 
-        result = read_json(StringIO(dumps(data)))[["id", infer_word]]
+        result = read_json(StringIO(ujson_dumps(data)))[["id", infer_word]]
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1133,8 +1137,6 @@ class TestPandasContainer:
         tm.assert_frame_equal(expected, result, check_index_type=False)
 
     def test_default_handler_indirect(self):
-        from pandas.io.json import dumps
-
         def default(obj):
             if isinstance(obj, complex):
                 return [("mathjs", "Complex"), ("re", obj.real), ("im", obj.imag)]
@@ -1151,7 +1153,9 @@ class TestPandasContainer:
             '[9,[[1,null],["STR",null],[[["mathjs","Complex"],'
             '["re",4.0],["im",-5.0]],"N\\/A"]]]'
         )
-        assert dumps(df_list, default_handler=default, orient="values") == expected
+        assert (
+            ujson_dumps(df_list, default_handler=default, orient="values") == expected
+        )
 
     def test_default_handler_numpy_unsupported_dtype(self):
         # GH12554 to_json raises 'Unhandled numpy dtype 15'
@@ -1235,23 +1239,19 @@ class TestPandasContainer:
         ],
     )
     def test_tz_is_utc(self, ts):
-        from pandas.io.json import dumps
-
         exp = '"2013-01-10T05:00:00.000Z"'
 
-        assert dumps(ts, iso_dates=True) == exp
+        assert ujson_dumps(ts, iso_dates=True) == exp
         dt = ts.to_pydatetime()
-        assert dumps(dt, iso_dates=True) == exp
+        assert ujson_dumps(dt, iso_dates=True) == exp
 
     def test_tz_is_naive(self):
-        from pandas.io.json import dumps
-
         ts = Timestamp("2013-01-10 05:00:00")
         exp = '"2013-01-10T05:00:00.000"'
 
-        assert dumps(ts, iso_dates=True) == exp
+        assert ujson_dumps(ts, iso_dates=True) == exp
         dt = ts.to_pydatetime()
-        assert dumps(dt, iso_dates=True) == exp
+        assert ujson_dumps(dt, iso_dates=True) == exp
 
     @pytest.mark.parametrize(
         "tz_range",
@@ -1262,8 +1262,6 @@ class TestPandasContainer:
         ],
     )
     def test_tz_range_is_utc(self, tz_range):
-        from pandas.io.json import dumps
-
         exp = '["2013-01-01T05:00:00.000Z","2013-01-02T05:00:00.000Z"]'
         dfexp = (
             '{"DT":{'
@@ -1271,20 +1269,18 @@ class TestPandasContainer:
             '"1":"2013-01-02T05:00:00.000Z"}}'
         )
 
-        assert dumps(tz_range, iso_dates=True) == exp
+        assert ujson_dumps(tz_range, iso_dates=True) == exp
         dti = DatetimeIndex(tz_range)
         # Ensure datetimes in object array are serialized correctly
         # in addition to the normal DTI case
-        assert dumps(dti, iso_dates=True) == exp
-        assert dumps(dti.astype(object), iso_dates=True) == exp
+        assert ujson_dumps(dti, iso_dates=True) == exp
+        assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
         df = DataFrame({"DT": dti})
-        result = dumps(df, iso_dates=True)
+        result = ujson_dumps(df, iso_dates=True)
         assert result == dfexp
-        assert dumps(df.astype({"DT": object}), iso_dates=True)
+        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True)
 
     def test_tz_range_is_naive(self):
-        from pandas.io.json import dumps
-
         dti = pd.date_range("2013-01-01 05:00:00", periods=2)
 
         exp = '["2013-01-01T05:00:00.000","2013-01-02T05:00:00.000"]'
@@ -1292,12 +1288,12 @@ class TestPandasContainer:
 
         # Ensure datetimes in object array are serialized correctly
         # in addition to the normal DTI case
-        assert dumps(dti, iso_dates=True) == exp
-        assert dumps(dti.astype(object), iso_dates=True) == exp
+        assert ujson_dumps(dti, iso_dates=True) == exp
+        assert ujson_dumps(dti.astype(object), iso_dates=True) == exp
         df = DataFrame({"DT": dti})
-        result = dumps(df, iso_dates=True)
+        result = ujson_dumps(df, iso_dates=True)
         assert result == dfexp
-        assert dumps(df.astype({"DT": object}), iso_dates=True)
+        assert ujson_dumps(df.astype({"DT": object}), iso_dates=True)
 
     def test_read_inline_jsonl(self):
         # GH9180
@@ -2099,7 +2095,7 @@ def test_pyarrow_engine_lines_false():
 
 
 def test_json_roundtrip_string_inference(orient):
-    pa = pytest.importorskip("pyarrow")
+    pytest.importorskip("pyarrow")
     df = DataFrame(
         [["a", "b"], ["c", "d"]], index=["row 1", "row 2"], columns=["col 1", "col 2"]
     )
@@ -2108,8 +2104,20 @@ def test_json_roundtrip_string_inference(orient):
         result = read_json(StringIO(out))
     expected = DataFrame(
         [["a", "b"], ["c", "d"]],
-        dtype=pd.ArrowDtype(pa.string()),
-        index=pd.Index(["row 1", "row 2"], dtype=pd.ArrowDtype(pa.string())),
-        columns=pd.Index(["col 1", "col 2"], dtype=pd.ArrowDtype(pa.string())),
+        dtype="string[pyarrow_numpy]",
+        index=pd.Index(["row 1", "row 2"], dtype="string[pyarrow_numpy]"),
+        columns=pd.Index(["col 1", "col 2"], dtype="string[pyarrow_numpy]"),
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_json_pos_args_deprecation():
+    # GH-54229
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_json except for the "
+        r"argument 'path_or_buf' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buf = BytesIO()
+        df.to_json(buf, "split")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    ClassVar,
     Literal,
 )
 
@@ -14,6 +15,7 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas._libs.arrays import NDArrayBacked
+from pandas._libs.lib import ensure_string_array
 from pandas.compat import (
     is_numpy_dev,
     pa_version_under7p0,
@@ -80,7 +82,7 @@ class StringDtype(StorageExtensionDtype):
 
     Parameters
     ----------
-    storage : {"python", "pyarrow", "numpy"}, optional
+    storage : {"python", "pyarrow", "numpy", "pyarrow_numpy"}, optional
         If not given, the value of ``pd.options.mode.string_storage``.
 
     Attributes
@@ -100,24 +102,34 @@ class StringDtype(StorageExtensionDtype):
     string[pyarrow]
     """
 
-    name = "string"
+    # error: Cannot override instance variable (previously declared on
+    # base class "StorageExtensionDtype") with class variable
+    name: ClassVar[str] = "string"  # type: ignore[misc]
 
-    #: StringDtype().na_value uses pandas.NA
+    #: StringDtype().na_value uses pandas.NA except the implementation that
+    # follows NumPy semantics, which uses nan.
     @property
-    def na_value(self) -> libmissing.NAType:
-        return libmissing.NA
+    def na_value(self) -> libmissing.NAType | float:  # type: ignore[override]
+        if self.storage == "pyarrow_numpy":
+            return np.nan
+        else:
+            return libmissing.NA
 
     _metadata = ("storage",)
 
     def __init__(self, storage=None) -> None:
         if storage is None:
-            storage = get_option("mode.string_storage")
-        if storage not in {"python", "pyarrow", "numpy"}:
+            infer_string = get_option("future.infer_string")
+            if infer_string:
+                storage = "pyarrow_numpy"
+            else:
+                storage = get_option("mode.string_storage")
+        if storage not in {"python", "pyarrow", "numpy", "pyarrow_numpy"}:
             raise ValueError(
-                "Storage must be 'python', 'pyarrow', or 'numpy'. "
+                "Storage must be 'python', 'pyarrow', or 'numpy'."
                 "Got {storage} instead."
             )
-        if storage == "pyarrow" and pa_version_under7p0:
+        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under7p0:
             raise ImportError(
                 "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
             )
@@ -170,6 +182,8 @@ class StringDtype(StorageExtensionDtype):
             return cls(storage="pyarrow")
         elif string == "string[numpy]":
             return cls(storage="numpy")
+        elif string == "string[pyarrow_numpy]":
+            return cls(storage="pyarrow_numpy")
         else:
             raise TypeError(f"Cannot construct a '{cls.__name__}' from '{string}'")
 
@@ -186,7 +200,10 @@ class StringDtype(StorageExtensionDtype):
         -------
         type
         """
-        from pandas.core.arrays.string_arrow import ArrowStringArray
+        from pandas.core.arrays.string_arrow import (
+            ArrowStringArray,
+            ArrowStringArrayNumpySemantics,
+        )
 
         if self.storage == "python":
             return ObjectStringArray
@@ -194,6 +211,8 @@ class StringDtype(StorageExtensionDtype):
             return ArrowStringArray
         elif self.storage == "numpy":
             return NumpyStringArray
+        elif self.storage == "pyarrow-numpy":
+            return ArrowStringArrayNumpySemantics
         else:
             raise NotImplementedError
 
@@ -207,6 +226,10 @@ class StringDtype(StorageExtensionDtype):
             from pandas.core.arrays.string_arrow import ArrowStringArray
 
             return ArrowStringArray(array)
+        elif self.storage == "pyarrow_numpy":
+            from pandas.core.arrays.string_arrow import ArrowStringArrayNumpySemantics
+
+            return ArrowStringArrayNumpySemantics(array)
         else:
             import pyarrow
 
@@ -220,7 +243,7 @@ class StringDtype(StorageExtensionDtype):
             arr = np.array([], dtype=object)
         else:
             arr = pyarrow.concat_arrays(chunks).to_numpy(zero_copy_only=False)
-            arr = lib.convert_nans_to_NA(arr)
+            arr = ensure_string_array(arr, na_value=libmissing.NA)
         # Bypass validation inside StringArray constructor, see GH#47781
         new_string_array = StringArray.__new__(StringArray)
         NDArrayBacked.__init__(
@@ -556,7 +579,7 @@ class BaseNumpyStringArray(BaseStringArray, NumpyExtensionArray):  # type: ignor
         arr = np.asarray(self)
 
         if is_integer_dtype(dtype) or is_bool_dtype(dtype):
-            constructor: type[IntegerArray] | type[BooleanArray]
+            constructor: type[IntegerArray | BooleanArray]
             if is_integer_dtype(dtype):
                 constructor = IntegerArray
             else:

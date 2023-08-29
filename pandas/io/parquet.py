@@ -12,6 +12,8 @@ from typing import (
 import warnings
 from warnings import catch_warnings
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import AbstractMethodError
@@ -26,6 +28,7 @@ from pandas import (
 )
 from pandas.core.shared_docs import _shared_docs
 
+from pandas.io._util import arrow_string_types_mapper
 from pandas.io.common import (
     IOHandles,
     get_handle,
@@ -252,6 +255,8 @@ class PyArrowImpl(BaseImpl):
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
             to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa: E501
+        elif using_pyarrow_string_dtype():
+            to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
         manager = get_option("mode.data_manager")
         if manager == "array":
@@ -439,10 +444,7 @@ def to_parquet(
         if you wish to use its implementation.
     compression : {{'snappy', 'gzip', 'brotli', 'lz4', 'zstd', None}},
         default 'snappy'. Name of the compression to use. Use ``None``
-        for no compression. The supported compression methods actually
-        depend on which engine is used. For 'pyarrow', 'snappy', 'gzip',
-        'brotli', 'lz4', 'zstd' are all supported. For 'fastparquet',
-        only 'gzip' and 'snappy' are supported.
+        for no compression.
     index : bool, default None
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.
