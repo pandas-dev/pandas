@@ -1,6 +1,6 @@
 .. _whatsnew_210:
 
-What's new in 2.1.0 (Aug 11, 2023)
+What's new in 2.1.0 (Aug 30, 2023)
 --------------------------------------
 
 These are the changes in pandas 2.1.0. See :ref:`release` for a full changelog
@@ -39,11 +39,15 @@ We are collecting feedback on this decision `here <https://github.com/pandas-dev
 Avoid NumPy object dtype for strings by default
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Previously, all strings were stored in columns with NumPy object dtype.
+Previously, all strings were stored in columns with NumPy object dtype by default.
 This release introduces an option ``future.infer_string`` that infers all
 strings as PyArrow backed strings with dtype ``"string[pyarrow_numpy]"`` instead.
 This is a new string dtype implementation that follows NumPy semantics in comparison
 operations and will return ``np.nan`` as the missing value indicator.
+Setting the option will also infer the dtype ``"string"`` as a :class:`StringDtype` with
+storage set to ``"pyarrow_numpy"``, ignoring the value behind the option
+``mode.string_storage``.
+
 This option only works if PyArrow is installed. PyArrow backed strings have a
 significantly reduced memory footprint and provide a big performance improvement
 compared to NumPy object (:issue:`54430`).
@@ -579,7 +583,7 @@ Other Deprecations
 - Deprecated positional indexing on :class:`Series` with :meth:`Series.__getitem__` and :meth:`Series.__setitem__`, in a future version ``ser[item]`` will *always* interpret ``item`` as a label, not a position (:issue:`50617`)
 - Deprecated replacing builtin and NumPy functions in ``.agg``, ``.apply``, and ``.transform``; use the corresponding string alias (e.g. ``"sum"`` for ``sum`` or ``np.sum``) instead (:issue:`53425`)
 - Deprecated strings ``T``, ``t``, ``L`` and ``l`` denoting units in :func:`to_timedelta` (:issue:`52536`)
-- Deprecated the "method" and "limit" keywords in ``.ExtensionArray.fillna``, implement and use ``pad_or_backfill`` instead (:issue:`53621`)
+- Deprecated the "method" and "limit" keywords in ``.ExtensionArray.fillna``, implement ``_pad_or_backfill`` instead (:issue:`53621`)
 - Deprecated the ``method`` and ``limit`` keywords in :meth:`DataFrame.replace` and :meth:`Series.replace` (:issue:`33302`)
 - Deprecated the ``method`` and ``limit`` keywords on :meth:`Series.fillna`, :meth:`DataFrame.fillna`, :meth:`.SeriesGroupBy.fillna`, :meth:`.DataFrameGroupBy.fillna`, and :meth:`.Resampler.fillna`, use ``obj.bfill()`` or ``obj.ffill()`` instead (:issue:`53394`)
 - Deprecated the behavior of :meth:`Series.__getitem__`, :meth:`Series.__setitem__`, :meth:`DataFrame.__getitem__`, :meth:`DataFrame.__setitem__` with an integer slice on objects with a floating-dtype index, in a future version this will be treated as *positional* indexing (:issue:`49612`)
@@ -587,6 +591,7 @@ Other Deprecations
 - Deprecated values ``"pad"``, ``"ffill"``, ``"bfill"``, ``"backfill"`` for :meth:`Series.interpolate` and :meth:`DataFrame.interpolate`, use ``obj.ffill()`` or ``obj.bfill()`` instead (:issue:`53581`)
 - Deprecated the behavior of :meth:`Index.argmax`, :meth:`Index.argmin`, :meth:`Series.argmax`, :meth:`Series.argmin` with either all-NAs and ``skipna=True`` or any-NAs and ``skipna=False`` returning -1; in a future version this will raise ``ValueError`` (:issue:`33941`, :issue:`33942`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_sql` except ``name`` and ``con`` (:issue:`54229`)
+- Deprecated silently ignoring ``fill_value`` when passing both ``freq`` and ``fill_value`` to :meth:`DataFrame.shift`, :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift`; in a future version this will raise ``ValueError`` (:issue:`53832`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_210.performance:
@@ -717,6 +722,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :meth:`Series.str` that did not raise a  ``TypeError`` when iterated (:issue:`54173`)
+- Bug in ``repr`` for :class:`DataFrame`` with string-dtype columns (:issue:`54797`)
 
 Interval
 ^^^^^^^^
@@ -841,6 +847,7 @@ ExtensionArray
 - Bug in :meth:`Series.rank` returning wrong order for small values with ``Float64`` dtype (:issue:`52471`)
 - Bug in :meth:`Series.unique` for boolean ``ArrowDtype`` with ``NA`` values (:issue:`54667`)
 - Bug in :meth:`~arrays.ArrowExtensionArray.__iter__` and :meth:`~arrays.ArrowExtensionArray.__getitem__` returning python datetime and timedelta objects for non-nano dtypes (:issue:`53326`)
+- Bug in :meth:`~arrays.ArrowExtensionArray.factorize` returning incorrect uniques for a ``pyarrow.dictionary`` type ``pyarrow.chunked_array`` with more than one chunk (:issue:`54844`)
 - Bug when passing an :class:`ExtensionArray` subclass to ``dtype`` keywords. This will now raise a ``UserWarning`` to encourage passing an instance instead (:issue:`31356`, :issue:`54592`)
 - Bug where the :class:`DataFrame` repr would not work when a column had an :class:`ArrowDtype` with a ``pyarrow.ExtensionDtype`` (:issue:`54063`)
 - Bug where the ``__from_arrow__`` method of masked ExtensionDtypes (e.g. :class:`Float64Dtype`, :class:`BooleanDtype`) would not accept PyArrow arrays of type ``pyarrow.null()`` (:issue:`52223`)
@@ -870,7 +877,6 @@ Other
 - Bug in :meth:`.DataFrameGroupBy.first`, :meth:`.DataFrameGroupBy.last`, :meth:`.SeriesGroupBy.first`, and :meth:`.SeriesGroupBy.last` where an empty group would return ``np.nan`` instead of the corresponding :class:`.ExtensionArray` NA value (:issue:`39098`)
 - Bug in :meth:`DataFrame.pivot_table` with casting the mean of ints back to an int (:issue:`16676`)
 - Bug in :meth:`DataFrame.reindex` with a ``fill_value`` that should be inferred with a :class:`ExtensionDtype` incorrectly inferring ``object`` dtype (:issue:`52586`)
-- Bug in :meth:`DataFrame.shift` and :meth:`Series.shift` and :meth:`.DataFrameGroupBy.shift` when passing both ``freq`` and ``fill_value`` silently ignoring ``fill_value`` instead of raising ``ValueError`` (:issue:`53832`)
 - Bug in :meth:`DataFrame.shift` with ``axis=1`` on a :class:`DataFrame` with a single :class:`ExtensionDtype` column giving incorrect results (:issue:`53832`)
 - Bug in :meth:`Index.sort_values` when a ``key`` is passed (:issue:`52764`)
 - Bug in :meth:`Series.align`, :meth:`DataFrame.align`, :meth:`Series.reindex`, :meth:`DataFrame.reindex`, :meth:`Series.interpolate`, :meth:`DataFrame.interpolate`, incorrectly failing to raise with method="asfreq" (:issue:`53620`)
@@ -885,3 +891,5 @@ Other
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.0.3..v2.1.0|HEAD

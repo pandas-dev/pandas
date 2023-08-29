@@ -84,7 +84,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("make_range", [date_range, period_range])
     def test_range_slice_seconds(self, make_range):
         # GH#6716
-        idx = make_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
+        idx = make_range(start="2013/01/01 09:00:00", freq="s", periods=4000)
         msg = "slice indices must be integers or None or have an __index__ method"
 
         # slices against index should raise IndexError
