@@ -681,7 +681,7 @@ class NumpyStringArray(BaseNumpyStringArray):
             if any_na:
                 result[na_mask] = libmissing.NA
         else:
-            result = np.array(arr, dtype=get_string_dtype())
+            result = arr.astype(get_string_dtype(), copy=False)
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
