@@ -29,8 +29,12 @@
                 "editor.insertSpaces": true,
                 "editor.detectIndentation": false,
                 "editor.formatOnSave": true,
+                "flake8.importStrategy": "fromEnvironment",
+                "mypy-type-checker.importStrategy": "fromEnvironment",
+                "pylint.importStrategy": "fromEnvironment",
                 "python.defaultInterpreterPath": "/home/pandas-dev/micromamba/envs/test/bin/python",
                 "python.analysis.typeCheckingMode": "basic",
+                "python.terminal.activateEnvironment": false,
                 "python.testing.pytestEnabled": true,
                 "python.testing.pytestArgs": [
                     "pandas"
