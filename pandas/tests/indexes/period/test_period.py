@@ -164,7 +164,7 @@ class TestPeriodIndex:
             period_range(freq="H", start="12/31/2001", end="1/1/2002 23:00"),
             period_range(freq="Min", start="12/31/2001", end="1/1/2002 00:20"),
             period_range(
-                freq="S", start="12/31/2001 00:00:00", end="12/31/2001 00:05:00"
+                freq="s", start="12/31/2001 00:00:00", end="12/31/2001 00:05:00"
             ),
             period_range(end=Period("2006-12-31", "W"), periods=10),
         ],

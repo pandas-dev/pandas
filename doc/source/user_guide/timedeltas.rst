@@ -390,7 +390,7 @@ The ``freq`` parameter can passed a variety of :ref:`frequency aliases <timeseri
 
 .. ipython:: python
 
-   pd.timedelta_range(start="1 days", end="2 days", freq="30T")
+   pd.timedelta_range(start="1 days", end="2 days", freq="30min")
 
    pd.timedelta_range(start="1 days", periods=5, freq="2D5H")
 

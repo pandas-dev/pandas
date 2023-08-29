@@ -412,7 +412,7 @@ class MilliSecondLocator(mdates.DateLocator):
             )
 
         interval = self._get_interval()
-        freq = f"{interval}L"
+        freq = f"{interval}ms"
         tz = self.tz.tzname(None)
         st = dmin.replace(tzinfo=None)
         ed = dmin.replace(tzinfo=None)

@@ -1,6 +1,8 @@
 import collections
 import warnings
 
+from pandas.util._exceptions import find_stack_level
+
 cimport cython
 from cpython.object cimport (
     Py_EQ,
@@ -41,6 +43,7 @@ from pandas._libs.tslibs.conversion cimport (
     precision_from_unit,
 )
 from pandas._libs.tslibs.dtypes cimport (
+    c_DEPR_ABBREVS,
     get_supported_reso,
     is_supported_unit,
     npy_unit_to_abbrev,
@@ -124,7 +127,6 @@ cdef dict timedelta_abbrevs = {
     "minute": "m",
     "min": "m",
     "minutes": "m",
-    "t": "m",
     "s": "s",
     "seconds": "s",
     "sec": "s",
@@ -134,20 +136,17 @@ cdef dict timedelta_abbrevs = {
     "millisecond": "ms",
     "milli": "ms",
     "millis": "ms",
-    "l": "ms",
     "us": "us",
     "microseconds": "us",
     "microsecond": "us",
     "µs": "us",
     "micro": "us",
     "micros": "us",
-    "u": "us",
     "ns": "ns",
     "nanoseconds": "ns",
     "nano": "ns",
     "nanos": "ns",
     "nanosecond": "ns",
-    "n": "ns",
 }
 
 _no_input = object()
@@ -725,6 +724,15 @@ cpdef inline str parse_timedelta_unit(str unit):
         return "ns"
     elif unit == "M":
         return unit
+    elif unit in c_DEPR_ABBREVS:
+        warnings.warn(
+            f"\'{unit}\' is deprecated and will be removed in a "
+            f"future version. Please use \'{c_DEPR_ABBREVS.get(unit)}\' "
+            f"instead of \'{unit}\'.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+        unit = c_DEPR_ABBREVS[unit]
     try:
         return timedelta_abbrevs[unit.lower()]
     except KeyError:
@@ -901,7 +909,7 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
             elif c == ".":
                 # append any seconds
                 if len(number):
-                    r = timedelta_from_spec(number, "0", "S")
+                    r = timedelta_from_spec(number, "0", "s")
                     result += timedelta_as_neg(r, neg)
                     unit, number = [], []
                 have_dot = 1
@@ -918,7 +926,7 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
                     r = timedelta_from_spec(number, "0", dec_unit)
                     result += timedelta_as_neg(r, neg)
                 else:  # seconds
-                    r = timedelta_from_spec(number, "0", "S")
+                    r = timedelta_from_spec(number, "0", "s")
                     result += timedelta_as_neg(r, neg)
             else:
                 raise ValueError(err_msg)
@@ -1435,11 +1443,11 @@ cdef class _Timedelta(timedelta):
 
         * Days:         'D'
         * Hours:        'H'
-        * Minutes:      'T'
-        * Seconds:      'S'
-        * Milliseconds: 'L'
-        * Microseconds: 'U'
-        * Nanoseconds:  'N'
+        * Minutes:      'min'
+        * Seconds:      's'
+        * Milliseconds: 'ms'
+        * Microseconds: 'us'
+        * Nanoseconds:  'ns'
 
         Returns
         -------
@@ -1450,31 +1458,31 @@ cdef class _Timedelta(timedelta):
         --------
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
         >>> td.resolution_string
-        'N'
+        'ns'
 
         >>> td = pd.Timedelta('1 days 2 min 3 us')
         >>> td.resolution_string
-        'U'
+        'us'
 
         >>> td = pd.Timedelta('2 min 3 s')
         >>> td.resolution_string
-        'S'
+        's'
 
         >>> td = pd.Timedelta(36, unit='us')
         >>> td.resolution_string
-        'U'
+        'us'
         """
         self._ensure_components()
         if self._ns:
-            return "N"
+            return "ns"
         elif self._us:
-            return "U"
+            return "us"
         elif self._ms:
-            return "L"
+            return "ms"
         elif self._s:
-            return "S"
+            return "s"
         elif self._m:
-            return "T"
+            return "min"
         elif self._h:
             return "H"
         else:
@@ -1706,14 +1714,19 @@ class Timedelta(_Timedelta):
 
         Possible values:
 
-        * 'W', 'D', 'T', 'S', 'L', 'U', or 'N'
-        * 'days' or 'day'
+        * 'W', or 'D'
+        * 'days', or 'day'
         * 'hours', 'hour', 'hr', or 'h'
         * 'minutes', 'minute', 'min', or 'm'
-        * 'seconds', 'second', or 'sec'
-        * 'milliseconds', 'millisecond', 'millis', or 'milli'
-        * 'microseconds', 'microsecond', 'micros', or 'micro'
+        * 'seconds', 'second', 'sec', or 's'
+        * 'milliseconds', 'millisecond', 'millis', 'milli', or 'ms'
+        * 'microseconds', 'microsecond', 'micros', 'micro', or 'us'
         * 'nanoseconds', 'nanosecond', 'nanos', 'nano', or 'ns'.
+
+        .. deprecated:: 2.2.0
+
+            Values `T`, `S`, `L`, `U`, and `N` are deprecated in favour of the values
+            `min`, `s`, `ms`, `us`, and `ns`.
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,

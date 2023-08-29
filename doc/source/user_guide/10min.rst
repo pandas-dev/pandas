@@ -610,7 +610,7 @@ financial applications. See the :ref:`Time Series section <timeseries>`.
 
 .. ipython:: python
 
-   rng = pd.date_range("1/1/2012", periods=100, freq="S")
+   rng = pd.date_range("1/1/2012", periods=100, freq="s")
    ts = pd.Series(np.random.randint(0, 500, len(rng)), index=rng)
    ts.resample("5Min").sum()
 

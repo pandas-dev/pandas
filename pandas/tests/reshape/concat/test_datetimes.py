@@ -112,7 +112,7 @@ class TestDatetimeConcat:
     def test_concat_datetimeindex_freq(self):
         # GH 3232
         # Monotonic index result
-        dr = date_range("01-Jan-2013", periods=100, freq="50L", tz="UTC")
+        dr = date_range("01-Jan-2013", periods=100, freq="50ms", tz="UTC")
         data = list(range(100))
         expected = DataFrame(data, index=dr)
         result = concat([expected[:50], expected[50:]])

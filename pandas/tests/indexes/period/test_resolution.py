@@ -12,10 +12,10 @@ class TestResolution:
             ("M", "month"),
             ("D", "day"),
             ("H", "hour"),
-            ("T", "minute"),
-            ("S", "second"),
-            ("L", "millisecond"),
-            ("U", "microsecond"),
+            ("min", "minute"),
+            ("s", "second"),
+            ("ms", "millisecond"),
+            ("us", "microsecond"),
         ],
     )
     def test_resolution(self, freq, expected):

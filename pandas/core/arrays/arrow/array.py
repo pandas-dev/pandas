@@ -2462,11 +2462,11 @@ class ArrowExtensionArray(
             "W": "week",
             "D": "day",
             "H": "hour",
-            "T": "minute",
-            "S": "second",
-            "L": "millisecond",
-            "U": "microsecond",
-            "N": "nanosecond",
+            "min": "minute",
+            "s": "second",
+            "ms": "millisecond",
+            "us": "microsecond",
+            "ns": "nanosecond",
         }
         unit = pa_supported_unit.get(offset._prefix, None)
         if unit is None:

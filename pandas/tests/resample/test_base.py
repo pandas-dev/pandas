@@ -83,8 +83,8 @@ def test_asfreq_fill_value(series, create_index):
 def test_resample_interpolate(frame):
     # GH#12925
     df = frame
-    result = df.resample("1T").asfreq().interpolate()
-    expected = df.resample("1T").interpolate()
+    result = df.resample("1min").asfreq().interpolate()
+    expected = df.resample("1min").interpolate()
     tm.assert_frame_equal(result, expected)
 
 

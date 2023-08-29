@@ -426,7 +426,7 @@ class TestGetLoc:
         step = 24 * 3600
 
         for n in ns:
-            idx = date_range("2014-11-26", periods=n, freq="S")
+            idx = date_range("2014-11-26", periods=n, freq="s")
             ts = pd.Series(np.random.default_rng(2).standard_normal(n), index=idx)
             locs = np.arange(start, n, step, dtype=np.intp)
 

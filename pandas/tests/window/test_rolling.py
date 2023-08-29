@@ -920,7 +920,7 @@ def test_rolling_numerical_accuracy_kahan_mean(add):
     result = (
         df.resample("1s").ffill().rolling("3s", closed="left", min_periods=3).mean()
     )
-    dates = date_range("19700101 09:00:00", periods=7, freq="S")
+    dates = date_range("19700101 09:00:00", periods=7, freq="s")
     expected = DataFrame(
         {
             "A": [
@@ -1065,11 +1065,13 @@ def test_rolling_on_df_transposed():
     ("index", "window"),
     [
         (
-            period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="T"),
-            "2T",
+            period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="min"),
+            "2min",
         ),
         (
-            period_range(start="2020-01-01 08:00", end="2020-01-01 12:00", freq="30T"),
+            period_range(
+                start="2020-01-01 08:00", end="2020-01-01 12:00", freq="30min"
+            ),
             "1h",
         ),
     ],

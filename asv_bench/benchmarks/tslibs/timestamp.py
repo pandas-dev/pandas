@@ -136,10 +136,10 @@ class TimestampOps:
         self.ts.to_julian_date()
 
     def time_floor(self, tz):
-        self.ts.floor("5T")
+        self.ts.floor("5min")
 
     def time_ceil(self, tz):
-        self.ts.ceil("5T")
+        self.ts.ceil("5min")
 
 
 class TimestampAcrossDst:

@@ -1353,7 +1353,7 @@ class TestCanHoldElement:
         with tm.assert_produces_warning(FutureWarning):
             self.check_series_setitem(elem, pi, False)
 
-        dti = pi.to_timestamp("S")[:-1]
+        dti = pi.to_timestamp("s")[:-1]
         elem = element(dti)
         with tm.assert_produces_warning(FutureWarning):
             self.check_series_setitem(elem, pi, False)

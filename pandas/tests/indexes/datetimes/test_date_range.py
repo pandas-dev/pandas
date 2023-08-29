@@ -123,7 +123,7 @@ class TestTimestampEquivDateRange:
 
 
 class TestDateRanges:
-    @pytest.mark.parametrize("freq", ["N", "U", "L", "T", "S", "H", "D"])
+    @pytest.mark.parametrize("freq", ["ns", "us", "ms", "min", "s", "H", "D"])
     def test_date_range_edges(self, freq):
         # GH#13672
         td = Timedelta(f"1{freq}")
@@ -761,13 +761,13 @@ class TestDateRanges:
         expected_1 = DatetimeIndex(
             ["2005-01-12 10:00:00", "2005-01-12 15:45:00"],
             dtype="datetime64[ns]",
-            freq="345T",
+            freq="345min",
             tz=None,
         )
         expected_2 = DatetimeIndex(
             ["2005-01-13 10:00:00", "2005-01-13 15:45:00"],
             dtype="datetime64[ns]",
-            freq="345T",
+            freq="345min",
             tz=None,
         )
         tm.assert_index_equal(result_1, expected_1)
@@ -834,6 +834,25 @@ class TestDateRanges:
             ],
             name="a",
         )
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [
+            ("min", "T"),
+            ("s", "S"),
+            ("ms", "L"),
+            ("us", "U"),
+            ("ns", "N"),
+        ],
+    )
+    def test_frequencies_T_S_L_U_N_deprecated(self, freq, freq_depr):
+        # GH#52536
+        msg = f"'{freq_depr}' is deprecated and will be removed in a future version."
+
+        expected = date_range("1/1/2000", periods=4, freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
 

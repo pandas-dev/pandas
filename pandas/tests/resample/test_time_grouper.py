@@ -305,10 +305,10 @@ def test_repr():
 )
 def test_upsample_sum(method, method_args, expected_values):
     s = Series(1, index=date_range("2017", periods=2, freq="H"))
-    resampled = s.resample("30T")
+    resampled = s.resample("30min")
     index = pd.DatetimeIndex(
         ["2017-01-01T00:00:00", "2017-01-01T00:30:00", "2017-01-01T01:00:00"],
-        freq="30T",
+        freq="30min",
     )
     result = methodcaller(method, **method_args)(resampled)
     expected = Series(expected_values, index=index)

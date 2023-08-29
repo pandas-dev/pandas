@@ -11,6 +11,7 @@ cpdef int64_t periods_per_second(NPY_DATETIMEUNIT reso) except? -1
 cpdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso)
 cpdef bint is_supported_unit(NPY_DATETIMEUNIT reso)
 
+cdef dict c_DEPR_ABBREVS
 cdef dict attrname_to_abbrevs
 cdef dict npy_unit_to_attrname
 cdef dict attrname_to_npy_unit

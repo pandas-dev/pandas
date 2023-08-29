@@ -25,7 +25,7 @@ class SetOperations:
 
     def setup(self, index_structure, dtype, method):
         N = 10**5
-        dates_left = date_range("1/1/2000", periods=N, freq="T")
+        dates_left = date_range("1/1/2000", periods=N, freq="min")
         fmt = "%Y-%m-%d %H:%M:%S"
         date_str_left = Index(dates_left.strftime(fmt))
         int_left = Index(np.arange(N))

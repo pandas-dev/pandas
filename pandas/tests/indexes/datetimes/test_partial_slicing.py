@@ -204,7 +204,7 @@ class TestSlicing:
             s["2004-12-31 00"]
 
     def test_partial_slice_hourly(self):
-        rng = date_range(freq="T", start=datetime(2005, 1, 1, 20, 0, 0), periods=500)
+        rng = date_range(freq="min", start=datetime(2005, 1, 1, 20, 0, 0), periods=500)
         s = Series(np.arange(len(rng)), index=rng)
 
         result = s["2005-1-1"]
@@ -218,7 +218,7 @@ class TestSlicing:
             s["2004-12-31 00:15"]
 
     def test_partial_slice_minutely(self):
-        rng = date_range(freq="S", start=datetime(2005, 1, 1, 23, 59, 0), periods=500)
+        rng = date_range(freq="s", start=datetime(2005, 1, 1, 23, 59, 0), periods=500)
         s = Series(np.arange(len(rng)), index=rng)
 
         result = s["2005-1-1 23:59"]
@@ -336,7 +336,7 @@ class TestSlicing:
                 "TICKER": ["ABC", "MNP", "XYZ", "XYZ"],
                 "val": [1, 2, 3, 4],
             },
-            index=date_range("2013-06-19 09:30:00", periods=4, freq="5T"),
+            index=date_range("2013-06-19 09:30:00", periods=4, freq="5min"),
         )
         df_multi = df.set_index(["ACCOUNT", "TICKER"], append=True)
 

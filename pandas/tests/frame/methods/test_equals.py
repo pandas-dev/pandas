@@ -35,7 +35,7 @@ class TestEquals:
             np.random.default_rng(2).random(10), index=index, columns=["floats"]
         )
         df1["text"] = "the sky is so blue. we could use more chocolate.".split()
-        df1["start"] = date_range("2000-1-1", periods=10, freq="T")
+        df1["start"] = date_range("2000-1-1", periods=10, freq="min")
         df1["end"] = date_range("2000-1-1", periods=10, freq="D")
         df1["diff"] = df1["end"] - df1["start"]
         # Explicitly cast to object, to avoid implicit cast when setting np.nan
@@ -66,7 +66,7 @@ class TestEquals:
         assert not df1.equals(different)
 
         # DatetimeIndex
-        index = date_range("2000-1-1", periods=10, freq="T")
+        index = date_range("2000-1-1", periods=10, freq="min")
         df1 = df1.set_index(index)
         df2 = df1.copy()
         assert df1.equals(df2)

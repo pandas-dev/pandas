@@ -175,7 +175,7 @@ class TestDatetimeIndexOps:
             ]
         )
 
-        tm.assert_index_equal(rng.round(freq="2T"), expected_rng)
+        tm.assert_index_equal(rng.round(freq="2min"), expected_rng)
 
     @pytest.mark.parametrize(
         "test_input, rounder, freq, expected",
@@ -196,8 +196,8 @@ class TestDatetimeIndexOps:
             ),
             (["1823-01-01 00:00:01"], "floor", "1s", ["1823-01-01 00:00:01"]),
             (["1823-01-01 00:00:01"], "ceil", "1s", ["1823-01-01 00:00:01"]),
-            (["2018-01-01 00:15:00"], "ceil", "15T", ["2018-01-01 00:15:00"]),
-            (["2018-01-01 00:15:00"], "floor", "15T", ["2018-01-01 00:15:00"]),
+            (["2018-01-01 00:15:00"], "ceil", "15min", ["2018-01-01 00:15:00"]),
+            (["2018-01-01 00:15:00"], "floor", "15min", ["2018-01-01 00:15:00"]),
             (["1823-01-01 03:00:00"], "ceil", "3H", ["1823-01-01 03:00:00"]),
             (["1823-01-01 03:00:00"], "floor", "3H", ["1823-01-01 03:00:00"]),
             (
@@ -333,14 +333,14 @@ class TestDateTimeIndexToJulianDate:
         tm.assert_index_equal(r1, r2)
 
     def test_minute(self):
-        dr = date_range(start=Timestamp("2000-02-27"), periods=5, freq="T")
+        dr = date_range(start=Timestamp("2000-02-27"), periods=5, freq="min")
         r1 = pd.Index([x.to_julian_date() for x in dr])
         r2 = dr.to_julian_date()
         assert isinstance(r2, pd.Index) and r2.dtype == np.float64
         tm.assert_index_equal(r1, r2)
 
     def test_second(self):
-        dr = date_range(start=Timestamp("2000-02-27"), periods=5, freq="S")
+        dr = date_range(start=Timestamp("2000-02-27"), periods=5, freq="s")
         r1 = pd.Index([x.to_julian_date() for x in dr])
         r2 = dr.to_julian_date()
         assert isinstance(r2, pd.Index) and r2.dtype == np.float64

@@ -22,7 +22,7 @@ class SparseSeriesToFrame:
     def setup(self):
         K = 50
         N = 50001
-        rng = date_range("1/1/2000", periods=N, freq="T")
+        rng = date_range("1/1/2000", periods=N, freq="min")
         self.series = {}
         for i in range(1, K):
             data = np.random.randn(N)[:-i]

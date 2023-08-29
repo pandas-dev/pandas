@@ -171,7 +171,7 @@ def test_attribute_access(test_frame):
 def test_api_compat_before_use(attr):
     # make sure that we are setting the binner
     # on these attributes
-    rng = date_range("1/1/2012", periods=100, freq="S")
+    rng = date_range("1/1/2012", periods=100, freq="s")
     ts = Series(np.arange(len(rng)), index=rng)
     rs = ts.resample("30s")
 
@@ -201,7 +201,7 @@ def tests_raises_on_nuisance(test_frame):
 
 def test_downsample_but_actually_upsampling():
     # this is reindex / asfreq
-    rng = date_range("1/1/2012", periods=100, freq="S")
+    rng = date_range("1/1/2012", periods=100, freq="s")
     ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
     result = ts.resample("20s").asfreq()
     expected = Series(
@@ -216,7 +216,7 @@ def test_combined_up_downsampling_of_irregular():
     # ts2.resample('2s').mean().ffill()
     # preserve these semantics
 
-    rng = date_range("1/1/2012", periods=100, freq="S")
+    rng = date_range("1/1/2012", periods=100, freq="s")
     ts = Series(np.arange(len(rng)), index=rng)
     ts2 = ts.iloc[[0, 1, 2, 3, 5, 7, 11, 15, 16, 25, 30]]
 
@@ -260,7 +260,7 @@ def test_combined_up_downsampling_of_irregular():
                 "2012-01-01 00:00:30",
             ],
             dtype="datetime64[ns]",
-            freq="2S",
+            freq="2s",
         ),
     )
     tm.assert_series_equal(result, expected)
@@ -294,7 +294,7 @@ def test_transform_frame(on):
 
 def test_fillna():
     # need to upsample here
-    rng = date_range("1/1/2012", periods=10, freq="2S")
+    rng = date_range("1/1/2012", periods=10, freq="2s")
     ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
     r = ts.resample("s")
 
@@ -344,11 +344,11 @@ def test_agg_consistency():
     # similar aggregations with and w/o selection list
     df = DataFrame(
         np.random.default_rng(2).standard_normal((1000, 3)),
-        index=date_range("1/1/2012", freq="S", periods=1000),
+        index=date_range("1/1/2012", freq="s", periods=1000),
         columns=["A", "B", "C"],
     )
 
-    r = df.resample("3T")
+    r = df.resample("3min")
 
     msg = r"Column\(s\) \['r1', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
@@ -359,11 +359,11 @@ def test_agg_consistency_int_str_column_mix():
     # GH#39025
     df = DataFrame(
         np.random.default_rng(2).standard_normal((1000, 2)),
-        index=date_range("1/1/2012", freq="S", periods=1000),
+        index=date_range("1/1/2012", freq="s", periods=1000),
         columns=[1, "a"],
     )
 
-    r = df.resample("3T")
+    r = df.resample("3min")
 
     msg = r"Column\(s\) \[2, 'b'\] do not exist"
     with pytest.raises(KeyError, match=msg):
@@ -650,7 +650,7 @@ def test_try_aggregate_non_existing_column():
     # Error as we don't have 'z' column
     msg = r"Column\(s\) \['z'\] do not exist"
     with pytest.raises(KeyError, match=msg):
-        df.resample("30T").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
+        df.resample("30min").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
 
 
 def test_agg_list_like_func_with_args():
