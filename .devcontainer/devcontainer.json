@@ -39,6 +39,9 @@
                 ],
                 "flake8.importStrategy": "fromEnvironment",
                 "mypy-type-checker.importStrategy": "fromEnvironment",
+                "pylint.args": [
+                    "--load-plugins=pylint.extensions.redefined_loop_name"
+                ],
                 "pylint.importStrategy": "fromEnvironment",
                 "[python]": {
                     "editor.defaultFormatter": "ms-python.black-formatter"
