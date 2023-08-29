@@ -39,6 +39,7 @@ objects.
       api.extensions.ExtensionArray._from_sequence
       api.extensions.ExtensionArray._from_sequence_of_strings
       api.extensions.ExtensionArray._hash_pandas_object
+      api.extensions.ExtensionArray._pad_or_backfill
       api.extensions.ExtensionArray._reduce
       api.extensions.ExtensionArray._values_for_argsort
       api.extensions.ExtensionArray._values_for_factorize
@@ -54,7 +55,6 @@ objects.
       api.extensions.ExtensionArray.interpolate
       api.extensions.ExtensionArray.isin
       api.extensions.ExtensionArray.isna
-      api.extensions.ExtensionArray.pad_or_backfill
       api.extensions.ExtensionArray.ravel
       api.extensions.ExtensionArray.repeat
       api.extensions.ExtensionArray.searchsorted
