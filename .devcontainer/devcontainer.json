@@ -29,7 +29,6 @@
                 "editor.insertSpaces": true,
                 "editor.detectIndentation": false,
                 "editor.formatOnSave": true,
-                "terminal.integrated.defaultProfile.linux": "bash",
                 "python.defaultInterpreterPath": "/home/pandas-dev/micromamba/envs/test/bin/python",
                 "python.analysis.typeCheckingMode": "basic",
                 "python.testing.pytestEnabled": true,
@@ -38,7 +37,8 @@
                 ],
                 "[python]": {
                     "editor.defaultFormatter": "ms-python.black-formatter"
-                }
+                },
+                "terminal.integrated.defaultProfile.linux": "bash"
             }
         }
     }
