@@ -4,6 +4,8 @@ from hypothesis import given
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gte1p24
+
 from pandas.core.dtypes.common import is_scalar
 
 import pandas as pd
@@ -702,6 +704,11 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_equal(result, expected)
 
+    @pytest.mark.xfail(
+        not np_version_gte1p24,
+        reason="Changed NumPy behavior for >1D non-tuple sequence indexing",
+        strict=False,
+    )
     def test_where_ea_other(self):
         # GH#38729/GH#38742
         df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
