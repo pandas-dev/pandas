@@ -240,7 +240,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
             fv = np.nan
         return self._ndarray, fv
 
-    def pad_or_backfill(
+    def _pad_or_backfill(
         self,
         *,
         method: FillnaOptions,

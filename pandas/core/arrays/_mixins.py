@@ -296,7 +296,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         func = missing.get_fill_func(method, ndim=self.ndim)
         func(self._ndarray.T, limit=limit, mask=mask.T)
 
-    def pad_or_backfill(
+    def _pad_or_backfill(
         self,
         *,
         method: FillnaOptions,

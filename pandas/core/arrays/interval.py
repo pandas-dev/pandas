@@ -890,7 +890,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def pad_or_backfill(  # pylint: disable=useless-parent-delegation
+    def _pad_or_backfill(  # pylint: disable=useless-parent-delegation
         self,
         *,
         method: FillnaOptions,
@@ -900,7 +900,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     ) -> Self:
         # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
         #  this method entirely.
-        return super().pad_or_backfill(
+        return super()._pad_or_backfill(
             method=method, limit=limit, limit_area=limit_area, copy=copy
         )
 

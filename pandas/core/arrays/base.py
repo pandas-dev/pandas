@@ -132,7 +132,6 @@ class ExtensionArray:
     interpolate
     isin
     isna
-    pad_or_backfill
     ravel
     repeat
     searchsorted
@@ -148,6 +147,7 @@ class ExtensionArray:
     _from_sequence
     _from_sequence_of_strings
     _hash_pandas_object
+    _pad_or_backfill
     _reduce
     _values_for_argsort
     _values_for_factorize
@@ -183,7 +183,7 @@ class ExtensionArray:
     methods:
 
     * fillna
-    * pad_or_backfill
+    * _pad_or_backfill
     * dropna
     * unique
     * factorize / _values_for_factorize
@@ -918,7 +918,7 @@ class ExtensionArray:
             f"{type(self).__name__} does not implement interpolate"
         )
 
-    def pad_or_backfill(
+    def _pad_or_backfill(
         self,
         *,
         method: FillnaOptions,
@@ -967,18 +967,18 @@ class ExtensionArray:
         """
 
         # If a 3rd-party EA has implemented this functionality in fillna,
-        #  we warn that they need to implement pad_or_backfill instead.
+        #  we warn that they need to implement _pad_or_backfill instead.
         if (
             type(self).fillna is not ExtensionArray.fillna
-            and type(self).pad_or_backfill is ExtensionArray.pad_or_backfill
+            and type(self)._pad_or_backfill is ExtensionArray._pad_or_backfill
         ):
-            # Check for pad_or_backfill here allows us to call
-            #  super().pad_or_backfill without getting this warning
+            # Check for _pad_or_backfill here allows us to call
+            #  super()._pad_or_backfill without getting this warning
             warnings.warn(
                 "ExtensionArray.fillna 'method' keyword is deprecated. "
-                "In a future version. arr.pad_or_backfill will be called "
+                "In a future version. arr._pad_or_backfill will be called "
                 "instead. 3rd-party ExtensionArray authors need to implement "
-                "pad_or_backfill.",
+                "_pad_or_backfill.",
                 DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
@@ -1063,8 +1063,7 @@ class ExtensionArray:
         if method is not None:
             warnings.warn(
                 f"The 'method' keyword in {type(self).__name__}.fillna is "
-                "deprecated and will be removed in a future version. "
-                "Use pad_or_backfill instead.",
+                "deprecated and will be removed in a future version.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )

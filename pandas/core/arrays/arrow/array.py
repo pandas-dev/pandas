@@ -924,7 +924,7 @@ class ArrowExtensionArray(
         """
         return type(self)(pc.drop_null(self._pa_array))
 
-    def pad_or_backfill(
+    def _pad_or_backfill(
         self,
         *,
         method: FillnaOptions,
@@ -952,7 +952,7 @@ class ArrowExtensionArray(
 
         # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
         #  this method entirely.
-        return super().pad_or_backfill(
+        return super()._pad_or_backfill(
             method=method, limit=limit, limit_area=limit_area, copy=copy
         )
 
@@ -974,7 +974,7 @@ class ArrowExtensionArray(
             return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
         if method is not None:
-            return super().pad_or_backfill(method=method, limit=limit, copy=copy)
+            return super().fillna(method=method, limit=limit, copy=copy)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
             # Similar to check_value_size, but we do not mask here since we may

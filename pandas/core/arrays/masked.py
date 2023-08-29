@@ -190,7 +190,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return self._simple_new(self._data[item], newmask)
 
-    def pad_or_backfill(
+    def _pad_or_backfill(
         self,
         *,
         method: FillnaOptions,
