@@ -2109,7 +2109,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     def _box_func(self, i: int):
         if i == -1:
-            return np.NaN
+            return np.nan
         return self.categories[i]
 
     def _unbox_scalar(self, key) -> int:
@@ -2908,17 +2908,15 @@ class CategoricalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
 # utility routines
 
 
-def _get_codes_for_values(values, categories: Index) -> np.ndarray:
+def _get_codes_for_values(
+    values: Index | Series | ExtensionArray | np.ndarray,
+    categories: Index,
+) -> np.ndarray:
     """
     utility routine to turn values into codes given the specified categories
 
     If `values` is known to be a Categorical, use recode_for_categories instead.
     """
-    if values.ndim > 1:
-        flat = values.ravel()
-        codes = _get_codes_for_values(flat, categories)
-        return codes.reshape(values.shape)
-
     codes = categories.get_indexer_for(values)
     return coerce_indexer_dtype(codes, categories)
 

@@ -445,6 +445,8 @@ class Grouper:
     @final
     @property
     def obj(self):
+        # TODO(3.0): enforcing these deprecations on Grouper should close
+        #  GH#25564, GH#41930
         warnings.warn(
             f"{type(self).__name__}.obj is deprecated and will be removed "
             "in a future version. Use GroupBy.indexer instead.",

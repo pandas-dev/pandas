@@ -1012,9 +1012,6 @@ class BinGrouper(BaseGrouper):
         }
         return result
 
-    def __iter__(self) -> Iterator[Hashable]:
-        return iter(self.groupings[0].grouping_vector)
-
     @property
     def nkeys(self) -> int:
         # still matches len(self.groupings), but we can hard-code

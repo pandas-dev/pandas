@@ -64,6 +64,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import (
@@ -420,10 +421,10 @@ the default suffixes, _x and _y, appended.
   lkey  value_x rkey  value_y
 0  foo        1  foo        5
 1  foo        1  foo        8
-2  foo        5  foo        5
-3  foo        5  foo        8
-4  bar        2  bar        6
-5  baz        3  baz        7
+2  bar        2  bar        6
+3  baz        3  baz        7
+4  foo        5  foo        5
+5  foo        5  foo        8
 
 Merge DataFrames df1 and df2 with specified left and right suffixes
 appended to any overlapping columns.
@@ -433,10 +434,10 @@ appended to any overlapping columns.
   lkey  value_left rkey  value_right
 0  foo           1  foo            5
 1  foo           1  foo            8
-2  foo           5  foo            5
-3  foo           5  foo            8
-4  bar           2  bar            6
-5  baz           3  baz            7
+2  bar           2  bar            6
+3  baz           3  baz            7
+4  foo           5  foo            5
+5  foo           5  foo            8
 
 Merge DataFrames df1 and df2, but raise an exception if the DataFrames have
 any overlapping columns.
@@ -1232,6 +1233,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_string"
+    )
     @Substitution(
         header_type="bool or list of str",
         header="Write out the column names. If a list of columns "
@@ -1932,6 +1936,9 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(self, orient: Literal["records"], into: type[dict] = ...) -> list[dict]:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "orient"], name="to_dict"
+    )
     def to_dict(
         self,
         orient: Literal[
@@ -2044,6 +2051,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         return to_dict(self, orient, into, index)
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "destination_table"], name="to_gbq"
+    )
     def to_gbq(
         self,
         destination_table: str,
@@ -2799,6 +2809,9 @@ class DataFrame(NDFrame, OpsMixin):
 
         to_feather(self, path, **kwargs)
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_markdown"
+    )
     @doc(
         Series.to_markdown,
         klass=_shared_doc_kwargs["klass"],
@@ -2874,6 +2887,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> None:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "path"], name="to_parquet"
+    )
     @doc(storage_options=_shared_docs["storage_options"])
     def to_parquet(
         self,
@@ -2912,10 +2928,7 @@ class DataFrame(NDFrame, OpsMixin):
             'pyarrow' is unavailable.
         compression : str or None, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
-            The supported compression methods actually depend on which engine
-            is used. For 'pyarrow', 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'
-            are all supported. For 'fastparquet', only 'gzip' and 'snappy' are
-            supported.
+            Supported options: 'snappy', 'gzip', 'brotli', 'lz4', 'zstd'.
         index : bool, default None
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -3133,6 +3146,9 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> str:
         ...
 
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "buf"], name="to_html"
+    )
     @Substitution(
         header_type="bool",
         header="Whether to print column labels, default True",
@@ -3419,7 +3435,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         lxml = import_optional_dependency("lxml.etree", errors="ignore")
 
-        TreeBuilder: type[EtreeXMLFormatter] | type[LxmlXMLFormatter]
+        TreeBuilder: type[EtreeXMLFormatter | LxmlXMLFormatter]
 
         if parser == "lxml":
             if lxml is not None:
@@ -7266,7 +7282,7 @@ class DataFrame(NDFrame, OpsMixin):
             subset = self.columns.tolist()
 
         name = "proportion" if normalize else "count"
-        counts = self.groupby(subset, dropna=dropna).grouper.size()
+        counts = self.groupby(subset, dropna=dropna, observed=False).grouper.size()
         counts.name = name
 
         if sort:
@@ -7935,6 +7951,7 @@ class DataFrame(NDFrame, OpsMixin):
                     )
         elif isinstance(right, Series):
             # axis=1 is default for DataFrame-with-Series op
+            axis = axis if axis is not None else 1
             if not flex:
                 if not left.axes[axis].equals(right.index):
                     raise ValueError(
@@ -8054,43 +8071,49 @@ class DataFrame(NDFrame, OpsMixin):
         return self._construct_result(new_data)
 
     @Appender(ops.make_flex_doc("eq", "dataframe"))
-    def eq(self, other, axis: Axis = "columns", level=None):
+    def eq(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         return self._flex_cmp_method(other, operator.eq, axis=axis, level=level)
 
     @Appender(ops.make_flex_doc("ne", "dataframe"))
-    def ne(self, other, axis: Axis = "columns", level=None):
+    def ne(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         return self._flex_cmp_method(other, operator.ne, axis=axis, level=level)
 
     @Appender(ops.make_flex_doc("le", "dataframe"))
-    def le(self, other, axis: Axis = "columns", level=None):
+    def le(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         return self._flex_cmp_method(other, operator.le, axis=axis, level=level)
 
     @Appender(ops.make_flex_doc("lt", "dataframe"))
-    def lt(self, other, axis: Axis = "columns", level=None):
+    def lt(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         return self._flex_cmp_method(other, operator.lt, axis=axis, level=level)
 
     @Appender(ops.make_flex_doc("ge", "dataframe"))
-    def ge(self, other, axis: Axis = "columns", level=None):
+    def ge(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         return self._flex_cmp_method(other, operator.ge, axis=axis, level=level)
 
     @Appender(ops.make_flex_doc("gt", "dataframe"))
-    def gt(self, other, axis: Axis = "columns", level=None):
+    def gt(self, other, axis: Axis = "columns", level=None) -> DataFrame:
         return self._flex_cmp_method(other, operator.gt, axis=axis, level=level)
 
     @Appender(ops.make_flex_doc("add", "dataframe"))
-    def add(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def add(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, operator.add, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("radd", "dataframe"))
-    def radd(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def radd(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, roperator.radd, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("sub", "dataframe"))
-    def sub(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def sub(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, operator.sub, level=level, fill_value=fill_value, axis=axis
         )
@@ -8098,13 +8121,17 @@ class DataFrame(NDFrame, OpsMixin):
     subtract = sub
 
     @Appender(ops.make_flex_doc("rsub", "dataframe"))
-    def rsub(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def rsub(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, roperator.rsub, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("mul", "dataframe"))
-    def mul(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def mul(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, operator.mul, level=level, fill_value=fill_value, axis=axis
         )
@@ -8112,13 +8139,17 @@ class DataFrame(NDFrame, OpsMixin):
     multiply = mul
 
     @Appender(ops.make_flex_doc("rmul", "dataframe"))
-    def rmul(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def rmul(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, roperator.rmul, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("truediv", "dataframe"))
-    def truediv(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def truediv(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, operator.truediv, level=level, fill_value=fill_value, axis=axis
         )
@@ -8127,7 +8158,9 @@ class DataFrame(NDFrame, OpsMixin):
     divide = truediv
 
     @Appender(ops.make_flex_doc("rtruediv", "dataframe"))
-    def rtruediv(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def rtruediv(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, roperator.rtruediv, level=level, fill_value=fill_value, axis=axis
         )
@@ -8135,37 +8168,49 @@ class DataFrame(NDFrame, OpsMixin):
     rdiv = rtruediv
 
     @Appender(ops.make_flex_doc("floordiv", "dataframe"))
-    def floordiv(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def floordiv(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, operator.floordiv, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("rfloordiv", "dataframe"))
-    def rfloordiv(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def rfloordiv(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, roperator.rfloordiv, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("mod", "dataframe"))
-    def mod(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def mod(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, operator.mod, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("rmod", "dataframe"))
-    def rmod(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def rmod(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, roperator.rmod, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("pow", "dataframe"))
-    def pow(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def pow(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, operator.pow, level=level, fill_value=fill_value, axis=axis
         )
 
     @Appender(ops.make_flex_doc("rpow", "dataframe"))
-    def rpow(self, other, axis: Axis = "columns", level=None, fill_value=None):
+    def rpow(
+        self, other, axis: Axis = "columns", level=None, fill_value=None
+    ) -> DataFrame:
         return self._flex_arith_method(
             other, roperator.rpow, level=level, fill_value=fill_value, axis=axis
         )
@@ -9777,12 +9822,12 @@ class DataFrame(NDFrame, OpsMixin):
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    core.groupby.GroupBy : Perform operations over groups.
-    core.resample.Resampler : Perform operations over resampled bins.
-    core.window.Rolling : Perform operations over rolling window.
-    core.window.Expanding : Perform operations over expanding window.
-    core.window.ExponentialMovingWindow : Perform operation over exponential weighted
-        window.
+    pandas.core.groupby.GroupBy : Perform operations over groups.
+    pandas.core.resample.Resampler : Perform operations over resampled bins.
+    pandas.core.window.Rolling : Perform operations over rolling window.
+    pandas.core.window.Expanding : Perform operations over expanding window.
+    pandas.core.window.ExponentialMovingWindow : Perform operation over exponential
+        weighted window.
     """
     )
 

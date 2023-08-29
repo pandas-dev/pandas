@@ -166,7 +166,7 @@ class TestDataFrameClip:
         # GH#40420
         data = {"col_0": [9, -3, 0, -1, 5], "col_1": [-2, -7, 6, 8, -5]}
         df = DataFrame(data)
-        t = Series([2, -4, np.NaN, 6, 3])
+        t = Series([2, -4, np.nan, 6, 3])
         result = df.clip(lower=t, axis=0)
         expected = DataFrame({"col_0": [9, -3, 0, 6, 5], "col_1": [2, -4, 6, 8, 3]})
         tm.assert_frame_equal(result, expected)
@@ -176,4 +176,15 @@ class TestDataFrameClip:
         df = DataFrame({"a": [1, 2, 3]})
         result = df.clip(lower=1.5)
         expected = DataFrame({"a": [1.5, 2.0, 3.0]})
+        tm.assert_frame_equal(result, expected)
+
+    def test_clip_with_list_bound(self):
+        # GH#54817
+        df = DataFrame([1, 5])
+        expected = DataFrame([3, 5])
+        result = df.clip([3])
+        tm.assert_frame_equal(result, expected)
+
+        expected = DataFrame([1, 3])
+        result = df.clip(upper=[3])
         tm.assert_frame_equal(result, expected)

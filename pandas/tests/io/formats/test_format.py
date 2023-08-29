@@ -324,7 +324,7 @@ class TestDataFrameFormatting:
         index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
         cols = ["\u03c8"]
         df = DataFrame(data, columns=cols, index=index1)
-        assert type(df.__repr__()) == str  # both py2 / 3
+        assert isinstance(df.__repr__(), str)
 
     def test_repr_no_backslash(self):
         with option_context("mode.sim_interactive", True):
@@ -3319,6 +3319,14 @@ class TestDatetime64Formatter:
         formatter = fmt.Datetime64Formatter(x, formatter=format_func)
         result = formatter.get_result()
         assert result == ["10:10", "12:12"]
+
+    def test_datetime64formatter_tz_ms(self):
+        x = Series(
+            np.array(["2999-01-01", "2999-01-02", "NaT"], dtype="datetime64[ms]")
+        ).dt.tz_localize("US/Pacific")
+        result = fmt.Datetime64TZFormatter(x).get_result()
+        assert result[0].strip() == "2999-01-01 00:00:00-08:00"
+        assert result[1].strip() == "2999-01-02 00:00:00-08:00"
 
 
 class TestNaTFormatting:

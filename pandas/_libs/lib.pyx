@@ -144,7 +144,7 @@ cdef:
     object oINT64_MIN = <int64_t>INT64_MIN
     object oUINT64_MAX = <uint64_t>UINT64_MAX
 
-    float64_t NaN = <float64_t>np.NaN
+    float64_t NaN = <float64_t>np.nan
 
 # python-visible
 i8max = <int64_t>INT64_MAX
@@ -528,6 +528,22 @@ def has_infs(floating[:] arr) -> bool:
                 ret = True
                 break
     return ret
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def has_only_ints_or_nan(floating[:] arr) -> bool:
+    cdef:
+        floating val
+        intp_t i
+
+    for i in range(len(arr)):
+        val = arr[i]
+        if (val != val) or (val == <int64_t>val):
+            continue
+        else:
+            return False
+    return True
 
 
 def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
@@ -2682,11 +2698,9 @@ def maybe_convert_objects(ndarray[object] objects,
 
     elif seen.str_:
         if using_pyarrow_string_dtype() and is_string_array(objects, skipna=True):
-            import pyarrow as pa
+            from pandas.core.arrays.string_ import StringDtype
 
-            from pandas.core.dtypes.dtypes import ArrowDtype
-
-            dtype = ArrowDtype(pa.string())
+            dtype = StringDtype(storage="pyarrow_numpy")
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
