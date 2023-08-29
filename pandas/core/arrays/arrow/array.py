@@ -925,18 +925,13 @@ class ArrowExtensionArray(
         return type(self)(pc.drop_null(self._pa_array))
 
     def _pad_or_backfill(
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
     ) -> Self:
         if not self._hasna:
             # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
-        if limit is not None and limit_area is not None:
+        if limit is not None:
             method = missing.clean_fill_method(method)
             try:
                 if method == "pad":
@@ -952,9 +947,7 @@ class ArrowExtensionArray(
 
         # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
         #  this method entirely.
-        return super()._pad_or_backfill(
-            method=method, limit=limit, limit_area=limit_area, copy=copy
-        )
+        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
 
     @doc(ExtensionArray.fillna)
     def fillna(

@@ -297,12 +297,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         func(self._ndarray.T, limit=limit, mask=mask.T)
 
     def _pad_or_backfill(
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
     ) -> Self:
         mask = self.isna()
         if mask.any():

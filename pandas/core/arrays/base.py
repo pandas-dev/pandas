@@ -919,12 +919,7 @@ class ExtensionArray:
         )
 
     def _pad_or_backfill(
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
     ) -> Self:
         """
         Pad or backfill values, used by Series/DataFrame ffill and bfill.
