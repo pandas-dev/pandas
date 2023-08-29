@@ -341,10 +341,10 @@ def lexsort_indexer(
     elif orders is None:
         orders = [True] * len(keys)
 
-    keys = (ensure_key_mapped(k, key) for k in keys)
     labels = []
 
     for k, order in zip(keys, orders):
+        k = ensure_key_mapped(k, key)
         if codes_given:
             codes = cast(np.ndarray, k)
             n = codes.max() + 1 if len(codes) else 0
