@@ -583,7 +583,7 @@ Other Deprecations
 - Deprecated positional indexing on :class:`Series` with :meth:`Series.__getitem__` and :meth:`Series.__setitem__`, in a future version ``ser[item]`` will *always* interpret ``item`` as a label, not a position (:issue:`50617`)
 - Deprecated replacing builtin and NumPy functions in ``.agg``, ``.apply``, and ``.transform``; use the corresponding string alias (e.g. ``"sum"`` for ``sum`` or ``np.sum``) instead (:issue:`53425`)
 - Deprecated strings ``T``, ``t``, ``L`` and ``l`` denoting units in :func:`to_timedelta` (:issue:`52536`)
-- Deprecated the "method" and "limit" keywords in ``.ExtensionArray.fillna``, implement and use ``pad_or_backfill`` instead (:issue:`53621`)
+- Deprecated the "method" and "limit" keywords in ``.ExtensionArray.fillna``, implement ``_pad_or_backfill`` instead (:issue:`53621`)
 - Deprecated the ``method`` and ``limit`` keywords in :meth:`DataFrame.replace` and :meth:`Series.replace` (:issue:`33302`)
 - Deprecated the ``method`` and ``limit`` keywords on :meth:`Series.fillna`, :meth:`DataFrame.fillna`, :meth:`.SeriesGroupBy.fillna`, :meth:`.DataFrameGroupBy.fillna`, and :meth:`.Resampler.fillna`, use ``obj.bfill()`` or ``obj.ffill()`` instead (:issue:`53394`)
 - Deprecated the behavior of :meth:`Series.__getitem__`, :meth:`Series.__setitem__`, :meth:`DataFrame.__getitem__`, :meth:`DataFrame.__setitem__` with an integer slice on objects with a floating-dtype index, in a future version this will be treated as *positional* indexing (:issue:`49612`)
