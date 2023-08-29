@@ -385,13 +385,6 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
         super().test_fillna_frame(data_missing)
 
     def test_fillna_no_op_returns_copy(self, data, request):
-        data = data[~data.isna()]
-
-        valid = data[0]
-        result = data.fillna(valid)
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
-
         if data.dtype.kind == "c":
             request.node.add_marker(
                 pytest.mark.xfail(
@@ -400,9 +393,7 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
                     f"ndarray[{data.dtype.name}_t], int64_t) in libs/algos.pxd"
                 )
             )
-        result = data.pad_or_backfill(method="backfill")
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
+        super().test_fillna_no_op_returns_copy(data, request)
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):
