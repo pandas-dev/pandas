@@ -955,7 +955,7 @@ class ExtensionArray:
         Examples
         --------
         >>> arr = pd.array([np.nan, np.nan, 2, 3, np.nan, np.nan])
-        >>> arr.pad_or_backfill(method="backfill", limit=1)
+        >>> arr._pad_or_backfill(method="backfill", limit=1)
         <IntegerArray>
         [<NA>, 2, 2, 3, <NA>, <NA>]
         Length: 6, dtype: Int64
