@@ -521,11 +521,14 @@ cdef class BitmaskArray:
         cdef BitmaskArray self_ = self
         cdef BitmaskArray bma = BitmaskArray.__new__(BitmaskArray)
         cdef ArrowBitmap bitmap
+        cdef int ret
 
         ArrowBitmapInit(&bitmap)
         ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
 
-        BitmapInvert(&self_.bitmap, &bitmap)
+        ret = BitmapInvert(&self_.bitmap, &bitmap)
+        if ret == -1:
+            raise RuntimeError("BitmapInvert failed")
 
         bma.bitmap = bitmap
         bma.buffer_owner = True
@@ -541,6 +544,7 @@ cdef class BitmaskArray:
         cdef BitmaskArray bma
         cdef ArrowBitmap bitmap
         cdef bint bval
+        cdef int ret
 
         if isinstance(other, BitmaskArray):
             # TODO: maybe should return Self here instead of ndarray
@@ -550,7 +554,9 @@ cdef class BitmaskArray:
 
             ArrowBitmapInit(&bitmap)
             ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
-            BitmapAnd(&self_.bitmap, &other_bma.bitmap, &bitmap)
+            ret = BitmapAnd(&self_.bitmap, &other_bma.bitmap, &bitmap)
+            if ret == -1:
+                raise RuntimeError("BitmapAnd failed")
 
             bma = BitmaskArray.__new__(BitmaskArray)
             bma.bitmap = bitmap
@@ -564,7 +570,9 @@ cdef class BitmaskArray:
             bval = other
             ArrowBitmapInit(&bitmap)
             ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
-            BitmapAndBool(&self_.bitmap, bval, &bitmap)
+            ret = BitmapAndBool(&self_.bitmap, bval, &bitmap)
+            if ret == -1:
+                raise RuntimeError("BitmapAndBool failed")
 
             bma = BitmaskArray.__new__(BitmaskArray)
             bma.bitmap = bitmap
@@ -583,6 +591,7 @@ cdef class BitmaskArray:
         cdef BitmaskArray bma
         cdef ArrowBitmap bitmap
         cdef bint bval
+        cdef int ret
 
         if isinstance(other, BitmaskArray):
             other_bma = <BitmaskArray>other
@@ -597,7 +606,9 @@ cdef class BitmaskArray:
 
             ArrowBitmapInit(&bitmap)
             ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
-            BitmapOr(&self_.bitmap, &other_bma.bitmap, &bitmap)
+            ret = BitmapOr(&self_.bitmap, &other_bma.bitmap, &bitmap)
+            if ret == -1:
+                raise RuntimeError("BitmapOr failed")
 
             bma = BitmaskArray.__new__(BitmaskArray)
             bma.bitmap = bitmap
@@ -611,7 +622,9 @@ cdef class BitmaskArray:
             bval = other
             ArrowBitmapInit(&bitmap)
             ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
-            BitmapOrBool(&self_.bitmap, bval, &bitmap)
+            ret = BitmapOrBool(&self_.bitmap, bval, &bitmap)
+            if ret == -1:
+                raise RuntimeError("BitmapOrBool failed")
 
             bma = BitmaskArray.__new__(BitmaskArray)
             bma.bitmap = bitmap
@@ -629,6 +642,7 @@ cdef class BitmaskArray:
         cdef BitmaskArray bma
         cdef ArrowBitmap bitmap
         cdef bint bval
+        cdef int ret
 
         if isinstance(other, BitmaskArray):
             # TODO: maybe should return Self here instead of ndarray
@@ -638,7 +652,9 @@ cdef class BitmaskArray:
 
             ArrowBitmapInit(&bitmap)
             ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
-            BitmapXor(&self_.bitmap, &other_bma.bitmap, &bitmap)
+            ret = BitmapXor(&self_.bitmap, &other_bma.bitmap, &bitmap)
+            if ret == -1:
+                raise RuntimeError("BitmapXor failed")
 
             bma = BitmaskArray.__new__(BitmaskArray)
             bma.bitmap = bitmap
@@ -652,7 +668,9 @@ cdef class BitmaskArray:
             bval = other
             ArrowBitmapInit(&bitmap)
             ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
-            BitmapXorBool(&self_.bitmap, bval, &bitmap)
+            ret = BitmapXorBool(&self_.bitmap, bval, &bitmap)
+            if ret == -1:
+                raise RuntimeError("BitmapXorBool failed")
 
             bma = BitmaskArray.__new__(BitmaskArray)
             bma.bitmap = bitmap

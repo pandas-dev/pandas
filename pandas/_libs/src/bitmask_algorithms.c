@@ -75,9 +75,11 @@ bool BitmapAny(const struct ArrowBitmap *bitmap) {
     return false;
   }
 
+  const size_t overflow_limit = SIZE_MAX - sizeof(size_t);
+  const size_t limit =
+      size_bytes > overflow_limit ? overflow_limit : size_bytes;
   size_t i = 0;
-  for (; i + sizeof(size_t) - 1 < bitmap->buffer.size_bytes;
-       i += sizeof(size_t)) {
+  for (; i + sizeof(size_t) - 1 < limit; i += sizeof(size_t)) {
     size_t value;
     memcpy(&value, &bitmap->buffer.data[i], sizeof(size_t));
     if (value != 0x0) {
@@ -108,9 +110,11 @@ bool BitmapAll(const struct ArrowBitmap *bitmap) {
     return true;
   }
 
+  const size_t overflow_limit = SIZE_MAX - sizeof(size_t);
+  const size_t limit =
+      size_bytes > overflow_limit ? overflow_limit : size_bytes;
   size_t i = 0;
-  for (; i + sizeof(size_t) - 1 < bitmap->buffer.size_bytes;
-       i += sizeof(size_t)) {
+  for (; i + sizeof(size_t) - 1 < limit; i += sizeof(size_t)) {
     size_t value;
     memcpy(&value, &bitmap->buffer.data[i], sizeof(size_t));
     if (value != SIZE_MAX) {
@@ -136,15 +140,18 @@ bool BitmapAll(const struct ArrowBitmap *bitmap) {
 
 int BitmapOr(const struct ArrowBitmap *bitmap1,
              const struct ArrowBitmap *bitmap2, struct ArrowBitmap *out) {
+  const size_t size_bytes = bitmap1->buffer.size_bytes;
   if (bitmap1->size_bits != bitmap2->size_bits) {
     return -1;
-  } else if (!(out->buffer.capacity_bytes >= bitmap1->buffer.size_bytes)) {
+  } else if (!(out->buffer.capacity_bytes >= size_bytes)) {
     return -1;
   }
 
+  const size_t overflow_limit = SIZE_MAX - sizeof(size_t);
+  const size_t limit =
+      size_bytes > overflow_limit ? overflow_limit : size_bytes;
   size_t i = 0;
-  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
-       i += sizeof(size_t)) {
+  for (; i + sizeof(size_t) - 1 < limit; i += sizeof(size_t)) {
     size_t value1;
     size_t value2;
     size_t result;
@@ -166,16 +173,19 @@ int BitmapOr(const struct ArrowBitmap *bitmap1,
 
 int BitmapOrBool(const struct ArrowBitmap *bitmap1, bool other,
                  struct ArrowBitmap *out) {
-  if (!(out->buffer.capacity_bytes >= bitmap1->buffer.size_bytes)) {
+  const size_t size_bytes = bitmap1->buffer.size_bytes;
+  if (!(out->buffer.capacity_bytes >= size_bytes)) {
     return -1;
   }
 
   const size_t mask = other ? SIZE_MAX : 0;
   const uint8_t umask = other ? UINT8_MAX : 0;
 
+  const size_t overflow_limit = SIZE_MAX - sizeof(size_t);
+  const size_t limit =
+      size_bytes > overflow_limit ? overflow_limit : size_bytes;
   size_t i = 0;
-  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
-       i += sizeof(size_t)) {
+  for (; i + sizeof(size_t) - 1 < limit; i += sizeof(size_t)) {
     size_t value1;
     size_t result;
     memcpy(&value1, &bitmap1->buffer.data[i], sizeof(size_t));
@@ -195,15 +205,18 @@ int BitmapOrBool(const struct ArrowBitmap *bitmap1, bool other,
 
 int BitmapAnd(const struct ArrowBitmap *bitmap1,
               const struct ArrowBitmap *bitmap2, struct ArrowBitmap *out) {
+  const size_t size_bytes = bitmap1->buffer.size_bytes;
   if (bitmap1->size_bits != bitmap2->size_bits) {
     return -1;
-  } else if (!(out->buffer.capacity_bytes >= bitmap1->buffer.size_bytes)) {
+  } else if (!(out->buffer.capacity_bytes >= size_bytes)) {
     return -1;
   }
 
+  const size_t overflow_limit = SIZE_MAX - sizeof(size_t);
+  const size_t limit =
+      size_bytes > overflow_limit ? overflow_limit : size_bytes;
   size_t i = 0;
-  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
-       i += sizeof(size_t)) {
+  for (; i + sizeof(size_t) - 1 < limit; i += sizeof(size_t)) {
     size_t value1;
     size_t value2;
     size_t result;
@@ -225,6 +238,7 @@ int BitmapAnd(const struct ArrowBitmap *bitmap1,
 
 int BitmapAndBool(const struct ArrowBitmap *bitmap1, bool other,
                   struct ArrowBitmap *out) {
+  const size_t size_bytes = bitmap1->buffer.size_bytes;
   if (!(out->buffer.capacity_bytes >= bitmap1->buffer.size_bytes)) {
     return -1;
   }
@@ -232,9 +246,11 @@ int BitmapAndBool(const struct ArrowBitmap *bitmap1, bool other,
   const size_t mask = other ? SIZE_MAX : 0;
   const uint8_t umask = other ? UINT8_MAX : 0;
 
+  const size_t overflow_limit = SIZE_MAX - sizeof(size_t);
+  const size_t limit =
+      size_bytes > overflow_limit ? overflow_limit : size_bytes;
   size_t i = 0;
-  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
-       i += sizeof(size_t)) {
+  for (; i + sizeof(size_t) - 1 < limit; i += sizeof(size_t)) {
     size_t value1;
     size_t result;
     memcpy(&value1, &bitmap1->buffer.data[i], sizeof(size_t));
@@ -254,15 +270,18 @@ int BitmapAndBool(const struct ArrowBitmap *bitmap1, bool other,
 
 int BitmapXor(const struct ArrowBitmap *bitmap1,
               const struct ArrowBitmap *bitmap2, struct ArrowBitmap *out) {
+  const size_t size_bytes = bitmap1->buffer.size_bytes;
   if (bitmap1->size_bits != bitmap2->size_bits) {
     return -1;
-  } else if (!(out->buffer.capacity_bytes >= bitmap1->buffer.size_bytes)) {
+  } else if (!(out->buffer.capacity_bytes >= size_bytes)) {
     return -1;
   }
 
+  const size_t overflow_limit = SIZE_MAX - sizeof(size_t);
+  const size_t limit =
+      size_bytes > overflow_limit ? overflow_limit : size_bytes;
   size_t i = 0;
-  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
-       i += sizeof(size_t)) {
+  for (; i + sizeof(size_t) - 1 < limit; i += sizeof(size_t)) {
     size_t value1;
     size_t value2;
     size_t result;
@@ -284,6 +303,7 @@ int BitmapXor(const struct ArrowBitmap *bitmap1,
 
 int BitmapXorBool(const struct ArrowBitmap *bitmap1, bool other,
                   struct ArrowBitmap *out) {
+  const size_t size_bytes = bitmap1->buffer.size_bytes;
   if (!(out->buffer.capacity_bytes >= bitmap1->buffer.size_bytes)) {
     return -1;
   }
@@ -291,9 +311,11 @@ int BitmapXorBool(const struct ArrowBitmap *bitmap1, bool other,
   const size_t mask = other ? SIZE_MAX : 0;
   const uint8_t umask = other ? UINT8_MAX : 0;
 
+  const size_t overflow_limit = SIZE_MAX - sizeof(size_t);
+  const size_t limit =
+      size_bytes > overflow_limit ? overflow_limit : size_bytes;
   size_t i = 0;
-  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
-       i += sizeof(size_t)) {
+  for (; i + sizeof(size_t) - 1 < limit; i += sizeof(size_t)) {
     size_t value1;
     size_t result;
     memcpy(&value1, &bitmap1->buffer.data[i], sizeof(size_t));
@@ -312,13 +334,16 @@ int BitmapXorBool(const struct ArrowBitmap *bitmap1, bool other,
 }
 
 int BitmapInvert(const struct ArrowBitmap *bitmap, struct ArrowBitmap *out) {
-  if (!(out->buffer.capacity_bytes >= bitmap->buffer.size_bytes)) {
+  const size_t size_bytes = bitmap->buffer.size_bytes;
+  if (!(out->buffer.capacity_bytes >= size_bytes)) {
     return -1;
   }
 
+  const size_t overflow_limit = SIZE_MAX - sizeof(size_t);
+  const size_t limit =
+      size_bytes > overflow_limit ? overflow_limit : size_bytes;
   size_t i = 0;
-  for (; i + sizeof(size_t) - 1 < bitmap->buffer.size_bytes;
-       i += sizeof(size_t)) {
+  for (; i + sizeof(size_t) - 1 < limit; i += sizeof(size_t)) {
     size_t value;
     size_t result;
     memcpy(&value, &bitmap->buffer.data[i], sizeof(size_t));
