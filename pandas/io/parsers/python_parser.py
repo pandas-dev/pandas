@@ -1176,7 +1176,7 @@ class PythonParser(ParserBase):
             )
         if self.columns and self.dtype:
             assert self._col_indices is not None
-            for i in self._col_indices:
+            for i, idx in enumerate(self._col_indices):
                 if not isinstance(self.dtype, dict) and not is_numeric_dtype(
                     self.dtype
                 ):
