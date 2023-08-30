@@ -2823,7 +2823,7 @@ class Fixed:
             "cannot read on an abstract storer: subclasses should implement"
         )
 
-    def write(self, **kwargs) -> None:
+    def write(self, obj, **kwargs) -> None:
         raise NotImplementedError(
             "cannot write on an abstract storer: subclasses should implement"
         )
@@ -2937,8 +2937,7 @@ class GenericFixed(Fixed):
         for n in self.attributes:
             setattr(self, n, _ensure_decoded(getattr(self.attrs, n, None)))
 
-    # error: Signature of "write" incompatible with supertype "Fixed"
-    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
+    def write(self, obj, **kwargs) -> None:
         self.set_attrs()
 
     def read_array(self, key: str, start: int | None = None, stop: int | None = None):
@@ -3226,8 +3225,7 @@ class SeriesFixed(GenericFixed):
             result = result.astype("string[pyarrow_numpy]")
         return result
 
-    # error: Signature of "write" incompatible with supertype "Fixed"
-    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
+    def write(self, obj, **kwargs) -> None:
         super().write(obj, **kwargs)
         self.write_index("index", obj.index)
         self.write_array("values", obj)
@@ -3303,8 +3301,7 @@ class BlockManagerFixed(GenericFixed):
 
         return DataFrame(columns=axes[0], index=axes[1])
 
-    # error: Signature of "write" incompatible with supertype "Fixed"
-    def write(self, obj, **kwargs) -> None:  # type: ignore[override]
+    def write(self, obj, **kwargs) -> None:
         super().write(obj, **kwargs)
 
         # TODO(ArrayManager) HDFStore relies on accessing the blocks
@@ -4355,7 +4352,7 @@ class WORMTable(Table):
         """
         raise NotImplementedError("WORMTable needs to implement read")
 
-    def write(self, **kwargs) -> None:
+    def write(self, obj, **kwargs) -> None:
         """
         write in a format that we can search later on (but cannot append
         to): write out the indices and the values using _write_array
