@@ -1,4 +1,14 @@
-// The full license is in the LICENSE file, distributed with this software.
+/*
+
+Copyright (c) 2023, PyData Development Team
+All rights reserved.
+
+Distributed under the terms of the BSD Simplified License.
+
+The full license is in the LICENSE file, distributed with this software.
+
+*/
+
 
 #include <string.h>
 
