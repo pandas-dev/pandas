@@ -22,6 +22,7 @@ from pandas._libs import (
     NaT,
     lib,
 )
+from pandas._libs.arrays import BitmaskArray
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
     ArrayLike,
@@ -309,11 +310,13 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: npt.NDArray[np.bool_] | None = None,
+        mask: npt.NDArray[np.bool_] | BitmaskArray | None = None,
         result_mask: npt.NDArray[np.bool_] | None = None,
         **kwargs,
     ) -> np.ndarray:
         if values.ndim == 1:
+            if isinstance(mask, BitmaskArray):
+                mask = mask.to_numpy()
             # expand to 2d, dispatch, then squeeze if appropriate
             values2d = values[None, :]
             if mask is not None:
@@ -353,7 +356,7 @@ class WrappedCythonOp:
         min_count: int,
         ngroups: int,
         comp_ids: np.ndarray,
-        mask: npt.NDArray[np.bool_] | None,
+        mask: npt.NDArray[np.bool_] | BitmaskArray | None,
         result_mask: npt.NDArray[np.bool_] | None,
         **kwargs,
     ) -> np.ndarray:  # np.ndarray[ndim=2]
@@ -387,6 +390,9 @@ class WrappedCythonOp:
 
         values = values.T
         if mask is not None:
+            if isinstance(mask, BitmaskArray):
+                mask = mask.to_numpy()
+
             mask = mask.T
             if result_mask is not None:
                 result_mask = result_mask.T
