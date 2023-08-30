@@ -160,9 +160,9 @@ class Dim2CompatTests:
         assert arr[0].isna().all()
         assert not arr[1].isna().any()
 
-        result = arr.pad_or_backfill(method=method, limit=None)
+        result = arr._pad_or_backfill(method=method, limit=None)
 
-        expected = data_missing.pad_or_backfill(method=method).repeat(2).reshape(2, 2)
+        expected = data_missing._pad_or_backfill(method=method).repeat(2).reshape(2, 2)
         tm.assert_extension_array_equal(result, expected)
 
         # Reverse so that backfill is not a no-op.
@@ -170,10 +170,10 @@ class Dim2CompatTests:
         assert not arr2[0].isna().any()
         assert arr2[1].isna().all()
 
-        result2 = arr2.pad_or_backfill(method=method, limit=None)
+        result2 = arr2._pad_or_backfill(method=method, limit=None)
 
         expected2 = (
-            data_missing[::-1].pad_or_backfill(method=method).repeat(2).reshape(2, 2)
+            data_missing[::-1]._pad_or_backfill(method=method).repeat(2).reshape(2, 2)
         )
         tm.assert_extension_array_equal(result2, expected2)
 
