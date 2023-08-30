@@ -924,19 +924,14 @@ class ArrowExtensionArray(
         """
         return type(self)(pc.drop_null(self._pa_array))
 
-    def pad_or_backfill(
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
+    def _pad_or_backfill(
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
     ) -> Self:
         if not self._hasna:
             # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
-        if limit is not None and limit_area is not None:
+        if limit is None:
             method = missing.clean_fill_method(method)
             try:
                 if method == "pad":
@@ -952,9 +947,7 @@ class ArrowExtensionArray(
 
         # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
         #  this method entirely.
-        return super().pad_or_backfill(
-            method=method, limit=limit, limit_area=limit_area, copy=copy
-        )
+        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -974,7 +967,7 @@ class ArrowExtensionArray(
             return super().fillna(value=value, method=method, limit=limit, copy=copy)
 
         if method is not None:
-            return super().pad_or_backfill(method=method, limit=limit, copy=copy)
+            return super().fillna(method=method, limit=limit, copy=copy)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
             # Similar to check_value_size, but we do not mask here since we may
@@ -1050,13 +1043,15 @@ class ArrowExtensionArray(
             indices = np.array([], dtype=np.intp)
             uniques = type(self)(pa.chunked_array([], type=encoded.type.value_type))
         else:
-            pa_indices = encoded.combine_chunks().indices
+            # GH 54844
+            combined = encoded.combine_chunks()
+            pa_indices = combined.indices
             if pa_indices.null_count > 0:
                 pa_indices = pc.fill_null(pa_indices, -1)
             indices = pa_indices.to_numpy(zero_copy_only=False, writable=True).astype(
                 np.intp, copy=False
             )
-            uniques = type(self)(encoded.chunk(0).dictionary)
+            uniques = type(self)(combined.dictionary)
 
         if pa_version_under11p0 and pa.types.is_duration(pa_type):
             uniques = cast(ArrowExtensionArray, uniques.astype(self.dtype))
@@ -2462,11 +2457,11 @@ class ArrowExtensionArray(
             "W": "week",
             "D": "day",
             "H": "hour",
-            "T": "minute",
-            "S": "second",
-            "L": "millisecond",
-            "U": "microsecond",
-            "N": "nanosecond",
+            "min": "minute",
+            "s": "second",
+            "ms": "millisecond",
+            "us": "microsecond",
+            "ns": "nanosecond",
         }
         unit = pa_supported_unit.get(offset._prefix, None)
         if unit is None:
