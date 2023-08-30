@@ -69,7 +69,9 @@ void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
 }
 
 bool BitmapAny(const struct ArrowBitmap *bitmap) {
-  if (bitmap->size_bits < 1) {
+  const size_t nbits = bitmap->size_bits;
+  const size_t size_bytes = bitmap->buffer.size_bytes;
+  if (nbits < 1) {
     return false;
   }
 
@@ -83,8 +85,15 @@ bool BitmapAny(const struct ArrowBitmap *bitmap) {
     }
   }
 
-  for (; i < bitmap->buffer.size_bytes; i++) {
+  for (; i < bitmap->buffer.size_bytes - 1; i++) {
     if (bitmap->buffer.data[i] != 0x0) {
+      return true;
+    }
+  }
+
+  const size_t bits_remaining = nbits - ((size_bytes - 1) * 8);
+  for (size_t i = 0; i < bits_remaining; i++) {
+    if (ArrowBitGet(bitmap->buffer.data, nbits - i - 1) == 1) {
       return true;
     }
   }

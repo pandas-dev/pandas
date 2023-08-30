@@ -450,6 +450,15 @@ def test_any(data, expected):
     assert bma.any() == expected
 
 
+def test_any_sliced_bitmask():
+    # Need to ensure any doesn't look beyond bounds of slice
+    bma = BitmaskArray(np.array([False, False, True, True]))
+    assert bma.any()
+
+    new_bma = bma[:2]
+    assert not new_bma.any()
+
+
 @pytest.mark.parametrize(
     "data,expected",
     [
@@ -462,6 +471,15 @@ def test_any(data, expected):
 def test_all(data, expected):
     bma = BitmaskArray(data)
     assert bma.all() == expected
+
+
+def test_all_sliced_bitmask():
+    # Need to ensure all doesn't look beyond bounds of slice
+    bma = BitmaskArray(np.array([True, True, False, False]))
+    assert not bma.all()
+
+    new_bma = bma[:2]
+    assert new_bma.all()
 
 
 @pytest.mark.parametrize(
