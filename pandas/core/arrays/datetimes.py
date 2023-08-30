@@ -1589,7 +1589,7 @@ default 'raise'
         Examples
         --------
         >>> datetime_series = pd.Series(
-        ...     pd.date_range("2000-01-01", periods=3, freq="T")
+        ...     pd.date_range("2000-01-01", periods=3, freq="min")
         ... )
         >>> datetime_series
         0   2000-01-01 00:00:00

@@ -2685,8 +2685,8 @@ class TestDataFrameConstructors:
 
     def test_frame_string_inference(self):
         # GH#54430
-        pa = pytest.importorskip("pyarrow")
-        dtype = pd.ArrowDtype(pa.string())
+        pytest.importorskip("pyarrow")
+        dtype = "string[pyarrow_numpy]"
         expected = DataFrame(
             {"a": ["a", "b"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
         )
@@ -2720,8 +2720,8 @@ class TestDataFrameConstructors:
 
     def test_frame_string_inference_array_string_dtype(self):
         # GH#54496
-        pa = pytest.importorskip("pyarrow")
-        dtype = pd.ArrowDtype(pa.string())
+        pytest.importorskip("pyarrow")
+        dtype = "string[pyarrow_numpy]"
         expected = DataFrame(
             {"a": ["a", "b"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
         )
@@ -2961,7 +2961,9 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
     def test_frame_timeseries_column(self):
         # GH19157
-        dr = date_range(start="20130101T10:00:00", periods=3, freq="T", tz="US/Eastern")
+        dr = date_range(
+            start="20130101T10:00:00", periods=3, freq="min", tz="US/Eastern"
+        )
         result = DataFrame(dr, columns=["timestamps"])
         expected = DataFrame(
             {
