@@ -25,10 +25,10 @@ class TestDatetimeIndexOps:
             ("M", "day"),
             ("D", "day"),
             ("H", "hour"),
-            ("T", "minute"),
-            ("S", "second"),
-            ("L", "millisecond"),
-            ("U", "microsecond"),
+            ("min", "minute"),
+            ("s", "second"),
+            ("ms", "millisecond"),
+            ("us", "microsecond"),
         ],
     )
     def test_resolution(self, request, tz_naive_fixture, freq, expected):

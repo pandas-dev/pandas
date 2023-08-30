@@ -6,9 +6,6 @@ project(
     license: 'BSD-3',
     meson_version: '>=1.0.1',
     default_options: [
-        # TODO: investigate, does meson try to compile against debug Python
-        # when buildtype = debug, this seems to be causing problems on CI
-        # where provided Python is not compiled in debug mode
         'buildtype=release',
         # TODO: Reactivate werror, some warnings on Windows
         #'werror=true',
@@ -16,10 +13,8 @@ project(
     ]
 )
 
-py_mod = import('python')
 fs = import('fs')
-py = py_mod.find_installation('python')
-py_dep = py.dependency()
+py = import('python').find_installation()
 tempita = files('generate_pxi.py')
 versioneer = files('generate_version.py')
 
