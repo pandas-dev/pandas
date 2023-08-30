@@ -1206,7 +1206,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
-    def repeat(self, repeats, axis=None):
+    def repeat(self, repeats, axis: None = None):
         repeats = ensure_platform_int(repeats)
         nv.validate_repeat((), {"axis": axis})
         res_values = self._values.repeat(repeats)
@@ -1397,8 +1397,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         values = self._values
 
-        if is_object_dtype(values.dtype):
-            values = cast(np.ndarray, values)
+        if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
+            values = np.asarray(values)
             values = lib.maybe_convert_objects(values, safe=True)
 
             result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]
