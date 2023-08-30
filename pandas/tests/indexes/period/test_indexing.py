@@ -174,8 +174,8 @@ class TestGetItem:
     @pytest.mark.arm_slow
     def test_getitem_seconds(self):
         # GH#6716
-        didx = date_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
-        pidx = period_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
+        didx = date_range(start="2013/01/01 09:00:00", freq="s", periods=4000)
+        pidx = period_range(start="2013/01/01 09:00:00", freq="s", periods=4000)
 
         for idx in [didx, pidx]:
             # getitem against index should raise ValueError
@@ -579,7 +579,7 @@ class TestWhere:
         result = pi.where(mask, tdi)
         tm.assert_index_equal(result, expected)
 
-        dti = i2.to_timestamp("S")
+        dti = i2.to_timestamp("s")
         expected = pd.Index([dti[0], dti[1]] + tail, dtype=object)
         assert expected[0] is NaT
         result = pi.where(mask, dti)

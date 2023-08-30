@@ -2504,7 +2504,7 @@ def test_dt_roundlike_unsupported_freq(method):
 @pytest.mark.xfail(
     pa_version_under7p0, reason="Methods not supported for pyarrow < 7.0"
 )
-@pytest.mark.parametrize("freq", ["D", "H", "T", "S", "L", "U", "N"])
+@pytest.mark.parametrize("freq", ["D", "H", "min", "s", "ms", "us", "ns"])
 @pytest.mark.parametrize("method", ["ceil", "floor", "round"])
 def test_dt_ceil_year_floor(freq, method):
     ser = pd.Series(
@@ -3014,3 +3014,16 @@ def test_duration_fillna_numpy(pa_type):
     result = ser1.fillna(ser2)
     expected = pd.Series([1, 2], dtype=ArrowDtype(pa_type))
     tm.assert_series_equal(result, expected)
+
+
+def test_factorize_chunked_dictionary():
+    # GH 54844
+    pa_array = pa.chunked_array(
+        [pa.array(["a"]).dictionary_encode(), pa.array(["b"]).dictionary_encode()]
+    )
+    ser = pd.Series(ArrowExtensionArray(pa_array))
+    res_indices, res_uniques = ser.factorize()
+    exp_indicies = np.array([0, 1], dtype=np.intp)
+    exp_uniques = pd.Index(ArrowExtensionArray(pa_array.combine_chunks()))
+    tm.assert_numpy_array_equal(res_indices, exp_indicies)
+    tm.assert_index_equal(res_uniques, exp_uniques)
