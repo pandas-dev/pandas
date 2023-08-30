@@ -1949,7 +1949,8 @@ class ExtensionArray:
         Examples
         --------
         >>> import pyarrow as pa
-        >>> a = pd.array([[1, 2, 3], [4], [5, 6]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+        >>> a = pd.array([[1, 2, 3], [4], [5, 6]],
+        ...              dtype=pd.ArrowDtype(pa.list_(pa.int64())))
         >>> a._explode()
         (<ArrowExtensionArray>
         [1, 2, 3, 4, 5, 6]
