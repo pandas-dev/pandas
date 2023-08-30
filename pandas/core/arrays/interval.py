@@ -1858,8 +1858,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def _combined(self) -> IntervalSide:
         # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
         # has no attribute "reshape"  [union-attr]
-        assert isinstance(self.left._values, np.ndarray)
-        assert isinstance(self.right._values, np.ndarray)
         left = self.left._values.reshape(-1, 1)  # type: ignore[union-attr]
         right = self.right._values.reshape(-1, 1)  # type: ignore[union-attr]
         if needs_i8_conversion(left.dtype):
