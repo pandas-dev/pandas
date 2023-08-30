@@ -21,6 +21,10 @@ By default building pandas from source will generate a release build. To generat
 
     pip install -ve . --no-build-isolation --config-settings=builddir="debug" --config-settings=setup-args="-Dbuildtype=debug"
 
+.. note::
+
+   conda environements update CFLAGS/CPPFLAGS with flags that are geared towards generating releases. If using conda, you may need to set ``CFLAGS="$CFLAGS -O0"`` and ``CPPFLAGS="$CPPFLAGS -O0"`` to ensure optimizations are turned off for debugging
+
 By specifying ``builddir="debug"`` all of the targets will be built and placed in the debug directory relative to the project root. This helps to keep your debug and release artifacts separate; you are of course able to choose a different directory name or omit altogether if you do not care to separate build types.
 
 Editor support
