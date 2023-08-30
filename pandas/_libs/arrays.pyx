@@ -53,6 +53,9 @@ cdef extern from "pandas/bitmask_algorithms.h":
     bint BitmapOr(const ArrowBitmap*, const ArrowBitmap*, ArrowBitmap*)
     bint BitmapXor(const ArrowBitmap*, const ArrowBitmap*, ArrowBitmap*)
     bint BitmapAnd(const ArrowBitmap*, const ArrowBitmap*, ArrowBitmap*)
+    bint BitmapOrBool(const ArrowBitmap*, bint, ArrowBitmap*)
+    bint BitmapXorBool(const ArrowBitmap*, bint, ArrowBitmap*)
+    bint BitmapAndBool(const ArrowBitmap*, bint, ArrowBitmap*)
     bint BitmapInvert(const ArrowBitmap*, ArrowBitmap*)
     bint BitmapTake(const ArrowBitmap*, const int64_t*, size_t, ArrowBitmap*)
     bint BitmapPutFromBufferMask(ArrowBitmap*, const uint8_t*, size_t, uint8_t)
@@ -253,7 +256,7 @@ cdef class BitmaskArray:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void init_from_ndarray(self, const uint8_t[::1] arr):
+    cdef void init_from_ndarray(self, const uint8_t[::1] arr) noexcept:
         cdef ArrowBitmap bitmap
         # As long as we have a 1D arr argument we can use .shape[0] to avoid
         # a call to Python via .size
@@ -264,7 +267,7 @@ cdef class BitmaskArray:
         self.bitmap = bitmap
         self.buffer_owner = True
 
-    cdef void init_from_bitmaskarray(self, BitmaskArray bma):
+    cdef void init_from_bitmaskarray(self, BitmaskArray bma) noexcept:
         self.bitmap = bma.bitmap
         self.buffer_owner = False
         self.ndim = bma.ndim
@@ -274,27 +277,22 @@ cdef class BitmaskArray:
             self.shape[1] = bma.shape[1]
             self.strides[1] = bma.strides[1]
 
-    def __cinit__(self):
-        cdef BitmaskArray self_ = self
-        self.parent = False
-        self_.n_consumers = 0
-        self_.memview_buf = NULL
-
     def __init__(self, data):
-        cdef BitmaskArray self_ = self
-        if isinstance(data, np.ndarray):
-            if not data.flags["C_CONTIGUOUS"]:
-                data = np.ascontiguousarray(data)
+        cdef ndarray arr
+        if cnp.PyArray_Check(data):
+            arr = data
+            if not cnp.PyArray_IS_C_CONTIGUOUS(arr):
+                arr = cnp.PyArray_GETCONTIGUOUS(arr)
 
-            self.init_from_ndarray(data.ravel())
+            self.init_from_ndarray(arr.ravel())
+            self.ndim = arr.ndim
+            self.shape[0] = arr.shape[0]
+            self.strides[0] = arr.strides[0]
+            if self.ndim == 2:
+                self.shape[1] = arr.shape[1]
+                self.strides[1] = arr.strides[1]
             self.parent = None
-            self_.ndim = data.ndim
-            self_.shape[0] = data.shape[0]
-            self_.strides[0] = data.strides[0]
-            if (data.ndim == 2):
-                self_.shape[1] = data.shape[1]
-                self_.strides[1] = data.strides[1]
-        elif isinstance(data, type(self)):
+        elif isinstance(data, BitmaskArray):
             self.init_from_bitmaskarray(data)
             self.parent = data
         else:
@@ -475,11 +473,13 @@ cdef class BitmaskArray:
         cdef ArrowBitmap bitmap
         cdef int64_t nbytes, nbits
         cdef BitmaskArray self_ = self
+        cdef bint result
         # to_numpy can be expensive, so try to avoid for simple cases
         if isinstance(key, int) and self.ndim == 1:
             ckey = key
             if ckey >= 0 and ckey < self.bitmap.size_bits:
-                return bool(ArrowBitGet(self.bitmap.buffer.data, ckey))
+                result = ArrowBitGet(self.bitmap.buffer.data, ckey)
+                return result
         elif is_null_slice(key):
             return self
         elif isinstance(key, slice) and self.ndim == 1:
@@ -537,19 +537,14 @@ cdef class BitmaskArray:
         return bma
 
     def __and__(self, other):
-        cdef ndarray[uint8_t] result
         cdef BitmaskArray other_bma, self_ = self  # self_ required for Cython < 3
+        cdef BitmaskArray bma
         cdef ArrowBitmap bitmap
+        cdef bint bval
 
-        if isinstance(other, type(self)):
+        if isinstance(other, BitmaskArray):
             # TODO: maybe should return Self here instead of ndarray
-            other_bma = other
-            if self_.bitmap.size_bits == 0:
-                result = np.empty([], dtype=bool)
-                if self_.ndim == 2:
-                    return result.reshape(self_.shape[0], self_.shape[1])
-                return result
-
+            other_bma = <BitmaskArray>other
             if self_.bitmap.size_bits != other_bma.bitmap.size_bits:
                 raise ValueError("bitmaps are not equal size")
 
@@ -557,29 +552,40 @@ cdef class BitmaskArray:
             ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
             BitmapAnd(&self_.bitmap, &other_bma.bitmap, &bitmap)
 
-            result = np.empty(self_.bitmap.size_bits, dtype=bool)
-            ArrowBitsUnpackInt8(
-                bitmap.buffer.data,
-                0,
-                bitmap.size_bits,
-                <int8_t*>&result[0]
-            )
-            ArrowBitmapReset(&bitmap)
+            bma = BitmaskArray.__new__(BitmaskArray)
+            bma.bitmap = bitmap
+            bma.buffer_owner = True
+            bma.ndim = self_.ndim
+            bma.shape = self_.shape
+            bma.strides = self_.strides
 
-            if self_.ndim == 2:
-                return result.reshape(self_.shape[0], self_.shape[1])
-            return result
+            return bma
+        elif isinstance(other, bool):
+            bval = other
+            ArrowBitmapInit(&bitmap)
+            ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
+            BitmapAndBool(&self_.bitmap, bval, &bitmap)
+
+            bma = BitmaskArray.__new__(BitmaskArray)
+            bma.bitmap = bitmap
+            bma.buffer_owner = True
+            bma.ndim = self_.ndim
+            bma.shape = self_.shape
+            bma.strides = self_.strides
+
+            return bma
 
         return self.to_numpy() & other
 
     def __or__(self, other):
         cdef ndarray[uint8_t] result
         cdef BitmaskArray other_bma, self_ = self  # self_ required for Cython < 3
+        cdef BitmaskArray bma
         cdef ArrowBitmap bitmap
+        cdef bint bval
 
-        if isinstance(other, type(self)):
-            # TODO: maybe should return Self here instead of ndarray
-            other_bma = other
+        if isinstance(other, BitmaskArray):
+            other_bma = <BitmaskArray>other
             if self_.bitmap.size_bits == 0:
                 result = np.empty([], dtype=bool)
                 if self_.ndim == 2:
@@ -593,35 +599,40 @@ cdef class BitmaskArray:
             ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
             BitmapOr(&self_.bitmap, &other_bma.bitmap, &bitmap)
 
-            result = np.empty(self_.bitmap.size_bits, dtype=bool)
-            ArrowBitsUnpackInt8(
-                bitmap.buffer.data,
-                0,
-                bitmap.size_bits,
-                <int8_t*>&result[0]
-            )
-            ArrowBitmapReset(&bitmap)
+            bma = BitmaskArray.__new__(BitmaskArray)
+            bma.bitmap = bitmap
+            bma.buffer_owner = True
+            bma.ndim = self_.ndim
+            bma.shape = self_.shape
+            bma.strides = self_.strides
 
-            if self_.ndim == 2:
-                return result.reshape(self_.shape[0], self_.shape[1])
-            return result
+            return bma
+        elif isinstance(other, bool):
+            bval = other
+            ArrowBitmapInit(&bitmap)
+            ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
+            BitmapOrBool(&self_.bitmap, bval, &bitmap)
+
+            bma = BitmaskArray.__new__(BitmaskArray)
+            bma.bitmap = bitmap
+            bma.buffer_owner = True
+            bma.ndim = self_.ndim
+            bma.shape = self_.shape
+            bma.strides = self_.strides
+
+            return bma
 
         return self.to_numpy() | other
 
     def __xor__(self, other):
-        cdef ndarray[uint8_t] result
         cdef BitmaskArray other_bma, self_ = self  # self_ required for Cython < 3
+        cdef BitmaskArray bma
         cdef ArrowBitmap bitmap
+        cdef bint bval
 
-        if isinstance(other, type(self)):
+        if isinstance(other, BitmaskArray):
             # TODO: maybe should return Self here instead of ndarray
-            other_bma = other
-            if self_.bitmap.size_bits == 0:
-                result = np.empty([], dtype=bool)
-                if self_.ndim == 2:
-                    return result.reshape(self_.shape[0], self_.shape[1])
-                return result
-
+            other_bma = <BitmaskArray>other
             if self_.bitmap.size_bits != other_bma.bitmap.size_bits:
                 raise ValueError("bitmaps are not equal size")
 
@@ -629,17 +640,28 @@ cdef class BitmaskArray:
             ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
             BitmapXor(&self_.bitmap, &other_bma.bitmap, &bitmap)
 
-            result = np.empty(self_.bitmap.size_bits, dtype=bool)
-            ArrowBitsUnpackInt8(
-                bitmap.buffer.data,
-                0,
-                bitmap.size_bits,
-                <int8_t*>&result[0]
-            )
-            ArrowBitmapReset(&bitmap)
-            if self_.ndim == 2:
-                return result.reshape(self_.shape[0], self_.shape[1])
-            return result
+            bma = BitmaskArray.__new__(BitmaskArray)
+            bma.bitmap = bitmap
+            bma.buffer_owner = True
+            bma.ndim = self_.ndim
+            bma.shape = self_.shape
+            bma.strides = self_.strides
+
+            return bma
+        elif isinstance(other, bool):
+            bval = other
+            ArrowBitmapInit(&bitmap)
+            ArrowBitmapReserve(&bitmap, self_.bitmap.size_bits)
+            BitmapXorBool(&self_.bitmap, bval, &bitmap)
+
+            bma = BitmaskArray.__new__(BitmaskArray)
+            bma.bitmap = bitmap
+            bma.buffer_owner = True
+            bma.ndim = self_.ndim
+            bma.shape = self_.shape
+            bma.strides = self_.strides
+
+            return bma
 
         return self.to_numpy() ^ other
 
@@ -729,8 +751,10 @@ cdef class BitmaskArray:
     def __iter__(self):
         cdef Py_ssize_t i
         cdef BitmaskArray self_ = self  # self_ required for Cython < 3
+        cdef bint result
         for i in range(self_.bitmap.size_bits):
-            yield bool(ArrowBitGet(self_.bitmap.buffer.data, i))
+            result = ArrowBitGet(self_.bitmap.buffer.data, i)
+            yield result
 
     def __getbuffer__(self, Py_buffer *buffer, int flags):
         cdef BitmaskArray self_ = self
@@ -795,7 +819,8 @@ cdef class BitmaskArray:
         return np.dtype("bool")
 
     def any(self) -> bool:
-        return BitmapAny(&self.bitmap)
+        cdef bint result = BitmapAny(&self.bitmap)
+        return result
 
     def all(self) -> bool:
         return BitmapAll(&self.bitmap)

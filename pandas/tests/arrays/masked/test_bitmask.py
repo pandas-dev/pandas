@@ -192,7 +192,22 @@ def test_invert():
     assert ((result2.bytes[0] >> 1) & 0x1) == 0
 
 
-@pytest.mark.parametrize("rhs_as_bitmask", [True, False])
+@pytest.mark.parametrize(
+    "lhs,rhs,expected",
+    [
+        ([True], [True], bytes([0x1])),
+        ([True], [False], bytes([0x0])),
+        ([False], [False], bytes([0x0])),
+        ([True] * 10, [True] * 10, bytes([0xFF, 0x3])),
+        ([False] * 10, [True] * 10, bytes([0x0, 0x0])),
+    ],
+)
+def test_and_bitmask(lhs, rhs, expected):
+    bma1 = BitmaskArray(np.array(lhs))
+    result = bma1 & BitmaskArray(np.array(rhs))
+    assert result.bytes == expected
+
+
 @pytest.mark.parametrize(
     "lhs,rhs,expected",
     [
@@ -203,44 +218,115 @@ def test_invert():
         ([False] * 10, [True] * 10, [False] * 10),
     ],
 )
-def test_and(rhs_as_bitmask, lhs, rhs, expected):
+def test_and_ndarray(lhs, rhs, expected):
     bma1 = BitmaskArray(np.array(lhs))
 
-    if rhs_as_bitmask:
-        bma2 = BitmaskArray(np.array(rhs))
-    else:
-        bma2 = np.array(rhs)
-
-    expected = np.array(expected)
-    result = bma1 & bma2
-    assert (result == expected).all()
+    result = bma1 & np.array(rhs)
+    assert (result == np.array(expected)).all()
 
 
-@pytest.mark.parametrize("rhs_as_bitmask", [True, False])
+@pytest.mark.parametrize(
+    "lhs,rhs,expected",
+    [
+        ([True], True, bytes([0x1])),
+        ([True], False, bytes([0x0])),
+        ([False], False, bytes([0x0])),
+        ([True] * 10, True, bytes([0xFF, 0x3])),
+        ([False] * 10, True, bytes([0x0, 0x0])),
+    ],
+)
+def test_and_scalar(lhs, rhs, expected):
+    bma1 = BitmaskArray(np.array(lhs))
+    result = bma1 & rhs
+
+    # We don't really care about the bits that
+    # exist beyond the length of the bitmask, but
+    # to make testing easy we assume XOR still operates
+    # on them. Might be better to implement equality
+    # on bitmaskarray and test instead of looking at bytes
+    assert result.bytes == expected
+
+
+@pytest.mark.parametrize(
+    "lhs,rhs,expected",
+    [
+        ([True], [True], bytes([0x1])),
+        ([True], [False], bytes([0x1])),
+        ([False], [False], bytes([0x0])),
+        ([True] * 10, [True] * 10, bytes([0xFF, 0x3])),
+        ([False] * 10, [True] * 10, bytes([0xFF, 0x3])),
+    ],
+)
+def test_or_bitmask(lhs, rhs, expected):
+    bma1 = BitmaskArray(np.array(lhs))
+    result = bma1 | BitmaskArray(np.array(rhs))
+    assert result.bytes == expected
+
+
 @pytest.mark.parametrize(
     "lhs,rhs,expected",
     [
         ([True], [True], [True]),
-        ([True], [False], [True]),
-        ([False], [False], [False]),
+        (
+            [True],
+            [False],
+            [True],
+        ),
+        (
+            [False],
+            [False],
+            [False],
+        ),
         ([True] * 10, [True] * 10, [True] * 10),
         ([False] * 10, [True] * 10, [True] * 10),
     ],
 )
-def test_or(rhs_as_bitmask, lhs, rhs, expected):
+def test_or_ndarray(lhs, rhs, expected):
     bma1 = BitmaskArray(np.array(lhs))
 
-    if rhs_as_bitmask:
-        bma2 = BitmaskArray(np.array(rhs))
-    else:
-        bma2 = np.array(rhs)
-
-    expected = np.array(expected)
-    result = bma1 | bma2
-    assert (result == expected).all()
+    result = bma1 | np.array(rhs)
+    assert (result == np.array(expected)).all()
 
 
-@pytest.mark.parametrize("rhs_as_bitmask", [True, False])
+@pytest.mark.parametrize(
+    "lhs,rhs,expected",
+    [
+        ([True], True, bytes([0xFF])),
+        ([True], False, bytes([0x1])),
+        ([False], False, bytes([0x0])),
+        ([True] * 10, True, bytes([0xFF, 0xFF])),
+        ([False] * 10, True, bytes([0xFF, 0xFF])),
+    ],
+)
+def test_or_scalar(lhs, rhs, expected):
+    bma1 = BitmaskArray(np.array(lhs))
+    result = bma1 | rhs
+
+    # We don't really care about the bits that
+    # exist beyond the length of the bitmask, but
+    # to make testing easy we assume XOR still operates
+    # on them. Might be better to implement equality
+    # on bitmaskarray and test instead of looking at bytes
+    assert result.bytes == expected
+
+
+@pytest.mark.parametrize(
+    "lhs,rhs,expected",
+    [
+        ([True], [True], bytes([0x0])),
+        ([True], [False], bytes([0x1])),
+        ([False], [False], bytes([0x0])),
+        ([True] * 10, [True] * 10, bytes([0x0, 0x0])),
+        ([False] * 10, [True] * 10, bytes([0xFF, 0x3])),
+    ],
+)
+def test_xor_bitmask(lhs, rhs, expected):
+    bma1 = BitmaskArray(np.array(lhs))
+    other = BitmaskArray(np.array(rhs))
+    result = bma1 ^ other
+    assert result.bytes == expected
+
+
 @pytest.mark.parametrize(
     "lhs,rhs,expected",
     [
@@ -251,17 +337,34 @@ def test_or(rhs_as_bitmask, lhs, rhs, expected):
         ([False] * 10, [True] * 10, [True] * 10),
     ],
 )
-def test_xor(rhs_as_bitmask, lhs, rhs, expected):
+def test_xor_ndarray(lhs, rhs, expected):
     bma1 = BitmaskArray(np.array(lhs))
+    other = np.array(rhs)
+    result = bma1 ^ other
+    assert (result == np.array(expected)).all()
 
-    if rhs_as_bitmask:
-        bma2 = BitmaskArray(np.array(rhs))
-    else:
-        bma2 = np.array(rhs)
 
-    expected = np.array(expected)
-    result = bma1 ^ bma2
-    assert (result == expected).all()
+@pytest.mark.parametrize(
+    "lhs,rhs,expected",
+    [
+        ([True], True, bytes([0xFE])),
+        ([True], False, bytes([0x1])),
+        ([False], False, bytes([0x0])),
+        ([True] * 10, True, bytes([0x0, 0xFC])),
+        ([False] * 10, True, bytes([0xFF, 0xFF])),
+    ],
+)
+def test_xor_scalar(lhs, rhs, expected):
+    bma1 = BitmaskArray(np.array(lhs))
+    other = rhs
+    result = bma1 ^ other
+
+    # We don't really care about the bits that
+    # exist beyond the length of the bitmask, but
+    # to make testing easy we assume XOR still operates
+    # on them. Might be better to implement equality
+    # on bitmaskarray and test instead of looking at bytes
+    assert result.bytes == expected
 
 
 def test_pickle():

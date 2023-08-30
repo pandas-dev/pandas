@@ -24,12 +24,24 @@ int BitmapOr(const struct ArrowBitmap *bitmap1,
              const struct ArrowBitmap *bitmap2, struct ArrowBitmap *out);
 
 /* Returns -1 on failure. On success returns 0 and writes to out */
+int BitmapOrBool(const struct ArrowBitmap *bitmap1, bool,
+                 struct ArrowBitmap *out);
+
+/* Returns -1 on failure. On success returns 0 and writes to out */
 int BitmapXor(const struct ArrowBitmap *bitmap1,
               const struct ArrowBitmap *bitmap2, struct ArrowBitmap *out);
 
 /* Returns -1 on failure. On success returns 0 and writes to out */
+int BitmapXorBool(const struct ArrowBitmap *bitmap1, bool,
+                  struct ArrowBitmap *out);
+
+/* Returns -1 on failure. On success returns 0 and writes to out */
 int BitmapAnd(const struct ArrowBitmap *bitmap1,
               const struct ArrowBitmap *bitmap2, struct ArrowBitmap *out);
+
+/* Returns -1 on failure. On success returns 0 and writes to out */
+int BitmapAndBool(const struct ArrowBitmap *bitmap1, bool,
+                  struct ArrowBitmap *out);
 
 /* Returns -1 on failure. On success returns 0 and writes to out */
 int BitmapInvert(const struct ArrowBitmap *bitmap, struct ArrowBitmap *out);

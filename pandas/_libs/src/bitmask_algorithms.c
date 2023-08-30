@@ -69,23 +69,22 @@ void ConcatenateBitmapData(const struct ArrowBitmap **bitmaps, size_t nbitmaps,
 }
 
 bool BitmapAny(const struct ArrowBitmap *bitmap) {
-  const size_t nbits = bitmap->size_bits;
-  const size_t size_bytes = bitmap->buffer.size_bytes;
-  const uint8_t *buf = bitmap->buffer.data;
-
-  if (nbits < 1) {
+  if (bitmap->size_bits < 1) {
     return false;
   }
 
-  for (size_t i = 0; i < size_bytes - 1; i++) {
-    if (buf[i] > 0) {
+  size_t i = 0;
+  for (; i + sizeof(size_t) - 1 < bitmap->buffer.size_bytes;
+       i += sizeof(size_t)) {
+    size_t value;
+    memcpy(&value, &bitmap->buffer.data[i], sizeof(size_t));
+    if (value != 0x0) {
       return true;
     }
   }
 
-  const size_t bits_remaining = nbits - ((size_bytes - 1) * 8);
-  for (size_t i = 0; i < bits_remaining; i++) {
-    if (ArrowBitGet(buf, nbits - i - 1)) {
+  for (; i < bitmap->buffer.size_bytes; i++) {
+    if (bitmap->buffer.data[i] != 0x0) {
       return true;
     }
   }
@@ -96,21 +95,29 @@ bool BitmapAny(const struct ArrowBitmap *bitmap) {
 bool BitmapAll(const struct ArrowBitmap *bitmap) {
   const size_t nbits = bitmap->size_bits;
   const size_t size_bytes = bitmap->buffer.size_bytes;
-  const uint8_t *buf = bitmap->buffer.data;
-
   if (nbits < 1) {
     return true;
   }
 
-  for (size_t i = 0; i < size_bytes - 1; i++) {
-    if (buf[i] != 0xff) {
+  size_t i = 0;
+  for (; i + sizeof(size_t) - 1 < bitmap->buffer.size_bytes;
+       i += sizeof(size_t)) {
+    size_t value;
+    memcpy(&value, &bitmap->buffer.data[i], sizeof(size_t));
+    if (value != SIZE_MAX) {
+      return false;
+    }
+  }
+
+  for (; i < bitmap->buffer.size_bytes - 1; i++) {
+    if (bitmap->buffer.data[i] != 0xff) {
       return false;
     }
   }
 
   const size_t bits_remaining = nbits - ((size_bytes - 1) * 8);
   for (size_t i = 0; i < bits_remaining; i++) {
-    if (ArrowBitGet(buf, nbits - i - 1) == 0) {
+    if (ArrowBitGet(bitmap->buffer.data, nbits - i - 1) == 0) {
       return false;
     }
   }
@@ -126,8 +133,49 @@ int BitmapOr(const struct ArrowBitmap *bitmap1,
     return -1;
   }
 
-  for (int64_t i = 0; i < bitmap1->buffer.size_bytes; i++) {
+  size_t i = 0;
+  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
+       i += sizeof(size_t)) {
+    size_t value1;
+    size_t value2;
+    size_t result;
+    memcpy(&value1, &bitmap1->buffer.data[i], sizeof(size_t));
+    memcpy(&value2, &bitmap2->buffer.data[i], sizeof(size_t));
+    result = value1 | value2;
+    memcpy(&out->buffer.data[i], &result, sizeof(size_t));
+  }
+
+  for (; i < bitmap1->buffer.size_bytes; i++) {
     out->buffer.data[i] = bitmap1->buffer.data[i] | bitmap2->buffer.data[i];
+  }
+
+  out->size_bits = bitmap1->size_bits;
+  out->buffer.size_bytes = bitmap1->buffer.size_bytes;
+
+  return 0;
+}
+
+int BitmapOrBool(const struct ArrowBitmap *bitmap1, bool other,
+                 struct ArrowBitmap *out) {
+  if (!(out->buffer.capacity_bytes >= bitmap1->buffer.size_bytes)) {
+    return -1;
+  }
+
+  const size_t mask = other ? SIZE_MAX : 0;
+  const uint8_t umask = other ? UINT8_MAX : 0;
+
+  size_t i = 0;
+  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
+       i += sizeof(size_t)) {
+    size_t value1;
+    size_t result;
+    memcpy(&value1, &bitmap1->buffer.data[i], sizeof(size_t));
+    result = value1 | mask;
+    memcpy(&out->buffer.data[i], &result, sizeof(size_t));
+  }
+
+  for (; i < bitmap1->buffer.size_bytes; i++) {
+    out->buffer.data[i] = bitmap1->buffer.data[i] | umask;
   }
 
   out->size_bits = bitmap1->size_bits;
@@ -144,8 +192,49 @@ int BitmapAnd(const struct ArrowBitmap *bitmap1,
     return -1;
   }
 
-  for (int64_t i = 0; i < bitmap1->buffer.size_bytes; i++) {
+  size_t i = 0;
+  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
+       i += sizeof(size_t)) {
+    size_t value1;
+    size_t value2;
+    size_t result;
+    memcpy(&value1, &bitmap1->buffer.data[i], sizeof(size_t));
+    memcpy(&value2, &bitmap2->buffer.data[i], sizeof(size_t));
+    result = value1 & value2;
+    memcpy(&out->buffer.data[i], &result, sizeof(size_t));
+  }
+
+  for (; i < bitmap1->buffer.size_bytes; i++) {
     out->buffer.data[i] = bitmap1->buffer.data[i] & bitmap2->buffer.data[i];
+  }
+
+  out->size_bits = bitmap1->size_bits;
+  out->buffer.size_bytes = bitmap1->buffer.size_bytes;
+
+  return 0;
+}
+
+int BitmapAndBool(const struct ArrowBitmap *bitmap1, bool other,
+                  struct ArrowBitmap *out) {
+  if (!(out->buffer.capacity_bytes >= bitmap1->buffer.size_bytes)) {
+    return -1;
+  }
+
+  const size_t mask = other ? SIZE_MAX : 0;
+  const uint8_t umask = other ? UINT8_MAX : 0;
+
+  size_t i = 0;
+  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
+       i += sizeof(size_t)) {
+    size_t value1;
+    size_t result;
+    memcpy(&value1, &bitmap1->buffer.data[i], sizeof(size_t));
+    result = value1 & mask;
+    memcpy(&out->buffer.data[i], &result, sizeof(size_t));
+  }
+
+  for (; i < bitmap1->buffer.size_bytes; i++) {
+    out->buffer.data[i] = bitmap1->buffer.data[i] & umask;
   }
 
   out->size_bits = bitmap1->size_bits;
@@ -162,8 +251,49 @@ int BitmapXor(const struct ArrowBitmap *bitmap1,
     return -1;
   }
 
-  for (int64_t i = 0; i < bitmap1->buffer.size_bytes; i++) {
+  size_t i = 0;
+  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
+       i += sizeof(size_t)) {
+    size_t value1;
+    size_t value2;
+    size_t result;
+    memcpy(&value1, &bitmap1->buffer.data[i], sizeof(size_t));
+    memcpy(&value2, &bitmap2->buffer.data[i], sizeof(size_t));
+    result = value1 ^ value2;
+    memcpy(&out->buffer.data[i], &result, sizeof(size_t));
+  }
+
+  for (; i < bitmap1->buffer.size_bytes; i++) {
     out->buffer.data[i] = bitmap1->buffer.data[i] ^ bitmap2->buffer.data[i];
+  }
+
+  out->size_bits = bitmap1->size_bits;
+  out->buffer.size_bytes = bitmap1->buffer.size_bytes;
+
+  return 0;
+}
+
+int BitmapXorBool(const struct ArrowBitmap *bitmap1, bool other,
+                  struct ArrowBitmap *out) {
+  if (!(out->buffer.capacity_bytes >= bitmap1->buffer.size_bytes)) {
+    return -1;
+  }
+
+  const size_t mask = other ? SIZE_MAX : 0;
+  const uint8_t umask = other ? UINT8_MAX : 0;
+
+  size_t i = 0;
+  for (; i + sizeof(size_t) - 1 < bitmap1->buffer.size_bytes;
+       i += sizeof(size_t)) {
+    size_t value1;
+    size_t result;
+    memcpy(&value1, &bitmap1->buffer.data[i], sizeof(size_t));
+    result = value1 ^ mask;
+    memcpy(&out->buffer.data[i], &result, sizeof(size_t));
+  }
+
+  for (; i < bitmap1->buffer.size_bytes; i++) {
+    out->buffer.data[i] = bitmap1->buffer.data[i] ^ umask;
   }
 
   out->size_bits = bitmap1->size_bits;
@@ -177,7 +307,17 @@ int BitmapInvert(const struct ArrowBitmap *bitmap, struct ArrowBitmap *out) {
     return -1;
   }
 
-  for (int64_t i = 0; i < bitmap->buffer.size_bytes; i++) {
+  size_t i = 0;
+  for (; i + sizeof(size_t) - 1 < bitmap->buffer.size_bytes;
+       i += sizeof(size_t)) {
+    size_t value;
+    size_t result;
+    memcpy(&value, &bitmap->buffer.data[i], sizeof(size_t));
+    result = ~value;
+    memcpy(&out->buffer.data[i], &result, sizeof(size_t));
+  }
+
+  for (; i < bitmap->buffer.size_bytes; i++) {
     out->buffer.data[i] = ~bitmap->buffer.data[i];
   }
 
