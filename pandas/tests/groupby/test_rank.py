@@ -715,9 +715,7 @@ def test_rank_categorical():
 @pytest.mark.parametrize("na_option", ["top", "bottom"])
 def test_groupby_op_with_nullables(na_option):
     # GH 54206
-    df_ext = DataFrame({"x": [None]}, dtype="Float64")
-    result_ext = df_ext.groupby("x", dropna=False)["x"].rank(
-        method="min", na_option=na_option
-    )
-    expected_result_ext = Series([1.0], dtype="float64", name=result_ext.name)
-    tm.assert_series_equal(result_ext, expected_result_ext, check_dtype=False)
+    df = DataFrame({"x": [None]}, dtype="Float64")
+    result = df.groupby("x", dropna=False)["x"].rank(method="min", na_option=na_option)
+    expected = Series([1.0], dtype="float64", name=result.name)
+    tm.assert_series_equal(result, expected, check_dtype=False)
