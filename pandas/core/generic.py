@@ -10316,7 +10316,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             cond_hasna = cond.isna().any(axis=None)
 
         msg = "Boolean array expected for the condition, not {dtype}"
-        namsg = "The condition array cannot contain NA values"
+        na_msg = "Cannot mask with an array containing NA / NaN values"
 
         if not cond.empty:
             if not isinstance(cond, ABCDataFrame):
@@ -10324,13 +10324,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 if not is_bool_dtype(cond):
                     raise ValueError(msg.format(dtype=cond.dtype))
                 if cond_hasna:
-                    raise ValueError(namsg)
+                    raise ValueError(na_msg)
             else:
                 for _dt in cond.dtypes:
                     if not is_bool_dtype(_dt):
                         raise ValueError(msg.format(dtype=_dt))
                 if cond_hasna:
-                    raise ValueError(namsg)
+                    raise ValueError(na_msg)
                 if cond._mgr.any_extension_types:
                     # GH51574: avoid object ndarray conversion later on
                     cond = cond._constructor(

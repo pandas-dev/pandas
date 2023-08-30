@@ -1071,7 +1071,7 @@ def test_where_inplace_no_other():
 def test_where_with_na():
     # GH#52955
     df = DataFrame([[1, pd.NA], [pd.NA, 2]], dtype=Int64Dtype())
-    msg = "The condition array cannot contain NA values"
+    msg = "Cannot mask with an array containing NA / NaN values"
 
     for cond_frame in [df, df[0]]:
         with pytest.raises(ValueError, match=msg):

@@ -76,7 +76,7 @@ def test_mask_inplace():
 def test_mask_with_na():
     # GH#52955
     ser = Series([1, 2, NA], dtype=Int64Dtype())
-    msg = "The condition array cannot contain NA values"
+    msg = "Cannot mask with an array containing NA / NaN values"
 
     for cond_arr in [ser, ser.array]:
         with pytest.raises(ValueError, match=msg):
