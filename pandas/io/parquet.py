@@ -114,8 +114,16 @@ def _get_path_or_handle(
 
             try:
                 fs, path_or_handle = pa_fs.FileSystem.from_uri(path)
+                # retry with anonymous=True
+                try:
+                    f = fs.open_input_file(path_or_handle)
+                    f.close()
+                except OSError:
+                    fs.__init__(anonymous=True)
+
             except (TypeError, pa.ArrowInvalid):
                 pass
+
         if fs is None:
             fsspec = import_optional_dependency("fsspec")
             fs, path_or_handle = fsspec.core.url_to_fs(
@@ -269,6 +277,7 @@ class PyArrowImpl(BaseImpl):
             mode="rb",
         )
         try:
+            # print(filesystem.access_key)
             pa_table = self.api.parquet.read_table(
                 path_or_handle,
                 columns=columns,
@@ -286,6 +295,9 @@ class PyArrowImpl(BaseImpl):
                     df_metadata = pa_table.schema.metadata[b"PANDAS_ATTRS"]
                     result.attrs = json.loads(df_metadata)
             return result
+        except OSError as error:
+            print(f"{error}")
+            # print(f"{filesystem.region}")
         finally:
             if handles is not None:
                 handles.close()
