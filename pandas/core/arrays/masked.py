@@ -308,16 +308,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         value, mask = self._coerce_to_array(value, dtype=self.dtype)
 
         self._data[key] = value
-        if isinstance(mask, BitmaskArray):
-            mask = mask.to_numpy()
-
         self._mask[key] = mask
 
     def __contains__(self, key) -> bool:
         if isna(key) and key is not self.dtype.na_value:
             # GH#52840
             if self._data.dtype.kind == "f" and lib.is_float(key):
-                # TODO: implement low level invert operator on BitmaskArray
                 return bool((np.isnan(self._data) & ~self._mask).any())
 
         return bool(super().__contains__(key))
@@ -402,7 +398,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         values = np.round(self._data, decimals=decimals, **kwargs)
 
         # Usually we'll get same type as self, but ndarray[bool] casts to float
-        return self._maybe_mask_result(values, self._mask)
+        return self._maybe_mask_result(values, self._mask.copy())
 
     # ------------------------------------------------------------------
     # Unary Methods
@@ -1378,14 +1374,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         nv.validate_any((), kwargs)
 
-        # attempt to avoid to_numpy call on mask for best performance
         is_all_na = self._mask.all()
-        is_any_na = self._mask.any()
         if len(self) == 0 or (skipna and is_all_na):
             return np.bool_(False)
 
+        is_any_na = self._mask.any()
         if is_any_na:
-            # fallback to numpy - will be slower
             values = self._data.copy()
             # error: Argument 3 to "putmask" has incompatible type "object";
             # expected "Union[_SupportsArray[dtype[Any]],
@@ -1474,12 +1468,11 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         """
         nv.validate_all((), kwargs)
 
-        # attempt to avoid to_numpy call on mask for best performance
         is_all_na = self._mask.all()
-        is_any_na = self._mask.any()
         if len(self) == 0 or (skipna and is_all_na):
             return np.bool_(True)
 
+        is_any_na = self._mask.any()
         if is_any_na:
             values = self._data.copy()
             # error: Argument 3 to "putmask" has incompatible type "object";
@@ -1546,7 +1539,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             min_count=min_count,
             ngroups=ngroups,
             comp_ids=ids,
-            mask=mask.to_numpy(),
+            mask=mask,
             result_mask=result_mask,
             **kwargs,
         )

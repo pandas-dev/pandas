@@ -155,10 +155,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if isinstance(scalars, BaseMaskedArray):
             # avoid costly conversion to object dtype in ensure_string_array and
             # numerical issues with Float32Dtype
-            na_values = scalars._mask.to_numpy()
+            na_values = scalars._mask
             result = scalars._data
             result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
-            return cls(pa.array(result, mask=na_values, type=pa.string()))
+            return cls(pa.array(result, mask=na_values.to_numpy(), type=pa.string()))
         elif isinstance(scalars, (pa.Array, pa.ChunkedArray)):
             return cls(pc.cast(scalars, pa.string()))
 
