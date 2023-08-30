@@ -190,7 +190,7 @@ class TestTSPlot:
     def test_line_plot_period_series(self, freq):
         idx = period_range("12/31/1999", freq=freq, periods=100)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
-        _check_plot_works(ser.plot, ser.index.freq)
+        _check_plot_works(ser.plot, ser.index.name)
 
     @pytest.mark.parametrize(
         "frqncy", ["1s", "3s", "5min", "7H", "4D", "8W", "11M", "3A"]
@@ -200,7 +200,7 @@ class TestTSPlot:
         # frequency (`frqncy`) rule code. tests resolution of issue #14763
         idx = period_range("12/31/1999", freq=frqncy, periods=100)
         s = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
-        _check_plot_works(s.plot, s.index.freq.rule_code)
+        _check_plot_works(s.plot, s.index.name)
 
     @pytest.mark.parametrize(
         "freq", ["s", "min", "H", "D", "W", "ME", "Q-DEC", "A", "1B30Min"]
@@ -208,7 +208,7 @@ class TestTSPlot:
     def test_line_plot_datetime_series(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
-        _check_plot_works(ser.plot, ser.index.freq.rule_code)
+        _check_plot_works(ser.plot, ser.index.name)
 
     @pytest.mark.parametrize("freq", ["s", "min", "H", "D", "W", "ME", "Q", "A"])
     def test_line_plot_period_frame(self, freq):
@@ -218,7 +218,7 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        _check_plot_works(df.plot, df.index.freq)
+        _check_plot_works(df.plot, df.index.name)
 
     @pytest.mark.parametrize(
         "frqncy", ["1s", "3s", "5min", "7H", "4D", "8W", "11M", "3A"]
@@ -233,7 +233,7 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = df.index.freq.name
+        freq = df.index.name
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
@@ -247,7 +247,7 @@ class TestTSPlot:
             index=idx,
             columns=["A", "B", "C"],
         )
-        freq = df.index.freq.name
+        freq = df.index.name
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.parametrize(
