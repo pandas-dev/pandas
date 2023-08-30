@@ -10084,20 +10084,11 @@ class DataFrame(NDFrame, OpsMixin):
            0  1
         0  3  4
         1  5  5
-
-        >>> def func(x,y): # x refers to the element in the DataFrame
-                if x > y:
-                    x = 2
-                
-                elif x <= y:
-                    x = 1
-                
-                return x
             
-        >>> df.map(func, y=2.5)
-              0  1
-           0  1  1
-           1  2  2
+        >>> df.map(round, digits=2)
+                 0     1
+           0  1.00  2.12
+           1  3.36  4.57
            
         Like Series.map, NA values can be ignored:
 
