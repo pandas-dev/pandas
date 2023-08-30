@@ -277,7 +277,6 @@ class PyArrowImpl(BaseImpl):
             mode="rb",
         )
         try:
-            # print(filesystem.access_key)
             pa_table = self.api.parquet.read_table(
                 path_or_handle,
                 columns=columns,
@@ -295,9 +294,6 @@ class PyArrowImpl(BaseImpl):
                     df_metadata = pa_table.schema.metadata[b"PANDAS_ATTRS"]
                     result.attrs = json.loads(df_metadata)
             return result
-        except OSError as error:
-            print(f"{error}")
-            # print(f"{filesystem.region}")
         finally:
             if handles is not None:
                 handles.close()
