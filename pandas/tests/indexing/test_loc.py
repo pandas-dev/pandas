@@ -201,7 +201,7 @@ class TestLoc:
         df = DataFrame(
             data={
                 "channel": [1, 2, 3],
-                "A": ["String 1", np.NaN, "String 2"],
+                "A": ["String 1", np.nan, "String 2"],
                 "B": [
                     Timestamp("2019-06-11 11:00:00"),
                     pd.NaT,
@@ -2644,6 +2644,13 @@ class TestLocBooleanMask:
         df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
         expected = df.copy()
         df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"]
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_indexer_length_one(self):
+        # GH#51435
+        df = DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
+        expected = DataFrame({"a": ["y"], "b": ["y"]}, dtype=object)
+        df.loc[np.array([True], dtype=np.bool_), ["a"]] = df["b"]
         tm.assert_frame_equal(df, expected)
 
 

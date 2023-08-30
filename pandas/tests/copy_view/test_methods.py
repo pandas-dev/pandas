@@ -489,7 +489,8 @@ def test_shift_no_op(using_copy_on_write):
 
     df.iloc[0, 0] = 0
     if using_copy_on_write:
-        assert not np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
+        assert not np.shares_memory(get_array(df, "a"), get_array(df2, "a"))
+        assert np.shares_memory(get_array(df, "b"), get_array(df2, "b"))
     tm.assert_frame_equal(df2, df_orig)
 
 
@@ -532,16 +533,16 @@ def test_shift_columns(using_copy_on_write):
     df2 = df.shift(periods=1, axis=1)
 
     assert np.shares_memory(get_array(df2, "2020-01-02"), get_array(df, "2020-01-01"))
-    df.iloc[0, 1] = 0
+    df.iloc[0, 0] = 0
     if using_copy_on_write:
         assert not np.shares_memory(
             get_array(df2, "2020-01-02"), get_array(df, "2020-01-01")
         )
-    expected = DataFrame(
-        [[np.nan, 1], [np.nan, 3], [np.nan, 5]],
-        columns=date_range("2020-01-01", "2020-01-02"),
-    )
-    tm.assert_frame_equal(df2, expected)
+        expected = DataFrame(
+            [[np.nan, 1], [np.nan, 3], [np.nan, 5]],
+            columns=date_range("2020-01-01", "2020-01-02"),
+        )
+        tm.assert_frame_equal(df2, expected)
 
 
 def test_pop(using_copy_on_write):
@@ -1335,13 +1336,18 @@ def test_droplevel(using_copy_on_write):
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     else:
         assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
 
     # mutating df2 triggers a copy-on-write for that column / block
     df2.iloc[0, 0] = 0
 
-    assert not np.shares_memory(get_array(df2, "c"), get_array(df, "c"))
+    assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
+
     tm.assert_frame_equal(df, df_orig)
 
 
@@ -1518,13 +1524,27 @@ def test_where_mask_noop_on_single_column(using_copy_on_write, dtype, val, func)
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.parametrize("func", ["mask", "where"])
+def test_chained_where_mask(using_copy_on_write, func):
+    df = DataFrame({"a": [1, 4, 2], "b": 1})
+    df_orig = df.copy()
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            getattr(df["a"], func)(df["a"] > 2, 5, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+        with tm.raises_chained_assignment_error():
+            getattr(df[["a"]], func)(df["a"] > 2, 5, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+
 def test_asfreq_noop(using_copy_on_write):
     df = DataFrame(
         {"a": [0.0, None, 2.0, 3.0]},
-        index=date_range("1/1/2000", periods=4, freq="T"),
+        index=date_range("1/1/2000", periods=4, freq="min"),
     )
     df_orig = df.copy()
-    df2 = df.asfreq(freq="T")
+    df2 = df.asfreq(freq="min")
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))

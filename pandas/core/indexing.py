@@ -604,12 +604,12 @@ class IndexingMixin:
         Raises
         ------
         KeyError
-            * If getting a value and 'label' does not exist in a DataFrame or
-                Series.
+            If getting a value and 'label' does not exist in a DataFrame or Series.
+
         ValueError
-            * If row/column label pair is not a tuple or if any label from
-                the pair is not a scalar for DataFrame.
-            * If label is list-like (*excluding* NamedTuple) for Series.
+            If row/column label pair is not a tuple or if any label
+            from the pair is not a scalar for DataFrame.
+            If label is list-like (*excluding* NamedTuple) for Series.
 
         See Also
         --------
@@ -985,8 +985,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         retval = self.obj
         # Selecting columns before rows is signficiantly faster
+        start_val = (self.ndim - len(tup)) + 1
         for i, key in enumerate(reversed(tup)):
-            i = self.ndim - i - 1
+            i = self.ndim - i - start_val
             if com.is_null_slice(key):
                 continue
 

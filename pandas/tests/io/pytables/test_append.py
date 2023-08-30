@@ -643,7 +643,7 @@ def test_append_hierarchical(tmp_path, setup_path, multiindex_dataframe_random_d
         tm.assert_frame_equal(result, expected)
 
     path = tmp_path / "test.hdf"
-    df.to_hdf(path, "df", format="table")
+    df.to_hdf(path, key="df", format="table")
     result = read_hdf(path, "df", columns=["A", "B"])
     expected = df.reindex(columns=["A", "B"])
     tm.assert_frame_equal(result, expected)

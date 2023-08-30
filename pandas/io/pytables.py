@@ -68,7 +68,6 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.missing import array_equivalent
 
-import pandas as pd
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -1731,7 +1730,7 @@ class HDFStore:
         errors: str = "strict",
     ) -> GenericFixed | Table:
         """return a suitable class to operate"""
-        cls: type[GenericFixed] | type[Table]
+        cls: type[GenericFixed | Table]
 
         if value is not None and not isinstance(value, (Series, DataFrame)):
             raise TypeError("value must be None, Series, or DataFrame")
@@ -2119,7 +2118,7 @@ class IndexCol:
             ]
         )
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """compare 2 col items"""
         return all(
             getattr(self, a, None) == getattr(other, a, None)
@@ -2160,7 +2159,7 @@ class IndexCol:
         if self.freq is not None:
             kwargs["freq"] = _ensure_decoded(self.freq)
 
-        factory: type[Index] | type[DatetimeIndex] = Index
+        factory: type[Index | DatetimeIndex] = Index
         if lib.is_np_dtype(values.dtype, "M") or isinstance(
             values.dtype, DatetimeTZDtype
         ):
@@ -2426,7 +2425,7 @@ class DataCol(IndexCol):
             ]
         )
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         """compare 2 col items"""
         return all(
             getattr(self, a, None) == getattr(other, a, None)
@@ -3224,9 +3223,7 @@ class SeriesFixed(GenericFixed):
         values = self.read_array("values", start=start, stop=stop)
         result = Series(values, index=index, name=self.name, copy=False)
         if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-            import pyarrow as pa
-
-            result = result.astype(pd.ArrowDtype(pa.string()))
+            result = result.astype("string[pyarrow_numpy]")
         return result
 
     # error: Signature of "write" incompatible with supertype "Fixed"
@@ -3296,9 +3293,7 @@ class BlockManagerFixed(GenericFixed):
             columns = items[items.get_indexer(blk_items)]
             df = DataFrame(values.T, columns=columns, index=axes[1], copy=False)
             if using_pyarrow_string_dtype() and is_string_array(values, skipna=True):
-                import pyarrow as pa
-
-                df = df.astype(pd.ArrowDtype(pa.string()))
+                df = df.astype("string[pyarrow_numpy]")
             dfs.append(df)
 
         if len(dfs) > 0:
@@ -4686,9 +4681,7 @@ class AppendableFrameTable(AppendableTable):
                 values,  # type: ignore[arg-type]
                 skipna=True,
             ):
-                import pyarrow as pa
-
-                df = df.astype(pd.ArrowDtype(pa.string()))
+                df = df.astype("string[pyarrow_numpy]")
             frames.append(df)
 
         if len(frames) == 1:

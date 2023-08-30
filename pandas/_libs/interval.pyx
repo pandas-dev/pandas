@@ -511,6 +511,17 @@ cdef class Interval(IntervalMixin):
             or is_timedelta64_object(y)
         ):
             return Interval(self.left + y, self.right + y, closed=self.closed)
+        elif (
+            # __radd__ pattern
+            # TODO(cython3): remove this
+            isinstance(y, Interval)
+            and (
+                isinstance(self, numbers.Number)
+                or PyDelta_Check(self)
+                or is_timedelta64_object(self)
+            )
+        ):
+            return Interval(y.left + self, y.right + self, closed=y.closed)
         return NotImplemented
 
     def __radd__(self, other):
@@ -534,6 +545,10 @@ cdef class Interval(IntervalMixin):
     def __mul__(self, y):
         if isinstance(y, numbers.Number):
             return Interval(self.left * y, self.right * y, closed=self.closed)
+        elif isinstance(y, Interval) and isinstance(self, numbers.Number):
+            # __radd__ semantics
+            # TODO(cython3): remove this
+            return Interval(y.left * self, y.right * self, closed=y.closed)
         return NotImplemented
 
     def __rmul__(self, other):
