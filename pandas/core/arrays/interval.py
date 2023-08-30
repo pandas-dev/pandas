@@ -890,19 +890,12 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def pad_or_backfill(  # pylint: disable=useless-parent-delegation
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
+    def _pad_or_backfill(  # pylint: disable=useless-parent-delegation
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
     ) -> Self:
         # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
         #  this method entirely.
-        return super().pad_or_backfill(
-            method=method, limit=limit, limit_area=limit_area, copy=copy
-        )
+        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
 
     def fillna(
         self, value=None, method=None, limit: int | None = None, copy: bool = True
@@ -1844,14 +1837,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  complex128 ndarray is much more performant.
                 left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
-                # error: Argument 1 to "in1d" has incompatible type
+                # error: Argument 1 to "isin" has incompatible type
                 # "Union[ExtensionArray, ndarray[Any, Any],
                 # ndarray[Any, dtype[Any]]]"; expected
                 # "Union[_SupportsArray[dtype[Any]],
                 # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
                 # int, float, complex, str, bytes, _NestedSequence[
                 # Union[bool, int, float, complex, str, bytes]]]"
-                return np.in1d(left, right)  # type: ignore[arg-type]
+                return np.isin(left, right).ravel()  # type: ignore[arg-type]
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(
                 values.left.dtype

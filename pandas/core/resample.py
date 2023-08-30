@@ -297,7 +297,7 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:02    3
     2013-01-01 00:00:03    4
     2013-01-01 00:00:04    5
-    Freq: S, dtype: int64
+    Freq: s, dtype: int64
 
     >>> r = s.resample('2s')
 
@@ -305,7 +305,7 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:00    3
     2013-01-01 00:00:02    7
     2013-01-01 00:00:04    5
-    Freq: 2S, dtype: int64
+    Freq: 2s, dtype: int64
 
     >>> r.agg(['sum', 'mean', 'max'])
                          sum  mean  max
@@ -606,7 +606,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:30:00    2
         2018-01-01 00:45:00    2
         2018-01-01 01:00:00    2
-        Freq: 15T, dtype: int64
+        Freq: 15min, dtype: int64
 
         Limit the number of upsampled values imputed by the nearest:
 
@@ -616,7 +616,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:30:00    NaN
         2018-01-01 00:45:00    2.0
         2018-01-01 01:00:00    2.0
-        Freq: 15T, dtype: float64
+        Freq: 15min, dtype: float64
         """
         return self._upsample("nearest", limit=limit)
 
@@ -675,7 +675,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    2
         2018-01-01 01:30:00    3
         2018-01-01 02:00:00    3
-        Freq: 30T, dtype: int64
+        Freq: 30min, dtype: int64
 
         >>> s.resample('15min').bfill(limit=2)
         2018-01-01 00:00:00    1.0
@@ -687,7 +687,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:30:00    3.0
         2018-01-01 01:45:00    3.0
         2018-01-01 02:00:00    3.0
-        Freq: 15T, dtype: float64
+        Freq: 15min, dtype: float64
 
         Resampling a DataFrame that has missing values:
 
@@ -788,7 +788,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    2.0
         2018-01-01 01:30:00    NaN
         2018-01-01 02:00:00    3.0
-        Freq: 30T, dtype: float64
+        Freq: 30min, dtype: float64
 
         >>> s.resample('30min').fillna("backfill")
         2018-01-01 00:00:00    1
@@ -796,7 +796,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    2
         2018-01-01 01:30:00    3
         2018-01-01 02:00:00    3
-        Freq: 30T, dtype: int64
+        Freq: 30min, dtype: int64
 
         >>> s.resample('15min').fillna("backfill", limit=2)
         2018-01-01 00:00:00    1.0
@@ -808,7 +808,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:30:00    3.0
         2018-01-01 01:45:00    3.0
         2018-01-01 02:00:00    3.0
-        Freq: 15T, dtype: float64
+        Freq: 15min, dtype: float64
 
         >>> s.resample('30min').fillna("pad")
         2018-01-01 00:00:00    1
@@ -816,7 +816,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    2
         2018-01-01 01:30:00    2
         2018-01-01 02:00:00    3
-        Freq: 30T, dtype: int64
+        Freq: 30min, dtype: int64
 
         >>> s.resample('30min').fillna("nearest")
         2018-01-01 00:00:00    1
@@ -824,7 +824,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    2
         2018-01-01 01:30:00    3
         2018-01-01 02:00:00    3
-        Freq: 30T, dtype: int64
+        Freq: 30min, dtype: int64
 
         Missing values present before the upsampling are not affected.
 
@@ -842,7 +842,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    NaN
         2018-01-01 01:30:00    3.0
         2018-01-01 02:00:00    3.0
-        Freq: 30T, dtype: float64
+        Freq: 30min, dtype: float64
 
         >>> sm.resample('30min').fillna('pad')
         2018-01-01 00:00:00    1.0
@@ -850,7 +850,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    NaN
         2018-01-01 01:30:00    NaN
         2018-01-01 02:00:00    3.0
-        Freq: 30T, dtype: float64
+        Freq: 30min, dtype: float64
 
         >>> sm.resample('30min').fillna('nearest')
         2018-01-01 00:00:00    1.0
@@ -858,7 +858,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    NaN
         2018-01-01 01:30:00    3.0
         2018-01-01 02:00:00    3.0
-        Freq: 30T, dtype: float64
+        Freq: 30min, dtype: float64
 
         DataFrame resampling is done column-wise. All the same options are
         available.
@@ -1019,7 +1019,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:00    1
         2023-03-01 07:00:02    2
         2023-03-01 07:00:04    3
-        Freq: 2S, dtype: int64
+        Freq: 2s, dtype: int64
 
         Downsample the dataframe to 2Hz by providing the period time of 500ms.
 
@@ -1033,7 +1033,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:03.000    1.0
         2023-03-01 07:00:03.500    2.0
         2023-03-01 07:00:04.000    3.0
-        Freq: 500L, dtype: float64
+        Freq: 500ms, dtype: float64
 
         Internal reindexing with ``as_freq()`` prior to interpolation leads to
         an interpolated timeseries on the basis the reindexed timestamps (anchors).
@@ -1052,7 +1052,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:03.200    2.6
         2023-03-01 07:00:03.600    2.8
         2023-03-01 07:00:04.000    3.0
-        Freq: 400L, dtype: float64
+        Freq: 400ms, dtype: float64
 
         Note that the series erroneously increases between two anchors
         ``07:00:00`` and ``07:00:02``.

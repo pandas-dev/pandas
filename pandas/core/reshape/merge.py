@@ -53,6 +53,7 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool,
     is_bool_dtype,
+    is_extension_array_dtype,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -1385,6 +1386,21 @@ class _MergeOperation:
                 if lk.dtype.kind == rk.dtype.kind:
                     continue
 
+                if is_extension_array_dtype(lk.dtype) and not is_extension_array_dtype(
+                    rk.dtype
+                ):
+                    ct = find_common_type([lk.dtype, rk.dtype])
+                    if is_extension_array_dtype(ct):
+                        rk = ct.construct_array_type()._from_sequence(rk)  # type: ignore[union-attr]  # noqa: E501
+                    else:
+                        rk = rk.astype(ct)  # type: ignore[arg-type]
+                elif is_extension_array_dtype(rk.dtype):
+                    ct = find_common_type([lk.dtype, rk.dtype])
+                    if is_extension_array_dtype(ct):
+                        lk = ct.construct_array_type()._from_sequence(lk)  # type: ignore[union-attr]  # noqa: E501
+                    else:
+                        lk = lk.astype(ct)  # type: ignore[arg-type]
+
                 # check whether ints and floats
                 if is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
                     # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
@@ -1679,6 +1695,9 @@ def get_join_indexers(
         elif not sort and how in ["left", "outer"]:
             return _get_no_sort_one_missing_indexer(left_n, False)
 
+    if not sort and how == "outer":
+        sort = True
+
     # get left & right join labels and num. of levels at each location
     mapped = (
         _factorize_keys(left_keys[n], right_keys[n], sort=sort, how=how)
@@ -1697,7 +1716,7 @@ def get_join_indexers(
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = {}
-    if how in ("left", "right"):
+    if how in ("inner", "left", "right"):
         kwargs["sort"] = sort
     join_func = {
         "inner": libjoin.inner_join,

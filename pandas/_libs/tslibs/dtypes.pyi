@@ -1,10 +1,13 @@
 from enum import Enum
 
+from pandas._libs.tslibs.timedeltas import UnitChoices
+
 # These are not public API, but are exposed in the .pyi file because they
 #  are imported in tests.
 _attrname_to_abbrevs: dict[str, str]
 _period_code_map: dict[str, int]
 OFFSET_TO_PERIOD_FREQSTR: dict[str, str]
+DEPR_ABBREVS: dict[str, UnitChoices]
 
 def periods_per_day(reso: int) -> int: ...
 def periods_per_second(reso: int) -> int: ...

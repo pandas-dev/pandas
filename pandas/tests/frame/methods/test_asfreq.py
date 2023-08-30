@@ -76,7 +76,7 @@ class TestAsFreq:
         )
 
         # it works!
-        obj.asfreq("T")
+        obj.asfreq("min")
 
     def test_asfreq_normalize(self, frame_or_series):
         rng = date_range("1/1/2000 09:30", periods=20)
@@ -170,7 +170,7 @@ class TestAsFreq:
         # test for fill value during upsampling, related to issue 3715
 
         # setup
-        rng = date_range("1/1/2016", periods=10, freq="2S")
+        rng = date_range("1/1/2016", periods=10, freq="2s")
         # Explicit cast to 'float' to avoid implicit cast when setting None
         ts = Series(np.arange(len(rng)), index=rng, dtype="float")
         df = DataFrame({"one": ts})
@@ -178,13 +178,13 @@ class TestAsFreq:
         # insert pre-existing missing value
         df.loc["2016-01-01 00:00:08", "one"] = None
 
-        actual_df = df.asfreq(freq="1S", fill_value=9.0)
-        expected_df = df.asfreq(freq="1S").fillna(9.0)
+        actual_df = df.asfreq(freq="1s", fill_value=9.0)
+        expected_df = df.asfreq(freq="1s").fillna(9.0)
         expected_df.loc["2016-01-01 00:00:08", "one"] = None
         tm.assert_frame_equal(expected_df, actual_df)
 
-        expected_series = ts.asfreq(freq="1S").fillna(9.0)
-        actual_series = ts.asfreq(freq="1S", fill_value=9.0)
+        expected_series = ts.asfreq(freq="1s").fillna(9.0)
+        actual_series = ts.asfreq(freq="1s", fill_value=9.0)
         tm.assert_series_equal(expected_series, actual_series)
 
     def test_asfreq_with_date_object_index(self, frame_or_series):

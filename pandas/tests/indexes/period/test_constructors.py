@@ -110,16 +110,18 @@ class TestPeriodIndex:
 
     def test_constructor_nano(self):
         idx = period_range(
-            start=Period(ordinal=1, freq="N"), end=Period(ordinal=4, freq="N"), freq="N"
+            start=Period(ordinal=1, freq="ns"),
+            end=Period(ordinal=4, freq="ns"),
+            freq="ns",
         )
         exp = PeriodIndex(
             [
-                Period(ordinal=1, freq="N"),
-                Period(ordinal=2, freq="N"),
-                Period(ordinal=3, freq="N"),
-                Period(ordinal=4, freq="N"),
+                Period(ordinal=1, freq="ns"),
+                Period(ordinal=2, freq="ns"),
+                Period(ordinal=3, freq="ns"),
+                Period(ordinal=4, freq="ns"),
             ],
-            freq="N",
+            freq="ns",
         )
         tm.assert_index_equal(idx, exp)
 
@@ -144,7 +146,7 @@ class TestPeriodIndex:
 
     def test_constructor_with_without_freq(self):
         # GH53687
-        start = Period("2002-01-01 00:00", freq="30T")
+        start = Period("2002-01-01 00:00", freq="30min")
         exp = period_range(start=start, periods=5, freq=start.freq)
         result = period_range(start=start, periods=5)
         tm.assert_index_equal(exp, result)
@@ -413,14 +415,24 @@ class TestPeriodIndex:
         with pytest.raises(ValueError, match=msg):
             period_range("2011-01", periods=3, freq="0M")
 
-    @pytest.mark.parametrize("freq", ["A", "D", "T", "S"])
+    @pytest.mark.parametrize(
+        "freq_offset, freq_period",
+        [
+            ("A", "A"),
+            ("ME", "M"),
+            ("D", "D"),
+            ("min", "min"),
+            ("s", "s"),
+        ],
+    )
     @pytest.mark.parametrize("mult", [1, 2, 3, 4, 5])
-    def test_constructor_freq_mult_dti_compat(self, mult, freq):
-        freqstr = str(mult) + freq
-        pidx = period_range(start="2014-04-01", freq=freqstr, periods=10)
-        expected = date_range(start="2014-04-01", freq=freqstr, periods=10).to_period(
-            freqstr
-        )
+    def test_constructor_freq_mult_dti_compat(self, mult, freq_offset, freq_period):
+        freqstr_offset = str(mult) + freq_offset
+        freqstr_period = str(mult) + freq_period
+        pidx = period_range(start="2014-04-01", freq=freqstr_period, periods=10)
+        expected = date_range(
+            start="2014-04-01", freq=freqstr_offset, periods=10
+        ).to_period(freqstr_period)
         tm.assert_index_equal(pidx, expected)
 
     @pytest.mark.parametrize("mult", [1, 2, 3, 4, 5])
@@ -464,7 +476,7 @@ class TestPeriodIndex:
         pi = period_range(freq="Min", start="1/1/2001", end="1/1/2001 23:59")
         assert len(pi) == 24 * 60
 
-        pi = period_range(freq="S", start="1/1/2001", end="1/1/2001 23:59:59")
+        pi = period_range(freq="s", start="1/1/2001", end="1/1/2001 23:59:59")
         assert len(pi) == 24 * 60 * 60
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -514,7 +526,7 @@ class TestPeriodIndex:
             Period("2006-12-31", ("w", 1))
 
     @pytest.mark.parametrize(
-        "freq", ["M", "Q", "A", "D", "B", "T", "S", "L", "U", "N", "H"]
+        "freq", ["M", "Q", "A", "D", "B", "min", "s", "ms", "us", "ns", "H"]
     )
     @pytest.mark.filterwarnings(
         r"ignore:Period with BDay freq is deprecated:FutureWarning"

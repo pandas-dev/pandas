@@ -40,7 +40,10 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
-from pandas.core import roperator
+from pandas.core import (
+    missing,
+    roperator,
+)
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays.base import (
@@ -381,8 +384,7 @@ class ArrowExtensionArray(
         elif isna(value):
             pa_scalar = pa.scalar(None, type=pa_type)
         else:
-            # GH 53171: pyarrow does not yet handle pandas non-nano correctly
-            # see https://github.com/apache/arrow/issues/33321
+            # Workaround https://github.com/apache/arrow/issues/37291
             if isinstance(value, Timedelta):
                 if pa_type is None:
                     pa_type = pa.duration(value.unit)
@@ -448,8 +450,7 @@ class ArrowExtensionArray(
                 and pa.types.is_duration(pa_type)
                 and (not isinstance(value, np.ndarray) or value.dtype.kind not in "mi")
             ):
-                # GH 53171: pyarrow does not yet handle pandas non-nano correctly
-                # see https://github.com/apache/arrow/issues/33321
+                # Workaround https://github.com/apache/arrow/issues/37291
                 from pandas.core.tools.timedeltas import to_timedelta
 
                 value = to_timedelta(value, unit=pa_type.unit).as_unit(pa_type.unit)
@@ -462,8 +463,7 @@ class ArrowExtensionArray(
                 pa_array = pa.array(value, from_pandas=True)
 
             if pa_type is None and pa.types.is_duration(pa_array.type):
-                # GH 53171: pyarrow does not yet handle pandas non-nano correctly
-                # see https://github.com/apache/arrow/issues/33321
+                # Workaround https://github.com/apache/arrow/issues/37291
                 from pandas.core.tools.timedeltas import to_timedelta
 
                 value = to_timedelta(value)
@@ -515,7 +515,10 @@ class ArrowExtensionArray(
         if isinstance(item, np.ndarray):
             if not len(item):
                 # Removable once we migrate StringDtype[pyarrow] to ArrowDtype[string]
-                if self._dtype.name == "string" and self._dtype.storage == "pyarrow":
+                if self._dtype.name == "string" and self._dtype.storage in (
+                    "pyarrow",
+                    "pyarrow_numpy",
+                ):
                     pa_dtype = pa.string()
                 else:
                     pa_dtype = self._dtype.pyarrow_dtype
@@ -921,23 +924,30 @@ class ArrowExtensionArray(
         """
         return type(self)(pc.drop_null(self._pa_array))
 
-    def pad_or_backfill(
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
+    def _pad_or_backfill(
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
     ) -> Self:
         if not self._hasna:
             # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
+        if limit is None:
+            method = missing.clean_fill_method(method)
+            try:
+                if method == "pad":
+                    return type(self)(pc.fill_null_forward(self._pa_array))
+                elif method == "backfill":
+                    return type(self)(pc.fill_null_backward(self._pa_array))
+            except pa.ArrowNotImplementedError:
+                # ArrowNotImplementedError: Function 'coalesce' has no kernel
+                #   matching input types (duration[ns], duration[ns])
+                # TODO: remove try/except wrapper if/when pyarrow implements
+                #   a kernel for duration types.
+                pass
+
         # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
         #  this method entirely.
-        return super().pad_or_backfill(
-            method=method, limit=limit, limit_area=limit_area, copy=copy
-        )
+        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -953,8 +963,11 @@ class ArrowExtensionArray(
             # TODO(CoW): Not necessary anymore when CoW is the default
             return self.copy()
 
-        if limit is not None or method is not None:
+        if limit is not None:
             return super().fillna(value=value, method=method, limit=limit, copy=copy)
+
+        if method is not None:
+            return super().fillna(method=method, limit=limit, copy=copy)
 
         if isinstance(value, (np.ndarray, ExtensionArray)):
             # Similar to check_value_size, but we do not mask here since we may
@@ -965,34 +978,14 @@ class ArrowExtensionArray(
                     f" expected {len(self)}"
                 )
 
-        def convert_fill_value(value, pa_type, dtype):
-            if value is None:
-                return value
-            if isinstance(value, (pa.Scalar, pa.Array, pa.ChunkedArray)):
-                return value
-            if isinstance(value, Timedelta) and value.unit in ("s", "ms"):
-                # Workaround https://github.com/apache/arrow/issues/37291
-                value = value.to_numpy()
-            if is_array_like(value):
-                pa_box = pa.array
-            else:
-                pa_box = pa.scalar
-            try:
-                value = pa_box(value, type=pa_type, from_pandas=True)
-            except pa.ArrowTypeError as err:
-                msg = f"Invalid value '{str(value)}' for dtype {dtype}"
-                raise TypeError(msg) from err
-            return value
-
-        fill_value = convert_fill_value(value, self._pa_array.type, self.dtype)
+        try:
+            fill_value = self._box_pa(value, pa_type=self._pa_array.type)
+        except pa.ArrowTypeError as err:
+            msg = f"Invalid value '{str(value)}' for dtype {self.dtype}"
+            raise TypeError(msg) from err
 
         try:
-            if method is None:
-                return type(self)(pc.fill_null(self._pa_array, fill_value=fill_value))
-            elif method == "pad":
-                return type(self)(pc.fill_null_forward(self._pa_array))
-            elif method == "backfill":
-                return type(self)(pc.fill_null_backward(self._pa_array))
+            return type(self)(pc.fill_null(self._pa_array, fill_value=fill_value))
         except pa.ArrowNotImplementedError:
             # ArrowNotImplementedError: Function 'coalesce' has no kernel
             #   matching input types (duration[ns], duration[ns])
@@ -2462,11 +2455,11 @@ class ArrowExtensionArray(
             "W": "week",
             "D": "day",
             "H": "hour",
-            "T": "minute",
-            "S": "second",
-            "L": "millisecond",
-            "U": "microsecond",
-            "N": "nanosecond",
+            "min": "minute",
+            "s": "second",
+            "ms": "millisecond",
+            "us": "microsecond",
+            "ns": "nanosecond",
         }
         unit = pa_supported_unit.get(offset._prefix, None)
         if unit is None:
