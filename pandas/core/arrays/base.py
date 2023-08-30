@@ -1926,7 +1926,8 @@ class ExtensionArray:
         )
 
     def _explode(self) -> tuple[Self, npt.NDArray[np.uint64]]:
-        """Transform each element of list-like to a row.
+        """
+        Transform each element of list-like to a row.
 
         For arrays that do not contain list-like elements the default
         implementation of this method just returns a copy and an array
@@ -1942,9 +1943,17 @@ class ExtensionArray:
 
         See Also
         --------
-        Series.explode : the method on the ``Series`` object that this
+        Series.explode : The method on the ``Series`` object that this
             extension array method is meant to support.
 
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> a = pd.array([[1, 2, 3], [4], [5, 6]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+        >>> a._explode()
+        (<ArrowExtensionArray>
+        [1, 2, 3, 4, 5, 6]
+        Length: 6, dtype: int64[pyarrow], array([3, 1, 2], dtype=int32))
         """
         values = self.copy()
         counts = np.ones(shape=(len(self),), dtype=np.uint64)
