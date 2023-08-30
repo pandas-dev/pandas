@@ -35,6 +35,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas.compat import pa_version_under8p0
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -462,6 +463,8 @@ def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
 
 @pytest.fixture
 def postgresql_adbc_conn():
+    if pa_version_under8p0:
+        pytest.skip("ADBC requires pyarrow >= 8.0.0")
     pytest.importorskip("adbc_driver_postgresql")
     from adbc_driver_postgresql import dbapi
 
@@ -495,6 +498,8 @@ def sqlite_conn(sqlite_engine):
 
 @pytest.fixture
 def sqlite_adbc_conn():
+    if pa_version_under8p0:
+        pytest.skip("ADBC requires pyarrow >= 8.0.0")
     pytest.importorskip("adbc_driver_sqlite")
     from adbc_driver_sqlite import dbapi
 
