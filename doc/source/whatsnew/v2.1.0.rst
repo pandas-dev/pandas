@@ -551,7 +551,6 @@ Other Deprecations
 - Deprecated ``freq`` parameter in :class:`.PeriodArray` constructor, pass ``dtype`` instead (:issue:`52462`)
 - Deprecated allowing non-standard inputs in :func:`take`, pass either a ``numpy.ndarray``, :class:`.ExtensionArray`, :class:`Index`, or :class:`Series` (:issue:`52981`)
 - Deprecated allowing non-standard sequences for :func:`isin`, :func:`value_counts`, :func:`unique`, :func:`factorize`, case to one of ``numpy.ndarray``, :class:`Index`, :class:`.ExtensionArray`, or :class:`Series` before calling (:issue:`52986`)
-- Deprecated allowing passing :class:`BlockManager` objects to :class:`DataFrame` or :class:`SingleBlockManager` objects to :class:`Series` (:issue:`52419`)
 - Deprecated behavior of :class:`DataFrame` reductions ``sum``, ``prod``, ``std``, ``var``, ``sem`` with ``axis=None``, in a future version this will operate over both axes returning a scalar instead of behaving like ``axis=0``; note this also affects numpy functions e.g. ``np.sum(df)`` (:issue:`21597`)
 - Deprecated behavior of :func:`concat` when :class:`DataFrame` has columns that are all-NA, in a future version these will not be discarded when determining the resulting dtype (:issue:`40893`)
 - Deprecated behavior of :meth:`Series.dt.to_pydatetime`, in a future version this will return a :class:`Series` containing python ``datetime`` objects instead of an ``ndarray`` of datetimes; this matches the behavior of other :attr:`Series.dt` properties (:issue:`20306`)
