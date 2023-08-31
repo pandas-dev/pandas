@@ -558,23 +558,6 @@ def sqlite_iris_conn(sqlite_iris_engine):
 
 
 @pytest.fixture
-def sqlite_iris_adbc_conn(iris_path):
-    if pa_version_under8p0:
-        pytest.skip("ADBC requires pyarrow >= 8.0.0")
-    pytest.importorskip("adbc_driver_sqlite")
-    from adbc_driver_sqlite import dbapi
-
-    with tm.ensure_clean() as name:
-        uri = f"file:{name}"
-        with dbapi.connect(uri) as conn:
-            create_and_load_iris_sqlite3(conn, iris_path)
-
-            yield conn
-            with conn.cursor() as cur:
-                cur.execute("DROP TABLE IF EXISTS test_frame")
-
-
-@pytest.fixture
 def sqlite_buildin():
     with contextlib.closing(sqlite3.connect(":memory:")) as closing_conn:
         with closing_conn as conn:
