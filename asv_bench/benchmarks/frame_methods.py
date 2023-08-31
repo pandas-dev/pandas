@@ -694,22 +694,28 @@ class SortValues:
 
 
 class SortMultiKey:
-    def setup(self):
+    params = [True, False]
+    param_names = ["monotonic"]
+
+    def setup(self, monotonic):
         N = 10000
         K = 10
-        self.df_by_columns = DataFrame(
+        df = DataFrame(
             {
                 "key1": tm.makeStringIndex(N).values.repeat(K),
                 "key2": tm.makeStringIndex(N).values.repeat(K),
                 "value": np.random.randn(N * K),
             }
         )
-        self.df_by_index = self.df_by_columns.set_index(["key1", "key2"])
+        if monotonic:
+            df = df.sort_values(["key1", "key2"])
+        self.df_by_columns = df
+        self.df_by_index = df.set_index(["key1", "key2"])
 
-    def time_sort_values(self):
+    def time_sort_values(self, monotonic):
         self.df_by_columns.sort_values(by=["key1", "key2"])
 
-    def time_sort_index(self):
+    def time_sort_index(self, monotonic):
         self.df_by_index.sort_index()
 
 
