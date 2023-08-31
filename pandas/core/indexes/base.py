@@ -6453,7 +6453,7 @@ class Index(IndexOpsMixin, PandasObject):
             items = [func(x) for x in self]
             return Index(items, name=self.name, tupleize_cols=False)
 
-    def isin(self, values, level: str | int = None) -> npt.NDArray[np.bool_]:
+    def isin(self, values, level: Hashable | int = None) -> npt.NDArray[np.bool_]:
         """
         Return a boolean array where the index values are in `values`.
 
