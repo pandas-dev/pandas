@@ -1,0 +1,36 @@
+.. _whatsnew_211:
+
+What's new in 2.1.1 (September XX, 2023)
+----------------------------------------
+
+These are the changes in pandas 2.1.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_211.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_211.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_211.other:
+
+Other
+~~~~~
+-
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_211.contributors:
+
+Contributors
+~~~~~~~~~~~~
