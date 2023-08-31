@@ -3664,7 +3664,7 @@ class Index(IndexOpsMixin, PandasObject):
         return self._wrap_setop_result(other, result)
 
     def symmetric_difference(
-        self, other, result_name: str | None = None, sort: bool | None = None
+        self, other, result_name: Hashable  | None = None, sort: bool | None = None
     ):
         """
         Compute the symmetric difference of two Index objects.
