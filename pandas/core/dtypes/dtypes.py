@@ -61,6 +61,8 @@ from pandas.core.dtypes.inference import (
     is_list_like,
 )
 
+from pandas.util import capitalize_first_letter
+
 if not pa_version_under7p0:
     import pyarrow as pa
 
@@ -75,6 +77,7 @@ if TYPE_CHECKING:
         DtypeObj,
         IntervalClosedType,
         Ordered,
+        Self,
         npt,
         type_t,
     )
@@ -971,7 +974,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     __hash__ = PeriodDtypeBase.__hash__
     _freq: BaseOffset
 
-    def __new__(cls, freq):
+    def __new__(cls, freq) -> PeriodDtype:  # noqa: PYI034
         """
         Parameters
         ----------
@@ -1002,11 +1005,11 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         u._freq = freq
         return u
 
-    def __reduce__(self):
+    def __reduce__(self) -> tuple[type_t[Self], tuple[str_type]]:
         return type(self), (self.name,)
 
     @property
-    def freq(self):
+    def freq(self) -> BaseOffset:
         """
         The frequency object of this PeriodDtype.
 
@@ -1071,7 +1074,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
-            return other in [self.name, self.name.title()]
+            return other in [self.name, capitalize_first_letter(self.name)]
 
         return super().__eq__(other)
 
@@ -1727,7 +1730,7 @@ class SparseDtype(ExtensionDtype):
         """
         return self._fill_value
 
-    def _check_fill_value(self):
+    def _check_fill_value(self) -> None:
         if not lib.is_scalar(self._fill_value):
             raise ValueError(
                 f"fill_value must be a scalar. Got {self._fill_value} instead"

@@ -2412,7 +2412,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
-    ) -> np.recarray:
+    ) -> np.rec.recarray:
         """
         Convert DataFrame to a NumPy record array.
 
@@ -2437,7 +2437,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        numpy.recarray
+        numpy.rec.recarray
             NumPy ndarray with the DataFrame labels as fields and each row
             of the DataFrame as entries.
 
@@ -2445,7 +2445,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         DataFrame.from_records: Convert structured or record ndarray
             to DataFrame.
-        numpy.recarray: An ndarray that allows field access using
+        numpy.rec.recarray: An ndarray that allows field access using
             attributes, analogous to typed columns in a
             spreadsheet.
 
@@ -5636,10 +5636,14 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> DataFrame:
         if freq is not None and fill_value is not lib.no_default:
             # GH#53832
-            raise ValueError(
-                "Cannot pass both 'freq' and 'fill_value' to "
-                f"{type(self).__name__}.shift"
+            warnings.warn(
+                "Passing a 'freq' together with a 'fill_value' silently ignores "
+                "the fill_value and is deprecated. This will raise in a future "
+                "version.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
             )
+            fill_value = lib.no_default
 
         axis = self._get_axis_number(axis)
 
@@ -7948,6 +7952,7 @@ class DataFrame(NDFrame, OpsMixin):
                     )
         elif isinstance(right, Series):
             # axis=1 is default for DataFrame-with-Series op
+            axis = axis if axis is not None else 1
             if not flex:
                 if not left.axes[axis].equals(right.index):
                     raise ValueError(
@@ -12242,8 +12247,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         mgr = self._mgr
         # convert to BlockManager if needed -> this way support ArrayManager as well
-        mgr = mgr_to_mgr(mgr, "block")
-        mgr = cast(BlockManager, mgr)
+        mgr = cast(BlockManager, mgr_to_mgr(mgr, "block"))
         return {
             k: self._constructor_from_mgr(v, axes=v.axes).__finalize__(self)
             for k, v, in mgr.to_dict(copy=copy).items()
