@@ -54,9 +54,9 @@ from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Generator,
         Hashable,
         Iterable,
-        Iterator,
         Sequence,
     )
 
@@ -253,7 +253,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
 
-    def transform_dict_like(self, func):
+    def transform_dict_like(self, func) -> DataFrame:
         """
         Compute transform in the case of a dict-like func
         """
@@ -315,7 +315,7 @@ class Apply(metaclass=abc.ABCMeta):
         op_name: Literal["agg", "apply"],
         selected_obj: Series | DataFrame,
         kwargs: dict[str, Any],
-    ) -> tuple[list[Hashable], list[Any]]:
+    ) -> tuple[list[Hashable] | Index, list[Any]]:
         """
         Compute agg/apply results for like-like input.
 
@@ -330,7 +330,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        keys : list[hashable]
+        keys : list[Hashable] or Index
             Index labels for result.
         results : list
             Data for result. When aggregating with a Series, this can contain any
@@ -370,12 +370,14 @@ class Apply(metaclass=abc.ABCMeta):
                 new_res = getattr(colg, op_name)(func, *args, **kwargs)
                 results.append(new_res)
                 indices.append(index)
-            keys = selected_obj.columns.take(indices)
+            # error: Incompatible types in assignment (expression has type "Any |
+            # Index", variable has type "list[Any | Callable[..., Any] | str]")
+            keys = selected_obj.columns.take(indices)  # type: ignore[assignment]
 
         return keys, results
 
     def wrap_results_list_like(
-        self, keys: list[Hashable], results: list[Series | DataFrame]
+        self, keys: Iterable[Hashable], results: list[Series | DataFrame]
     ):
         from pandas.core.reshape.concat import concat
 
@@ -772,7 +774,7 @@ class FrameApply(NDFrameApply):
 
     @property
     @abc.abstractmethod
-    def series_generator(self) -> Iterator[Series]:
+    def series_generator(self) -> Generator[Series, None, None]:
         pass
 
     @abc.abstractmethod
@@ -1014,7 +1016,7 @@ class FrameRowApply(FrameApply):
     axis: AxisInt = 0
 
     @property
-    def series_generator(self):
+    def series_generator(self) -> Generator[Series, None, None]:
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
 
     @property
@@ -1075,7 +1077,7 @@ class FrameColumnApply(FrameApply):
         return result.T
 
     @property
-    def series_generator(self):
+    def series_generator(self) -> Generator[Series, None, None]:
         values = self.values
         values = ensure_wrapped_if_datetimelike(values)
         assert len(values) > 0

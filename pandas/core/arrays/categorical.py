@@ -2410,7 +2410,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # ------------------------------------------------------------------
     # ExtensionArray Interface
 
-    def unique(self):
+    def unique(self) -> Self:
         """
         Return the ``Categorical`` which ``categories`` and ``codes`` are
         unique.

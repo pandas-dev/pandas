@@ -407,7 +407,7 @@ class RangeIndex(Index):
     # Indexing Methods
 
     @doc(Index.get_loc)
-    def get_loc(self, key):
+    def get_loc(self, key) -> int:
         if is_integer(key) or (is_float(key) and key.is_integer()):
             new_key = int(key)
             try:
@@ -1107,14 +1107,16 @@ class RangeIndex(Index):
             # test_arithmetic_explicit_conversions
             return super()._arith_method(other, op)
 
-    def take(
+    # error: Return type "Index" of "take" incompatible with return type
+    # "RangeIndex" in supertype "Index"
+    def take(  # type: ignore[override]
         self,
         indices,
         axis: Axis = 0,
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
-    ):
+    ) -> Index:
         if kwargs:
             nv.validate_take((), kwargs)
         if is_scalar(indices):

@@ -12,6 +12,7 @@ from typing import (
     Any,
     Literal,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -124,9 +125,33 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     return mask
 
 
-def clean_fill_method(method: str, allow_nearest: bool = False):
+@overload
+def clean_fill_method(
+    method: Literal["ffill", "pad", "bfill", "backfill"],
+    *,
+    allow_nearest: Literal[False] = ...,
+) -> Literal["pad", "backfill"]:
+    ...
+
+
+@overload
+def clean_fill_method(
+    method: Literal["ffill", "pad", "bfill", "backfill", "nearest"],
+    *,
+    allow_nearest: Literal[True],
+) -> Literal["pad", "backfill", "nearest"]:
+    ...
+
+
+def clean_fill_method(
+    method: Literal["ffill", "pad", "bfill", "backfill", "nearest"],
+    *,
+    allow_nearest: bool = False,
+) -> Literal["pad", "backfill", "nearest"]:
     if isinstance(method, str):
-        method = method.lower()
+        # error: Incompatible types in assignment (expression has type "str", variable
+        # has type "Literal['ffill', 'pad', 'bfill', 'backfill', 'nearest']")
+        method = method.lower()  # type: ignore[assignment]
         if method == "ffill":
             method = "pad"
         elif method == "bfill":
@@ -252,7 +277,9 @@ def validate_limit_area(limit_area: str | None) -> Literal["inside", "outside"] 
     return limit_area  # type: ignore[return-value]
 
 
-def infer_limit_direction(limit_direction, method):
+def infer_limit_direction(
+    limit_direction: Literal["backward", "forward", "both"] | None, method: str
+) -> Literal["backward", "forward", "both"]:
     # Set `limit_direction` depending on `method`
     if limit_direction is None:
         if method in ("backfill", "bfill"):

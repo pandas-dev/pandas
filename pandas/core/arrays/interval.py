@@ -110,7 +110,7 @@ if TYPE_CHECKING:
     )
 
 
-IntervalSideT = Union[TimeArrayLike, np.ndarray]
+IntervalSide = Union[TimeArrayLike, np.ndarray]
 IntervalOrNA = Union[Interval, float]
 
 _interval_shared_docs: dict[str, str] = {}
@@ -219,8 +219,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return 1
 
     # To make mypy recognize the fields
-    _left: IntervalSideT
-    _right: IntervalSideT
+    _left: IntervalSide
+    _right: IntervalSide
     _dtype: IntervalDtype
 
     # ---------------------------------------------------------------------
@@ -237,8 +237,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
-            left: IntervalSideT = data._left
-            right: IntervalSideT = data._right
+            left: IntervalSide = data._left
+            right: IntervalSide = data._right
             closed = closed or data.closed
             dtype = IntervalDtype(left.dtype, closed=closed)
         else:
@@ -280,8 +280,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @classmethod
     def _simple_new(
         cls,
-        left: IntervalSideT,
-        right: IntervalSideT,
+        left: IntervalSide,
+        right: IntervalSide,
         dtype: IntervalDtype,
     ) -> Self:
         result = IntervalMixin.__new__(cls)
@@ -299,7 +299,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         closed: IntervalClosedType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-    ) -> tuple[IntervalSideT, IntervalSideT, IntervalDtype]:
+    ) -> tuple[IntervalSide, IntervalSide, IntervalDtype]:
         """Ensure correctness of input parameters for cls._simple_new."""
         from pandas.core.indexes.base import ensure_index
 
@@ -1031,8 +1031,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed_set.pop()
 
-        left = np.concatenate([interval.left for interval in to_concat])
-        right = np.concatenate([interval.right for interval in to_concat])
+        left: IntervalSide = np.concatenate([interval.left for interval in to_concat])
+        right: IntervalSide = np.concatenate([interval.right for interval in to_concat])
 
         left, right, dtype = cls._ensure_simple_new_inputs(left, right, closed=closed)
 
@@ -1283,7 +1283,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # Vectorized Interval Properties/Attributes
 
     @property
-    def left(self):
+    def left(self) -> Index:
         """
         Return the left endpoints of each Interval in the IntervalArray as an Index.
 
@@ -1303,7 +1303,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return Index(self._left, copy=False)
 
     @property
-    def right(self):
+    def right(self) -> Index:
         """
         Return the right endpoints of each Interval in the IntervalArray as an Index.
 
@@ -1855,11 +1855,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return isin(self.astype(object), values.astype(object))
 
     @property
-    def _combined(self) -> IntervalSideT:
-        left = self.left._values.reshape(-1, 1)
-        right = self.right._values.reshape(-1, 1)
+    def _combined(self) -> IntervalSide:
+        # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
+        # has no attribute "reshape"  [union-attr]
+        left = self.left._values.reshape(-1, 1)  # type: ignore[union-attr]
+        right = self.right._values.reshape(-1, 1)  # type: ignore[union-attr]
         if needs_i8_conversion(left.dtype):
-            comb = left._concat_same_type([left, right], axis=1)
+            # error: Item "ndarray[Any, Any]" of "Any | ndarray[Any, Any]" has
+            # no attribute "_concat_same_type"
+            comb = left._concat_same_type(  # type: ignore[union-attr]
+                [left, right], axis=1
+            )
         else:
             comb = np.concatenate([left, right], axis=1)
         return comb
