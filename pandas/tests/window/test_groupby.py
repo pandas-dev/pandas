@@ -469,7 +469,11 @@ class TestRolling:
                 "column1": range(8),
                 "column2": range(8),
                 "group": ["A"] * 4 + ["B"] * 4,
-                "date": [Timestamp(date) for date in ["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02"]] * 2
+                "date": [
+                    Timestamp(date)
+                    for date in ["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02"]
+                ]
+                * 2,
             }
         )
         result = (
@@ -492,7 +496,11 @@ class TestRolling:
                 "column1": range(8),
                 "column2": range(8),
                 "group": ["A"] * 4 + ["B"] * 4,
-                "date": [Timestamp(date) for date in ["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02"]] * 2
+                "date": [
+                    Timestamp(date)
+                    for date in ["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02"]
+                ]
+                * 2,
             }
         )
 
