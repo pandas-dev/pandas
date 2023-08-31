@@ -53,6 +53,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas import Series
+
 
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
@@ -547,7 +549,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         result = super()._cmp_method(other, op)
         return result.to_numpy(np.bool_, na_value=False)
 
-    def value_counts(self, dropna: bool = True):
+    def value_counts(self, dropna: bool = True) -> Series:
         from pandas import Series
 
         result = super().value_counts(dropna)
