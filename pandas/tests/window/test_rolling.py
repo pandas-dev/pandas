@@ -304,6 +304,30 @@ def test_datetimelike_nonunique_index_centering(
     tm.assert_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "closed,expected",
+    [
+        ("left", [np.nan, np.nan, 1, 1, 1, 10, 14, 14]),
+        ("neither", [np.nan, np.nan, 1, 1, 1, 9, 5, 5]),
+        ("right", [0, 1, 3, 6, 10, 14, 11, 18]),
+        ("both", [0, 1, 3, 6, 10, 15, 20, 27]),
+    ],
+)
+def test_datetimelike_nonunique(closed, expected, frame_or_series):
+    # GH 20712
+    index = DatetimeIndex([
+        "2011-01-01", "2011-01-01", "2011-01-02", "2011-01-02",
+        "2011-01-02", "2011-01-03", "2011-01-04", "2011-01-04",
+    ])
+
+    df = frame_or_series(range(8), index=index, dtype=float)
+    expected = frame_or_series(expected, index=index, dtype=float)
+
+    result = df.rolling('2D', closed=closed).sum()
+
+    tm.assert_equal(result, expected)
+
+
 def test_even_number_window_alignment():
     # see discussion in GH 38780
     s = Series(range(3), index=date_range(start="2020-01-01", freq="D", periods=3))
