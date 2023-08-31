@@ -156,6 +156,7 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
     from sqlalchemy import insert
     from sqlalchemy.engine import Engine
 
+    adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
     iris = iris_table_metadata(dialect)
 
     with iris_file.open(newline=None, encoding="utf-8") as csvfile:
@@ -169,6 +170,13 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
                     iris.drop(conn, checkfirst=True)
                     iris.create(bind=conn)
                     conn.execute(stmt)
+        elif adbc and isinstance(conn, adbc.Connection):
+            from sqlalchemy.schema import CreateTable
+
+            create_stmt = CreateTable(iris, if_not_exists=True)
+            with conn.cursor() as cur:
+                cur.execute(str(create_stmt))
+                cur.execute(str(stmt.compile(compile_kwargs={"literal_binds": True})))
         else:
             with conn.begin():
                 iris.drop(conn, checkfirst=True)
@@ -465,17 +473,24 @@ def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
 
 
 @pytest.fixture
-def postgresql_adbc_conn():
+def postgresql_adbc_conn(iris_path):
     if pa_version_under8p0:
         pytest.skip("ADBC requires pyarrow >= 8.0.0")
     pytest.importorskip("adbc_driver_postgresql")
+    import adbc_driver_manager as mgr
     from adbc_driver_postgresql import dbapi
 
     uri = "postgresql://postgres:postgres@localhost:5432/pandas"
     with dbapi.connect(uri) as conn:
+        try:
+            conn.adbc_get_table_schema("iris")
+        except mgr.OperationalError:
+            conn.rollback()
+            create_and_load_iris(conn, iris_path, "postgresql")
         yield conn
         with conn.cursor() as cur:
             cur.execute("DROP TABLE IF EXISTS test_frame")
+            cur.execute("DROP TABLE IF EXISTS iris")
 
 
 @pytest.fixture
@@ -500,18 +515,25 @@ def sqlite_conn(sqlite_engine):
 
 
 @pytest.fixture
-def sqlite_adbc_conn():
+def sqlite_adbc_conn(iris_path):
     if pa_version_under8p0:
         pytest.skip("ADBC requires pyarrow >= 8.0.0")
     pytest.importorskip("adbc_driver_sqlite")
+    import adbc_driver_manager as mgr
     from adbc_driver_sqlite import dbapi
 
     with tm.ensure_clean() as name:
         uri = f"file:{name}"
         with dbapi.connect(uri) as conn:
+            try:
+                conn.adbc_get_table_schema("iris")
+            except mgr.InternalError:  # note arrow-adbc issue 1022
+                conn.rollback()
+                create_and_load_iris(conn, iris_path, "sqlite")
             yield conn
             with conn.cursor() as cur:
                 cur.execute("DROP TABLE IF EXISTS test_frame")
+                cur.execute("DROP TABLE IF EXISTS iris")
 
 
 @pytest.fixture
@@ -586,7 +608,6 @@ sqlite_iris_connectable = [
     "sqlite_iris_engine",
     "sqlite_iris_conn",
     "sqlite_iris_str",
-    "sqlite_iris_adbc_conn",
 ]
 
 sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
@@ -599,7 +620,9 @@ sqlalchemy_connectable_iris = (
 
 all_connectable = sqlalchemy_connectable + ["sqlite_buildin"] + adbc_connectable
 
-all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
+all_connectable_iris = (
+    sqlalchemy_connectable_iris + ["sqlite_buildin_iris"] + adbc_connectable
+)
 
 
 @pytest.mark.db
@@ -725,6 +748,13 @@ def test_read_iris_query(conn, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_iris_query_chunksize(conn, request):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'chunksize' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
     conn = request.getfixturevalue(conn)
     iris_frame = concat(read_sql_query("SELECT * FROM iris", conn, chunksize=7))
     check_iris_frame(iris_frame)
@@ -738,6 +768,13 @@ def test_read_iris_query_chunksize(conn, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
 def test_read_iris_query_expression_with_parameter(conn, request):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'chunksize' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
     conn = request.getfixturevalue(conn)
     from sqlalchemy import (
         MetaData,
@@ -760,6 +797,14 @@ def test_read_iris_query_expression_with_parameter(conn, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_iris_query_string_with_parameter(conn, request, sql_strings):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'chunksize' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
+
     for db, query in sql_strings["read_parameters"].items():
         if db in conn:
             break

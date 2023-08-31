@@ -2189,7 +2189,8 @@ class ADBCDatabase(PandasSQL):
             mapping = None
 
         with self.con.cursor() as cur:
-            return cur(sql).fetch_arrow_table().to_pandas(types_mapper=mapping)
+            cur.execute(sql)
+            return cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
 
     read_sql = read_query
 
