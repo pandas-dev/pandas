@@ -32,6 +32,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
@@ -2074,7 +2076,7 @@ class ADBCDatabase(PandasSQL):
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL database table into a DataFrame. Only keyword arguments used
-        are table_name and schema. The rest are silently discarded.
+        are table_name and schema. Other keywords will raise NotImplementedError.
 
         Parameters
         ----------
@@ -2120,11 +2122,15 @@ class ADBCDatabase(PandasSQL):
             from pandas.io._util import _arrow_dtype_mapping
 
             mapping = _arrow_dtype_mapping().get
+        elif using_pyarrow_string_dtype():
+            from pandas.io._util import arrow_string_types_mapper
+
+            arrow_string_types_mapper()
         else:
             mapping = None
 
         with self.con.cursor() as cur:
-            return cur(stmt).fetch_arrow_table().to_pandas(types_mapper=mapping)
+            return cur.execute(stmt).fetch_arrow_table().to_pandas(types_mapper=mapping)
 
     def read_query(
         self,
@@ -2203,7 +2209,7 @@ class ADBCDatabase(PandasSQL):
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
-        Only frame, name, if_exists and schema are valid arguments.
+        Only frame, name, if_exists, index and schema are valid arguments.
 
         Parameters
         ----------

@@ -25,6 +25,8 @@ dependencies:
   - pytz
 
   # optional dependencies
+  - adbc_driver_postgresql>=0.6.0
+  - adbc_driver_sqlite>=0.6.0
   - beautifulsoup4>=4.11.1
   - blosc
   - bottleneck>=1.3.4
@@ -113,8 +115,6 @@ dependencies:
   - pygments # Code highlighting
 
   - pip:
-      - adbc_driver_postgresql>=0.6.0
-      - adbc_driver_sqlite>=0.6.0
       - dataframe-api-compat>=0.1.7
       - sphinx-toggleprompt  # conda-forge version has stricter pins on jinja2
       - typing_extensions; python_version<"3.11"
