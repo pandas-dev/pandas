@@ -491,7 +491,7 @@ box_with_array2 = box_with_array
 
 
 @pytest.fixture
-def dict_subclass():
+def dict_subclass() -> type[dict]:
     """
     Fixture for a dictionary subclass.
     """
@@ -504,7 +504,7 @@ def dict_subclass():
 
 
 @pytest.fixture
-def non_dict_mapping_subclass():
+def non_dict_mapping_subclass() -> type[abc.Mapping]:
     """
     Fixture for a non-mapping dictionary subclass.
     """

@@ -193,7 +193,7 @@ def rec_array_to_mgr(
     return mgr
 
 
-def mgr_to_mgr(mgr, typ: str, copy: bool = True):
+def mgr_to_mgr(mgr, typ: str, copy: bool = True) -> Manager:
     """
     Convert to specific type of Manager. Does not copy if the type is already
     correct. Does not guarantee a copy otherwise. `copy` keyword only controls
