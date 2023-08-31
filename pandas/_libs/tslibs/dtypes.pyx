@@ -143,7 +143,7 @@ _period_code_map = {
 
     "B": PeriodDtypeCode.B,        # Business days
     "D": PeriodDtypeCode.D,        # Daily
-    "H": PeriodDtypeCode.H,        # Hourly
+    "h": PeriodDtypeCode.H,        # Hourly
     "min": PeriodDtypeCode.T,      # Minutely
     "s": PeriodDtypeCode.S,        # Secondly
     "ms": PeriodDtypeCode.L,       # Millisecondly
@@ -176,7 +176,7 @@ _attrname_to_abbrevs = {
     "quarter": "Q",
     "month": "M",
     "day": "D",
-    "hour": "H",
+    "hour": "h",
     "minute": "min",
     "second": "s",
     "millisecond": "ms",
@@ -188,6 +188,7 @@ cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 
 # Map deprecated resolution abbreviations to correct resolution abbreviations
 DEPR_ABBREVS: dict[str, str]= {
+    "H": "h",
     "T": "min",
     "t": "min",
     "S": "s",

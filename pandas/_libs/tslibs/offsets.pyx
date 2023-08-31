@@ -1161,7 +1161,7 @@ cdef class Hour(Tick):
     Timestamp('2022-12-09 11:00:00')
     """
     _nanos_inc = 3600 * 1_000_000_000
-    _prefix = "H"
+    _prefix = "h"
     _period_dtype_code = PeriodDtypeCode.H
     _creso = NPY_DATETIMEUNIT.NPY_FR_h
 
@@ -4502,7 +4502,7 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {"MS", "ms", "s"}
+_dont_uppercase = {"h", "MS", "ms", "s"}
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
@@ -4628,7 +4628,7 @@ cpdef to_offset(freq):
                         stacklevel=find_stack_level(),
                     )
                     prefix = c_DEPR_ABBREVS[prefix]
-                if prefix in {"D", "H", "min", "s", "ms", "us", "ns"}:
+                if prefix in {"D", "h", "min", "s", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3H" or
                     #  "2.5T", so we can construct a Timedelta with the
                     #  matching unit and get our offset from delta_to_tick

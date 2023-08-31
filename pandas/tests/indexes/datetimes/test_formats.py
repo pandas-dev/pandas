@@ -87,8 +87,8 @@ class TestDatetimeIndexRendering:
             ),
             (
                 ["2012-01-01"],
-                "24H",
-                "DatetimeIndex(['2012-01-01'], dtype='datetime64[ns]', freq='24H')",
+                "24h",
+                "DatetimeIndex(['2012-01-01'], dtype='datetime64[ns]', freq='24h')",
             ),
         ],
     )
@@ -108,7 +108,7 @@ class TestDatetimeIndexRendering:
         idxs.append(
             DatetimeIndex(
                 ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"],
-                freq="H",
+                freq="h",
                 tz="Asia/Tokyo",
             )
         )
@@ -135,7 +135,7 @@ class TestDatetimeIndexRendering:
         exp.append(
             "DatetimeIndex(['2011-01-01 09:00:00+09:00', "
             "'2011-01-01 10:00:00+09:00', '2011-01-01 11:00:00+09:00']"
-            ", dtype='datetime64[ns, Asia/Tokyo]', freq='H')"
+            ", dtype='datetime64[ns, Asia/Tokyo]', freq='h')"
         )
         exp.append(
             "DatetimeIndex(['2011-01-01 09:00:00-05:00', "
@@ -161,7 +161,7 @@ class TestDatetimeIndexRendering:
         idx4 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
         idx5 = DatetimeIndex(
             ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"],
-            freq="H",
+            freq="h",
             tz="Asia/Tokyo",
         )
         idx6 = DatetimeIndex(
@@ -218,7 +218,7 @@ class TestDatetimeIndexRendering:
         idx4 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
         idx5 = DatetimeIndex(
             ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"],
-            freq="H",
+            freq="h",
             tz="Asia/Tokyo",
         )
         idx6 = DatetimeIndex(
@@ -236,7 +236,7 @@ class TestDatetimeIndexRendering:
         exp5 = (
             "DatetimeIndex: 3 entries, 2011-01-01 09:00:00+09:00 "
             "to 2011-01-01 11:00:00+09:00\n"
-            "Freq: H"
+            "Freq: h"
         )
 
         exp6 = """DatetimeIndex: 3 entries, 2011-01-01 09:00:00-05:00 to NaT"""

@@ -63,8 +63,8 @@ class TestAsFreq:
     def test_asfreq_datetimeindex_empty(self, frame_or_series):
         # GH#14320
         index = DatetimeIndex(["2016-09-29 11:00"])
-        expected = frame_or_series(index=index, dtype=object).asfreq("H")
-        result = frame_or_series([3], index=index.copy()).asfreq("H")
+        expected = frame_or_series(index=index, dtype=object).asfreq("h")
+        result = frame_or_series([3], index=index.copy()).asfreq("h")
         tm.assert_index_equal(expected.index, result.index)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
@@ -194,8 +194,8 @@ class TestAsFreq:
         ts2 = ts.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts2.asfreq("4H", method="ffill")
-        expected = ts.asfreq("4H", method="ffill")
+        result = ts2.asfreq("4h", method="ffill")
+        expected = ts.asfreq("4h", method="ffill")
         tm.assert_equal(result, expected)
 
     def test_asfreq_with_unsorted_index(self, frame_or_series):

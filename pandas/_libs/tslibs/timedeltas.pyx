@@ -1484,7 +1484,7 @@ cdef class _Timedelta(timedelta):
         elif self._m:
             return "min"
         elif self._h:
-            return "H"
+            return "h"
         else:
             return "D"
 
