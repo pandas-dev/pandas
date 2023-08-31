@@ -1186,11 +1186,17 @@ def test_groupby_transform_with_datetimes(func, values):
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_transform_dtype():
+def test_groupby_transform_dtype(series_ops_only):
     # GH 22243
     df = DataFrame({"a": [1], "val": [1.35]})
 
-    result = df["val"].transform(lambda x: x.map(lambda y: f"+{y}"))
+    warning_type = None if series_ops_only else FutureWarning
+
+    msg = "Series.transform will in the future only operate on whole series. Set "
+    with tm.assert_produces_warning(warning_type, match=msg):
+        result = df["val"].transform(
+            lambda x: x.map(lambda y: f"+{y}"), series_ops_only=series_ops_only
+        )
     expected1 = Series(["+1.35"], name="val", dtype="object")
     tm.assert_series_equal(result, expected1)
 

@@ -1854,7 +1854,7 @@ def test_transform_frame(using_copy_on_write):
         tm.assert_frame_equal(df, df_orig)
 
 
-def test_transform_series(using_copy_on_write):
+def test_transform_series(using_copy_on_write, series_ops_only):
     ser = Series([1, 2, 3])
     ser_orig = ser.copy()
 
@@ -1862,7 +1862,11 @@ def test_transform_series(using_copy_on_write):
         ser.iloc[0] = 100
         return ser
 
-    ser.transform(func)
+    warning_type = None if series_ops_only else FutureWarning
+
+    msg = "Series.transform will in the future only operate on whole series. Set "
+    with tm.assert_produces_warning(warning_type, match=msg):
+        ser.transform(func, series_ops_only=series_ops_only)
     if using_copy_on_write:
         tm.assert_series_equal(ser, ser_orig)
 

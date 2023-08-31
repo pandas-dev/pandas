@@ -4613,12 +4613,30 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         axis=_shared_doc_kwargs["axis"],
     )
     def transform(
-        self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
+        self,
+        func: AggFuncType,
+        axis: Axis = 0,
+        *args,
+        series_ops_only: bool = False,
+        **kwargs,
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
+        if not series_ops_only and not isinstance(func, str):
+            cls_name = type(self).__name__
+            warnings.warn(
+                f"{cls_name}.transform will in the future only operate on "
+                "whole series. Set series_ops_only = True to opt into the new behavior "
+                f"or use {cls_name}.map to continue operating on series elements.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        by_row = False if series_ops_only else "compat"
         ser = self.copy(deep=False) if using_copy_on_write() else self
-        result = SeriesApply(ser, func=func, args=args, kwargs=kwargs).transform()
+        result = SeriesApply(
+            ser, func=func, by_row=by_row, args=args, kwargs=kwargs
+        ).transform()
         return result
 
     def apply(

@@ -5,7 +5,6 @@
 #     3. incompatible ops/dtype/args/kwargs
 #     4. invalid result shape/type
 # If your test does not fit into one of these categories, add to this list.
-
 from itertools import chain
 import re
 
@@ -21,6 +20,7 @@ from pandas import (
     notna,
 )
 import pandas._testing as tm
+from pandas.tests.apply.common import transform_obj
 
 
 @pytest.mark.parametrize("result_type", ["foo", 1])
@@ -71,12 +71,15 @@ def test_map_arg_is_dict_with_invalid_na_action_raises(input_na_action):
 
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"A": {"B": "sum"}}, {"A": {"B": ["sum"]}}])
-def test_nested_renamer(frame_or_series, method, func):
+def test_nested_renamer(frame_or_series, method, func, series_ops_only):
     # GH 35964
     obj = frame_or_series({"A": [1]})
     match = "nested renamer is not supported"
     with pytest.raises(SpecificationError, match=match):
-        getattr(obj, method)(func)
+        if method == "transform":
+            transform_obj(obj, func, series_ops_only=series_ops_only)
+        else:
+            getattr(obj, method)(func)
 
 
 @pytest.mark.parametrize(
@@ -102,31 +105,38 @@ def test_apply_dict_depr():
 
 
 @pytest.mark.parametrize("method", ["agg", "transform"])
-def test_dict_nested_renaming_depr(method):
+def test_dict_nested_renaming_depr(method, series_ops_only):
     df = DataFrame({"A": range(5), "B": 5})
 
     # nested renaming
     msg = r"nested renamer is not supported"
+    func = {"A": {"foo": "min"}, "B": {"bar": "max"}}
     with pytest.raises(SpecificationError, match=msg):
-        getattr(df, method)({"A": {"foo": "min"}, "B": {"bar": "max"}})
+        if method == "transform":
+            transform_obj(df, func, series_ops_only=series_ops_only)
+        else:
+            getattr(df, method)(func)
 
 
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"B": "sum"}, {"B": ["sum"]}])
-def test_missing_column(method, func):
+def test_missing_column(method, func, series_ops_only):
     # GH 40004
     obj = DataFrame({"A": [1]})
     match = re.escape("Column(s) ['B'] do not exist")
     with pytest.raises(KeyError, match=match):
-        getattr(obj, method)(func)
+        if method == "transform":
+            transform_obj(obj, func, series_ops_only=series_ops_only)
+        else:
+            getattr(obj, method)(func)
 
 
-def test_transform_mixed_column_name_dtypes():
+def test_transform_mixed_column_name_dtypes(series_ops_only):
     # GH39025
     df = DataFrame({"a": ["1"]})
     msg = r"Column\(s\) \[1, 'b'\] do not exist"
     with pytest.raises(KeyError, match=msg):
-        df.transform({"a": int, 1: str, "b": int})
+        transform_obj(df, {"a": int, 1: str, "b": int}, series_ops_only=series_ops_only)
 
 
 @pytest.mark.parametrize(
@@ -264,12 +274,13 @@ def test_agg_none_to_type():
         df.agg({"a": lambda x: int(x.iloc[0])})
 
 
-def test_transform_none_to_type():
+def test_transform_none_to_type(series_ops_only):
     # GH#34377
     df = DataFrame({"a": [None]})
     msg = "argument must be a"
+    func = {"a": lambda x: int(x.iloc[0])}
     with pytest.raises(TypeError, match=msg):
-        df.transform({"a": lambda x: int(x.iloc[0])})
+        transform_obj(df, func, series_ops_only=series_ops_only)
 
 
 @pytest.mark.parametrize(
@@ -316,12 +327,12 @@ def test_transform_and_agg_err_series(string_series, func, msg):
 
 
 @pytest.mark.parametrize("func", [["max", "min"], ["max", "sqrt"]])
-def test_transform_wont_agg_frame(axis, float_frame, func):
+def test_transform_wont_agg_frame(axis, float_frame, func, series_ops_only):
     # GH 35964
     # cannot both transform and agg
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
-        float_frame.transform(func, axis=axis)
+        transform_obj(float_frame, func, axis=axis, series_ops_only=series_ops_only)
 
 
 @pytest.mark.parametrize("func", [["min", "max"], ["sqrt", "max"]])
@@ -334,13 +345,15 @@ def test_transform_wont_agg_series(string_series, func):
     warn_msg = "invalid value encountered in sqrt"
     with pytest.raises(ValueError, match=msg):
         with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):
-            string_series.transform(func)
+            transform_obj(string_series, func, series_ops_only=True)
 
 
 @pytest.mark.parametrize(
     "op_wrapper", [lambda x: x, lambda x: [x], lambda x: {"A": x}, lambda x: {"A": [x]}]
 )
-def test_transform_reducer_raises(all_reductions, frame_or_series, op_wrapper):
+def test_transform_reducer_raises(
+    all_reductions, frame_or_series, op_wrapper, series_ops_only
+):
     # GH 35964
     op = op_wrapper(all_reductions)
 
@@ -349,4 +362,4 @@ def test_transform_reducer_raises(all_reductions, frame_or_series, op_wrapper):
 
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
-        obj.transform(op)
+        transform_obj(obj, op, series_ops_only=series_ops_only)

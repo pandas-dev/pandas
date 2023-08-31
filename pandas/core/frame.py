@@ -9961,11 +9961,30 @@ class DataFrame(NDFrame, OpsMixin):
         axis=_shared_doc_kwargs["axis"],
     )
     def transform(
-        self, func: AggFuncType, axis: Axis = 0, *args, **kwargs
+        self,
+        func: AggFuncType,
+        axis: Axis = 0,
+        *args,
+        series_ops_only: bool = False,
+        **kwargs,
     ) -> DataFrame:
         from pandas.core.apply import frame_apply
 
-        op = frame_apply(self, func=func, axis=axis, args=args, kwargs=kwargs)
+        if not series_ops_only and is_list_like(func):
+            cls_name = type(self).__name__
+            warnings.warn(
+                f"{cls_name}.transform will in the future only operate on "
+                "whole series. Set series_ops_only = True to opt into the new behavior "
+                f"or use {cls_name}.map to continue operating on series elements.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        by_row = False if series_ops_only else "compat"
+
+        op = frame_apply(
+            self, func=func, axis=axis, args=args, by_row=by_row, kwargs=kwargs
+        )
         result = op.transform()
         assert isinstance(result, DataFrame)
         return result

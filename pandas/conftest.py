@@ -2015,3 +2015,11 @@ def warsaw(request) -> str:
 @pytest.fixture()
 def arrow_string_storage():
     return ("pyarrow", "pyarrow_numpy")
+
+
+@pytest.fixture(params=[True, False])
+def series_ops_only(request):
+    """
+    Parameter used in Series.transform and DataFrame.transform. Remove in pandas v3.0.
+    """
+    return request.param

@@ -211,12 +211,14 @@ class Apply(metaclass=abc.ABCMeta):
         axis = self.axis
         args = self.args
         kwargs = self.kwargs
+        by_row = self.by_row
 
         is_series = obj.ndim == 1
 
         if obj._get_axis_number(axis) == 1:
             assert not is_series
-            return obj.T.transform(func, 0, *args, **kwargs).T
+            soo = False if by_row else True
+            return obj.T.transform(func, 0, *args, series_ops_only=soo, **kwargs).T
 
         if is_list_like(func) and not is_dict_like(func):
             func = cast(list[AggFuncTypeBase], func)
@@ -230,14 +232,17 @@ class Apply(metaclass=abc.ABCMeta):
             func = cast(AggFuncTypeDict, func)
             return self.transform_dict_like(func)
 
-        # func is either str or callable
-        func = cast(AggFuncTypeBase, func)
-        try:
-            result = self.transform_str_or_callable(func)
-        except TypeError:
-            raise
-        except Exception as err:
-            raise ValueError("Transform function failed") from err
+        if not self.by_row:
+            result = obj.apply(func, by_row=by_row, args=args, **kwargs)
+        else:
+            # func is either str or callable
+            func = cast(AggFuncTypeBase, func)
+            try:
+                result = self.transform_str_or_callable(func)
+            except TypeError:
+                raise
+            except Exception as err:
+                raise ValueError("Transform function failed") from err
 
         # Functions that transform may return empty Series/DataFrame
         # when the dtype is not appropriate
@@ -267,6 +272,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         args = self.args
         kwargs = self.kwargs
+        soo = False if self.by_row else True
 
         # transform is currently only for Series/DataFrame
         assert isinstance(obj, ABCNDFrame)
@@ -279,7 +285,7 @@ class Apply(metaclass=abc.ABCMeta):
         results: dict[Hashable, DataFrame | Series] = {}
         for name, how in func.items():
             colg = obj._gotitem(name, ndim=1)
-            results[name] = colg.transform(how, 0, *args, **kwargs)
+            results[name] = colg.transform(how, 0, *args, series_ops_only=soo, **kwargs)
         return concat(results, axis=1)
 
     def transform_str_or_callable(self, func) -> DataFrame | Series:
@@ -602,7 +608,10 @@ class Apply(metaclass=abc.ABCMeta):
             Result when self.func is a list-like or dict-like, None otherwise.
         """
         if self.axis == 1 and isinstance(self.obj, ABCDataFrame):
-            return self.obj.T.apply(self.func, 0, args=self.args, **self.kwargs).T
+            soo = False if self.by_row else True
+            return self.obj.T.apply(
+                self.func, 0, args=self.args, series_ops_only=soo, **self.kwargs
+            ).T
 
         func = self.func
         kwargs = self.kwargs

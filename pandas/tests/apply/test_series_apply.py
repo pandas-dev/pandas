@@ -11,7 +11,6 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.tests.apply.common import series_transform_kernels
 
 
 @pytest.fixture(params=[False, "compat"])
@@ -315,66 +314,6 @@ def test_transform(string_series, by_row):
 
         result = string_series.apply({"foo": np.sqrt, "bar": np.abs}, by_row=by_row)
         tm.assert_series_equal(result.reindex_like(expected), expected)
-
-
-@pytest.mark.parametrize("op", series_transform_kernels)
-def test_transform_partial_failure(op, request):
-    # GH 35964
-    if op in ("ffill", "bfill", "pad", "backfill", "shift"):
-        request.node.add_marker(
-            pytest.mark.xfail(reason=f"{op} is successful on any dtype")
-        )
-
-    # Using object makes most transform kernels fail
-    ser = Series(3 * [object])
-
-    if op in ("fillna", "ngroup"):
-        error = ValueError
-        msg = "Transform function failed"
-    else:
-        error = TypeError
-        msg = "|".join(
-            [
-                "not supported between instances of 'type' and 'type'",
-                "unsupported operand type",
-            ]
-        )
-
-    with pytest.raises(error, match=msg):
-        ser.transform([op, "shift"])
-
-    with pytest.raises(error, match=msg):
-        ser.transform({"A": op, "B": "shift"})
-
-    with pytest.raises(error, match=msg):
-        ser.transform({"A": [op], "B": ["shift"]})
-
-    with pytest.raises(error, match=msg):
-        ser.transform({"A": [op, "shift"], "B": [op]})
-
-
-def test_transform_partial_failure_valueerror():
-    # GH 40211
-    def noop(x):
-        return x
-
-    def raising_op(_):
-        raise ValueError
-
-    ser = Series(3 * [object])
-    msg = "Transform function failed"
-
-    with pytest.raises(ValueError, match=msg):
-        ser.transform([noop, raising_op])
-
-    with pytest.raises(ValueError, match=msg):
-        ser.transform({"A": raising_op, "B": noop})
-
-    with pytest.raises(ValueError, match=msg):
-        ser.transform({"A": [raising_op], "B": [noop]})
-
-    with pytest.raises(ValueError, match=msg):
-        ser.transform({"A": [noop, raising_op], "B": [noop]})
 
 
 def test_demo():
