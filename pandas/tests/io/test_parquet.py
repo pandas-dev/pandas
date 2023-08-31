@@ -1,5 +1,6 @@
 """ test parquet compat """
 import datetime
+from decimal import Decimal
 from io import BytesIO
 import os
 import pathlib
@@ -16,6 +17,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under7p0,
     pa_version_under8p0,
+    pa_version_under11p0,
     pa_version_under13p0,
 )
 
@@ -979,7 +981,7 @@ class TestParquetPyArrow(Base):
             ver = "2.6"
         else:
             ver = "2.0"
-        df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
+        df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1ns", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
@@ -1113,8 +1115,6 @@ class TestParquetPyArrow(Base):
 
     def test_string_inference(self, tmp_path, pa):
         # GH#54431
-        import pyarrow as pa
-
         path = tmp_path / "test_string_inference.p"
         df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
         df.to_parquet(path, engine="pyarrow")
@@ -1122,9 +1122,21 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path, engine="pyarrow")
         expected = pd.DataFrame(
             data={"a": ["x", "y"]},
-            dtype=pd.ArrowDtype(pa.string()),
-            index=pd.Index(["a", "b"], dtype=pd.ArrowDtype(pa.string())),
+            dtype="string[pyarrow_numpy]",
+            index=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
         )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(pa_version_under11p0, reason="not supported before 11.0")
+    def test_roundtrip_decimal(self, tmp_path, pa):
+        # GH#54768
+        import pyarrow as pa
+
+        path = tmp_path / "decimal.p"
+        df = pd.DataFrame({"a": [Decimal("123.00")]}, dtype="string[pyarrow]")
+        df.to_parquet(path, schema=pa.schema([("a", pa.decimal128(5))]))
+        result = read_parquet(path)
+        expected = pd.DataFrame({"a": ["123"]}, dtype="string[python]")
         tm.assert_frame_equal(result, expected)
 
 
