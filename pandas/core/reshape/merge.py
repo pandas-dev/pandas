@@ -2438,10 +2438,10 @@ def _factorize_keys(
             llab, rlab, count = (
                 pc.fill_null(dc.indices[slice(len_lk)], length)
                 .to_numpy()
-                .astype(np.intp),
+                .astype(np.intp, copy=False),
                 pc.fill_null(dc.indices[slice(len_lk, None)], length)
                 .to_numpy()
-                .astype(np.intp),
+                .astype(np.intp, copy=False),
                 len(dc.dictionary),
             )
             if how == "right":
