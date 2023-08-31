@@ -112,9 +112,9 @@ def to_dict(
         return into_c(
             (
                 col,
-                list(map(maybe_box_native, df[col].values.tolist()))
+                list(map(maybe_box_native, df[col].tolist()))
                 if i in object_dtype_indices_as_set
-                else df[col].values.tolist(),
+                else df[col].tolist(),
             )
             for i, col in enumerate(df.columns)
         )
