@@ -159,7 +159,7 @@ def arrays_to_mgr(
 
 
 def rec_array_to_mgr(
-    data: np.recarray | np.ndarray,
+    data: np.rec.recarray | np.ndarray,
     index,
     columns,
     dtype: DtypeObj | None,

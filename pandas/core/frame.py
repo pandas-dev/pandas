@@ -2402,7 +2402,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
-    ) -> np.recarray:
+    ) -> np.rec.recarray:
         """
         Convert DataFrame to a NumPy record array.
 
@@ -2427,7 +2427,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        numpy.recarray
+        numpy.rec.recarray
             NumPy ndarray with the DataFrame labels as fields and each row
             of the DataFrame as entries.
 
@@ -2435,7 +2435,7 @@ class DataFrame(NDFrame, OpsMixin):
         --------
         DataFrame.from_records: Convert structured or record ndarray
             to DataFrame.
-        numpy.recarray: An ndarray that allows field access using
+        numpy.rec.recarray: An ndarray that allows field access using
             attributes, analogous to typed columns in a
             spreadsheet.
 
