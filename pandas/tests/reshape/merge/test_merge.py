@@ -2951,6 +2951,7 @@ def test_merge_ea_int_and_float_numpy():
 
 def test_merge_arrow_string_index():
     # GH#54894
+    pytest.importorskip("pyarrow")
     left = DataFrame({"a": ["a", "b"]}, dtype="string[pyarrow]")
     right = DataFrame({"b": 1}, index=Index(["a", "c"], dtype="string[pyarrow]"))
     result = left.merge(right, left_on="a", right_index=True, how="left")
