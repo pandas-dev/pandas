@@ -8,6 +8,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
+from pandas._libs.arrays import BitmaskArray
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
@@ -201,10 +202,10 @@ def to_numeric(
 
     # GH33013: for IntegerArray & FloatingArray extract non-null values for casting
     # save mask to reconstruct the full array after casting
-    mask: npt.NDArray[np.bool_] | None = None
+    mask: npt.NDArray[np.bool_] | BitmaskArray | None = None
     if isinstance(values, BaseMaskedArray):
-        mask = values._mask.to_numpy()
-        values = values._data[~mask]
+        mask = values._mask
+        values = values._data[~mask]  # type: ignore[call-overload]
 
     values_dtype = getattr(values, "dtype", None)
     if isinstance(values_dtype, ArrowDtype):
@@ -278,8 +279,9 @@ def to_numeric(
         if mask is None or (new_mask is not None and new_mask.shape == mask.shape):
             # GH 52588
             mask = new_mask
-
-        assert isinstance(mask, np.ndarray)
+        else:
+            mask = mask.copy()
+        assert isinstance(mask, (np.ndarray, BitmaskArray))
         data = np.zeros(mask.shape, dtype=values.dtype)
         data[~mask] = values
 

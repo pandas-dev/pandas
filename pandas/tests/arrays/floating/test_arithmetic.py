@@ -88,8 +88,7 @@ def test_pow_scalar(dtype):
 
     result = np.nan**a
     expected = FloatingArray(
-        np.array([1, np.nan, np.nan, np.nan], dtype=dtype.numpy_dtype),
-        mask=a._mask,
+        np.array([1, np.nan, np.nan, np.nan], dtype=dtype.numpy_dtype), mask=a._mask
     )
     tm.assert_extension_array_equal(result, expected)
 

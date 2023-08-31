@@ -1151,6 +1151,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
+        mask: BitmaskArray | np.ndarray
         if name in {"any", "all", "min", "max", "sum", "prod", "mean", "var", "std"}:
             result = getattr(self, name)(skipna=skipna, **kwargs)
         else:
@@ -1166,8 +1167,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 return self._wrap_na_result(name=name, axis=0, mask_size=(1,))
             else:
                 result = result.reshape(1)
-                np_mask = np.zeros(1, dtype=bool)
-                return self._maybe_mask_result(result, np_mask)
+                mask = np.zeros(1, dtype=bool)
+                return self._maybe_mask_result(result, mask)
 
         if isna(result):
             return libmissing.NA
