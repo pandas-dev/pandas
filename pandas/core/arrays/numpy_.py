@@ -240,7 +240,10 @@ class NumpyExtensionArray(  # type: ignore[misc]
             fv = np.nan
         return self._ndarray, fv
 
-    def pad_or_backfill(
+    # Base EA class (and all other EA classes) don't have limit_area keyword
+    # This can be removed here as well when the interpolate ffill/bfill method
+    # deprecation is enforced
+    def _pad_or_backfill(
         self,
         *,
         method: FillnaOptions,

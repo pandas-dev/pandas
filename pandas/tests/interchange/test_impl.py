@@ -32,7 +32,7 @@ def string_data():
             "234,3245.67",
             "gSaf,qWer|Gre",
             "asd3,4sad|",
-            np.NaN,
+            np.nan,
         ]
     }
 

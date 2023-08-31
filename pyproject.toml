@@ -81,13 +81,12 @@ xml = ['lxml>=4.8.0']
 plot = ['matplotlib>=3.6.1']
 output_formatting = ['jinja2>=3.1.2', 'tabulate>=0.8.10']
 clipboard = ['PyQt5>=5.15.6', 'qtpy>=2.2.0']
-compression = ['brotlipy>=0.7.0', 'python-snappy>=0.6.1', 'zstandard>=0.17.0']
+compression = ['zstandard>=0.17.0']
 consortium-standard = ['dataframe-api-compat>=0.1.7']
 all = ['beautifulsoup4>=4.11.1',
        # blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
        #'blosc>=1.21.0',
        'bottleneck>=1.3.4',
-       'brotlipy>=0.7.0',
        'dataframe-api-compat>=0.1.7',
        'fastparquet>=0.8.1',
        'fsspec>=2022.05.0',
@@ -110,7 +109,6 @@ all = ['beautifulsoup4>=4.11.1',
        'pytest>=7.3.2',
        'pytest-xdist>=2.2.0',
        'pytest-asyncio>=0.17.0',
-       'python-snappy>=0.6.1',
        'pyxlsb>=1.0.9',
        'qtpy>=2.2.0',
        'scipy>=1.8.1',
@@ -211,6 +209,7 @@ line-length = 88
 target-version = "py310"
 fix = true
 unfixable = []
+typing-modules = ["pandas._typing"]
 
 select = [
   # pyflakes
@@ -228,7 +227,7 @@ select = [
   # flake8-gettext
   "INT",
   # pylint
-  "PLC", "PLE", "PLR", "PLW",
+  "PL",
   # misc lints
   "PIE",
   # flake8-pyi
@@ -251,6 +250,10 @@ select = [
   "NPY002",
   # Perflint
   "PERF",
+  # flynt
+  "FLY",
+  # flake8-logging-format
+  "G",
 ]
 
 ignore = [
@@ -303,16 +306,14 @@ ignore = [
   "PLW0603",
   # Docstrings should not be included in stubs
   "PYI021",
+  # Use `typing.NamedTuple` instead of `collections.namedtuple`
+  "PYI024",
   # No builtin `eval()` allowed
   "PGH001",
   # compare-to-empty-string
   "PLC1901",
-  # Use typing_extensions.TypeAlias for type aliases
-  # "PYI026",  # not yet implemented
-  # Use "collections.abc.*" instead of "typing.*" (PEP 585 syntax)
-  # "PYI027",  # not yet implemented
   # while int | float can be shortened to float, the former is more explicit
-  # "PYI041",  # not yet implemented
+  "PYI041",
   # incorrect-dict-iterator, flags valid Series.items usage
   "PERF102",
   # try-except-in-loop, becomes useless in Python 3.11
@@ -357,7 +358,7 @@ exclude = [
 "asv_bench/*" = ["TID", "NPY002"]
 # to be enabled gradually
 "pandas/core/*" = ["PLR5501"]
-"pandas/tests/*" = ["B028"]
+"pandas/tests/*" = ["B028", "FLY"]
 "scripts/*" = ["B028"]
 # Keep this one enabled
 "pandas/_typing.py" = ["TCH"]

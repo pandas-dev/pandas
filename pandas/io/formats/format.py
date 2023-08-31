@@ -1715,7 +1715,7 @@ def format_percentiles(
     """
     percentiles = np.asarray(percentiles)
 
-    # It checks for np.NaN as well
+    # It checks for np.nan as well
     if (
         not is_numeric_dtype(percentiles)
         or not np.all(percentiles >= 0)
@@ -1830,8 +1830,8 @@ def get_format_datetime64_from_values(
 class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
+        ido = is_dates_only(self.values)
         values = self.values.astype(object)
-        ido = is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
             ido, date_format=self.date_format
         )

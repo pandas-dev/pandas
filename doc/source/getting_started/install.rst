@@ -206,6 +206,7 @@ Package                                                          Minimum support
 `NumPy <https://numpy.org>`__                                    1.22.4
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
+`tzdata <https://pypi.org/project/tzdata/>`__                    2022.1
 ================================================================ ==========================
 
 .. _install.optional_dependencies:
@@ -411,8 +412,6 @@ Installable with ``pip install "pandas[compression]"``
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
-brotli                    0.7.0              compression     Brotli compression
-python-snappy             0.6.1              compression     Snappy compression
 Zstandard                 0.17.0             compression     Zstandard compression
 ========================= ================== =============== =============================================================
 

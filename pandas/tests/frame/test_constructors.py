@@ -1781,8 +1781,6 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype=np.str_)
         tm.assert_frame_equal(df, expected)
-        df = DataFrame(index=[0, 1], columns=[0, 1], dtype=np.unicode_)
-        tm.assert_frame_equal(df, expected)
         df = DataFrame(index=[0, 1], columns=[0, 1], dtype="U5")
         tm.assert_frame_equal(df, expected)
 
@@ -1826,7 +1824,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_with_datetimes(self):
         intname = np.dtype(np.int_).name
-        floatname = np.dtype(np.float_).name
+        floatname = np.dtype(np.float64).name
         objectname = np.dtype(np.object_).name
 
         # single item
@@ -2687,8 +2685,8 @@ class TestDataFrameConstructors:
 
     def test_frame_string_inference(self):
         # GH#54430
-        pa = pytest.importorskip("pyarrow")
-        dtype = pd.ArrowDtype(pa.string())
+        pytest.importorskip("pyarrow")
+        dtype = "string[pyarrow_numpy]"
         expected = DataFrame(
             {"a": ["a", "b"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
         )
@@ -2718,6 +2716,31 @@ class TestDataFrameConstructors:
         )
         with pd.option_context("future.infer_string", True):
             df = DataFrame({"a": ["a", "b"]}, dtype="object")
+        tm.assert_frame_equal(df, expected)
+
+    def test_frame_string_inference_array_string_dtype(self):
+        # GH#54496
+        pytest.importorskip("pyarrow")
+        dtype = "string[pyarrow_numpy]"
+        expected = DataFrame(
+            {"a": ["a", "b"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame({"a": np.array(["a", "b"])})
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame({0: ["a", "b"], 1: ["c", "d"]}, dtype=dtype)
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame(np.array([["a", "c"], ["b", "d"]]))
+        tm.assert_frame_equal(df, expected)
+
+        expected = DataFrame(
+            {"a": ["a", "b"], "b": ["c", "d"]},
+            dtype=dtype,
+            columns=Index(["a", "b"], dtype=dtype),
+        )
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame(np.array([["a", "c"], ["b", "d"]]), columns=["a", "b"])
         tm.assert_frame_equal(df, expected)
 
 
@@ -2938,7 +2961,9 @@ class TestDataFrameConstructorWithDatetimeTZ:
 
     def test_frame_timeseries_column(self):
         # GH19157
-        dr = date_range(start="20130101T10:00:00", periods=3, freq="T", tz="US/Eastern")
+        dr = date_range(
+            start="20130101T10:00:00", periods=3, freq="min", tz="US/Eastern"
+        )
         result = DataFrame(dr, columns=["timestamps"])
         expected = DataFrame(
             {

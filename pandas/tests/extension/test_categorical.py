@@ -72,11 +72,7 @@ def data_for_grouping():
     return Categorical(["a", "a", None, None, "b", "b", "a", "c"])
 
 
-class TestDtype(base.BaseDtypeTests):
-    pass
-
-
-class TestInterface(base.BaseInterfaceTests):
+class TestCategorical(base.ExtensionTests):
     @pytest.mark.xfail(reason="Memory usage doesn't match")
     def test_memory_usage(self, data):
         # TODO: Is this deliberate?
@@ -106,8 +102,6 @@ class TestInterface(base.BaseInterfaceTests):
             assert na_value_obj not in data
             assert na_value_obj in data_missing  # this line differs from super method
 
-
-class TestConstructors(base.BaseConstructorsTests):
     def test_empty(self, dtype):
         cls = dtype.construct_array_type()
         result = cls._empty((4,), dtype=dtype)
@@ -117,12 +111,6 @@ class TestConstructors(base.BaseConstructorsTests):
         #  dtype on our result.
         assert result.dtype == CategoricalDtype([])
 
-
-class TestReshaping(base.BaseReshapingTests):
-    pass
-
-
-class TestGetitem(base.BaseGetitemTests):
     @pytest.mark.skip(reason="Backwards compatibility")
     def test_getitem_scalar(self, data):
         # CategoricalDtype.type isn't "correct" since it should
@@ -130,28 +118,6 @@ class TestGetitem(base.BaseGetitemTests):
         # to break things by changing.
         super().test_getitem_scalar(data)
 
-
-class TestSetitem(base.BaseSetitemTests):
-    pass
-
-
-class TestIndex(base.BaseIndexTests):
-    pass
-
-
-class TestMissing(base.BaseMissingTests):
-    pass
-
-
-class TestReduce(base.BaseReduceTests):
-    pass
-
-
-class TestAccumulate(base.BaseAccumulateTests):
-    pass
-
-
-class TestMethods(base.BaseMethodsTests):
     @pytest.mark.xfail(reason="Unobserved categories included")
     def test_value_counts(self, all_data, dropna):
         return super().test_value_counts(all_data, dropna)
@@ -178,12 +144,6 @@ class TestMethods(base.BaseMethodsTests):
         result = data.map(lambda x: x, na_action=na_action)
         tm.assert_extension_array_equal(result, data)
 
-
-class TestCasting(base.BaseCastingTests):
-    pass
-
-
-class TestArithmeticOps(base.BaseArithmeticOpsTests):
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         # frame & scalar
         op_name = all_arithmetic_operators
@@ -205,20 +165,24 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
             )
         super().test_arith_series_with_scalar(data, op_name)
 
-
-class TestComparisonOps(base.BaseComparisonOpsTests):
-    def _compare_other(self, s, data, op, other):
+    def _compare_other(self, ser: pd.Series, data, op, other):
         op_name = f"__{op.__name__}__"
         if op_name not in ["__eq__", "__ne__"]:
             msg = "Unordered Categoricals can only compare equality or not"
             with pytest.raises(TypeError, match=msg):
                 op(data, other)
         else:
-            return super()._compare_other(s, data, op, other)
+            return super()._compare_other(ser, data, op, other)
 
+    @pytest.mark.xfail(reason="Categorical overrides __repr__")
+    @pytest.mark.parametrize("size", ["big", "small"])
+    def test_array_repr(self, data, size):
+        super().test_array_repr(data, size)
 
-class TestParsing(base.BaseParsingTests):
-    pass
+    @pytest.mark.xfail(reason="TBD")
+    @pytest.mark.parametrize("as_index", [True, False])
+    def test_groupby_extension_agg(self, as_index, data_for_grouping):
+        super().test_groupby_extension_agg(as_index, data_for_grouping)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):

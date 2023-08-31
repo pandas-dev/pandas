@@ -142,7 +142,7 @@ def test_constructor_timedelta_window_and_minperiods(window, raw):
         index=date_range("2017-08-08", periods=n, freq="D"),
     )
     expected = DataFrame(
-        {"value": np.append([np.NaN, 1.0], np.arange(3.0, 27.0, 3))},
+        {"value": np.append([np.nan, 1.0], np.arange(3.0, 27.0, 3))},
         index=date_range("2017-08-08", periods=n, freq="D"),
     )
     result_roll_sum = df.rolling(window=window, min_periods=2).sum()
@@ -920,7 +920,7 @@ def test_rolling_numerical_accuracy_kahan_mean(add):
     result = (
         df.resample("1s").ffill().rolling("3s", closed="left", min_periods=3).mean()
     )
-    dates = date_range("19700101 09:00:00", periods=7, freq="S")
+    dates = date_range("19700101 09:00:00", periods=7, freq="s")
     expected = DataFrame(
         {
             "A": [
@@ -1065,11 +1065,13 @@ def test_rolling_on_df_transposed():
     ("index", "window"),
     [
         (
-            period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="T"),
-            "2T",
+            period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="min"),
+            "2min",
         ),
         (
-            period_range(start="2020-01-01 08:00", end="2020-01-01 12:00", freq="30T"),
+            period_range(
+                start="2020-01-01 08:00", end="2020-01-01 12:00", freq="30min"
+            ),
             "1h",
         ),
     ],
@@ -1461,15 +1463,15 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
             0.03,
             0.03,
             0.001,
-            np.NaN,
+            np.nan,
             0.002,
             0.008,
-            np.NaN,
-            np.NaN,
-            np.NaN,
-            np.NaN,
-            np.NaN,
-            np.NaN,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
             0.005,
             0.2,
         ]
@@ -1480,8 +1482,8 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
         0.005,
         0.005,
         0.008,
-        np.NaN,
-        np.NaN,
+        np.nan,
+        np.nan,
         0.005,
         0.102500,
     ]
@@ -1495,7 +1497,7 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
 
 def test_rolling_sum_all_nan_window_floating_artifacts():
     # GH#41053
-    df = DataFrame([0.002, 0.008, 0.005, np.NaN, np.NaN, np.NaN])
+    df = DataFrame([0.002, 0.008, 0.005, np.nan, np.nan, np.nan])
     result = df.rolling(3, min_periods=0).sum()
     expected = DataFrame([0.002, 0.010, 0.015, 0.013, 0.005, 0.0])
     tm.assert_frame_equal(result, expected)
