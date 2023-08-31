@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed regression in :func:`merge` when merging over a PyArrow string index (:issue:`54894`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_211.bug_fixes:
