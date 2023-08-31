@@ -65,7 +65,7 @@ def replace_bool_with_bool_t(to_replace, content: str) -> str:
                     + replaced_line[col_offset + 4 :]
                 )
         new_lines.append(replaced_line)
-    return "\n".join(new_lines)
+    return "\n".join(new_lines) + "\n"
 
 
 def check_for_bool_in_generic(content: str) -> tuple[bool, str]:
