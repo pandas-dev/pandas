@@ -116,9 +116,8 @@ axis : {0 or 'index', 1 or 'columns'}, default 0
 
     .. deprecated:: 2.1.0
 
-        This now defaults to 0 for both `DataFrame` and `Series`.
-        DataFrame.groupby with axis=1 is deprecated. Do
-        Instead, do `frame.T.groupby(...)` without axis.
+        Will be removed and behave like axis=0 in a future version.
+        For ``axis=1``, do ``frame.T.groupby(...)`` instead.
 
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
