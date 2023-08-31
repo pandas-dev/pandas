@@ -98,18 +98,17 @@ def get_indexer_indexer(
             sort_remaining=sort_remaining,
             na_position=na_position,
         )
+    elif (ascending and target.is_monotonic_increasing) or (
+        not ascending and target.is_monotonic_decreasing
+    ):
+        # Check monotonic-ness before sort an index (GH 11080)
+        return None
     elif isinstance(target, ABCMultiIndex):
         codes = [lev.codes for lev in target._get_codes_for_sorting()]
         indexer = lexsort_indexer(
             codes, orders=ascending, na_position=na_position, codes_given=True
         )
     else:
-        # Check monotonic-ness before sort an index (GH 11080)
-        if (ascending and target.is_monotonic_increasing) or (
-            not ascending and target.is_monotonic_decreasing
-        ):
-            return None
-
         # ascending can only be a Sequence for MultiIndex
         indexer = nargsort(
             target,
