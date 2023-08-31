@@ -113,6 +113,13 @@ by : mapping, function, label, pd.Grouper or list of such
 axis : {0 or 'index', 1 or 'columns'}, default 0
     Split along rows (0) or columns (1). For `Series` this parameter
     is unused and defaults to 0.
+
+    .. deprecated:: 2.1.0
+
+        This now defaults to 0 for both `DataFrame` and `Series`.
+        DataFrame.groupby with axis=1 is deprecated. Do
+        Instead, do `frame.T.groupby(...)` without axis.
+
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.
