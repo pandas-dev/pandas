@@ -2037,7 +2037,6 @@ class DataFrame(NDFrame, OpsMixin):
         [defaultdict(<class 'list'>, {'col1': 1, 'col2': 0.5}),
          defaultdict(<class 'list'>, {'col1': 2, 'col2': 0.75})]
         """
-
         from pandas.core.methods.to_dict import to_dict
 
         return to_dict(self, orient, into, index)

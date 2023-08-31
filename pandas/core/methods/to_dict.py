@@ -108,7 +108,6 @@ def to_dict(
 
     elif orient == "list":
         object_dtype_indices_as_set: set[int] = set(box_native_indices)
-
         return into_c(
             (
                 col,
