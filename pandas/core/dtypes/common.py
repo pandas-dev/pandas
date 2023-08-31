@@ -498,7 +498,7 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     # GH#52527
     warnings.warn(
         "is_categorical_dtype is deprecated and will be removed in a future "
-        "version. Use isinstance(dtype, CategoricalDtype) instead",
+        "version. Use isinstance(dtype, pd.CategoricalDtype) instead",
         FutureWarning,
         stacklevel=find_stack_level(),
     )
