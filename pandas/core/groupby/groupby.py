@@ -143,6 +143,7 @@ from pandas.core.util.numba_ import (
 if TYPE_CHECKING:
     from typing import Any
 
+    from pandas.core.resample import Resampler
     from pandas.core.window import (
         ExpandingGroupby,
         ExponentialMovingWindowGroupby,
@@ -2095,7 +2096,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def any(self, skipna: bool = True):
+    def any(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if any value in the group is truthful, else False.
 
@@ -2151,7 +2152,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def all(self, skipna: bool = True):
+    def all(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if all values in the group are truthful, else False.
 
@@ -2400,7 +2401,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result.__finalize__(self.obj, method="groupby")
 
     @final
-    def median(self, numeric_only: bool = False):
+    def median(self, numeric_only: bool = False) -> NDFrameT:
         """
         Compute median of groups, excluding missing values.
 
@@ -2829,7 +2830,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.__finalize__(self.obj, method="value_counts")
 
     @final
-    def sem(self, ddof: int = 1, numeric_only: bool = False):
+    def sem(self, ddof: int = 1, numeric_only: bool = False) -> NDFrameT:
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -3120,7 +3121,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2   30   72"""
         ),
     )
-    def prod(self, numeric_only: bool = False, min_count: int = 0):
+    def prod(self, numeric_only: bool = False, min_count: int = 0) -> NDFrameT:
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
@@ -3262,7 +3263,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    def first(self, numeric_only: bool = False, min_count: int = -1):
+    def first(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
         """
         Compute the first non-null entry of each column.
 
@@ -3332,7 +3333,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def last(self, numeric_only: bool = False, min_count: int = -1):
+    def last(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
         """
         Compute the last non-null entry of each column.
 
@@ -3519,7 +3520,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    def resample(self, rule, *args, **kwargs):
+    def resample(self, rule, *args, **kwargs) -> Resampler:
         """
         Provide resampling when using a TimeGrouper.
 
