@@ -2126,8 +2126,9 @@ class ExtensionBlock(EABackedBlock):
         """Extension arrays are never treated as views."""
         return False
 
+    # error: Cannot override writeable attribute with read-only property
     @cache_readonly
-    def is_numeric(self):
+    def is_numeric(self) -> bool:  # type: ignore[override]
         return self.values.dtype._is_numeric
 
     def _slice(
