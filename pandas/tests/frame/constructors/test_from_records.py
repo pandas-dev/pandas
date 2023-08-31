@@ -93,7 +93,7 @@ class TestFromRecords:
                 tup.extend(b.iloc[i].values)
             tuples.append(tuple(tup))
 
-        recarray = np.array(tuples, dtype=dtypes).view(np.recarray)
+        recarray = np.array(tuples, dtype=dtypes).view(np.rec.recarray)
         recarray2 = df.to_records()
         lists = [list(x) for x in tuples]
 
