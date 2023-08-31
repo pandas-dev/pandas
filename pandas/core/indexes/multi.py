@@ -2208,17 +2208,9 @@ class MultiIndex(Index):
     def argsort(
         self, *args, na_position: str = "last", **kwargs
     ) -> npt.NDArray[np.intp]:
-        if len(args) == 0 and len(kwargs) == 0:
-            # lexsort is significantly faster than self._values.argsort()
-            target = self._sort_levels_monotonic(raise_if_incomparable=True)
-            return lexsort_indexer(
-                # error: Argument 1 to "lexsort_indexer" has incompatible type
-                # "List[Categorical]"; expected "Union[List[Union[ExtensionArray,
-                # ndarray[Any, Any]]], List[Series]]"
-                target._get_codes_for_sorting(),  # type: ignore[arg-type]
-                na_position=na_position,
-            )
-        return self._values.argsort(*args, **kwargs)
+        target = self._sort_levels_monotonic(raise_if_incomparable=True)
+        keys = [lev.codes for lev in target._get_codes_for_sorting()]
+        return lexsort_indexer(keys, na_position=na_position, codes_given=True)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats: int, axis=None) -> MultiIndex:
@@ -2461,12 +2453,12 @@ class MultiIndex(Index):
     def _recode_for_new_levels(
         self, new_levels, copy: bool = True
     ) -> Generator[np.ndarray, None, None]:
-        if len(new_levels) != self.nlevels:
+        if len(new_levels) > self.nlevels:
             raise AssertionError(
                 f"Length of new_levels ({len(new_levels)}) "
-                f"must be same as self.nlevels ({self.nlevels})"
+                f"must be <= self.nlevels ({self.nlevels})"
             )
-        for i in range(self.nlevels):
+        for i in range(len(new_levels)):
             yield recode_for_categories(
                 self.codes[i], self.levels[i], new_levels[i], copy=copy
             )

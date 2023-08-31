@@ -2849,13 +2849,14 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
     def test_keyword_deprecation(self):
         # GH 54397
         msg = (
-            "tarting with pandas version 3.0 all arguments of to_sql except for the "
-            "argument 'name' will be keyword-only."
+            "Starting with pandas version 3.0 all arguments of to_sql except for the "
+            "arguments 'name' and 'con' will be keyword-only."
         )
         df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
+        df.to_sql("example", self.conn)
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_sql("example", self.conn)
+            df.to_sql("example", self.conn, None, if_exists="replace")
 
     def test_default_type_conversion(self):
         df = sql.read_sql_table("types", self.conn)
@@ -2946,7 +2947,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
 
     def test_read_sql_string_inference(self):
         # GH#54430
-        pa = pytest.importorskip("pyarrow")
+        pytest.importorskip("pyarrow")
         table = "test"
         df = DataFrame({"a": ["x", "y"]})
         df.to_sql(table, con=self.conn, index=False, if_exists="replace")
@@ -2954,7 +2955,7 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         with pd.option_context("future.infer_string", True):
             result = read_sql_table(table, self.conn)
 
-        dtype = pd.ArrowDtype(pa.string())
+        dtype = "string[pyarrow_numpy]"
         expected = DataFrame(
             {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
         )

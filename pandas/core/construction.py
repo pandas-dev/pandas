@@ -51,10 +51,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
-    NumpyEADtype,
-)
+from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
@@ -595,9 +592,9 @@ def sanitize_array(
             if data.dtype == object:
                 subarr = maybe_infer_to_datetimelike(data)
             elif data.dtype.kind == "U" and using_pyarrow_string_dtype():
-                import pyarrow as pa
+                from pandas.core.arrays.string_ import StringDtype
 
-                dtype = ArrowDtype(pa.string())
+                dtype = StringDtype(storage="pyarrow_numpy")
                 subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
 
             if subarr is data and copy:
