@@ -53,6 +53,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas import Series
+
 
 ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
@@ -547,10 +549,23 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         result = super()._cmp_method(other, op)
         return result.to_numpy(np.bool_, na_value=False)
 
-    def value_counts(self, dropna: bool = True):
+    def value_counts(self, dropna: bool = True) -> Series:
         from pandas import Series
 
         result = super().value_counts(dropna)
         return Series(
             result._values.to_numpy(), index=result.index, name=result.name, copy=False
         )
+
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        if name in ["any", "all"]:
+            arr = pc.and_kleene(
+                pc.invert(pc.is_null(self._pa_array)), pc.not_equal(self._pa_array, "")
+            )
+            return ArrowExtensionArray(arr)._reduce(
+                name, skipna=skipna, keepdims=keepdims, **kwargs
+            )
+        else:
+            return super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)

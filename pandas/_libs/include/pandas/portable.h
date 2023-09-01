@@ -16,7 +16,7 @@ The full license is in the LICENSE file, distributed with this software.
 #endif
 
 // GH-23516 - works around locale perf issues
-// from MUSL libc, MIT Licensed - see LICENSES
+// from MUSL libc, licence at LICENSES/MUSL_LICENSE
 #define isdigit_ascii(c) (((unsigned)(c) - '0') < 10u)
 #define getdigit_ascii(c, default) (isdigit_ascii(c) ? ((int)((c) - '0')) : default)
 #define isspace_ascii(c) (((c) == ' ') || (((unsigned)(c) - '\t') < 5))

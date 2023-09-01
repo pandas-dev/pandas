@@ -21,12 +21,16 @@ By default building pandas from source will generate a release build. To generat
 
     pip install -ve . --no-build-isolation --config-settings=builddir="debug" --config-settings=setup-args="-Dbuildtype=debug"
 
+.. note::
+
+   conda environements update CFLAGS/CPPFLAGS with flags that are geared towards generating releases. If using conda, you may need to set ``CFLAGS="$CFLAGS -O0"`` and ``CPPFLAGS="$CPPFLAGS -O0"`` to ensure optimizations are turned off for debugging
+
 By specifying ``builddir="debug"`` all of the targets will be built and placed in the debug directory relative to the project root. This helps to keep your debug and release artifacts separate; you are of course able to choose a different directory name or omit altogether if you do not care to separate build types.
 
 Editor support
 --------------
 
-The meson build system generates a `compilation database <https://clang.llvm.org/docs/JSONCompilationDatabase.html>`_ automatically and places it in the build directory. Many language servers and IDEs can use this information to provide code-completion, go-to-defintion and error checking support as you type.
+The meson build system generates a `compilation database <https://clang.llvm.org/docs/JSONCompilationDatabase.html>`_ automatically and places it in the build directory. Many language servers and IDEs can use this information to provide code-completion, go-to-definition and error checking support as you type.
 
 How each language server / IDE chooses to look for the compilation database may vary. When in doubt you may want to create a symlink at the root of the project that points to the compilation database in your build directory. Assuming you used *debug* as your directory name, you can run::
 
