@@ -431,8 +431,7 @@ def handle_shared_axes(
                 if is_first_col(ax):
                     continue
                 if sharey or _has_externally_shared_axis(ax, "y"):
-                    # _remove_labels_from_axis(ax.yaxis)
-                    pass
+                    _remove_labels_from_axis(ax.yaxis)
 
 
 def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:

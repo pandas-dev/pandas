@@ -205,7 +205,9 @@ class BoxPlot(LinePlot):
                 )
                 self.maybe_color_bp(bp)
                 self._return_obj[label] = ret
-                self._set_ticklabels(ax, ticklabels)
+                _set_ticklabels(
+                    ax=ax, labels=ticklabels, is_vertical=self.orientation == "vertical"
+                )
         else:
             y = self.data.values.T
             ax = self._get_ax(0)
@@ -393,6 +395,7 @@ def boxplot(
         _set_ticklabels(
             ax=ax, labels=keys, is_vertical=kwds.get("vert", True), rotation=rot
         )
+        maybe_color_bp(bp, **kwds)
 
         # Return axes in multiplot case, maybe revisit later # 985
         if return_type == "dict":
