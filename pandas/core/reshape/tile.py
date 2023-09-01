@@ -43,7 +43,6 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
-from pandas.core import nanops
 import pandas.core.algorithms as algos
 
 if TYPE_CHECKING:
@@ -376,7 +375,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
     if x_idx.size == 0:
         raise ValueError("Cannot cut empty array")
 
-    rng = (nanops.nanmin(x_idx), nanops.nanmax(x_idx))
+    rng = (x_idx.min(), x_idx.max())
     mn, mx = rng
 
     if np.isinf(mn) or np.isinf(mx):
