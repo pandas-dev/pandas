@@ -518,7 +518,9 @@ class TestArrowArray(base.ExtensionTests):
         super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna, request):
+    def test_reduce_series_boolean(
+        self, data, all_boolean_reductions, skipna, na_value, request
+    ):
         pa_dtype = data.dtype.pyarrow_dtype
         xfail_mark = pytest.mark.xfail(
             raises=TypeError,
@@ -751,7 +753,9 @@ class TestArrowArray(base.ExtensionTests):
         result = data.value_counts()
         assert result.dtype == ArrowDtype(pa.int64())
 
-    def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, request):
+    def test_argmin_argmax(
+        self, data_for_sorting, data_missing_for_sorting, na_value, request
+    ):
         pa_dtype = data_for_sorting.dtype.pyarrow_dtype
         if pa.types.is_decimal(pa_dtype) and pa_version_under7p0:
             request.node.add_marker(
@@ -760,7 +764,7 @@ class TestArrowArray(base.ExtensionTests):
                     raises=pa.ArrowNotImplementedError,
                 )
             )
-        super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting)
+        super().test_argmin_argmax(data_for_sorting, data_missing_for_sorting, na_value)
 
     @pytest.mark.parametrize(
         "op_name, skipna, expected",
