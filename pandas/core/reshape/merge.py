@@ -105,6 +105,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
+    from pandas.core.indexes.frozen import FrozenList
 
 _factorizers = {
     np.int64: libhashtable.Int64Factorizer,
@@ -1738,7 +1739,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: npt.NDArray[np.intp],
     rindexer: npt.NDArray[np.intp],
-) -> tuple[list[Index], npt.NDArray[np.intp], list[Hashable]]:
+) -> tuple[FrozenList, FrozenList, FrozenList]:
     """
     *this is an internal non-public method*
 
@@ -1814,7 +1815,7 @@ def restore_dropped_levels_multijoin(
 
         # error: Cannot determine type of "__add__"
         join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
-        join_codes = join_codes + [restore_codes]
+        join_codes = join_codes + [restore_codes]  # type: ignore[has-type]
         join_names = join_names + [dropped_level_name]
 
     return join_levels, join_codes, join_names
