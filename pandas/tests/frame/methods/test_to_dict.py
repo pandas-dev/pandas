@@ -175,6 +175,8 @@ class TestDataFrameToDict:
         ],
     )
     def test_to_dict_not_unique(self, orient, expected):
+        # GH#54824: This is to make sure that dataframes with non-unique column
+        # would have uniform behavior throughout different orients
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "A", "B"])
         result = df.to_dict(orient)
         assert result == expected
