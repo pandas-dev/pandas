@@ -175,7 +175,7 @@ class TestDataFrameIndexingWhere:
 
         def _check_set(df, cond, check_dtypes=True):
             dfi = df.copy()
-            econd = cond.reindex_like(df).fillna(True)
+            econd = cond.reindex_like(df).fillna(True).infer_objects(copy=False)
             expected = dfi.mask(~econd)
 
             return_value = dfi.where(cond, np.nan, inplace=True)
@@ -356,7 +356,9 @@ class TestDataFrameIndexingWhere:
         expected = a.copy()
         expected[~do_not_replace] = b
 
-        result = a.where(do_not_replace, b)
+        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
 
         a = DataFrame({0: [4, 6], 1: [1, 0]})
@@ -366,7 +368,8 @@ class TestDataFrameIndexingWhere:
         expected = a.copy()
         expected[~do_not_replace] = b
 
-        result = a.where(do_not_replace, b)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = a.where(do_not_replace, b)
         tm.assert_frame_equal(result, expected)
 
     def test_where_datetime(self):
@@ -718,7 +721,9 @@ class TestDataFrameIndexingWhere:
         ser2 = Series(arr[:2], index=["A", "B"])
         expected = DataFrame({"A": [1, 7, 3], "B": [4, pd.NA, 6]})
         expected["B"] = expected["B"].astype(object)
-        result = df.where(mask, ser2, axis=1)
+        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.where(mask, ser2, axis=1)
         tm.assert_frame_equal(result, expected)
 
     def test_where_interval_noop(self):
@@ -735,7 +740,10 @@ class TestDataFrameIndexingWhere:
         # GH#45768
         obj = frame_or_series([pd.Interval(0, 0)] * 2)
         other = frame_or_series([1.0, 2.0])
-        res = obj.where(~obj.notna(), other)
+
+        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = obj.where(~obj.notna(), other)
 
         # since all entries are being changed, we will downcast result
         #  from object to ints (not floats)
@@ -780,7 +788,9 @@ class TestDataFrameIndexingWhere:
 
         # opposite case where we are replacing *all* values -> we downcast
         #  from object dtype # GH#45768
-        res5 = df.where(mask2, 4)
+        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res5 = df.where(mask2, 4)
         expected = DataFrame(4, index=df.index, columns=df.columns)
         tm.assert_frame_equal(res5, expected)
 
@@ -984,9 +994,17 @@ def test_where_downcast_to_td64():
 
     td = pd.Timedelta(days=1)
 
-    res = ser.where(mask, td)
+    msg = "Downcasting behavior in Series and DataFrame methods 'where'"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        res = ser.where(mask, td)
     expected = Series([td, td, td], dtype="m8[ns]")
     tm.assert_series_equal(res, expected)
+
+    with pd.option_context("future.no_silent_downcasting", True):
+        with tm.assert_produces_warning(None, match=msg):
+            res2 = ser.where(mask, td)
+    expected2 = expected.astype(object)
+    tm.assert_series_equal(res2, expected2)
 
 
 def _check_where_equivalences(df, mask, other, expected):
