@@ -107,6 +107,7 @@ from pandas.core import (
     algorithms,
     missing,
     nanops,
+    ops,
 )
 from pandas.core.algorithms import (
     checked_add_with_arr,
@@ -943,8 +944,12 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         dtype = getattr(other, "dtype", None)
         if is_object_dtype(dtype):
-            return op(np.asarray(self, dtype=object), other)
-
+            # We have to use comp_method_OBJECT_ARRAY instead of numpy
+            #  comparison otherwise it would raise when comparing to None
+            result = ops.comp_method_OBJECT_ARRAY(
+                op, np.asarray(self.astype(object)), other
+            )
+            return result
         if other is NaT:
             if op is operator.ne:
                 result = np.ones(self.shape, dtype=bool)
