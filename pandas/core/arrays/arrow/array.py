@@ -1275,7 +1275,7 @@ class ArrowExtensionArray(
                 result = result.copy()
         else:
             if dtype is None:
-                empty = self.dtype.empty(0)._pa_array.to_numpy()
+                empty = pa.array([], type=pa_type).to_numpy()
                 if can_hold_element(empty, na_value):
                     dtype = empty.dtype
                 else:
