@@ -382,7 +382,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
--
+- Bug in :meth:`DataSeries.str.startswith` and :meth:`DataSeries.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]``  (:issue:`54942`)
 -
 
 Styler
