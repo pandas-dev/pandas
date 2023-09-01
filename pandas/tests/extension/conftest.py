@@ -117,12 +117,6 @@ def na_cmp():
 
 
 @pytest.fixture
-def na_value(dtype):
-    """The scalar missing value for this type. Default dtype.na_value"""
-    return dtype.na_value
-
-
-@pytest.fixture
 def data_for_grouping():
     """
     Data for factorization, grouping, and unique tests.

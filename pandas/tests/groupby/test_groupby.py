@@ -3141,13 +3141,13 @@ def test_groupby_with_Time_Grouper():
 
     expected_output = DataFrame(
         {
-            "time2": date_range("2016-08-31 22:08:00", periods=13, freq="1T"),
+            "time2": date_range("2016-08-31 22:08:00", periods=13, freq="1min"),
             "quant": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             "quant2": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         }
     )
 
-    df = test_data.groupby(Grouper(key="time2", freq="1T")).count().reset_index()
+    df = test_data.groupby(Grouper(key="time2", freq="1min")).count().reset_index()
 
     tm.assert_frame_equal(df, expected_output)
 
@@ -3159,3 +3159,54 @@ def test_groupby_series_with_datetimeindex_month_name():
     expected = Series([2, 1], name="jan")
     expected.index.name = "jan"
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize(
+    "kwarg, value, name, warn",
+    [
+        ("by", "a", 1, None),
+        ("by", ["a"], 1, FutureWarning),
+        ("by", ["a"], (1,), None),
+        ("level", 0, 1, None),
+        ("level", [0], 1, FutureWarning),
+        ("level", [0], (1,), None),
+    ],
+)
+def test_depr_get_group_len_1_list_likes(test_series, kwarg, value, name, warn):
+    # GH#25971
+    obj = DataFrame({"b": [3, 4, 5]}, index=Index([1, 1, 2], name="a"))
+    if test_series:
+        obj = obj["b"]
+    gb = obj.groupby(**{kwarg: value})
+    msg = "you will need to pass a length-1 tuple"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = gb.get_group(name)
+    if test_series:
+        expected = Series([3, 4], index=Index([1, 1], name="a"), name="b")
+    else:
+        expected = DataFrame({"b": [3, 4]}, index=Index([1, 1], name="a"))
+    tm.assert_equal(result, expected)
+
+
+def test_get_group_axis_1():
+    # GH#54858
+    df = DataFrame(
+        {
+            "col1": [0, 3, 2, 3],
+            "col2": [4, 1, 6, 7],
+            "col3": [3, 8, 2, 10],
+            "col4": [1, 13, 6, 15],
+            "col5": [-4, 5, 6, -7],
+        }
+    )
+    with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+        grouped = df.groupby(axis=1, by=[1, 2, 3, 2, 1])
+    result = grouped.get_group(1)
+    expected = DataFrame(
+        {
+            "col1": [0, 3, 2, 3],
+            "col5": [-4, 5, 6, -7],
+        }
+    )
+    tm.assert_frame_equal(result, expected)

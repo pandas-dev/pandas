@@ -1811,8 +1811,8 @@ Writing JSON
 A ``Series`` or ``DataFrame`` can be converted to a valid JSON string. Use ``to_json``
 with optional parameters:
 
-* ``path_or_buf`` : the pathname or buffer to write the output
-  This can be ``None`` in which case a JSON string is returned
+* ``path_or_buf`` : the pathname or buffer to write the output.
+  This can be ``None`` in which case a JSON string is returned.
 * ``orient`` :
 
   ``Series``:
@@ -2448,7 +2448,7 @@ Read a URL with no options:
 
 .. code-block:: ipython
 
-   In [320]: "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
+   In [320]: url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
    In [321]: pd.read_html(url)
    Out[321]:
    [                         Bank NameBank           CityCity StateSt  ...              Acquiring InstitutionAI Closing DateClosing FundFund
@@ -2619,7 +2619,7 @@ columns to strings.
 
 .. code-block:: python
 
-   url_mcc = "https://en.wikipedia.org/wiki/Mobile_country_code"
+   url_mcc = "https://en.wikipedia.org/wiki/Mobile_country_code?oldid=899173761"
    dfs = pd.read_html(
        url_mcc,
        match="Telekom Albania",
