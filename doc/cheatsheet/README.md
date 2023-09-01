@@ -14,11 +14,9 @@ This cheat sheet, originally written by Irv Lustig, [Princeton Consultants](http
 
 **Alternative**
 
-Alternatively, if you want to complement your learning, you can use the Pandas Cheat sheets 
+Alternatively, if you want to complement your learning, you can use the Pandas Cheat sheets
 developed by [DataCamp](https://www.datacamp.com/) in "PDF", "Google Colab" and "Streamlit" formats.
 
 | Topic       | PDF                                                                                                                                                                                                                                  | Streamlit                                                                                                                                                        | Google Colab                                                                                                                                                                                                                                   |
 |-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Pandas      | <a href="https://github.com/fralfaro/DS-Cheat-Sheets/blob/main/docs/files/pandas_cs.pdf" target="_parent"><img src="https://img.shields.io/badge/Open in PDF-%23FF0000.svg?style=flat-square&logo=adobe&logoColor=white"/></a>       | <a href="https://ds-cheat-sheets-pandas.streamlit.app/" target="_parent"><img src="https://static.streamlit.io/badges/streamlit_badge_black_white.svg"/></a>     | <a href="https://colab.research.google.com/github/fralfaro/DS-Cheat-Sheets/blob/main/docs/examples/pandas/pandas.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>         |
-
-
