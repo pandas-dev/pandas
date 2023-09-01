@@ -350,7 +350,11 @@ _all_methods = [
     (pd.DataFrame, frame_data, operator.methodcaller("describe")),
     (pd.Series, ([1, 2],), operator.methodcaller("pct_change")),
     (pd.DataFrame, frame_data, operator.methodcaller("pct_change")),
-    (pd.Series, ([1],), operator.methodcaller("transform", lambda x: x - x.min())),
+    (
+        pd.Series,
+        ([1],),
+        operator.methodcaller("transform", lambda x: x - x.min(), series_ops_only=True),
+    ),
     (
         pd.DataFrame,
         frame_mi_data,
