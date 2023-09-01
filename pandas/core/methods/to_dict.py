@@ -109,12 +109,12 @@ def to_dict(
         object_dtype_indices_as_set: set[int] = set(box_native_indices)
         return into_c(
             (
-                col,
-                list(map(maybe_box_native, df[col].to_numpy().tolist()))
+                k,
+                list(map(maybe_box_native, v.to_numpy().tolist()))
                 if i in object_dtype_indices_as_set
-                else df[col].to_numpy().tolist(),
+                else v.to_numpy().tolist(),
             )
-            for i, col in enumerate(df.columns)
+            for i, (k, v) in enumerate(df.items())
         )
 
     elif orient == "split":
