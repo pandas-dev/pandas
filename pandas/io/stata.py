@@ -2963,7 +2963,7 @@ supported types."""
         """No-op, future compatibility"""
         return data
 
-    def _prepare_data(self) -> np.recarray:
+    def _prepare_data(self) -> np.rec.recarray:
         data = self.data
         typlist = self.typlist
         convert_dates = self._convert_dates
@@ -3002,7 +3002,7 @@ supported types."""
 
         return data.to_records(index=False, column_dtypes=dtypes)
 
-    def _write_data(self, records: np.recarray) -> None:
+    def _write_data(self, records: np.rec.recarray) -> None:
         self._write_bytes(records.tobytes())
 
     @staticmethod
