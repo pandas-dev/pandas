@@ -166,6 +166,19 @@ class TestDataFrameToDict:
         with tm.assert_produces_warning(UserWarning):
             df.to_dict()
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
+    @pytest.mark.parametrize(
+        "orient,expected",
+        [
+            ("list", {"A": [2, 5], "B": [3, 6]}),
+            ("dict", {"A": {0: 2, 1: 5}, "B": {0: 3, 1: 6}}),
+        ],
+    )
+    def test_to_dict_not_unique(self, orient, expected):
+        df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["A", "A", "B"])
+        result = df.to_dict(orient)
+        assert result == expected
+
     # orient - orient argument to to_dict function
     # item_getter - function for extracting value from
     # the resulting dict using column name and index
