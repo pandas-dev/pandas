@@ -609,7 +609,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return DataFrame._from_mgr(mgr, axes=mgr.axes)
 
     def _constructor_expanddim_from_mgr(self, mgr, axes):
-        if self._constructor is Series:
+        from pandas.core.frame import DataFrame
+
+        if self._constructor_expanddim is DataFrame:
             return self._expanddim_from_mgr(mgr, axes)
         assert axes is mgr.axes
         return self._constructor_expanddim(mgr)
