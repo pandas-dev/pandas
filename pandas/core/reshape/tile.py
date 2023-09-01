@@ -243,43 +243,18 @@ def cut(
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
     original = x
-    x = _preprocess_for_cut(x)
-    x, dtype = _coerce_to_type(x)
+    x_idx = _preprocess_for_cut(x)
+    x_idx, dtype = _coerce_to_type(x_idx)
 
     if not np.iterable(bins):
-        if is_scalar(bins) and bins < 1:
-            raise ValueError("`bins` should be a positive integer.")
-
-        sz = x.size
-
-        if sz == 0:
-            raise ValueError("Cannot cut empty array")
-
-        rng = (nanops.nanmin(x), nanops.nanmax(x))
-        mn, mx = (mi + 0.0 for mi in rng)
-
-        if np.isinf(mn) or np.isinf(mx):
-            # GH 24314
-            raise ValueError(
-                "cannot specify integer `bins` when input data contains infinity"
-            )
-        if mn == mx:  # adjust end points before binning
-            mn -= 0.001 * abs(mn) if mn != 0 else 0.001
-            mx += 0.001 * abs(mx) if mx != 0 else 0.001
-            bins = np.linspace(mn, mx, bins + 1, endpoint=True)
-        else:  # adjust end points after binning
-            bins = np.linspace(mn, mx, bins + 1, endpoint=True)
-            adj = (mx - mn) * 0.001  # 0.1% of the range
-            if right:
-                bins[0] -= adj
-            else:
-                bins[-1] += adj
+        bins = _nbins_to_bins(x_idx, bins, right)
 
     elif isinstance(bins, IntervalIndex):
         if bins.is_overlapping:
             raise ValueError("Overlapping IntervalIndex is not accepted.")
 
     else:
+        bins = Index(bins)
         if isinstance(getattr(bins, "dtype", None), DatetimeTZDtype):
             bins = np.asarray(bins, dtype=DT64NS_DTYPE)
         else:
@@ -289,9 +264,10 @@ def cut(
         # GH 26045: cast to float64 to avoid an overflow
         if (np.diff(bins.astype("float64")) < 0).any():
             raise ValueError("bins must increase monotonically.")
+        bins = Index(bins)
 
     fac, bins = _bins_to_cuts(
-        x,
+        x_idx,
         bins,
         right=right,
         labels=labels,
@@ -367,18 +343,18 @@ def qcut(
     array([0, 0, 1, 2, 3])
     """
     original = x
-    x = _preprocess_for_cut(x)
-    x, dtype = _coerce_to_type(x)
+    x_idx = _preprocess_for_cut(x)
+    x_idx, dtype = _coerce_to_type(x_idx)
 
     quantiles = np.linspace(0, 1, q + 1) if is_integer(q) else q
 
-    x_np = np.asarray(x)
+    x_np = np.asarray(x_idx)
     x_np = x_np[~np.isnan(x_np)]
     bins = np.quantile(x_np, quantiles)
 
     fac, bins = _bins_to_cuts(
-        x,
-        bins,
+        x_idx,
+        Index(bins),
         labels=labels,
         precision=precision,
         include_lowest=True,
@@ -389,9 +365,44 @@ def qcut(
     return _postprocess_for_cut(fac, bins, retbins, dtype, original)
 
 
+def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
+    """
+    If a user passed an integer N for bins, convert this to a sequence of N
+    equal(ish)-sized bins.
+    """
+    if is_scalar(nbins) and nbins < 1:
+        raise ValueError("`bins` should be a positive integer.")
+
+    if x_idx.size == 0:
+        raise ValueError("Cannot cut empty array")
+
+    rng = (nanops.nanmin(x_idx), nanops.nanmax(x_idx))
+    mn, mx = rng
+
+    if np.isinf(mn) or np.isinf(mx):
+        # GH#24314
+        raise ValueError(
+            "cannot specify integer `bins` when input data contains infinity"
+        )
+
+    if mn == mx:  # adjust end points before binning
+        mn -= 0.001 * abs(mn) if mn != 0 else 0.001
+        mx += 0.001 * abs(mx) if mx != 0 else 0.001
+        bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
+    else:  # adjust end points after binning
+        bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
+        adj = (mx - mn) * 0.001  # 0.1% of the range
+        if right:
+            bins[0] -= adj
+        else:
+            bins[-1] += adj
+
+    return Index(bins)
+
+
 def _bins_to_cuts(
-    x,
-    bins: np.ndarray,
+    x: Index,
+    bins: Index,
     right: bool = True,
     labels=None,
     precision: int = 3,
@@ -474,7 +485,7 @@ def _bins_to_cuts(
     return result, bins
 
 
-def _coerce_to_type(x):
+def _coerce_to_type(x: Index):
     """
     if the passed data is of datetime/timedelta, bool or nullable int type,
     this method converts it to numeric so that cut or qcut method can
@@ -597,7 +608,7 @@ def _format_labels(
     return IntervalIndex.from_breaks(breaks, closed=closed)
 
 
-def _preprocess_for_cut(x):
+def _preprocess_for_cut(x) -> Index:
     """
     handles preprocessing for cut where we convert passed
     input to array, strip the index information and store it
@@ -611,7 +622,7 @@ def _preprocess_for_cut(x):
     if x.ndim != 1:
         raise ValueError("Input array must be 1 dimensional")
 
-    return x
+    return Index(x)
 
 
 def _postprocess_for_cut(fac, bins, retbins: bool, dtype: DtypeObj | None, original):
@@ -627,6 +638,8 @@ def _postprocess_for_cut(fac, bins, retbins: bool, dtype: DtypeObj | None, origi
         return fac
 
     bins = _convert_bin_to_datelike_type(bins, dtype)
+    if isinstance(bins, Index) and is_numeric_dtype(bins.dtype):
+        bins = bins._values
 
     return fac, bins
 
