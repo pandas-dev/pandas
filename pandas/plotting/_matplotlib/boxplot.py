@@ -40,6 +40,18 @@ if TYPE_CHECKING:
     from pandas._typing import MatplotlibColor
 
 
+def _set_ticklabels(ax: Axes, labels: list[str], is_vertical: bool, **kwargs) -> None:
+    ticks = ax.get_xticks() if is_vertical else ax.get_yticks()
+    if len(ticks) != len(labels):
+        i, remainder = divmod(len(ticks), len(labels))
+        assert remainder == 0, remainder
+        labels *= i
+    if is_vertical:
+        ax.set_xticklabels(labels, **kwargs)
+    else:
+        ax.set_yticklabels(labels, **kwargs)
+
+
 class BoxPlot(LinePlot):
     @property
     def _kind(self) -> Literal["box"]:
@@ -209,13 +221,9 @@ class BoxPlot(LinePlot):
             labels = [pprint_thing(left) for left in labels]
             if not self.use_index:
                 labels = [pprint_thing(key) for key in range(len(labels))]
-            self._set_ticklabels(ax, labels)
-
-    def _set_ticklabels(self, ax: Axes, labels: list[str]) -> None:
-        if self.orientation == "vertical":
-            ax.set_xticklabels(labels)
-        else:
-            ax.set_yticklabels(labels)
+            _set_ticklabels(
+                ax=ax, labels=labels, is_vertical=self.orientation == "vertical"
+            )
 
     def _make_legend(self) -> None:
         pass
@@ -382,17 +390,9 @@ def boxplot(
             ax.tick_params(axis="both", labelsize=fontsize)
 
         # GH 45465: x/y are flipped when "vert" changes
-        is_vertical = kwds.get("vert", True)
-        ticks = ax.get_xticks() if is_vertical else ax.get_yticks()
-        if len(ticks) != len(keys):
-            i, remainder = divmod(len(ticks), len(keys))
-            assert remainder == 0, remainder
-            keys *= i
-        if is_vertical:
-            ax.set_xticklabels(keys, rotation=rot)
-        else:
-            ax.set_yticklabels(keys, rotation=rot)
-        maybe_color_bp(bp, **kwds)
+        _set_ticklabels(
+            ax=ax, labels=keys, is_vertical=kwds.get("vert", True), rotation=rot
+        )
 
         # Return axes in multiplot case, maybe revisit later # 985
         if return_type == "dict":
