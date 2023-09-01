@@ -146,10 +146,7 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
         reader = csv.reader(csvfile)
         next(reader)
         stmt = "INSERT INTO iris VALUES(?, ?, ?, ?, ?)"
-        cur.executemany(stmt, list(reader))
-
-    conn.commit()
-    cur.close()
+        cur.executemany(stmt, reader)
 
 
 def create_and_load_iris(conn, iris_file: Path, dialect: str):

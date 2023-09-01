@@ -334,7 +334,7 @@ lxml                      4.8.0              xml             XML parser for read
 SQL databases
 ^^^^^^^^^^^^^
 
-Traditional ODBC drivers are Installable with ``pip install "pandas[postgresql, mysql, sql-other]"``.  ADBC drivers
+Traditional ODBC drivers are installable with ``pip install "pandas[postgresql, mysql, sql-other]"``.  ADBC drivers
 must be installed separately.
 
 ========================= ================== =============== =============================================================
