@@ -878,6 +878,9 @@ def value_counts_internal(
     if bins is not None:
         from pandas.core.reshape.tile import cut
 
+        if isinstance(values, Series):
+            values = values._values
+
         try:
             ii = cut(values, bins, include_lowest=True)
         except TypeError as err:
