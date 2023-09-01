@@ -4415,7 +4415,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result.reset_index(drop=True) if ignore_index else result
 
         if ignore_index:
-            index = default_index(len(values))
+            index: Index = default_index(len(values))
         else:
             index = self.index.repeat(counts)
 
