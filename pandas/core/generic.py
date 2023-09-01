@@ -8180,7 +8180,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=find_stack_level(),
                     )
 
-        if "fill_value" in kwargs:
+        if method in fillna_methods and "fill_value" in kwargs:
             raise ValueError(
                 "'fill_value' is not a valid keyword for "
                 f"{type(self).__name__}.interpolate"
