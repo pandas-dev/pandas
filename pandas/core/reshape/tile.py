@@ -49,6 +49,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
         IntervalLeftRight,
+        npt,
     )
 
 
