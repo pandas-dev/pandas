@@ -4,8 +4,7 @@ The Pandas Cheat Sheet was created using Microsoft Powerpoint 2013.
 To create the PDF version, within Powerpoint, simply do a "Save As"
 and pick "PDF" as the format.
 
-This cheat sheet was inspired by the [RStudio Data Wrangling Cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf),
-written by Irv Lustig, [Princeton Consultants](https://www.princetonoptimization.com/).
+This cheat sheet, originally written by Irv Lustig, [Princeton Consultants](https://www.princetonoptimization.com/), was inspired by the [RStudio Data Wrangling Cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf).
 
 | Topic                  | PDF                                                                                                                                                                                                                                     | PPT                                                                                                                                                                                                                                               |
 |------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
