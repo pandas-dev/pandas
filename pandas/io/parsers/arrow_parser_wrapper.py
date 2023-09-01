@@ -89,8 +89,8 @@ class ArrowParserWrapper(ParserBase):
             in ("delimiter", "quote_char", "escape_char", "ignore_empty_lines")
         }
 
-        if "on_bad_lines" in self.kwds:
-            on_bad_lines = self.kwds["on_bad_lines"]
+        on_bad_lines = self.kwds.get("on_bad_lines")
+        if on_bad_lines is not None:
             if callable(on_bad_lines):
                 self.parse_options["invalid_row_handler"] = on_bad_lines
             elif on_bad_lines == ParserBase.BadLineHandleMethod.ERROR:
