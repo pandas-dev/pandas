@@ -1264,7 +1264,7 @@ class ArrowExtensionArray(
             if data._hasna:
                 result[data.isna()] = na_value
         elif pa.types.is_null(pa_type):
-            if dtype is not None and dtype.kind != "O" and isna(na_value):
+            if dtype is not None and isna(na_value):
                 na_value = None
             result = np.full(len(data), fill_value=na_value, dtype=dtype)
         elif not data._hasna or (pa.types.is_floating(pa_type) and na_value is np.nan):
@@ -1275,7 +1275,7 @@ class ArrowExtensionArray(
                 result = result.copy()
         else:
             if dtype is None:
-                empty = data._pa_array[:0].to_numpy()
+                empty = self.dtype.empty(0)._pa_array.to_numpy()
                 if can_hold_element(empty, na_value):
                     dtype = empty.dtype
                 else:
