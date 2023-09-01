@@ -486,3 +486,12 @@ def test_getitem_str_second_with_datetimeindex():
     msg = r"Timestamp\('2012-01-02 18:01:02-0600', tz='US/Central'\)"
     with pytest.raises(KeyError, match=msg):
         df[df.index[2]]
+
+
+def test_compare_datetime_with_all_none():
+    # GH#54870
+    ser = Series(["2020-01-01", "2020-01-02"], dtype="datetime64[ns]")
+    ser2 = Series([None, None])
+    result = ser > ser2
+    expected = Series([False, False])
+    tm.assert_series_equal(result, expected)
