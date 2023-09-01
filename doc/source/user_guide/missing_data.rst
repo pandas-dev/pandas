@@ -659,9 +659,8 @@ Pass nested dictionaries of regular expressions that use the ``regex`` keyword.
 Pass a list of regular expressions that will replace matches with a scalar.
 
 .. ipython:: python
-   :okwarning:
 
-   df.replace([r"\s*\.\s*", r"a|b"], np.nan, regex=True)
+   df.replace([r"\s*\.\s*", r"a|b"], "placeholder", regex=True)
 
 All of the regular expression examples can also be passed with the
 ``to_replace`` argument as the ``regex`` argument. In this case the ``value``
@@ -669,9 +668,8 @@ argument must be passed explicitly by name or ``regex`` must be a nested
 dictionary.
 
 .. ipython:: python
-   :okwarning:
 
-   df.replace(regex=[r"\s*\.\s*", r"a|b"], value=np.nan)
+   df.replace(regex=[r"\s*\.\s*", r"a|b"], value="placeholder")
 
 .. note::
 
