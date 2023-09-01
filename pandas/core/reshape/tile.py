@@ -419,6 +419,8 @@ def _bins_to_cuts(
             "invalid value for 'duplicates' parameter, valid options are: raise, drop"
         )
 
+    result: Categorical | np.ndarray
+
     if isinstance(bins, IntervalIndex):
         # we have a fast-path here
         ids = bins.get_indexer(x)
@@ -485,7 +487,7 @@ def _bins_to_cuts(
     return result, bins
 
 
-def _coerce_to_type(x: Index):
+def _coerce_to_type(x: Index) -> tuple[Index, DtypeObj | None]:
     """
     if the passed data is of datetime/timedelta, bool or nullable int type,
     this method converts it to numeric so that cut or qcut method can
@@ -509,11 +511,13 @@ def _coerce_to_type(x: Index):
     # https://github.com/pandas-dev/pandas/pull/31290
     # https://github.com/pandas-dev/pandas/issues/31389
     elif isinstance(x.dtype, ExtensionDtype) and is_numeric_dtype(x.dtype):
-        x = x.to_numpy(dtype=np.float64, na_value=np.nan)
+        x_arr = x.to_numpy(dtype=np.float64, na_value=np.nan)
+        x = Index(x_arr)
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
-        x = np.where(x.notna(), x.view(np.int64), np.nan)
+        x_arr = np.where(x.notna(), x.view(np.int64), np.nan)
+        x = Index(x_arr)
 
     return x, dtype
 
@@ -575,7 +579,7 @@ def _convert_bin_to_datelike_type(bins, dtype: DtypeObj | None):
 
 
 def _format_labels(
-    bins,
+    bins: Index,
     precision: int,
     right: bool = True,
     include_lowest: bool = False,
@@ -659,7 +663,7 @@ def _round_frac(x, precision: int):
         return np.around(x, digits)
 
 
-def _infer_precision(base_precision: int, bins) -> int:
+def _infer_precision(base_precision: int, bins: Index) -> int:
     """
     Infer an appropriate precision for _round_frac
     """
