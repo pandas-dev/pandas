@@ -401,7 +401,7 @@ def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
 
 
 def _bins_to_cuts(
-    x: Index,
+    x_idx: Index,
     bins: Index,
     right: bool = True,
     labels=None,
@@ -423,7 +423,7 @@ def _bins_to_cuts(
 
     if isinstance(bins, IntervalIndex):
         # we have a fast-path here
-        ids = bins.get_indexer(x)
+        ids = bins.get_indexer(x_idx)
         cat_dtype = CategoricalDtype(bins, ordered=True)
         result = Categorical.from_codes(ids, dtype=cat_dtype, validate=False)
         return result, bins
@@ -438,12 +438,12 @@ def _bins_to_cuts(
         bins = unique_bins
 
     side: Literal["left", "right"] = "left" if right else "right"
-    ids = ensure_platform_int(bins.searchsorted(x, side=side))
+    ids = ensure_platform_int(bins.searchsorted(x_idx, side=side))
 
     if include_lowest:
-        ids[np.asarray(x) == bins[0]] = 1
+        ids[np.asarray(x_idx) == bins[0]] = 1
 
-    na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
+    na_mask = isna(x_idx) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
 
     if labels is not False:
