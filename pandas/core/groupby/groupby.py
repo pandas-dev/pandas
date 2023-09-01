@@ -1059,7 +1059,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             raise KeyError(name)
 
         if obj is None:
-            return self._selected_obj.iloc[inds]
+            indexer = inds if self.axis == 0 else (slice(None), inds)
+            return self._selected_obj.iloc[indexer]
         else:
             warnings.warn(
                 "obj is deprecated and will be removed in a future version. "

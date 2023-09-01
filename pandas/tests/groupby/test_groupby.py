@@ -3159,3 +3159,26 @@ def test_groupby_series_with_datetimeindex_month_name():
     expected = Series([2, 1], name="jan")
     expected.index.name = "jan"
     tm.assert_series_equal(result, expected)
+
+
+def test_get_group_axis_1():
+    # GH#54858
+    df = DataFrame(
+        {
+            "col1": [0, 3, 2, 3],
+            "col2": [4, 1, 6, 7],
+            "col3": [3, 8, 2, 10],
+            "col4": [1, 13, 6, 15],
+            "col5": [-4, 5, 6, -7],
+        }
+    )
+    with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+        grouped = df.groupby(axis=1, by=[1, 2, 3, 2, 1])
+    result = grouped.get_group(1)
+    expected = DataFrame(
+        {
+            "col1": [0, 3, 2, 3],
+            "col5": [-4, 5, 6, -7],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
