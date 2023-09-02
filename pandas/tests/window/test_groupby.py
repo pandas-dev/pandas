@@ -846,10 +846,20 @@ class TestRolling:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "by, expected_data",
+        "func, by, expected_data",
         [
-            [["id"], {"num": [100.0, 150.0, 150.0, 200.0]}],
             [
+                lambda x: x.agg({"num": "mean"}),
+                ["id"],
+                {"num": [100.0, 150.0, 150.0, 200.0]},
+            ],
+            [
+                lambda x: x.mean(),
+                ["id"],
+                {"num": [100.0, 150.0, 150.0, 200.0]},
+            ],
+            [
+                lambda x: x.mean(),
                 ["id", "index"],
                 {
                     "date": [
@@ -863,8 +873,8 @@ class TestRolling:
             ],
         ],
     )
-    def test_as_index_false(self, by, expected_data):
-        # GH 39433
+    def test_as_index_false(self, func, by, expected_data):
+        # GH 39433, 31007
         data = [
             ["A", "2018-01-01", 100.0],
             ["A", "2018-01-02", 200.0],
@@ -876,8 +886,8 @@ class TestRolling:
         df = df.set_index(["date"])
 
         gp_by = [getattr(df, attr) for attr in by]
-        result = (
-            df.groupby(gp_by, as_index=False).rolling(window=2, min_periods=1).mean()
+        result = func(
+            df.groupby(gp_by, as_index=False).rolling(window=2, min_periods=1)
         )
 
         expected = {"id": ["A", "A", "B", "B"]}

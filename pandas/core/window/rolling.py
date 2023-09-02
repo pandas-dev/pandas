@@ -875,6 +875,14 @@ class BaseWindowGroupby(BaseWindow):
             subset = self.obj.set_index(self._on)
         return super()._gotitem(key, ndim, subset=subset)
 
+    def aggregate(self, func, *args, **kwargs):
+        result = super().aggregate(func, *args, **kwargs)
+        if not self._as_index:
+            result = result.reset_index(level=list(range(len(self._grouper.names))))
+        return result
+
+    agg = aggregate
+
 
 class Window(BaseWindow):
     """
