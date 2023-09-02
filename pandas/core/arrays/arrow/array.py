@@ -58,6 +58,7 @@ from pandas.core.indexers import (
     unpack_tuple_and_ellipses,
     validate_indices,
 )
+from pandas.core.reshape.merge_utils import factorize_with_rizer
 from pandas.core.strings.base import BaseStringArrayMethods
 
 from pandas.io._util import _arrow_dtype_mapping
@@ -2552,6 +2553,39 @@ class ArrowExtensionArray(
         current_unit = self.dtype.pyarrow_dtype.unit
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return type(self)(result)
+
+    def _factorize_with_other(
+        self, other: ArrowExtensionArray, sort: bool = False
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
+        if not isinstance(self.dtype, StringDtype) and (
+            pa.types.is_floating(self.dtype.pyarrow_dtype)
+            or pa.types.is_integer(self.dtype.pyarrow_dtype)
+            or pa.types.is_unsigned_integer(self.dtype.pyarrow_dtype)
+        ):
+            lk = self.to_numpy(na_value=1, dtype=self.dtype.numpy_dtype)
+            rk = other.to_numpy(na_value=1, dtype=lk.dtype)
+            return factorize_with_rizer(lk, rk, sort, self.isna(), other.isna())
+
+        len_lk = len(self)
+        lk = self._pa_array  # type: ignore[attr-defined]
+        rk = other._pa_array  # type: ignore[union-attr]
+        dc = (
+            pa.chunked_array(lk.chunks + rk.chunks)  # type: ignore[union-attr]
+            .combine_chunks()
+            .dictionary_encode()
+        )
+        length = len(dc.dictionary)
+
+        llab, rlab, count = (
+            pc.fill_null(dc.indices[slice(len_lk)], length)
+            .to_numpy()
+            .astype(np.intp, copy=False),
+            pc.fill_null(dc.indices[slice(len_lk, None)], length)
+            .to_numpy()
+            .astype(np.intp, copy=False),
+            len(dc.dictionary),
+        )
+        return llab, rlab, count
 
 
 def transpose_homogeneous_pyarrow(

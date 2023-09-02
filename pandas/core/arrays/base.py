@@ -24,6 +24,7 @@ import numpy as np
 
 from pandas._libs import (
     algos as libalgos,
+    hashtable as libhashtable,
     lib,
 )
 from pandas.compat import set_function_name
@@ -69,6 +70,7 @@ from pandas.core.algorithms import (
     unique,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.reshape.merge_utils import factorize_with_rizer
 from pandas.core.sorting import (
     nargminmax,
     nargsort,
@@ -102,6 +104,23 @@ if TYPE_CHECKING:
     from pandas import Index
 
 _extension_array_shared_docs: dict[str, str] = {}
+_factorizers = {
+    np.int64: libhashtable.Int64Factorizer,
+    np.longlong: libhashtable.Int64Factorizer,
+    np.int32: libhashtable.Int32Factorizer,
+    np.int16: libhashtable.Int16Factorizer,
+    np.int8: libhashtable.Int8Factorizer,
+    np.uint64: libhashtable.UInt64Factorizer,
+    np.uint32: libhashtable.UInt32Factorizer,
+    np.uint16: libhashtable.UInt16Factorizer,
+    np.uint8: libhashtable.UInt8Factorizer,
+    np.bool_: libhashtable.UInt8Factorizer,
+    np.float64: libhashtable.Float64Factorizer,
+    np.float32: libhashtable.Float32Factorizer,
+    np.complex64: libhashtable.Complex64Factorizer,
+    np.complex128: libhashtable.Complex128Factorizer,
+    np.object_: libhashtable.ObjectFactorizer,
+}
 
 
 class ExtensionArray:
@@ -2265,6 +2284,13 @@ class ExtensionArray:
 
         else:
             raise NotImplementedError
+
+    def _factorize_with_other(
+        self, other: ExtensionArray, sort: bool = False
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
+        lk = self.astype(object)
+        rk = other.astype(object)
+        return factorize_with_rizer(lk, rk, sort)
 
 
 class ExtensionArraySupportsAnyAll(ExtensionArray):

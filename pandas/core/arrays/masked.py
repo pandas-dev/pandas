@@ -85,6 +85,7 @@ from pandas.core.construction import (
 )
 from pandas.core.indexers import check_array_indexer
 from pandas.core.ops import invalid_comparison
+from pandas.core.reshape.merge_utils import factorize_with_rizer
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -1504,6 +1505,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         # res_values should already have the correct dtype, we just need to
         #  wrap in a MaskedArray
         return self._maybe_mask_result(res_values, result_mask)
+
+    def _factorize_with_other(
+        self, other: BaseMaskedArray, sort: bool = False
+    ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
+        return factorize_with_rizer(
+            self._data, other._data, sort, self._mask, other._mask
+        )
 
 
 def transpose_homogeneous_masked_arrays(
