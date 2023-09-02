@@ -457,6 +457,12 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             return type(self)(result)
         return super()._str_removeprefix(prefix)
 
+    def _str_removesuffix(self, suffix: str):
+        ends_with = pc.ends_with(self._pa_array, pattern=suffix)
+        removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
+        result = pc.if_else(ends_with, removed, self._pa_array)
+        return type(self)(result)
+
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _storage = "pyarrow_numpy"
