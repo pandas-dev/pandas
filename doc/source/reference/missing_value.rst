@@ -1,6 +1,6 @@
 {{ header }}
 
-.. _api.missing:
+.. _api.missing_value:
 
 ==============
 Missing values
