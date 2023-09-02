@@ -1710,6 +1710,8 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
 
 class DatetimeIndexResampler(Resampler):
+    ax: DatetimeIndex
+
     @property
     def _resampler_for_grouping(self):
         return DatetimeIndexResamplerGroupby
@@ -1841,7 +1843,11 @@ class DatetimeIndexResampler(Resampler):
         return result
 
 
-class DatetimeIndexResamplerGroupby(_GroupByMixin, DatetimeIndexResampler):
+# error: Definition of "ax" in base class "_GroupByMixin" is incompatible
+# with definition in base class "DatetimeIndexResampler"
+class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
+    _GroupByMixin, DatetimeIndexResampler
+):
     """
     Provides a resample of a groupby implementation
     """
@@ -1852,6 +1858,10 @@ class DatetimeIndexResamplerGroupby(_GroupByMixin, DatetimeIndexResampler):
 
 
 class PeriodIndexResampler(DatetimeIndexResampler):
+    # error: Incompatible types in assignment (expression has type "PeriodIndex", base
+    # class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
+    ax: PeriodIndex  # type: ignore[assignment]
+
     @property
     def _resampler_for_grouping(self):
         return PeriodIndexResamplerGroupby
@@ -1958,7 +1968,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         return self._wrap_result(new_obj)
 
 
-class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
+# error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
+# definition in base class "PeriodIndexResampler"
+class PeriodIndexResamplerGroupby(  # type: ignore[misc]
+    _GroupByMixin, PeriodIndexResampler
+):
     """
     Provides a resample of a groupby implementation.
     """
@@ -1969,6 +1983,10 @@ class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
 
 
 class TimedeltaIndexResampler(DatetimeIndexResampler):
+    # error: Incompatible types in assignment (expression has type "TimedeltaIndex",
+    # base class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
+    ax: TimedeltaIndex  # type: ignore[assignment]
+
     @property
     def _resampler_for_grouping(self):
         return TimedeltaIndexResamplerGroupby
@@ -1986,7 +2004,11 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
         return binner
 
 
-class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
+# error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
+# definition in base class "DatetimeIndexResampler"
+class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
+    _GroupByMixin, TimedeltaIndexResampler
+):
     """
     Provides a resample of a groupby implementation.
     """

@@ -522,6 +522,7 @@ def pivot(
             cols + columns_listlike, append=append  # type: ignore[operator]
         )
     else:
+        index_list: list[Index] | list[Series]
         if index is lib.no_default:
             if isinstance(data.index, MultiIndex):
                 # GH 23955
