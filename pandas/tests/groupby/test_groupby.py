@@ -3191,7 +3191,7 @@ def test_depr_get_group_len_1_list_likes(test_series, kwarg, value, name, warn):
 
 def test_groupby_ngroup_with_nan():
     # GH#50100
-    df = DataFrame({"a": pd.Categorical([np.nan]), "b": [1]})
+    df = DataFrame({"a": Categorical([np.nan]), "b": [1]})
     g = df.groupby(["a", "b"], dropna=False, observed=False).ngroup()
     result = g.iloc[0]
     expected = 0
