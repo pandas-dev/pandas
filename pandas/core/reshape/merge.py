@@ -2374,32 +2374,18 @@ def _factorize_keys(
     if (
         isinstance(lk.dtype, DatetimeTZDtype) and isinstance(rk.dtype, DatetimeTZDtype)
     ) or (lib.is_np_dtype(lk.dtype, "M") and lib.is_np_dtype(rk.dtype, "M")):
-        # Extract the ndarray (UTC-localized) values
         # Note: we dont need the dtypes to match, as these can still be compared
         lk, rk = cast("DatetimeArray", lk)._ensure_matching_resos(rk)
-        lk = cast("DatetimeArray", lk)._ndarray
-        rk = cast("DatetimeArray", rk)._ndarray
 
-    elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
-        llab, rlab, count = lk._factorize_with_other(rk)
-
-        if how == "right":
-            return rlab, llab, count
-        return llab, rlab, count
-
-    if needs_i8_conversion(lk.dtype) and lk.dtype == rk.dtype:
-        # GH#23917 TODO: Needs tests for non-matching dtypes
-        # GH#23917 TODO: needs tests for case where lk is integer-dtype
-        #  and rk is datetime-dtype
-        lk = np.asarray(lk, dtype=np.int64)
-        rk = np.asarray(rk, dtype=np.int64)
-
-    lk, rk = _convert_arrays(lk, rk)
-
-    if isinstance(lk, ExtensionArray):
+    if isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
         llab, rlab, count = lk._factorize_with_other(rk)
     else:
-        llab, rlab, count = factorize_with_rizer(lk, rk, sort)
+        lk, rk = _convert_arrays(lk, rk)
+
+        if isinstance(lk, ExtensionArray):
+            llab, rlab, count = lk._factorize_with_other(rk)
+        else:
+            llab, rlab, count = factorize_with_rizer(lk, rk, sort)
 
     if how == "right":
         return rlab, llab, count
