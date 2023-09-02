@@ -861,6 +861,7 @@ class TestSeriesInterpolateData:
 
     def test_interpolate_fill_value(self):
         # GH#54920
+        pytest.importorskip("scipy")
         ser = Series([np.nan, 0, 1, np.nan, 3, np.nan])
         result = ser.interpolate(method="nearest", fill_value=0)
         expected = Series([np.nan, 0, 1, 1, 3, 0])
