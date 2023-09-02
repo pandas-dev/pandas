@@ -2950,7 +2950,7 @@ def recode_for_categories(
         return codes
 
     indexer = coerce_indexer_dtype(
-        new_categories.get_indexer(old_categories), new_categories
+        new_categories.get_indexer_for(old_categories), new_categories
     )
     new_codes = take_nd(indexer, codes, fill_value=-1)
     return new_codes
