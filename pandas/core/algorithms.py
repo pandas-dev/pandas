@@ -1000,7 +1000,7 @@ def duplicated(
     duplicated : ndarray[bool]
     """
     if hasattr(values, "dtype"):
-        if isinstance(values.dtype, ArrowDtype):
+        if isinstance(values.dtype, ArrowDtype) and values.dtype.kind in "ifub":
             values = values._to_masked()  # type: ignore[union-attr]
 
         if isinstance(values.dtype, BaseMaskedDtype):
