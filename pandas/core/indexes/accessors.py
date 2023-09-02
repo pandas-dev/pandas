@@ -227,7 +227,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         )
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pydatetime()
 
-    def isocalendar(self):
+    def isocalendar(self) -> DataFrame:
         from pandas import DataFrame
 
         result = (
@@ -414,7 +414,7 @@ class TimedeltaProperties(Properties):
     Examples
     --------
     >>> seconds_series = pd.Series(
-    ...     pd.timedelta_range(start="1 second", periods=3, freq="S")
+    ...     pd.timedelta_range(start="1 second", periods=3, freq="s")
     ... )
     >>> seconds_series
     0   0 days 00:00:01
@@ -528,7 +528,7 @@ class PeriodProperties(Properties):
     1    2000-01-01 00:00:01
     2    2000-01-01 00:00:02
     3    2000-01-01 00:00:03
-    dtype: period[S]
+    dtype: period[s]
     >>> seconds_series.dt.second
     0    0
     1    1

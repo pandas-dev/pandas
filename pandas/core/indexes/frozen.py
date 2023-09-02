@@ -8,11 +8,17 @@ These are used for:
 """
 from __future__ import annotations
 
-from typing import NoReturn
+from typing import (
+    TYPE_CHECKING,
+    NoReturn,
+)
 
 from pandas.core.base import PandasObject
 
 from pandas.io.formats.printing import pprint_thing
+
+if TYPE_CHECKING:
+    from pandas._typing import Self
 
 
 class FrozenList(PandasObject, list):
@@ -72,7 +78,7 @@ class FrozenList(PandasObject, list):
             return type(self)(super().__getitem__(n))
         return super().__getitem__(n)
 
-    def __radd__(self, other):
+    def __radd__(self, other) -> Self:
         if isinstance(other, tuple):
             other = list(other)
         return type(self)(other + list(self))
@@ -84,7 +90,7 @@ class FrozenList(PandasObject, list):
 
     __req__ = __eq__
 
-    def __mul__(self, other):
+    def __mul__(self, other) -> Self:
         return type(self)(super().__mul__(other))
 
     __imul__ = __mul__
