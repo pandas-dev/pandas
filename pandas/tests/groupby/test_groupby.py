@@ -3188,13 +3188,15 @@ def test_depr_get_group_len_1_list_likes(test_series, kwarg, value, name, warn):
         expected = DataFrame({"b": [3, 4]}, index=Index([1, 1], name="a"))
     tm.assert_equal(result, expected)
 
+
 def test_groupby_ngroup_with_nan():
     # GH#50100
-    df = DataFrame({'a': pd.Categorical([np.nan]), 'b': [1]})
-    g = df.groupby(['a', 'b'], dropna=False, observed=False).ngroup()
+    df = DataFrame({"a": pd.Categorical([np.nan]), "b": [1]})
+    g = df.groupby(["a", "b"], dropna=False, observed=False).ngroup()
     result = g.iloc[0]
     expected = 0
     tm.assert_equal(result, expected)
+
 
 def test_get_group_axis_1():
     # GH#54858
