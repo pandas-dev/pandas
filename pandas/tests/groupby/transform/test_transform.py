@@ -792,7 +792,7 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
         f = gb[["float", "float_missing"]].apply(targop)
         expected = concat([f, i], axis=1)
     else:
-        if op != "shift" or not isinstance(gb_target.get("by"), str):
+        if op != "shift" or not isinstance(gb_target.get("by"), (str, list)):
             warn = None
         else:
             warn = FutureWarning

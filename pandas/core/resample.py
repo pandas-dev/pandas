@@ -1662,7 +1662,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
             target_category=FutureWarning,
             new_message=_apply_groupings_depr.format("DataFrameGroupBy", "resample"),
         ):
-            result = self._groupby.apply(func)
+            result = self._groupby.apply(func, include_groups=self.include_groups)
         return self._wrap_result(result)
 
     _upsample = _apply

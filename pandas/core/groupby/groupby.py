@@ -3665,7 +3665,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         from pandas.core.resample import get_resampler_for_grouping
 
-        return get_resampler_for_grouping(
+        # mypy flags that include_groups could be specified via `*args` or `**kwargs`
+        # GH#54961 would resolve.
+        return get_resampler_for_grouping(  # type: ignore[misc]
             self, rule, *args, include_groups=include_groups, **kwargs
         )
 
