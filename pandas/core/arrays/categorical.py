@@ -2947,11 +2947,9 @@ def recode_for_categories(
             return codes.copy()
         return codes
 
-    if new_categories._index_as_unique:
-        indexer = new_categories.get_indexer(old_categories)
-    else:
-        indexer = new_categories.get_indexer_non_unique(old_categories)[0]
-    indexer = coerce_indexer_dtype(indexer, new_categories)
+    indexer = coerce_indexer_dtype(
+        new_categories.get_indexer_for(old_categories), new_categories
+    )
     new_codes = take_nd(indexer, codes, fill_value=-1)
     return new_codes
 
