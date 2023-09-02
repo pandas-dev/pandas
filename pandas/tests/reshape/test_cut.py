@@ -497,7 +497,7 @@ def test_datetime_cut(data):
 
 @pytest.mark.parametrize("box", [list, np.array, Index, Series])
 def test_datetime_tz_cut_mismatched_tzawareness(box):
-    # GH#47772
+    # GH#54964
     bins = box(
         [
             Timestamp("2013-01-01 04:57:07.200000"),

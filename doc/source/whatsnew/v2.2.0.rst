@@ -266,6 +266,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 
 .. ***DO NOT USE THIS SECTION***
 
