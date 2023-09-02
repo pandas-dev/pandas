@@ -99,10 +99,8 @@ def test_freq_window_not_implemented(window):
         np.arange(10),
         index=date_range("2015-12-24", periods=10, freq="D"),
     )
-    with pytest.raises(
-        NotImplementedError, match="step is not supported with frequency windows"
-    ):
-        df.rolling("3D", step=3)
+    with pytest.raises(NotImplementedError, match="^step is not supported with"):
+        df.rolling(window, step=3).sum()
 
 
 @pytest.mark.parametrize("agg", ["cov", "corr"])
