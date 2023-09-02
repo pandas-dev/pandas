@@ -658,3 +658,29 @@ def test_header_missing_rows(all_parsers):
     msg = r"Passed header=\[0,1,2\], len of 3, but only 2 lines in file"
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), header=[0, 1, 2])
+
+
+@skip_pyarrow
+def test_header_multiple_whitespaces(all_parsers):
+    # GH#54931
+    parser = all_parsers
+    data = """aa    bb(1,1)   cc(1,1)
+                0  2  3.5"""
+
+    result = parser.read_csv(StringIO(data), sep=r"\s+")
+    expected = DataFrame({"aa": [0], "bb(1,1)": 2, "cc(1,1)": 3.5})
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow
+def test_header_delim_whitespace(all_parsers):
+    # GH#54918
+    parser = all_parsers
+    data = """a,b
+1,2
+3,4
+    """
+
+    result = parser.read_csv(StringIO(data), delim_whitespace=True)
+    expected = DataFrame({"a,b": ["1,2", "3,4"]})
+    tm.assert_frame_equal(result, expected)
