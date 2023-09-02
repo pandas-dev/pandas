@@ -307,13 +307,13 @@ def test_datetimelike_nonunique_index_centering(
 @pytest.mark.parametrize(
     "closed,expected",
     [
-        ("left", [np.nan, np.nan, 1, 1, 1, 10, 14, 14]),
-        ("neither", [np.nan, np.nan, 1, 1, 1, 9, 5, 5]),
-        ("right", [0, 1, 3, 6, 10, 14, 11, 18]),
-        ("both", [0, 1, 3, 6, 10, 15, 20, 27]),
+        ("left", [np.nan, np.nan, 1, 1, 1, 10, 14, 14, 18, 21]),
+        ("neither", [np.nan, np.nan, 1, 1, 1, 9, 5, 5, 13, 8]),
+        ("right", [0, 1, 3, 6, 10, 14, 11, 18, 21, 17]),
+        ("both", [0, 1, 3, 6, 10, 15, 20, 27, 26, 30]),
     ],
 )
-def test_datetimelike_nonunique(closed, expected, frame_or_series):
+def test_variable_window_nonunique(closed, expected, frame_or_series):
     # GH 20712
     index = DatetimeIndex(
         [
@@ -325,13 +325,51 @@ def test_datetimelike_nonunique(closed, expected, frame_or_series):
             "2011-01-03",
             "2011-01-04",
             "2011-01-04",
+            "2011-01-05",
+            "2011-01-06",
         ]
     )
 
-    df = frame_or_series(range(8), index=index, dtype=float)
+    df = frame_or_series(range(10), index=index, dtype=float)
     expected = frame_or_series(expected, index=index, dtype=float)
 
     result = df.rolling("2D", closed=closed).sum()
+
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "closed,expected",
+    [
+        ("left", [np.nan, np.nan, 1, 1, 1, 10, 15, 15, 18, 21]),
+        ("neither", [np.nan, np.nan, 1, 1, 1, 10, 15, 15, 13, 8]),
+        ("right", [0, 1, 3, 6, 10, 15, 21, 28, 21, 17]),
+        ("both", [0, 1, 3, 6, 10, 15, 21, 28, 26, 30]),
+    ],
+)
+def test_variable_offset_window_nonunique(closed, expected, frame_or_series):
+    # GH 20712
+    index = DatetimeIndex(
+        [
+            "2011-01-01",
+            "2011-01-01",
+            "2011-01-02",
+            "2011-01-02",
+            "2011-01-02",
+            "2011-01-03",
+            "2011-01-04",
+            "2011-01-04",
+            "2011-01-05",
+            "2011-01-06",
+        ]
+    )
+
+    df = frame_or_series(range(10), index=index, dtype=float)
+    expected = frame_or_series(expected, index=index, dtype=float)
+
+    offset = BusinessDay(2)
+    indexer = VariableOffsetWindowIndexer(index=index, offset=offset)
+    result = df.rolling(indexer, closed=closed, min_periods=1).sum()
 
     tm.assert_equal(result, expected)
 
