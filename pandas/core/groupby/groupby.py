@@ -143,6 +143,7 @@ from pandas.core.util.numba_ import (
 if TYPE_CHECKING:
     from typing import Any
 
+    from pandas.core.resample import Resampler
     from pandas.core.window import (
         ExpandingGroupby,
         ExponentialMovingWindowGroupby,
@@ -1079,7 +1080,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             raise KeyError(name)
 
         if obj is None:
-            return self._selected_obj.iloc[inds]
+            indexer = inds if self.axis == 0 else (slice(None), inds)
+            return self._selected_obj.iloc[indexer]
         else:
             warnings.warn(
                 "obj is deprecated and will be removed in a future version. "
@@ -2094,7 +2096,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def any(self, skipna: bool = True):
+    def any(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if any value in the group is truthful, else False.
 
@@ -2150,7 +2152,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def all(self, skipna: bool = True):
+    def all(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if all values in the group are truthful, else False.
 
@@ -2399,7 +2401,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result.__finalize__(self.obj, method="groupby")
 
     @final
-    def median(self, numeric_only: bool = False):
+    def median(self, numeric_only: bool = False) -> NDFrameT:
         """
         Compute median of groups, excluding missing values.
 
@@ -2828,7 +2830,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.__finalize__(self.obj, method="value_counts")
 
     @final
-    def sem(self, ddof: int = 1, numeric_only: bool = False):
+    def sem(self, ddof: int = 1, numeric_only: bool = False) -> NDFrameT:
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -3119,7 +3121,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2   30   72"""
         ),
     )
-    def prod(self, numeric_only: bool = False, min_count: int = 0):
+    def prod(self, numeric_only: bool = False, min_count: int = 0) -> NDFrameT:
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
@@ -3261,7 +3263,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    def first(self, numeric_only: bool = False, min_count: int = -1):
+    def first(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
         """
         Compute the first non-null entry of each column.
 
@@ -3331,7 +3333,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def last(self, numeric_only: bool = False, min_count: int = -1):
+    def last(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
         """
         Compute the last non-null entry of each column.
 
@@ -3518,7 +3520,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    def resample(self, rule, *args, **kwargs):
+    def resample(self, rule, *args, **kwargs) -> Resampler:
         """
         Provide resampling when using a TimeGrouper.
 
@@ -3553,7 +3555,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> idx = pd.date_range('1/1/2000', periods=4, freq='T')
+        >>> idx = pd.date_range('1/1/2000', periods=4, freq='min')
         >>> df = pd.DataFrame(data=4 * [range(2)],
         ...                   index=idx,
         ...                   columns=['a', 'b'])
@@ -3568,7 +3570,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the DataFrame into 3 minute bins and sum the values of
         the timestamps falling into a bin.
 
-        >>> df.groupby('a').resample('3T').sum()
+        >>> df.groupby('a').resample('3min').sum()
                                  a  b
         a
         0   2000-01-01 00:00:00  0  2
@@ -3577,7 +3579,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Upsample the series into 30 second bins.
 
-        >>> df.groupby('a').resample('30S').sum()
+        >>> df.groupby('a').resample('30s').sum()
                             a  b
         a
         0   2000-01-01 00:00:00  0  1
@@ -3600,7 +3602,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> df.groupby('a').resample('3T', closed='right').sum()
+        >>> df.groupby('a').resample('3min', closed='right').sum()
                                  a  b
         a
         0   1999-12-31 23:57:00  0  1
@@ -3611,7 +3613,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         the bin interval, but label each bin using the right edge instead of
         the left.
 
-        >>> df.groupby('a').resample('3T', closed='right', label='right').sum()
+        >>> df.groupby('a').resample('3min', closed='right', label='right').sum()
                                  a  b
         a
         0   2000-01-01 00:00:00  0  1

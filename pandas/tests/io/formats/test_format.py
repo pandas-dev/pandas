@@ -3291,7 +3291,7 @@ class TestDatetime64Formatter:
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:00.000004"
 
-        x = Series(date_range("20130101 09:00:00", periods=5, freq="N"))
+        x = Series(date_range("20130101 09:00:00", periods=5, freq="ns"))
         x.iloc[1] = np.nan
         result = fmt.Datetime64Formatter(x).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00.000000000"
@@ -3350,7 +3350,7 @@ class TestPeriodIndexFormat:
         assert per.strftime(None)[1] is np.nan  # ...except for NaTs
 
         # Same test with nanoseconds freq
-        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
         formatted = per.format()
         assert (formatted == per.strftime(None)).all()
         assert formatted[0] == "2003-01-01 12:01:01.123456789"
@@ -3360,19 +3360,19 @@ class TestPeriodIndexFormat:
         # GH#46252 custom formatting directives %l (ms) and %u (us)
 
         # 3 digits
-        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
+        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="ms")
         formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123000 ns=123000000)"
         assert formatted[1] == "03 12:01:01 (ms=124 us=124000 ns=124000000)"
 
         # 6 digits
-        per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
+        per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="us")
         formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456000)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123457 ns=123457000)"
 
         # 9 digits
-        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
         formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456789)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123456 ns=123456790)"

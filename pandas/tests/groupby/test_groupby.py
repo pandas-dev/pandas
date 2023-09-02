@@ -3141,13 +3141,13 @@ def test_groupby_with_Time_Grouper():
 
     expected_output = DataFrame(
         {
-            "time2": date_range("2016-08-31 22:08:00", periods=13, freq="1T"),
+            "time2": date_range("2016-08-31 22:08:00", periods=13, freq="1min"),
             "quant": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             "quant2": [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
         }
     )
 
-    df = test_data.groupby(Grouper(key="time2", freq="1T")).count().reset_index()
+    df = test_data.groupby(Grouper(key="time2", freq="1min")).count().reset_index()
 
     tm.assert_frame_equal(df, expected_output)
 
@@ -3187,3 +3187,26 @@ def test_depr_get_group_len_1_list_likes(test_series, kwarg, value, name, warn):
     else:
         expected = DataFrame({"b": [3, 4]}, index=Index([1, 1], name="a"))
     tm.assert_equal(result, expected)
+
+
+def test_get_group_axis_1():
+    # GH#54858
+    df = DataFrame(
+        {
+            "col1": [0, 3, 2, 3],
+            "col2": [4, 1, 6, 7],
+            "col3": [3, 8, 2, 10],
+            "col4": [1, 13, 6, 15],
+            "col5": [-4, 5, 6, -7],
+        }
+    )
+    with tm.assert_produces_warning(FutureWarning, match="deprecated"):
+        grouped = df.groupby(axis=1, by=[1, 2, 3, 2, 1])
+    result = grouped.get_group(1)
+    expected = DataFrame(
+        {
+            "col1": [0, 3, 2, 3],
+            "col5": [-4, 5, 6, -7],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
