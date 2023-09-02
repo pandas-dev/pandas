@@ -206,7 +206,8 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- Bug in :meth:`IntervalIndex.get_indexer` with datetime or timedelta intervals incorrectly matching on integer targets (:issue:`47772`)
+- Bug in :meth:`IntervalIndex.get_indexer` with timezone-aware datetime intervals incorrectly matching on a sequence of timezone-naive targets (:issue:`47772`)
 -
 
 Indexing
