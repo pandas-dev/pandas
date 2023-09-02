@@ -908,7 +908,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
             data = frame.copy()
         else:
             # Take the data from frame corresponding to this idx value
-            if not isinstance(idx, tuple):
+            if len(level) == 1:
                 idx = (idx,)
             gen = iter(idx)
             column_indexer = tuple(
