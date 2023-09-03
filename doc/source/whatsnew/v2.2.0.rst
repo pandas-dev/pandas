@@ -158,9 +158,9 @@ Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`, :issue:`54883`)
+- Performance improvement in :func:`to_dict` on converting DataFrame to dictionary (:issue:`50990`)
+- Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`)
 - Performance improvement when indexing with more than 4 keys (:issue:`54550`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.bug_fixes:
@@ -171,7 +171,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- :meth:`Categorical.isin` raising ``InvalidIndexError`` for categorical containing overlapping :class:`Interval` values (:issue:`34974`)
 -
 
 Datetimelike
