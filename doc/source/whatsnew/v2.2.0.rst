@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
 -
 
 .. ---------------------------------------------------------------------------
