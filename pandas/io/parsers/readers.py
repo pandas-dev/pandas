@@ -1307,6 +1307,51 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
+@overload
+def read_fwf(
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    *,
+    colspecs: Sequence[tuple[int, int]] | str | None = ...,
+    widths: Sequence[int] | None = ...,
+    infer_nrows: int = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    iterator: Literal[True],
+    chunksize: int | None = ...,
+    **kwds,
+) -> TextFileReader:
+    ...
+
+
+@overload
+def read_fwf(
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    *,
+    colspecs: Sequence[tuple[int, int]] | str | None = ...,
+    widths: Sequence[int] | None = ...,
+    infer_nrows: int = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    iterator: bool = ...,
+    chunksize: int,
+    **kwds,
+) -> TextFileReader:
+    ...
+
+
+@overload
+def read_fwf(
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    *,
+    colspecs: Sequence[tuple[int, int]] | str | None = ...,
+    widths: Sequence[int] | None = ...,
+    infer_nrows: int = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    iterator: Literal[False] = ...,
+    chunksize: None = ...,
+    **kwds,
+) -> DataFrame:
+    ...
+
+
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
@@ -1314,6 +1359,8 @@ def read_fwf(
     widths: Sequence[int] | None = None,
     infer_nrows: int = 100,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    iterator: bool = False,
+    chunksize: int | None = None,
     **kwds,
 ) -> DataFrame | TextFileReader:
     r"""
@@ -1374,6 +1421,9 @@ def read_fwf(
     --------
     >>> pd.read_fwf('data.csv')  # doctest: +SKIP
     """
+    kwds["iterator"] = iterator
+    kwds["chunksize"] = chunksize
+
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")

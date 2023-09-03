@@ -84,6 +84,7 @@ if TYPE_CHECKING:
         ReadBuffer,
         StorageOptions,
         WriteBuffer,
+        Self,
     )
 
     from pandas.core.generic import NDFrame
@@ -1056,7 +1057,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         if self.handles is not None:
             self.handles.close()
 
-    def __iter__(self: JsonReader[FrameSeriesStrT]) -> JsonReader[FrameSeriesStrT]:
+    def __iter__(self) -> Self:
         return self
 
     @overload
@@ -1099,7 +1100,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         else:
             return obj
 
-    def __enter__(self) -> JsonReader[FrameSeriesStrT]:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
