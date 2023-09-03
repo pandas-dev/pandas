@@ -1053,7 +1053,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_counter > 0:
             mask_index[-1] = True
 
-        arr = IntegerArray(value_counts, mask)
+        arr = IntegerArray(value_counts, mask)  # type: ignore[arg-type]
         index = Index(self.dtype.construct_array_type()(keys, mask_index))
         return Series(arr, index=index, name="count", copy=False)
 
