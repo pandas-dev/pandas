@@ -2920,6 +2920,7 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
                     f"Sort the values in {on} first."
                 )
 
+    @doc(_shared_docs["aggregate"])
     def aggregate(self, func, *args, **kwargs):
         return super().aggregate(func, *args, **kwargs)
 
