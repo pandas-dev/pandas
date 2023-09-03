@@ -77,6 +77,7 @@ if TYPE_CHECKING:
         DtypeObj,
         IntervalClosedType,
         Ordered,
+        Self,
         npt,
         type_t,
     )
@@ -212,6 +213,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     base = np.dtype("O")
     _metadata = ("categories", "ordered")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+    _supports_2d = False
+    _can_fast_transpose = False
 
     def __init__(self, categories=None, ordered: Ordered = False) -> None:
         self._finalize(categories, ordered, fastpath=False)
@@ -738,6 +741,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+    _supports_2d = True
+    _can_fast_transpose = True
 
     @property
     def na_value(self) -> NaTType:
@@ -981,8 +986,10 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     _cache_dtypes: dict[BaseOffset, int] = {}  # type: ignore[assignment]
     __hash__ = PeriodDtypeBase.__hash__
     _freq: BaseOffset
+    _supports_2d = True
+    _can_fast_transpose = True
 
-    def __new__(cls, freq):
+    def __new__(cls, freq) -> PeriodDtype:  # noqa: PYI034
         """
         Parameters
         ----------
@@ -1013,11 +1020,11 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         u._freq = freq
         return u
 
-    def __reduce__(self):
+    def __reduce__(self) -> tuple[type_t[Self], tuple[str_type]]:
         return type(self), (self.name,)
 
     @property
-    def freq(self):
+    def freq(self) -> BaseOffset:
         """
         The frequency object of this PeriodDtype.
 
@@ -1443,6 +1450,8 @@ class NumpyEADtype(ExtensionDtype):
     """
 
     _metadata = ("_dtype",)
+    _supports_2d = False
+    _can_fast_transpose = False
 
     def __init__(self, dtype: npt.DTypeLike | NumpyEADtype | None) -> None:
         if isinstance(dtype, NumpyEADtype):
@@ -1750,7 +1759,7 @@ class SparseDtype(ExtensionDtype):
         """
         return self._fill_value
 
-    def _check_fill_value(self):
+    def _check_fill_value(self) -> None:
         if not lib.is_scalar(self._fill_value):
             raise ValueError(
                 f"fill_value must be a scalar. Got {self._fill_value} instead"
