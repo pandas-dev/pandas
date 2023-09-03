@@ -46,8 +46,9 @@ class TestPDApi(Base):
         "plotting",
         "io",
         "tseries",
+        "util",
     ]
-    private_lib = ["compat", "core", "pandas", "util", "_built_with_meson"]
+    private_lib = ["compat", "core", "pandas", "_built_with_meson"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
