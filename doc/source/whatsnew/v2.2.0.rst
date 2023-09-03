@@ -171,7 +171,7 @@ Bug fixes
 
 Categorical
 ^^^^^^^^^^^
--
+- :meth:`Categorical.isin` raising ``InvalidIndexError`` for categorical containing overlapping :class:`Interval` values (:issue:`34974`)
 -
 
 Datetimelike
