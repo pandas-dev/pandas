@@ -2288,8 +2288,8 @@ class ExtensionArray:
     def _factorize_with_other(
         self, other: ExtensionArray, sort: bool = False
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
-        lk = self.astype(object)
-        rk = other.astype(object)
+        lk, _ = self._values_for_factorize()
+        rk, _ = other._values_for_factorize()
         return factorize_with_rizer(lk, rk, sort)
 
 
