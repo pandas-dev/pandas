@@ -36,6 +36,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
     is_scalar,
+    needs_i8_conversion,
 )
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
@@ -2561,9 +2562,17 @@ class ArrowExtensionArray(
             pa.types.is_floating(self.dtype.pyarrow_dtype)
             or pa.types.is_integer(self.dtype.pyarrow_dtype)
             or pa.types.is_unsigned_integer(self.dtype.pyarrow_dtype)
+            or pa.types.is_duration(self.dtype.pyarrow_dtype)
+            or pa.types.is_date(self.dtype.pyarrow_dtype)
+            or pa.types.is_timestamp(self.dtype.pyarrow_dtype)
         ):
             lk = self.to_numpy(na_value=1, dtype=self.dtype.numpy_dtype)
             rk = other.to_numpy(na_value=1, dtype=lk.dtype)
+
+            if needs_i8_conversion(lk.dtype):
+                lk = np.asarray(lk, dtype=np.int64)
+                rk = np.asarray(rk, dtype=np.int64)
+
             return factorize_with_rizer(lk, rk, sort, self.isna(), other.isna())
 
         len_lk = len(self)
