@@ -184,6 +184,9 @@ _apply_docs = {
         When True, will attempt to apply ``func`` to the groupings in
         the case that they are columns of the DataFrame. If this raises a
         TypeError, the result will be computed with the groupings excluded.
+        When False, the groupings will be excluded when applying ``func``.
+
+        .. versionadded:: 2.2.0
 
         .. deprecated:: 2.2.0
 
@@ -282,7 +285,7 @@ _apply_docs = {
     each group together into a Series, including setting the index as
     appropriate:
 
-    >>> g1[['B', 'C']].apply(lambda x: x.C.max() - x.B.min())
+    >>> g1.apply(lambda x: x.C.max() - x.B.min(), include_groups=False)
     A
     a    5
     b    2
@@ -3563,11 +3566,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             When True, will attempt to include the groupings in the operation in
             the case that they are columns of the DataFrame. If this raises a
             TypeError, the result will be computed with the groupings excluded.
+            When False, the groupings will be excluded when applying ``func``.
 
-        .. deprecated:: 2.2.0
+            .. versionadded:: 2.2.0
 
-           Setting include_groups to True is deprecated. Only the value
-           False will be allowed in a future version of pandas.
+            .. deprecated:: 2.2.0
+
+               Setting include_groups to True is deprecated. Only the value
+               False will be allowed in a future version of pandas.
 
         *args, **kwargs
             Possible arguments are `how`, `fill_method`, `limit`, `kind` and

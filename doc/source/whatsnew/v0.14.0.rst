@@ -347,7 +347,6 @@ More consistent behavior for some groupby methods:
      1 0  1  2
      5 2  5  6
 
-
 - groupby head and tail respect column selection:
 
   .. ipython:: python

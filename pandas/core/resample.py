@@ -111,6 +111,7 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
+    from pandas.api.typing import DataFrameGroupBy
 
 _shared_docs_kwargs: dict[str, str] = {}
 
@@ -434,9 +435,6 @@ class Resampler(BaseGroupBy, PandasObject):
             obj, by=None, grouper=grouper, axis=self.axis, group_keys=self.group_keys
         )
 
-        target_message = "DataFrameGroupBy.apply operated on the grouping columns"
-        new_message = _apply_groupings_depr.format(type(self).__name__, "resample")
-
         try:
             if callable(how):
                 # TODO: test_resample_apply_with_additional_args fails if we go
@@ -453,14 +451,9 @@ class Resampler(BaseGroupBy, PandasObject):
             #  a DataFrame column, but aggregate_item_by_item operates column-wise
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
-            with rewrite_warning(
-                target_message=target_message,
-                target_category=FutureWarning,
-                new_message=new_message,
-            ):
-                result = grouped.apply(
-                    how, *args, include_groups=self.include_groups, **kwargs
-                )
+            result = _apply(
+                grouped, how, *args, include_groups=self.include_groups, **kwargs
+            )
 
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -472,14 +465,9 @@ class Resampler(BaseGroupBy, PandasObject):
 
             # we have a non-reducing function
             # try to evaluate
-            with rewrite_warning(
-                target_message=target_message,
-                target_category=FutureWarning,
-                new_message=new_message,
-            ):
-                result = grouped.apply(
-                    how, *args, include_groups=self.include_groups, **kwargs
-                )
+            result = _apply(
+                grouped, how, *args, include_groups=self.include_groups, **kwargs
+            )
 
         return self._wrap_result(result)
 
@@ -1657,12 +1645,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
             return x.apply(f, *args, **kwargs)
 
-        with rewrite_warning(
-            target_message="DataFrameGroupBy.apply operated on the grouping columns",
-            target_category=FutureWarning,
-            new_message=_apply_groupings_depr.format("DataFrameGroupBy", "resample"),
-        ):
-            result = self._groupby.apply(func, include_groups=self.include_groups)
+        result = _apply(self._groupby, func, include_groups=self.include_groups)
         return self._wrap_result(result)
 
     _upsample = _apply
@@ -2826,3 +2809,18 @@ def maybe_warn_args_and_kwargs(cls, kernel: str, args, kwargs) -> None:
         category=FutureWarning,
         stacklevel=find_stack_level(),
     )
+
+
+def _apply(
+    grouped: DataFrameGroupBy, how: Callable, *args, include_groups: bool, **kwargs
+) -> DataFrame:
+    # GH#7155 - rewrite warning to appear as if it came from `.resample`
+    target_message = "DataFrameGroupBy.apply operated on the grouping columns"
+    new_message = _apply_groupings_depr.format("DataFrameGroupBy", "resample")
+    with rewrite_warning(
+        target_message=target_message,
+        target_category=FutureWarning,
+        new_message=new_message,
+    ):
+        result = grouped.apply(how, *args, include_groups=include_groups, **kwargs)
+    return result
