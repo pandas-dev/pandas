@@ -112,7 +112,7 @@ class TestDatetimeConcat:
     def test_concat_datetimeindex_freq(self):
         # GH 3232
         # Monotonic index result
-        dr = date_range("01-Jan-2013", periods=100, freq="50L", tz="UTC")
+        dr = date_range("01-Jan-2013", periods=100, freq="50ms", tz="UTC")
         data = list(range(100))
         expected = DataFrame(data, index=dr)
         result = concat([expected[:50], expected[50:]])
@@ -216,19 +216,30 @@ class TestDatetimeConcat:
 
     @pytest.mark.parametrize("tz1", [None, "UTC"])
     @pytest.mark.parametrize("tz2", [None, "UTC"])
-    @pytest.mark.parametrize("s", [pd.NaT, Timestamp("20150101")])
-    def test_concat_NaT_dataframes_all_NaT_axis_0(self, tz1, tz2, s):
+    @pytest.mark.parametrize("item", [pd.NaT, Timestamp("20150101")])
+    def test_concat_NaT_dataframes_all_NaT_axis_0(
+        self, tz1, tz2, item, using_array_manager
+    ):
         # GH 12396
 
         # tz-naive
         first = DataFrame([[pd.NaT], [pd.NaT]]).apply(lambda x: x.dt.tz_localize(tz1))
-        second = DataFrame([s]).apply(lambda x: x.dt.tz_localize(tz2))
+        second = DataFrame([item]).apply(lambda x: x.dt.tz_localize(tz2))
 
         result = concat([first, second], axis=0)
-        expected = DataFrame(Series([pd.NaT, pd.NaT, s], index=[0, 1, 0]))
+        expected = DataFrame(Series([pd.NaT, pd.NaT, item], index=[0, 1, 0]))
         expected = expected.apply(lambda x: x.dt.tz_localize(tz2))
         if tz1 != tz2:
             expected = expected.astype(object)
+            if item is pd.NaT and not using_array_manager:
+                # GH#18463
+                # TODO: setting nan here is to keep the test passing as we
+                #  make assert_frame_equal stricter, but is nan really the
+                #  ideal behavior here?
+                if tz1 is not None:
+                    expected.iloc[-1, 0] = np.nan
+                else:
+                    expected.iloc[:-1, 0] = np.nan
 
         tm.assert_frame_equal(result, expected)
 
@@ -538,3 +549,42 @@ def test_concat_multiindex_datetime_nat():
         {"a": [1.0, np.nan], "b": 2}, MultiIndex.from_tuples([(1, pd.NaT), (2, pd.NaT)])
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_float_datetime64(using_array_manager):
+    # GH#32934
+    df_time = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
+    df_float = DataFrame({"A": pd.array([1.0], dtype="float64")})
+
+    expected = DataFrame(
+        {
+            "A": [
+                pd.array(["2000"], dtype="datetime64[ns]")[0],
+                pd.array([1.0], dtype="float64")[0],
+            ]
+        },
+        index=[0, 0],
+    )
+    result = concat([df_time, df_float])
+    tm.assert_frame_equal(result, expected)
+
+    expected = DataFrame({"A": pd.array([], dtype="object")})
+    result = concat([df_time.iloc[:0], df_float.iloc[:0]])
+    tm.assert_frame_equal(result, expected)
+
+    expected = DataFrame({"A": pd.array([1.0], dtype="object")})
+    result = concat([df_time.iloc[:0], df_float])
+    tm.assert_frame_equal(result, expected)
+
+    if not using_array_manager:
+        expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
+        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = concat([df_time, df_float.iloc[:0]])
+        tm.assert_frame_equal(result, expected)
+    else:
+        expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")}).astype(
+            {"A": "object"}
+        )
+        result = concat([df_time, df_float.iloc[:0]])
+        tm.assert_frame_equal(result, expected)

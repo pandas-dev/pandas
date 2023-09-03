@@ -9,9 +9,7 @@ import pytest
 import pytz
 
 from pandas._libs.tslibs import iNaT
-from pandas.compat import is_numpy_dev
-
-from pandas.core.dtypes.common import is_datetime64_any_dtype
+from pandas.compat.numpy import np_version_gte1p24p3
 
 from pandas import (
     DatetimeIndex,
@@ -27,12 +25,12 @@ from pandas import (
     offsets,
 )
 import pandas._testing as tm
+from pandas.core import roperator
 from pandas.core.arrays import (
     DatetimeArray,
     PeriodArray,
     TimedeltaArray,
 )
-from pandas.core.ops import roperator
 
 
 @pytest.mark.parametrize(
@@ -313,14 +311,15 @@ def test_nat_doc_strings(compare):
     klass, method = compare
     klass_doc = getattr(klass, method).__doc__
 
-    # Ignore differences with Timestamp.isoformat() as they're intentional
     if klass == Timestamp and method == "isoformat":
-        return
+        pytest.skip(
+            "Ignore differences with Timestamp.isoformat() as they're intentional"
+        )
 
     if method == "to_numpy":
         # GH#44460 can return either dt64 or td64 depending on dtype,
         #  different docstring is intentional
-        return
+        pytest.skip(f"different docstring for {method} is intentional")
 
     nat_doc = getattr(NaT, method).__doc__
     assert klass_doc == nat_doc
@@ -444,7 +443,7 @@ def test_nat_arithmetic_index(op_name, value):
     exp_name = "x"
     exp_data = [NaT] * 2
 
-    if is_datetime64_any_dtype(value.dtype) and "plus" in op_name:
+    if value.dtype.kind == "M" and "plus" in op_name:
         expected = DatetimeIndex(exp_data, tz=value.tz, name=exp_name)
     else:
         expected = TimedeltaIndex(exp_data, name=exp_name)
@@ -493,7 +492,7 @@ def test_nat_arithmetic_ndarray(dtype, op, out_dtype):
 
 def test_nat_pinned_docstrings():
     # see gh-17327
-    assert NaT.ctime.__doc__ == datetime.ctime.__doc__
+    assert NaT.ctime.__doc__ == Timestamp.ctime.__doc__
 
 
 def test_to_numpy_alias():
@@ -525,24 +524,29 @@ def test_to_numpy_alias():
     [
         Timedelta(0),
         Timedelta(0).to_pytimedelta(),
-        Timedelta(0).to_timedelta64(),
+        pytest.param(
+            Timedelta(0).to_timedelta64(),
+            marks=pytest.mark.xfail(
+                not np_version_gte1p24p3,
+                reason="td64 doesn't return NotImplemented, see numpy#17017",
+            ),
+        ),
         Timestamp(0),
         Timestamp(0).to_pydatetime(),
-        Timestamp(0).to_datetime64(),
+        pytest.param(
+            Timestamp(0).to_datetime64(),
+            marks=pytest.mark.xfail(
+                not np_version_gte1p24p3,
+                reason="dt64 doesn't return NotImplemented, see numpy#17017",
+            ),
+        ),
         Timestamp(0).tz_localize("UTC"),
         NaT,
     ],
 )
-def test_nat_comparisons(compare_operators_no_eq_ne, other, request):
+def test_nat_comparisons(compare_operators_no_eq_ne, other):
     # GH 26039
     opname = compare_operators_no_eq_ne
-    if isinstance(other, (np.datetime64, np.timedelta64)) and (
-        opname in ["__eq__", "__ne__"] or not is_numpy_dev
-    ):
-        mark = pytest.mark.xfail(
-            reason="dt64/td64 don't return NotImplemented, see numpy#17017",
-        )
-        request.node.add_marker(mark)
 
     assert getattr(NaT, opname)(other) is False
 

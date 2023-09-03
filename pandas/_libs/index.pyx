@@ -20,7 +20,12 @@ from pandas._libs.tslibs.nattype cimport c_NaT as NaT
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     get_unit_from_dtype,
+    import_pandas_datetime,
 )
+
+import_pandas_datetime()
+
+
 from pandas._libs.tslibs.period cimport is_period_object
 from pandas._libs.tslibs.timedeltas cimport _Timedelta
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -230,6 +235,16 @@ cdef class IndexEngine:
     def __sizeof__(self) -> int:
         return self.sizeof()
 
+    cpdef _update_from_sliced(self, IndexEngine other, reverse: bool):
+        self.unique = other.unique
+        self.need_unique_check = other.need_unique_check
+        if not other.need_monotonic_check and (
+                other.is_monotonic_increasing or other.is_monotonic_decreasing):
+            self.need_monotonic_check = other.need_monotonic_check
+            # reverse=True means the index has been reversed
+            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
+            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
+
     @property
     def is_unique(self) -> bool:
         if self.need_unique_check:
@@ -256,24 +271,24 @@ cdef class IndexEngine:
 
     cdef _do_monotonic_check(self):
         cdef:
-            bint is_unique
+            bint is_strict_monotonic
         if self.mask is not None and np.any(self.mask):
             self.monotonic_inc = 0
             self.monotonic_dec = 0
         else:
             try:
                 values = self.values
-                self.monotonic_inc, self.monotonic_dec, is_unique = \
+                self.monotonic_inc, self.monotonic_dec, is_strict_monotonic = \
                     self._call_monotonic(values)
             except TypeError:
                 self.monotonic_inc = 0
                 self.monotonic_dec = 0
-                is_unique = 0
+                is_strict_monotonic = 0
 
             self.need_monotonic_check = 0
 
-            # we can only be sure of uniqueness if is_unique=1
-            if is_unique:
+            # we can only be sure of uniqueness if is_strict_monotonic=1
+            if is_strict_monotonic:
                 self.unique = 1
                 self.need_unique_check = 0
 
@@ -345,6 +360,8 @@ cdef class IndexEngine:
         values = self.values
         stargets = set(targets)
 
+        na_in_stargets = any(checknull(t) for t in stargets)
+
         n = len(values)
         n_t = len(targets)
         if n > 10_000:
@@ -358,8 +375,8 @@ cdef class IndexEngine:
         # map each starget to its position in the index
         if (
                 stargets and
-                len(stargets) < 5 and
-                not any([checknull(t) for t in stargets]) and
+                len(stargets) < (n / (2 * n.bit_length())) and
+                not na_in_stargets and
                 self.is_monotonic_increasing
         ):
             # if there are few enough stargets and the index is monotonically
@@ -381,7 +398,7 @@ cdef class IndexEngine:
             # otherwise, map by iterating through all items in the index
 
             # short-circuit na check
-            if values.dtype == object:
+            if na_in_stargets:
                 check_na_values = True
                 # keep track of nas in values
                 found_nas = set()
@@ -703,14 +720,15 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        zt = [target._get_level_values(i) for i in range(target.nlevels)]
-        level_codes = []
-        for i, (lev, codes) in enumerate(zip(self.levels, zt)):
-            result = lev.get_indexer_for(codes) + 1
-            result[result > 0] += 1
-            if self.level_has_nans[i] and codes.hasnans:
-                result[codes.isna()] += 1
-            level_codes.append(result)
+        level_codes = list(target._recode_for_new_levels(self.levels))
+        for i, codes in enumerate(level_codes):
+            if self.levels[i].hasnans:
+                na_index = self.levels[i].isna().nonzero()[0][0]
+                codes[target.codes[i] == -1] = na_index
+            codes += 1
+            codes[codes > 0] += 1
+            if self.level_has_nans[i]:
+                codes[target.codes[i] == -1] += 1
         return self._codes_to_ints(np.array(level_codes, dtype="uint64").T)
 
     def get_indexer(self, target: np.ndarray) -> np.ndarray:
@@ -891,6 +909,16 @@ cdef class SharedEngine:
     def clear_mapping(self):
         # for compat with IndexEngine
         pass
+
+    cpdef _update_from_sliced(self, ExtensionEngine other, reverse: bool):
+        self.unique = other.unique
+        self.need_unique_check = other.need_unique_check
+        if not other.need_monotonic_check and (
+                other.is_monotonic_increasing or other.is_monotonic_decreasing):
+            self.need_monotonic_check = other.need_monotonic_check
+            # reverse=True means the index has been reversed
+            self.monotonic_inc = other.monotonic_dec if reverse else other.monotonic_inc
+            self.monotonic_dec = other.monotonic_inc if reverse else other.monotonic_dec
 
     @property
     def is_unique(self) -> bool:

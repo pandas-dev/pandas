@@ -10,13 +10,6 @@ from typing import (
     Any,
 )
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
 
@@ -32,6 +25,14 @@ from pandas.io.xml import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        CompressionOptions,
+        FilePath,
+        ReadBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
+
     from pandas import DataFrame
 
 
@@ -116,7 +117,7 @@ class BaseXMLFormatter:
         pretty_print: bool | None = True,
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = None,
         compression: CompressionOptions = "infer",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> None:
         self.frame = frame
         self.path_or_buffer = path_or_buffer
@@ -132,7 +133,7 @@ class BaseXMLFormatter:
         self.xml_declaration = xml_declaration
         self.pretty_print = pretty_print
         self.stylesheet = stylesheet
-        self.compression = compression
+        self.compression: CompressionOptions = compression
         self.storage_options = storage_options
 
         self.orig_cols = self.frame.columns.tolist()
@@ -250,11 +251,12 @@ class BaseXMLFormatter:
         """
 
         nmsp_dict: dict[str, str] = {}
-        if self.namespaces and self.prefix is None:
-            nmsp_dict = {"xmlns": n for p, n in self.namespaces.items() if p != ""}
-
-        if self.namespaces and self.prefix:
-            nmsp_dict = {"xmlns": n for p, n in self.namespaces.items() if p == ""}
+        if self.namespaces:
+            nmsp_dict = {
+                f"xmlns{p if p=='' else f':{p}'}": n
+                for p, n in self.namespaces.items()
+                if n != self.prefix_uri[1:-1]
+            }
 
         return nmsp_dict
 
@@ -356,15 +358,15 @@ class EtreeXMLFormatter(BaseXMLFormatter):
                 elem_row = self.build_attribs(d, elem_row)
                 self.build_elems(d, elem_row)
 
-        self.out_xml = tostring(self.root, method="xml", encoding=self.encoding)
+        self.out_xml = tostring(
+            self.root,
+            method="xml",
+            encoding=self.encoding,
+            xml_declaration=self.xml_declaration,
+        )
 
         if self.pretty_print:
             self.out_xml = self.prettify_tree()
-
-        if self.xml_declaration:
-            self.out_xml = self.add_declaration()
-        else:
-            self.out_xml = self.remove_declaration()
 
         if self.stylesheet is not None:
             raise ValueError(
@@ -386,8 +388,10 @@ class EtreeXMLFormatter(BaseXMLFormatter):
                     uri = f"{{{self.namespaces[self.prefix]}}}"
                 except KeyError:
                     raise KeyError(f"{self.prefix} is not included in namespaces")
-            else:
+            elif "" in self.namespaces:
                 uri = f'{{{self.namespaces[""]}}}'
+            else:
+                uri = ""
 
         return uri
 
@@ -408,31 +412,6 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         dom = parseString(self.out_xml)
 
         return dom.toprettyxml(indent="  ", encoding=self.encoding)
-
-    def add_declaration(self) -> bytes:
-        """
-        Add xml declaration.
-
-        This method will add xml declaration of working tree. Currently,
-        xml_declaration is supported in etree starting in Python 3.8.
-        """
-        decl = f'<?xml version="1.0" encoding="{self.encoding}"?>\n'
-
-        return (
-            self.out_xml
-            if self.out_xml.startswith(b"<?xml")
-            else decl.encode(self.encoding) + self.out_xml
-        )
-
-    def remove_declaration(self) -> bytes:
-        """
-        Remove xml declaration.
-
-        This method will remove xml declaration of working tree. Currently,
-        pretty_print is not supported in etree.
-        """
-
-        return self.out_xml.split(b"?>")[-1].strip()
 
 
 class LxmlXMLFormatter(BaseXMLFormatter):
@@ -504,8 +483,10 @@ class LxmlXMLFormatter(BaseXMLFormatter):
                     uri = f"{{{self.namespaces[self.prefix]}}}"
                 except KeyError:
                     raise KeyError(f"{self.prefix} is not included in namespaces")
-            else:
+            elif "" in self.namespaces:
                 uri = f'{{{self.namespaces[""]}}}'
+            else:
+                uri = ""
 
         return uri
 

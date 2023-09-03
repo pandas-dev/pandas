@@ -109,7 +109,7 @@ instead of ``NaN``.
 
    In [8]: grouper = pd.Categorical(['a', 'a'], categories=['a', 'b'])
 
-   In [9]: pd.Series([1, 2]).groupby(grouper).sum()
+   In [9]: pd.Series([1, 2]).groupby(grouper, observed=False).sum()
    Out[9]:
    a    3.0
    b    NaN
@@ -120,14 +120,14 @@ instead of ``NaN``.
 .. ipython:: python
 
    grouper = pd.Categorical(["a", "a"], categories=["a", "b"])
-   pd.Series([1, 2]).groupby(grouper).sum()
+   pd.Series([1, 2]).groupby(grouper, observed=False).sum()
 
 To restore the 0.21 behavior of returning ``NaN`` for unobserved groups,
 use ``min_count>=1``.
 
 .. ipython:: python
 
-   pd.Series([1, 2]).groupby(grouper).sum(min_count=1)
+   pd.Series([1, 2]).groupby(grouper, observed=False).sum(min_count=1)
 
 Resample
 ^^^^^^^^

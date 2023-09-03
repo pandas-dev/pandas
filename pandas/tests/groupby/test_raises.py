@@ -3,6 +3,7 @@
 # test file.
 
 import datetime
+import re
 
 import numpy as np
 import pytest
@@ -13,6 +14,7 @@ from pandas import (
     Grouper,
     Series,
 )
+import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
 
@@ -39,8 +41,8 @@ def groupby_series(request):
     return request.param
 
 
-@pytest.mark.parametrize("how", ["method", "agg", "transform"])
-def test_groupby_raises_string(how, by, groupby_series, groupby_func):
+@pytest.fixture
+def df_with_string_col():
     df = DataFrame(
         {
             "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
@@ -49,6 +51,75 @@ def test_groupby_raises_string(how, by, groupby_series, groupby_func):
             "d": list("xyzwtyuio"),
         }
     )
+    return df
+
+
+@pytest.fixture
+def df_with_datetime_col():
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
+            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
+            "c": range(9),
+            "d": datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
+        }
+    )
+    return df
+
+
+@pytest.fixture
+def df_with_timedelta_col():
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
+            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
+            "c": range(9),
+            "d": datetime.timedelta(days=1),
+        }
+    )
+    return df
+
+
+@pytest.fixture
+def df_with_cat_col():
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
+            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
+            "c": range(9),
+            "d": Categorical(
+                ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
+                categories=["a", "b", "c", "d"],
+                ordered=True,
+            ),
+        }
+    )
+    return df
+
+
+def _call_and_check(klass, msg, how, gb, groupby_func, args):
+    if klass is None:
+        if how == "method":
+            getattr(gb, groupby_func)(*args)
+        elif how == "agg":
+            gb.agg(groupby_func, *args)
+        else:
+            gb.transform(groupby_func, *args)
+    else:
+        with pytest.raises(klass, match=msg):
+            if how == "method":
+                getattr(gb, groupby_func)(*args)
+            elif how == "agg":
+                gb.agg(groupby_func, *args)
+            else:
+                gb.transform(groupby_func, *args)
+
+
+@pytest.mark.parametrize("how", ["method", "agg", "transform"])
+def test_groupby_raises_string(
+    how, by, groupby_series, groupby_func, df_with_string_col
+):
+    df = df_with_string_col
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by)
 
@@ -86,55 +157,46 @@ def test_groupby_raises_string(how, by, groupby_series, groupby_func):
         "ffill": (None, ""),
         "fillna": (None, ""),
         "first": (None, ""),
-        "idxmax": (TypeError, "'argmax' not allowed for this dtype"),
-        "idxmin": (TypeError, "'argmin' not allowed for this dtype"),
+        "idxmax": (None, ""),
+        "idxmin": (None, ""),
         "last": (None, ""),
         "max": (None, ""),
-        "mean": (TypeError, "Could not convert xy?z?w?t?y?u?i?o? to numeric"),
-        "median": (TypeError, "could not convert string to float"),
+        "mean": (
+            TypeError,
+            re.escape("agg function failed [how->mean,dtype->object]"),
+        ),
+        "median": (
+            TypeError,
+            re.escape("agg function failed [how->median,dtype->object]"),
+        ),
         "min": (None, ""),
         "ngroup": (None, ""),
         "nunique": (None, ""),
         "pct_change": (TypeError, "unsupported operand type"),
-        "prod": (TypeError, "can't multiply sequence by non-int of type 'str'"),
+        "prod": (
+            TypeError,
+            re.escape("agg function failed [how->prod,dtype->object]"),
+        ),
         "quantile": (TypeError, "cannot be performed against 'object' dtypes!"),
         "rank": (None, ""),
         "sem": (ValueError, "could not convert string to float"),
         "shift": (None, ""),
         "size": (None, ""),
-        "skew": (TypeError, "could not convert string to float"),
+        "skew": (ValueError, "could not convert string to float"),
         "std": (ValueError, "could not convert string to float"),
         "sum": (None, ""),
-        "var": (TypeError, "could not convert string to float"),
+        "var": (
+            TypeError,
+            re.escape("agg function failed [how->var,dtype->object]"),
+        ),
     }[groupby_func]
 
-    if klass is None:
-        if how == "method":
-            getattr(gb, groupby_func)(*args)
-        elif how == "agg":
-            gb.agg(groupby_func, *args)
-        else:
-            gb.transform(groupby_func, *args)
-    else:
-        with pytest.raises(klass, match=msg):
-            if how == "method":
-                getattr(gb, groupby_func)(*args)
-            elif how == "agg":
-                gb.agg(groupby_func, *args)
-            else:
-                gb.transform(groupby_func, *args)
+    _call_and_check(klass, msg, how, gb, groupby_func, args)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
-def test_groupby_raises_string_udf(how, by, groupby_series):
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": list("xyzwtyuio"),
-        }
-    )
+def test_groupby_raises_string_udf(how, by, groupby_series, df_with_string_col):
+    df = df_with_string_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -149,16 +211,11 @@ def test_groupby_raises_string_udf(how, by, groupby_series):
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
-def test_groupby_raises_string_np(how, by, groupby_series, groupby_func_np):
+def test_groupby_raises_string_np(
+    how, by, groupby_series, groupby_func_np, df_with_string_col
+):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": list("xyzwtyuio"),
-        }
-    )
+    df = df_with_string_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -166,26 +223,25 @@ def test_groupby_raises_string_np(how, by, groupby_series, groupby_func_np):
 
     klass, msg = {
         np.sum: (None, ""),
-        np.mean: (TypeError, "Could not convert xy?z?w?t?y?u?i?o? to numeric"),
+        np.mean: (
+            TypeError,
+            re.escape("agg function failed [how->mean,dtype->object]"),
+        ),
     }[groupby_func_np]
 
-    if klass is None:
-        getattr(gb, how)(groupby_func_np)
+    if groupby_series:
+        warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
-        with pytest.raises(klass, match=msg):
-            getattr(gb, how)(groupby_func_np)
+        warn_msg = "using DataFrameGroupBy.[sum|mean]"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
-def test_groupby_raises_datetime(how, by, groupby_series, groupby_func):
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
-        }
-    )
+def test_groupby_raises_datetime(
+    how, by, groupby_series, groupby_func, df_with_datetime_col
+):
+    df = df_with_datetime_col
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by)
 
@@ -227,40 +283,32 @@ def test_groupby_raises_datetime(how, by, groupby_series, groupby_func):
         "sem": (None, ""),
         "shift": (None, ""),
         "size": (None, ""),
-        "skew": (TypeError, r"dtype datetime64\[ns\] does not support reduction"),
+        "skew": (
+            TypeError,
+            "|".join(
+                [
+                    r"dtype datetime64\[ns\] does not support reduction",
+                    "datetime64 type does not support skew operations",
+                ]
+            ),
+        ),
         "std": (None, ""),
         "sum": (TypeError, "datetime64 type does not support sum operations"),
-        "var": (None, ""),
+        "var": (TypeError, "datetime64 type does not support var operations"),
     }[groupby_func]
 
-    if klass is None:
-        if how == "method":
-            getattr(gb, groupby_func)(*args)
-        elif how == "agg":
-            gb.agg(groupby_func, *args)
-        else:
-            gb.transform(groupby_func, *args)
-    else:
-        with pytest.raises(klass, match=msg):
-            if how == "method":
-                getattr(gb, groupby_func)(*args)
-            elif how == "agg":
-                gb.agg(groupby_func, *args)
-            else:
-                gb.transform(groupby_func, *args)
+    warn = None
+    warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
+    if groupby_func in ["any", "all"]:
+        warn = FutureWarning
+
+    with tm.assert_produces_warning(warn, match=warn_msg):
+        _call_and_check(klass, msg, how, gb, groupby_func, args)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
-def test_groupby_raises_datetime_udf(how, by, groupby_series):
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
-        }
-    )
-
+def test_groupby_raises_datetime_udf(how, by, groupby_series, df_with_datetime_col):
+    df = df_with_datetime_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -275,16 +323,11 @@ def test_groupby_raises_datetime_udf(how, by, groupby_series):
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
-def test_groupby_raises_datetime_np(how, by, groupby_series, groupby_func_np):
+def test_groupby_raises_datetime_np(
+    how, by, groupby_series, groupby_func_np, df_with_datetime_col
+):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": datetime.datetime(2005, 1, 1, 10, 30, 23, 540000),
-        }
-    )
+    df = df_with_datetime_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -295,30 +338,35 @@ def test_groupby_raises_datetime_np(how, by, groupby_series, groupby_func_np):
         np.mean: (None, ""),
     }[groupby_func_np]
 
-    if klass is None:
-        getattr(gb, how)(groupby_func_np)
+    if groupby_series:
+        warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
-        with pytest.raises(klass, match=msg):
-            getattr(gb, how)(groupby_func_np)
+        warn_msg = "using DataFrameGroupBy.[sum|mean]"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
+
+
+@pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
+def test_groupby_raises_timedelta(func, df_with_timedelta_col):
+    df = df_with_timedelta_col
+    gb = df.groupby(by="a")
+
+    _call_and_check(
+        TypeError,
+        "timedelta64 type does not support .* operations",
+        "method",
+        gb,
+        func,
+        [],
+    )
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category(
-    how, by, groupby_series, groupby_func, using_copy_on_write
+    how, by, groupby_series, groupby_func, using_copy_on_write, df_with_cat_col
 ):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": Categorical(
-                ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
-                categories=["a", "b", "c", "d"],
-                ordered=True,
-            ),
-        }
-    )
+    df = df_with_cat_col
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by)
 
@@ -342,25 +390,25 @@ def test_groupby_raises_category(
         "cummax": (
             (NotImplementedError, TypeError),
             "(category type does not support cummax operations|"
-            + "category dtype not supported|"
-            + "cummax is not supported for category dtype)",
+            "category dtype not supported|"
+            "cummax is not supported for category dtype)",
         ),
         "cummin": (
             (NotImplementedError, TypeError),
             "(category type does not support cummin operations|"
-            + "category dtype not supported|"
+            "category dtype not supported|"
             "cummin is not supported for category dtype)",
         ),
         "cumprod": (
             (NotImplementedError, TypeError),
             "(category type does not support cumprod operations|"
-            + "category dtype not supported|"
+            "category dtype not supported|"
             "cumprod is not supported for category dtype)",
         ),
         "cumsum": (
             (NotImplementedError, TypeError),
             "(category type does not support cumsum operations|"
-            + "category dtype not supported|"
+            "category dtype not supported|"
             "cumsum is not supported for category dtype)",
         ),
         "diff": (
@@ -371,7 +419,7 @@ def test_groupby_raises_category(
         "fillna": (
             TypeError,
             r"Cannot setitem on a Categorical with a new category \(0\), "
-            + "set the categories first",
+            "set the categories first",
         )
         if not using_copy_on_write
         else (None, ""),  # no-op with CoW
@@ -382,11 +430,21 @@ def test_groupby_raises_category(
         "max": (None, ""),
         "mean": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'mean'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'mean'",
+                    "category dtype does not support aggregation 'mean'",
+                ]
+            ),
         ),
         "median": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'median'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'median'",
+                    "category dtype does not support aggregation 'median'",
+                ]
+            ),
         ),
         "min": (None, ""),
         "ngroup": (None, ""),
@@ -398,53 +456,54 @@ def test_groupby_raises_category(
         "prod": (TypeError, "category type does not support prod operations"),
         "quantile": (TypeError, "No matching signature found"),
         "rank": (None, ""),
-        "sem": (ValueError, "Cannot cast object dtype to float64"),
+        "sem": (
+            TypeError,
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'sem'",
+                    "category dtype does not support aggregation 'sem'",
+                ]
+            ),
+        ),
         "shift": (None, ""),
         "size": (None, ""),
         "skew": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'skew'",
+            "|".join(
+                [
+                    "dtype category does not support reduction 'skew'",
+                    "category type does not support skew operations",
+                ]
+            ),
         ),
-        "std": (ValueError, "Cannot cast object dtype to float64"),
+        "std": (
+            TypeError,
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'std'",
+                    "category dtype does not support aggregation 'std'",
+                ]
+            ),
+        ),
         "sum": (TypeError, "category type does not support sum operations"),
         "var": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'var'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'var'",
+                    "category dtype does not support aggregation 'var'",
+                ]
+            ),
         ),
     }[groupby_func]
 
-    if klass is None:
-        if how == "method":
-            getattr(gb, groupby_func)(*args)
-        elif how == "agg":
-            gb.agg(groupby_func, *args)
-        else:
-            gb.transform(groupby_func, *args)
-    else:
-        with pytest.raises(klass, match=msg):
-            if how == "method":
-                getattr(gb, groupby_func)(*args)
-            elif how == "agg":
-                gb.agg(groupby_func, *args)
-            else:
-                gb.transform(groupby_func, *args)
+    _call_and_check(klass, msg, how, gb, groupby_func, args)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
-def test_groupby_raises_category_udf(how, by, groupby_series):
+def test_groupby_raises_category_udf(how, by, groupby_series, df_with_cat_col):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": Categorical(
-                ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
-                categories=["a", "b", "c", "d"],
-                ordered=True,
-            ),
-        }
-    )
+    df = df_with_cat_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -459,20 +518,11 @@ def test_groupby_raises_category_udf(how, by, groupby_series):
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
 @pytest.mark.parametrize("groupby_func_np", [np.sum, np.mean])
-def test_groupby_raises_category_np(how, by, groupby_series, groupby_func_np):
+def test_groupby_raises_category_np(
+    how, by, groupby_series, groupby_func_np, df_with_cat_col
+):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": Categorical(
-                ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
-                categories=["a", "b", "c", "d"],
-                ordered=True,
-            ),
-        }
-    )
+    df = df_with_cat_col
     gb = df.groupby(by=by)
 
     if groupby_series:
@@ -482,37 +532,34 @@ def test_groupby_raises_category_np(how, by, groupby_series, groupby_func_np):
         np.sum: (TypeError, "category type does not support sum operations"),
         np.mean: (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'mean'",
+            "category dtype does not support aggregation 'mean'",
         ),
     }[groupby_func_np]
 
-    if klass is None:
-        getattr(gb, how)(groupby_func_np)
+    if groupby_series:
+        warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
-        with pytest.raises(klass, match=msg):
-            getattr(gb, how)(groupby_func_np)
+        warn_msg = "using DataFrameGroupBy.[sum|mean]"
+    with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+        _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category_on_category(
-    how, by, groupby_series, groupby_func, observed, using_copy_on_write
+    how,
+    by,
+    groupby_series,
+    groupby_func,
+    observed,
+    using_copy_on_write,
+    df_with_cat_col,
 ):
     # GH#50749
-    df = DataFrame(
-        {
-            "a": Categorical(
-                ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
-                categories=["a", "b", "c", "d"],
-                ordered=True,
-            ),
-            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
-            "c": range(9),
-            "d": Categorical(
-                ["a", "a", "a", "a", "b", "b", "c", "c", "c"],
-                categories=["a", "b", "c", "d"],
-                ordered=True,
-            ),
-        }
+    df = df_with_cat_col
+    df["a"] = Categorical(
+        ["a", "a", "a", "a", "b", "b", "b", "b", "c"],
+        categories=["a", "b", "c", "d"],
+        ordered=True,
     )
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby(by=by, observed=observed)
@@ -539,33 +586,33 @@ def test_groupby_raises_category_on_category(
         "cummax": (
             (NotImplementedError, TypeError),
             "(cummax is not supported for category dtype|"
-            + "category dtype not supported|"
-            + "category type does not support cummax operations)",
+            "category dtype not supported|"
+            "category type does not support cummax operations)",
         ),
         "cummin": (
             (NotImplementedError, TypeError),
             "(cummin is not supported for category dtype|"
-            + "category dtype not supported|"
+            "category dtype not supported|"
             "category type does not support cummin operations)",
         ),
         "cumprod": (
             (NotImplementedError, TypeError),
             "(cumprod is not supported for category dtype|"
-            + "category dtype not supported|"
+            "category dtype not supported|"
             "category type does not support cumprod operations)",
         ),
         "cumsum": (
             (NotImplementedError, TypeError),
             "(cumsum is not supported for category dtype|"
-            + "category dtype not supported|"
-            + "category type does not support cumsum operations)",
+            "category dtype not supported|"
+            "category type does not support cumsum operations)",
         ),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
         "fillna": (
             TypeError,
             r"Cannot setitem on a Categorical with a new category \(0\), "
-            + "set the categories first",
+            "set the categories first",
         )
         if not using_copy_on_write
         else (None, ""),  # no-op with CoW
@@ -578,14 +625,8 @@ def test_groupby_raises_category_on_category(
         else (None, ""),
         "last": (None, ""),
         "max": (None, ""),
-        "mean": (
-            TypeError,
-            "'Categorical' with dtype category does not support reduction 'mean'",
-        ),
-        "median": (
-            TypeError,
-            "'Categorical' with dtype category does not support reduction 'median'",
-        ),
+        "mean": (TypeError, "category dtype does not support aggregation 'mean'"),
+        "median": (TypeError, "category dtype does not support aggregation 'median'"),
         "min": (None, ""),
         "ngroup": (None, ""),
         "nunique": (None, ""),
@@ -593,41 +634,55 @@ def test_groupby_raises_category_on_category(
         "prod": (TypeError, "category type does not support prod operations"),
         "quantile": (TypeError, ""),
         "rank": (None, ""),
-        "sem": (ValueError, "Cannot cast object dtype to float64"),
+        "sem": (
+            TypeError,
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'sem'",
+                    "category dtype does not support aggregation 'sem'",
+                ]
+            ),
+        ),
         "shift": (None, ""),
         "size": (None, ""),
         "skew": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'skew'",
+            "|".join(
+                [
+                    "category type does not support skew operations",
+                    "dtype category does not support reduction 'skew'",
+                ]
+            ),
         ),
-        "std": (ValueError, "Cannot cast object dtype to float64"),
+        "std": (
+            TypeError,
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'std'",
+                    "category dtype does not support aggregation 'std'",
+                ]
+            ),
+        ),
         "sum": (TypeError, "category type does not support sum operations"),
         "var": (
             TypeError,
-            "'Categorical' with dtype category does not support reduction 'var'",
+            "|".join(
+                [
+                    "'Categorical' .* does not support reduction 'var'",
+                    "category dtype does not support aggregation 'var'",
+                ]
+            ),
         ),
     }[groupby_func]
 
-    if klass is None:
-        if how == "method":
-            getattr(gb, groupby_func)(*args)
-        elif how == "agg":
-            gb.agg(groupby_func, *args)
-        else:
-            gb.transform(groupby_func, *args)
-    else:
-        with pytest.raises(klass, match=msg):
-            if how == "method":
-                getattr(gb, groupby_func)(*args)
-            elif how == "agg":
-                gb.agg(groupby_func, *args)
-            else:
-                gb.transform(groupby_func, *args)
+    _call_and_check(klass, msg, how, gb, groupby_func, args)
 
 
 def test_subsetting_columns_axis_1_raises():
     # GH 35443
     df = DataFrame({"a": [1], "b": [2], "c": [3]})
-    gb = df.groupby("a", axis=1)
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby("a", axis=1)
     with pytest.raises(ValueError, match="Cannot subset columns when using axis=1"):
         gb["b"]

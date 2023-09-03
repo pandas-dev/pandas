@@ -121,6 +121,8 @@ Here's a typical workflow for triaging a newly opened issue.
    unless it's know that this issue should be addressed in a specific release (say
    because it's a large regression).
 
+   Once you have completed the above, make sure to remove the "needs triage" label.
+
 .. _maintaining.regressions:
 
 Investigating regressions
@@ -174,6 +176,8 @@ conversation is over. It's typically best to give the reporter some time to
 respond or self-close their issue if it's determined that the behavior is not a bug,
 or the feature is out of scope. Sometimes reporters just go away though, and
 we'll close the issue after the conversation has died.
+If you think an issue should be closed but are not completely sure, please apply
+the "closing candidate" label and wait for other maintainers to take a look.
 
 .. _maintaining.reviewing:
 
@@ -252,14 +256,16 @@ Cleaning up old pull requests
 Occasionally, contributors are unable to finish off a pull request.
 If some time has passed (two weeks, say) since the last review requesting changes,
 gently ask if they're still interested in working on this. If another two weeks or
-so passes with no response, thank them for their work and close the pull request.
-Comment on the original issue that "There's a stalled PR at #1234 that may be
-helpful.", and perhaps label the issue as "Good first issue" if the PR was relatively
-close to being accepted.
+so passes with no response, thank them for their work and then either:
 
-Additionally, core-team members can push to contributors branches. This can be
-helpful for pushing an important PR across the line, or for fixing a small
-merge conflict.
+- close the pull request;
+- push to the contributor's branch to push their work over the finish line (if
+  you're part of ``pandas-core``). This can be helpful for pushing an important PR
+  across the line, or for fixing a small merge conflict.
+
+If closing the pull request, then please comment on the original issue that
+"There's a stalled PR at #1234 that may be helpful.", and perhaps label the issue
+as "Good first issue" if the PR was relatively close to being accepted.
 
 Becoming a pandas maintainer
 ----------------------------
@@ -276,12 +282,13 @@ The required steps for adding a maintainer are:
   * ``pandas-core`` is for core team members
   * ``pandas-triage`` is for pandas triage members
 
+If adding to ``pandas-core``, there are two additional steps:
+
 3. Add the contributor to the pandas Google group.
 4. Create a pull request to add the contributor's GitHub handle to ``pandas-dev/pandas/web/pandas/config.yml``.
-5. Create a pull request to add the contributor's name/GitHub handle to the `governance document <https://github.com/pandas-dev/pandas-governance/blob/master/people.md>`_.
 
 The current list of core-team members is at
-https://github.com/pandas-dev/pandas-governance/blob/master/people.md
+https://github.com/pandas-dev/pandas/blob/main/web/pandas/config.yml
 
 
 .. _maintaining.merging:
@@ -291,8 +298,11 @@ Merging pull requests
 
 Only core team members can merge pull requests. We have a few guidelines.
 
-1. You should typically not self-merge your own pull requests. Exceptions include
-   things like small changes to fix CI (e.g. pinning a package version).
+1. You should typically not self-merge your own pull requests without approval.
+   Exceptions include things like small changes to fix CI
+   (e.g. pinning a package version). Self-merging with approval from other
+   core team members is fine if the change is something you're very confident
+   about.
 2. You should not merge pull requests that have an active discussion, or pull
    requests that has any ``-1`` votes from a core maintainer. pandas operates
    by consensus.
@@ -368,11 +378,14 @@ Prerequisites
 
 In order to be able to release a new pandas version, the next permissions are needed:
 
-- Merge rights to the `pandas <https://github.com/pandas-dev/pandas/>`_,
-  `pandas-wheels <https://github.com/MacPython/pandas-wheels>`_, and
+- Merge rights to the `pandas <https://github.com/pandas-dev/pandas/>`_ and
   `pandas-feedstock <https://github.com/conda-forge/pandas-feedstock/>`_ repositories.
-- Permissions to push to main in the pandas repository, to push the new tags.
-- `Write permissions to PyPI <https://github.com/conda-forge/pandas-feedstock/pulls>`_
+  For the latter, open a PR adding your GitHub username to the conda-forge recipe.
+- Permissions to push to ``main`` in the pandas repository, to push the new tags.
+- `Write permissions to PyPI <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
+- Access to our website / documentation server. Share your public key with the
+  infrastructure committee to be added to the ``authorized_keys`` file of the main
+  server user.
 - Access to the social media accounts, to publish the announcements.
 
 Pre-release
@@ -432,16 +445,16 @@ which will be triggered when the tag is pushed.
     git tag -a v1.5.0.dev0 -m "DEV: Start 1.5.0"
     git push upstream main --follow-tags
 
-3. Build the source distribution (git must be in the tag commit):
+3. Build the source distribution (git must be in the tag commit)::
 
     ./setup.py sdist --formats=gztar --quiet
 
 4. Create a `new GitHub release <https://github.com/pandas-dev/pandas/releases/new>`_:
 
-   - Title: ``Pandas <version>``
    - Tag: ``<version>``
-   - Files: ``pandas-<version>.tar.gz`` source distribution just generated
+   - Title: ``Pandas <version>``
    - Description: Copy the description of the last release of the same kind (release candidate, major/minor or patch release)
+   - Files: ``pandas-<version>.tar.gz`` source distribution just generated
    - Set as a pre-release: Only check for a release candidate
    - Set as the latest release: Leave checked, unless releasing a patch release for an older version
      (e.g. releasing 1.4.5 after 1.5 has been released)
@@ -449,34 +462,33 @@ which will be triggered when the tag is pushed.
 5. The GitHub release will after some hours trigger an
    `automated conda-forge PR <https://github.com/conda-forge/pandas-feedstock/pulls>`_.
    Merge it once the CI is green, and it will generate the conda-forge packages.
+   In case a manual PR needs to be done, the version, sha256 and build fields are the
+   ones that usually need to be changed. If anything else in the recipe has changed since
+   the last release, those changes should be available in ``ci/meta.yaml``.
 
-6. Packages for supported versions in PyPI are built in the
-   `MacPython repo <https://github.com/MacPython/pandas-wheels>`_.
-   Open a PR updating the build commit to the released version, and merge it once the
-   CI is green. To do this type::
+6. Packages for supported versions in PyPI are built automatically from our CI.
+   Once all packages are build download all wheels from the
+   `Anaconda repository <https://anaconda.org/multibuild-wheels-staging/pandas/files?version=\<version\>>`_
+   where our CI published them to the ``dist/`` directory in your local pandas copy.
+   You can use the script ``scripts/download_wheels.sh`` to download all wheels at once.
 
-    git checkout master
-    git pull --ff-only upstream master
-    git checkout -B RLS-<version>
-    sed -i 's/BUILD_COMMIT: "v.*/BUILD_COMMIT: "'v<version>'"/' azure/windows.yml azure/posix.yml
-    sed -i 's/BUILD_COMMIT="v.*/BUILD_COMMIT="'v<version>'"/' .travis.yml
-    git commit -am "RLS <version>"
-    git push -u origin RLS-<version>
-
-7. Download all wheels from the Anaconda repository where MacPython uploads them:
-   https://anaconda.org/multibuild-wheels-staging/pandas/files?version=<version>
-   to the ``dist/`` directory in the local pandas copy. You can use the script
-   ``scripts/download_wheels.sh`` to download all wheels at once.
-
-8. Upload wheels to PyPI:
+7. Upload wheels to PyPI::
 
     twine upload pandas/dist/pandas-<version>*.{whl,tar.gz} --skip-existing
 
 Post-Release
 ````````````
 
-1. Update symlink to stable documentation by logging in to our web server, and
-   editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<latest-version>``.
+1. Update symlinks to stable documentation by logging in to our web server, and
+   editing ``/var/www/html/pandas-docs/stable`` to point to ``version/<latest-version>``
+   for major and minor releases, or ``version/<minor>`` to ``version/<patch>`` for
+   patch releases. The exact instructions are (replace the example version numbers by
+   the appropriate ones for the version you are releasing):
+
+    - Log in to the server and use the correct user.
+    - `cd /var/www/html/pandas-docs/`
+    - `ln -sfn version/2.1 stable` (for a major or minor release)
+    - `ln -sfn version/2.0.3 version/2.0` (for a patch release)
 
 2. If releasing a major or minor release, open a PR in our source code to update
    ``web/pandas/versions.json``, to have the desired versions in the documentation
@@ -488,13 +500,16 @@ Post-Release
 
 5. Open a PR with the placeholder for the release notes of the next version. See
    for example `the PR for 1.5.3 <https://github.com/pandas-dev/pandas/pull/49843/files>`_.
+   Note that the template to use depends on whether it is a major, minor or patch release.
 
 6. Announce the new release in the official channels (use previous announcements
    for reference):
 
     - The pandas-dev and pydata mailing lists
-    - Twitter, Mastodon and Telegram
+    - Twitter, Mastodon, Telegram and LinkedIn
 
+7. Update this release instructions to fix anything incorrect and to update about any
+   change since the last release.
 
-.. _governance documents: https://github.com/pandas-dev/pandas-governance
+.. _governance documents: https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md
 .. _list of permissions: https://docs.github.com/en/organizations/managing-access-to-your-organizations-repositories/repository-roles-for-an-organization

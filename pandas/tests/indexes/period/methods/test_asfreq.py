@@ -2,6 +2,7 @@ import pytest
 
 from pandas import (
     PeriodIndex,
+    Series,
     period_range,
 )
 import pandas._testing as tm
@@ -15,57 +16,57 @@ class TestPeriodIndex:
         pi4 = period_range(freq="D", start="1/1/2001", end="1/1/2001")
         pi5 = period_range(freq="H", start="1/1/2001", end="1/1/2001 00:00")
         pi6 = period_range(freq="Min", start="1/1/2001", end="1/1/2001 00:00")
-        pi7 = period_range(freq="S", start="1/1/2001", end="1/1/2001 00:00:00")
+        pi7 = period_range(freq="s", start="1/1/2001", end="1/1/2001 00:00:00")
 
-        assert pi1.asfreq("Q", "S") == pi2
+        assert pi1.asfreq("Q", "s") == pi2
         assert pi1.asfreq("Q", "s") == pi2
         assert pi1.asfreq("M", "start") == pi3
         assert pi1.asfreq("D", "StarT") == pi4
         assert pi1.asfreq("H", "beGIN") == pi5
-        assert pi1.asfreq("Min", "S") == pi6
-        assert pi1.asfreq("S", "S") == pi7
+        assert pi1.asfreq("Min", "s") == pi6
+        assert pi1.asfreq("s", "s") == pi7
 
-        assert pi2.asfreq("A", "S") == pi1
-        assert pi2.asfreq("M", "S") == pi3
-        assert pi2.asfreq("D", "S") == pi4
-        assert pi2.asfreq("H", "S") == pi5
-        assert pi2.asfreq("Min", "S") == pi6
-        assert pi2.asfreq("S", "S") == pi7
+        assert pi2.asfreq("A", "s") == pi1
+        assert pi2.asfreq("M", "s") == pi3
+        assert pi2.asfreq("D", "s") == pi4
+        assert pi2.asfreq("H", "s") == pi5
+        assert pi2.asfreq("Min", "s") == pi6
+        assert pi2.asfreq("s", "s") == pi7
 
-        assert pi3.asfreq("A", "S") == pi1
-        assert pi3.asfreq("Q", "S") == pi2
-        assert pi3.asfreq("D", "S") == pi4
-        assert pi3.asfreq("H", "S") == pi5
-        assert pi3.asfreq("Min", "S") == pi6
-        assert pi3.asfreq("S", "S") == pi7
+        assert pi3.asfreq("A", "s") == pi1
+        assert pi3.asfreq("Q", "s") == pi2
+        assert pi3.asfreq("D", "s") == pi4
+        assert pi3.asfreq("H", "s") == pi5
+        assert pi3.asfreq("Min", "s") == pi6
+        assert pi3.asfreq("s", "s") == pi7
 
-        assert pi4.asfreq("A", "S") == pi1
-        assert pi4.asfreq("Q", "S") == pi2
-        assert pi4.asfreq("M", "S") == pi3
-        assert pi4.asfreq("H", "S") == pi5
-        assert pi4.asfreq("Min", "S") == pi6
-        assert pi4.asfreq("S", "S") == pi7
+        assert pi4.asfreq("A", "s") == pi1
+        assert pi4.asfreq("Q", "s") == pi2
+        assert pi4.asfreq("M", "s") == pi3
+        assert pi4.asfreq("H", "s") == pi5
+        assert pi4.asfreq("Min", "s") == pi6
+        assert pi4.asfreq("s", "s") == pi7
 
-        assert pi5.asfreq("A", "S") == pi1
-        assert pi5.asfreq("Q", "S") == pi2
-        assert pi5.asfreq("M", "S") == pi3
-        assert pi5.asfreq("D", "S") == pi4
-        assert pi5.asfreq("Min", "S") == pi6
-        assert pi5.asfreq("S", "S") == pi7
+        assert pi5.asfreq("A", "s") == pi1
+        assert pi5.asfreq("Q", "s") == pi2
+        assert pi5.asfreq("M", "s") == pi3
+        assert pi5.asfreq("D", "s") == pi4
+        assert pi5.asfreq("Min", "s") == pi6
+        assert pi5.asfreq("s", "s") == pi7
 
-        assert pi6.asfreq("A", "S") == pi1
-        assert pi6.asfreq("Q", "S") == pi2
-        assert pi6.asfreq("M", "S") == pi3
-        assert pi6.asfreq("D", "S") == pi4
-        assert pi6.asfreq("H", "S") == pi5
-        assert pi6.asfreq("S", "S") == pi7
+        assert pi6.asfreq("A", "s") == pi1
+        assert pi6.asfreq("Q", "s") == pi2
+        assert pi6.asfreq("M", "s") == pi3
+        assert pi6.asfreq("D", "s") == pi4
+        assert pi6.asfreq("H", "s") == pi5
+        assert pi6.asfreq("s", "s") == pi7
 
-        assert pi7.asfreq("A", "S") == pi1
-        assert pi7.asfreq("Q", "S") == pi2
-        assert pi7.asfreq("M", "S") == pi3
-        assert pi7.asfreq("D", "S") == pi4
-        assert pi7.asfreq("H", "S") == pi5
-        assert pi7.asfreq("Min", "S") == pi6
+        assert pi7.asfreq("A", "s") == pi1
+        assert pi7.asfreq("Q", "s") == pi2
+        assert pi7.asfreq("M", "s") == pi3
+        assert pi7.asfreq("D", "s") == pi4
+        assert pi7.asfreq("H", "s") == pi5
+        assert pi7.asfreq("Min", "s") == pi6
 
         msg = "How must be one of S or E"
         with pytest.raises(ValueError, match=msg):
@@ -128,3 +129,10 @@ class TestPeriodIndex:
         exp = PeriodIndex(["2011-01", "2011-02", "2011-03"], freq="3M")
         tm.assert_index_equal(pi1.asfreq("3M"), exp)
         tm.assert_index_equal(pi1.astype("period[3M]"), exp)
+
+    def test_asfreq_with_different_n(self):
+        ser = Series([1, 2], index=PeriodIndex(["2020-01", "2020-03"], freq="2M"))
+        result = ser.asfreq("M")
+
+        excepted = Series([1, 2], index=PeriodIndex(["2020-02", "2020-04"], freq="M"))
+        tm.assert_series_equal(result, excepted)

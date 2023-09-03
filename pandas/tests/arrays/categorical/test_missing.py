@@ -28,10 +28,10 @@ class TestCategoricalMissing:
         # #1457
 
         categories = list(range(10))
-        labels = np.random.randint(0, 10, 20)
+        labels = np.random.default_rng(2).integers(0, 10, 20)
         labels[::5] = -1
 
-        cat = Categorical(labels, categories, fastpath=True)
+        cat = Categorical(labels, categories)
         repr(cat)
 
         tm.assert_numpy_array_equal(isna(cat), labels == -1)
@@ -137,18 +137,20 @@ class TestCategoricalMissing:
     )
     def test_use_inf_as_na(self, values, expected):
         # https://github.com/pandas-dev/pandas/issues/33594
-        with pd.option_context("mode.use_inf_as_na", True):
-            cat = Categorical(values)
-            result = cat.isna()
-            tm.assert_numpy_array_equal(result, expected)
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pd.option_context("mode.use_inf_as_na", True):
+                cat = Categorical(values)
+                result = cat.isna()
+                tm.assert_numpy_array_equal(result, expected)
 
-            result = Series(cat).isna()
-            expected = Series(expected)
-            tm.assert_series_equal(result, expected)
+                result = Series(cat).isna()
+                expected = Series(expected)
+                tm.assert_series_equal(result, expected)
 
-            result = DataFrame(cat).isna()
-            expected = DataFrame(expected)
-            tm.assert_frame_equal(result, expected)
+                result = DataFrame(cat).isna()
+                expected = DataFrame(expected)
+                tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "values, expected",
@@ -164,17 +166,19 @@ class TestCategoricalMissing:
         # Using isna directly for Categorical will fail in general here
         cat = Categorical(values)
 
-        with pd.option_context("mode.use_inf_as_na", True):
-            result = isna(cat)
-            tm.assert_numpy_array_equal(result, expected)
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pd.option_context("mode.use_inf_as_na", True):
+                result = isna(cat)
+                tm.assert_numpy_array_equal(result, expected)
 
-            result = isna(Series(cat))
-            expected = Series(expected)
-            tm.assert_series_equal(result, expected)
+                result = isna(Series(cat))
+                expected = Series(expected)
+                tm.assert_series_equal(result, expected)
 
-            result = isna(DataFrame(cat))
-            expected = DataFrame(expected)
-            tm.assert_frame_equal(result, expected)
+                result = isna(DataFrame(cat))
+                expected = DataFrame(expected)
+                tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
         "a1, a2, categories",

@@ -1,5 +1,5 @@
+from collections.abc import Generator
 import contextlib
-from typing import Generator
 
 import pytest
 
@@ -8,7 +8,7 @@ import pandas._testing as tm
 from pandas.core import accessor
 
 
-def test_dirname_mixin():
+def test_dirname_mixin() -> None:
     # GH37173
 
     class X(accessor.DirNamesMixin):

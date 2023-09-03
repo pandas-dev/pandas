@@ -3,6 +3,7 @@
 TimeRE, _calc_julian_from_U_or_W are vendored
 from the standard library, see
 https://github.com/python/cpython/blob/main/Lib/_strptime.py
+Licence at LICENSES/PSF_LICENSE
 The original module-level docstring follows.
 
 Strptime-related classes and functions.
@@ -57,12 +58,16 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
     check_dts_bounds,
+    import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pydate_to_dt64,
     pydatetime_to_dt64,
     string_to_dts,
 )
+
+import_pandas_datetime()
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.util cimport (
@@ -668,7 +673,8 @@ cdef tzinfo parse_timezone_directive(str z):
     Notes
     -----
     This is essentially similar to the cpython implementation
-    https://github.com/python/cpython/blob/master/Lib/_strptime.py#L457-L479
+    https://github.com/python/cpython/blob/546cab84448b892c92e68d9c1a3d3b58c13b3463/Lib/_strptime.py#L437-L454
+    Licence at LICENSES/PSF_LICENSE
     """
 
     cdef:

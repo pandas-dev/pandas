@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Collection,
     Literal,
     NamedTuple,
 )
@@ -11,7 +10,6 @@ import warnings
 from matplotlib.artist import setp
 import numpy as np
 
-from pandas._typing import MatplotlibColor
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_dict_like
@@ -34,8 +32,12 @@ from pandas.plotting._matplotlib.tools import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Collection
+
     from matplotlib.axes import Axes
     from matplotlib.lines import Line2D
+
+    from pandas._typing import MatplotlibColor
 
 
 class BoxPlot(LinePlot):
@@ -209,7 +211,7 @@ class BoxPlot(LinePlot):
                 labels = [pprint_thing(key) for key in range(len(labels))]
             self._set_ticklabels(ax, labels)
 
-    def _set_ticklabels(self, ax: Axes, labels) -> None:
+    def _set_ticklabels(self, ax: Axes, labels: list[str]) -> None:
         if self.orientation == "vertical":
             ax.set_xticklabels(labels)
         else:
@@ -247,13 +249,13 @@ def _grouped_plot_by_column(
     by=None,
     numeric_only: bool = True,
     grid: bool = False,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     ax=None,
     layout=None,
     return_type=None,
     **kwargs,
 ):
-    grouped = data.groupby(by)
+    grouped = data.groupby(by, observed=False)
     if columns is None:
         if not isinstance(by, (list, tuple)):
             by = [by]
@@ -288,7 +290,7 @@ def _grouped_plot_by_column(
         ax_values.append(re_plotf)
         ax.grid(grid)
 
-    result = pd.Series(ax_values, index=columns)
+    result = pd.Series(ax_values, index=columns, copy=False)
 
     # Return axes in multiplot case, maybe revisit later # 985
     if return_type is None:
@@ -306,10 +308,10 @@ def boxplot(
     column=None,
     by=None,
     ax=None,
-    fontsize=None,
+    fontsize: int | None = None,
     rot: int = 0,
     grid: bool = True,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     return_type=None,
     **kwds,
@@ -403,11 +405,10 @@ def boxplot(
     colors = _get_colors()
     if column is None:
         columns = None
+    elif isinstance(column, (list, tuple)):
+        columns = column
     else:
-        if isinstance(column, (list, tuple)):
-            columns = column
-        else:
-            columns = [column]
+        columns = [column]
 
     if by is not None:
         # Prefer array return type for 2-D plots to match the subplot layout
@@ -456,10 +457,10 @@ def boxplot_frame(
     column=None,
     by=None,
     ax=None,
-    fontsize=None,
+    fontsize: int | None = None,
     rot: int = 0,
     grid: bool = True,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     return_type=None,
     **kwds,
@@ -487,11 +488,11 @@ def boxplot_frame_groupby(
     grouped,
     subplots: bool = True,
     column=None,
-    fontsize=None,
+    fontsize: int | None = None,
     rot: int = 0,
     grid: bool = True,
     ax=None,
-    figsize=None,
+    figsize: tuple[float, float] | None = None,
     layout=None,
     sharex: bool = False,
     sharey: bool = True,
@@ -523,11 +524,10 @@ def boxplot_frame_groupby(
         keys, frames = zip(*grouped)
         if grouped.axis == 0:
             df = pd.concat(frames, keys=keys, axis=1)
+        elif len(frames) > 1:
+            df = frames[0].join(frames[1::])
         else:
-            if len(frames) > 1:
-                df = frames[0].join(frames[1::])
-            else:
-                df = frames[0]
+            df = frames[0]
 
         # GH 16748, DataFrameGroupby fails when subplots=False and `column` argument
         # is assigned, and in this case, since `df` here becomes MI after groupby,

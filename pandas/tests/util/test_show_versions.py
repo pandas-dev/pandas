@@ -16,7 +16,7 @@ def test_show_versions(tmpdir):
 
     pd.show_versions(as_json=as_json)
 
-    with open(as_json) as fd:
+    with open(as_json, encoding="utf-8") as fd:
         # check if file output is valid JSON, will raise an exception if not
         result = json.load(fd)
 
@@ -65,7 +65,7 @@ def test_show_versions_console(capsys):
     assert re.search(r"numpy\s*:\s[0-9]+\..*\n", result)
 
     # check optional dependency
-    assert re.search(r"pyarrow\s*:\s([0-9\.]+|None)\n", result)
+    assert re.search(r"pyarrow\s*:\s([0-9]+.*|None)\n", result)
 
 
 def test_json_output_match(capsys, tmpdir):
@@ -75,7 +75,7 @@ def test_json_output_match(capsys, tmpdir):
 
     out_path = os.path.join(tmpdir, "test_json.json")
     pd.show_versions(as_json=out_path)
-    with open(out_path) as out_fd:
+    with open(out_path, encoding="utf-8") as out_fd:
         result_file = out_fd.read()
 
     assert result_console == result_file

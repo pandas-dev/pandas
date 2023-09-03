@@ -7,12 +7,9 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-from pandas.tests.indexes.common import NumericBase
 
 
-class TestFloatNumericIndex(NumericBase):
-    _index_cls = Index
-
+class TestFloatNumericIndex:
     @pytest.fixture(params=[np.float64, np.float32])
     def dtype(self, request):
         return request.param
@@ -20,7 +17,7 @@ class TestFloatNumericIndex(NumericBase):
     @pytest.fixture
     def simple_index(self, dtype):
         values = np.arange(5, dtype=dtype)
-        return self._index_cls(values)
+        return Index(values)
 
     @pytest.fixture(
         params=[
@@ -32,15 +29,15 @@ class TestFloatNumericIndex(NumericBase):
         ids=["mixed", "float", "mixed_dec", "float_dec"],
     )
     def index(self, request, dtype):
-        return self._index_cls(request.param, dtype=dtype)
+        return Index(request.param, dtype=dtype)
 
     @pytest.fixture
     def mixed_index(self, dtype):
-        return self._index_cls([1.5, 2, 3, 4, 5], dtype=dtype)
+        return Index([1.5, 2, 3, 4, 5], dtype=dtype)
 
     @pytest.fixture
     def float_index(self, dtype):
-        return self._index_cls([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
+        return Index([0.0, 2.5, 5.0, 7.5, 10.0], dtype=dtype)
 
     def test_repr_roundtrip(self, index):
         tm.assert_index_equal(eval(repr(index)), index, exact=True)
@@ -49,16 +46,16 @@ class TestFloatNumericIndex(NumericBase):
         assert a.equals(b)
         tm.assert_index_equal(a, b, exact=False)
         if is_float_index:
-            assert isinstance(b, self._index_cls)
+            assert isinstance(b, Index)
         else:
             assert type(b) is Index
 
     def test_constructor_from_list_no_dtype(self):
-        index = self._index_cls([1.5, 2.5, 3.5])
+        index = Index([1.5, 2.5, 3.5])
         assert index.dtype == np.float64
 
     def test_constructor(self, dtype):
-        index_cls = self._index_cls
+        index_cls = Index
 
         # explicit construction
         index = index_cls([1, 2, 3, 4, 5], dtype=dtype)
@@ -97,7 +94,7 @@ class TestFloatNumericIndex(NumericBase):
         assert pd.isna(result.values).all()
 
     def test_constructor_invalid(self):
-        index_cls = self._index_cls
+        index_cls = Index
         cls_name = index_cls.__name__
         # invalid
         msg = (
@@ -131,7 +128,7 @@ class TestFloatNumericIndex(NumericBase):
             Index([1, 2, 3.5], dtype=any_int_numpy_dtype)
 
     def test_equals_numeric(self):
-        index_cls = self._index_cls
+        index_cls = Index
 
         idx = index_cls([1.0, 2.0])
         assert idx.equals(idx)
@@ -156,7 +153,7 @@ class TestFloatNumericIndex(NumericBase):
         ),
     )
     def test_equals_numeric_other_index_type(self, other):
-        idx = self._index_cls([1.0, 2.0])
+        idx = Index([1.0, 2.0])
         assert idx.equals(other)
         assert other.equals(idx)
 
@@ -198,13 +195,13 @@ class TestFloatNumericIndex(NumericBase):
         assert isinstance(result, type(expected)) and result == expected
 
     def test_doesnt_contain_all_the_things(self):
-        idx = self._index_cls([np.nan])
+        idx = Index([np.nan])
         assert not idx.isin([0]).item()
         assert not idx.isin([1]).item()
         assert idx.isin([np.nan]).item()
 
     def test_nan_multiple_containment(self):
-        index_cls = self._index_cls
+        index_cls = Index
 
         idx = index_cls([1.0, np.nan])
         tm.assert_numpy_array_equal(idx.isin([1.0]), np.array([True, False]))
@@ -215,7 +212,7 @@ class TestFloatNumericIndex(NumericBase):
         tm.assert_numpy_array_equal(idx.isin([np.nan]), np.array([False, False]))
 
     def test_fillna_float64(self):
-        index_cls = self._index_cls
+        index_cls = Index
         # GH 11343
         idx = Index([1.0, np.nan, 3.0], dtype=float, name="x")
         # can't downcast
@@ -230,12 +227,26 @@ class TestFloatNumericIndex(NumericBase):
         exp = Index([1.0, "obj", 3.0], name="x")
         tm.assert_index_equal(idx.fillna("obj"), exp, exact=True)
 
+    def test_logical_compat(self, simple_index):
+        idx = simple_index
+        assert idx.all() == idx.values.all()
+        assert idx.any() == idx.values.any()
 
-class NumericInt(NumericBase):
-    _index_cls = Index
+        assert idx.all() == idx.to_series().all()
+        assert idx.any() == idx.to_series().any()
+
+
+class TestNumericInt:
+    @pytest.fixture(params=[np.int64, np.int32, np.int16, np.int8, np.uint64])
+    def dtype(self, request):
+        return request.param
+
+    @pytest.fixture
+    def simple_index(self, dtype):
+        return Index(range(0, 20, 2), dtype=dtype)
 
     def test_is_monotonic(self):
-        index_cls = self._index_cls
+        index_cls = Index
 
         index = index_cls([1, 2, 3, 4])
         assert index.is_monotonic_increasing is True
@@ -257,7 +268,7 @@ class NumericInt(NumericBase):
         assert index._is_strictly_monotonic_decreasing is True
 
     def test_is_strictly_monotonic(self):
-        index_cls = self._index_cls
+        index_cls = Index
 
         index = index_cls([1, 1, 2, 3])
         assert index.is_monotonic_increasing is True
@@ -303,7 +314,7 @@ class NumericInt(NumericBase):
         # can't
         data = ["foo", "bar", "baz"]
         with pytest.raises(ValueError, match=msg):
-            self._index_cls(data, dtype=dtype)
+            Index(data, dtype=dtype)
 
     def test_view_index(self, simple_index):
         index = simple_index
@@ -315,27 +326,17 @@ class NumericInt(NumericBase):
         assert result.dtype == np.object_
 
 
-class TestIntNumericIndex(NumericInt):
+class TestIntNumericIndex:
     @pytest.fixture(params=[np.int64, np.int32, np.int16, np.int8])
     def dtype(self, request):
         return request.param
 
-    @pytest.fixture
-    def simple_index(self, dtype):
-        return self._index_cls(range(0, 20, 2), dtype=dtype)
-
-    @pytest.fixture(
-        params=[range(0, 20, 2), range(19, -1, -1)], ids=["index_inc", "index_dec"]
-    )
-    def index(self, request, dtype):
-        return self._index_cls(request.param, dtype=dtype)
-
     def test_constructor_from_list_no_dtype(self):
-        index = self._index_cls([1, 2, 3])
+        index = Index([1, 2, 3])
         assert index.dtype == np.int64
 
     def test_constructor(self, dtype):
-        index_cls = self._index_cls
+        index_cls = Index
 
         # scalar raise Exception
         msg = (
@@ -348,7 +349,7 @@ class TestIntNumericIndex(NumericInt):
         # copy
         # pass list, coerce fine
         index = index_cls([-5, 0, 1, 2], dtype=dtype)
-        arr = index.values
+        arr = index.values.copy()
         new_index = index_cls(arr, copy=True)
         tm.assert_index_equal(new_index, index, exact=True)
         val = arr[0] + 3000
@@ -379,7 +380,7 @@ class TestIntNumericIndex(NumericInt):
                     tm.assert_index_equal(idx, expected)
 
     def test_constructor_corner(self, dtype):
-        index_cls = self._index_cls
+        index_cls = Index
 
         arr = np.array([1, 2, 3, 4], dtype=object)
 
@@ -426,7 +427,7 @@ class TestIntNumericIndex(NumericInt):
     def test_coerce_list(self):
         # coerce things
         arr = Index([1, 2, 3, 4])
-        assert isinstance(arr, self._index_cls)
+        assert isinstance(arr, Index)
 
         # but not if explicit dtype passed
         arr = Index([1, 2, 3, 4], dtype=object)
@@ -436,10 +437,8 @@ class TestIntNumericIndex(NumericInt):
 class TestFloat16Index:
     # float 16 indexes not supported
     # GH 49535
-    _index_cls = Index
-
     def test_constructor(self):
-        index_cls = self._index_cls
+        index_cls = Index
         dtype = np.float16
 
         msg = "float16 indexes are not supported"
@@ -469,27 +468,6 @@ class TestFloat16Index:
 
         with pytest.raises(NotImplementedError, match=msg):
             index_cls(np.array([np.nan]), dtype=dtype)
-
-
-class TestUIntNumericIndex(NumericInt):
-    @pytest.fixture(params=[np.uint64])
-    def dtype(self, request):
-        return request.param
-
-    @pytest.fixture
-    def simple_index(self, dtype):
-        # compat with shared Int64/Float64 tests
-        return self._index_cls(np.arange(5, dtype=dtype))
-
-    @pytest.fixture(
-        params=[
-            [2**63, 2**63 + 10, 2**63 + 15, 2**63 + 20, 2**63 + 25],
-            [2**63 + 25, 2**63 + 20, 2**63 + 15, 2**63 + 10, 2**63],
-        ],
-        ids=["index_inc", "index_dec"],
-    )
-    def index(self, request):
-        return self._index_cls(request.param, dtype=np.uint64)
 
 
 @pytest.mark.parametrize(

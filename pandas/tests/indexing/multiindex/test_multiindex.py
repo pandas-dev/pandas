@@ -6,12 +6,14 @@ from pandas.errors import PerformanceWarning
 
 import pandas as pd
 from pandas import (
+    CategoricalDtype,
     DataFrame,
     Index,
     MultiIndex,
     Series,
 )
 import pandas._testing as tm
+from pandas.core.arrays.boolean import BooleanDtype
 
 
 class TestMultiIndexBasic:
@@ -20,7 +22,7 @@ class TestMultiIndexBasic:
             {
                 "jim": [0, 0, 1, 1],
                 "joe": ["x", "x", "z", "y"],
-                "jolie": np.random.rand(4),
+                "jolie": np.random.default_rng(2).random(4),
             }
         ).set_index(["jim", "joe"])
 
@@ -115,7 +117,7 @@ class TestMultiIndexBasic:
         idx = Index(range(2), name="A")
         dti = pd.date_range("2020-01-01", periods=7, freq="D", name="B")
         mi = MultiIndex.from_product([idx, dti])
-        df = DataFrame(np.random.randn(14, 2), index=mi)
+        df = DataFrame(np.random.default_rng(2).standard_normal((14, 2)), index=mi)
         result = df.loc[0].index
         tm.assert_index_equal(result, dti)
         assert result.freq == dti.freq
@@ -206,3 +208,29 @@ class TestMultiIndexBasic:
         )
         with pytest.raises(KeyError, match="missing_key"):
             df[[("missing_key",)]]
+
+    def test_multiindex_dtype_preservation(self):
+        # GH51261
+        columns = MultiIndex.from_tuples([("A", "B")], names=["lvl1", "lvl2"])
+        df = DataFrame(["value"], columns=columns).astype("category")
+        df_no_multiindex = df["A"]
+        assert isinstance(df_no_multiindex["B"].dtype, CategoricalDtype)
+
+        # geopandas 1763 analogue
+        df = DataFrame(
+            [[1, 0], [0, 1]],
+            columns=[
+                ["foo", "foo"],
+                ["location", "location"],
+                ["x", "y"],
+            ],
+        ).assign(bools=Series([True, False], dtype="boolean"))
+        assert isinstance(df["bools"].dtype, BooleanDtype)
+
+    def test_multiindex_from_tuples_with_nan(self):
+        # GH#23578
+        result = MultiIndex.from_tuples([("a", "b", "c"), np.nan, ("d", "", "")])
+        expected = MultiIndex.from_tuples(
+            [("a", "b", "c"), (np.nan, np.nan, np.nan), ("d", "", "")]
+        )
+        tm.assert_index_equal(result, expected)

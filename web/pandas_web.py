@@ -110,7 +110,7 @@ class Preprocessors:
                 md = markdown.Markdown(
                     extensions=context["main"]["markdown_extensions"]
                 )
-                with open(os.path.join(posts_path, fname)) as f:
+                with open(os.path.join(posts_path, fname), encoding="utf-8") as f:
                     html = md.convert(f.read())
                 title = md.Meta["title"][0]
                 summary = re.sub(tag_expr, "", html)
@@ -197,7 +197,11 @@ class Preprocessors:
 
         # save the data fetched from github to use it in case we exceed
         # git github api quota in the future
-        with open(pathlib.Path(context["target_path"]) / "maintainers.json", "w") as f:
+        with open(
+            pathlib.Path(context["target_path"]) / "maintainers.json",
+            "w",
+            encoding="utf-8",
+        ) as f:
             json.dump(maintainers_info, f)
 
         return context
@@ -220,7 +224,11 @@ class Preprocessors:
             resp.raise_for_status()
             releases = resp.json()
 
-        with open(pathlib.Path(context["target_path"]) / "releases.json", "w") as f:
+        with open(
+            pathlib.Path(context["target_path"]) / "releases.json",
+            "w",
+            encoding="utf-8",
+        ) as f:
             json.dump(releases, f, default=datetime.datetime.isoformat)
 
         for release in releases:
@@ -252,7 +260,13 @@ class Preprocessors:
         and linked from there. This preprocessor obtains the list of
         PDEP's in different status from the directory tree and GitHub.
         """
-        KNOWN_STATUS = {"Under discussion", "Accepted", "Implemented", "Rejected"}
+        KNOWN_STATUS = {
+            "Under discussion",
+            "Accepted",
+            "Implemented",
+            "Rejected",
+            "Withdrawn",
+        }
         context["pdeps"] = collections.defaultdict(list)
 
         # accepted, rejected and implemented
@@ -298,13 +312,27 @@ class Preprocessors:
             resp.raise_for_status()
             pdeps = resp.json()
 
-        with open(pathlib.Path(context["target_path"]) / "pdeps.json", "w") as f:
+        with open(
+            pathlib.Path(context["target_path"]) / "pdeps.json", "w", encoding="utf-8"
+        ) as f:
             json.dump(pdeps, f)
 
-        for pdep in pdeps["items"]:
-            context["pdeps"]["Under discussion"].append(
-                {"title": pdep["title"], "url": pdep["url"]}
-            )
+        compiled_pattern = re.compile(r"^PDEP-(\d+)")
+
+        def sort_pdep(pdep: dict) -> int:
+            title = pdep["title"]
+            match = compiled_pattern.match(title)
+            if not match:
+                msg = f"""Could not find PDEP number in '{title}'. Please make sure to
+                write the title as: 'PDEP-num: {title}'."""
+                raise ValueError(msg)
+
+            return int(match[1])
+
+        context["pdeps"]["Under discussion"].extend(
+            {"title": pdep["title"], "url": pdep["html_url"]}
+            for pdep in sorted(pdeps["items"], key=sort_pdep)
+        )
 
         return context
 
@@ -340,7 +368,7 @@ def get_context(config_fname: str, **kwargs):
     Load the config yaml as the base context, and enrich it with the
     information added by the context preprocessors defined in the file.
     """
-    with open(config_fname) as f:
+    with open(config_fname, encoding="utf-8") as f:
         context = yaml.safe_load(f)
 
     context["source_path"] = os.path.dirname(config_fname)
@@ -363,9 +391,9 @@ def get_source_files(source_path: str) -> typing.Generator[str, None, None]:
     Generate the list of files present in the source directory.
     """
     for root, dirs, fnames in os.walk(source_path):
-        root = os.path.relpath(root, source_path)
+        root_rel_path = os.path.relpath(root, source_path)
         for fname in fnames:
-            yield os.path.join(root, fname)
+            yield os.path.join(root_rel_path, fname)
 
 
 def extend_base_template(content: str, base_template: str) -> str:
@@ -412,17 +440,22 @@ def main(
 
         extension = os.path.splitext(fname)[-1]
         if extension in (".html", ".md"):
-            with open(os.path.join(source_path, fname)) as f:
+            with open(os.path.join(source_path, fname), encoding="utf-8") as f:
                 content = f.read()
             if extension == ".md":
                 body = markdown.markdown(
                     content, extensions=context["main"]["markdown_extensions"]
                 )
+                # Apply Bootstrap's table formatting manually
+                # Python-Markdown doesn't let us config table attributes by hand
+                body = body.replace("<table>", '<table class="table table-bordered">')
                 content = extend_base_template(body, context["main"]["base_template"])
             context["base_url"] = "".join(["../"] * os.path.normpath(fname).count("/"))
             content = jinja_env.from_string(content).render(**context)
-            fname = os.path.splitext(fname)[0] + ".html"
-            with open(os.path.join(target_path, fname), "w") as f:
+            fname_html = os.path.splitext(fname)[0] + ".html"
+            with open(
+                os.path.join(target_path, fname_html), "w", encoding="utf-8"
+            ) as f:
                 f.write(content)
         else:
             shutil.copy(

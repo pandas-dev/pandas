@@ -23,6 +23,7 @@ class Factorize:
             "uint",
             "float",
             "object",
+            "object_str",
             "datetime64[ns]",
             "datetime64[ns, tz]",
             "Int64",
@@ -46,7 +47,8 @@ class Factorize:
             "int": pd.Index(np.arange(N), dtype="int64"),
             "uint": pd.Index(np.arange(N), dtype="uint64"),
             "float": pd.Index(np.random.randn(N), dtype="float64"),
-            "object": string_index,
+            "object_str": string_index,
+            "object": pd.Index(np.arange(N), dtype="object"),
             "datetime64[ns]": pd.date_range("2011-01-01", freq="H", periods=N),
             "datetime64[ns, tz]": pd.date_range(
                 "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
@@ -60,6 +62,9 @@ class Factorize:
         self.data = data
 
     def time_factorize(self, unique, sort, dtype):
+        pd.factorize(self.data, sort=sort)
+
+    def peakmem_factorize(self, unique, sort, dtype):
         pd.factorize(self.data, sort=sort)
 
 

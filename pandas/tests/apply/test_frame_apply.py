@@ -37,6 +37,13 @@ def test_apply(float_frame):
         assert result.index is float_frame.index
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+def test_apply_args(float_frame, axis):
+    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,))
+    expected = float_frame + 1
+    tm.assert_frame_equal(result, expected)
+
+
 def test_apply_categorical_func():
     # GH 9573
     df = DataFrame({"c0": ["A", "A", "B", "B"], "c1": ["C", "C", "D", "D"]})
@@ -286,6 +293,7 @@ def test_apply_mixed_dtype_corner_indexing():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 @pytest.mark.parametrize("ax", ["index", "columns"])
 @pytest.mark.parametrize(
     "func", [lambda x: x, lambda x: x.mean()], ids=["identity", "mean"]
@@ -296,9 +304,7 @@ def test_apply_empty_infer_type(ax, func, raw, axis):
     df = DataFrame(**{ax: ["a", "b", "c"]})
 
     with np.errstate(all="ignore"):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            test_res = func(np.array([], dtype="f8"))
+        test_res = func(np.array([], dtype="f8"))
         is_reduction = not isinstance(test_res, np.ndarray)
 
         result = df.apply(func, axis=axis, raw=raw)
@@ -369,7 +375,7 @@ def test_apply_reduce_to_dict():
 
 
 def test_apply_differently_indexed():
-    df = DataFrame(np.random.randn(20, 10))
+    df = DataFrame(np.random.default_rng(2).standard_normal((20, 10)))
 
     result = df.apply(Series.describe, axis=0)
     expected = DataFrame({i: v.describe() for i, v in df.items()}, columns=df.columns)
@@ -456,9 +462,9 @@ def test_apply_convert_objects():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -526,138 +532,6 @@ def test_apply_dict(df, dicts):
     tm.assert_series_equal(reduce_true, dicts)
     tm.assert_frame_equal(reduce_false, df)
     tm.assert_series_equal(reduce_none, dicts)
-
-
-def test_applymap(float_frame):
-    applied = float_frame.applymap(lambda x: x * 2)
-    tm.assert_frame_equal(applied, float_frame * 2)
-    float_frame.applymap(type)
-
-    # GH 465: function returning tuples
-    result = float_frame.applymap(lambda x: (x, x))["A"][0]
-    assert isinstance(result, tuple)
-
-
-@pytest.mark.parametrize("val", [1, 1.0])
-def test_applymap_float_object_conversion(val):
-    # GH 2909: object conversion to float in constructor?
-    df = DataFrame(data=[val, "a"])
-    result = df.applymap(lambda x: x).dtypes[0]
-    assert result == object
-
-
-def test_applymap_str():
-    # GH 2786
-    df = DataFrame(np.random.random((3, 4)))
-    df2 = df.copy()
-    cols = ["a", "a", "a", "a"]
-    df.columns = cols
-
-    expected = df2.applymap(str)
-    expected.columns = cols
-    result = df.applymap(str)
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "col, val",
-    [["datetime", Timestamp("20130101")], ["timedelta", pd.Timedelta("1 min")]],
-)
-def test_applymap_datetimelike(col, val):
-    # datetime/timedelta
-    df = DataFrame(np.random.random((3, 4)))
-    df[col] = val
-    result = df.applymap(str)
-    assert result.loc[0, col] == str(df.loc[0, col])
-
-
-@pytest.mark.parametrize(
-    "expected",
-    [
-        DataFrame(),
-        DataFrame(columns=list("ABC")),
-        DataFrame(index=list("ABC")),
-        DataFrame({"A": [], "B": [], "C": []}),
-    ],
-)
-@pytest.mark.parametrize("func", [round, lambda x: x])
-def test_applymap_empty(expected, func):
-    # GH 8222
-    result = expected.applymap(func)
-    tm.assert_frame_equal(result, expected)
-
-
-def test_applymap_kwargs():
-    # GH 40652
-    result = DataFrame([[1, 2], [3, 4]]).applymap(lambda x, y: x + y, y=2)
-    expected = DataFrame([[3, 4], [5, 6]])
-    tm.assert_frame_equal(result, expected)
-
-
-def test_applymap_na_ignore(float_frame):
-    # GH 23803
-    strlen_frame = float_frame.applymap(lambda x: len(str(x)))
-    float_frame_with_na = float_frame.copy()
-    mask = np.random.randint(0, 2, size=float_frame.shape, dtype=bool)
-    float_frame_with_na[mask] = pd.NA
-    strlen_frame_na_ignore = float_frame_with_na.applymap(
-        lambda x: len(str(x)), na_action="ignore"
-    )
-    strlen_frame_with_na = strlen_frame.copy()
-    strlen_frame_with_na[mask] = pd.NA
-    tm.assert_frame_equal(strlen_frame_na_ignore, strlen_frame_with_na)
-
-
-def test_applymap_box_timestamps():
-    # GH 2689, GH 2627
-    ser = Series(date_range("1/1/2000", periods=10))
-
-    def func(x):
-        return (x.hour, x.day, x.month)
-
-    # it works!
-    DataFrame(ser).applymap(func)
-
-
-def test_applymap_box():
-    # ufunc will not be boxed. Same test cases as the test_map_box
-    df = DataFrame(
-        {
-            "a": [Timestamp("2011-01-01"), Timestamp("2011-01-02")],
-            "b": [
-                Timestamp("2011-01-01", tz="US/Eastern"),
-                Timestamp("2011-01-02", tz="US/Eastern"),
-            ],
-            "c": [pd.Timedelta("1 days"), pd.Timedelta("2 days")],
-            "d": [
-                pd.Period("2011-01-01", freq="M"),
-                pd.Period("2011-01-02", freq="M"),
-            ],
-        }
-    )
-
-    result = df.applymap(lambda x: type(x).__name__)
-    expected = DataFrame(
-        {
-            "a": ["Timestamp", "Timestamp"],
-            "b": ["Timestamp", "Timestamp"],
-            "c": ["Timedelta", "Timedelta"],
-            "d": ["Period", "Period"],
-        }
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_frame_apply_dont_convert_datetime64():
-    from pandas.tseries.offsets import BDay
-
-    df = DataFrame({"x1": [datetime(1996, 1, 1)]})
-
-    df = df.applymap(lambda x: x + BDay())
-    df = df.applymap(lambda x: x + BDay())
-
-    result = df.x1.dtype
-    assert result == "M8[ns]"
 
 
 def test_apply_non_numpy_dtype():
@@ -753,24 +627,6 @@ def test_apply_raw_function_runs_once():
         assert values == list(df.a.to_list())
 
 
-def test_applymap_function_runs_once():
-    df = DataFrame({"a": [1, 2, 3]})
-    values = []  # Save values function is applied to
-
-    def reducing_function(val):
-        values.append(val)
-
-    def non_reducing_function(val):
-        values.append(val)
-        return val
-
-    for func in [reducing_function, non_reducing_function]:
-        del values[:]
-
-        df.applymap(func)
-        assert values == df.a.to_list()
-
-
 def test_apply_with_byte_string():
     # GH 34529
     df = DataFrame(np.array([b"abcd", b"efgh"]), columns=["col"])
@@ -781,15 +637,15 @@ def test_apply_with_byte_string():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("val", ["asd", 12, None, np.NaN])
+@pytest.mark.parametrize("val", ["asd", 12, None, np.nan])
 def test_apply_category_equalness(val):
     # Check if categorical comparisons on apply, GH 21239
-    df_values = ["asd", None, 12, "asd", "cde", np.NaN]
+    df_values = ["asd", None, 12, "asd", "cde", np.nan]
     df = DataFrame({"a": df_values}, dtype="category")
 
     result = df.a.apply(lambda x: x == val)
     expected = Series(
-        [np.NaN if pd.isnull(x) else x == val for x in df_values], name="a"
+        [np.nan if pd.isnull(x) else x == val for x in df_values], name="a"
     )
     tm.assert_series_equal(result, expected)
 
@@ -802,12 +658,56 @@ def test_apply_category_equalness(val):
 def test_infer_row_shape():
     # GH 17437
     # if row shape is changing, infer it
-    df = DataFrame(np.random.rand(10, 2))
+    df = DataFrame(np.random.default_rng(2).random((10, 2)))
     result = df.apply(np.fft.fft, axis=0).shape
     assert result == (10, 2)
 
     result = df.apply(np.fft.rfft, axis=0).shape
     assert result == (6, 2)
+
+
+@pytest.mark.parametrize(
+    "ops, by_row, expected",
+    [
+        ({"a": lambda x: x + 1}, "compat", DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x + 1}, False, DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x.sum()}, "compat", Series({"a": 3})),
+        ({"a": lambda x: x.sum()}, False, Series({"a": 3})),
+        (
+            {"a": ["sum", np.sum, lambda x: x.sum()]},
+            "compat",
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            {"a": ["sum", np.sum, lambda x: x.sum()]},
+            False,
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        ({"a": lambda x: 1}, "compat", DataFrame({"a": [1, 1]})),
+        ({"a": lambda x: 1}, False, Series({"a": 1})),
+    ],
+)
+def test_dictlike_lambda(ops, by_row, expected):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    result = df.apply(ops, by_row=by_row)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        {"a": lambda x: x + 1},
+        {"a": lambda x: x.sum()},
+        {"a": ["sum", np.sum, lambda x: x.sum()]},
+        {"a": lambda x: 1},
+    ],
+)
+def test_dictlike_lambda_raises(ops):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    with pytest.raises(ValueError, match="by_row=True not allowed"):
+        df.apply(ops, by_row=True)
 
 
 def test_with_dictlike_columns():
@@ -859,11 +759,63 @@ def test_with_dictlike_columns_with_infer():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "ops, by_row, expected",
+    [
+        ([lambda x: x + 1], "compat", DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x + 1], False, DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x.sum()], "compat", DataFrame({"a": [3]}, index=["<lambda>"])),
+        ([lambda x: x.sum()], False, DataFrame({"a": [3]}, index=["<lambda>"])),
+        (
+            ["sum", np.sum, lambda x: x.sum()],
+            "compat",
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            ["sum", np.sum, lambda x: x.sum()],
+            False,
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            [lambda x: x + 1, lambda x: 3],
+            "compat",
+            DataFrame([[2, 3], [3, 3]], columns=[["a", "a"], ["<lambda>", "<lambda>"]]),
+        ),
+        (
+            [lambda x: 2, lambda x: 3],
+            False,
+            DataFrame({"a": [2, 3]}, ["<lambda>", "<lambda>"]),
+        ),
+    ],
+)
+def test_listlike_lambda(ops, by_row, expected):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    result = df.apply(ops, by_row=by_row)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        [lambda x: x + 1],
+        [lambda x: x.sum()],
+        ["sum", np.sum, lambda x: x.sum()],
+        [lambda x: x + 1, lambda x: 3],
+    ],
+)
+def test_listlike_lambda_raises(ops):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    with pytest.raises(ValueError, match="by_row=True not allowed"):
+        df.apply(ops, by_row=True)
+
+
 def test_with_listlike_columns():
     # GH 17348
     df = DataFrame(
         {
-            "a": Series(np.random.randn(4)),
+            "a": Series(np.random.default_rng(2).standard_normal(4)),
             "b": ["a", "list", "of", "words"],
             "ts": date_range("2016-10-01", periods=4, freq="H"),
         }
@@ -909,7 +861,9 @@ def test_infer_output_shape_columns():
 def test_infer_output_shape_listlike_columns():
     # GH 16353
 
-    df = DataFrame(np.random.randn(6, 3), columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((6, 3)), columns=["A", "B", "C"]
+    )
 
     result = df.apply(lambda x: [1, 2, 3], axis=1)
     expected = Series([[1, 2, 3] for t in df.itertuples()])
@@ -958,7 +912,9 @@ def test_infer_output_shape_listlike_columns_with_timestamp():
 def test_consistent_coerce_for_shapes(lst):
     # we want column names to NOT be propagated
     # just because the shape matches the input shape
-    df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
+    )
 
     result = df.apply(lambda x: lst, axis=1)
     expected = Series([lst for t in df.itertuples()])
@@ -1535,7 +1491,7 @@ def test_aggregation_func_column_order():
 def test_apply_getitem_axis_1():
     # GH 13427
     df = DataFrame({"a": [0, 1, 2], "b": [1, 2, 3]})
-    result = df[["a", "a"]].apply(lambda x: x[0] + x[1], axis=1)
+    result = df[["a", "a"]].apply(lambda x: x.iloc[0] + x.iloc[1], axis=1)
     expected = Series([0, 2, 4])
     tm.assert_series_equal(result, expected)
 
@@ -1564,14 +1520,6 @@ def test_apply_type():
         index=["a", "b", "c"],
     )
 
-    # applymap
-    result = df.applymap(type)
-    expected = DataFrame(
-        {"col1": [int, str, type], "col2": [float, datetime, float]},
-        index=["a", "b", "c"],
-    )
-    tm.assert_frame_equal(result, expected)
-
     # axis=0
     result = df.apply(type, axis=0)
     expected = Series({"col1": Series, "col2": Series})
@@ -1589,6 +1537,13 @@ def test_apply_on_empty_dataframe():
     result = df.head(0).apply(lambda x: max(x["a"], x["b"]), axis=1)
     expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_return_list():
+    df = DataFrame({"a": [1, 2], "b": [2, 3]})
+    result = df.apply(lambda x: [x.values])
+    expected = DataFrame({"a": [[1, 2]], "b": [[2, 3]]})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -1622,8 +1577,8 @@ def test_any_apply_keyword_non_zero_axis_regression():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_list_like_func_with_args():
-    # GH 50624
+def test_agg_mapping_func_deprecated():
+    # GH 53325
     df = DataFrame({"x": [1, 2, 3]})
 
     def foo1(x, a=1, c=0):
@@ -1632,13 +1587,48 @@ def test_agg_list_like_func_with_args():
     def foo2(x, b=2, c=0):
         return x + b + c
 
-    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
-    with pytest.raises(TypeError, match=msg):
-        df.agg([foo1, foo2], 0, 3, b=3, c=4)
+    # single func already takes the vectorized path
+    result = df.agg(foo1, 0, 3, c=4)
+    expected = df + 7
+    tm.assert_frame_equal(result, expected)
 
-    result = df.agg([foo1, foo2], 0, 3, c=4)
+    msg = "using .+ in Series.agg cannot aggregate and"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.agg([foo1, foo2], 0, 3, c=4)
     expected = DataFrame(
-        [[8, 8], [9, 9], [10, 10]],
-        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+        [[8, 8], [9, 9], [10, 10]], columns=[["x", "x"], ["foo1", "foo2"]]
     )
     tm.assert_frame_equal(result, expected)
+
+    # TODO: the result below is wrong, should be fixed (GH53325)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.agg({"x": foo1}, 0, 3, c=4)
+    expected = DataFrame([2, 3, 4], columns=["x"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_std():
+    df = DataFrame(np.arange(6).reshape(3, 2), columns=["A", "B"])
+
+    with tm.assert_produces_warning(FutureWarning, match="using DataFrame.std"):
+        result = df.agg(np.std)
+    expected = Series({"A": 2.0, "B": 2.0}, dtype=float)
+    tm.assert_series_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning, match="using Series.std"):
+        result = df.agg([np.std])
+    expected = DataFrame({"A": 2.0, "B": 2.0}, index=["std"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_dist_like_and_nonunique_columns():
+    # GH#51099
+    df = DataFrame(
+        {"A": [None, 2, 3], "B": [1.0, np.nan, 3.0], "C": ["foo", None, "bar"]}
+    )
+    df.columns = ["A", "A", "C"]
+
+    result = df.agg({"A": "count"})
+    expected = df["A"].count()
+    tm.assert_series_equal(result, expected)

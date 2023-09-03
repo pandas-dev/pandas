@@ -172,10 +172,10 @@ class TestDatetimeIndexSetOps:
 
     def test_union_dataframe_index(self):
         rng1 = date_range("1/1/1999", "1/1/2012", freq="MS")
-        s1 = Series(np.random.randn(len(rng1)), rng1)
+        s1 = Series(np.random.default_rng(2).standard_normal(len(rng1)), rng1)
 
         rng2 = date_range("1/1/1980", "12/1/2001", freq="MS")
-        s2 = Series(np.random.randn(len(rng2)), rng2)
+        s2 = Series(np.random.default_rng(2).standard_normal(len(rng2)), rng2)
         df = DataFrame({"s1": s1, "s2": s2})
 
         exp = date_range("1/1/1980", "1/1/2012", freq="MS")
@@ -269,7 +269,7 @@ class TestDatetimeIndexSetOps:
 
     # parametrize over both anchored and non-anchored freqs, as they
     #  have different code paths
-    @pytest.mark.parametrize("freq", ["T", "B"])
+    @pytest.mark.parametrize("freq", ["min", "B"])
     def test_intersection_empty(self, tz_aware_fixture, freq):
         # empty same freq GH2129
         tz = tz_aware_fixture
@@ -283,7 +283,7 @@ class TestDatetimeIndexSetOps:
         assert result.freq == rng.freq
 
         # no overlap GH#33604
-        check_freq = freq != "T"  # We don't preserve freq on non-anchored offsets
+        check_freq = freq != "min"  # We don't preserve freq on non-anchored offsets
         result = rng[:3].intersection(rng[-3:])
         tm.assert_index_equal(result, rng[:0])
         if check_freq:
@@ -594,4 +594,11 @@ class TestCustomDatetimeIndex:
         idx2 = date_range("2020-03-30", periods=5, freq="D", tz=tz)
         result = idx1.intersection(idx2)
         expected = date_range("2020-03-30", periods=2, freq="D", tz=tz)
+        tm.assert_index_equal(result, expected)
+
+        # GH#45863 same problem for union
+        index1 = date_range("2021-10-28", periods=3, freq="D", tz="Europe/London")
+        index2 = date_range("2021-10-30", periods=4, freq="D", tz="Europe/London")
+        result = index1.union(index2)
+        expected = date_range("2021-10-28", periods=6, freq="D", tz="Europe/London")
         tm.assert_index_equal(result, expected)

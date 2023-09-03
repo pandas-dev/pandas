@@ -51,13 +51,13 @@ class PandasDelegate:
     Abstract base class for delegating methods/properties.
     """
 
-    def _delegate_property_get(self, name, *args, **kwargs):
+    def _delegate_property_get(self, name: str, *args, **kwargs):
         raise TypeError(f"You cannot access the property {name}")
 
-    def _delegate_property_set(self, name, value, *args, **kwargs):
+    def _delegate_property_set(self, name: str, value, *args, **kwargs):
         raise TypeError(f"The property {name} cannot be set")
 
-    def _delegate_method(self, name, *args, **kwargs):
+    def _delegate_method(self, name: str, *args, **kwargs):
         raise TypeError(f"You cannot call method {name}")
 
     @classmethod
@@ -91,7 +91,7 @@ class PandasDelegate:
             False skips the missing accessor.
         """
 
-        def _create_delegator_property(name):
+        def _create_delegator_property(name: str):
             def _getter(self):
                 return self._delegate_property_get(name)
 
@@ -107,7 +107,7 @@ class PandasDelegate:
                 doc=getattr(delegate, accessor_mapping(name)).__doc__,
             )
 
-        def _create_delegator_method(name):
+        def _create_delegator_method(name: str):
             def f(self, *args, **kwargs):
                 return self._delegate_method(name, *args, **kwargs)
 
@@ -187,7 +187,7 @@ def delegate_names(
     return add_delegate_accessors
 
 
-# Ported with modifications from xarray
+# Ported with modifications from xarray; licence at LICENSES/XARRAY_LICENSE
 # https://github.com/pydata/xarray/blob/master/xarray/core/extensions.py
 # 1. We don't need to catch and re-raise AttributeErrors as RuntimeErrors
 # 2. We use a UserWarning instead of a custom Warning
@@ -231,7 +231,7 @@ class CachedAccessor:
 
 
 @doc(klass="", others="")
-def _register_accessor(name, cls):
+def _register_accessor(name: str, cls):
     """
     Register a custom accessor on {klass} objects.
 
@@ -320,21 +320,21 @@ def _register_accessor(name, cls):
 
 
 @doc(_register_accessor, klass="DataFrame")
-def register_dataframe_accessor(name):
+def register_dataframe_accessor(name: str):
     from pandas import DataFrame
 
     return _register_accessor(name, DataFrame)
 
 
 @doc(_register_accessor, klass="Series")
-def register_series_accessor(name):
+def register_series_accessor(name: str):
     from pandas import Series
 
     return _register_accessor(name, Series)
 
 
 @doc(_register_accessor, klass="Index")
-def register_index_accessor(name):
+def register_index_accessor(name: str):
     from pandas import Index
 
     return _register_accessor(name, Index)

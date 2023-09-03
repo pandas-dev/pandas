@@ -7,18 +7,17 @@ from abc import (
     ABC,
     abstractmethod,
 )
-from datetime import datetime
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Sequence,
-    TypeVar,
     cast,
     final,
 )
 
 import numpy as np
+
+from pandas._config import using_copy_on_write
 
 from pandas._libs import (
     NaT,
@@ -32,12 +31,11 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
-from pandas._typing import (
-    Axis,
-    npt,
-)
 from pandas.compat.numpy import function as nv
-from pandas.errors import NullFrequencyError
+from pandas.errors import (
+    InvalidIndexError,
+    NullFrequencyError,
+)
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
@@ -45,12 +43,11 @@ from pandas.util._decorators import (
 )
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_dtype_equal,
     is_integer,
     is_list_like,
 )
 from pandas.core.dtypes.concat import concat_compat
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas.core.arrays import (
     DatetimeArray,
@@ -70,12 +67,18 @@ from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from datetime import datetime
+
+    from pandas._typing import (
+        Axis,
+        Self,
+        npt,
+    )
+
     from pandas import CategoricalIndex
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
-
-_T = TypeVar("_T", bound="DatetimeIndexOpsMixin")
-_TDT = TypeVar("_TDT", bound="DatetimeTimedeltaMixin")
 
 
 class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
@@ -133,14 +136,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
         if not isinstance(other, Index):
             return False
-        elif other.dtype.kind in ["f", "i", "u", "c"]:
+        elif other.dtype.kind in "iufc":
             return False
         elif not isinstance(other, type(self)):
             should_try = False
             inferable = self._data._infer_matches
             if other.dtype == object:
                 should_try = other.inferred_type in inferable
-            elif is_categorical_dtype(other.dtype):
+            elif isinstance(other.dtype, CategoricalDtype):
                 other = cast("CategoricalIndex", other)
                 should_try = other.categories.inferred_type in inferable
 
@@ -154,7 +157,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
                     #  OverflowError -> Index([very_large_timedeltas])
                     return False
 
-        if not is_dtype_equal(self.dtype, other.dtype):
+        if self.dtype != other.dtype:
             # have different timezone
             return False
 
@@ -165,7 +168,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         hash(key)
         try:
             self.get_loc(key)
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, InvalidIndexError):
             return False
         return True
 
@@ -281,7 +284,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         self,
         reso: Resolution,
         parsed: datetime,
-    ):
+    ) -> slice | npt.NDArray[np.intp]:
         """
         Parameters
         ----------
@@ -356,7 +359,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     # --------------------------------------------------------------------
     # Arithmetic Methods
 
-    def shift(self: _T, periods: int = 1, freq=None) -> _T:
+    def shift(self, periods: int = 1, freq=None) -> Self:
         """
         Shift index by desired number of time frequency increments.
 
@@ -422,7 +425,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     def unit(self) -> str:
         return self._data.unit
 
-    def as_unit(self: _TDT, unit: str) -> _TDT:
+    def as_unit(self, unit: str) -> Self:
         """
         Convert to a dtype with the given unit resolution.
 
@@ -433,6 +436,26 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         Returns
         -------
         same type as self
+
+        Examples
+        --------
+        For :class:`pandas.DatetimeIndex`:
+
+        >>> idx = pd.DatetimeIndex(['2020-01-02 01:02:03.004005006'])
+        >>> idx
+        DatetimeIndex(['2020-01-02 01:02:03.004005006'],
+                      dtype='datetime64[ns]', freq=None)
+        >>> idx.as_unit('s')
+        DatetimeIndex(['2020-01-02 01:02:03'], dtype='datetime64[s]', freq=None)
+
+        For :class:`pandas.TimedeltaIndex`:
+
+        >>> tdelta_idx = pd.to_timedelta(['1 day 3 min 2 us 42 ns'])
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days 00:03:00.000002042'],
+                        dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.as_unit('s')
+        TimedeltaIndex(['1 days 00:03:00'], dtype='timedelta64[s]', freq=None)
         """
         arr = self._data.as_unit(unit)
         return type(self)._simple_new(arr, name=self.name)
@@ -444,10 +467,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
     @property
     def values(self) -> np.ndarray:
         # NB: For Datetime64TZ this is lossy
-        return self._data._ndarray
+        data = self._data._ndarray
+        if using_copy_on_write():
+            data = data.view()
+            data.flags.writeable = False
+        return data
 
     @doc(DatetimeIndexOpsMixin.shift)
-    def shift(self: _TDT, periods: int = 1, freq=None) -> _TDT:
+    def shift(self, periods: int = 1, freq=None) -> Self:
         if freq is not None and freq != self.freq:
             if isinstance(freq, str):
                 freq = to_offset(freq)
@@ -489,10 +516,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         rng = range(self[0]._value, self[-1]._value + tick, tick)
         return RangeIndex(rng)
 
-    def _can_range_setop(self, other):
+    def _can_range_setop(self, other) -> bool:
         return isinstance(self.freq, Tick) and isinstance(other.freq, Tick)
 
-    def _wrap_range_setop(self, other, res_i8):
+    def _wrap_range_setop(self, other, res_i8) -> Self:
         new_freq = None
         if not len(res_i8):
             # RangeIndex defaults to step=1, which we don't want.
@@ -507,18 +534,23 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # be fixed by GH#41493
         res_values = res_i8.values.view(self._data._ndarray.dtype)
         result = type(self._data)._simple_new(
-            res_values, dtype=self.dtype, freq=new_freq
+            # error: Argument "dtype" to "_simple_new" of "DatetimeArray" has
+            # incompatible type "Union[dtype[Any], ExtensionDtype]"; expected
+            # "Union[dtype[datetime64], DatetimeTZDtype]"
+            res_values,
+            dtype=self.dtype,  # type: ignore[arg-type]
+            freq=new_freq,  # type: ignore[arg-type]
         )
-        return self._wrap_setop_result(other, result)
+        return cast("Self", self._wrap_setop_result(other, result))
 
-    def _range_intersect(self, other, sort):
+    def _range_intersect(self, other, sort) -> Self:
         # Dispatch to RangeIndex intersection logic.
         left = self._as_range_index
         right = other._as_range_index
         res_i8 = left.intersection(right, sort=sort)
         return self._wrap_range_setop(other, res_i8)
 
-    def _range_union(self, other, sort):
+    def _range_union(self, other, sort) -> Self:
         # Dispatch to RangeIndex union logic.
         left = self._as_range_index
         right = other._as_range_index
@@ -567,7 +599,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
         return result
 
-    def _can_fast_intersect(self: _T, other: _T) -> bool:
+    def _can_fast_intersect(self, other: Self) -> bool:
         # Note: we only get here with len(self) > 0 and len(other) > 0
         if self.freq is None:
             return False
@@ -585,7 +617,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # GH#42104
         return self.freq.n == 1
 
-    def _can_fast_union(self: _T, other: _T) -> bool:
+    def _can_fast_union(self, other: Self) -> bool:
         # Assumes that type(self) == type(other), as per the annotation
         # The ability to fast_union also implies that `freq` should be
         #  retained on union.
@@ -615,7 +647,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Only need to "adjoin", not overlap
         return (right_start == left_end + freq) or right_start in left
 
-    def _fast_union(self: _TDT, other: _TDT, sort=None) -> _TDT:
+    def _fast_union(self, other: Self, sort=None) -> Self:
         # Caller is responsible for ensuring self and other are non-empty
 
         # to make our life easier, "sort" the two ranges
@@ -748,7 +780,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         return freq
 
     @doc(NDArrayBackedExtensionIndex.delete)
-    def delete(self, loc) -> DatetimeTimedeltaMixin:
+    def delete(self, loc) -> Self:
         result = super().delete(loc)
         result._data._freq = self._get_delete_freq(loc)
         return result
@@ -772,7 +804,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
-    ):
+    ) -> Self:
         nv.validate_take((), kwargs)
         indices = np.asarray(indices, dtype=np.intp)
 

@@ -6,25 +6,26 @@ from abc import (
 )
 import sys
 from textwrap import dedent
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-    Iterator,
-    Mapping,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 
 from pandas._config import get_option
-
-from pandas._typing import (
-    Dtype,
-    WriteBuffer,
-)
 
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Iterator,
+        Mapping,
+        Sequence,
+    )
+
+    from pandas._typing import (
+        Dtype,
+        WriteBuffer,
+    )
+
     from pandas import (
         DataFrame,
         Index,
@@ -660,14 +661,13 @@ class DataFrameInfoPrinter(InfoPrinterAbstract):
             )
         elif self.verbose is False:  # specifically set to False, not necessarily None
             return DataFrameTableBuilderNonVerbose(info=self.info)
+        elif self.exceeds_info_cols:
+            return DataFrameTableBuilderNonVerbose(info=self.info)
         else:
-            if self.exceeds_info_cols:
-                return DataFrameTableBuilderNonVerbose(info=self.info)
-            else:
-                return DataFrameTableBuilderVerbose(
-                    info=self.info,
-                    with_counts=self.show_counts,
-                )
+            return DataFrameTableBuilderVerbose(
+                info=self.info,
+                with_counts=self.show_counts,
+            )
 
 
 class SeriesInfoPrinter(InfoPrinterAbstract):

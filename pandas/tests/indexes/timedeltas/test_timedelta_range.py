@@ -38,12 +38,36 @@ class TestTimedeltas:
         result = timedelta_range("1 days, 00:00:02", periods=5, freq="2D")
         tm.assert_index_equal(result, expected)
 
-        expected = to_timedelta(np.arange(50), unit="T") * 30
-        result = timedelta_range("0 days", freq="30T", periods=50)
+        expected = to_timedelta(np.arange(50), unit="min") * 30
+        result = timedelta_range("0 days", freq="30min", periods=50)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "periods, freq", [(3, "2D"), (5, "D"), (6, "19H12T"), (7, "16H"), (9, "12H")]
+        "depr_unit, unit",
+        [
+            ("T", "minute"),
+            ("t", "minute"),
+            ("S", "second"),
+            ("L", "millisecond"),
+            ("l", "millisecond"),
+            ("U", "microsecond"),
+            ("u", "microsecond"),
+            ("N", "nanosecond"),
+            ("n", "nanosecond"),
+        ],
+    )
+    def test_timedelta_units_T_S_L_U_N_deprecated(self, depr_unit, unit):
+        depr_msg = (
+            f"'{depr_unit}' is deprecated and will be removed in a future version."
+        )
+
+        expected = to_timedelta(np.arange(5), unit=unit)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = to_timedelta(np.arange(5), unit=depr_unit)
+            tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "periods, freq", [(3, "2D"), (5, "D"), (6, "19H12min"), (7, "16H"), (9, "12H")]
     )
     def test_linspace_behavior(self, periods, freq):
         # GH 20976

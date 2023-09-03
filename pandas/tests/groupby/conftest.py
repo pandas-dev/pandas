@@ -25,6 +25,11 @@ def dropna(request):
 
 
 @pytest.fixture(params=[True, False])
+def skipna(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
 def observed(request):
     return request.param
 
@@ -40,8 +45,8 @@ def df():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-            "C": np.random.randn(8),
-            "D": np.random.randn(8),
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.random.default_rng(2).standard_normal(8),
         }
     )
 
@@ -67,8 +72,8 @@ def df_mixed_floats():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-            "C": np.random.randn(8),
-            "D": np.array(np.random.randn(8), dtype="float32"),
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.array(np.random.default_rng(2).standard_normal(8), dtype="float32"),
         }
     )
 
@@ -116,9 +121,9 @@ def three_group():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -196,8 +201,23 @@ def nopython(request):
         ("sum", {}),
         ("min", {}),
         ("max", {}),
+        ("sum", {"min_count": 2}),
+        ("min", {"min_count": 2}),
+        ("max", {"min_count": 2}),
     ],
-    ids=["mean", "var_1", "var_0", "std_1", "std_0", "sum", "min", "max"],
+    ids=[
+        "mean",
+        "var_1",
+        "var_0",
+        "std_1",
+        "std_0",
+        "sum",
+        "min",
+        "max",
+        "sum-min_count",
+        "min-min_count",
+        "max-min_count",
+    ],
 )
 def numba_supported_reductions(request):
     """reductions supported with engine='numba'"""

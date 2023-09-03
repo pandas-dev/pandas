@@ -905,6 +905,7 @@ As a consequence of this change, ``PeriodIndex`` no longer has an integer dtype:
 **New behavior**:
 
 .. ipython:: python
+   :okwarning:
 
    pi = pd.PeriodIndex(["2016-08-01"], freq="D")
    pi
@@ -1134,7 +1135,7 @@ As a consequence, ``groupby`` and ``set_index`` also preserve categorical dtypes
 .. ipython:: python
 
    df = pd.DataFrame({"A": [0, 1], "B": [10, 11], "C": cat})
-   df_grouped = df.groupby(by=["A", "C"]).first()
+   df_grouped = df.groupby(by=["A", "C"], observed=False).first()
    df_set_idx = df.set_index(["A", "C"])
 
 **Previous behavior**:

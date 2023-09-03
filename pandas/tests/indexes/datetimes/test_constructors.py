@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import (
     datetime,
     timedelta,
@@ -33,6 +35,18 @@ from pandas.core.arrays import (
 
 
 class TestDatetimeIndex:
+    def test_closed_deprecated(self):
+        # GH#52628
+        msg = "The 'closed' keyword"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            DatetimeIndex([], closed=True)
+
+    def test_normalize_deprecated(self):
+        # GH#52628
+        msg = "The 'normalize' keyword"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            DatetimeIndex([], normalize=True)
+
     def test_from_dt64_unsupported_unit(self):
         # GH#49292
         val = np.datetime64(1, "D")
@@ -284,6 +298,12 @@ class TestDatetimeIndex:
         )
         tm.assert_index_equal(result, exp, exact=True)
         assert not isinstance(result, DatetimeIndex)
+
+        msg = "DatetimeIndex has mixed timezones"
+        msg_depr = "parsing datetimes with mixed time zones will raise a warning"
+        with pytest.raises(TypeError, match=msg):
+            with tm.assert_produces_warning(FutureWarning, match=msg_depr):
+                DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
 
         # length = 1
         result = Index([Timestamp("2011-01-01")], name="idx")
@@ -1016,7 +1036,7 @@ class TestTimeSeries:
         assert (index.asi8[50:100] != -1).all()
 
     @pytest.mark.parametrize(
-        "freq", ["M", "Q", "A", "D", "B", "BH", "T", "S", "L", "U", "H", "N", "C"]
+        "freq", ["M", "Q", "A", "D", "B", "BH", "min", "s", "ms", "us", "H", "ns", "C"]
     )
     def test_from_freq_recreate_from_data(self, freq):
         org = date_range(start="2001/02/01 09:00", freq=freq, periods=1)

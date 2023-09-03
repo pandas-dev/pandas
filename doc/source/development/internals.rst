@@ -31,31 +31,9 @@ There are functions that make the creation of a regular index easy:
 * :func:`period_range`: fixed frequency date range generated from a time rule or
   DateOffset. An ndarray of :class:`Period` objects, representing timespans
 
-The motivation for having an ``Index`` class in the first place was to enable
-different implementations of indexing. This means that it's possible for you,
-the user, to implement a custom ``Index`` subclass that may be better suited to
-a particular application than the ones provided in pandas.
+.. warning::
 
-From an internal implementation point of view, the relevant methods that an
-``Index`` must define are one or more of the following (depending on how
-incompatible the new object internals are with the ``Index`` functions):
-
-* :meth:`~Index.get_loc`: returns an "indexer" (an integer, or in some cases a
-  slice object) for a label
-* :meth:`~Index.slice_locs`: returns the "range" to slice between two labels
-* :meth:`~Index.get_indexer`: Computes the indexing vector for reindexing / data
-  alignment purposes. See the source / docstrings for more on this
-* :meth:`~Index.get_indexer_non_unique`: Computes the indexing vector for reindexing / data
-  alignment purposes when the index is non-unique. See the source / docstrings
-  for more on this
-* :meth:`~Index.reindex`: Does any pre-conversion of the input index then calls
-  ``get_indexer``
-* :meth:`~Index.union`, :meth:`~Index.intersection`: computes the union or intersection of two
-  Index objects
-* :meth:`~Index.insert`: Inserts a new label into an Index, yielding a new object
-* :meth:`~Index.delete`: Delete a label, yielding a new object
-* :meth:`~Index.drop`: Deletes a set of labels
-* :meth:`~Index.take`: Analogous to ndarray.take
+   Custom :class:`Index` subclasses are not supported, custom behavior should be implemented using the :class:`ExtensionArray` interface instead.
 
 MultiIndex
 ~~~~~~~~~~

@@ -1,8 +1,8 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 import re
 import struct
 import tracemalloc
-from typing import Generator
 
 import numpy as np
 import pytest
@@ -28,7 +28,7 @@ def get_allocated_khash_memory():
     snapshot = snapshot.filter_traces(
         (tracemalloc.DomainFilter(True, ht.get_hashtable_trace_domain()),)
     )
-    return sum(map(lambda x: x.size, snapshot.traces))
+    return sum(x.size for x in snapshot.traces)
 
 
 @pytest.mark.parametrize(
@@ -333,7 +333,7 @@ class TestHashTableUnsorted:
     ):
         # Test for memory errors after internal vector
         # reallocations (GH 7157)
-        # Changed from using np.random.rand to range
+        # Changed from using np.random.default_rng(2).rand to range
         # which could cause flaky CI failures when safely_resizes=False
         vals = np.array(range(1000), dtype=dtype)
 
@@ -461,7 +461,7 @@ def test_get_labels_groupby_for_Int64(writable):
 
 def test_tracemalloc_works_for_StringHashTable():
     N = 1000
-    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    keys = np.arange(N).astype(np.str_).astype(np.object_)
     with activated_tracemalloc():
         table = ht.StringHashTable()
         table.map_locations(keys)
@@ -484,7 +484,7 @@ def test_tracemalloc_for_empty_StringHashTable():
 
 @pytest.mark.parametrize("N", range(1, 110))
 def test_no_reallocation_StringHashTable(N):
-    keys = np.arange(N).astype(np.compat.unicode).astype(np.object_)
+    keys = np.arange(N).astype(np.str_).astype(np.object_)
     preallocated_table = ht.StringHashTable(N)
     n_buckets_start = preallocated_table.get_state()["n_buckets"]
     preallocated_table.map_locations(keys)
@@ -660,14 +660,14 @@ def test_unique_label_indices_intp(writable):
 
 
 def test_unique_label_indices():
-    a = np.random.randint(1, 1 << 10, 1 << 15).astype(np.intp)
+    a = np.random.default_rng(2).integers(1, 1 << 10, 1 << 15).astype(np.intp)
 
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1]
 
     tm.assert_numpy_array_equal(left, right, check_dtype=False)
 
-    a[np.random.choice(len(a), 10)] = -1
+    a[np.random.default_rng(2).choice(len(a), 10)] = -1
     left = ht.unique_label_indices(a)
     right = np.unique(a, return_index=True)[1][1:]
     tm.assert_numpy_array_equal(left, right, check_dtype=False)
@@ -721,7 +721,10 @@ def test_ismember_tuple_with_nans():
     # GH-41836
     values = [("a", float("nan")), ("b", 1)]
     comps = [("a", float("nan"))]
-    result = isin(values, comps)
+
+    msg = "isin with argument that is not not a Series"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = isin(values, comps)
     expected = np.array([True, False], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -729,6 +732,6 @@ def test_ismember_tuple_with_nans():
 def test_float_complex_int_are_equal_as_objects():
     values = ["a", 5, 5.0, 5.0 + 0j]
     comps = list(range(129))
-    result = isin(values, comps)
+    result = isin(np.array(values, dtype=object), np.asarray(comps))
     expected = np.array([False, True, True, True], dtype=np.bool_)
     tm.assert_numpy_array_equal(result, expected)

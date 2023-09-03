@@ -1,19 +1,13 @@
 from __future__ import annotations
 
 import re
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
@@ -30,6 +24,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import AnyArrayLike
 
     from pandas import DataFrame
@@ -126,17 +122,15 @@ def melt(
     mdata: dict[Hashable, AnyArrayLike] = {}
     for col in id_vars:
         id_data = frame.pop(col)
-        if is_extension_array_dtype(id_data):
+        if not isinstance(id_data.dtype, np.dtype):
+            # i.e. ExtensionDtype
             if K > 0:
-                id_data = concat([id_data] * K, ignore_index=True)
+                mdata[col] = concat([id_data] * K, ignore_index=True)
             else:
                 # We can't concat empty list. (GH 46044)
-                id_data = type(id_data)([], name=id_data.name, dtype=id_data.dtype)
+                mdata[col] = type(id_data)([], name=id_data.name, dtype=id_data.dtype)
         else:
-            # error: Incompatible types in assignment (expression has type
-            # "ndarray[Any, dtype[Any]]", variable has type "Series")
-            id_data = np.tile(id_data._values, K)  # type: ignore[assignment]
-        mdata[col] = id_data
+            mdata[col] = np.tile(id_data._values, K)
 
     mcolumns = id_vars + var_name + [value_name]
 
@@ -147,8 +141,7 @@ def melt(
     else:
         mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
-        # asanyarray will keep the columns as an Index
-        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
+        mdata[col] = frame.columns._get_level_values(i).repeat(N)
 
     result = frame._constructor(mdata, columns=mcolumns)
 

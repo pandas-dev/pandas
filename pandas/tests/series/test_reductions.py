@@ -84,7 +84,7 @@ def test_prod_numpy16_bug():
 @pytest.mark.parametrize("kwargs", [{"keepdims": True}, {"out": object()}])
 def test_validate_any_all_out_keepdims_raises(kwargs, func):
     ser = Series([1, 2])
-    param = list(kwargs)[0]
+    param = next(iter(kwargs))
     name = func.__name__
 
     msg = (
@@ -129,3 +129,52 @@ def test_validate_stat_keepdims():
     )
     with pytest.raises(ValueError, match=msg):
         np.sum(ser, keepdims=True)
+
+
+def test_mean_with_convertible_string_raises(using_array_manager):
+    # GH#44008
+    ser = Series(["1", "2"])
+    assert ser.sum() == "12"
+    msg = "Could not convert string '12' to numeric"
+    with pytest.raises(TypeError, match=msg):
+        ser.mean()
+
+    df = ser.to_frame()
+    if not using_array_manager:
+        msg = r"Could not convert \['12'\] to numeric"
+    with pytest.raises(TypeError, match=msg):
+        df.mean()
+
+
+def test_mean_dont_convert_j_to_complex(using_array_manager):
+    # GH#36703
+    df = pd.DataFrame([{"db": "J", "numeric": 123}])
+    if using_array_manager:
+        msg = "Could not convert string 'J' to numeric"
+    else:
+        msg = r"Could not convert \['J'\] to numeric"
+    with pytest.raises(TypeError, match=msg):
+        df.mean()
+
+    with pytest.raises(TypeError, match=msg):
+        df.agg("mean")
+
+    msg = "Could not convert string 'J' to numeric"
+    with pytest.raises(TypeError, match=msg):
+        df["db"].mean()
+    with pytest.raises(TypeError, match=msg):
+        np.mean(df["db"].astype("string").array)
+
+
+def test_median_with_convertible_string_raises(using_array_manager):
+    # GH#34671 this _could_ return a string "2", but definitely not float 2.0
+    msg = r"Cannot convert \['1' '2' '3'\] to numeric"
+    ser = Series(["1", "2", "3"])
+    with pytest.raises(TypeError, match=msg):
+        ser.median()
+
+    if not using_array_manager:
+        msg = r"Cannot convert \[\['1' '2' '3'\]\] to numeric"
+    df = ser.to_frame()
+    with pytest.raises(TypeError, match=msg):
+        df.median()

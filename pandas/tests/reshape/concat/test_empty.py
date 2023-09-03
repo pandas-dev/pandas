@@ -14,7 +14,9 @@ import pandas._testing as tm
 
 class TestEmptyConcat:
     def test_handle_empty_objects(self, sort):
-        df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)), columns=list("abcd")
+        )
 
         dfcopy = df[:5].copy()
         dfcopy["foo"] = "bar"
@@ -58,7 +60,9 @@ class TestEmptyConcat:
 
         s1 = Series([1, 2, 3], name="x")
         s2 = Series(name="y", dtype="float64")
-        res = concat([s1, s2], axis=0)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = concat([s1, s2], axis=0)
         # name will be reset
         exp = Series([1, 2, 3])
         tm.assert_series_equal(res, exp)
@@ -133,7 +137,7 @@ class TestEmptyConcat:
     def test_concat_empty_series_dtypes_roundtrips(self, dtype, dtype2):
         # round-tripping with self & like self
         if dtype == dtype2:
-            return
+            pytest.skip("same dtype is not applicable for test")
 
         def int_result_type(dtype, dtype2):
             typs = {dtype.kind, dtype2.kind}
@@ -238,9 +242,11 @@ class TestEmptyConcat:
         df_a = DataFrame({"a": [1, 2]}, index=[0, 1], dtype="int64")
         df_expected = DataFrame({"a": []}, index=RangeIndex(0), dtype="int64")
 
-        for how, expected in [("inner", df_expected), ("outer", df_a)]:
-            result = concat([df_a, df_empty], axis=1, join=how)
-            tm.assert_frame_equal(result, expected)
+        result = concat([df_a, df_empty], axis=1, join="inner")
+        tm.assert_frame_equal(result, df_expected)
+
+        result = concat([df_a, df_empty], axis=1, join="outer")
+        tm.assert_frame_equal(result, df_a)
 
     def test_empty_dtype_coerce(self):
         # xref to #12411

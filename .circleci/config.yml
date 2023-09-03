@@ -3,10 +3,10 @@ version: 2.1
 jobs:
   test-arm:
     machine:
-      image: ubuntu-2004:202101-01
+      image: ubuntu-2004:2022.04.1
     resource_class: arm.large
     environment:
-      ENV_FILE: ci/deps/circle-38-arm64.yaml
+      ENV_FILE: ci/deps/circle-310-arm64.yaml
       PYTEST_WORKERS: auto
       PATTERN: "not single_cpu and not slow and not network and not clipboard and not arm_slow and not db"
       PYTEST_TARGET: "pandas"
@@ -23,10 +23,9 @@ jobs:
       cibw-build:
         type: string
     machine:
-      image: ubuntu-2004:202101-01
+      image: ubuntu-2004:2022.04.1
     resource_class: arm.large
     environment:
-      ENV_FILE: ci/deps/circle-38-arm64.yaml
       TRIGGER_SOURCE: << pipeline.trigger_source >>
     steps:
       - checkout
@@ -47,9 +46,10 @@ jobs:
             fi
       - run:
           name: Build aarch64 wheels
+          no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
-            pip3 install cibuildwheel==2.9.0
-            cibuildwheel --output-dir wheelhouse
+            pip3 install cibuildwheel==2.14.1
+            cibuildwheel --prerelease-pythons --output-dir wheelhouse
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
 
@@ -57,7 +57,7 @@ jobs:
           name: Install Anaconda Client & Upload Wheels
           command: |
             echo "Install Mambaforge"
-            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/4.14.0-0/Mambaforge-4.14.0-0-Linux-aarch64.sh"
+            MAMBA_URL="https://github.com/conda-forge/miniforge/releases/download/23.1.0-0/Mambaforge-23.1.0-0-Linux-aarch64.sh"
             echo "Downloading $MAMBA_URL"
             wget -q $MAMBA_URL -O minimamba.sh
             chmod +x minimamba.sh
@@ -92,4 +92,5 @@ workflows:
               only: /^v.*/
           matrix:
             parameters:
-              cibw-build: ["cp38-manylinux_aarch64", "cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]
+              # TODO: Enable Python 3.12 wheels when numpy releases a version that supports Python 3.12
+              cibw-build: ["cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]#, "cp312-manylinux_aarch64"]

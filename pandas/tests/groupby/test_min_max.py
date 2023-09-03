@@ -236,7 +236,7 @@ def test_min_max_nullable_uint64_empty_group():
     # don't raise NotImplementedError from libgroupby
     cat = pd.Categorical([0] * 10, categories=[0, 1])
     df = DataFrame({"A": cat, "B": pd.array(np.arange(10, dtype=np.uint64))})
-    gb = df.groupby("A")
+    gb = df.groupby("A", observed=False)
 
     res = gb.min()
 
@@ -247,3 +247,26 @@ def test_min_max_nullable_uint64_empty_group():
     res = gb.max()
     expected.iloc[0, 0] = 9
     tm.assert_frame_equal(res, expected)
+
+
+@pytest.mark.parametrize("func", ["first", "last", "min", "max"])
+def test_groupby_min_max_categorical(func):
+    # GH: 52151
+    df = DataFrame(
+        {
+            "col1": pd.Categorical(["A"], categories=list("AB"), ordered=True),
+            "col2": pd.Categorical([1], categories=[1, 2], ordered=True),
+            "value": 0.1,
+        }
+    )
+    result = getattr(df.groupby("col1", observed=False), func)()
+
+    idx = pd.CategoricalIndex(data=["A", "B"], name="col1", ordered=True)
+    expected = DataFrame(
+        {
+            "col2": pd.Categorical([1, None], categories=[1, 2], ordered=True),
+            "value": [0.1, None],
+        },
+        index=idx,
+    )
+    tm.assert_frame_equal(result, expected)

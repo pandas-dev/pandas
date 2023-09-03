@@ -12,11 +12,6 @@ from pathlib import Path
 
 import pytest
 
-from pandas.compat import (
-    is_ci_environment,
-    is_platform_mac,
-    is_platform_windows,
-)
 from pandas.errors import ParserError
 
 import pandas._testing as tm
@@ -177,12 +172,9 @@ def test_close_file_handle_on_invalid_usecols(all_parsers):
     if parser.engine == "pyarrow":
         pyarrow = pytest.importorskip("pyarrow")
         error = pyarrow.lib.ArrowKeyError
-        if is_ci_environment() and (is_platform_windows() or is_platform_mac()):
-            # GH#45547 causes timeouts on windows/mac builds
-            pytest.skip("GH#45547 causing timeouts on windows/mac builds 2022-01-22")
 
     with tm.ensure_clean("test.csv") as fname:
-        Path(fname).write_text("col1,col2\na,b\n1,2")
+        Path(fname).write_text("col1,col2\na,b\n1,2", encoding="utf-8")
         with tm.assert_produces_warning(False):
             with pytest.raises(error, match="col3"):
                 parser.read_csv(fname, usecols=["col1", "col2", "col3"])
@@ -200,3 +192,13 @@ def test_invalid_file_inputs(request, all_parsers):
 
     with pytest.raises(ValueError, match="Invalid"):
         parser.read_csv([])
+
+
+def test_invalid_dtype_backend(all_parsers):
+    parser = all_parsers
+    msg = (
+        "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+        "'pyarrow' are allowed."
+    )
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv("test", dtype_backend="numpy")

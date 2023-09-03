@@ -2,8 +2,10 @@ import numpy as np
 import pytest
 
 from pandas import (
+    NA,
     DataFrame,
     Index,
+    NaT,
     Series,
     Timestamp,
 )
@@ -45,7 +47,7 @@ def _assert_not_almost_equal(a, b, **kwargs):
     try:
         tm.assert_almost_equal(a, b, **kwargs)
         msg = f"{a} and {b} were approximately equal when they shouldn't have been"
-        pytest.fail(msg=msg)
+        pytest.fail(reason=msg)
     except AssertionError:
         pass
 
@@ -202,6 +204,18 @@ def test_assert_almost_equal_edge_case_ndarrays(left_dtype, right_dtype):
     )
 
 
+def test_assert_almost_equal_sets():
+    # GH#51727
+    _assert_almost_equal_both({1, 2, 3}, {1, 2, 3})
+
+
+def test_assert_almost_not_equal_sets():
+    # GH#51727
+    msg = r"{1, 2, 3} != {1, 2, 4}"
+    with pytest.raises(AssertionError, match=msg):
+        _assert_almost_equal_both({1, 2, 3}, {1, 2, 4})
+
+
 def test_assert_almost_equal_dicts():
     _assert_almost_equal_both({"a": 1, "b": 2}, {"a": 1, "b": 2})
 
@@ -279,7 +293,7 @@ def test_assert_almost_equal_null():
     _assert_almost_equal_both(None, None)
 
 
-@pytest.mark.parametrize("a,b", [(None, np.NaN), (None, 0), (np.NaN, 0)])
+@pytest.mark.parametrize("a,b", [(None, np.nan), (None, 0), (np.nan, 0)])
 def test_assert_not_almost_equal_null(a, b):
     _assert_not_almost_equal(a, b)
 
@@ -290,14 +304,53 @@ def test_assert_not_almost_equal_null(a, b):
         (np.inf, np.inf),
         (np.inf, float("inf")),
         (np.array([np.inf, np.nan, -np.inf]), np.array([np.inf, np.nan, -np.inf])),
-        (
-            np.array([np.inf, None, -np.inf], dtype=np.object_),
-            np.array([np.inf, np.nan, -np.inf], dtype=np.object_),
-        ),
     ],
 )
 def test_assert_almost_equal_inf(a, b):
     _assert_almost_equal_both(a, b)
+
+
+objs = [NA, np.nan, NaT, None, np.datetime64("NaT"), np.timedelta64("NaT")]
+
+
+@pytest.mark.parametrize("left", objs)
+@pytest.mark.parametrize("right", objs)
+def test_mismatched_na_assert_almost_equal_deprecation(left, right):
+    left_arr = np.array([left], dtype=object)
+    right_arr = np.array([right], dtype=object)
+
+    msg = "Mismatched null-like values"
+
+    if left is right:
+        _assert_almost_equal_both(left, right, check_dtype=False)
+        tm.assert_numpy_array_equal(left_arr, right_arr)
+        tm.assert_index_equal(
+            Index(left_arr, dtype=object), Index(right_arr, dtype=object)
+        )
+        tm.assert_series_equal(
+            Series(left_arr, dtype=object), Series(right_arr, dtype=object)
+        )
+        tm.assert_frame_equal(
+            DataFrame(left_arr, dtype=object), DataFrame(right_arr, dtype=object)
+        )
+
+    else:
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            _assert_almost_equal_both(left, right, check_dtype=False)
+
+        # TODO: to get the same deprecation in assert_numpy_array_equal we need
+        #  to change/deprecate the default for strict_nan to become True
+        # TODO: to get the same deprecateion in assert_index_equal we need to
+        #  change/deprecate array_equivalent_object to be stricter, as
+        #  assert_index_equal uses Index.equal which uses array_equivalent.
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_series_equal(
+                Series(left_arr, dtype=object), Series(right_arr, dtype=object)
+            )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_frame_equal(
+                DataFrame(left_arr, dtype=object), DataFrame(right_arr, dtype=object)
+            )
 
 
 def test_assert_not_almost_equal_inf():
@@ -500,7 +553,7 @@ NESTED_CASES = [
     # same-length lists
     (
         np.array([subarr, None], dtype=object),
-        np.array([list([[None, "b"], ["c", "d"]]), None], dtype=object),
+        np.array([[[None, "b"], ["c", "d"]], None], dtype=object),
     ),
     # dicts
     (

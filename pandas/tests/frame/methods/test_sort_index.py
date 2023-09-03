@@ -56,7 +56,7 @@ class TestDataFrameSortIndex:
     def test_sort_index_reorder_on_ops(self):
         # GH#15687
         df = DataFrame(
-            np.random.randn(8, 2),
+            np.random.default_rng(2).standard_normal((8, 2)),
             index=MultiIndex.from_product(
                 [["a", "b"], ["big", "small"], ["red", "blu"]],
                 names=["letter", "size", "color"],
@@ -217,7 +217,9 @@ class TestDataFrameSortIndex:
 
     def test_sort_index_inplace(self):
         frame = DataFrame(
-            np.random.randn(4, 4), index=[1, 2, 3, 4], columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((4, 4)),
+            index=[1, 2, 3, 4],
+            columns=["A", "B", "C", "D"],
         )
 
         # axis=0
@@ -256,11 +258,13 @@ class TestDataFrameSortIndex:
         A = np.arange(20).repeat(5)
         B = np.tile(np.arange(5), 20)
 
-        indexer = np.random.permutation(100)
+        indexer = np.random.default_rng(2).permutation(100)
         A = A.take(indexer)
         B = B.take(indexer)
 
-        df = DataFrame({"A": A, "B": B, "C": np.random.randn(100)})
+        df = DataFrame(
+            {"A": A, "B": B, "C": np.random.default_rng(2).standard_normal(100)}
+        )
 
         ex_indexer = np.lexsort((df.B.max() - df.B, df.A))
         expected = df.take(ex_indexer)
@@ -374,9 +378,12 @@ class TestDataFrameSortIndex:
     def test_sort_index_intervalindex(self):
         # this is a de-facto sort via unstack
         # confirming that we sort in the order of the bins
-        y = Series(np.random.randn(100))
-        x1 = Series(np.sign(np.random.randn(100)))
-        x2 = pd.cut(Series(np.random.randn(100)), bins=[-3, -0.5, 0, 0.5, 3])
+        y = Series(np.random.default_rng(2).standard_normal(100))
+        x1 = Series(np.sign(np.random.default_rng(2).standard_normal(100)))
+        x2 = pd.cut(
+            Series(np.random.default_rng(2).standard_normal(100)),
+            bins=[-3, -0.5, 0, 0.5, 3],
+        )
         model = pd.concat([y, x1, x2], axis=1, keys=["Y", "X1", "X2"])
 
         result = model.groupby(["X1", "X2"], observed=True).mean().unstack()
@@ -473,7 +480,7 @@ class TestDataFrameSortIndex:
     def test_sort_index_ignore_index_multi_index(
         self, inplace, original_dict, sorted_dict, ascending, ignore_index, output_index
     ):
-        # GH 30114, this is to test ignore_index on MulitIndex of index
+        # GH 30114, this is to test ignore_index on MultiIndex of index
         mi = MultiIndex.from_tuples([(2, 1), (3, 4)], names=list("AB"))
         df = DataFrame(original_dict, index=mi)
         expected_df = DataFrame(sorted_dict, index=output_index)
@@ -610,7 +617,9 @@ class TestDataFrameSortIndex:
     def test_sort_index_level_large_cardinality(self):
         # GH#2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
-        df = DataFrame(np.random.randn(4000).astype("int64"), index=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(4000).astype("int64"), index=index
+        )
 
         # it works!
         result = df.sort_index(level=0)
@@ -618,7 +627,9 @@ class TestDataFrameSortIndex:
 
         # GH#2684 (int32)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
-        df = DataFrame(np.random.randn(4000).astype("int32"), index=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(4000).astype("int32"), index=index
+        )
 
         # it works!
         result = df.sort_index(level=0)
@@ -677,8 +688,7 @@ class TestDataFrameSortIndex:
         ],
     )
     def test_sort_index_multilevel_repr_8017(self, gen, extra):
-        np.random.seed(0)
-        data = np.random.randn(3, 4)
+        data = np.random.default_rng(2).standard_normal((3, 4))
 
         columns = MultiIndex.from_tuples([("red", i) for i in gen])
         df = DataFrame(data, index=list("def"), columns=columns)
@@ -769,8 +779,10 @@ class TestDataFrameSortIndex:
             {"col1": [1, 2, 3], "col2": [3, 4, 5]},
             index=pd.date_range("2020", periods=3),
         )
-        with pd.option_context("mode.use_inf_as_na", True):
-            result = expected.sort_index()
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pd.option_context("mode.use_inf_as_na", True):
+                result = expected.sort_index()
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -905,5 +917,41 @@ class TestDataFrameSortIndexKey:
         )
 
         result = expected.sort_index(level=0)
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_sort_index_na_position(self):
+        # GH#51612
+        df = DataFrame([1, 2], index=MultiIndex.from_tuples([(1, 1), (1, pd.NA)]))
+        expected = df.copy()
+        result = df.sort_index(level=[0, 1], na_position="last")
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_sort_index_multiindex_sort_remaining(self, ascending):
+        # GH #24247
+        df = DataFrame(
+            {"A": [1, 2, 3, 4, 5], "B": [10, 20, 30, 40, 50]},
+            index=MultiIndex.from_tuples(
+                [("a", "x"), ("a", "y"), ("b", "x"), ("b", "y"), ("c", "x")]
+            ),
+        )
+
+        result = df.sort_index(level=1, sort_remaining=False, ascending=ascending)
+
+        if ascending:
+            expected = DataFrame(
+                {"A": [1, 3, 5, 2, 4], "B": [10, 30, 50, 20, 40]},
+                index=MultiIndex.from_tuples(
+                    [("a", "x"), ("b", "x"), ("c", "x"), ("a", "y"), ("b", "y")]
+                ),
+            )
+        else:
+            expected = DataFrame(
+                {"A": [2, 4, 1, 3, 5], "B": [20, 40, 10, 30, 50]},
+                index=MultiIndex.from_tuples(
+                    [("a", "y"), ("b", "y"), ("a", "x"), ("b", "x"), ("c", "x")]
+                ),
+            )
 
         tm.assert_frame_equal(result, expected)

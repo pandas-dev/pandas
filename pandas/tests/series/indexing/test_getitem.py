@@ -69,17 +69,21 @@ class TestSeriesGetitemScalars:
         assert result == 2
 
     def test_getitem_negative_out_of_bounds(self):
-        ser = Series(tm.rands_array(5, 10), index=tm.rands_array(10, 10))
+        ser = Series(["a"] * 10, index=["a"] * 10)
 
         msg = "index -11 is out of bounds for axis 0 with size 10"
+        warn_msg = "Series.__getitem__ treating keys as positions is deprecated"
         with pytest.raises(IndexError, match=msg):
-            ser[-11]
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                ser[-11]
 
     def test_getitem_out_of_bounds_indexerror(self, datetime_series):
         # don't segfault, GH#495
         msg = r"index \d+ is out of bounds for axis 0 with size \d+"
+        warn_msg = "Series.__getitem__ treating keys as positions is deprecated"
         with pytest.raises(IndexError, match=msg):
-            datetime_series[len(datetime_series)]
+            with tm.assert_produces_warning(FutureWarning, match=warn_msg):
+                datetime_series[len(datetime_series)]
 
     def test_getitem_out_of_bounds_empty_rangeindex_keyerror(self):
         # GH#917
@@ -90,7 +94,10 @@ class TestSeriesGetitemScalars:
 
     def test_getitem_keyerror_with_integer_index(self, any_int_numpy_dtype):
         dtype = any_int_numpy_dtype
-        ser = Series(np.random.randn(6), index=Index([0, 0, 1, 1, 2, 2], dtype=dtype))
+        ser = Series(
+            np.random.default_rng(2).standard_normal(6),
+            index=Index([0, 0, 1, 1, 2, 2], dtype=dtype),
+        )
 
         with pytest.raises(KeyError, match=r"^5$"):
             ser[5]
@@ -99,7 +106,9 @@ class TestSeriesGetitemScalars:
             ser["c"]
 
         # not monotonic
-        ser = Series(np.random.randn(6), index=[2, 2, 0, 0, 1, 1])
+        ser = Series(
+            np.random.default_rng(2).standard_normal(6), index=[2, 2, 0, 0, 1, 1]
+        )
 
         with pytest.raises(KeyError, match=r"^5$"):
             ser[5]
@@ -109,7 +118,10 @@ class TestSeriesGetitemScalars:
 
     def test_getitem_int64(self, datetime_series):
         idx = np.int64(5)
-        assert datetime_series[idx] == datetime_series[5]
+        msg = "Series.__getitem__ treating keys as positions is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = datetime_series[idx]
+        assert res == datetime_series.iloc[5]
 
     def test_getitem_full_range(self):
         # github.com/pandas-dev/pandas/commit/4f433773141d2eb384325714a2776bcc5b2e20f7
@@ -137,14 +149,14 @@ class TestSeriesGetitemScalars:
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_string_index_alias_tz_aware(self, tz):
         rng = date_range("1/1/2000", periods=10, tz=tz)
-        ser = Series(np.random.randn(len(rng)), index=rng)
+        ser = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         result = ser["1/3/2000"]
-        tm.assert_almost_equal(result, ser[2])
+        tm.assert_almost_equal(result, ser.iloc[2])
 
     def test_getitem_time_object(self):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         mask = (rng.hour == 9) & (rng.minute == 30)
         result = ts[time(9, 30)]
@@ -205,7 +217,9 @@ class TestSeriesGetitemScalars:
     def test_getitem_bool_index_positional(self):
         # GH#48653
         ser = Series({True: 1, False: 0})
-        result = ser[0]
+        msg = "Series.__getitem__ treating keys as positions is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser[0]
         assert result == 1
 
 
@@ -226,7 +240,7 @@ class TestSeriesGetitemSlices:
             ["1/1/2000", "1/2/2000", "1/2/2000", "1/3/2000", "1/4/2000"]
         )
 
-        ts = Series(np.random.randn(len(idx)), index=idx)
+        ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
 
         result = ts["1/2/2000":]
         expected = ts[1:]
@@ -275,7 +289,7 @@ class TestSeriesGetitemSlices:
 
     def test_getitem_median_slice_bug(self):
         index = date_range("20090415", "20090519", freq="2B")
-        ser = Series(np.random.randn(13), index=index)
+        ser = Series(np.random.default_rng(2).standard_normal(13), index=index)
 
         indexer = [slice(6, 7, None)]
         msg = "Indexing with a single-item list"
@@ -330,7 +344,10 @@ class TestSeriesGetitemSlices:
         tm.assert_series_equal(result, ser[:0])
 
     def test_getitem_slice_integers(self):
-        ser = Series(np.random.randn(8), index=[2, 4, 6, 8, 10, 12, 14, 16])
+        ser = Series(
+            np.random.default_rng(2).standard_normal(8),
+            index=[2, 4, 6, 8, 10, 12, 14, 16],
+        )
 
         result = ser[:4]
         expected = Series(ser.values[:4], index=[2, 4, 6, 8])
@@ -371,7 +388,9 @@ class TestSeriesGetitemListLike:
 
         expected = ser.iloc[:1]
         key = box([0])
-        result = ser[key]
+        msg = "Series.__getitem__ treating keys as positions is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser[key]
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("box", [list, np.array, Index])
@@ -576,7 +595,7 @@ def test_getitem_dataframe_raises():
         ser[df > 5]
 
 
-def test_getitem_assignment_series_aligment():
+def test_getitem_assignment_series_alignment():
     # https://github.com/pandas-dev/pandas/issues/37427
     # with getitem, when assigning with a Series, it is not first aligned
     ser = Series(range(10))
@@ -612,7 +631,9 @@ def test_getitem_preserve_name(datetime_series):
     result = datetime_series[datetime_series > 0]
     assert result.name == datetime_series.name
 
-    result = datetime_series[[0, 2, 4]]
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = datetime_series[[0, 2, 4]]
     assert result.name == datetime_series.name
 
     result = datetime_series[5:10]
@@ -621,7 +642,9 @@ def test_getitem_preserve_name(datetime_series):
 
 def test_getitem_with_integer_labels():
     # integer indexes, be careful
-    ser = Series(np.random.randn(10), index=list(range(0, 20, 2)))
+    ser = Series(
+        np.random.default_rng(2).standard_normal(10), index=list(range(0, 20, 2))
+    )
     inds = [0, 2, 5, 7, 8]
     arr_inds = np.array([0, 2, 5, 7, 8])
     with pytest.raises(KeyError, match="not in index"):
@@ -640,16 +663,20 @@ def test_getitem_missing(datetime_series):
 
 
 def test_getitem_fancy(string_series, object_series):
-    slice1 = string_series[[1, 2, 3]]
-    slice2 = object_series[[1, 2, 3]]
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        slice1 = string_series[[1, 2, 3]]
+        slice2 = object_series[[1, 2, 3]]
     assert string_series.index[2] == slice1.index[1]
     assert object_series.index[2] == slice2.index[1]
-    assert string_series[2] == slice1[1]
-    assert object_series[2] == slice2[1]
+    assert string_series.iloc[2] == slice1.iloc[1]
+    assert object_series.iloc[2] == slice2.iloc[1]
 
 
 def test_getitem_box_float64(datetime_series):
-    value = datetime_series[5]
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        value = datetime_series[5]
     assert isinstance(value, np.float64)
 
 
@@ -683,7 +710,10 @@ def test_slice_can_reorder_not_uniquely_indexed():
 def test_duplicated_index_getitem_positional_indexer(index_vals):
     # GH 11747
     s = Series(range(5), index=list(index_vals))
-    result = s[3]
+
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s[3]
     assert result == 3
 
 

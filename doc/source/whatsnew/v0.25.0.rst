@@ -48,7 +48,7 @@ output columns when applying multiple aggregation functions to specific columns 
    animals.groupby("kind").agg(
        min_height=pd.NamedAgg(column='height', aggfunc='min'),
        max_height=pd.NamedAgg(column='height', aggfunc='max'),
-       average_weight=pd.NamedAgg(column='weight', aggfunc=np.mean),
+       average_weight=pd.NamedAgg(column='weight', aggfunc="mean"),
    )
 
 Pass the desired columns names as the ``**kwargs`` to ``.agg``. The values of ``**kwargs``
@@ -61,7 +61,7 @@ what the arguments to the function are, but plain tuples are accepted as well.
    animals.groupby("kind").agg(
        min_height=('height', 'min'),
        max_height=('height', 'max'),
-       average_weight=('weight', np.mean),
+       average_weight=('weight', 'mean'),
    )
 
 Named aggregation is the recommended replacement for the deprecated "dict-of-dicts"
@@ -921,7 +921,7 @@ by a ``Series`` or ``DataFrame`` with sparse values.
    df = pd.DataFrame({"A": pd.arrays.SparseArray([0, 0, 1, 2])})
    df.dtypes
 
-The memory usage of the two approaches is identical. See :ref:`sparse.migration` for more (:issue:`19239`).
+The memory usage of the two approaches is identical (:issue:`19239`).
 
 msgpack format
 ^^^^^^^^^^^^^^

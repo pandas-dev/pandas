@@ -1,13 +1,16 @@
 """
 Tests for DatetimeArray
 """
+from __future__ import annotations
+
 from datetime import timedelta
 import operator
 
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
-    ZoneInfo = None
+    # Cannot assign to a type
+    ZoneInfo = None  # type: ignore[misc, assignment]
 
 import numpy as np
 import pytest
@@ -494,7 +497,7 @@ class TestDatetimeArray:
             dtype=DatetimeTZDtype(tz="US/Central"),
         )
 
-        result = arr.fillna(method=method)
+        result = arr._pad_or_backfill(method=method)
         tm.assert_extension_array_equal(result, expected)
 
         # assert that arr and dti were not modified in-place
@@ -507,12 +510,12 @@ class TestDatetimeArray:
         dta[0, 1] = pd.NaT
         dta[1, 0] = pd.NaT
 
-        res1 = dta.fillna(method="pad")
+        res1 = dta._pad_or_backfill(method="pad")
         expected1 = dta.copy()
         expected1[1, 0] = dta[0, 0]
         tm.assert_extension_array_equal(res1, expected1)
 
-        res2 = dta.fillna(method="backfill")
+        res2 = dta._pad_or_backfill(method="backfill")
         expected2 = dta.copy()
         expected2 = dta.copy()
         expected2[1, 0] = dta[2, 0]
@@ -526,19 +529,19 @@ class TestDatetimeArray:
         assert not dta2._ndarray.flags["C_CONTIGUOUS"]
         tm.assert_extension_array_equal(dta, dta2)
 
-        res3 = dta2.fillna(method="pad")
+        res3 = dta2._pad_or_backfill(method="pad")
         tm.assert_extension_array_equal(res3, expected1)
 
-        res4 = dta2.fillna(method="backfill")
+        res4 = dta2._pad_or_backfill(method="backfill")
         tm.assert_extension_array_equal(res4, expected2)
 
         # test the DataFrame method while we're here
         df = pd.DataFrame(dta)
-        res = df.fillna(method="pad")
+        res = df.ffill()
         expected = pd.DataFrame(expected1)
         tm.assert_frame_equal(res, expected)
 
-        res = df.fillna(method="backfill")
+        res = df.bfill()
         expected = pd.DataFrame(expected2)
         tm.assert_frame_equal(res, expected)
 
@@ -712,7 +715,9 @@ class TestDatetimeArray:
             # no tzdata
             pass
         else:
-            easts.append(tz)
+            # Argument 1 to "append" of "list" has incompatible type "ZoneInfo";
+            # expected "str"
+            easts.append(tz)  # type: ignore[arg-type]
 
     @pytest.mark.parametrize("tz", easts)
     def test_iter_zoneinfo_fold(self, tz):
@@ -740,3 +745,16 @@ class TestDatetimeArray:
         right2 = dta.astype(object)[2]
         assert str(left) == str(right2)
         assert left.utcoffset() == right2.utcoffset()
+
+
+def test_factorize_sort_without_freq():
+    dta = DatetimeArray._from_sequence([0, 2, 1])
+
+    msg = r"call pd.factorize\(obj, sort=True\) instead"
+    with pytest.raises(NotImplementedError, match=msg):
+        dta.factorize(sort=True)
+
+    # Do TimedeltaArray while we're here
+    tda = dta - dta[0]
+    with pytest.raises(NotImplementedError, match=msg):
+        tda.factorize(sort=True)

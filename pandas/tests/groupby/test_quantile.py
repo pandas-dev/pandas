@@ -93,13 +93,13 @@ def test_quantile_array():
 
 def test_quantile_array2():
     # https://github.com/pandas-dev/pandas/pull/28085#issuecomment-524066959
-    arr = np.random.RandomState(0).randint(0, 5, size=(10, 3), dtype=np.int64)
+    arr = np.random.default_rng(2).integers(0, 5, size=(10, 3), dtype=np.int64)
     df = DataFrame(arr, columns=list("ABC"))
     result = df.groupby("A").quantile([0.3, 0.7])
     expected = DataFrame(
         {
-            "B": [0.9, 2.1, 2.2, 3.4, 1.6, 2.4, 2.3, 2.7, 0.0, 0.0],
-            "C": [1.2, 2.8, 1.8, 3.0, 0.0, 0.0, 1.9, 3.1, 3.0, 3.0],
+            "B": [2.0, 2.0, 2.3, 2.7, 0.3, 0.7, 3.2, 4.0, 0.3, 0.7],
+            "C": [1.0, 1.0, 1.9, 3.0999999999999996, 0.3, 0.7, 2.6, 3.0, 1.2, 2.8],
         },
         index=pd.MultiIndex.from_product(
             [[0, 1, 2, 3, 4], [0.3, 0.7]], names=["A", None]
@@ -396,7 +396,10 @@ def test_columns_groupby_quantile():
         index=list("XYZ"),
         columns=pd.Series(list("ABAB"), name="col"),
     )
-    result = df.groupby("col", axis=1).quantile(q=[0.8, 0.2])
+    msg = "DataFrame.groupby with axis=1 is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = df.groupby("col", axis=1)
+    result = gb.quantile(q=[0.8, 0.2])
     expected = DataFrame(
         [
             [1.6, 0.4, 2.6, 1.4],
@@ -417,7 +420,7 @@ def test_timestamp_groupby_quantile():
     df = DataFrame(
         {
             "timestamp": pd.date_range(
-                start="2020-04-19 00:00:00", freq="1T", periods=100, tz="UTC"
+                start="2020-04-19 00:00:00", freq="1min", periods=100, tz="UTC"
             ).floor("1H"),
             "category": list(range(1, 101)),
             "value": list(range(101, 201)),
@@ -464,7 +467,37 @@ def test_groupby_quantile_dt64tz_period():
 
     # Check that we match the group-by-group result
     exp = {i: df.iloc[i::5].quantile(0.5) for i in range(5)}
-    expected = DataFrame(exp).T
+    expected = DataFrame(exp).T.infer_objects()
     expected.index = expected.index.astype(np.int_)
 
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_quantile_nonmulti_levels_order():
+    # Non-regression test for GH #53009
+    ind = pd.MultiIndex.from_tuples(
+        [
+            (0, "a", "B"),
+            (0, "a", "A"),
+            (0, "b", "B"),
+            (0, "b", "A"),
+            (1, "a", "B"),
+            (1, "a", "A"),
+            (1, "b", "B"),
+            (1, "b", "A"),
+        ],
+        names=["sample", "cat0", "cat1"],
+    )
+    ser = pd.Series(range(8), index=ind)
+    result = ser.groupby(level="cat1", sort=False).quantile([0.2, 0.8])
+
+    qind = pd.MultiIndex.from_tuples(
+        [("B", 0.2), ("B", 0.8), ("A", 0.2), ("A", 0.8)], names=["cat1", None]
+    )
+    expected = pd.Series([1.2, 4.8, 2.2, 5.8], index=qind)
+
+    tm.assert_series_equal(result, expected)
+
+    # We need to check that index levels are not sorted
+    expected_levels = pd.core.indexes.frozen.FrozenList([["B", "A"], [0.2, 0.8]])
+    tm.assert_equal(result.index.levels, expected_levels)

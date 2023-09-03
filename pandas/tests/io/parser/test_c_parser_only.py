@@ -17,10 +17,7 @@ import tarfile
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    is_ci_environment,
-)
+from pandas.compat import is_ci_environment
 from pandas.compat.numpy import np_version_gte1p24
 from pandas.errors import ParserError
 import pandas.util._test_decorators as td
@@ -45,32 +42,6 @@ def test_buffer_overflow(c_parser_only, malformed):
 
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(malformed))
-
-
-def test_buffer_rd_bytes(c_parser_only):
-    # see gh-12098: src->buffer in the C parser can be freed twice leading
-    # to a segfault if a corrupt gzip file is read with 'read_csv', and the
-    # buffer is filled more than once before gzip raises an Exception.
-
-    data = (
-        "\x1F\x8B\x08\x00\x00\x00\x00\x00\x00\x03\xED\xC3\x41\x09"
-        "\x00\x00\x08\x00\xB1\xB7\xB6\xBA\xFE\xA5\xCC\x21\x6C\xB0"
-        "\xA6\x4D" + "\x55" * 267 + "\x7D\xF7\x00\x91\xE0\x47\x97\x14\x38\x04\x00"
-        "\x1f\x8b\x08\x00VT\x97V\x00\x03\xed]\xefO"
-    )
-    parser = c_parser_only
-
-    for _ in range(100):
-        try:
-            parser.read_csv_check_warnings(
-                RuntimeWarning,
-                "compression has no effect when passing a non-binary object as input",
-                StringIO(data),
-                compression="gzip",
-                delim_whitespace=True,
-            )
-        except Exception:
-            pass
 
 
 def test_delim_whitespace_custom_terminator(c_parser_only):
@@ -159,7 +130,9 @@ nan 2
 def test_unsupported_dtype(c_parser_only, match, kwargs):
     parser = c_parser_only
     df = DataFrame(
-        np.random.rand(5, 2), columns=list("AB"), index=["1A", "1B", "1C", "1D", "1E"]
+        np.random.default_rng(2).random((5, 2)),
+        columns=list("AB"),
+        index=["1A", "1B", "1C", "1D", "1E"],
     )
 
     with tm.ensure_clean("__unsupported_dtype__.csv") as path:
@@ -575,6 +548,8 @@ def test_bytes_exceed_2gb(c_parser_only):
     if parser.low_memory:
         pytest.skip("not a low_memory test")
 
+    # csv takes 10 seconds to construct, spikes memory to 8GB+, the whole test
+    #  spikes up to 10.4GB on the c_high case
     csv = StringIO("strings\n" + "\n".join(["x" * (1 << 20) for _ in range(2100)]))
     df = parser.read_csv(csv)
     assert not df.empty
@@ -601,7 +576,7 @@ def test_file_handles_mmap(c_parser_only, csv1):
     # Don't close user provided file handles.
     parser = c_parser_only
 
-    with open(csv1) as f:
+    with open(csv1, encoding="utf-8") as f:
         with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as m:
             parser.read_csv(m)
             assert not m.closed
@@ -613,7 +588,7 @@ def test_file_binary_mode(c_parser_only):
     expected = DataFrame([[1, 2, 3], [4, 5, 6]])
 
     with tm.ensure_clean() as path:
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write("1,2,3\n4,5,6")
 
         with open(path, "rb") as f:
@@ -625,7 +600,7 @@ def test_unix_style_breaks(c_parser_only):
     # GH 11020
     parser = c_parser_only
     with tm.ensure_clean() as path:
-        with open(path, "w", newline="\n") as f:
+        with open(path, "w", newline="\n", encoding="utf-8") as f:
             f.write("blah\n\ncol_1,col_2,col_3\n\n")
         result = parser.read_csv(path, skiprows=2, encoding="utf-8", engine="c")
     expected = DataFrame(columns=["col_1", "col_2", "col_3"])
@@ -681,10 +656,7 @@ def test_float_precision_options(c_parser_only):
 
     df3 = parser.read_csv(StringIO(s), float_precision="legacy")
 
-    if IS64:
-        assert not df.iloc[0, 0] == df3.iloc[0, 0]
-    else:
-        assert df.iloc[0, 0] == df3.iloc[0, 0]
+    assert not df.iloc[0, 0] == df3.iloc[0, 0]
 
     msg = "Unrecognized float_precision option: junk"
 

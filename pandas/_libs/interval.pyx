@@ -188,6 +188,14 @@ cdef class IntervalMixin:
         See Also
         --------
         Interval.is_empty : Indicates if an interval contains no points.
+
+        Examples
+        --------
+        >>> interval = pd.Interval(left=1, right=2, closed='left')
+        >>> interval
+        Interval(1, 2, closed='left')
+        >>> interval.length
+        1
         """
         return self.right - self.left
 
@@ -369,11 +377,27 @@ cdef class Interval(IntervalMixin):
     cdef readonly object left
     """
     Left bound for the interval.
+
+    Examples
+    --------
+    >>> interval = pd.Interval(left=1, right=2, closed='left')
+    >>> interval
+    Interval(1, 2, closed='left')
+    >>> interval.left
+    1
     """
 
     cdef readonly object right
     """
     Right bound for the interval.
+
+    Examples
+    --------
+    >>> interval = pd.Interval(left=1, right=2, closed='left')
+    >>> interval
+    Interval(1, 2, closed='left')
+    >>> interval.right
+    2
     """
 
     cdef readonly str closed
@@ -381,6 +405,14 @@ cdef class Interval(IntervalMixin):
     String describing the inclusive side the intervals.
 
     Either ``left``, ``right``, ``both`` or ``neither``.
+
+    Examples
+    --------
+    >>> interval = pd.Interval(left=1, right=2, closed='left')
+    >>> interval
+    Interval(1, 2, closed='left')
+    >>> interval.closed
+    'left'
     """
 
     def __init__(self, left, right, str closed="right"):
@@ -460,8 +492,9 @@ cdef class Interval(IntervalMixin):
     def __repr__(self) -> str:
 
         left, right = self._repr_base()
+        disp = str if isinstance(left, np.generic) else repr
         name = type(self).__name__
-        repr_str = f"{name}({repr(left)}, {repr(right)}, closed={repr(self.closed)})"
+        repr_str = f"{name}({disp(left)}, {disp(right)}, closed={repr(self.closed)})"
         return repr_str
 
     def __str__(self) -> str:
@@ -612,7 +645,7 @@ def intervals_to_interval_bounds(ndarray intervals, bint validate_closed=True):
     tuple of
         left : ndarray
         right : ndarray
-        closed: str
+        closed: IntervalClosedType
     """
     cdef:
         object closed = None, interval

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat import is_numpy_dev
+from pandas.compat.numpy import np_version_gte1p25
 
 from pandas.core.dtypes.common import (
     is_complex_dtype,
@@ -9,6 +9,7 @@ from pandas.core.dtypes.common import (
 )
 
 from pandas import (
+    NA,
     Period,
     Series,
     Timedelta,
@@ -157,6 +158,7 @@ class TestSeriesDescribe:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Casting complex values to real discards")
     def test_numeric_result_dtype(self, any_numeric_dtype):
         # GH#48340 - describe should always return float on non-complex numeric input
         if is_extension_array_dtype(any_numeric_dtype):
@@ -165,7 +167,7 @@ class TestSeriesDescribe:
             dtype = "complex128" if is_complex_dtype(any_numeric_dtype) else None
 
         ser = Series([0, 1], dtype=any_numeric_dtype)
-        if dtype == "complex128" and is_numpy_dev:
+        if dtype == "complex128" and np_version_gte1p25:
             with pytest.raises(
                 TypeError, match=r"^a must be an array of real numbers$"
             ):
@@ -185,5 +187,17 @@ class TestSeriesDescribe:
             ],
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
             dtype=dtype,
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_describe_one_element_ea(self):
+        # GH#52515
+        ser = Series([0.0], dtype="Float64")
+        with tm.assert_produces_warning(None):
+            result = ser.describe()
+        expected = Series(
+            [1, 0, NA, 0, 0, 0, 0, 0],
+            dtype="Float64",
+            index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
         )
         tm.assert_series_equal(result, expected)

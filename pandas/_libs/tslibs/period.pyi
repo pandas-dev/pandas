@@ -3,6 +3,7 @@ from typing import Literal
 
 import numpy as np
 
+from pandas._libs.tslibs.dtypes import PeriodDtypeBase
 from pandas._libs.tslibs.nattype import NaTType
 from pandas._libs.tslibs.offsets import BaseOffset
 from pandas._libs.tslibs.timestamps import Timestamp
@@ -42,6 +43,12 @@ def extract_ordinals(
 def extract_freq(
     values: npt.NDArray[np.object_],
 ) -> BaseOffset: ...
+def period_array_strftime(
+    values: npt.NDArray[np.int64],
+    dtype_code: int,
+    na_rep,
+    date_format: str | None,
+) -> npt.NDArray[np.object_]: ...
 
 # exposed for tests
 def period_asfreq(ordinal: int, freq1: int, freq2: int, end: bool) -> int: ...
@@ -61,6 +68,7 @@ class PeriodMixin:
 class Period(PeriodMixin):
     ordinal: int  # int64_t
     freq: BaseOffset
+    _dtype: PeriodDtypeBase
 
     # error: "__new__" must return a class instance (got "Union[Period, NaTType]")
     def __new__(  # type: ignore[misc]

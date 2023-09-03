@@ -346,7 +346,7 @@ Other API changes
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- :ref:`Cythonized GroupBy aggregations <groupby.aggregate.cython>` no longer
+- :ref:`Cythonized GroupBy aggregations <groupby.aggregate.builtin>` no longer
   presort the data, thus achieving a significant speedup (:issue:`93`).  GroupBy
   aggregations with Python functions significantly sped up by clever
   manipulation of the ndarray data type in Cython (:issue:`496`).

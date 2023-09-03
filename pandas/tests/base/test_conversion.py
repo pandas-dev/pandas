@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -19,7 +15,7 @@ import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
     IntervalArray,
-    PandasArray,
+    NumpyExtensionArray,
     PeriodArray,
     SparseArray,
     TimedeltaArray,
@@ -106,10 +102,10 @@ class TestToIterable:
         # test if items yields the correct boxed scalars
         # this only applies to series
         s = Series([1], dtype=dtype)
-        _, result = list(s.items())[0]
+        _, result = next(iter(s.items()))
         assert isinstance(result, rdtype)
 
-        _, result = list(s.items())[0]
+        _, result = next(iter(s.items()))
         assert isinstance(result, rdtype)
 
     @pytest.mark.parametrize(
@@ -226,26 +222,26 @@ def test_values_consistent(arr, expected_type, dtype):
 def test_numpy_array(arr):
     ser = Series(arr)
     result = ser.array
-    expected = PandasArray(arr)
+    expected = NumpyExtensionArray(arr)
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_numpy_array_all_dtypes(any_numpy_dtype):
     ser = Series(dtype=any_numpy_dtype)
     result = ser.array
-    if is_datetime64_dtype(any_numpy_dtype):
+    if np.dtype(any_numpy_dtype).kind == "M":
         assert isinstance(result, DatetimeArray)
-    elif is_timedelta64_dtype(any_numpy_dtype):
+    elif np.dtype(any_numpy_dtype).kind == "m":
         assert isinstance(result, TimedeltaArray)
     else:
-        assert isinstance(result, PandasArray)
+        assert isinstance(result, NumpyExtensionArray)
 
 
 @pytest.mark.parametrize(
     "arr, attr",
     [
         (pd.Categorical(["a", "b"]), "_codes"),
-        (pd.core.arrays.period_array(["2000", "2001"], freq="D"), "_ndarray"),
+        (PeriodArray._from_sequence(["2000", "2001"], dtype="period[D]"), "_ndarray"),
         (pd.array([0, np.nan], dtype="Int64"), "_data"),
         (IntervalArray.from_breaks([0, 1]), "_left"),
         (SparseArray([0, 1]), "_sparse_values"),

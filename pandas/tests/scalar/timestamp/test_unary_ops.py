@@ -29,7 +29,7 @@ import pandas._testing as tm
 
 class TestTimestampUnaryOps:
     # --------------------------------------------------------------
-    def test_round_divison_by_zero_raises(self):
+    def test_round_division_by_zero_raises(self):
         ts = Timestamp("2016-01-01")
 
         msg = "Division by zero in rounding"
@@ -46,7 +46,7 @@ class TestTimestampUnaryOps:
             ("20130104 12:00:00", "D", "20130105"),
             ("2000-01-05 05:09:15.13", "D", "2000-01-05 00:00:00"),
             ("2000-01-05 05:09:15.13", "H", "2000-01-05 05:00:00"),
-            ("2000-01-05 05:09:15.13", "S", "2000-01-05 05:09:15"),
+            ("2000-01-05 05:09:15.13", "s", "2000-01-05 05:09:15"),
         ],
     )
     def test_round_frequencies(self, timestamp, freq, expected):
@@ -137,10 +137,10 @@ class TestTimestampUnaryOps:
         "test_input, freq, expected",
         [
             ("2018-01-01 00:02:06", "2s", "2018-01-01 00:02:06"),
-            ("2018-01-01 00:02:00", "2T", "2018-01-01 00:02:00"),
-            ("2018-01-01 00:04:00", "4T", "2018-01-01 00:04:00"),
-            ("2018-01-01 00:15:00", "15T", "2018-01-01 00:15:00"),
-            ("2018-01-01 00:20:00", "20T", "2018-01-01 00:20:00"),
+            ("2018-01-01 00:02:00", "2min", "2018-01-01 00:02:00"),
+            ("2018-01-01 00:04:00", "4min", "2018-01-01 00:04:00"),
+            ("2018-01-01 00:15:00", "15min", "2018-01-01 00:15:00"),
+            ("2018-01-01 00:20:00", "20min", "2018-01-01 00:20:00"),
             ("2018-01-01 03:00:00", "3H", "2018-01-01 03:00:00"),
         ],
     )
@@ -345,17 +345,15 @@ class TestTimestampUnaryOps:
                         with pytest.raises(err_cls, match=msg):
                             method(ts, unit)
                         return
-                else:
-                    if mod >= diff:
-                        if ub > cls.max._value:
-                            with pytest.raises(err_cls, match=msg):
-                                method(ts, unit)
-                            return
-                    else:
-                        if lb < cls.min._value:
-                            with pytest.raises(err_cls, match=msg):
-                                method(ts, unit)
-                            return
+                elif mod >= diff:
+                    if ub > cls.max._value:
+                        with pytest.raises(err_cls, match=msg):
+                            method(ts, unit)
+                        return
+                elif lb < cls.min._value:
+                    with pytest.raises(err_cls, match=msg):
+                        method(ts, unit)
+                    return
 
             res = method(ts, unit)
 

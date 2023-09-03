@@ -24,24 +24,23 @@ from datetime import (
     date,
     datetime,
     time,
+    timedelta,
 )
 from io import StringIO
 from pathlib import Path
 import sqlite3
+import uuid
 
 import numpy as np
 import pytest
 
+from pandas._libs import lib
 import pandas.util._test_decorators as td
-
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-)
 
 import pandas as pd
 from pandas import (
     DataFrame,
+    DatetimeTZDtype,
     Index,
     MultiIndex,
     Series,
@@ -57,6 +56,7 @@ from pandas.core.arrays import (
     ArrowStringArray,
     StringArray,
 )
+from pandas.util.version import Version
 
 from pandas.io import sql
 from pandas.io.sql import (
@@ -76,31 +76,34 @@ try:
 except ImportError:
     SQLALCHEMY_INSTALLED = False
 
-SQL_STRINGS = {
-    "read_parameters": {
-        "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
-        "mysql": "SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s",
-        "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s',
-    },
-    "read_named_parameters": {
-        "sqlite": """
+
+@pytest.fixture
+def sql_strings():
+    return {
+        "read_parameters": {
+            "sqlite": "SELECT * FROM iris WHERE Name=? AND SepalLength=?",
+            "mysql": "SELECT * FROM iris WHERE `Name`=%s AND `SepalLength`=%s",
+            "postgresql": 'SELECT * FROM iris WHERE "Name"=%s AND "SepalLength"=%s',
+        },
+        "read_named_parameters": {
+            "sqlite": """
                 SELECT * FROM iris WHERE Name=:name AND SepalLength=:length
                 """,
-        "mysql": """
+            "mysql": """
                 SELECT * FROM iris WHERE
                 `Name`=%(name)s AND `SepalLength`=%(length)s
                 """,
-        "postgresql": """
+            "postgresql": """
                 SELECT * FROM iris WHERE
                 "Name"=%(name)s AND "SepalLength"=%(length)s
                 """,
-    },
-    "read_no_parameters_with_percent": {
-        "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
-        "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
-        "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
-    },
-}
+        },
+        "read_no_parameters_with_percent": {
+            "sqlite": "SELECT * FROM iris WHERE Name LIKE '%'",
+            "mysql": "SELECT * FROM iris WHERE `Name` LIKE '%'",
+            "postgresql": "SELECT * FROM iris WHERE \"Name\" LIKE '%'",
+        },
+    }
 
 
 def iris_table_metadata(dialect: str):
@@ -137,7 +140,7 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
             "Name" TEXT
         )"""
     cur.execute(stmt)
-    with iris_file.open(newline=None) as csvfile:
+    with iris_file.open(newline=None, encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile)
         next(reader)
         stmt = "INSERT INTO iris VALUES(?, ?, ?, ?, ?)"
@@ -150,7 +153,7 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
 
     iris = iris_table_metadata(dialect)
 
-    with iris_file.open(newline=None) as csvfile:
+    with iris_file.open(newline=None, encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile)
         header = next(reader)
         params = [dict(zip(header, row)) for row in reader]
@@ -263,7 +266,7 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
 
 
 def check_iris_frame(frame: DataFrame):
-    pytype = frame.dtypes[0].type
+    pytype = frame.dtypes.iloc[0].type
     row = frame.iloc[0]
     assert issubclass(pytype, np.floating)
     tm.equalContents(row.values, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
@@ -545,7 +548,44 @@ all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
 def test_dataframe_to_sql(conn, test_frame1, request):
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
-    test_frame1.to_sql("test", conn, if_exists="append", index=False)
+    test_frame1.to_sql(name="test", con=conn, if_exists="append", index=False)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
+def test_dataframe_to_sql_arrow_dtypes(conn, request):
+    # GH 52046
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "int": pd.array([1], dtype="int8[pyarrow]"),
+            "datetime": pd.array(
+                [datetime(2023, 1, 1)], dtype="timestamp[ns][pyarrow]"
+            ),
+            "date": pd.array([date(2023, 1, 1)], dtype="date32[day][pyarrow]"),
+            "timedelta": pd.array([timedelta(1)], dtype="duration[ns][pyarrow]"),
+            "string": pd.array(["a"], dtype="string[pyarrow]"),
+        }
+    )
+    conn = request.getfixturevalue(conn)
+    with tm.assert_produces_warning(UserWarning, match="the 'timedelta'"):
+        df.to_sql(name="test_arrow", con=conn, if_exists="replace", index=False)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
+def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
+    # GH 52046
+    pytest.importorskip("pyarrow")
+    df = DataFrame(
+        {
+            "datetime": pd.array(
+                [datetime(2023, 1, 1), nulls_fixture], dtype="timestamp[ns][pyarrow]"
+            ),
+        }
+    )
+    conn = request.getfixturevalue(conn)
+    df.to_sql(name="test_arrow", con=conn, if_exists="replace", index=False)
 
 
 @pytest.mark.db
@@ -634,12 +674,12 @@ def test_read_iris_query_expression_with_parameter(conn, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
-def test_read_iris_query_string_with_parameter(conn, request):
-    for db, query in SQL_STRINGS["read_parameters"].items():
+def test_read_iris_query_string_with_parameter(conn, request, sql_strings):
+    for db, query in sql_strings["read_parameters"].items():
         if db in conn:
             break
     else:
-        raise KeyError(f"No part of {conn} found in SQL_STRINGS['read_parameters']")
+        raise KeyError(f"No part of {conn} found in sql_strings['read_parameters']")
     conn = request.getfixturevalue(conn)
     iris_frame = read_sql_query(query, conn, params=("Iris-setosa", 5.1))
     check_iris_frame(iris_frame)
@@ -716,7 +756,7 @@ def test_read_procedure(conn, request):
     from sqlalchemy.engine import Engine
 
     df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3]})
-    df.to_sql("test_frame", conn, index=False)
+    df.to_sql(name="test_frame", con=conn, index=False)
 
     proc = """DROP PROCEDURE IF EXISTS get_testdb;
 
@@ -771,14 +811,189 @@ def test_copy_from_callable_insertion_method(conn, expected_count, request):
     conn = request.getfixturevalue(conn)
     expected = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
     result_count = expected.to_sql(
-        "test_frame", conn, index=False, method=psql_insert_copy
+        name="test_frame", con=conn, index=False, method=psql_insert_copy
     )
     # GH 46891
-    if not isinstance(expected_count, int):
+    if expected_count is None:
         assert result_count is None
     else:
         assert result_count == expected_count
     result = sql.read_sql_table("test_frame", conn)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", postgresql_connectable)
+def test_insertion_method_on_conflict_do_nothing(conn, request):
+    # GH 15988: Example in to_sql docstring
+    conn = request.getfixturevalue(conn)
+
+    from sqlalchemy.dialects.postgresql import insert
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.sql import text
+
+    def insert_on_conflict(table, conn, keys, data_iter):
+        data = [dict(zip(keys, row)) for row in data_iter]
+        stmt = (
+            insert(table.table)
+            .values(data)
+            .on_conflict_do_nothing(index_elements=["a"])
+        )
+        result = conn.execute(stmt)
+        return result.rowcount
+
+    create_sql = text(
+        """
+    CREATE TABLE test_insert_conflict (
+        a  integer PRIMARY KEY,
+        b  numeric,
+        c  text
+    );
+    """
+    )
+    if isinstance(conn, Engine):
+        with conn.connect() as con:
+            with con.begin():
+                con.execute(create_sql)
+    else:
+        with conn.begin():
+            conn.execute(create_sql)
+
+    expected = DataFrame([[1, 2.1, "a"]], columns=list("abc"))
+    expected.to_sql(
+        name="test_insert_conflict", con=conn, if_exists="append", index=False
+    )
+
+    df_insert = DataFrame([[1, 3.2, "b"]], columns=list("abc"))
+    inserted = df_insert.to_sql(
+        name="test_insert_conflict",
+        con=conn,
+        index=False,
+        if_exists="append",
+        method=insert_on_conflict,
+    )
+    result = sql.read_sql_table("test_insert_conflict", conn)
+    tm.assert_frame_equal(result, expected)
+    assert inserted == 0
+
+    # Cleanup
+    with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
+        pandasSQL.drop_table("test_insert_conflict")
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", mysql_connectable)
+def test_insertion_method_on_conflict_update(conn, request):
+    # GH 14553: Example in to_sql docstring
+    conn = request.getfixturevalue(conn)
+
+    from sqlalchemy.dialects.mysql import insert
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.sql import text
+
+    def insert_on_conflict(table, conn, keys, data_iter):
+        data = [dict(zip(keys, row)) for row in data_iter]
+        stmt = insert(table.table).values(data)
+        stmt = stmt.on_duplicate_key_update(b=stmt.inserted.b, c=stmt.inserted.c)
+        result = conn.execute(stmt)
+        return result.rowcount
+
+    create_sql = text(
+        """
+    CREATE TABLE test_insert_conflict (
+        a INT PRIMARY KEY,
+        b FLOAT,
+        c VARCHAR(10)
+    );
+    """
+    )
+    if isinstance(conn, Engine):
+        with conn.connect() as con:
+            with con.begin():
+                con.execute(create_sql)
+    else:
+        with conn.begin():
+            conn.execute(create_sql)
+
+    df = DataFrame([[1, 2.1, "a"]], columns=list("abc"))
+    df.to_sql(name="test_insert_conflict", con=conn, if_exists="append", index=False)
+
+    expected = DataFrame([[1, 3.2, "b"]], columns=list("abc"))
+    inserted = expected.to_sql(
+        name="test_insert_conflict",
+        con=conn,
+        index=False,
+        if_exists="append",
+        method=insert_on_conflict,
+    )
+    result = sql.read_sql_table("test_insert_conflict", conn)
+    tm.assert_frame_equal(result, expected)
+    assert inserted == 2
+
+    # Cleanup
+    with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
+        pandasSQL.drop_table("test_insert_conflict")
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", postgresql_connectable)
+def test_read_view_postgres(conn, request):
+    # GH 52969
+    conn = request.getfixturevalue(conn)
+
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.sql import text
+
+    table_name = f"group_{uuid.uuid4().hex}"
+    view_name = f"group_view_{uuid.uuid4().hex}"
+
+    sql_stmt = text(
+        f"""
+    CREATE TABLE {table_name} (
+        group_id INTEGER,
+        name TEXT
+    );
+    INSERT INTO {table_name} VALUES
+        (1, 'name');
+    CREATE VIEW {view_name}
+    AS
+    SELECT * FROM {table_name};
+    """
+    )
+    if isinstance(conn, Engine):
+        with conn.connect() as con:
+            with con.begin():
+                con.execute(sql_stmt)
+    else:
+        with conn.begin():
+            conn.execute(sql_stmt)
+    result = read_sql_table(view_name, conn)
+    expected = DataFrame({"group_id": [1], "name": "name"})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_view_sqlite(sqlite_buildin):
+    # GH 52969
+    create_table = """
+CREATE TABLE groups (
+   group_id INTEGER,
+   name TEXT
+);
+"""
+    insert_into = """
+INSERT INTO groups VALUES
+    (1, 'name');
+"""
+    create_view = """
+CREATE VIEW group_view
+AS
+SELECT * FROM groups;
+"""
+    sqlite_buildin.execute(create_table)
+    sqlite_buildin.execute(insert_into)
+    sqlite_buildin.execute(create_view)
+    result = pd.read_sql("SELECT * FROM group_view", sqlite_buildin)
+    expected = DataFrame({"group_id": [1], "name": "name"})
     tm.assert_frame_equal(result, expected)
 
 
@@ -898,20 +1113,20 @@ class PandasSQLTest:
         else:
             create_and_load_types(self.conn, types_data, self.flavor)
 
-    def _read_sql_iris_parameter(self):
-        query = SQL_STRINGS["read_parameters"][self.flavor]
+    def _read_sql_iris_parameter(self, sql_strings):
+        query = sql_strings["read_parameters"][self.flavor]
         params = ("Iris-setosa", 5.1)
         iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
 
-    def _read_sql_iris_named_parameter(self):
-        query = SQL_STRINGS["read_named_parameters"][self.flavor]
+    def _read_sql_iris_named_parameter(self, sql_strings):
+        query = sql_strings["read_named_parameters"][self.flavor]
         params = {"name": "Iris-setosa", "length": 5.1}
         iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
 
-    def _read_sql_iris_no_parameter_with_percent(self):
-        query = SQL_STRINGS["read_no_parameters_with_percent"][self.flavor]
+    def _read_sql_iris_no_parameter_with_percent(self, sql_strings):
+        query = sql_strings["read_no_parameters_with_percent"][self.flavor]
         iris_frame = self.pandasSQL.read_query(query, params=None)
         check_iris_frame(iris_frame)
 
@@ -1226,7 +1441,7 @@ class _TestSQLApi(PandasSQLTest):
         # see #6921
         df = to_timedelta(Series(["00:00:01", "00:00:03"], name="foo")).to_frame()
         with tm.assert_produces_warning(UserWarning):
-            result_count = df.to_sql("test_timedelta", self.conn)
+            result_count = df.to_sql(name="test_timedelta", con=self.conn)
         assert result_count == 2
         result = sql.read_sql_query("SELECT * FROM test_timedelta", self.conn)
         tm.assert_series_equal(result["foo"], df["foo"].view("int64"))
@@ -1235,7 +1450,7 @@ class _TestSQLApi(PandasSQLTest):
         df = DataFrame({"a": [1 + 1j, 2j]})
         msg = "Complex datatypes not supported"
         with pytest.raises(ValueError, match=msg):
-            assert df.to_sql("test_complex", self.conn) is None
+            assert df.to_sql("test_complex", con=self.conn) is None
 
     @pytest.mark.parametrize(
         "index_name,index_label,expected",
@@ -1326,7 +1541,7 @@ class _TestSQLApi(PandasSQLTest):
             index=["A", "B"],
         )
 
-        df.to_sql("test_multiindex_roundtrip", self.conn)
+        df.to_sql(name="test_multiindex_roundtrip", con=self.conn)
         result = sql.read_sql_query(
             "SELECT * FROM test_multiindex_roundtrip", self.conn, index_col=["A", "B"]
         )
@@ -1344,7 +1559,7 @@ class _TestSQLApi(PandasSQLTest):
     def test_dtype_argument(self, dtype):
         # GH10285 Add dtype argument to read_sql_query
         df = DataFrame([[1.2, 3.4], [5.6, 7.8]], columns=["A", "B"])
-        assert df.to_sql("test_dtype_argument", self.conn) == 2
+        assert df.to_sql(name="test_dtype_argument", con=self.conn) == 2
 
         expected = df.astype(dtype)
         result = sql.read_sql_query(
@@ -1393,8 +1608,10 @@ class _TestSQLApi(PandasSQLTest):
         assert constraint_sentence in create_sql
 
     def test_chunksize_read(self):
-        df = DataFrame(np.random.randn(22, 5), columns=list("abcde"))
-        df.to_sql("test_chunksize", self.conn, index=False)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((22, 5)), columns=list("abcde")
+        )
+        df.to_sql(name="test_chunksize", con=self.conn, index=False)
 
         # reading the query in one time
         res1 = sql.read_sql_query("select * from test_chunksize", self.conn)
@@ -1438,7 +1655,7 @@ class _TestSQLApi(PandasSQLTest):
         df2 = df.copy()
         df2["person_name"] = df2["person_name"].astype("category")
 
-        df2.to_sql("test_categorical", self.conn, index=False)
+        df2.to_sql(name="test_categorical", con=self.conn, index=False)
         res = sql.read_sql_query("SELECT * FROM test_categorical", self.conn)
 
         tm.assert_frame_equal(res, df)
@@ -1446,16 +1663,28 @@ class _TestSQLApi(PandasSQLTest):
     def test_unicode_column_name(self):
         # GH 11431
         df = DataFrame([[1, 2], [3, 4]], columns=["\xe9", "b"])
-        df.to_sql("test_unicode", self.conn, index=False)
+        df.to_sql(name="test_unicode", con=self.conn, index=False)
 
     def test_escaped_table_name(self):
         # GH 13206
         df = DataFrame({"A": [0, 1, 2], "B": [0.2, np.nan, 5.6]})
-        df.to_sql("d1187b08-4943-4c8d-a7f6", self.conn, index=False)
+        df.to_sql(name="d1187b08-4943-4c8d-a7f6", con=self.conn, index=False)
 
         res = sql.read_sql_query("SELECT * FROM `d1187b08-4943-4c8d-a7f6`", self.conn)
 
         tm.assert_frame_equal(res, df)
+
+    def test_read_sql_duplicate_columns(self):
+        # GH#53117
+        df = DataFrame({"a": [1, 2, 3], "b": [0.1, 0.2, 0.3], "c": 1})
+        df.to_sql(name="test_table", con=self.conn, index=False)
+
+        result = pd.read_sql("SELECT a, b, a +1 as a, c FROM test_table;", self.conn)
+        expected = DataFrame(
+            [[1, 0.1, 2, 1], [2, 0.2, 3, 1], [3, 0.3, 4, 1]],
+            columns=["a", "b", "a", "c"],
+        )
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="SQLAlchemy not installed")
@@ -1544,7 +1773,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
 
         # Test that the warning is certainly NOT triggered in a normal case.
         with tm.assert_produces_warning(None):
-            test_frame1.to_sql("CaseSensitive", self.conn)
+            test_frame1.to_sql(name="CaseSensitive", con=self.conn)
 
     def _get_index_columns(self, tbl_name):
         from sqlalchemy.engine import reflection
@@ -1613,7 +1842,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
         with tm.ensure_clean() as name:
             db_uri = "sqlite:///" + name
             table = "iris"
-            test_frame1.to_sql(table, db_uri, if_exists="replace", index=False)
+            test_frame1.to_sql(name=table, con=db_uri, if_exists="replace", index=False)
             test_frame2 = sql.read_sql(table, db_uri)
             test_frame3 = sql.read_sql_table(table, db_uri)
             query = "SELECT * FROM iris"
@@ -1655,7 +1884,7 @@ class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
     def test_column_with_percentage(self):
         # GH 37157
         df = DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
-        df.to_sql("test_column_percentage", self.conn, index=False)
+        df.to_sql(name="test_column_percentage", con=self.conn, index=False)
 
         res = sql.read_sql_table("test_column_percentage", self.conn)
 
@@ -1785,11 +2014,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def setup_engine(cls):
         raise NotImplementedError()
 
-    def test_read_sql_parameter(self):
-        self._read_sql_iris_parameter()
+    def test_read_sql_parameter(self, sql_strings):
+        self._read_sql_iris_parameter(sql_strings)
 
-    def test_read_sql_named_parameter(self):
-        self._read_sql_iris_named_parameter()
+    def test_read_sql_named_parameter(self, sql_strings):
+        self._read_sql_iris_named_parameter(sql_strings)
 
     def test_to_sql_empty(self, test_frame1):
         self._to_sql_empty(test_frame1)
@@ -1867,7 +2096,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_bigint(self):
         # int64 should be converted to BigInteger, GH7433
         df = DataFrame(data={"i64": [2**62]})
-        assert df.to_sql("test_bigint", self.conn, index=False) == 1
+        assert df.to_sql(name="test_bigint", con=self.conn, index=False) == 1
         result = sql.read_sql_table("test_bigint", self.conn)
 
         tm.assert_frame_equal(df, result)
@@ -1887,7 +2116,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         def check(col):
             # check that a column is either datetime64[ns]
             # or datetime64[ns, UTC]
-            if is_datetime64_dtype(col.dtype):
+            if lib.is_np_dtype(col.dtype, "M"):
                 # "2000-01-01 00:00:00-08:00" should convert to
                 # "2000-01-01 08:00:00"
                 assert col[0] == Timestamp("2000-01-01 08:00:00")
@@ -1896,7 +2125,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 # "2000-06-01 07:00:00"
                 assert col[1] == Timestamp("2000-06-01 07:00:00")
 
-            elif is_datetime64tz_dtype(col.dtype):
+            elif isinstance(col.dtype, DatetimeTZDtype):
                 assert str(col.dt.tz) == "UTC"
 
                 # "2000-01-01 00:00:00-08:00" should convert to
@@ -1927,7 +2156,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # even with the same versions of psycopg2 & sqlalchemy, possibly a
         # Postgresql server version difference
         col = df.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
 
         df = read_sql_query(
             "select * from types", self.conn, parse_dates=["DateColWithTz"]
@@ -1937,7 +2166,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 pytest.mark.xfail(reason="no column with datetime with time zone")
             )
         col = df.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
         assert str(col.dt.tz) == "UTC"
         check(df.DateColWithTz)
 
@@ -1946,11 +2175,11 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             ignore_index=True,
         )
         col = df.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
         assert str(col.dt.tz) == "UTC"
         expected = sql.read_sql_table("types", self.conn)
         col = expected.DateColWithTz
-        assert is_datetime64tz_dtype(col.dtype)
+        assert isinstance(col.dtype, DatetimeTZDtype)
         tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz)
 
         # xref #7139
@@ -1966,7 +2195,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         expected = DataFrame(
             {"A": date_range("2013-01-01 09:00:00", periods=3, tz="US/Pacific")}
         )
-        assert expected.to_sql("test_datetime_tz", self.conn, index=False) == 3
+        assert expected.to_sql(name="test_datetime_tz", con=self.conn, index=False) == 3
 
         if self.flavor == "postgresql":
             # SQLAlchemy "timezones" (i.e. offsets) are coerced to UTC
@@ -1988,7 +2217,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_out_of_bounds_datetime(self):
         # GH 26761
         data = DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
-        assert data.to_sql("test_datetime_obb", self.conn, index=False) == 1
+        assert data.to_sql(name="test_datetime_obb", con=self.conn, index=False) == 1
         result = sql.read_sql_table("test_datetime_obb", self.conn)
         expected = DataFrame([pd.NaT], columns=["date"])
         tm.assert_frame_equal(result, expected)
@@ -1998,7 +2227,10 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         # Ensure that a naive DatetimeIndex isn't converted to UTC
         dates = date_range("2018-01-01", periods=5, freq="6H")._with_freq(None)
         expected = DataFrame({"nums": range(5)}, index=dates)
-        assert expected.to_sql("foo_table", self.conn, index_label="info_date") == 5
+        assert (
+            expected.to_sql(name="foo_table", con=self.conn, index_label="info_date")
+            == 5
+        )
         result = sql.read_sql_table("foo_table", self.conn, index_col="info_date")
         # result index with gain a name from a set_index operation; expected
         tm.assert_frame_equal(result, expected, check_names=False)
@@ -2039,7 +2271,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = DataFrame(
             {"A": date_range("2013-01-01 09:00:00", periods=3), "B": np.arange(3.0)}
         )
-        assert df.to_sql("test_datetime", self.conn) == 3
+        assert df.to_sql(name="test_datetime", con=self.conn) == 3
 
         # with read_table -> type information from schema used
         result = sql.read_sql_table("test_datetime", self.conn)
@@ -2061,7 +2293,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             {"A": date_range("2013-01-01 09:00:00", periods=3), "B": np.arange(3.0)}
         )
         df.loc[1, "A"] = np.nan
-        assert df.to_sql("test_datetime", self.conn, index=False) == 3
+        assert df.to_sql(name="test_datetime", con=self.conn, index=False) == 3
 
         # with read_table -> type information from schema used
         result = sql.read_sql_table("test_datetime", self.conn)
@@ -2079,7 +2311,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_datetime_date(self):
         # test support for datetime.date
         df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
-        assert df.to_sql("test_date", self.conn, index=False) == 2
+        assert df.to_sql(name="test_date", con=self.conn, index=False) == 2
         res = read_sql_table("test_date", self.conn)
         result = res["a"]
         expected = to_datetime(df["a"])
@@ -2089,7 +2321,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_datetime_time(self, sqlite_buildin):
         # test support for datetime.time
         df = DataFrame([time(9, 0, 0), time(9, 1, 30)], columns=["a"])
-        assert df.to_sql("test_time", self.conn, index=False) == 2
+        assert df.to_sql(name="test_time", con=self.conn, index=False) == 2
         res = read_sql_table("test_time", self.conn)
         tm.assert_frame_equal(res, df)
 
@@ -2098,13 +2330,13 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         sqlite_conn = sqlite_buildin
         assert sql.to_sql(df, "test_time2", sqlite_conn, index=False) == 2
         res = sql.read_sql_query("SELECT * FROM test_time2", sqlite_conn)
-        ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+        ref = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
         tm.assert_frame_equal(ref, res)  # check if adapter is in place
         # then test if sqlalchemy is unaffected by the sqlite adapter
         assert sql.to_sql(df, "test_time3", self.conn, index=False) == 2
         if self.flavor == "sqlite":
             res = sql.read_sql_query("SELECT * FROM test_time3", self.conn)
-            ref = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+            ref = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
             tm.assert_frame_equal(ref, res)
         res = sql.read_sql_table("test_time3", self.conn)
         tm.assert_frame_equal(df, res)
@@ -2116,7 +2348,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = DataFrame({"s1": s1, "s2": s2})
 
         # write and read again
-        assert df.to_sql("test_read_write", self.conn, index=False) == 1
+        assert df.to_sql(name="test_read_write", con=self.conn, index=False) == 1
         df2 = sql.read_sql_table("test_read_write", self.conn)
 
         tm.assert_frame_equal(df, df2, check_dtype=False, check_exact=True)
@@ -2124,7 +2356,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_nan_numeric(self):
         # NaNs in numeric float column
         df = DataFrame({"A": [0, 1, 2], "B": [0.2, np.nan, 5.6]})
-        assert df.to_sql("test_nan", self.conn, index=False) == 3
+        assert df.to_sql(name="test_nan", con=self.conn, index=False) == 3
 
         # with read_table
         result = sql.read_sql_table("test_nan", self.conn)
@@ -2137,7 +2369,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_nan_fullcolumn(self):
         # full NaN column (numeric float column)
         df = DataFrame({"A": [0, 1, 2], "B": [np.nan, np.nan, np.nan]})
-        assert df.to_sql("test_nan", self.conn, index=False) == 3
+        assert df.to_sql(name="test_nan", con=self.conn, index=False) == 3
 
         # with read_table
         result = sql.read_sql_table("test_nan", self.conn)
@@ -2152,7 +2384,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
     def test_nan_string(self):
         # NaNs in string column
         df = DataFrame({"A": [0, 1, 2], "B": ["a", "b", np.nan]})
-        assert df.to_sql("test_nan", self.conn, index=False) == 3
+        assert df.to_sql(name="test_nan", con=self.conn, index=False) == 3
 
         # NaNs are coming back as None
         df.loc[2, "B"] = None
@@ -2214,25 +2446,27 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         cols = ["A", "B"]
         data = [(0.8, True), (0.9, None)]
         df = DataFrame(data, columns=cols)
-        assert df.to_sql("dtype_test", self.conn) == 2
-        assert df.to_sql("dtype_test2", self.conn, dtype={"B": TEXT}) == 2
+        assert df.to_sql(name="dtype_test", con=self.conn) == 2
+        assert df.to_sql(name="dtype_test2", con=self.conn, dtype={"B": TEXT}) == 2
         meta = MetaData()
         meta.reflect(bind=self.conn)
         sqltype = meta.tables["dtype_test2"].columns["B"].type
         assert isinstance(sqltype, TEXT)
         msg = "The type of B is not a SQLAlchemy type"
         with pytest.raises(ValueError, match=msg):
-            df.to_sql("error", self.conn, dtype={"B": str})
+            df.to_sql(name="error", con=self.conn, dtype={"B": str})
 
         # GH9083
-        assert df.to_sql("dtype_test3", self.conn, dtype={"B": String(10)}) == 2
+        assert (
+            df.to_sql(name="dtype_test3", con=self.conn, dtype={"B": String(10)}) == 2
+        )
         meta.reflect(bind=self.conn)
         sqltype = meta.tables["dtype_test3"].columns["B"].type
         assert isinstance(sqltype, String)
         assert sqltype.length == 10
 
         # single dtype
-        assert df.to_sql("single_dtype_test", self.conn, dtype=TEXT) == 2
+        assert df.to_sql(name="single_dtype_test", con=self.conn, dtype=TEXT) == 2
         meta.reflect(bind=self.conn)
         sqltypea = meta.tables["single_dtype_test"].columns["A"].type
         sqltypeb = meta.tables["single_dtype_test"].columns["B"].type
@@ -2257,7 +2491,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         df = DataFrame(cols)
 
         tbl = "notna_dtype_test"
-        assert df.to_sql(tbl, self.conn) == 2
+        assert df.to_sql(name=tbl, con=self.conn) == 2
         _ = sql.read_sql_table(tbl, self.conn)
         meta = MetaData()
         meta.reflect(bind=self.conn)
@@ -2290,8 +2524,8 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         assert (
             df.to_sql(
-                "test_dtypes",
-                self.conn,
+                name="test_dtypes",
+                con=self.conn,
                 index=False,
                 if_exists="replace",
                 dtype={"f64_as_f32": Float(precision=23)},
@@ -2340,7 +2574,9 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
                 test_connectable(connectable)
 
         assert (
-            DataFrame({"test_foo_data": [0, 1, 2]}).to_sql("test_foo_data", self.conn)
+            DataFrame({"test_foo_data": [0, 1, 2]}).to_sql(
+                name="test_foo_data", con=self.conn
+            )
             == 3
         )
         main(self.conn)
@@ -2359,17 +2595,20 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             # The input {"foo": [-np.inf], "infe0": ["bar"]} does not raise any error
             # for pymysql version >= 0.10
             # TODO(GH#36465): remove this version check after GH 36465 is fixed
-            import pymysql
+            pymysql = pytest.importorskip("pymysql")
 
-            if pymysql.VERSION[0:3] >= (0, 10, 0) and "infe0" in df.columns:
+            if (
+                Version(pymysql.__version__) < Version("1.0.3")
+                and "infe0" in df.columns
+            ):
                 mark = pytest.mark.xfail(reason="GH 36465")
                 request.node.add_marker(mark)
 
             msg = "inf cannot be used with MySQL"
             with pytest.raises(ValueError, match=msg):
-                df.to_sql("foobar", self.conn, index=False)
+                df.to_sql(name="foobar", con=self.conn, index=False)
         else:
-            assert df.to_sql("foobar", self.conn, index=False) == 1
+            assert df.to_sql(name="foobar", con=self.conn, index=False) == 1
             res = sql.read_sql_table("foobar", self.conn)
             tm.assert_equal(df, res)
 
@@ -2437,75 +2676,68 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         pass
         # TODO(GH#36893) fill this in when we add more engines
 
-    @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
-    def test_read_sql_nullable_dtypes(
-        self, string_storage, func, option, dtype_backend
-    ):
+    def test_read_sql_dtype_backend(self, string_storage, func, dtype_backend):
         # GH#50048
         table = "test"
-        df = self.nullable_data()
-        df.to_sql(table, self.conn, index=False, if_exists="replace")
+        df = self.dtype_backend_data()
+        df.to_sql(name=table, con=self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                if option:
-                    with pd.option_context("mode.nullable_dtypes", True):
-                        result = getattr(pd, func)(f"Select * from {table}", self.conn)
-                else:
-                    result = getattr(pd, func)(
-                        f"Select * from {table}", self.conn, use_nullable_dtypes=True
-                    )
-        expected = self.nullable_expected(string_storage, dtype_backend)
+            result = getattr(pd, func)(
+                f"Select * from {table}", self.conn, dtype_backend=dtype_backend
+            )
+        expected = self.dtype_backend_expected(string_storage, dtype_backend)
         tm.assert_frame_equal(result, expected)
 
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                iterator = getattr(pd, func)(
-                    f"Select * from {table}",
-                    self.conn,
-                    use_nullable_dtypes=True,
-                    chunksize=3,
-                )
-                expected = self.nullable_expected(string_storage, dtype_backend)
-                for result in iterator:
-                    tm.assert_frame_equal(result, expected)
+            iterator = getattr(pd, func)(
+                f"Select * from {table}",
+                con=self.conn,
+                dtype_backend=dtype_backend,
+                chunksize=3,
+            )
+            expected = self.dtype_backend_expected(string_storage, dtype_backend)
+            for result in iterator:
+                tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("option", [True, False])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
-    def test_read_sql_nullable_dtypes_table(
-        self, string_storage, func, option, dtype_backend
-    ):
+    def test_read_sql_dtype_backend_table(self, string_storage, func, dtype_backend):
         # GH#50048
         table = "test"
-        df = self.nullable_data()
-        df.to_sql(table, self.conn, index=False, if_exists="replace")
+        df = self.dtype_backend_data()
+        df.to_sql(name=table, con=self.conn, index=False, if_exists="replace")
 
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                if option:
-                    with pd.option_context("mode.nullable_dtypes", True):
-                        result = getattr(pd, func)(table, self.conn)
-                else:
-                    result = getattr(pd, func)(
-                        table, self.conn, use_nullable_dtypes=True
-                    )
-        expected = self.nullable_expected(string_storage, dtype_backend)
+            result = getattr(pd, func)(table, self.conn, dtype_backend=dtype_backend)
+        expected = self.dtype_backend_expected(string_storage, dtype_backend)
         tm.assert_frame_equal(result, expected)
 
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                iterator = getattr(pd, func)(
-                    table,
-                    self.conn,
-                    use_nullable_dtypes=True,
-                    chunksize=3,
-                )
-                expected = self.nullable_expected(string_storage, dtype_backend)
-                for result in iterator:
-                    tm.assert_frame_equal(result, expected)
+            iterator = getattr(pd, func)(
+                table,
+                self.conn,
+                dtype_backend=dtype_backend,
+                chunksize=3,
+            )
+            expected = self.dtype_backend_expected(string_storage, dtype_backend)
+            for result in iterator:
+                tm.assert_frame_equal(result, expected)
 
-    def nullable_data(self) -> DataFrame:
+    @pytest.mark.parametrize("func", ["read_sql", "read_sql_table", "read_sql_query"])
+    def test_read_sql_invalid_dtype_backend_table(self, func):
+        table = "test"
+        df = self.dtype_backend_data()
+        df.to_sql(name=table, con=self.conn, index=False, if_exists="replace")
+
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            getattr(pd, func)(table, self.conn, dtype_backend="numpy")
+
+    def dtype_backend_data(self) -> DataFrame:
         return DataFrame(
             {
                 "a": Series([1, np.nan, 3], dtype="Int64"),
@@ -2519,7 +2751,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             }
         )
 
-    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
+    def dtype_backend_expected(self, storage, dtype_backend) -> DataFrame:
         string_array: StringArray | ArrowStringArray
         string_array_na: StringArray | ArrowStringArray
         if storage == "python":
@@ -2561,7 +2793,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         dtypes = {"a": "int64", "b": "object"}
         df = DataFrame(columns=["a", "b"]).astype(dtypes)
         expected = df.copy()
-        df.to_sql("test", self.conn, index=False, if_exists="replace")
+        df.to_sql(name="test", con=self.conn, index=False, if_exists="replace")
 
         for result in read_sql_query(
             "SELECT * FROM test",
@@ -2571,25 +2803,26 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
         ):
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("use_nullable_dtypes", [True, False])
+    @pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable"])
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
-    def test_read_sql_dtype(self, func, use_nullable_dtypes):
+    def test_read_sql_dtype(self, func, dtype_backend):
         # GH#50797
         table = "test"
         df = DataFrame({"a": [1, 2, 3], "b": 5})
-        df.to_sql(table, self.conn, index=False, if_exists="replace")
+        df.to_sql(name=table, con=self.conn, index=False, if_exists="replace")
 
         result = getattr(pd, func)(
             f"Select * from {table}",
             self.conn,
             dtype={"a": np.float64},
-            use_nullable_dtypes=use_nullable_dtypes,
+            dtype_backend=dtype_backend,
         )
         expected = DataFrame(
             {
                 "a": Series([1, 2, 3], dtype=np.float64),
                 "b": Series(
-                    [5, 5, 5], dtype="int64" if not use_nullable_dtypes else "Int64"
+                    [5, 5, 5],
+                    dtype="int64" if not dtype_backend == "numpy_nullable" else "Int64",
                 ),
             }
         )
@@ -2612,6 +2845,18 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
     def setup_driver(cls):
         # sqlite3 is built-in
         cls.driver = None
+
+    def test_keyword_deprecation(self):
+        # GH 54397
+        msg = (
+            "Starting with pandas version 3.0 all arguments of to_sql except for the "
+            "arguments 'name' and 'con' will be keyword-only."
+        )
+        df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
+        df.to_sql("example", self.conn)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_sql("example", self.conn, None, if_exists="replace")
 
     def test_default_type_conversion(self):
         df = sql.read_sql_table("types", self.conn)
@@ -2637,10 +2882,15 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
     def test_bigint_warning(self):
         # test no warning for BIGINT (to support int64) is raised (GH7433)
         df = DataFrame({"a": [1, 2]}, dtype="int64")
-        assert df.to_sql("test_bigintwarning", self.conn, index=False) == 2
+        assert df.to_sql(name="test_bigintwarning", con=self.conn, index=False) == 2
 
         with tm.assert_produces_warning(None):
             sql.read_sql_table("test_bigintwarning", self.conn)
+
+    def test_valueerror_exception(self):
+        df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
+        with pytest.raises(ValueError, match="Empty table name specified"):
+            df.to_sql(name="", con=self.conn, if_exists="replace", index=False)
 
     def test_row_object_is_named_tuple(self):
         # GH 40682
@@ -2670,7 +2920,9 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         with Session() as session:
             df = DataFrame({"id": [0, 1], "string_column": ["hello", "world"]})
             assert (
-                df.to_sql("test_frame", con=self.conn, index=False, if_exists="replace")
+                df.to_sql(
+                    name="test_frame", con=self.conn, index=False, if_exists="replace"
+                )
                 == 2
             )
             session.commit()
@@ -2679,9 +2931,9 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
 
         assert list(df.columns) == ["id", "string_column"]
 
-    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
-        df = super().nullable_expected(storage, dtype_backend)
-        if dtype_backend == "pandas":
+    def dtype_backend_expected(self, storage, dtype_backend) -> DataFrame:
+        df = super().dtype_backend_expected(storage, dtype_backend)
+        if dtype_backend == "numpy_nullable":
             df = df.astype({"e": "Int64", "f": "Int64"})
         else:
             df = df.astype({"e": "int64[pyarrow]", "f": "int64[pyarrow]"})
@@ -2689,9 +2941,26 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
         return df
 
     @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
-    def test_read_sql_nullable_dtypes_table(self, string_storage, func):
+    def test_read_sql_dtype_backend_table(self, string_storage, func):
         # GH#50048 Not supported for sqlite
         pass
+
+    def test_read_sql_string_inference(self):
+        # GH#54430
+        pytest.importorskip("pyarrow")
+        table = "test"
+        df = DataFrame({"a": ["x", "y"]})
+        df.to_sql(table, con=self.conn, index=False, if_exists="replace")
+
+        with pd.option_context("future.infer_string", True):
+            result = read_sql_table(table, self.conn)
+
+        dtype = "string[pyarrow_numpy]"
+        expected = DataFrame(
+            {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
+        )
+
+        tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.db
@@ -2720,9 +2989,9 @@ class TestMySQLAlchemy(_TestSQLAlchemy):
     def test_default_type_conversion(self):
         pass
 
-    def nullable_expected(self, storage, dtype_backend) -> DataFrame:
-        df = super().nullable_expected(storage, dtype_backend)
-        if dtype_backend == "pandas":
+    def dtype_backend_expected(self, storage, dtype_backend) -> DataFrame:
+        df = super().dtype_backend_expected(storage, dtype_backend)
+        if dtype_backend == "numpy_nullable":
             df = df.astype({"e": "Int64", "f": "Int64"})
         else:
             df = df.astype({"e": "int64[pyarrow]", "f": "int64[pyarrow]"})
@@ -2764,15 +3033,21 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
             self.conn.exec_driver_sql("CREATE SCHEMA other;")
 
         # write dataframe to different schema's
-        assert df.to_sql("test_schema_public", self.conn, index=False) == 2
+        assert df.to_sql(name="test_schema_public", con=self.conn, index=False) == 2
         assert (
             df.to_sql(
-                "test_schema_public_explicit", self.conn, index=False, schema="public"
+                name="test_schema_public_explicit",
+                con=self.conn,
+                index=False,
+                schema="public",
             )
             == 2
         )
         assert (
-            df.to_sql("test_schema_other", self.conn, index=False, schema="other") == 2
+            df.to_sql(
+                name="test_schema_other", con=self.conn, index=False, schema="other"
+            )
+            == 2
         )
 
         # read dataframes back in
@@ -2799,19 +3074,22 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
 
         # write dataframe with different if_exists options
         assert (
-            df.to_sql("test_schema_other", self.conn, schema="other", index=False) == 2
+            df.to_sql(
+                name="test_schema_other", con=self.conn, schema="other", index=False
+            )
+            == 2
         )
         df.to_sql(
-            "test_schema_other",
-            self.conn,
+            name="test_schema_other",
+            con=self.conn,
             schema="other",
             index=False,
             if_exists="replace",
         )
         assert (
             df.to_sql(
-                "test_schema_other",
-                self.conn,
+                name="test_schema_other",
+                con=self.conn,
                 schema="other",
                 index=False,
                 if_exists="append",
@@ -2841,6 +3119,44 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
             res2 = pdsql.read_table("test_schema_other2")
             tm.assert_frame_equal(res1, res2)
 
+    def test_self_join_date_columns(self):
+        # GH 44421
+        from sqlalchemy.engine import Engine
+        from sqlalchemy.sql import text
+
+        create_table = text(
+            """
+        CREATE TABLE person
+        (
+            id serial constraint person_pkey primary key,
+            created_dt timestamp with time zone
+        );
+
+        INSERT INTO person
+            VALUES (1, '2021-01-01T00:00:00Z');
+        """
+        )
+        if isinstance(self.conn, Engine):
+            with self.conn.connect() as con:
+                with con.begin():
+                    con.execute(create_table)
+        else:
+            with self.conn.begin():
+                self.conn.execute(create_table)
+
+        sql_query = (
+            'SELECT * FROM "person" AS p1 INNER JOIN "person" AS p2 ON p1.id = p2.id;'
+        )
+        result = pd.read_sql(sql_query, self.conn)
+        expected = DataFrame(
+            [[1, Timestamp("2021", tz="UTC")] * 2], columns=["id", "created_dt"] * 2
+        )
+        tm.assert_frame_equal(result, expected)
+
+        # Cleanup
+        with sql.SQLDatabase(self.conn, need_transaction=True) as pandasSQL:
+            pandasSQL.drop_table("person")
+
 
 # -----------------------------------------------------------------------------
 # -- Test Sqlite / MySQL fallback
@@ -2861,11 +3177,11 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         self.load_types_data(types_data)
         self.pandasSQL = sql.SQLiteDatabase(self.conn)
 
-    def test_read_sql_parameter(self):
-        self._read_sql_iris_parameter()
+    def test_read_sql_parameter(self, sql_strings):
+        self._read_sql_iris_parameter(sql_strings)
 
-    def test_read_sql_named_parameter(self):
-        self._read_sql_iris_named_parameter()
+    def test_read_sql_named_parameter(self, sql_strings):
+        self._read_sql_iris_named_parameter(sql_strings)
 
     def test_to_sql_empty(self, test_frame1):
         self._to_sql_empty(test_frame1)
@@ -2892,7 +3208,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
     def test_datetime_date(self):
         # test support for datetime.date
         df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
-        assert df.to_sql("test_date", self.conn, index=False) == 2
+        assert df.to_sql(name="test_date", con=self.conn, index=False) == 2
         res = read_sql_query("SELECT * FROM test_date", self.conn)
         if self.flavor == "sqlite":
             # comes back as strings
@@ -2911,17 +3227,17 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
 
         df = DataFrame(tz_times, columns=["a"])
 
-        assert df.to_sql("test_time", self.conn, index=False) == 2
+        assert df.to_sql(name="test_time", con=self.conn, index=False) == 2
         res = read_sql_query("SELECT * FROM test_time", self.conn)
         if self.flavor == "sqlite":
             # comes back as strings
-            expected = df.applymap(lambda _: _.strftime("%H:%M:%S.%f"))
+            expected = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
             tm.assert_frame_equal(res, expected)
 
     def _get_index_columns(self, tbl_name):
         ixs = sql.read_sql_query(
             "SELECT * FROM sqlite_master WHERE type = 'index' "
-            + f"AND tbl_name = '{tbl_name}'",
+            f"AND tbl_name = '{tbl_name}'",
             self.conn,
         )
         ix_cols = []
@@ -2949,8 +3265,8 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         cols = ["A", "B"]
         data = [(0.8, True), (0.9, None)]
         df = DataFrame(data, columns=cols)
-        assert df.to_sql("dtype_test", self.conn) == 2
-        assert df.to_sql("dtype_test2", self.conn, dtype={"B": "STRING"}) == 2
+        assert df.to_sql(name="dtype_test", con=self.conn) == 2
+        assert df.to_sql(name="dtype_test2", con=self.conn, dtype={"B": "STRING"}) == 2
 
         # sqlite stores Boolean values as INTEGER
         assert self._get_sqlite_column_type("dtype_test", "B") == "INTEGER"
@@ -2958,10 +3274,10 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         assert self._get_sqlite_column_type("dtype_test2", "B") == "STRING"
         msg = r"B \(<class 'bool'>\) not a string"
         with pytest.raises(ValueError, match=msg):
-            df.to_sql("error", self.conn, dtype={"B": bool})
+            df.to_sql(name="error", con=self.conn, dtype={"B": bool})
 
         # single dtype
-        assert df.to_sql("single_dtype_test", self.conn, dtype="STRING") == 2
+        assert df.to_sql(name="single_dtype_test", con=self.conn, dtype="STRING") == 2
         assert self._get_sqlite_column_type("single_dtype_test", "A") == "STRING"
         assert self._get_sqlite_column_type("single_dtype_test", "B") == "STRING"
 
@@ -2978,7 +3294,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
         df = DataFrame(cols)
 
         tbl = "notna_dtype_test"
-        assert df.to_sql(tbl, self.conn) == 2
+        assert df.to_sql(name=tbl, con=self.conn) == 2
 
         assert self._get_sqlite_column_type(tbl, "Bool") == "INTEGER"
         assert self._get_sqlite_column_type(tbl, "Date") == "TIMESTAMP"
@@ -2991,7 +3307,7 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
 
         msg = "Empty table or column name specified"
         with pytest.raises(ValueError, match=msg):
-            df.to_sql("", self.conn)
+            df.to_sql(name="", con=self.conn)
 
         for ndx, weird_name in enumerate(
             [
@@ -3007,12 +3323,12 @@ class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
                 "\xe9",
             ]
         ):
-            assert df.to_sql(weird_name, self.conn) == 2
+            assert df.to_sql(name=weird_name, con=self.conn) == 2
             sql.table_exists(weird_name, self.conn)
 
             df2 = DataFrame([[1, 2], [3, 4]], columns=["a", weird_name])
             c_tbl = f"test_weird_col_name{ndx:d}"
-            assert df2.to_sql(c_tbl, self.conn) == 2
+            assert df2.to_sql(name=c_tbl, con=self.conn) == 2
             sql.table_exists(c_tbl, self.conn)
 
 

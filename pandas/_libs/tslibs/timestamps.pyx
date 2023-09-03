@@ -22,7 +22,7 @@ from numpy cimport (
 
 cnp.import_array()
 
-from cpython.datetime cimport (  # alias bc `tzinfo` is a kwarg below
+from cpython.datetime cimport (  # alias tzinfo_type bc `tzinfo` is a kwarg below
     PyDate_Check,
     PyDateTime_Check,
     PyDelta_Check,
@@ -44,6 +44,8 @@ from cpython.object cimport (
 )
 
 import_datetime()
+
+import datetime as dt
 
 from pandas._libs.tslibs cimport ccalendar
 from pandas._libs.tslibs.base cimport ABCTimestamp
@@ -88,11 +90,14 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_datetime64_value,
     get_unit_from_dtype,
+    import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
     pandas_datetime_to_datetimestruct,
     pydatetime_to_dtstruct,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
@@ -461,7 +466,7 @@ cdef class _Timestamp(ABCTimestamp):
             raise integer_op_not_supported(self)
 
         elif is_array(other):
-            if other.dtype.kind in ["i", "u"]:
+            if other.dtype.kind in "iu":
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
@@ -493,7 +498,7 @@ cdef class _Timestamp(ABCTimestamp):
             return self + neg_other
 
         elif is_array(other):
-            if other.dtype.kind in ["i", "u"]:
+            if other.dtype.kind in "iu":
                 raise integer_op_not_supported(self)
             if other.dtype.kind == "m":
                 if self.tz is None:
@@ -978,7 +983,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         """
-        Return the time formatted according to ISO 8610.
+        Return the time formatted according to ISO 8601.
 
         The full format looks like 'YYYY-MM-DD HH:MM:SS.mmmmmmnnn'.
         By default, the fractional part is omitted if self.microsecond == 0
@@ -1012,7 +1017,7 @@ cdef class _Timestamp(ABCTimestamp):
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
         base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
         # We need to replace the fake year 1970 with our real year
-        base = f"{self.year}-" + base.split("-", 1)[1]
+        base = f"{self.year:04d}-" + base.split("-", 1)[1]
 
         if self.nanosecond == 0 and timespec != "nanoseconds":
             return base
@@ -1023,7 +1028,7 @@ cdef class _Timestamp(ABCTimestamp):
             base1, base2 = base, ""
 
         if timespec == "nanoseconds" or (timespec == "auto" and self.nanosecond):
-            if self.microsecond:
+            if self.microsecond or timespec == "nanoseconds":
                 base1 += f"{self.nanosecond:03d}"
             else:
                 base1 += f".{self.nanosecond:09d}"
@@ -1119,6 +1124,19 @@ cdef class _Timestamp(ABCTimestamp):
         Returns
         -------
         Timestamp
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 00:00:00.01')
+        >>> ts
+        Timestamp('2023-01-01 00:00:00.010000')
+        >>> ts.unit
+        'ms'
+        >>> ts = ts.as_unit('s')
+        >>> ts
+        Timestamp('2023-01-01 00:00:00')
+        >>> ts.unit
+        's'
         """
         dtype = np.dtype(f"M8[{unit}]")
         reso = get_unit_from_dtype(dtype)
@@ -1186,7 +1204,16 @@ cdef class _Timestamp(ABCTimestamp):
 
     cpdef to_datetime64(self):
         """
-        Return a numpy.datetime64 object with 'ns' precision.
+        Return a numpy.datetime64 object with same precision.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(year=2023, month=1, day=1,
+        ...                   hour=10, second=15)
+        >>> ts
+        Timestamp('2023-01-01 10:00:15')
+        >>> ts.to_datetime64()
+        numpy.datetime64('2023-01-01T10:00:15.000000')
         """
         # TODO: find a way to construct dt64 directly from _reso
         abbrev = npy_unit_to_abbrev(self._creso)
@@ -1290,13 +1317,14 @@ class Timestamp(_Timestamp):
         Unit used for conversion if ts_input is of type int or float. The
         valid values are 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
+
+        For float inputs, the result will be stored in nanoseconds, and
+        the unit attribute will be set as ``'ns'``.
     fold : {0, 1}, default None, keyword-only
         Due to daylight saving time, one wall clock time can occur twice
         when shifting from summer to winter time; fold describes whether the
         datetime-like corresponds  to the first (0) or the second time (1)
         the wall clock hits the ambiguous time.
-
-        .. versionadded:: 1.1.0
 
     Notes
     -----
@@ -1489,6 +1517,207 @@ class Timestamp(_Timestamp):
             ) from err
         return _dt.strftime(format)
 
+    def ctime(self):
+        """
+        Return ctime() style string.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00.00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.ctime()
+        'Sun Jan  1 10:00:00 2023'
+        """
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "ctime not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+                "For now, please call the components you need (such as `.year` "
+                "and `.month`) and construct your string from there."
+            ) from err
+        return _dt.ctime()
+
+    def date(self):
+        """
+        Return date object with same year, month and day.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00.00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.date()
+        datetime.date(2023, 1, 1)
+        """
+        try:
+            _dt = dt.date(self.year, self.month, self.day)
+        except ValueError as err:
+            raise NotImplementedError(
+                "date not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+            ) from err
+        return _dt
+
+    def dst(self):
+        """
+        Return the daylight saving time (DST) adjustment.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2000-06-01 00:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2000-06-01 00:00:00+0200', tz='Europe/Brussels')
+        >>> ts.dst()
+        datetime.timedelta(seconds=3600)
+        """
+        return super().dst()
+
+    def isocalendar(self):
+        """
+        Return a named tuple containing ISO year, week number, and weekday.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.isocalendar()
+        datetime.IsoCalendarDate(year=2022, week=52, weekday=7)
+        """
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "isocalendar not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+            ) from err
+        return _dt.isocalendar()
+
+    def tzname(self):
+        """
+        Return time zone name.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.tzname()
+        'CET'
+        """
+        return super().tzname()
+
+    def utcoffset(self):
+        """
+        Return utc offset.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.utcoffset()
+        datetime.timedelta(seconds=3600)
+        """
+        return super().utcoffset()
+
+    def utctimetuple(self):
+        """
+        Return UTC time tuple, compatible with time.localtime().
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.utctimetuple()
+        time.struct_time(tm_year=2023, tm_mon=1, tm_mday=1, tm_hour=9,
+        tm_min=0, tm_sec=0, tm_wday=6, tm_yday=1, tm_isdst=0)
+        """
+        return super().utctimetuple()
+
+    def time(self):
+        """
+        Return time object with same time but with tzinfo=None.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.time()
+        datetime.time(10, 0)
+        """
+        return super().time()
+
+    def timetuple(self):
+        """
+        Return time tuple, compatible with time.localtime().
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.timetuple()
+        time.struct_time(tm_year=2023, tm_mon=1, tm_mday=1,
+        tm_hour=10, tm_min=0, tm_sec=0, tm_wday=6, tm_yday=1, tm_isdst=-1)
+        """
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "timetuple not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+            ) from err
+        return _dt.timetuple()
+
+    def timetz(self):
+        """
+        Return time object with same time and tzinfo.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.timetz()
+        datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
+        """
+        return super().timetz()
+
+    def toordinal(self):
+        """
+        Return proleptic Gregorian ordinal. January 1 of year 1 is day 1.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:50')
+        >>> ts
+        Timestamp('2023-01-01 10:00:50')
+        >>> ts.toordinal()
+        738521
+        """
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "toordinal not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+            ) from err
+        return _dt.toordinal()
+
     # Issue 25016.
     @classmethod
     def strptime(cls, date_string, format):
@@ -1496,6 +1725,12 @@ class Timestamp(_Timestamp):
         Timestamp.strptime(string, format)
 
         Function is not implemented. Use pd.to_datetime().
+
+        Examples
+        --------
+        >>> pd.Timestamp.strptime("2023-01-01", "%d/%m/%y")
+        Traceback (most recent call last):
+        NotImplementedError
         """
         raise NotImplementedError(
             "Timestamp.strptime() is not implemented. "
@@ -1762,23 +1997,23 @@ timedelta}, default 'raise'
         >>> ts.round(freq='H') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.round(freq='T') # minute
+        >>> ts.round(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.round(freq='S') # seconds
+        >>> ts.round(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.round(freq='L') # milliseconds
+        >>> ts.round(freq='ms') # milliseconds
         Timestamp('2020-03-14 15:32:52.193000')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.round(freq='5T')
+        >>> ts.round(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.round(freq='1H30T')
+        >>> ts.round(freq='1H30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -1853,23 +2088,23 @@ timedelta}, default 'raise'
         >>> ts.floor(freq='H') # hour
         Timestamp('2020-03-14 15:00:00')
 
-        >>> ts.floor(freq='T') # minute
+        >>> ts.floor(freq='min') # minute
         Timestamp('2020-03-14 15:32:00')
 
-        >>> ts.floor(freq='S') # seconds
+        >>> ts.floor(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.floor(freq='N') # nanoseconds
+        >>> ts.floor(freq='ns') # nanoseconds
         Timestamp('2020-03-14 15:32:52.192548651')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.floor(freq='5T')
+        >>> ts.floor(freq='5min')
         Timestamp('2020-03-14 15:30:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.floor(freq='1H30T')
+        >>> ts.floor(freq='1H30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -1942,23 +2177,23 @@ timedelta}, default 'raise'
         >>> ts.ceil(freq='H') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.ceil(freq='T') # minute
+        >>> ts.ceil(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.ceil(freq='S') # seconds
+        >>> ts.ceil(freq='s') # seconds
         Timestamp('2020-03-14 15:32:53')
 
-        >>> ts.ceil(freq='U') # microseconds
+        >>> ts.ceil(freq='us') # microseconds
         Timestamp('2020-03-14 15:32:52.192549')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.ceil(freq='5T')
+        >>> ts.ceil(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.ceil(freq='1H30T')
+        >>> ts.ceil(freq='1H30min')
         Timestamp('2020-03-14 16:30:00')
 
         Analogous for ``pd.NaT``:
@@ -2342,9 +2577,18 @@ default 'raise'
         Return the day of the week represented by the date.
 
         Monday == 1 ... Sunday == 7.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.isoweekday()
+        7
         """
         # same as super().isoweekday(), but that breaks because of how
-        #  we have overriden year, see note in create_timestamp_from_ts
+        #  we have overridden year, see note in create_timestamp_from_ts
+
         return self.weekday() + 1
 
     def weekday(self):
@@ -2352,9 +2596,17 @@ default 'raise'
         Return the day of the week represented by the date.
 
         Monday == 0 ... Sunday == 6.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01')
+        >>> ts
+        Timestamp('2023-01-01  00:00:00')
+        >>> ts.weekday()
+        6
         """
         # same as super().weekday(), but that breaks because of how
-        #  we have overriden year, see note in create_timestamp_from_ts
+        #  we have overridden year, see note in create_timestamp_from_ts
         return ccalendar.dayofweek(self.year, self.month, self.day)
 
 
@@ -2368,7 +2620,7 @@ Timestamp.daysinmonth = Timestamp.days_in_month
 
 
 @cython.cdivision(False)
-cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) nogil:
+cdef int64_t normalize_i8_stamp(int64_t local_val, int64_t ppd) noexcept nogil:
     """
     Round the localized nanosecond timestamp down to the previous midnight.
 

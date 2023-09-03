@@ -1,19 +1,13 @@
+from __future__ import annotations
+
 import datetime as dt
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
     cast,
 )
 
 import numpy as np
-
-from pandas._typing import (
-    Dtype,
-    PositionalIndexer,
-)
 
 from pandas.core.dtypes.dtypes import register_extension_dtype
 
@@ -22,6 +16,14 @@ from pandas.api.extensions import (
     ExtensionDtype,
 )
 from pandas.api.types import pandas_dtype
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from pandas._typing import (
+        Dtype,
+        PositionalIndexer,
+    )
 
 
 @register_extension_dtype
@@ -61,12 +63,12 @@ class DateDtype(ExtensionDtype):
 class DateArray(ExtensionArray):
     def __init__(
         self,
-        dates: Union[
-            dt.date,
-            Sequence[dt.date],
-            Tuple[np.ndarray, np.ndarray, np.ndarray],
-            np.ndarray,
-        ],
+        dates: (
+            dt.date
+            | Sequence[dt.date]
+            | tuple[np.ndarray, np.ndarray, np.ndarray]
+            | np.ndarray
+        ),
     ) -> None:
         if isinstance(dates, dt.date):
             self._year = np.array([dates.year])
@@ -82,7 +84,7 @@ class DateArray(ExtensionArray):
             self._day = np.zeros(ldates, dtype=np.uint8)  # 255 (1, 12)
             # populate them
             for i, (y, m, d) in enumerate(
-                map(lambda date: (date.year, date.month, date.day), dates)
+                (date.year, date.month, date.day) for date in dates
             ):
                 self._year[i] = y
                 self._month[i] = m
@@ -93,7 +95,7 @@ class DateArray(ExtensionArray):
             if ldates != 3:
                 raise ValueError("only triples are valid")
             # check if all elements have the same type
-            if any(map(lambda x: not isinstance(x, np.ndarray), dates)):
+            if any(not isinstance(x, np.ndarray) for x in dates):
                 raise TypeError("invalid type")
             ly, lm, ld = (len(cast(np.ndarray, d)) for d in dates)
             if not ly == lm == ld:
@@ -146,7 +148,7 @@ class DateArray(ExtensionArray):
         else:
             raise NotImplementedError("only ints are supported as indexes")
 
-    def __setitem__(self, key: Union[int, slice, np.ndarray], value: Any):
+    def __setitem__(self, key: int | slice | np.ndarray, value: Any) -> None:
         if not isinstance(key, int):
             raise NotImplementedError("only ints are supported as indexes")
 
@@ -160,7 +162,7 @@ class DateArray(ExtensionArray):
     def __repr__(self) -> str:
         return f"DateArray{list(zip(self._year, self._month, self._day))}"
 
-    def copy(self) -> "DateArray":
+    def copy(self) -> DateArray:
         return DateArray((self._year.copy(), self._month.copy(), self._day.copy()))
 
     def isna(self) -> np.ndarray:
@@ -172,11 +174,15 @@ class DateArray(ExtensionArray):
         )
 
     @classmethod
-    def _from_sequence(cls, scalars, *, dtype: Optional[Dtype] = None, copy=False):
+    def _from_sequence(cls, scalars, *, dtype: Dtype | None = None, copy=False):
         if isinstance(scalars, dt.date):
-            pass
+            raise TypeError
         elif isinstance(scalars, DateArray):
-            pass
+            if dtype is not None:
+                return scalars.astype(dtype, copy=copy)
+            if copy:
+                return scalars.copy()
+            return scalars[:]
         elif isinstance(scalars, np.ndarray):
             scalars = scalars.astype("U10")  # 10 chars for yyyy-mm-dd
             return DateArray(scalars)

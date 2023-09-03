@@ -6,20 +6,27 @@ These should not depend on core.internals.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import (
     TYPE_CHECKING,
     Optional,
-    Sequence,
     Union,
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 from numpy import ma
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
-from pandas._libs.tslibs.period import Period
+from pandas._libs.tslibs import (
+    Period,
+    get_unit_from_dtype,
+    is_supported_unit,
+)
 from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
@@ -27,11 +34,9 @@ from pandas._typing import (
     DtypeObj,
     T,
 )
+from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.base import (
-    ExtensionDtype,
-    _registry as registry,
-)
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
@@ -42,21 +47,15 @@ from pandas.core.dtypes.cast import (
     maybe_promote,
 )
 from pandas.core.dtypes.common import (
-    is_datetime64_ns_dtype,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_integer_dtype,
     is_list_like,
     is_object_dtype,
-    is_timedelta64_ns_dtype,
+    pandas_dtype,
 )
-from pandas.core.dtypes.dtypes import PandasDtype
+from pandas.core.dtypes.dtypes import NumpyEADtype
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
-    ABCPandasArray,
-    ABCRangeIndex,
     ABCSeries,
 )
 from pandas.core.dtypes.missing import isna
@@ -153,7 +152,7 @@ def array(
     numpy.array : Construct a NumPy array.
     Series : Construct a pandas Series.
     Index : Construct a pandas Index.
-    arrays.PandasArray : ExtensionArray wrapping a NumPy array.
+    arrays.NumpyExtensionArray : ExtensionArray wrapping a NumPy array.
     Series.array : Extract the array stored within a Series.
 
     Notes
@@ -172,11 +171,11 @@ def array(
     rather than a string alias or allowing it to be inferred. For example,
     a future version of pandas or a 3rd-party library may include a
     dedicated ExtensionArray for string data. In this event, the following
-    would no longer return a :class:`arrays.PandasArray` backed by a NumPy
-    array.
+    would no longer return a :class:`arrays.NumpyExtensionArray` backed by a
+    NumPy array.
 
     >>> pd.array(['a', 'b'], dtype=str)
-    <PandasArray>
+    <NumpyExtensionArray>
     ['a', 'b']
     Length: 2, dtype: str32
 
@@ -185,7 +184,7 @@ def array(
     specify that in the dtype.
 
     >>> pd.array(['a', 'b'], dtype=np.dtype("<U1"))
-    <PandasArray>
+    <NumpyExtensionArray>
     ['a', 'b']
     Length: 2, dtype: str32
 
@@ -196,7 +195,7 @@ def array(
 
     When data with a ``datetime64[ns]`` or ``timedelta64[ns]`` dtype is
     passed, pandas will always return a ``DatetimeArray`` or ``TimedeltaArray``
-    rather than a ``PandasArray``. This is for symmetry with the case of
+    rather than a ``NumpyExtensionArray``. This is for symmetry with the case of
     timezone-aware data, which NumPy does not natively support.
 
     >>> pd.array(['2015', '2016'], dtype='datetime64[ns]')
@@ -261,21 +260,21 @@ def array(
     Categories (3, object): ['a' < 'b' < 'c']
 
     If pandas does not infer a dedicated extension type a
-    :class:`arrays.PandasArray` is returned.
+    :class:`arrays.NumpyExtensionArray` is returned.
 
     >>> pd.array([1 + 1j, 3 + 2j])
-    <PandasArray>
+    <NumpyExtensionArray>
     [(1+1j), (3+2j)]
     Length: 2, dtype: complex128
 
     As mentioned in the "Notes" section, new extension types may be added
     in the future (by pandas or 3rd party libraries), causing the return
-    value to no longer be a :class:`arrays.PandasArray`. Specify the `dtype`
-    as a NumPy dtype if you need to ensure there's no future change in
+    value to no longer be a :class:`arrays.NumpyExtensionArray`. Specify the
+    `dtype` as a NumPy dtype if you need to ensure there's no future change in
     behavior.
 
     >>> pd.array([1, 2], dtype=np.dtype("int32"))
-    <PandasArray>
+    <NumpyExtensionArray>
     [1, 2]
     Length: 2, dtype: int32
 
@@ -294,7 +293,7 @@ def array(
         FloatingArray,
         IntegerArray,
         IntervalArray,
-        PandasArray,
+        NumpyExtensionArray,
         PeriodArray,
         TimedeltaArray,
     )
@@ -313,19 +312,17 @@ def array(
     data = extract_array(data, extract_numpy=True)
 
     # this returns None for not-found dtypes.
-    if isinstance(dtype, str):
-        dtype = registry.find(dtype) or dtype
+    if dtype is not None:
+        dtype = pandas_dtype(dtype)
 
-    if isinstance(data, ExtensionArray) and (
-        dtype is None or is_dtype_equal(dtype, data.dtype)
-    ):
-        # e.g. TimedeltaArray[s], avoid casting to PandasArray
+    if isinstance(data, ExtensionArray) and (dtype is None or data.dtype == dtype):
+        # e.g. TimedeltaArray[s], avoid casting to NumpyExtensionArray
         if copy:
             return data.copy()
         return data
 
-    if is_extension_array_dtype(dtype):
-        cls = cast(ExtensionDtype, dtype).construct_array_type()
+    if isinstance(dtype, ExtensionDtype):
+        cls = dtype.construct_array_type()
         return cls._from_sequence(data, dtype=dtype, copy=copy)
 
     if dtype is None:
@@ -342,7 +339,7 @@ def array(
             try:
                 return DatetimeArray._from_sequence(data, copy=copy)
             except ValueError:
-                # Mixture of timezones, fall back to PandasArray
+                # Mixture of timezones, fall back to NumpyExtensionArray
                 pass
 
         elif inferred_dtype.startswith("timedelta"):
@@ -355,28 +352,54 @@ def array(
 
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
-
+        elif inferred_dtype == "empty" and not hasattr(data, "dtype") and not len(data):
+            return FloatingArray._from_sequence(data, copy=copy)
         elif (
             inferred_dtype in ("floating", "mixed-integer-float")
             and getattr(data, "dtype", None) != np.float16
         ):
             # GH#44715 Exclude np.float16 bc FloatingArray does not support it;
-            #  we will fall back to PandasArray.
+            #  we will fall back to NumpyExtensionArray.
             return FloatingArray._from_sequence(data, copy=copy)
 
         elif inferred_dtype == "boolean":
             return BooleanArray._from_sequence(data, copy=copy)
 
     # Pandas overrides NumPy for
-    #   1. datetime64[ns]
-    #   2. timedelta64[ns]
+    #   1. datetime64[ns,us,ms,s]
+    #   2. timedelta64[ns,us,ms,s]
     # so that a DatetimeArray is returned.
-    if is_datetime64_ns_dtype(dtype):
+    if lib.is_np_dtype(dtype, "M") and is_supported_unit(get_unit_from_dtype(dtype)):
         return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
-    elif is_timedelta64_ns_dtype(dtype):
+    if lib.is_np_dtype(dtype, "m") and is_supported_unit(get_unit_from_dtype(dtype)):
         return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
 
-    return PandasArray._from_sequence(data, dtype=dtype, copy=copy)
+    elif lib.is_np_dtype(dtype, "mM"):
+        warnings.warn(
+            r"datetime64 and timedelta64 dtype resolutions other than "
+            r"'s', 'ms', 'us', and 'ns' are deprecated. "
+            r"In future releases passing unsupported resolutions will "
+            r"raise an exception.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
+    return NumpyExtensionArray._from_sequence(data, dtype=dtype, copy=copy)
+
+
+_typs = frozenset(
+    {
+        "index",
+        "rangeindex",
+        "multiindex",
+        "datetimeindex",
+        "timedeltaindex",
+        "periodindex",
+        "categoricalindex",
+        "intervalindex",
+        "series",
+    }
+)
 
 
 @overload
@@ -407,7 +430,7 @@ def extract_array(
         For Series / Index, the underlying ExtensionArray is unboxed.
 
     extract_numpy : bool, default False
-        Whether to extract the ndarray from a PandasArray.
+        Whether to extract the ndarray from a NumpyExtensionArray.
 
     extract_range : bool, default False
         If we have a RangeIndex, return range._values if True
@@ -438,19 +461,22 @@ def extract_array(
     >>> extract_array(pd.Series([1, 2, 3]), extract_numpy=True)
     array([1, 2, 3])
     """
-    if isinstance(obj, (ABCIndex, ABCSeries)):
-        if isinstance(obj, ABCRangeIndex):
+    typ = getattr(obj, "_typ", None)
+    if typ in _typs:
+        # i.e. isinstance(obj, (ABCIndex, ABCSeries))
+        if typ == "rangeindex":
             if extract_range:
-                return obj._values
-            # https://github.com/python/mypy/issues/1081
-            # error: Incompatible return value type (got "RangeIndex", expected
-            # "Union[T, Union[ExtensionArray, ndarray[Any, Any]]]")
-            return obj  # type: ignore[return-value]
+                # error: "T" has no attribute "_values"
+                return obj._values  # type: ignore[attr-defined]
+            return obj
 
-        return obj._values
+        # error: "T" has no attribute "_values"
+        return obj._values  # type: ignore[attr-defined]
 
-    elif extract_numpy and isinstance(obj, ABCPandasArray):
-        return obj.to_numpy()
+    elif extract_numpy and typ == "npy_extension":
+        # i.e. isinstance(obj, ABCNumpyExtensionArray)
+        # error: "T" has no attribute "to_numpy"
+        return obj.to_numpy()  # type: ignore[attr-defined]
 
     return obj
 
@@ -481,9 +507,7 @@ def sanitize_masked_array(data: ma.MaskedArray) -> np.ndarray:
     if mask.any():
         dtype, fill_value = maybe_promote(data.dtype, np.nan)
         dtype = cast(np.dtype, dtype)
-        # Incompatible types in assignment (expression has type "ndarray[Any,
-        # dtype[Any]]", variable has type "MaskedArray[Any, Any]")
-        data = data.astype(dtype, copy=True)  # type: ignore[assignment]
+        data = ma.asarray(data.astype(dtype, copy=True))
         data.soften_mask()  # set hardmask False if it was True
         data[mask] = fill_value
     else:
@@ -519,11 +543,11 @@ def sanitize_array(
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
 
-    if isinstance(dtype, PandasDtype):
-        # Avoid ending up with a PandasArray
+    if isinstance(dtype, NumpyEADtype):
+        # Avoid ending up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
 
-    # extract ndarray or ExtensionArray, ensure we have no PandasArray
+    # extract ndarray or ExtensionArray, ensure we have no NumpyExtensionArray
     data = extract_array(data, extract_numpy=True, extract_range=True)
 
     if isinstance(data, np.ndarray) and data.ndim == 0:
@@ -542,7 +566,7 @@ def sanitize_array(
         return data
 
     elif isinstance(data, ABCExtensionArray):
-        # it is already ensured above this is not a PandasArray
+        # it is already ensured above this is not a NumpyExtensionArray
         # Until GH#49309 is fixed this check needs to come before the
         #  ExtensionDtype check
         if dtype is not None:
@@ -567,6 +591,11 @@ def sanitize_array(
             subarr = data
             if data.dtype == object:
                 subarr = maybe_infer_to_datetimelike(data)
+            elif data.dtype.kind == "U" and using_pyarrow_string_dtype():
+                from pandas.core.arrays.string_ import StringDtype
+
+                dtype = StringDtype(storage="pyarrow_numpy")
+                subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
 
             if subarr is data and copy:
                 subarr = subarr.copy()
@@ -667,7 +696,7 @@ def _sanitize_ndim(
                 f"Data must be 1-dimensional, got ndarray of shape {data.shape} instead"
             )
         if is_object_dtype(dtype) and isinstance(dtype, ExtensionDtype):
-            # i.e. PandasDtype("O")
+            # i.e. NumpyEADtype("O")
 
             result = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
             cls = dtype.construct_array_type()
@@ -733,14 +762,14 @@ def _try_cast(
     """
     is_ndarray = isinstance(arr, np.ndarray)
 
-    if is_object_dtype(dtype):
+    if dtype == object:
         if not is_ndarray:
             subarr = construct_1d_object_array_from_listlike(arr)
             return subarr
         return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
 
     elif dtype.kind == "U":
-        # TODO: test cases with arr.dtype.kind in ["m", "M"]
+        # TODO: test cases with arr.dtype.kind in "mM"
         if is_ndarray:
             arr = cast(np.ndarray, arr)
             shape = arr.shape
@@ -752,12 +781,12 @@ def _try_cast(
             shape
         )
 
-    elif dtype.kind in ["m", "M"]:
+    elif dtype.kind in "mM":
         return maybe_cast_to_datetime(arr, dtype)
 
     # GH#15832: Check if we are requesting a numeric dtype and
     # that we can convert the data to the requested dtype.
-    elif is_integer_dtype(dtype):
+    elif dtype.kind in "iu":
         # this will raise if we have e.g. floats
 
         subarr = maybe_cast_to_integer_array(arr, dtype)

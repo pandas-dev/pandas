@@ -12,33 +12,34 @@ from typing import (
 )
 import warnings
 
-from pandas._libs.json import loads
+from pandas._libs import lib
+from pandas._libs.json import ujson_loads
 from pandas._libs.tslibs import timezones
-from pandas._typing import (
-    DtypeObj,
-    JSONSerializable,
-)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
 from pandas.core.dtypes.common import (
     is_bool_dtype,
-    is_categorical_dtype,
-    is_datetime64_dtype,
-    is_datetime64tz_dtype,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_numeric_dtype,
-    is_period_dtype,
     is_string_dtype,
-    is_timedelta64_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    ExtensionDtype,
+    PeriodDtype,
+)
 
 from pandas import DataFrame
 import pandas.core.common as com
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        DtypeObj,
+        JSONSerializable,
+    )
+
     from pandas import Series
     from pandas.core.indexes.multi import MultiIndex
 
@@ -82,13 +83,11 @@ def as_json_table_type(x: DtypeObj) -> str:
         return "boolean"
     elif is_numeric_dtype(x):
         return "number"
-    elif is_datetime64_dtype(x) or is_datetime64tz_dtype(x) or is_period_dtype(x):
+    elif lib.is_np_dtype(x, "M") or isinstance(x, (DatetimeTZDtype, PeriodDtype)):
         return "datetime"
-    elif is_timedelta64_dtype(x):
+    elif lib.is_np_dtype(x, "m"):
         return "duration"
-    elif is_categorical_dtype(x):
-        return "any"
-    elif is_extension_array_dtype(x):
+    elif isinstance(x, ExtensionDtype):
         return "any"
     elif is_string_dtype(x):
         return "string"
@@ -132,21 +131,22 @@ def convert_pandas_type_to_json_field(arr) -> dict[str, JSONSerializable]:
         "type": as_json_table_type(dtype),
     }
 
-    if is_categorical_dtype(dtype):
+    if isinstance(dtype, CategoricalDtype):
         cats = dtype.categories
         ordered = dtype.ordered
 
         field["constraints"] = {"enum": list(cats)}
         field["ordered"] = ordered
-    elif is_period_dtype(dtype):
+    elif isinstance(dtype, PeriodDtype):
         field["freq"] = dtype.freq.freqstr
-    elif is_datetime64tz_dtype(dtype):
+    elif isinstance(dtype, DatetimeTZDtype):
         if timezones.is_utc(dtype.tz):
             # timezone.utc has no "zone" attr
             field["tz"] = "UTC"
         else:
-            field["tz"] = dtype.tz.zone
-    elif is_extension_array_dtype(dtype):
+            # error: "tzinfo" has no attribute "zone"
+            field["tz"] = dtype.tz.zone  # type: ignore[attr-defined]
+    elif isinstance(dtype, ExtensionDtype):
         field["extDtype"] = dtype.name
     return field
 
@@ -182,7 +182,7 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
     ...         "ordered": True,
     ...     }
     ... )
-    CategoricalDtype(categories=['a', 'b', 'c'], ordered=True)
+    CategoricalDtype(categories=['a', 'b', 'c'], ordered=True, categories_dtype=object)
 
     >>> convert_json_field_to_pandas_type({"name": "a_datetime", "type": "datetime"})
     'datetime64[ns]'
@@ -316,7 +316,7 @@ def build_table_schema(
     return schema
 
 
-def parse_table_schema(json, precise_float):
+def parse_table_schema(json, precise_float: bool) -> DataFrame:
     """
     Builds a DataFrame from a given schema
 
@@ -352,7 +352,7 @@ def parse_table_schema(json, precise_float):
     build_table_schema : Inverse function.
     pandas.read_json
     """
-    table = loads(json, precise_float=precise_float)
+    table = ujson_loads(json, precise_float=precise_float)
     col_order = [field["name"] for field in table["schema"]["fields"]]
     df = DataFrame(table["data"], columns=col_order)[col_order]
 

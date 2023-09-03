@@ -8,20 +8,23 @@ import operator
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 from pandas.core.dtypes.cast import find_common_type
 
 from pandas import (
+    CategoricalDtype,
     CategoricalIndex,
+    DatetimeTZDtype,
     Index,
     MultiIndex,
+    PeriodDtype,
     RangeIndex,
     Series,
     Timestamp,
 )
 import pandas._testing as tm
 from pandas.api.types import (
-    is_bool_dtype,
-    is_datetime64tz_dtype,
     is_signed_integer_dtype,
     pandas_dtype,
 )
@@ -66,23 +69,27 @@ def test_union_different_types(index_flat, index_flat2, request):
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
     warn = None
+    msg = "'<' not supported between"
     if not len(idx1) or not len(idx2):
         pass
-    elif (
-        idx1.dtype.kind == "c"
-        and (
-            idx2.dtype.kind not in ["i", "u", "f", "c"]
-            or not isinstance(idx2.dtype, np.dtype)
-        )
-    ) or (
-        idx2.dtype.kind == "c"
-        and (
-            idx1.dtype.kind not in ["i", "u", "f", "c"]
-            or not isinstance(idx1.dtype, np.dtype)
-        )
+    elif (idx1.dtype.kind == "c" and (not lib.is_np_dtype(idx2.dtype, "iufc"))) or (
+        idx2.dtype.kind == "c" and (not lib.is_np_dtype(idx1.dtype, "iufc"))
     ):
         # complex objects non-sortable
         warn = RuntimeWarning
+    elif (
+        isinstance(idx1.dtype, PeriodDtype) and isinstance(idx2.dtype, CategoricalDtype)
+    ) or (
+        isinstance(idx2.dtype, PeriodDtype) and isinstance(idx1.dtype, CategoricalDtype)
+    ):
+        warn = FutureWarning
+        msg = r"PeriodDtype\[B\] is deprecated"
+        mark = pytest.mark.xfail(
+            reason="Warning not produced on all builds",
+            raises=AssertionError,
+            strict=False,
+        )
+        request.node.add_marker(mark)
 
     any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
@@ -93,7 +100,7 @@ def test_union_different_types(index_flat, index_flat2, request):
     idx1 = idx1.sort_values()
     idx2 = idx2.sort_values()
 
-    with tm.assert_produces_warning(warn, match="'<' not supported between"):
+    with tm.assert_produces_warning(warn, match=msg):
         res1 = idx1.union(idx2)
         res2 = idx2.union(idx1)
 
@@ -184,16 +191,17 @@ class TestSetOps:
         with pytest.raises(TypeError, match=msg):
             getattr(index, method)(case)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_intersection_base(self, index):
         if isinstance(index, CategoricalIndex):
-            return
+            pytest.skip(f"Not relevant for {type(index).__name__}")
 
         first = index[:5]
         second = index[:3]
         intersect = first.intersection(second)
         assert tm.equalContents(intersect, second)
 
-        if is_datetime64tz_dtype(index.dtype):
+        if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
             #  is not applicable.
             return
@@ -212,6 +220,7 @@ class TestSetOps:
     @pytest.mark.filterwarnings(
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_base(self, index):
         first = index[3:]
         second = index[:5]
@@ -220,7 +229,7 @@ class TestSetOps:
         union = first.union(second)
         assert tm.equalContents(union, everything)
 
-        if is_datetime64tz_dtype(index.dtype):
+        if isinstance(index.dtype, DatetimeTZDtype):
             # The second.values below will drop tz, so the rest of this test
             #  is not applicable.
             return
@@ -236,13 +245,14 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.union([1, 2, 3])
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.filterwarnings(
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
-        if is_bool_dtype(index):
+        if index.inferred_type == "boolean":
             # i think (TODO: be sure) there assumptions baked in about
             #  the index fixture that don't hold here?
             answer = set(first).difference(set(second))
@@ -264,18 +274,19 @@ class TestSetOps:
             with pytest.raises(TypeError, match=msg):
                 first.difference([1, 2, 3], sort)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.filterwarnings(
         "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
     )
     def test_symmetric_difference(self, index):
         if isinstance(index, CategoricalIndex):
-            return
+            pytest.skip(f"Not relevant for {type(index).__name__}")
         if len(index) < 2:
-            return
+            pytest.skip("Too few values for test")
         if index[0] in index[1:] or index[-1] in index[:-1]:
             # index fixture has e.g. an index of bools that does not satisfy this,
             #  another with [0, 0, 1, 1, 2, 2]
-            return
+            pytest.skip("Index values no not satisfy test condition.")
 
         first = index[1:]
         second = index[:-1]
@@ -429,6 +440,7 @@ class TestSetOps:
         expected = index[1:].set_names(expected_name).sort_values()
         tm.assert_index_equal(intersect, expected)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_intersection_name_retention_with_nameless(self, index):
         if isinstance(index, MultiIndex):
             index = index.rename(list(range(index.nlevels)))
@@ -453,7 +465,7 @@ class TestSetOps:
         # If taking difference of a set and itself, it
         # needs to preserve the type of the index
         if not index.is_unique:
-            return
+            pytest.skip("Not relevant since index is not unique")
         result = index.difference(index, sort=sort)
         expected = index[:0]
         tm.assert_index_equal(result, expected, exact=True)
@@ -476,12 +488,13 @@ class TestSetOps:
         # empty index produces the same index as the difference
         # of an index with itself.  Test for all types
         if not index.is_unique:
-            return
+            pytest.skip("Not relevant because index is not unique")
         inter = index.intersection(index[:0])
         diff = index.difference(index, sort=sort)
         tm.assert_index_equal(inter, diff, exact=True)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.filterwarnings(
     "ignore:Falling back on a non-pyarrow:pandas.errors.PerformanceWarning"
 )
@@ -508,7 +521,7 @@ def test_intersection_duplicates_all_indexes(index):
     # GH#38743
     if index.empty:
         # No duplicates in empty indexes
-        return
+        pytest.skip("Not relevant for empty Index")
 
     idx = index
     idx_non_unique = idx[[0, 0, 1, 2]]
@@ -575,6 +588,43 @@ def test_union_nan_in_both(dup):
     b = Index([np.nan, dup, 1, 2])
     result = a.union(b, sort=False)
     expected = Index([np.nan, dup, 1.0, 2.0, 2.0])
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_rangeindex_sort_true():
+    # GH 53490
+    idx1 = RangeIndex(1, 100, 6)
+    idx2 = RangeIndex(1, 50, 3)
+    result = idx1.union(idx2, sort=True)
+    expected = Index(
+        [
+            1,
+            4,
+            7,
+            10,
+            13,
+            16,
+            19,
+            22,
+            25,
+            28,
+            31,
+            34,
+            37,
+            40,
+            43,
+            46,
+            49,
+            55,
+            61,
+            67,
+            73,
+            79,
+            85,
+            91,
+            97,
+        ]
+    )
     tm.assert_index_equal(result, expected)
 
 
@@ -848,4 +898,11 @@ class TestSetOpsUnsorted:
         idx2 = Index([3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
         result = idx.union(idx2)
         expected = Index([1, 2, 3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
+        tm.assert_index_equal(result, expected)
+
+    def test_union_string_array(self, any_string_dtype):
+        idx1 = Index(["a"], dtype=any_string_dtype)
+        idx2 = Index(["b"], dtype=any_string_dtype)
+        result = idx1.union(idx2)
+        expected = Index(["a", "b"], dtype=any_string_dtype)
         tm.assert_index_equal(result, expected)

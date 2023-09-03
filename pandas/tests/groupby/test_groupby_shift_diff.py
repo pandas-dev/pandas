@@ -7,6 +7,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    date_range,
 )
 import pandas._testing as tm
 
@@ -62,7 +63,7 @@ def test_group_shift_with_fill_value():
 
 def test_group_shift_lose_timezone():
     # GH 30134
-    now_dt = Timestamp.utcnow()
+    now_dt = Timestamp.utcnow().as_unit("ns")
     df = DataFrame({"a": [1, 1], "date": now_dt})
     result = df.groupby("a").shift(0).iloc[0]
     expected = Series({"date": now_dt}, name=result.name)
@@ -154,3 +155,100 @@ def test_multindex_empty_shift_with_fill():
     shifted_with_fill = df.groupby(["a", "b"]).shift(1, fill_value=0)
     tm.assert_frame_equal(shifted, shifted_with_fill)
     tm.assert_index_equal(shifted.index, shifted_with_fill.index)
+
+
+def test_shift_periods_freq():
+    # GH 54093
+    data = {"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]}
+    df = DataFrame(data, index=date_range(start="20100101", periods=6))
+    result = df.groupby(df.index).shift(periods=-2, freq="D")
+    expected = DataFrame(data, index=date_range(start="2009-12-30", periods=6))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_shift_deprecate_freq_and_fill_value():
+    # GH 53832
+    data = {"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]}
+    df = DataFrame(data, index=date_range(start="20100101", periods=6))
+    msg = (
+        "Passing a 'freq' together with a 'fill_value' silently ignores the fill_value"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby(df.index).shift(periods=-2, freq="D", fill_value="1")
+
+
+def test_shift_disallow_suffix_if_periods_is_int():
+    # GH#44424
+    data = {"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]}
+    df = DataFrame(data)
+    msg = "Cannot specify `suffix` if `periods` is an int."
+    with pytest.raises(ValueError, match=msg):
+        df.groupby("b").shift(1, suffix="fails")
+
+
+def test_group_shift_with_multiple_periods():
+    # GH#44424
+    df = DataFrame({"a": [1, 2, 3, 3, 2], "b": [True, True, False, False, True]})
+
+    shifted_df = df.groupby("b")[["a"]].shift([0, 1])
+    expected_df = DataFrame(
+        {"a_0": [1, 2, 3, 3, 2], "a_1": [np.nan, 1.0, np.nan, 3.0, 2.0]}
+    )
+    tm.assert_frame_equal(shifted_df, expected_df)
+
+    # series
+    shifted_series = df.groupby("b")["a"].shift([0, 1])
+    tm.assert_frame_equal(shifted_series, expected_df)
+
+
+def test_group_shift_with_multiple_periods_and_freq():
+    # GH#44424
+    df = DataFrame(
+        {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
+        index=date_range("1/1/2000", periods=5, freq="H"),
+    )
+    shifted_df = df.groupby("b")[["a"]].shift(
+        [0, 1],
+        freq="H",
+    )
+    expected_df = DataFrame(
+        {
+            "a_0": [1.0, 2.0, 3.0, 4.0, 5.0, np.nan],
+            "a_1": [
+                np.nan,
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+            ],
+        },
+        index=date_range("1/1/2000", periods=6, freq="H"),
+    )
+    tm.assert_frame_equal(shifted_df, expected_df)
+
+
+def test_group_shift_with_multiple_periods_and_fill_value():
+    # GH#44424
+    df = DataFrame(
+        {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
+    )
+    shifted_df = df.groupby("b")[["a"]].shift([0, 1], fill_value=-1)
+    expected_df = DataFrame(
+        {"a_0": [1, 2, 3, 4, 5], "a_1": [-1, 1, -1, 3, 2]},
+    )
+    tm.assert_frame_equal(shifted_df, expected_df)
+
+
+def test_group_shift_with_multiple_periods_and_both_fill_and_freq_deprecated():
+    # GH#44424
+    df = DataFrame(
+        {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
+        index=date_range("1/1/2000", periods=5, freq="H"),
+    )
+    msg = (
+        "Passing a 'freq' together with a 'fill_value' silently ignores the "
+        "fill_value"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.groupby("b")[["a"]].shift([1, 2], fill_value=1, freq="H")

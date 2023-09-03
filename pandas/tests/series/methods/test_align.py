@@ -69,14 +69,21 @@ def test_align_fill_method(
     a = datetime_series[slice(*first_slice)]
     b = datetime_series[slice(*second_slice)]
 
-    aa, ab = a.align(b, join=join_type, method=method, limit=limit)
+    msg = (
+        "The 'method', 'limit', and 'fill_axis' keywords in Series.align "
+        "are deprecated"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        aa, ab = a.align(b, join=join_type, method=method, limit=limit)
 
     join_index = a.index.join(b.index, how=join_type)
     ea = a.reindex(join_index)
     eb = b.reindex(join_index)
 
-    ea = ea.fillna(method=method, limit=limit)
-    eb = eb.fillna(method=method, limit=limit)
+    msg2 = "Series.fillna with 'method' is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg2):
+        ea = ea.fillna(method=method, limit=limit)
+        eb = eb.fillna(method=method, limit=limit)
 
     tm.assert_series_equal(aa, ea)
     tm.assert_series_equal(ab, eb)
@@ -118,14 +125,20 @@ def test_align_nocopy(datetime_series, using_copy_on_write):
         assert (b[:2] == 5).all()
 
 
-def test_align_same_index(datetime_series):
+def test_align_same_index(datetime_series, using_copy_on_write):
     a, b = datetime_series.align(datetime_series, copy=False)
-    assert a.index is datetime_series.index
-    assert b.index is datetime_series.index
+    if not using_copy_on_write:
+        assert a.index is datetime_series.index
+        assert b.index is datetime_series.index
+    else:
+        assert a.index.is_(datetime_series.index)
+        assert b.index.is_(datetime_series.index)
 
     a, b = datetime_series.align(datetime_series, copy=True)
     assert a.index is not datetime_series.index
     assert b.index is not datetime_series.index
+    assert a.index.is_(datetime_series.index)
+    assert b.index.is_(datetime_series.index)
 
 
 def test_align_multiindex():
@@ -169,14 +182,19 @@ def test_align_with_dataframe_method(method):
     ser = Series(range(3), index=range(3))
     df = pd.DataFrame(0.0, index=range(3), columns=range(3))
 
-    result_ser, result_df = ser.align(df, method=method)
+    msg = (
+        "The 'method', 'limit', and 'fill_axis' keywords in Series.align "
+        "are deprecated"
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result_ser, result_df = ser.align(df, method=method)
     tm.assert_series_equal(result_ser, ser)
     tm.assert_frame_equal(result_df, df)
 
 
 def test_align_dt64tzindex_mismatched_tzs():
     idx1 = date_range("2001", periods=5, freq="H", tz="US/Eastern")
-    ser = Series(np.random.randn(len(idx1)), index=idx1)
+    ser = Series(np.random.default_rng(2).standard_normal(len(idx1)), index=idx1)
     ser_central = ser.tz_convert("US/Central")
     # different timezones convert to UTC
 
@@ -187,7 +205,7 @@ def test_align_dt64tzindex_mismatched_tzs():
 
 def test_align_periodindex(join_type):
     rng = period_range("1/1/2000", "1/1/2010", freq="A")
-    ts = Series(np.random.randn(len(rng)), index=rng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     # TODO: assert something?
     ts.align(ts[::2], join=join_type)

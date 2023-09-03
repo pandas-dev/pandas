@@ -6,21 +6,18 @@ import io
 import os
 import struct
 import tarfile
-import warnings
 import zipfile
 
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import is_categorical_dtype
-
 import pandas as pd
+from pandas import CategoricalDtype
 import pandas._testing as tm
 from pandas.core.frame import (
     DataFrame,
     Series,
 )
-from pandas.tests.io.test_compression import _compression_to_extension
 
 from pandas.io.parsers import read_csv
 from pandas.io.stata import (
@@ -73,6 +70,41 @@ class TestStata:
             tm.assert_frame_equal(empty_ds, empty_ds2)
 
     @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
+    def test_read_empty_dta_with_dtypes(self, version):
+        # GH 46240
+        # Fixing above bug revealed that types are not correctly preserved when
+        # writing empty DataFrames
+        empty_df_typed = DataFrame(
+            {
+                "i8": np.array([0], dtype=np.int8),
+                "i16": np.array([0], dtype=np.int16),
+                "i32": np.array([0], dtype=np.int32),
+                "i64": np.array([0], dtype=np.int64),
+                "u8": np.array([0], dtype=np.uint8),
+                "u16": np.array([0], dtype=np.uint16),
+                "u32": np.array([0], dtype=np.uint32),
+                "u64": np.array([0], dtype=np.uint64),
+                "f32": np.array([0], dtype=np.float32),
+                "f64": np.array([0], dtype=np.float64),
+            }
+        )
+        expected = empty_df_typed.copy()
+        # No uint# support. Downcast since values in range for int#
+        expected["u8"] = expected["u8"].astype(np.int8)
+        expected["u16"] = expected["u16"].astype(np.int16)
+        expected["u32"] = expected["u32"].astype(np.int32)
+        # No int64 supported at all. Downcast since values in range for int32
+        expected["u64"] = expected["u64"].astype(np.int32)
+        expected["i64"] = expected["i64"].astype(np.int32)
+
+        # GH 7369, make sure can read a 0-obs dta file
+        with tm.ensure_clean() as path:
+            empty_df_typed.to_stata(path, write_index=False, version=version)
+            empty_reread = read_stata(path)
+            tm.assert_frame_equal(expected, empty_reread)
+            tm.assert_series_equal(expected.dtypes, empty_reread.dtypes)
+
+    @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
     def test_read_index_col_none(self, version):
         df = DataFrame({"a": range(5), "b": ["b1", "b2", "b3", "b4", "b5"]})
         # GH 7369, make sure can read a 0-obs dta file
@@ -103,6 +135,7 @@ class TestStata:
 
         tm.assert_frame_equal(parsed, expected)
 
+    @pytest.mark.filterwarnings("always")
     def test_read_dta2(self, datapath):
         expected = DataFrame.from_records(
             [
@@ -141,27 +174,20 @@ class TestStata:
         )
         expected["yearly_date"] = expected["yearly_date"].astype("O")
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            parsed_114 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_114.dta")
-            )
-            parsed_115 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_115.dta")
-            )
-            parsed_117 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_117.dta")
-            )
+        path1 = datapath("io", "data", "stata", "stata2_114.dta")
+        path2 = datapath("io", "data", "stata", "stata2_115.dta")
+        path3 = datapath("io", "data", "stata", "stata2_117.dta")
+
+        with tm.assert_produces_warning(UserWarning):
+            parsed_114 = self.read_dta(path1)
+        with tm.assert_produces_warning(UserWarning):
+            parsed_115 = self.read_dta(path2)
+        with tm.assert_produces_warning(UserWarning):
+            parsed_117 = self.read_dta(path3)
             # 113 is buggy due to limits of date format support in Stata
             # parsed_113 = self.read_dta(
             # datapath("io", "data", "stata", "stata2_113.dta")
             # )
-
-            # Remove resource warnings
-            w = [x for x in w if x.category is UserWarning]
-
-            # should get warning for each call to read_dta
-            assert len(w) == 3
 
         # buggy test because of the NaT comparison on certain platforms
         # Format 113 test fails since it does not support tc and tC formats
@@ -253,7 +279,7 @@ class TestStata:
                 ["Cat", "Bogota", "Bogotá", 1, 1.0, "option b Ünicode", 1.0],
                 ["Dog", "Boston", "Uzunköprü", np.nan, np.nan, np.nan, np.nan],
                 ["Plane", "Rome", "Tromsø", 0, 0.0, "option a", 0.0],
-                ["Potato", "Tokyo", "Elâzığ", -4, 4.0, 4, 4],
+                ["Potato", "Tokyo", "Elâzığ", -4, 4.0, 4, 4],  # noqa: RUF001
                 ["", "", "", 0, 0.3332999, "option a", 1 / 3.0],
             ],
             columns=[
@@ -339,13 +365,17 @@ class TestStata:
 
     def test_stata_doc_examples(self):
         with tm.ensure_clean() as path:
-            df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+            df = DataFrame(
+                np.random.default_rng(2).standard_normal((10, 2)), columns=list("AB")
+            )
             df.to_stata(path)
 
     def test_write_preserves_original(self):
         # 9795
-        np.random.seed(423)
-        df = DataFrame(np.random.randn(5, 4), columns=list("abcd"))
+
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)), columns=list("abcd")
+        )
         df.loc[2, "a":"c"] = np.nan
         df_copy = df.copy()
         with tm.ensure_clean() as path:
@@ -423,11 +453,9 @@ class TestStata:
         formatted = formatted.astype(np.int32)
 
         with tm.ensure_clean() as path:
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always", InvalidColumnName)
+            with tm.assert_produces_warning(InvalidColumnName):
                 original.to_stata(path, convert_dates=None, version=version)
                 # should get a warning for that format.
-                assert len(w) == 1
 
             written_and_read_again = self.read_dta(path)
 
@@ -1084,7 +1112,7 @@ class TestStata:
 
         # Check identity of codes
         for col in expected:
-            if is_categorical_dtype(expected[col].dtype):
+            if isinstance(expected[col].dtype, CategoricalDtype):
                 tm.assert_series_equal(expected[col].cat.codes, parsed[col].cat.codes)
                 tm.assert_index_equal(
                     expected[col].cat.categories, parsed[col].cat.categories
@@ -1114,11 +1142,12 @@ class TestStata:
 
         parsed_unordered = read_stata(file, order_categoricals=False)
         for col in parsed:
-            if not is_categorical_dtype(parsed[col].dtype):
+            if not isinstance(parsed[col].dtype, CategoricalDtype):
                 continue
             assert parsed[col].cat.ordered
             assert not parsed_unordered[col].cat.ordered
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize(
         "file",
         [
@@ -1143,13 +1172,11 @@ class TestStata:
     ):
         fname = datapath("io", "data", "stata", f"{file}.dta")
 
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("always")
-            parsed = read_stata(
-                fname,
-                convert_categoricals=convert_categoricals,
-                convert_dates=convert_dates,
-            )
+        parsed = read_stata(
+            fname,
+            convert_categoricals=convert_categoricals,
+            convert_dates=convert_dates,
+        )
         with read_stata(
             fname,
             iterator=True,
@@ -1158,12 +1185,10 @@ class TestStata:
         ) as itr:
             pos = 0
             for j in range(5):
-                with warnings.catch_warnings(record=True):
-                    warnings.simplefilter("always")
-                    try:
-                        chunk = itr.read(chunksize)
-                    except StopIteration:
-                        break
+                try:
+                    chunk = itr.read(chunksize)
+                except StopIteration:
+                    break
                 from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
                 from_frame = self._convert_categorical(from_frame)
                 tm.assert_frame_equal(
@@ -1178,7 +1203,7 @@ class TestStata:
         """
         for col in from_frame:
             ser = from_frame[col]
-            if is_categorical_dtype(ser.dtype):
+            if isinstance(ser.dtype, CategoricalDtype):
                 cat = ser._values.remove_unused_categories()
                 if cat.categories.dtype == object:
                     categories = pd.Index._with_infer(cat.categories._values)
@@ -1212,6 +1237,7 @@ class TestStata:
             from_chunks = pd.concat(itr)
         tm.assert_frame_equal(parsed, from_chunks)
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.parametrize(
         "file",
         [
@@ -1236,13 +1262,11 @@ class TestStata:
         fname = datapath("io", "data", "stata", f"{file}.dta")
 
         # Read the whole file
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("always")
-            parsed = read_stata(
-                fname,
-                convert_categoricals=convert_categoricals,
-                convert_dates=convert_dates,
-            )
+        parsed = read_stata(
+            fname,
+            convert_categoricals=convert_categoricals,
+            convert_dates=convert_dates,
+        )
 
         # Compare to what we get when reading by chunk
         with read_stata(
@@ -1253,12 +1277,10 @@ class TestStata:
         ) as itr:
             pos = 0
             for j in range(5):
-                with warnings.catch_warnings(record=True):
-                    warnings.simplefilter("always")
-                    try:
-                        chunk = itr.read(chunksize)
-                    except StopIteration:
-                        break
+                try:
+                    chunk = itr.read(chunksize)
+                except StopIteration:
+                    break
                 from_frame = parsed.iloc[pos : pos + chunksize, :].copy()
                 from_frame = self._convert_categorical(from_frame)
                 tm.assert_frame_equal(
@@ -1453,9 +1475,9 @@ The repeated labels are:\n-+\nwolof
         df = read_stata(datapath("io", "data", "stata", "stata7_111.dta"))
         original = DataFrame(
             {
-                "y": [1, 1, 1, 1, 1, 0, 0, np.NaN, 0, 0],
-                "x": [1, 2, 1, 3, np.NaN, 4, 3, 5, 1, 6],
-                "w": [2, np.NaN, 5, 2, 4, 4, 3, 1, 2, 3],
+                "y": [1, 1, 1, 1, 1, 0, 0, np.nan, 0, 0],
+                "x": [1, 2, 1, 3, np.nan, 4, 3, 5, 1, 6],
+                "w": [2, np.nan, 5, 2, 4, 4, 3, 1, 2, 3],
                 "z": ["a", "b", "c", "d", "e", "", "g", "h", "i", "j"],
             }
         )
@@ -1798,9 +1820,10 @@ the string values returned are correct."""
         # will block pytests skip mechanism from triggering (failing the test)
         # if the path is not present
         path = datapath("io", "data", "stata", "stata1_encoding_118.dta")
-        with tm.assert_produces_warning(UnicodeWarning) as w:
+        with tm.assert_produces_warning(UnicodeWarning, filter_level="once") as w:
             encoded = read_stata(path)
-            assert len(w) == 151
+            # with filter_level="always", produces 151 warnings which can be slow
+            assert len(w) == 1
             assert w[0].message.args[0] == msg
 
         expected = DataFrame([["Düsseldorf"]] * 151, columns=["kreis1849"])
@@ -1930,13 +1953,13 @@ def test_statareader_warns_when_used_without_context(datapath):
 @pytest.mark.parametrize("version", [114, 117, 118, 119, None])
 @pytest.mark.parametrize("use_dict", [True, False])
 @pytest.mark.parametrize("infer", [True, False])
-def test_compression(compression, version, use_dict, infer):
+def test_compression(compression, version, use_dict, infer, compression_to_extension):
     file_name = "dta_inferred_compression.dta"
     if compression:
         if use_dict:
             file_ext = compression
         else:
-            file_ext = _compression_to_extension[compression]
+            file_ext = compression_to_extension[compression]
         file_name += f".{file_ext}"
     compression_arg = compression
     if infer:
@@ -1944,7 +1967,9 @@ def test_compression(compression, version, use_dict, infer):
     if use_dict:
         compression_arg = {"method": compression}
 
-    df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)), columns=list("AB")
+    )
     df.index.name = "index"
     with tm.ensure_clean(file_name) as path:
         df.to_stata(path, version=version, compression=compression_arg)
@@ -1982,7 +2007,9 @@ def test_compression(compression, version, use_dict, infer):
 def test_compression_dict(method, file_ext):
     file_name = f"test.{file_ext}"
     archive_name = "test.dta"
-    df = DataFrame(np.random.randn(10, 2), columns=list("AB"))
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((10, 2)), columns=list("AB")
+    )
     df.index.name = "index"
     with tm.ensure_clean(file_name) as path:
         compression = {"method": method, "archive_name": archive_name}
@@ -2057,7 +2084,7 @@ def test_iterator_value_labels():
         with read_stata(path, chunksize=100) as reader:
             for j, chunk in enumerate(reader):
                 for i in range(2):
-                    tm.assert_index_equal(chunk.dtypes[i].categories, expected)
+                    tm.assert_index_equal(chunk.dtypes.iloc[i].categories, expected)
                 tm.assert_frame_equal(chunk, df.iloc[j * 100 : (j + 1) * 100])
 
 
@@ -2100,10 +2127,12 @@ def test_compression_roundtrip(compression):
 
 @pytest.mark.parametrize("to_infer", [True, False])
 @pytest.mark.parametrize("read_infer", [True, False])
-def test_stata_compression(compression_only, read_infer, to_infer):
+def test_stata_compression(
+    compression_only, read_infer, to_infer, compression_to_extension
+):
     compression = compression_only
 
-    ext = _compression_to_extension[compression]
+    ext = compression_to_extension[compression]
     filename = f"test.{ext}"
 
     df = DataFrame(
@@ -2275,3 +2304,21 @@ def test_nullable_support(dtype, version):
         tm.assert_series_equal(df.a, reread.a)
         tm.assert_series_equal(reread.b, expected_b)
         tm.assert_series_equal(reread.c, expected_c)
+
+
+def test_empty_frame():
+    # GH 46240
+    # create an empty DataFrame with int64 and float64 dtypes
+    df = DataFrame(data={"a": range(3), "b": [1.0, 2.0, 3.0]}).head(0)
+    with tm.ensure_clean() as path:
+        df.to_stata(path, write_index=False, version=117)
+        # Read entire dataframe
+        df2 = read_stata(path)
+        assert "b" in df2
+        # Dtypes don't match since no support for int32
+        dtypes = Series({"a": np.dtype("int32"), "b": np.dtype("float64")})
+        tm.assert_series_equal(df2.dtypes, dtypes)
+        # read one column of empty .dta file
+        df3 = read_stata(path, columns=["a"])
+        assert "b" not in df3
+        tm.assert_series_equal(df3.dtypes, dtypes.loc[["a"]])

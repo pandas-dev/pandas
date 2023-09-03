@@ -4,8 +4,6 @@ import pydoc
 import numpy as np
 import pytest
 
-from pandas.util._test_decorators import skip_if_no
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -120,7 +118,7 @@ class TestSeriesMisc:
     def test_ndarray_compat(self):
         # test numpy compat with Series as sub-class of NDFrame
         tsdf = DataFrame(
-            np.random.randn(1000, 3),
+            np.random.default_rng(2).standard_normal((1000, 3)),
             columns=["A", "B", "C"],
             index=date_range("1/1/2000", periods=1000),
         )
@@ -134,14 +132,14 @@ class TestSeriesMisc:
 
     def test_ndarray_compat_like_func(self):
         # using an ndarray like function
-        s = Series(np.random.randn(10))
+        s = Series(np.random.default_rng(2).standard_normal(10))
         result = Series(np.ones_like(s))
         expected = Series(1, index=range(10), dtype="float64")
         tm.assert_series_equal(result, expected)
 
     def test_ndarray_compat_ravel(self):
         # ravel
-        s = Series(np.random.randn(10))
+        s = Series(np.random.default_rng(2).standard_normal(10))
         tm.assert_almost_equal(s.ravel(order="F"), s.values.ravel(order="F"))
 
     def test_empty_method(self):
@@ -166,17 +164,20 @@ class TestSeriesMisc:
         result = s + 1
         assert result.attrs == {"version": 1}
 
-    @skip_if_no("jinja2")
     def test_inspect_getmembers(self):
         # GH38782
+        pytest.importorskip("jinja2")
         ser = Series(dtype=object)
-        with tm.assert_produces_warning(None, check_stacklevel=False):
+        msg = "Series._data is deprecated"
+        with tm.assert_produces_warning(
+            DeprecationWarning, match=msg, check_stacklevel=False
+        ):
             inspect.getmembers(ser)
 
     def test_unknown_attribute(self):
         # GH#9680
         tdi = pd.timedelta_range(start=0, periods=10, freq="1s")
-        ser = Series(np.random.normal(size=10), index=tdi)
+        ser = Series(np.random.default_rng(2).normal(size=10), index=tdi)
         assert "foo" not in ser.__dict__
         msg = "'Series' object has no attribute 'foo'"
         with pytest.raises(AttributeError, match=msg):

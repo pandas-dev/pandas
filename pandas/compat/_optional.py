@@ -2,52 +2,54 @@ from __future__ import annotations
 
 import importlib
 import sys
-import types
+from typing import TYPE_CHECKING
 import warnings
 
 from pandas.util._exceptions import find_stack_level
 
 from pandas.util.version import Version
 
+if TYPE_CHECKING:
+    import types
+
 # Update install.rst & setup.cfg when updating versions!
 
 VERSIONS = {
-    "bs4": "4.9.3",
+    "bs4": "4.11.1",
     "blosc": "1.21.0",
-    "bottleneck": "1.3.2",
-    "brotli": "0.7.0",
-    "fastparquet": "0.6.3",
-    "fsspec": "2021.07.0",
+    "bottleneck": "1.3.4",
+    "dataframe-api-compat": "0.1.7",
+    "fastparquet": "0.8.1",
+    "fsspec": "2022.05.0",
     "html5lib": "1.1",
-    "hypothesis": "6.34.2",
-    "gcsfs": "2021.07.0",
-    "jinja2": "3.0.0",
-    "lxml.etree": "4.6.3",
+    "hypothesis": "6.46.1",
+    "gcsfs": "2022.05.0",
+    "jinja2": "3.1.2",
+    "lxml.etree": "4.8.0",
     "matplotlib": "3.6.1",
-    "numba": "0.53.1",
-    "numexpr": "2.7.3",
+    "numba": "0.55.2",
+    "numexpr": "2.8.0",
     "odfpy": "1.4.1",
-    "openpyxl": "3.0.7",
-    "pandas_gbq": "0.15.0",
-    "psycopg2": "2.8.6",  # (dt dec pq3 ext lo64)
+    "openpyxl": "3.0.10",
+    "pandas_gbq": "0.17.5",
+    "psycopg2": "2.9.3",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
     "pyarrow": "7.0.0",
-    "pyreadstat": "1.1.2",
-    "pytest": "7.0.0",
-    "pyxlsb": "1.0.8",
-    "s3fs": "2021.08.0",
-    "scipy": "1.7.1",
-    "snappy": "0.6.0",
-    "sqlalchemy": "1.4.16",
-    "tables": "3.6.1",
-    "tabulate": "0.8.9",
-    "xarray": "0.21.0",
+    "pyreadstat": "1.1.5",
+    "pytest": "7.3.2",
+    "pyxlsb": "1.0.9",
+    "s3fs": "2022.05.0",
+    "scipy": "1.8.1",
+    "sqlalchemy": "1.4.36",
+    "tables": "3.7.0",
+    "tabulate": "0.8.10",
+    "xarray": "2022.03.0",
     "xlrd": "2.0.1",
-    "xlsxwriter": "1.4.3",
-    "zstandard": "0.15.2",
+    "xlsxwriter": "3.0.3",
+    "zstandard": "0.17.0",
     "tzdata": "2022.1",
     "qtpy": "2.2.0",
-    "pyqt5": "5.15.1",
+    "pyqt5": "5.15.6",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -56,12 +58,10 @@ VERSIONS = {
 INSTALL_MAPPING = {
     "bs4": "beautifulsoup4",
     "bottleneck": "Bottleneck",
-    "brotli": "brotlipy",
     "jinja2": "Jinja2",
     "lxml.etree": "lxml",
     "odf": "odfpy",
     "pandas_gbq": "pandas-gbq",
-    "snappy": "python-snappy",
     "sqlalchemy": "SQLAlchemy",
     "tables": "pytables",
 }
@@ -69,18 +69,8 @@ INSTALL_MAPPING = {
 
 def get_version(module: types.ModuleType) -> str:
     version = getattr(module, "__version__", None)
-    if version is None:
-        # xlrd uses a capitalized attribute name
-        version = getattr(module, "__VERSION__", None)
 
     if version is None:
-        if module.__name__ == "brotli":
-            # brotli doesn't contain attributes to confirm it's version
-            return ""
-        if module.__name__ == "snappy":
-            # snappy doesn't contain attributes to confirm it's version
-            # See https://github.com/andrix/python-snappy/pull/119
-            return ""
         raise ImportError(f"Can't determine version for {module.__name__}")
     if module.__name__ == "psycopg2":
         # psycopg2 appends " (dt dec pq3 ext lo64)" to it's version

@@ -29,7 +29,7 @@ class TestToTimestamp:
         K = 5
         index = period_range(freq="A", start="1/1/2001", end="12/1/2009")
         obj = DataFrame(
-            np.random.randn(len(index), K),
+            np.random.default_rng(2).standard_normal((len(index), K)),
             index=index,
             columns=["A", "B", "C", "D", "E"],
         )
@@ -73,7 +73,7 @@ class TestToTimestamp:
         K = 5
         index = period_range(freq="A", start="1/1/2001", end="12/1/2009")
         df = DataFrame(
-            np.random.randn(len(index), K),
+            np.random.default_rng(2).standard_normal((len(index), K)),
             index=index,
             columns=["A", "B", "C", "D", "E"],
         )
@@ -99,7 +99,7 @@ class TestToTimestamp:
         tm.assert_index_equal(result.columns, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
-        result = df.to_timestamp("T", "end", axis=1)
+        result = df.to_timestamp("min", "end", axis=1)
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "ns")
         tm.assert_index_equal(result.columns, exp_index)
@@ -110,8 +110,8 @@ class TestToTimestamp:
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
         tm.assert_index_equal(result.columns, exp_index)
 
-        result1 = df.to_timestamp("5t", axis=1)
-        result2 = df.to_timestamp("t", axis=1)
+        result1 = df.to_timestamp("5min", axis=1)
+        result2 = df.to_timestamp("min", axis=1)
         expected = date_range("2001-01-01", "2009-01-01", freq="AS")
         assert isinstance(result1.columns, DatetimeIndex)
         assert isinstance(result2.columns, DatetimeIndex)
@@ -123,7 +123,9 @@ class TestToTimestamp:
 
     def test_to_timestamp_invalid_axis(self):
         index = period_range(freq="A", start="1/1/2001", end="12/1/2009")
-        obj = DataFrame(np.random.randn(len(index), 5), index=index)
+        obj = DataFrame(
+            np.random.default_rng(2).standard_normal((len(index), 5)), index=index
+        )
 
         # invalid axis
         with pytest.raises(ValueError, match="axis"):

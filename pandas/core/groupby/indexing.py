@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import (
     TYPE_CHECKING,
-    Iterable,
     Literal,
     cast,
 )
 
 import numpy as np
 
-from pandas._typing import PositionalIndexer
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -21,6 +20,8 @@ from pandas.core.dtypes.common import (
 )
 
 if TYPE_CHECKING:
+    from pandas._typing import PositionalIndexer
+
     from pandas import (
         DataFrame,
         Series,

@@ -74,14 +74,20 @@ class TestDataFrameToCSV:
         with tm.ensure_clean("__tmp_to_csv_from_csv2__") as path:
             # duplicate index
             df = DataFrame(
-                np.random.randn(3, 3), index=["a", "a", "b"], columns=["x", "y", "z"]
+                np.random.default_rng(2).standard_normal((3, 3)),
+                index=["a", "a", "b"],
+                columns=["x", "y", "z"],
             )
             df.to_csv(path)
             result = self.read_csv(path)
             tm.assert_frame_equal(result, df)
 
             midx = MultiIndex.from_tuples([("A", 1, 2), ("A", 1, 2), ("B", 1, 2)])
-            df = DataFrame(np.random.randn(3, 3), index=midx, columns=["x", "y", "z"])
+            df = DataFrame(
+                np.random.default_rng(2).standard_normal((3, 3)),
+                index=midx,
+                columns=["x", "y", "z"],
+            )
 
             df.to_csv(path)
             result = self.read_csv(path, index_col=[0, 1, 2], parse_dates=False)
@@ -102,8 +108,8 @@ class TestDataFrameToCSV:
 
     def test_to_csv_from_csv3(self):
         with tm.ensure_clean("__tmp_to_csv_from_csv3__") as path:
-            df1 = DataFrame(np.random.randn(3, 1))
-            df2 = DataFrame(np.random.randn(3, 1))
+            df1 = DataFrame(np.random.default_rng(2).standard_normal((3, 1)))
+            df2 = DataFrame(np.random.default_rng(2).standard_normal((3, 1)))
 
             df1.to_csv(path)
             df2.to_csv(path, mode="a", header=False)
@@ -201,9 +207,9 @@ class TestDataFrameToCSV:
                 nnat = int(n * 0.1)  # 10%
             s = list(date_range("2000", freq="5min", periods=n))
             if nnat:
-                for i in np.random.randint(0, len(s), nnat):
+                for i in np.random.default_rng(2).integers(0, len(s), nnat):
                     s[i] = NaT
-                i = np.random.randint(100)
+                i = np.random.default_rng(2).integers(100)
                 s[-i] = NaT
                 s[i] = NaT
             return s
@@ -341,6 +347,7 @@ class TestDataFrameToCSV:
         "r_idx_type, c_idx_type", [("i", "i"), ("s", "s"), ("s", "dt"), ("p", "p")]
     )
     @pytest.mark.parametrize("ncols", [1, 2, 3, 4])
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_to_csv_idx_types(self, nrows, r_idx_type, c_idx_type, ncols):
         df = tm.makeCustomDataframe(
             nrows, ncols, r_idx_type=r_idx_type, c_idx_type=c_idx_type
@@ -412,7 +419,7 @@ class TestDataFrameToCSV:
     def test_to_csv_from_csv_w_some_infs(self, float_frame):
         # test roundtrip with inf, -inf, nan, as full columns and mix
         float_frame["G"] = np.nan
-        f = lambda x: [np.inf, np.nan][np.random.rand() < 0.5]
+        f = lambda x: [np.inf, np.nan][np.random.default_rng(2).random() < 0.5]
         float_frame["H"] = float_frame.index.map(f)
 
         with tm.ensure_clean() as path:
@@ -530,7 +537,7 @@ class TestDataFrameToCSV:
                 if names is True:
                     names = ["first", "second"]
                 return DataFrame(
-                    np.random.randint(0, 10, size=(3, 3)),
+                    np.random.default_rng(2).integers(0, 10, size=(3, 3)),
                     columns=MultiIndex.from_tuples(
                         [("bah", "foo"), ("bah", "bar"), ("ban", "baz")], names=names
                     ),
@@ -620,13 +627,15 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(result, expected)
 
     def test_to_csv_float32_nanrep(self):
-        df = DataFrame(np.random.randn(1, 4).astype(np.float32))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((1, 4)).astype(np.float32)
+        )
         df[1] = np.nan
 
         with tm.ensure_clean("__tmp_to_csv_float32_nanrep__.csv") as path:
             df.to_csv(path, na_rep=999)
 
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 lines = f.readlines()
                 assert lines[1].split(",")[2] == "999"
 
@@ -644,10 +653,12 @@ class TestDataFrameToCSV:
             return [f"{name}{i:03d}" for i in range(5)]
 
         df_float = DataFrame(
-            np.random.randn(100, 5), dtype="float64", columns=create_cols("float")
+            np.random.default_rng(2).standard_normal((100, 5)),
+            dtype="float64",
+            columns=create_cols("float"),
         )
         df_int = DataFrame(
-            np.random.randn(100, 5).astype("int64"),
+            np.random.default_rng(2).standard_normal((100, 5)).astype("int64"),
             dtype="int64",
             columns=create_cols("int"),
         )
@@ -656,14 +667,14 @@ class TestDataFrameToCSV:
             "foo", index=df_float.index, columns=create_cols("object")
         )
         df_dt = DataFrame(
-            Timestamp("20010101"), index=df_float.index, columns=create_cols("date")
+            Timestamp("20010101").as_unit("ns"),
+            index=df_float.index,
+            columns=create_cols("date"),
         )
 
         # add in some nans
         df_float.iloc[30:50, 1:3] = np.nan
-
-        # ## this is a bug in read_csv right now ####
-        # df_dt.loc[30:50,1:3] = np.nan
+        df_dt.iloc[30:50, 1:3] = np.nan
 
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
@@ -687,7 +698,7 @@ class TestDataFrameToCSV:
 
     def test_to_csv_dups_cols(self):
         df = DataFrame(
-            np.random.randn(1000, 30),
+            np.random.default_rng(2).standard_normal((1000, 30)),
             columns=list(range(15)) + list(range(15)),
             dtype="float64",
         )
@@ -698,11 +709,17 @@ class TestDataFrameToCSV:
             result.columns = df.columns
             tm.assert_frame_equal(result, df)
 
-        df_float = DataFrame(np.random.randn(1000, 3), dtype="float64")
-        df_int = DataFrame(np.random.randn(1000, 3)).astype("int64")
+        df_float = DataFrame(
+            np.random.default_rng(2).standard_normal((1000, 3)), dtype="float64"
+        )
+        df_int = DataFrame(np.random.default_rng(2).standard_normal((1000, 3))).astype(
+            "int64"
+        )
         df_bool = DataFrame(True, index=df_float.index, columns=range(3))
         df_object = DataFrame("foo", index=df_float.index, columns=range(3))
-        df_dt = DataFrame(Timestamp("20010101"), index=df_float.index, columns=range(3))
+        df_dt = DataFrame(
+            Timestamp("20010101").as_unit("ns"), index=df_float.index, columns=range(3)
+        )
         df = pd.concat(
             [df_float, df_int, df_bool, df_object, df_dt], axis=1, ignore_index=True
         )
@@ -747,13 +764,20 @@ class TestDataFrameToCSV:
             tm.assert_frame_equal(rs, aa)
 
     @pytest.mark.slow
-    def test_to_csv_wide_frame_formatting(self):
+    def test_to_csv_wide_frame_formatting(self, monkeypatch):
         # Issue #8621
-        df = DataFrame(np.random.randn(1, 100010), columns=None, index=None)
+        chunksize = 100
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((1, chunksize + 10)),
+            columns=None,
+            index=None,
+        )
         with tm.ensure_clean() as filename:
-            df.to_csv(filename, header=False, index=False)
+            with monkeypatch.context() as m:
+                m.setattr("pandas.io.formats.csvs._DEFAULT_CHUNKSIZE_CELLS", chunksize)
+                df.to_csv(filename, header=False, index=False)
             rs = read_csv(filename, header=None)
-            tm.assert_frame_equal(rs, df)
+        tm.assert_frame_equal(rs, df)
 
     def test_to_csv_bug(self):
         f1 = StringIO("a,1.0\nb,2.0")
@@ -948,7 +972,10 @@ class TestDataFrameToCSV:
             (DataFrame([["abc", "def", "ghi"]], columns=["X", "Y", "Z"]), "ascii"),
             (DataFrame(5 * [[123, "你好", "世界"]], columns=["X", "Y", "Z"]), "gb2312"),
             (
-                DataFrame(5 * [[123, "Γειά σου", "Κόσμε"]], columns=["X", "Y", "Z"]),
+                DataFrame(
+                    5 * [[123, "Γειά σου", "Κόσμε"]],  # noqa: RUF001
+                    columns=["X", "Y", "Z"],
+                ),
                 "cp737",
             ),
         ],
@@ -997,9 +1024,7 @@ class TestDataFrameToCSV:
             # Check that the data was put in the specified format
             test = read_csv(path, index_col=0)
 
-            datetime_frame_int = datetime_frame.applymap(
-                lambda x: int(x.strftime("%Y%m%d"))
-            )
+            datetime_frame_int = datetime_frame.map(lambda x: int(x.strftime("%Y%m%d")))
             datetime_frame_int.index = datetime_frame_int.index.map(
                 lambda x: int(x.strftime("%Y%m%d"))
             )
@@ -1010,9 +1035,7 @@ class TestDataFrameToCSV:
 
             # Check that the data was put in the specified format
             test = read_csv(path, index_col=0)
-            datetime_frame_str = datetime_frame.applymap(
-                lambda x: x.strftime("%Y-%m-%d")
-            )
+            datetime_frame_str = datetime_frame.map(lambda x: x.strftime("%Y-%m-%d"))
             datetime_frame_str.index = datetime_frame_str.index.map(
                 lambda x: x.strftime("%Y-%m-%d")
             )
@@ -1025,7 +1048,7 @@ class TestDataFrameToCSV:
 
             test = read_csv(path, index_col=0)
 
-            datetime_frame_columns = datetime_frame_columns.applymap(
+            datetime_frame_columns = datetime_frame_columns.map(
                 lambda x: int(x.strftime("%Y%m%d"))
             )
             # Columns don't get converted to ints by read_csv

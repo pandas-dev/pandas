@@ -1,7 +1,5 @@
 # Test GroupBy._positional_selector positional grouped indexing GH#42864
 
-import random
-
 import numpy as np
 import pytest
 
@@ -122,6 +120,7 @@ def test_doc_examples():
 
 @pytest.fixture()
 def multiindex_data():
+    rng = np.random.default_rng(2)
     ndates = 100
     nitems = 20
     dates = pd.date_range("20130101", periods=ndates, freq="D")
@@ -129,9 +128,9 @@ def multiindex_data():
 
     data = {}
     for date in dates:
-        nitems_for_date = nitems - random.randint(0, 12)
+        nitems_for_date = nitems - rng.integers(0, 12)
         levels = [
-            (item, random.randint(0, 10000) / 100, random.randint(0, 10000) / 100)
+            (item, rng.integers(0, 10000) / 100, rng.integers(0, 10000) / 100)
             for item in items[:nitems_for_date]
         ]
         levels.sort(key=lambda x: x[1])
@@ -188,12 +187,12 @@ def test_against_head_and_tail(arg, method, simulated):
         result = grouped._positional_selector[:arg]
 
         if simulated:
-            indices = []
-            for j in range(size):
-                for i in range(n_groups):
-                    if j * n_groups + i < n_groups * n_rows_per_group:
-                        indices.append(j * n_groups + i)
-
+            indices = [
+                j * n_groups + i
+                for j in range(size)
+                for i in range(n_groups)
+                if j * n_groups + i < n_groups * n_rows_per_group
+            ]
             expected = df.iloc[indices]
 
         else:
@@ -203,12 +202,12 @@ def test_against_head_and_tail(arg, method, simulated):
         result = grouped._positional_selector[-arg:]
 
         if simulated:
-            indices = []
-            for j in range(size):
-                for i in range(n_groups):
-                    if (n_rows_per_group + j - size) * n_groups + i >= 0:
-                        indices.append((n_rows_per_group + j - size) * n_groups + i)
-
+            indices = [
+                (n_rows_per_group + j - size) * n_groups + i
+                for j in range(size)
+                for i in range(n_groups)
+                if (n_rows_per_group + j - size) * n_groups + i >= 0
+            ]
             expected = df.iloc[indices]
 
         else:
@@ -281,7 +280,9 @@ def column_group_df():
 
 
 def test_column_axis(column_group_df):
-    g = column_group_df.groupby(column_group_df.iloc[1], axis=1)
+    msg = "DataFrame.groupby with axis=1"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        g = column_group_df.groupby(column_group_df.iloc[1], axis=1)
     result = g._positional_selector[1:-1]
     expected = column_group_df.iloc[:, [1, 3]]
 

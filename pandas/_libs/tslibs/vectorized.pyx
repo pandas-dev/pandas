@@ -1,14 +1,11 @@
 cimport cython
+cimport numpy as cnp
 from cpython.datetime cimport (
     date,
     datetime,
     time,
     tzinfo,
 )
-
-import numpy as np
-
-cimport numpy as cnp
 from numpy cimport (
     int64_t,
     ndarray,
@@ -29,9 +26,13 @@ from .nattype cimport (
 from .np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
+    import_pandas_datetime,
     npy_datetimestruct,
     pandas_datetime_to_datetimestruct,
 )
+
+import_pandas_datetime()
+
 from .period cimport get_period_ordinal
 from .timestamps cimport create_timestamp_from_ts
 from .timezones cimport is_utc
@@ -54,6 +55,11 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
     -------
     ndarray[int64]
     """
+    if tz is None or is_utc(tz) or stamps.size == 0:
+        # Much faster than going through the "standard" pattern below;
+        #  do this before initializing Localizer.
+        return stamps.copy()
+
     cdef:
         Localizer info = Localizer(tz, creso=reso)
         int64_t utc_val, local_val
@@ -61,10 +67,6 @@ def tz_convert_from_utc(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso=NPY_FR_
 
         ndarray result
         cnp.broadcast mi
-
-    if tz is None or is_utc(tz) or stamps.size == 0:
-        # Much faster than going through the "standard" pattern below
-        return stamps.copy()
 
     result = cnp.PyArray_EMPTY(stamps.ndim, stamps.shape, cnp.NPY_INT64, 0)
     mi = cnp.PyArray_MultiIterNew2(result, stamps)
@@ -96,7 +98,7 @@ def ints_to_pydatetime(
     tzinfo tz=None,
     str box="datetime",
     NPY_DATETIMEUNIT reso=NPY_FR_ns,
-) -> np.ndarray:
+) -> ndarray:
     # stamps is int64, arbitrary ndim
     """
     Convert an i8 repr to an ndarray of datetimes, date, time or Timestamp.

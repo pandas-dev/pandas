@@ -135,7 +135,9 @@ def test_agg_cython_table_series(series, func, expected):
     # GH21224
     # test reducing functions in
     # pandas.core.base.SelectionMixin._cython_table
-    result = series.agg(func)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using Series.*"):
+        result = series.agg(func)
     if is_number(expected):
         assert np.isclose(result, expected, equal_nan=True)
     else:
@@ -168,7 +170,9 @@ def test_agg_cython_table_transform_series(series, func, expected):
     # GH21224
     # test transforming functions in
     # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    result = series.agg(func)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using Series.*"):
+        result = series.agg(func)
     tm.assert_series_equal(result, expected)
 
 
@@ -211,7 +215,10 @@ def test_agg_cython_table_frame(df, func, expected, axis):
     # GH 21224
     # test reducing functions in
     # pandas.core.base.SelectionMixin._cython_table
-    result = df.agg(func, axis=axis)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
+        # GH#53425
+        result = df.agg(func, axis=axis)
     tm.assert_series_equal(result, expected)
 
 
@@ -238,7 +245,10 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
         # operating blockwise doesn't let us preserve dtypes
         expected = expected.astype("float64")
 
-    result = df.agg(func, axis=axis)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
+        # GH#53425
+        result = df.agg(func, axis=axis)
     tm.assert_frame_equal(result, expected)
 
 
@@ -268,9 +278,14 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     args = [0.0] if op == "fillna" else []
     if axis in (0, "index"):
         ones = np.ones(float_frame.shape[0])
+        msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
     else:
         ones = np.ones(float_frame.shape[1])
-    expected = float_frame.groupby(ones, axis=axis).transform(op, *args)
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = float_frame.groupby(ones, axis=axis)
+    expected = gb.transform(op, *args)
     result = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result, expected)
 
@@ -283,7 +298,9 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
         ones = np.ones(float_frame.shape[0])
     else:
         ones = np.ones(float_frame.shape[1])
-    expected2 = float_frame.groupby(ones, axis=axis).transform(op, *args)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb2 = float_frame.groupby(ones, axis=axis)
+    expected2 = gb2.transform(op, *args)
     result2 = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result2, expected2)
 

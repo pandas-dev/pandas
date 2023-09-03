@@ -1,18 +1,22 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import (
+    TYPE_CHECKING,
+    Literal,
+)
 import warnings
+
+import numpy as np
 
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import maybe_box_native
-from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
-    is_object_dtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 
-from pandas import DataFrame
 from pandas.core import common as com
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 def to_dict(
@@ -94,7 +98,7 @@ def to_dict(
     box_native_indices = [
         i
         for i, col_dtype in enumerate(df.dtypes.values)
-        if is_object_dtype(col_dtype) or is_extension_array_dtype(col_dtype)
+        if col_dtype == np.dtype(object) or isinstance(col_dtype, ExtensionDtype)
     ]
     are_all_object_dtype_cols = len(box_native_indices) == len(df.dtypes)
 
@@ -102,13 +106,13 @@ def to_dict(
         return into_c((k, v.to_dict(into)) for k, v in df.items())
 
     elif orient == "list":
-        object_dtype_indices_as_set = set(box_native_indices)
+        object_dtype_indices_as_set: set[int] = set(box_native_indices)
         return into_c(
             (
                 k,
-                list(map(maybe_box_native, v.tolist()))
+                list(map(maybe_box_native, v.to_numpy().tolist()))
                 if i in object_dtype_indices_as_set
-                else v.tolist(),
+                else v.to_numpy().tolist(),
             )
             for i, (k, v) in enumerate(df.items())
         )

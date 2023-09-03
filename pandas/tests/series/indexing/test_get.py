@@ -144,7 +144,6 @@ def test_get_with_default():
     # GH#7725
     d0 = ["a", "b", "c", "d"]
     d1 = np.arange(4, dtype="int64")
-    others = ["e", 10]
 
     for data, index in ((d0, d1), (d1, d0)):
         s = Series(data, index=index)
@@ -152,14 +151,25 @@ def test_get_with_default():
             assert s.get(i) == d
             assert s.get(i, d) == d
             assert s.get(i, "z") == d
-            for other in others:
-                assert s.get(other, "z") == "z"
-                assert s.get(other, other) == other
+
+            assert s.get("e", "z") == "z"
+            assert s.get("e", "e") == "e"
+
+            msg = "Series.__getitem__ treating keys as positions is deprecated"
+            warn = None
+            if index is d0:
+                warn = FutureWarning
+            with tm.assert_produces_warning(warn, match=msg):
+                assert s.get(10, "z") == "z"
+                assert s.get(10, 10) == 10
 
 
 @pytest.mark.parametrize(
     "arr",
-    [np.random.randn(10), tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern")],
+    [
+        np.random.default_rng(2).standard_normal(10),
+        tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern"),
+    ],
 )
 def test_get_with_ea(arr):
     # GH#21260
@@ -187,9 +197,13 @@ def test_get_with_ea(arr):
     result = ser.get("Z")
     assert result is None
 
-    assert ser.get(4) == ser.iloc[4]
-    assert ser.get(-1) == ser.iloc[-1]
-    assert ser.get(len(ser)) is None
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert ser.get(4) == ser.iloc[4]
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert ser.get(-1) == ser.iloc[-1]
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert ser.get(len(ser)) is None
 
     # GH#21257
     ser = Series(arr)
@@ -198,14 +212,17 @@ def test_get_with_ea(arr):
 
 
 def test_getitem_get(string_series, object_series):
+    msg = "Series.__getitem__ treating keys as positions is deprecated"
+
     for obj in [string_series, object_series]:
         idx = obj.index[5]
 
         assert obj[idx] == obj.get(idx)
-        assert obj[idx] == obj[5]
+        assert obj[idx] == obj.iloc[5]
 
-    assert string_series.get(-1) == string_series.get(string_series.index[-1])
-    assert string_series[5] == string_series.get(string_series.index[5])
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert string_series.get(-1) == string_series.get(string_series.index[-1])
+    assert string_series.iloc[5] == string_series.get(string_series.index[5])
 
 
 def test_get_none():

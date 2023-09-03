@@ -5,9 +5,11 @@ import pytest
 
 from pandas import (
     DataFrame,
+    MultiIndex,
     NaT,
     PeriodIndex,
     Series,
+    TimedeltaIndex,
 )
 import pandas._testing as tm
 from pandas.core.groupby.groupby import DataError
@@ -20,7 +22,7 @@ from pandas.core.resample import _asfreq_compat
 # a fixture value can be overridden by the test parameter value. Note that the
 # value of the fixture can be overridden this way even if the test doesn't use
 # it directly (doesn't mention it in the function prototype).
-# see https://docs.pytest.org/en/latest/fixture.html#override-a-fixture-with-direct-test-parametrization  # noqa:E501
+# see https://docs.pytest.org/en/latest/fixture.html#override-a-fixture-with-direct-test-parametrization  # noqa: E501
 # in this module we override the fixture values defined in conftest.py
 # tuples of '_index_factory,_series_name,_index_start,_index_end'
 DATE_RANGE = (date_range, "dti", datetime(2005, 1, 1), datetime(2005, 1, 10))
@@ -79,11 +81,11 @@ def test_asfreq_fill_value(series, create_index):
 
 @all_ts
 def test_resample_interpolate(frame):
-    # # 12925
+    # GH#12925
     df = frame
-    tm.assert_frame_equal(
-        df.resample("1T").asfreq().interpolate(), df.resample("1T").interpolate()
-    )
+    result = df.resample("1min").asfreq().interpolate()
+    expected = df.resample("1min").interpolate()
+    tm.assert_frame_equal(result, expected)
 
 
 def test_raises_on_non_datetimelike_index():
@@ -94,39 +96,53 @@ def test_raises_on_non_datetimelike_index():
         "but got an instance of 'RangeIndex'"
     )
     with pytest.raises(TypeError, match=msg):
-        xp.resample("A").mean()
+        xp.resample("A")
 
 
 @all_ts
 @pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_empty_series(freq, empty_series_dti, resample_method, request):
+def test_resample_empty_series(freq, empty_series_dti, resample_method):
     # GH12771 & GH12868
 
-    if resample_method == "ohlc" and isinstance(empty_series_dti.index, PeriodIndex):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason=f"GH13083: {resample_method} fails for PeriodIndex"
-            )
-        )
-
     ser = empty_series_dti
-    result = getattr(ser.resample(freq), resample_method)()
+    if freq == "M" and isinstance(ser.index, TimedeltaIndex):
+        msg = (
+            "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
+            "e.g. '24H' or '3D', not <MonthEnd>"
+        )
+        with pytest.raises(ValueError, match=msg):
+            ser.resample(freq)
+        return
 
-    expected = ser.copy()
-    expected.index = _asfreq_compat(ser.index, freq)
+    rs = ser.resample(freq)
+    result = getattr(rs, resample_method)()
+
+    if resample_method == "ohlc":
+        expected = DataFrame(
+            [], index=ser.index[:0].copy(), columns=["open", "high", "low", "close"]
+        )
+        expected.index = _asfreq_compat(ser.index, freq)
+        tm.assert_frame_equal(result, expected, check_dtype=False)
+    else:
+        expected = ser.copy()
+        expected.index = _asfreq_compat(ser.index, freq)
+        tm.assert_series_equal(result, expected, check_dtype=False)
 
     tm.assert_index_equal(result.index, expected.index)
     assert result.index.freq == expected.index.freq
-    tm.assert_series_equal(result, expected, check_dtype=False)
 
 
 @all_ts
-@pytest.mark.parametrize("freq", ["M", "D", "H"])
-def test_resample_nat_index_series(request, freq, series, resample_method):
+@pytest.mark.parametrize(
+    "freq",
+    [
+        pytest.param("M", marks=pytest.mark.xfail(reason="Don't know why this fails")),
+        "D",
+        "H",
+    ],
+)
+def test_resample_nat_index_series(freq, series, resample_method):
     # GH39227
-
-    if freq == "M":
-        request.node.add_marker(pytest.mark.xfail(reason="Don't know why this fails"))
 
     ser = series.copy()
     ser.index = PeriodIndex([NaT] * len(ser), freq=freq)
@@ -150,11 +166,23 @@ def test_resample_nat_index_series(request, freq, series, resample_method):
 @pytest.mark.parametrize("resample_method", ["count", "size"])
 def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
     # GH28427
-    result = getattr(empty_series_dti.resample(freq), resample_method)()
+    ser = empty_series_dti
+    if freq == "M" and isinstance(ser.index, TimedeltaIndex):
+        msg = (
+            "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
+            "e.g. '24H' or '3D', not <MonthEnd>"
+        )
+        with pytest.raises(ValueError, match=msg):
+            ser.resample(freq)
+        return
 
-    index = _asfreq_compat(empty_series_dti.index, freq)
+    rs = ser.resample(freq)
 
-    expected = Series([], dtype="int64", index=index, name=empty_series_dti.name)
+    result = getattr(rs, resample_method)()
+
+    index = _asfreq_compat(ser.index, freq)
+
+    expected = Series([], dtype="int64", index=index, name=ser.name)
 
     tm.assert_series_equal(result, expected)
 
@@ -165,8 +193,26 @@ def test_resample_empty_dataframe(empty_frame_dti, freq, resample_method):
     # GH13212
     df = empty_frame_dti
     # count retains dimensions too
-    result = getattr(df.resample(freq, group_keys=False), resample_method)()
-    if resample_method != "size":
+    if freq == "M" and isinstance(df.index, TimedeltaIndex):
+        msg = (
+            "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
+            "e.g. '24H' or '3D', not <MonthEnd>"
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.resample(freq, group_keys=False)
+        return
+
+    rs = df.resample(freq, group_keys=False)
+    result = getattr(rs, resample_method)()
+    if resample_method == "ohlc":
+        # TODO: no tests with len(df.columns) > 0
+        mi = MultiIndex.from_product([df.columns, ["open", "high", "low", "close"]])
+        expected = DataFrame(
+            [], index=df.index[:0].copy(), columns=mi, dtype=np.float64
+        )
+        expected.index = _asfreq_compat(df.index, freq)
+
+    elif resample_method != "size":
         expected = df.copy()
     else:
         # GH14962
@@ -188,6 +234,15 @@ def test_resample_count_empty_dataframe(freq, empty_frame_dti):
 
     empty_frame_dti["a"] = []
 
+    if freq == "M" and isinstance(empty_frame_dti.index, TimedeltaIndex):
+        msg = (
+            "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
+            "e.g. '24H' or '3D', not <MonthEnd>"
+        )
+        with pytest.raises(ValueError, match=msg):
+            empty_frame_dti.resample(freq)
+        return
+
     result = empty_frame_dti.resample(freq).count()
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
@@ -204,6 +259,15 @@ def test_resample_size_empty_dataframe(freq, empty_frame_dti):
 
     empty_frame_dti["a"] = []
 
+    if freq == "M" and isinstance(empty_frame_dti.index, TimedeltaIndex):
+        msg = (
+            "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
+            "e.g. '24H' or '3D', not <MonthEnd>"
+        )
+        with pytest.raises(ValueError, match=msg):
+            empty_frame_dti.resample(freq)
+        return
+
     result = empty_frame_dti.resample(freq).size()
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
@@ -213,15 +277,20 @@ def test_resample_size_empty_dataframe(freq, empty_frame_dti):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
 @pytest.mark.parametrize("dtype", [float, int, object, "datetime64[ns]"])
 def test_resample_empty_dtypes(index, dtype, resample_method):
     # Empty series were sometimes causing a segfault (for the functions
     # with Cython bounds-checking disabled) or an IndexError.  We just run
     # them to ensure they no longer do.  (GH #10228)
+    if isinstance(index, PeriodIndex):
+        # GH#53511
+        index = PeriodIndex([], freq="B", name=index.name)
     empty_series_dti = Series([], index, dtype)
+    rs = empty_series_dti.resample("d", group_keys=False)
     try:
-        getattr(empty_series_dti.resample("d", group_keys=False), resample_method)()
+        getattr(rs, resample_method)()
     except DataError:
         # Ignore these since some combinations are invalid
         # (ex: doing mean with dtype of np.object_)
@@ -233,8 +302,18 @@ def test_resample_empty_dtypes(index, dtype, resample_method):
 def test_apply_to_empty_series(empty_series_dti, freq):
     # GH 14313
     ser = empty_series_dti
+
+    if freq == "M" and isinstance(empty_series_dti.index, TimedeltaIndex):
+        msg = (
+            "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
+            "e.g. '24H' or '3D', not <MonthEnd>"
+        )
+        with pytest.raises(ValueError, match=msg):
+            empty_series_dti.resample(freq)
+        return
+
     result = ser.resample(freq, group_keys=False).apply(lambda x: 1)
-    expected = ser.resample(freq).apply(np.sum)
+    expected = ser.resample(freq).apply("sum")
 
     tm.assert_series_equal(result, expected, check_dtype=False)
 

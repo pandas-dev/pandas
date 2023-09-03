@@ -21,7 +21,6 @@ from pandas import (
     Series,
 )
 import pandas._testing as tm
-import pandas.core.common as com
 from pandas.core.computation import expressions as expr
 from pandas.core.computation.expressions import (
     _MIN_ELEMENTS,
@@ -90,7 +89,9 @@ class TestFrameComparisons:
 
     def test_frame_in_list(self):
         # GH#12689 this should raise at the DataFrame level, not blocks
-        df = DataFrame(np.random.randn(6, 4), columns=list("ABCD"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((6, 4)), columns=list("ABCD")
+        )
         msg = "The truth value of a DataFrame is ambiguous"
         with pytest.raises(ValueError, match=msg):
             df in [None]
@@ -100,21 +101,21 @@ class TestFrameComparisons:
         [
             [
                 {
-                    "a": np.random.randint(10, size=10),
+                    "a": np.random.default_rng(2).integers(10, size=10),
                     "b": pd.date_range("20010101", periods=10),
                 },
                 {
-                    "a": np.random.randint(10, size=10),
-                    "b": np.random.randint(10, size=10),
+                    "a": np.random.default_rng(2).integers(10, size=10),
+                    "b": np.random.default_rng(2).integers(10, size=10),
                 },
             ],
             [
                 {
-                    "a": np.random.randint(10, size=10),
-                    "b": np.random.randint(10, size=10),
+                    "a": np.random.default_rng(2).integers(10, size=10),
+                    "b": np.random.default_rng(2).integers(10, size=10),
                 },
                 {
-                    "a": np.random.randint(10, size=10),
+                    "a": np.random.default_rng(2).integers(10, size=10),
                     "b": pd.date_range("20010101", periods=10),
                 },
             ],
@@ -124,13 +125,13 @@ class TestFrameComparisons:
                     "b": pd.date_range("20010101", periods=10),
                 },
                 {
-                    "a": np.random.randint(10, size=10),
-                    "b": np.random.randint(10, size=10),
+                    "a": np.random.default_rng(2).integers(10, size=10),
+                    "b": np.random.default_rng(2).integers(10, size=10),
                 },
             ],
             [
                 {
-                    "a": np.random.randint(10, size=10),
+                    "a": np.random.default_rng(2).integers(10, size=10),
                     "b": pd.date_range("20010101", periods=10),
                 },
                 {
@@ -200,12 +201,12 @@ class TestFrameComparisons:
             {
                 "dates1": pd.date_range("20010101", periods=10),
                 "dates2": pd.date_range("20010102", periods=10),
-                "intcol": np.random.randint(1000000000, size=10),
-                "floatcol": np.random.randn(10),
-                "stringcol": list(tm.rands(10)),
+                "intcol": np.random.default_rng(2).integers(1000000000, size=10),
+                "floatcol": np.random.default_rng(2).standard_normal(10),
+                "stringcol": [chr(100 + i) for i in range(10)],
             }
         )
-        df.loc[np.random.rand(len(df)) > 0.5, "dates2"] = pd.NaT
+        df.loc[np.random.default_rng(2).random(len(df)) > 0.5, "dates2"] = pd.NaT
         left_f = getattr(operator, left)
         right_f = getattr(operator, right)
 
@@ -266,7 +267,11 @@ class TestFrameComparisons:
         tm.assert_frame_equal(result, expected)
 
     def test_df_float_none_comparison(self):
-        df = DataFrame(np.random.randn(8, 3), index=range(8), columns=["A", "B", "C"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((8, 3)),
+            index=range(8),
+            columns=["A", "B", "C"],
+        )
 
         result = df.__eq__(None)
         assert not result.any().any()
@@ -286,8 +291,8 @@ class TestFrameFlexComparisons:
     # TODO: test_bool_flex_frame needs a better name
     @pytest.mark.parametrize("op", ["eq", "ne", "gt", "lt", "ge", "le"])
     def test_bool_flex_frame(self, op):
-        data = np.random.randn(5, 3)
-        other_data = np.random.randn(5, 3)
+        data = np.random.default_rng(2).standard_normal((5, 3))
+        other_data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
         other = DataFrame(other_data)
         ndim_5 = np.ones(df.shape + (1, 3))
@@ -318,10 +323,10 @@ class TestFrameFlexComparisons:
     def test_bool_flex_series(self, box):
         # Series
         # list/tuple
-        data = np.random.randn(5, 3)
+        data = np.random.default_rng(2).standard_normal((5, 3))
         df = DataFrame(data)
-        idx_ser = box(np.random.randn(5))
-        col_ser = box(np.random.randn(3))
+        idx_ser = box(np.random.default_rng(2).standard_normal(5))
+        col_ser = box(np.random.default_rng(2).standard_normal(3))
 
         idx_eq = df.eq(idx_ser, axis=0)
         col_eq = df.eq(col_ser)
@@ -354,11 +359,11 @@ class TestFrameFlexComparisons:
         tm.assert_frame_equal(idx_ge, -idx_lt)
         tm.assert_frame_equal(idx_ge, df.T.ge(idx_ser).T)
 
-        idx_ser = Series(np.random.randn(5))
-        col_ser = Series(np.random.randn(3))
+        idx_ser = Series(np.random.default_rng(2).standard_normal(5))
+        col_ser = Series(np.random.default_rng(2).standard_normal(3))
 
     def test_bool_flex_frame_na(self):
-        df = DataFrame(np.random.randn(5, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 3)))
         # NA
         df.loc[0, 0] = np.nan
         rs = df.eq(df)
@@ -702,7 +707,7 @@ class TestFrameFlexArithmetic:
     @pytest.mark.parametrize("op", ["__add__", "__mul__", "__sub__", "__truediv__"])
     def test_arithmetic_with_duplicate_columns(self, op):
         # operations
-        df = DataFrame({"A": np.arange(10), "B": np.random.rand(10)})
+        df = DataFrame({"A": np.arange(10), "B": np.random.default_rng(2).random(10)})
         expected = getattr(df, op)(df)
         expected.columns = ["A", "A"]
         df.columns = ["A", "A"]
@@ -1010,7 +1015,7 @@ class TestFrameArithmetic:
         added = DataFrame((df.values.T + val2).T, index=df.index, columns=df.columns)
         tm.assert_frame_equal(df.add(val2, axis="index"), added)
 
-        val3 = np.random.rand(*df.shape)
+        val3 = np.random.default_rng(2).random(df.shape)
         added = DataFrame(df.values + val3, index=df.index, columns=df.columns)
         tm.assert_frame_equal(df.add(val3), added)
 
@@ -1163,7 +1168,9 @@ class TestFrameArithmetic:
 def test_frame_with_zero_len_series_corner_cases():
     # GH#28600
     # easy all-float case
-    df = DataFrame(np.random.randn(6).reshape(3, 2), columns=["A", "B"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal(6).reshape(3, 2), columns=["A", "B"]
+    )
     ser = Series(dtype=np.float64)
 
     result = df + ser
@@ -1211,7 +1218,9 @@ def test_frame_single_columns_object_sum_axis_1():
 class TestFrameArithmeticUnsorted:
     def test_frame_add_tz_mismatch_converts_to_utc(self):
         rng = pd.date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
-        df = DataFrame(np.random.randn(len(rng)), index=rng, columns=["a"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(len(rng)), index=rng, columns=["a"]
+        )
 
         df_moscow = df.tz_convert("Europe/Moscow")
         result = df + df_moscow
@@ -1222,7 +1231,9 @@ class TestFrameArithmeticUnsorted:
 
     def test_align_frame(self):
         rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
-        ts = DataFrame(np.random.randn(len(rng), 3), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 3)), index=rng
+        )
 
         result = ts + ts[::2]
         expected = ts + ts
@@ -1230,7 +1241,7 @@ class TestFrameArithmeticUnsorted:
         tm.assert_frame_equal(result, expected)
 
         half = ts[::2]
-        result = ts + half.take(np.random.permutation(len(half)))
+        result = ts + half.take(np.random.default_rng(2).permutation(len(half)))
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1246,19 +1257,19 @@ class TestFrameArithmeticUnsorted:
         filled = df.fillna(np.nan)
         result = op(df, 3)
         expected = op(filled, 3).astype(object)
-        expected[com.isna(expected)] = None
+        expected[pd.isna(expected)] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = op(df, df)
         expected = op(filled, filled).astype(object)
-        expected[com.isna(expected)] = None
+        expected[pd.isna(expected)] = np.nan
         tm.assert_frame_equal(result, expected)
 
         result = op(df, df.fillna(7))
         tm.assert_frame_equal(result, expected)
 
         result = op(df.fillna(7), df)
-        tm.assert_frame_equal(result, expected, check_dtype=False)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op,res", [("__eq__", False), ("__ne__", True)])
     # TODO: not sure what's correct here.
@@ -1695,7 +1706,9 @@ class TestFrameArithmeticUnsorted:
         # GH 5104
         # make sure that we are actually changing the object
         s_orig = Series([1, 2, 3])
-        df_orig = DataFrame(np.random.randint(0, 5, size=10).reshape(-1, 5))
+        df_orig = DataFrame(
+            np.random.default_rng(2).integers(0, 5, size=10).reshape(-1, 5)
+        )
 
         # no dtype change
         s = s_orig.copy()
@@ -1730,7 +1743,7 @@ class TestFrameArithmeticUnsorted:
         assert df._mgr is df2._mgr
 
         # mixed dtype
-        arr = np.random.randint(0, 10, size=5)
+        arr = np.random.default_rng(2).integers(0, 10, size=5)
         df_orig = DataFrame({"A": arr.copy(), "B": "foo"})
         df = df_orig.copy()
         df2 = df
@@ -1753,7 +1766,12 @@ class TestFrameArithmeticUnsorted:
         [
             "add",
             "and",
-            "div",
+            pytest.param(
+                "div",
+                marks=pytest.mark.xfail(
+                    raises=AttributeError, reason="__idiv__ not implemented"
+                ),
+            ),
             "floordiv",
             "mod",
             "mul",
@@ -1765,9 +1783,6 @@ class TestFrameArithmeticUnsorted:
         ],
     )
     def test_inplace_ops_identity2(self, op):
-        if op == "div":
-            return
-
         df = DataFrame({"a": [1.0, 2.0, 3.0], "b": [1, 2, 3]})
 
         operand = 2
@@ -1798,46 +1813,58 @@ class TestFrameArithmeticUnsorted:
     def test_alignment_non_pandas(self, val):
         index = ["A", "B", "C"]
         columns = ["X", "Y", "Z"]
-        df = DataFrame(np.random.randn(3, 3), index=index, columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=index,
+            columns=columns,
+        )
 
-        align = pd.core.ops.align_method_FRAME
+        align = DataFrame._align_for_op
 
         expected = DataFrame({"X": val, "Y": val, "Z": val}, index=df.index)
-        tm.assert_frame_equal(align(df, val, "index")[1], expected)
+        tm.assert_frame_equal(align(df, val, axis=0)[1], expected)
 
         expected = DataFrame(
             {"X": [1, 1, 1], "Y": [2, 2, 2], "Z": [3, 3, 3]}, index=df.index
         )
-        tm.assert_frame_equal(align(df, val, "columns")[1], expected)
+        tm.assert_frame_equal(align(df, val, axis=1)[1], expected)
 
     @pytest.mark.parametrize("val", [[1, 2], (1, 2), np.array([1, 2]), range(1, 3)])
     def test_alignment_non_pandas_length_mismatch(self, val):
         index = ["A", "B", "C"]
         columns = ["X", "Y", "Z"]
-        df = DataFrame(np.random.randn(3, 3), index=index, columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=index,
+            columns=columns,
+        )
 
-        align = pd.core.ops.align_method_FRAME
+        align = DataFrame._align_for_op
         # length mismatch
         msg = "Unable to coerce to Series, length must be 3: given 2"
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "index")
+            align(df, val, axis=0)
 
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "columns")
+            align(df, val, axis=1)
 
     def test_alignment_non_pandas_index_columns(self):
         index = ["A", "B", "C"]
         columns = ["X", "Y", "Z"]
-        df = DataFrame(np.random.randn(3, 3), index=index, columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)),
+            index=index,
+            columns=columns,
+        )
 
-        align = pd.core.ops.align_method_FRAME
+        align = DataFrame._align_for_op
         val = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         tm.assert_frame_equal(
-            align(df, val, "index")[1],
+            align(df, val, axis=0)[1],
             DataFrame(val, index=df.index, columns=df.columns),
         )
         tm.assert_frame_equal(
-            align(df, val, "columns")[1],
+            align(df, val, axis=1)[1],
             DataFrame(val, index=df.index, columns=df.columns),
         )
 
@@ -1845,19 +1872,19 @@ class TestFrameArithmeticUnsorted:
         msg = "Unable to coerce to DataFrame, shape must be"
         val = np.array([[1, 2, 3], [4, 5, 6]])
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "index")
+            align(df, val, axis=0)
 
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "columns")
+            align(df, val, axis=1)
 
         val = np.zeros((3, 3, 3))
         msg = re.escape(
             "Unable to coerce to Series/DataFrame, dimension must be <= 2: (3, 3, 3)"
         )
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "index")
+            align(df, val, axis=0)
         with pytest.raises(ValueError, match=msg):
-            align(df, val, "columns")
+            align(df, val, axis=1)
 
     def test_no_warning(self, all_arithmetic_operators):
         df = DataFrame({"A": [0.0, 0.0], "B": [0.0, None]})
@@ -1913,7 +1940,9 @@ def test_pow_nan_with_zero():
 
 def test_dataframe_series_extension_dtypes():
     # https://github.com/pandas-dev/pandas/issues/34311
-    df = DataFrame(np.random.randint(0, 100, (10, 3)), columns=["a", "b", "c"])
+    df = DataFrame(
+        np.random.default_rng(2).integers(0, 100, (10, 3)), columns=["a", "b", "c"]
+    )
     ser = Series([1, 2, 3], index=["a", "b", "c"])
 
     expected = df.to_numpy("int64") + ser.to_numpy("int64").reshape(-1, 3)
@@ -1928,7 +1957,7 @@ def test_dataframe_series_extension_dtypes():
 
 def test_dataframe_blockwise_slicelike():
     # GH#34367
-    arr = np.random.randint(0, 1000, (100, 10))
+    arr = np.random.default_rng(2).integers(0, 1000, (100, 10))
     df1 = DataFrame(arr)
     # Explicit cast to float to avoid implicit cast when setting nan
     df2 = df1.copy().astype({1: "float", 3: "float", 7: "float"})
@@ -2006,7 +2035,7 @@ def test_inplace_arithmetic_series_update(using_copy_on_write):
         tm.assert_frame_equal(df, expected)
 
 
-def test_arithemetic_multiindex_align():
+def test_arithmetic_multiindex_align():
     """
     Regression test for: https://github.com/pandas-dev/pandas/issues/33765
     """

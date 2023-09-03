@@ -86,6 +86,16 @@ def group_var(
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
     is_datetimelike: bool = ...,
+    name: str = ...,
+) -> None: ...
+def group_skew(
+    out: np.ndarray,  # float64_t[:, ::1]
+    counts: np.ndarray,  # int64_t[::1]
+    values: np.ndarray,  # ndarray[float64_T, ndim=2]
+    labels: np.ndarray,  # const intp_t[::1]
+    mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None = ...,
+    skipna: bool = ...,
 ) -> None: ...
 def group_mean(
     out: np.ndarray,  # floating[:, ::1]
@@ -111,10 +121,12 @@ def group_quantile(
     values: np.ndarray,  # ndarray[numeric, ndim=1]
     labels: npt.NDArray[np.intp],
     mask: npt.NDArray[np.uint8],
-    sort_indexer: npt.NDArray[np.intp],  # const
     qs: npt.NDArray[np.float64],  # const
+    starts: npt.NDArray[np.int64],
+    ends: npt.NDArray[np.int64],
     interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
-    result_mask: np.ndarray | None = ...,
+    result_mask: np.ndarray | None,
+    is_datetimelike: bool,
 ) -> None: ...
 def group_last(
     out: np.ndarray,  # rank_t[:, ::1]

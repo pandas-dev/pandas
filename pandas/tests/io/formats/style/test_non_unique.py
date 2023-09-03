@@ -45,15 +45,15 @@ def test_format_non_unique(df):
         assert val in html
 
 
-@pytest.mark.parametrize("func", ["apply", "applymap"])
-def test_apply_applymap_non_unique_raises(df, func):
+@pytest.mark.parametrize("func", ["apply", "map"])
+def test_apply_map_non_unique_raises(df, func):
     # GH 41269
     if func == "apply":
         op = lambda s: ["color: red;"] * len(s)
     else:
         op = lambda v: "color: red;"
 
-    with pytest.raises(KeyError, match="`Styler.apply` and `.applymap` are not"):
+    with pytest.raises(KeyError, match="`Styler.apply` and `.map` are not"):
         getattr(df.style, func)(op)._compute()
 
 

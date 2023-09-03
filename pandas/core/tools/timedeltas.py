@@ -3,7 +3,6 @@ timedelta support tools
 """
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import (
     TYPE_CHECKING,
     overload,
@@ -22,6 +21,7 @@ from pandas._libs.tslibs.timedeltas import (
 )
 
 from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.dtypes import ArrowDtype
 from pandas.core.dtypes.generic import (
     ABCIndex,
     ABCSeries,
@@ -30,6 +30,9 @@ from pandas.core.dtypes.generic import (
 from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+    from datetime import timedelta
+
     from pandas._libs.tslibs.timedeltas import UnitChoices
     from pandas._typing import (
         ArrayLike,
@@ -110,15 +113,17 @@ def to_timedelta(
         * 'D' / 'days' / 'day'
         * 'hours' / 'hour' / 'hr' / 'h'
         * 'm' / 'minute' / 'min' / 'minutes' / 'T'
-        * 'S' / 'seconds' / 'sec' / 'second'
+        * 's' / 'seconds' / 'sec' / 'second' / 'S'
         * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
         * 'us' / 'microseconds' / 'microsecond' / 'micro' / 'micros' / 'U'
         * 'ns' / 'nanoseconds' / 'nano' / 'nanos' / 'nanosecond' / 'N'
 
-        .. versionchanged:: 1.1.0
+        Must not be specified when `arg` context strings and ``errors="raise"``.
 
-           Must not be specified when `arg` context strings and
-           ``errors="raise"``.
+        .. deprecated:: 2.2.0
+            Units 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed
+            in a future version. Please use 'min', 's', 'ms', 'us', and 'ns' instead of
+            'T', 'S', 'L', 'U' and 'N'.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
@@ -232,10 +237,14 @@ def _coerce_scalar_to_timedelta_type(
 
 
 def _convert_listlike(
-    arg, unit=None, errors: DateTimeErrorChoices = "raise", name=None
+    arg,
+    unit: UnitChoices | None = None,
+    errors: DateTimeErrorChoices = "raise",
+    name: Hashable | None = None,
 ):
     """Convert a list of objects to a timedelta index object."""
-    if isinstance(arg, (list, tuple)) or not hasattr(arg, "dtype"):
+    arg_dtype = getattr(arg, "dtype", None)
+    if isinstance(arg, (list, tuple)) or arg_dtype is None:
         # This is needed only to ensure that in the case where we end up
         #  returning arg (errors == "ignore"), and where the input is a
         #  generator, we return a useful list-like instead of a
@@ -243,6 +252,8 @@ def _convert_listlike(
         if not hasattr(arg, "__array__"):
             arg = list(arg)
         arg = np.array(arg, dtype=object)
+    elif isinstance(arg_dtype, ArrowDtype) and arg_dtype.kind == "m":
+        return arg
 
     try:
         td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]

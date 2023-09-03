@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 import functools
 from typing import (
     TYPE_CHECKING,
@@ -37,6 +36,8 @@ from pandas.tseries.frequencies import (
 )
 
 if TYPE_CHECKING:
+    from datetime import timedelta
+
     from matplotlib.axes import Axes
 
     from pandas import (
@@ -216,9 +217,9 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
 
     if freq is None:  # convert irregular if axes has freq info
         freq = ax_freq
-    else:  # do not use tsplot if irregular was plotted first
-        if (ax_freq is None) and (len(ax.get_lines()) > 0):
-            return False
+    # do not use tsplot if irregular was plotted first
+    elif (ax_freq is None) and (len(ax.get_lines()) > 0):
+        return False
 
     if freq is None:
         return False
@@ -275,10 +276,22 @@ def maybe_convert_index(ax: Axes, data):
 
         freq_str = _get_period_alias(freq)
 
-        if isinstance(data.index, ABCDatetimeIndex):
-            data = data.tz_localize(None).to_period(freq=freq_str)
-        elif isinstance(data.index, ABCPeriodIndex):
-            data.index = data.index.asfreq(freq=freq_str)
+        import warnings
+
+        with warnings.catch_warnings():
+            # suppress Period[B] deprecation warning
+            # TODO: need to find an alternative to this before the deprecation
+            #  is enforced!
+            warnings.filterwarnings(
+                "ignore",
+                r"PeriodDtype\[B\] is deprecated",
+                category=FutureWarning,
+            )
+
+            if isinstance(data.index, ABCDatetimeIndex):
+                data = data.tz_localize(None).to_period(freq=freq_str)
+            elif isinstance(data.index, ABCPeriodIndex):
+                data.index = data.index.asfreq(freq=freq_str)
     return data
 
 

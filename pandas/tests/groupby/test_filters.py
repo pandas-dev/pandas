@@ -125,7 +125,11 @@ def test_filter_with_axis_in_groupby():
     # issue 11041
     index = pd.MultiIndex.from_product([range(10), [0, 1]])
     data = DataFrame(np.arange(100).reshape(-1, 20), columns=index, dtype="int64")
-    result = data.groupby(level=0, axis=1).filter(lambda x: x.iloc[0, 0] > 10)
+
+    msg = "DataFrame.groupby with axis=1"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        gb = data.groupby(level=0, axis=1)
+    result = gb.filter(lambda x: x.iloc[0, 0] > 10)
     expected = data.iloc[:, 12:20]
     tm.assert_frame_equal(result, expected)
 
@@ -187,9 +191,8 @@ def test_filter_pdna_is_false():
 
 
 def test_filter_against_workaround():
-    np.random.seed(0)
     # Series of ints
-    s = Series(np.random.randint(0, 100, 1000))
+    s = Series(np.random.default_rng(2).integers(0, 100, 1000))
     grouper = s.apply(lambda x: np.round(x, -1))
     grouped = s.groupby(grouper)
     f = lambda x: x.mean() > 10
@@ -199,7 +202,7 @@ def test_filter_against_workaround():
     tm.assert_series_equal(new_way.sort_values(), old_way.sort_values())
 
     # Series of floats
-    s = 100 * Series(np.random.random(1000))
+    s = 100 * Series(np.random.default_rng(2).random(1000))
     grouper = s.apply(lambda x: np.round(x, -1))
     grouped = s.groupby(grouper)
     f = lambda x: x.mean() > 10
@@ -210,11 +213,13 @@ def test_filter_against_workaround():
     # Set up DataFrame of ints, floats, strings.
     letters = np.array(list(ascii_lowercase))
     N = 1000
-    random_letters = letters.take(np.random.randint(0, 26, N))
+    random_letters = letters.take(
+        np.random.default_rng(2).integers(0, 26, N, dtype=int)
+    )
     df = DataFrame(
         {
-            "ints": Series(np.random.randint(0, 100, N)),
-            "floats": N / 10 * Series(np.random.random(N)),
+            "ints": Series(np.random.default_rng(2).integers(0, 100, N)),
+            "floats": N / 10 * Series(np.random.default_rng(2).random(N)),
             "letters": Series(random_letters),
         }
     )
@@ -359,7 +364,8 @@ def test_filter_and_transform_with_non_unique_int_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -401,7 +407,8 @@ def test_filter_and_transform_with_multiple_non_unique_int_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -443,7 +450,8 @@ def test_filter_and_transform_with_non_unique_float_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -488,7 +496,8 @@ def test_filter_and_transform_with_non_unique_timestamp_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -530,7 +539,8 @@ def test_filter_and_transform_with_non_unique_string_index():
     tm.assert_frame_equal(actual, expected)
 
     actual = grouped_df.filter(lambda x: len(x) > 1, dropna=False)
-    expected = df.copy()
+    # Cast to avoid upcast when setting nan below
+    expected = df.copy().astype("float64")
     expected.iloc[[0, 3, 5, 6]] = np.nan
     tm.assert_frame_equal(actual, expected)
 
@@ -598,13 +608,13 @@ def test_filter_non_bool_raises():
 
 def test_filter_dropna_with_empty_groups():
     # GH 10780
-    data = Series(np.random.rand(9), index=np.repeat([1, 2, 3], 3))
-    groupped = data.groupby(level=0)
-    result_false = groupped.filter(lambda x: x.mean() > 1, dropna=False)
+    data = Series(np.random.default_rng(2).random(9), index=np.repeat([1, 2, 3], 3))
+    grouped = data.groupby(level=0)
+    result_false = grouped.filter(lambda x: x.mean() > 1, dropna=False)
     expected_false = Series([np.nan] * 9, index=np.repeat([1, 2, 3], 3))
     tm.assert_series_equal(result_false, expected_false)
 
-    result_true = groupped.filter(lambda x: x.mean() > 1, dropna=True)
+    result_true = grouped.filter(lambda x: x.mean() > 1, dropna=True)
     expected_true = Series(index=pd.Index([], dtype=int), dtype=np.float64)
     tm.assert_series_equal(result_true, expected_true)
 

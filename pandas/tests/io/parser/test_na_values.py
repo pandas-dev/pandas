@@ -20,7 +20,6 @@ skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
-@skip_pyarrow
 def test_string_nas(all_parsers):
     parser = all_parsers
     data = """A,B,C
@@ -33,10 +32,12 @@ d,,f
         [["a", "b", "c"], ["d", np.nan, "f"], [np.nan, "g", "h"]],
         columns=["A", "B", "C"],
     )
+    if parser.engine == "pyarrow":
+        expected.loc[2, "A"] = None
+        expected.loc[1, "B"] = None
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_detect_string_na(all_parsers):
     parser = all_parsers
     data = """A,B
@@ -47,6 +48,9 @@ NaN,nan
     expected = DataFrame(
         [["foo", "bar"], [np.nan, "baz"], [np.nan, np.nan]], columns=["A", "B"]
     )
+    if parser.engine == "pyarrow":
+        expected.loc[[1, 2], "A"] = None
+        expected.loc[2, "B"] = None
     result = parser.read_csv(StringIO(data))
     tm.assert_frame_equal(result, expected)
 
@@ -89,7 +93,6 @@ def test_non_string_na_values(all_parsers, data, na_values):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_default_na_values(all_parsers):
     _NA_VALUES = {
         "-1.#IND",
@@ -138,6 +141,7 @@ def test_default_na_values(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: needs skiprows list support in pyarrow
 @skip_pyarrow
 @pytest.mark.parametrize("na_values", ["baz", ["baz"]])
 def test_custom_na_values(all_parsers, na_values):
@@ -169,9 +173,13 @@ False,NA,True"""
             "C": [True, False, True],
         }
     )
+    if parser.engine == "pyarrow":
+        expected.loc[1, "A"] = None
+        expected.loc[2, "B"] = None
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: Needs pyarrow support for dictionary in na_values
 @skip_pyarrow
 def test_na_value_dict(all_parsers):
     data = """A,B,C
@@ -191,7 +199,6 @@ bar,foo,foo"""
     tm.assert_frame_equal(df, expected)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize(
     "index_col,expected",
     [
@@ -225,6 +232,7 @@ a,b,c,d
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: xfail components of this test, the first one passes
 @skip_pyarrow
 @pytest.mark.parametrize(
     "kwargs,expected",
@@ -287,7 +295,6 @@ g,7,seven
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_no_na_values_no_keep_default(all_parsers):
     # see gh-4318: passing na_values=None and
     # keep_default_na=False yields 'None" as a na_value
@@ -314,6 +321,7 @@ g,7,seven
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: Blocked on na_values dict support in pyarrow
 @skip_pyarrow
 def test_no_keep_default_na_dict_na_values(all_parsers):
     # see gh-19227
@@ -326,6 +334,7 @@ def test_no_keep_default_na_dict_na_values(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: Blocked on na_values dict support in pyarrow
 @skip_pyarrow
 def test_no_keep_default_na_dict_na_scalar_values(all_parsers):
     # see gh-19227
@@ -338,6 +347,7 @@ def test_no_keep_default_na_dict_na_scalar_values(all_parsers):
     tm.assert_frame_equal(df, expected)
 
 
+# TODO: Blocked on na_values dict support in pyarrow
 @skip_pyarrow
 @pytest.mark.parametrize("col_zero_na_values", [113125, "113125"])
 def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_values):
@@ -368,6 +378,7 @@ def test_no_keep_default_na_dict_na_values_diff_reprs(all_parsers, col_zero_na_v
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: Empty null_values doesn't work properly on pyarrow
 @skip_pyarrow
 @pytest.mark.parametrize(
     "na_filter,row_data",
@@ -390,6 +401,7 @@ nan,B
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: Arrow parse error
 @skip_pyarrow
 def test_na_trailing_columns(all_parsers):
     parser = all_parsers
@@ -418,6 +430,7 @@ def test_na_trailing_columns(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: xfail the na_values dict case
 @skip_pyarrow
 @pytest.mark.parametrize(
     "na_values,row_data",
@@ -495,6 +508,7 @@ def test_empty_na_values_no_default_with_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+# TODO: Missing support for na_filter kewyord
 @skip_pyarrow
 @pytest.mark.parametrize(
     "na_filter,index_data", [(False, ["", "5"]), (True, [np.nan, 5.0])]

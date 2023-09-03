@@ -2,11 +2,7 @@
 from __future__ import annotations
 
 from math import ceil
-from typing import (
-    TYPE_CHECKING,
-    Iterable,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 from matplotlib import ticker
@@ -23,6 +19,11 @@ from pandas.core.dtypes.generic import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Sequence,
+    )
+
     from matplotlib.axes import Axes
     from matplotlib.axis import Axis
     from matplotlib.figure import Figure
@@ -443,9 +444,9 @@ def flatten_axes(axes: Axes | Sequence[Axes]) -> np.ndarray:
 
 def set_ticks_props(
     axes: Axes | Sequence[Axes],
-    xlabelsize=None,
+    xlabelsize: int | None = None,
     xrot=None,
-    ylabelsize=None,
+    ylabelsize: int | None = None,
     yrot=None,
 ):
     import matplotlib.pyplot as plt

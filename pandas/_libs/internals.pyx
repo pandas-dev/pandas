@@ -24,7 +24,6 @@ cnp.import_array()
 
 from pandas._libs.algos import ensure_int64
 
-from pandas._libs.arrays cimport NDArrayBacked
 from pandas._libs.util cimport (
     is_array,
     is_integer_object,
@@ -440,6 +439,64 @@ cdef slice indexer_as_slice(intp_t[:] vals):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def get_concat_blkno_indexers(list blknos_list not None):
+    """
+    Given the mgr.blknos for a list of mgrs, break range(len(mgrs[0])) into
+    slices such that within each slice blknos_list[i] is constant for each i.
+
+    This is a multi-Manager analogue to get_blkno_indexers with group=False.
+    """
+    # we have the blknos for each of several BlockManagers
+    # list[np.ndarray[int64_t]]
+    cdef:
+        Py_ssize_t i, j, k, start, ncols
+        cnp.npy_intp n_mgrs
+        ndarray[intp_t] blknos, cur_blknos, run_blknos
+        BlockPlacement bp
+        list result = []
+
+    n_mgrs = len(blknos_list)
+    cur_blknos = cnp.PyArray_EMPTY(1, &n_mgrs, cnp.NPY_INTP, 0)
+
+    blknos = blknos_list[0]
+    ncols = len(blknos)
+    if ncols == 0:
+        return []
+
+    start = 0
+    for i in range(n_mgrs):
+        blknos = blknos_list[i]
+        cur_blknos[i] = blknos[0]
+        assert len(blknos) == ncols
+
+    for i in range(1, ncols):
+        # For each column, we check if the Block it is part of (i.e. blknos[i])
+        #  is the same the previous column (i.e. blknos[i-1]) *and* if this is
+        #  the case for each blknos in blknos_list.  If not, we start a new "run".
+        for k in range(n_mgrs):
+            blknos = blknos_list[k]
+            # assert cur_blknos[k] == blknos[i - 1]
+
+            if blknos[i] != blknos[i - 1]:
+                bp = BlockPlacement(slice(start, i))
+                run_blknos = cnp.PyArray_Copy(cur_blknos)
+                result.append((run_blknos, bp))
+
+                start = i
+                for j in range(n_mgrs):
+                    blknos = blknos_list[j]
+                    cur_blknos[j] = blknos[i]
+                break  # break out of `for k in range(n_mgrs)` loop
+
+    if start != ncols:
+        bp = BlockPlacement(slice(start, ncols))
+        run_blknos = cnp.PyArray_Copy(cur_blknos)
+        result.append((run_blknos, bp))
+    return result
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def get_blkno_indexers(
     int64_t[:] blknos, bint group=True
 ) -> list[tuple[int, slice | np.ndarray]]:
@@ -569,13 +626,19 @@ cpdef update_blklocs_and_blknos(
 def _unpickle_block(values, placement, ndim):
     # We have to do some gymnastics b/c "ndim" is keyword-only
 
-    from pandas.core.internals.blocks import new_block
+    from pandas.core.internals.blocks import (
+        maybe_coerce_values,
+        new_block,
+    )
+    values = maybe_coerce_values(values)
 
+    if not isinstance(placement, BlockPlacement):
+        placement = BlockPlacement(placement)
     return new_block(values, placement, ndim=ndim)
 
 
 @cython.freelist(64)
-cdef class SharedBlock:
+cdef class Block:
     """
     Defining __init__ in a cython class significantly improves performance.
     """
@@ -583,6 +646,11 @@ cdef class SharedBlock:
         public BlockPlacement _mgr_locs
         public BlockValuesRefs refs
         readonly int ndim
+        # 2023-08-15 no apparent performance improvement from declaring values
+        #  as ndarray in a type-special subclass (similar for NDArrayBacked).
+        #  This might change if slice_block_rows can be optimized with something
+        #  like https://github.com/numpy/numpy/issues/23934
+        public object values
 
     def __cinit__(
         self,
@@ -602,6 +670,8 @@ cdef class SharedBlock:
         refs: BlockValuesRefs, optional
             Ref tracking object or None if block does not have any refs.
         """
+        self.values = values
+
         self._mgr_locs = placement
         self.ndim = ndim
         if refs is None:
@@ -635,23 +705,7 @@ cdef class SharedBlock:
             ndim = maybe_infer_ndim(self.values, self.mgr_locs)
             self.ndim = ndim
 
-
-cdef class NumpyBlock(SharedBlock):
-    cdef:
-        public ndarray values
-
-    def __cinit__(
-        self,
-        ndarray values,
-        BlockPlacement placement,
-        int ndim,
-        refs: BlockValuesRefs | None = None,
-    ):
-        # set values here; the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement, ndim and refs
-        self.values = values
-
-    cpdef NumpyBlock getitem_block_index(self, slice slicer):
+    cpdef Block slice_block_rows(self, slice slicer):
         """
         Perform __getitem__-like specialized to slicing along index.
 
@@ -659,50 +713,6 @@ cdef class NumpyBlock(SharedBlock):
         """
         new_values = self.values[..., slicer]
         return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
-
-
-cdef class NDArrayBackedBlock(SharedBlock):
-    """
-    Block backed by NDArrayBackedExtensionArray
-    """
-    cdef public:
-        NDArrayBacked values
-
-    def __cinit__(
-        self,
-        NDArrayBacked values,
-        BlockPlacement placement,
-        int ndim,
-        refs: BlockValuesRefs | None = None,
-    ):
-        # set values here; the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement, ndim and refs
-        self.values = values
-
-    cpdef NDArrayBackedBlock getitem_block_index(self, slice slicer):
-        """
-        Perform __getitem__-like specialized to slicing along index.
-
-        Assumes self.ndim == 2
-        """
-        new_values = self.values[..., slicer]
-        return type(self)(new_values, self._mgr_locs, ndim=self.ndim, refs=self.refs)
-
-
-cdef class Block(SharedBlock):
-    cdef:
-        public object values
-
-    def __cinit__(
-        self,
-        object values,
-        BlockPlacement placement,
-        int ndim,
-        refs: BlockValuesRefs | None = None,
-    ):
-        # set values here; the (implicit) call to SharedBlock.__cinit__ will
-        #  set placement, ndim and refs
-        self.values = values
 
 
 @cython.freelist(64)
@@ -747,7 +757,7 @@ cdef class BlockManager:
         cdef:
             intp_t blkno, i, j
             cnp.npy_intp length = self.shape[0]
-            SharedBlock blk
+            Block blk
             BlockPlacement bp
             ndarray[intp_t, ndim=1] new_blknos, new_blklocs
 
@@ -795,6 +805,7 @@ cdef class BlockManager:
         from pandas.core.construction import extract_array
         from pandas.core.internals.blocks import (
             ensure_block_shape,
+            maybe_coerce_values,
             new_block,
         )
         from pandas.core.internals.managers import ensure_index
@@ -808,7 +819,10 @@ cdef class BlockManager:
                 vals = blk["values"]
                 # older versions may hold e.g. DatetimeIndex instead of DTA
                 vals = extract_array(vals, extract_numpy=True)
-                blk["values"] = ensure_block_shape(vals, ndim=ndim)
+                blk["values"] = maybe_coerce_values(ensure_block_shape(vals, ndim=ndim))
+
+                if not isinstance(blk["mgr_locs"], BlockPlacement):
+                    blk["mgr_locs"] = BlockPlacement(blk["mgr_locs"])
 
             nbs = [
                 new_block(blk["values"], blk["mgr_locs"], ndim=ndim)
@@ -831,15 +845,15 @@ cdef class BlockManager:
     # -------------------------------------------------------------------
     # Indexing
 
-    cdef BlockManager _get_index_slice(self, slobj):
+    cdef BlockManager _slice_mgr_rows(self, slice slobj):
         cdef:
-            SharedBlock blk, nb
+            Block blk, nb
             BlockManager mgr
             ndarray blknos, blklocs
 
         nbs = []
         for blk in self.blocks:
-            nb = blk.getitem_block_index(slobj)
+            nb = blk.slice_block_rows(slobj)
             nbs.append(nb)
 
         new_axes = [self.axes[0], self.axes[1]._getitem_slice(slobj)]
@@ -858,7 +872,7 @@ cdef class BlockManager:
         if axis == 0:
             new_blocks = self._slice_take_blocks_ax0(slobj)
         elif axis == 1:
-            return self._get_index_slice(slobj)
+            return self._slice_mgr_rows(slobj)
         else:
             raise IndexError("Requested axis not found in manager")
 
@@ -877,18 +891,31 @@ cdef class BlockValuesRefs:
     cdef:
         public list referenced_blocks
 
-    def __cinit__(self, blk: SharedBlock) -> None:
-        self.referenced_blocks = [weakref.ref(blk)]
+    def __cinit__(self, blk: Block | None = None) -> None:
+        if blk is not None:
+            self.referenced_blocks = [weakref.ref(blk)]
+        else:
+            self.referenced_blocks = []
 
-    def add_reference(self, blk: SharedBlock) -> None:
+    def add_reference(self, blk: Block) -> None:
         """Adds a new reference to our reference collection.
 
         Parameters
         ----------
-        blk: SharedBlock
+        blk : Block
             The block that the new references should point to.
         """
         self.referenced_blocks.append(weakref.ref(blk))
+
+    def add_index_reference(self, index: object) -> None:
+        """Adds a new reference to our reference collection when creating an index.
+
+        Parameters
+        ----------
+        index : Index
+            The index that the new reference should point to.
+        """
+        self.referenced_blocks.append(weakref.ref(index))
 
     def has_reference(self) -> bool:
         """Checks if block has foreign references.

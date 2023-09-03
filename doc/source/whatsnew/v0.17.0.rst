@@ -738,7 +738,7 @@ Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to compar
 
 .. ipython:: python
 
-   s = pd.Series(range(3))
+   s = pd.Series(range(3), dtype="float")
    s.iloc[1] = None
    s
 
@@ -793,7 +793,7 @@ Previous behavior:
 
    In [27]:
    df_with_missing.to_hdf('file.h5',
-                          'df_with_missing',
+                          key='df_with_missing',
                           format='table',
                           mode='w')
 
@@ -809,7 +809,7 @@ New behavior:
 
 .. ipython:: python
 
-   df_with_missing.to_hdf("file.h5", "df_with_missing", format="table", mode="w")
+   df_with_missing.to_hdf("file.h5", key="df_with_missing", format="table", mode="w")
 
    pd.read_hdf("file.h5", "df_with_missing")
 

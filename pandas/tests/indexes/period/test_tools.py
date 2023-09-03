@@ -21,14 +21,18 @@ class TestPeriodRepresentation:
             ("D", "1970-01-01"),
             ("B", "1970-01-01"),
             ("H", "1970-01-01"),
-            ("T", "1970-01-01"),
-            ("S", "1970-01-01"),
-            ("L", "1970-01-01"),
-            ("U", "1970-01-01"),
-            ("N", "1970-01-01"),
+            ("min", "1970-01-01"),
+            ("s", "1970-01-01"),
+            ("ms", "1970-01-01"),
+            ("us", "1970-01-01"),
+            ("ns", "1970-01-01"),
             ("M", "1970-01"),
             ("A", 1970),
         ],
+    )
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+    @pytest.mark.filterwarnings(
+        "ignore:Period with BDay freq is deprecated:FutureWarning"
     )
     def test_freq(self, freq, base_date):
         rng = period_range(start=base_date, periods=10, freq=freq)

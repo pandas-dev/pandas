@@ -34,7 +34,10 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_datetime64_value,
     get_timedelta64_value,
+    import_pandas_datetime,
 )
+
+import_pandas_datetime()
 
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
@@ -52,7 +55,7 @@ cdef:
 cpdef bint check_na_tuples_nonequal(object left, object right):
     """
     When we have NA in one of the tuples but not the other we have to check here,
-    because our regular checks fail before with ambigous boolean value.
+    because our regular checks fail before with ambiguous boolean value.
 
     Parameters
     ----------
@@ -374,6 +377,26 @@ class NAType(C_NAType):
 
     The NA singleton is a missing value indicator defined by pandas. It is
     used in certain new extension dtypes (currently the "string" dtype).
+
+    Examples
+    --------
+    >>> pd.NA
+    <NA>
+
+    >>> True | pd.NA
+    True
+
+    >>> True & pd.NA
+    <NA>
+
+    >>> pd.NA != pd.NA
+    <NA>
+
+    >>> pd.NA == pd.NA
+    <NA>
+
+    >>> True | pd.NA
+    True
     """
 
     _instance = None

@@ -6,8 +6,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Hashable,
-    Iterator,
     final,
 )
 import warnings
@@ -16,21 +14,17 @@ import numpy as np
 
 from pandas._config import using_copy_on_write
 
-from pandas._typing import (
-    ArrayLike,
-    Axis,
-    NDFrameT,
-    npt,
-)
+from pandas._libs import lib
+from pandas._libs.tslibs import OutOfBoundsDatetime
 from pandas.errors import InvalidIndexError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_list_like,
     is_scalar,
 )
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 from pandas.core import algorithms
 from pandas.core.arrays import (
@@ -51,6 +45,18 @@ from pandas.core.series import Series
 from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
+
+    from pandas._typing import (
+        ArrayLike,
+        Axis,
+        NDFrameT,
+        npt,
+    )
+
     from pandas.core.generic import NDFrame
 
 
@@ -97,8 +103,6 @@ class Grouper:
         - 'start': `origin` is the first value of the timeseries
         - 'start_day': `origin` is the first day at midnight of the timeseries
 
-        .. versionadded:: 1.1.0
-
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
 
@@ -106,8 +110,6 @@ class Grouper:
 
     offset : Timedelta or str, default is None
         An offset timedelta added to the origin.
-
-        .. versionadded:: 1.1.0
 
     dropna : bool, default True
         If True, and if group keys contain NA values, NA values together with
@@ -118,11 +120,13 @@ class Grouper:
 
     Returns
     -------
-    A specification for a groupby instruction
+    Grouper or pandas.api.typing.TimeGrouper
+        A TimeGrouper is returned if ``freq`` is not ``None``. Otherwise, a Grouper
+        is returned.
 
     Examples
     --------
-    Syntactic sugar for ``df.groupby('A')``
+    ``df.groupby(pd.Grouper(key="Animal"))`` is equivalent to ``df.groupby('Animal')``
 
     >>> df = pd.DataFrame(
     ...     {
@@ -185,7 +189,7 @@ class Grouper:
     2000-10-02 00:12:00    18
     2000-10-02 00:19:00    21
     2000-10-02 00:26:00    24
-    Freq: 7T, dtype: int64
+    Freq: 7min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min')).sum()
     2000-10-01 23:14:00     0
@@ -193,7 +197,7 @@ class Grouper:
     2000-10-01 23:48:00    21
     2000-10-02 00:05:00    54
     2000-10-02 00:22:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min', origin='epoch')).sum()
     2000-10-01 23:18:00     0
@@ -201,14 +205,14 @@ class Grouper:
     2000-10-01 23:52:00    27
     2000-10-02 00:09:00    39
     2000-10-02 00:26:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq='17min', origin='2000-01-01')).sum()
-    2000-10-01 23:24:00     3
-    2000-10-01 23:41:00    15
-    2000-10-01 23:58:00    45
-    2000-10-02 00:15:00    45
-    Freq: 17T, dtype: int64
+    >>> ts.groupby(pd.Grouper(freq='17W', origin='2000-01-01')).sum()
+    2000-01-02      0
+    2000-04-30      0
+    2000-08-27      0
+    2000-12-24    108
+    Freq: 17W-SUN, dtype: int64
 
     If you want to adjust the start of the bins with an `offset` Timedelta, the two
     following lines are equivalent:
@@ -218,14 +222,14 @@ class Grouper:
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min', offset='23h30min')).sum()
     2000-10-01 23:30:00     9
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     To replace the use of the deprecated `base` argument, you can now use `offset`,
     in this example it is equivalent to have `base=2`:
@@ -236,7 +240,7 @@ class Grouper:
     2000-10-01 23:50:00    36
     2000-10-02 00:07:00    39
     2000-10-02 00:24:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
     """
 
     sort: bool
@@ -258,10 +262,25 @@ class Grouper:
         key=None,
         level=None,
         freq=None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
         sort: bool = False,
         dropna: bool = True,
     ) -> None:
+        if type(self) is Grouper:
+            # i.e. not TimeGrouper
+            if axis is not lib.no_default:
+                warnings.warn(
+                    "Grouper axis keyword is deprecated and will be removed in a "
+                    "future version. To group on axis=1, use obj.T.groupby(...) "
+                    "instead",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            else:
+                axis = 0
+        if axis is lib.no_default:
+            axis = 0
+
         self.key = key
         self.level = level
         self.freq = freq
@@ -270,12 +289,12 @@ class Grouper:
         self.dropna = dropna
 
         self._grouper_deprecated = None
-        self._indexer_deprecated = None
+        self._indexer_deprecated: npt.NDArray[np.intp] | None = None
         self._obj_deprecated = None
         self._gpr_index = None
         self.binner = None
         self._grouper = None
-        self._indexer = None
+        self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
@@ -310,8 +329,8 @@ class Grouper:
 
     @final
     def _set_grouper(
-        self, obj: NDFrame, sort: bool = False, *, gpr_index: Index | None = None
-    ):
+        self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
+    ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -330,8 +349,6 @@ class Grouper:
         np.ndarray[np.intp] | None
         """
         assert obj is not None
-
-        indexer = None
 
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
@@ -379,6 +396,7 @@ class Grouper:
                         raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
+        indexer: npt.NDArray[np.intp] | None = None
         if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
@@ -422,6 +440,8 @@ class Grouper:
     @final
     @property
     def obj(self):
+        # TODO(3.0): enforcing these deprecations on Grouper should close
+        #  GH#25564, GH#41930
         warnings.warn(
             f"{type(self).__name__}.obj is deprecated and will be removed "
             "in a future version. Use GroupBy.indexer instead.",
@@ -595,13 +615,13 @@ class Grouping:
                 raise AssertionError(errmsg)
 
         if isinstance(grouping_vector, np.ndarray):
-            if grouping_vector.dtype.kind in ["m", "M"]:
+            if grouping_vector.dtype.kind in "mM":
                 # if we have a date/time-like grouper, make sure that we have
                 # Timestamps like
                 # TODO 2022-10-08 we only have one test that gets here and
                 #  values are already in nanoseconds in that case.
                 grouping_vector = Series(grouping_vector).to_numpy()
-        elif is_categorical_dtype(grouping_vector):
+        elif isinstance(getattr(grouping_vector, "dtype", None), CategoricalDtype):
             # a passed Categorical
             self._orig_cats = grouping_vector.categories
             grouping_vector, self._all_grouper = recode_for_groupby(
@@ -618,7 +638,8 @@ class Grouping:
 
     @cache_readonly
     def _passed_categorical(self) -> bool:
-        return is_categorical_dtype(self.grouping_vector)
+        dtype = getattr(self.grouping_vector, "dtype", None)
+        return isinstance(dtype, CategoricalDtype)
 
     @cache_readonly
     def name(self) -> Hashable:
@@ -705,7 +726,7 @@ class Grouping:
             if self._sort and (codes == len(uniques)).any():
                 # Add NA value on the end when sorting
                 uniques = Categorical.from_codes(
-                    np.append(uniques.codes, [-1]), uniques.categories
+                    np.append(uniques.codes, [-1]), uniques.categories, validate=False
                 )
             elif len(codes) > 0:
                 # Need to determine proper placement of NA value when not sorting
@@ -714,8 +735,9 @@ class Grouping:
                 if cat.codes[na_idx] < 0:
                     # count number of unique codes that comes before the nan value
                     na_unique_idx = algorithms.nunique_ints(cat.codes[:na_idx])
+                    new_codes = np.insert(uniques.codes, na_unique_idx, -1)
                     uniques = Categorical.from_codes(
-                        np.insert(uniques.codes, na_unique_idx, -1), uniques.categories
+                        new_codes, uniques.categories, validate=False
                     )
         return Index._with_infer(uniques, name=self.name)
 
@@ -738,7 +760,7 @@ class Grouping:
                 ucodes = np.arange(len(categories))
 
             uniques = Categorical.from_codes(
-                codes=ucodes, categories=categories, ordered=cat.ordered
+                codes=ucodes, categories=categories, ordered=cat.ordered, validate=False
             )
 
             codes = cat.codes
@@ -784,7 +806,8 @@ class Grouping:
 
     @cache_readonly
     def groups(self) -> dict[Hashable, np.ndarray]:
-        return self._index.groupby(Categorical.from_codes(self.codes, self.group_index))
+        cats = Categorical.from_codes(self.codes, self.group_index, validate=False)
+        return self._index.groupby(cats)
 
 
 def get_grouper(
@@ -948,7 +971,7 @@ def get_grouper(
             # series is part of the object
             try:
                 obj_gpr_column = obj[gpr.name]
-            except (KeyError, IndexError, InvalidIndexError):
+            except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
                 return False
             if isinstance(gpr, Series) and isinstance(obj_gpr_column, Series):
                 return gpr._mgr.references_same_values(  # type: ignore[union-attr]
@@ -957,11 +980,13 @@ def get_grouper(
             return False
         try:
             return gpr is obj[gpr.name]
-        except (KeyError, IndexError, InvalidIndexError):
+        except (KeyError, IndexError, InvalidIndexError, OutOfBoundsDatetime):
             # IndexError reached in e.g. test_skip_group_keys when we pass
             #  lambda here
             # InvalidIndexError raised on key-types inappropriate for index,
             #  e.g. DatetimeIndex.get_loc(tuple())
+            # OutOfBoundsDatetime raised when obj is a Series with DatetimeIndex
+            # and gpr.name is month str
             return False
 
     for gpr, level in zip(keys, levels):

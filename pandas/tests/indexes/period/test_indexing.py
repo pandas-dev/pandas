@@ -110,7 +110,7 @@ class TestGetItem:
 
     def test_getitem_partial(self):
         rng = period_range("2007-01", periods=50, freq="M")
-        ts = Series(np.random.randn(len(rng)), rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
 
         with pytest.raises(KeyError, match=r"^'2006'$"):
             ts["2006"]
@@ -174,8 +174,8 @@ class TestGetItem:
     @pytest.mark.arm_slow
     def test_getitem_seconds(self):
         # GH#6716
-        didx = date_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
-        pidx = period_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
+        didx = date_range(start="2013/01/01 09:00:00", freq="s", periods=4000)
+        pidx = period_range(start="2013/01/01 09:00:00", freq="s", periods=4000)
 
         for idx in [didx, pidx]:
             # getitem against index should raise ValueError
@@ -193,7 +193,7 @@ class TestGetItem:
                 with pytest.raises(IndexError, match="only integers, slices"):
                     idx[val]
 
-            ser = Series(np.random.rand(len(idx)), index=idx)
+            ser = Series(np.random.default_rng(2).random(len(idx)), index=idx)
             tm.assert_series_equal(ser["2013/01/01 10:00"], ser[3600:3660])
             tm.assert_series_equal(ser["2013/01/01 9H"], ser[:3600])
             for d in ["2013/01/01", "2013/01", "2013"]:
@@ -225,7 +225,7 @@ class TestGetItem:
             with pytest.raises(IndexError, match="only integers, slices"):
                 idx[val]
 
-        ser = Series(np.random.rand(len(idx)), index=idx)
+        ser = Series(np.random.default_rng(2).random(len(idx)), index=idx)
         tm.assert_series_equal(ser["2013/01"], ser[0:31])
         tm.assert_series_equal(ser["2013/02"], ser[31:59])
         tm.assert_series_equal(ser["2014"], ser[365:])
@@ -579,7 +579,7 @@ class TestWhere:
         result = pi.where(mask, tdi)
         tm.assert_index_equal(result, expected)
 
-        dti = i2.to_timestamp("S")
+        dti = i2.to_timestamp("s")
         expected = pd.Index([dti[0], dti[1]] + tail, dtype=object)
         assert expected[0] is NaT
         result = pi.where(mask, dti)

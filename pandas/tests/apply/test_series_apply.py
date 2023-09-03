@@ -1,10 +1,3 @@
-from collections import (
-    Counter,
-    defaultdict,
-)
-from decimal import Decimal
-import math
-
 import numpy as np
 import pytest
 
@@ -15,35 +8,47 @@ from pandas import (
     MultiIndex,
     Series,
     concat,
-    isna,
     timedelta_range,
 )
 import pandas._testing as tm
 from pandas.tests.apply.common import series_transform_kernels
 
 
-def test_series_map_box_timedelta():
+@pytest.fixture(params=[False, "compat"])
+def by_row(request):
+    return request.param
+
+
+def test_series_map_box_timedelta(by_row):
     # GH#11349
-    ser = Series(timedelta_range("1 day 1 s", periods=5, freq="h"))
+    ser = Series(timedelta_range("1 day 1 s", periods=3, freq="h"))
 
     def f(x):
-        return x.total_seconds()
+        return x.total_seconds() if by_row else x.dt.total_seconds()
 
-    ser.map(f)
-    ser.apply(f)
-    DataFrame(ser).applymap(f)
+    result = ser.apply(f, by_row=by_row)
+
+    expected = ser.map(lambda x: x.total_seconds())
+    tm.assert_series_equal(result, expected)
+
+    expected = Series([86401.0, 90001.0, 93601.0])
+    tm.assert_series_equal(result, expected)
 
 
-def test_apply(datetime_series):
+def test_apply(datetime_series, by_row):
+    result = datetime_series.apply(np.sqrt, by_row=by_row)
     with np.errstate(all="ignore"):
-        tm.assert_series_equal(datetime_series.apply(np.sqrt), np.sqrt(datetime_series))
+        expected = np.sqrt(datetime_series)
+    tm.assert_series_equal(result, expected)
 
-        # element-wise apply
-        tm.assert_series_equal(datetime_series.apply(math.exp), np.exp(datetime_series))
+    # element-wise apply (ufunc)
+    result = datetime_series.apply(np.exp, by_row=by_row)
+    expected = np.exp(datetime_series)
+    tm.assert_series_equal(result, expected)
 
     # empty series
     s = Series(dtype=object, name="foo", index=Index([], name="bar"))
-    rs = s.apply(lambda x: x)
+    rs = s.apply(lambda x: x, by_row=by_row)
     tm.assert_series_equal(s, rs)
 
     # check all metadata (GH 9322)
@@ -54,34 +59,30 @@ def test_apply(datetime_series):
 
     # index but no data
     s = Series(index=[1, 2, 3], dtype=np.float64)
-    rs = s.apply(lambda x: x)
+    rs = s.apply(lambda x: x, by_row=by_row)
     tm.assert_series_equal(s, rs)
 
 
-def test_apply_same_length_inference_bug():
+def test_apply_map_same_length_inference_bug():
     s = Series([1, 2])
 
     def f(x):
         return (x, x + 1)
 
-    result = s.apply(f)
-    expected = s.map(f)
-    tm.assert_series_equal(result, expected)
-
-    s = Series([1, 2, 3])
-    result = s.apply(f)
+    result = s.apply(f, by_row="compat")
     expected = s.map(f)
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_dont_convert_dtype():
-    s = Series(np.random.randn(10))
+@pytest.mark.parametrize("convert_dtype", [True, False])
+def test_apply_convert_dtype_deprecated(convert_dtype):
+    ser = Series(np.random.default_rng(2).standard_normal(10))
 
-    def f(x):
+    def func(x):
         return x if x > 0 else np.nan
 
-    result = s.apply(f, convert_dtype=False)
-    assert result.dtype == object
+    with tm.assert_produces_warning(FutureWarning):
+        ser.apply(func, convert_dtype=convert_dtype, by_row="compat")
 
 
 def test_apply_args():
@@ -102,14 +103,18 @@ def test_agg_args(args, kwargs, increment):
         return x + a + 10 * b + 100 * c
 
     s = Series([1, 2])
-    result = s.agg(f, 0, *args, **kwargs)
+    msg = (
+        "in Series.agg cannot aggregate and has been deprecated. "
+        "Use Series.transform to keep behavior unchanged."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.agg(f, 0, *args, **kwargs)
     expected = s + increment
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_list_like_func_with_args():
-    # GH 50624
-
+def test_agg_mapping_func_deprecated():
+    # GH 53325
     s = Series([1, 2, 3])
 
     def foo1(x, a=1, c=0):
@@ -118,38 +123,30 @@ def test_agg_list_like_func_with_args():
     def foo2(x, b=2, c=0):
         return x + b + c
 
-    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
-    with pytest.raises(TypeError, match=msg):
-        s.agg([foo1, foo2], 0, 3, b=3, c=4)
+    msg = "using .+ in Series.agg cannot aggregate and"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        s.agg(foo1, 0, 3, c=4)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        s.agg([foo1, foo2], 0, 3, c=4)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
 
-    result = s.agg([foo1, foo2], 0, 3, c=4)
-    expected = DataFrame({"foo1": [8, 9, 10], "foo2": [8, 9, 10]})
-    tm.assert_frame_equal(result, expected)
 
-
-def test_series_map_box_timestamps():
+def test_series_apply_map_box_timestamps(by_row):
     # GH#2689, GH#2627
     ser = Series(pd.date_range("1/1/2000", periods=10))
 
     def func(x):
         return (x.hour, x.day, x.month)
 
-    # it works!
-    ser.map(func)
-    ser.apply(func)
+    if not by_row:
+        msg = "Series' object has no attribute 'hour'"
+        with pytest.raises(AttributeError, match=msg):
+            ser.apply(func, by_row=by_row)
+        return
 
-
-def test_series_map_stringdtype(any_string_dtype):
-    # map test on StringDType, GH#40823
-    ser1 = Series(
-        data=["cat", "dog", "rabbit"],
-        index=["id1", "id2", "id3"],
-        dtype=any_string_dtype,
-    )
-    ser2 = Series(data=["id3", "id2", "id1", "id7000"], dtype=any_string_dtype)
-    result = ser2.map(ser1)
-    expected = Series(data=["rabbit", "dog", "cat", pd.NA], dtype=any_string_dtype)
-
+    result = ser.apply(func, by_row=by_row)
+    expected = ser.map(func)
     tm.assert_series_equal(result, expected)
 
 
@@ -159,7 +156,7 @@ def test_apply_box():
     s = Series(vals)
     assert s.dtype == "datetime64[ns]"
     # boxed value must be Timestamp instance
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
+    res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}", by_row="compat")
     exp = Series(["Timestamp_1_None", "Timestamp_2_None"])
     tm.assert_series_equal(res, exp)
 
@@ -169,7 +166,7 @@ def test_apply_box():
     ]
     s = Series(vals)
     assert s.dtype == "datetime64[ns, US/Eastern]"
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
+    res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}", by_row="compat")
     exp = Series(["Timestamp_1_US/Eastern", "Timestamp_2_US/Eastern"])
     tm.assert_series_equal(res, exp)
 
@@ -177,7 +174,7 @@ def test_apply_box():
     vals = [pd.Timedelta("1 days"), pd.Timedelta("2 days")]
     s = Series(vals)
     assert s.dtype == "timedelta64[ns]"
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.days}")
+    res = s.apply(lambda x: f"{type(x).__name__}_{x.days}", by_row="compat")
     exp = Series(["Timedelta_1", "Timedelta_2"])
     tm.assert_series_equal(res, exp)
 
@@ -185,43 +182,52 @@ def test_apply_box():
     vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
     s = Series(vals)
     assert s.dtype == "Period[M]"
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.freqstr}")
+    res = s.apply(lambda x: f"{type(x).__name__}_{x.freqstr}", by_row="compat")
     exp = Series(["Period_M", "Period_M"])
     tm.assert_series_equal(res, exp)
 
 
-def test_apply_datetimetz():
+def test_apply_datetimetz(by_row):
     values = pd.date_range("2011-01-01", "2011-01-02", freq="H").tz_localize(
         "Asia/Tokyo"
     )
     s = Series(values, name="XX")
 
-    result = s.apply(lambda x: x + pd.offsets.Day())
+    result = s.apply(lambda x: x + pd.offsets.Day(), by_row=by_row)
     exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="H").tz_localize(
         "Asia/Tokyo"
     )
     exp = Series(exp_values, name="XX")
     tm.assert_series_equal(result, exp)
 
-    result = s.apply(lambda x: x.hour)
-    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int32)
+    result = s.apply(lambda x: x.hour if by_row else x.dt.hour, by_row=by_row)
+    exp = Series(list(range(24)) + [0], name="XX", dtype="int64" if by_row else "int32")
     tm.assert_series_equal(result, exp)
 
     # not vectorized
     def f(x):
-        if not isinstance(x, pd.Timestamp):
-            raise ValueError
-        return str(x.tz)
+        return str(x.tz) if by_row else str(x.dt.tz)
 
-    result = s.map(f)
-    exp = Series(["Asia/Tokyo"] * 25, name="XX")
-    tm.assert_series_equal(result, exp)
+    result = s.apply(f, by_row=by_row)
+    if by_row:
+        exp = Series(["Asia/Tokyo"] * 25, name="XX")
+        tm.assert_series_equal(result, exp)
+    else:
+        result == "Asia/Tokyo"
 
 
-def test_apply_categorical():
+def test_apply_categorical(by_row):
     values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
     ser = Series(values, name="XX", index=list("abcdefg"))
-    result = ser.apply(lambda x: x.lower())
+
+    if not by_row:
+        msg = "Series' object has no attribute 'lower"
+        with pytest.raises(AttributeError, match=msg):
+            ser.apply(lambda x: x.lower(), by_row=by_row)
+        assert ser.apply(lambda x: "A", by_row=by_row) == "A"
+        return
+
+    result = ser.apply(lambda x: x.lower(), by_row=by_row)
 
     # should be categorical dtype when the number of categories are
     # the same
@@ -236,25 +242,44 @@ def test_apply_categorical():
     assert result.dtype == object
 
 
-@pytest.mark.parametrize("series", [["1-1", "1-1", np.NaN], ["1-1", "1-2", np.NaN]])
-def test_apply_categorical_with_nan_values(series):
+@pytest.mark.parametrize("series", [["1-1", "1-1", np.nan], ["1-1", "1-2", np.nan]])
+def test_apply_categorical_with_nan_values(series, by_row):
     # GH 20714 bug fixed in: GH 24275
     s = Series(series, dtype="category")
-    result = s.apply(lambda x: x.split("-")[0])
+    if not by_row:
+        msg = "'Series' object has no attribute 'split'"
+        with pytest.raises(AttributeError, match=msg):
+            s.apply(lambda x: x.split("-")[0], by_row=by_row)
+        return
+
+    result = s.apply(lambda x: x.split("-")[0], by_row=by_row)
     result = result.astype(object)
-    expected = Series(["1", "1", np.NaN], dtype="category")
+    expected = Series(["1", "1", np.nan], dtype="category")
     expected = expected.astype(object)
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_empty_integer_series_with_datetime_index():
+def test_apply_empty_integer_series_with_datetime_index(by_row):
     # GH 21245
     s = Series([], index=pd.date_range(start="2018-01-01", periods=0), dtype=int)
-    result = s.apply(lambda x: x)
+    result = s.apply(lambda x: x, by_row=by_row)
     tm.assert_series_equal(result, s)
 
 
-def test_transform(string_series):
+def test_apply_dataframe_iloc():
+    uintDF = DataFrame(np.uint64([1, 2, 3, 4, 5]), columns=["Numbers"])
+    indexDF = DataFrame([2, 3, 2, 1, 2], columns=["Indices"])
+
+    def retrieve(targetRow, targetDF):
+        val = targetDF["Numbers"].iloc[targetRow]
+        return val
+
+    result = indexDF["Indices"].apply(retrieve, args=(uintDF,))
+    expected = Series([3, 4, 3, 2, 3], name="Indices", dtype="uint64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_transform(string_series, by_row):
     # transforming functions
 
     with np.errstate(all="ignore"):
@@ -262,17 +287,17 @@ def test_transform(string_series):
         f_abs = np.abs(string_series)
 
         # ufunc
-        result = string_series.apply(np.sqrt)
+        result = string_series.apply(np.sqrt, by_row=by_row)
         expected = f_sqrt.copy()
         tm.assert_series_equal(result, expected)
 
         # list-like
-        result = string_series.apply([np.sqrt])
+        result = string_series.apply([np.sqrt], by_row=by_row)
         expected = f_sqrt.to_frame().copy()
         expected.columns = ["sqrt"]
         tm.assert_frame_equal(result, expected)
 
-        result = string_series.apply(["sqrt"])
+        result = string_series.apply(["sqrt"], by_row=by_row)
         tm.assert_frame_equal(result, expected)
 
         # multiple items in list
@@ -280,7 +305,7 @@ def test_transform(string_series):
         # series and then concatting
         expected = concat([f_sqrt, f_abs], axis=1)
         expected.columns = ["sqrt", "absolute"]
-        result = string_series.apply([np.sqrt, np.abs])
+        result = string_series.apply([np.sqrt, np.abs], by_row=by_row)
         tm.assert_frame_equal(result, expected)
 
         # dict, provide renaming
@@ -288,7 +313,7 @@ def test_transform(string_series):
         expected.columns = ["foo", "bar"]
         expected = expected.unstack().rename("series")
 
-        result = string_series.apply({"foo": np.sqrt, "bar": np.abs})
+        result = string_series.apply({"foo": np.sqrt, "bar": np.abs}, by_row=by_row)
         tm.assert_series_equal(result.reindex_like(expected), expected)
 
 
@@ -365,26 +390,43 @@ def test_demo():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_apply_evaluate_lambdas_the_same(string_series):
-    # test that we are evaluating row-by-row first
-    # before vectorized evaluation
-    result = string_series.apply(lambda x: str(x))
-    expected = string_series.agg(lambda x: str(x))
-    tm.assert_series_equal(result, expected)
+@pytest.mark.parametrize("func", [str, lambda x: str(x)])
+def test_apply_map_evaluate_lambdas_the_same(string_series, func, by_row):
+    # test that we are evaluating row-by-row first if by_row="compat"
+    # else vectorized evaluation
+    result = string_series.apply(func, by_row=by_row)
 
-    result = string_series.apply(str)
-    expected = string_series.agg(str)
-    tm.assert_series_equal(result, expected)
+    if by_row:
+        expected = string_series.map(func)
+        tm.assert_series_equal(result, expected)
+    else:
+        assert result == str(string_series)
 
 
-def test_with_nested_series(datetime_series):
+def test_agg_evaluate_lambdas(string_series):
+    # GH53325
+    # in the future, the result will be a Series class.
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = string_series.agg(lambda x: type(x))
+    assert isinstance(result, Series) and len(result) == len(string_series)
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = string_series.agg(type)
+    assert isinstance(result, Series) and len(result) == len(string_series)
+
+
+@pytest.mark.parametrize("op_name", ["agg", "apply"])
+def test_with_nested_series(datetime_series, op_name):
     # GH 2316
     # .agg with a reducer and a transform, what to do
-    result = datetime_series.apply(lambda x: Series([x, x**2], index=["x", "x^2"]))
+    msg = "Returning a DataFrame from Series.apply when the supplied function"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH52123
+        result = getattr(datetime_series, op_name)(
+            lambda x: Series([x, x**2], index=["x", "x^2"])
+        )
     expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
-    tm.assert_frame_equal(result, expected)
-
-    result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
     tm.assert_frame_equal(result, expected)
 
 
@@ -401,7 +443,7 @@ def test_replicate_describe(string_series):
             "50%": "median",
             "75%": lambda x: x.quantile(0.75),
             "max": "max",
-        }
+        },
     )
     tm.assert_series_equal(result, expected)
 
@@ -417,396 +459,36 @@ def test_reduce(string_series):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("how", ["agg", "apply"])
-def test_non_callable_aggregates(how):
+@pytest.mark.parametrize(
+    "how, kwds",
+    [("agg", {}), ("apply", {"by_row": "compat"}), ("apply", {"by_row": False})],
+)
+def test_non_callable_aggregates(how, kwds):
     # test agg using non-callable series attributes
     # GH 39116 - expand to apply
     s = Series([1, 2, None])
 
     # Calling agg w/ just a string arg same as calling s.arg
-    result = getattr(s, how)("size")
+    result = getattr(s, how)("size", **kwds)
     expected = s.size
     assert result == expected
 
     # test when mixed w/ callable reducers
-    result = getattr(s, how)(["size", "count", "mean"])
+    result = getattr(s, how)(["size", "count", "mean"], **kwds)
     expected = Series({"size": 3.0, "count": 2.0, "mean": 1.5})
     tm.assert_series_equal(result, expected)
 
+    result = getattr(s, how)({"size": "size", "count": "count", "mean": "mean"}, **kwds)
+    tm.assert_series_equal(result, expected)
 
-def test_series_apply_no_suffix_index():
+
+def test_series_apply_no_suffix_index(by_row):
     # GH36189
     s = Series([4] * 3)
-    result = s.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    result = s.apply(["sum", lambda x: x.sum(), lambda x: x.sum()], by_row=by_row)
     expected = Series([12, 12, 12], index=["sum", "<lambda>", "<lambda>"])
 
     tm.assert_series_equal(result, expected)
-
-
-def test_map(datetime_series):
-    index, data = tm.getMixedTypeDict()
-
-    source = Series(data["B"], index=data["C"])
-    target = Series(data["C"][:4], index=data["D"][:4])
-
-    merged = target.map(source)
-
-    for k, v in merged.items():
-        assert v == source[target[k]]
-
-    # input could be a dict
-    merged = target.map(source.to_dict())
-
-    for k, v in merged.items():
-        assert v == source[target[k]]
-
-    # function
-    result = datetime_series.map(lambda x: x * 2)
-    tm.assert_series_equal(result, datetime_series * 2)
-
-    # GH 10324
-    a = Series([1, 2, 3, 4])
-    b = Series(["even", "odd", "even", "odd"], dtype="category")
-    c = Series(["even", "odd", "even", "odd"])
-
-    exp = Series(["odd", "even", "odd", np.nan], dtype="category")
-    tm.assert_series_equal(a.map(b), exp)
-    exp = Series(["odd", "even", "odd", np.nan])
-    tm.assert_series_equal(a.map(c), exp)
-
-    a = Series(["a", "b", "c", "d"])
-    b = Series([1, 2, 3, 4], index=pd.CategoricalIndex(["b", "c", "d", "e"]))
-    c = Series([1, 2, 3, 4], index=Index(["b", "c", "d", "e"]))
-
-    exp = Series([np.nan, 1, 2, 3])
-    tm.assert_series_equal(a.map(b), exp)
-    exp = Series([np.nan, 1, 2, 3])
-    tm.assert_series_equal(a.map(c), exp)
-
-    a = Series(["a", "b", "c", "d"])
-    b = Series(
-        ["B", "C", "D", "E"],
-        dtype="category",
-        index=pd.CategoricalIndex(["b", "c", "d", "e"]),
-    )
-    c = Series(["B", "C", "D", "E"], index=Index(["b", "c", "d", "e"]))
-
-    exp = Series(
-        pd.Categorical([np.nan, "B", "C", "D"], categories=["B", "C", "D", "E"])
-    )
-    tm.assert_series_equal(a.map(b), exp)
-    exp = Series([np.nan, "B", "C", "D"])
-    tm.assert_series_equal(a.map(c), exp)
-
-
-def test_map_empty(request, index):
-    if isinstance(index, MultiIndex):
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="Initializing a Series from a MultiIndex is not supported"
-            )
-        )
-
-    s = Series(index)
-    result = s.map({})
-
-    expected = Series(np.nan, index=s.index)
-    tm.assert_series_equal(result, expected)
-
-
-def test_map_compat():
-    # related GH 8024
-    s = Series([True, True, False], index=[1, 2, 3])
-    result = s.map({True: "foo", False: "bar"})
-    expected = Series(["foo", "foo", "bar"], index=[1, 2, 3])
-    tm.assert_series_equal(result, expected)
-
-
-def test_map_int():
-    left = Series({"a": 1.0, "b": 2.0, "c": 3.0, "d": 4})
-    right = Series({1: 11, 2: 22, 3: 33})
-
-    assert left.dtype == np.float_
-    assert issubclass(right.dtype.type, np.integer)
-
-    merged = left.map(right)
-    assert merged.dtype == np.float_
-    assert isna(merged["d"])
-    assert not isna(merged["c"])
-
-
-def test_map_type_inference():
-    s = Series(range(3))
-    s2 = s.map(lambda x: np.where(x == 0, 0, 1))
-    assert issubclass(s2.dtype.type, np.integer)
-
-
-def test_map_decimal(string_series):
-    result = string_series.map(lambda x: Decimal(str(x)))
-    assert result.dtype == np.object_
-    assert isinstance(result[0], Decimal)
-
-
-def test_map_na_exclusion():
-    s = Series([1.5, np.nan, 3, np.nan, 5])
-
-    result = s.map(lambda x: x * 2, na_action="ignore")
-    exp = s * 2
-    tm.assert_series_equal(result, exp)
-
-
-def test_map_dict_with_tuple_keys():
-    """
-    Due to new MultiIndex-ing behaviour in v0.14.0,
-    dicts with tuple keys passed to map were being
-    converted to a multi-index, preventing tuple values
-    from being mapped properly.
-    """
-    # GH 18496
-    df = DataFrame({"a": [(1,), (2,), (3, 4), (5, 6)]})
-    label_mappings = {(1,): "A", (2,): "B", (3, 4): "A", (5, 6): "B"}
-
-    df["labels"] = df["a"].map(label_mappings)
-    df["expected_labels"] = Series(["A", "B", "A", "B"], index=df.index)
-    # All labels should be filled now
-    tm.assert_series_equal(df["labels"], df["expected_labels"], check_names=False)
-
-
-def test_map_counter():
-    s = Series(["a", "b", "c"], index=[1, 2, 3])
-    counter = Counter()
-    counter["b"] = 5
-    counter["c"] += 1
-    result = s.map(counter)
-    expected = Series([0, 5, 1], index=[1, 2, 3])
-    tm.assert_series_equal(result, expected)
-
-
-def test_map_defaultdict():
-    s = Series([1, 2, 3], index=["a", "b", "c"])
-    default_dict = defaultdict(lambda: "blank")
-    default_dict[1] = "stuff"
-    result = s.map(default_dict)
-    expected = Series(["stuff", "blank", "blank"], index=["a", "b", "c"])
-    tm.assert_series_equal(result, expected)
-
-
-def test_map_dict_na_key():
-    # https://github.com/pandas-dev/pandas/issues/17648
-    # Checks that np.nan key is appropriately mapped
-    s = Series([1, 2, np.nan])
-    expected = Series(["a", "b", "c"])
-    result = s.map({1: "a", 2: "b", np.nan: "c"})
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("na_action", [None, "ignore"])
-def test_map_defaultdict_na_key(na_action):
-    # GH 48813
-    s = Series([1, 2, np.nan])
-    default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", np.nan: "c"})
-    result = s.map(default_map, na_action=na_action)
-    expected = Series({0: "a", 1: "b", 2: "c" if na_action is None else np.nan})
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("na_action", [None, "ignore"])
-def test_map_defaultdict_missing_key(na_action):
-    # GH 48813
-    s = Series([1, 2, np.nan])
-    default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", 3: "c"})
-    result = s.map(default_map, na_action=na_action)
-    expected = Series({0: "a", 1: "b", 2: "missing" if na_action is None else np.nan})
-    tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("na_action", [None, "ignore"])
-def test_map_defaultdict_unmutated(na_action):
-    # GH 48813
-    s = Series([1, 2, np.nan])
-    default_map = defaultdict(lambda: "missing", {1: "a", 2: "b", np.nan: "c"})
-    expected_default_map = default_map.copy()
-    s.map(default_map, na_action=na_action)
-    assert default_map == expected_default_map
-
-
-@pytest.mark.parametrize("arg_func", [dict, Series])
-def test_map_dict_ignore_na(arg_func):
-    # GH#47527
-    mapping = arg_func({1: 10, np.nan: 42})
-    ser = Series([1, np.nan, 2])
-    result = ser.map(mapping, na_action="ignore")
-    expected = Series([10, np.nan, np.nan])
-    tm.assert_series_equal(result, expected)
-
-
-def test_map_defaultdict_ignore_na():
-    # GH#47527
-    mapping = defaultdict(int, {1: 10, np.nan: 42})
-    ser = Series([1, np.nan, 2])
-    result = ser.map(mapping)
-    expected = Series([10, 42, 0])
-    tm.assert_series_equal(result, expected)
-
-
-def test_map_categorical_na_ignore():
-    # GH#47527
-    values = pd.Categorical([1, np.nan, 2], categories=[10, 1])
-    ser = Series(values)
-    result = ser.map({1: 10, np.nan: 42})
-    expected = Series([10, np.nan, np.nan])
-    tm.assert_series_equal(result, expected)
-
-
-def test_map_dict_subclass_with_missing():
-    """
-    Test Series.map with a dictionary subclass that defines __missing__,
-    i.e. sets a default value (GH #15999).
-    """
-
-    class DictWithMissing(dict):
-        def __missing__(self, key):
-            return "missing"
-
-    s = Series([1, 2, 3])
-    dictionary = DictWithMissing({3: "three"})
-    result = s.map(dictionary)
-    expected = Series(["missing", "missing", "three"])
-    tm.assert_series_equal(result, expected)
-
-
-def test_map_dict_subclass_without_missing():
-    class DictWithoutMissing(dict):
-        pass
-
-    s = Series([1, 2, 3])
-    dictionary = DictWithoutMissing({3: "three"})
-    result = s.map(dictionary)
-    expected = Series([np.nan, np.nan, "three"])
-    tm.assert_series_equal(result, expected)
-
-
-def test_map_abc_mapping(non_dict_mapping_subclass):
-    # https://github.com/pandas-dev/pandas/issues/29733
-    # Check collections.abc.Mapping support as mapper for Series.map
-    s = Series([1, 2, 3])
-    not_a_dictionary = non_dict_mapping_subclass({3: "three"})
-    result = s.map(not_a_dictionary)
-    expected = Series([np.nan, np.nan, "three"])
-    tm.assert_series_equal(result, expected)
-
-
-def test_map_abc_mapping_with_missing(non_dict_mapping_subclass):
-    # https://github.com/pandas-dev/pandas/issues/29733
-    # Check collections.abc.Mapping support as mapper for Series.map
-    class NonDictMappingWithMissing(non_dict_mapping_subclass):
-        def __missing__(self, key):
-            return "missing"
-
-    s = Series([1, 2, 3])
-    not_a_dictionary = NonDictMappingWithMissing({3: "three"})
-    result = s.map(not_a_dictionary)
-    # __missing__ is a dict concept, not a Mapping concept,
-    # so it should not change the result!
-    expected = Series([np.nan, np.nan, "three"])
-    tm.assert_series_equal(result, expected)
-
-
-def test_map_box():
-    vals = [pd.Timestamp("2011-01-01"), pd.Timestamp("2011-01-02")]
-    s = Series(vals)
-    assert s.dtype == "datetime64[ns]"
-    # boxed value must be Timestamp instance
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
-    exp = Series(["Timestamp_1_None", "Timestamp_2_None"])
-    tm.assert_series_equal(res, exp)
-
-    vals = [
-        pd.Timestamp("2011-01-01", tz="US/Eastern"),
-        pd.Timestamp("2011-01-02", tz="US/Eastern"),
-    ]
-    s = Series(vals)
-    assert s.dtype == "datetime64[ns, US/Eastern]"
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.day}_{x.tz}")
-    exp = Series(["Timestamp_1_US/Eastern", "Timestamp_2_US/Eastern"])
-    tm.assert_series_equal(res, exp)
-
-    # timedelta
-    vals = [pd.Timedelta("1 days"), pd.Timedelta("2 days")]
-    s = Series(vals)
-    assert s.dtype == "timedelta64[ns]"
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.days}")
-    exp = Series(["Timedelta_1", "Timedelta_2"])
-    tm.assert_series_equal(res, exp)
-
-    # period
-    vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
-    s = Series(vals)
-    assert s.dtype == "Period[M]"
-    res = s.apply(lambda x: f"{type(x).__name__}_{x.freqstr}")
-    exp = Series(["Period_M", "Period_M"])
-    tm.assert_series_equal(res, exp)
-
-
-def test_map_categorical():
-    values = pd.Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
-    s = Series(values, name="XX", index=list("abcdefg"))
-
-    result = s.map(lambda x: x.lower())
-    exp_values = pd.Categorical(list("abbabcd"), categories=list("dcba"), ordered=True)
-    exp = Series(exp_values, name="XX", index=list("abcdefg"))
-    tm.assert_series_equal(result, exp)
-    tm.assert_categorical_equal(result.values, exp_values)
-
-    result = s.map(lambda x: "A")
-    exp = Series(["A"] * 7, name="XX", index=list("abcdefg"))
-    tm.assert_series_equal(result, exp)
-    assert result.dtype == object
-
-
-def test_map_datetimetz():
-    values = pd.date_range("2011-01-01", "2011-01-02", freq="H").tz_localize(
-        "Asia/Tokyo"
-    )
-    s = Series(values, name="XX")
-
-    # keep tz
-    result = s.map(lambda x: x + pd.offsets.Day())
-    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="H").tz_localize(
-        "Asia/Tokyo"
-    )
-    exp = Series(exp_values, name="XX")
-    tm.assert_series_equal(result, exp)
-
-    result = s.map(lambda x: x.hour)
-    exp = Series(list(range(24)) + [0], name="XX", dtype=np.int32)
-    tm.assert_series_equal(result, exp)
-
-    # not vectorized
-    def f(x):
-        if not isinstance(x, pd.Timestamp):
-            raise ValueError
-        return str(x.tz)
-
-    result = s.map(f)
-    exp = Series(["Asia/Tokyo"] * 25, name="XX")
-    tm.assert_series_equal(result, exp)
-
-
-@pytest.mark.parametrize(
-    "vals,mapping,exp",
-    [
-        (list("abc"), {np.nan: "not NaN"}, [np.nan] * 3 + ["not NaN"]),
-        (list("abc"), {"a": "a letter"}, ["a letter"] + [np.nan] * 3),
-        (list(range(3)), {0: 42}, [42] + [np.nan] * 3),
-    ],
-)
-def test_map_missing_mixed(vals, mapping, exp):
-    # GH20495
-    s = Series(vals + [np.nan])
-    result = s.map(mapping)
-
-    tm.assert_series_equal(result, Series(exp))
 
 
 @pytest.mark.parametrize(
@@ -830,37 +512,35 @@ def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
         index = dti.tz_localize("UTC").index
     else:
         index = dti.index
-    result = Series(index).apply(lambda x: Series([1, 2]))
+    msg = "Returning a DataFrame from Series.apply when the supplied function"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH52123
+        result = Series(index).apply(lambda x: Series([1, 2]))
     tm.assert_frame_equal(result, exp)
 
 
-def test_apply_scalar_on_date_time_index_aware_series():
+@pytest.mark.parametrize(
+    "by_row, expected", [("compat", Series(np.ones(30), dtype="int64")), (False, 1)]
+)
+def test_apply_scalar_on_date_time_index_aware_series(by_row, expected):
     # GH 25959
     # Calling apply on a localized time series should not cause an error
     series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
-    result = Series(series.index).apply(lambda x: 1)
-    tm.assert_series_equal(result, Series(np.ones(30), dtype="int64"))
+    result = Series(series.index).apply(lambda x: 1, by_row=by_row)
+    tm.assert_equal(result, expected)
 
 
-def test_map_float_to_string_precision():
-    # GH 13228
-    ser = Series(1 / 3)
-    result = ser.map(lambda val: str(val)).to_dict()
-    expected = {0: "0.3333333333333333"}
-    assert result == expected
-
-
-def test_apply_to_timedelta():
+def test_apply_to_timedelta(by_row):
     list_of_valid_strings = ["00:00:01", "00:00:02"]
     a = pd.to_timedelta(list_of_valid_strings)
-    b = Series(list_of_valid_strings).apply(pd.to_timedelta)
+    b = Series(list_of_valid_strings).apply(pd.to_timedelta, by_row=by_row)
     tm.assert_series_equal(Series(a), b)
 
     list_of_strings = ["00:00:01", np.nan, pd.NaT, pd.NaT]
 
     a = pd.to_timedelta(list_of_strings)
     ser = Series(list_of_strings)
-    b = ser.apply(pd.to_timedelta)
+    b = ser.apply(pd.to_timedelta, by_row=by_row)
     tm.assert_series_equal(Series(a), b)
 
 
@@ -873,12 +553,18 @@ def test_apply_to_timedelta():
         (np.array([np.sum, np.mean]), ["sum", "mean"]),
     ],
 )
-@pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_listlike_reducer(string_series, ops, names, how):
+@pytest.mark.parametrize(
+    "how, kwargs",
+    [["agg", {}], ["apply", {"by_row": "compat"}], ["apply", {"by_row": False}]],
+)
+def test_apply_listlike_reducer(string_series, ops, names, how, kwargs):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in zip(names, ops)})
     expected.name = "series"
-    result = getattr(string_series, how)(ops)
+    warn = FutureWarning if how == "agg" else None
+    msg = f"using Series.[{'|'.join(names)}]"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)
 
 
@@ -891,12 +577,18 @@ def test_apply_listlike_reducer(string_series, ops, names, how):
         Series({"A": np.sum, "B": np.mean}),
     ],
 )
-@pytest.mark.parametrize("how", ["agg", "apply"])
-def test_apply_dictlike_reducer(string_series, ops, how):
+@pytest.mark.parametrize(
+    "how, kwargs",
+    [["agg", {}], ["apply", {"by_row": "compat"}], ["apply", {"by_row": False}]],
+)
+def test_apply_dictlike_reducer(string_series, ops, how, kwargs, by_row):
     # GH 39140
     expected = Series({name: op(string_series) for name, op in ops.items()})
     expected.name = string_series.name
-    result = getattr(string_series, how)(ops)
+    warn = FutureWarning if how == "agg" else None
+    msg = "using Series.[sum|mean]"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(string_series, how)(ops, **kwargs)
     tm.assert_series_equal(result, expected)
 
 
@@ -909,13 +601,27 @@ def test_apply_dictlike_reducer(string_series, ops, how):
         (np.array([np.abs, np.sqrt]), ["absolute", "sqrt"]),
     ],
 )
-def test_apply_listlike_transformer(string_series, ops, names):
+def test_apply_listlike_transformer(string_series, ops, names, by_row):
     # GH 39140
     with np.errstate(all="ignore"):
         expected = concat([op(string_series) for op in ops], axis=1)
         expected.columns = names
-        result = string_series.apply(ops)
+        result = string_series.apply(ops, by_row=by_row)
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops, expected",
+    [
+        ([lambda x: x], DataFrame({"<lambda>": [1, 2, 3]})),
+        ([lambda x: x.sum()], Series([6], index=["<lambda>"])),
+    ],
+)
+def test_apply_listlike_lambda(ops, expected, by_row):
+    # GH53400
+    ser = Series([1, 2, 3])
+    result = ser.apply(ops, by_row=by_row)
+    tm.assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -927,19 +633,48 @@ def test_apply_listlike_transformer(string_series, ops, names):
         Series({"A": np.sqrt, "B": np.exp}),
     ],
 )
-def test_apply_dictlike_transformer(string_series, ops):
+def test_apply_dictlike_transformer(string_series, ops, by_row):
     # GH 39140
     with np.errstate(all="ignore"):
         expected = concat({name: op(string_series) for name, op in ops.items()})
         expected.name = string_series.name
-        result = string_series.apply(ops)
+        result = string_series.apply(ops, by_row=by_row)
         tm.assert_series_equal(result, expected)
 
 
-def test_apply_retains_column_name():
+@pytest.mark.parametrize(
+    "ops, expected",
+    [
+        (
+            {"a": lambda x: x},
+            Series([1, 2, 3], index=MultiIndex.from_arrays([["a"] * 3, range(3)])),
+        ),
+        ({"a": lambda x: x.sum()}, Series([6], index=["a"])),
+    ],
+)
+def test_apply_dictlike_lambda(ops, by_row, expected):
+    # GH53400
+    ser = Series([1, 2, 3])
+    result = ser.apply(ops, by_row=by_row)
+    tm.assert_equal(result, expected)
+
+
+def test_apply_retains_column_name(by_row):
     # GH 16380
     df = DataFrame({"x": range(3)}, Index(range(3), name="x"))
-    result = df.x.apply(lambda x: Series(range(x + 1), Index(range(x + 1), name="y")))
+    func = lambda x: Series(range(x + 1), Index(range(x + 1), name="y"))
+
+    if not by_row:
+        # GH53400
+        msg = "'Series' object cannot be interpreted as an integer"
+        with pytest.raises(TypeError, match=msg):
+            df.x.apply(func, by_row=by_row)
+        return
+
+    msg = "Returning a DataFrame from Series.apply when the supplied function"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH52123
+        result = df.x.apply(func, by_row=by_row)
     expected = DataFrame(
         [[0.0, np.nan, np.nan], [0.0, 1.0, np.nan], [0.0, 1.0, 2.0]],
         columns=Index(range(3), name="y"),

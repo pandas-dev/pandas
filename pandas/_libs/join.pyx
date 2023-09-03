@@ -23,7 +23,7 @@ from pandas._libs.dtypes cimport (
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def inner_join(const intp_t[:] left, const intp_t[:] right,
-               Py_ssize_t max_groups):
+               Py_ssize_t max_groups, bint sort=True):
     cdef:
         Py_ssize_t i, j, k, count = 0
         intp_t[::1] left_sorter, right_sorter
@@ -70,7 +70,20 @@ def inner_join(const intp_t[:] left, const intp_t[:] right,
         _get_result_indexer(left_sorter, left_indexer)
         _get_result_indexer(right_sorter, right_indexer)
 
-    return np.asarray(left_indexer), np.asarray(right_indexer)
+    if not sort:
+        # if not asked to sort, revert to original order
+        if len(left) == len(left_indexer):
+            # no multiple matches for any row on the left
+            # this is a short-cut to avoid groupsort_indexer
+            # otherwise, the `else` path also works in this case
+            rev = np.empty(len(left), dtype=np.intp)
+            rev.put(np.asarray(left_sorter), np.arange(len(left)))
+        else:
+            rev, _ = groupsort_indexer(left_indexer, len(left))
+
+        return np.asarray(left_indexer).take(rev), np.asarray(right_indexer).take(rev)
+    else:
+        return np.asarray(left_indexer), np.asarray(right_indexer)
 
 
 @cython.wraparound(False)
@@ -213,7 +226,7 @@ def full_outer_join(const intp_t[:] left, const intp_t[:] right,
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef void _get_result_indexer(intp_t[::1] sorter, intp_t[::1] indexer) nogil:
+cdef void _get_result_indexer(intp_t[::1] sorter, intp_t[::1] indexer) noexcept nogil:
     """NOTE: overwrites indexer with the result to avoid allocating another array"""
     cdef:
         Py_ssize_t i, n, idx
@@ -679,10 +692,10 @@ ctypedef fused by_t:
     uint64_t
 
 
-def asof_join_backward_on_X_by_Y(numeric_t[:] left_values,
-                                 numeric_t[:] right_values,
-                                 by_t[:] left_by_values,
-                                 by_t[:] right_by_values,
+def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
+                                 ndarray[numeric_t] right_values,
+                                 ndarray[by_t] left_by_values,
+                                 ndarray[by_t] right_by_values,
                                  bint allow_exact_matches=True,
                                  tolerance=None,
                                  bint use_hashtable=True):
@@ -756,10 +769,10 @@ def asof_join_backward_on_X_by_Y(numeric_t[:] left_values,
     return left_indexer, right_indexer
 
 
-def asof_join_forward_on_X_by_Y(numeric_t[:] left_values,
-                                numeric_t[:] right_values,
-                                by_t[:] left_by_values,
-                                by_t[:] right_by_values,
+def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
+                                ndarray[numeric_t] right_values,
+                                ndarray[by_t] left_by_values,
+                                ndarray[by_t] right_by_values,
                                 bint allow_exact_matches=1,
                                 tolerance=None,
                                 bint use_hashtable=True):
@@ -834,10 +847,10 @@ def asof_join_forward_on_X_by_Y(numeric_t[:] left_values,
     return left_indexer, right_indexer
 
 
-def asof_join_nearest_on_X_by_Y(numeric_t[:] left_values,
-                                numeric_t[:] right_values,
-                                by_t[:] left_by_values,
-                                by_t[:] right_by_values,
+def asof_join_nearest_on_X_by_Y(ndarray[numeric_t] left_values,
+                                ndarray[numeric_t] right_values,
+                                ndarray[by_t] left_by_values,
+                                ndarray[by_t] right_by_values,
                                 bint allow_exact_matches=True,
                                 tolerance=None,
                                 bint use_hashtable=True):

@@ -63,7 +63,7 @@ class TestSelection:
 
         df["mean"] = 1.5
         result = df.groupby("A").mean(numeric_only=True)
-        expected = df.groupby("A")[["C", "D", "mean"]].agg(np.mean)
+        expected = df.groupby("A")[["C", "D", "mean"]].agg("mean")
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_list_of_columns(self):
@@ -71,9 +71,9 @@ class TestSelection:
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-                "C": np.random.randn(8),
-                "D": np.random.randn(8),
-                "E": np.random.randn(8),
+                "C": np.random.default_rng(2).standard_normal(8),
+                "D": np.random.default_rng(2).standard_normal(8),
+                "E": np.random.default_rng(2).standard_normal(8),
             }
         )
 
@@ -90,9 +90,9 @@ class TestSelection:
         df = DataFrame(
             {
                 0: list("abcd") * 2,
-                2: np.random.randn(8),
-                4: np.random.randn(8),
-                6: np.random.randn(8),
+                2: np.random.default_rng(2).standard_normal(8),
+                4: np.random.default_rng(2).standard_normal(8),
+                6: np.random.default_rng(2).standard_normal(8),
             }
         )
         result = df.groupby(0)[df.columns[1:3]].mean()
@@ -117,9 +117,9 @@ class TestSelection:
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-                "C": np.random.randn(8),
-                "D": np.random.randn(8),
-                "E": np.random.randn(8),
+                "C": np.random.default_rng(2).standard_normal(8),
+                "D": np.random.default_rng(2).standard_normal(8),
+                "E": np.random.default_rng(2).standard_normal(8),
             }
         )
 
@@ -134,7 +134,13 @@ class TestSelection:
     def test_indices_grouped_by_tuple_with_lambda(self):
         # GH 36158
         df = DataFrame(
-            {"Tuples": ((x, y) for x in [0, 1] for y in np.random.randint(3, 5, 5))}
+            {
+                "Tuples": (
+                    (x, y)
+                    for x in [0, 1]
+                    for y in np.random.default_rng(2).integers(3, 5, 5)
+                )
+            }
         )
 
         gb = df.groupby("Tuples")
@@ -161,6 +167,7 @@ class TestGrouping:
             tm.makePeriodIndex,
         ],
     )
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_grouper_index_types(self, index):
         # related GH5375
         # groupby misbehaving when using a Floatlike index
@@ -178,7 +185,7 @@ class TestGrouping:
         d0 = date.today() - timedelta(days=14)
         dates = date_range(d0, date.today())
         date_index = MultiIndex.from_product([dates, dates], names=["foo", "bar"])
-        df = DataFrame(np.random.randint(0, 100, 225), index=date_index)
+        df = DataFrame(np.random.default_rng(2).integers(0, 100, 225), index=date_index)
 
         # Check string level
         expected = (
@@ -210,7 +217,10 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
-        g = df.groupby(Grouper(key="A", axis=0))
+        msg = "Grouper axis keyword is deprecated and will be removed"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            gpr = Grouper(key="A", axis=0)
+        g = df.groupby(gpr)
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
@@ -338,7 +348,9 @@ class TestGrouping:
         )
         cat_columns = CategoricalIndex(columns, categories=categories, ordered=True)
         df = DataFrame(data=data, columns=cat_columns)
-        result = df.groupby(axis=1, level=0, observed=observed).sum()
+        depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = df.groupby(axis=1, level=0, observed=observed).sum()
         expected_data = np.array([[4, 2], [4, 2], [4, 2], [4, 2], [4, 2]], int)
         expected_columns = CategoricalIndex(
             categories, categories=categories, ordered=True
@@ -348,7 +360,9 @@ class TestGrouping:
 
         # test transposed version
         df = DataFrame(data.T, index=cat_columns)
-        result = df.groupby(axis=0, level=0, observed=observed).sum()
+        msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.groupby(axis=0, level=0, observed=observed).sum()
         expected = DataFrame(data=expected_data.T, index=expected_columns)
         tm.assert_frame_equal(result, expected)
 
@@ -392,15 +406,15 @@ class TestGrouping:
     def test_groupby_dict_mapping(self):
         # GH #679
         s = Series({"T1": 5})
-        result = s.groupby({"T1": "T2"}).agg(sum)
-        expected = s.groupby(["T2"]).agg(sum)
+        result = s.groupby({"T1": "T2"}).agg("sum")
+        expected = s.groupby(["T2"]).agg("sum")
         tm.assert_series_equal(result, expected)
 
         s = Series([1.0, 2.0, 3.0, 4.0], index=list("abcd"))
         mapping = {"a": 0, "b": 0, "c": 1, "d": 1}
 
         result = s.groupby(mapping).mean()
-        result2 = s.groupby(mapping).agg(np.mean)
+        result2 = s.groupby(mapping).agg("mean")
         exp_key = np.array([0, 0, 1, 1], dtype=np.int64)
         expected = s.groupby(exp_key).mean()
         expected2 = s.groupby(exp_key).mean()
@@ -427,20 +441,41 @@ class TestGrouping:
 
     def test_groupby_grouper_f_sanity_checked(self):
         dates = date_range("01-Jan-2013", periods=12, freq="MS")
-        ts = Series(np.random.randn(12), index=dates)
+        ts = Series(np.random.default_rng(2).standard_normal(12), index=dates)
 
-        # GH3035
-        # index.map is used to apply grouper to the index
-        # if it fails on the elements, map tries it on the entire index as
-        # a sequence. That can yield invalid results that cause trouble
-        # down the line.
-        # the surprise comes from using key[0:6] rather than str(key)[0:6]
-        # when the elements are Timestamp.
-        # the result is Index[0:6], very confusing.
-
-        msg = r"Grouper result violates len\(labels\) == len\(data\)"
-        with pytest.raises(AssertionError, match=msg):
+        # GH51979
+        # simple check that the passed function doesn't operates on the whole index
+        msg = "'Timestamp' object is not subscriptable"
+        with pytest.raises(TypeError, match=msg):
             ts.groupby(lambda key: key[0:6])
+
+        result = ts.groupby(lambda x: x).sum()
+        expected = ts.groupby(ts.index).sum()
+        expected.index.freq = None
+        tm.assert_series_equal(result, expected)
+
+    def test_groupby_with_datetime_key(self):
+        # GH 51158
+        df = DataFrame(
+            {
+                "id": ["a", "b"] * 3,
+                "b": date_range("2000-01-01", "2000-01-03", freq="9H"),
+            }
+        )
+        grouper = Grouper(key="b", freq="D")
+        gb = df.groupby([grouper, "id"])
+
+        # test number of groups
+        expected = {
+            (Timestamp("2000-01-01"), "a"): [0, 2],
+            (Timestamp("2000-01-01"), "b"): [1],
+            (Timestamp("2000-01-02"), "a"): [4],
+            (Timestamp("2000-01-02"), "b"): [3, 5],
+        }
+        tm.assert_dict_equal(gb.groups, expected)
+
+        # test number of group keys
+        assert len(gb.groups.keys()) == 4
 
     def test_grouping_error_on_multidim_input(self, df):
         msg = "Grouper for '<class 'pandas.core.frame.DataFrame'>' not 1-dimensional"
@@ -453,7 +488,10 @@ class TestGrouping:
         df = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         df.columns = MultiIndex.from_tuples([(0, 1), (1, 1), (2, 1)])
 
-        result = df.groupby(axis=1, level=[0, 1]).first()
+        depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            gb = df.groupby(axis=1, level=[0, 1])
+        result = gb.first()
         tm.assert_frame_equal(result, df)
 
     def test_multiindex_negative_level(self, mframe):
@@ -478,7 +516,9 @@ class TestGrouping:
         df.columns = np.arange(len(df.columns))
 
         # it works!
-        df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
+        msg = "Passing a dictionary to SeriesGroupBy.agg is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.groupby(1, as_index=False)[2].agg({"Q": np.mean})
 
     def test_multiindex_columns_empty_level(self):
         lst = [["count", "values"], ["to filter", ""]]
@@ -529,6 +569,37 @@ class TestGrouping:
         result = df.groupby(("b", 1)).groups
         tm.assert_dict_equal(expected, result)
 
+    def test_groupby_multiindex_partial_indexing_equivalence(self):
+        # GH 17977
+        df = DataFrame(
+            [[1, 2, 3, 4], [3, 4, 5, 6], [1, 4, 2, 3]],
+            columns=MultiIndex.from_arrays([["a", "b", "b", "c"], [1, 1, 2, 2]]),
+        )
+
+        expected_mean = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].mean()
+        result_mean = df.groupby([("a", 1)])["b"].mean()
+        tm.assert_frame_equal(expected_mean, result_mean)
+
+        expected_sum = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].sum()
+        result_sum = df.groupby([("a", 1)])["b"].sum()
+        tm.assert_frame_equal(expected_sum, result_sum)
+
+        expected_count = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].count()
+        result_count = df.groupby([("a", 1)])["b"].count()
+        tm.assert_frame_equal(expected_count, result_count)
+
+        expected_min = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].min()
+        result_min = df.groupby([("a", 1)])["b"].min()
+        tm.assert_frame_equal(expected_min, result_min)
+
+        expected_max = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].max()
+        result_max = df.groupby([("a", 1)])["b"].max()
+        tm.assert_frame_equal(expected_max, result_max)
+
+        expected_groups = df.groupby([("a", 1)])[[("b", 1), ("b", 2)]].groups
+        result_groups = df.groupby([("a", 1)])["b"].groups
+        tm.assert_dict_equal(expected_groups, result_groups)
+
     @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level(self, sort, mframe, df):
         # GH 17537
@@ -559,9 +630,10 @@ class TestGrouping:
         tm.assert_frame_equal(result1, expected1)
 
         # axis=1
-
-        result0 = frame.T.groupby(level=0, axis=1, sort=sort).sum()
-        result1 = frame.T.groupby(level=1, axis=1, sort=sort).sum()
+        msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result0 = frame.T.groupby(level=0, axis=1, sort=sort).sum()
+            result1 = frame.T.groupby(level=1, axis=1, sort=sort).sum()
         tm.assert_frame_equal(result0, expected0.T)
         tm.assert_frame_equal(result1, expected1.T)
 
@@ -577,10 +649,15 @@ class TestGrouping:
         )
         if axis in (1, "columns"):
             df = df.T
-        df.groupby(level="exp", axis=axis)
+            depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+        else:
+            depr_msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            df.groupby(level="exp", axis=axis)
         msg = f"level name foo is not the name of the {df._get_axis_name(axis)}"
         with pytest.raises(ValueError, match=msg):
-            df.groupby(level="foo", axis=axis)
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                df.groupby(level="foo", axis=axis)
 
     @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level_with_nas(self, sort):
@@ -768,7 +845,7 @@ class TestGetGroup:
         )
 
         g = df.groupby("DATE")
-        key = list(g.groups)[0]
+        key = next(iter(g.groups))
         result1 = g.get_group(key)
         result2 = g.get_group(Timestamp(key).to_pydatetime())
         result3 = g.get_group(str(Timestamp(key)))
@@ -777,7 +854,7 @@ class TestGetGroup:
 
         g = df.groupby(["DATE", "label"])
 
-        key = list(g.groups)[0]
+        key = next(iter(g.groups))
         result1 = g.get_group(key)
         result2 = g.get_group((Timestamp(key[0]).to_pydatetime(), key[1]))
         result3 = g.get_group((str(Timestamp(key[0])), key[1]))
@@ -827,14 +904,20 @@ class TestGetGroup:
     def test_get_group_grouped_by_tuple_with_lambda(self):
         # GH 36158
         df = DataFrame(
-            {"Tuples": ((x, y) for x in [0, 1] for y in np.random.randint(3, 5, 5))}
+            {
+                "Tuples": (
+                    (x, y)
+                    for x in [0, 1]
+                    for y in np.random.default_rng(2).integers(3, 5, 5)
+                )
+            }
         )
 
         gb = df.groupby("Tuples")
         gb_lambda = df.groupby(lambda x: df.iloc[x, 0])
 
-        expected = gb.get_group(list(gb.groups.keys())[0])
-        result = gb_lambda.get_group(list(gb_lambda.groups.keys())[0])
+        expected = gb.get_group(next(iter(gb.groups.keys())))
+        result = gb_lambda.get_group(next(iter(gb_lambda.groups.keys())))
 
         tm.assert_frame_equal(result, expected)
 
@@ -925,7 +1008,12 @@ class TestIteration:
         k1 = np.array(["b", "b", "b", "a", "a", "a"])
         k2 = np.array(["1", "2", "1", "2", "1", "2"])
         df = DataFrame(
-            {"v1": np.random.randn(6), "v2": np.random.randn(6), "k1": k1, "k2": k2},
+            {
+                "v1": np.random.default_rng(2).standard_normal(6),
+                "v2": np.random.default_rng(2).standard_normal(6),
+                "k1": k1,
+                "k2": k2,
+            },
             index=["one", "two", "three", "four", "five", "six"],
         )
 
@@ -953,12 +1041,14 @@ class TestIteration:
         # calling `dict` on a DataFrameGroupBy leads to a TypeError,
         # we need to use a dictionary comprehension here
         # pylint: disable-next=unnecessary-comprehension
-        groups = {key: gp for key, gp in grouped}
+        groups = {key: gp for key, gp in grouped}  # noqa: C416
         assert len(groups) == 2
 
         # axis = 1
         three_levels = three_group.groupby(["A", "B", "C"]).mean()
-        grouped = three_levels.T.groupby(axis=1, level=(1, 2))
+        depr_msg = "DataFrame.groupby with axis=1 is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            grouped = three_levels.T.groupby(axis=1, level=(1, 2))
         for key, group in grouped:
             pass
 
@@ -1042,7 +1132,9 @@ def test_grouping_by_key_is_in_axis():
 
     # Currently only in-axis groupings are including in the result when as_index=False;
     # This is likely to change in the future.
-    result = gb.sum()
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.sum()
     expected = DataFrame({"b": [1, 2], "c": [7, 5]})
     tm.assert_frame_equal(result, expected)
 

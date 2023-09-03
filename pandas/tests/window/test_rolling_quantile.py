@@ -65,7 +65,7 @@ def test_time_rule_series(series, q):
     prev_date = last_date - 24 * offsets.BDay()
 
     trunc_series = series[::2].truncate(prev_date, last_date)
-    tm.assert_almost_equal(series_result[-1], compare_func(trunc_series))
+    tm.assert_almost_equal(series_result.iloc[-1], compare_func(trunc_series))
 
 
 @pytest.mark.parametrize("q", [0.0, 0.1, 0.5, 0.9, 1.0])
@@ -88,9 +88,9 @@ def test_time_rule_frame(raw, frame, q):
 @pytest.mark.parametrize("q", [0.0, 0.1, 0.5, 0.9, 1.0])
 def test_nans(q):
     compare_func = partial(scoreatpercentile, per=q)
-    obj = Series(np.random.randn(50))
-    obj[:10] = np.NaN
-    obj[-10:] = np.NaN
+    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj[:10] = np.nan
+    obj[-10:] = np.nan
 
     result = obj.rolling(50, min_periods=30).quantile(q)
     tm.assert_almost_equal(result.iloc[-1], compare_func(obj[10:-10]))
@@ -103,7 +103,7 @@ def test_nans(q):
     assert not isna(result.iloc[-6])
     assert isna(result.iloc[-5])
 
-    obj2 = Series(np.random.randn(20))
+    obj2 = Series(np.random.default_rng(2).standard_normal(20))
     result = obj2.rolling(10, min_periods=5).quantile(q)
     assert isna(result.iloc[3])
     assert notna(result.iloc[4])
@@ -127,13 +127,13 @@ def test_min_periods(series, minp, q, step):
 
 @pytest.mark.parametrize("q", [0.0, 0.1, 0.5, 0.9, 1.0])
 def test_center(q):
-    obj = Series(np.random.randn(50))
-    obj[:10] = np.NaN
-    obj[-10:] = np.NaN
+    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj[:10] = np.nan
+    obj[-10:] = np.nan
 
     result = obj.rolling(20, center=True).quantile(q)
     expected = (
-        concat([obj, Series([np.NaN] * 9)])
+        concat([obj, Series([np.nan] * 9)])
         .rolling(20)
         .quantile(q)
         .iloc[9:]
@@ -173,3 +173,10 @@ def test_center_reindex_frame(frame, q):
     )
     frame_rs = frame.rolling(window=25, center=True).quantile(q)
     tm.assert_frame_equal(frame_xp, frame_rs)
+
+
+def test_keyword_quantile_deprecated():
+    # GH #52550
+    s = Series([1, 2, 3, 4])
+    with tm.assert_produces_warning(FutureWarning):
+        s.rolling(2).quantile(quantile=0.4)

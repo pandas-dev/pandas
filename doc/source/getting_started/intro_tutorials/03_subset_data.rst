@@ -9,13 +9,13 @@
 .. raw:: html
 
     <div class="card gs-data">
-        <div class="card-header">
+        <div class="card-header gs-data-header">
             <div class="gs-data-title">
                 Data used for this tutorial:
             </div>
         </div>
         <ul class="list-group list-group-flush">
-            <li class="list-group-item">
+            <li class="list-group-item gs-data-list">
 
 .. include:: includes/titanic.rst
 
@@ -330,7 +330,7 @@ selection brackets ``[]``.
 
 When selecting specific rows and/or columns with ``loc`` or ``iloc``,
 new values can be assigned to the selected data. For example, to assign
-the name ``anonymous`` to the first 3 elements of the third column:
+the name ``anonymous`` to the first 3 elements of the fourth column:
 
 .. ipython:: python
 

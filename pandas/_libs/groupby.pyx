@@ -3,6 +3,10 @@ from cython cimport (
     Py_ssize_t,
     floating,
 )
+from libc.math cimport (
+    NAN,
+    sqrt,
+)
 from libc.stdlib cimport (
     free,
     malloc,
@@ -23,7 +27,6 @@ from numpy cimport (
     uint8_t,
     uint64_t,
 )
-from numpy.math cimport NAN
 
 cnp.import_array()
 
@@ -48,9 +51,8 @@ from pandas._libs.missing cimport checknull
 
 
 cdef int64_t NPY_NAT = util.get_nat()
-_int64_max = np.iinfo(np.int64).max
 
-cdef float64_t NaN = <float64_t>np.NaN
+cdef float64_t NaN = <float64_t>np.nan
 
 cdef enum InterpolationEnumType:
     INTERPOLATION_LINEAR,
@@ -60,7 +62,7 @@ cdef enum InterpolationEnumType:
     INTERPOLATION_MIDPOINT
 
 
-cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
+cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -89,7 +91,7 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
         a = tmp
         n -= na_count
 
-    result = calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n)
 
     if na_count:
         free(a)
@@ -97,7 +99,7 @@ cdef float64_t median_linear_mask(float64_t* a, int n, uint8_t* mask) nogil:
     return result
 
 
-cdef float64_t median_linear(float64_t* a, int n) nogil:
+cdef float64_t median_linear(float64_t* a, int n) noexcept nogil:
     cdef:
         int i, j, na_count = 0
         float64_t* tmp
@@ -126,7 +128,7 @@ cdef float64_t median_linear(float64_t* a, int n) nogil:
         a = tmp
         n -= na_count
 
-    result = calc_median_linear(a, n, na_count)
+    result = calc_median_linear(a, n)
 
     if na_count:
         free(a)
@@ -134,7 +136,7 @@ cdef float64_t median_linear(float64_t* a, int n) nogil:
     return result
 
 
-cdef float64_t calc_median_linear(float64_t* a, int n, int na_count) nogil:
+cdef float64_t calc_median_linear(float64_t* a, int n) noexcept nogil:
     cdef:
         float64_t result
 
@@ -255,9 +257,9 @@ def group_cumprod(
         Always false, `values` is never datetime-like.
     skipna : bool
         If true, ignore nans in `values`.
-    mask: np.ndarray[uint8], optional
+    mask : np.ndarray[uint8], optional
         Mask of values
-    result_mask: np.ndarray[int8], optional
+    result_mask : np.ndarray[int8], optional
         Mask of out array
 
     Notes
@@ -344,9 +346,9 @@ def group_cumsum(
         True if `values` contains datetime-like entries.
     skipna : bool
         If true, ignore nans in `values`.
-    mask: np.ndarray[uint8], optional
+    mask : np.ndarray[uint8], optional
         Mask of values
-    result_mask: np.ndarray[int8], optional
+    result_mask : np.ndarray[int8], optional
         Mask of out array
 
     Notes
@@ -493,7 +495,6 @@ def group_fillna_indexer(
     ndarray[intp_t] labels,
     ndarray[intp_t] sorted_labels,
     ndarray[uint8_t] mask,
-    str direction,
     int64_t limit,
     bint dropna,
 ) -> None:
@@ -508,14 +509,11 @@ def group_fillna_indexer(
         Array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`.
     sorted_labels : np.ndarray[np.intp]
-        obtained by `np.argsort(labels, kind="mergesort")`; reversed if
-        direction == "bfill"
+        obtained by `np.argsort(labels, kind="mergesort")`
     values : np.ndarray[np.uint8]
         Containing the truth value of each element.
     mask : np.ndarray[np.uint8]
         Indicating whether a value is na or not.
-    direction : {'ffill', 'bfill'}
-        Direction for fill to be applied (forwards or backwards, respectively)
     limit : Consecutive values to fill before stopping, or -1 for no limit
     dropna : Flag to indicate if NaN groups should return all NaN values
 
@@ -565,11 +563,11 @@ def group_any_all(
     const uint8_t[:, :] mask,
     str val_test,
     bint skipna,
-    bint nullable,
+    uint8_t[:, ::1] result_mask,
 ) -> None:
     """
     Aggregated boolean values to show truthfulness of group elements. If the
-    input is a nullable type (nullable=True), the result will be computed
+    input is a nullable type (result_mask is not None), the result will be computed
     using Kleene logic.
 
     Parameters
@@ -587,9 +585,9 @@ def group_any_all(
         String object dictating whether to use any or all truth testing
     skipna : bool
         Flag to ignore nan values during truth testing
-    nullable : bool
-        Whether or not the input is a nullable type. If True, the
-        result will be computed using Kleene logic
+    result_mask : ndarray[bool, ndim=2], optional
+        If not None, these specify locations in the output that are NA.
+        Modified in-place.
 
     Notes
     -----
@@ -601,6 +599,7 @@ def group_any_all(
         Py_ssize_t i, j, N = len(labels), K = out.shape[1]
         intp_t lab
         int8_t flag_val, val
+        bint uses_mask = result_mask is not None
 
     if val_test == "all":
         # Because the 'all' value of an empty iterable in Python is True we can
@@ -613,7 +612,7 @@ def group_any_all(
         # value encountered is True
         flag_val = 1
     else:
-        raise ValueError("'bool_func' must be either 'any' or 'all'!")
+        raise ValueError("'val_test' must be either 'any' or 'all'!")
 
     out[:] = 1 - flag_val
 
@@ -627,12 +626,12 @@ def group_any_all(
                 if skipna and mask[i, j]:
                     continue
 
-                if nullable and mask[i, j]:
+                if uses_mask and mask[i, j]:
                     # Set the position as masked if `out[lab] != flag_val`, which
                     # would indicate True/False has not yet been seen for any/all,
                     # so by Kleene logic the result is currently unknown
                     if out[lab, j] != flag_val:
-                        out[lab, j] = -1
+                        result_mask[lab, j] = 1
                     continue
 
                 val = values[i, j]
@@ -641,6 +640,8 @@ def group_any_all(
                 # already determined
                 if val == flag_val:
                     out[lab, j] = flag_val
+                    if uses_mask:
+                        result_mask[lab, j] = 0
 
 
 # ----------------------------------------------------------------------
@@ -745,6 +746,13 @@ def group_sum(
                         y = val - compensation[lab, j]
                         t = sumx[lab, j] + y
                         compensation[lab, j] = t - sumx[lab, j] - y
+                        if compensation[lab, j] != compensation[lab, j]:
+                            # GH#53606
+                            # If val is +/- infinity compensation is NaN
+                            # which would lead to results being NaN instead
+                            # of +/- infinity. We cannot use util.is_nan
+                            # because of no gil
+                            compensation[lab, j] = 0
                         sumx[lab, j] = t
 
             _check_below_mincount(
@@ -819,6 +827,7 @@ def group_var(
     const uint8_t[:, ::1] mask=None,
     uint8_t[:, ::1] result_mask=None,
     bint is_datetimelike=False,
+    str name="var",
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ncounts = len(counts)
@@ -827,6 +836,8 @@ def group_var(
         int64_t[:, ::1] nobs
         Py_ssize_t len_values = len(values), len_labels = len(labels)
         bint isna_entry, uses_mask = mask is not None
+        bint is_std = name == "std"
+        bint is_sem = name == "sem"
 
     assert min_count == -1, "'min_count' only used in sum and prod"
 
@@ -876,7 +887,101 @@ def group_var(
                     else:
                         out[i, j] = NAN
                 else:
-                    out[i, j] /= (ct - ddof)
+                    if is_std:
+                        out[i, j] = sqrt(out[i, j] / (ct - ddof))
+                    elif is_sem:
+                        out[i, j] = sqrt(out[i, j] / (ct - ddof) / ct)
+                    else:
+                        # just "var"
+                        out[i, j] /= (ct - ddof)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+@cython.cpow
+def group_skew(
+    float64_t[:, ::1] out,
+    int64_t[::1] counts,
+    ndarray[float64_t, ndim=2] values,
+    const intp_t[::1] labels,
+    const uint8_t[:, ::1] mask=None,
+    uint8_t[:, ::1] result_mask=None,
+    bint skipna=True,
+) -> None:
+    cdef:
+        Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
+        int64_t[:, ::1] nobs
+        Py_ssize_t len_values = len(values), len_labels = len(labels)
+        bint isna_entry, uses_mask = mask is not None
+        float64_t[:, ::1] M1, M2, M3
+        float64_t delta, delta_n, term1, val
+        int64_t n1, n
+        float64_t ct
+
+    if len_values != len_labels:
+        raise ValueError("len(index) != len(labels)")
+
+    nobs = np.zeros((<object>out).shape, dtype=np.int64)
+
+    # M1, M2, and M3 correspond to 1st, 2nd, and third Moments
+    M1 = np.zeros((<object>out).shape, dtype=np.float64)
+    M2 = np.zeros((<object>out).shape, dtype=np.float64)
+    M3 = np.zeros((<object>out).shape, dtype=np.float64)
+
+    N, K = (<object>values).shape
+
+    out[:, :] = 0.0
+
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            if lab < 0:
+                continue
+
+            counts[lab] += 1
+
+            for j in range(K):
+                val = values[i, j]
+
+                if uses_mask:
+                    isna_entry = mask[i, j]
+                else:
+                    isna_entry = _treat_as_na(val, False)
+
+                if not isna_entry:
+                    # Based on RunningStats::Push from
+                    #  https://www.johndcook.com/blog/skewness_kurtosis/
+                    n1 = nobs[lab, j]
+                    n = n1 + 1
+
+                    nobs[lab, j] = n
+                    delta = val - M1[lab, j]
+                    delta_n = delta / n
+                    term1 = delta * delta_n * n1
+
+                    M1[lab, j] += delta_n
+                    M3[lab, j] += term1 * delta_n * (n - 2) - 3 * delta_n * M2[lab, j]
+                    M2[lab, j] += term1
+                elif not skipna:
+                    M1[lab, j] = NaN
+                    M2[lab, j] = NaN
+                    M3[lab, j] = NaN
+
+        for i in range(ngroups):
+            for j in range(K):
+                ct = <float64_t>nobs[i, j]
+                if ct < 3:
+                    if result_mask is not None:
+                        result_mask[i, j] = 1
+                    out[i, j] = NaN
+                elif M2[i, j] == 0:
+                    out[i, j] = 0
+                else:
+                    out[i, j] = (
+                        (ct * (ct - 1) ** 0.5 / (ct - 2))
+                        * (M3[i, j] / M2[i, j] ** 1.5)
+                    )
 
 
 @cython.wraparound(False)
@@ -973,6 +1078,13 @@ def group_mean(
                     y = val - compensation[lab, j]
                     t = sumx[lab, j] + y
                     compensation[lab, j] = t - sumx[lab, j] - y
+                    if compensation[lab, j] != compensation[lab, j]:
+                        # GH#50367
+                        # If val is +/- infinity, compensation is NaN
+                        # which would lead to results being NaN instead
+                        # of +/-infinity. We cannot use util.is_nan
+                        # because of no gil
+                        compensation[lab, j] = 0.
                     sumx[lab, j] = t
 
         for i in range(ncounts):
@@ -1023,7 +1135,7 @@ def group_ohlc(
         raise NotImplementedError("Argument 'values' must have only one dimension")
 
     if int64float_t is float32_t or int64float_t is float64_t:
-        out[:] = np.nan
+        out[:] = NAN
     else:
         out[:] = 0
 
@@ -1065,11 +1177,13 @@ def group_quantile(
     ndarray[float64_t, ndim=2] out,
     ndarray[numeric_t, ndim=1] values,
     ndarray[intp_t] labels,
-    ndarray[uint8_t] mask,
-    const intp_t[:] sort_indexer,
+    const uint8_t[:] mask,
     const float64_t[:] qs,
+    ndarray[int64_t] starts,
+    ndarray[int64_t] ends,
     str interpolation,
-    uint8_t[:, ::1] result_mask=None,
+    uint8_t[:, ::1] result_mask,
+    bint is_datetimelike,
 ) -> None:
     """
     Calculate the quantile per group.
@@ -1082,11 +1196,16 @@ def group_quantile(
         Array containing the values to apply the function against.
     labels : ndarray[np.intp]
         Array containing the unique group labels.
-    sort_indexer : ndarray[np.intp]
-        Indices describing sort order by values and labels.
     qs : ndarray[float64_t]
         The quantile values to search for.
+    starts : ndarray[int64]
+        Positions at which each group begins.
+    ends : ndarray[int64]
+        Positions at which each group ends.
     interpolation : {'linear', 'lower', 'highest', 'nearest', 'midpoint'}
+    result_mask : ndarray[bool, ndim=2] or None
+    is_datetimelike : bool
+        Whether int64 values represent datetime64-like values.
 
     Notes
     -----
@@ -1094,15 +1213,21 @@ def group_quantile(
     provided `out` parameter.
     """
     cdef:
-        Py_ssize_t i, N=len(labels), ngroups, grp_sz, non_na_sz, k, nqs
-        Py_ssize_t grp_start=0, idx=0
-        intp_t lab
+        Py_ssize_t i, N=len(labels), ngroups, non_na_sz, k, nqs
+        Py_ssize_t idx=0
+        Py_ssize_t grp_size
         InterpolationEnumType interp
         float64_t q_val, q_idx, frac, val, next_val
-        int64_t[::1] counts, non_na_counts
         bint uses_result_mask = result_mask is not None
+        Py_ssize_t start, end
+        ndarray[numeric_t] grp
+        intp_t[::1] sort_indexer
+        const uint8_t[:] sub_mask
 
     assert values.shape[0] == N
+    assert starts is not None
+    assert ends is not None
+    assert len(starts) == len(ends)
 
     if any(not (0 <= q <= 1) for q in qs):
         wrong = [x for x in qs if not (0 <= x <= 1)][0]
@@ -1121,64 +1246,65 @@ def group_quantile(
 
     nqs = len(qs)
     ngroups = len(out)
-    counts = np.zeros(ngroups, dtype=np.int64)
-    non_na_counts = np.zeros(ngroups, dtype=np.int64)
 
-    # First figure out the size of every group
-    with nogil:
-        for i in range(N):
-            lab = labels[i]
-            if lab == -1:  # NA group label
-                continue
+    # TODO: get cnp.PyArray_ArgSort to work with nogil so we can restore the rest
+    #  of this function as being `with nogil:`
+    for i in range(ngroups):
+        start = starts[i]
+        end = ends[i]
 
-            counts[lab] += 1
-            if not mask[i]:
-                non_na_counts[lab] += 1
+        grp = values[start:end]
 
-    with nogil:
-        for i in range(ngroups):
-            # Figure out how many group elements there are
-            grp_sz = counts[i]
-            non_na_sz = non_na_counts[i]
+        # Figure out how many group elements there are
+        sub_mask = mask[start:end]
+        grp_size = sub_mask.size
+        non_na_sz = 0
+        for k in range(grp_size):
+            if sub_mask[k] == 0:
+                non_na_sz += 1
 
-            if non_na_sz == 0:
-                for k in range(nqs):
-                    if uses_result_mask:
-                        result_mask[i, k] = 1
-                    else:
-                        out[i, k] = NaN
-            else:
-                for k in range(nqs):
-                    q_val = qs[k]
+        # equiv: sort_indexer = grp.argsort()
+        if is_datetimelike:
+            # We need the argsort to put NaTs at the end, not the beginning
+            sort_indexer = cnp.PyArray_ArgSort(grp.view("M8[ns]"), 0, cnp.NPY_QUICKSORT)
+        else:
+            sort_indexer = cnp.PyArray_ArgSort(grp, 0, cnp.NPY_QUICKSORT)
 
-                    # Calculate where to retrieve the desired value
-                    # Casting to int will intentionally truncate result
-                    idx = grp_start + <int64_t>(q_val * <float64_t>(non_na_sz - 1))
+        if non_na_sz == 0:
+            for k in range(nqs):
+                if uses_result_mask:
+                    result_mask[i, k] = 1
+                else:
+                    out[i, k] = NaN
+        else:
+            for k in range(nqs):
+                q_val = qs[k]
 
-                    val = values[sort_indexer[idx]]
-                    # If requested quantile falls evenly on a particular index
-                    # then write that index's value out. Otherwise interpolate
-                    q_idx = q_val * (non_na_sz - 1)
-                    frac = q_idx % 1
+                # Calculate where to retrieve the desired value
+                # Casting to int will intentionally truncate result
+                idx = <int64_t>(q_val * <float64_t>(non_na_sz - 1))
 
-                    if frac == 0.0 or interp == INTERPOLATION_LOWER:
-                        out[i, k] = val
-                    else:
-                        next_val = values[sort_indexer[idx + 1]]
-                        if interp == INTERPOLATION_LINEAR:
-                            out[i, k] = val + (next_val - val) * frac
-                        elif interp == INTERPOLATION_HIGHER:
+                val = grp[sort_indexer[idx]]
+                # If requested quantile falls evenly on a particular index
+                # then write that index's value out. Otherwise interpolate
+                q_idx = q_val * (non_na_sz - 1)
+                frac = q_idx % 1
+
+                if frac == 0.0 or interp == INTERPOLATION_LOWER:
+                    out[i, k] = val
+                else:
+                    next_val = grp[sort_indexer[idx + 1]]
+                    if interp == INTERPOLATION_LINEAR:
+                        out[i, k] = val + (next_val - val) * frac
+                    elif interp == INTERPOLATION_HIGHER:
+                        out[i, k] = next_val
+                    elif interp == INTERPOLATION_MIDPOINT:
+                        out[i, k] = (val + next_val) / 2.0
+                    elif interp == INTERPOLATION_NEAREST:
+                        if frac > .5 or (frac == .5 and q_val > .5):  # Always OK?
                             out[i, k] = next_val
-                        elif interp == INTERPOLATION_MIDPOINT:
-                            out[i, k] = (val + next_val) / 2.0
-                        elif interp == INTERPOLATION_NEAREST:
-                            if frac > .5 or (frac == .5 and q_val > .5):  # Always OK?
-                                out[i, k] = next_val
-                            else:
-                                out[i, k] = val
-
-            # Increment the index reference in sorted_arr for the next group
-            grp_start += grp_sz
+                        else:
+                            out[i, k] = val
 
 
 # ----------------------------------------------------------------------
@@ -1191,7 +1317,8 @@ ctypedef fused numeric_object_complex_t:
     complex128_t
 
 
-cdef bint _treat_as_na(numeric_object_complex_t val, bint is_datetimelike) nogil:
+cdef bint _treat_as_na(numeric_object_complex_t val,
+                       bint is_datetimelike) noexcept nogil:
     if numeric_object_complex_t is object:
         # Should never be used, but we need to avoid the `val != val` below
         #  or else cython will raise about gil acquisition.
@@ -1258,7 +1385,7 @@ cdef inline void _check_below_mincount(
     int64_t[:, ::1] nobs,
     int64_t min_count,
     mincount_t[:, ::1] resx,
-) nogil:
+) noexcept nogil:
     """
     Check if the number of observations for a group is below min_count,
     and if so set the result for that group to the appropriate NA-like value.

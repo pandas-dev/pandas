@@ -8,20 +8,23 @@ Offer fast expression evaluation through numexpr
 from __future__ import annotations
 
 import operator
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
 
 from pandas._config import get_option
 
-from pandas._typing import FuncType
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core import roperator
 from pandas.core.computation.check import NUMEXPR_INSTALLED
-from pandas.core.ops import roperator
 
 if NUMEXPR_INSTALLED:
     import numexpr as ne
+
+if TYPE_CHECKING:
+    from pandas._typing import FuncType
 
 _TEST_MODE: bool | None = None
 _TEST_RESULT: list[bool] = []

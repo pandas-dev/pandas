@@ -4,6 +4,13 @@ and latex files. This module also applies to display formatting.
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Generator,
+    Hashable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
 from contextlib import contextmanager
 from csv import (
     QUOTE_NONE,
@@ -21,12 +28,6 @@ from typing import (
     Any,
     Callable,
     Final,
-    Generator,
-    Hashable,
-    Iterable,
-    List,
-    Mapping,
-    Sequence,
     cast,
 )
 from unicodedata import east_asian_width
@@ -49,35 +50,20 @@ from pandas._libs.tslibs import (
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import (
-    ArrayLike,
-    Axes,
-    ColspaceArgType,
-    ColspaceType,
-    CompressionOptions,
-    FilePath,
-    FloatFormatType,
-    FormattersType,
-    IndexLabel,
-    StorageOptions,
-    WriteBuffer,
-)
 
 from pandas.core.dtypes.common import (
-    is_categorical_dtype,
     is_complex_dtype,
-    is_datetime64_dtype,
-    is_extension_array_dtype,
     is_float,
-    is_float_dtype,
     is_integer,
-    is_integer_dtype,
     is_list_like,
     is_numeric_dtype,
     is_scalar,
-    is_timedelta64_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+    ExtensionDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -109,6 +95,20 @@ from pandas.io.common import (
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Axes,
+        ColspaceArgType,
+        ColspaceType,
+        CompressionOptions,
+        FilePath,
+        FloatFormatType,
+        FormattersType,
+        IndexLabel,
+        StorageOptions,
+        WriteBuffer,
+    )
+
     from pandas import (
         DataFrame,
         Series,
@@ -354,7 +354,7 @@ class SeriesFormatter:
 
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
-        if is_categorical_dtype(self.tr_series.dtype):
+        if isinstance(self.tr_series.dtype, CategoricalDtype):
             level_info = self.tr_series._values._repr_categories_info()
             if footer:
                 footer += "\n"
@@ -737,7 +737,7 @@ class DataFrameFormatter:
             _, height = get_terminal_size()
             if self.max_rows == 0:
                 # rows available to fill with actual data
-                return height - self._get_number_of_auxillary_rows()
+                return height - self._get_number_of_auxiliary_rows()
 
             if self._is_screen_short(height):
                 max_rows = height
@@ -772,7 +772,7 @@ class DataFrameFormatter:
     def _is_screen_short(self, max_height) -> bool:
         return bool(self.max_rows == 0 and len(self.frame) > max_height)
 
-    def _get_number_of_auxillary_rows(self) -> int:
+    def _get_number_of_auxiliary_rows(self) -> int:
         """Get number of rows occupied by prompt, dots and dimension info."""
         dot_row = 1
         prompt_row = 1
@@ -857,7 +857,7 @@ class DataFrameFormatter:
 
         if is_list_like(self.header):
             # cast here since can't be bool if is_list_like
-            self.header = cast(List[str], self.header)
+            self.header = cast(list[str], self.header)
             if len(self.header) != len(self.columns):
                 raise ValueError(
                     f"Writing {len(self.columns)} cols "
@@ -881,7 +881,7 @@ class DataFrameFormatter:
                 fmt_values, self.justify, minimum=header_colwidth, adj=self.adj
             )
 
-            max_len = max(max(self.adj.len(x) for x in fmt_values), header_colwidth)
+            max_len = max(*(self.adj.len(x) for x in fmt_values), header_colwidth)
             cheader = self.adj.justify(cheader, max_len, mode=self.justify)
             strcols.append(cheader + fmt_values)
 
@@ -1023,38 +1023,6 @@ class DataFrameRenderer:
     def __init__(self, fmt: DataFrameFormatter) -> None:
         self.fmt = fmt
 
-    def to_latex(
-        self,
-        buf: FilePath | WriteBuffer[str] | None = None,
-        column_format: str | None = None,
-        longtable: bool = False,
-        encoding: str | None = None,
-        multicolumn: bool = False,
-        multicolumn_format: str | None = None,
-        multirow: bool = False,
-        caption: str | tuple[str, str] | None = None,
-        label: str | None = None,
-        position: str | None = None,
-    ) -> str | None:
-        """
-        Render a DataFrame to a LaTeX tabular/longtable environment output.
-        """
-        from pandas.io.formats.latex import LatexFormatter
-
-        latex_formatter = LatexFormatter(
-            self.fmt,
-            longtable=longtable,
-            column_format=column_format,
-            multicolumn=multicolumn,
-            multicolumn_format=multicolumn_format,
-            multirow=multirow,
-            caption=caption,
-            label=label,
-            position=position,
-        )
-        string = latex_formatter.to_string()
-        return save_to_buffer(string, buf=buf, encoding=encoding)
-
     def to_html(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
@@ -1149,7 +1117,7 @@ class DataFrameRenderer:
         doublequote: bool = True,
         escapechar: str | None = None,
         errors: str = "strict",
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
     ) -> str | None:
         """
         Render dataframe as comma-separated file.
@@ -1287,17 +1255,17 @@ def format_array(
     List[str]
     """
     fmt_klass: type[GenericArrayFormatter]
-    if is_datetime64_dtype(values.dtype):
+    if lib.is_np_dtype(values.dtype, "M"):
         fmt_klass = Datetime64Formatter
     elif isinstance(values.dtype, DatetimeTZDtype):
         fmt_klass = Datetime64TZFormatter
-    elif is_timedelta64_dtype(values.dtype):
+    elif lib.is_np_dtype(values.dtype, "m"):
         fmt_klass = Timedelta64Formatter
-    elif is_extension_array_dtype(values.dtype):
+    elif isinstance(values.dtype, ExtensionDtype):
         fmt_klass = ExtensionArrayFormatter
-    elif is_float_dtype(values.dtype) or is_complex_dtype(values.dtype):
+    elif lib.is_np_dtype(values.dtype, "fc"):
         fmt_klass = FloatArrayFormatter
-    elif is_integer_dtype(values.dtype):
+    elif lib.is_np_dtype(values.dtype, "iu"):
         fmt_klass = IntArrayFormatter
     else:
         fmt_klass = GenericArrayFormatter
@@ -1424,7 +1392,7 @@ class GenericArrayFormatter:
 
         fmt_values = []
         for i, v in enumerate(vals):
-            if not is_float_type[i] and leading_space or self.formatter is not None:
+            if (not is_float_type[i] or self.formatter is not None) and leading_space:
                 fmt_values.append(f" {_format(v)}")
             elif is_float_type[i]:
                 fmt_values.append(float_format(v))
@@ -1525,6 +1493,35 @@ class FloatArrayFormatter(GenericArrayFormatter):
             ).reshape(values.shape)
             return formatted
 
+        def format_complex_with_na_rep(
+            values: ArrayLike, formatter: Callable, na_rep: str
+        ):
+            real_values = np.real(values).ravel()  # type: ignore[arg-type]
+            imag_values = np.imag(values).ravel()  # type: ignore[arg-type]
+            real_mask, imag_mask = isna(real_values), isna(imag_values)
+            formatted_lst = []
+            for val, real_val, imag_val, re_isna, im_isna in zip(
+                values.ravel(),
+                real_values,
+                imag_values,
+                real_mask,
+                imag_mask,
+            ):
+                if not re_isna and not im_isna:
+                    formatted_lst.append(formatter(val))
+                elif not re_isna:  # xxx+nanj
+                    formatted_lst.append(f"{formatter(real_val)}+{na_rep}j")
+                elif not im_isna:  # nan[+/-]xxxj
+                    # The imaginary part may either start with a "-" or a space
+                    imag_formatted = formatter(imag_val).strip()
+                    if imag_formatted.startswith("-"):
+                        formatted_lst.append(f"{na_rep}{imag_formatted}j")
+                    else:
+                        formatted_lst.append(f"{na_rep}+{imag_formatted}j")
+                else:  # nan+nanj
+                    formatted_lst.append(f"{na_rep}+{na_rep}j")
+            return np.array(formatted_lst).reshape(values.shape)
+
         if self.formatter is not None:
             return format_with_na_rep(self.values, self.formatter, self.na_rep)
 
@@ -1539,15 +1536,18 @@ class FloatArrayFormatter(GenericArrayFormatter):
 
             # default formatter leaves a space to the left when formatting
             # floats, must be consistent for left-justifying NaNs (GH #25061)
-            if self.justify == "left":
-                na_rep = " " + self.na_rep
-            else:
-                na_rep = self.na_rep
+            na_rep = " " + self.na_rep if self.justify == "left" else self.na_rep
 
-            # separate the wheat from the chaff
+            # different formatting strategies for complex and non-complex data
+            # need to distinguish complex and float NaNs (GH #53762)
             values = self.values
             is_complex = is_complex_dtype(values)
-            values = format_with_na_rep(values, formatter, na_rep)
+
+            # separate the wheat from the chaff
+            if is_complex:
+                values = format_complex_with_na_rep(values, formatter, na_rep)
+            else:
+                values = format_with_na_rep(values, formatter, na_rep)
 
             if self.fixed_width:
                 if is_complex:
@@ -1588,15 +1588,12 @@ class FloatArrayFormatter(GenericArrayFormatter):
         else:
             too_long = False
 
-        with np.errstate(invalid="ignore"):
-            abs_vals = np.abs(self.values)
-            # this is pretty arbitrary for now
-            # large values: more that 8 characters including decimal symbol
-            # and first digit, hence > 1e6
-            has_large_values = (abs_vals > 1e6).any()
-            has_small_values = (
-                (abs_vals < 10 ** (-self.digits)) & (abs_vals > 0)
-            ).any()
+        abs_vals = np.abs(self.values)
+        # this is pretty arbitrary for now
+        # large values: more that 8 characters including decimal symbol
+        # and first digit, hence > 1e6
+        has_large_values = (abs_vals > 1e6).any()
+        has_small_values = ((abs_vals < 10 ** (-self.digits)) & (abs_vals > 0)).any()
 
         if has_small_values or (too_long and has_large_values):
             if self.leading_space is True:
@@ -1718,14 +1715,13 @@ def format_percentiles(
     """
     percentiles = np.asarray(percentiles)
 
-    # It checks for np.NaN as well
-    with np.errstate(invalid="ignore"):
-        if (
-            not is_numeric_dtype(percentiles)
-            or not np.all(percentiles >= 0)
-            or not np.all(percentiles <= 1)
-        ):
-            raise ValueError("percentiles should all be in the interval [0,1]")
+    # It checks for np.nan as well
+    if (
+        not is_numeric_dtype(percentiles)
+        or not np.all(percentiles >= 0)
+        or not np.all(percentiles <= 1)
+    ):
+        raise ValueError("percentiles should all be in the interval [0,1]")
 
     percentiles = 100 * percentiles
     percentiles_round_type = percentiles.round().astype(int)
@@ -1834,8 +1830,8 @@ def get_format_datetime64_from_values(
 class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
+        ido = is_dates_only(self.values)
         values = self.values.astype(object)
-        ido = is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
             ido, date_format=self.date_format
         )
@@ -1949,22 +1945,30 @@ def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> list[s
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
     """
-    trimmed = [
-        "".join(_trim_zeros_float(re.split(r"([j+-])", x), decimal))
-        for x in str_complexes
-    ]
+    real_part, imag_part = [], []
+    for x in str_complexes:
+        # Complex numbers are represented as "(-)xxx(+/-)xxxj"
+        # The split will give [{"", "-"}, "xxx", "+/-", "xxx", "j", ""]
+        # Therefore, the imaginary part is the 4th and 3rd last elements,
+        # and the real part is everything before the imaginary part
+        trimmed = re.split(r"([j+-])", x)
+        real_part.append("".join(trimmed[:-4]))
+        imag_part.append("".join(trimmed[-4:-2]))
 
-    # pad strings to the length of the longest trimmed string for alignment
-    lengths = [len(s) for s in trimmed]
-    max_length = max(lengths)
+    # We want to align the lengths of the real and imaginary parts of each complex
+    # number, as well as the lengths the real (resp. complex) parts of all numbers
+    # in the array
+    n = len(str_complexes)
+    padded_parts = _trim_zeros_float(real_part + imag_part, decimal)
+    if len(padded_parts) == 0:
+        return []
+    padded_length = max(len(part) for part in padded_parts) - 1
     padded = [
-        s[: -((k - 1) // 2 + 1)]  # real part
-        + (max_length - k) // 2 * "0"
-        + s[-((k - 1) // 2 + 1) : -((k - 1) // 2)]  # + / -
-        + s[-((k - 1) // 2) : -1]  # imaginary part
-        + (max_length - k) // 2 * "0"
-        + s[-1]
-        for s, k in zip(trimmed, lengths)
+        real_pt  # real part, possibly NaN
+        + imag_pt[0]  # +/-
+        + f"{imag_pt[1:]:>{padded_length}}"  # complex part (no sign), possibly nan
+        + "j"
+        for real_pt, imag_pt in zip(padded_parts[:n], padded_parts[n:])
     ]
     return padded
 
@@ -2103,11 +2107,10 @@ class EngFormatter:
 
         if self.use_eng_prefix:
             prefix = self.ENG_PREFIXES[int_pow10]
+        elif int_pow10 < 0:
+            prefix = f"E-{-int_pow10:02d}"
         else:
-            if int_pow10 < 0:
-                prefix = f"E-{-int_pow10:02d}"
-            else:
-                prefix = f"E+{int_pow10:02d}"
+            prefix = f"E+{int_pow10:02d}"
 
         mant = sign * dnum / (10**pow10)
 

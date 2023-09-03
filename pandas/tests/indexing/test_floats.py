@@ -15,7 +15,9 @@ def gen_obj(klass, index):
         obj = Series(np.arange(len(index)), index=index)
     else:
         obj = DataFrame(
-            np.random.randn(len(index), len(index)), index=index, columns=index
+            np.random.default_rng(2).standard_normal((len(index), len(index))),
+            index=index,
+            columns=index,
         )
     return obj
 
@@ -29,11 +31,10 @@ class TestFloatIndexers:
         """
         if isinstance(original, Series):
             expected = original.iloc[indexer]
+        elif getitem:
+            expected = original.iloc[:, indexer]
         else:
-            if getitem:
-                expected = original.iloc[:, indexer]
-            else:
-                expected = original.iloc[indexer]
+            expected = original.iloc[indexer]
 
         tm.assert_almost_equal(result, expected)
 
@@ -87,7 +88,10 @@ class TestFloatIndexers:
         # fallsback to position selection, series only
         i = index_func(5)
         s = Series(np.arange(len(i)), index=i)
-        s[3]
+
+        msg = "Series.__getitem__ treating keys as positions is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            s[3]
         with pytest.raises(KeyError, match="^3.0$"):
             s[3.0]
 
@@ -114,7 +118,9 @@ class TestFloatIndexers:
 
         if indexer_sl is not tm.loc:
             # __getitem__ falls back to positional
-            result = s3[1]
+            msg = "Series.__getitem__ treating keys as positions is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                result = s3[1]
             expected = 2
             assert result == expected
 
@@ -347,7 +353,7 @@ class TestFloatIndexers:
         # similar to above, but on the getitem dim (of a DataFrame)
         index = index_func(5)
 
-        s = DataFrame(np.random.randn(5, 2), index=index)
+        s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
 
         # getitem
         for idx in [slice(0.0, 1), slice(0, 1.0), slice(0.0, 1.0)]:
@@ -402,7 +408,7 @@ class TestFloatIndexers:
         # similar to above, but on the getitem dim (of a DataFrame)
         index = index_func(5)
 
-        s = DataFrame(np.random.randn(5, 2), index=index)
+        s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
 
         # setitem
         sc = s.copy()
@@ -482,8 +488,12 @@ class TestFloatIndexers:
         for fancy_idx in [[5, 0], np.array([5, 0])]:
             tm.assert_series_equal(indexer_sl(s)[fancy_idx], expected)
 
+        warn = FutureWarning if indexer_sl is tm.setitem else None
+        msg = r"The behavior of obj\[i:j\] with a float-dtype index"
+
         # all should return the same as we are slicing 'the same'
-        result1 = indexer_sl(s)[2:5]
+        with tm.assert_produces_warning(warn, match=msg):
+            result1 = indexer_sl(s)[2:5]
         result2 = indexer_sl(s)[2.0:5.0]
         result3 = indexer_sl(s)[2.0:5]
         result4 = indexer_sl(s)[2.1:5]
@@ -492,7 +502,8 @@ class TestFloatIndexers:
         tm.assert_series_equal(result1, result4)
 
         expected = Series([1, 2], index=[2.5, 5.0])
-        result = indexer_sl(s)[2:5]
+        with tm.assert_produces_warning(warn, match=msg):
+            result = indexer_sl(s)[2:5]
 
         tm.assert_series_equal(result, expected)
 

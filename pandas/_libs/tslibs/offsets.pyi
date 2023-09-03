@@ -1,5 +1,6 @@
 from datetime import (
     datetime,
+    time,
     timedelta,
 )
 from typing import (
@@ -13,7 +14,11 @@ from typing import (
 import numpy as np
 
 from pandas._libs.tslibs.nattype import NaTType
-from pandas._typing import npt
+from pandas._typing import (
+    OffsetCalendar,
+    Self,
+    npt,
+)
 
 from .timedeltas import Timedelta
 
@@ -39,7 +44,7 @@ class BaseOffset:
     @overload
     def __add__(self, other: npt.NDArray[np.object_]) -> npt.NDArray[np.object_]: ...
     @overload
-    def __add__(self: _BaseOffsetT, other: BaseOffset) -> _BaseOffsetT: ...
+    def __add__(self, other: BaseOffset) -> Self: ...
     @overload
     def __add__(self, other: _DatetimeT) -> _DatetimeT: ...
     @overload
@@ -47,18 +52,18 @@ class BaseOffset:
     @overload
     def __radd__(self, other: npt.NDArray[np.object_]) -> npt.NDArray[np.object_]: ...
     @overload
-    def __radd__(self: _BaseOffsetT, other: BaseOffset) -> _BaseOffsetT: ...
+    def __radd__(self, other: BaseOffset) -> Self: ...
     @overload
     def __radd__(self, other: _DatetimeT) -> _DatetimeT: ...
     @overload
     def __radd__(self, other: _TimedeltaT) -> _TimedeltaT: ...
     @overload
     def __radd__(self, other: NaTType) -> NaTType: ...
-    def __sub__(self: _BaseOffsetT, other: BaseOffset) -> _BaseOffsetT: ...
+    def __sub__(self, other: BaseOffset) -> Self: ...
     @overload
     def __rsub__(self, other: npt.NDArray[np.object_]) -> npt.NDArray[np.object_]: ...
     @overload
-    def __rsub__(self: _BaseOffsetT, other: BaseOffset) -> _BaseOffsetT: ...
+    def __rsub__(self, other: BaseOffset): ...
     @overload
     def __rsub__(self, other: _DatetimeT) -> _DatetimeT: ...
     @overload
@@ -66,13 +71,13 @@ class BaseOffset:
     @overload
     def __mul__(self, other: np.ndarray) -> np.ndarray: ...
     @overload
-    def __mul__(self: _BaseOffsetT, other: int) -> _BaseOffsetT: ...
+    def __mul__(self, other: int): ...
     @overload
     def __rmul__(self, other: np.ndarray) -> np.ndarray: ...
     @overload
-    def __rmul__(self: _BaseOffsetT, other: int) -> _BaseOffsetT: ...
-    def __neg__(self: _BaseOffsetT) -> _BaseOffsetT: ...
-    def copy(self: _BaseOffsetT) -> _BaseOffsetT: ...
+    def __rmul__(self, other: int) -> Self: ...
+    def __neg__(self) -> Self: ...
+    def copy(self) -> Self: ...
     @property
     def name(self) -> str: ...
     @property
@@ -107,7 +112,6 @@ def to_offset(freq: timedelta | str) -> BaseOffset: ...
 class Tick(SingleConstructorOffset):
     _creso: int
     _prefix: str
-    _td64_unit: str
     def __init__(self, n: int = ..., normalize: bool = ...) -> None: ...
     @property
     def delta(self) -> Timedelta: ...
@@ -139,8 +143,8 @@ class BusinessHour(BusinessMixin):
         self,
         n: int = ...,
         normalize: bool = ...,
-        start: str | Collection[str] = ...,
-        end: str | Collection[str] = ...,
+        start: str | time | Collection[str | time] = ...,
+        end: str | time | Collection[str | time] = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -226,7 +230,7 @@ class _CustomBusinessMonth(BusinessMixin):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: list | None = ...,
-        calendar: np.busdaycalendar | None = ...,
+        calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -237,7 +241,7 @@ class CustomBusinessDay(BusinessDay):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: list | None = ...,
-        calendar: np.busdaycalendar | None = ...,
+        calendar: OffsetCalendar | None = ...,
         offset: timedelta = ...,
     ) -> None: ...
 
@@ -248,9 +252,9 @@ class CustomBusinessHour(BusinessHour):
         normalize: bool = ...,
         weekmask: str = ...,
         holidays: list | None = ...,
-        calendar: np.busdaycalendar | None = ...,
-        start: str = ...,
-        end: str = ...,
+        calendar: OffsetCalendar | None = ...,
+        start: str | time | Collection[str | time] = ...,
+        end: str | time | Collection[str | time] = ...,
         offset: timedelta = ...,
     ) -> None: ...
 

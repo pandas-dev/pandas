@@ -3,27 +3,29 @@ import re
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import DataFrame
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
-    TestPlotBase,
+    _check_axes_shape,
     _check_plot_works,
+    get_x_axis,
+    get_y_axis,
 )
+
+pytest.importorskip("matplotlib")
 
 
 @pytest.fixture
 def hist_df():
-    np.random.seed(0)
-    df = DataFrame(np.random.randn(30, 2), columns=["A", "B"])
-    df["C"] = np.random.choice(["a", "b", "c"], 30)
-    df["D"] = np.random.choice(["a", "b", "c"], 30)
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((30, 2)), columns=["A", "B"]
+    )
+    df["C"] = np.random.default_rng(2).choice(["a", "b", "c"], 30)
+    df["D"] = np.random.default_rng(2).choice(["a", "b", "c"], 30)
     return df
 
 
-@td.skip_if_no_mpl
-class TestHistWithBy(TestPlotBase):
+class TestHistWithBy:
     @pytest.mark.slow
     @pytest.mark.parametrize(
         "by, column, titles, legends",
@@ -36,48 +38,30 @@ class TestHistWithBy(TestPlotBase):
                 "A",
                 [
                     "(a, a)",
-                    "(a, b)",
-                    "(a, c)",
-                    "(b, a)",
                     "(b, b)",
-                    "(b, c)",
-                    "(c, a)",
-                    "(c, b)",
                     "(c, c)",
                 ],
-                [["A"]] * 9,
+                [["A"]] * 3,
             ),
             (
                 ["C", "D"],
                 ["A", "B"],
                 [
                     "(a, a)",
-                    "(a, b)",
-                    "(a, c)",
-                    "(b, a)",
                     "(b, b)",
-                    "(b, c)",
-                    "(c, a)",
-                    "(c, b)",
                     "(c, c)",
                 ],
-                [["A", "B"]] * 9,
+                [["A", "B"]] * 3,
             ),
             (
                 ["C", "D"],
                 None,
                 [
                     "(a, a)",
-                    "(a, b)",
-                    "(a, c)",
-                    "(b, a)",
                     "(b, b)",
-                    "(b, c)",
-                    "(c, a)",
-                    "(c, b)",
                     "(c, c)",
                 ],
-                [["A", "B"]] * 9,
+                [["A", "B"]] * 3,
             ),
         ],
     )
@@ -104,16 +88,10 @@ class TestHistWithBy(TestPlotBase):
                 "A",
                 [
                     "(a, a)",
-                    "(a, b)",
-                    "(a, c)",
-                    "(b, a)",
                     "(b, b)",
-                    "(b, c)",
-                    "(c, a)",
-                    "(c, b)",
                     "(c, c)",
                 ],
-                [["A"]] * 9,
+                [["A"]] * 3,
             ),
         ],
     )
@@ -157,12 +135,12 @@ class TestHistWithBy(TestPlotBase):
             (["C"], ["A"], (1, 3), 3),
             ("C", None, (3, 1), 3),
             ("C", ["A", "B"], (3, 1), 3),
-            (["C", "D"], "A", (9, 1), 9),
-            (["C", "D"], "A", (3, 3), 9),
-            (["C", "D"], ["A"], (5, 2), 9),
-            (["C", "D"], ["A", "B"], (9, 1), 9),
-            (["C", "D"], None, (9, 1), 9),
-            (["C", "D"], ["A", "B"], (5, 2), 9),
+            (["C", "D"], "A", (9, 1), 3),
+            (["C", "D"], "A", (3, 3), 3),
+            (["C", "D"], ["A"], (5, 2), 3),
+            (["C", "D"], ["A", "B"], (9, 1), 3),
+            (["C", "D"], None, (9, 1), 3),
+            (["C", "D"], ["A", "B"], (5, 2), 3),
         ],
     )
     def test_hist_plot_layout_with_by(self, by, column, layout, axes_num, hist_df):
@@ -172,7 +150,7 @@ class TestHistWithBy(TestPlotBase):
             axes = _check_plot_works(
                 hist_df.plot.hist, column=column, by=by, layout=layout
             )
-        self._check_axes_shape(axes, axes_num=axes_num, layout=layout)
+        _check_axes_shape(axes, axes_num=axes_num, layout=layout)
 
     @pytest.mark.parametrize(
         "msg, by, layout",
@@ -194,16 +172,16 @@ class TestHistWithBy(TestPlotBase):
         ax1, ax2, ax3 = hist_df.plot.hist(column="A", by="C", sharex=True)
 
         # share x
-        assert self.get_x_axis(ax1).joined(ax1, ax2)
-        assert self.get_x_axis(ax2).joined(ax1, ax2)
-        assert self.get_x_axis(ax3).joined(ax1, ax3)
-        assert self.get_x_axis(ax3).joined(ax2, ax3)
+        assert get_x_axis(ax1).joined(ax1, ax2)
+        assert get_x_axis(ax2).joined(ax1, ax2)
+        assert get_x_axis(ax3).joined(ax1, ax3)
+        assert get_x_axis(ax3).joined(ax2, ax3)
 
         # don't share y
-        assert not self.get_y_axis(ax1).joined(ax1, ax2)
-        assert not self.get_y_axis(ax2).joined(ax1, ax2)
-        assert not self.get_y_axis(ax3).joined(ax1, ax3)
-        assert not self.get_y_axis(ax3).joined(ax2, ax3)
+        assert not get_y_axis(ax1).joined(ax1, ax2)
+        assert not get_y_axis(ax2).joined(ax1, ax2)
+        assert not get_y_axis(ax3).joined(ax1, ax3)
+        assert not get_y_axis(ax3).joined(ax2, ax3)
 
     @pytest.mark.slow
     def test_axis_share_y_with_by(self, hist_df):
@@ -211,26 +189,25 @@ class TestHistWithBy(TestPlotBase):
         ax1, ax2, ax3 = hist_df.plot.hist(column="A", by="C", sharey=True)
 
         # share y
-        assert self.get_y_axis(ax1).joined(ax1, ax2)
-        assert self.get_y_axis(ax2).joined(ax1, ax2)
-        assert self.get_y_axis(ax3).joined(ax1, ax3)
-        assert self.get_y_axis(ax3).joined(ax2, ax3)
+        assert get_y_axis(ax1).joined(ax1, ax2)
+        assert get_y_axis(ax2).joined(ax1, ax2)
+        assert get_y_axis(ax3).joined(ax1, ax3)
+        assert get_y_axis(ax3).joined(ax2, ax3)
 
         # don't share x
-        assert not self.get_x_axis(ax1).joined(ax1, ax2)
-        assert not self.get_x_axis(ax2).joined(ax1, ax2)
-        assert not self.get_x_axis(ax3).joined(ax1, ax3)
-        assert not self.get_x_axis(ax3).joined(ax2, ax3)
+        assert not get_x_axis(ax1).joined(ax1, ax2)
+        assert not get_x_axis(ax2).joined(ax1, ax2)
+        assert not get_x_axis(ax3).joined(ax1, ax3)
+        assert not get_x_axis(ax3).joined(ax2, ax3)
 
     @pytest.mark.parametrize("figsize", [(12, 8), (20, 10)])
     def test_figure_shape_hist_with_by(self, figsize, hist_df):
         # GH 15079
         axes = hist_df.plot.hist(column="A", by="C", figsize=figsize)
-        self._check_axes_shape(axes, axes_num=3, figsize=figsize)
+        _check_axes_shape(axes, axes_num=3, figsize=figsize)
 
 
-@td.skip_if_no_mpl
-class TestBoxWithBy(TestPlotBase):
+class TestBoxWithBy:
     @pytest.mark.parametrize(
         "by, column, titles, xticklabels",
         [
@@ -242,13 +219,7 @@ class TestBoxWithBy(TestPlotBase):
                 [
                     [
                         "(a, a)",
-                        "(a, b)",
-                        "(a, c)",
-                        "(b, a)",
                         "(b, b)",
-                        "(b, c)",
-                        "(c, a)",
-                        "(c, b)",
                         "(c, c)",
                     ]
                 ],
@@ -261,13 +232,7 @@ class TestBoxWithBy(TestPlotBase):
                 [
                     [
                         "(a, a)",
-                        "(a, b)",
-                        "(a, c)",
-                        "(b, a)",
                         "(b, b)",
-                        "(b, c)",
-                        "(c, a)",
-                        "(c, b)",
                         "(c, c)",
                     ]
                 ]
@@ -300,13 +265,7 @@ class TestBoxWithBy(TestPlotBase):
                 [
                     [
                         "(a, a)",
-                        "(a, b)",
-                        "(a, c)",
-                        "(b, a)",
                         "(b, b)",
-                        "(b, c)",
-                        "(c, a)",
-                        "(c, b)",
                         "(c, c)",
                     ]
                 ],
@@ -360,7 +319,7 @@ class TestBoxWithBy(TestPlotBase):
         axes = _check_plot_works(
             hist_df.plot.box, default_axes=True, column=column, by=by, layout=layout
         )
-        self._check_axes_shape(axes, axes_num=axes_num, layout=layout)
+        _check_axes_shape(axes, axes_num=axes_num, layout=layout)
 
     @pytest.mark.parametrize(
         "msg, by, layout",
@@ -380,4 +339,4 @@ class TestBoxWithBy(TestPlotBase):
     def test_figure_shape_hist_with_by(self, figsize, hist_df):
         # GH 15079
         axes = hist_df.plot.box(column="A", by="C", figsize=figsize)
-        self._check_axes_shape(axes, axes_num=1, figsize=figsize)
+        _check_axes_shape(axes, axes_num=1, figsize=figsize)

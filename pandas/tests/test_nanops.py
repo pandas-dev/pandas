@@ -1,6 +1,4 @@
 from functools import partial
-import operator
-import warnings
 
 import numpy as np
 import pytest
@@ -35,8 +33,7 @@ def arr_shape():
 
 @pytest.fixture
 def arr_float(arr_shape):
-    np.random.seed(11235)
-    return np.random.randn(*arr_shape)
+    return np.random.default_rng(2).standard_normal(arr_shape)
 
 
 @pytest.fixture
@@ -46,14 +43,12 @@ def arr_complex(arr_float):
 
 @pytest.fixture
 def arr_int(arr_shape):
-    np.random.seed(11235)
-    return np.random.randint(-10, 10, arr_shape)
+    return np.random.default_rng(2).integers(-10, 10, arr_shape)
 
 
 @pytest.fixture
 def arr_bool(arr_shape):
-    np.random.seed(11235)
-    return np.random.randint(0, 2, arr_shape) == 0
+    return np.random.default_rng(2).integers(0, 2, arr_shape) == 0
 
 
 @pytest.fixture
@@ -68,14 +63,12 @@ def arr_utf(arr_float):
 
 @pytest.fixture
 def arr_date(arr_shape):
-    np.random.seed(11235)
-    return np.random.randint(0, 20000, arr_shape).astype("M8[ns]")
+    return np.random.default_rng(2).integers(0, 20000, arr_shape).astype("M8[ns]")
 
 
 @pytest.fixture
 def arr_tdelta(arr_shape):
-    np.random.seed(11235)
-    return np.random.randint(0, 20000, arr_shape).astype("m8[ns]")
+    return np.random.default_rng(2).integers(0, 20000, arr_shape).astype("m8[ns]")
 
 
 @pytest.fixture
@@ -192,20 +185,23 @@ def arr_nan_float1_1d(arr_nan_float1):
 
 class TestnanopsDataFrame:
     def setup_method(self):
-        np.random.seed(11235)
         nanops._USE_BOTTLENECK = False
 
         arr_shape = (11, 7)
 
-        self.arr_float = np.random.randn(*arr_shape)
-        self.arr_float1 = np.random.randn(*arr_shape)
+        self.arr_float = np.random.default_rng(2).standard_normal(arr_shape)
+        self.arr_float1 = np.random.default_rng(2).standard_normal(arr_shape)
         self.arr_complex = self.arr_float + self.arr_float1 * 1j
-        self.arr_int = np.random.randint(-10, 10, arr_shape)
-        self.arr_bool = np.random.randint(0, 2, arr_shape) == 0
+        self.arr_int = np.random.default_rng(2).integers(-10, 10, arr_shape)
+        self.arr_bool = np.random.default_rng(2).integers(0, 2, arr_shape) == 0
         self.arr_str = np.abs(self.arr_float).astype("S")
         self.arr_utf = np.abs(self.arr_float).astype("U")
-        self.arr_date = np.random.randint(0, 20000, arr_shape).astype("M8[ns]")
-        self.arr_tdelta = np.random.randint(0, 20000, arr_shape).astype("m8[ns]")
+        self.arr_date = (
+            np.random.default_rng(2).integers(0, 20000, arr_shape).astype("M8[ns]")
+        )
+        self.arr_tdelta = (
+            np.random.default_rng(2).integers(0, 20000, arr_shape).astype("m8[ns]")
+        )
 
         self.arr_nan = np.tile(np.nan, arr_shape)
         self.arr_float_nan = np.vstack([self.arr_float, self.arr_nan])
@@ -325,6 +321,16 @@ class TestnanopsDataFrame:
                     targ = bool(targ)
 
             res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
+
+            if (
+                isinstance(targ, np.complex128)
+                and isinstance(res, float)
+                and np.isnan(targ)
+                and np.isnan(res)
+            ):
+                # GH#18463
+                targ = res
+
             self.check_results(targ, res, axis, check_dtype=check_dtype)
             if skipna:
                 res = testfunc(testarval, axis=axis, **kwargs)
@@ -458,17 +464,16 @@ class TestnanopsDataFrame:
             nanops.nanmean, np.mean, skipna, allow_obj=False, allow_date=False
         )
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanmedian(self, skipna):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            self.check_funs(
-                nanops.nanmedian,
-                np.median,
-                skipna,
-                allow_complex=False,
-                allow_date=False,
-                allow_obj="convert",
-            )
+        self.check_funs(
+            nanops.nanmedian,
+            np.median,
+            skipna,
+            allow_complex=False,
+            allow_date=False,
+            allow_obj="convert",
+        )
 
     @pytest.mark.parametrize("ddof", range(3))
     def test_nanvar(self, ddof, skipna):
@@ -494,15 +499,14 @@ class TestnanopsDataFrame:
             ddof=ddof,
         )
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("ddof", range(3))
     def test_nansem(self, ddof, skipna):
-        from scipy.stats import sem
+        sp_stats = pytest.importorskip("scipy.stats")
 
         with np.errstate(invalid="ignore"):
             self.check_funs(
                 nanops.nansem,
-                sem,
+                sp_stats.sem,
                 skipna,
                 allow_complex=False,
                 allow_date=False,
@@ -511,13 +515,12 @@ class TestnanopsDataFrame:
                 ddof=ddof,
             )
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize(
         "nan_op,np_op", [(nanops.nanmin, np.min), (nanops.nanmax, np.max)]
     )
     def test_nanops_with_warnings(self, nan_op, np_op, skipna):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            self.check_funs(nan_op, np_op, skipna, allow_obj=False)
+        self.check_funs(nan_op, np_op, skipna, allow_obj=False)
 
     def _argminmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
@@ -534,17 +537,15 @@ class TestnanopsDataFrame:
             res = -1
         return res
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanargmax(self, skipna):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            func = partial(self._argminmax_wrap, func=np.argmax)
-            self.check_funs(nanops.nanargmax, func, skipna, allow_obj=False)
+        func = partial(self._argminmax_wrap, func=np.argmax)
+        self.check_funs(nanops.nanargmax, func, skipna, allow_obj=False)
 
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     def test_nanargmin(self, skipna):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            func = partial(self._argminmax_wrap, func=np.argmin)
-            self.check_funs(nanops.nanargmin, func, skipna, allow_obj=False)
+        func = partial(self._argminmax_wrap, func=np.argmin)
+        self.check_funs(nanops.nanargmin, func, skipna, allow_obj=False)
 
     def _skew_kurt_wrap(self, values, axis=None, func=None):
         if not isinstance(values.dtype.type, np.floating):
@@ -558,11 +559,10 @@ class TestnanopsDataFrame:
             return 0.0
         return result
 
-    @td.skip_if_no_scipy
     def test_nanskew(self, skipna):
-        from scipy.stats import skew
+        sp_stats = pytest.importorskip("scipy.stats")
 
-        func = partial(self._skew_kurt_wrap, func=skew)
+        func = partial(self._skew_kurt_wrap, func=sp_stats.skew)
         with np.errstate(invalid="ignore"):
             self.check_funs(
                 nanops.nanskew,
@@ -573,11 +573,10 @@ class TestnanopsDataFrame:
                 allow_tdelta=False,
             )
 
-    @td.skip_if_no_scipy
     def test_nankurt(self, skipna):
-        from scipy.stats import kurtosis
+        sp_stats = pytest.importorskip("scipy.stats")
 
-        func1 = partial(kurtosis, fisher=True)
+        func1 = partial(sp_stats.kurtosis, fisher=True)
         func = partial(self._skew_kurt_wrap, func=func1)
         with np.errstate(invalid="ignore"):
             self.check_funs(
@@ -705,30 +704,28 @@ class TestnanopsDataFrame:
         targ1 = np.corrcoef(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0, 1]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="pearson")
 
-    @td.skip_if_no_scipy
     def test_nancorr_kendall(self):
-        from scipy.stats import kendalltau
+        sp_stats = pytest.importorskip("scipy.stats")
 
-        targ0 = kendalltau(self.arr_float_2d, self.arr_float1_2d)[0]
-        targ1 = kendalltau(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
+        targ0 = sp_stats.kendalltau(self.arr_float_2d, self.arr_float1_2d)[0]
+        targ1 = sp_stats.kendalltau(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
         self.check_nancorr_nancov_2d(nanops.nancorr, targ0, targ1, method="kendall")
-        targ0 = kendalltau(self.arr_float_1d, self.arr_float1_1d)[0]
-        targ1 = kendalltau(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0]
+        targ0 = sp_stats.kendalltau(self.arr_float_1d, self.arr_float1_1d)[0]
+        targ1 = sp_stats.kendalltau(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="kendall")
 
-    @td.skip_if_no_scipy
     def test_nancorr_spearman(self):
-        from scipy.stats import spearmanr
+        sp_stats = pytest.importorskip("scipy.stats")
 
-        targ0 = spearmanr(self.arr_float_2d, self.arr_float1_2d)[0]
-        targ1 = spearmanr(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
+        targ0 = sp_stats.spearmanr(self.arr_float_2d, self.arr_float1_2d)[0]
+        targ1 = sp_stats.spearmanr(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
         self.check_nancorr_nancov_2d(nanops.nancorr, targ0, targ1, method="spearman")
-        targ0 = spearmanr(self.arr_float_1d, self.arr_float1_1d)[0]
-        targ1 = spearmanr(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0]
+        targ0 = sp_stats.spearmanr(self.arr_float_1d, self.arr_float1_1d)[0]
+        targ1 = sp_stats.spearmanr(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0]
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1, method="spearman")
 
-    @td.skip_if_no_scipy
     def test_invalid_method(self):
+        pytest.importorskip("scipy")
         targ0 = np.corrcoef(self.arr_float_2d, self.arr_float1_2d)[0, 1]
         targ1 = np.corrcoef(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0, 1]
         msg = "Unknown method 'foo', expected one of 'kendall', 'spearman'"
@@ -742,53 +739,6 @@ class TestnanopsDataFrame:
         targ0 = np.cov(self.arr_float_1d, self.arr_float1_1d)[0, 1]
         targ1 = np.cov(self.arr_float_1d.flat, self.arr_float1_1d.flat)[0, 1]
         self.check_nancorr_nancov_1d(nanops.nancov, targ0, targ1)
-
-
-@pytest.mark.parametrize(
-    "op,nanop",
-    [
-        (operator.eq, nanops.naneq),
-        (operator.ne, nanops.nanne),
-        (operator.gt, nanops.nangt),
-        (operator.ge, nanops.nange),
-        (operator.lt, nanops.nanlt),
-        (operator.le, nanops.nanle),
-    ],
-)
-def test_nan_comparison(request, op, nanop, disable_bottleneck):
-    arr_float = request.getfixturevalue("arr_float")
-    arr_float1 = request.getfixturevalue("arr_float")
-    targ0 = op(arr_float, arr_float1)
-    arr_nan = request.getfixturevalue("arr_nan")
-    arr_nan_nan = request.getfixturevalue("arr_nan_nan")
-    arr_float_nan = request.getfixturevalue("arr_float_nan")
-    arr_float1_nan = request.getfixturevalue("arr_float_nan")
-    arr_nan_float1 = request.getfixturevalue("arr_nan_float1")
-
-    while targ0.ndim:
-        res0 = nanop(arr_float, arr_float1)
-        tm.assert_almost_equal(targ0, res0)
-
-        if targ0.ndim > 1:
-            targ1 = np.vstack([targ0, arr_nan])
-        else:
-            targ1 = np.hstack([targ0, arr_nan])
-        res1 = nanop(arr_float_nan, arr_float1_nan)
-        tm.assert_numpy_array_equal(targ1, res1, check_dtype=False)
-
-        targ2 = arr_nan_nan
-        res2 = nanop(arr_float_nan, arr_nan_float1)
-        tm.assert_numpy_array_equal(targ2, res2, check_dtype=False)
-
-        # Lower dimension for next step in the loop
-        arr_float = np.take(arr_float, 0, axis=-1)
-        arr_float1 = np.take(arr_float1, 0, axis=-1)
-        arr_nan = np.take(arr_nan, 0, axis=-1)
-        arr_nan_nan = np.take(arr_nan_nan, 0, axis=-1)
-        arr_float_nan = np.take(arr_float_nan, 0, axis=-1)
-        arr_float1_nan = np.take(arr_float1_nan, 0, axis=-1)
-        arr_nan_float1 = np.take(arr_nan_float1, 0, axis=-1)
-        targ0 = np.take(targ0, 0, axis=-1)
 
 
 @pytest.mark.parametrize(
@@ -898,7 +848,9 @@ class TestEnsureNumeric:
 
         # Test convertible string ndarray
         s_values = np.array(["1", "2", "3"], dtype=object)
-        assert np.allclose(nanops._ensure_numeric(s_values), values)
+        msg = r"Could not convert \['1' '2' '3'\] to numeric"
+        with pytest.raises(TypeError, match=msg):
+            nanops._ensure_numeric(s_values)
 
         # Test non-convertible string ndarray
         s_values = np.array(["foo", "bar", "baz"], dtype=object)
@@ -907,12 +859,19 @@ class TestEnsureNumeric:
             nanops._ensure_numeric(s_values)
 
     def test_convertable_values(self):
-        assert np.allclose(nanops._ensure_numeric("1"), 1.0)
-        assert np.allclose(nanops._ensure_numeric("1.1"), 1.1)
-        assert np.allclose(nanops._ensure_numeric("1+1j"), 1 + 1j)
+        with pytest.raises(TypeError, match="Could not convert string '1' to numeric"):
+            nanops._ensure_numeric("1")
+        with pytest.raises(
+            TypeError, match="Could not convert string '1.1' to numeric"
+        ):
+            nanops._ensure_numeric("1.1")
+        with pytest.raises(
+            TypeError, match=r"Could not convert string '1\+1j' to numeric"
+        ):
+            nanops._ensure_numeric("1+1j")
 
     def test_non_convertable_values(self):
-        msg = "Could not convert foo to numeric"
+        msg = "Could not convert string 'foo' to numeric"
         with pytest.raises(TypeError, match=msg):
             nanops._ensure_numeric("foo")
 
@@ -1038,7 +997,7 @@ class TestNanvarFixedValues:
 
     @property
     def prng(self):
-        return np.random.RandomState(1234)
+        return np.random.default_rng(2)
 
 
 class TestNanskewFixedValues:
@@ -1089,7 +1048,7 @@ class TestNanskewFixedValues:
 
     @property
     def prng(self):
-        return np.random.RandomState(1234)
+        return np.random.default_rng(2)
 
 
 class TestNankurtFixedValues:
@@ -1113,11 +1072,11 @@ class TestNankurtFixedValues:
     def test_all_finite(self):
         alpha, beta = 0.3, 0.1
         left_tailed = self.prng.beta(alpha, beta, size=100)
-        assert nanops.nankurt(left_tailed) < 0
+        assert nanops.nankurt(left_tailed) < 2
 
         alpha, beta = 0.1, 0.3
         right_tailed = self.prng.beta(alpha, beta, size=100)
-        assert nanops.nankurt(right_tailed) > 0
+        assert nanops.nankurt(right_tailed) < 0
 
     def test_ground_truth(self, samples, actual_kurt):
         kurt = nanops.nankurt(samples)
@@ -1140,7 +1099,7 @@ class TestNankurtFixedValues:
 
     @property
     def prng(self):
-        return np.random.RandomState(1234)
+        return np.random.default_rng(2)
 
 
 class TestDatetime64NaNOps:
@@ -1238,8 +1197,8 @@ def test_nanops_independent_of_mask_param(operation):
     # GH22764
     ser = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
-    median_expected = operation(ser)
-    median_result = operation(ser, mask=mask)
+    median_expected = operation(ser._values)
+    median_result = operation(ser._values, mask=mask)
     assert median_expected == median_result
 
 

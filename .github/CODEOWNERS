@@ -1,0 +1,23 @@
+# github
+.github/                          @mroeschke
+
+# ci
+ci/                               @mroeschke
+
+# web
+web/                              @datapythonista
+
+# docs
+doc/cheatsheet                    @Dr-Irv
+doc/source/development            @noatamir
+
+# pandas
+pandas/_libs/                     @WillAyd
+pandas/_libs/tslibs/*             @MarcoGorelli
+pandas/_typing.py                 @Dr-Irv
+pandas/core/groupby/*             @rhshadrach
+pandas/core/tools/datetimes.py    @MarcoGorelli
+pandas/io/excel/*                 @rhshadrach
+pandas/io/formats/style.py        @attack68
+pandas/io/formats/style_render.py @attack68
+pandas/io/formats/templates       @attack68

@@ -29,7 +29,7 @@ def frame_random_data_integer_multi_index():
     levels = [[0, 1], [0, 1, 2]]
     codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
     index = MultiIndex(levels=levels, codes=codes)
-    return DataFrame(np.random.randn(6, 2), index=index)
+    return DataFrame(np.random.default_rng(2).standard_normal((6, 2)), index=index)
 
 
 class TestMultiIndexLoc:
@@ -76,7 +76,7 @@ class TestMultiIndexLoc:
     def test_loc_getitem_multiindex_missing_label_raises(self):
         # GH#21593
         df = DataFrame(
-            np.random.randn(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=[[2, 2, 4], [6, 8, 10]],
             index=[[4, 4, 8], [8, 10, 12]],
         )
@@ -155,7 +155,7 @@ class TestMultiIndexLoc:
 
     def test_loc_multiindex_labels(self):
         df = DataFrame(
-            np.random.randn(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=[["i", "i", "j"], ["A", "A", "B"]],
             index=[["i", "i", "j"], ["X", "X", "Y"]],
         )
@@ -182,7 +182,7 @@ class TestMultiIndexLoc:
 
     def test_loc_multiindex_ints(self):
         df = DataFrame(
-            np.random.randn(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=[[2, 2, 4], [6, 8, 10]],
             index=[[4, 4, 8], [8, 10, 12]],
         )
@@ -192,7 +192,7 @@ class TestMultiIndexLoc:
 
     def test_loc_multiindex_missing_label_raises(self):
         df = DataFrame(
-            np.random.randn(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=[[2, 2, 4], [6, 8, 10]],
             index=[[4, 4, 8], [8, 10, 12]],
         )
@@ -204,7 +204,7 @@ class TestMultiIndexLoc:
     def test_loc_multiindex_list_missing_label(self, key, pos):
         # GH 27148 - lists with missing labels _do_ raise
         df = DataFrame(
-            np.random.randn(3, 3),
+            np.random.default_rng(2).standard_normal((3, 3)),
             columns=[[2, 2, 4], [6, 8, 10]],
             index=[[4, 4, 8], [8, 10, 12]],
         )
@@ -233,7 +233,7 @@ class TestMultiIndexLoc:
         attribute_values = ["Value" + str(i) for i in range(5)]
 
         index = MultiIndex.from_product([attributes, attribute_values])
-        df = 0.1 * np.random.randn(10, 1 * 5) + 0.5
+        df = 0.1 * np.random.default_rng(2).standard_normal((10, 1 * 5)) + 0.5
         df = DataFrame(df, columns=index)
         result = df[attributes]
         tm.assert_frame_equal(result, df)
@@ -279,7 +279,10 @@ class TestMultiIndexLoc:
 
     def test_get_loc_single_level(self, single_level_multiindex):
         single_level = single_level_multiindex
-        s = Series(np.random.randn(len(single_level)), index=single_level)
+        s = Series(
+            np.random.default_rng(2).standard_normal(len(single_level)),
+            index=single_level,
+        )
         for k in single_level.values:
             s[k]
 
@@ -288,13 +291,13 @@ class TestMultiIndexLoc:
         # loc should treat integer slices like label slices
 
         index = MultiIndex.from_product([[6, 7, 8], ["a", "b"]])
-        df = DataFrame(np.random.randn(6, 6), index, index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((6, 6)), index, index)
         result = df.loc[6:8, :]
         expected = df
         tm.assert_frame_equal(result, expected)
 
         index = MultiIndex.from_product([[10, 20, 30], ["a", "b"]])
-        df = DataFrame(np.random.randn(6, 6), index, index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((6, 6)), index, index)
         result = df.loc[20:30, :]
         expected = df.iloc[2:]
         tm.assert_frame_equal(result, expected)
@@ -420,6 +423,19 @@ class TestMultiIndexLoc:
         )
         tm.assert_frame_equal(res, expected)
 
+    def test_loc_multi_index_key_error(self):
+        # GH 51892
+        df = DataFrame(
+            {
+                (1, 2): ["a", "b", "c"],
+                (1, 3): ["d", "e", "f"],
+                (2, 2): ["g", "h", "i"],
+                (2, 4): ["j", "k", "l"],
+            }
+        )
+        with pytest.raises(KeyError, match=r"(1, 4)"):
+            df.loc[0, (1, 4)]
+
 
 @pytest.mark.parametrize(
     "indexer, pos",
@@ -459,7 +475,11 @@ def test_loc_getitem_duplicates_multiindex_empty_indexer(columns_indexer):
     # GH 8737
     # empty indexer
     multi_index = MultiIndex.from_product((["foo", "bar", "baz"], ["alpha", "beta"]))
-    df = DataFrame(np.random.randn(5, 6), index=range(5), columns=multi_index)
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((5, 6)),
+        index=range(5),
+        columns=multi_index,
+    )
     df = df.sort_index(level=0, axis=1)
 
     expected = DataFrame(index=range(5), columns=multi_index.reindex([])[0])
@@ -486,8 +506,8 @@ def test_loc_getitem_tuple_plus_slice():
         {
             "a": np.arange(10),
             "b": np.arange(10),
-            "c": np.random.randn(10),
-            "d": np.random.randn(10),
+            "c": np.random.default_rng(2).standard_normal(10),
+            "d": np.random.default_rng(2).standard_normal(10),
         }
     ).set_index(["a", "b"])
     expected = df.loc[0, 0]
@@ -600,9 +620,8 @@ def test_loc_period_string_indexing():
     #  not a slice
     assert np.isnan(result)
 
-    # TODO: should it figure this out?
-    # alt = df.loc["2013Q1", 1111, "OMS"]
-    # assert np.isnan(alt)
+    alt = df.loc[("2013Q1", 1111), "OMS"]
+    assert np.isnan(alt)
 
 
 def test_loc_datetime_mask_slicing():
@@ -695,7 +714,7 @@ def test_3levels_leading_period_index():
     pi = pd.PeriodIndex(
         ["20181101 1100", "20181101 1200", "20181102 1300", "20181102 1400"],
         name="datetime",
-        freq="B",
+        freq="D",
     )
     lev2 = ["A", "A", "Z", "W"]
     lev3 = ["B", "C", "Q", "F"]
@@ -732,7 +751,7 @@ class TestKeyErrorsWithMultiIndex:
             ],
             names=["one", "two", "three"],
         )
-        df = DataFrame(np.random.rand(4, 3), index=mi)
+        df = DataFrame(np.random.default_rng(2).random((4, 3)), index=mi)
         msg = r"\('b', '1', slice\(None, None, None\)\)"
         with pytest.raises(KeyError, match=msg):
             df.loc[("b", "1", slice(None)), :]

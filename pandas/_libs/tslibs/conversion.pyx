@@ -25,6 +25,7 @@ from cpython.datetime cimport (
 
 import_datetime()
 
+from pandas._libs.missing cimport checknull_with_nat_and_na
 from pandas._libs.tslibs.base cimport ABCTimestamp
 from pandas._libs.tslibs.dtypes cimport (
     abbrev_to_npy_unit,
@@ -41,6 +42,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
     get_datetime64_value,
     get_implementation_bounds,
+    import_pandas_datetime,
     npy_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -50,15 +52,15 @@ from pandas._libs.tslibs.np_datetime cimport (
     string_to_dts,
 )
 
+import_pandas_datetime()
+
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
-    c_NaT as NaT,
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.parsing cimport parse_datetime_string
-from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_utcoffset,
     is_utc,
@@ -176,6 +178,9 @@ cpdef inline (int64_t, int) precision_from_unit(
         multiplier = periods_per_second(out_reso)
         m = multiplier * 2629746
     else:
+        # Careful: if get_conversion_factor raises, the exception does
+        #  not propagate, instead we get a warning about an ignored exception.
+        #  https://github.com/pandas-dev/pandas/pull/51483#discussion_r1115198951
         m = get_conversion_factor(reso, out_reso)
 
     p = <int>log10(m)  # number of digits in 'm' minus 1
@@ -263,7 +268,7 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
     if isinstance(ts, str):
         return convert_str_to_tsobject(ts, tz, unit, dayfirst, yearfirst)
 
-    if ts is None or ts is NaT:
+    if checknull_with_nat_and_na(ts):
         obj.value = NPY_NAT
     elif is_datetime64_object(ts):
         reso = get_supported_reso(get_datetime64_unit(ts))
@@ -590,7 +595,7 @@ cdef check_overflows(_TSObject obj, NPY_DATETIMEUNIT reso=NPY_FR_ns):
 # ----------------------------------------------------------------------
 # Localization
 
-cdef void _localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso):
+cdef void _localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso) noexcept:
     """
     Given the UTC nanosecond timestamp in obj.value, find the wall-clock
     representation of that timestamp in the given timezone.
@@ -755,7 +760,7 @@ cdef int64_t parse_pydatetime(
             _ts.ensure_reso(NPY_FR_ns)
             result = _ts.value
     else:
-        if isinstance(val, _Timestamp):
+        if isinstance(val, ABCTimestamp):
             result = val.as_unit("ns")._value
         else:
             result = pydatetime_to_dt64(val, dts)
