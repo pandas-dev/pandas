@@ -475,7 +475,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if na_value is lib.no_default:
             na_value = libmissing.NA
         if dtype is None:
-            dtype = object
+            if self._hasna:
+                itemsize = self.dtype.itemsize
+                if itemsize < 4:
+                    itemsize = 4
+                dtype = np.dtype(f"f{itemsize}")
+                na_value = np.nan
+            else:
+                dtype = self.dtype.numpy_dtype
         else:
             dtype = np.dtype(dtype)
         if self._hasna:
