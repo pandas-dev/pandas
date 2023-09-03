@@ -41,7 +41,7 @@ def _series_name():
 
 
 class TestPeriodIndex:
-    @pytest.mark.parametrize("freq", ["2D", "1H", "2H"])
+    @pytest.mark.parametrize("freq", ["2D", "1h", "2h"])
     @pytest.mark.parametrize("kind", ["period", None, "timestamp"])
     def test_asfreq(self, series_and_frame, freq, kind):
         # GH 12884, 15944
@@ -65,23 +65,23 @@ class TestPeriodIndex:
         new_index = date_range(
             s.index[0].to_timestamp(how="start"),
             (s.index[-1]).to_timestamp(how="start"),
-            freq="1H",
+            freq="1h",
         )
         expected = s.to_timestamp().reindex(new_index, fill_value=4.0)
-        result = s.resample("1H", kind="timestamp").asfreq(fill_value=4.0)
+        result = s.resample("1h", kind="timestamp").asfreq(fill_value=4.0)
         tm.assert_series_equal(result, expected)
 
         frame = s.to_frame("value")
         new_index = date_range(
             frame.index[0].to_timestamp(how="start"),
             (frame.index[-1]).to_timestamp(how="start"),
-            freq="1H",
+            freq="1h",
         )
         expected = frame.to_timestamp().reindex(new_index, fill_value=3.0)
-        result = frame.resample("1H", kind="timestamp").asfreq(fill_value=3.0)
+        result = frame.resample("1h", kind="timestamp").asfreq(fill_value=3.0)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("freq", ["H", "12H", "2D", "W"])
+    @pytest.mark.parametrize("freq", ["h", "12h", "2D", "W"])
     @pytest.mark.parametrize("kind", [None, "period", "timestamp"])
     @pytest.mark.parametrize("kwargs", [{"on": "date"}, {"level": "d"}])
     def test_selection(self, index, freq, kind, kwargs):
@@ -267,7 +267,7 @@ class TestPeriodIndex:
         # 1 day later
         end = datetime(year=2013, month=11, day=2, hour=0, minute=0, tzinfo=pytz.utc)
 
-        index = date_range(start, end, freq="H")
+        index = date_range(start, end, freq="h")
 
         series = Series(1, index=index)
         series = series.tz_convert(local_timezone)
@@ -283,7 +283,7 @@ class TestPeriodIndex:
     def test_resample_with_pytz(self):
         # GH 13238
         s = Series(
-            2, index=date_range("2017-01-01", periods=48, freq="H", tz="US/Eastern")
+            2, index=date_range("2017-01-01", periods=48, freq="h", tz="US/Eastern")
         )
         result = s.resample("D").mean()
         expected = Series(
@@ -308,7 +308,7 @@ class TestPeriodIndex:
             year=2013, month=11, day=2, hour=0, minute=0, tzinfo=dateutil.tz.tzutc()
         )
 
-        index = date_range(start, end, freq="H", name="idx")
+        index = date_range(start, end, freq="h", name="idx")
 
         series = Series(1, index=index)
         series = series.tz_convert(local_timezone)
@@ -333,7 +333,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
         # GH 23742
-        index = date_range(start="2017-10-10", end="2017-10-20", freq="1H")
+        index = date_range(start="2017-10-10", end="2017-10-20", freq="1h")
         index = index.tz_localize("UTC").tz_convert("America/Sao_Paulo")
         df = DataFrame(data=list(range(len(index))), index=index)
         result = df.groupby(pd.Grouper(freq="1D")).count()
@@ -457,9 +457,9 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
         ts = simple_period_range_series("1/1/2000", "2/1/2000")
-        result = ts.resample("H", convention="s").asfreq()
-        exp_rng = period_range("1/1/2000", "2/1/2000 23:00", freq="H")
-        expected = ts.asfreq("H", how="s").reindex(exp_rng)
+        result = ts.resample("h", convention="s").asfreq()
+        exp_rng = period_range("1/1/2000", "2/1/2000 23:00", freq="h")
+        expected = ts.asfreq("h", how="s").reindex(exp_rng)
         tm.assert_series_equal(result, expected)
 
     def test_resample_irregular_sparse(self):
@@ -526,7 +526,7 @@ class TestPeriodIndex:
 
         # GH 6397
         # comparing an offset that doesn't propagate tz's
-        rng = date_range("1/1/2011", periods=20000, freq="H")
+        rng = date_range("1/1/2011", periods=20000, freq="h")
         rng = rng.tz_localize("EST")
         ts = DataFrame(index=rng)
         ts["first"] = np.random.default_rng(2).standard_normal(len(rng))
@@ -656,7 +656,7 @@ class TestPeriodIndex:
 
     @pytest.mark.parametrize(
         "from_freq, to_freq",
-        [("D", "MS"), ("Q", "AS"), ("M", "QS"), ("H", "D"), ("min", "H")],
+        [("D", "MS"), ("Q", "AS"), ("M", "QS"), ("h", "D"), ("min", "h")],
     )
     def test_default_left_closed_label(self, from_freq, to_freq):
         idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
@@ -748,7 +748,7 @@ class TestPeriodIndex:
         result = df.resample("7D").sum()
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("freq, period_mult", [("H", 24), ("12H", 2)])
+    @pytest.mark.parametrize("freq, period_mult", [("h", 24), ("12h", 2)])
     @pytest.mark.parametrize("kind", [None, "period"])
     def test_upsampling_ohlc(self, freq, period_mult, kind):
         # GH 13083
@@ -825,20 +825,20 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "start,end,start_freq,end_freq,offset",
         [
-            ("19910905", "19910909 03:00", "H", "24H", "10H"),
-            ("19910905", "19910909 12:00", "H", "24H", "10H"),
-            ("19910905", "19910909 23:00", "H", "24H", "10H"),
-            ("19910905 10:00", "19910909", "H", "24H", "10H"),
-            ("19910905 10:00", "19910909 10:00", "H", "24H", "10H"),
-            ("19910905", "19910909 10:00", "H", "24H", "10H"),
-            ("19910905 12:00", "19910909", "H", "24H", "10H"),
-            ("19910905 12:00", "19910909 03:00", "H", "24H", "10H"),
-            ("19910905 12:00", "19910909 12:00", "H", "24H", "10H"),
-            ("19910905 12:00", "19910909 12:00", "H", "24H", "34H"),
-            ("19910905 12:00", "19910909 12:00", "H", "17H", "10H"),
-            ("19910905 12:00", "19910909 12:00", "H", "17H", "3H"),
-            ("19910905 12:00", "19910909 1:00", "H", "M", "3H"),
-            ("19910905", "19910913 06:00", "2H", "24H", "10H"),
+            ("19910905", "19910909 03:00", "h", "24h", "10h"),
+            ("19910905", "19910909 12:00", "h", "24h", "10h"),
+            ("19910905", "19910909 23:00", "h", "24h", "10h"),
+            ("19910905 10:00", "19910909", "h", "24h", "10h"),
+            ("19910905 10:00", "19910909 10:00", "h", "24h", "10h"),
+            ("19910905", "19910909 10:00", "h", "24h", "10h"),
+            ("19910905 12:00", "19910909", "h", "24h", "10h"),
+            ("19910905 12:00", "19910909 03:00", "h", "24h", "10h"),
+            ("19910905 12:00", "19910909 12:00", "h", "24h", "10h"),
+            ("19910905 12:00", "19910909 12:00", "h", "24h", "34h"),
+            ("19910905 12:00", "19910909 12:00", "h", "17h", "10h"),
+            ("19910905 12:00", "19910909 12:00", "h", "17h", "3h"),
+            ("19910905 12:00", "19910909 1:00", "h", "M", "3h"),
+            ("19910905", "19910913 06:00", "2h", "24h", "10h"),
             ("19910905", "19910905 01:39", "Min", "5Min", "3Min"),
             ("19910905", "19910905 03:18", "2Min", "5Min", "3Min"),
         ],
@@ -864,7 +864,7 @@ class TestPeriodIndex:
             (
                 "19910905 06:00",
                 "19920406 06:00",
-                "H",
+                "h",
                 "19910905 06:00",
                 "19920406 06:00",
             ),

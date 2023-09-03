@@ -585,7 +585,7 @@ def _maybe_coerce_freq(code) -> str:
     assert code is not None
     if isinstance(code, DateOffset):
         code = code.rule_code
-    if code in {"min", "s", "ms", "us", "ns"}:
+    if code in {"h", "min", "s", "ms", "us", "ns"}:
         return code
     else:
         return code.upper()

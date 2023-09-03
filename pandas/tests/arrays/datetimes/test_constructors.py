@@ -34,7 +34,7 @@ class TestDatetimeArrayConstructor:
         arr = np.arange(5, dtype=np.int64) * 3600 * 10**9
 
         msg = (
-            "Inferred frequency H from passed values does not "
+            "Inferred frequency h from passed values does not "
             "conform to passed frequency W-SUN"
         )
         with pytest.raises(ValueError, match=msg):
@@ -70,7 +70,7 @@ class TestDatetimeArrayConstructor:
 
         result = DatetimeArray._from_sequence(arr)._with_freq("infer")
 
-        expected = pd.date_range("1970-01-01", periods=5, freq="H")._data
+        expected = pd.date_range("1970-01-01", periods=5, freq="h")._data
         tm.assert_datetime_array_equal(result, expected)
 
     def test_mismatched_timezone_raises(self):

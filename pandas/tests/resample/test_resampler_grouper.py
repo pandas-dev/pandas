@@ -303,10 +303,10 @@ def test_apply_columns_multilevel():
     ind = date_range(start="2017-01-01", freq="15Min", periods=8)
     df = DataFrame(np.array([0] * 16).reshape(8, 2), index=ind, columns=cols)
     agg_dict = {col: (np.sum if col[3] == "one" else np.mean) for col in df.columns}
-    result = df.resample("H").apply(lambda x: agg_dict[x.name](x))
+    result = df.resample("h").apply(lambda x: agg_dict[x.name](x))
     expected = DataFrame(
         2 * [[0, 0.0]],
-        index=date_range(start="2017-01-01", freq="1H", periods=2),
+        index=date_range(start="2017-01-01", freq="1h", periods=2),
         columns=pd.MultiIndex.from_tuples(
             [("A", "a", "", "one"), ("B", "b", "i", "two")]
         ),
@@ -390,14 +390,14 @@ def test_apply_to_one_column_of_df():
     )
 
     # access "col" via getattr -> make sure we handle AttributeError
-    result = df.resample("H").apply(lambda group: group.col.sum())
+    result = df.resample("h").apply(lambda group: group.col.sum())
     expected = Series(
-        [3, 12, 21, 9], index=date_range("2012-01-01", periods=4, freq="H")
+        [3, 12, 21, 9], index=date_range("2012-01-01", periods=4, freq="h")
     )
     tm.assert_series_equal(result, expected)
 
     # access "col" via _getitem__ -> make sure we handle KeyErrpr
-    result = df.resample("H").apply(lambda group: group["col"].sum())
+    result = df.resample("h").apply(lambda group: group["col"].sum())
     tm.assert_series_equal(result, expected)
 
 
@@ -575,7 +575,7 @@ def test_groupby_resample_size_all_index_same():
     # GH 46826
     df = DataFrame(
         {"A": [1] * 3 + [2] * 3 + [1] * 3 + [2] * 3, "B": np.arange(12)},
-        index=date_range("31/12/2000 18:00", freq="H", periods=12),
+        index=date_range("31/12/2000 18:00", freq="h", periods=12),
     )
     result = df.groupby("A").resample("D").size()
     expected = Series(

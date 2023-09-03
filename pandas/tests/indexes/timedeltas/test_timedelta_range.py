@@ -67,7 +67,7 @@ class TestTimedeltas:
             tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "periods, freq", [(3, "2D"), (5, "D"), (6, "19H12min"), (7, "16H"), (9, "12H")]
+        "periods, freq", [(3, "2D"), (5, "D"), (6, "19h12min"), (7, "16h"), (9, "12h")]
     )
     def test_linspace_behavior(self, periods, freq):
         # GH 20976
@@ -95,7 +95,7 @@ class TestTimedeltas:
 
         # too many params
         with pytest.raises(ValueError, match=msg):
-            timedelta_range(start="0 days", end="5 days", periods=10, freq="H")
+            timedelta_range(start="0 days", end="5 days", periods=10, freq="h")
 
     @pytest.mark.parametrize(
         "start, end, freq, expected_periods",

@@ -2274,7 +2274,7 @@ class TimeGrouper(Grouper):
             # GH#51896
             raise ValueError(
                 "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
-                f"e.g. '24H' or '3D', not {self.freq}"
+                f"e.g. '24h' or '3D', not {self.freq}"
             )
 
         if not len(ax):

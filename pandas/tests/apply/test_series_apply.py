@@ -188,13 +188,13 @@ def test_apply_box():
 
 
 def test_apply_datetimetz(by_row):
-    values = pd.date_range("2011-01-01", "2011-01-02", freq="H").tz_localize(
+    values = pd.date_range("2011-01-01", "2011-01-02", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     s = Series(values, name="XX")
 
     result = s.apply(lambda x: x + pd.offsets.Day(), by_row=by_row)
-    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="H").tz_localize(
+    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     exp = Series(exp_values, name="XX")
