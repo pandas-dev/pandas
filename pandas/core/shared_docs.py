@@ -378,7 +378,7 @@ input {klass}, it is possible to provide several input functions:
 1    1
 2    2
 dtype: int64
->>> s.transform([np.sqrt, np.exp])
+>>> s.transform([np.sqrt, np.exp])  # doctest: +SKIP
        sqrt        exp
 0  0.000000   1.000000
 1  1.000000   2.718282

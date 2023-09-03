@@ -217,7 +217,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         if obj._get_axis_number(axis) == 1:
             assert not is_series
-            soo = False if by_row else True
+            soo = not by_row
             return obj.T.transform(func, 0, *args, series_ops_only=soo, **kwargs).T
 
         if is_list_like(func) and not is_dict_like(func):
@@ -272,7 +272,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
         args = self.args
         kwargs = self.kwargs
-        soo = False if self.by_row else True
+        soo = not self.by_row
 
         # transform is currently only for Series/DataFrame
         assert isinstance(obj, ABCNDFrame)
@@ -608,7 +608,7 @@ class Apply(metaclass=abc.ABCMeta):
             Result when self.func is a list-like or dict-like, None otherwise.
         """
         if self.axis == 1 and isinstance(self.obj, ABCDataFrame):
-            soo = False if self.by_row else True
+            soo = not self.by_row
             return self.obj.T.apply(
                 self.func, 0, args=self.args, series_ops_only=soo, **self.kwargs
             ).T
