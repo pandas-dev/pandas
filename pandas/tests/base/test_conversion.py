@@ -286,7 +286,7 @@ def test_array_multiindex_raises():
             pd.core.arrays.period_array(["2000", "2001"], freq="D"),
             np.array([pd.Period("2000", freq="D"), pd.Period("2001", freq="D")]),
         ),
-        (pd.array([0, np.nan], dtype="Int64"), np.array([0, pd.NA], dtype=object)),
+        (pd.array([0, np.nan], dtype="Int64"), np.array([0, np.nan])),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),
@@ -334,10 +334,6 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
 
     with tm.assert_produces_warning(None):
         thing = box(arr)
-
-    if arr.dtype.name == "int64" and box is pd.array:
-        mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")
-        request.node.add_marker(mark)
 
     result = thing.to_numpy()
     tm.assert_numpy_array_equal(result, expected)

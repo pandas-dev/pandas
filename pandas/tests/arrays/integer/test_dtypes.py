@@ -142,7 +142,7 @@ def test_astype(all_data):
     # coerce to object
     s = pd.Series(mixed)
     result = s.astype("object")
-    expected = pd.Series(np.asarray(mixed))
+    expected = pd.Series(np.asarray(mixed, dtype=object))
     tm.assert_series_equal(result, expected)
 
 

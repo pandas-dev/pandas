@@ -451,9 +451,9 @@ NaT   4"""
             }
         )
         result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
-        expected = """      a     b
-0  0.12  1.00
-1  1.12  2.00"""
+        expected = """     a    b
+0 0.12 1.00
+1 1.12 2.00"""
         assert result == expected
 
     def test_repr_ea_columns(self, any_string_dtype):

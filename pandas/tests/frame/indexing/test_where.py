@@ -715,15 +715,12 @@ class TestDataFrameIndexingWhere:
 
         # TODO: ideally we would get Int64 instead of object
         result = df.where(mask, ser, axis=0)
-        expected = DataFrame({"A": [1, pd.NA, 3], "B": [4, pd.NA, 6]}).astype(object)
+        expected = DataFrame({"A": [1, np.nan, 3], "B": [4, np.nan, 6]})
         tm.assert_frame_equal(result, expected)
 
         ser2 = Series(arr[:2], index=["A", "B"])
-        expected = DataFrame({"A": [1, 7, 3], "B": [4, pd.NA, 6]})
-        expected["B"] = expected["B"].astype(object)
-        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.where(mask, ser2, axis=1)
+        expected = DataFrame({"A": [1, 7, 3], "B": [4, np.nan, 6]})
+        result = df.where(mask, ser2, axis=1)
         tm.assert_frame_equal(result, expected)
 
     def test_where_interval_noop(self):

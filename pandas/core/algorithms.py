@@ -1809,6 +1809,8 @@ def map_array(
         return arr.copy()
 
     # we must convert to python types
+    if isinstance(arr.dtype, BaseMaskedDtype):
+        arr = arr.to_numpy()
     values = arr.astype(object, copy=False)
     if na_action is None:
         return lib.map_infer(values, mapper, convert=convert)

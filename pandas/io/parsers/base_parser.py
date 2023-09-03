@@ -63,6 +63,7 @@ from pandas import (
 from pandas.core import algorithms
 from pandas.core.arrays import (
     ArrowExtensionArray,
+    BaseMaskedArray,
     BooleanArray,
     Categorical,
     ExtensionArray,
@@ -762,8 +763,15 @@ class ParserBase:
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
                 result = ArrowExtensionArray(pa.array(result, from_pandas=True))
+            elif isinstance(result, BaseMaskedArray):
+                if result._mask.all():
+                    result = result.to_numpy(na_value=None)
+                    result = ArrowExtensionArray(pa.array(result))
+                else:
+                    result = ArrowExtensionArray(
+                        pa.array(result._data, mask=result._mask)
+                    )
             else:
-                # ExtensionArray
                 result = ArrowExtensionArray(
                     pa.array(result.to_numpy(), from_pandas=True)
                 )

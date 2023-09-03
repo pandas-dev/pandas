@@ -70,6 +70,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core.arrays import (
+    BaseMaskedArray,
     Categorical,
     DatetimeArray,
     TimedeltaArray,
@@ -1660,6 +1661,8 @@ class ExtensionArrayFormatter(GenericArrayFormatter):
         if isinstance(values, Categorical):
             # Categorical is special for now, so that we can preserve tzinfo
             array = values._internal_get_values()
+        elif isinstance(values, BaseMaskedArray):
+            array = values.to_numpy(na_value=NA)
         else:
             array = np.asarray(values)
 

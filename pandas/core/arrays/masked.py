@@ -38,11 +38,15 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    LossySetitemError,
+)
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.cast import np_can_hold_element
 from pandas.core.dtypes.common import (
     is_bool,
     is_integer_dtype,
@@ -472,20 +476,35 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> a.to_numpy(dtype="bool", na_value=False)
         array([ True, False, False])
         """
-        if na_value is lib.no_default:
-            na_value = libmissing.NA
+        hasna = self._hasna
+
         if dtype is None:
-            if self._hasna:
-                itemsize = self.dtype.itemsize
-                if itemsize < 4:
-                    itemsize = 4
-                dtype = np.dtype(f"f{itemsize}")
-                na_value = np.nan
+            dtype_given = False
+            if hasna:
+                if self.dtype.kind == "b":
+                    dtype = object
+                else:
+                    if self.dtype.kind in "iu":
+                        dtype = np.dtype(np.float64)
+                    else:
+                        dtype = self.dtype.numpy_dtype
+                    if na_value is lib.no_default:
+                        na_value = np.nan
             else:
                 dtype = self.dtype.numpy_dtype
         else:
             dtype = np.dtype(dtype)
-        if self._hasna:
+            dtype_given = True
+        if na_value is lib.no_default:
+            na_value = libmissing.NA
+
+        if not dtype_given and hasna:
+            try:
+                np_can_hold_element(dtype, na_value)
+            except LossySetitemError:
+                dtype = object
+
+        if hasna:
             if (
                 dtype != object
                 and not is_string_dtype(dtype)
@@ -512,7 +531,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if self.ndim > 1:
             return [x.tolist() for x in self]
         dtype = None if self._hasna else self._data.dtype
-        return self.to_numpy(dtype=dtype).tolist()
+        return self.to_numpy(dtype=dtype, na_value=libmissing.NA).tolist()
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
