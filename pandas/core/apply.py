@@ -232,7 +232,7 @@ class Apply(metaclass=abc.ABCMeta):
             func = cast(AggFuncTypeDict, func)
             return self.transform_dict_like(func)
 
-        if not self.by_row:
+        if not by_row:
             result = obj.apply(func, by_row=by_row, args=args, **kwargs)
         else:
             # func is either str or callable

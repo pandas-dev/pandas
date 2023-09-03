@@ -4632,7 +4632,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                 stacklevel=find_stack_level(),
             )
 
-        by_row = False if series_ops_only else "compat"
+        by_row: Literal[False, "compat"] = False if series_ops_only else "compat"
         ser = self.copy(deep=False) if using_copy_on_write() else self
         result = SeriesApply(
             ser, func=func, by_row=by_row, args=args, kwargs=kwargs

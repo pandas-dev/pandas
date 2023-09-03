@@ -9980,7 +9980,7 @@ class DataFrame(NDFrame, OpsMixin):
                 stacklevel=find_stack_level(),
             )
 
-        by_row = False if series_ops_only else "compat"
+        by_row: Literal[False, "compat"] = False if series_ops_only else "compat"
 
         op = frame_apply(
             self, func=func, axis=axis, args=args, by_row=by_row, kwargs=kwargs
