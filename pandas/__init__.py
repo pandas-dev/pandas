@@ -110,6 +110,7 @@ from pandas.core.api import (
 
 from pandas.core.dtypes.dtypes import SparseDtype
 
+from pandas import util
 from pandas.tseries.api import infer_freq
 from pandas.tseries import offsets
 
@@ -348,6 +349,7 @@ __all__ = [
     "to_timedelta",
     "tseries",
     "unique",
+    "util",
     "value_counts",
     "wide_to_long",
 ]
