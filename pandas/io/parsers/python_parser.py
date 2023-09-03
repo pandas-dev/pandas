@@ -1176,17 +1176,17 @@ class PythonParser(ParserBase):
             )
         if self.columns and self.dtype:
             assert self._col_indices is not None
-            for i in self._col_indices:
+            for i, col in zip(self._col_indices, self.columns):
                 if not isinstance(self.dtype, dict) and not is_numeric_dtype(
                     self.dtype
                 ):
                     no_thousands_columns.add(i)
                 if (
                     isinstance(self.dtype, dict)
-                    and self.columns[i] in self.dtype
+                    and col in self.dtype
                     and (
-                        not is_numeric_dtype(self.dtype[self.columns[i]])
-                        or is_bool_dtype(self.dtype[self.columns[i]])
+                        not is_numeric_dtype(self.dtype[col])
+                        or is_bool_dtype(self.dtype[col])
                     )
                 ):
                     no_thousands_columns.add(i)
