@@ -11709,7 +11709,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
         if fill_method is lib.no_default:
-            if self.isna().values.any():
+            mask = self.isna().values
+            mask = mask[np.argmax(~mask) :]
+            if mask.any():
                 warnings.warn(
                     "The default fill_method='pad' in "
                     f"{type(self).__name__}.pct_change is deprecated and will be "

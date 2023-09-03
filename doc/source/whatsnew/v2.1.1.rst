@@ -29,6 +29,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`DataFrame.stack` with ``future_stack=True`` and columns a non-:class:`MultiIndex` consisting of tuples (:issue:`54948`)
+- Fixed bug in :meth:`Series.pct_change` and :meth:`DataFrame.pct_change` showing unnecessary ``FutureWarning`` (:issue:`54981`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_211.other:
