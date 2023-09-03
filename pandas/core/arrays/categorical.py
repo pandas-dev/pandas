@@ -2719,12 +2719,12 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self._from_backing_data(res_values)
 
     def _factorize_with_other(
-        self, other: Categorical, sort: bool = False
+        self, other: Categorical, sort: bool = False  # type: ignore[override]
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
-        rk = self._encode_with_my_categories(other)
+        other = self._encode_with_my_categories(other)
 
         lk = ensure_int64(self.codes)
-        rk = ensure_int64(rk.codes)
+        rk = ensure_int64(other.codes)
         return factorize_with_rizer(lk, rk, sort)
 
 

@@ -2378,11 +2378,13 @@ def _factorize_keys(
         lk, rk = cast("DatetimeArray", lk)._ensure_matching_resos(rk)
 
     if isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
+        assert isinstance(rk, ExtensionArray)
         llab, rlab, count = lk._factorize_with_other(rk, sort)
     else:
         lk, rk = _convert_arrays(lk, rk)
 
         if isinstance(lk, ExtensionArray):
+            assert isinstance(rk, ExtensionArray)
             llab, rlab, count = lk._factorize_with_other(rk, sort)
         else:
             llab, rlab, count = factorize_with_rizer(lk, rk, sort)

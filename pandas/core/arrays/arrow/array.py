@@ -2556,7 +2556,7 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _factorize_with_other(
-        self, other: ArrowExtensionArray, sort: bool = False
+        self, other: ArrowExtensionArray, sort: bool = False  # type: ignore[override]
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         if not isinstance(self.dtype, StringDtype) and (
             pa.types.is_floating(self.dtype.pyarrow_dtype)
@@ -2575,21 +2575,21 @@ class ArrowExtensionArray(
 
             return factorize_with_rizer(lk, rk, sort, self.isna(), other.isna())
 
-        len_lk = len(self)
-        lk = self._pa_array  # type: ignore[attr-defined]
-        rk = other._pa_array  # type: ignore[union-attr]
+        len_left = len(self)
+        left = self._pa_array
+        right = other._pa_array
         dc = (
-            pa.chunked_array(lk.chunks + rk.chunks)  # type: ignore[union-attr]
+            pa.chunked_array(left.chunks + right.chunks)
             .combine_chunks()
             .dictionary_encode()
         )
         length = len(dc.dictionary)
 
         llab, rlab, count = (
-            pc.fill_null(dc.indices[slice(len_lk)], length)
+            pc.fill_null(dc.indices[slice(len_left)], length)
             .to_numpy()
             .astype(np.intp, copy=False),
-            pc.fill_null(dc.indices[slice(len_lk, None)], length)
+            pc.fill_null(dc.indices[slice(len_left, None)], length)
             .to_numpy()
             .astype(np.intp, copy=False),
             len(dc.dictionary),
