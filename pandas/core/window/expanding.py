@@ -962,3 +962,8 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
             window_indexer=ExpandingIndexer,
         )
         return window_indexer
+
+    def aggregate(self, func, *args, **kwargs):
+        return super().aggregate(func, *args, **kwargs)
+
+    agg = aggregate

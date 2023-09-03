@@ -919,6 +919,11 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
         )
         return window_indexer
 
+    def aggregate(self, func, *args, **kwargs):
+        return super().aggregate(func, *args, **kwargs)
+
+    agg = aggregate
+
 
 class OnlineExponentialMovingWindow(ExponentialMovingWindow):
     def __init__(

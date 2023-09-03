@@ -2919,3 +2919,8 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
                     f"Each group within {on} must be monotonic. "
                     f"Sort the values in {on} first."
                 )
+
+    def aggregate(self, func, *args, **kwargs):
+        return super().aggregate(func, *args, **kwargs)
+
+    agg = aggregate
