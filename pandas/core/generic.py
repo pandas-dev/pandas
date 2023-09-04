@@ -7938,6 +7938,51 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="replace")
 
+    @overload
+    def interpolate(
+        self,
+        method: InterpolateOptions = ...,
+        *,
+        axis: Axis = ...,
+        limit: int | None = ...,
+        inplace: Literal[False] = ...,
+        limit_direction: Literal["forward", "backward", "both"] | None = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
+        downcast: Literal["infer"] | None | lib.NoDefault = ...,
+        **kwargs,
+    ) -> Self:
+        ...
+
+    @overload
+    def interpolate(
+        self,
+        method: InterpolateOptions = ...,
+        *,
+        axis: Axis = ...,
+        limit: int | None = ...,
+        inplace: Literal[True],
+        limit_direction: Literal["forward", "backward", "both"] | None = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
+        downcast: Literal["infer"] | None | lib.NoDefault = ...,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def interpolate(
+        self,
+        method: InterpolateOptions = ...,
+        *,
+        axis: Axis = ...,
+        limit: int | None = ...,
+        inplace: bool_t = ...,
+        limit_direction: Literal["forward", "backward", "both"] | None = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
+        downcast: Literal["infer"] | None | lib.NoDefault = ...,
+        **kwargs,
+    ) -> Self | None:
+        ...
+
     @final
     def interpolate(
         self,
