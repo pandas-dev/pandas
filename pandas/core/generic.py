@@ -8630,7 +8630,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ) -> None:
         ...
-    
+
     @overload
     def clip(
         self,
@@ -8642,7 +8642,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ) -> Self | None:
         ...
-    
+
     @final
     def clip(
         self,
