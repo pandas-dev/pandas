@@ -2962,6 +2962,13 @@ class TestSQLiteAlchemy(_TestSQLAlchemy):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_roundtripping_datetimes(self):
+        # GH#54877
+        df = DataFrame({"t": [datetime(2020, 12, 31, 12)]}, dtype="datetime64[ns]")
+        df.to_sql("test", self.conn, if_exists="replace", index=False)
+        result = pd.read_sql("select * from test", self.conn).iloc[0, 0]
+        assert result == "2020-12-31 12:00:00.000000"
+
 
 @pytest.mark.db
 class TestMySQLAlchemy(_TestSQLAlchemy):

@@ -2091,13 +2091,11 @@ class SQLiteTable(SQLTable):
 
         adapt_date_iso = lambda val: val.isoformat()
         adapt_datetime_iso = lambda val: val.isoformat()
-        adapt_datetime_epoch = lambda val: int(val.timestamp())
 
         sqlite3.register_adapter(time, _adapt_time)
 
         sqlite3.register_adapter(date, adapt_date_iso)
         sqlite3.register_adapter(datetime, adapt_datetime_iso)
-        sqlite3.register_adapter(datetime, adapt_datetime_epoch)
 
         convert_date = lambda val: date.fromisoformat(val.decode())
         convert_datetime = lambda val: datetime.fromisoformat(val.decode())
