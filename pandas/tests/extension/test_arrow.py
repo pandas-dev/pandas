@@ -2993,7 +2993,7 @@ def test_groupby_count_return_arrow_dtype(data_missing):
 
 
 def test_fixed_size_list():
-    # GH#54999
+    # GH#55000
     ser = pd.Series(
         [[1, 2], [3, 4]], dtype=ArrowDtype(pa.list_(pa.int64(), list_size=2))
     )
