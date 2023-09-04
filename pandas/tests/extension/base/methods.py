@@ -698,3 +698,10 @@ class BaseMethodsTests:
     def test_equals_same_data_different_object(self, data):
         # https://github.com/pandas-dev/pandas/issues/34660
         assert pd.Series(data).equals(pd.Series(data))
+
+    def test_round(self, data):
+        if not data.dtype._is_numeric:
+            pytest.skip("Round is only valid for numeric dtypes")
+        result = pd.Series(data).round()
+        expected = pd.Series([np.round(element) if pd.notna(element) else element for element in data], dtype=data.dtype)
+        tm.assert_series_equal(result, expected)

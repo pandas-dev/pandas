@@ -270,6 +270,12 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
         # NumpyExtensionArray[object] can hold anything, so skip
         super().test_insert_invalid(data, invalid_scalar)
 
+    @pytest.mark.xfail(
+        reason="NumpyExtensionArray.round is not implemented."
+    )
+    def test_round(self, data):
+        super().test_round(data)
+
 
 class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     divmod_exc = None

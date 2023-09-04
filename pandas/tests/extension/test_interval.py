@@ -96,7 +96,7 @@ class TestIntervalArray(base.ExtensionTests):
         super().test_invert(data)
 
     @pytest.mark.xfail(
-        reason="IntervalArray.round is not implemented."
+        reason="Round is not valid for IntervalArray."
     )
     def test_round(self, data):
         super().test_round(data)

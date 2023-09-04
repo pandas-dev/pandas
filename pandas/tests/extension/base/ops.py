@@ -263,10 +263,3 @@ class BaseUnaryOpsTests(BaseOpsUtil):
         else:
             alt = ufunc(data)
             tm.assert_extension_array_equal(result, alt)
-
-
-class BaseRoundingTests:
-    def test_round(self, data):
-        result = pd.Series(data).round()
-        expected = pd.Series(np.round(data), dtype=data.dtype)
-        tm.assert_series_equal(result, expected)
