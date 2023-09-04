@@ -111,7 +111,6 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.api.typing import DataFrameGroupBy
 
 _shared_docs_kwargs: dict[str, str] = {}
 
@@ -2812,7 +2811,7 @@ def maybe_warn_args_and_kwargs(cls, kernel: str, args, kwargs) -> None:
 
 
 def _apply(
-    grouped: DataFrameGroupBy, how: Callable, *args, include_groups: bool, **kwargs
+    grouped: GroupBy, how: Callable, *args, include_groups: bool, **kwargs
 ) -> DataFrame:
     # GH#7155 - rewrite warning to appear as if it came from `.resample`
     target_message = "DataFrameGroupBy.apply operated on the grouping columns"
