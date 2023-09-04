@@ -18,6 +18,7 @@ Fixed regressions
 - Fixed regression in :func:`read_csv` when ``delim_whitespace`` is True (:issue:`54918`, :issue:`54931`)
 - Fixed regression in :meth:`.GroupBy.get_group` raising for ``axis=1`` (:issue:`54858`)
 - Fixed regression in :meth:`DataFrame.__setitem__` raising ``AssertionError`` when setting a :class:`Series` with a partial :class:`MultiIndex` (:issue:`54875`)
+- Fixed regression in :meth:`DataFrame.to_sql` not roundtripping datetime columns correctly for sqlite (:issue:`54877`)
 - Fixed regression in :meth:`MultiIndex.append` raising when appending overlapping :class:`IntervalIndex` levels (:issue:`54934`)
 - Fixed regression in :meth:`Series.drop_duplicates` for PyArrow strings (:issue:`54904`)
 - Fixed regression in :meth:`Series.value_counts` raising for numeric data if ``bins`` was specified (:issue:`54857`)
