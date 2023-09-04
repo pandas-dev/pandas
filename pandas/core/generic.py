@@ -7952,7 +7952,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ) -> Self:
         ...
-        
+
     @overload
     def interpolate(
         self,
@@ -7967,7 +7967,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         **kwargs,
     ) -> None:
         ...
-    
+
     @overload
     def interpolate(
         self,
@@ -7981,8 +7981,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         downcast: Literal["infer"] | None | lib.NoDefault = ...,
         **kwargs,
     ) -> Self | None:
-        ...    
-    
+        ...
+
     @final
     def interpolate(
         self,
