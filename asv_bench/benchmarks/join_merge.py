@@ -360,14 +360,14 @@ class MergeCategoricals:
     def setup(self):
         self.left_object = DataFrame(
             {
-                "X": np.random.choice(range(0, 10), size=(10000,)),
+                "X": np.random.choice(range(10), size=(10000,)),
                 "Y": np.random.choice(["one", "two", "three"], size=(10000,)),
             }
         )
 
         self.right_object = DataFrame(
             {
-                "X": np.random.choice(range(0, 10), size=(10000,)),
+                "X": np.random.choice(range(10), size=(10000,)),
                 "Z": np.random.choice(["jjj", "kkk", "sss"], size=(10000,)),
             }
         )

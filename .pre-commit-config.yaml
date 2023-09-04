@@ -24,7 +24,7 @@ repos:
     hooks:
       - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.285
+    rev: v0.0.287
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -34,7 +34,7 @@ repos:
         alias: ruff-selected-autofixes
         args: [--select, "ANN001,ANN204", --fix-only, --exit-non-zero-on-fix]
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.7'
+    rev: 'v2.9.1'
     hooks:
       - id: vulture
         entry: python scripts/run_vulture.py
@@ -84,7 +84,7 @@ repos:
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
 -   repo: https://github.com/pylint-dev/pylint
-    rev: v3.0.0a6
+    rev: v3.0.0a7
     hooks:
     -   id: pylint
         stages: [manual]
@@ -124,7 +124,7 @@ repos:
         types: [text]  # overwrite types: [rst]
         types_or: [python, rst]
 -   repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.6.7
+    rev: v0.6.8
     hooks:
     - id: sphinx-lint
 -   repo: local

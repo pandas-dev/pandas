@@ -377,5 +377,5 @@ def all_indexes_same(indexes) -> bool:
 
 
 def default_index(n: int) -> RangeIndex:
-    rng = range(0, n)
+    rng = range(n)
     return RangeIndex._simple_new(rng, name=None)

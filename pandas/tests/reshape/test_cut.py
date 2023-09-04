@@ -700,7 +700,7 @@ def test_cut_with_duplicated_index_lowest_included():
 def test_cut_with_nonexact_categorical_indices():
     # GH 42424
 
-    ser = Series(range(0, 100))
+    ser = Series(range(100))
     ser1 = cut(ser, 10).value_counts().head(5)
     ser2 = cut(ser, 10).value_counts().tail(5)
     result = DataFrame({"1": ser1, "2": ser2})

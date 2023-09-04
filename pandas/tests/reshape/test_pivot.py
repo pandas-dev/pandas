@@ -33,7 +33,7 @@ def dropna(request):
     return request.param
 
 
-@pytest.fixture(params=[([0] * 4, [1] * 4), (range(0, 3), range(1, 4))])
+@pytest.fixture(params=[([0] * 4, [1] * 4), (range(3), range(1, 4))])
 def interval_values(request, closed):
     left, right = request.param
     return Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
@@ -215,7 +215,7 @@ class TestPivotTable:
             {
                 "A": ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
                 "B": [1, 2, 3, 1, 2, 3, 1, 2, 3],
-                "C": range(0, 9),
+                "C": range(9),
             }
         )
 

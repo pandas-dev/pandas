@@ -1928,7 +1928,7 @@ def test_pivot_table_values_key_error():
     df = DataFrame(
         {
             "eventDate": date_range(datetime.today(), periods=20, freq="M").tolist(),
-            "thename": range(0, 20),
+            "thename": range(20),
         }
     )
 

@@ -1033,7 +1033,7 @@ class TestPandasJSONTests:
     def test_encode_big_set(self):
         s = set()
 
-        for x in range(0, 100000):
+        for x in range(100000):
             s.add(x)
 
         # Make sure no Exception is raised.

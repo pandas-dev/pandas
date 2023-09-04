@@ -159,9 +159,9 @@ def test_reindex_inference():
 
 def test_reindex_downcasting():
     # GH4618 shifted series downcasting
-    s = Series(False, index=range(0, 5))
+    s = Series(False, index=range(5))
     result = s.shift(1).bfill()
-    expected = Series(False, index=range(0, 5))
+    expected = Series(False, index=range(5))
     tm.assert_series_equal(result, expected)
 
 
