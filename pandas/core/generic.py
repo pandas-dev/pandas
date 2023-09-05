@@ -2847,7 +2847,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         index : bool, default True
             Write DataFrame index as a column. Uses `index_label` as the column
-            name in the table.
+            name in the table. Creates a table index for this column.
         index_label : str or sequence, default None
             Column label for index column(s). If None is given (default) and
             `index` is True, then the index names are used.
