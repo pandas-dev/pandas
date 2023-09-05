@@ -138,6 +138,8 @@ def calculate_variable_window_bounds(
                         break
             # end bound is previous end
             # or current index
+            elif index[end[i - 1]] == end_bound and not right_closed:
+                end[i] = end[i - 1] + 1
             elif (index[end[i - 1]] - end_bound) * index_growth_sign <= 0:
                 end[i] = i + 1
             else:

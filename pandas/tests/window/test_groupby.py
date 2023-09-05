@@ -466,20 +466,23 @@ class TestRolling:
         # GH 35549
         df = DataFrame(
             {
-                "column1": range(6),
-                "column2": range(6),
-                "group": 3 * ["A", "B"],
-                "date": [Timestamp("2019-01-01")] * 6,
+                "column1": range(8),
+                "column2": range(8),
+                "group": ["A"] * 4 + ["B"] * 4,
+                "date": [
+                    Timestamp(date)
+                    for date in ["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02"]
+                ]
+                * 2,
             }
         )
         result = (
             df.groupby("group").rolling("1D", on="date", closed="left")["column1"].sum()
         )
         expected = Series(
-            [np.nan, 0.0, 2.0, np.nan, 1.0, 4.0],
-            index=MultiIndex.from_tuples(
-                [("A", Timestamp("2019-01-01"))] * 3
-                + [("B", Timestamp("2019-01-01"))] * 3,
+            [np.nan, np.nan, 1.0, 1.0, np.nan, np.nan, 9.0, 9.0],
+            index=MultiIndex.from_frame(
+                df[["group", "date"]],
                 names=["group", "date"],
             ),
             name="column1",
@@ -490,10 +493,14 @@ class TestRolling:
         # GH 35549
         df = DataFrame(
             {
-                "column1": range(6),
-                "column2": range(6),
-                "group": 3 * ["A", "B"],
-                "date": [Timestamp("2019-01-01")] * 6,
+                "column1": range(8),
+                "column2": range(8),
+                "group": ["A"] * 4 + ["B"] * 4,
+                "date": [
+                    Timestamp(date)
+                    for date in ["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02"]
+                ]
+                * 2,
             }
         )
 
@@ -503,10 +510,9 @@ class TestRolling:
             .sum()
         )
         expected = Series(
-            [np.nan, 0.0, 2.0, np.nan, 1.0, 4.0],
-            index=MultiIndex.from_tuples(
-                [("A", Timestamp("2019-01-01"))] * 3
-                + [("B", Timestamp("2019-01-01"))] * 3,
+            [np.nan, np.nan, 1.0, 1.0, np.nan, np.nan, 9.0, 9.0],
+            index=MultiIndex.from_frame(
+                df[["group", "date"]],
                 names=["group", "date"],
             ),
             name="column1",
