@@ -89,12 +89,6 @@ class TestIntervalArray(base.ExtensionTests):
         with pytest.raises(NotImplementedError, match=expected_msg):
             super().test_EA_types(engine, data)
 
-    @pytest.mark.xfail(
-        reason="Looks like the test (incorrectly) implicitly assumes int/bool dtype"
-    )
-    def test_invert(self, data):
-        super().test_invert(data)
-
     @pytest.mark.xfail(reason="Round is not valid for IntervalArray.")
     def test_round(self, data):
         super().test_round(data)
