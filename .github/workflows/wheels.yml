@@ -150,7 +150,9 @@ jobs:
         with:
           environment-name: wheel-env
           create-args: >-
-            python=${{ matrix.python[1] }}
+            # Use a fixed Python, since we might have an unreleased Python not
+            # yet present on conda-forge
+            python=3.10
             anaconda-client
             wheel
           cache-downloads: true
@@ -170,7 +172,8 @@ jobs:
           python -m pip install --find-links=pandas\wheelhouse --no-index pandas;
           python -c `'import pandas as pd; pd.test(extra_args=[\"`\"--no-strict-data-files`\"\", \"`\"-m not clipboard and not single_cpu and not slow and not network and not db`\"\"])`';
           "@
-          docker pull python:${{ matrix.python[1] }}-windowsservercore
+          # add rc to the end of the image name if the Python version is unreleased
+          docker pull python:${{ matrix.python[1] }}-${{ matrix.python[1]=="3.12" && "rc-" || "" }}windowsservercore
           docker run --env PANDAS_CI='1' -v ${PWD}:C:\pandas python:${{ matrix.python[1] }}-windowsservercore powershell -Command $TST_CMD
 
       - uses: actions/upload-artifact@v3
