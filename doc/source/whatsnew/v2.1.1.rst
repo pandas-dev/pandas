@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed regression in :func:`concat` when :class:`DataFrame` 's have two different extension dtypes (:issue:`54848`)
 - Fixed regression in :func:`merge` when merging over a PyArrow string index (:issue:`54894`)
 - Fixed regression in :func:`read_csv` when ``usecols`` is given and ``dtypes`` is a dict for ``engine="python"`` (:issue:`54868`)
 - Fixed regression in :func:`read_csv` when ``delim_whitespace`` is True (:issue:`54918`, :issue:`54931`)
