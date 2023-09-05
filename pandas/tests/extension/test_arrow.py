@@ -3037,6 +3037,15 @@ def test_groupby_count_return_arrow_dtype(data_missing):
     tm.assert_frame_equal(result, expected)
 
 
+def test_fixed_size_list():
+    # GH#55000
+    ser = pd.Series(
+        [[1, 2], [3, 4]], dtype=ArrowDtype(pa.list_(pa.int64(), list_size=2))
+    )
+    result = ser.dtype.type
+    assert result == list
+
+
 def test_arrowextensiondtype_dataframe_repr():
     # GH 54062
     df = pd.DataFrame(

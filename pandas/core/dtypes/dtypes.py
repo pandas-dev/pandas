@@ -2109,6 +2109,8 @@ class ArrowDtype(StorageExtensionDtype):
             return CategoricalDtypeType
         elif pa.types.is_list(pa_type) or pa.types.is_large_list(pa_type):
             return list
+        elif pa.types.is_fixed_size_list(pa_type):
+            return list
         elif pa.types.is_map(pa_type):
             return list
         elif pa.types.is_struct(pa_type):
