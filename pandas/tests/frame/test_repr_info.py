@@ -455,3 +455,14 @@ NaT   4"""
 0  0.12  1.00
 1  1.12  2.00"""
         assert result == expected
+
+    def test_repr_ea_columns(self, any_string_dtype):
+        # GH#54797
+        pytest.importorskip("pyarrow")
+        df = DataFrame({"long_column_name": [1, 2, 3], "col2": [4, 5, 6]})
+        df.columns = df.columns.astype(any_string_dtype)
+        expected = """   long_column_name  col2
+0                 1     4
+1                 2     5
+2                 3     6"""
+        assert repr(df) == expected

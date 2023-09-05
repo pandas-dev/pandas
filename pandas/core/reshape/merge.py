@@ -53,6 +53,7 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool,
     is_bool_dtype,
+    is_extension_array_dtype,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -90,6 +91,7 @@ from pandas.core.arrays import (
     ExtensionArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
@@ -103,6 +105,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
+    from pandas.core.indexes.frozen import FrozenList
 
 _factorizers = {
     np.int64: libhashtable.Int64Factorizer,
@@ -1384,6 +1387,21 @@ class _MergeOperation:
                 if lk.dtype.kind == rk.dtype.kind:
                     continue
 
+                if is_extension_array_dtype(lk.dtype) and not is_extension_array_dtype(
+                    rk.dtype
+                ):
+                    ct = find_common_type([lk.dtype, rk.dtype])
+                    if is_extension_array_dtype(ct):
+                        rk = ct.construct_array_type()._from_sequence(rk)  # type: ignore[union-attr]  # noqa: E501
+                    else:
+                        rk = rk.astype(ct)  # type: ignore[arg-type]
+                elif is_extension_array_dtype(rk.dtype):
+                    ct = find_common_type([lk.dtype, rk.dtype])
+                    if is_extension_array_dtype(ct):
+                        lk = ct.construct_array_type()._from_sequence(lk)  # type: ignore[union-attr]  # noqa: E501
+                    else:
+                        lk = lk.astype(ct)  # type: ignore[arg-type]
+
                 # check whether ints and floats
                 if is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
                     # GH 47391 numpy > 1.24 will raise a RuntimeError for nan -> int
@@ -1678,6 +1696,9 @@ def get_join_indexers(
         elif not sort and how in ["left", "outer"]:
             return _get_no_sort_one_missing_indexer(left_n, False)
 
+    if not sort and how == "outer":
+        sort = True
+
     # get left & right join labels and num. of levels at each location
     mapped = (
         _factorize_keys(left_keys[n], right_keys[n], sort=sort, how=how)
@@ -1696,7 +1717,7 @@ def get_join_indexers(
     lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = {}
-    if how in ("left", "right"):
+    if how in ("inner", "left", "right"):
         kwargs["sort"] = sort
     join_func = {
         "inner": libjoin.inner_join,
@@ -1718,7 +1739,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: npt.NDArray[np.intp],
     rindexer: npt.NDArray[np.intp],
-) -> tuple[list[Index], npt.NDArray[np.intp], list[Hashable]]:
+) -> tuple[FrozenList, FrozenList, FrozenList]:
     """
     *this is an internal non-public method*
 
@@ -1794,7 +1815,7 @@ def restore_dropped_levels_multijoin(
 
         # error: Cannot determine type of "__add__"
         join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
-        join_codes = join_codes + [restore_codes]
+        join_codes = join_codes + [restore_codes]  # type: ignore[has-type]
         join_names = join_names + [dropped_level_name]
 
     return join_levels, join_codes, join_names
@@ -2399,21 +2420,9 @@ def _factorize_keys(
         rk = ensure_int64(rk.codes)
 
     elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
-        if not isinstance(lk, BaseMaskedArray) and not (
-            # exclude arrow dtypes that would get cast to object
-            isinstance(lk.dtype, ArrowDtype)
-            and (
-                is_numeric_dtype(lk.dtype.numpy_dtype)
-                or is_string_dtype(lk.dtype)
-                and not sort
-            )
+        if (isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype)) or (
+            isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
         ):
-            lk, _ = lk._values_for_factorize()
-
-            # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
-            # "_values_for_factorize"
-            rk, _ = rk._values_for_factorize()  # type: ignore[union-attr]
-        elif isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype):
             import pyarrow as pa
             import pyarrow.compute as pc
 
@@ -2428,13 +2437,32 @@ def _factorize_keys(
             length = len(dc.dictionary)
 
             llab, rlab, count = (
-                pc.fill_null(dc.indices[slice(len_lk)], length).to_numpy(),
-                pc.fill_null(dc.indices[slice(len_lk, None)], length).to_numpy(),
+                pc.fill_null(dc.indices[slice(len_lk)], length)
+                .to_numpy()
+                .astype(np.intp, copy=False),
+                pc.fill_null(dc.indices[slice(len_lk, None)], length)
+                .to_numpy()
+                .astype(np.intp, copy=False),
                 len(dc.dictionary),
             )
             if how == "right":
                 return rlab, llab, count
             return llab, rlab, count
+
+        if not isinstance(lk, BaseMaskedArray) and not (
+            # exclude arrow dtypes that would get cast to object
+            isinstance(lk.dtype, ArrowDtype)
+            and (
+                is_numeric_dtype(lk.dtype.numpy_dtype)
+                or is_string_dtype(lk.dtype)
+                and not sort
+            )
+        ):
+            lk, _ = lk._values_for_factorize()
+
+            # error: Item "ndarray" of "Union[Any, ndarray]" has no attribute
+            # "_values_for_factorize"
+            rk, _ = rk._values_for_factorize()  # type: ignore[union-attr]
 
     if needs_i8_conversion(lk.dtype) and lk.dtype == rk.dtype:
         # GH#23917 TODO: Needs tests for non-matching dtypes

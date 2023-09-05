@@ -1,5 +1,6 @@
 """ test parquet compat """
 import datetime
+from decimal import Decimal
 from io import BytesIO
 import os
 import pathlib
@@ -16,6 +17,7 @@ from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
     pa_version_under7p0,
     pa_version_under8p0,
+    pa_version_under11p0,
     pa_version_under13p0,
 )
 
@@ -359,6 +361,20 @@ def test_cross_engine_fp_pa(df_cross_compat, pa, fp):
         tm.assert_frame_equal(result, df[["a", "d"]])
 
 
+def test_parquet_pos_args_deprecation(engine):
+    # GH-54229
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_parquet except for the "
+        r"argument 'path' will be keyword-only."
+    )
+    with tm.ensure_clean() as path:
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            df.to_parquet(path, engine)
+
+
 class Base:
     def check_error_on_write(self, df, engine, exc, err_msg):
         # check that we are raising the exception on writing
@@ -404,12 +420,6 @@ class TestBasic(Base):
 
     @pytest.mark.parametrize("compression", [None, "gzip", "snappy", "brotli"])
     def test_compression(self, engine, compression):
-        if compression == "snappy":
-            pytest.importorskip("snappy")
-
-        elif compression == "brotli":
-            pytest.importorskip("brotli")
-
         df = pd.DataFrame({"A": [1, 2, 3]})
         check_round_trip(df, engine, write_kwargs={"compression": compression})
 
@@ -971,7 +981,7 @@ class TestParquetPyArrow(Base):
             ver = "2.6"
         else:
             ver = "2.0"
-        df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1n", periods=10)})
+        df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1ns", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
@@ -1002,9 +1012,9 @@ class TestParquetPyArrow(Base):
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
         pytest.importorskip("pyarrow")
-        df = pd.DataFrame({"a": list(range(0, 3))})
+        df = pd.DataFrame({"a": list(range(3))})
         with tm.ensure_clean() as path:
-            df.to_parquet(path, pa)
+            df.to_parquet(path, engine=pa)
             result = read_parquet(
                 path, pa, filters=[("a", "==", 0)], use_legacy_dataset=False
             )
@@ -1017,7 +1027,7 @@ class TestParquetPyArrow(Base):
         )
 
         with tm.ensure_clean() as path:
-            df.to_parquet(path, pa)
+            df.to_parquet(path, engine=pa)
             result = read_parquet(path, pa)
         if using_array_manager:
             assert isinstance(result._mgr, pd.core.internals.ArrayManager)
@@ -1105,8 +1115,6 @@ class TestParquetPyArrow(Base):
 
     def test_string_inference(self, tmp_path, pa):
         # GH#54431
-        import pyarrow as pa
-
         path = tmp_path / "test_string_inference.p"
         df = pd.DataFrame(data={"a": ["x", "y"]}, index=["a", "b"])
         df.to_parquet(path, engine="pyarrow")
@@ -1114,8 +1122,39 @@ class TestParquetPyArrow(Base):
             result = read_parquet(path, engine="pyarrow")
         expected = pd.DataFrame(
             data={"a": ["x", "y"]},
-            dtype=pd.ArrowDtype(pa.string()),
-            index=pd.Index(["a", "b"], dtype=pd.ArrowDtype(pa.string())),
+            dtype="string[pyarrow_numpy]",
+            index=pd.Index(["a", "b"], dtype="string[pyarrow_numpy]"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(pa_version_under11p0, reason="not supported before 11.0")
+    def test_roundtrip_decimal(self, tmp_path, pa):
+        # GH#54768
+        import pyarrow as pa
+
+        path = tmp_path / "decimal.p"
+        df = pd.DataFrame({"a": [Decimal("123.00")]}, dtype="string[pyarrow]")
+        df.to_parquet(path, schema=pa.schema([("a", pa.decimal128(5))]))
+        result = read_parquet(path)
+        expected = pd.DataFrame({"a": ["123"]}, dtype="string[python]")
+        tm.assert_frame_equal(result, expected)
+
+    def test_infer_string_large_string_type(self, tmp_path, pa):
+        # GH#54798
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        path = tmp_path / "large_string.p"
+
+        table = pa.table({"a": pa.array([None, "b", "c"], pa.large_string())})
+        pq.write_table(table, path)
+
+        with pd.option_context("future.infer_string", True):
+            result = read_parquet(path)
+        expected = pd.DataFrame(
+            data={"a": [None, "b", "c"]},
+            dtype="string[pyarrow_numpy]",
+            columns=pd.Index(["a"], dtype="string[pyarrow_numpy]"),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1180,10 +1219,10 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp)
 
     def test_filter_row_groups(self, fp):
-        d = {"a": list(range(0, 3))}
+        d = {"a": list(range(3))}
         df = pd.DataFrame(d)
         with tm.ensure_clean() as path:
-            df.to_parquet(path, fp, compression=None, row_group_offsets=1)
+            df.to_parquet(path, engine=fp, compression=None, row_group_offsets=1)
             result = read_parquet(path, fp, filters=[("a", "==", 0)])
         assert len(result) == 1
 
