@@ -842,7 +842,7 @@ class TestGroupBy:
         result = period_series.groupby(period_series.index.month).sum()
 
         expected = Series(
-            range(0, periods), index=Index(range(1, periods + 1), name=index.name)
+            range(periods), index=Index(range(1, periods + 1), name=index.name)
         )
         tm.assert_series_equal(result, expected)
 

@@ -883,7 +883,9 @@ def value_counts_internal(
     if bins is not None:
         from pandas.core.reshape.tile import cut
 
-        values = Series(values, copy=False)
+        if isinstance(values, Series):
+            values = values._values
+
         try:
             ii = cut(values, bins, include_lowest=True)
         except TypeError as err:
@@ -1005,7 +1007,7 @@ def duplicated(
     duplicated : ndarray[bool]
     """
     if hasattr(values, "dtype"):
-        if isinstance(values.dtype, ArrowDtype):
+        if isinstance(values.dtype, ArrowDtype) and values.dtype.kind in "ifub":
             values = values._to_masked()  # type: ignore[union-attr]
 
         if isinstance(values.dtype, BaseMaskedDtype):
