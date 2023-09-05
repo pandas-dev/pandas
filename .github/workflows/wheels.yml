@@ -174,7 +174,7 @@ jobs:
           "@
           # add rc to the end of the image name if the Python version is unreleased
           docker pull python:${{ matrix.python[1] }}-${{ matrix.python[1] == '3.12' && 'rc' || '' }}
-          docker run --env PANDAS_CI='1' -v ${PWD}:C:\pandas python:${{ matrix.python[1] }}-windowsservercore powershell -Command $TST_CMD
+          docker run --env PANDAS_CI='1' -v ${PWD}:C:\pandas python:${{ matrix.python[1] }}-${{ matrix.python[1] == '3.12' && 'rc' || '' }} powershell -Command $TST_CMD
 
       - uses: actions/upload-artifact@v3
         with:
