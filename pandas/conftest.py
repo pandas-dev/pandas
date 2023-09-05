@@ -202,7 +202,10 @@ hypothesis.settings.register_profile(
     # 2022-02-09: Changed deadline from 500 -> None. Deadline leads to
     # non-actionable, flaky CI failures (# GH 24641, 44969, 45118, 44969)
     deadline=None,
-    suppress_health_check=(hypothesis.HealthCheck.too_slow,),
+    suppress_health_check=(
+        hypothesis.HealthCheck.too_slow,
+        hypothesis.HealthCheck.differing_executors,
+    ),
 )
 hypothesis.settings.load_profile("ci")
 
