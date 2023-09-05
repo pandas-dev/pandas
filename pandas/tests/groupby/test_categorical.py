@@ -18,7 +18,7 @@ from pandas.api.typing import SeriesGroupBy
 from pandas.tests.groupby import get_groupby_method_args
 
 
-def cartesian_product_for_groupers(result, args, names, fill_value=np.NaN):
+def cartesian_product_for_groupers(result, args, names, fill_value=np.nan):
     """Reindex to a cartesian production for the groupers,
     preserving the nature (Categorical) of each grouper
     """
@@ -42,28 +42,28 @@ _results_for_groupbys_with_missing_categories = {
     # These expected values can be used across several tests (i.e. they are
     # the same for SeriesGroupBy and DataFrameGroupBy) but they should only be
     # hardcoded in one place.
-    "all": np.NaN,
-    "any": np.NaN,
+    "all": np.nan,
+    "any": np.nan,
     "count": 0,
-    "corrwith": np.NaN,
-    "first": np.NaN,
-    "idxmax": np.NaN,
-    "idxmin": np.NaN,
-    "last": np.NaN,
-    "max": np.NaN,
-    "mean": np.NaN,
-    "median": np.NaN,
-    "min": np.NaN,
-    "nth": np.NaN,
+    "corrwith": np.nan,
+    "first": np.nan,
+    "idxmax": np.nan,
+    "idxmin": np.nan,
+    "last": np.nan,
+    "max": np.nan,
+    "mean": np.nan,
+    "median": np.nan,
+    "min": np.nan,
+    "nth": np.nan,
     "nunique": 0,
-    "prod": np.NaN,
-    "quantile": np.NaN,
-    "sem": np.NaN,
+    "prod": np.nan,
+    "quantile": np.nan,
+    "sem": np.nan,
     "size": 0,
-    "skew": np.NaN,
-    "std": np.NaN,
+    "skew": np.nan,
+    "std": np.nan,
     "sum": 0,
-    "var": np.NaN,
+    "var": np.nan,
 }
 
 
@@ -268,7 +268,10 @@ def test_level_get_group(observed):
             names=["Index1", "Index2"],
         ),
     )
-    result = g.get_group("a")
+    msg = "you will need to pass a length-1 tuple"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        # GH#25971 - warn when not passing a length-1 tuple
+        result = g.get_group("a")
 
     tm.assert_frame_equal(result, expected)
 
@@ -1147,7 +1150,7 @@ def test_groupby_multiindex_categorical_datetime():
         {
             "key1": Categorical(list("abcbabcba")),
             "key2": Categorical(
-                list(pd.date_range("2018-06-01 00", freq="1T", periods=3)) * 3
+                list(pd.date_range("2018-06-01 00", freq="1min", periods=3)) * 3
             ),
             "values": np.arange(9),
         }
@@ -1157,7 +1160,7 @@ def test_groupby_multiindex_categorical_datetime():
     idx = MultiIndex.from_product(
         [
             Categorical(["a", "b", "c"]),
-            Categorical(pd.date_range("2018-06-01 00", freq="1T", periods=3)),
+            Categorical(pd.date_range("2018-06-01 00", freq="1min", periods=3)),
         ],
         names=["key1", "key2"],
     )
@@ -1750,8 +1753,8 @@ def test_series_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     cat2 = Categorical([0, 1])
     idx = MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
-        "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
-        "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+        "first": Series([0, np.nan, np.nan, 1], idx, name="c"),
+        "last": Series([1, np.nan, np.nan, 0], idx, name="c"),
     }
 
     expected = expected_dict[func]
@@ -1775,8 +1778,8 @@ def test_df_groupby_first_on_categorical_col_grouped_on_2_categoricals(
     cat2 = Categorical([0, 1])
     idx = MultiIndex.from_product([cat2, cat2], names=["a", "b"])
     expected_dict = {
-        "first": Series([0, np.NaN, np.NaN, 1], idx, name="c"),
-        "last": Series([1, np.NaN, np.NaN, 0], idx, name="c"),
+        "first": Series([0, np.nan, np.nan, 1], idx, name="c"),
+        "last": Series([1, np.nan, np.nan, 0], idx, name="c"),
     }
 
     expected = expected_dict[func].to_frame()

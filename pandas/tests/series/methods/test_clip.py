@@ -48,7 +48,7 @@ class TestSeriesClip:
         if nulls_fixture is pd.NaT:
             # constructor will raise, see
             #  test_constructor_mismatched_null_nullable_dtype
-            return
+            pytest.skip("See test_constructor_mismatched_null_nullable_dtype")
 
         ser = Series([nulls_fixture, 1.0, 3.0], dtype=any_numeric_ea_dtype)
         s_clipped_upper = ser.clip(upper=2.0)
@@ -69,8 +69,15 @@ class TestSeriesClip:
         tm.assert_series_equal(s.clip(upper=np.nan, lower=np.nan), Series([1, 2, 3]))
 
         # GH#19992
-        tm.assert_series_equal(s.clip(lower=[0, 4, np.nan]), Series([1, 4, 3]))
-        tm.assert_series_equal(s.clip(upper=[1, np.nan, 1]), Series([1, 2, 1]))
+        msg = "Downcasting behavior in Series and DataFrame methods 'where'"
+        # TODO: avoid this warning here?  seems like we should never be upcasting
+        #  in the first place?
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = s.clip(lower=[0, 4, np.nan])
+        tm.assert_series_equal(res, Series([1, 4, 3]))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = s.clip(upper=[1, np.nan, 1])
+        tm.assert_series_equal(res, Series([1, 2, 1]))
 
         # GH#40420
         s = Series([1, 2, 3])

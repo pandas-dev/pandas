@@ -38,6 +38,7 @@ from pandas._typing import (
     IgnoreRaise,
     IndexLabel,
     Scalar,
+    Self,
     Shape,
     npt,
 )
@@ -330,7 +331,7 @@ class MultiIndex(Index):
         copy: bool = False,
         name=None,
         verify_integrity: bool = True,
-    ) -> MultiIndex:
+    ) -> Self:
         # compat with Index
         if name is not None:
             names = name
@@ -1029,7 +1030,7 @@ class MultiIndex(Index):
     # Codes Methods
 
     @property
-    def codes(self):
+    def codes(self) -> FrozenList:
         return self._codes
 
     def _set_codes(
@@ -1073,7 +1074,9 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
-    def set_codes(self, codes, *, level=None, verify_integrity: bool = True):
+    def set_codes(
+        self, codes, *, level=None, verify_integrity: bool = True
+    ) -> MultiIndex:
         """
         Set new codes on MultiIndex. Defaults to returning new index.
 
@@ -1198,7 +1201,7 @@ class MultiIndex(Index):
         names=None,
         deep: bool = False,
         name=None,
-    ):
+    ) -> Self:
         """
         Make a copy of this object.
 
@@ -1261,7 +1264,7 @@ class MultiIndex(Index):
         """the array interface, return my values"""
         return self.values
 
-    def view(self, cls=None):
+    def view(self, cls=None) -> Self:
         """this is defined as a copy with the same identity"""
         result = self.copy()
         result._id = self._id
@@ -1658,7 +1661,8 @@ class MultiIndex(Index):
         filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
         return lev._shallow_copy(filled, name=name)
 
-    def get_level_values(self, level):
+    # error: Signature of "get_level_values" incompatible with supertype "Index"
+    def get_level_values(self, level) -> Index:  # type: ignore[override]
         """
         Return vector of label values for requested level.
 
@@ -2207,17 +2211,9 @@ class MultiIndex(Index):
     def argsort(
         self, *args, na_position: str = "last", **kwargs
     ) -> npt.NDArray[np.intp]:
-        if len(args) == 0 and len(kwargs) == 0:
-            # lexsort is significantly faster than self._values.argsort()
-            target = self._sort_levels_monotonic(raise_if_incomparable=True)
-            return lexsort_indexer(
-                # error: Argument 1 to "lexsort_indexer" has incompatible type
-                # "List[Categorical]"; expected "Union[List[Union[ExtensionArray,
-                # ndarray[Any, Any]]], List[Series]]"
-                target._get_codes_for_sorting(),  # type: ignore[arg-type]
-                na_position=na_position,
-            )
-        return self._values.argsort(*args, **kwargs)
+        target = self._sort_levels_monotonic(raise_if_incomparable=True)
+        keys = [lev.codes for lev in target._get_codes_for_sorting()]
+        return lexsort_indexer(keys, na_position=na_position, codes_given=True)
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
     def repeat(self, repeats: int, axis=None) -> MultiIndex:
@@ -2460,12 +2456,12 @@ class MultiIndex(Index):
     def _recode_for_new_levels(
         self, new_levels, copy: bool = True
     ) -> Generator[np.ndarray, None, None]:
-        if len(new_levels) != self.nlevels:
+        if len(new_levels) > self.nlevels:
             raise AssertionError(
                 f"Length of new_levels ({len(new_levels)}) "
-                f"must be same as self.nlevels ({self.nlevels})"
+                f"must be <= self.nlevels ({self.nlevels})"
             )
-        for i in range(self.nlevels):
+        for i in range(len(new_levels)):
             yield recode_for_categories(
                 self.codes[i], self.levels[i], new_levels[i], copy=copy
             )
@@ -3303,7 +3299,7 @@ class MultiIndex(Index):
                 raise KeyError(key)
             return slice(start, end)
 
-    def get_locs(self, seq):
+    def get_locs(self, seq) -> npt.NDArray[np.intp]:
         """
         Get location for a sequence of labels.
 

@@ -142,6 +142,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_sparse", "is_sparse is deprecated"),
         ("NDFrame.replace", "The 'method' keyword"),
         ("NDFrame.replace", "Series.replace without 'value'"),
+        ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
         ("Series.idxmin", "The behavior of Series.idxmin"),
         ("Series.idxmax", "The behavior of Series.idxmax"),
         ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
@@ -491,7 +492,7 @@ box_with_array2 = box_with_array
 
 
 @pytest.fixture
-def dict_subclass():
+def dict_subclass() -> type[dict]:
     """
     Fixture for a dictionary subclass.
     """
@@ -504,7 +505,7 @@ def dict_subclass():
 
 
 @pytest.fixture
-def non_dict_mapping_subclass():
+def non_dict_mapping_subclass() -> type[abc.Mapping]:
     """
     Fixture for a non-mapping dictionary subclass.
     """
@@ -777,7 +778,7 @@ def series_with_multilevel_index() -> Series:
     index = MultiIndex.from_tuples(tuples)
     data = np.random.default_rng(2).standard_normal(8)
     ser = Series(data, index=index)
-    ser.iloc[3] = np.NaN
+    ser.iloc[3] = np.nan
     return ser
 
 
@@ -1321,6 +1322,7 @@ def nullable_string_dtype(request):
     params=[
         "python",
         pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
+        pytest.param("pyarrow_numpy", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def string_storage(request):
@@ -1329,6 +1331,7 @@ def string_storage(request):
 
     * 'python'
     * 'pyarrow'
+    * 'pyarrow_numpy'
     """
     return request.param
 
@@ -1380,6 +1383,7 @@ def object_dtype(request):
         "object",
         "string[python]",
         pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
     ]
 )
 def any_string_dtype(request):
@@ -1996,3 +2000,8 @@ def warsaw(request) -> str:
     tzinfo for Europe/Warsaw using pytz, dateutil, or zoneinfo.
     """
     return request.param
+
+
+@pytest.fixture()
+def arrow_string_storage():
+    return ("pyarrow", "pyarrow_numpy")

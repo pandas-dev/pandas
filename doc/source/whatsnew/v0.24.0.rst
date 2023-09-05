@@ -286,6 +286,7 @@ value. (:issue:`17054`)
 
 .. ipython:: python
 
+    from io import StringIO
     result = pd.read_html(StringIO("""
       <table>
         <thead>
@@ -556,7 +557,7 @@ You must pass in the ``line_terminator`` explicitly, even in this case.
 
 .. _whatsnew_0240.bug_fixes.nan_with_str_dtype:
 
-Proper handling of ``np.NaN`` in a string data-typed column with the Python engine
+Proper handling of ``np.nan`` in a string data-typed column with the Python engine
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There was bug in :func:`read_excel` and :func:`read_csv` with the Python
@@ -1377,18 +1378,22 @@ the object's ``freq`` attribute (:issue:`21939`, :issue:`23878`).
 
 *New behavior*:
 
-.. ipython:: python
-    :okexcept:
-    :okwarning:
+.. code-block:: ipython
 
-    ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
-    ts + 2 * ts.freq
+    In [108]: ts = pd.Timestamp('1994-05-06 12:15:16', freq=pd.offsets.Hour())
 
-    tdi = pd.timedelta_range('1D', periods=2)
-    tdi - np.array([2 * tdi.freq, 1 * tdi.freq])
+    In[109]: ts + 2 * ts.freq
+    Out[109]: Timestamp('1994-05-06 14:15:16', freq='H')
 
-    dti = pd.date_range('2001-01-01', periods=2, freq='7D')
-    dti + pd.Index([1 * dti.freq, 2 * dti.freq])
+    In [110]: tdi = pd.timedelta_range('1D', periods=2)
+
+    In [111]: tdi - np.array([2 * tdi.freq, 1 * tdi.freq])
+    Out[111]: TimedeltaIndex(['-1 days', '1 days'], dtype='timedelta64[ns]', freq=None)
+
+    In [112]: dti = pd.date_range('2001-01-01', periods=2, freq='7D')
+
+    In [113]: dti + pd.Index([1 * dti.freq, 2 * dti.freq])
+    Out[113]: DatetimeIndex(['2001-01-08', '2001-01-22'], dtype='datetime64[ns]', freq=None)
 
 
 .. _whatsnew_0240.deprecations.integer_tz:

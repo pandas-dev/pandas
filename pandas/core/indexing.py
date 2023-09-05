@@ -82,6 +82,7 @@ if TYPE_CHECKING:
         Axis,
         AxisInt,
         Self,
+        npt,
     )
 
     from pandas import (
@@ -604,12 +605,12 @@ class IndexingMixin:
         Raises
         ------
         KeyError
-            * If getting a value and 'label' does not exist in a DataFrame or
-                Series.
+            If getting a value and 'label' does not exist in a DataFrame or Series.
+
         ValueError
-            * If row/column label pair is not a tuple or if any label from
-                the pair is not a scalar for DataFrame.
-            * If label is list-like (*excluding* NamedTuple) for Series.
+            If row/column label pair is not a tuple or if any label
+            from the pair is not a scalar for DataFrame.
+            If label is list-like (*excluding* NamedTuple) for Series.
 
         See Also
         --------
@@ -985,8 +986,9 @@ class _LocationIndexer(NDFrameIndexerBase):
         """
         retval = self.obj
         # Selecting columns before rows is signficiantly faster
+        start_val = (self.ndim - len(tup)) + 1
         for i, key in enumerate(reversed(tup)):
-            i = self.ndim - i - 1
+            i = self.ndim - i - start_val
             if com.is_null_slice(key):
                 continue
 
@@ -1383,7 +1385,7 @@ class _LocIndexer(_LocationIndexer):
             # nested tuple slicing
             if is_nested_tuple(key, labels):
                 locs = labels.get_locs(key)
-                indexer = [slice(None)] * self.ndim
+                indexer: list[slice | npt.NDArray[np.intp]] = [slice(None)] * self.ndim
                 indexer[axis] = locs
                 return self.obj.iloc[tuple(indexer)]
 

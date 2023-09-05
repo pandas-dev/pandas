@@ -23,7 +23,6 @@ import sys
 from typing import (
     IO,
     TYPE_CHECKING,
-    Any,
     AnyStr,
     Callable,
     Final,
@@ -84,6 +83,7 @@ if TYPE_CHECKING:
         CompressionOptions,
         FilePath,
         ReadBuffer,
+        Self,
         StorageOptions,
         WriteBuffer,
     )
@@ -935,7 +935,7 @@ class StataMissingValue:
     def __repr__(self) -> str:
         return f"{type(self)}({self})"
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return (
             isinstance(other, type(self))
             and self.string == other.string
@@ -1212,7 +1212,7 @@ class StataReader(StataParser, abc.Iterator):
         self._read_header()
         self._setup_dtype()
 
-    def __enter__(self) -> StataReader:
+    def __enter__(self) -> Self:
         """enter context manager"""
         self._entered = True
         return self
@@ -1293,7 +1293,9 @@ class StataReader(StataParser, abc.Iterator):
         else:
             self._read_old_header(first_char)
 
-        self._has_string_data = len([x for x in self._typlist if type(x) is int]) > 0
+        self._has_string_data = (
+            len([x for x in self._typlist if isinstance(x, int)]) > 0
+        )
 
         # calculate size of a data record
         self._col_sizes = [self._calcsize(typ) for typ in self._typlist]
@@ -1793,7 +1795,7 @@ the string values returned are correct."""
 
         # Decode strings
         for col, typ in zip(data, self._typlist):
-            if type(typ) is int:
+            if isinstance(typ, int):
                 data[col] = data[col].apply(self._decode)
 
         data = self._insert_strls(data)
@@ -2961,7 +2963,7 @@ supported types."""
         """No-op, future compatibility"""
         return data
 
-    def _prepare_data(self) -> np.recarray:
+    def _prepare_data(self) -> np.rec.recarray:
         data = self.data
         typlist = self.typlist
         convert_dates = self._convert_dates
@@ -2993,7 +2995,7 @@ supported types."""
 
         return data.to_records(index=False, column_dtypes=dtypes)
 
-    def _write_data(self, records: np.recarray) -> None:
+    def _write_data(self, records: np.rec.recarray) -> None:
         self._write_bytes(records.tobytes())
 
     @staticmethod

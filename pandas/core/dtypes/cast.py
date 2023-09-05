@@ -18,7 +18,7 @@ import warnings
 
 import numpy as np
 
-from pandas._config import get_option
+from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
 from pandas._libs.missing import (
@@ -798,12 +798,10 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         # coming out as np.str_!
 
         dtype = _dtype_obj
-        opt = get_option("future.infer_string")
-        if opt is True:
-            import pyarrow as pa
+        if using_pyarrow_string_dtype():
+            from pandas.core.arrays.string_ import StringDtype
 
-            pa_dtype = pa.string()
-            dtype = ArrowDtype(pa_dtype)
+            dtype = StringDtype(storage="pyarrow_numpy")
 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
@@ -851,7 +849,7 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
             dtype = np.dtype(np.float64)
 
     elif is_complex(val):
-        dtype = np.dtype(np.complex_)
+        dtype = np.dtype(np.complex128)
 
     if lib.is_period(val):
         dtype = PeriodDtype(freq=val.freq)
@@ -1708,8 +1706,6 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 arr._validate_setitem_value(element)
                 return True
             except (ValueError, TypeError):
-                # TODO: re-use _catch_deprecated_value_error to ensure we are
-                #  strict about what exceptions we allow through here.
                 return False
 
         # This is technically incorrect, but maintains the behavior of

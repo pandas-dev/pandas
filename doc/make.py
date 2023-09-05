@@ -159,10 +159,10 @@ class DocBuilder:
         Open the rst file `page` and extract its title.
         """
         fname = os.path.join(SOURCE_PATH, f"{page}.rst")
-        option_parser = docutils.frontend.OptionParser(
-            components=(docutils.parsers.rst.Parser,)
+        doc = docutils.utils.new_document(
+            "<doc>",
+            docutils.frontend.get_default_settings(docutils.parsers.rst.Parser),
         )
-        doc = docutils.utils.new_document("<doc>", option_parser.get_default_values())
         with open(fname, encoding="utf-8") as f:
             data = f.read()
 
