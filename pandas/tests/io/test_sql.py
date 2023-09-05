@@ -1121,6 +1121,7 @@ class PandasSQLTest:
     """
 
     def load_iris_data(self, iris_path):
+        self.drop_view("iris_view", self.conn)
         self.drop_table("iris", self.conn)
         if isinstance(self.conn, sqlite3.Connection):
             create_and_load_iris_sqlite3(self.conn, iris_path)
