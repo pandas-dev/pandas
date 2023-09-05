@@ -1421,9 +1421,6 @@ def read_fwf(
     --------
     >>> pd.read_fwf('data.csv')  # doctest: +SKIP
     """
-    kwds["iterator"] = iterator
-    kwds["chunksize"] = chunksize
-
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
@@ -1462,6 +1459,8 @@ def read_fwf(
     kwds["colspecs"] = colspecs
     kwds["infer_nrows"] = infer_nrows
     kwds["engine"] = "python-fwf"
+    kwds["iterator"] = iterator
+    kwds["chunksize"] = chunksize
 
     check_dtype_backend(dtype_backend)
     kwds["dtype_backend"] = dtype_backend
