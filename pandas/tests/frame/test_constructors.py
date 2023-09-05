@@ -692,12 +692,12 @@ class TestDataFrameConstructors:
         arr = np.array([[4, 5, 6]])
         msg = r"Shape of passed values is \(1, 3\), indices imply \(1, 4\)"
         with pytest.raises(ValueError, match=msg):
-            DataFrame(index=[0], columns=range(0, 4), data=arr)
+            DataFrame(index=[0], columns=range(4), data=arr)
 
         arr = np.array([4, 5, 6])
         msg = r"Shape of passed values is \(3, 1\), indices imply \(1, 4\)"
         with pytest.raises(ValueError, match=msg):
-            DataFrame(index=[0], columns=range(0, 4), data=arr)
+            DataFrame(index=[0], columns=range(4), data=arr)
 
         # higher dim raise exception
         with pytest.raises(ValueError, match="Must pass 2-d input"):
@@ -2391,7 +2391,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_series_nonexact_categoricalindex(self):
         # GH 42424
-        ser = Series(range(0, 100))
+        ser = Series(range(100))
         ser1 = cut(ser, 10).value_counts().head(5)
         ser2 = cut(ser, 10).value_counts().tail(5)
         result = DataFrame({"1": ser1, "2": ser2})

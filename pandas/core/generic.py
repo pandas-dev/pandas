@@ -2847,7 +2847,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         index : bool, default True
             Write DataFrame index as a column. Uses `index_label` as the column
-            name in the table.
+            name in the table. Creates a table index for this column.
         index_label : str or sequence, default None
             Column label for index column(s). If None is given (default) and
             `index` is True, then the index names are used.
@@ -7940,6 +7940,51 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             return result.__finalize__(self, method="replace")
 
+    @overload
+    def interpolate(
+        self,
+        method: InterpolateOptions = ...,
+        *,
+        axis: Axis = ...,
+        limit: int | None = ...,
+        inplace: Literal[False] = ...,
+        limit_direction: Literal["forward", "backward", "both"] | None = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
+        downcast: Literal["infer"] | None | lib.NoDefault = ...,
+        **kwargs,
+    ) -> Self:
+        ...
+
+    @overload
+    def interpolate(
+        self,
+        method: InterpolateOptions = ...,
+        *,
+        axis: Axis = ...,
+        limit: int | None = ...,
+        inplace: Literal[True],
+        limit_direction: Literal["forward", "backward", "both"] | None = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
+        downcast: Literal["infer"] | None | lib.NoDefault = ...,
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def interpolate(
+        self,
+        method: InterpolateOptions = ...,
+        *,
+        axis: Axis = ...,
+        limit: int | None = ...,
+        inplace: bool_t = ...,
+        limit_direction: Literal["forward", "backward", "both"] | None = ...,
+        limit_area: Literal["inside", "outside"] | None = ...,
+        downcast: Literal["infer"] | None | lib.NoDefault = ...,
+        **kwargs,
+    ) -> Self | None:
+        ...
+
     @final
     def interpolate(
         self,
@@ -8182,10 +8227,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         stacklevel=find_stack_level(),
                     )
 
-        if "fill_value" in kwargs:
+        if method in fillna_methods and "fill_value" in kwargs:
             raise ValueError(
                 "'fill_value' is not a valid keyword for "
-                f"{type(self).__name__}.interpolate"
+                f"{type(self).__name__}.interpolate with method from "
+                f"{fillna_methods}"
             )
 
         if isinstance(obj.index, MultiIndex) and method != "linear":
@@ -8608,6 +8654,42 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # GH 40420
         return self.where(subset, threshold, axis=axis, inplace=inplace)
+
+    @overload
+    def clip(
+        self,
+        lower=...,
+        upper=...,
+        *,
+        axis: Axis | None = ...,
+        inplace: Literal[False] = ...,
+        **kwargs,
+    ) -> Self:
+        ...
+
+    @overload
+    def clip(
+        self,
+        lower=...,
+        upper=...,
+        *,
+        axis: Axis | None = ...,
+        inplace: Literal[True],
+        **kwargs,
+    ) -> None:
+        ...
+
+    @overload
+    def clip(
+        self,
+        lower=...,
+        upper=...,
+        *,
+        axis: Axis | None = ...,
+        inplace: bool_t = ...,
+        **kwargs,
+    ) -> Self | None:
+        ...
 
     @final
     def clip(
