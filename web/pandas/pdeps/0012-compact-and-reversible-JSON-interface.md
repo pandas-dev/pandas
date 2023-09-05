@@ -47,7 +47,9 @@ Some JSON-interface problems are detailed in the [linked NoteBook](https://nbvie
 ### Feature Description
 To have a simple, compact and reversible solution, I propose to use the [JSON-NTV format (Named and Typed Value)](https://github.com/loco-philippe/NTV#readme) - which integrates the notion of type - and its JSON-TAB variation for tabular data.
 
-This solution allows to include a large number of types (not necessarily pandas `dtype`).
+This solution allows to include a large number of types (not necessarily pandas `dtype`) which allows to have:
+- a JSON `orient="table"` interface which respects the Table Schema specification (going from 5 types to 20 types),
+- a JSON interface for all pandas data formats.
 
 In the example below, a DataFrame with several data types is converted to JSON.
 The DataFrame resulting from this JSON is identical to the initial DataFrame (reversibility).
@@ -109,11 +111,14 @@ Out[5]: df created from JSON is equal to initial df ?  True
 Several other examples are provided in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#2---Series)
 
 ## Scope
-The objective is to make available the proposed JSON interface for any type of data.
+The objective is to make available the proposed JSON interface for any type of data and for `orient="table"` option.
 
 The proposed interface is compatible with existing data.
 
 ## Motivation
+
+### Why extend the `orient=table` option to other data types?
+- The Table Schema specification defines 24 data types, 6 are taken into account in the pandas interface
 
 ### Why is it important to have a compact and reversible JSON interface ?
 - a reversible interface provides an exchange format.
@@ -133,6 +138,7 @@ The proposed interface is compatible with existing data.
 
 The proposed solution is based on several key points:
 - data typing
+- correspondence between TableSchema and pandas
 - JSON format for tabular data
 - conversion to and from JSON format
 
@@ -174,6 +180,33 @@ Note:
 - the consideration of null type data needs to be clarified
 
 The other NTV types are associated with `object` `dtype`.
+
+### correspondence between TableSchema and pandas
+The TableSchema typing is carried by two attributes `format` and `type`.
+
+The table below shows the correspondence between TableSchema format / type and pandas dtype / NTVtype:
+
+| **format / type**  | **NTV type / dtype** |
+|--------------------|----------------------|
+| default / datetime |  / datetime64[ns]    |
+| default / number   |  / float64           |
+| default / integer  |  / int64             |
+| default / boolean  |  / bool              |
+| default / string   |  / object            |
+| default / duration |  / timedelta64[ns]   |
+| email   / string   | email   / string     |
+| uri     / string   | uri     / string     |
+| default / object   | object  / object     |
+| default / array    | array   / object     |
+| default / date     | date    / object     |
+| default / time     | time    / object     |
+| default / year     | year    / int64      |
+| default / yearmonth| month   / int64      |
+| array   / geopoint | point   / object     |
+| default / geojson  | geojson / object     |
+
+Note:
+- other TableSchema format are defined and are to be studied (uuid, binary, topojson, specific format for geopoint and datation)
 
 ### JSON format
 The JSON format is defined in [JSON-TAB](https://github.com/loco-philippe/NTV/blob/main/documentation/JSON-TAB-standard.pdf) specification.
