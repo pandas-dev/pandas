@@ -168,7 +168,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
-- Bug in :meth:`BaseWindowGroupby.aggregate` where ``_as_index`` attribute is ignored (:issue:`31007`)
+- Bug in :meth:`DataFrameGroupBy.rolling.agg` where ``as_index`` is ignored with list-like and dictionary-like ``func`` parameters (:issue:`31007`)
 
 Categorical
 ^^^^^^^^^^^
