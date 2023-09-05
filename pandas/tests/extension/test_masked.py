@@ -358,7 +358,7 @@ class TestMaskedArrays(base.ExtensionTests):
             )
             request.node.add_marker(mark)
         super().test_invert(data)
-        
+
     def test_round(self, data, request):
         if data.dtype == "boolean":
             mark = pytest.mark.xfail(reason="Cannot round boolean dtype")
@@ -368,5 +368,3 @@ class TestMaskedArrays(base.ExtensionTests):
 
 class Test2DCompat(base.Dim2CompatTests):
     pass
-
-

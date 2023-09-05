@@ -1011,7 +1011,7 @@ class TestArrowArray(base.ExtensionTests):
             )
 
         return mark
-        
+
     def test_round(self, data, request):
         mark = pytest.mark.xfail(
             # raises=pa.ArrowInvalid,

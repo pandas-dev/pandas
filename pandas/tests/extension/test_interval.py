@@ -95,9 +95,7 @@ class TestIntervalArray(base.ExtensionTests):
     def test_invert(self, data):
         super().test_invert(data)
 
-    @pytest.mark.xfail(
-        reason="Round is not valid for IntervalArray."
-    )
+    @pytest.mark.xfail(reason="Round is not valid for IntervalArray.")
     def test_round(self, data):
         super().test_round(data)
 
