@@ -3195,7 +3195,7 @@ def test_groupby_ngroup_with_nan():
     g = df.groupby(["a", "b"], dropna=False, observed=False).ngroup()
     result = g.iloc[0]
     expected = 0
-    tm.assert_equal(result, expected)
+    assert result == expected
 
 
 def test_get_group_axis_1():
