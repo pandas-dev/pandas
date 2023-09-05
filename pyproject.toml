@@ -31,7 +31,9 @@ license = {file = 'LICENSE'}
 requires-python = '>=3.9'
 dependencies = [
   "numpy>=1.22.4; python_version<'3.11'",
-  "numpy>=1.23.2; python_version>='3.11'",
+  "numpy>=1.23.2; python_version=='3.11'",
+  # TODO: This needs to be updated when the official numpy 1.26 comes out
+  "numpy>=1.26.0b1; python_version>='3.12'",
   "python-dateutil>=2.8.2",
   "pytz>=2020.1",
   "tzdata>=2022.1"
