@@ -28,7 +28,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- Added ``calamine`` as an engine to ``read_excel`` (:issue:`50395`)
 -
 
 .. ---------------------------------------------------------------------------

@@ -3453,7 +3453,8 @@ Excel files
 The :func:`~pandas.read_excel` method can read Excel 2007+ (``.xlsx``) files
 using the ``openpyxl`` Python module. Excel 2003 (``.xls``) files
 can be read using ``xlrd``. Binary Excel (``.xlsb``)
-files can be read using ``pyxlsb``.
+files can be read using ``pyxlsb``. All formats can be read
+using :ref:`calamine<io.calamine>` engine.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
@@ -3493,6 +3494,9 @@ using internally.
 * For the engine pyxlsb, pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
 
 * For the engine odf, pandas is using :func:`odf.opendocument.load` to read in (``.ods``) files.
+
+* For the engine calamine, pandas is using :func:`python_calamine.load_workbook`
+  to read in (``.xlsx``), (``.xlsm``), (``.xls``), (``.xlsb``), (``.ods``) files.
 
 .. code-block:: python
 
@@ -3935,7 +3939,8 @@ The :func:`~pandas.read_excel` method can also read binary Excel files
 using the ``pyxlsb`` module. The semantics and features for reading
 binary Excel files mostly match what can be done for `Excel files`_ using
 ``engine='pyxlsb'``. ``pyxlsb`` does not recognize datetime types
-in files and will return floats instead.
+in files and will return floats instead (you can use :ref:`calamine<io.calamine>`
+if you need recognize datetime types).
 
 .. code-block:: python
 
@@ -3947,6 +3952,22 @@ in files and will return floats instead.
    Currently pandas only supports *reading* binary Excel files. Writing
    is not implemented.
 
+.. _io.calamine:
+
+Calamine (Excel and ODS files)
+------------------------------
+
+The :func:`~pandas.read_excel` method can read Excel file (``.xlsx``, ``.xlsm``, ``.xls``, ``.xlsb``)
+and OpenDocument spreadsheets (``.ods``) using the ``python-calamine`` module.
+This module is a binding for Rust library `calamine <https://crates.io/crates/calamine>`__
+and faster then other engines in most cases. The semantics and features for reading files
+match what can be done for `Excel files`_ using ``engine='calamine'``.
+The optional dependency 'python-calamine' needs to be installed.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel("path_to_file.xlsb", engine="calamine")
 
 .. _io.clipboard:
 

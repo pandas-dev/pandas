@@ -54,6 +54,7 @@ engine_params = [
     ),
     pytest.param("pyxlsb", marks=td.skip_if_no("pyxlsb")),
     pytest.param("odf", marks=td.skip_if_no("odf")),
+    pytest.param("calamine", marks=td.skip_if_no("python_calamine")),
 ]
 
 
@@ -67,11 +68,11 @@ def _is_valid_engine_ext_pair(engine, read_ext: str) -> bool:
         return False
     if engine == "odf" and read_ext != ".ods":
         return False
-    if read_ext == ".ods" and engine != "odf":
+    if read_ext == ".ods" and engine not in {"odf", "calamine"}:
         return False
     if engine == "pyxlsb" and read_ext != ".xlsb":
         return False
-    if read_ext == ".xlsb" and engine != "pyxlsb":
+    if read_ext == ".xlsb" and engine not in {"pyxlsb", "calamine"}:
         return False
     if engine == "xlrd" and read_ext != ".xls":
         return False
@@ -160,9 +161,9 @@ class TestReaders:
             "ods": {"foo": "abcd"},
         }
 
-        if read_ext[1:] in {"xls", "xlsb"}:
+        if engine in {"xlrd", "pyxlsb"}:
             msg = re.escape(r"open_workbook() got an unexpected keyword argument 'foo'")
-        elif read_ext[1:] == "ods":
+        elif engine == "odf":
             msg = re.escape(r"load() got an unexpected keyword argument 'foo'")
         else:
             msg = re.escape(r"load_workbook() got an unexpected keyword argument 'foo'")
@@ -194,8 +195,8 @@ class TestReaders:
                 usecols=3,
             )
 
-    def test_usecols_list(self, request, read_ext, df_ref):
-        if read_ext == ".xlsb":
+    def test_usecols_list(self, request, engine, read_ext, df_ref):
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -218,8 +219,8 @@ class TestReaders:
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
 
-    def test_usecols_str(self, request, read_ext, df_ref):
-        if read_ext == ".xlsb":
+    def test_usecols_str(self, request, engine, read_ext, df_ref):
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -275,9 +276,9 @@ class TestReaders:
         "usecols", [[0, 1, 3], [0, 3, 1], [1, 0, 3], [1, 3, 0], [3, 0, 1], [3, 1, 0]]
     )
     def test_usecols_diff_positional_int_columns_order(
-        self, request, read_ext, usecols, df_ref
+        self, request, engine, read_ext, usecols, df_ref
     ):
-        if read_ext == ".xlsb":
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -298,8 +299,8 @@ class TestReaders:
         result = pd.read_excel("test1" + read_ext, sheet_name="Sheet1", usecols=usecols)
         tm.assert_frame_equal(result, expected, check_names=False)
 
-    def test_read_excel_without_slicing(self, request, read_ext, df_ref):
-        if read_ext == ".xlsb":
+    def test_read_excel_without_slicing(self, request, engine, read_ext, df_ref):
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -310,8 +311,8 @@ class TestReaders:
         result = pd.read_excel("test1" + read_ext, sheet_name="Sheet1", index_col=0)
         tm.assert_frame_equal(result, expected, check_names=False)
 
-    def test_usecols_excel_range_str(self, request, read_ext, df_ref):
-        if read_ext == ".xlsb":
+    def test_usecols_excel_range_str(self, request, engine, read_ext, df_ref):
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -398,8 +399,8 @@ class TestReaders:
         expected = DataFrame([["aaaa", "bbbbb"]], columns=["Test", "Test1"])
         tm.assert_frame_equal(parsed, expected)
 
-    def test_excel_cell_error_na(self, request, read_ext):
-        if read_ext == ".xlsb":
+    def test_excel_cell_error_na(self, request, engine, read_ext):
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -410,8 +411,8 @@ class TestReaders:
         expected = DataFrame([[np.nan]], columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
 
-    def test_excel_table(self, request, read_ext, df_ref):
-        if read_ext == ".xlsb":
+    def test_excel_table(self, request, engine, read_ext, df_ref):
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -431,8 +432,8 @@ class TestReaders:
         )
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
-    def test_reader_special_dtypes(self, request, read_ext):
-        if read_ext == ".xlsb":
+    def test_reader_special_dtypes(self, request, engine, read_ext):
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -800,8 +801,8 @@ class TestReaders:
         result = pd.read_excel("testdateoverflow" + read_ext)
         tm.assert_frame_equal(result, expected)
 
-    def test_sheet_name(self, request, read_ext, df_ref):
-        if read_ext == ".xlsb":
+    def test_sheet_name(self, request, read_ext, engine, df_ref):
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -869,6 +870,11 @@ class TestReaders:
                 "Unsupported format, or corrupt file: Expected BOF "
                 "record; found b'foo'"
             )
+        elif engine == "calamine":
+            from python_calamine import CalamineError
+
+            error = CalamineError
+            msg = "Cannot detect file format"
         else:
             error = BadZipFile
             msg = "File is not a zip file"
@@ -994,9 +1000,9 @@ class TestReaders:
         actual = pd.read_excel("times_1904" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
-    def test_read_excel_multiindex(self, request, read_ext):
+    def test_read_excel_multiindex(self, request, engine, read_ext):
         # see gh-4679
-        if read_ext == ".xlsb":
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -1088,10 +1094,10 @@ class TestReaders:
         ],
     )
     def test_read_excel_multiindex_blank_after_name(
-        self, request, read_ext, sheet_name, idx_lvl2
+        self, request, engine, read_ext, sheet_name, idx_lvl2
     ):
         # GH34673
-        if read_ext == ".xlsb":
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb (GH4679"
@@ -1212,9 +1218,9 @@ class TestReaders:
             with pytest.raises(TypeError, match=msg):
                 pd.read_excel("test1" + read_ext, header=arg)
 
-    def test_read_excel_skiprows(self, request, read_ext):
+    def test_read_excel_skiprows(self, request, engine, read_ext):
         # GH 4903
-        if read_ext == ".xlsb":
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -1267,9 +1273,9 @@ class TestReaders:
         )
         tm.assert_frame_equal(actual, expected)
 
-    def test_read_excel_skiprows_callable_not_in(self, request, read_ext):
+    def test_read_excel_skiprows_callable_not_in(self, request, engine, read_ext):
         # GH 4903
-        if read_ext == ".xlsb":
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -1397,7 +1403,7 @@ class TestReaders:
 
     def test_ignore_chartsheets_by_str(self, request, engine, read_ext):
         # GH 41448
-        if engine == "odf":
+        if read_ext == ".ods":
             pytest.skip("chartsheets do not exist in the ODF format")
         if engine == "pyxlsb":
             request.node.add_marker(
@@ -1410,7 +1416,7 @@ class TestReaders:
 
     def test_ignore_chartsheets_by_int(self, request, engine, read_ext):
         # GH 41448
-        if engine == "odf":
+        if read_ext == ".ods":
             pytest.skip("chartsheets do not exist in the ODF format")
         if engine == "pyxlsb":
             request.node.add_marker(
@@ -1540,8 +1546,8 @@ class TestExcelFileRead:
         expected = DataFrame(expected, columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
 
-    def test_excel_table_sheet_by_index(self, request, read_ext, df_ref):
-        if read_ext == ".xlsb":
+    def test_excel_table_sheet_by_index(self, request, engine, read_ext, df_ref):
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -1569,8 +1575,8 @@ class TestExcelFileRead:
 
         tm.assert_frame_equal(df3, df1.iloc[:-1])
 
-    def test_sheet_name(self, request, read_ext, df_ref):
-        if read_ext == ".xlsb":
+    def test_sheet_name(self, request, engine, read_ext, df_ref):
+        if engine == "pyxlsb":
             request.node.add_marker(
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
@@ -1639,7 +1645,7 @@ class TestExcelFileRead:
     def test_excel_read_binary_via_read_excel(self, read_ext, engine):
         # GH 38424
         with open("test1" + read_ext, "rb") as f:
-            result = pd.read_excel(f)
+            result = pd.read_excel(f, engine=engine)
         expected = pd.read_excel("test1" + read_ext, engine=engine)
         tm.assert_frame_equal(result, expected)
 
@@ -1691,7 +1697,7 @@ class TestExcelFileRead:
 
     def test_ignore_chartsheets(self, request, engine, read_ext):
         # GH 41448
-        if engine == "odf":
+        if read_ext == ".ods":
             pytest.skip("chartsheets do not exist in the ODF format")
         if engine == "pyxlsb":
             request.node.add_marker(
@@ -1711,6 +1717,10 @@ class TestExcelFileRead:
             import xlrd
 
             errors = (BadZipFile, xlrd.biffh.XLRDError)
+        elif engine == "calamine":
+            from python_calamine import CalamineError
+
+            errors = (CalamineError,)
 
         with tm.ensure_clean(f"corrupt{read_ext}") as file:
             Path(file).write_text("corrupt", encoding="utf-8")
