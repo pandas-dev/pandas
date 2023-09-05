@@ -175,6 +175,10 @@ def pytest_collection_modifyitems(items, config) -> None:
             "DataFrameGroupBy.fillna",
             "DataFrame.fillna with 'method' is deprecated",
         ),
+        # GH#54961: Docstring groups args/kwargs together, but named arguments
+        # appear between them
+        ("DataFrameGroupBy.resample", "Wrong parameters order"),
+        ("SeriesGroupBy.resample", "Wrong parameters order"),
     ]
 
     for item in items:
