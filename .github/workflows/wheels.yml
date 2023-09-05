@@ -149,10 +149,10 @@ jobs:
         uses: mamba-org/setup-micromamba@v1
         with:
           environment-name: wheel-env
+          # Use a fixed Python, since we might have an unreleased Python not
+          # yet present on conda-forge
           create-args: >-
-            # Use a fixed Python, since we might have an unreleased Python not
-            # yet present on conda-forge
-            python=3.10
+            python=3.11
             anaconda-client
             wheel
           cache-downloads: true
