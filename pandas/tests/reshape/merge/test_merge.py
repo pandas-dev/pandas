@@ -2872,13 +2872,13 @@ def test_merge_ea_int_and_float_numpy():
     tm.assert_frame_equal(result, expected.astype("float64"))
 
 
-def test_merge_arrow_string_index():
+def test_merge_arrow_string_index(any_string_dtype):
     # GH#54894
     pytest.importorskip("pyarrow")
-    left = DataFrame({"a": ["a", "b"]}, dtype="string[pyarrow]")
-    right = DataFrame({"b": 1}, index=Index(["a", "c"], dtype="string[pyarrow]"))
+    left = DataFrame({"a": ["a", "b"]}, dtype=any_string_dtype)
+    right = DataFrame({"b": 1}, index=Index(["a", "c"], dtype=any_string_dtype))
     result = left.merge(right, left_on="a", right_index=True, how="left")
     expected = DataFrame(
-        {"a": Series(["a", "b"], dtype="string[pyarrow]"), "b": [1, np.nan]}
+        {"a": Series(["a", "b"], dtype=any_string_dtype), "b": [1, np.nan]}
     )
     tm.assert_frame_equal(result, expected)
