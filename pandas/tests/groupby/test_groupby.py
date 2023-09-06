@@ -3192,10 +3192,9 @@ def test_depr_get_group_len_1_list_likes(test_series, kwarg, value, name, warn):
 def test_groupby_ngroup_with_nan():
     # GH#50100
     df = DataFrame({"a": Categorical([np.nan]), "b": [1]})
-    g = df.groupby(["a", "b"], dropna=False, observed=False).ngroup()
-    result = g.iloc[0]
-    expected = 0
-    assert result == expected
+    result = df.groupby(["a", "b"], dropna=False, observed=False).ngroup()
+    expected = Series([0])
+    tm.assert_series_equal(result, expected)
 
 
 def test_get_group_axis_1():
