@@ -82,9 +82,9 @@ if TYPE_CHECKING:
         JSONEngine,
         JSONSerializable,
         ReadBuffer,
+        Self,
         StorageOptions,
         WriteBuffer,
-        Self,
     )
 
     from pandas.core.generic import NDFrame
