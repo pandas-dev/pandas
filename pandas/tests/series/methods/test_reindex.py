@@ -25,12 +25,7 @@ import pandas._testing as tm
 def test_reindex(datetime_series, string_series):
     identity = string_series.reindex(string_series.index)
 
-    # __array_interface__ is not defined for older numpies
-    # and on some pythons
-    try:
-        assert np.may_share_memory(string_series.index, identity.index)
-    except AttributeError:
-        pass
+    assert np.may_share_memory(string_series.index, identity.index)
 
     assert identity.index.is_(string_series.index)
     assert identity.index.identical(string_series.index)
@@ -164,9 +159,9 @@ def test_reindex_inference():
 
 def test_reindex_downcasting():
     # GH4618 shifted series downcasting
-    s = Series(False, index=range(0, 5))
+    s = Series(False, index=range(5))
     result = s.shift(1).bfill()
-    expected = Series(False, index=range(0, 5))
+    expected = Series(False, index=range(5))
     tm.assert_series_equal(result, expected)
 
 

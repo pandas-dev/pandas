@@ -13,6 +13,10 @@ classes (if they are relevant for the extension interface for all dtypes), or
 be added to the array-specific tests in `pandas/tests/arrays/`.
 
 """
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pytest
 
@@ -21,6 +25,9 @@ from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas import Interval
 from pandas.core.arrays import IntervalArray
 from pandas.tests.extension import base
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 def make_data():
@@ -73,7 +80,7 @@ def data_for_grouping():
 class TestIntervalArray(base.ExtensionTests):
     divmod_exc = TypeError
 
-    def _supports_reduction(self, obj, op_name: str) -> bool:
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return op_name in ["min", "max"]
 
     @pytest.mark.xfail(

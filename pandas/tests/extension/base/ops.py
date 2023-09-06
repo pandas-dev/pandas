@@ -5,6 +5,8 @@ from typing import final
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_string_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
@@ -128,12 +130,18 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar
+        if all_arithmetic_operators == "__rmod__" and is_string_dtype(data.dtype):
+            pytest.skip("Skip testing Python string formatting")
+
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
         self.check_opname(ser, op_name, ser.iloc[0])
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
+        if all_arithmetic_operators == "__rmod__" and is_string_dtype(data.dtype):
+            pytest.skip("Skip testing Python string formatting")
+
         op_name = all_arithmetic_operators
         df = pd.DataFrame({"A": data})
         self.check_opname(df, op_name, data[0])
@@ -239,9 +247,23 @@ class BaseComparisonOpsTests(BaseOpsUtil):
 class BaseUnaryOpsTests(BaseOpsUtil):
     def test_invert(self, data):
         ser = pd.Series(data, name="name")
-        result = ~ser
-        expected = pd.Series(~data, name="name")
-        tm.assert_series_equal(result, expected)
+        try:
+            # 10 is an arbitrary choice here, just avoid iterating over
+            #  the whole array to trim test runtime
+            [~x for x in data[:10]]
+        except TypeError:
+            # scalars don't support invert -> we don't expect the vectorized
+            #  operation to succeed
+            with pytest.raises(TypeError):
+                ~ser
+            with pytest.raises(TypeError):
+                ~data
+        else:
+            # Note we do not re-use the pointwise result to construct expected
+            #  because python semantics for negating bools are weird see GH#54569
+            result = ~ser
+            expected = pd.Series(~data, name="name")
+            tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
     def test_unary_ufunc_dunder_equivalence(self, data, ufunc):

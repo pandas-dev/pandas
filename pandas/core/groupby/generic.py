@@ -721,8 +721,10 @@ class SeriesGroupBy(GroupBy[Series]):
         return self._reindex_output(result, fill_value=0)
 
     @doc(Series.describe)
-    def describe(self, **kwargs):
-        return super().describe(**kwargs)
+    def describe(self, percentiles=None, include=None, exclude=None) -> Series:
+        return super().describe(
+            percentiles=percentiles, include=include, exclude=exclude
+        )
 
     def value_counts(
         self,
@@ -770,6 +772,7 @@ class SeriesGroupBy(GroupBy[Series]):
         mask = ids != -1
         ids, val = ids[mask], val[mask]
 
+        lab: Index | np.ndarray
         if bins is None:
             lab, lev = algorithms.factorize(val, sort=True)
             llab = lambda lab, inc: lab[inc]
@@ -1152,7 +1155,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @property
     @doc(Series.plot.__doc__)
-    def plot(self):
+    def plot(self) -> GroupByPlot:
         result = GroupByPlot(self)
         return result
 

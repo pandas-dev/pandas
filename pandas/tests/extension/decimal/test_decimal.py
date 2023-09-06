@@ -71,15 +71,15 @@ class TestDecimalArray(base.ExtensionTests):
     ) -> type[Exception] | None:
         return None
 
-    def _supports_reduction(self, obj, op_name: str) -> bool:
+    def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
         return True
 
-    def check_reduce(self, s, op_name, skipna):
+    def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
         if op_name == "count":
-            return super().check_reduce(s, op_name, skipna)
+            return super().check_reduce(ser, op_name, skipna)
         else:
-            result = getattr(s, op_name)(skipna=skipna)
-            expected = getattr(np.asarray(s), op_name)()
+            result = getattr(ser, op_name)(skipna=skipna)
+            expected = getattr(np.asarray(ser), op_name)()
             tm.assert_almost_equal(result, expected)
 
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
@@ -133,58 +133,96 @@ class TestDecimalArray(base.ExtensionTests):
     def test_fillna_frame(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            DeprecationWarning, match=msg, check_stacklevel=False
         ):
             super().test_fillna_frame(data_missing)
 
     def test_fillna_limit_pad(self, data_missing):
         msg = "ExtensionArray.fillna 'method' keyword is deprecated"
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            DeprecationWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
+        ):
+            super().test_fillna_limit_pad(data_missing)
+
+        msg = "The 'method' keyword in DecimalArray.fillna is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
         ):
             super().test_fillna_limit_pad(data_missing)
 
     def test_fillna_limit_backfill(self, data_missing):
-        msg = "|".join(
-            [
-                "ExtensionArray.fillna added a 'copy' keyword",
-                "Series.fillna with 'method' is deprecated",
-            ]
-        )
+        msg = "Series.fillna with 'method' is deprecated"
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            FutureWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
+        ):
+            super().test_fillna_limit_backfill(data_missing)
+
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        with tm.assert_produces_warning(
+            DeprecationWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
+        ):
+            super().test_fillna_limit_backfill(data_missing)
+
+        msg = "The 'method' keyword in DecimalArray.fillna is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
         ):
             super().test_fillna_limit_backfill(data_missing)
 
     def test_fillna_no_op_returns_copy(self, data):
-        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        msg = "|".join(
+            [
+                "ExtensionArray.fillna 'method' keyword is deprecated",
+                "The 'method' keyword in DecimalArray.fillna is deprecated",
+            ]
+        )
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            (FutureWarning, DeprecationWarning), match=msg, check_stacklevel=False
         ):
             super().test_fillna_no_op_returns_copy(data)
 
     def test_fillna_series(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            DeprecationWarning, match=msg, check_stacklevel=False
         ):
             super().test_fillna_series(data_missing)
 
     def test_fillna_series_method(self, data_missing, fillna_method):
-        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        msg = "|".join(
+            [
+                "ExtensionArray.fillna 'method' keyword is deprecated",
+                "The 'method' keyword in DecimalArray.fillna is deprecated",
+            ]
+        )
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            (FutureWarning, DeprecationWarning), match=msg, check_stacklevel=False
         ):
             super().test_fillna_series_method(data_missing, fillna_method)
 
     def test_fillna_copy_frame(self, data_missing, using_copy_on_write):
-        warn = FutureWarning if not using_copy_on_write else None
+        warn = DeprecationWarning if not using_copy_on_write else None
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
             super().test_fillna_copy_frame(data_missing)
 
     def test_fillna_copy_series(self, data_missing, using_copy_on_write):
-        warn = FutureWarning if not using_copy_on_write else None
+        warn = DeprecationWarning if not using_copy_on_write else None
         msg = "ExtensionArray.fillna added a 'copy' keyword"
         with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
             super().test_fillna_copy_series(data_missing)
@@ -215,12 +253,6 @@ class TestDecimalArray(base.ExtensionTests):
         ser = pd.Series(data)
         assert data.dtype.name in repr(ser)
         assert "Decimal: " in repr(ser)
-
-    @pytest.mark.xfail(
-        reason="Looks like the test (incorrectly) implicitly assumes int/bool dtype"
-    )
-    def test_invert(self, data):
-        super().test_invert(data)
 
     @pytest.mark.xfail(reason="Inconsistent array-vs-scalar behavior")
     @pytest.mark.parametrize("ufunc", [np.positive, np.negative, np.abs])
