@@ -436,7 +436,13 @@ class Apply(metaclass=abc.ABCMeta):
             Data for result. When aggregating with a Series, this can contain any
             Python object.
         """
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
+
         obj = self.obj
+        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
         func = cast(AggFuncTypeDict, self.func)
         func = self.normalize_dictlike_arg(op_name, selected_obj, func)
 
@@ -450,7 +456,7 @@ class Apply(metaclass=abc.ABCMeta):
             colg = obj._gotitem(selection, ndim=1)
             results = [getattr(colg, op_name)(how, **kwargs) for _, how in func.items()]
             keys = list(func.keys())
-        elif is_non_unique_col:
+        elif not is_groupby and is_non_unique_col:
             # key used for column selection and output
             # GH#51099
             results = []
