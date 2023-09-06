@@ -42,7 +42,7 @@
 ### Problem description
 The `dtype` and "Python type" are not explicitly taken into account in the current JSON interface.
     
-So, the JSON interface is not allways reversible and has inconsistencies related to the consideration of the `dtype`.
+So, the JSON interface is not always reversible and has inconsistencies related to the consideration of the `dtype`.
      
 Another consequence is the partial application of the Table Schema specification in the `orient="table"` option (6 Table Schema data types are taken into account out of the 24 defined).
     
