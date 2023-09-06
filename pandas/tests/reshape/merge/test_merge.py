@@ -582,11 +582,11 @@ class TestMerge:
         df_empty = df[:0]
         expected = DataFrame(
             {
-                "value_x": Series(dtype=df.dtypes["value"]),
                 "key": Series(dtype=df.dtypes["key"]),
+                "value_x": Series(dtype=df.dtypes["value"]),
                 "value_y": Series(dtype=df.dtypes["value"]),
             },
-            columns=["value_x", "key", "value_y"],
+            columns=["key", "value_x", "value_y"],
         )
         actual = df_empty.merge(df, on="key")
         tm.assert_frame_equal(actual, expected)
@@ -889,13 +889,13 @@ class TestMerge:
         result = left.merge(right, on="date")
         expected = DataFrame(
             {
+                "date": Series(dtype=dtz),
                 "value_x": Series(dtype=float),
                 "date2_x": Series(dtype=dtz),
-                "date": Series(dtype=dtz),
                 "value_y": Series(dtype=float),
                 "date2_y": Series(dtype=dtz),
             },
-            columns=["value_x", "date2_x", "date", "value_y", "date2_y"],
+            columns=["date", "value_x", "date2_x", "value_y", "date2_y"],
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1827,11 +1827,9 @@ class TestMergeDtypes:
         if exp == "left":
             expected = DataFrame({"A": [2, 1], "B": [3, 4], "C": [np.nan, np.nan]})
         elif exp == "right":
-            expected = DataFrame({"B": [np.nan], "A": [1], "C": [5]})
+            expected = DataFrame({"A": [1], "B": [np.nan], "C": [5]})
         elif exp == "empty":
             expected = DataFrame(columns=["A", "B", "C"], dtype="int64")
-            if left_empty:
-                expected = expected[["B", "A", "C"]]
         elif exp == "empty_cross":
             expected = DataFrame(columns=["A_x", "B", "A_y", "C"], dtype="int64")
 
@@ -2481,14 +2479,12 @@ def test_merge_multiindex_columns():
     result = frame_x.merge(frame_y, on="id", suffixes=((l_suf, r_suf)))
 
     # Constructing the expected results
-    expected_labels = [letter + l_suf for letter in letters] + [
-        letter + r_suf for letter in letters
-    ]
-    expected_index = MultiIndex.from_product(
-        [expected_labels, numbers], names=["outer", "inner"]
-    )
+    tuples = [(letter + l_suf, num) for letter in letters for num in numbers]
+    tuples += [("id", "")]
+    tuples += [(letter + r_suf, num) for letter in letters for num in numbers]
+
+    expected_index = MultiIndex.from_tuples(tuples, names=["outer", "inner"])
     expected = DataFrame(columns=expected_index)
-    expected["id"] = ""
 
     tm.assert_frame_equal(result, expected)
 
@@ -2958,4 +2954,27 @@ def test_merge_arrow_string_index(any_string_dtype):
     expected = DataFrame(
         {"a": Series(["a", "b"], dtype=any_string_dtype), "b": [1, np.nan]}
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("left_empty", [True, False])
+@pytest.mark.parametrize("right_empty", [True, False])
+def test_merge_empty_frames_column_order(left_empty, right_empty):
+    # GH 51929
+    df1 = DataFrame(1, index=[0], columns=["A", "B"])
+    df2 = DataFrame(1, index=[0], columns=["A", "C", "D"])
+
+    if left_empty:
+        df1 = df1.iloc[:0]
+    if right_empty:
+        df2 = df2.iloc[:0]
+
+    result = merge(df1, df2, on=["A"], how="outer")
+    expected = DataFrame(1, index=[0], columns=["A", "B", "C", "D"])
+    if left_empty and right_empty:
+        expected = expected.iloc[:0]
+    elif left_empty:
+        expected.loc[:, "B"] = np.nan
+    elif right_empty:
+        expected.loc[:, ["C", "D"]] = np.nan
     tm.assert_frame_equal(result, expected)
