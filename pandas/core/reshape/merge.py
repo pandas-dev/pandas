@@ -2421,7 +2421,8 @@ def _factorize_keys(
 
     elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
         if (isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype)) or (
-            isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
+            isinstance(lk.dtype, StringDtype)
+            and lk.dtype.storage in ["pyarrow", "pyarrow_numpy"]
         ):
             import pyarrow as pa
             import pyarrow.compute as pc
@@ -2437,8 +2438,12 @@ def _factorize_keys(
             length = len(dc.dictionary)
 
             llab, rlab, count = (
-                pc.fill_null(dc.indices[slice(len_lk)], length).to_numpy(),
-                pc.fill_null(dc.indices[slice(len_lk, None)], length).to_numpy(),
+                pc.fill_null(dc.indices[slice(len_lk)], length)
+                .to_numpy()
+                .astype(np.intp, copy=False),
+                pc.fill_null(dc.indices[slice(len_lk, None)], length)
+                .to_numpy()
+                .astype(np.intp, copy=False),
                 len(dc.dictionary),
             )
             if how == "right":
