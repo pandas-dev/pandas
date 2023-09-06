@@ -11793,15 +11793,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
         if fill_method is lib.no_default:
-            if self.isna().values.any():
-                warnings.warn(
-                    "The default fill_method='pad' in "
-                    f"{type(self).__name__}.pct_change is deprecated and will be "
-                    "removed in a future version. Call ffill before calling "
-                    "pct_change to retain current behavior and silence this warning.",
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+            cols = self.items() if self.ndim == 2 else [(None, self)]
+            for _, col in cols:
+                mask = col.isna().values
+                mask = mask[np.argmax(~mask) :]
+                if mask.any():
+                    warnings.warn(
+                        "The default fill_method='pad' in "
+                        f"{type(self).__name__}.pct_change is deprecated and will be "
+                        "removed in a future version. Call ffill before calling "
+                        "pct_change to retain current behavior and silence this "
+                        "warning.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    break
             fill_method = "pad"
         if limit is lib.no_default:
             limit = None
