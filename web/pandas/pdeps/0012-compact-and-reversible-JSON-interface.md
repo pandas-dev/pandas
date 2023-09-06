@@ -36,11 +36,12 @@
 ## Abstract
 
 ### Problem description
-The `dtype` is not explicitly taken into account in the current JSON interface.
-To work around this problem, a data schema (e.g. `TableSchema`) must be associated with the JSON file.
-
-Nevertheless, the current JSON interface is not reversible and has inconsistencies related to the consideration of the `dtype`.
-
+The `dtype` and "Python type" are not explicitly taken into account in the current JSON interface.
+    
+So, the current JSON interface is not allways reversible and has inconsistencies related to the consideration of the `dtype`.
+     
+Another consequence is the partial application of the TableSchema specification in the `orient="table"` option (6 data types are taken into account out of the 24 defined).
+    
 Some JSON-interface problems are detailed in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#1---Current-Json-interface)
 
 
@@ -184,7 +185,7 @@ The other NTV types are associated with `object` `dtype`.
 ### correspondence between TableSchema and pandas
 The TableSchema typing is carried by two attributes `format` and `type`.
 
-The table below shows the correspondence between TableSchema format / type and pandas dtype / NTVtype:
+The table below shows the correspondence between TableSchema format / type and pandas NTVtype / dtype:
 
 | **format / type**  | **NTV type / dtype** |
 |--------------------|----------------------|
