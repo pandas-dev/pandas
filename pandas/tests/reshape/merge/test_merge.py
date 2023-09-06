@@ -26,7 +26,6 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import (
     MergeError,
@@ -1842,7 +1841,7 @@ def left():
         {
             "X": Series(
                 np.random.default_rng(2).choice(["foo", "bar"], size=(10,))
-            ).astype(CDT(["foo", "bar"])),
+            ).astype(CategoricalDtype(["foo", "bar"])),
             "Y": np.random.default_rng(2).choice(["one", "two", "three"], size=(10,)),
         }
     )
@@ -1851,7 +1850,10 @@ def left():
 @pytest.fixture
 def right():
     return DataFrame(
-        {"X": Series(["foo", "bar"]).astype(CDT(["foo", "bar"])), "Z": [1, 2]}
+        {
+            "X": Series(["foo", "bar"]).astype(CategoricalDtype(["foo", "bar"])),
+            "Z": [1, 2],
+        }
     )
 
 
@@ -2002,8 +2004,8 @@ class TestMergeCategorical:
         "change",
         [
             lambda x: x,
-            lambda x: x.astype(CDT(["foo", "bar", "bah"])),
-            lambda x: x.astype(CDT(ordered=True)),
+            lambda x: x.astype(CategoricalDtype(["foo", "bar", "bah"])),
+            lambda x: x.astype(CategoricalDtype(ordered=True)),
         ],
     )
     def test_dtype_on_merged_different(self, change, join_type, left, right):
@@ -2110,11 +2112,13 @@ class TestMergeCategorical:
         # GH 17187
         # merging with a boolean/int categorical column
         df1 = DataFrame({"id": [1, 2, 3, 4], "cat": category_column})
-        df1["cat"] = df1["cat"].astype(CDT(categories, ordered=ordered))
+        df1["cat"] = df1["cat"].astype(CategoricalDtype(categories, ordered=ordered))
         df2 = DataFrame({"id": [2, 4], "num": [1, 9]})
         result = df1.merge(df2)
         expected = DataFrame({"id": [2, 4], "cat": expected_categories, "num": [1, 9]})
-        expected["cat"] = expected["cat"].astype(CDT(categories, ordered=ordered))
+        expected["cat"] = expected["cat"].astype(
+            CategoricalDtype(categories, ordered=ordered)
+        )
         tm.assert_frame_equal(expected, result)
 
     def test_merge_on_int_array(self):

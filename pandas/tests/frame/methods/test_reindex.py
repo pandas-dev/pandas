@@ -26,7 +26,7 @@ from pandas import (
     isna,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
+from pandas.api.types import CategoricalDtype
 
 
 class TestReindexSetIndex:
@@ -1082,7 +1082,9 @@ class TestDataFrameSelectReindex:
             {
                 "A": np.arange(3, dtype="int64"),
             },
-            index=CategoricalIndex(list("abc"), dtype=CDT(list("cabe")), name="B"),
+            index=CategoricalIndex(
+                list("abc"), dtype=CategoricalDtype(list("cabe")), name="B"
+            ),
         )
 
         # reindexing
@@ -1111,13 +1113,13 @@ class TestDataFrameSelectReindex:
 
         result = df.reindex(Categorical(["a", "e"], categories=cats))
         expected = DataFrame(
-            {"A": [0, np.nan], "B": Series(list("ae")).astype(CDT(cats))}
+            {"A": [0, np.nan], "B": Series(list("ae")).astype(CategoricalDtype(cats))}
         ).set_index("B")
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
         result = df.reindex(Categorical(["a"], categories=cats))
         expected = DataFrame(
-            {"A": [0], "B": Series(list("a")).astype(CDT(cats))}
+            {"A": [0], "B": Series(list("a")).astype(CategoricalDtype(cats))}
         ).set_index("B")
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
@@ -1138,13 +1140,19 @@ class TestDataFrameSelectReindex:
         # give back the type of categorical that we received
         result = df.reindex(Categorical(["a", "e"], categories=cats, ordered=True))
         expected = DataFrame(
-            {"A": [0, np.nan], "B": Series(list("ae")).astype(CDT(cats, ordered=True))}
+            {
+                "A": [0, np.nan],
+                "B": Series(list("ae")).astype(CategoricalDtype(cats, ordered=True)),
+            }
         ).set_index("B")
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
         result = df.reindex(Categorical(["a", "d"], categories=["a", "d"]))
         expected = DataFrame(
-            {"A": [0, np.nan], "B": Series(list("ad")).astype(CDT(["a", "d"]))}
+            {
+                "A": [0, np.nan],
+                "B": Series(list("ad")).astype(CategoricalDtype(["a", "d"])),
+            }
         ).set_index("B")
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
@@ -1152,7 +1160,9 @@ class TestDataFrameSelectReindex:
             {
                 "A": np.arange(6, dtype="int64"),
             },
-            index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cabe")), name="B"),
+            index=CategoricalIndex(
+                list("aabbca"), dtype=CategoricalDtype(list("cabe")), name="B"
+            ),
         )
         # passed duplicate indexers are not allowed
         msg = "cannot reindex on an axis with duplicate labels"
