@@ -168,11 +168,12 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
+- Bug in :class:`pandas.core.window.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
 - Bug in :meth:`DataFrameGroupBy.rolling.agg` where ``as_index`` is ignored with list-like and dictionary-like ``func`` parameters (:issue:`31007`)
 
 Categorical
 ^^^^^^^^^^^
--
+- :meth:`Categorical.isin` raising ``InvalidIndexError`` for categorical containing overlapping :class:`Interval` values (:issue:`34974`)
 -
 
 Datetimelike

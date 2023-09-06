@@ -12,7 +12,10 @@ from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
 )
-from pandas.core.arrays.string_arrow import ArrowStringArray
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringArrayNumpySemantics,
+)
 
 skip_if_no_pyarrow = pytest.mark.skipif(
     pa_version_under7p0,
@@ -165,6 +168,9 @@ def test_pyarrow_not_installed_raises():
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray([])
+
+    with pytest.raises(ImportError, match=msg):
+        ArrowStringArrayNumpySemantics([])
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray._from_sequence(["a", None, "b"])
