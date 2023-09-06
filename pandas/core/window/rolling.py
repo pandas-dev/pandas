@@ -34,7 +34,9 @@ from pandas.util._decorators import (
 from pandas.core.dtypes.common import (
     ensure_float64,
     is_bool,
+    is_dict_like,
     is_integer,
+    is_list_like,
     is_numeric_dtype,
     needs_i8_conversion,
 )
@@ -877,7 +879,7 @@ class BaseWindowGroupby(BaseWindow):
 
     def aggregate(self, func, *args, **kwargs):
         result = super().aggregate(func, *args, **kwargs)
-        if not self._as_index:
+        if not self._as_index and (is_list_like(func) or is_dict_like(func)):
             result = result.reset_index(level=list(range(len(self._grouper.names))))
         return result
 
