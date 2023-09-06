@@ -846,20 +846,10 @@ class TestRolling:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "func, by, expected_data",
+        "by, expected_data",
         [
+            [["id"], {"num": [100.0, 150.0, 150.0, 200.0]}],
             [
-                lambda x: x.agg({"num": "mean"}),
-                ["id"],
-                {"num": [100.0, 150.0, 150.0, 200.0]},
-            ],
-            [
-                lambda x: x.mean(),
-                ["id"],
-                {"num": [100.0, 150.0, 150.0, 200.0]},
-            ],
-            [
-                lambda x: x.mean(),
                 ["id", "index"],
                 {
                     "date": [
@@ -873,8 +863,8 @@ class TestRolling:
             ],
         ],
     )
-    def test_as_index_false(self, func, by, expected_data):
-        # GH 39433, 31007
+    def test_as_index_false(self, by, expected_data):
+        # GH 39433
         data = [
             ["A", "2018-01-01", 100.0],
             ["A", "2018-01-02", 200.0],
@@ -886,8 +876,8 @@ class TestRolling:
         df = df.set_index(["date"])
 
         gp_by = [getattr(df, attr) for attr in by]
-        result = func(
-            df.groupby(gp_by, as_index=False).rolling(window=2, min_periods=1)
+        result = (
+            df.groupby(gp_by, as_index=False).rolling(window=2, min_periods=1).mean()
         )
 
         expected = {"id": ["A", "A", "B", "B"]}
@@ -895,6 +885,42 @@ class TestRolling:
         expected = DataFrame(
             expected,
             index=df.index,
+        )
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "f", ["mean", lambda x: x.mean(), {"agg_col": "mean"}, ["mean"]]
+    )
+    def test_aggregate_as_index_false(self, f):
+        # GH 31007
+        index = date_range(end="2020-01-01", periods=10)
+        groupby_col = ["A", "A", "A", "A", "A", "B", "B", "B", "B", "B"]
+        df = DataFrame(
+            {"groupby_col": groupby_col, "agg_col": [1, 1, 0, 1, 0, 0, 0, 0, 1, 0]},
+            index=index,
+        )
+
+        result = df.groupby("groupby_col", as_index=False).rolling(4).agg(f)
+        if isinstance(f, list):
+            result.columns = result.columns.get_level_values(0)
+
+        expected = DataFrame(
+            {
+                "groupby_col": groupby_col,
+                "agg_col": [
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    0.75,
+                    0.5,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    0.25,
+                    0.25,
+                ],
+            },
+            index=index,
         )
         tm.assert_frame_equal(result, expected)
 
