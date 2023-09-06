@@ -11793,7 +11793,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 stacklevel=find_stack_level(),
             )
         if fill_method is lib.no_default:
-            for _, col in self.items():
+            cols = self.items() if self.ndim == 2 else [(None, self)]
+            for _, col in cols:
                 mask = col.isna().values
                 mask = mask[np.argmax(~mask) :]
                 if mask.any():
