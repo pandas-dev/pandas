@@ -445,7 +445,6 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | BitmaskArray | None =
     else:
         uniques, mask = table.unique(values, mask=mask)
         uniques = _reconstruct_data(uniques, original.dtype, original)
-
         assert mask is not None  # for mypy
         return uniques, mask
 
