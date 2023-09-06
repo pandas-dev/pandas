@@ -6,8 +6,8 @@ Comparison with R / R libraries
 *******************************
 
 Since pandas aims to provide a lot of the data manipulation and analysis
-functionality that people use `R <https://www.r-project.org/>`__ for, this page
-was started to provide a more detailed look at the `R language
+functionality that people use `R <https://www.r-project.org/>`__ for Data analysis and statistics, this page
+was started to provide a more detailed look at the `R language 
 <https://en.wikipedia.org/wiki/R_(programming_language)>`__ and its many third
 party libraries as they relate to pandas. In comparisons with R and CRAN
 libraries, we care about the following things:
