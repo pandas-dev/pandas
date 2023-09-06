@@ -1928,7 +1928,7 @@ def test_pivot_table_values_key_error():
     df = DataFrame(
         {
             "eventDate": date_range(datetime.today(), periods=20, freq="M").tolist(),
-            "thename": range(0, 20),
+            "thename": range(20),
         }
     )
 
@@ -3187,6 +3187,14 @@ def test_depr_get_group_len_1_list_likes(test_series, kwarg, value, name, warn):
     else:
         expected = DataFrame({"b": [3, 4]}, index=Index([1, 1], name="a"))
     tm.assert_equal(result, expected)
+
+
+def test_groupby_ngroup_with_nan():
+    # GH#50100
+    df = DataFrame({"a": Categorical([np.nan]), "b": [1]})
+    result = df.groupby(["a", "b"], dropna=False, observed=False).ngroup()
+    expected = Series([0])
+    tm.assert_series_equal(result, expected)
 
 
 def test_get_group_axis_1():

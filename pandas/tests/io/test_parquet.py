@@ -1012,7 +1012,7 @@ class TestParquetPyArrow(Base):
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
         pytest.importorskip("pyarrow")
-        df = pd.DataFrame({"a": list(range(0, 3))})
+        df = pd.DataFrame({"a": list(range(3))})
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine=pa)
             result = read_parquet(
@@ -1219,7 +1219,7 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp)
 
     def test_filter_row_groups(self, fp):
-        d = {"a": list(range(0, 3))}
+        d = {"a": list(range(3))}
         df = pd.DataFrame(d)
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine=fp, compression=None, row_group_offsets=1)
