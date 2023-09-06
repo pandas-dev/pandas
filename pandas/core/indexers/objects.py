@@ -208,9 +208,7 @@ class VariableOffsetWindowIndexer(BaseIndexer):
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         if step is not None:
-            raise NotImplementedError(
-                "step is not supported with variable offset window"
-            )
+            raise NotImplementedError("step not implemented for variable offset window")
         if num_values <= 0:
             return np.empty(0, dtype="int64"), np.empty(0, dtype="int64")
 

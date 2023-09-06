@@ -99,7 +99,9 @@ def test_freq_window_not_implemented(window):
         np.arange(10),
         index=date_range("2015-12-24", periods=10, freq="D"),
     )
-    with pytest.raises(NotImplementedError, match="^step is not supported with"):
+    with pytest.raises(
+        NotImplementedError, match="^step (not implemented|is not supported)"
+    ):
         df.rolling(window, step=3).sum()
 
 
