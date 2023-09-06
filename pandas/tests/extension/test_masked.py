@@ -361,15 +361,6 @@ class TestMaskedArrays(base.ExtensionTests):
         else:
             raise NotImplementedError(f"{op_name} not supported")
 
-    def test_invert(self, data, request):
-        if data.dtype.kind == "f":
-            mark = pytest.mark.xfail(
-                reason="Looks like the base class test implicitly assumes "
-                "boolean/integer dtypes"
-            )
-            request.node.add_marker(mark)
-        super().test_invert(data)
-
 
 class Test2DCompat(base.Dim2CompatTests):
     pass
