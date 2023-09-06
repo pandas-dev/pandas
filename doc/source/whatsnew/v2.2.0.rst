@@ -207,7 +207,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- Bug in :class:`Interval` ``__repr__`` not displaying UTC offsets for :class:`Timestamp` bounds (:issue:`55015`)
 -
 
 Indexing
