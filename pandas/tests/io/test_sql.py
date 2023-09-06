@@ -1594,6 +1594,12 @@ def test_api_to_sql_index_label(conn, request, index_name, index_label, expected
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_to_sql_index_label_multiindex(conn, request):
+    conn_name = conn
+    if "mysql" in conn_name:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="MySQL can fail using TEXT without length as key")
+        )
+
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_index_label", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
