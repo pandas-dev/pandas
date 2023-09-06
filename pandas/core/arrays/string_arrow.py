@@ -15,7 +15,10 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas.compat import pa_version_under7p0
+from pandas.compat import (
+    pa_version_under7p0,
+    pa_version_under13p0,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -444,6 +447,20 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.utf8_rtrim_whitespace(self._pa_array)
         else:
             result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
+        return type(self)(result)
+
+    def _str_removeprefix(self, prefix: str):
+        if not pa_version_under13p0:
+            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
+            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
+            result = pc.if_else(starts_with, removed, self._pa_array)
+            return type(self)(result)
+        return super()._str_removeprefix(prefix)
+
+    def _str_removesuffix(self, suffix: str):
+        ends_with = pc.ends_with(self._pa_array, pattern=suffix)
+        removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
+        result = pc.if_else(ends_with, removed, self._pa_array)
         return type(self)(result)
 
     def _str_count(self, pat: str, flags: int = 0):
