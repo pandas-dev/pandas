@@ -2,7 +2,7 @@
 
 - Created: 16 June 2023
 - Status: Under discussion
-- Discussion: 
+- Discussion:
     [#53252](https://github.com/pandas-dev/pandas/issues/53252)
     [#55038](https://github.com/pandas-dev/pandas/issues/55038)
 - Author: [Philippe THOMY](https://github.com/loco-philippe)
@@ -41,11 +41,11 @@
 
 ### Problem description
 The `dtype` and "Python type" are not explicitly taken into account in the current JSON interface.
-    
+
 So, the JSON interface is not always reversible and has inconsistencies related to the consideration of the `dtype`.
-     
+
 Another consequence is the partial application of the Table Schema specification in the `orient="table"` option (6 Table Schema data types are taken into account out of the 24 defined).
-    
+
 Some JSON-interface problems are detailed in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#1---Current-Json-interface)
 
 
@@ -58,7 +58,9 @@ This solution allows to include a large number of types (not necessarily pandas 
 
 #### Global JSON interface example
 In the example below, a DataFrame with several data types is converted to JSON.
+
 The DataFrame resulting from this JSON is identical to the initial DataFrame (reversibility).
+
 With the existing JSON interface, this conversion is not possible.
 
 *data example*
@@ -117,7 +119,9 @@ Several other examples are provided in the [linked NoteBook](https://nbviewer.or
 
 #### Table Schema JSON interface example
 In the example below, a DataFrame with several Table Schema data types is converted to JSON.
+
 The DataFrame resulting from this JSON is identical to the initial DataFrame (reversibility).
+
 With the existing Table Schema JSON interface, this conversion is not possible.
 
 ```python
@@ -254,7 +258,7 @@ Note:
 - the first six lines correspond to the existing
 
 ### JSON format
-The JSON format for the TableSchema interface is the existing.    
+The JSON format for the TableSchema interface is the existing.
 
 The JSON format for the Global interface is defined in [JSON-TAB](https://github.com/loco-philippe/NTV/blob/main/documentation/JSON-TAB-standard.pdf) specification.
 It includes the naming rules originally defined in the [JSON-ND project](https://github.com/glenkleidon/JSON-ND) and support for categorical data.
