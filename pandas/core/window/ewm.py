@@ -887,7 +887,11 @@ class ExponentialMovingWindow(BaseWindow):
         )
 
 
-class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow):
+# error: Definition of "agg" in base class "BaseWindowGroupby" is
+# incompatible with definition in base class "ExponentialMovingWindow"
+class ExponentialMovingWindowGroupby(
+    BaseWindowGroupby, ExponentialMovingWindow
+):  # type: ignore[misc]
     """
     Provide an exponential moving window groupby implementation.
     """
@@ -918,12 +922,6 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
             window_indexer=ExponentialMovingWindowIndexer,
         )
         return window_indexer
-
-    @doc(_shared_docs["aggregate"])
-    def aggregate(self, func, *args, **kwargs):
-        return super().aggregate(func, *args, **kwargs)
-
-    agg = aggregate
 
 
 class OnlineExponentialMovingWindow(ExponentialMovingWindow):

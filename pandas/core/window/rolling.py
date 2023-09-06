@@ -2860,7 +2860,9 @@ class Rolling(RollingAndExpandingMixin):
 Rolling.__doc__ = Window.__doc__
 
 
-class RollingGroupby(BaseWindowGroupby, Rolling):
+# error: Definition of "agg" in base class "BaseWindowGroupby" is
+# incompatible with definition in base class "Rolling"
+class RollingGroupby(BaseWindowGroupby, Rolling):  # type: ignore[misc]
     """
     Provide a rolling groupby implementation.
     """
@@ -2919,9 +2921,3 @@ class RollingGroupby(BaseWindowGroupby, Rolling):
                     f"Each group within {on} must be monotonic. "
                     f"Sort the values in {on} first."
                 )
-
-    @doc(_shared_docs["aggregate"])
-    def aggregate(self, func, *args, **kwargs):
-        return super().aggregate(func, *args, **kwargs)
-
-    agg = aggregate

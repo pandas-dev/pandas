@@ -942,7 +942,9 @@ class Expanding(RollingAndExpandingMixin):
         )
 
 
-class ExpandingGroupby(BaseWindowGroupby, Expanding):
+# error: Definition of "agg" in base class "BaseWindowGroupby" is
+# incompatible with definition in base class "Expanding"
+class ExpandingGroupby(BaseWindowGroupby, Expanding):  # type: ignore[misc]
     """
     Provide a expanding groupby implementation.
     """
@@ -962,9 +964,3 @@ class ExpandingGroupby(BaseWindowGroupby, Expanding):
             window_indexer=ExpandingIndexer,
         )
         return window_indexer
-
-    @doc(_shared_docs["aggregate"])
-    def aggregate(self, func, *args, **kwargs):
-        return super().aggregate(func, *args, **kwargs)
-
-    agg = aggregate
