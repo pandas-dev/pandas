@@ -29,6 +29,7 @@ from cpython.object cimport (
 )
 from cpython.ref cimport Py_INCREF
 from cpython.sequence cimport PySequence_Check
+from cpython.slice cimport PySlice_Unpack
 from cpython.tuple cimport (
     PyTuple_New,
     PyTuple_SET_ITEM,
@@ -71,6 +72,7 @@ cdef extern from "Python.h":
     # Note: importing extern-style allows us to declare these as nogil
     # functions, whereas `from cpython cimport` does not.
     bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
+    cdef Py_ssize_t PY_SSIZE_T_MAX
 
 cdef extern from "numpy/arrayobject.h":
     # cython's numpy.dtype specification is incorrect, which leads to
@@ -1247,6 +1249,23 @@ def is_pyarrow_array(obj):
     """
     if PYARROW_INSTALLED:
         return isinstance(obj, (pa.Array, pa.ChunkedArray))
+    return False
+
+
+def is_null_slice(obj):
+    """
+    Return True if given object
+    """
+    cdef Py_ssize_t start, stop, step
+    if isinstance(obj, slice):
+        try:
+            PySlice_Unpack(obj, &start, &stop, &step)
+        except TypeError:
+            return False
+
+        if start == 0 and stop == PY_SSIZE_T_MAX and step == 1:
+            return True
+
     return False
 
 
