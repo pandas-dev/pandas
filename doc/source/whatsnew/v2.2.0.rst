@@ -246,7 +246,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
--
+- Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
 -
 
 Sparse
