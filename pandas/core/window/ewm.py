@@ -889,9 +889,9 @@ class ExponentialMovingWindow(BaseWindow):
 
 # error: Definition of "agg" in base class "BaseWindowGroupby" is
 # incompatible with definition in base class "ExponentialMovingWindow"
-class ExponentialMovingWindowGroupby(
+class ExponentialMovingWindowGroupby(  # type: ignore[misc]
     BaseWindowGroupby, ExponentialMovingWindow
-):  # type: ignore[misc]
+):
     """
     Provide an exponential moving window groupby implementation.
     """
