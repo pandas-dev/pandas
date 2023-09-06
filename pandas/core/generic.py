@@ -5701,10 +5701,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         if items is not None:
             name = self._get_axis_name(axis)
+            items = Index(items).intersection(labels)
+            if len(items) == 0:
+                # Keep the dtype of labels when we are empty
+                items = items.astype(labels.dtype)
             # error: Keywords must be strings
-            return self.reindex(  # type: ignore[misc]
-                **{name: labels.intersection(items)}
-            )
+            return self.reindex(**{name: items})  # type: ignore[misc]
         elif like:
 
             def f(x) -> bool_t:
