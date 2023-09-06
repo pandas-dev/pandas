@@ -93,6 +93,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.api.extensions import ExtensionArray
+
 
 class BaseBlockManager(DataManager):
     """
@@ -1048,7 +1050,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         value: ArrayLike,
         inplace: bool = False,
         refs: BlockValuesRefs | None = None,
-    ):
+    ) -> None:
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -1872,7 +1874,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         # compatibility with 0.13.1.
         return axes_array, block_values, block_items, extra_state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         def unpickle_block(values, mgr_locs, ndim: int) -> Block:
             # TODO(EA2D): ndim would be unnecessary with 2D EAs
             # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
@@ -1961,7 +1963,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """The array that Series._values returns"""
         return self._block.values
 
-    def array_values(self):
+    def array_values(self) -> ExtensionArray:
         """The array that Series.array returns"""
         return self._block.array_values
 
