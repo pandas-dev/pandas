@@ -1017,8 +1017,10 @@ class TestArrowArray(base.ExtensionTests):
             # raises=pa.ArrowInvalid,
             reason="ArrowArray.round converts dtype to double",
         )
-        if pa.types.is_float32(data.dtype.pyarrow_dtype) or pa.types.is_float64(
-            data.dtype.pyarrow_dtype
+        if (
+            pa.types.is_float32(data.dtype.pyarrow_dtype)
+            or pa.types.is_float64(data.dtype.pyarrow_dtype)
+            or pa.types.is_decimal(data.dtype.pyarrow_dtype)
         ):
             mark = None
         if mark is not None:

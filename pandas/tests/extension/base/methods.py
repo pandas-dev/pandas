@@ -700,11 +700,11 @@ class BaseMethodsTests:
         assert pd.Series(data).equals(pd.Series(data))
 
     def test_round(self, data):
-        if not data.dtype._is_numeric:
-            pytest.skip("Round is only valid for numeric dtypes")
+        if not data.dtype._is_numeric or data.dtype._is_boolean:
+            pytest.skip("Round is only valid for numeric non-boolean dtypes")
         result = pd.Series(data).round()
         expected = pd.Series(
-            [np.round(element) if pd.notna(element) else element for element in data],
+            [round(element) if pd.notna(element) else element for element in data],
             dtype=data.dtype,
         )
         tm.assert_series_equal(result, expected)

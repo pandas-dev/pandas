@@ -89,10 +89,6 @@ class TestIntervalArray(base.ExtensionTests):
         with pytest.raises(NotImplementedError, match=expected_msg):
             super().test_EA_types(engine, data)
 
-    @pytest.mark.xfail(reason="Round is not valid for IntervalArray.")
-    def test_round(self, data):
-        super().test_round(data)
-
 
 # TODO: either belongs in tests.arrays.interval or move into base tests.
 def test_fillna_non_scalar_raises(data_missing):
