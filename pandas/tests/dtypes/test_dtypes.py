@@ -432,12 +432,12 @@ class TestPeriodDtype(Base):
             assert dt.freq == pd.tseries.offsets.Day(3)
 
         for s in [
-            "period[26H]",
-            "Period[26H]",
-            "26H",
-            "period[1D2H]",
-            "Period[1D2H]",
-            "1D2H",
+            "period[26h]",
+            "Period[26h]",
+            "26h",
+            "period[1D2h]",
+            "Period[1D2h]",
+            "1D2h",
         ]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Hour(26)

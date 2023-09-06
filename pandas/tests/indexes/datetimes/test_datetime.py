@@ -94,7 +94,7 @@ class TestDatetimeIndex:
 
     def test_iteration_preserves_tz(self):
         # see gh-8890
-        index = date_range("2012-01-01", periods=3, freq="H", tz="US/Eastern")
+        index = date_range("2012-01-01", periods=3, freq="h", tz="US/Eastern")
 
         for i, ts in enumerate(index):
             result = ts
@@ -102,7 +102,7 @@ class TestDatetimeIndex:
             assert result == expected
 
         index = date_range(
-            "2012-01-01", periods=3, freq="H", tz=dateutil.tz.tzoffset(None, -28800)
+            "2012-01-01", periods=3, freq="h", tz=dateutil.tz.tzoffset(None, -28800)
         )
 
         for i, ts in enumerate(index):

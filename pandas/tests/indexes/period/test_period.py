@@ -161,7 +161,7 @@ class TestPeriodIndex:
             period_range(freq="Q", start="1/1/2001", end="12/1/2002"),
             period_range(freq="M", start="1/1/2001", end="1/1/2002"),
             period_range(freq="D", start="12/1/2001", end="6/1/2001"),
-            period_range(freq="H", start="12/31/2001", end="1/1/2002 23:00"),
+            period_range(freq="h", start="12/31/2001", end="1/1/2002 23:00"),
             period_range(freq="Min", start="12/31/2001", end="1/1/2002 00:20"),
             period_range(
                 freq="s", start="12/31/2001 00:00:00", end="12/31/2001 00:05:00"
@@ -255,7 +255,7 @@ class TestPeriodIndex:
 
     def test_with_multi_index(self):
         # #1705
-        index = date_range("1/1/2012", periods=4, freq="12H")
+        index = date_range("1/1/2012", periods=4, freq="12h")
         index_as_arrays = [index.to_period(freq="D"), index.hour]
 
         s = Series([0, 1, 2, 3], index_as_arrays)

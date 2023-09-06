@@ -314,7 +314,7 @@ def test_array_multiindex_raises():
         ),
         # Timedelta
         (
-            TimedeltaArray(np.array([0, 3600000000000], dtype="i8"), freq="H"),
+            TimedeltaArray(np.array([0, 3600000000000], dtype="i8"), freq="h"),
             np.array([0, 3600000000000], dtype="m8[ns]"),
         ),
         # GH#26406 tz is preserved in Categorical[dt64tz]
