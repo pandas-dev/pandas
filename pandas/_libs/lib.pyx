@@ -1253,9 +1253,6 @@ def is_pyarrow_array(obj):
 
 
 def is_null_slice(obj):
-    """
-    Return True if given object
-    """
     cdef Py_ssize_t start, stop, step
     if isinstance(obj, slice):
         try:

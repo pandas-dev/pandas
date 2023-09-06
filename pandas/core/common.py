@@ -307,7 +307,7 @@ def is_null_slice(obj) -> bool:
     """
     We have a null slice.
     """
-    lib.is_null_slice(obj)
+    return lib.is_null_slice(obj)
 
 
 def is_empty_slice(obj) -> bool:
