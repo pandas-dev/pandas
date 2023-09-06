@@ -2,56 +2,61 @@
 
 - Created: 16 June 2023
 - Status: Under discussion
-- Discussion: [#53252](https://github.com/pandas-dev/pandas/issues/53252)
+- Discussion: 
+    [#53252](https://github.com/pandas-dev/pandas/issues/53252)
+    [#55038](https://github.com/pandas-dev/pandas/issues/55038)
 - Author: [Philippe THOMY](https://github.com/loco-philippe)
-- Revision: 1
+- Revision: 2
 
 
 #### Summary
-- [Abstract](./pandas_PDEP.md/#Abstract)
-    - [Problem description](./pandas_PDEP.md/#Problem-description)
-    - [Feature Description](./pandas_PDEP.md/#Feature-Description)
-- [Scope](./pandas_PDEP.md/#Scope)
-- [Motivation](./pandas_PDEP.md/#Motivation)
-    - [Why is it important to have a compact and reversible JSON interface ?](./pandas_PDEP.md/#Why-is-it-important-to-have-a-compact-and-reversible-JSON-interface-?)
-    - [Is it relevant to take an extended type into account ?](./pandas_PDEP.md/#Is-it-relevant-to-take-an-extended-type-into-account-?)
-    - [Is this only useful for pandas ?](./pandas_PDEP.md/#Is-this-only-useful-for-pandas-?)
-- [Description](./pandas_PDEP.md/#Description)
-    - [data typing](./pandas_PDEP.md/#Data-typing)
-    - [JSON format](./pandas_PDEP.md/#JSON-format)
-    - [Conversion](./pandas_PDEP.md/#Conversion)
-- [Usage and impact](./pandas_PDEP.md/#Usage-and-impact)
-    - [Usage](./pandas_PDEP.md/#Usage)
-    - [Compatibility](./pandas_PDEP.md/#Compatibility)
-    - [Impacts on the pandas framework](./pandas_PDEP.md/#Impacts-on-the-pandas-framework)
-    - [Risk to do / risk not to do](./pandas_PDEP.md/#Risk-to-do-/-risk-not-to-do)
-- [Implementation](./pandas_PDEP.md/#Implementation)
-    - [Modules](./pandas_PDEP.md/#Modules)
-    - [Implementation options](./pandas_PDEP.md/#Implementation-options)
-- [F.A.Q.](./pandas_PDEP.md/#F.A.Q.)
-- [Core team decision](./pandas_PDEP.md/#Core-team-decision)
-- [Timeline](./pandas_PDEP.md/#Timeline)
-- [PDEP history](./pandas_PDEP.md/#PDEP-history)
+- [Abstract](./0012-compact-and-reversible-JSON-interface.md/#Abstract)
+    - [Problem description](./0012-compact-and-reversible-JSON-interface.md/#Problem-description)
+    - [Feature Description](./0012-compact-and-reversible-JSON-interface.md/#Feature-Description)
+- [Scope](./0012-compact-and-reversible-JSON-interface.md/#Scope)
+- [Motivation](./0012-compact-and-reversible-JSON-interface.md/#Motivation)
+    - [Why is it important to have a compact and reversible JSON interface ?](./0012-compact-and-reversible-JSON-interface.md/#Why-is-it-important-to-have-a-compact-and-reversible-JSON-interface-?)
+    - [Is it relevant to take an extended type into account ?](./0012-compact-and-reversible-JSON-interface.md/#Is-it-relevant-to-take-an-extended-type-into-account-?)
+    - [Is this only useful for pandas ?](./0012-compact-and-reversible-JSON-interface.md/#Is-this-only-useful-for-pandas-?)
+- [Description](./0012-compact-and-reversible-JSON-interface.md/#Description)
+    - [Data typing](./0012-compact-and-reversible-JSON-interface.md/#Data-typing)
+    - [Correspondence between TableSchema and pandas](./panda0012-compact-and-reversible-JSON-interfaces_PDEP.md/#Correspondence-between-TableSchema-and-pandas)
+    - [JSON format](./0012-compact-and-reversible-JSON-interface.md/#JSON-format)
+    - [Conversion](./0012-compact-and-reversible-JSON-interface.md/#Conversion)
+- [Usage and impact](./0012-compact-and-reversible-JSON-interface.md/#Usage-and-impact)
+    - [Usage](./0012-compact-and-reversible-JSON-interface.md/#Usage)
+    - [Compatibility](./0012-compact-and-reversible-JSON-interface.md/#Compatibility)
+    - [Impacts on the pandas framework](./0012-compact-and-reversible-JSON-interface.md/#Impacts-on-the-pandas-framework)
+    - [Risk to do / risk not to do](./0012-compact-and-reversible-JSON-interface.md/#Risk-to-do-/-risk-not-to-do)
+- [Implementation](./0012-compact-and-reversible-JSON-interface.md/#Implementation)
+    - [Modules](./0012-compact-and-reversible-JSON-interface.md/#Modules)
+    - [Implementation options](./0012-compact-and-reversible-JSON-interface.md/#Implementation-options)
+- [F.A.Q.](./0012-compact-and-reversible-JSON-interface.md/#F.A.Q.)
+- [Synthesis](./0012-compact-and-reversible-JSON-interface.md/Synthesis)
+- [Core team decision](./0012-compact-and-reversible-JSON-interface.md/#Core-team-decision)
+- [Timeline](./0012-compact-and-reversible-JSON-interface.md/#Timeline)
+- [PDEP history](./0012-compact-and-reversible-JSON-interface.md/#PDEP-history)
 -------------------------
 ## Abstract
 
 ### Problem description
 The `dtype` and "Python type" are not explicitly taken into account in the current JSON interface.
     
-So, the current JSON interface is not allways reversible and has inconsistencies related to the consideration of the `dtype`.
+So, the JSON interface is not allways reversible and has inconsistencies related to the consideration of the `dtype`.
      
-Another consequence is the partial application of the TableSchema specification in the `orient="table"` option (6 data types are taken into account out of the 24 defined).
+Another consequence is the partial application of the Table Schema specification in the `orient="table"` option (6 Table Schema data types are taken into account out of the 24 defined).
     
 Some JSON-interface problems are detailed in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#1---Current-Json-interface)
 
 
 ### Feature Description
-To have a simple, compact and reversible solution, I propose to use the [JSON-NTV format (Named and Typed Value)](https://github.com/loco-philippe/NTV#readme) - which integrates the notion of type - and its JSON-TAB variation for tabular data.
+To have a simple, compact and reversible solution, I propose to use the [JSON-NTV format (Named and Typed Value)](https://github.com/loco-philippe/NTV#readme) - which integrates the notion of type - and its JSON-TAB variation for tabular data (the JSON-NTV format is defined in an [IETF Internet-Draft](https://datatracker.ietf.org/doc/draft-thomy-json-ntv/) (not yet an RFC !!) ).
 
 This solution allows to include a large number of types (not necessarily pandas `dtype`) which allows to have:
-- a JSON `orient="table"` interface which respects the Table Schema specification (going from 5 types to 20 types),
-- a JSON interface for all pandas data formats.
+- a Table Schema JSON interface (`orient="table"`) which respects the Table Schema specification (going from 6 types to 20 types),
+- a global JSON interface for all pandas data formats.
 
+#### Global JSON interface example
 In the example below, a DataFrame with several data types is converted to JSON.
 The DataFrame resulting from this JSON is identical to the initial DataFrame (reversibility).
 With the existing JSON interface, this conversion is not possible.
@@ -100,7 +105,6 @@ Out[5]:
                   'value32::int32': [12, 12, 22, 22, 32, 32]}}
 ```
 
-
 *Reversibility*
 
 ```python
@@ -111,6 +115,44 @@ Out[5]: df created from JSON is equal to initial df ?  True
 ```
 Several other examples are provided in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#2---Series)
 
+#### Table Schema JSON interface example
+In the example below, a DataFrame with several Table Schema data types is converted to JSON.
+The DataFrame resulting from this JSON is identical to the initial DataFrame (reversibility).
+With the existing Table Schema JSON interface, this conversion is not possible.
+
+```python
+In [1]: from shapely.geometry import Point
+        from datetime import date
+
+In [2]: df = pd.DataFrame({
+            'end february::date': ['date(2023,2,28)', 'date(2024,2,29)', 'date(2025,2,28)'],
+            'coordinates::point': ['Point([2.3, 48.9])', 'Point([5.4, 43.3])', 'Point([4.9, 45.8])'],
+            'contact::email':     ['john.doe@table.com', 'lisa.minelli@schema.com', 'walter.white@breaking.com']
+            })
+
+In [3]: df
+Out[3]:
+        end february::date coordinates::point             contact::email
+        0         2023-02-28   POINT (2.3 48.9)         john.doe@table.com
+        1         2024-02-29   POINT (5.4 43.3)    lisa.minelli@schema.com
+        2         2025-02-28   POINT (4.9 45.8)  walter.white@breaking.com
+```
+
+*JSON representation*
+
+```python
+In [4]: pprint(df.to_json(orient='table'), compact=True, width=140, sort_dicts=False)
+Out[4]:
+        {'schema': {'fields': [{'name': 'index', 'type': 'integer'},
+                               {'name': 'end february', 'type': 'date'},
+                               {'name': 'coordinates', 'type': 'geopoint', 'format': 'array'},
+                               {'name': 'contact', 'type': 'string', 'format': 'email'}],
+                    'primaryKey': ['index'],
+                    'pandas_version': '1.4.0'},
+         'data': [{'index': 0, 'end february': '2023-02-28', 'coordinates': [2.3, 48.9], 'contact': 'john.doe@table.com'},
+                  {'index': 1, 'end february': '2024-02-29', 'coordinates': [5.4, 43.3], 'contact': 'lisa.minelli@schema.com'},
+                  {'index': 2, 'end february': '2025-02-28', 'coordinates': [4.9, 45.8], 'contact': 'walter.white@breaking.com'}]}
+```
 ## Scope
 The objective is to make available the proposed JSON interface for any type of data and for `orient="table"` option.
 
@@ -129,6 +171,7 @@ The proposed interface is compatible with existing data.
 ### Is it relevant to take an extended type into account ?
 - it avoids the addition of an additional data schema
 - it increases the semantic scope of the data processed by pandas
+- it is an answer to several issues (e.g.  #12997, #14358, #16492, #35420, #35464, #36211, #39537, #49585, #50782, #51375, #52595, #53252)
 - the use of a complementary type avoids having to modify the pandas data model
 
 ### Is this only useful for pandas ?
@@ -182,7 +225,7 @@ Note:
 
 The other NTV types are associated with `object` `dtype`.
 
-### correspondence between TableSchema and pandas
+### Correspondence between TableSchema and pandas
 The TableSchema typing is carried by two attributes `format` and `type`.
 
 The table below shows the correspondence between TableSchema format / type and pandas NTVtype / dtype:
@@ -208,9 +251,12 @@ The table below shows the correspondence between TableSchema format / type and p
 
 Note:
 - other TableSchema format are defined and are to be studied (uuid, binary, topojson, specific format for geopoint and datation)
+- the first six lines correspond to the existing
 
 ### JSON format
-The JSON format is defined in [JSON-TAB](https://github.com/loco-philippe/NTV/blob/main/documentation/JSON-TAB-standard.pdf) specification.
+The JSON format for the TableSchema interface is the existing.    
+
+The JSON format for the Global interface is defined in [JSON-TAB](https://github.com/loco-philippe/NTV/blob/main/documentation/JSON-TAB-standard.pdf) specification.
 It includes the naming rules originally defined in the [JSON-ND project](https://github.com/glenkleidon/JSON-ND) and support for categorical data.
 The specification have to be updated to include sparse data.
 
@@ -221,11 +267,11 @@ Otherwise, NTV conversion is used.
 #### pandas -> JSON
 - `NTV type` is not defined : use `to_json()`
 - `NTV type` is defined and `dtype` is not `object` : use `to_json()`
-- `NTV type` is defined and `dtype` is `object` : use NTV conversion
+- `NTV type` is defined and `dtype` is `object` : use NTV conversion (if pandas conversion does not exist)
 
 #### JSON -> pandas
 - `NTV type` is compatible with a `dtype` : use `read_json()`
-- `NTV type` is not compatible with a `dtype` : use NTV conversion
+- `NTV type` is not compatible with a `dtype` : use NTV conversion (if pandas conversion does not exist)
 
 ## Usage and Impact
 
@@ -236,6 +282,8 @@ It seems to me that this proposal responds to important issues:
     The alternative CSV format is not reversible and obsolete (last revision in 2005). Current CSV tools do not comply with the standard.
 
 - taking into account "semantic" data in pandas objects
+
+- having a complete Table Schema interface
 
 ### Compatibility
 Interface can be used without NTV type (compatibility with existing data - [see examples](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#4---Appendix-:-Series-tests))
@@ -305,7 +353,7 @@ Several pandas implementations are possible:
 
 But this is very limited (see examples added in the [Notebook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb)) :
 - **Types and Json interface**
-    - the only way to keep the types in the json interface is to use the orient='table' option
+    - the only way to keep the types in the json interface is to use the `orient='table'` option
     - few dtypes are not allowed in json-table interface : period, timedelta64, interval
     - allowed types are not always kept in json-table interface
     - data with 'object' dtype is kept only id data is string
@@ -324,7 +372,7 @@ The current interface is not compatible with the data structure defined by table
 **Q: In general, we should only have 1 `"table"` format for pandas in read_json/to_json. There is also the issue of backwards compatibility if we do change the format. The fact that the table interface is buggy is not a reason to add a new interface (I'd rather fix those bugs). Can the existing format be adapted in a way that fixes the type issues/issues with roundtripping?**
 
 **A**: I will add two additional remarks:
-- the types defined in Tableschema are partially (only 5 out of 20) taken into account (examples of types not taken into account in the interface: string-uri, array, date, time, year, geopoint):
+- the types defined in Tableschema are partially taken into account (examples of types not taken into account in the interface: string-uri, array, date, time, year, geopoint, string-email):
 - the `read_json()` interface works too with the following data: `{'simple': [1,2,3] }` (contrary to what is indicated in the documentation) but it is impossible with `to_json()` to recreate this simple json.
 
 I think that the problem cannot be limited to bug fixes and that a clear strategy must be defined for the Json interface in particular with the gradual abandonment in open-data solutions of the obsolete CSV format in favor of a Json format.
@@ -340,12 +388,12 @@ It is nevertheless possible to merge the proposed format and the `orient='table'
 The proposal made answers this problem ([the example at the beginning of Notebook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#0---Simple-example) simply and clearly illustrates the interest of the proposal).
 
 Regarding the underlying JSON-NTV format, its impact is quite low for tabular data (it is limited to adding the type in the field name).
-Nevertheless, the question is relevant: The JSON-NTV format is indeed a shared, documented, supported and implemented format, but indeed the community support is for the moment reduced but it only asks to expand!!
+Nevertheless, the question is relevant: The JSON-NTV format ([IETF Internet-Draft](https://datatracker.ietf.org/doc/draft-thomy-json-ntv/)) is a shared, documented, supported and implemented format, but indeed the community support is for the moment reduced but it only asks to expand !!
 
+## Synthesis
 To conclude,
 - if it is important (or strategic) to have a reversible JSON interface for any type of data, the proposal can be allowed,
-- if not, a third-party package that reads/writes this format to/from pandas DataFrames listed in the [ecosystem](https://pandas.pydata.org/community/ecosystem.html) should be considered
-
+- if not, a third-party package listed in the [ecosystem](https://pandas.pydata.org/community/ecosystem.html) that reads/writes this format to/from pandas DataFrames should be considered
 
 ## Core team decision
 Implementation option : xxxx
@@ -357,3 +405,4 @@ Tbd
 
 - 16 June 2023: Initial draft
 - 22 July 2023: Add F.A.Q.
+- 06 September 2023: Add Table Schema extension
