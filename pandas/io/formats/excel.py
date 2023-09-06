@@ -941,9 +941,7 @@ class ExcelFormatter:
         if isinstance(writer, ExcelWriter):
             need_save = False
         else:
-            # error: Cannot instantiate abstract class 'ExcelWriter' with abstract
-            # attributes 'engine', 'save', 'supported_extensions' and 'write_cells'
-            writer = ExcelWriter(  # type: ignore[abstract]
+            writer = ExcelWriter(
                 writer,
                 engine=engine,
                 storage_options=storage_options,

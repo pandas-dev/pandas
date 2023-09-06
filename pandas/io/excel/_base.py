@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 from collections.abc import (
     Hashable,
     Iterable,
@@ -549,7 +548,7 @@ def read_excel(
 _WorkbookT = TypeVar("_WorkbookT")
 
 
-class BaseExcelReader(Generic[_WorkbookT], metaclass=abc.ABCMeta):
+class BaseExcelReader(Generic[_WorkbookT]):
     book: _WorkbookT
 
     def __init__(
@@ -589,13 +588,11 @@ class BaseExcelReader(Generic[_WorkbookT], metaclass=abc.ABCMeta):
             )
 
     @property
-    @abc.abstractmethod
     def _workbook_class(self) -> type[_WorkbookT]:
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def load_workbook(self, filepath_or_buffer, engine_kwargs) -> _WorkbookT:
-        pass
+        raise NotImplementedError
 
     def close(self) -> None:
         if hasattr(self, "book"):
@@ -611,21 +608,17 @@ class BaseExcelReader(Generic[_WorkbookT], metaclass=abc.ABCMeta):
         self.handles.close()
 
     @property
-    @abc.abstractmethod
     def sheet_names(self) -> list[str]:
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def get_sheet_by_name(self, name: str):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def get_sheet_by_index(self, index: int):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def get_sheet_data(self, sheet, rows: int | None = None):
-        pass
+        raise NotImplementedError
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
         n_sheets = len(self.sheet_names)
@@ -940,7 +933,7 @@ class BaseExcelReader(Generic[_WorkbookT], metaclass=abc.ABCMeta):
 
 
 @doc(storage_options=_shared_docs["storage_options"])
-class ExcelWriter(Generic[_WorkbookT], metaclass=abc.ABCMeta):
+class ExcelWriter(Generic[_WorkbookT]):
     """
     Class for writing DataFrame objects into excel sheets.
 
@@ -1178,20 +1171,19 @@ class ExcelWriter(Generic[_WorkbookT], metaclass=abc.ABCMeta):
         return self._engine
 
     @property
-    @abc.abstractmethod
     def sheets(self) -> dict[str, Any]:
         """Mapping of sheet names to sheet objects."""
+        raise NotImplementedError
 
     @property
-    @abc.abstractmethod
     def book(self) -> _WorkbookT:
         """
         Book instance. Class type will depend on the engine used.
 
         This attribute can be used to access engine-specific features.
         """
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def _write_cells(
         self,
         cells,
@@ -1214,12 +1206,13 @@ class ExcelWriter(Generic[_WorkbookT], metaclass=abc.ABCMeta):
         freeze_panes: int tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def _save(self) -> None:
         """
         Save workbook to disk.
         """
+        raise NotImplementedError
 
     def __init__(
         self,

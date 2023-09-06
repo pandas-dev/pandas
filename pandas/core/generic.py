@@ -11827,7 +11827,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         name: str,
         func,
-        axis: Axis = 0,
+        axis: Axis | None = 0,
         bool_only: bool_t = False,
         skipna: bool_t = True,
         **kwargs,
@@ -11840,7 +11840,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             res = self._logical_func(
                 name, func, axis=0, bool_only=bool_only, skipna=skipna, **kwargs
             )
-            return res._logical_func(name, func, skipna=skipna, **kwargs)
+            # error: Item "bool" of "Series | bool" has no attribute "_logical_func"
+            return res._logical_func(  # type: ignore[union-attr]
+                name, func, skipna=skipna, **kwargs
+            )
         elif axis is None:
             axis = 0
 
