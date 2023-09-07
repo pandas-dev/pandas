@@ -67,6 +67,8 @@ With the existing JSON interface, this conversion is not possible.
 ```python
 In [1]: from shapely.geometry import Point
         from datetime import date
+        from json_ntv import read_json as read_json        
+        from json_ntv import to_json as to_json
 
 In [2]: data = {'index':           [100, 200, 300, 400, 500, 600],
                 'dates::date':     pd.Series([date(1964,1,1), date(1985,2,5), date(2022,1,21), date(1964,1,1), date(1985,2,5), date(2022,1,21)]),
@@ -94,8 +96,8 @@ Out[4]:
 *JSON representation*
 
 ```python
-In [5]: df_json = Ntv.obj(df)
-        pprint(df_json.to_obj(), compact=True, width=120)
+In [5]: df_to_json = to_json(df)
+        pprint(df_to_json, compact=True, width=120)
 Out[5]:
         {':tab': {'coord::point': [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0], [3.0, 4.0], [5.0, 6.0]],
                   'dates::date': ['1964-01-01', '1985-02-05', '2022-01-21', '1964-01-01', '1985-02-05', '2022-01-21'],
@@ -110,7 +112,7 @@ Out[5]:
 *Reversibility*
 
 ```python
-In [5]: df_from_json = df_json.to_obj(format='obj')
+In [5]: df_from_json = read_json(df_to_json)
         print('df created from JSON is equal to initial df ? ', df_from_json.equals(df))
 
 Out[5]: df created from JSON is equal to initial df ?  True
@@ -118,7 +120,7 @@ Out[5]: df created from JSON is equal to initial df ?  True
 Several other examples are provided in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#2---Series)
 
 #### Table Schema JSON interface example
-In the example below, a DataFrame with several Table Schema data types is converted to JSON.
+In the example below (not yet implemented), a DataFrame with several Table Schema data types is converted to JSON.
 
 The DataFrame resulting from this JSON is identical to the initial DataFrame (reversibility).
 
