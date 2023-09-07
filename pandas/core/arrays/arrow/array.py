@@ -59,7 +59,7 @@ from pandas.core.indexers import (
     unpack_tuple_and_ellipses,
     validate_indices,
 )
-from pandas.core.reshape.merge_utils import factorize_with_rizer
+from pandas.core.reshape.merge_utils import factorize_arrays
 from pandas.core.strings.base import BaseStringArrayMethods
 
 from pandas.io._util import _arrow_dtype_mapping
@@ -2555,8 +2555,8 @@ class ArrowExtensionArray(
         result = self._pa_array.cast(pa.timestamp(current_unit, tz))
         return type(self)(result)
 
-    def _factorize_with_other(
-        self, other: ArrowExtensionArray, sort: bool = False  # type: ignore[override]
+    def _factorize_with_other_for_merge(
+        self, other: Self, sort: bool = False  # type: ignore[override]
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         if not isinstance(self.dtype, StringDtype) and (
             pa.types.is_floating(self.dtype.pyarrow_dtype)
@@ -2573,7 +2573,7 @@ class ArrowExtensionArray(
                 lk = np.asarray(lk, dtype=np.int64)
                 rk = np.asarray(rk, dtype=np.int64)
 
-            return factorize_with_rizer(lk, rk, sort, self.isna(), other.isna())
+            return factorize_arrays(lk, rk, sort, self.isna(), other.isna())
 
         len_left = len(self)
         left = self._pa_array

@@ -94,7 +94,7 @@ from pandas.core.construction import (
 )
 from pandas.core.frame import _merge_doc
 from pandas.core.indexes.api import default_index
-from pandas.core.reshape.merge_utils import factorize_with_rizer
+from pandas.core.reshape.merge_utils import factorize_arrays
 from pandas.core.sorting import is_int64_overflow_possible
 
 if TYPE_CHECKING:
@@ -2379,15 +2379,15 @@ def _factorize_keys(
 
     if isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
         assert isinstance(rk, ExtensionArray)
-        llab, rlab, count = lk._factorize_with_other(rk, sort)
+        llab, rlab, count = lk._factorize_with_other_for_merge(rk, sort)
     else:
         lk, rk = _convert_arrays(lk, rk)
 
         if isinstance(lk, ExtensionArray):
             assert isinstance(rk, ExtensionArray)
-            llab, rlab, count = lk._factorize_with_other(rk, sort)
+            llab, rlab, count = lk._factorize_with_other_for_merge(rk, sort)
         else:
-            llab, rlab, count = factorize_with_rizer(lk, rk, sort)
+            llab, rlab, count = factorize_arrays(lk, rk, sort)
 
     if how == "right":
         return rlab, llab, count

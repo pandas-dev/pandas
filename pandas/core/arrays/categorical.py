@@ -84,7 +84,7 @@ from pandas.core.construction import (
     sanitize_array,
 )
 from pandas.core.ops.common import unpack_zerodim_and_defer
-from pandas.core.reshape.merge_utils import factorize_with_rizer
+from pandas.core.reshape.merge_utils import factorize_arrays
 from pandas.core.sorting import nargsort
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
@@ -2718,14 +2718,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             res_values[result_mask == 1] = -1
         return self._from_backing_data(res_values)
 
-    def _factorize_with_other(
-        self, other: Categorical, sort: bool = False  # type: ignore[override]
+    def _factorize_with_other_for_merge(
+        self, other: Self, sort: bool = False  # type: ignore[override]
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         other = self._encode_with_my_categories(other)
 
         lk = ensure_int64(self.codes)
         rk = ensure_int64(other.codes)
-        return factorize_with_rizer(lk, rk, sort)
+        return factorize_arrays(lk, rk, sort)
 
 
 # The Series.cat accessor

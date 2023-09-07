@@ -139,7 +139,7 @@ from pandas.core.ops.invalid import (
     invalid_comparison,
     make_invalid_op,
 )
-from pandas.core.reshape.merge_utils import factorize_with_rizer
+from pandas.core.reshape.merge_utils import factorize_arrays
 
 from pandas.tseries import frequencies
 
@@ -1704,14 +1704,12 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         res_values = res_values.view(self._ndarray.dtype)
         return self._from_backing_data(res_values)
 
-    def _factorize_with_other(
-        self,
-        other: DatetimeLikeArrayMixin,  # type: ignore[override]
-        sort: bool = False,
+    def _factorize_with_other_for_merge(
+        self, other: Self, sort: bool = False
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         lk = np.asarray(self._ndarray, dtype=np.int64)
         rk = np.asarray(other._ndarray, dtype=np.int64)
-        return factorize_with_rizer(lk, rk, sort)
+        return factorize_arrays(lk, rk, sort)
 
 
 class DatelikeOps(DatetimeLikeArrayMixin):

@@ -42,14 +42,20 @@ def _sort_labels(
     return new_left, new_right
 
 
-def factorize_with_rizer(lk, rk, sort: bool = False, lk_mask=None, rk_mask=None):
-    rizer = _factorizers[lk.dtype.type](max(len(lk), len(rk)))
-    llab = rizer.factorize(lk, mask=lk_mask)
-    rlab = rizer.factorize(rk, mask=rk_mask)
-    count = rizer.get_count()
+def factorize_arrays(
+    lk: np.ndarray,
+    rk: np.ndarray,
+    sort: bool = False,
+    lk_mask: np.ndarray | None = None,
+    rk_mask: np.ndarray | None = None,
+):
+    factorizer = _factorizers[lk.dtype.type](max(len(lk), len(rk)))
+    llab = factorizer.factorize(lk, mask=lk_mask)
+    rlab = factorizer.factorize(rk, mask=rk_mask)
+    count = factorizer.get_count()
 
     if sort:
-        uniques = rizer.uniques.to_array()
+        uniques = factorizer.uniques.to_array()
         llab, rlab = _sort_labels(uniques, llab, rlab)
 
     lmask = llab == -1
