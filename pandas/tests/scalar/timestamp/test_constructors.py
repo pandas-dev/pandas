@@ -899,8 +899,8 @@ def test_timestamp_constructor_na_value(na_value):
     result = Timestamp(na_value)
     expected = NaT
     assert result is expected
-    
-    
+
+
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London"])
 def test_timestamp_constructor_positional_with_fold(tz):
     # Check that we build an object successfully
