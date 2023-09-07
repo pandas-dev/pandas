@@ -2722,10 +2722,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         self, other: Self, sort: bool = False  # type: ignore[override]
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         other = self._encode_with_my_categories(other)
-
-        lk = ensure_int64(self.codes)
-        rk = ensure_int64(other.codes)
-        return factorize_arrays(lk, rk, sort)
+        return factorize_arrays(self.codes, other.codes, sort)
 
 
 # The Series.cat accessor
