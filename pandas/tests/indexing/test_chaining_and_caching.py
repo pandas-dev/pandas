@@ -1,4 +1,4 @@
-from string import ascii_letters as letters
+from string import ascii_letters
 
 import numpy as np
 import pytest
@@ -24,9 +24,9 @@ msg = "A value is trying to be set on a copy of a slice from a DataFrame"
 
 def random_text(nobs=100):
     # Construct a DataFrame where each row is a random slice from 'letters'
-    idxs = np.random.default_rng(2).integers(len(letters), size=(nobs, 2))
+    idxs = np.random.default_rng(2).integers(len(ascii_letters), size=(nobs, 2))
     idxs.sort(axis=1)
-    strings = [letters[x[0] : x[1]] for x in idxs]
+    strings = [ascii_letters[x[0] : x[1]] for x in idxs]
 
     return DataFrame(strings, columns=["letters"])
 

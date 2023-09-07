@@ -31,7 +31,7 @@ def df():
     dr = date_range("2016-01-01", "2016-01-03", freq="12H")
     abc = ["a", "b", "c"]
     mi = MultiIndex.from_product([dr, abc])
-    frame = DataFrame({"c1": range(0, 15)}, index=mi)
+    frame = DataFrame({"c1": range(15)}, index=mi)
     return frame
 
 
