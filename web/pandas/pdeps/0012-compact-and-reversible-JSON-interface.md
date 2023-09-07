@@ -67,7 +67,7 @@ With the existing JSON interface, this conversion is not possible.
 ```python
 In [1]: from shapely.geometry import Point
         from datetime import date
-        from json_ntv import read_json as read_json        
+        from json_ntv import read_json as read_json
         from json_ntv import to_json as to_json
 
 In [2]: data = {'index':           [100, 200, 300, 400, 500, 600],
