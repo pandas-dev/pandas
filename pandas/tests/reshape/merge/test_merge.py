@@ -26,7 +26,6 @@ from pandas import (
     TimedeltaIndex,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
 from pandas.core.reshape.concat import concat
 from pandas.core.reshape.merge import (
     MergeError,
@@ -582,11 +581,11 @@ class TestMerge:
         df_empty = df[:0]
         expected = DataFrame(
             {
-                "value_x": Series(dtype=df.dtypes["value"]),
                 "key": Series(dtype=df.dtypes["key"]),
+                "value_x": Series(dtype=df.dtypes["value"]),
                 "value_y": Series(dtype=df.dtypes["value"]),
             },
-            columns=["value_x", "key", "value_y"],
+            columns=["key", "value_x", "value_y"],
         )
         actual = df_empty.merge(df, on="key")
         tm.assert_frame_equal(actual, expected)
@@ -889,13 +888,13 @@ class TestMerge:
         result = left.merge(right, on="date")
         expected = DataFrame(
             {
+                "date": Series(dtype=dtz),
                 "value_x": Series(dtype=float),
                 "date2_x": Series(dtype=dtz),
-                "date": Series(dtype=dtz),
                 "value_y": Series(dtype=float),
                 "date2_y": Series(dtype=dtz),
             },
-            columns=["value_x", "date2_x", "date", "value_y", "date2_y"],
+            columns=["date", "value_x", "date2_x", "value_y", "date2_y"],
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1827,11 +1826,9 @@ class TestMergeDtypes:
         if exp == "left":
             expected = DataFrame({"A": [2, 1], "B": [3, 4], "C": [np.nan, np.nan]})
         elif exp == "right":
-            expected = DataFrame({"B": [np.nan], "A": [1], "C": [5]})
+            expected = DataFrame({"A": [1], "B": [np.nan], "C": [5]})
         elif exp == "empty":
             expected = DataFrame(columns=["A", "B", "C"], dtype="int64")
-            if left_empty:
-                expected = expected[["B", "A", "C"]]
         elif exp == "empty_cross":
             expected = DataFrame(columns=["A_x", "B", "A_y", "C"], dtype="int64")
 
@@ -1844,7 +1841,7 @@ def left():
         {
             "X": Series(
                 np.random.default_rng(2).choice(["foo", "bar"], size=(10,))
-            ).astype(CDT(["foo", "bar"])),
+            ).astype(CategoricalDtype(["foo", "bar"])),
             "Y": np.random.default_rng(2).choice(["one", "two", "three"], size=(10,)),
         }
     )
@@ -1853,7 +1850,10 @@ def left():
 @pytest.fixture
 def right():
     return DataFrame(
-        {"X": Series(["foo", "bar"]).astype(CDT(["foo", "bar"])), "Z": [1, 2]}
+        {
+            "X": Series(["foo", "bar"]).astype(CategoricalDtype(["foo", "bar"])),
+            "Z": [1, 2],
+        }
     )
 
 
@@ -2004,8 +2004,8 @@ class TestMergeCategorical:
         "change",
         [
             lambda x: x,
-            lambda x: x.astype(CDT(["foo", "bar", "bah"])),
-            lambda x: x.astype(CDT(ordered=True)),
+            lambda x: x.astype(CategoricalDtype(["foo", "bar", "bah"])),
+            lambda x: x.astype(CategoricalDtype(ordered=True)),
         ],
     )
     def test_dtype_on_merged_different(self, change, join_type, left, right):
@@ -2112,11 +2112,13 @@ class TestMergeCategorical:
         # GH 17187
         # merging with a boolean/int categorical column
         df1 = DataFrame({"id": [1, 2, 3, 4], "cat": category_column})
-        df1["cat"] = df1["cat"].astype(CDT(categories, ordered=ordered))
+        df1["cat"] = df1["cat"].astype(CategoricalDtype(categories, ordered=ordered))
         df2 = DataFrame({"id": [2, 4], "num": [1, 9]})
         result = df1.merge(df2)
         expected = DataFrame({"id": [2, 4], "cat": expected_categories, "num": [1, 9]})
-        expected["cat"] = expected["cat"].astype(CDT(categories, ordered=ordered))
+        expected["cat"] = expected["cat"].astype(
+            CategoricalDtype(categories, ordered=ordered)
+        )
         tm.assert_frame_equal(expected, result)
 
     def test_merge_on_int_array(self):
@@ -2481,14 +2483,12 @@ def test_merge_multiindex_columns():
     result = frame_x.merge(frame_y, on="id", suffixes=((l_suf, r_suf)))
 
     # Constructing the expected results
-    expected_labels = [letter + l_suf for letter in letters] + [
-        letter + r_suf for letter in letters
-    ]
-    expected_index = MultiIndex.from_product(
-        [expected_labels, numbers], names=["outer", "inner"]
-    )
+    tuples = [(letter + l_suf, num) for letter in letters for num in numbers]
+    tuples += [("id", "")]
+    tuples += [(letter + r_suf, num) for letter in letters for num in numbers]
+
+    expected_index = MultiIndex.from_tuples(tuples, names=["outer", "inner"])
     expected = DataFrame(columns=expected_index)
-    expected["id"] = ""
 
     tm.assert_frame_equal(result, expected)
 
@@ -2949,13 +2949,36 @@ def test_merge_ea_int_and_float_numpy():
     tm.assert_frame_equal(result, expected.astype("float64"))
 
 
-def test_merge_arrow_string_index():
+def test_merge_arrow_string_index(any_string_dtype):
     # GH#54894
     pytest.importorskip("pyarrow")
-    left = DataFrame({"a": ["a", "b"]}, dtype="string[pyarrow]")
-    right = DataFrame({"b": 1}, index=Index(["a", "c"], dtype="string[pyarrow]"))
+    left = DataFrame({"a": ["a", "b"]}, dtype=any_string_dtype)
+    right = DataFrame({"b": 1}, index=Index(["a", "c"], dtype=any_string_dtype))
     result = left.merge(right, left_on="a", right_index=True, how="left")
     expected = DataFrame(
-        {"a": Series(["a", "b"], dtype="string[pyarrow]"), "b": [1, np.nan]}
+        {"a": Series(["a", "b"], dtype=any_string_dtype), "b": [1, np.nan]}
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("left_empty", [True, False])
+@pytest.mark.parametrize("right_empty", [True, False])
+def test_merge_empty_frames_column_order(left_empty, right_empty):
+    # GH 51929
+    df1 = DataFrame(1, index=[0], columns=["A", "B"])
+    df2 = DataFrame(1, index=[0], columns=["A", "C", "D"])
+
+    if left_empty:
+        df1 = df1.iloc[:0]
+    if right_empty:
+        df2 = df2.iloc[:0]
+
+    result = merge(df1, df2, on=["A"], how="outer")
+    expected = DataFrame(1, index=[0], columns=["A", "B", "C", "D"])
+    if left_empty and right_empty:
+        expected = expected.iloc[:0]
+    elif left_empty:
+        expected.loc[:, "B"] = np.nan
+    elif right_empty:
+        expected.loc[:, ["C", "D"]] = np.nan
     tm.assert_frame_equal(result, expected)
