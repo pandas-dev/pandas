@@ -449,7 +449,7 @@ def _generate_marginal_results_without_values(
             return (margins_name,) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[rows].groupby(rows, observed=observed).apply(aggfunc)
+            margin = data.groupby(rows, observed=observed)[rows].apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -467,7 +467,7 @@ def _generate_marginal_results_without_values(
         margin_keys = table.columns
 
     if len(cols):
-        row_margin = data[cols].groupby(cols, observed=observed).apply(aggfunc)
+        row_margin = data.groupby(cols, observed=observed)[cols].apply(aggfunc)
     else:
         row_margin = Series(np.nan, index=result.columns)
 
