@@ -1212,3 +1212,8 @@ def test_multi_column_dtype_assignment():
 
     df["b"] = 0
     tm.assert_frame_equal(df, expected)
+
+
+def test_empty_object_array_is_string_dtype():
+    # GH #54661
+    assert is_string_dtype(pd.Index([], dtype="O"))
