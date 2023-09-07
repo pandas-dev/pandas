@@ -137,8 +137,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
         pandas.core.groupby.SeriesGroupBy.describe \
         pandas.core.groupby.DataFrameGroupBy.boxplot \
         pandas.core.groupby.DataFrameGroupBy.hist \
-        pandas.core.groupby.SeriesGroupBy.resample \
-        pandas.core.groupby.DataFrameGroupBy.resample \
         pandas.io.formats.style.Styler.map \
         pandas.io.formats.style.Styler.apply_index \
         pandas.io.formats.style.Styler.map_index \

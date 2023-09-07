@@ -3562,6 +3562,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         rule : str or DateOffset
             The offset string or object representing target grouper conversion.
+        *args
+            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
+            `on`, and other arguments of `TimeGrouper`.
         include_groups : bool, default True
             When True, will attempt to include the groupings in the operation in
             the case that they are columns of the DataFrame. If this raises a
@@ -3575,7 +3578,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                Setting include_groups to True is deprecated. Only the value
                False will be allowed in a future version of pandas.
 
-        *args, **kwargs
+        **kwargs
             Possible arguments are `how`, `fill_method`, `limit`, `kind` and
             `on`, and other arguments of `TimeGrouper`.
 
