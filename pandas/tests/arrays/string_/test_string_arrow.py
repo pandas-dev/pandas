@@ -255,3 +255,11 @@ def test_pickle_roundtrip():
 
     result_sliced = pickle.loads(sliced_pickled)
     tm.assert_series_equal(result_sliced, expected_sliced)
+
+
+@skip_if_no_pyarrow
+def test_string_dtype_error_message():
+    # GH#55051
+    msg = "Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'."
+    with pytest.raises(ValueError, match=msg):
+        StringDtype("bla")
