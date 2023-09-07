@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import warnings
+
 __docformat__ = "restructuredtext"
 
 # Let users know if they're missing any of our hard dependencies
@@ -190,6 +192,21 @@ except ImportError:
     __git_version__ = v.get("full-revisionid")
     del get_versions, v
 
+# GH#55043 - if `import pandas` is using ArrayManager, user has env variable set
+from pandas._config.config import _get_option
+
+if _get_option("mode.data_manager", silent=True) == "array":
+    warnings.warn(
+        "Using ArrayManger through the environment variable PANDAS_DATA_MANAGER. "
+        "The data_manager option is deprecated and will be removed in a future "
+        "version. Only the BlockManager will be available. Unset this environment "
+        "variable to silence this warning.",
+        FutureWarning,
+        stacklevel=2,
+    )
+# Don't allow users to use pandas.warnings or pandas._get_option
+del warnings
+del _get_option
 
 # module level doc-string
 __doc__ = """
