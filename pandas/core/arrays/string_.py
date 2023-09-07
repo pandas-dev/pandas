@@ -59,6 +59,7 @@ if TYPE_CHECKING:
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
+        Self,
         npt,
         type_t,
     )
@@ -122,7 +123,8 @@ class StringDtype(StorageExtensionDtype):
                 storage = get_option("mode.string_storage")
         if storage not in {"python", "pyarrow", "pyarrow_numpy"}:
             raise ValueError(
-                f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
+                f"Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'. "
+                f"Got {storage} instead."
             )
         if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under7p0:
             raise ImportError(
@@ -135,7 +137,7 @@ class StringDtype(StorageExtensionDtype):
         return str
 
     @classmethod
-    def construct_from_string(cls, string):
+    def construct_from_string(cls, string) -> Self:
         """
         Construct a StringDtype from a string.
 
