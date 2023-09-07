@@ -20,7 +20,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
+from pandas.api.types import CategoricalDtype
 
 from pandas.tseries.offsets import (
     Day,
@@ -129,7 +129,9 @@ def test_qcut_return_intervals():
     exp_levels = np.array(
         [Interval(-0.001, 2.664), Interval(2.664, 5.328), Interval(5.328, 8)]
     )
-    exp = Series(exp_levels.take([0, 0, 0, 1, 1, 1, 2, 2, 2])).astype(CDT(ordered=True))
+    exp = Series(exp_levels.take([0, 0, 0, 1, 1, 1, 2, 2, 2])).astype(
+        CategoricalDtype(ordered=True)
+    )
     tm.assert_series_equal(res, exp)
 
 
@@ -199,7 +201,7 @@ def test_single_quantile(data, start, end, length, labels):
 
     if labels is None:
         intervals = IntervalIndex([Interval(start, end)] * length, closed="right")
-        expected = Series(intervals).astype(CDT(ordered=True))
+        expected = Series(intervals).astype(CategoricalDtype(ordered=True))
     else:
         expected = Series([0] * length, dtype=np.intp)
 
@@ -249,7 +251,7 @@ def test_datetime_tz_qcut(bins):
                 ),
             ]
         )
-    ).astype(CDT(ordered=True))
+    ).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 
