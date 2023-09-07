@@ -407,6 +407,11 @@ class TestReaders:
                 )
             )
 
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Calamine can't extract error from ods files")
+            )
+
         parsed = pd.read_excel("test3" + read_ext, sheet_name="Sheet1")
         expected = DataFrame([[np.nan]], columns=["Test"])
         tm.assert_frame_equal(parsed, expected)
@@ -572,10 +577,16 @@ class TestReaders:
         actual = pd.read_excel(basename + read_ext, dtype=dtype)
         tm.assert_frame_equal(actual, expected)
 
-    def test_dtype_backend(self, read_ext, dtype_backend):
+    def test_dtype_backend(self, request, engine, read_ext, dtype_backend):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        # GH 54994
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="OdsWriter produces broken file")
+            )
 
         df = DataFrame(
             {
@@ -617,10 +628,16 @@ class TestReaders:
             expected = df
         tm.assert_frame_equal(result, expected)
 
-    def test_dtype_backend_and_dtype(self, read_ext):
+    def test_dtype_backend_and_dtype(self, request, engine, read_ext):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        # GH 54994
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="OdsWriter produces broken file")
+            )
 
         df = DataFrame({"a": [np.nan, 1.0], "b": [2.5, np.nan]})
         with tm.ensure_clean(read_ext) as file_path:
@@ -633,10 +650,16 @@ class TestReaders:
             )
         tm.assert_frame_equal(result, df)
 
-    def test_dtype_backend_string(self, read_ext, string_storage):
+    def test_dtype_backend_string(self, request, engine, read_ext, string_storage):
         # GH#36712
         if read_ext in (".xlsb", ".xls"):
             pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        # GH 54994
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="OdsWriter produces broken file")
+            )
 
         pa = pytest.importorskip("pyarrow")
 
@@ -975,6 +998,14 @@ class TestReaders:
                 )
             )
 
+        # GH 55045
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(
+                    reason="ODS file contains bad datetime (seconds as text)"
+                )
+            )
+
         # Test reading times with and without milliseconds. GH5945.
         expected = DataFrame.from_dict(
             {
@@ -1007,6 +1038,11 @@ class TestReaders:
                 pytest.mark.xfail(
                     reason="Sheets containing datetimes not supported by pyxlsb"
                 )
+            )
+
+        if engine == "calamine" and read_ext == ".ods":
+            request.node.add_marker(
+                pytest.mark.xfail(reason="Last test fails in calamine")
             )
 
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]])
