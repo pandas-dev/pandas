@@ -911,7 +911,7 @@ class TestDataFrameSortIndexKey:
         expected = DataFrame(
             {
                 i: pd.array([0.0, 0.0, 0.0, 0.0], dtype=pd.SparseDtype("float64", 0.0))
-                for i in range(0, 4)
+                for i in range(4)
             },
             index=MultiIndex.from_product([[1, 2], [1, 2]]),
         )

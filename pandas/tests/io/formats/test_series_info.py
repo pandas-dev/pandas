@@ -1,5 +1,5 @@
 from io import StringIO
-from string import ascii_uppercase as uppercase
+from string import ascii_uppercase
 import textwrap
 
 import numpy as np
@@ -165,9 +165,9 @@ def test_info_memory_usage_bug_on_multiindex():
     # GH 14308
     # memory usage introspection should not materialize .values
     N = 100
-    M = len(uppercase)
+    M = len(ascii_uppercase)
     index = MultiIndex.from_product(
-        [list(uppercase), date_range("20160101", periods=N)],
+        [list(ascii_uppercase), date_range("20160101", periods=N)],
         names=["id", "date"],
     )
     s = Series(np.random.default_rng(2).standard_normal(N * M), index=index)
