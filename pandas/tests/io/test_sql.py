@@ -397,6 +397,56 @@ def test_frame3():
     return DataFrame(data, columns=columns)
 
 
+def get_all_views(conn):
+    if isinstance(conn, sqlite3.Connection):
+        c = conn.execute("SELECT name FROM sqlite_master WHERE type='view'")
+        return [view[0] for view in c.fetchall()]
+    else:
+        from sqlalchemy import inspect
+
+        return inspect(conn).get_view_names()
+
+
+def get_all_tables(conn):
+    if isinstance(conn, sqlite3.Connection):
+        c = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        return [table[0] for table in c.fetchall()]
+    else:
+        from sqlalchemy import inspect
+
+        return inspect(conn).get_table_names()
+
+
+def drop_table(
+    table_name: str,
+    conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
+):
+    if isinstance(conn, sqlite3.Connection):
+        conn.execute(f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}")
+        conn.commit()
+    else:
+        sql.SQLDatabase(conn).drop_table(table_name)
+
+
+def drop_view(
+    view_name: str,
+    conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
+):
+    if isinstance(conn, sqlite3.Connection):
+        conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
+        conn.commit()
+    else:
+        quoted_view = conn.engine.dialect.identifier_preparer.quote_identifier(
+            view_name
+        )
+        stmt = sqlalchemy.text(f"DROP VIEW IF EXISTS {quoted_view}")
+        if isinstance(conn, sqlalchemy.engine.Engine):
+            with conn.connect() as conn:
+                conn.execute(stmt)
+        else:
+            conn.execute(stmt)
+
+
 @pytest.fixture
 def mysql_pymysql_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
@@ -418,8 +468,10 @@ def mysql_pymysql_engine(iris_path, types_data):
     yield engine
     with engine.connect() as conn:
         with conn.begin():
-            stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
-            conn.execute(stmt)
+            for view in get_all_views(conn):
+                drop_view(view, conn)
+            for tbl in get_all_tables(conn):
+                drop_table(tbl, conn)
     engine.dispose()
 
 
@@ -447,8 +499,10 @@ def postgresql_psycopg2_engine(iris_path, types_data):
     yield engine
     with engine.connect() as conn:
         with conn.begin():
-            stmt = sqlalchemy.text("DROP TABLE IF EXISTS test_frame;")
-            conn.execute(stmt)
+            for view in get_all_views(conn):
+                drop_view(view, conn)
+            for tbl in get_all_tables(conn):
+                drop_table(tbl, conn)
     engine.dispose()
 
 
@@ -481,6 +535,10 @@ def sqlite_engine(sqlite_str, iris_path, types_data):
         create_and_load_types(engine, types_data, "sqlite")
 
     yield engine
+    for view in get_all_views(engine):
+        drop_view(view, engine)
+    for tbl in get_all_tables(engine):
+        drop_table(tbl, engine)
     engine.dispose()
 
 
@@ -1039,79 +1097,6 @@ def test_execute_deprecated(sqlite_buildin_iris):
         "will be removed in the future version.",
     ):
         sql.execute("select * from iris", sqlite_buildin_iris)
-
-
-class MixInBase:
-    def teardown_method(self):
-        # if setup fails, there may not be a connection to close.
-        if hasattr(self, "conn"):
-            self.conn.close()
-        # use a fresh connection to ensure we can drop all tables.
-        try:
-            conn = self.connect()
-        except (sqlalchemy.exc.OperationalError, sqlite3.OperationalError):
-            pass
-        else:
-            with conn:
-                for view in self._get_all_views(conn):
-                    self.drop_view(view, conn)
-                for tbl in self._get_all_tables(conn):
-                    self.drop_table(tbl, conn)
-
-
-class SQLiteMixIn(MixInBase):
-    def connect(self):
-        return sqlite3.connect(":memory:")
-
-    def drop_table(self, table_name, conn):
-        conn.execute(f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}")
-        conn.commit()
-
-    def _get_all_tables(self, conn):
-        c = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        return [table[0] for table in c.fetchall()]
-
-    def drop_view(self, view_name, conn):
-        conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
-        conn.commit()
-
-    def _get_all_views(self, conn):
-        c = conn.execute("SELECT name FROM sqlite_master WHERE type='view'")
-        return [view[0] for view in c.fetchall()]
-
-
-class SQLAlchemyMixIn(MixInBase):
-    @classmethod
-    def teardown_class(cls):
-        cls.engine.dispose()
-
-    def connect(self):
-        return self.engine.connect()
-
-    def drop_table(self, table_name, conn):
-        if conn.in_transaction():
-            conn.get_transaction().rollback()
-        with conn.begin():
-            sql.SQLDatabase(conn).drop_table(table_name)
-
-    def _get_all_tables(self, conn):
-        from sqlalchemy import inspect
-
-        return inspect(conn).get_table_names()
-
-    def drop_view(self, view_name, conn):
-        quoted_view = conn.engine.dialect.identifier_preparer.quote_identifier(
-            view_name
-        )
-        if conn.in_transaction():
-            conn.get_transaction().rollback()
-        with conn.begin():
-            conn.exec_driver_sql(f"DROP VIEW IF EXISTS {quoted_view}")
-
-    def _get_all_views(self, conn):
-        from sqlalchemy import inspect
-
-        return inspect(conn).get_view_names()
 
 
 class PandasSQLTest:
@@ -1906,249 +1891,245 @@ def test_api_read_sql_duplicate_columns(conn, request):
     tm.assert_frame_equal(result, expected)
 
 
-class _TestSQLApi(PandasSQLTest):
-    """
-    Base class to test the public API.
+@pytest.mark.parametrize("conn", all_connectable)
+def test_read_table_columns(conn, request, test_frame1):
+    # test columns argument in read_table
+    conn_name = conn
+    conn = request.getfixturevalue(conn)
+    sql.to_sql(test_frame1, "test_frame", conn)
 
-    From this two classes are derived to run these tests for both the
-    sqlalchemy mode (`TestSQLApi`) and the fallback mode
-    (`TestSQLiteFallbackApi`).  These tests are run with sqlite3. Specific
-    tests for the different sql flavours are included in `_TestSQLAlchemy`.
+    cols = ["A", "B"]
 
-    Notes:
-    flavor can always be passed even in SQLAlchemy mode,
-    should be correctly ignored.
-
-    we don't use drop_table because that isn't part of the public api
-
-    """
-
-    flavor = "sqlite"
-    mode: str
-
-    @pytest.fixture(autouse=True)
-    def setup_method(self, iris_path, types_data):
-        self.conn = self.connect()
-        self.load_iris_data(iris_path)
-        self.load_types_data(types_data)
-        self.load_test_data_and_sql()
-
-    def load_test_data_and_sql(self):
-        create_and_load_iris_view(self.conn)
-
-
-@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="SQLAlchemy not installed")
-class TestSQLApi(SQLAlchemyMixIn, _TestSQLApi):
-    """
-    Test the public API as it would be used directly
-
-    Tests for `read_sql_table` are included here, as this is specific for the
-    sqlalchemy mode.
-
-    """
-
-    flavor = "sqlite"
-    mode = "sqlalchemy"
-
-    @classmethod
-    def setup_class(cls):
-        cls.engine = sqlalchemy.create_engine("sqlite:///:memory:")
-
-    def test_read_table_columns(self, test_frame1):
-        # test columns argument in read_table
-        sql.to_sql(test_frame1, "test_frame", self.conn)
-
-        cols = ["A", "B"]
-        result = sql.read_sql_table("test_frame", self.conn, columns=cols)
+    if conn_name == "sqlite_buildin":
+        with pytest.raises(NotImplementedError, match=""):
+            sql.read_sql_table("test_frame", conn, columns=cols)
+    else:
+        result = sql.read_sql_table("test_frame", conn, columns=cols)
         assert result.columns.tolist() == cols
 
-    def test_read_table_index_col(self, test_frame1):
-        # test columns argument in read_table
-        sql.to_sql(test_frame1, "test_frame", self.conn)
 
-        result = sql.read_sql_table("test_frame", self.conn, index_col="index")
-        assert result.index.names == ["index"]
+@pytest.mark.parametrize("conn", all_connectable)
+def test_read_table_index_col(conn, request, test_frame1):
+    # test columns argument in read_table
+    conn = request.getfixturevalue(conn)
+    sql.to_sql(test_frame1, "test_frame", conn)
 
-        result = sql.read_sql_table("test_frame", self.conn, index_col=["A", "B"])
-        assert result.index.names == ["A", "B"]
+    result = sql.read_sql_table("test_frame", conn, index_col="index")
+    assert result.index.names == ["index"]
 
-        result = sql.read_sql_table(
-            "test_frame", self.conn, index_col=["A", "B"], columns=["C", "D"]
-        )
-        assert result.index.names == ["A", "B"]
-        assert result.columns.tolist() == ["C", "D"]
+    result = sql.read_sql_table("test_frame", conn, index_col=["A", "B"])
+    assert result.index.names == ["A", "B"]
 
-    def test_read_sql_delegate(self):
-        iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
-        iris_frame2 = sql.read_sql("SELECT * FROM iris", self.conn)
-        tm.assert_frame_equal(iris_frame1, iris_frame2)
-
-        iris_frame1 = sql.read_sql_table("iris", self.conn)
-        iris_frame2 = sql.read_sql("iris", self.conn)
-        tm.assert_frame_equal(iris_frame1, iris_frame2)
-
-    def test_not_reflect_all_tables(self):
-        from sqlalchemy import text
-        from sqlalchemy.engine import Engine
-
-        # create invalid table
-        query_list = [
-            text("CREATE TABLE invalid (x INTEGER, y UNKNOWN);"),
-            text("CREATE TABLE other_table (x INTEGER, y INTEGER);"),
-        ]
-        for query in query_list:
-            if isinstance(self.conn, Engine):
-                with self.conn.connect() as conn:
-                    with conn.begin():
-                        conn.execute(query)
-            else:
-                with self.conn.begin():
-                    self.conn.execute(query)
-
-        with tm.assert_produces_warning(None):
-            sql.read_sql_table("other_table", self.conn)
-            sql.read_sql_query("SELECT * FROM other_table", self.conn)
-
-    def test_warning_case_insensitive_table_name(self, test_frame1):
-        # see gh-7815
-        with tm.assert_produces_warning(
-            UserWarning,
-            match=(
-                r"The provided table name 'TABLE1' is not found exactly as such in "
-                r"the database after writing the table, possibly due to case "
-                r"sensitivity issues. Consider using lower case table names."
-            ),
-        ):
-            sql.SQLDatabase(self.conn).check_case_sensitive("TABLE1", "")
-
-        # Test that the warning is certainly NOT triggered in a normal case.
-        with tm.assert_produces_warning(None):
-            test_frame1.to_sql(name="CaseSensitive", con=self.conn)
-
-    def _get_index_columns(self, tbl_name):
-        from sqlalchemy.engine import reflection
-
-        insp = reflection.Inspector.from_engine(self.conn)
-        ixs = insp.get_indexes("test_index_saved")
-        ixs = [i["column_names"] for i in ixs]
-        return ixs
-
-    def test_sqlalchemy_type_mapping(self):
-        from sqlalchemy import TIMESTAMP
-
-        # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
-        df = DataFrame(
-            {"time": to_datetime(["2014-12-12 01:54", "2014-12-11 02:54"], utc=True)}
-        )
-        db = sql.SQLDatabase(self.conn)
-        table = sql.SQLTable("test_type", db, frame=df)
-        # GH 9086: TIMESTAMP is the suggested type for datetimes with timezones
-        assert isinstance(table.table.c["time"].type, TIMESTAMP)
-
-    @pytest.mark.parametrize(
-        "integer, expected",
-        [
-            ("int8", "SMALLINT"),
-            ("Int8", "SMALLINT"),
-            ("uint8", "SMALLINT"),
-            ("UInt8", "SMALLINT"),
-            ("int16", "SMALLINT"),
-            ("Int16", "SMALLINT"),
-            ("uint16", "INTEGER"),
-            ("UInt16", "INTEGER"),
-            ("int32", "INTEGER"),
-            ("Int32", "INTEGER"),
-            ("uint32", "BIGINT"),
-            ("UInt32", "BIGINT"),
-            ("int64", "BIGINT"),
-            ("Int64", "BIGINT"),
-            (int, "BIGINT" if np.dtype(int).name == "int64" else "INTEGER"),
-        ],
+    result = sql.read_sql_table(
+        "test_frame", conn, index_col=["A", "B"], columns=["C", "D"]
     )
-    def test_sqlalchemy_integer_mapping(self, integer, expected):
-        # GH35076 Map pandas integer to optimal SQLAlchemy integer type
-        df = DataFrame([0, 1], columns=["a"], dtype=integer)
-        db = sql.SQLDatabase(self.conn)
-        table = sql.SQLTable("test_type", db, frame=df)
-
-        result = str(table.table.c.a.type)
-        assert result == expected
-
-    @pytest.mark.parametrize("integer", ["uint64", "UInt64"])
-    def test_sqlalchemy_integer_overload_mapping(self, integer):
-        # GH35076 Map pandas integer to optimal SQLAlchemy integer type
-        df = DataFrame([0, 1], columns=["a"], dtype=integer)
-        db = sql.SQLDatabase(self.conn)
-        with pytest.raises(
-            ValueError, match="Unsigned 64 bit integer datatype is not supported"
-        ):
-            sql.SQLTable("test_type", db, frame=df)
-
-    def test_database_uri_string(self, test_frame1):
-        # Test read_sql and .to_sql method with a database URI (GH10654)
-        # db_uri = 'sqlite:///:memory:' # raises
-        # sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) near
-        # "iris": syntax error [SQL: 'iris']
-        with tm.ensure_clean() as name:
-            db_uri = "sqlite:///" + name
-            table = "iris"
-            test_frame1.to_sql(name=table, con=db_uri, if_exists="replace", index=False)
-            test_frame2 = sql.read_sql(table, db_uri)
-            test_frame3 = sql.read_sql_table(table, db_uri)
-            query = "SELECT * FROM iris"
-            test_frame4 = sql.read_sql_query(query, db_uri)
-        tm.assert_frame_equal(test_frame1, test_frame2)
-        tm.assert_frame_equal(test_frame1, test_frame3)
-        tm.assert_frame_equal(test_frame1, test_frame4)
-
-    @td.skip_if_installed("pg8000")
-    def test_pg8000_sqlalchemy_passthrough_error(self):
-        # using driver that will not be installed on CI to trigger error
-        # in sqlalchemy.create_engine -> test passing of this error to user
-        db_uri = "postgresql+pg8000://user:pass@host/dbname"
-        with pytest.raises(ImportError, match="pg8000"):
-            sql.read_sql("select * from table", db_uri)
-
-    def test_query_by_text_obj(self):
-        # WIP : GH10846
-        from sqlalchemy import text
-
-        name_text = text("select * from iris where name=:name")
-        iris_df = sql.read_sql(name_text, self.conn, params={"name": "Iris-versicolor"})
-        all_names = set(iris_df["Name"])
-        assert all_names == {"Iris-versicolor"}
-
-    def test_query_by_select_obj(self):
-        # WIP : GH10846
-        from sqlalchemy import (
-            bindparam,
-            select,
-        )
-
-        iris = iris_table_metadata(self.flavor)
-        name_select = select(iris).where(iris.c.Name == bindparam("name"))
-        iris_df = sql.read_sql(name_select, self.conn, params={"name": "Iris-setosa"})
-        all_names = set(iris_df["Name"])
-        assert all_names == {"Iris-setosa"}
-
-    def test_column_with_percentage(self):
-        # GH 37157
-        df = DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
-        df.to_sql(name="test_column_percentage", con=self.conn, index=False)
-
-        res = sql.read_sql_table("test_column_percentage", self.conn)
-
-        tm.assert_frame_equal(res, df)
+    assert result.index.names == ["A", "B"]
+    assert result.columns.tolist() == ["C", "D"]
 
 
-class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
+@pytest.mark.parametrize("conn", all_connectable)
+def test_read_sql_delegate(conn, request):
+    conn = request.getfixturevalue(conn)
+    iris_frame1 = sql.read_sql_query("SELECT * FROM iris", conn)
+    iris_frame2 = sql.read_sql("SELECT * FROM iris", conn)
+    tm.assert_frame_equal(iris_frame1, iris_frame2)
+
+    iris_frame1 = sql.read_sql_table("iris", conn)
+    iris_frame2 = sql.read_sql("iris", conn)
+    tm.assert_frame_equal(iris_frame1, iris_frame2)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_not_reflect_all_tables(conn, request):
+    conn = request.getfixturevalue(conn)
+    from sqlalchemy import text
+    from sqlalchemy.engine import Engine
+
+    # create invalid table
+    query_list = [
+        text("CREATE TABLE invalid (x INTEGER, y UNKNOWN);"),
+        text("CREATE TABLE other_table (x INTEGER, y INTEGER);"),
+    ]
+    for query in query_list:
+        if isinstance(conn, Engine):
+            with conn.connect() as conn:
+                with conn.begin():
+                    conn.execute(query)
+        else:
+            with conn.begin():
+                conn.execute(query)
+
+    with tm.assert_produces_warning(None):
+        sql.read_sql_table("other_table", conn)
+        sql.read_sql_query("SELECT * FROM other_table", conn)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_warning_case_insensitive_table_name(conn, request, test_frame1):
+    conn = request.getfixturevalue(conn)
+    # see gh-7815
+    with tm.assert_produces_warning(
+        UserWarning,
+        match=(
+            r"The provided table name 'TABLE1' is not found exactly as such in "
+            r"the database after writing the table, possibly due to case "
+            r"sensitivity issues. Consider using lower case table names."
+        ),
+    ):
+        sql.SQLDatabase(conn).check_case_sensitive("TABLE1", "")
+
+    # Test that the warning is certainly NOT triggered in a normal case.
+    with tm.assert_produces_warning(None):
+        test_frame1.to_sql(name="CaseSensitive", con=conn)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def _get_index_columns(conn, request, tbl_name):
+    conn = request.getfixturevalue(conn)
+    from sqlalchemy.engine import reflection
+
+    insp = reflection.Inspector.from_engine(conn)
+    ixs = insp.get_indexes("test_index_saved")
+    ixs = [i["column_names"] for i in ixs]
+    return ixs
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_sqlalchemy_type_mapping(conn, request):
+    conn = request.getfixturevalue(conn)
+    from sqlalchemy import TIMESTAMP
+
+    # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
+    df = DataFrame(
+        {"time": to_datetime(["2014-12-12 01:54", "2014-12-11 02:54"], utc=True)}
+    )
+    db = sql.SQLDatabase(conn)
+    table = sql.SQLTable("test_type", db, frame=df)
+    # GH 9086: TIMESTAMP is the suggested type for datetimes with timezones
+    assert isinstance(table.table.c["time"].type, TIMESTAMP)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize(
+    "integer, expected",
+    [
+        ("int8", "SMALLINT"),
+        ("Int8", "SMALLINT"),
+        ("uint8", "SMALLINT"),
+        ("UInt8", "SMALLINT"),
+        ("int16", "SMALLINT"),
+        ("Int16", "SMALLINT"),
+        ("uint16", "INTEGER"),
+        ("UInt16", "INTEGER"),
+        ("int32", "INTEGER"),
+        ("Int32", "INTEGER"),
+        ("uint32", "BIGINT"),
+        ("UInt32", "BIGINT"),
+        ("int64", "BIGINT"),
+        ("Int64", "BIGINT"),
+        (int, "BIGINT" if np.dtype(int).name == "int64" else "INTEGER"),
+    ],
+)
+def test_sqlalchemy_integer_mapping(conn, request, integer, expected):
+    # GH35076 Map pandas integer to optimal SQLAlchemy integer type
+    conn = request.getfixturevalue(conn)
+    df = DataFrame([0, 1], columns=["a"], dtype=integer)
+    db = sql.SQLDatabase(conn)
+    table = sql.SQLTable("test_type", db, frame=df)
+
+    result = str(table.table.c.a.type)
+    assert result == expected
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("integer", ["uint64", "UInt64"])
+def test_sqlalchemy_integer_overload_mapping(conn, request, integer):
+    conn = request.getfixturevalue(conn)
+    # GH35076 Map pandas integer to optimal SQLAlchemy integer type
+    df = DataFrame([0, 1], columns=["a"], dtype=integer)
+    db = sql.SQLDatabase(conn)
+    with pytest.raises(
+        ValueError, match="Unsigned 64 bit integer datatype is not supported"
+    ):
+        sql.SQLTable("test_type", db, frame=df)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_database_uri_string(conn, request, test_frame1):
+    conn = request.getfixturevalue(conn)
+    # Test read_sql and .to_sql method with a database URI (GH10654)
+    # db_uri = 'sqlite:///:memory:' # raises
+    # sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) near
+    # "iris": syntax error [SQL: 'iris']
+    with tm.ensure_clean() as name:
+        db_uri = "sqlite:///" + name
+        table = "iris"
+        test_frame1.to_sql(name=table, con=db_uri, if_exists="replace", index=False)
+        test_frame2 = sql.read_sql(table, db_uri)
+        test_frame3 = sql.read_sql_table(table, db_uri)
+        query = "SELECT * FROM iris"
+        test_frame4 = sql.read_sql_query(query, db_uri)
+    tm.assert_frame_equal(test_frame1, test_frame2)
+    tm.assert_frame_equal(test_frame1, test_frame3)
+    tm.assert_frame_equal(test_frame1, test_frame4)
+
+
+@td.skip_if_installed("pg8000")
+@pytest.mark.parametrize("conn", all_connectable)
+def test_pg8000_sqlalchemy_passthrough_error(conn, request):
+    conn = request.getfixturevalue(conn)
+    # using driver that will not be installed on CI to trigger error
+    # in sqlalchemy.create_engine -> test passing of this error to user
+    db_uri = "postgresql+pg8000://user:pass@host/dbname"
+    with pytest.raises(ImportError, match="pg8000"):
+        sql.read_sql("select * from table", db_uri)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_query_by_text_obj(conn, request):
+    # WIP : GH10846
+    conn = request.getfixturevalue(conn)
+    from sqlalchemy import text
+
+    name_text = text("select * from iris where name=:name")
+    iris_df = sql.read_sql(name_text, conn, params={"name": "Iris-versicolor"})
+    all_names = set(iris_df["Name"])
+    assert all_names == {"Iris-versicolor"}
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_query_by_select_obj(conn, request):
+    conn = request.getfixturevalue(conn)
+    # WIP : GH10846
+    from sqlalchemy import (
+        bindparam,
+        select,
+    )
+
+    iris = iris_table_metadata(self.flavor)
+    name_select = select(iris).where(iris.c.Name == bindparam("name"))
+    iris_df = sql.read_sql(name_select, conn, params={"name": "Iris-setosa"})
+    all_names = set(iris_df["Name"])
+    assert all_names == {"Iris-setosa"}
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_column_with_percentage(conn, request):
+    # GH 37157
+    conn = request.getfixturevalue(conn)
+    df = DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
+    df.to_sql(name="test_column_percentage", con=conn, index=False)
+
+    res = sql.read_sql_table("test_column_percentage", conn)
+
+    tm.assert_frame_equal(res, df)
+
+
+class TestSQLiteFallbackApi:
     """
     Test the public sqlite connection fallback API
 
     """
-
-    flavor = "sqlite"
-    mode = "fallback"
 
     def connect(self, database=":memory:"):
         return sqlite3.connect(database)
@@ -2230,7 +2211,7 @@ class TestSQLiteFallbackApi(SQLiteMixIn, _TestSQLApi):
 
 
 @pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="SQLAlchemy not installed")
-class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
+class _TestSQLAlchemy:
     """
     Base class for testing the sqlalchemy backend.
 
@@ -3419,7 +3400,7 @@ class TestPostgreSQLAlchemy(_TestSQLAlchemy):
 # -- Test Sqlite / MySQL fallback
 
 
-class TestSQLiteFallback(SQLiteMixIn, PandasSQLTest):
+class TestSQLiteFallback:
     """
     Test the fallback mode against an in-memory sqlite database.
 
