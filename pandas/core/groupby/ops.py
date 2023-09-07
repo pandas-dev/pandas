@@ -77,7 +77,7 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
 
 
-def check_result_array(obj, dtype):
+def check_result_array(obj, dtype) -> None:
     # Our operation is supposed to be an aggregation/reduction. If
     #  it returns an ndarray, this likely means an invalid operation has
     #  been passed. See test_apply_without_aggregation, test_agg_must_agg
@@ -995,9 +995,6 @@ class BinGrouper(BaseGrouper):
             if key is not NaT
         }
         return result
-
-    def __iter__(self) -> Iterator[Hashable]:
-        return iter(self.groupings[0].grouping_vector)
 
     @property
     def nkeys(self) -> int:

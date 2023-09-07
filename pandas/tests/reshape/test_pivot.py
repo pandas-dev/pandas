@@ -23,7 +23,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
+from pandas.api.types import CategoricalDtype
 from pandas.core.reshape import reshape as reshape_lib
 from pandas.core.reshape.pivot import pivot_table
 
@@ -33,7 +33,7 @@ def dropna(request):
     return request.param
 
 
-@pytest.fixture(params=[([0] * 4, [1] * 4), (range(0, 3), range(1, 4))])
+@pytest.fixture(params=[([0] * 4, [1] * 4), (range(3), range(1, 4))])
 def interval_values(request, closed):
     left, right = request.param
     return Categorical(pd.IntervalIndex.from_arrays(left, right, closed))
@@ -215,14 +215,16 @@ class TestPivotTable:
             {
                 "A": ["a", "a", "a", "b", "b", "b", "c", "c", "c"],
                 "B": [1, 2, 3, 1, 2, 3, 1, 2, 3],
-                "C": range(0, 9),
+                "C": range(9),
             }
         )
 
-        df["A"] = df["A"].astype(CDT(categories, ordered=False))
+        df["A"] = df["A"].astype(CategoricalDtype(categories, ordered=False))
         result = df.pivot_table(index="B", columns="A", values="C", dropna=dropna)
         expected_columns = Series(["a", "b", "c"], name="A")
-        expected_columns = expected_columns.astype(CDT(categories, ordered=False))
+        expected_columns = expected_columns.astype(
+            CategoricalDtype(categories, ordered=False)
+        )
         expected_index = Series([1, 2, 3], name="B")
         expected = DataFrame(
             [[0.0, 3.0, 6.0], [1.0, 4.0, 7.0], [2.0, 5.0, 8.0]],
@@ -1950,7 +1952,7 @@ class TestPivotTable:
 
         result = df.pivot_table("col1", index="col3", columns="col2", aggfunc="sum")
         expected = DataFrame(
-            [[3, np.NaN, np.NaN], [np.NaN, 4, np.NaN], [np.NaN, np.NaN, 5]],
+            [[3, np.nan, np.nan], [np.nan, 4, np.nan], [np.nan, np.nan, 5]],
             index=Index([1, 3, 9], name="col3"),
             columns=Index(["C", "D", "E"], name="col2"),
         )
@@ -2424,7 +2426,7 @@ class TestPivotTable:
             ],
             names=(None, None, "b"),
         )
-        nparr = np.full((10, 10), np.NaN)
+        nparr = np.full((10, 10), np.nan)
         np.fill_diagonal(nparr, 1.0)
 
         expected = DataFrame(nparr, index=Index(range(10), name="a"), columns=columnval)

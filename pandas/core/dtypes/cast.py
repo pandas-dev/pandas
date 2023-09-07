@@ -799,10 +799,9 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
 
         dtype = _dtype_obj
         if using_pyarrow_string_dtype():
-            import pyarrow as pa
+            from pandas.core.arrays.string_ import StringDtype
 
-            pa_dtype = pa.string()
-            dtype = ArrowDtype(pa_dtype)
+            dtype = StringDtype(storage="pyarrow_numpy")
 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
@@ -850,7 +849,7 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
             dtype = np.dtype(np.float64)
 
     elif is_complex(val):
-        dtype = np.dtype(np.complex_)
+        dtype = np.dtype(np.complex128)
 
     if lib.is_period(val):
         dtype = PeriodDtype(freq=val.freq)
@@ -1707,8 +1706,6 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 arr._validate_setitem_value(element)
                 return True
             except (ValueError, TypeError):
-                # TODO: re-use _catch_deprecated_value_error to ensure we are
-                #  strict about what exceptions we allow through here.
                 return False
 
         # This is technically incorrect, but maintains the behavior of

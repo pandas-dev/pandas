@@ -12,7 +12,10 @@ from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
 )
-from pandas.core.arrays.string_arrow import ArrowStringArray
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringArrayNumpySemantics,
+)
 
 skip_if_no_pyarrow = pytest.mark.skipif(
     pa_version_under7p0,
@@ -49,10 +52,10 @@ def test_config_bad_storage_raises():
 @skip_if_no_pyarrow
 @pytest.mark.parametrize("chunked", [True, False])
 @pytest.mark.parametrize("array", ["numpy", "pyarrow"])
-def test_constructor_not_string_type_raises(array, chunked):
+def test_constructor_not_string_type_raises(array, chunked, arrow_string_storage):
     import pyarrow as pa
 
-    array = pa if array == "pyarrow" else np
+    array = pa if array in arrow_string_storage else np
 
     arr = array.array([1, 2, 3])
     if chunked:
@@ -165,6 +168,9 @@ def test_pyarrow_not_installed_raises():
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray([])
+
+    with pytest.raises(ImportError, match=msg):
+        ArrowStringArrayNumpySemantics([])
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray._from_sequence(["a", None, "b"])

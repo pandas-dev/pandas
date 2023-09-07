@@ -105,7 +105,9 @@ from pandas.core.arrays import (
     ExtensionArray,
     FloatingArray,
     IntegerArray,
+    SparseArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -141,6 +143,7 @@ from pandas.core.util.numba_ import (
 if TYPE_CHECKING:
     from typing import Any
 
+    from pandas.core.resample import Resampler
     from pandas.core.window import (
         ExpandingGroupby,
         ExponentialMovingWindowGroupby,
@@ -1032,7 +1035,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         owl     1  2  3
         toucan  1  5  6
         eagle   7  8  9
-        >>> df.groupby(by=["a"]).get_group(1)
+        >>> df.groupby(by=["a"]).get_group((1,))
                 a  b  c
         owl     1  2  3
         toucan  1  5  6
@@ -1052,12 +1055,33 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-01-15    2
         dtype: int64
         """
+        keys = self.keys
+        level = self.level
+        # mypy doesn't recognize level/keys as being sized when passed to len
+        if (is_list_like(level) and len(level) == 1) or (  # type: ignore[arg-type]
+            is_list_like(keys) and len(keys) == 1  # type: ignore[arg-type]
+        ):
+            # GH#25971
+            if isinstance(name, tuple) and len(name) == 1:
+                # Allow users to pass tuples of length 1 to silence warning
+                name = name[0]
+            elif not isinstance(name, tuple):
+                warnings.warn(
+                    "When grouping with a length-1 list-like, "
+                    "you will need to pass a length-1 tuple to get_group in a future "
+                    "version of pandas. Pass `(name,)` instead of `name` to silence "
+                    "this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         inds = self._get_index(name)
         if not len(inds):
             raise KeyError(name)
 
         if obj is None:
-            return self._selected_obj.iloc[inds]
+            indexer = inds if self.axis == 0 else (slice(None), inds)
+            return self._selected_obj.iloc[indexer]
         else:
             warnings.warn(
                 "obj is deprecated and will be removed in a future version. "
@@ -1909,7 +1933,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
-                if how in ["any", "all", "std", "sem"]:
+                # TODO: avoid special casing SparseArray here
+                if how in ["any", "all"] and isinstance(values, SparseArray):
+                    pass
+                elif how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
             else:
                 return result
@@ -2069,7 +2096,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def any(self, skipna: bool = True):
+    def any(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if any value in the group is truthful, else False.
 
@@ -2125,7 +2152,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def all(self, skipna: bool = True):
+    def all(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if all values in the group are truthful, else False.
 
@@ -2257,7 +2284,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return IntegerArray(
                     counted[0], mask=np.zeros(counted.shape[1], dtype=np.bool_)
                 )
-            elif isinstance(bvalues, ArrowExtensionArray):
+            elif isinstance(bvalues, ArrowExtensionArray) and not isinstance(
+                bvalues.dtype, StringDtype
+            ):
                 return type(bvalues)._from_sequence(counted[0])
             if is_series:
                 assert counted.ndim == 2
@@ -2372,7 +2401,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result.__finalize__(self.obj, method="groupby")
 
     @final
-    def median(self, numeric_only: bool = False):
+    def median(self, numeric_only: bool = False) -> NDFrameT:
         """
         Compute median of groups, excluding missing values.
 
@@ -2801,7 +2830,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.__finalize__(self.obj, method="value_counts")
 
     @final
-    def sem(self, ddof: int = 1, numeric_only: bool = False):
+    def sem(self, ddof: int = 1, numeric_only: bool = False) -> NDFrameT:
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -3092,7 +3121,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2   30   72"""
         ),
     )
-    def prod(self, numeric_only: bool = False, min_count: int = 0):
+    def prod(self, numeric_only: bool = False, min_count: int = 0) -> NDFrameT:
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
@@ -3234,7 +3263,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    def first(self, numeric_only: bool = False, min_count: int = -1):
+    def first(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
         """
         Compute the first non-null entry of each column.
 
@@ -3304,7 +3333,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def last(self, numeric_only: bool = False, min_count: int = -1):
+    def last(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
         """
         Compute the last non-null entry of each column.
 
@@ -3491,7 +3520,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    def resample(self, rule, *args, **kwargs):
+    def resample(self, rule, *args, **kwargs) -> Resampler:
         """
         Provide resampling when using a TimeGrouper.
 
@@ -3526,7 +3555,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> idx = pd.date_range('1/1/2000', periods=4, freq='T')
+        >>> idx = pd.date_range('1/1/2000', periods=4, freq='min')
         >>> df = pd.DataFrame(data=4 * [range(2)],
         ...                   index=idx,
         ...                   columns=['a', 'b'])
@@ -3541,7 +3570,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the DataFrame into 3 minute bins and sum the values of
         the timestamps falling into a bin.
 
-        >>> df.groupby('a').resample('3T').sum()
+        >>> df.groupby('a').resample('3min').sum()
                                  a  b
         a
         0   2000-01-01 00:00:00  0  2
@@ -3550,7 +3579,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Upsample the series into 30 second bins.
 
-        >>> df.groupby('a').resample('30S').sum()
+        >>> df.groupby('a').resample('30s').sum()
                             a  b
         a
         0   2000-01-01 00:00:00  0  1
@@ -3573,7 +3602,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> df.groupby('a').resample('3T', closed='right').sum()
+        >>> df.groupby('a').resample('3min', closed='right').sum()
                                  a  b
         a
         0   1999-12-31 23:57:00  0  1
@@ -3584,7 +3613,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         the bin interval, but label each bin using the right edge instead of
         the left.
 
-        >>> df.groupby('a').resample('3T', closed='right', label='right').sum()
+        >>> df.groupby('a').resample('3min', closed='right', label='right').sum()
                                  a  b
         a
         0   2000-01-01 00:00:00  0  1
@@ -5414,7 +5443,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _reindex_output(
         self,
         output: OutputFrameOrSeries,
-        fill_value: Scalar = np.NaN,
+        fill_value: Scalar = np.nan,
         qs: npt.NDArray[np.float64] | None = None,
     ) -> OutputFrameOrSeries:
         """
@@ -5432,7 +5461,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         output : Series or DataFrame
             Object resulting from grouping and applying an operation.
-        fill_value : scalar, default np.NaN
+        fill_value : scalar, default np.nan
             Value to use for unobserved categories if self.observed is False.
         qs : np.ndarray[float64] or None, default None
             quantile values, only relevant for quantile.

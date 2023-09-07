@@ -189,7 +189,7 @@ class Grouper:
     2000-10-02 00:12:00    18
     2000-10-02 00:19:00    21
     2000-10-02 00:26:00    24
-    Freq: 7T, dtype: int64
+    Freq: 7min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min')).sum()
     2000-10-01 23:14:00     0
@@ -197,7 +197,7 @@ class Grouper:
     2000-10-01 23:48:00    21
     2000-10-02 00:05:00    54
     2000-10-02 00:22:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min', origin='epoch')).sum()
     2000-10-01 23:18:00     0
@@ -205,7 +205,7 @@ class Grouper:
     2000-10-01 23:52:00    27
     2000-10-02 00:09:00    39
     2000-10-02 00:26:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17W', origin='2000-01-01')).sum()
     2000-01-02      0
@@ -222,14 +222,14 @@ class Grouper:
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     >>> ts.groupby(pd.Grouper(freq='17min', offset='23h30min')).sum()
     2000-10-01 23:30:00     9
     2000-10-01 23:47:00    21
     2000-10-02 00:04:00    54
     2000-10-02 00:21:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
 
     To replace the use of the deprecated `base` argument, you can now use `offset`,
     in this example it is equivalent to have `base=2`:
@@ -240,7 +240,7 @@ class Grouper:
     2000-10-01 23:50:00    36
     2000-10-02 00:07:00    39
     2000-10-02 00:24:00    24
-    Freq: 17T, dtype: int64
+    Freq: 17min, dtype: int64
     """
 
     sort: bool
@@ -289,12 +289,12 @@ class Grouper:
         self.dropna = dropna
 
         self._grouper_deprecated = None
-        self._indexer_deprecated = None
+        self._indexer_deprecated: npt.NDArray[np.intp] | None = None
         self._obj_deprecated = None
         self._gpr_index = None
         self.binner = None
         self._grouper = None
-        self._indexer = None
+        self._indexer: npt.NDArray[np.intp] | None = None
 
     def _get_grouper(
         self, obj: NDFrameT, validate: bool = True
@@ -329,8 +329,8 @@ class Grouper:
 
     @final
     def _set_grouper(
-        self, obj: NDFrame, sort: bool = False, *, gpr_index: Index | None = None
-    ):
+        self, obj: NDFrameT, sort: bool = False, *, gpr_index: Index | None = None
+    ) -> tuple[NDFrameT, Index, npt.NDArray[np.intp] | None]:
         """
         given an object and the specifications, setup the internal grouper
         for this particular specification
@@ -349,8 +349,6 @@ class Grouper:
         np.ndarray[np.intp] | None
         """
         assert obj is not None
-
-        indexer = None
 
         if self.key is not None and self.level is not None:
             raise ValueError("The Grouper cannot specify both a key and a level!")
@@ -398,6 +396,7 @@ class Grouper:
                         raise ValueError(f"The level {level} is not valid")
 
         # possibly sort
+        indexer: npt.NDArray[np.intp] | None = None
         if (self.sort or sort) and not ax.is_monotonic_increasing:
             # use stable sort to support first, last, nth
             # TODO: why does putting na_position="first" fix datetimelike cases?
@@ -441,6 +440,8 @@ class Grouper:
     @final
     @property
     def obj(self):
+        # TODO(3.0): enforcing these deprecations on Grouper should close
+        #  GH#25564, GH#41930
         warnings.warn(
             f"{type(self).__name__}.obj is deprecated and will be removed "
             "in a future version. Use GroupBy.indexer instead.",

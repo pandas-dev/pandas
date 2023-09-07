@@ -753,7 +753,7 @@ class TestGroupBy:
 
     def test_datetime_count(self):
         df = DataFrame(
-            {"a": [1, 2, 3] * 2, "dates": date_range("now", periods=6, freq="T")}
+            {"a": [1, 2, 3] * 2, "dates": date_range("now", periods=6, freq="min")}
         )
         result = df.groupby("a").dates.count()
         expected = Series([2, 2, 2], index=Index([1, 2, 3], name="a"), name="dates")
@@ -842,7 +842,7 @@ class TestGroupBy:
         result = period_series.groupby(period_series.index.month).sum()
 
         expected = Series(
-            range(0, periods), index=Index(range(1, periods + 1), name=index.name)
+            range(periods), index=Index(range(1, periods + 1), name=index.name)
         )
         tm.assert_series_equal(result, expected)
 

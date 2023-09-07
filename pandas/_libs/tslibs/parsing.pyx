@@ -774,7 +774,8 @@ def try_parse_year_month_day(
         object[::1] result
 
     n = len(years)
-    if len(months) != n or len(days) != n:
+    # TODO(cython3): Use len instead of `shape[0]`
+    if months.shape[0] != n or days.shape[0] != n:
         raise ValueError("Length of years/months/days must all be equal")
     result = np.empty(n, dtype="O")
 
@@ -795,7 +796,7 @@ def try_parse_year_month_day(
 # is not practical. In fact, using this class issues warnings (xref gh-21322).
 # Thus, we port the class over so that both issues are resolved.
 #
-# Copyright (c) 2017 - dateutil contributors
+# Licence at LICENSES/DATEUTIL_LICENSE
 class _timelex:
     def __init__(self, instream):
         if getattr(instream, "decode", None) is not None:
