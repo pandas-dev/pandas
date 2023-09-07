@@ -34,6 +34,7 @@ objects.
 
       api.extensions.ExtensionArray._accumulate
       api.extensions.ExtensionArray._concat_same_type
+      api.extensions.ExtensionArray._factorize_with_other_for_merge
       api.extensions.ExtensionArray._formatter
       api.extensions.ExtensionArray._from_factorized
       api.extensions.ExtensionArray._from_sequence
