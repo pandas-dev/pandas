@@ -1767,7 +1767,9 @@ Thu,Lunch,Yes,51.51,17"""
             }
         )
 
-        result = df.groupby(["state", "exp", "barcode", "v"]).apply(len)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.groupby(["state", "exp", "barcode", "v"]).apply(len)
 
         unstacked = result.unstack()
         restacked = unstacked.stack(future_stack=future_stack)

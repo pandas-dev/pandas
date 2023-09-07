@@ -95,10 +95,12 @@ def test_builtins_apply(keys, f):
     assert result.shape == (ngroups, 3), assert_msg
 
     npfunc = lambda x: getattr(np, fname)(x, axis=0)  # numpy's equivalent function
-    expected = gb.apply(npfunc)
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        expected = gb.apply(npfunc)
     tm.assert_frame_equal(result, expected)
 
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         expected2 = gb.apply(lambda x: npfunc(x))
     tm.assert_frame_equal(result, expected2)
 
