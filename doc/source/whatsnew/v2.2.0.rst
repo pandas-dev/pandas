@@ -241,7 +241,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- :class:`GroupBy` now accepts an empty list of ``keys`` and applies any aggregation over all the data (:issue:`35366`)
 -
 
 Reshaping
