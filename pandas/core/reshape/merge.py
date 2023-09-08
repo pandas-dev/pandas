@@ -2387,6 +2387,7 @@ def _factorize_keys(
             assert isinstance(rk, ExtensionArray)
             llab, rlab, count = lk._factorize_with_other_for_merge(rk, sort)
         else:
+            assert isinstance(rk, np.ndarray)
             llab, rlab, count = factorize_arrays(lk, rk, sort)
 
     if how == "right":

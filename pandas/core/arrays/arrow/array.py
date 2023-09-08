@@ -2556,7 +2556,7 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _factorize_with_other_for_merge(
-        self, other: Self, sort: bool = False  # type: ignore[override]
+        self, other: Self, sort: bool = False
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         if not isinstance(self.dtype, StringDtype) and (
             pa.types.is_floating(self.dtype.pyarrow_dtype)

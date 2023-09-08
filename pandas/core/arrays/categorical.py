@@ -2719,10 +2719,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         return self._from_backing_data(res_values)
 
     def _factorize_with_other_for_merge(
-        self, other: Self, sort: bool = False  # type: ignore[override]
+        self, other: Self, sort: bool = False
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
-        other = self._encode_with_my_categories(other)
-        return factorize_arrays(self.codes, other.codes, sort)
+        rk = self._encode_with_my_categories(other)
+        return factorize_arrays(self.codes, rk.codes, sort)
 
 
 # The Series.cat accessor

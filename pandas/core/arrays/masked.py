@@ -1507,7 +1507,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         return self._maybe_mask_result(res_values, result_mask)
 
     def _factorize_with_other_for_merge(
-        self, other: Self, sort: bool = False  # type: ignore[override]
+        self, other: Self, sort: bool = False
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
         return factorize_arrays(self._data, other._data, sort, self._mask, other._mask)
 
