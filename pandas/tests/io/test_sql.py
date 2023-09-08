@@ -586,6 +586,28 @@ def sqlite_buildin():
 
 
 @pytest.fixture
+def sqlite_sqlalchemy_memory(iris_path, types_data):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    engine = sqlalchemy.create_engine("sqlite:///:memory:")
+
+    insp = sqlalchemy.inspect(engine)
+    if not insp.has_table("iris"):
+        create_and_load_iris(engine, iris_path, "sqlite")
+    if not insp.has_table("iris_view"):
+        create_and_load_iris_view(engine)
+    if not insp.has_table("types"):
+        for entry in types_data:
+            entry.pop("DateColWithTz")
+        create_and_load_types(engine, types_data, "sqlite")
+
+    yield engine
+    for view in get_all_views(engine):
+        drop_view(view, engine)
+    for tbl in get_all_tables(engine):
+        drop_table(tbl, engine)
+
+
+@pytest.fixture
 def sqlite_buildin_iris(sqlite_buildin, iris_path):
     create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
     return sqlite_buildin
@@ -620,9 +642,15 @@ sqlalchemy_connectable_iris = (
     mysql_connectable + postgresql_connectable + sqlite_iris_connectable
 )
 
-all_connectable = sqlalchemy_connectable + ["sqlite_buildin"]
+all_connectable = sqlalchemy_connectable + [
+    "sqlite_buildin",
+    "sqlite_sqlalchemy_memory",
+]
 
-all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
+all_connectable_iris = sqlalchemy_connectable_iris + [
+    "sqlite_buildin_iris",
+    "sqlite_sqlalchemy_memory",
+]
 
 
 @pytest.mark.db
@@ -3335,145 +3363,135 @@ def test_read_sql_dtype(conn, request, func, dtype_backend):
     tm.assert_frame_equal(result, expected)
 
 
-class TestSQLiteAlchemy:
-    """
-    Test the sqlalchemy backend against an in-memory sqlite database.
+@pytest.mark.db
+def test_keyword_deprecation(sqlite_sqlalchemy_memory):
+    conn = sqlite_sqlalchemy_memory
+    # GH 54397
+    msg = (
+        "Starting with pandas version 3.0 all arguments of to_sql except for the "
+        "arguments 'name' and 'con' will be keyword-only."
+    )
+    df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
+    df.to_sql("example", conn)
 
-    """
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        df.to_sql("example", conn, None, if_exists="replace")
 
-    flavor = "sqlite"
 
-    @classmethod
-    def setup_engine(cls):
-        cls.engine = sqlalchemy.create_engine("sqlite:///:memory:")
+@pytest.mark.db
+def test_default_type_conversion(sqlite_sqlalchemy_memory):
+    conn = sqlite_sqlalchemy_memory
+    df = sql.read_sql_table("types", conn)
 
-    @classmethod
-    def setup_driver(cls):
-        # sqlite3 is built-in
-        cls.driver = None
+    assert issubclass(df.FloatCol.dtype.type, np.floating)
+    assert issubclass(df.IntCol.dtype.type, np.integer)
 
-    def test_keyword_deprecation(self):
-        # GH 54397
-        msg = (
-            "Starting with pandas version 3.0 all arguments of to_sql except for the "
-            "arguments 'name' and 'con' will be keyword-only."
+    # sqlite has no boolean type, so integer type is returned
+    assert issubclass(df.BoolCol.dtype.type, np.integer)
+
+    # Int column with NA values stays as float
+    assert issubclass(df.IntColWithNull.dtype.type, np.floating)
+
+    # Non-native Bool column with NA values stays as float
+    assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
+
+
+@pytest.mark.db
+def test_default_date_load(sqlite_sqlalchemy_memory):
+    conn = sqlite_sqlalchemy_memory
+    df = sql.read_sql_table("types", conn)
+
+    # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
+    assert not issubclass(df.DateCol.dtype.type, np.datetime64)
+
+
+@pytest.mark.db
+def test_bigint_warning(sqlite_sqlalchemy_memory):
+    conn = sqlite_sqlalchemy_memory
+    # test no warning for BIGINT (to support int64) is raised (GH7433)
+    df = DataFrame({"a": [1, 2]}, dtype="int64")
+    assert df.to_sql(name="test_bigintwarning", con=conn, index=False) == 2
+
+    with tm.assert_produces_warning(None):
+        sql.read_sql_table("test_bigintwarning", conn)
+
+
+@pytest.mark.db
+def test_valueerror_exception(sqlite_sqlalchemy_memory):
+    conn = sqlite_sqlalchemy_memory
+    df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
+    with pytest.raises(ValueError, match="Empty table name specified"):
+        df.to_sql(name="", con=conn, if_exists="replace", index=False)
+
+
+@pytest.mark.db
+def test_row_object_is_named_tuple(sqlite_sqlalchemy_memory):
+    conn = sqlite_sqlalchemy_memory
+    # GH 40682
+    # Test for the is_named_tuple() function
+    # Placed here due to its usage of sqlalchemy
+
+    from sqlalchemy import (
+        Column,
+        Integer,
+        String,
+    )
+    from sqlalchemy.orm import (
+        declarative_base,
+        sessionmaker,
+    )
+
+    BaseModel = declarative_base()
+
+    class Test(BaseModel):
+        __tablename__ = "test_frame"
+        id = Column(Integer, primary_key=True)
+        string_column = Column(String(50))
+
+    with conn.begin():
+        BaseModel.metadata.create_all(conn)
+    Session = sessionmaker(bind=conn)
+    with Session() as session:
+        df = DataFrame({"id": [0, 1], "string_column": ["hello", "world"]})
+        assert (
+            df.to_sql(name="test_frame", con=conn, index=False, if_exists="replace")
+            == 2
         )
-        df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
-        df.to_sql("example", self.conn)
+        session.commit()
+        test_query = session.query(Test.id, Test.string_column)
+        df = DataFrame(test_query)
 
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            df.to_sql("example", self.conn, None, if_exists="replace")
+    assert list(df.columns) == ["id", "string_column"]
 
-    def test_default_type_conversion(self):
-        df = sql.read_sql_table("types", self.conn)
 
-        assert issubclass(df.FloatCol.dtype.type, np.floating)
-        assert issubclass(df.IntCol.dtype.type, np.integer)
+@pytest.mark.db
+def test_read_sql_string_inference(sqlite_sqlalchemy_memory):
+    conn = sqlite_sqlalchemy_memory
+    # GH#54430
+    pytest.importorskip("pyarrow")
+    table = "test"
+    df = DataFrame({"a": ["x", "y"]})
+    df.to_sql(table, con=conn, index=False, if_exists="replace")
 
-        # sqlite has no boolean type, so integer type is returned
-        assert issubclass(df.BoolCol.dtype.type, np.integer)
+    with pd.option_context("future.infer_string", True):
+        result = read_sql_table(table, conn)
 
-        # Int column with NA values stays as float
-        assert issubclass(df.IntColWithNull.dtype.type, np.floating)
+    dtype = "string[pyarrow_numpy]"
+    expected = DataFrame(
+        {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
+    )
 
-        # Non-native Bool column with NA values stays as float
-        assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
+    tm.assert_frame_equal(result, expected)
 
-    def test_default_date_load(self):
-        df = sql.read_sql_table("types", self.conn)
 
-        # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
-        assert not issubclass(df.DateCol.dtype.type, np.datetime64)
-
-    def test_bigint_warning(self):
-        # test no warning for BIGINT (to support int64) is raised (GH7433)
-        df = DataFrame({"a": [1, 2]}, dtype="int64")
-        assert df.to_sql(name="test_bigintwarning", con=self.conn, index=False) == 2
-
-        with tm.assert_produces_warning(None):
-            sql.read_sql_table("test_bigintwarning", self.conn)
-
-    def test_valueerror_exception(self):
-        df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
-        with pytest.raises(ValueError, match="Empty table name specified"):
-            df.to_sql(name="", con=self.conn, if_exists="replace", index=False)
-
-    def test_row_object_is_named_tuple(self):
-        # GH 40682
-        # Test for the is_named_tuple() function
-        # Placed here due to its usage of sqlalchemy
-
-        from sqlalchemy import (
-            Column,
-            Integer,
-            String,
-        )
-        from sqlalchemy.orm import (
-            declarative_base,
-            sessionmaker,
-        )
-
-        BaseModel = declarative_base()
-
-        class Test(BaseModel):
-            __tablename__ = "test_frame"
-            id = Column(Integer, primary_key=True)
-            string_column = Column(String(50))
-
-        with self.conn.begin():
-            BaseModel.metadata.create_all(self.conn)
-        Session = sessionmaker(bind=self.conn)
-        with Session() as session:
-            df = DataFrame({"id": [0, 1], "string_column": ["hello", "world"]})
-            assert (
-                df.to_sql(
-                    name="test_frame", con=self.conn, index=False, if_exists="replace"
-                )
-                == 2
-            )
-            session.commit()
-            test_query = session.query(Test.id, Test.string_column)
-            df = DataFrame(test_query)
-
-        assert list(df.columns) == ["id", "string_column"]
-
-    def dtype_backend_expected(self, storage, dtype_backend) -> DataFrame:
-        df = super().dtype_backend_expected(storage, dtype_backend)
-        if dtype_backend == "numpy_nullable":
-            df = df.astype({"e": "Int64", "f": "Int64"})
-        else:
-            df = df.astype({"e": "int64[pyarrow]", "f": "int64[pyarrow]"})
-
-        return df
-
-    @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
-    def test_read_sql_dtype_backend_table(self, string_storage, func):
-        # GH#50048 Not supported for sqlite
-        pass
-
-    def test_read_sql_string_inference(self):
-        # GH#54430
-        pytest.importorskip("pyarrow")
-        table = "test"
-        df = DataFrame({"a": ["x", "y"]})
-        df.to_sql(table, con=self.conn, index=False, if_exists="replace")
-
-        with pd.option_context("future.infer_string", True):
-            result = read_sql_table(table, self.conn)
-
-        dtype = "string[pyarrow_numpy]"
-        expected = DataFrame(
-            {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
-        )
-
-        tm.assert_frame_equal(result, expected)
-
-    def test_roundtripping_datetimes(self):
-        # GH#54877
-        df = DataFrame({"t": [datetime(2020, 12, 31, 12)]}, dtype="datetime64[ns]")
-        df.to_sql("test", self.conn, if_exists="replace", index=False)
-        result = pd.read_sql("select * from test", self.conn).iloc[0, 0]
-        assert result == "2020-12-31 12:00:00.000000"
+@pytest.mark.db
+def test_roundtripping_datetimes(sqlite_sqlalchemy_memory):
+    conn = sqlite_sqlalchemy_memory
+    # GH#54877
+    df = DataFrame({"t": [datetime(2020, 12, 31, 12)]}, dtype="datetime64[ns]")
+    df.to_sql("test", conn, if_exists="replace", index=False)
+    result = pd.read_sql("select * from test", conn).iloc[0, 0]
+    assert result == "2020-12-31 12:00:00.000000"
 
 
 @pytest.mark.db
