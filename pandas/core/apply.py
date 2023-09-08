@@ -756,7 +756,7 @@ class FrameApply(NDFrameApply):
         *,
         by_row: Literal[False, "compat"] = False,
         engine: str = "python",
-        engine_kwargs: dict = {},
+        engine_kwargs: dict[str, bool] | None = None,
         args,
         kwargs,
     ) -> None:
