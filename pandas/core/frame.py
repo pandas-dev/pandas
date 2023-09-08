@@ -9993,9 +9993,9 @@ class DataFrame(NDFrame, OpsMixin):
             - parallel (try to apply the function in parallel over the DataFrame)
 
             Note: The numba compiler only supports a subset of valid Python/numpy operations.
-            Please read more about the `supported python features 
+            Please read more about the `supported python features
             <https://numba.pydata.org/numba-doc/dev/reference/pysupported.html>`_
-            and `supported numpy features 
+            and `supported numpy features
             <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
             in numba to learn what you can or cannot use in the passed function.
 
