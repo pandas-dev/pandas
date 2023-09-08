@@ -1895,22 +1895,25 @@ def test_api_read_sql_duplicate_columns(conn, request):
 def test_read_table_columns(conn, request, test_frame1):
     # test columns argument in read_table
     conn_name = conn
+    if conn_name == "sqlite_buildin":
+        request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
+
     conn = request.getfixturevalue(conn)
     sql.to_sql(test_frame1, "test_frame", conn)
 
     cols = ["A", "B"]
 
-    if conn_name == "sqlite_buildin":
-        with pytest.raises(NotImplementedError, match=""):
-            sql.read_sql_table("test_frame", conn, columns=cols)
-    else:
-        result = sql.read_sql_table("test_frame", conn, columns=cols)
-        assert result.columns.tolist() == cols
+    result = sql.read_sql_table("test_frame", conn, columns=cols)
+    assert result.columns.tolist() == cols
 
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_read_table_index_col(conn, request, test_frame1):
     # test columns argument in read_table
+    conn_name = conn
+    if conn_name == "sqlite_buildin":
+        request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
+
     conn = request.getfixturevalue(conn)
     sql.to_sql(test_frame1, "test_frame", conn)
 
@@ -1939,9 +1942,8 @@ def test_read_sql_delegate(conn, request):
     tm.assert_frame_equal(iris_frame1, iris_frame2)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
-def test_not_reflect_all_tables(conn, request):
-    conn = request.getfixturevalue(conn)
+def test_not_reflect_all_tables(sqlite_conn):
+    conn = sqlite_conn
     from sqlalchemy import text
     from sqlalchemy.engine import Engine
 
@@ -1966,6 +1968,10 @@ def test_not_reflect_all_tables(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_warning_case_insensitive_table_name(conn, request, test_frame1):
+    conn_name = conn
+    if conn_name == "sqlite_buildin":
+        request.node.add_marker(pytest.mark.xfail(reason="Does not raise warning"))
+
     conn = request.getfixturevalue(conn)
     # see gh-7815
     with tm.assert_produces_warning(
@@ -1981,17 +1987,6 @@ def test_warning_case_insensitive_table_name(conn, request, test_frame1):
     # Test that the warning is certainly NOT triggered in a normal case.
     with tm.assert_produces_warning(None):
         test_frame1.to_sql(name="CaseSensitive", con=conn)
-
-
-@pytest.mark.parametrize("conn", all_connectable)
-def _get_index_columns(conn, request, tbl_name):
-    conn = request.getfixturevalue(conn)
-    from sqlalchemy.engine import reflection
-
-    insp = reflection.Inspector.from_engine(conn)
-    ixs = insp.get_indexes("test_index_saved")
-    ixs = [i["column_names"] for i in ixs]
-    return ixs
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -2085,19 +2080,23 @@ def test_pg8000_sqlalchemy_passthrough_error(conn, request):
         sql.read_sql("select * from table", db_uri)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
 def test_query_by_text_obj(conn, request):
     # WIP : GH10846
+    conn_name = conn
     conn = request.getfixturevalue(conn)
     from sqlalchemy import text
 
-    name_text = text("select * from iris where name=:name")
+    if "postgres" in conn_name:
+        name_text = text('select * from iris where "Name"=:name')
+    else:
+        name_text = text("select * from iris where name=:name")
     iris_df = sql.read_sql(name_text, conn, params={"name": "Iris-versicolor"})
     all_names = set(iris_df["Name"])
     assert all_names == {"Iris-versicolor"}
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
 def test_query_by_select_obj(conn, request):
     conn = request.getfixturevalue(conn)
     # WIP : GH10846
@@ -2106,7 +2105,7 @@ def test_query_by_select_obj(conn, request):
         select,
     )
 
-    iris = iris_table_metadata(self.flavor)
+    iris = iris_table_metadata("postgres")
     name_select = select(iris).where(iris.c.Name == bindparam("name"))
     iris_df = sql.read_sql(name_select, conn, params={"name": "Iris-setosa"})
     all_names = set(iris_df["Name"])
@@ -2116,6 +2115,10 @@ def test_query_by_select_obj(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_column_with_percentage(conn, request):
     # GH 37157
+    conn_name = conn
+    if conn_name == "sqlite_buildin":
+        request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
+
     conn = request.getfixturevalue(conn)
     df = DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
     df.to_sql(name="test_column_percentage", con=conn, index=False)
