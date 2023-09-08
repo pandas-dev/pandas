@@ -1475,17 +1475,18 @@ default 'raise'
         2019-12-30     1
         2019-12-31     1
         2020-01-01     1
-        Freq: D, Name: week, dtype: UInt32
+        Freq: D, Name: week, dtype: int32
         """
         from pandas import DataFrame
 
         values = self._local_timestamps()
         sarray = fields.build_isocalendar_sarray(values, reso=self._creso)
+        dtype = np.dtype([("year", "float64"), ("week", "float64"), ("day", "float64")])
+        sarray = self._maybe_mask_results(sarray, fill_value=None, convert=dtype)
+        dtype = None if sarray.dtype == dtype else "int32"
         iso_calendar_df = DataFrame(
-            sarray, columns=["year", "week", "day"], dtype="UInt32"
+            sarray, columns=["year", "week", "day"], dtype=dtype
         )
-        if self._hasna:
-            iso_calendar_df.iloc[self._isnan] = None
         return iso_calendar_df
 
     year = _field_accessor(
