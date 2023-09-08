@@ -166,14 +166,11 @@ def test_error_bad_lines(all_parsers):
     data = "a\n1\n1,2,3\n4\n5,6,7"
 
     msg = "Expected 1 fields in line 3, saw 3"
-    ex_type = ParserError
 
     if parser.engine == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
-        ex_type = pa.ArrowInvalid
         msg = "CSV parse error: Expected 1 columns, got 3: 1,2,3"
 
-    with pytest.raises(ex_type, match=msg):
+    with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), on_bad_lines="error")
 
 
@@ -209,14 +206,11 @@ def test_read_csv_wrong_num_columns(all_parsers):
 """
     parser = all_parsers
     msg = "Expected 6 fields in line 3, saw 7"
-    ex_type = ParserError
 
     if parser.engine == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
-        ex_type = pa.ArrowInvalid
         msg = "Expected 6 columns, got 7: 6,7,8,9,10,11,12"
 
-    with pytest.raises(ex_type, match=msg):
+    with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data))
 
 
@@ -277,18 +271,15 @@ def test_bad_header_uniform_error(all_parsers):
     parser = all_parsers
     data = "+++123456789...\ncol1,col2,col3,col4\n1,2,3,4\n"
     msg = "Expected 2 fields in line 2, saw 4"
-    ex_type = ParserError
     if parser.engine == "c":
         msg = (
             "Could not construct index. Requested to use 1 "
             "number of columns, but 3 left to parse."
         )
     elif parser.engine == "pyarrow":
-        pa = pytest.importorskip("pyarrow")
-        ex_type = pa.ArrowInvalid
         msg = "CSV parse error: Expected 1 columns, got 4: col1,col2,col3,col4"
 
-    with pytest.raises(ex_type, match=msg):
+    with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), index_col=0, on_bad_lines="error")
 
 

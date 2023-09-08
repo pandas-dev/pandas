@@ -3,11 +3,16 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import warnings
 
+from pyarrow import ArrowInvalid
+
 from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import ParserWarning
+from pandas.errors import (
+    ParserError,
+    ParserWarning,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.inference import is_integer
@@ -217,12 +222,15 @@ class ArrowParserWrapper(ParserBase):
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
 
-        table = pyarrow_csv.read_csv(
-            self.src,
-            read_options=pyarrow_csv.ReadOptions(**self.read_options),
-            parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
-            convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
-        )
+        try:
+            table = pyarrow_csv.read_csv(
+                self.src,
+                read_options=pyarrow_csv.ReadOptions(**self.read_options),
+                parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
+                convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
+            )
+        except ArrowInvalid as e:
+            raise ParserError(e) from e
 
         dtype_backend = self.kwds["dtype_backend"]
 
