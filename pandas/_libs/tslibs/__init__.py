@@ -64,9 +64,7 @@ from pandas._libs.tslibs.offsets import (
     Tick,
     to_offset,
 )
-from pandas._libs.tslibs.parsing import (
-    guess_datetime_format,
-)
+from pandas._libs.tslibs.parsing import guess_datetime_format
 from pandas._libs.tslibs.period import (
     IncompatibleFrequency,
     Period,
