@@ -31,8 +31,6 @@ This module does not work with PyGObject yet.
 Cygwin is currently not supported.
 
 Security Note: This module runs programs with these names:
-    - which
-    - where
     - pbcopy
     - pbpaste
     - xclip
@@ -59,7 +57,7 @@ from ctypes import (
 )
 import os
 import platform
-from shutil import which
+from shutil import which as _executable_exists
 import subprocess
 import time
 import warnings
@@ -82,23 +80,6 @@ EXCEPT_MSG = """
     """
 
 ENCODING = "utf-8"
-
-try:
-    from shutil import which as _executable_exists
-except ImportError:
-    # The "which" unix command finds where a command is.
-    if platform.system() == "Windows":
-        WHICH_CMD = "where"
-    else:
-        WHICH_CMD = "which"
-
-    def _executable_exists(name):
-        return (
-            subprocess.call(
-                [WHICH_CMD, name], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            == 0
-        )
 
 
 class PyperclipTimeoutException(PyperclipException):
@@ -571,7 +552,7 @@ def determine_clipboard():
         return init_windows_clipboard()
 
     if platform.system() == "Linux":
-        if which("wslconfig.exe"):
+        if _executable_exists("wslconfig.exe"):
             return init_wsl_clipboard()
 
     # Setup for the macOS platform:
