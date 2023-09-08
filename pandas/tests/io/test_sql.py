@@ -663,6 +663,15 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
+def test_dataframe_to_sql_empty(conn, test_frame1, request):
+    # GH 51086 if conn is sqlite_engine
+    conn = request.getfixturevalue(conn)
+    empty_df = test_frame1.iloc[:0]
+    empty_df.to_sql(name="test", con=conn, if_exists="append", index=False)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_arrow_dtypes(conn, request):
     # GH 52046
     pytest.importorskip("pyarrow")
@@ -1167,10 +1176,6 @@ class PandasSQLTest:
         query = sql_strings["read_no_parameters_with_percent"][self.flavor]
         iris_frame = self.pandasSQL.read_query(query, params=None)
         check_iris_frame(iris_frame)
-
-    def _to_sql_empty(self, test_frame1):
-        self.drop_table("test_frame1", self.conn)
-        assert self.pandasSQL.to_sql(test_frame1.iloc[:0], "test_frame1") == 0
 
     def _to_sql_with_sql_engine(self, test_frame1, engine="auto", **engine_kwargs):
         """`to_sql` with the `engine` param"""
@@ -3495,241 +3500,145 @@ def test_roundtripping_datetimes(sqlite_sqlalchemy_memory):
 
 
 @pytest.mark.db
-class TestMySQLAlchemy:
-    """
-    Test the sqlalchemy backend against an MySQL database.
+def test_psycopg2_schema_support(postgresql_psycopg2_engine):
+    conn = postgresql_psycopg2_engine
+    from sqlalchemy.engine import Engine
 
-    """
+    # only test this for postgresql (schema's not supported in
+    # mysql/sqlite)
+    df = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
 
-    flavor = "mysql"
-    port = 3306
+    # create a schema
+    with conn.connect() as con:
+        with con.begin():
+            con.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
+            con.exec_driver_sql("CREATE SCHEMA other;")
 
-    @classmethod
-    def setup_engine(cls):
-        cls.engine = sqlalchemy.create_engine(
-            f"mysql+{cls.driver}://root@localhost:{cls.port}/pandas",
-            connect_args=cls.connect_args,
+    # write dataframe to different schema's
+    assert df.to_sql(name="test_schema_public", con=conn, index=False) == 2
+    assert (
+        df.to_sql(
+            name="test_schema_public_explicit",
+            con=conn,
+            index=False,
+            schema="public",
         )
+        == 2
+    )
+    assert (
+        df.to_sql(
+            name="test_schema_other", con=conn, index=False, schema="other"
+        )
+        == 2
+    )
 
-    @classmethod
-    def setup_driver(cls):
-        pymysql = pytest.importorskip("pymysql")
-        cls.driver = "pymysql"
-        cls.connect_args = {"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS}
+    # read dataframes back in
+    res1 = sql.read_sql_table("test_schema_public", conn)
+    tm.assert_frame_equal(df, res1)
+    res2 = sql.read_sql_table("test_schema_public_explicit", conn)
+    tm.assert_frame_equal(df, res2)
+    res3 = sql.read_sql_table(
+        "test_schema_public_explicit", conn, schema="public"
+    )
+    tm.assert_frame_equal(df, res3)
+    res4 = sql.read_sql_table("test_schema_other", conn, schema="other")
+    tm.assert_frame_equal(df, res4)
+    msg = "Table test_schema_other not found"
+    with pytest.raises(ValueError, match=msg):
+        sql.read_sql_table("test_schema_other", conn, schema="public")
 
-    def test_default_type_conversion(self):
-        pass
+    # different if_exists options
 
-    def dtype_backend_expected(self, storage, dtype_backend) -> DataFrame:
-        df = super().dtype_backend_expected(storage, dtype_backend)
-        if dtype_backend == "numpy_nullable":
-            df = df.astype({"e": "Int64", "f": "Int64"})
-        else:
-            df = df.astype({"e": "int64[pyarrow]", "f": "int64[pyarrow]"})
+    # create a schema
+    with conn.connect() as con:
+        with con.begin():
+            con.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
+            con.exec_driver_sql("CREATE SCHEMA other;")
 
-        return df
+    # write dataframe with different if_exists options
+    assert (
+        df.to_sql(
+            name="test_schema_other", con=conn, schema="other", index=False
+        )
+        == 2
+    )
+    df.to_sql(
+        name="test_schema_other",
+        con=conn,
+        schema="other",
+        index=False,
+        if_exists="replace",
+    )
+    assert (
+        df.to_sql(
+            name="test_schema_other",
+            con=conn,
+            schema="other",
+            index=False,
+            if_exists="append",
+        )
+        == 2
+    )
+    res = sql.read_sql_table("test_schema_other", conn, schema="other")
+    tm.assert_frame_equal(concat([df, df], ignore_index=True), res)
+
 
 
 @pytest.mark.db
-class TestPostgreSQLAlchemy:
-    """
-    Test the sqlalchemy backend against an PostgreSQL database.
+def test_self_join_date_columns(postgresql_psycopg2_engine):
+    # GH 44421
+    conn = postgresql_psycopg2_engine
+    from sqlalchemy.engine import Engine
+    from sqlalchemy.sql import text
 
-    """
-
-    flavor = "postgresql"
-    port = 5432
-
-    @classmethod
-    def setup_engine(cls):
-        cls.engine = sqlalchemy.create_engine(
-            f"postgresql+{cls.driver}://postgres:postgres@localhost:{cls.port}/pandas"
-        )
-
-    @classmethod
-    def setup_driver(cls):
-        pytest.importorskip("psycopg2")
-        cls.driver = "psycopg2"
-
-    def test_schema_support(self):
-        from sqlalchemy.engine import Engine
-
-        # only test this for postgresql (schema's not supported in
-        # mysql/sqlite)
-        df = DataFrame({"col1": [1, 2], "col2": [0.1, 0.2], "col3": ["a", "n"]})
-
-        # create a schema
-        with self.conn.begin():
-            self.conn.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
-            self.conn.exec_driver_sql("CREATE SCHEMA other;")
-
-        # write dataframe to different schema's
-        assert df.to_sql(name="test_schema_public", con=self.conn, index=False) == 2
-        assert (
-            df.to_sql(
-                name="test_schema_public_explicit",
-                con=self.conn,
-                index=False,
-                schema="public",
-            )
-            == 2
-        )
-        assert (
-            df.to_sql(
-                name="test_schema_other", con=self.conn, index=False, schema="other"
-            )
-            == 2
-        )
-
-        # read dataframes back in
-        res1 = sql.read_sql_table("test_schema_public", self.conn)
-        tm.assert_frame_equal(df, res1)
-        res2 = sql.read_sql_table("test_schema_public_explicit", self.conn)
-        tm.assert_frame_equal(df, res2)
-        res3 = sql.read_sql_table(
-            "test_schema_public_explicit", self.conn, schema="public"
-        )
-        tm.assert_frame_equal(df, res3)
-        res4 = sql.read_sql_table("test_schema_other", self.conn, schema="other")
-        tm.assert_frame_equal(df, res4)
-        msg = "Table test_schema_other not found"
-        with pytest.raises(ValueError, match=msg):
-            sql.read_sql_table("test_schema_other", self.conn, schema="public")
-
-        # different if_exists options
-
-        # create a schema
-        with self.conn.begin():
-            self.conn.exec_driver_sql("DROP SCHEMA IF EXISTS other CASCADE;")
-            self.conn.exec_driver_sql("CREATE SCHEMA other;")
-
-        # write dataframe with different if_exists options
-        assert (
-            df.to_sql(
-                name="test_schema_other", con=self.conn, schema="other", index=False
-            )
-            == 2
-        )
-        df.to_sql(
-            name="test_schema_other",
-            con=self.conn,
-            schema="other",
-            index=False,
-            if_exists="replace",
-        )
-        assert (
-            df.to_sql(
-                name="test_schema_other",
-                con=self.conn,
-                schema="other",
-                index=False,
-                if_exists="append",
-            )
-            == 2
-        )
-        res = sql.read_sql_table("test_schema_other", self.conn, schema="other")
-        tm.assert_frame_equal(concat([df, df], ignore_index=True), res)
-
-        # specifying schema in user-provided meta
-
-        # The schema won't be applied on another Connection
-        # because of transactional schemas
-        if isinstance(self.conn, Engine):
-            engine2 = self.connect()
-            pdsql = sql.SQLDatabase(engine2, schema="other")
-            assert pdsql.to_sql(df, "test_schema_other2", index=False) == 2
-            assert (
-                pdsql.to_sql(df, "test_schema_other2", index=False, if_exists="replace")
-                == 2
-            )
-            assert (
-                pdsql.to_sql(df, "test_schema_other2", index=False, if_exists="append")
-                == 2
-            )
-            res1 = sql.read_sql_table("test_schema_other2", self.conn, schema="other")
-            res2 = pdsql.read_table("test_schema_other2")
-            tm.assert_frame_equal(res1, res2)
-
-    def test_self_join_date_columns(self):
-        # GH 44421
-        from sqlalchemy.engine import Engine
-        from sqlalchemy.sql import text
-
-        create_table = text(
-            """
-        CREATE TABLE person
-        (
-            id serial constraint person_pkey primary key,
-            created_dt timestamp with time zone
-        );
-
-        INSERT INTO person
-            VALUES (1, '2021-01-01T00:00:00Z');
+    create_table = text(
         """
-        )
-        if isinstance(self.conn, Engine):
-            with self.conn.connect() as con:
-                with con.begin():
-                    con.execute(create_table)
-        else:
-            with self.conn.begin():
-                self.conn.execute(create_table)
+    CREATE TABLE person
+    (
+        id serial constraint person_pkey primary key,
+        created_dt timestamp with time zone
+    );
 
-        sql_query = (
-            'SELECT * FROM "person" AS p1 INNER JOIN "person" AS p2 ON p1.id = p2.id;'
-        )
-        result = pd.read_sql(sql_query, self.conn)
-        expected = DataFrame(
-            [[1, Timestamp("2021", tz="UTC")] * 2], columns=["id", "created_dt"] * 2
-        )
-        tm.assert_frame_equal(result, expected)
-
-        # Cleanup
-        with sql.SQLDatabase(self.conn, need_transaction=True) as pandasSQL:
-            pandasSQL.drop_table("person")
-
-
-# -----------------------------------------------------------------------------
-# -- Test Sqlite / MySQL fallback
-
-
-class TestSQLiteFallback:
+    INSERT INTO person
+        VALUES (1, '2021-01-01T00:00:00Z');
     """
-    Test the fallback mode against an in-memory sqlite database.
+    )
+    with conn.connect() as con:
+        with con.begin():
+            con.execute(create_table)
 
-    """
+    sql_query = (
+        'SELECT * FROM "person" AS p1 INNER JOIN "person" AS p2 ON p1.id = p2.id;'
+    )
+    result = pd.read_sql(sql_query, conn)
+    expected = DataFrame(
+        [[1, Timestamp("2021", tz="UTC")] * 2], columns=["id", "created_dt"] * 2
+    )
+    tm.assert_frame_equal(result, expected)
 
-    flavor = "sqlite"
+    # Cleanup
+    with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
+        pandasSQL.drop_table("person")
 
-    @pytest.fixture(autouse=True)
-    def setup_method(self, iris_path, types_data):
-        self.conn = self.connect()
-        self.load_iris_data(iris_path)
-        self.load_types_data(types_data)
-        self.pandasSQL = sql.SQLiteDatabase(self.conn)
 
-    def test_read_sql_parameter(self, sql_strings):
-        self._read_sql_iris_parameter(sql_strings)
+@pytest.mark.db
+def test_create_and_drop_table(sqlite_sqlalchemy_memory):
+    conn = sqlite_sqlalchemy_memory
+    temp_frame = DataFrame(
+        {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
+    )
+    pandasSQL = sql.SQLiteDatabase(conn)
 
-    def test_read_sql_named_parameter(self, sql_strings):
-        self._read_sql_iris_named_parameter(sql_strings)
+    assert pandasSQL.to_sql(temp_frame, "drop_test_frame") == 4
 
-    def test_to_sql_empty(self, test_frame1):
-        self._to_sql_empty(test_frame1)
+    assert pandasSQL.has_table("drop_test_frame")
 
-    def test_create_and_drop_table(self):
-        temp_frame = DataFrame(
-            {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
-        )
+    pandasSQL.drop_table("drop_test_frame")
 
-        assert self.pandasSQL.to_sql(temp_frame, "drop_test_frame") == 4
+    assert not pandasSQL.has_table("drop_test_frame")
 
-        assert self.pandasSQL.has_table("drop_test_frame")
 
-        self.pandasSQL.drop_table("drop_test_frame")
-
-        assert not self.pandasSQL.has_table("drop_test_frame")
-
+class Foo:
     def test_roundtrip(self, test_frame1):
         self._roundtrip(test_frame1)
 
