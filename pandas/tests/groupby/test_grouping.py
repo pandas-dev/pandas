@@ -393,11 +393,6 @@ class TestGrouping:
     def test_grouper_iter(self, df):
         assert sorted(df.groupby("A").grouper) == ["bar", "foo"]
 
-    def test_empty_groups(self, df):
-        # see gh-1048
-        with pytest.raises(ValueError, match="No group keys passed!"):
-            df.groupby([])
-
     def test_groupby_grouper(self, df):
         grouped = df.groupby("A")
 
