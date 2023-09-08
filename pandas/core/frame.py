@@ -9992,7 +9992,9 @@ class DataFrame(NDFrame, OpsMixin):
             - nogil (release the GIL inside the JIT compiled function)
             - parallel (try to apply the function in parallel over the DataFrame)
 
-            Note: The numba compiler only supports a subset of valid Python/numpy operations.
+            Note: The numba compiler only supports a subset of 
+            valid Python/numpy operations.
+            
             Please read more about the `supported python features
             <https://numba.pydata.org/numba-doc/dev/reference/pysupported.html>`_
             and `supported numpy features

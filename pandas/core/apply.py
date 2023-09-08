@@ -82,7 +82,7 @@ def frame_apply(
     result_type: str | None = None,
     by_row: Literal[False, "compat"] = "compat",
     engine: str = "python",
-    engine_kwargs: dict = {},
+    engine_kwargs: dict[str, bool] | None = None,
     args=None,
     kwargs=None,
 ) -> FrameApply:
@@ -916,7 +916,7 @@ class FrameApply(NDFrameApply):
         else:
             return self.obj.copy()
 
-    def apply_raw(self, engine="python", engine_kwargs={}):
+    def apply_raw(self, engine="python", engine_kwargs=None):
         """apply to the values as a numpy array"""
 
         def wrap_function(func):
@@ -935,6 +935,9 @@ class FrameApply(NDFrameApply):
             return wrapper
 
         if engine == "numba":
+
+            engine_kwargs = {} if engine_kwargs is None else engine_kwargs
+
             # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
             # incompatible type "Callable[..., Any] | str | list[Callable
             # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
