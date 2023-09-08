@@ -232,7 +232,6 @@ def init_wl_clipboard():
             args.append("--clear")
             subprocess.check_call(args, close_fds=True)
         else:
-            pass
             p = subprocess.Popen(args, stdin=subprocess.PIPE, close_fds=True)
             p.communicate(input=text.encode(ENCODING))
 
