@@ -33,6 +33,52 @@ from pandas.tests.groupby import get_groupby_method_args
 pytestmark = pytest.mark.filterwarnings("ignore:Mean of empty slice:RuntimeWarning")
 
 
+def test_groupby_empty_list_keys():
+    # sample case of a series
+    s = Series([1, 2, 3])
+    # result = s.groupby([]).agg("min")
+    result = s.groupby([]).agg("min")
+    expected = Series([1])
+    tm.assert_series_equal(result, expected)
+    # sample case one column
+    df = DataFrame(
+        {
+            "group": ["A", "B", "A"],
+            "col": np.arange(3),
+        }
+    )
+    result_df = df.groupby([]).agg(col_min=("col", "min"))
+    expected_df = DataFrame([{"col_min": 0}])
+    tm.assert_frame_equal(result_df, expected_df)
+
+    # two columns in a datafram with other columns
+    df = DataFrame(
+        {
+            "group": ["A", "B", "A"],
+            "col1": np.arange(3),
+            "col2": np.arange(3, 6),
+            "col3": np.arange(6, 9),
+        }
+    )
+    result_df = df.groupby([]).agg(
+        col1_min=("col1", "min"),
+        col2_min=("col2", "sum"),
+    )
+    expected_df = DataFrame(
+        [{"col1_min": 0, "col2_min": 12}],
+    )
+    tm.assert_frame_equal(result_df, expected_df)
+
+    # std
+    result_df = df.groupby([]).agg(
+        col1_std=("col1", "std"),
+    )
+    expected_df = DataFrame(
+        [{"col1_std": 1.0}],
+    )
+    tm.assert_frame_equal(result_df, expected_df)
+
+
 def test_repr():
     # GH18203
     result = repr(Grouper(key="A", level="B"))
