@@ -15,6 +15,7 @@ from pandas.compat import PY311
 from pandas.errors import (
     EmptyDataError,
     ParserError,
+    ParserWarning,
 )
 
 from pandas import DataFrame
@@ -129,17 +130,15 @@ def test_unexpected_keyword_parameter_exception(all_parsers):
         parser.read_table("foo.tsv", foo=1)
 
 
-def test_suppress_error_output(all_parsers, capsys):
+def test_suppress_error_output(all_parsers):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = DataFrame({"a": [1, 4]})
 
-    result = parser.read_csv(StringIO(data), on_bad_lines="skip")
+    with tm.assert_produces_warning(None):
+        result = parser.read_csv(StringIO(data), on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
-
-    captured = capsys.readouterr()
-    assert captured.err == ""
 
 
 def test_error_bad_lines(all_parsers):
@@ -152,18 +151,17 @@ def test_error_bad_lines(all_parsers):
         parser.read_csv(StringIO(data), on_bad_lines="error")
 
 
-def test_warn_bad_lines(all_parsers, capsys):
+def test_warn_bad_lines(all_parsers):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = DataFrame({"a": [1, 4]})
 
-    result = parser.read_csv(StringIO(data), on_bad_lines="warn")
+    with tm.assert_produces_warning(
+        ParserWarning, match="Skipping line", check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
-
-    captured = capsys.readouterr()
-    assert "Skipping line 3" in captured.err
-    assert "Skipping line 5" in captured.err
 
 
 def test_read_csv_wrong_num_columns(all_parsers):
@@ -245,7 +243,7 @@ def test_bad_header_uniform_error(all_parsers):
         parser.read_csv(StringIO(data), index_col=0, on_bad_lines="error")
 
 
-def test_on_bad_lines_warn_correct_formatting(all_parsers, capsys):
+def test_on_bad_lines_warn_correct_formatting(all_parsers):
     # see gh-15925
     parser = all_parsers
     data = """1,2
@@ -256,17 +254,8 @@ a,b
 """
     expected = DataFrame({"1": "a", "2": ["b"] * 2})
 
-    result = parser.read_csv(StringIO(data), on_bad_lines="warn")
+    with tm.assert_produces_warning(
+        ParserWarning, match="Skipping line", check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
-
-    captured = capsys.readouterr()
-    if parser.engine == "c":
-        warn = """Skipping line 3: expected 2 fields, saw 3
-Skipping line 4: expected 2 fields, saw 3
-
-"""
-    else:
-        warn = """Skipping line 3: Expected 2 fields in line 3, saw 3
-Skipping line 4: Expected 2 fields in line 4, saw 3
-"""
-    assert captured.err == warn

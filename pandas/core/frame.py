@@ -1926,11 +1926,17 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
         into: type[dict] = ...,
+        index: bool = ...,
     ) -> dict:
         ...
 
     @overload
-    def to_dict(self, orient: Literal["records"], into: type[dict] = ...) -> list[dict]:
+    def to_dict(
+        self,
+        orient: Literal["records"],
+        into: type[dict] = ...,
+        index: bool = ...,
+    ) -> list[dict]:
         ...
 
     @deprecate_nonkeyword_arguments(
@@ -8863,20 +8869,20 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
         ...                               'Parrot', 'Parrot'],
         ...                    'Max Speed': [380., 370., 24., 26.]})
-        >>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
-                  Animal  Max Speed
+        >>> df.groupby("Animal", group_keys=True)[['Max Speed']].apply(lambda x: x)
+                  Max Speed
         Animal
-        Falcon 0  Falcon      380.0
-               1  Falcon      370.0
-        Parrot 2  Parrot       24.0
-               3  Parrot       26.0
+        Falcon 0      380.0
+               1      370.0
+        Parrot 2       24.0
+               3       26.0
 
-        >>> df.groupby("Animal", group_keys=False).apply(lambda x: x)
-           Animal  Max Speed
-        0  Falcon      380.0
-        1  Falcon      370.0
-        2  Parrot       24.0
-        3  Parrot       26.0
+        >>> df.groupby("Animal", group_keys=False)[['Max Speed']].apply(lambda x: x)
+           Max Speed
+        0      380.0
+        1      370.0
+        2       24.0
+        3       26.0
         """
         )
     )
@@ -11330,7 +11336,7 @@ class DataFrame(NDFrame, OpsMixin):
     def any(  # type: ignore[override]
         self,
         *,
-        axis: Axis = 0,
+        axis: Axis | None = 0,
         bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -11345,7 +11351,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("all", ndim=2))
     def all(
         self,
-        axis: Axis = 0,
+        axis: Axis | None = 0,
         bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -11744,6 +11750,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
+        method: Literal["single", "table"] = ...,
     ) -> Series:
         ...
 
@@ -11754,6 +11761,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
+        method: Literal["single", "table"] = ...,
     ) -> Series | DataFrame:
         ...
 
@@ -11764,6 +11772,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
+        method: Literal["single", "table"] = ...,
     ) -> Series | DataFrame:
         ...
 
@@ -11863,11 +11872,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
-            # error: List item 0 has incompatible type "Union[float, Union[Union[
-            # ExtensionArray, ndarray[Any, Any]], Index, Series], Sequence[float]]";
-            # expected "float"
-            res_df = self.quantile(  # type: ignore[call-overload]
-                [q],
+            # error: List item 0 has incompatible type "float | ExtensionArray |
+            # ndarray[Any, Any] | Index | Series | Sequence[float]"; expected "float"
+            res_df = self.quantile(
+                [q],  # type: ignore[list-item]
                 axis=axis,
                 numeric_only=numeric_only,
                 interpolation=interpolation,
