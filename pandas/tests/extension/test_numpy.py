@@ -393,7 +393,7 @@ class TestMissing(BaseNumPyTests, base.BaseMissingTests):
                     f"ndarray[{data.dtype.name}_t], int64_t) in libs/algos.pxd"
                 )
             )
-        super().test_fillna_no_op_returns_copy(data, request)
+        super().test_fillna_no_op_returns_copy(data)
 
 
 class TestReshaping(BaseNumPyTests, base.BaseReshapingTests):

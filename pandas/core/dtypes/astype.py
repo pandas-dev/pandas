@@ -101,9 +101,9 @@ def _astype_nansafe(
         return _astype_float_to_int_nansafe(arr, dtype, copy)
 
     elif np.issubdtype(arr.dtype, np.complexfloating) and is_object_dtype(dtype):
-        if np.isnan(arr).any():
-            res = np.asarray([np.nan if np.isnan(x) else x for x in arr], dtype)
-            return res
+        res = arr.astype(dtype, copy=copy)
+        res[np.isnan(arr)] = np.nan
+        return res
 
     elif arr.dtype == object:
         # if we have a datetime/timedelta array of objects

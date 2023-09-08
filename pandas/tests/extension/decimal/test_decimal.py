@@ -184,7 +184,7 @@ class TestDecimalArray(base.ExtensionTests):
         ):
             super().test_fillna_limit_backfill(data_missing)
 
-    def test_fillna_no_op_returns_copy(self, data, request):
+    def test_fillna_no_op_returns_copy(self, data):
         msg = "|".join(
             [
                 "ExtensionArray.fillna 'method' keyword is deprecated",
@@ -194,7 +194,7 @@ class TestDecimalArray(base.ExtensionTests):
         with tm.assert_produces_warning(
             (FutureWarning, DeprecationWarning), match=msg, check_stacklevel=False
         ):
-            super().test_fillna_no_op_returns_copy(data, request)
+            super().test_fillna_no_op_returns_copy(data)
 
     def test_fillna_series(self, data_missing):
         msg = "ExtensionArray.fillna added a 'copy' keyword"

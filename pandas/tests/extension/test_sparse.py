@@ -227,7 +227,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
             request.node.add_marker(
                 pytest.mark.xfail(reason="returns array with different fill value")
             )
-        super().test_fillna_no_op_returns_copy(data, request)
+        super().test_fillna_no_op_returns_copy(data)
 
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self, data_missing):

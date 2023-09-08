@@ -86,7 +86,7 @@ class BaseMissingTests:
         expected = pd.Series(data_missing.take([1, 0, 1, 1, 1]))
         tm.assert_series_equal(result, expected)
 
-    def test_fillna_no_op_returns_copy(self, data, request):
+    def test_fillna_no_op_returns_copy(self, data):
         data = data[~data.isna()]
 
         valid = data[0]
