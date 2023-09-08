@@ -32,7 +32,10 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_warning,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -57,6 +60,7 @@ from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
+    _apply_groupings_depr,
     _pipe_template,
     get_groupby,
 )
@@ -163,6 +167,7 @@ class Resampler(BaseGroupBy, PandasObject):
         gpr_index: Index,
         group_keys: bool = False,
         selection=None,
+        include_groups: bool = True,
     ) -> None:
         self._timegrouper = timegrouper
         self.keys = None
@@ -171,6 +176,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self.kind = kind
         self.group_keys = group_keys
         self.as_index = True
+        self.include_groups = include_groups
 
         self.obj, self.ax, self._indexer = self._timegrouper._set_grouper(
             self._convert_obj(obj), sort=True, gpr_index=gpr_index
@@ -296,7 +302,7 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:02    3
     2013-01-01 00:00:03    4
     2013-01-01 00:00:04    5
-    Freq: S, dtype: int64
+    Freq: s, dtype: int64
 
     >>> r = s.resample('2s')
 
@@ -304,7 +310,7 @@ class Resampler(BaseGroupBy, PandasObject):
     2013-01-01 00:00:00    3
     2013-01-01 00:00:02    7
     2013-01-01 00:00:04    5
-    Freq: 2S, dtype: int64
+    Freq: 2s, dtype: int64
 
     >>> r.agg(['sum', 'mean', 'max'])
                          sum  mean  max
@@ -444,7 +450,9 @@ class Resampler(BaseGroupBy, PandasObject):
             #  a DataFrame column, but aggregate_item_by_item operates column-wise
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
-            result = grouped.apply(how, *args, **kwargs)
+            result = _apply(
+                grouped, how, *args, include_groups=self.include_groups, **kwargs
+            )
 
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -456,15 +464,21 @@ class Resampler(BaseGroupBy, PandasObject):
 
             # we have a non-reducing function
             # try to evaluate
-            result = grouped.apply(how, *args, **kwargs)
+            result = _apply(
+                grouped, how, *args, include_groups=self.include_groups, **kwargs
+            )
 
         return self._wrap_result(result)
 
-    def _get_resampler_for_grouping(self, groupby: GroupBy, key):
+    def _get_resampler_for_grouping(
+        self, groupby: GroupBy, key, include_groups: bool = True
+    ):
         """
         Return the correct class for resampling with groupby.
         """
-        return self._resampler_for_grouping(groupby=groupby, key=key, parent=self)
+        return self._resampler_for_grouping(
+            groupby=groupby, key=key, parent=self, include_groups=include_groups
+        )
 
     def _wrap_result(self, result):
         """
@@ -605,7 +619,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:30:00    2
         2018-01-01 00:45:00    2
         2018-01-01 01:00:00    2
-        Freq: 15T, dtype: int64
+        Freq: 15min, dtype: int64
 
         Limit the number of upsampled values imputed by the nearest:
 
@@ -615,7 +629,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:30:00    NaN
         2018-01-01 00:45:00    2.0
         2018-01-01 01:00:00    2.0
-        Freq: 15T, dtype: float64
+        Freq: 15min, dtype: float64
         """
         return self._upsample("nearest", limit=limit)
 
@@ -674,7 +688,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    2
         2018-01-01 01:30:00    3
         2018-01-01 02:00:00    3
-        Freq: 30T, dtype: int64
+        Freq: 30min, dtype: int64
 
         >>> s.resample('15min').bfill(limit=2)
         2018-01-01 00:00:00    1.0
@@ -686,7 +700,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:30:00    3.0
         2018-01-01 01:45:00    3.0
         2018-01-01 02:00:00    3.0
-        Freq: 15T, dtype: float64
+        Freq: 15min, dtype: float64
 
         Resampling a DataFrame that has missing values:
 
@@ -787,7 +801,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    2.0
         2018-01-01 01:30:00    NaN
         2018-01-01 02:00:00    3.0
-        Freq: 30T, dtype: float64
+        Freq: 30min, dtype: float64
 
         >>> s.resample('30min').fillna("backfill")
         2018-01-01 00:00:00    1
@@ -795,7 +809,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    2
         2018-01-01 01:30:00    3
         2018-01-01 02:00:00    3
-        Freq: 30T, dtype: int64
+        Freq: 30min, dtype: int64
 
         >>> s.resample('15min').fillna("backfill", limit=2)
         2018-01-01 00:00:00    1.0
@@ -807,7 +821,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:30:00    3.0
         2018-01-01 01:45:00    3.0
         2018-01-01 02:00:00    3.0
-        Freq: 15T, dtype: float64
+        Freq: 15min, dtype: float64
 
         >>> s.resample('30min').fillna("pad")
         2018-01-01 00:00:00    1
@@ -815,7 +829,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    2
         2018-01-01 01:30:00    2
         2018-01-01 02:00:00    3
-        Freq: 30T, dtype: int64
+        Freq: 30min, dtype: int64
 
         >>> s.resample('30min').fillna("nearest")
         2018-01-01 00:00:00    1
@@ -823,7 +837,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    2
         2018-01-01 01:30:00    3
         2018-01-01 02:00:00    3
-        Freq: 30T, dtype: int64
+        Freq: 30min, dtype: int64
 
         Missing values present before the upsampling are not affected.
 
@@ -841,7 +855,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    NaN
         2018-01-01 01:30:00    3.0
         2018-01-01 02:00:00    3.0
-        Freq: 30T, dtype: float64
+        Freq: 30min, dtype: float64
 
         >>> sm.resample('30min').fillna('pad')
         2018-01-01 00:00:00    1.0
@@ -849,7 +863,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    NaN
         2018-01-01 01:30:00    NaN
         2018-01-01 02:00:00    3.0
-        Freq: 30T, dtype: float64
+        Freq: 30min, dtype: float64
 
         >>> sm.resample('30min').fillna('nearest')
         2018-01-01 00:00:00    1.0
@@ -857,7 +871,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 01:00:00    NaN
         2018-01-01 01:30:00    3.0
         2018-01-01 02:00:00    3.0
-        Freq: 30T, dtype: float64
+        Freq: 30min, dtype: float64
 
         DataFrame resampling is done column-wise. All the same options are
         available.
@@ -1018,7 +1032,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:00    1
         2023-03-01 07:00:02    2
         2023-03-01 07:00:04    3
-        Freq: 2S, dtype: int64
+        Freq: 2s, dtype: int64
 
         Downsample the dataframe to 2Hz by providing the period time of 500ms.
 
@@ -1032,7 +1046,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:03.000    1.0
         2023-03-01 07:00:03.500    2.0
         2023-03-01 07:00:04.000    3.0
-        Freq: 500L, dtype: float64
+        Freq: 500ms, dtype: float64
 
         Internal reindexing with ``as_freq()`` prior to interpolation leads to
         an interpolated timeseries on the basis the reindexed timestamps (anchors).
@@ -1051,7 +1065,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2023-03-01 07:00:03.200    2.6
         2023-03-01 07:00:03.600    2.8
         2023-03-01 07:00:04.000    3.0
-        Freq: 400L, dtype: float64
+        Freq: 400ms, dtype: float64
 
         Note that the series erroneously increases between two anchors
         ``07:00:00`` and ``07:00:02``.
@@ -1590,6 +1604,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
         groupby: GroupBy,
         key=None,
         selection: IndexLabel | None = None,
+        include_groups: bool = False,
     ) -> None:
         # reached via ._gotitem and _get_resampler_for_grouping
 
@@ -1612,6 +1627,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
         self.ax = parent.ax
         self.obj = parent.obj
+        self.include_groups = include_groups
 
     @no_type_check
     def _apply(self, f, *args, **kwargs):
@@ -1628,7 +1644,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
             return x.apply(f, *args, **kwargs)
 
-        result = self._groupby.apply(func)
+        result = _apply(self._groupby, func, include_groups=self.include_groups)
         return self._wrap_result(result)
 
     _upsample = _apply
@@ -1676,6 +1692,8 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
 
 class DatetimeIndexResampler(Resampler):
+    ax: DatetimeIndex
+
     @property
     def _resampler_for_grouping(self):
         return DatetimeIndexResamplerGroupby
@@ -1807,7 +1825,11 @@ class DatetimeIndexResampler(Resampler):
         return result
 
 
-class DatetimeIndexResamplerGroupby(_GroupByMixin, DatetimeIndexResampler):
+# error: Definition of "ax" in base class "_GroupByMixin" is incompatible
+# with definition in base class "DatetimeIndexResampler"
+class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
+    _GroupByMixin, DatetimeIndexResampler
+):
     """
     Provides a resample of a groupby implementation
     """
@@ -1818,6 +1840,10 @@ class DatetimeIndexResamplerGroupby(_GroupByMixin, DatetimeIndexResampler):
 
 
 class PeriodIndexResampler(DatetimeIndexResampler):
+    # error: Incompatible types in assignment (expression has type "PeriodIndex", base
+    # class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
+    ax: PeriodIndex  # type: ignore[assignment]
+
     @property
     def _resampler_for_grouping(self):
         return PeriodIndexResamplerGroupby
@@ -1924,7 +1950,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         return self._wrap_result(new_obj)
 
 
-class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
+# error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
+# definition in base class "PeriodIndexResampler"
+class PeriodIndexResamplerGroupby(  # type: ignore[misc]
+    _GroupByMixin, PeriodIndexResampler
+):
     """
     Provides a resample of a groupby implementation.
     """
@@ -1935,6 +1965,10 @@ class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
 
 
 class TimedeltaIndexResampler(DatetimeIndexResampler):
+    # error: Incompatible types in assignment (expression has type "TimedeltaIndex",
+    # base class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
+    ax: TimedeltaIndex  # type: ignore[assignment]
+
     @property
     def _resampler_for_grouping(self):
         return TimedeltaIndexResamplerGroupby
@@ -1952,7 +1986,11 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
         return binner
 
 
-class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
+# error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
+# definition in base class "DatetimeIndexResampler"
+class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
+    _GroupByMixin, TimedeltaIndexResampler
+):
     """
     Provides a resample of a groupby implementation.
     """
@@ -1981,6 +2019,7 @@ def get_resampler_for_grouping(
     limit: int | None = None,
     kind=None,
     on=None,
+    include_groups: bool = True,
     **kwargs,
 ) -> Resampler:
     """
@@ -1989,7 +2028,9 @@ def get_resampler_for_grouping(
     # .resample uses 'on' similar to how .groupby uses 'key'
     tg = TimeGrouper(freq=rule, key=on, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
-    return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
+    return resampler._get_resampler_for_grouping(
+        groupby=groupby, include_groups=include_groups, key=tg.key
+    )
 
 
 class TimeGrouper(Grouper):
@@ -2767,3 +2808,18 @@ def maybe_warn_args_and_kwargs(cls, kernel: str, args, kwargs) -> None:
         category=FutureWarning,
         stacklevel=find_stack_level(),
     )
+
+
+def _apply(
+    grouped: GroupBy, how: Callable, *args, include_groups: bool, **kwargs
+) -> DataFrame:
+    # GH#7155 - rewrite warning to appear as if it came from `.resample`
+    target_message = "DataFrameGroupBy.apply operated on the grouping columns"
+    new_message = _apply_groupings_depr.format("DataFrameGroupBy", "resample")
+    with rewrite_warning(
+        target_message=target_message,
+        target_category=FutureWarning,
+        new_message=new_message,
+    ):
+        result = grouped.apply(how, *args, include_groups=include_groups, **kwargs)
+    return result

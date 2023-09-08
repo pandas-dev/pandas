@@ -82,6 +82,7 @@ if TYPE_CHECKING:
         Axis,
         AxisInt,
         Self,
+        npt,
     )
 
     from pandas import (
@@ -1384,7 +1385,7 @@ class _LocIndexer(_LocationIndexer):
             # nested tuple slicing
             if is_nested_tuple(key, labels):
                 locs = labels.get_locs(key)
-                indexer = [slice(None)] * self.ndim
+                indexer: list[slice | npt.NDArray[np.intp]] = [slice(None)] * self.ndim
                 indexer[axis] = locs
                 return self.obj.iloc[tuple(indexer)]
 

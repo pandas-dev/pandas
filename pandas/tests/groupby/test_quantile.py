@@ -420,7 +420,7 @@ def test_timestamp_groupby_quantile():
     df = DataFrame(
         {
             "timestamp": pd.date_range(
-                start="2020-04-19 00:00:00", freq="1T", periods=100, tz="UTC"
+                start="2020-04-19 00:00:00", freq="1min", periods=100, tz="UTC"
             ).floor("1H"),
             "category": list(range(1, 101)),
             "value": list(range(101, 201)),
