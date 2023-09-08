@@ -31,6 +31,7 @@ foreach ext_name, ext_dict : tslibs_sources
     )
 endforeach
 
-py.install_sources('__init__.py',
-                    pure: false,
-                    subdir: 'pandas/_libs/tslibs')
+py.install_sources(
+    '__init__.py',
+    subdir: 'pandas/_libs/tslibs'
+)

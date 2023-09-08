@@ -114,8 +114,9 @@ foreach ext_name, ext_dict : libs_sources
     )
 endforeach
 
-py.install_sources('__init__.py',
-                    pure: false,
-                    subdir: 'pandas/_libs')
+py.install_sources(
+    '__init__.py',
+    subdir: 'pandas/_libs'
+)
 
 subdir('window')
