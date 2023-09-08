@@ -2128,85 +2128,74 @@ def test_column_with_percentage(conn, request):
     tm.assert_frame_equal(res, df)
 
 
-class TestSQLiteFallbackApi:
-    """
-    Test the public sqlite connection fallback API
+def test_sql_open_close(test_frame3):
+    # Test if the IO in the database still work if the connection closed
+    # between the writing and reading (as in many real situations).
 
-    """
+    with tm.ensure_clean() as name:
+        with closing(sqlite3.connect(name)) as conn:
+            assert sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False) == 4
 
-    def connect(self, database=":memory:"):
-        return sqlite3.connect(database)
+        with closing(sqlite3.connect(name)) as conn:
+            result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
 
-    def test_sql_open_close(self, test_frame3):
-        # Test if the IO in the database still work if the connection closed
-        # between the writing and reading (as in many real situations).
+    tm.assert_frame_equal(test_frame3, result)
 
-        with tm.ensure_clean() as name:
-            with closing(self.connect(name)) as conn:
-                assert (
-                    sql.to_sql(test_frame3, "test_frame3_legacy", conn, index=False)
-                    == 4
-                )
 
-            with closing(self.connect(name)) as conn:
-                result = sql.read_sql_query("SELECT * FROM test_frame3_legacy;", conn)
+@pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
+def test_con_string_import_error():
+    conn = "mysql://root@localhost/pandas"
+    msg = "Using URI string without sqlalchemy installed"
+    with pytest.raises(ImportError, match=msg):
+        sql.read_sql("SELECT * FROM iris", conn)
 
-        tm.assert_frame_equal(test_frame3, result)
 
-    @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
-    def test_con_string_import_error(self):
-        conn = "mysql://root@localhost/pandas"
-        msg = "Using URI string without sqlalchemy installed"
-        with pytest.raises(ImportError, match=msg):
-            sql.read_sql("SELECT * FROM iris", conn)
+@pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
+def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
+    class MockSqliteConnection:
+        def __init__(self, *args, **kwargs) -> None:
+            self.conn = sqlite3.Connection(*args, **kwargs)
 
-    @pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
-    def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed(
-        self,
-    ):
-        class MockSqliteConnection:
-            def __init__(self, *args, **kwargs) -> None:
-                self.conn = sqlite3.Connection(*args, **kwargs)
+        def __getattr__(self, name):
+            return getattr(self.conn, name)
 
-            def __getattr__(self, name):
-                return getattr(self.conn, name)
+        def close(self):
+            self.conn.close()
 
-            def close(self):
-                self.conn.close()
+    with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
+        with tm.assert_produces_warning(UserWarning):
+            sql.read_sql("SELECT 1", conn)
 
-        with contextlib.closing(MockSqliteConnection(":memory:")) as conn:
-            with tm.assert_produces_warning(UserWarning):
-                sql.read_sql("SELECT 1", conn)
 
-    def test_read_sql_delegate(self):
-        iris_frame1 = sql.read_sql_query("SELECT * FROM iris", self.conn)
-        iris_frame2 = sql.read_sql("SELECT * FROM iris", self.conn)
-        tm.assert_frame_equal(iris_frame1, iris_frame2)
+def test_read_sql_delegate(sqlite_buildin_iris):
+    conn = sqlite_buildin_iris
+    iris_frame1 = sql.read_sql_query("SELECT * FROM iris", conn)
+    iris_frame2 = sql.read_sql("SELECT * FROM iris", conn)
+    tm.assert_frame_equal(iris_frame1, iris_frame2)
 
-        msg = "Execution failed on sql 'iris': near \"iris\": syntax error"
-        with pytest.raises(sql.DatabaseError, match=msg):
-            sql.read_sql("iris", self.conn)
+    msg = "Execution failed on sql 'iris': near \"iris\": syntax error"
+    with pytest.raises(sql.DatabaseError, match=msg):
+        sql.read_sql("iris", conn)
 
-    def test_get_schema2(self, test_frame1):
-        # without providing a connection object (available for backwards comp)
-        create_sql = sql.get_schema(test_frame1, "test")
-        assert "CREATE" in create_sql
 
-    def _get_sqlite_column_type(self, schema, column):
-        for col in schema.split("\n"):
-            if col.split()[0].strip('"') == column:
-                return col.split()[1]
-        raise ValueError(f"Column {column} not found")
+def test_get_schema2(test_frame1):
+    # without providing a connection object (available for backwards comp)
+    create_sql = sql.get_schema(test_frame1, "test")
+    assert "CREATE" in create_sql
 
-    def test_sqlite_type_mapping(self):
-        # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
-        df = DataFrame(
-            {"time": to_datetime(["2014-12-12 01:54", "2014-12-11 02:54"], utc=True)}
-        )
-        db = sql.SQLiteDatabase(self.conn)
-        table = sql.SQLiteTable("test_type", db, frame=df)
-        schema = table.sql_schema()
-        assert self._get_sqlite_column_type(schema, "time") == "TIMESTAMP"
+
+def test_sqlite_type_mapping(sqlite_buildin):
+    # Test Timestamp objects (no datetime64 because of timezone) (GH9085)
+    conn = sqlite_buildin
+    df = DataFrame(
+        {"time": to_datetime(["2014-12-12 01:54", "2014-12-11 02:54"], utc=True)}
+    )
+    db = sql.SQLiteDatabase(conn)
+    table = sql.SQLiteTable("test_type", db, frame=df)
+    schema = table.sql_schema()
+    for col in schema.split("\n"):
+        if col.split()[0].strip('"') == "time":
+            assert col.split()[1] == "TIMESTAMP"
 
 
 # -----------------------------------------------------------------------------
