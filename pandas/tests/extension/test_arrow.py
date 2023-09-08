@@ -40,6 +40,7 @@ from pandas.compat import (
     pa_version_under9p0,
     pa_version_under11p0,
     pa_version_under13p0,
+    pa_version_under14p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -951,7 +952,7 @@ class TestBaseArithmeticOps(base.BaseArithmeticOpsTests):
                 or (
                     opname
                     in ("__truediv__", "__rtruediv__", "__floordiv__", "__rfloordiv__")
-                    and not pa_version_under13p0
+                    and not pa_version_under14p0
                 )
             )
             and pa.types.is_duration(pa_dtype)
