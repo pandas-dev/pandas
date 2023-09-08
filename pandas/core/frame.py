@@ -9919,8 +9919,8 @@ class DataFrame(NDFrame, OpsMixin):
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
         by_row: Literal[False, "compat"] = "compat",
-        engine: str = "python",
-        engine_kwargs: dict = {},
+        engine: Literal["python", "numba"] = "python",
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         """
@@ -9991,6 +9991,13 @@ class DataFrame(NDFrame, OpsMixin):
             - nopython (compile the function in nopython mode)
             - nogil (release the GIL inside the JIT compiled function)
             - parallel (try to apply the function in parallel over the DataFrame)
+
+            Note: The numba compiler only supports a subset of valid Python/numpy operations.
+            Please read more about the `supported python features 
+            <https://numba.pydata.org/numba-doc/dev/reference/pysupported.html>`_
+            and `supported numpy features 
+            <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
+            in numba to learn what you can or cannot use in the passed function.
 
             As of right now, the numba engine can only be used with raw=True.
 
