@@ -1289,6 +1289,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dropna: bool = True,
     ) -> None:
         self._selection = selection
+        # to resolve case when passed empty list
+        # didn't change self.keys directly to avoid side effects
+        # e.g. the use of get_grouper
+        keys = [0] * len(obj) if (isinstance(keys, list) and keys == []) else keys
 
         assert isinstance(obj, NDFrame), type(obj)
 
