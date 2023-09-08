@@ -128,13 +128,13 @@ def test_resample_timedelta_values():
 @pytest.mark.parametrize(
     "start, end, freq, resample_freq",
     [
-        ("8H", "21h59min50s", "10s", "3H"),  # GH 30353 example
-        ("3H", "22H", "1H", "5H"),
+        ("8h", "21h59min50s", "10s", "3h"),  # GH 30353 example
+        ("3h", "22h", "1h", "5h"),
         ("527D", "5006D", "3D", "10D"),
         ("1D", "10D", "1D", "2D"),  # GH 13022 example
         # tests that worked before GH 33498:
-        ("8H", "21h59min50s", "10s", "2H"),
-        ("0H", "21h59min50s", "10s", "3H"),
+        ("8h", "21h59min50s", "10s", "2h"),
+        ("0h", "21h59min50s", "10s", "3h"),
         ("10D", "85D", "D", "2D"),
     ],
 )

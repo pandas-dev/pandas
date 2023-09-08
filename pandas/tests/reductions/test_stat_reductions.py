@@ -41,7 +41,7 @@ class TestDatetimeLikeStatReductions:
         assert obj.mean(skipna=False) is pd.NaT
 
     @pytest.mark.parametrize("box", [Series, pd.Index, PeriodArray])
-    @pytest.mark.parametrize("freq", ["s", "H", "D", "W", "B"])
+    @pytest.mark.parametrize("freq", ["s", "h", "D", "W", "B"])
     def test_period_mean(self, box, freq):
         # GH#24757
         dti = pd.date_range("2001-01-01", periods=11)

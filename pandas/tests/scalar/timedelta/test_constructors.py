@@ -208,8 +208,8 @@ def test_construction():
     assert Timedelta(offsets.Second(2)) == Timedelta(seconds=2)
 
     # GH#11995: unicode
-    expected = Timedelta("1H")
-    result = Timedelta("1H")
+    expected = Timedelta("1h")
+    result = Timedelta("1h")
     assert result == expected
     assert to_timedelta(offsets.Hour(2)) == Timedelta("0 days, 02:00:00")
 

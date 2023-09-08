@@ -327,7 +327,7 @@ def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer
     [
         date_range("2014-01-01", periods=20, freq="MS"),
         period_range("2014-01", periods=20, freq="M"),
-        timedelta_range("0", periods=20, freq="H"),
+        timedelta_range("0", periods=20, freq="h"),
     ],
 )
 def test_slice_with_negative_step(index):

@@ -4629,8 +4629,8 @@ cpdef to_offset(freq):
                     )
                     prefix = c_DEPR_ABBREVS[prefix]
                 if prefix in {"D", "h", "min", "s", "ms", "us", "ns"}:
-                    # For these prefixes, we have something like "3H" or
-                    #  "2.5T", so we can construct a Timedelta with the
+                    # For these prefixes, we have something like "3h" or
+                    #  "2.5min", so we can construct a Timedelta with the
                     #  matching unit and get our offset from delta_to_tick
                     td = Timedelta(1, unit=prefix)
                     off = delta_to_tick(td)

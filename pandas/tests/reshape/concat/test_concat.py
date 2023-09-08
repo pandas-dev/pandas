@@ -272,7 +272,7 @@ class TestConcatenate:
         # G2385
 
         # axis 1
-        index = date_range("01-Jan-2013", periods=10, freq="H")
+        index = date_range("01-Jan-2013", periods=10, freq="h")
         arr = np.arange(10, dtype="int64")
         s1 = Series(arr, index=index)
         s2 = Series(arr, index=index)

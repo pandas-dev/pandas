@@ -2817,7 +2817,7 @@ class TestToDatetimeInferFormat:
     def test_to_datetime_infer_datetime_format_consistent_format(
         self, cache, test_format
     ):
-        ser = Series(date_range("20000101", periods=50, freq="H"))
+        ser = Series(date_range("20000101", periods=50, freq="h"))
 
         s_as_dt_strings = ser.apply(lambda x: x.strftime(test_format))
 

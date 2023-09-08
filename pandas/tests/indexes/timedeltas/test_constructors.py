@@ -175,9 +175,9 @@ class TestTimedeltaIndex:
 
     def test_constructor_iso(self):
         # GH #21877
-        expected = timedelta_range("1s", periods=9, freq="s")
-        durations = [f"P0DT0H0M{i}S" for i in range(1, 10)]
-        result = to_timedelta("P0DT0H0M1S")
+        timedelta_range("1s", periods=9, freq="s")
+        [f"P0DT0H0M{i}S" for i in range(1, 10)]
+        to_timedelta("P0DT0H0M1S")
         # result = to_timedelta(durations)
         # tm.assert_index_equal(result, expected)
 

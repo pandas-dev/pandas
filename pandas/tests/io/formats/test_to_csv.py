@@ -285,7 +285,7 @@ $1$,$2$
         df = DataFrame(
             {
                 "date": pd.to_datetime("1970-01-01"),
-                "datetime": pd.date_range("1970-01-01", periods=2, freq="H"),
+                "datetime": pd.date_range("1970-01-01", periods=2, freq="h"),
             }
         )
         expected_rows = [

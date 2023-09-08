@@ -131,7 +131,7 @@ def test_append_with_timezones(setup_path, gettz):
 def test_append_with_timezones_as_index(setup_path, gettz):
     # GH#4098 example
 
-    dti = date_range("2000-1-1", periods=3, freq="H", tz=gettz("US/Eastern"))
+    dti = date_range("2000-1-1", periods=3, freq="h", tz=gettz("US/Eastern"))
     dti = dti._with_freq(None)  # freq doesn't round-trip
 
     df = DataFrame({"A": Series(range(3), index=dti)})
@@ -332,7 +332,7 @@ def test_dst_transitions(setup_path):
             "2013-10-26 23:00",
             "2013-10-27 01:00",
             tz="Europe/London",
-            freq="H",
+            freq="h",
             ambiguous="infer",
         )
         times = times._with_freq(None)  # freq doesn't round-trip

@@ -898,8 +898,8 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
             elif c in ["W", "D", "H", "M"]:
                 if c in ["H", "M"] and len(number) > 2:
                     raise ValueError(err_msg)
-                if c == "M":
-                    c = "min"
+                if c in ["M", "H"]:
+                    c = c.replace("M", "min").replace("H", "h")
                 unit.append(c)
                 r = timedelta_from_spec(number, "0", unit)
                 result += timedelta_as_neg(r, neg)
