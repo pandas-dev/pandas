@@ -935,7 +935,6 @@ class FrameApply(NDFrameApply):
             return wrapper
 
         if engine == "numba":
-
             engine_kwargs = {} if engine_kwargs is None else engine_kwargs
 
             # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
