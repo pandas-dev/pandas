@@ -15,7 +15,10 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas.compat import pa_version_under7p0
+from pandas.compat import (
+    pa_version_under7p0,
+    pa_version_under13p0,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -47,6 +50,8 @@ if not pa_version_under7p0:
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
         Dtype,
         Scalar,
@@ -334,19 +339,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.starts_with(self._pa_array, pattern=pat)
         if not isna(na):
             result = result.fill_null(na)
-        result = self._result_converter(result)
-        if not isna(na):
-            result[isna(result)] = bool(na)
-        return result
+        return self._result_converter(result)
 
     def _str_endswith(self, pat: str, na=None):
         result = pc.ends_with(self._pa_array, pattern=pat)
         if not isna(na):
             result = result.fill_null(na)
-        result = self._result_converter(result)
-        if not isna(na):
-            result[isna(result)] = bool(na)
-        return result
+        return self._result_converter(result)
 
     def _str_replace(
         self,
@@ -365,6 +364,12 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = func(self._pa_array, pattern=pat, replacement=repl, max_replacements=n)
         return type(self)(result)
 
+    def _str_repeat(self, repeats: int | Sequence[int]):
+        if not isinstance(repeats, int):
+            return super()._str_repeat(repeats)
+        else:
+            return type(self)(pc.binary_repeat(self._pa_array, repeats))
+
     def _str_match(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
@@ -378,6 +383,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if not pat.endswith("$") or pat.endswith("//$"):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
+
+    def _str_slice(
+        self, start: int | None = None, stop: int | None = None, step: int | None = None
+    ):
+        if stop is None:
+            return super()._str_slice(start, stop, step)
+        if start is None:
+            start = 0
+        if step is None:
+            step = 1
+        return type(self)(
+            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
+        )
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._pa_array)
@@ -446,6 +464,20 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
         return type(self)(result)
 
+    def _str_removeprefix(self, prefix: str):
+        if not pa_version_under13p0:
+            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
+            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
+            result = pc.if_else(starts_with, removed, self._pa_array)
+            return type(self)(result)
+        return super()._str_removeprefix(prefix)
+
+    def _str_removesuffix(self, suffix: str):
+        ends_with = pc.ends_with(self._pa_array, pattern=suffix)
+        removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
+        result = pc.if_else(ends_with, removed, self._pa_array)
+        return type(self)(result)
+
     def _str_count(self, pat: str, flags: int = 0):
         if flags:
             return super()._str_count(pat, flags)
@@ -491,7 +523,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
     def __getattribute__(self, item):
         # ArrowStringArray and we both inherit from ArrowExtensionArray, which
         # creates inheritance problems (Diamond inheritance)
-        if item in ArrowStringArrayMixin.__dict__ and item != "_pa_array":
+        if item in ArrowStringArrayMixin.__dict__ and item not in (
+            "_pa_array",
+            "__dict__",
+        ):
             return partial(getattr(ArrowStringArrayMixin, item), self)
         return super().__getattribute__(item)
 
