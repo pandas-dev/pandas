@@ -18,6 +18,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
+    timezones,
 )
 from pandas.compat import (
     pa_version_under7p0,
@@ -2425,7 +2426,7 @@ class ArrowExtensionArray(
 
     @property
     def _dt_tz(self):
-        return self.dtype.pyarrow_dtype.tz
+        return timezones.maybe_get_tz(self.dtype.pyarrow_dtype.tz)
 
     @property
     def _dt_unit(self):
