@@ -969,6 +969,10 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         n = len(self)
 
         if isinstance(dtype, ExtensionDtype):
+            # TODO: use object dtype as workaround for non-performant
+            #  EA.__setitem__ methods. (primarily ArrowExtensionArray.__setitem__
+            #  when iteratively setting individual values)
+            #  https://github.com/pandas-dev/pandas/pull/54508#issuecomment-1675827918
             result = np.empty(n, dtype=object)
         else:
             result = np.empty(n, dtype=dtype)
