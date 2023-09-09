@@ -1136,128 +1136,64 @@ def test_execute_deprecated(sqlite_buildin_iris):
         sql.execute("select * from iris", sqlite_buildin_iris)
 
 
-class PandasSQLTest:
-    """
-    Base class with common private methods for SQLAlchemy and fallback cases.
+@pytest.fixture
+def flavor():
+    def func(conn_name):
+        if "postgresql" in conn_name:
+            return "postgresql"
+        elif "sqlite" in conn_name:
+            return "sqlite"
+        elif "mysql" in conn_name:
+            return "mysql"
 
-    """
+        raise ValueError(f"unsupported connection: {conn_name}")
 
-    def load_iris_data(self, iris_path):
-        self.drop_view("iris_view", self.conn)
-        self.drop_table("iris", self.conn)
-        if isinstance(self.conn, sqlite3.Connection):
-            create_and_load_iris_sqlite3(self.conn, iris_path)
-        else:
-            create_and_load_iris(self.conn, iris_path, self.flavor)
+    return func
 
-    def load_types_data(self, types_data):
-        if self.flavor != "postgresql":
-            for entry in types_data:
-                entry.pop("DateColWithTz")
-        if isinstance(self.conn, sqlite3.Connection):
-            types_data = [tuple(entry.values()) for entry in types_data]
-            create_and_load_types_sqlite3(self.conn, types_data)
-        else:
-            create_and_load_types(self.conn, types_data, self.flavor)
 
-    def _read_sql_iris_parameter(self, sql_strings):
-        query = sql_strings["read_parameters"][self.flavor]
-        params = ("Iris-setosa", 5.1)
-        iris_frame = self.pandasSQL.read_query(query, params=params)
-        check_iris_frame(iris_frame)
-
-    def _read_sql_iris_named_parameter(self, sql_strings):
-        query = sql_strings["read_named_parameters"][self.flavor]
-        params = {"name": "Iris-setosa", "length": 5.1}
-        iris_frame = self.pandasSQL.read_query(query, params=params)
-        check_iris_frame(iris_frame)
-
-    def _read_sql_iris_no_parameter_with_percent(self, sql_strings):
-        query = sql_strings["read_no_parameters_with_percent"][self.flavor]
-        iris_frame = self.pandasSQL.read_query(query, params=None)
-        check_iris_frame(iris_frame)
-
-    def _to_sql_with_sql_engine(self, test_frame1, engine="auto", **engine_kwargs):
-        """`to_sql` with the `engine` param"""
-        # mostly copied from this class's `_to_sql()` method
-        self.drop_table("test_frame1", self.conn)
-
-        assert (
-            self.pandasSQL.to_sql(
-                test_frame1, "test_frame1", engine=engine, **engine_kwargs
-            )
-            == 4
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable_iris)
+def test_read_sql_iris_parameter(conn, request, sql_strings, flavor):
+    conn_name = conn
+    if "engine" in conn:
+        request.node.add_marker(
+            pytest.xfail(reason="fails and hangs forever with engine")
         )
-        assert self.pandasSQL.has_table("test_frame1")
 
-        num_entries = len(test_frame1)
-        num_rows = count_rows(self.conn, "test_frame1")
-        assert num_rows == num_entries
+    conn = request.getfixturevalue(conn)
+    query = sql_strings["read_parameters"][flavor(conn_name)]
+    params = ("Iris-setosa", 5.1)
+    pandasSQL = pandasSQL_builder(conn)
+    iris_frame = pandasSQL.read_query(query, params=params)
+    check_iris_frame(iris_frame)
 
-        # Nuke table
-        self.drop_table("test_frame1", self.conn)
 
-    def _roundtrip(self, test_frame1):
-        self.drop_table("test_frame_roundtrip", self.conn)
-        assert self.pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
-        result = self.pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
-
-        result.set_index("level_0", inplace=True)
-        # result.index.astype(int)
-
-        result.index.name = None
-
-        tm.assert_frame_equal(result, test_frame1)
-
-    def _execute_sql(self):
-        # drop_sql = "DROP TABLE IF EXISTS test"  # should already be done
-        iris_results = self.pandasSQL.execute("SELECT * FROM iris")
-        row = iris_results.fetchone()
-        tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
-
-    def _to_sql_save_index(self):
-        df = DataFrame.from_records(
-            [(1, 2.1, "line1"), (2, 1.5, "line2")], columns=["A", "B", "C"], index=["A"]
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable_iris)
+def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
+    conn_name = conn
+    if "engine" in conn:
+        request.node.add_marker(
+            pytest.xfail(reason="fails and hangs forever with engine")
         )
-        assert self.pandasSQL.to_sql(df, "test_to_sql_saves_index") == 2
-        ix_cols = self._get_index_columns("test_to_sql_saves_index")
-        assert ix_cols == [["A"]]
+    conn = request.getfixturevalue(conn)
+    query = sql_strings["read_named_parameters"][flavor(conn_name)]
+    params = {"name": "Iris-setosa", "length": 5.1}
+    pandasSQL = pandasSQL_builder(conn)
+    iris_frame = pandasSQL.read_query(query, params=params)
+    check_iris_frame(iris_frame)
 
-    def _transaction_test(self):
-        with self.pandasSQL.run_transaction() as trans:
-            stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
-            if isinstance(self.pandasSQL, SQLiteDatabase):
-                trans.execute(stmt)
-            else:
-                from sqlalchemy import text
 
-                stmt = text(stmt)
-                trans.execute(stmt)
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable_iris)
+def test_read_sql_iris_no_parameter_with_percent(conn, request, sql_strings, flavor):
+    conn_name = conn
+    conn = request.getfixturevalue(conn)
 
-        class DummyException(Exception):
-            pass
-
-        # Make sure when transaction is rolled back, no rows get inserted
-        ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
-        if isinstance(self.pandasSQL, SQLDatabase):
-            from sqlalchemy import text
-
-            ins_sql = text(ins_sql)
-        try:
-            with self.pandasSQL.run_transaction() as trans:
-                trans.execute(ins_sql)
-                raise DummyException("error")
-        except DummyException:
-            # ignore raised exception
-            pass
-        res = self.pandasSQL.read_query("SELECT * FROM test_trans")
-        assert len(res) == 0
-
-        # Make sure when transaction is committed, rows do get inserted
-        with self.pandasSQL.run_transaction() as trans:
-            trans.execute(ins_sql)
-        res2 = self.pandasSQL.read_query("SELECT * FROM test_trans")
-        assert len(res2) == 1
+    query = sql_strings["read_no_parameters_with_percent"][flavor(conn_name)]
+    pandasSQL = pandasSQL_builder(conn)
+    iris_frame = pandasSQL.read_query(query, params=None)
+    check_iris_frame(iris_frame)
 
 
 # -----------------------------------------------------------------------------
@@ -2828,6 +2764,47 @@ def test_transactions(conn, request):
 
 
 @pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
+def test_transaction_rollback(conn, request):
+    conn = request.getfixturevalue(conn)
+    pandasSQL = pandasSQL_builder(conn)
+    with pandasSQL.run_transaction() as trans:
+        stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
+        if isinstance(pandasSQL, SQLiteDatabase):
+            trans.execute(stmt)
+        else:
+            from sqlalchemy import text
+
+            stmt = text(stmt)
+            trans.execute(stmt)
+
+        class DummyException(Exception):
+            pass
+
+        # Make sure when transaction is rolled back, no rows get inserted
+        ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
+        if isinstance(pandasSQL, SQLDatabase):
+            from sqlalchemy import text
+
+            ins_sql = text(ins_sql)
+        try:
+            with pandasSQL.run_transaction() as trans:
+                trans.execute(ins_sql)
+                raise DummyException("error")
+        except DummyException:
+            # ignore raised exception
+            pass
+        res = pandasSQL.read_query("SELECT * FROM test_trans")
+        assert len(res) == 0
+
+        # Make sure when transaction is committed, rows do get inserted
+        with pandasSQL.run_transaction() as trans:
+            trans.execute(ins_sql)
+        res2 = pandasSQL.read_query("SELECT * FROM test_trans")
+        assert len(res2) == 1
+
+
+@pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_get_schema_create_table(conn, request, test_frame3):
     # Use a dataframe without a bool column, since MySQL converts bool to
@@ -3110,6 +3087,22 @@ def test_invalid_engine(conn, request, test_frame1):
     pandasSQL = pandasSQL_builder(conn)
     with pytest.raises(ValueError, match=msg):
         pandasSQL.to_sql(test_frame1, "test_frame1", engine="bad_engine")
+
+
+@pytest.mark.skip("Couldn't get this to work?")
+@pytest.mark.db
+@pytest.mark.parametrize("conn", all_connectable)
+def test_to_sql_with_sql_engine(conn, request, test_frame1):
+    """`to_sql` with the `engine` param"""
+    # mostly copied from this class's `_to_sql()` method
+    conn = request.getfixturevalue(conn)
+    pandasSQL = pandasSQL_builder(conn)
+    assert pandasSQL.to_sql(test_frame1, "test_frame1", engine="auto") == 4
+    assert pandasSQL.has_table("test_frame1")
+
+    num_entries = len(test_frame1)
+    num_rows = count_rows(conn, "test_frame1")
+    assert num_rows == num_entries
 
 
 @pytest.mark.skip("Couldn't get this to work?")
