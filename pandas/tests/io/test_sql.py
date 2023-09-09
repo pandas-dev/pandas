@@ -608,8 +608,14 @@ def sqlite_sqlalchemy_memory(iris_path, types_data):
 
 
 @pytest.fixture
-def sqlite_buildin_iris(sqlite_buildin, iris_path):
+def sqlite_buildin_iris(sqlite_buildin, iris_path, types_data):
     create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
+
+    for entry in types_data:
+        entry.pop("DateColWithTz")
+    types_data = [tuple(entry.values()) for entry in types_data]
+
+    create_and_load_types_sqlite3(sqlite_buildin, types_data)
     return sqlite_buildin
 
 
@@ -845,22 +851,36 @@ def test_to_sql_callable(conn, test_frame1, request):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("conn", mysql_connectable)
+@pytest.mark.parametrize("conn", all_connectable_iris)
 def test_default_type_conversion(conn, request):
+    conn_name = conn
+    if conn_name == "sqlite_buildin_iris":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="sqlite_buildin connection does not implement read_sql_table"
+            )
+        )
+
     conn = request.getfixturevalue(conn)
     df = sql.read_sql_table("types", conn)
 
     assert issubclass(df.FloatCol.dtype.type, np.floating)
     assert issubclass(df.IntCol.dtype.type, np.integer)
 
-    # MySQL has no real BOOL type (it's an alias for TINYINT)
-    assert issubclass(df.BoolCol.dtype.type, np.integer)
+    # MySQL/sqlite has no real BOOL type
+    if "postgresql" in conn_name:
+        assert issubclass(df.BoolCol.dtype.type, np.bool_)
+    else:
+        assert issubclass(df.BoolCol.dtype.type, np.integer)
 
     # Int column with NA values stays as float
     assert issubclass(df.IntColWithNull.dtype.type, np.floating)
 
     # Bool column with NA = int column with NA values => becomes float
-    assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
+    if "postgresql" in conn_name:
+        assert issubclass(df.BoolColWithNull.dtype.type, object)
+    else:
+        assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
 
 
 @pytest.mark.db
@@ -1157,7 +1177,7 @@ def test_read_sql_iris_parameter(conn, request, sql_strings, flavor):
     conn_name = conn
     if "engine" in conn:
         request.node.add_marker(
-            pytest.xfail(reason="fails and hangs forever with engine")
+            pytest.mark.xfail(reason="fails and hangs forever with engine")
         )
 
     conn = request.getfixturevalue(conn)
@@ -1174,7 +1194,7 @@ def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
     conn_name = conn
     if "engine" in conn:
         request.node.add_marker(
-            pytest.xfail(reason="fails and hangs forever with engine")
+            pytest.mark.xfail(reason="fails and hangs forever with engine")
         )
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_named_parameters"][flavor(conn_name)]
@@ -1363,12 +1383,9 @@ def test_api_execute_sql(conn, request):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", all_connectable_iris)
 def test_api_date_parsing(conn, request):
     conn_name = conn
-    if conn_name in {"sqlite_buildin", "sqlite_str"}:
-        pytest.skip("types tables not created in sqlite_buildin or sqlite_str fixture")
-
     conn = request.getfixturevalue(conn)
     # Test date parsing in read_sql
     # No Parsing
@@ -1423,7 +1440,7 @@ def test_api_date_parsing(conn, request):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", all_connectable_iris)
 @pytest.mark.parametrize("error", ["ignore", "raise", "coerce"])
 @pytest.mark.parametrize(
     "read_sql, text, mode",
@@ -1442,9 +1459,6 @@ def test_api_custom_dateparsing_error(
     conn, request, read_sql, text, mode, error, types_data_frame
 ):
     conn_name = conn
-    if conn_name in {"sqlite_buildin", "sqlite_str"}:
-        pytest.skip("types tables not created in sqlite_buildin or sqlite_str fixture")
-
     conn = request.getfixturevalue(conn)
 
     expected = types_data_frame.astype({"DateCol": "datetime64[ns]"})
@@ -1466,13 +1480,9 @@ def test_api_custom_dateparsing_error(
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", all_connectable_iris)
 def test_api_date_and_index(conn, request):
     # Test case where same column appears in parse_date and index_col
-    conn_name = conn
-    if conn_name in {"sqlite_buildin", "sqlite_str"}:
-        pytest.skip("types tables not created in sqlite_buildin or sqlite_str fixture")
-
     conn = request.getfixturevalue(conn)
     df = sql.read_sql_query(
         "SELECT * FROM types",
@@ -2154,7 +2164,7 @@ def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed()
 
 
 @pytest.mark.db
-def test_read_sql_delegate(sqlite_buildin_iris):
+def test_sqlite_read_sql_delegate(sqlite_buildin_iris):
     conn = sqlite_buildin_iris
     iris_frame1 = sql.read_sql_query("SELECT * FROM iris", conn)
     iris_frame2 = sql.read_sql("SELECT * FROM iris", conn)
@@ -2220,7 +2230,7 @@ def test_drop_table(conn, request):
         pytest.skip("sqlite_str has no inspection system")
     elif "engine" in conn:
         request.node.add_marker(
-            pytest.xfail(reason="fails and hangs forever with engine")
+            pytest.mark.xfail(reason="fails and hangs forever with engine")
         )
 
     from sqlalchemy import inspect
@@ -2245,12 +2255,11 @@ def test_drop_table(conn, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_roundtrip(conn, request, test_frame1):
-    conn_name = conn
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
     elif "engine" in conn:
         request.node.add_marker(
-            pytest.xfail(reason="fails and hangs forever with engine")
+            pytest.mark.xfail(reason="fails and hangs forever with engine")
         )
 
     conn = request.getfixturevalue(conn)
@@ -2271,7 +2280,6 @@ def test_roundtrip(conn, request, test_frame1):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_execute_sql(conn, request):
-    conn_name = conn
     conn = request.getfixturevalue(conn)
     pandasSQL = pandasSQL_builder(conn)
     iris_results = pandasSQL.execute("SELECT * FROM iris")
@@ -2281,7 +2289,7 @@ def test_execute_sql(conn, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
-def test_read_table(conn, request):
+def test_sqlalchemy_read_table(conn, request):
     conn = request.getfixturevalue(conn)
     iris_frame = sql.read_sql_table("iris", con=conn)
     check_iris_frame(iris_frame)
@@ -2289,7 +2297,7 @@ def test_read_table(conn, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
-def test_read_table_columns(conn, request):
+def test_sqlalchemy_read_table_columns(conn, request):
     conn = request.getfixturevalue(conn)
     iris_frame = sql.read_sql_table(
         "iris", con=conn, columns=["SepalLength", "SepalLength"]
@@ -2308,13 +2316,13 @@ def test_read_table_absent_raises(conn, request):
 
 @pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
-def test_default_type_conversion(conn, request):
+def test_sqlalchemy_default_type_conversion(conn, request):
     conn_name = conn
     if conn_name == "sqlite_str":
         pytest.skip("types tables not created in sqlite_str fixture")
     elif "mysql" in conn_name or "sqlite" in conn_name:
         request.node.add_marker(
-            pytest.xfail(reason="boolean dtype not inferred properly")
+            pytest.mark.xfail(reason="boolean dtype not inferred properly")
         )
 
     conn = request.getfixturevalue(conn)
@@ -2350,7 +2358,7 @@ def test_default_date_load(conn, request):
         pytest.skip("types tables not created in sqlite_str fixture")
     elif "sqlite" in conn_name:
         request.node.add_marker(
-            pytest.xfail(reason="sqlite does not read date properly")
+            pytest.mark.xfail(reason="sqlite does not read date properly")
         )
 
     conn = request.getfixturevalue(conn)
@@ -2699,7 +2707,7 @@ def test_nan_string(conn, request):
 def test_to_sql_save_index(conn, request):
     if "engine" in conn:
         request.node.add_marker(
-            pytest.xfail(reason="fails and hangs forever with engine")
+            pytest.mark.xfail(reason="fails and hangs forever with engine")
         )
 
     conn_name = conn
@@ -2709,6 +2717,7 @@ def test_to_sql_save_index(conn, request):
     )
 
     pandasSQL = pandasSQL_builder(conn)
+    tbl_name = "test_to_sql_saves_index"
     assert pandasSQL.to_sql(df, tbl_name) == 2
 
     if conn_name in {"sqlite_buildin", "sqlite_str"}:
@@ -2739,7 +2748,7 @@ def test_transactions(conn, request):
     conn = request.getfixturevalue(conn)
 
     stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
-    pandasSQL = pandasSQL_builder(conn)    
+    pandasSQL = pandasSQL_builder(conn)
     if conn_name != "sqlite_buildin":
         from sqlalchemy import text
 
@@ -2798,7 +2807,7 @@ def test_get_schema_create_table(conn, request, test_frame3):
     # mismatch)
     if conn == "sqlite_str":
         request.node.add_marker(
-            pytest.xfail(reason="test does not support sqlite_str fixture")
+            pytest.mark.xfail(reason="test does not support sqlite_str fixture")
         )
 
     conn = request.getfixturevalue(conn)
@@ -3362,33 +3371,6 @@ def test_keyword_deprecation(sqlite_sqlalchemy_memory):
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
         df.to_sql("example", conn, None, if_exists="replace")
-
-
-@pytest.mark.db
-def test_default_type_conversion(sqlite_sqlalchemy_memory):
-    conn = sqlite_sqlalchemy_memory
-    df = sql.read_sql_table("types", conn)
-
-    assert issubclass(df.FloatCol.dtype.type, np.floating)
-    assert issubclass(df.IntCol.dtype.type, np.integer)
-
-    # sqlite has no boolean type, so integer type is returned
-    assert issubclass(df.BoolCol.dtype.type, np.integer)
-
-    # Int column with NA values stays as float
-    assert issubclass(df.IntColWithNull.dtype.type, np.floating)
-
-    # Non-native Bool column with NA values stays as float
-    assert issubclass(df.BoolColWithNull.dtype.type, np.floating)
-
-
-@pytest.mark.db
-def test_default_date_load(sqlite_sqlalchemy_memory):
-    conn = sqlite_sqlalchemy_memory
-    df = sql.read_sql_table("types", conn)
-
-    # IMPORTANT - sqlite has no native date type, so shouldn't parse, but
-    assert not issubclass(df.DateCol.dtype.type, np.datetime64)
 
 
 @pytest.mark.db
