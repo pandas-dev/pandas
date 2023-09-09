@@ -1986,7 +1986,7 @@ def test_warning_case_insensitive_table_name(conn, request, test_frame1):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_sqlalchemy_type_mapping(conn, request):
     conn = request.getfixturevalue(conn)
     from sqlalchemy import TIMESTAMP
@@ -2002,7 +2002,7 @@ def test_sqlalchemy_type_mapping(conn, request):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 @pytest.mark.parametrize(
     "integer, expected",
     [
@@ -2049,6 +2049,7 @@ def test_sqlalchemy_integer_overload_mapping(conn, request, integer):
 
 
 @pytest.mark.db
+@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="fails without SQLAlchemy")
 @pytest.mark.parametrize("conn", all_connectable)
 def test_database_uri_string(conn, request, test_frame1):
     conn = request.getfixturevalue(conn)
@@ -2070,6 +2071,7 @@ def test_database_uri_string(conn, request, test_frame1):
 
 
 @td.skip_if_installed("pg8000")
+@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="fails without SQLAlchemy")
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_pg8000_sqlalchemy_passthrough_error(conn, request):
@@ -2218,9 +2220,9 @@ def test_create_table(conn, request):
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
 
-    from sqlalchemy import inspect
-
     conn = request.getfixturevalue(conn)
+
+    from sqlalchemy import inspect
 
     temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
     with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -2887,6 +2889,9 @@ def test_notna_dtype(conn, request):
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
 
+    conn_name = conn
+    conn = request.getfixturevalue(conn)
+
     from sqlalchemy import (
         Boolean,
         DateTime,
@@ -2894,9 +2899,6 @@ def test_notna_dtype(conn, request):
         Integer,
     )
     from sqlalchemy.schema import MetaData
-
-    conn_name = conn
-    conn = request.getfixturevalue(conn)
 
     cols = {
         "Bool": Series([True, None]),
@@ -2925,6 +2927,8 @@ def test_double_precision(conn, request):
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
 
+    conn = request.getfixturevalue(conn)
+
     from sqlalchemy import (
         BigInteger,
         Float,
@@ -2932,7 +2936,6 @@ def test_double_precision(conn, request):
     )
     from sqlalchemy.schema import MetaData
 
-    conn = request.getfixturevalue(conn)
     V = 1.23456789101112131415
 
     df = DataFrame(
@@ -2974,6 +2977,8 @@ def test_double_precision(conn, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_connectable_issue_example(conn, request):
+    conn = request.getfixturevalue(conn)
+
     # This tests the example raised in issue
     # https://github.com/pandas-dev/pandas/issues/10104
     from sqlalchemy.engine import Engine
@@ -2999,7 +3004,6 @@ def test_connectable_issue_example(conn, request):
         else:
             test_connectable(connectable)
 
-    conn = request.getfixturevalue(conn)
     assert (
         DataFrame({"test_foo_data": [0, 1, 2]}).to_sql(name="test_foo_data", con=conn)
         == 3
@@ -3043,6 +3047,8 @@ def test_to_sql_with_negative_npinf(conn, request, input):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_temporary_table(conn, request):
+    conn = request.getfixturevalue(conn)
+
     if conn == "sqlite_str":
         pytest.skip("test does not work with str connection")
 
@@ -3057,7 +3063,6 @@ def test_temporary_table(conn, request):
         declarative_base,
     )
 
-    conn = request.getfixturevalue(conn)
     test_data = "Hello, World!"
     expected = DataFrame({"spam": [test_data]})
     Base = declarative_base()
@@ -3147,6 +3152,8 @@ def test_options_auto(conn, request, test_frame1):
         assert num_rows == num_entries
 
 
+@pytest.mark.db
+@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="fails without SQLAlchemy")
 def test_options_get_engine():
     assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
 
