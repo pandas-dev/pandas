@@ -20,6 +20,7 @@ Fixed regressions
 - Fixed regression in :meth:`.GroupBy.get_group` raising for ``axis=1`` (:issue:`54858`)
 - Fixed regression in :meth:`DataFrame.__setitem__` raising ``AssertionError`` when setting a :class:`Series` with a partial :class:`MultiIndex` (:issue:`54875`)
 - Fixed regression in :meth:`DataFrame.filter` not respecting the order of elements for ``filter`` (:issue:`54980`)
+- Fixed regression in :meth:`DataFrame.resample` which was extrapolating back to ``origin`` when ``origin`` was outside its bounds (:issue:`55064`)
 - Fixed regression in :meth:`DataFrame.to_sql` not roundtripping datetime columns correctly for sqlite (:issue:`54877`)
 - Fixed regression in :meth:`DataFrameGroupBy.agg` when aggregating a DataFrame with duplicate column names using a dictionary (:issue:`55006`)
 - Fixed regression in :meth:`MultiIndex.append` raising when appending overlapping :class:`IntervalIndex` levels (:issue:`54934`)
