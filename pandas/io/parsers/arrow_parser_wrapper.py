@@ -3,8 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import warnings
 
-from pyarrow import ArrowInvalid
-
 from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
@@ -229,7 +227,7 @@ class ArrowParserWrapper(ParserBase):
                 parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
                 convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
             )
-        except ArrowInvalid as e:
+        except pa.ArrowInvalid as e:
             raise ParserError(e) from e
 
         dtype_backend = self.kwds["dtype_backend"]
