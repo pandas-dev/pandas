@@ -407,6 +407,7 @@ class TestReaders:
                 )
             )
 
+        # https://github.com/tafia/calamine/issues/355
         if engine == "calamine" and read_ext == ".ods":
             request.node.add_marker(
                 pytest.mark.xfail(reason="Calamine can't extract error from ods files")
@@ -1040,6 +1041,7 @@ class TestReaders:
                 )
             )
 
+        # https://github.com/tafia/calamine/issues/354
         if engine == "calamine" and read_ext == ".ods":
             request.node.add_marker(
                 pytest.mark.xfail(reason="Last test fails in calamine")

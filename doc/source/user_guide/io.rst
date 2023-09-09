@@ -3960,9 +3960,7 @@ Calamine (Excel and ODS files)
 The :func:`~pandas.read_excel` method can read Excel file (``.xlsx``, ``.xlsm``, ``.xls``, ``.xlsb``)
 and OpenDocument spreadsheets (``.ods``) using the ``python-calamine`` module.
 This module is a binding for Rust library `calamine <https://crates.io/crates/calamine>`__
-and faster then other engines in most cases. The semantics and features for reading files
-match what can be done for `Excel files`_ using ``engine='calamine'``.
-The optional dependency 'python-calamine' needs to be installed.
+and is faster than other engines in most cases. The optional dependency 'python-calamine' needs to be installed.
 
 .. code-block:: python
 
