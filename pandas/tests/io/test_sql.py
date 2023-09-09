@@ -3100,30 +3100,43 @@ def test_to_sql_with_sql_engine(conn, request, test_frame1):
     assert num_rows == num_entries
 
 
-@pytest.mark.skip("Couldn't get this to work?")
 @pytest.mark.db
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_options_sqlalchemy(conn, request, test_frame1):
+    if "engine" in conn:
+        pytest.skip("hangs forever with engine arguments")
+    elif conn == "sqlite_str":
+        request.node.add_marker(pytest.mark.xfail(reason="broken with sqlite_str"))
     # use the set option
     conn = request.getfixturevalue(conn)
     with pd.option_context("io.sql.engine", "sqlalchemy"):
         pandasSQL = pandasSQL_builder(conn)
-        assert pandasSQL.to_sql(test_frame1, "test_frame1", engine="auto") == 4
+        assert pandasSQL.to_sql(test_frame1, "test_frame1") == 4
 
-        breakpoint()
         assert pandasSQL.has_table("test_frame1")
         num_entries = len(test_frame1)
         num_rows = count_rows(conn, "test_frame1")
         assert num_rows == num_entries
 
 
-@pytest.mark.skip("Couldn't get this to work?")
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_options_auto(conn, request, test_frame1):
+    if "engine" in conn:
+        pytest.skip("hangs forever with engine arguments")
+    elif conn == "sqlite_str":
+        request.node.add_marker(pytest.mark.xfail(reason="broken with sqlite_str"))
+
     # use the set option
+    conn = request.getfixturevalue(conn)
     with pd.option_context("io.sql.engine", "auto"):
-        self._to_sql_with_sql_engine(test_frame1)
+        pandasSQL = pandasSQL_builder(conn)
+        assert pandasSQL.to_sql(test_frame1, "test_frame1") == 4
+
+        assert pandasSQL.has_table("test_frame1")
+        num_entries = len(test_frame1)
+        num_rows = count_rows(conn, "test_frame1")
+        assert num_rows == num_entries
 
 
 def test_options_get_engine():
