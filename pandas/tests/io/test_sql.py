@@ -3502,7 +3502,6 @@ def test_roundtripping_datetimes(sqlite_sqlalchemy_memory):
 @pytest.mark.db
 def test_psycopg2_schema_support(postgresql_psycopg2_engine):
     conn = postgresql_psycopg2_engine
-    from sqlalchemy.engine import Engine
 
     # only test this for postgresql (schema's not supported in
     # mysql/sqlite)
@@ -3526,10 +3525,7 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
         == 2
     )
     assert (
-        df.to_sql(
-            name="test_schema_other", con=conn, index=False, schema="other"
-        )
-        == 2
+        df.to_sql(name="test_schema_other", con=conn, index=False, schema="other") == 2
     )
 
     # read dataframes back in
@@ -3537,9 +3533,7 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
     tm.assert_frame_equal(df, res1)
     res2 = sql.read_sql_table("test_schema_public_explicit", conn)
     tm.assert_frame_equal(df, res2)
-    res3 = sql.read_sql_table(
-        "test_schema_public_explicit", conn, schema="public"
-    )
+    res3 = sql.read_sql_table("test_schema_public_explicit", conn, schema="public")
     tm.assert_frame_equal(df, res3)
     res4 = sql.read_sql_table("test_schema_other", conn, schema="other")
     tm.assert_frame_equal(df, res4)
@@ -3557,10 +3551,7 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
 
     # write dataframe with different if_exists options
     assert (
-        df.to_sql(
-            name="test_schema_other", con=conn, schema="other", index=False
-        )
-        == 2
+        df.to_sql(name="test_schema_other", con=conn, schema="other", index=False) == 2
     )
     df.to_sql(
         name="test_schema_other",
@@ -3583,12 +3574,10 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
     tm.assert_frame_equal(concat([df, df], ignore_index=True), res)
 
 
-
 @pytest.mark.db
 def test_self_join_date_columns(postgresql_psycopg2_engine):
     # GH 44421
     conn = postgresql_psycopg2_engine
-    from sqlalchemy.engine import Engine
     from sqlalchemy.sql import text
 
     create_table = text(
@@ -3624,9 +3613,7 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
 @pytest.mark.db
 def test_create_and_drop_table(sqlite_sqlalchemy_memory):
     conn = sqlite_sqlalchemy_memory
-    temp_frame = DataFrame(
-        {"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]}
-    )
+    temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
     pandasSQL = sql.SQLiteDatabase(conn)
 
     assert pandasSQL.to_sql(temp_frame, "drop_test_frame") == 4
@@ -3638,138 +3625,118 @@ def test_create_and_drop_table(sqlite_sqlalchemy_memory):
     assert not pandasSQL.has_table("drop_test_frame")
 
 
-class Foo:
-    def test_roundtrip(self, test_frame1):
-        self._roundtrip(test_frame1)
+@pytest.mark.db
+def test_sqlite_datetime_date(sqlite_buildin):
+    conn = sqlite_buildin
+    df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
+    assert df.to_sql(name="test_date", con=conn, index=False) == 2
+    res = read_sql_query("SELECT * FROM test_date", conn)
+    # comes back as strings
+    tm.assert_frame_equal(res, df.astype(str))
 
-    def test_execute_sql(self):
-        self._execute_sql()
 
-    def test_datetime_date(self):
-        # test support for datetime.date
-        df = DataFrame([date(2014, 1, 1), date(2014, 1, 2)], columns=["a"])
-        assert df.to_sql(name="test_date", con=self.conn, index=False) == 2
-        res = read_sql_query("SELECT * FROM test_date", self.conn)
-        if self.flavor == "sqlite":
-            # comes back as strings
-            tm.assert_frame_equal(res, df.astype(str))
-        elif self.flavor == "mysql":
-            tm.assert_frame_equal(res, df)
+@pytest.mark.db
+@pytest.mark.parametrize("tz_aware", [False, True])
+def test_sqlite_datetime_time(tz_aware, sqlite_buildin):
+    conn = sqlite_buildin
+    # test support for datetime.time, GH #8341
+    if not tz_aware:
+        tz_times = [time(9, 0, 0), time(9, 1, 30)]
+    else:
+        tz_dt = date_range("2013-01-01 09:00:00", periods=2, tz="US/Pacific")
+        tz_times = Series(tz_dt.to_pydatetime()).map(lambda dt: dt.timetz())
 
-    @pytest.mark.parametrize("tz_aware", [False, True])
-    def test_datetime_time(self, tz_aware):
-        # test support for datetime.time, GH #8341
-        if not tz_aware:
-            tz_times = [time(9, 0, 0), time(9, 1, 30)]
-        else:
-            tz_dt = date_range("2013-01-01 09:00:00", periods=2, tz="US/Pacific")
-            tz_times = Series(tz_dt.to_pydatetime()).map(lambda dt: dt.timetz())
+    df = DataFrame(tz_times, columns=["a"])
 
-        df = DataFrame(tz_times, columns=["a"])
+    assert df.to_sql(name="test_time", con=conn, index=False) == 2
+    res = read_sql_query("SELECT * FROM test_time", conn)
+    # comes back as strings
+    expected = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
+    tm.assert_frame_equal(res, expected)
 
-        assert df.to_sql(name="test_time", con=self.conn, index=False) == 2
-        res = read_sql_query("SELECT * FROM test_time", self.conn)
-        if self.flavor == "sqlite":
-            # comes back as strings
-            expected = df.map(lambda _: _.strftime("%H:%M:%S.%f"))
-            tm.assert_frame_equal(res, expected)
 
-    def _get_index_columns(self, tbl_name):
-        ixs = sql.read_sql_query(
-            "SELECT * FROM sqlite_master WHERE type = 'index' "
-            f"AND tbl_name = '{tbl_name}'",
-            self.conn,
-        )
-        ix_cols = []
-        for ix_name in ixs.name:
-            ix_info = sql.read_sql_query(f"PRAGMA index_info({ix_name})", self.conn)
-            ix_cols.append(ix_info.name.tolist())
-        return ix_cols
+def get_sqlite_column_type(conn, table, column):
+    recs = conn.execute(f"PRAGMA table_info({table})")
+    for cid, name, ctype, not_null, default, pk in recs:
+        if name == column:
+            return ctype
+    raise ValueError(f"Table {table}, column {column} not found")
 
-    def test_to_sql_save_index(self):
-        self._to_sql_save_index()
 
-    def test_transactions(self):
-        self._transaction_test()
+@pytest.mark.db
+def test_sqlite_test_dtype(sqlite_buildin):
+    conn = sqlite_buildin
+    cols = ["A", "B"]
+    data = [(0.8, True), (0.9, None)]
+    df = DataFrame(data, columns=cols)
+    assert df.to_sql(name="dtype_test", con=conn) == 2
+    assert df.to_sql(name="dtype_test2", con=conn, dtype={"B": "STRING"}) == 2
 
-    def _get_sqlite_column_type(self, table, column):
-        recs = self.conn.execute(f"PRAGMA table_info({table})")
-        for cid, name, ctype, not_null, default, pk in recs:
-            if name == column:
-                return ctype
-        raise ValueError(f"Table {table}, column {column} not found")
+    # sqlite stores Boolean values as INTEGER
+    assert get_sqlite_column_type(conn, "dtype_test", "B") == "INTEGER"
 
-    def test_dtype(self):
-        if self.flavor == "mysql":
-            pytest.skip("Not applicable to MySQL legacy")
-        cols = ["A", "B"]
-        data = [(0.8, True), (0.9, None)]
-        df = DataFrame(data, columns=cols)
-        assert df.to_sql(name="dtype_test", con=self.conn) == 2
-        assert df.to_sql(name="dtype_test2", con=self.conn, dtype={"B": "STRING"}) == 2
+    assert get_sqlite_column_type(conn, "dtype_test2", "B") == "STRING"
+    msg = r"B \(<class 'bool'>\) not a string"
+    with pytest.raises(ValueError, match=msg):
+        df.to_sql(name="error", con=conn, dtype={"B": bool})
 
-        # sqlite stores Boolean values as INTEGER
-        assert self._get_sqlite_column_type("dtype_test", "B") == "INTEGER"
+    # single dtype
+    assert df.to_sql(name="single_dtype_test", con=conn, dtype="STRING") == 2
+    assert get_sqlite_column_type(conn, "single_dtype_test", "A") == "STRING"
+    assert get_sqlite_column_type(conn, "single_dtype_test", "B") == "STRING"
 
-        assert self._get_sqlite_column_type("dtype_test2", "B") == "STRING"
-        msg = r"B \(<class 'bool'>\) not a string"
-        with pytest.raises(ValueError, match=msg):
-            df.to_sql(name="error", con=self.conn, dtype={"B": bool})
 
-        # single dtype
-        assert df.to_sql(name="single_dtype_test", con=self.conn, dtype="STRING") == 2
-        assert self._get_sqlite_column_type("single_dtype_test", "A") == "STRING"
-        assert self._get_sqlite_column_type("single_dtype_test", "B") == "STRING"
+@pytest.mark.db
+def test_sqlite_notna_dtype(sqlite_buildin):
+    conn = sqlite_buildin
+    cols = {
+        "Bool": Series([True, None]),
+        "Date": Series([datetime(2012, 5, 1), None]),
+        "Int": Series([1, None], dtype="object"),
+        "Float": Series([1.1, None]),
+    }
+    df = DataFrame(cols)
 
-    def test_notna_dtype(self):
-        if self.flavor == "mysql":
-            pytest.skip("Not applicable to MySQL legacy")
+    tbl = "notna_dtype_test"
+    assert df.to_sql(name=tbl, con=conn) == 2
 
-        cols = {
-            "Bool": Series([True, None]),
-            "Date": Series([datetime(2012, 5, 1), None]),
-            "Int": Series([1, None], dtype="object"),
-            "Float": Series([1.1, None]),
-        }
-        df = DataFrame(cols)
+    assert get_sqlite_column_type(conn, tbl, "Bool") == "INTEGER"
+    assert get_sqlite_column_type(conn, tbl, "Date") == "TIMESTAMP"
+    assert get_sqlite_column_type(conn, tbl, "Int") == "INTEGER"
+    assert get_sqlite_column_type(conn, tbl, "Float") == "REAL"
 
-        tbl = "notna_dtype_test"
-        assert df.to_sql(name=tbl, con=self.conn) == 2
 
-        assert self._get_sqlite_column_type(tbl, "Bool") == "INTEGER"
-        assert self._get_sqlite_column_type(tbl, "Date") == "TIMESTAMP"
-        assert self._get_sqlite_column_type(tbl, "Int") == "INTEGER"
-        assert self._get_sqlite_column_type(tbl, "Float") == "REAL"
+@pytest.mark.db
+def test_sqlite_illegal_names(sqlite_buildin):
+    # For sqlite, these should work fine
+    conn = sqlite_buildin
+    df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
 
-    def test_illegal_names(self):
-        # For sqlite, these should work fine
-        df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+    msg = "Empty table or column name specified"
+    with pytest.raises(ValueError, match=msg):
+        df.to_sql(name="", con=conn)
 
-        msg = "Empty table or column name specified"
-        with pytest.raises(ValueError, match=msg):
-            df.to_sql(name="", con=self.conn)
+    for ndx, weird_name in enumerate(
+        [
+            "test_weird_name]",
+            "test_weird_name[",
+            "test_weird_name`",
+            'test_weird_name"',
+            "test_weird_name'",
+            "_b.test_weird_name_01-30",
+            '"_b.test_weird_name_01-30"',
+            "99beginswithnumber",
+            "12345",
+            "\xe9",
+        ]
+    ):
+        assert df.to_sql(name=weird_name, con=conn) == 2
+        sql.table_exists(weird_name, conn)
 
-        for ndx, weird_name in enumerate(
-            [
-                "test_weird_name]",
-                "test_weird_name[",
-                "test_weird_name`",
-                'test_weird_name"',
-                "test_weird_name'",
-                "_b.test_weird_name_01-30",
-                '"_b.test_weird_name_01-30"',
-                "99beginswithnumber",
-                "12345",
-                "\xe9",
-            ]
-        ):
-            assert df.to_sql(name=weird_name, con=self.conn) == 2
-            sql.table_exists(weird_name, self.conn)
-
-            df2 = DataFrame([[1, 2], [3, 4]], columns=["a", weird_name])
-            c_tbl = f"test_weird_col_name{ndx:d}"
-            assert df2.to_sql(name=c_tbl, con=self.conn) == 2
-            sql.table_exists(c_tbl, self.conn)
+        df2 = DataFrame([[1, 2], [3, 4]], columns=["a", weird_name])
+        c_tbl = f"test_weird_col_name{ndx:d}"
+        assert df2.to_sql(name=c_tbl, con=conn) == 2
+        sql.table_exists(c_tbl, conn)
 
 
 # -----------------------------------------------------------------------------
