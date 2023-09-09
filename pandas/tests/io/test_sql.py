@@ -2035,7 +2035,7 @@ def test_sqlalchemy_integer_mapping(conn, request, integer, expected):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
 @pytest.mark.parametrize("integer", ["uint64", "UInt64"])
 def test_sqlalchemy_integer_overload_mapping(conn, request, integer):
     conn = request.getfixturevalue(conn)
@@ -2244,9 +2244,9 @@ def test_drop_table(conn, request):
     elif "engine" in conn:
         pytest.skip(reason="fails and hangs forever with engine")
 
-    from sqlalchemy import inspect
-
     conn = request.getfixturevalue(conn)
+
+    from sqlalchemy import inspect
 
     temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
     pandasSQL = sql.SQLDatabase(conn)
@@ -2847,13 +2847,14 @@ def test_dtype(conn, request):
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
 
+    conn = request.getfixturevalue(conn)
+
     from sqlalchemy import (
         TEXT,
         String,
     )
     from sqlalchemy.schema import MetaData
 
-    conn = request.getfixturevalue(conn)
     cols = ["A", "B"]
     data = [(0.8, True), (0.9, None)]
     df = DataFrame(data, columns=cols)
