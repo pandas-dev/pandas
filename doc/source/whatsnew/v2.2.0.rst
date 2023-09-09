@@ -14,10 +14,27 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
-.. _whatsnew_220.enhancements.enhancement1:
+.. _whatsnew_220.enhancements.calamine:
 
-enhancement1
-^^^^^^^^^^^^
+Calamine engine for :func:`read_excel`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``calamine`` engine was added to :func:`read_excel`.
+It's used 'python-calamine', that binging for Rust library `calamine <https://crates.io/crates/calamine>`__.
+This engine supports Excel file (``.xlsx``, ``.xlsm``, ``.xls``, ``.xlsb``) and OpenDocument spreadsheets (``.ods``) (:issue:`50395`).
+
+There are two advantages of this engine:
+
+1. Calamine is often faster than Python engines, some benchmarks show results up to 5x faster than 'openpyxl', 20x - 'odf', 4x - 'pyxlsb', and 1.5x - 'xlrd'.
+   But, 'openpyxl' and 'pyxlsb' are faster in reading a few rows from large files because of lazy iteration over rows.
+2. Calamine supports the recognition of datetime in ``.xlsb`` files, unlike 'pyxlsb' which is the only other engine in pandas that can read pyxlsb files.
+
+.. code-block:: python
+
+   pd.read_excel("path_to_file.xlsb", engine="calamine")
+
+
+For more, see :ref:`io.calamine` in the user guide on IO tools.
 
 .. _whatsnew_220.enhancements.enhancement2:
 
@@ -28,7 +45,7 @@ enhancement2
 
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
-- Added ``calamine`` as an engine to ``read_excel`` (:issue:`50395`)
+-
 -
 
 .. ---------------------------------------------------------------------------
