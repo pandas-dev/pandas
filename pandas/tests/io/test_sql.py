@@ -1615,7 +1615,9 @@ def test_api_to_sql_index_label_multiindex(conn, request):
     conn_name = conn
     if "mysql" in conn_name:
         request.node.add_marker(
-            pytest.mark.xfail(reason="MySQL can fail using TEXT without length as key")
+            pytest.mark.xfail(
+                reason="MySQL can fail using TEXT without length as key", strict=False
+            )
         )
 
     conn = request.getfixturevalue(conn)
@@ -3614,7 +3616,7 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
 def test_create_and_drop_table(sqlite_sqlalchemy_memory):
     conn = sqlite_sqlalchemy_memory
     temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
-    pandasSQL = sql.SQLiteDatabase(conn)
+    pandasSQL = sql.SQLDatabase(conn)
 
     assert pandasSQL.to_sql(temp_frame, "drop_test_frame") == 4
 
@@ -3775,227 +3777,231 @@ def tquery(query, con=None):
     return None if res is None else list(res)
 
 
-class TestXSQLite:
-    def drop_table(self, table_name, conn):
+@pytest.mark.db
+def test_xsqlite_basic(sqlite_buildin):
+    frame = tm.makeTimeDataFrame()
+    assert sql.to_sql(frame, name="test_table", con=sqlite_buildin, index=False) == 30
+    result = sql.read_sql("select * from test_table", sqlite_buildin)
+
+    # HACK! Change this once indexes are handled properly.
+    result.index = frame.index
+
+    expected = frame
+    tm.assert_frame_equal(result, frame)
+
+    frame["txt"] = ["a"] * len(frame)
+    frame2 = frame.copy()
+    new_idx = Index(np.arange(len(frame2)), dtype=np.int64) + 10
+    frame2["Idx"] = new_idx.copy()
+    assert sql.to_sql(frame2, name="test_table2", con=sqlite_buildin, index=False) == 30
+    result = sql.read_sql("select * from test_table2", sqlite_buildin, index_col="Idx")
+    expected = frame.copy()
+    expected.index = new_idx
+    expected.index.name = "Idx"
+    tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.db
+def test_xsqlite_write_row_by_row(sqlite_buildin):
+    frame = tm.makeTimeDataFrame()
+    frame.iloc[0, 0] = np.nan
+    create_sql = sql.get_schema(frame, "test")
+    cur = sqlite_buildin.cursor()
+    cur.execute(create_sql)
+
+    ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
+    for _, row in frame.iterrows():
+        fmt_sql = format_query(ins, *row)
+        tquery(fmt_sql, con=sqlite_buildin)
+
+    sqlite_buildin.commit()
+
+    result = sql.read_sql("select * from test", con=sqlite_buildin)
+    result.index = frame.index
+    tm.assert_frame_equal(result, frame, rtol=1e-3)
+
+
+@pytest.mark.db
+def test_xsqlite_execute(sqlite_buildin):
+    frame = tm.makeTimeDataFrame()
+    create_sql = sql.get_schema(frame, "test")
+    cur = sqlite_buildin.cursor()
+    cur.execute(create_sql)
+    ins = "INSERT INTO test VALUES (?, ?, ?, ?)"
+
+    row = frame.iloc[0]
+    with sql.pandasSQL_builder(sqlite_buildin) as pandas_sql:
+        pandas_sql.execute(ins, tuple(row))
+    sqlite_buildin.commit()
+
+    result = sql.read_sql("select * from test", sqlite_buildin)
+    result.index = frame.index[:1]
+    tm.assert_frame_equal(result, frame[:1])
+
+
+@pytest.mark.db
+def test_xsqlite_schema(sqlite_buildin):
+    frame = tm.makeTimeDataFrame()
+    create_sql = sql.get_schema(frame, "test")
+    lines = create_sql.splitlines()
+    for line in lines:
+        tokens = line.split(" ")
+        if len(tokens) == 2 and tokens[0] == "A":
+            assert tokens[1] == "DATETIME"
+
+    create_sql = sql.get_schema(frame, "test", keys=["A", "B"])
+    lines = create_sql.splitlines()
+    assert 'PRIMARY KEY ("A", "B")' in create_sql
+    cur = sqlite_buildin.cursor()
+    cur.execute(create_sql)
+
+
+@pytest.mark.db
+def test_xsqlite_execute_fail(sqlite_buildin):
+    create_sql = """
+    CREATE TABLE test
+    (
+    a TEXT,
+    b TEXT,
+    c REAL,
+    PRIMARY KEY (a, b)
+    );
+    """
+    cur = sqlite_buildin.cursor()
+    cur.execute(create_sql)
+
+    with sql.pandasSQL_builder(sqlite_buildin) as pandas_sql:
+        pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)')
+        pandas_sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)')
+
+        with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
+            pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 7)')
+
+
+@pytest.mark.db
+def test_xsqlite_execute_closed_connection():
+    create_sql = """
+    CREATE TABLE test
+    (
+    a TEXT,
+    b TEXT,
+    c REAL,
+    PRIMARY KEY (a, b)
+    );
+    """
+    with contextlib.closing(sqlite3.connect(":memory:")) as conn:
         cur = conn.cursor()
-        cur.execute(f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}")
-        conn.commit()
-
-    def test_basic(self, sqlite_buildin):
-        frame = tm.makeTimeDataFrame()
-        assert (
-            sql.to_sql(frame, name="test_table", con=sqlite_buildin, index=False) == 30
-        )
-        result = sql.read_sql("select * from test_table", sqlite_buildin)
-
-        # HACK! Change this once indexes are handled properly.
-        result.index = frame.index
-
-        expected = frame
-        tm.assert_frame_equal(result, frame)
-
-        frame["txt"] = ["a"] * len(frame)
-        frame2 = frame.copy()
-        new_idx = Index(np.arange(len(frame2)), dtype=np.int64) + 10
-        frame2["Idx"] = new_idx.copy()
-        assert (
-            sql.to_sql(frame2, name="test_table2", con=sqlite_buildin, index=False)
-            == 30
-        )
-        result = sql.read_sql(
-            "select * from test_table2", sqlite_buildin, index_col="Idx"
-        )
-        expected = frame.copy()
-        expected.index = new_idx
-        expected.index.name = "Idx"
-        tm.assert_frame_equal(expected, result)
-
-    def test_write_row_by_row(self, sqlite_buildin):
-        frame = tm.makeTimeDataFrame()
-        frame.iloc[0, 0] = np.nan
-        create_sql = sql.get_schema(frame, "test")
-        cur = sqlite_buildin.cursor()
         cur.execute(create_sql)
 
-        ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-        for _, row in frame.iterrows():
-            fmt_sql = format_query(ins, *row)
-            tquery(fmt_sql, con=sqlite_buildin)
-
-        sqlite_buildin.commit()
-
-        result = sql.read_sql("select * from test", con=sqlite_buildin)
-        result.index = frame.index
-        tm.assert_frame_equal(result, frame, rtol=1e-3)
-
-    def test_execute(self, sqlite_buildin):
-        frame = tm.makeTimeDataFrame()
-        create_sql = sql.get_schema(frame, "test")
-        cur = sqlite_buildin.cursor()
-        cur.execute(create_sql)
-        ins = "INSERT INTO test VALUES (?, ?, ?, ?)"
-
-        row = frame.iloc[0]
-        with sql.pandasSQL_builder(sqlite_buildin) as pandas_sql:
-            pandas_sql.execute(ins, tuple(row))
-        sqlite_buildin.commit()
-
-        result = sql.read_sql("select * from test", sqlite_buildin)
-        result.index = frame.index[:1]
-        tm.assert_frame_equal(result, frame[:1])
-
-    def test_schema(self, sqlite_buildin):
-        frame = tm.makeTimeDataFrame()
-        create_sql = sql.get_schema(frame, "test")
-        lines = create_sql.splitlines()
-        for line in lines:
-            tokens = line.split(" ")
-            if len(tokens) == 2 and tokens[0] == "A":
-                assert tokens[1] == "DATETIME"
-
-        create_sql = sql.get_schema(frame, "test", keys=["A", "B"])
-        lines = create_sql.splitlines()
-        assert 'PRIMARY KEY ("A", "B")' in create_sql
-        cur = sqlite_buildin.cursor()
-        cur.execute(create_sql)
-
-    def test_execute_fail(self, sqlite_buildin):
-        create_sql = """
-        CREATE TABLE test
-        (
-        a TEXT,
-        b TEXT,
-        c REAL,
-        PRIMARY KEY (a, b)
-        );
-        """
-        cur = sqlite_buildin.cursor()
-        cur.execute(create_sql)
-
-        with sql.pandasSQL_builder(sqlite_buildin) as pandas_sql:
+        with sql.pandasSQL_builder(conn) as pandas_sql:
             pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)')
-            pandas_sql.execute('INSERT INTO test VALUES("foo", "baz", 2.567)')
 
-            with pytest.raises(sql.DatabaseError, match="Execution failed on sql"):
-                pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 7)')
+    msg = "Cannot operate on a closed database."
+    with pytest.raises(sqlite3.ProgrammingError, match=msg):
+        tquery("select * from test", con=conn)
 
-    def test_execute_closed_connection(self):
-        create_sql = """
-        CREATE TABLE test
-        (
-        a TEXT,
-        b TEXT,
-        c REAL,
-        PRIMARY KEY (a, b)
-        );
-        """
-        with contextlib.closing(sqlite3.connect(":memory:")) as conn:
-            cur = conn.cursor()
-            cur.execute(create_sql)
 
-            with sql.pandasSQL_builder(conn) as pandas_sql:
-                pandas_sql.execute('INSERT INTO test VALUES("foo", "bar", 1.234)')
+@pytest.mark.db
+def test_xsqlite_keyword_as_column_names(sqlite_buildin):
+    df = DataFrame({"From": np.ones(5)})
+    assert sql.to_sql(df, con=sqlite_buildin, name="testkeywords", index=False) == 5
 
-        msg = "Cannot operate on a closed database."
-        with pytest.raises(sqlite3.ProgrammingError, match=msg):
-            tquery("select * from test", con=conn)
 
-    def test_keyword_as_column_names(self, sqlite_buildin):
-        df = DataFrame({"From": np.ones(5)})
-        assert sql.to_sql(df, con=sqlite_buildin, name="testkeywords", index=False) == 5
+@pytest.mark.db
+def test_xsqlite_onecolumn_of_integer(sqlite_buildin):
+    # GH 3628
+    # a column_of_integers dataframe should transfer well to sql
 
-    def test_onecolumn_of_integer(self, sqlite_buildin):
-        # GH 3628
-        # a column_of_integers dataframe should transfer well to sql
+    mono_df = DataFrame([1, 2], columns=["c0"])
+    assert sql.to_sql(mono_df, con=sqlite_buildin, name="mono_df", index=False) == 2
+    # computing the sum via sql
+    con_x = sqlite_buildin
+    the_sum = sum(my_c0[0] for my_c0 in con_x.execute("select * from mono_df"))
+    # it should not fail, and gives 3 ( Issue #3628 )
+    assert the_sum == 3
 
-        mono_df = DataFrame([1, 2], columns=["c0"])
-        assert sql.to_sql(mono_df, con=sqlite_buildin, name="mono_df", index=False) == 2
-        # computing the sum via sql
-        con_x = sqlite_buildin
-        the_sum = sum(my_c0[0] for my_c0 in con_x.execute("select * from mono_df"))
-        # it should not fail, and gives 3 ( Issue #3628 )
-        assert the_sum == 3
+    result = sql.read_sql("select * from mono_df", con_x)
+    tm.assert_frame_equal(result, mono_df)
 
-        result = sql.read_sql("select * from mono_df", con_x)
-        tm.assert_frame_equal(result, mono_df)
 
-    def test_if_exists(self, sqlite_buildin):
-        df_if_exists_1 = DataFrame({"col1": [1, 2], "col2": ["A", "B"]})
-        df_if_exists_2 = DataFrame({"col1": [3, 4, 5], "col2": ["C", "D", "E"]})
-        table_name = "table_if_exists"
-        sql_select = f"SELECT * FROM {table_name}"
+@pytest.mark.db
+def test_xsqlite_if_exists(sqlite_buildin):
+    df_if_exists_1 = DataFrame({"col1": [1, 2], "col2": ["A", "B"]})
+    df_if_exists_2 = DataFrame({"col1": [3, 4, 5], "col2": ["C", "D", "E"]})
+    table_name = "table_if_exists"
+    sql_select = f"SELECT * FROM {table_name}"
 
-        msg = "'notvalidvalue' is not valid for if_exists"
-        with pytest.raises(ValueError, match=msg):
-            sql.to_sql(
-                frame=df_if_exists_1,
-                con=sqlite_buildin,
-                name=table_name,
-                if_exists="notvalidvalue",
-            )
-        self.drop_table(table_name, sqlite_buildin)
-
-        # test if_exists='fail'
-        sql.to_sql(
-            frame=df_if_exists_1, con=sqlite_buildin, name=table_name, if_exists="fail"
-        )
-        msg = "Table 'table_if_exists' already exists"
-        with pytest.raises(ValueError, match=msg):
-            sql.to_sql(
-                frame=df_if_exists_1,
-                con=sqlite_buildin,
-                name=table_name,
-                if_exists="fail",
-            )
-        # test if_exists='replace'
+    msg = "'notvalidvalue' is not valid for if_exists"
+    with pytest.raises(ValueError, match=msg):
         sql.to_sql(
             frame=df_if_exists_1,
+            con=sqlite_buildin,
+            name=table_name,
+            if_exists="notvalidvalue",
+        )
+    drop_table(table_name, sqlite_buildin)
+
+    # test if_exists='fail'
+    sql.to_sql(
+        frame=df_if_exists_1, con=sqlite_buildin, name=table_name, if_exists="fail"
+    )
+    msg = "Table 'table_if_exists' already exists"
+    with pytest.raises(ValueError, match=msg):
+        sql.to_sql(
+            frame=df_if_exists_1,
+            con=sqlite_buildin,
+            name=table_name,
+            if_exists="fail",
+        )
+    # test if_exists='replace'
+    sql.to_sql(
+        frame=df_if_exists_1,
+        con=sqlite_buildin,
+        name=table_name,
+        if_exists="replace",
+        index=False,
+    )
+    assert tquery(sql_select, con=sqlite_buildin) == [(1, "A"), (2, "B")]
+    assert (
+        sql.to_sql(
+            frame=df_if_exists_2,
             con=sqlite_buildin,
             name=table_name,
             if_exists="replace",
             index=False,
         )
-        assert tquery(sql_select, con=sqlite_buildin) == [(1, "A"), (2, "B")]
-        assert (
-            sql.to_sql(
-                frame=df_if_exists_2,
-                con=sqlite_buildin,
-                name=table_name,
-                if_exists="replace",
-                index=False,
-            )
-            == 3
-        )
-        assert tquery(sql_select, con=sqlite_buildin) == [(3, "C"), (4, "D"), (5, "E")]
-        self.drop_table(table_name, sqlite_buildin)
+        == 3
+    )
+    assert tquery(sql_select, con=sqlite_buildin) == [(3, "C"), (4, "D"), (5, "E")]
+    drop_table(table_name, sqlite_buildin)
 
-        # test if_exists='append'
-        assert (
-            sql.to_sql(
-                frame=df_if_exists_1,
-                con=sqlite_buildin,
-                name=table_name,
-                if_exists="fail",
-                index=False,
-            )
-            == 2
+    # test if_exists='append'
+    assert (
+        sql.to_sql(
+            frame=df_if_exists_1,
+            con=sqlite_buildin,
+            name=table_name,
+            if_exists="fail",
+            index=False,
         )
-        assert tquery(sql_select, con=sqlite_buildin) == [(1, "A"), (2, "B")]
-        assert (
-            sql.to_sql(
-                frame=df_if_exists_2,
-                con=sqlite_buildin,
-                name=table_name,
-                if_exists="append",
-                index=False,
-            )
-            == 3
+        == 2
+    )
+    assert tquery(sql_select, con=sqlite_buildin) == [(1, "A"), (2, "B")]
+    assert (
+        sql.to_sql(
+            frame=df_if_exists_2,
+            con=sqlite_buildin,
+            name=table_name,
+            if_exists="append",
+            index=False,
         )
-        assert tquery(sql_select, con=sqlite_buildin) == [
-            (1, "A"),
-            (2, "B"),
-            (3, "C"),
-            (4, "D"),
-            (5, "E"),
-        ]
-        self.drop_table(table_name, sqlite_buildin)
+        == 3
+    )
+    assert tquery(sql_select, con=sqlite_buildin) == [
+        (1, "A"),
+        (2, "B"),
+        (3, "C"),
+        (4, "D"),
+        (5, "E"),
+    ]
+    drop_table(table_name, sqlite_buildin)
