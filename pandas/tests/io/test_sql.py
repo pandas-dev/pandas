@@ -2256,10 +2256,7 @@ def test_roundtrip(conn, request, test_frame1):
     conn = request.getfixturevalue(conn)
     drop_table("test_frame_roundtrip", conn)
 
-    if conn_name == "sqlite_buildin":
-        pandasSQL = sql.SQLiteDatabase(conn)
-    else:
-        pandasSQL = sql.SQLDatabase(conn)
+    pandasSQL = pandasSQL_builder(conn)
     assert pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
     result = pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
 
@@ -2276,10 +2273,7 @@ def test_roundtrip(conn, request, test_frame1):
 def test_execute_sql(conn, request):
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    if conn_name == "sqlite_buildin_iris":
-        pandasSQL = sql.SQLiteDatabase(conn)
-    else:
-        pandasSQL = sql.SQLDatabase(conn)
+    pandasSQL = pandasSQL_builder(conn)
     iris_results = pandasSQL.execute("SELECT * FROM iris")
     row = iris_results.fetchone()
     tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
@@ -2714,14 +2708,8 @@ def test_to_sql_save_index(conn, request):
         [(1, 2.1, "line1"), (2, 1.5, "line2")], columns=["A", "B", "C"], index=["A"]
     )
 
-    if conn_name == "sqlite_buildin":
-        pandasSQL = sql.SQLiteDatabase(conn)
-        tbl_name = "test_to_sql_saves_index"
-        assert pandasSQL.to_sql(df, tbl_name) == 2
-    else:
-        pandasSQL = sql.SQLDatabase(conn)
-        tbl_name = "test_to_sql_saves_index"
-        assert pandasSQL.to_sql(df, tbl_name) == 2
+    pandasSQL = pandasSQL_builder(conn)
+    assert pandasSQL.to_sql(df, tbl_name) == 2
 
     if conn_name in {"sqlite_buildin", "sqlite_str"}:
         ixs = sql.read_sql_query(
@@ -2751,10 +2739,8 @@ def test_transactions(conn, request):
     conn = request.getfixturevalue(conn)
 
     stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
-    if conn_name == "sqlite_buildin":
-        pandasSQL = sql.SQLiteDatabase(conn)
-    else:
-        pandasSQL = sql.SQLDatabase(conn)
+    pandasSQL = pandasSQL_builder(conn)    
+    if conn_name != "sqlite_buildin":
         from sqlalchemy import text
 
         stmt = text(stmt)
