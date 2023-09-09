@@ -42,7 +42,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- Enhancement in :meth:`_libs.tslibs.parsing.guess_datetime_format` to make public (:issue:`54727`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_211.contributors:
