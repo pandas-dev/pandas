@@ -1292,7 +1292,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # to resolve case when passed empty list
         # didn't change self.keys directly to avoid side effects
         # e.g. the use of get_grouper
-        keys = [0] * len(obj) if (isinstance(keys, list) and keys == []) else keys
+        keys = [np.int64(0)] * len(obj) if (iter(keys) and len(keys) == 0) else keys
 
         assert isinstance(obj, NDFrame), type(obj)
 

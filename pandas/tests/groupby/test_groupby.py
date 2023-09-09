@@ -78,6 +78,16 @@ def test_groupby_empty_list_keys():
     )
     tm.assert_frame_equal(result_df, expected_df)
 
+    # different type of iterables
+    for key_iter in [np.array([]), (), set()]:
+        result_df = df.groupby(key_iter).agg(
+            col1_std=("col1", "std"),
+        )
+        expected_df = DataFrame(
+            [{"col1_std": 1.0}],
+        )
+        tm.assert_frame_equal(result_df, expected_df)
+
 
 def test_repr():
     # GH18203
