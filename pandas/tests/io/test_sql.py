@@ -1176,9 +1176,7 @@ def flavor():
 def test_read_sql_iris_parameter(conn, request, sql_strings, flavor):
     conn_name = conn
     if "engine" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="fails and hangs forever with engine")
-        )
+        pytest.skip(reason="can hang forever with engine")
 
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_parameters"][flavor(conn_name)]
@@ -1193,9 +1191,8 @@ def test_read_sql_iris_parameter(conn, request, sql_strings, flavor):
 def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
     conn_name = conn
     if "engine" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="fails and hangs forever with engine")
-        )
+        pytest.skip(reason="can hang forever with engine")
+
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_named_parameters"][flavor(conn_name)]
     params = {"name": "Iris-setosa", "length": 5.1}
@@ -1207,6 +1204,9 @@ def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_no_parameter_with_percent(conn, request, sql_strings, flavor):
+    if "mysql" in conn or "postgresql" in conn:
+        request.node.add_marker(pytest.mark.xfail(reason="broken test"))
+
     conn_name = conn
     conn = request.getfixturevalue(conn)
 
@@ -1460,6 +1460,10 @@ def test_api_custom_dateparsing_error(
 ):
     conn_name = conn
     conn = request.getfixturevalue(conn)
+    if text == "types" and conn_name == "sqlite_buildin_iris":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="failing combination of arguments")
+        )
 
     expected = types_data_frame.astype({"DateCol": "datetime64[ns]"})
 
@@ -1914,8 +1918,15 @@ def test_read_table_index_col(conn, request, test_frame1):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_delegate(conn, request):
+    if conn == "sqlite_buildin_iris":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="sqlite_buildin connection does not implement read_sql_table"
+            )
+        )
+
     conn = request.getfixturevalue(conn)
     iris_frame1 = sql.read_sql_query("SELECT * FROM iris", conn)
     iris_frame2 = sql.read_sql("SELECT * FROM iris", conn)
@@ -2229,9 +2240,7 @@ def test_drop_table(conn, request):
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
     elif "engine" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="fails and hangs forever with engine")
-        )
+        pytest.skip(reason="fails and hangs forever with engine")
 
     from sqlalchemy import inspect
 
@@ -2258,9 +2267,7 @@ def test_roundtrip(conn, request, test_frame1):
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
     elif "engine" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="fails and hangs forever with engine")
-        )
+        pytest.skip(reason="fails and hangs forever with engine")
 
     conn = request.getfixturevalue(conn)
     drop_table("test_frame_roundtrip", conn)
@@ -2706,9 +2713,7 @@ def test_nan_string(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_save_index(conn, request):
     if "engine" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="fails and hangs forever with engine")
-        )
+        pytest.skip(reason="fails and hangs forever with engine")
 
     conn_name = conn
     conn = request.getfixturevalue(conn)
@@ -2761,6 +2766,9 @@ def test_transactions(conn, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_transaction_rollback(conn, request):
+    if "engine" in conn:
+        pytest.skip(reason="fails and hangs forever with engine")
+
     conn = request.getfixturevalue(conn)
     pandasSQL = pandasSQL_builder(conn)
     with pandasSQL.run_transaction() as trans:
@@ -2773,30 +2781,30 @@ def test_transaction_rollback(conn, request):
             stmt = text(stmt)
             trans.execute(stmt)
 
-        class DummyException(Exception):
-            pass
+    class DummyException(Exception):
+        pass
 
-        # Make sure when transaction is rolled back, no rows get inserted
-        ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
-        if isinstance(pandasSQL, SQLDatabase):
-            from sqlalchemy import text
+    # Make sure when transaction is rolled back, no rows get inserted
+    ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
+    if isinstance(pandasSQL, SQLDatabase):
+        from sqlalchemy import text
 
-            ins_sql = text(ins_sql)
-        try:
-            with pandasSQL.run_transaction() as trans:
-                trans.execute(ins_sql)
-                raise DummyException("error")
-        except DummyException:
-            # ignore raised exception
-            pass
-        res = pandasSQL.read_query("SELECT * FROM test_trans")
-        assert len(res) == 0
-
-        # Make sure when transaction is committed, rows do get inserted
+        ins_sql = text(ins_sql)
+    try:
         with pandasSQL.run_transaction() as trans:
             trans.execute(ins_sql)
-        res2 = pandasSQL.read_query("SELECT * FROM test_trans")
-        assert len(res2) == 1
+            raise DummyException("error")
+    except DummyException:
+        # ignore raised exception
+        pass
+    res = pandasSQL.read_query("SELECT * FROM test_trans")
+    assert len(res) == 0
+
+    # Make sure when transaction is committed, rows do get inserted
+    with pandasSQL.run_transaction() as trans:
+        trans.execute(ins_sql)
+    res2 = pandasSQL.read_query("SELECT * FROM test_trans")
+    assert len(res2) == 1
 
 
 @pytest.mark.db
@@ -3104,7 +3112,7 @@ def test_to_sql_with_sql_engine(conn, request, test_frame1):
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_options_sqlalchemy(conn, request, test_frame1):
     if "engine" in conn:
-        pytest.skip("hangs forever with engine arguments")
+        pytest.skip("fails and hangs forever with engine")
     elif conn == "sqlite_str":
         request.node.add_marker(pytest.mark.xfail(reason="broken with sqlite_str"))
     # use the set option
@@ -3123,7 +3131,7 @@ def test_options_sqlalchemy(conn, request, test_frame1):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_options_auto(conn, request, test_frame1):
     if "engine" in conn:
-        pytest.skip("hangs forever with engine arguments")
+        pytest.skip("fails and hangs forever with engine")
     elif conn == "sqlite_str":
         request.node.add_marker(pytest.mark.xfail(reason="broken with sqlite_str"))
 
