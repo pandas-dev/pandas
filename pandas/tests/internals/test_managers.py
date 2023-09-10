@@ -3,6 +3,7 @@ Testing interaction between the different managers (BlockManager, ArrayManager)
 """
 import os
 import subprocess
+import sys
 
 import pytest
 
@@ -91,8 +92,7 @@ def test_array_manager_depr_env_var(manager):
     test_env = os.environ.copy()
     test_env["PANDAS_DATA_MANAGER"] = manager
     response = subprocess.run(
-        "python -c 'import pandas'",
-        shell=True,
+        [sys.executable, "-c", "import pandas"],
         capture_output=True,
         env=test_env,
         check=True,
