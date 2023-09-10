@@ -3048,10 +3048,10 @@ def test_to_sql_with_negative_npinf(conn, request, input):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_temporary_table(conn, request):
-    conn = request.getfixturevalue(conn)
-
     if conn == "sqlite_str":
         pytest.skip("test does not work with str connection")
+
+    conn = request.getfixturevalue(conn)
 
     from sqlalchemy import (
         Column,
@@ -3120,7 +3120,7 @@ def test_options_sqlalchemy(conn, request, test_frame1):
     if "engine" in conn:
         pytest.skip("fails and hangs forever with engine")
     elif conn == "sqlite_str":
-        request.node.add_marker(pytest.mark.xfail(reason="broken with sqlite_str"))
+        pytest.skip("may hang on old versions of sqlite")
     # use the set option
     conn = request.getfixturevalue(conn)
     with pd.option_context("io.sql.engine", "sqlalchemy"):
