@@ -535,10 +535,13 @@ def sqlite_engine(sqlite_str, iris_path, types_data):
         create_and_load_types(engine, types_data, "sqlite")
 
     yield engine
-    for view in get_all_views(engine):
-        drop_view(view, engine)
-    for tbl in get_all_tables(engine):
-        drop_table(tbl, engine)
+    with engine.connect() as conn:
+        with conn.begin():
+            for view in get_all_views(engine):
+                drop_view(view, conn)
+            for tbl in get_all_tables(engine):
+                drop_table(tbl, conn)
+
     engine.dispose()
 
 
@@ -1947,6 +1950,7 @@ def test_not_reflect_all_tables(sqlite_conn):
         text("CREATE TABLE invalid (x INTEGER, y UNKNOWN);"),
         text("CREATE TABLE other_table (x INTEGER, y INTEGER);"),
     ]
+
     for query in query_list:
         if isinstance(conn, Engine):
             with conn.connect() as conn:
