@@ -3139,7 +3139,7 @@ def test_options_auto(conn, request, test_frame1):
     if "engine" in conn:
         pytest.skip("fails and hangs forever with engine")
     elif conn == "sqlite_str":
-        request.node.add_marker(pytest.mark.xfail(reason="broken with sqlite_str"))
+        pytest.skip("may hang on old versions of sqlite")
 
     # use the set option
     conn = request.getfixturevalue(conn)
