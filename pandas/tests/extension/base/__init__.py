@@ -85,6 +85,7 @@ class ExtensionTests(
     BaseReduceTests,
     BaseReshapingTests,
     BaseSetitemTests,
+    Dim2CompatTests,
 ):
     pass
 
