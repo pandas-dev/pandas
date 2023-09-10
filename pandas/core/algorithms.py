@@ -1810,7 +1810,7 @@ def map_array(
 
     # we must convert to python types
     if isinstance(arr.dtype, BaseMaskedDtype):
-        arr = arr.to_numpy()
+        arr = arr.to_numpy()  # type: ignore[union-attr]
     values = arr.astype(object, copy=False)
     if na_action is None:
         return lib.map_infer(values, mapper, convert=convert)

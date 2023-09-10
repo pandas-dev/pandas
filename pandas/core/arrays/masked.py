@@ -500,7 +500,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         if not dtype_given and hasna:
             try:
-                np_can_hold_element(dtype, na_value)
+                np_can_hold_element(dtype, na_value)  # type: ignore[arg-type]
             except LossySetitemError:
                 dtype = object
 
