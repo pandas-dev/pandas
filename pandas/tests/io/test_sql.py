@@ -77,7 +77,7 @@ except ImportError:
     SQLALCHEMY_INSTALLED = False
 
 
-pytestmark = [pytest.mark.db]
+pytestmark = [pytest.mark.db, pytest.mark.single_cpu]
 
 
 @pytest.fixture
