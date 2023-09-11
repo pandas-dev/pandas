@@ -589,7 +589,7 @@ def sqlite_buildin():
 
 
 @pytest.fixture
-def sqlite_sqlalchemy_memory(iris_path, types_data):
+def sqlite_sqlalchemy_memory_engine(iris_path, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     engine = sqlalchemy.create_engine("sqlite:///:memory:")
 
@@ -604,10 +604,12 @@ def sqlite_sqlalchemy_memory(iris_path, types_data):
         create_and_load_types(engine, types_data, "sqlite")
 
     yield engine
-    for view in get_all_views(engine):
-        drop_view(view, engine)
-    for tbl in get_all_tables(engine):
-        drop_table(tbl, engine)
+    with engine.connect() as conn:
+        with conn.begin():
+            for view in get_all_views(engine):
+                drop_view(view, engine)
+            for tbl in get_all_tables(engine):
+                drop_table(tbl, engine)
 
 
 @pytest.fixture
@@ -653,12 +655,12 @@ sqlalchemy_connectable_iris = (
 
 all_connectable = sqlalchemy_connectable + [
     "sqlite_buildin",
-    "sqlite_sqlalchemy_memory",
+    "sqlite_sqlalchemy_memory_engine",
 ]
 
 all_connectable_iris = sqlalchemy_connectable_iris + [
     "sqlite_buildin_iris",
-    "sqlite_sqlalchemy_memory",
+    "sqlite_sqlalchemy_memory_engine",
 ]
 
 
@@ -2772,7 +2774,7 @@ def test_transactions(conn, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_transaction_rollback(conn, request):
-    if "engine" in conn or conn == "sqlite_sqlalchemy_memory":
+    if "engine" in conn:
         pytest.skip(reason="fails and hangs forever with engine")
 
     conn = request.getfixturevalue(conn)
@@ -3392,8 +3394,8 @@ def test_read_sql_dtype(conn, request, func, dtype_backend):
 
 
 @pytest.mark.db
-def test_keyword_deprecation(sqlite_sqlalchemy_memory):
-    conn = sqlite_sqlalchemy_memory
+def test_keyword_deprecation(sqlite_sqlalchemy_memory_engine):
+    conn = sqlite_sqlalchemy_memory_engine
     # GH 54397
     msg = (
         "Starting with pandas version 3.0 all arguments of to_sql except for the "
@@ -3407,8 +3409,8 @@ def test_keyword_deprecation(sqlite_sqlalchemy_memory):
 
 
 @pytest.mark.db
-def test_bigint_warning(sqlite_sqlalchemy_memory):
-    conn = sqlite_sqlalchemy_memory
+def test_bigint_warning(sqlite_sqlalchemy_memory_engine):
+    conn = sqlite_sqlalchemy_memory_engine
     # test no warning for BIGINT (to support int64) is raised (GH7433)
     df = DataFrame({"a": [1, 2]}, dtype="int64")
     assert df.to_sql(name="test_bigintwarning", con=conn, index=False) == 2
@@ -3418,16 +3420,16 @@ def test_bigint_warning(sqlite_sqlalchemy_memory):
 
 
 @pytest.mark.db
-def test_valueerror_exception(sqlite_sqlalchemy_memory):
-    conn = sqlite_sqlalchemy_memory
+def test_valueerror_exception(sqlite_sqlalchemy_memory_engine):
+    conn = sqlite_sqlalchemy_memory_engine
     df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
     with pytest.raises(ValueError, match="Empty table name specified"):
         df.to_sql(name="", con=conn, if_exists="replace", index=False)
 
 
 @pytest.mark.db
-def test_row_object_is_named_tuple(sqlite_sqlalchemy_memory):
-    conn = sqlite_sqlalchemy_memory
+def test_row_object_is_named_tuple(sqlite_sqlalchemy_memory_engine):
+    conn = sqlite_sqlalchemy_memory_engine
     # GH 40682
     # Test for the is_named_tuple() function
     # Placed here due to its usage of sqlalchemy
@@ -3466,8 +3468,8 @@ def test_row_object_is_named_tuple(sqlite_sqlalchemy_memory):
 
 
 @pytest.mark.db
-def test_read_sql_string_inference(sqlite_sqlalchemy_memory):
-    conn = sqlite_sqlalchemy_memory
+def test_read_sql_string_inference(sqlite_sqlalchemy_memory_engine):
+    conn = sqlite_sqlalchemy_memory_engine
     # GH#54430
     pytest.importorskip("pyarrow")
     table = "test"
@@ -3486,8 +3488,8 @@ def test_read_sql_string_inference(sqlite_sqlalchemy_memory):
 
 
 @pytest.mark.db
-def test_roundtripping_datetimes(sqlite_sqlalchemy_memory):
-    conn = sqlite_sqlalchemy_memory
+def test_roundtripping_datetimes(sqlite_sqlalchemy_memory_engine):
+    conn = sqlite_sqlalchemy_memory_engine
     # GH#54877
     df = DataFrame({"t": [datetime(2020, 12, 31, 12)]}, dtype="datetime64[ns]")
     df.to_sql("test", conn, if_exists="replace", index=False)
@@ -3607,8 +3609,8 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
 
 
 @pytest.mark.db
-def test_create_and_drop_table(sqlite_sqlalchemy_memory):
-    conn = sqlite_sqlalchemy_memory
+def test_create_and_drop_table(sqlite_sqlalchemy_memory_engine):
+    conn = sqlite_sqlalchemy_memory_engine
     temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
     pandasSQL = sql.SQLDatabase(conn)
 
