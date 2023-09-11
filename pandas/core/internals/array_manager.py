@@ -1103,7 +1103,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
     def _normalize_axis(axis):
         return axis
 
-    def make_empty(self, axes=None) -> SingleArrayManager:
+    def make_empty(self, axes=None) -> Self:
         """Return an empty ArrayManager with index/array of length 0"""
         if axes is None:
             axes = [Index([], dtype=object)]

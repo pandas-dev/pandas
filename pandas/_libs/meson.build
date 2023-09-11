@@ -69,7 +69,8 @@ libs_sources = {
     'index': {'sources': ['index.pyx', _index_class_helper]},
     'indexing': {'sources': ['indexing.pyx']},
     'internals': {'sources': ['internals.pyx']},
-    'interval': {'sources': ['interval.pyx', _intervaltree_helper]},
+    'interval': {'sources': ['interval.pyx', _intervaltree_helper],
+                 'deps': _khash_primitive_helper_dep},
     'join': {'sources': ['join.pyx', _khash_primitive_helper],
              'deps': _khash_primitive_helper_dep},
     'lib': {'sources': ['lib.pyx', 'src/parser/tokenizer.c']},
@@ -113,8 +114,9 @@ foreach ext_name, ext_dict : libs_sources
     )
 endforeach
 
-py.install_sources('__init__.py',
-                    pure: false,
-                    subdir: 'pandas/_libs')
+py.install_sources(
+    '__init__.py',
+    subdir: 'pandas/_libs'
+)
 
 subdir('window')
