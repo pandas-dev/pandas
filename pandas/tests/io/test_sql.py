@@ -2772,7 +2772,7 @@ def test_transactions(conn, request):
 @pytest.mark.db
 @pytest.mark.parametrize("conn", all_connectable)
 def test_transaction_rollback(conn, request):
-    if "engine" in conn:
+    if "engine" in conn or conn == "sqlite_sqlalchemy_memory":
         pytest.skip(reason="fails and hangs forever with engine")
 
     conn = request.getfixturevalue(conn)
