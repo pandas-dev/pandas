@@ -168,6 +168,7 @@ Performance improvements
 Bug fixes
 ~~~~~~~~~
 - Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
+- Bug in :class:`pandas.core.apply.FrameApply` where passing ``raw=True`` caused ``apply`` method of ``DataFrame`` to ignore arguments passed to the applied function (:issue:`55009`)
 - Bug in :class:`pandas.core.window.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
 
 Categorical
