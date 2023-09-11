@@ -4,6 +4,9 @@ inputs:
   editable:
     description: Whether to build pandas in editable mode (default true)
     default: true
+  sanitize:
+    description: Whether sanitizers should be used or not
+    default: false
 runs:
   using: composite
   steps:
@@ -25,8 +28,16 @@ runs:
     - name: Build Pandas
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
-          pip install -e . --no-build-isolation -v  --config-settings=setup-args="-Db_sanitize=address,undefined"
+          if [[ ${{ inputs.sanitize }} == "true" ]]; then
+            pip install -e . --no-build-isolation -v  --config-settings=setup-args="-Db_sanitize=address,undefined"
+          else
+            pip install -e . --no-build-isolation -v
+          fi
         else
-          pip install . --no-build-isolation -v --config-settings=setup-args="-Db_sanitize=address,undefined"
+          if [[ ${{ inputs.sanitize }} == "true" ]]; then
+            pip install . --no-build-isolation -v --config-settings=setup-args="-Db_sanitize=address,undefined"
+          else
+            pip install . --no-build-isolation -v
+          fi
         fi
       shell: bash -el {0}
