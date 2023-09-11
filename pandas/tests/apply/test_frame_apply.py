@@ -38,8 +38,9 @@ def test_apply(float_frame):
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_args(float_frame, axis):
-    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,))
+@pytest.mark.parametrize("raw", [True, False])
+def test_apply_args(float_frame, axis, raw):
+    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,), raw=raw)
     expected = float_frame + 1
     tm.assert_frame_equal(result, expected)
 
