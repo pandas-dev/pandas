@@ -157,6 +157,8 @@ jobs:
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
+      env:
+        CFLAGS: "$CFLAGS -fno-sanitize-recover=all"
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
@@ -164,12 +166,16 @@ jobs:
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
+        ASAN_OPTIONS: detect_leaks=0
+        LD_PRELOAD: $(gcc -print-file-name=libasan.so)
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 0
+        ASAN_OPTIONS: detect_leaks=0
+        LD_PRELOAD: $(gcc -print-file-name=libasan.so)
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:

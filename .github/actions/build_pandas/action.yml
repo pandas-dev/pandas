@@ -25,8 +25,8 @@ runs:
     - name: Build Pandas
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
-          pip install -e . --no-build-isolation -v
+          pip install -e . --no-build-isolation -v  --config-settings=setup-args="-Db_sanitize=address,undefined"
         else
-          pip install . --no-build-isolation -v
+          pip install . --no-build-isolation -v --config-settings=setup-args="-Db_sanitize=address,undefined"
         fi
       shell: bash -el {0}
