@@ -925,7 +925,9 @@ class FrameApply(NDFrameApply):
 
             return wrapper
 
-        result = np.apply_along_axis(wrap_function(self.func), self.axis, self.values, *self.args, **self.kwargs)
+        result = np.apply_along_axis(
+            wrap_function(self.func), self.axis, self.values, *self.args, **self.kwargs
+        )
 
         # TODO: mixed type case
         if result.ndim == 2:
