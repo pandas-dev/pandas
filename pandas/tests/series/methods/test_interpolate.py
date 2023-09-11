@@ -858,3 +858,11 @@ class TestSeriesInterpolateData:
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=msg2):
                 ser.interpolate(method="asfreq")
+
+    def test_interpolate_fill_value(self):
+        # GH#54920
+        pytest.importorskip("scipy")
+        ser = Series([np.nan, 0, 1, np.nan, 3, np.nan])
+        result = ser.interpolate(method="nearest", fill_value=0)
+        expected = Series([np.nan, 0, 1, 1, 3, 0])
+        tm.assert_series_equal(result, expected)

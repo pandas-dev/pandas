@@ -56,10 +56,10 @@ class TestDatetimeIndex:
         # overflow.
         periods = np.int_(1000)
 
-        idx1 = date_range(start="2000", periods=periods, freq="S")
+        idx1 = date_range(start="2000", periods=periods, freq="s")
         assert len(idx1) == periods
 
-        idx2 = date_range(end="2000", periods=periods, freq="S")
+        idx2 = date_range(end="2000", periods=periods, freq="s")
         assert len(idx2) == periods
 
     def test_nat(self):
@@ -148,8 +148,8 @@ class TestDatetimeIndex:
         assert isinstance(result.index[0], tuple)
 
     def assert_index_parameters(self, index):
-        assert index.freq == "40960N"
-        assert index.inferred_freq == "40960N"
+        assert index.freq == "40960ns"
+        assert index.inferred_freq == "40960ns"
 
     def test_ns_index(self):
         nsamples = 400

@@ -391,7 +391,7 @@ class TestDataFrameToRecords:
         # see GH#18146
         df = DataFrame({"A": [1, 2], "B": [0.2, 1.5], "C": ["a", "bc"]})
 
-        if not isinstance(expected, np.recarray):
+        if not isinstance(expected, np.rec.recarray):
             with pytest.raises(expected[0], match=expected[1]):
                 df.to_records(**kwargs)
         else:
@@ -512,7 +512,7 @@ class TestDataFrameToRecords:
     @pytest.mark.parametrize("tz", ["UTC", "GMT", "US/Eastern"])
     def test_to_records_datetimeindex_with_tz(self, tz):
         # GH#13937
-        dr = date_range("2016-01-01", periods=10, freq="S", tz=tz)
+        dr = date_range("2016-01-01", periods=10, freq="s", tz=tz)
 
         df = DataFrame({"datetime": dr}, index=dr)
 
