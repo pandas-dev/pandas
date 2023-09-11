@@ -1031,7 +1031,7 @@ class MultiIndex(Index):
     # Codes Methods
 
     @property
-    def codes(self):
+    def codes(self) -> tuple:
         return self._codes
 
     def _set_codes(
@@ -1075,7 +1075,9 @@ class MultiIndex(Index):
 
         self._reset_cache()
 
-    def set_codes(self, codes, *, level=None, verify_integrity: bool = True):
+    def set_codes(
+        self, codes, *, level=None, verify_integrity: bool = True
+    ) -> MultiIndex:
         """
         Set new codes on MultiIndex. Defaults to returning new index.
 
@@ -1200,7 +1202,7 @@ class MultiIndex(Index):
         names=None,
         deep: bool = False,
         name=None,
-    ):
+    ) -> Self:
         """
         Make a copy of this object.
 
@@ -1263,7 +1265,7 @@ class MultiIndex(Index):
         """the array interface, return my values"""
         return self.values
 
-    def view(self, cls=None):
+    def view(self, cls=None) -> Self:
         """this is defined as a copy with the same identity"""
         result = self.copy()
         result._id = self._id
@@ -1660,7 +1662,8 @@ class MultiIndex(Index):
         filled = algos.take_nd(lev._values, level_codes, fill_value=lev._na_value)
         return lev._shallow_copy(filled, name=name)
 
-    def get_level_values(self, level):
+    # error: Signature of "get_level_values" incompatible with supertype "Index"
+    def get_level_values(self, level) -> Index:  # type: ignore[override]
         """
         Return vector of label values for requested level.
 
@@ -3298,7 +3301,7 @@ class MultiIndex(Index):
                 raise KeyError(key)
             return slice(start, end)
 
-    def get_locs(self, seq):
+    def get_locs(self, seq) -> npt.NDArray[np.intp]:
         """
         Get location for a sequence of labels.
 

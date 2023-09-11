@@ -1738,7 +1738,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: npt.NDArray[np.intp],
     rindexer: npt.NDArray[np.intp],
-) -> tuple[list[Index], npt.NDArray[np.intp], list[Hashable]]:
+) -> tuple[tuple, tuple, tuple]:
     """
     *this is an internal non-public method*
 
@@ -1812,8 +1812,9 @@ def restore_dropped_levels_multijoin(
         else:
             restore_codes = algos.take_nd(codes, indexer, fill_value=-1)
 
-        join_levels = join_levels + [restore_levels]
-        join_codes = join_codes + [restore_codes]
+        # error: Cannot determine type of "__add__"
+        join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
+        join_codes = join_codes + [restore_codes]  # type: ignore[has-type]
         join_names = join_names + [dropped_level_name]
 
     # error: Incompatible return value type
