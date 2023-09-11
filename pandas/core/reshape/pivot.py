@@ -7,6 +7,7 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Literal,
     cast,
 )
 
@@ -569,7 +570,7 @@ def crosstab(
     margins: bool = False,
     margins_name: Hashable = "All",
     dropna: bool = True,
-    normalize: bool = False,
+    normalize: bool | Literal[0, 1, "all", "index", "columns"] = False,
 ) -> DataFrame:
     """
     Compute a simple cross tabulation of two (or more) factors.
