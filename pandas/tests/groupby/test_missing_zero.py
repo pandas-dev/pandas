@@ -16,10 +16,17 @@ df = pd.DataFrame({'Dates': dates,
                    })
 march = df.Dates.dt.month == 3
 df = df[~march]
+#print(df.head(10))
+#print(df.columns)
 
-print(df)
-
+print("\n -- DEV --")
 monthly = pd.Grouper(key='Dates', freq='M')
-sum_sales = df.groupby(['Product', monthly])['Sales'].sum()
+sum_sales_missing_zero = df.groupby(['Product', monthly])['Sales'].sum()
+print(sum_sales_missing_zero)
 
-print(sum_sales)
+# sum_sales_products = df.groupby(['Product'])['Sales'].sum()
+# sum_sales = df.groupby(axis=1, level='Product')['Sales'].sum()
+# print(sum_sales_products)
+
+sum_sales_with_zero = df.groupby(monthly)['Sales'].sum()
+print(sum_sales_with_zero)

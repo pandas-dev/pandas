@@ -922,7 +922,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.observed = observed
         self.mutated = mutated
         self.dropna = dropna
-
+        
+        # print(grouper)
         if grouper is None:
             from pandas.core.groupby.grouper import get_grouper
 
@@ -940,6 +941,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
         self.grouper = grouper
+        print(self.grouper)
         self.exclusions = frozenset(exclusions) if exclusions else frozenset()
 
     def __getattr__(self, attr: str):

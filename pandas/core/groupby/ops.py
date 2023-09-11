@@ -916,7 +916,9 @@ class BaseGrouper:
 
         ngroups = len(obs_group_ids)
         comp_ids = ensure_platform_int(comp_ids)
-
+        print(comp_ids)
+        print(obs_group_ids)
+        print(ngroups)
         return comp_ids, obs_group_ids, ngroups
 
     @final
@@ -939,8 +941,10 @@ class BaseGrouper:
         self,
     ) -> tuple[npt.NDArray[np.signedinteger], npt.NDArray[np.intp]]:
         # The first returned ndarray may have any signed integer dtype
+        print(self.groupings)
         if len(self.groupings) > 1:
             group_index = get_group_index(self.codes, self.shape, sort=True, xnull=True)
+            # print(group_index)
             return compress_group_index(group_index, sort=self._sort)
             # FIXME: compress_group_index's second return value is int64, not intp
 
