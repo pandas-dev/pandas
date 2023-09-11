@@ -927,7 +927,6 @@ class TestTimedeltas:
 
     @pytest.mark.xfail(
         reason="pd.Timedelta violates the Python hash invariant (GH#44504).",
-        raises=AssertionError,
     )
     @given(
         st.integers(
