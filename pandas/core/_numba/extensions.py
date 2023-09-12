@@ -1,0 +1,448 @@
+"""
+Utility classes/functions to let numba recognize
+pandas Index/Series/DataFrame
+
+Mostly vendored from https://github.com/numba/numba/blob/main/numba/tests/pdlike_usecase.py
+"""
+
+from __future__ import annotations
+
+import operator
+
+import numba
+from numba.core import (
+    cgutils,
+    types,
+)
+from numba.core.datamodel import models
+from numba.core.extending import (
+    NativeValue,
+    box,
+    lower_builtin,
+    make_attribute_wrapper,
+    overload,
+    overload_attribute,
+    overload_method,
+    register_model,
+    type_callable,
+    typeof_impl,
+    unbox,
+)
+from numba.core.imputils import impl_ret_borrowed
+import numpy as np
+
+from pandas.core.indexes.base import Index
+from pandas.core.indexing import _iLocIndexer
+from pandas.core.series import Series
+
+
+# TODO: Range index support
+# (not passing an index to series constructor doesn't work)
+class IndexType(types.Buffer):
+    """
+    The type class for Index objects.
+    """
+
+    def __init__(self, dtype, layout, pyclass) -> None:
+        self.pyclass = pyclass
+        super().__init__(dtype, 1, layout)
+
+    @property
+    def key(self):
+        return self.pyclass, self.dtype, self.layout
+
+    @property
+    def as_array(self):
+        return types.Array(self.dtype, 1, self.layout)
+
+    def copy(self, dtype=None, ndim: int = 1, layout=None):
+        assert ndim == 1
+        if dtype is None:
+            dtype = self.dtype
+        layout = layout or self.layout
+        return type(self)(dtype, layout, self.pyclass)
+
+
+class SeriesType(types.ArrayCompatible):
+    """
+    The type class for Series objects.
+    """
+
+    def __init__(self, dtype, index, namety) -> None:
+        assert isinstance(index, IndexType)
+        self.dtype = dtype
+        self.index = index
+        self.values = types.Array(self.dtype, 1, "C")
+        self.namety = namety
+        name = f"series({dtype}, {index}, {namety})"
+        super().__init__(name)
+
+    @property
+    def key(self):
+        return self.dtype, self.index, self.namety
+
+    @property
+    def as_array(self):
+        return self.values
+
+    def copy(self, dtype=None, ndim: int = 1, layout: str = "C"):
+        assert ndim == 1
+        assert layout == "C"
+        if dtype is None:
+            dtype = self.dtype
+        return type(self)(dtype, self.index, self.namety)
+
+
+@typeof_impl.register(Index)
+def typeof_index(val, c):
+    """
+    This will assume that only strings are in object dtype
+    index.
+    (you should check this before this gets lowered down to numba)
+    """
+    arrty = typeof_impl(val._data, c)
+    assert arrty.ndim == 1
+    return IndexType(arrty.dtype, arrty.layout, type(val))
+
+
+@typeof_impl.register(Series)
+def typeof_series(val, c):
+    index = typeof_impl(val.index, c)
+    arrty = typeof_impl(val.values, c)
+    namety = typeof_impl(val.name, c)
+    assert arrty.ndim == 1
+    assert arrty.layout == "C"
+    return SeriesType(arrty.dtype, index, namety)
+
+
+@type_callable(Series)
+def type_series_constructor(context):
+    def typer(data, index, name=None):
+        if isinstance(index, IndexType) and isinstance(data, types.Array):
+            # assert data.layout == "C"
+            assert data.ndim == 1
+            if name is None:
+                name = types.intp
+            return SeriesType(data.dtype, index, name)
+
+    return typer
+
+
+@type_callable(Index)
+def type_index_constructor(context):
+    def typer(data, hashmap=None):
+        if isinstance(data, types.Array):
+            assert data.layout == "C"
+            assert data.ndim == 1
+            assert hashmap is None or isinstance(hashmap, types.DictType)
+            return IndexType(data.dtype, layout=data.layout, pyclass=Index)
+
+    return typer
+
+
+# Backend extensions for Index and Series and Frame
+@register_model(IndexType)
+class IndexModel(models.StructModel):
+    def __init__(self, dmm, fe_type) -> None:
+        members = [
+            ("data", fe_type.as_array),
+            # This is an attempt to emulate our hashtable code with a numba
+            # typed dict
+            # It maps from values in the index to their integer positions in the array
+            ("hashmap", types.DictType(fe_type.dtype, types.intp)),
+        ]
+        models.StructModel.__init__(self, dmm, fe_type, members)
+
+
+@register_model(SeriesType)
+class SeriesModel(models.StructModel):
+    def __init__(self, dmm, fe_type) -> None:
+        members = [
+            ("index", fe_type.index),
+            ("values", fe_type.as_array),
+            ("name", fe_type.namety),
+        ]
+        models.StructModel.__init__(self, dmm, fe_type, members)
+
+
+make_attribute_wrapper(IndexType, "data", "_data")
+make_attribute_wrapper(IndexType, "hashmap", "hashmap")
+
+make_attribute_wrapper(SeriesType, "index", "index")
+make_attribute_wrapper(SeriesType, "values", "values")
+make_attribute_wrapper(SeriesType, "name", "name")
+
+
+@lower_builtin(Series, types.Array, IndexType)
+def pdseries_constructor(context, builder, sig, args):
+    data, index = args
+    series = cgutils.create_struct_proxy(sig.return_type)(context, builder)
+    series.index = index
+    series.values = data
+    series.name = context.get_constant(types.intp, 0)
+    return impl_ret_borrowed(context, builder, sig.return_type, series._getvalue())
+
+
+@lower_builtin(Series, types.Array, IndexType, types.intp)
+@lower_builtin(Series, types.Array, IndexType, types.float64)
+@lower_builtin(Series, types.Array, IndexType, types.unicode_type)
+def pdseries_constructor(context, builder, sig, args):
+    data, index, name = args
+    series = cgutils.create_struct_proxy(sig.return_type)(context, builder)
+    series.index = index
+    series.values = data
+    series.name = name
+    return impl_ret_borrowed(context, builder, sig.return_type, series._getvalue())
+
+
+@lower_builtin(Index, types.Array, types.DictType)
+def index_constructor_2arg(context, builder, sig, args):
+    (data, hashmap) = args
+    index = cgutils.create_struct_proxy(sig.return_type)(context, builder)
+
+    index.data = data
+    index.hashmap = hashmap
+    return impl_ret_borrowed(context, builder, sig.return_type, index._getvalue())
+
+
+@lower_builtin(Index, types.Array)
+def index_constructor_1arg(context, builder, sig, args):
+    from numba.typed import Dict
+
+    key_type = sig.return_type.dtype
+    value_type = types.intp
+
+    def index_impl(data):
+        return Index(data, Dict.empty(key_type, value_type))
+
+    return context.compile_internal(builder, index_impl, sig, args)
+
+
+@unbox(IndexType)
+def unbox_index(typ, obj, c):
+    """
+    Convert a Index object to a native structure.
+
+    If it is object dtype, we'll attempt to cast it to one of
+    numpy's string dtypes.
+    (you are responsible for validating that the Index contains only
+    strings if its object type before lowering it to numba)
+    """
+    data_obj = c.pyapi.object_getattr_string(obj, "_data")
+    index = cgutils.create_struct_proxy(typ)(c.context, c.builder)
+    index.data = c.unbox(typ.as_array, data_obj).value
+    typed_dict_obj = c.pyapi.unserialize(c.pyapi.serialize_object(numba.typed.Dict))
+    # Create an empty typed dict in numba
+    # equiv of numba.typed.Dict.empty(typ.dtype, types.intp)
+    arr_type_obj = c.pyapi.unserialize(c.pyapi.serialize_object(typ.dtype))
+    intp_type_obj = c.pyapi.unserialize(c.pyapi.serialize_object(types.intp))
+    hashmap_obj = c.pyapi.call_method(
+        typed_dict_obj, "empty", (arr_type_obj, intp_type_obj)
+    )
+    index.hashmap = c.unbox(types.DictType(typ.dtype, types.intp), hashmap_obj).value
+
+    # Decrefs
+    c.pyapi.decref(data_obj)
+    c.pyapi.decref(arr_type_obj)
+    c.pyapi.decref(intp_type_obj)
+    c.pyapi.decref(typed_dict_obj)
+
+    return NativeValue(index._getvalue())
+
+
+@unbox(SeriesType)
+def unbox_series(typ, obj, c):
+    """
+    Convert a Series object to a native structure.
+    """
+    index_obj = c.pyapi.object_getattr_string(obj, "index")
+    values_obj = c.pyapi.object_getattr_string(obj, "values")
+    name_obj = c.pyapi.object_getattr_string(obj, "name")
+
+    series = cgutils.create_struct_proxy(typ)(c.context, c.builder)
+    series.index = c.unbox(typ.index, index_obj).value
+    series.values = c.unbox(typ.values, values_obj).value
+    series.name = c.unbox(typ.namety, name_obj).value
+
+    # Decrefs
+    c.pyapi.decref(index_obj)
+    c.pyapi.decref(values_obj)
+    c.pyapi.decref(name_obj)
+
+    return NativeValue(series._getvalue())
+
+
+@box(IndexType)
+def box_index(typ, val, c):
+    """
+    Convert a native index structure to a Index object.
+
+    If our native index is of a numpy string dtype, we'll cast it to
+    object.
+    """
+    # First build a Numpy array object, then wrap it in a Index
+    index = cgutils.create_struct_proxy(typ)(c.context, c.builder, value=val)
+
+    # TODO: preserve the original class for the index
+    # Also need preserve the name of the Index
+
+    # class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(typ.pyclass))
+    class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(Index))
+    array_obj = c.box(typ.as_array, index.data)
+    # this is basically Index._simple_new(array_obj, name_obj) in python
+    index_obj = c.pyapi.call_method(class_obj, "_simple_new", (array_obj,))
+
+    # Decrefs
+    c.pyapi.decref(class_obj)
+    c.pyapi.decref(array_obj)
+    return index_obj
+
+
+@box(SeriesType)
+def box_series(typ, val, c):
+    """
+    Convert a native series structure to a Series object.
+    """
+    series = cgutils.create_struct_proxy(typ)(c.context, c.builder, value=val)
+    class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(Series))
+    index_obj = c.box(typ.index, series.index)
+    array_obj = c.box(typ.as_array, series.values)
+    name_obj = c.box(typ.namety, series.name)
+    true_obj = c.pyapi.unserialize(c.pyapi.serialize_object(True))
+    # TODO: Is borrowing none here safe?
+    # This is equivalent of pd.Series(data=array_obj, index=index_obj, dtype=None, name=name_obj, copy=None, fastpath=True)
+    series_obj = c.pyapi.call_function_objargs(
+        class_obj,
+        (
+            array_obj,
+            index_obj,
+            c.pyapi.borrow_none(),
+            name_obj,
+            c.pyapi.borrow_none(),
+            true_obj,
+        ),
+    )
+
+    # Decrefs
+    c.pyapi.decref(class_obj)
+    c.pyapi.decref(index_obj)
+    c.pyapi.decref(array_obj)
+    c.pyapi.decref(name_obj)
+    c.pyapi.decref(true_obj)
+
+    return series_obj
+
+
+# Add common series reductions
+
+
+def generate_series_reduction(reduction, reduction_method):
+    @overload_method(SeriesType, reduction)
+    def series_reduction(series):
+        def series_reduction_impl(series):
+            return reduction_method(series.values)
+
+        return series_reduction_impl
+
+    return series_reduction
+
+
+series_reductions = [
+    ("sum", np.sum),
+    ("mean", np.mean),
+    ("std", np.std),
+    ("var", np.var),
+]
+for reduction, reduction_method in series_reductions:
+    generate_series_reduction(reduction, reduction_method)
+
+
+# get_loc on Index
+@overload_method(IndexType, "get_loc")
+def index_get_loc(index, item):
+    def index_get_loc_impl(index, item):
+        # Initialize the hash table if not initalized
+        if len(index.hashmap) == 0:
+            for i, val in enumerate(index._data):
+                index.hashmap[val] = i
+        return index.hashmap[item]
+
+    return index_get_loc_impl
+
+
+# Indexing for Series
+
+
+@overload(operator.getitem)
+def series_indexing(series, item):
+    if isinstance(series, SeriesType):
+
+        def series_getitem(series, item):
+            loc = series.index.get_loc(item)
+            return series.iloc[loc]
+
+        return series_getitem
+
+
+class IlocType(types.Type):
+    def __init__(self, obj_type) -> None:
+        self.obj_type = obj_type
+        name = f"iLocIndexer({obj_type})"
+        super().__init__(name=name)
+
+    @property
+    def key(self):
+        return self.obj_type
+
+
+@typeof_impl.register(_iLocIndexer)
+def typeof_iloc(val, c):
+    objtype = typeof_impl(val.obj, c)
+    return IlocType(objtype)
+
+
+@type_callable(_iLocIndexer)
+def type_iloc_constructor(context):
+    def typer(obj):
+        if isinstance(obj, SeriesType):
+            return IlocType(obj)
+
+    return typer
+
+
+@lower_builtin(_iLocIndexer, SeriesType)
+def iloc_constructor(context, builder, sig, args):
+    (obj,) = args
+    iloc_indexer = cgutils.create_struct_proxy(sig.return_type)(context, builder)
+    iloc_indexer.obj = obj
+    return impl_ret_borrowed(
+        context, builder, sig.return_type, iloc_indexer._getvalue()
+    )
+
+
+@register_model(IlocType)
+class ILocModel(models.StructModel):
+    def __init__(self, dmm, fe_type) -> None:
+        members = [("obj", fe_type.obj_type)]
+        models.StructModel.__init__(self, dmm, fe_type, members)
+
+
+make_attribute_wrapper(IlocType, "obj", "obj")
+
+
+@overload_attribute(SeriesType, "iloc")
+def series_iloc(series):
+    def get(series):
+        return _iLocIndexer(series)
+
+    return get
+
+
+@overload(operator.getitem)
+def iloc_getitem(iloc_indexer, i):
+    if isinstance(iloc_indexer, IlocType):
+
+        def getitem_impl(iloc_indexer, i):
+            return iloc_indexer.obj.values[i]
+
+        return getitem_impl

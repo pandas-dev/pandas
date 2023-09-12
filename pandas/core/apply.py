@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
+import functools
 from functools import partial
 import inspect
 from typing import (
@@ -29,6 +30,7 @@ from pandas._typing import (
     NDFrameT,
     npt,
 )
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -777,6 +779,15 @@ class FrameApply(NDFrameApply):
     def series_generator(self) -> Generator[Series, None, None]:
         pass
 
+    @property
+    @abc.abstractmethod
+    def generate_numba_apply_func(self) -> Callable[[npt.NDarray], dict[int, Any]]:
+        pass
+
+    @abc.abstractmethod
+    def apply_with_numba(self):
+        pass
+
     @abc.abstractmethod
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
@@ -956,7 +967,13 @@ class FrameApply(NDFrameApply):
         return result
 
     def apply_standard(self):
-        results, res_index = self.apply_series_generator()
+        if self.engine == "python":
+            results, res_index = self.apply_series_generator()
+        else:
+            results, res_index = self.apply_series_numba()
+
+        # print(results)
+        # print(res_index)
 
         # wrap results
         return self.wrap_results(results, res_index)
@@ -979,6 +996,10 @@ class FrameApply(NDFrameApply):
                     results[i] = results[i].copy(deep=False)
 
         return results, res_index
+
+    def apply_series_numba(self):
+        results = self.apply_with_numba()
+        return results, self.result_index
 
     def wrap_results(self, results: ResType, res_index: Index) -> DataFrame | Series:
         from pandas import Series
@@ -1018,6 +1039,45 @@ class FrameRowApply(FrameApply):
     @property
     def series_generator(self) -> Generator[Series, None, None]:
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
+
+    @staticmethod
+    @functools.cache
+    def generate_numba_apply_func(
+        func, nogil=True, nopython=True, parallel=False
+    ) -> Callable[[npt.NDarray], dict[int, Any]]:
+        from pandas import Series
+
+        numba = import_optional_dependency("numba")
+
+        jitted_udf = numba.extending.register_jitable(func)
+
+        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        def numba_func(values, col_names, df_index):
+            results = {}
+            for j in range(values.shape[1]):
+                # Create the series
+                # TODO: No need for the str call?
+                # Need to adapt types to accept UnicodeCharSeq in Series constructor
+                ser = Series(values[:, j], index=df_index, name=str(col_names[j]))
+
+                results[j] = jitted_udf(ser)
+
+            return results
+
+        return numba_func
+
+    def apply_with_numba(self) -> dict[int, Any]:
+        nb_func = self.generate_numba_apply_func(self.func, **self.engine_kwargs)
+        col_names_values = self.columns._data
+        if col_names_values.dtype == object:
+            if not lib.is_string_array(col_names_values):
+                raise ValueError(
+                    "The numba engine only supports using string or numeric column names"
+                )
+            col_names_values = col_names_values.astype("U")
+        df_index = self.obj.index
+
+        return nb_func(self.values, col_names_values, df_index)
 
     @property
     def result_index(self) -> Index:
@@ -1101,6 +1161,61 @@ class FrameColumnApply(FrameApply):
                 mgr.set_values(arr)
                 object.__setattr__(ser, "_name", name)
                 yield ser
+
+    @staticmethod
+    @functools.cache
+    def generate_numba_apply_func(
+        func, nogil=True, nopython=True, parallel=False
+    ) -> Callable[[npt.NDArray, npt.NDArray, npt.NDArray], dict[int, Any]]:
+        # Unused import just to register the extensions
+
+        from pandas import (
+            Index,
+            Series,
+        )
+
+        numba = import_optional_dependency("numba")
+
+        jitted_udf = numba.extending.register_jitable(func)
+
+        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        def numba_func(values, col_names, index_values):
+            results = {}
+            col_names_index = Index(col_names)
+            for i in range(values.shape[0]):
+                # Create the series
+                # TODO: values corrupted without the copy
+                ser = Series(
+                    values[i].copy(), index=col_names_index, name=index_values[i]
+                )
+
+                results[i] = jitted_udf(ser)
+
+            return results
+
+        return numba_func
+
+    def apply_with_numba(self) -> dict[int, Any]:
+        nb_func = self.generate_numba_apply_func(self.func, **self.engine_kwargs)
+
+        # Unpack the index and repack it inside the jitted numba function
+        # This is since if we have object dtype and strings we want to convert
+        # to a numpy string dtype (and our regular index doesn't support numpy string dtypes)
+        col_names_values = self.columns._data
+        if col_names_values.dtype == object:
+            if not lib.is_string_array(col_names_values):
+                raise ValueError(
+                    "The numba engine only supports using string or numeric column names"
+                )
+            col_names_values = col_names_values.astype("U")
+        index_values = self.obj.index.values
+
+        # Convert from numba dict to regular dict
+        # Our isinstance checks in the df constructor don't pass for numbas typed dict
+        result_nb_dict = nb_func(self.values, col_names_values, index_values)
+        result_keys, result_values = result_nb_dict.keys(), result_nb_dict.values()
+        return dict(zip(result_keys, result_values))
+        # return dict(nb_func(self.values, col_names_values, index_values))
 
     @property
     def result_index(self) -> Index:
