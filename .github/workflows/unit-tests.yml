@@ -163,11 +163,11 @@ jobs:
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       if: ${{ matrix.name != 'Pypy' }}
+      with:
+        sanitize: true
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
-        ASAN_OPTIONS: detect_leaks=0
-        LD_PRELOAD: $(gcc -print-file-name=libasan.so)
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
