@@ -421,7 +421,7 @@ def _check_values_indices_shape_match(
 
 
 def dict_to_mgr(
-    data: abc.MutableMapping,
+    data: abc.Mapping,
     index,
     columns,
     *,
