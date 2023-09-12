@@ -1,4 +1,7 @@
-from collections import OrderedDict, UserDict
+from collections import (
+    OrderedDict,
+    UserDict
+)
 
 import numpy as np
 import pytest
