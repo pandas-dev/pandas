@@ -171,11 +171,11 @@ jobs:
 
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
+      with:
+        sanitize: true
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 0
-        ASAN_OPTIONS: detect_leaks=0
-        LD_PRELOAD: $(gcc -print-file-name=libasan.so)
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
 
   macos-windows:
