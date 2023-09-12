@@ -1,6 +1,6 @@
 from collections import (
     OrderedDict,
-    UserDict
+    UserDict,
 )
 
 import numpy as np
