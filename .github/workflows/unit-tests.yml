@@ -157,10 +157,8 @@ jobs:
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
-      env:
-        CFLAGS: "$CFLAGS -fno-sanitize-recover=all"
       with:
-        sanitize: false
+        sanitize: true
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
