@@ -763,7 +763,12 @@ void Buffer_AppendIntUnchecked(JSONObjectEncoder *enc, JSINT32 value) {
 
 void Buffer_AppendLongUnchecked(JSONObjectEncoder *enc, JSINT64 value) {
     char *wstr;
-    JSUINT64 uvalue = (value < 0) ? -value : value;
+    JSUINT64 uvalue;
+    if (value == INT64_MIN) {
+      uvalue = INT64_MAX + (uint64_t)1;
+    } else {
+      uvalue = (value < 0) ? -value : value;
+    }
 
     wstr = enc->offset;
     // Conversion. Number is reversed.

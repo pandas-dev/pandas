@@ -1,4 +1,3 @@
-cimport cython
 from cpython.datetime cimport (
     PyDateTime_CheckExact,
     PyDateTime_DATE_GET_HOUR,
@@ -18,6 +17,7 @@ from cpython.object cimport (
     Py_LT,
     Py_NE,
 )
+from libc.stdint cimport INT64_MAX
 
 import_datetime()
 PandasDateTime_IMPORT
@@ -545,7 +545,6 @@ cdef ndarray astype_round_check(
     return iresult
 
 
-@cython.overflowcheck(True)
 cdef int64_t get_conversion_factor(
     NPY_DATETIMEUNIT from_unit,
     NPY_DATETIMEUNIT to_unit
@@ -553,6 +552,7 @@ cdef int64_t get_conversion_factor(
     """
     Find the factor by which we need to multiply to convert from from_unit to to_unit.
     """
+    cdef int64_t value
     if (
         from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         or to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
@@ -565,25 +565,55 @@ cdef int64_t get_conversion_factor(
         return 1
 
     if from_unit == NPY_DATETIMEUNIT.NPY_FR_W:
-        return 7 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_D, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_D, to_unit)
+        if INT64_MAX // 7 < value:
+            raise OverflowError("result would overflow")
+        return 7 * value
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_D:
-        return 24 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_h, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_h, to_unit)
+        if INT64_MAX // 24 < value:
+            raise OverflowError("result would overflow")
+        return 24 * value
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_h:
-        return 60 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_m, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_m, to_unit)
+        if INT64_MAX // 60 < value:
+            raise OverflowError("result would overflow")
+        return 60 * value
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_m:
-        return 60 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_s, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_s, to_unit)
+        if INT64_MAX // 60 < value:
+            raise OverflowError("result would overflow")
+        return 60 * value
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_s:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ms, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ms, to_unit)
+        if INT64_MAX // 1000 < value:
+            raise OverflowError("result would overflow")
+        return 1000 * value
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ms:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_us, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_us, to_unit)
+        if INT64_MAX // 1000 < value:
+            raise OverflowError("result would overflow")
+        return 1000 * value
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_us:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ns, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ns, to_unit)
+        if INT64_MAX // 1000 < value:
+            raise OverflowError("result would overflow")
+        return 1000 * value
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ns:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ps, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ps, to_unit)
+        if INT64_MAX // 1000 < value:
+            raise OverflowError("result would overflow")
+        return 1000 * value
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ps:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
+        if INT64_MAX // 1000 < value:
+            raise OverflowError("result would overflow")
+        return 1000 * value
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_fs:
-        return 1000 * get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
+        value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
+        if INT64_MAX // 1000 < value:
+            raise OverflowError("result would overflow")
+        return 1000 * value
     else:
         raise ValueError("Converting from M or Y units is not supported.")
 
@@ -624,9 +654,11 @@ cdef int64_t convert_reso(
     else:
         # e.g. ns -> us, risk of overflow, but no risk of lossy rounding
         mult = get_conversion_factor(from_reso, to_reso)
-        with cython.overflowcheck(True):
-            # Note: caller is responsible for re-raising as OutOfBoundsTimedelta
-            res_value = value * mult
+        if INT64_MAX // mult < value:
+            raise OverflowError("result would overflow")
+
+        # Note: caller is responsible for re-raising as OutOfBoundsTimedelta
+        res_value = value * mult
 
     return res_value
 
