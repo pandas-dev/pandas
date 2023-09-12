@@ -154,9 +154,17 @@ jobs:
       with:
         environment-file: ci/deps/${{ matrix.env_file }}
 
+    - name: Set sanitizer flags
+      run: |
+        echo "CFLAGS=$CFLAGS -fno-sanitize-recover=all" >> "$GITHUB_ENV"
+    - name: echo flags
+      run: |
+        printf '%s\n' "CFLAGS"
     - name: Build Pandas
       id: build
       uses: ./.github/actions/build_pandas
+      env:
+        CFLAGS: "$CFLAGS"
       with:
         sanitize: true
 
