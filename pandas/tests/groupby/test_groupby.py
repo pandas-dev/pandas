@@ -2001,9 +2001,7 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(
-    columns, keys, values, method, op, request, using_array_manager, dropna
-):
+def test_empty_groupby(columns, keys, values, method, op, using_array_manager, dropna):
     # GH8093 & GH26411
     override_dtype = None
 
@@ -2064,8 +2062,6 @@ def test_empty_groupby(
             # i.e. DataframeGroupBy, not SeriesGroupBy
             result = get_result(numeric_only=True)
             expected = get_categorical_invalid_expected()
-            if op in ["idxmax", "idxmin"]:
-                expected = expected.astype(int)
             tm.assert_equal(result, expected)
         elif op in ["idxmin", "idxmax"] and isinstance(columns, list):
             with pytest.raises(

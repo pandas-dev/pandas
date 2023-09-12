@@ -190,6 +190,7 @@ def group_idxmin_idxmax(
     is_datetimelike: bool = ...,
     mask: np.ndarray | None = ...,
     name: str = ...,
+    skipna: bool = ...,
     result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_cummin(

@@ -1805,6 +1805,7 @@ def group_idxmin_idxmax(
     bint is_datetimelike=False,
     const uint8_t[:, ::1] mask=None,
     str name="idxmin",
+    bint skipna=True,
     uint8_t[:, ::1] result_mask=None,
 ):
     """
@@ -1824,7 +1825,8 @@ def group_idxmin_idxmax(
     labels : np.ndarray[np.intp]
         Labels to group by.
     min_count : Py_ssize_t, default -1
-        Unused. For compatibility with other Cython ops.
+        The minimum number of non-NA group elements, NA result if threshold
+        is not met.
     is_datetimelike : bool
         True if `values` contains datetime-like entries.
     name : {"idxmin", "idxmax"}, default "idxmin"
@@ -1832,6 +1834,8 @@ def group_idxmin_idxmax(
     mask : ndarray[bool, ndim=2], optional
         If not None, indices represent missing values,
         otherwise the mask will not be used
+    skipna : bool, default True
+        Flag to ignore nan values during truth testing
     result_mask : ndarray[bool, ndim=2], optional
         If not None, these specify locations in the output that are NA.
         Modified in-place.
@@ -1850,7 +1854,6 @@ def group_idxmin_idxmax(
         bint compute_max = name == "idxmax"
 
     assert name == "idxmin" or name == "idxmax"
-    assert min_count == -1, "'min_count' only used in sum and prod"
 
     # TODO(cython3):
     # Instead of `labels.shape[0]` use `len(labels)`
@@ -1858,10 +1861,8 @@ def group_idxmin_idxmax(
         raise AssertionError("len(index) != len(labels)")
 
     group_min_or_max = np.empty_like(out, dtype=values.dtype)
-    group_min_or_max[:] = _get_min_or_max(
-        <numeric_object_t>0, compute_max, is_datetimelike
-    )
-    out[:] = -1
+    # Using -2 to indicate a label is never seen
+    out[:] = -2
 
     N, K = (<object>values).shape
 
@@ -1874,6 +1875,9 @@ def group_idxmin_idxmax(
 
             counts[lab] += 1
             for j in range(K):
+                if not skipna and out[lab, j] == -1:
+                    # Once we've hit NA there is no going back
+                    continue
                 val = values[i, j]
 
                 if uses_mask:
@@ -1882,13 +1886,16 @@ def group_idxmin_idxmax(
                     # TODO(cython3): use _treat_as_na here
                     isna_entry = checknull(val)
 
-                if not isna_entry:
+                if isna_entry:
+                    if out[lab, j] == -2 or not skipna:
+                        out[lab, j] = -1
+                else:
                     if compute_max:
-                        if val > group_min_or_max[lab, j]:
+                        if out[lab, j] == -2 or val > group_min_or_max[lab, j]:
                             group_min_or_max[lab, j] = val
                             out[lab, j] = i
                     else:
-                        if val < group_min_or_max[lab, j]:
+                        if out[lab, j] == -2 or val < group_min_or_max[lab, j]:
                             group_min_or_max[lab, j] = val
                             out[lab, j] = i
     else:
@@ -1900,6 +1907,9 @@ def group_idxmin_idxmax(
 
                 counts[lab] += 1
                 for j in range(K):
+                    if not skipna and out[lab, j] == -1:
+                        # Once we've hit NA there is no going back
+                        continue
                     val = values[i, j]
 
                     if uses_mask:
@@ -1907,13 +1917,16 @@ def group_idxmin_idxmax(
                     else:
                         isna_entry = _treat_as_na(val, is_datetimelike)
 
-                    if not isna_entry:
+                    if isna_entry:
+                        if out[lab, j] == -2 or not skipna:
+                            out[lab, j] = -1
+                    else:
                         if compute_max:
-                            if val > group_min_or_max[lab, j]:
+                            if out[lab, j] == -2 or val > group_min_or_max[lab, j]:
                                 group_min_or_max[lab, j] = val
                                 out[lab, j] = i
                         else:
-                            if val < group_min_or_max[lab, j]:
+                            if out[lab, j] == -2 or val < group_min_or_max[lab, j]:
                                 group_min_or_max[lab, j] = val
                                 out[lab, j] = i
 

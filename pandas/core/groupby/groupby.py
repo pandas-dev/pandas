@@ -89,6 +89,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import (
     isna,
+    na_value_for_dtype,
     notna,
 )
 
@@ -1881,6 +1882,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         alias: str,
         npfunc: Callable | None = None,
         post_process: Callable | None = None,
+        **kwargs,
     ):
         result = self._cython_agg_general(
             how=alias,
@@ -1888,6 +1890,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             numeric_only=numeric_only,
             min_count=min_count,
             post_process=post_process,
+            **kwargs,
         )
         return result.__finalize__(self.obj, method="groupby")
 
@@ -2019,8 +2022,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # result to the whole group. Compute func result
             # and deal with possible broadcasting below.
             # Temporarily set observed for dealing with categoricals.
-            with com.temp_setattr(self, "observed", True):
-                with com.temp_setattr(self, "as_index", True):
+            with com.temp_setattr(self, "as_index", True):
+                if func in ["idxmin", "idxmax"]:
+                    # mypy doesn't recognize func as Literal["idxmin", "idxmax"]
+                    result = self._idxmin_idxmax(
+                        func, **kwargs, ignore_unobserved=True  # type: ignore[arg-type]
+                    )
+                else:
                     # GH#49834 - result needs groups in the index for
                     # _wrap_transform_fast_result
                     if engine is not None:
@@ -3300,7 +3308,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         how: Literal["idxmax", "idxmin"],
         numeric_only: bool = False,
-    ) -> Series | DataFrame:
+        skipna: bool = True,
+        ignore_unobserved: bool = False,
+    ) -> NDFrameT:
         """Compute idxmax/idxmin.
 
         Parameters
@@ -3309,6 +3319,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Whether to compute idxmin or idxmax.
         numeric_only : bool, default False
             Include only float, int, boolean columns.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        ignore_unobserved : bool, default False
+            When an unobserved group is encountered, do not raise. This used for
+            transform where unobserved groups do not play an impact on the result.
 
         Returns
         -------
@@ -3317,43 +3333,73 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
 
         def post_process(res):
-            if not self.observed:
+            has_na_value = (res._values == -1).any(axis=None)
+            has_unobserved = (res._values == -2).any(axis=None)
+            raise_err = not ignore_unobserved and has_unobserved
+            if (
+                not self.observed
+                and not ignore_unobserved
+                and not raise_err
+                and (len(self.grouper.groupings) > 1 or res.empty)
+            ):
+                # When there are multiple groupings or the result is empty, the
+                # categories are not included in the upfront computation so we
+                # compare the final result length with the current length
                 result_len = np.prod(
                     [len(ping.group_index) for ping in self.grouper.groupings]
                 )
-                raise_err = len(res) < result_len or (res._values == -1).any(axis=None)
-            else:
-                raise_err = False
+                raise_err = len(res) < result_len
             if raise_err:
                 raise ValueError(
                     f"Can't get {how} of an empty group due to unobserved categories. "
                     "Specify observed=True in groupby instead."
                 )
-            index = self.obj.index
+            elif not skipna and has_na_value:
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.{how} with all-NA "
+                    "values, or any-NA and skipna=False, is deprecated. In a future "
+                    "version this will raise ValueError",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+            index = self.obj._get_axis(self.axis)
+
+            values = res._values
+            if not self.observed and ignore_unobserved and has_unobserved:
+                # -2 indicates unobserved category; recode as 0 to not unnecessarily
+                # coerce the resulting dtype. These values will be removed.
+                values = np.where(values == -2, 0, values)
+
             if res.size == 0:
                 result = res.astype(index.dtype)
             else:
                 if isinstance(index, MultiIndex):
                     index = index.to_flat_index()
+                na_value = na_value_for_dtype(index.dtype, compat=False)
 
                 if isinstance(res, Series):
                     result = res._constructor(
-                        index.take(res), index=res.index, name=res.name
+                        index.array.take(values, allow_fill=True, fill_value=na_value),
+                        index=res.index,
+                        name=res.name,
                     )
                 else:
                     buf = {}
-                    for k, _ in enumerate(res.columns):
-                        buf[k] = index.take(res._ixs(k, axis=1))
+                    for k, column_values in enumerate(values.T):
+                        buf[k] = index.array.take(
+                            column_values, allow_fill=True, fill_value=na_value
+                        )
                     result = self.obj._constructor(buf, index=res.index)
                     result.columns = res.columns
             return result
 
         result = self._agg_general(
             numeric_only=numeric_only,
-            # min_count is not utilized
-            min_count=-1,
+            min_count=1,
             alias=how,
             post_process=post_process,
+            skipna=skipna,
         )
         return result
 
