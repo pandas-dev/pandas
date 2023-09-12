@@ -29,13 +29,17 @@ runs:
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
           if [[ ${{ inputs.sanitize }} == "true" ]]; then
-            pip install -e . --no-build-isolation -v  --config-settings=setup-args="-Db_sanitize=address,undefined"
+            CFLAGS=$CFLAGS -fno-sanitize-recover=all \
+              pip install -e . --no-build-isolation -v  \
+              --config-settings=setup-args="-Db_sanitize=address,undefined"
           else
             pip install -e . --no-build-isolation -v
           fi
         else
           if [[ ${{ inputs.sanitize }} == "true" ]]; then
-            pip install . --no-build-isolation -v --config-settings=setup-args="-Db_sanitize=address,undefined"
+            CFLAGS=$CFLAGS -fno-sanitize-recover=all \
+              pip install . --no-build-isolation -v \
+              --config-settings=setup-args="-Db_sanitize=address,undefined"
           else
             pip install . --no-build-isolation -v
           fi
