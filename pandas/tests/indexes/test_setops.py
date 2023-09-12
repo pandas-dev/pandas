@@ -803,7 +803,7 @@ class TestSetOpsUnsorted:
         tm.assert_index_equal(result, expected)
 
     def test_difference_should_not_compare(self):
-        # GH #####
+        # GH 55113
         left = Index([1, 1])
         right = Index([True])
         result = left.difference(right)

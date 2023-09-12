@@ -231,7 +231,7 @@ Interval
 
 Indexing
 ^^^^^^^^
--
+- Bug in :meth:`Index.difference` not returning a unique set of values when ``other`` is empty or ``other`` is considered non-comparable (:issue:`55113`)
 -
 
 Missing
