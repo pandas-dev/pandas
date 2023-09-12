@@ -29,7 +29,7 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
-- It is now possible to pass an instance of a ``collections.UserDict`` subclass to initialize a DataFrame. The expected behaviour is the same as if you pass a `dict` (:issue:`55109`)
+- It is now possible to pass an instance of a ``collections.UserDict`` subclass to initialize a DataFrame. The expected behaviour is the same as if you pass a ``dict`` (:issue:`55109`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.notable_bug_fixes:
