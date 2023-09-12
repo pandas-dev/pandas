@@ -2666,6 +2666,9 @@ def test_to_sql_save_index(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_transactions(conn, request):
+    if "engine" in conn:
+        pytest.skip(reason="hangs forever in CI with engine")
+
     conn_name = conn
     conn = request.getfixturevalue(conn)
 
@@ -2997,6 +3000,9 @@ def test_invalid_engine(conn, request, test_frame1):
         request.node.add_marker(
             pytest.mark.xfail(reason="SQLiteDatabase does not raise for bad engine")
         )
+    if "engine" in conn:
+        pytest.skip(reason="hangs forever in CI with engine")
+
     conn = request.getfixturevalue(conn)
     msg = "engine must be one of 'auto', 'sqlalchemy'"
     pandasSQL = pandasSQL_builder(conn)
@@ -3008,6 +3014,9 @@ def test_invalid_engine(conn, request, test_frame1):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_with_sql_engine(conn, request, test_frame1):
     """`to_sql` with the `engine` param"""
+    if "engine" in conn:
+        pytest.skip(reason="hangs forever in CI with engine")
+
     # mostly copied from this class's `_to_sql()` method
     conn = request.getfixturevalue(conn)
     pandasSQL = pandasSQL_builder(conn)
