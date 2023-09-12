@@ -3615,7 +3615,6 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _difference(self, other, sort):
         # overridden by RangeIndex
-        sort = False if self.is_monotonic_increasing else sort
         other = other.unique()
         the_diff = self[other.get_indexer_for(self) == -1]
         the_diff = the_diff if self.is_unique else the_diff.unique()
