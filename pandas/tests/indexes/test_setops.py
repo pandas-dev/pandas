@@ -799,8 +799,16 @@ class TestSetOpsUnsorted:
         first = index[5:20]
         first.name = "name"
         result = first.difference([], sort)
+        expected = first.unique()
+        tm.assert_index_equal(result, expected)
 
-        tm.assert_index_equal(result, first)
+    def test_difference_should_not_compare(self):
+        # GH #####
+        left = Index([1, 1])
+        right = Index([True])
+        result = left.difference(right)
+        expected = left.unique()
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_difference_identity(self, index, sort):
