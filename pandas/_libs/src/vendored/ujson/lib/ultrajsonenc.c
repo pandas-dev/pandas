@@ -44,6 +44,7 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <float.h>
 #include <locale.h>
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -765,7 +766,7 @@ void Buffer_AppendLongUnchecked(JSONObjectEncoder *enc, JSINT64 value) {
     char *wstr;
     JSUINT64 uvalue;
     if (value == INT64_MIN) {
-      uvalue = INT64_MAX + (uint64_t)1;
+      uvalue = INT64_MAX + UINT64_C(1);
     } else {
       uvalue = (value < 0) ? -value : value;
     }
