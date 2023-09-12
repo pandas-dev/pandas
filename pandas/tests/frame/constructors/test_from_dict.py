@@ -209,9 +209,9 @@ class TestFromDict:
             pass
 
         d_1 = CustomUserDict(foo=1, bar=2)
-        df_1 = DataFrame(d_1, index=['a'])
+        df_1 = DataFrame(d_1, index=["a"])
 
-        d_2 = {'foo': 1, 'bar': 2}
-        df_2 = DataFrame(d_2, index=['a'])
+        d_2 = {"foo": 1, "bar": 2}
+        df_2 = DataFrame(d_2, index=["a"])
 
         tm.assert_frame_equal(df_1, df_2)
