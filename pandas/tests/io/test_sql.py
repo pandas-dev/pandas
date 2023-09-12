@@ -1191,6 +1191,8 @@ def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
 def test_read_sql_iris_no_parameter_with_percent(conn, request, sql_strings, flavor):
     if "mysql" in conn or "postgresql" in conn:
         request.node.add_marker(pytest.mark.xfail(reason="broken test"))
+    if "engine" in conn:
+        pytest.skip(reason="can hang forever with engine")
 
     conn_name = conn
     conn = request.getfixturevalue(conn)
