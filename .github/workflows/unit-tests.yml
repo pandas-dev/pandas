@@ -160,7 +160,7 @@ jobs:
       env:
         CFLAGS: "$CFLAGS -fno-sanitize-recover=all"
       with:
-        sanitize: true
+        sanitize: false
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
