@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict, UserDict
 
 import numpy as np
 import pytest
@@ -200,3 +200,15 @@ class TestFromDict:
         )
         with pytest.raises(ValueError, match=msg):
             DataFrame.from_dict({"foo": 1, "baz": 3, "bar": 2}, orient="abc")
+
+    def test_constructor_user_dict(self):
+        class CustomUserDict(UserDict):
+            pass
+
+        d_1 = CustomUserDict(foo=1, bar=2)
+        df_1 = DataFrame(d_1, index=['a'])
+
+        d_2 = {'foo': 1, 'bar': 2}
+        df_2 = DataFrame(d_2, index=['a'])
+
+        tm.assert_frame_equal(df_1, df_2)
