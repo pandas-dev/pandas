@@ -416,7 +416,7 @@ class SeriesGroupBy(GroupBy[Series]):
             res_df = self._reindex_output(res_df)
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
-            res_ser = res_df.stack(dropna=self.observed)
+            res_ser = res_df.stack(future_stack=True)
             res_ser.name = self.obj.name
             return res_ser
         elif isinstance(values[0], (Series, DataFrame)):
@@ -721,8 +721,10 @@ class SeriesGroupBy(GroupBy[Series]):
         return self._reindex_output(result, fill_value=0)
 
     @doc(Series.describe)
-    def describe(self, **kwargs):
-        return super().describe(**kwargs)
+    def describe(self, percentiles=None, include=None, exclude=None) -> Series:
+        return super().describe(
+            percentiles=percentiles, include=include, exclude=exclude
+        )
 
     def value_counts(
         self,
@@ -770,6 +772,7 @@ class SeriesGroupBy(GroupBy[Series]):
         mask = ids != -1
         ids, val = ids[mask], val[mask]
 
+        lab: Index | np.ndarray
         if bins is None:
             lab, lev = algorithms.factorize(val, sort=True)
             llab = lambda lab, inc: lab[inc]
@@ -1152,7 +1155,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @property
     @doc(Series.plot.__doc__)
-    def plot(self):
+    def plot(self) -> GroupByPlot:
         result = GroupByPlot(self)
         return result
 
@@ -1684,7 +1687,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # GH6124 - propagate name of Series when it's consistent
                 names = {v.name for v in values}
                 if len(names) == 1:
-                    columns.name = list(names)[0]
+                    columns.name = next(iter(names))
         else:
             index = first_not_none.index
             columns = key_index
@@ -2356,7 +2359,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ascending : bool, default False
             Sort in ascending order.
         dropna : bool, default True
-            Don’t include counts of rows that contain NA values.
+            Don't include counts of rows that contain NA values.
 
         Returns
         -------

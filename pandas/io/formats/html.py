@@ -94,7 +94,7 @@ class HTMLFormatter:
         self._write_table()
 
         if self.should_show_dimensions:
-            by = chr(215)  # ×
+            by = chr(215)  # ×  # noqa: RUF003
             self.write(
                 f"<p>{len(self.frame)} rows {by} {len(self.frame.columns)} columns</p>"
             )
@@ -633,7 +633,7 @@ class NotebookFormatter(HTMLFormatter):
         else:
             element_props.append(("thead th", "text-align", "right"))
         template_mid = "\n\n".join(template_select % t for t in element_props)
-        template = dedent("\n".join((template_first, template_mid, template_last)))
+        template = dedent(f"{template_first}\n{template_mid}\n{template_last}")
         self.write(template)
 
     def render(self) -> list[str]:

@@ -62,9 +62,9 @@ def df(request):
     data_type = request.param
 
     if data_type == "delims":
-        return DataFrame({"a": ['"a,\t"b|c', "d\tef´"], "b": ["hi'j", "k''lm"]})
+        return DataFrame({"a": ['"a,\t"b|c', "d\tef`"], "b": ["hi'j", "k''lm"]})
     elif data_type == "utf8":
-        return DataFrame({"a": ["µasd", "Ωœ∑´"], "b": ["øπ∆˚¬", "œ∑´®"]})
+        return DataFrame({"a": ["µasd", "Ωœ∑`"], "b": ["øπ∆˚¬", "œ∑`®"]})
     elif data_type == "utf16":
         return DataFrame(
             {"a": ["\U0001f44d\U0001f44d", "\U0001f44d\U0001f44d"], "b": ["abc", "def"]}
@@ -78,7 +78,7 @@ def df(request):
         return tm.makeCustomDataframe(
             max_rows + 1,
             3,
-            data_gen_f=lambda *args: np.random.randint(2),
+            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
@@ -119,7 +119,7 @@ def df(request):
         return tm.makeCustomDataframe(
             5,
             3,
-            data_gen_f=lambda *args: np.random.randint(2),
+            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
@@ -402,7 +402,7 @@ class TestClipboard:
         self.check_round_trip_frame(df, encoding=enc)
 
     @pytest.mark.single_cpu
-    @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
+    @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑`...", "abcd..."])
     @pytest.mark.xfail(
         (os.environ.get("DISPLAY") is None and not is_platform_mac())
         or is_ci_environment(),
@@ -471,3 +471,13 @@ y,2,5.0,,,,,False,"""
         )
         with pytest.raises(ValueError, match=msg):
             read_clipboard(dtype_backend="numpy")
+
+    def test_to_clipboard_pos_args_deprecation(self):
+        # GH-54229
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"Starting with pandas version 3.0 all arguments of to_clipboard "
+            r"will be keyword-only."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_clipboard(True, None)

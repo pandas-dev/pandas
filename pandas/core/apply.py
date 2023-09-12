@@ -49,14 +49,15 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
+from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Generator,
         Hashable,
         Iterable,
-        Iterator,
         Sequence,
     )
 
@@ -80,6 +81,8 @@ def frame_apply(
     raw: bool = False,
     result_type: str | None = None,
     by_row: Literal[False, "compat"] = "compat",
+    engine: str = "python",
+    engine_kwargs: dict[str, bool] | None = None,
     args=None,
     kwargs=None,
 ) -> FrameApply:
@@ -100,6 +103,8 @@ def frame_apply(
         raw=raw,
         result_type=result_type,
         by_row=by_row,
+        engine=engine,
+        engine_kwargs=engine_kwargs,
         args=args,
         kwargs=kwargs,
     )
@@ -253,7 +258,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         return result
 
-    def transform_dict_like(self, func):
+    def transform_dict_like(self, func) -> DataFrame:
         """
         Compute transform in the case of a dict-like func
         """
@@ -315,7 +320,7 @@ class Apply(metaclass=abc.ABCMeta):
         op_name: Literal["agg", "apply"],
         selected_obj: Series | DataFrame,
         kwargs: dict[str, Any],
-    ) -> tuple[list[Hashable], list[Any]]:
+    ) -> tuple[list[Hashable] | Index, list[Any]]:
         """
         Compute agg/apply results for like-like input.
 
@@ -330,7 +335,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        keys : list[hashable]
+        keys : list[Hashable] or Index
             Index labels for result.
         results : list
             Data for result. When aggregating with a Series, this can contain any
@@ -370,12 +375,14 @@ class Apply(metaclass=abc.ABCMeta):
                 new_res = getattr(colg, op_name)(func, *args, **kwargs)
                 results.append(new_res)
                 indices.append(index)
-            keys = selected_obj.columns.take(indices)
+            # error: Incompatible types in assignment (expression has type "Any |
+            # Index", variable has type "list[Any | Callable[..., Any] | str]")
+            keys = selected_obj.columns.take(indices)  # type: ignore[assignment]
 
         return keys, results
 
     def wrap_results_list_like(
-        self, keys: list[Hashable], results: list[Series | DataFrame]
+        self, keys: Iterable[Hashable], results: list[Series | DataFrame]
     ):
         from pandas.core.reshape.concat import concat
 
@@ -434,7 +441,13 @@ class Apply(metaclass=abc.ABCMeta):
             Data for result. When aggregating with a Series, this can contain any
             Python object.
         """
+        from pandas.core.groupby.generic import (
+            DataFrameGroupBy,
+            SeriesGroupBy,
+        )
+
         obj = self.obj
+        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
         func = cast(AggFuncTypeDict, self.func)
         func = self.normalize_dictlike_arg(op_name, selected_obj, func)
 
@@ -448,7 +461,7 @@ class Apply(metaclass=abc.ABCMeta):
             colg = obj._gotitem(selection, ndim=1)
             results = [getattr(colg, op_name)(how, **kwargs) for _, how in func.items()]
             keys = list(func.keys())
-        elif is_non_unique_col:
+        elif not is_groupby and is_non_unique_col:
             # key used for column selection and output
             # GH#51099
             results = []
@@ -748,11 +761,15 @@ class FrameApply(NDFrameApply):
         result_type: str | None,
         *,
         by_row: Literal[False, "compat"] = False,
+        engine: str = "python",
+        engine_kwargs: dict[str, bool] | None = None,
         args,
         kwargs,
     ) -> None:
         if by_row is not False and by_row != "compat":
             raise ValueError(f"by_row={by_row} not allowed")
+        self.engine = engine
+        self.engine_kwargs = engine_kwargs
         super().__init__(
             obj, func, raw, result_type, by_row=by_row, args=args, kwargs=kwargs
         )
@@ -772,7 +789,7 @@ class FrameApply(NDFrameApply):
 
     @property
     @abc.abstractmethod
-    def series_generator(self) -> Iterator[Series]:
+    def series_generator(self) -> Generator[Series, None, None]:
         pass
 
     @abc.abstractmethod
@@ -797,6 +814,12 @@ class FrameApply(NDFrameApply):
 
     def apply(self) -> DataFrame | Series:
         """compute the results"""
+
+        if self.engine == "numba" and not self.raw:
+            raise ValueError(
+                "The numba engine in DataFrame.apply can only be used when raw=True"
+            )
+
         # dispatch to handle list-like or dict-like
         if is_list_like(self.func):
             return self.apply_list_or_dict_like()
@@ -826,7 +849,7 @@ class FrameApply(NDFrameApply):
 
         # raw
         elif self.raw:
-            return self.apply_raw()
+            return self.apply_raw(engine=self.engine, engine_kwargs=self.engine_kwargs)
 
         return self.apply_standard()
 
@@ -899,7 +922,7 @@ class FrameApply(NDFrameApply):
         else:
             return self.obj.copy()
 
-    def apply_raw(self):
+    def apply_raw(self, engine="python", engine_kwargs=None):
         """apply to the values as a numpy array"""
 
         def wrap_function(func):
@@ -917,7 +940,23 @@ class FrameApply(NDFrameApply):
 
             return wrapper
 
-        result = np.apply_along_axis(wrap_function(self.func), self.axis, self.values)
+        if engine == "numba":
+            engine_kwargs = {} if engine_kwargs is None else engine_kwargs
+
+            # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
+            # incompatible type "Callable[..., Any] | str | list[Callable
+            # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
+            # list[Callable[..., Any] | str]]"; expected "Hashable"
+            nb_looper = generate_apply_looper(
+                self.func, **engine_kwargs  # type: ignore[arg-type]
+            )
+            result = nb_looper(self.values, self.axis)
+            # If we made the result 2-D, squeeze it back to 1-D
+            result = np.squeeze(result)
+        else:
+            result = np.apply_along_axis(
+                wrap_function(self.func), self.axis, self.values
+            )
 
         # TODO: mixed type case
         if result.ndim == 2:
@@ -1014,7 +1053,7 @@ class FrameRowApply(FrameApply):
     axis: AxisInt = 0
 
     @property
-    def series_generator(self):
+    def series_generator(self) -> Generator[Series, None, None]:
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
 
     @property
@@ -1075,7 +1114,7 @@ class FrameColumnApply(FrameApply):
         return result.T
 
     @property
-    def series_generator(self):
+    def series_generator(self) -> Generator[Series, None, None]:
         values = self.values
         values = ensure_wrapped_if_datetimelike(values)
         assert len(values) > 0
@@ -1824,12 +1863,12 @@ def warn_alias_replacement(
         full_alias = alias
     else:
         full_alias = f"{type(obj).__name__}.{alias}"
-        alias = f"'{alias}'"
+        alias = f'"{alias}"'
     warnings.warn(
         f"The provided callable {func} is currently using "
         f"{full_alias}. In a future version of pandas, "
         f"the provided callable will be used directly. To keep current "
-        f"behavior pass {alias} instead.",
+        f"behavior pass the string {alias} instead.",
         category=FutureWarning,
         stacklevel=find_stack_level(),
     )

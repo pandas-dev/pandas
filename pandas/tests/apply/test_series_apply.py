@@ -76,7 +76,7 @@ def test_apply_map_same_length_inference_bug():
 
 @pytest.mark.parametrize("convert_dtype", [True, False])
 def test_apply_convert_dtype_deprecated(convert_dtype):
-    ser = Series(np.random.randn(10))
+    ser = Series(np.random.default_rng(2).standard_normal(10))
 
     def func(x):
         return x if x > 0 else np.nan
@@ -242,7 +242,7 @@ def test_apply_categorical(by_row):
     assert result.dtype == object
 
 
-@pytest.mark.parametrize("series", [["1-1", "1-1", np.NaN], ["1-1", "1-2", np.NaN]])
+@pytest.mark.parametrize("series", [["1-1", "1-1", np.nan], ["1-1", "1-2", np.nan]])
 def test_apply_categorical_with_nan_values(series, by_row):
     # GH 20714 bug fixed in: GH 24275
     s = Series(series, dtype="category")
@@ -254,7 +254,7 @@ def test_apply_categorical_with_nan_values(series, by_row):
 
     result = s.apply(lambda x: x.split("-")[0], by_row=by_row)
     result = result.astype(object)
-    expected = Series(["1", "1", np.NaN], dtype="category")
+    expected = Series(["1", "1", np.nan], dtype="category")
     expected = expected.astype(object)
     tm.assert_series_equal(result, expected)
 

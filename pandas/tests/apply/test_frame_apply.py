@@ -18,6 +18,13 @@ import pandas._testing as tm
 from pandas.tests.frame.common import zip_frames
 
 
+@pytest.fixture(params=["python", "numba"])
+def engine(request):
+    if request.param == "numba":
+        pytest.importorskip("numba")
+    return request.param
+
+
 def test_apply(float_frame):
     with np.errstate(all="ignore"):
         # ufunc
@@ -234,36 +241,42 @@ def test_apply_broadcast_series_lambda_func(int_frame_const_col):
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_raw_float_frame(float_frame, axis):
+def test_apply_raw_float_frame(float_frame, axis, engine):
+    if engine == "numba":
+        pytest.skip("numba can't handle when UDF returns None.")
+
     def _assert_raw(x):
         assert isinstance(x, np.ndarray)
         assert x.ndim == 1
 
-    float_frame.apply(_assert_raw, axis=axis, raw=True)
+    float_frame.apply(_assert_raw, axis=axis, engine=engine, raw=True)
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_raw_float_frame_lambda(float_frame, axis):
-    result = float_frame.apply(np.mean, axis=axis, raw=True)
+def test_apply_raw_float_frame_lambda(float_frame, axis, engine):
+    result = float_frame.apply(np.mean, axis=axis, engine=engine, raw=True)
     expected = float_frame.apply(lambda x: x.values.mean(), axis=axis)
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_raw_float_frame_no_reduction(float_frame):
+def test_apply_raw_float_frame_no_reduction(float_frame, engine):
     # no reduction
-    result = float_frame.apply(lambda x: x * 2, raw=True)
+    result = float_frame.apply(lambda x: x * 2, engine=engine, raw=True)
     expected = float_frame * 2
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_raw_mixed_type_frame(mixed_type_frame, axis):
+def test_apply_raw_mixed_type_frame(mixed_type_frame, axis, engine):
+    if engine == "numba":
+        pytest.skip("isinstance check doesn't work with numba")
+
     def _assert_raw(x):
         assert isinstance(x, np.ndarray)
         assert x.ndim == 1
 
     # Mixed dtype (GH-32423)
-    mixed_type_frame.apply(_assert_raw, axis=axis, raw=True)
+    mixed_type_frame.apply(_assert_raw, axis=axis, engine=engine, raw=True)
 
 
 def test_apply_axis1(float_frame):
@@ -293,22 +306,27 @@ def test_apply_mixed_dtype_corner_indexing():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 @pytest.mark.parametrize("ax", ["index", "columns"])
 @pytest.mark.parametrize(
     "func", [lambda x: x, lambda x: x.mean()], ids=["identity", "mean"]
 )
 @pytest.mark.parametrize("raw", [True, False])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_empty_infer_type(ax, func, raw, axis):
+def test_apply_empty_infer_type(ax, func, raw, axis, engine, request):
     df = DataFrame(**{ax: ["a", "b", "c"]})
 
     with np.errstate(all="ignore"):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            test_res = func(np.array([], dtype="f8"))
+        test_res = func(np.array([], dtype="f8"))
         is_reduction = not isinstance(test_res, np.ndarray)
 
-        result = df.apply(func, axis=axis, raw=raw)
+        if engine == "numba" and raw is False:
+            mark = pytest.mark.xfail(
+                reason="numba engine only supports raw=True at the moment"
+            )
+            request.node.add_marker(mark)
+
+        result = df.apply(func, axis=axis, engine=engine, raw=raw)
         if is_reduction:
             agg_axis = df._get_agg_axis(axis)
             assert isinstance(result, Series)
@@ -376,7 +394,7 @@ def test_apply_reduce_to_dict():
 
 
 def test_apply_differently_indexed():
-    df = DataFrame(np.random.randn(20, 10))
+    df = DataFrame(np.random.default_rng(2).standard_normal((20, 10)))
 
     result = df.apply(Series.describe, axis=0)
     expected = DataFrame({i: v.describe() for i, v in df.items()}, columns=df.columns)
@@ -463,9 +481,9 @@ def test_apply_convert_objects():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -608,8 +626,10 @@ def test_apply_function_runs_once():
         assert names == list(df.index)
 
 
-def test_apply_raw_function_runs_once():
+def test_apply_raw_function_runs_once(engine):
     # https://github.com/pandas-dev/pandas/issues/34506
+    if engine == "numba":
+        pytest.skip("appending to list outside of numba func is not supported")
 
     df = DataFrame({"a": [1, 2, 3]})
     values = []  # Save row values function is applied to
@@ -624,7 +644,7 @@ def test_apply_raw_function_runs_once():
     for func in [reducing_function, non_reducing_function]:
         del values[:]
 
-        df.apply(func, raw=True, axis=1)
+        df.apply(func, engine=engine, raw=True, axis=1)
         assert values == list(df.a.to_list())
 
 
@@ -638,15 +658,15 @@ def test_apply_with_byte_string():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("val", ["asd", 12, None, np.NaN])
+@pytest.mark.parametrize("val", ["asd", 12, None, np.nan])
 def test_apply_category_equalness(val):
     # Check if categorical comparisons on apply, GH 21239
-    df_values = ["asd", None, 12, "asd", "cde", np.NaN]
+    df_values = ["asd", None, 12, "asd", "cde", np.nan]
     df = DataFrame({"a": df_values}, dtype="category")
 
     result = df.a.apply(lambda x: x == val)
     expected = Series(
-        [np.NaN if pd.isnull(x) else x == val for x in df_values], name="a"
+        [np.nan if pd.isnull(x) else x == val for x in df_values], name="a"
     )
     tm.assert_series_equal(result, expected)
 
@@ -659,7 +679,7 @@ def test_apply_category_equalness(val):
 def test_infer_row_shape():
     # GH 17437
     # if row shape is changing, infer it
-    df = DataFrame(np.random.rand(10, 2))
+    df = DataFrame(np.random.default_rng(2).random((10, 2)))
     result = df.apply(np.fft.fft, axis=0).shape
     assert result == (10, 2)
 
@@ -816,7 +836,7 @@ def test_with_listlike_columns():
     # GH 17348
     df = DataFrame(
         {
-            "a": Series(np.random.randn(4)),
+            "a": Series(np.random.default_rng(2).standard_normal(4)),
             "b": ["a", "list", "of", "words"],
             "ts": date_range("2016-10-01", periods=4, freq="H"),
         }
@@ -862,7 +882,9 @@ def test_infer_output_shape_columns():
 def test_infer_output_shape_listlike_columns():
     # GH 16353
 
-    df = DataFrame(np.random.randn(6, 3), columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((6, 3)), columns=["A", "B", "C"]
+    )
 
     result = df.apply(lambda x: [1, 2, 3], axis=1)
     expected = Series([[1, 2, 3] for t in df.itertuples()])
@@ -911,7 +933,9 @@ def test_infer_output_shape_listlike_columns_with_timestamp():
 def test_consistent_coerce_for_shapes(lst):
     # we want column names to NOT be propagated
     # just because the shape matches the input shape
-    df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
+    )
 
     result = df.apply(lambda x: lst, axis=1)
     expected = Series([lst for t in df.itertuples()])
@@ -1446,10 +1470,12 @@ def test_apply_no_suffix_index():
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_raw_returns_string():
+def test_apply_raw_returns_string(engine):
     # https://github.com/pandas-dev/pandas/issues/35940
+    if engine == "numba":
+        pytest.skip("No object dtype support in numba")
     df = DataFrame({"A": ["aa", "bbb"]})
-    result = df.apply(lambda x: x[0], axis=1, raw=True)
+    result = df.apply(lambda x: x[0], engine=engine, axis=1, raw=True)
     expected = Series(["aa", "bbb"])
     tm.assert_series_equal(result, expected)
 
@@ -1629,3 +1655,14 @@ def test_agg_dist_like_and_nonunique_columns():
     result = df.agg({"A": "count"})
     expected = df["A"].count()
     tm.assert_series_equal(result, expected)
+
+
+def test_numba_unsupported():
+    df = DataFrame(
+        {"A": [None, 2, 3], "B": [1.0, np.nan, 3.0], "C": ["foo", None, "bar"]}
+    )
+    with pytest.raises(
+        ValueError,
+        match="The numba engine in DataFrame.apply can only be used when raw=True",
+    ):
+        df.apply(lambda x: x, engine="numba", raw=False)

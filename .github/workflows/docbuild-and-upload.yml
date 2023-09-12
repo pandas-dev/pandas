@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - main
-      - 2.0.x
+      - 2.1.x
     tags:
       - '*'
   pull_request:
     branches:
       - main
-      - 2.0.x
+      - 2.1.x
 
 env:
   ENV_FILE: environment.yml
@@ -36,7 +36,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 

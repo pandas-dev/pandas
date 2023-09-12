@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import abc
-from datetime import datetime
+from datetime import date
 from functools import partial
 from itertools import islice
 from typing import (
@@ -98,7 +98,7 @@ if TYPE_CHECKING:
 
 ArrayConvertible = Union[list, tuple, AnyArrayLike]
 Scalar = Union[float, str]
-DatetimeScalar = Union[Scalar, datetime]
+DatetimeScalar = Union[Scalar, date, np.datetime64]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
 
@@ -133,7 +133,7 @@ start_caching_at = 50
 def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str | None:
     # Try to guess the format based on the first non-NaN element, return None if can't
     if (first_non_null := tslib.first_non_null(arr)) != -1:
-        if type(first_non_nan_element := arr[first_non_null]) is str:
+        if type(first_non_nan_element := arr[first_non_null]) is str:  # noqa: E721
             # GH#32264 np.str_ object
             guessed_format = guess_datetime_format(
                 first_non_nan_element, dayfirst=dayfirst
@@ -916,7 +916,7 @@ def to_datetime(
     - **DataFrame/dict-like** are converted to :class:`Series` with
       :class:`datetime64` dtype. For each row a datetime is created from assembling
       the various dataframe columns. Column keys can be common abbreviations
-      like [‘year’, ‘month’, ‘day’, ‘minute’, ‘second’, ‘ms’, ‘us’, ‘ns’]) or
+      like ['year', 'month', 'day', 'minute', 'second', 'ms', 'us', 'ns']) or
       plurals of the same.
 
     The following causes are responsible for :class:`datetime.datetime` objects

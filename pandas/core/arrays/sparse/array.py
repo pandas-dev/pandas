@@ -702,7 +702,9 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         """
         return self.sp_index.npoints
 
-    def isna(self):
+    # error: Return type "SparseArray" of "isna" incompatible with return type
+    # "ndarray[Any, Any] | ExtensionArraySupportsAnyAll" in supertype "ExtensionArray"
+    def isna(self) -> Self:  # type: ignore[override]
         # If null fill value, we want SparseDtype[bool, true]
         # to preserve the same memory usage.
         dtype = SparseDtype(bool, self._null_fill_value)
@@ -711,6 +713,13 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         mask = np.full(len(self), False, dtype=np.bool_)
         mask[self.sp_index.indices] = isna(self.sp_values)
         return type(self)(mask, fill_value=False, dtype=dtype)
+
+    def _pad_or_backfill(  # pylint: disable=useless-parent-delegation
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+    ) -> Self:
+        # TODO(3.0): We can remove this method once deprecation for fillna method
+        #  keyword is enforced.
+        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
 
     def fillna(
         self,
@@ -1414,7 +1423,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
 
         return values.all()
 
-    def any(self, axis: AxisInt = 0, *args, **kwargs):
+    def any(self, axis: AxisInt = 0, *args, **kwargs) -> bool:
         """
         Tests whether at least one of elements evaluate True
 

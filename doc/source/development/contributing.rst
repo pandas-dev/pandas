@@ -9,37 +9,39 @@ Contributing to pandas
 .. contents:: Table of contents:
    :local:
 
-Where to start?
-===============
 
 All contributions, bug reports, bug fixes, documentation improvements,
 enhancements, and ideas are welcome.
 
-If you are brand new to pandas or open-source development, we recommend going
-through the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
-to find issues that interest you. There are a number of issues listed under `Docs
-<https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open>`_
+.. _contributing.bug_reports:
+
+Bug reports and enhancement requests
+====================================
+
+Bug reports and enhancement requests are an important part of making pandas more stable and
+are curated though Github issues. When reporting and issue or request, please select the `appropriate
+category and fill out the issue form fully <https://github.com/pandas-dev/pandas/issues/new/choose>`_
+to ensure others and the core development team can fully understand the scope of the issue.
+
+The issue will then show up to the pandas community and be open to comments/ideas from others.
+
+Finding an issue to contribute to
+=================================
+
+If you are brand new to pandas or open-source development, we recommend searching
+the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
+to find issues that interest you. Unassigned issues labeled `Docs
+<https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3ADocs+no%3Aassignee>`_
 and `good first issue
-<https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open>`_
-where you could start out. Once you've found an interesting issue, you can
-return here to get your development environment setup.
+<https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22+no%3Aassignee>`_
+are typically good for newer contributors.
 
-When you start working on an issue, it's a good idea to assign the issue to yourself,
-so nobody else duplicates the work on it. GitHub restricts assigning issues to maintainers
-of the project only. In most projects, and until recently in pandas, contributors added a
-comment letting others know they are working on an issue. While this is ok, you need to
-check each issue individually, and it's not possible to find the unassigned ones.
+Once you've found an interesting issue, it's a good idea to assign the issue to yourself,
+so nobody else duplicates the work on it. On the Github issue, a comment with the exact
+text ``take`` to automatically assign you the issue
+(this will take seconds and may require refreshing the page to see it).
 
-For this reason, we implemented a workaround consisting of adding a comment with the exact
-text ``take``. When you do it, a GitHub action will automatically assign you the issue
-(this will take seconds, and may require refreshing the page to see it).
-By doing this, it's possible to filter the list of issues and find only the unassigned ones.
-
-So, a good way to find an issue to start contributing to pandas is to check the list of
-`unassigned good first issues <https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22+no%3Aassignee>`_
-and assign yourself one you like by writing a comment with the exact text ``take``.
-
-If for whatever reason you are not able to continue working with the issue, please try to
+If for whatever reason you are not able to continue working with the issue, please
 unassign it, so other people know it's available again. You can check the list of
 assigned issues, since people may not be working in them anymore. If you want to work on one
 that is assigned, feel free to kindly ask the current assignee if you can take it
@@ -53,71 +55,26 @@ maintainers who have been with us for a long time felt just like you when they s
 are happy to welcome you and support you as you get to know how we work, and where things are.
 Take a look at the next sections to learn more.
 
-.. _contributing.bug_reports:
-
-Bug reports and enhancement requests
-====================================
-
-Bug reports are an important part of making pandas more stable. Having a complete bug report
-will allow others to reproduce the bug and provide insight into fixing. See
-`this stackoverflow article <https://stackoverflow.com/help/mcve>`_ and
-`this blogpost <https://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports>`_
-for tips on writing a good bug report.
-
-Trying the bug-producing code out on the *main* branch is often a worthwhile exercise
-to confirm the bug still exists. It is also worth searching existing bug reports and pull requests
-to see if the issue has already been reported and/or fixed.
-
-Bug reports must:
-
-#. Include a short, self-contained Python snippet reproducing the problem.
-   You can format the code nicely by using `GitHub Flavored Markdown
-   <https://github.github.com/github-flavored-markdown/>`_::
-
-      ```python
-      >>> from pandas import DataFrame
-      >>> df = DataFrame(...)
-      ...
-      ```
-
-#. Include the full version string of pandas and its dependencies. You can use the built-in function::
-
-      >>> import pandas as pd
-      >>> pd.show_versions()
-
-#. Explain why the current behavior is wrong/not desired and what you expect instead.
-
-The issue will then show up to the pandas community and be open to comments/ideas from others.
-
 .. _contributing.github:
 
-Working with the code
-=====================
-
-Now that you have an issue you want to fix, enhancement to add, or documentation to improve,
-you need to learn how to work with GitHub and the pandas code base.
+Submitting a pull request
+=========================
 
 .. _contributing.version_control:
 
 Version control, Git, and GitHub
 --------------------------------
 
-To the new user, working with Git is one of the more daunting aspects of contributing to pandas.
-It can very quickly become overwhelming, but sticking to the guidelines below will help keep the process
-straightforward and mostly trouble free.  As always, if you are having difficulties please
-feel free to ask for help.
-
-The code is hosted on `GitHub <https://www.github.com/pandas-dev/pandas>`_. To
-contribute you will need to sign up for a `free GitHub account
+pandas is hosted on `GitHub <https://www.github.com/pandas-dev/pandas>`_, and to
+contribute, you will need to sign up for a `free GitHub account
 <https://github.com/signup/free>`_. We use `Git <https://git-scm.com/>`_ for
 version control to allow many people to work together on the project.
 
-Some great resources for learning Git:
+If you are new to Git, you can reference some of these resources for learning Git. Feel free to reach out
+to the :ref:`contributor community <community>` for help if needed:
 
-* the `Git documentation <https://git-scm.com/doc>`_.
-* the `GitHub help pages <https://help.github.com/>`_.
-* the `NumPy documentation <https://numpy.org/doc/stable/dev/index.html>`_.
-* Matthew Brett's `Pydagogue <https://matthew-brett.github.io/pydagogue/>`_.
+* `Git documentation <https://git-scm.com/doc>`_.
+* `Numpy's Git resources <https://numpy.org/doc/stable/dev/gitwash/git_resources.html>`_ tutorial.
 
 Also, the project follows a forking workflow further described on this page whereby
 contributors fork the repository, make changes and then create a pull request.
@@ -138,18 +95,20 @@ Below are some useful resources for learning more about forking and pull request
 Getting started with Git
 ------------------------
 
-`GitHub has instructions <https://help.github.com/set-up-git-redirect>`__ for installing git,
+`GitHub has instructions <https://docs.github.com/en/get-started/quickstart/set-up-git>`__ for installing git,
 setting up your SSH key, and configuring git.  All these steps need to be completed before
 you can work seamlessly between your local repository and GitHub.
 
 .. _contributing.forking:
 
-Forking
--------
+Create a fork of pandas
+-----------------------
 
-You will need your own fork to work on the code. Go to the `pandas project
-page <https://github.com/pandas-dev/pandas>`_ and hit the ``Fork`` button. You will
-want to clone your fork to your machine::
+You will need your own copy of pandas (aka fork) to work on the code. Go to the `pandas project
+page <https://github.com/pandas-dev/pandas>`_ and hit the ``Fork`` button. Please uncheck the box to copy only the main branch before selecting ``Create Fork``.
+You will want to clone your fork to your machine
+
+.. code-block:: shell
 
     git clone https://github.com/your-user-name/pandas.git pandas-yourname
     cd pandas-yourname
@@ -159,66 +118,71 @@ want to clone your fork to your machine::
 This creates the directory ``pandas-yourname`` and connects your repository to
 the upstream (main project) *pandas* repository.
 
-Note that performing a shallow clone (with ``--depth==N``, for some ``N`` greater
-or equal to 1) might break some tests and features as ``pd.show_versions()``
-as the version number cannot be computed anymore.
+.. note::
 
-Creating a branch
------------------
+    Performing a shallow clone (with ``--depth==N``, for some ``N`` greater
+    or equal to 1) might break some tests and features as ``pd.show_versions()``
+    as the version number cannot be computed anymore.
 
-You want your main branch to reflect only production-ready code, so create a
-feature branch for making your changes. For example::
+Creating a feature branch
+-------------------------
 
-    git branch shiny-new-feature
-    git checkout shiny-new-feature
+Your local ``main`` branch should always reflect the current state of pandas repository.
+First ensure it's up-to-date with the main pandas repository.
 
-The above can be simplified to::
-
-    git checkout -b shiny-new-feature
-
-This changes your working directory to the shiny-new-feature branch.  Keep any
-changes in this branch specific to one bug or feature so it is clear
-what the branch brings to pandas. You can have many shiny-new-features
-and switch in between them using the git checkout command.
-
-When creating this branch, make sure your main branch is up to date with
-the latest upstream main version. To update your local main branch, you
-can do::
+.. code-block:: shell
 
     git checkout main
     git pull upstream main --ff-only
+
+Then, create a feature branch for making your changes. For example
+
+.. code-block:: shell
+
+    git checkout -b shiny-new-feature
+
+This changes your working branch from ``main`` to the ``shiny-new-feature`` branch.  Keep any
+changes in this branch specific to one bug or feature so it is clear
+what the branch brings to pandas. You can have many feature branches
+and switch in between them using the ``git checkout`` command.
 
 When you want to update the feature branch with changes in main after
 you created the branch, check the section on
 :ref:`updating a PR <contributing.update-pr>`.
 
-Contributing your changes to pandas
-=====================================
-
 .. _contributing.commit-code:
 
-Committing your code
---------------------
+Making code changes
+-------------------
 
-Keep style fixes to a separate commit to make your pull request more readable.
+Before modifying any code, ensure you follow the :ref:`contributing environment <contributing_environment>`
+guidelines to set up an appropriate development environment.
 
-Once you've made changes, you can see them by typing::
+Then once you have made code changes, you can see all the changes you've currently made by running.
+
+.. code-block:: shell
 
     git status
 
-If you have created a new file, it is not being tracked by git. Add it by typing::
+For files you intended to modify or add, run.
 
-    git add path/to/file-to-be-added.py
+.. code-block:: shell
 
-Doing 'git status' again should give something like::
+    git add path/to/file-to-be-added-or-changed.py
 
-    # On branch shiny-new-feature
-    #
-    #       modified:   /relative/path/to/file-you-added.py
-    #
+Running ``git status`` again should display
+
+.. code-block:: shell
+
+    On branch shiny-new-feature
+
+         modified:   /relative/path/to/file-to-be-added-or-changed.py
+
 
 Finally, commit your changes to your local repository with an explanatory commit
-message::
+message
+
+.. code-block:: shell
 
     git commit -m "your commit message goes here"
 
@@ -228,17 +192,23 @@ Pushing your changes
 --------------------
 
 When you want your changes to appear publicly on your GitHub page, push your
-forked feature branch's commits::
+forked feature branch's commits
+
+.. code-block:: shell
 
     git push origin shiny-new-feature
 
 Here ``origin`` is the default name given to your remote repository on GitHub.
-You can see the remote repositories::
+You can see the remote repositories
+
+.. code-block:: shell
 
     git remote -v
 
 If you added the upstream repository as described above you will see something
-like::
+like
+
+.. code-block:: shell
 
     origin  git@github.com:yourname/pandas.git (fetch)
     origin  git@github.com:yourname/pandas.git (push)
@@ -248,28 +218,15 @@ like::
 Now your code is on GitHub, but it is not yet a part of the pandas project. For that to
 happen, a pull request needs to be submitted on GitHub.
 
-Review your code
-----------------
+Making a pull request
+---------------------
 
-When you're ready to ask for a code review, file a pull request. Before you do, once
-again make sure that you have followed all the guidelines outlined in this document
-regarding code style, tests, performance tests, and documentation. You should also
-double check your branch changes against the branch it was based on:
-
-#. Navigate to your repository on GitHub -- https://github.com/your-user-name/pandas
-#. Click on ``Branches``
-#. Click on the ``Compare`` button for your feature branch
-#. Select the ``base`` and ``compare`` branches, if necessary. This will be ``main`` and
-   ``shiny-new-feature``, respectively.
-
-Finally, make the pull request
-------------------------------
+One you have finished your code changes, your code change will need to follow the
+:ref:`pandas contribution guidelines <contributing_codebase>` to be successfully accepted.
 
 If everything looks good, you are ready to make a pull request. A pull request is how
-code from a local repository becomes available to the GitHub community and can be looked
-at and eventually merged into the main version. This pull request and its associated
-changes will eventually be committed to the main branch and available in the next
-release. To submit a pull request:
+code from your local repository becomes available to the GitHub community to review
+and merged into project to appear the in the next release. To submit a pull request:
 
 #. Navigate to your repository on GitHub
 #. Click on the ``Compare & pull request`` button
@@ -299,20 +256,13 @@ Updating your pull request
 --------------------------
 
 Based on the review you get on your pull request, you will probably need to make
-some changes to the code. In that case, you can make them in your branch,
-add a new commit to that branch, push it to GitHub, and the pull request will be
-automatically updated.  Pushing them to GitHub again is done by::
+some changes to the code. You can follow the :ref:`code committing steps <contributing.commit-code>`
+again to address any feedback and update your pull request.
 
-    git push origin shiny-new-feature
+It is also important that updates in the pandas ``main`` branch are reflected in your pull request.
+To update your feature branch with changes in the pandas ``main`` branch, run:
 
-This will automatically update your pull request with the latest code and restart the
-:any:`Continuous Integration <contributing.ci>` tests.
-
-Another reason you might need to update your pull request is to solve conflicts
-with changes that have been merged into the main branch since you opened your
-pull request.
-
-To do this, you need to "merge upstream main" in your branch::
+.. code-block:: shell
 
     git checkout shiny-new-feature
     git fetch upstream
@@ -324,54 +274,62 @@ default commit message will open, and you can simply save and quit this file.
 If there are merge conflicts, you need to solve those conflicts. See for
 example at https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/
 for an explanation on how to do this.
-Once the conflicts are resolved, you should do:
-1. ``git add -u`` to stage any files you've updated;
-2. ``git commit`` to finish the merge.
 
-If you have uncommitted changes at the moment you want to update the branch with
-main, you will need to ``stash`` them prior to updating (see the
-`stash docs <https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning>`__).
-This will effectively store your changes and they can be reapplied after updating.
+Once the conflicts are resolved, run:
+
+#. ``git add -u`` to stage any files you've updated;
+#. ``git commit`` to finish the merge.
+
+.. note::
+
+    If you have uncommitted changes at the moment you want to update the branch with
+    ``main``, you will need to ``stash`` them prior to updating (see the
+    `stash docs <https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning>`__).
+    This will effectively store your changes and they can be reapplied after updating.
 
 After the feature branch has been update locally, you can now update your pull
-request by pushing to the branch on GitHub::
+request by pushing to the branch on GitHub:
+
+.. code-block:: shell
 
     git push origin shiny-new-feature
 
-Autofixing formatting errors
-----------------------------
-
-We use several styling checks (e.g. ``black``, ``ruff``, ``isort``) which are run after
-you make a pull request.
-
-To automatically fix formatting errors on each commit you make, you can
-set up pre-commit yourself. First, create a Python :ref:`environment
-<contributing_environment>` and then set up :ref:`pre-commit <contributing.pre-commit>`.
+Any ``git push`` will automatically update your pull request with your branch's changes
+and restart the :ref:`Continuous Integration <contributing.ci>` checks.
 
 .. _contributing.update-dev:
 
 Updating the development environment
 ------------------------------------
 
-After updating your branch to merge in main from upstream, you may need to update
-your development environment to reflect any changes to the various packages that
+It is important to periodically update your local ``main`` branch with updates from the pandas ``main``
+branch and update your development environment to reflect any changes to the various packages that
 are used during development.
 
-If using :ref:`mamba <contributing.mamba>`, do::
+If using :ref:`mamba <contributing.mamba>`, run:
 
-    mamba deactivate
-    mamba env update -f environment.yml
+.. code-block:: shell
+
+    git checkout main
+    git fetch upstream
+    git merge upstream/main
     mamba activate pandas-dev
+    mamba env update -f environment.yml --prune
 
-If using :ref:`pip <contributing.pip>` , do::
+If using :ref:`pip <contributing.pip>` , do:
 
+.. code-block:: shell
+
+    git checkout main
+    git fetch upstream
+    git merge upstream/main
     # activate the virtual environment based on your platform
     python -m pip install --upgrade -r requirements-dev.txt
 
 Tips for a successful pull request
 ==================================
 
-If you have made it to the `Review your code`_ phase, one of the core contributors may
+If you have made it to the `Making a pull request`_ phase, one of the core contributors may
 take a look. Please note however that a handful of people are responsible for reviewing
 all of the contributions, which can often lead to bottlenecks.
 

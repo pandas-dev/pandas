@@ -203,9 +203,10 @@ pandas requires the following dependencies.
 ================================================================ ==========================
 Package                                                          Minimum supported version
 ================================================================ ==========================
-`NumPy <https://numpy.org>`__                                    1.21.6
+`NumPy <https://numpy.org>`__                                    1.22.4
 `python-dateutil <https://dateutil.readthedocs.io/en/stable/>`__ 2.8.2
 `pytz <https://pypi.org/project/pytz/>`__                        2020.1
+`tzdata <https://pypi.org/project/tzdata/>`__                    2022.1
 ================================================================ ==========================
 
 .. _install.optional_dependencies:
@@ -220,7 +221,7 @@ optional dependency is not installed, pandas will raise an ``ImportError`` when
 the method requiring that dependency is called.
 
 If using pip, optional pandas dependencies can be installed or managed in a file (e.g. requirements.txt or pyproject.toml)
-as optional extras (e.g.,``pandas[performance, aws]>=1.5.0``). All optional dependencies can be installed with ``pandas[all]``,
+as optional extras (e.g. ``pandas[performance, aws]``). All optional dependencies can be installed with ``pandas[all]``,
 and specific sets of dependencies are listed in the sections below.
 
 .. _install.recommended_dependencies:
@@ -280,6 +281,7 @@ xlrd                      2.0.1              excel           Reading Excel
 xlsxwriter                3.0.3              excel           Writing Excel
 openpyxl                  3.0.10             excel           Reading / writing for xlsx files
 pyxlsb                    1.0.9              excel           Reading for xlsb files
+python-calamine           0.1.6              excel           Reading for xls/xlsx/xlsb/ods files
 ========================= ================== =============== =============================================================
 
 HTML
@@ -411,7 +413,16 @@ Installable with ``pip install "pandas[compression]"``
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
-brotli                    0.7.0              compression     Brotli compression
-python-snappy             0.6.1              compression     Snappy compression
 Zstandard                 0.17.0             compression     Zstandard compression
 ========================= ================== =============== =============================================================
+
+Consortium Standard
+^^^^^^^^^^^^^^^^^^^
+
+Installable with ``pip install "pandas[consortium-standard]"``
+
+========================= ================== =================== =============================================================
+Dependency                Minimum Version    pip extra           Notes
+========================= ================== =================== =============================================================
+dataframe-api-compat      0.1.7              consortium-standard Consortium Standard-compatible implementation based on pandas
+========================= ================== =================== =============================================================

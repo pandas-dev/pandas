@@ -53,6 +53,7 @@ class TestNumpyEADtype:
             np.float64,
             float,
             np.dtype("float64"),
+            "object_",
         ],
     )
     def test_pandas_dtype_valid(self, dtype):
@@ -93,10 +94,10 @@ class TestNumpyEADtype:
         [
             "period[D]",
             "period[3M]",
-            "period[U]",
+            "period[us]",
             "Period[D]",
             "Period[3M]",
-            "Period[U]",
+            "Period[us]",
         ],
     )
     def test_period_dtype(self, dtype):
@@ -210,11 +211,10 @@ def test_is_sparse(check_scipy):
             assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
-@td.skip_if_no_scipy
 def test_is_scipy_sparse():
-    from scipy.sparse import bsr_matrix
+    sp_sparse = pytest.importorskip("scipy.sparse")
 
-    assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
+    assert com.is_scipy_sparse(sp_sparse.bsr_matrix([1, 2, 3]))
 
     assert not com.is_scipy_sparse(SparseArray([1, 2, 3]))
 
@@ -652,7 +652,7 @@ def test_is_complex_dtype():
     assert not com.is_complex_dtype(pd.Series([1, 2]))
     assert not com.is_complex_dtype(np.array(["a", "b"]))
 
-    assert com.is_complex_dtype(np.complex_)
+    assert com.is_complex_dtype(np.complex128)
     assert com.is_complex_dtype(complex)
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
 
@@ -782,3 +782,9 @@ def test_pandas_dtype_numpy_warning():
         match="Converting `np.integer` or `np.signedinteger` to a dtype is deprecated",
     ):
         pandas_dtype(np.integer)
+
+
+def test_pandas_dtype_ea_not_instance():
+    # GH 31356 GH 54592
+    with tm.assert_produces_warning(UserWarning):
+        assert pandas_dtype(CategoricalDtype) == CategoricalDtype()

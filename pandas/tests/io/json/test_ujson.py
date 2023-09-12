@@ -954,7 +954,7 @@ class TestPandasJSONTests:
         decoded = DatetimeIndex(np.array(ujson.ujson_loads(encoded)))
         tm.assert_index_equal(rng, decoded)
 
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
         decoded = Series(ujson.ujson_loads(ujson.ujson_dumps(ts, date_unit=date_unit)))
 
         idx_values = decoded.index.values.astype(np.int64)
@@ -1033,7 +1033,7 @@ class TestPandasJSONTests:
     def test_encode_big_set(self):
         s = set()
 
-        for x in range(0, 100000):
+        for x in range(100000):
             s.add(x)
 
         # Make sure no Exception is raised.

@@ -107,6 +107,7 @@ from pandas.core import (
     algorithms,
     missing,
     nanops,
+    ops,
 )
 from pandas.core.algorithms import (
     checked_add_with_arr,
@@ -155,6 +156,11 @@ if TYPE_CHECKING:
     )
 
 DTScalarOrNaT = Union[DatetimeLikeScalar, NaTType]
+
+
+def _make_unpacked_invalid_op(op_name: str):
+    op = make_invalid_op(op_name)
+    return unpack_zerodim_and_defer(op_name)(op)
 
 
 def _period_dispatch(meth: F) -> F:
@@ -620,15 +626,19 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         -------
         str
         """
+        if hasattr(value, "dtype") and getattr(value, "ndim", 0) > 0:
+            msg_got = f"{value.dtype} array"
+        else:
+            msg_got = f"'{type(value).__name__}'"
         if allow_listlike:
             msg = (
                 f"value should be a '{self._scalar_type.__name__}', 'NaT', "
-                f"or array of those. Got '{type(value).__name__}' instead."
+                f"or array of those. Got {msg_got} instead."
             )
         else:
             msg = (
                 f"value should be a '{self._scalar_type.__name__}' or 'NaT'. "
-                f"Got '{type(value).__name__}' instead."
+                f"Got {msg_got} instead."
             )
         return msg
 
@@ -938,8 +948,12 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         dtype = getattr(other, "dtype", None)
         if is_object_dtype(dtype):
-            return op(np.asarray(self, dtype=object), other)
-
+            # We have to use comp_method_OBJECT_ARRAY instead of numpy
+            #  comparison otherwise it would raise when comparing to None
+            result = ops.comp_method_OBJECT_ARRAY(
+                op, np.asarray(self.astype(object)), other
+            )
+            return result
         if other is NaT:
             if op is operator.ne:
                 result = np.ones(self.shape, dtype=bool)
@@ -979,18 +993,18 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
     # pow is invalid for all three subclasses; TimedeltaArray will override
     #  the multiplication and division ops
-    __pow__ = make_invalid_op("__pow__")
-    __rpow__ = make_invalid_op("__rpow__")
-    __mul__ = make_invalid_op("__mul__")
-    __rmul__ = make_invalid_op("__rmul__")
-    __truediv__ = make_invalid_op("__truediv__")
-    __rtruediv__ = make_invalid_op("__rtruediv__")
-    __floordiv__ = make_invalid_op("__floordiv__")
-    __rfloordiv__ = make_invalid_op("__rfloordiv__")
-    __mod__ = make_invalid_op("__mod__")
-    __rmod__ = make_invalid_op("__rmod__")
-    __divmod__ = make_invalid_op("__divmod__")
-    __rdivmod__ = make_invalid_op("__rdivmod__")
+    __pow__ = _make_unpacked_invalid_op("__pow__")
+    __rpow__ = _make_unpacked_invalid_op("__rpow__")
+    __mul__ = _make_unpacked_invalid_op("__mul__")
+    __rmul__ = _make_unpacked_invalid_op("__rmul__")
+    __truediv__ = _make_unpacked_invalid_op("__truediv__")
+    __rtruediv__ = _make_unpacked_invalid_op("__rtruediv__")
+    __floordiv__ = _make_unpacked_invalid_op("__floordiv__")
+    __rfloordiv__ = _make_unpacked_invalid_op("__rfloordiv__")
+    __mod__ = _make_unpacked_invalid_op("__mod__")
+    __rmod__ = _make_unpacked_invalid_op("__rmod__")
+    __divmod__ = _make_unpacked_invalid_op("__divmod__")
+    __rdivmod__ = _make_unpacked_invalid_op("__rdivmod__")
 
     @final
     def _get_i8_values_and_mask(
@@ -1808,7 +1822,7 @@ _round_doc = """
     >>> rng
     DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
                    '2018-01-01 12:01:00'],
-                  dtype='datetime64[ns]', freq='T')
+                  dtype='datetime64[ns]', freq='min')
     """
 
 _round_example = """>>> rng.round('H')

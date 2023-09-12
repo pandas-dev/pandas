@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors import ChainedAssignmentError
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -202,8 +203,8 @@ class TestDataFrameInterpolate:
         with pytest.raises(NotImplementedError, match=msg):
             df.interpolate(method="values")
 
-    @td.skip_if_no_scipy
     def test_interp_various(self):
+        pytest.importorskip("scipy")
         df = DataFrame(
             {"A": [1, 2, np.nan, 4, 5, np.nan, 7], "C": [1, 2, 3, 5, 8, 13, 21]}
         )
@@ -241,8 +242,8 @@ class TestDataFrameInterpolate:
         expected.loc[13, "A"] = 5
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
-    @td.skip_if_no_scipy
     def test_interp_alt_scipy(self):
+        pytest.importorskip("scipy")
         df = DataFrame(
             {"A": [1, 2, np.nan, 4, 5, np.nan, 7], "C": [1, 2, 3, 5, 8, 13, 21]}
         )
@@ -370,21 +371,31 @@ class TestDataFrameInterpolate:
         expected = DataFrame({"a": [1.0, 2.0, 3.0, 4.0]})
         expected_cow = df.copy()
         result = df.copy()
-        return_value = result["a"].interpolate(inplace=True)
-        assert return_value is None
+
         if using_copy_on_write:
+            with tm.raises_chained_assignment_error():
+                return_value = result["a"].interpolate(inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(result, expected_cow)
         else:
+            return_value = result["a"].interpolate(inplace=True)
+            assert return_value is None
             tm.assert_frame_equal(result, expected)
 
         result = df.copy()
         msg = "The 'downcast' keyword in Series.interpolate is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            return_value = result["a"].interpolate(inplace=True, downcast="infer")
-        assert return_value is None
+
         if using_copy_on_write:
+            with tm.assert_produces_warning(
+                (FutureWarning, ChainedAssignmentError), match=msg
+            ):
+                return_value = result["a"].interpolate(inplace=True, downcast="infer")
+            assert return_value is None
             tm.assert_frame_equal(result, expected_cow)
         else:
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                return_value = result["a"].interpolate(inplace=True, downcast="infer")
+            assert return_value is None
             tm.assert_frame_equal(result, expected.astype("int64"))
 
     def test_interp_inplace_row(self):
@@ -430,7 +441,7 @@ class TestDataFrameInterpolate:
         # GH 9687
         periods = 5
         idx = date_range(start="2014-01-01", periods=periods)
-        data = np.random.rand(periods, periods)
+        data = np.random.default_rng(2).random((periods, periods))
         data[data < 0.5] = np.nan
         expected = DataFrame(index=idx, columns=idx, data=data)
 
