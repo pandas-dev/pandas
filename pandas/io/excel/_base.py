@@ -159,13 +159,15 @@ dtype : Type name or dict of column -> type, default None
     of dtype conversion.
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb".
+    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", "calamine".
     Engine compatibility :
 
     - "xlrd" supports old-style Excel files (.xls).
     - "openpyxl" supports newer Excel file formats.
     - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
     - "pyxlsb" supports Binary Excel files.
+    - "calamine" supports Excel (.xls, .xlsx, .xlsm, .xlsb)
+      and OpenDocument (.ods) file formats.
 
     .. versionchanged:: 1.2.0
         The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
@@ -394,7 +396,7 @@ def read_excel(
     | Callable[[str], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
-    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
+    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
@@ -433,7 +435,7 @@ def read_excel(
     | Callable[[str], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
-    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
+    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
@@ -472,7 +474,7 @@ def read_excel(
     | Callable[[str], bool]
     | None = None,
     dtype: DtypeArg | None = None,
-    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = None,
+    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = None,
     converters: dict[str, Callable] | dict[int, Callable] | None = None,
     true_values: Iterable[Hashable] | None = None,
     false_values: Iterable[Hashable] | None = None,
@@ -1456,13 +1458,15 @@ class ExcelFile:
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``
+        Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``, ``calamine``
         Engine compatibility :
 
         - ``xlrd`` supports old-style Excel files (.xls).
         - ``openpyxl`` supports newer Excel file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
+        - ``calamine`` supports Excel (.xls, .xlsx, .xlsm, .xlsb)
+          and OpenDocument (.ods) file formats.
 
         .. versionchanged:: 1.2.0
 
@@ -1498,6 +1502,7 @@ class ExcelFile:
     ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
     """
 
+    from pandas.io.excel._calamine import CalamineReader
     from pandas.io.excel._odfreader import ODFReader
     from pandas.io.excel._openpyxl import OpenpyxlReader
     from pandas.io.excel._pyxlsb import PyxlsbReader
@@ -1508,6 +1513,7 @@ class ExcelFile:
         "openpyxl": OpenpyxlReader,
         "odf": ODFReader,
         "pyxlsb": PyxlsbReader,
+        "calamine": CalamineReader,
     }
 
     def __init__(

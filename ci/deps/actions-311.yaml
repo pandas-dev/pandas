@@ -46,6 +46,7 @@ dependencies:
   - pymysql>=1.0.2
   - pyreadstat>=1.1.5
   # - pytables>=3.7.0, 3.8.0 is first version that supports 3.11
+  - python-calamine>=0.1.6
   - pyxlsb>=1.0.9
   - s3fs>=2022.05.0
   - scipy>=1.8.1
