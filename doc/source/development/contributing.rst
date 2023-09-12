@@ -13,6 +13,33 @@ Contributing to pandas
 All contributions, bug reports, bug fixes, documentation improvements,
 enhancements, and ideas are welcome.
 
+.. _contributing.non_code:
+
+Non-Code Contributions
+======================
+
+Apart from code contributions, we value and welcome other forms of contributions to help grow and foster a supportive community. Here are some ways you can contribute without writing a single line of code:
+
+- **Documentation Improvements**: Help us improve our documentation by fixing typos, adding examples, or clarifying sections. You can find guidelines for contributing to documentation `here <https://pandas.pydata.org/docs/development/contributing_documentation.html>`_.
+
+- **Community Engagement**: Engage with the community through various platforms like our community Slack channel, mailing lists, or by participating in regular community meetings. Find more details `here <https://pandas.pydata.org/docs/development/community.html>`_.
+
+- **Bug Reporting and Issue Triage**: Assist us by identifying bugs or issues and providing additional information to resolve them swiftly.
+
+- **Testing and Quality Assurance**: Contribute by testing new releases and reporting any issues or inconsistencies you encounter.
+
+- **Design Contributions**: Suggest improvements or contribute to the design and user interface of the pandas project. Learn more about how you can contribute to our website `here <https://pandas.pydata.org/contribute.html>`_.
+
+- **Educational Resources**: Create tutorials, blogs, or other educational resources to help others learn how to use pandas effectively.
+
+- **Community Building**: Help us build a vibrant community by organizing or participating in events, meetups, or webinars.
+
+- **Advocacy and Outreach**: Become an advocate for the pandas project by promoting it through various channels, creating awareness, and bringing in new contributors.
+
+- **Financial Support**: Support the project by providing `financial contributions <https://pandas.pydata.org/about/sponsors.html>` _ to fund various initiatives.
+
+Feel free to reach out to the community through our `communication channels <https://pandas.pydata.org/docs/development/community.html>`_ to discuss your ideas or to find out more about how you can contribute in non-code ways.
+
 .. _contributing.bug_reports:
 
 Bug reports and enhancement requests
