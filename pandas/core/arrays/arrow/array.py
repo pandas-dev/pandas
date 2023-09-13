@@ -1995,6 +1995,7 @@ class ArrowExtensionArray(
 
         # convert to a compatible dtype that is more
         #  optimized for groupby ops
+        values: ExtensionArray
         pa_type = self._pa_array.type
         if pa.types.is_timestamp(pa_type):
             values = self._to_datetimearray()
