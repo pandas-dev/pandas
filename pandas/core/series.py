@@ -1926,7 +1926,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.index
 
-    def to_dict(self, into: type[dict] = dict) -> dict:
+    def to_dict(self, into: type[dict] | dict = dict) -> dict:
         """
         Convert Series to {label -> value} dict or dict-like object.
 

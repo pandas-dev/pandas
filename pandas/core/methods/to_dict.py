@@ -24,7 +24,7 @@ def to_dict(
     orient: Literal[
         "dict", "list", "series", "split", "tight", "records", "index"
     ] = "dict",
-    into: type[dict] = dict,
+    into: type[dict] | dict = dict,
     index: bool = True,
 ) -> dict | list[dict]:
     """

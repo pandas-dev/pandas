@@ -1925,7 +1925,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(
         self,
         orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
-        into: type[dict] = ...,
+        into: type[dict] | dict = ...,
         index: bool = ...,
     ) -> dict:
         ...
@@ -1934,7 +1934,7 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(
         self,
         orient: Literal["records"],
-        into: type[dict] = ...,
+        into: type[dict] | dict = ...,
         index: bool = ...,
     ) -> list[dict]:
         ...
@@ -1947,7 +1947,7 @@ class DataFrame(NDFrame, OpsMixin):
         orient: Literal[
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
-        into: type[dict] = dict,
+        into: type[dict] | dict = dict,
         index: bool = True,
     ) -> dict | list[dict]:
         """
