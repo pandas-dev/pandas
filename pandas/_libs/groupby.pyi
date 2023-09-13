@@ -182,10 +182,10 @@ def group_min(
     result_mask: np.ndarray | None = ...,
 ) -> None: ...
 def group_idxmin_idxmax(
-    out: np.ndarray,  # intp_t[:, ::1]
-    counts: np.ndarray,  # int64_t[::1]
+    out: npt.NDArray[np.intp],
+    counts: npt.NDArray[np.int64],
     values: np.ndarray,  # ndarray[groupby_t, ndim=2]
-    labels: np.ndarray,  # const intp[:]
+    labels: npt.NDArray[np.int64],  # const intp[:]
     min_count: int = ...,
     is_datetimelike: bool = ...,
     mask: np.ndarray | None = ...,
