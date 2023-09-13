@@ -796,10 +796,12 @@ class TestSetOpsUnsorted:
             assert result.name == expected
 
     def test_difference_empty_arg(self, index, sort):
-        first = index[5:20]
+        first = index.copy()
+        first = first[5:20]
         first.name = "name"
         result = first.difference([], sort)
-        expected = first.unique()
+        expected = index[5:20].unique()
+        expected.name = "name"
         tm.assert_index_equal(result, expected)
 
     def test_difference_should_not_compare(self):
