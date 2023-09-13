@@ -1033,7 +1033,7 @@ def read_html(
     io: FilePath | ReadBuffer[str],
     *,
     match: str | Pattern = ".+",
-    flavor: str | None = None,
+    flavor: str | Sequence[str] | None = None,
     header: int | Sequence[int] | None = None,
     index_col: int | Sequence[int] | None = None,
     skiprows: int | Sequence[int] | slice | None = None,
@@ -1074,11 +1074,11 @@ def read_html(
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : str, optional
-        The parsing engine to use. 'bs4' and 'html5lib' are synonymous with
-        each other, they are both there for backwards compatibility. The
-        default of ``None`` tries to use ``lxml`` to parse and if that fails it
-        falls back on ``bs4`` + ``html5lib``.
+    flavor : str or list-like, optional
+        The parsing engine (or list of parsing engines) to use. 'bs4' and
+        'html5lib' are synonymous with each other, they are both there for
+        backwards compatibility. The default of ``None`` tries to use ``lxml``
+        to parse and if that fails it falls back on ``bs4`` + ``html5lib``.
 
     header : int or list-like, optional
         The row (or list of rows for a :class:`~pandas.MultiIndex`) to use to

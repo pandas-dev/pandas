@@ -638,7 +638,10 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -697,7 +700,10 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -757,7 +763,10 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -817,7 +826,10 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -888,7 +900,10 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = "infer",
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = None,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -983,7 +998,10 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1040,7 +1058,10 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1097,7 +1118,10 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1154,7 +1178,10 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1224,7 +1251,10 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = "infer",
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = None,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
