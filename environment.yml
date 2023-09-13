@@ -106,7 +106,7 @@ dependencies:
   - ipykernel
 
   # web
-  - jinja2  # in optional dependencies, but documented here as needed
+  # - jinja2  # already listed in optional dependencies, but documented here for reference
   - markdown
   - feedparser
   - pyyaml
