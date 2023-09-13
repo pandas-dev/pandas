@@ -955,7 +955,11 @@ class FrameApply(NDFrameApply):
             result = np.squeeze(result)
         else:
             result = np.apply_along_axis(
-                wrap_function(self.func), self.axis, self.values
+                wrap_function(self.func),
+                self.axis,
+                self.values,
+                *self.args,
+                **self.kwargs,
             )
 
         # TODO: mixed type case
