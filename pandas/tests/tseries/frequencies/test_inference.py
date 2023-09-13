@@ -300,7 +300,7 @@ def test_infer_freq_tz_transition_custom():
                 "2014-07-02 10:00",
                 "2014-07-02 11:00",
             ],
-            "BH",
+            "bh",
         ),
         (
             [
@@ -316,7 +316,7 @@ def test_infer_freq_tz_transition_custom():
                 "2014-07-07 10:00",
                 "2014-07-07 11:00",
             ],
-            "BH",
+            "bh",
         ),
         (
             [
@@ -345,7 +345,7 @@ def test_infer_freq_tz_transition_custom():
                 "2014-07-08 15:00",
                 "2014-07-08 16:00",
             ],
-            "BH",
+            "bh",
         ),
     ],
 )

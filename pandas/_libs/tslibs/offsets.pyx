@@ -1625,7 +1625,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
             # Older (<0.22.0) versions have offset attribute instead of _offset
             self._offset = state.pop("offset")
 
-        if self._prefix.startswith("C"):
+        if self._prefix.startswith("C") or self._prefix.startswith("c"):
             # i.e. this is a Custom class
             weekmask = state.pop("weekmask")
             holidays = state.pop("holidays")
@@ -1891,7 +1891,7 @@ cdef class BusinessHour(BusinessMixin):
                    dtype='datetime64[ns]', freq='BH')
     """
 
-    _prefix = "BH"
+    _prefix = "bh"
     _anchor = 0
     _attributes = tuple(["n", "normalize", "start", "end", "offset"])
     _adjust_dst = False
@@ -2011,7 +2011,7 @@ cdef class BusinessHour(BusinessMixin):
             nb_offset = 1
         else:
             nb_offset = -1
-        if self._prefix.startswith("C"):
+        if self._prefix.startswith("C") or self._prefix.startswith("c"):
             # CustomBusinessHour
             return CustomBusinessDay(
                 n=nb_offset,
@@ -2171,7 +2171,7 @@ cdef class BusinessHour(BusinessMixin):
 
         # adjust by business days first
         if bd != 0:
-            if self._prefix.startswith("C"):
+            if self._prefix.startswith("c"):
                 # GH#30593 this is a Custom offset
                 skip_bd = CustomBusinessDay(
                     n=bd,
@@ -4304,7 +4304,7 @@ cdef class CustomBusinessHour(BusinessHour):
                    dtype='datetime64[ns]', freq='CBH')
     """
 
-    _prefix = "CBH"
+    _prefix = "cbh"
     _anchor = 0
     _attributes = tuple(
         ["n", "normalize", "weekmask", "holidays", "calendar", "start", "end", "offset"]
@@ -4452,11 +4452,11 @@ prefix_mapping = {
         BusinessMonthEnd,  # 'BM'
         BQuarterEnd,  # 'BQ'
         BQuarterBegin,  # 'BQS'
-        BusinessHour,  # 'BH'
+        BusinessHour,  # 'bh'
         CustomBusinessDay,  # 'C'
         CustomBusinessMonthEnd,  # 'CBM'
         CustomBusinessMonthBegin,  # 'CBMS'
-        CustomBusinessHour,  # 'CBH'
+        CustomBusinessHour,  # 'cbh'
         MonthEnd,  # 'M'
         MonthBegin,  # 'MS'
         Nano,  # 'ns'
@@ -4502,7 +4502,7 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {"h", "MS", "ms", "s"}
+_dont_uppercase = {"h", "MS", "ms", "s", "bh", "cbh"}
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 

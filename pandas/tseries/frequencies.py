@@ -254,7 +254,7 @@ class _FrequencyInferer:
 
         # Business hourly, maybe. 17: one day / 65: one weekend
         if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
-            return "BH"
+            return "bh"
 
         # Possibly intraday frequency.  Here we use the
         # original .asi8 values as the modified values

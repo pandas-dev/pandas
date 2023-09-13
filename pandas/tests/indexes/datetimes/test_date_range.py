@@ -416,13 +416,13 @@ class TestDateRanges:
                 "2014-07-04 15:00",
                 "2014-07-04 16:00",
             ],
-            freq="BH",
+            freq="bh",
         )
-        rng = date_range("2014-07-04 09:00", "2014-07-04 16:00", freq="BH")
+        rng = date_range("2014-07-04 09:00", "2014-07-04 16:00", freq="bh")
         tm.assert_index_equal(idx, rng)
 
-        idx = DatetimeIndex(["2014-07-04 16:00", "2014-07-07 09:00"], freq="BH")
-        rng = date_range("2014-07-04 16:00", "2014-07-07 09:00", freq="BH")
+        idx = DatetimeIndex(["2014-07-04 16:00", "2014-07-07 09:00"], freq="bh")
+        rng = date_range("2014-07-04 16:00", "2014-07-07 09:00", freq="bh")
         tm.assert_index_equal(idx, rng)
 
         idx = DatetimeIndex(
@@ -452,9 +452,9 @@ class TestDateRanges:
                 "2014-07-08 15:00",
                 "2014-07-08 16:00",
             ],
-            freq="BH",
+            freq="bh",
         )
-        rng = date_range("2014-07-04 09:00", "2014-07-08 16:00", freq="BH")
+        rng = date_range("2014-07-04 09:00", "2014-07-08 16:00", freq="bh")
         tm.assert_index_equal(idx, rng)
 
     def test_date_range_timedelta(self):

@@ -189,6 +189,8 @@ cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 # Map deprecated resolution abbreviations to correct resolution abbreviations
 DEPR_ABBREVS: dict[str, str]= {
     "H": "h",
+    "BH": "bh",
+    "CBH": "cbh",
     "T": "min",
     "t": "min",
     "S": "s",
