@@ -552,7 +552,7 @@ cdef int64_t get_conversion_factor(
     """
     Find the factor by which we need to multiply to convert from from_unit to to_unit.
     """
-    cdef int64_t value, overflow_limit
+    cdef int64_t value, overflow_limit, factor
     if (
         from_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         or to_unit == NPY_DATETIMEUNIT.NPY_FR_GENERIC
@@ -566,66 +566,42 @@ cdef int64_t get_conversion_factor(
 
     if from_unit == NPY_DATETIMEUNIT.NPY_FR_W:
         value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_D, to_unit)
-        overflow_limit = INT64_MAX // 7
-        if value > overflow_limit or value < -overflow_limit:
-            raise OverflowError("result would overflow")
-        return 7 * value
+        factor = 7
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_D:
         value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_h, to_unit)
-        overflow_limit = INT64_MAX // 24
-        if value > overflow_limit or value < -overflow_limit:
-            raise OverflowError("result would overflow")
-        return 24 * value
+        factor = 24
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_h:
         value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_m, to_unit)
-        overflow_limit = INT64_MAX // 60
-        if value > overflow_limit or value < -overflow_limit:
-            raise OverflowError("result would overflow")
-        return 60 * value
+        factor = 60
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_m:
         value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_s, to_unit)
-        overflow_limit = INT64_MAX // 60
-        if value > overflow_limit or value < -overflow_limit:
-            raise OverflowError("result would overflow")
-        return 60 * value
+        factor = 60
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_s:
         value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ms, to_unit)
-        overflow_limit = INT64_MAX // 1000
-        if value > overflow_limit or value < -overflow_limit:
-            raise OverflowError("result would overflow")
-        return 1000 * value
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ms:
         value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_us, to_unit)
-        overflow_limit = INT64_MAX // 1000
-        if value > overflow_limit or value < -overflow_limit:
-            raise OverflowError("result would overflow")
-        return 1000 * value
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_us:
         value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ns, to_unit)
-        overflow_limit = INT64_MAX // 1000
-        if value > overflow_limit or value < -overflow_limit:
-            raise OverflowError("result would overflow")
-        return 1000 * value
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ns:
         value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_ps, to_unit)
-        overflow_limit = INT64_MAX // 1000
-        if value > overflow_limit or value < -overflow_limit:
-            raise OverflowError("result would overflow")
-        return 1000 * value
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_ps:
         value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_fs, to_unit)
-        overflow_limit = INT64_MAX // 1000
-        if value > overflow_limit or value < -overflow_limit:
-            raise OverflowError("result would overflow")
-        return 1000 * value
+        factor = 1000
     elif from_unit == NPY_DATETIMEUNIT.NPY_FR_fs:
         value = get_conversion_factor(NPY_DATETIMEUNIT.NPY_FR_as, to_unit)
-        overflow_limit = INT64_MAX // 1000
-        if value > overflow_limit or value < -overflow_limit:
-            raise OverflowError("result would overflow")
-        return 1000 * value
+        factor = 1000
     else:
         raise ValueError("Converting from M or Y units is not supported.")
+
+    overflow_limit = INT64_MAX // factor
+    if value > overflow_limit or value < -overflow_limit:
+        raise OverflowError("result would overflow")
+
+    return factor * value
 
 
 cdef int64_t convert_reso(
