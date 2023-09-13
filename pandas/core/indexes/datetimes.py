@@ -198,8 +198,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     timetz
     dayofyear
     day_of_year
-    weekofyear
-    week
     dayofweek
     day_of_week
     weekday
