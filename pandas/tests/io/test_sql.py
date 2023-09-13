@@ -540,9 +540,9 @@ def sqlite_engine(sqlite_str, iris_path, types_data):
     yield engine
     with engine.connect() as conn:
         with conn.begin():
-            for view in get_all_views(engine):
+            for view in get_all_views(conn):
                 drop_view(view, conn)
-            for tbl in get_all_tables(engine):
+            for tbl in get_all_tables(conn):
                 drop_table(tbl, conn)
 
     engine.dispose()
@@ -609,10 +609,10 @@ def sqlite_sqlalchemy_memory_engine(iris_path, types_data):
     yield engine
     with engine.connect() as conn:
         with conn.begin():
-            for view in get_all_views(engine):
-                drop_view(view, engine)
-            for tbl in get_all_tables(engine):
-                drop_table(tbl, engine)
+            for view in get_all_views(conn):
+                drop_view(view, conn)
+            for tbl in get_all_tables(conn):
+                drop_table(tbl, conn)
 
 
 @pytest.fixture
@@ -1162,28 +1162,25 @@ def flavor():
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_parameter(conn, request, sql_strings, flavor):
     conn_name = conn
-    if "engine" in conn:
-        pytest.skip(reason="can hang forever with engine")
-
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_parameters"][flavor(conn_name)]
     params = ("Iris-setosa", 5.1)
     pandasSQL = pandasSQL_builder(conn)
-    iris_frame = pandasSQL.read_query(query, params=params)
+
+    with pandasSQL.run_transaction():
+        iris_frame = pandasSQL.read_query(query, params=params)
     check_iris_frame(iris_frame)
 
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
     conn_name = conn
-    if "engine" in conn:
-        pytest.skip(reason="can hang forever with engine")
-
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_named_parameters"][flavor(conn_name)]
     params = {"name": "Iris-setosa", "length": 5.1}
     pandasSQL = pandasSQL_builder(conn)
-    iris_frame = pandasSQL.read_query(query, params=params)
+    with pandasSQL.run_transaction():
+        iris_frame = pandasSQL.read_query(query, params=params)
     check_iris_frame(iris_frame)
 
 
@@ -1191,15 +1188,14 @@ def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
 def test_read_sql_iris_no_parameter_with_percent(conn, request, sql_strings, flavor):
     if "mysql" in conn or "postgresql" in conn:
         request.node.add_marker(pytest.mark.xfail(reason="broken test"))
-    if "engine" in conn:
-        pytest.skip(reason="can hang forever with engine")
 
     conn_name = conn
     conn = request.getfixturevalue(conn)
 
     query = sql_strings["read_no_parameters_with_percent"][flavor(conn_name)]
     pandasSQL = pandasSQL_builder(conn)
-    iris_frame = pandasSQL.read_query(query, params=None)
+    with pandasSQL.run_transaction():
+        iris_frame = pandasSQL.read_query(query, params=None)
     check_iris_frame(iris_frame)
 
 
@@ -2205,15 +2201,14 @@ def test_drop_table(conn, request):
 def test_roundtrip(conn, request, test_frame1):
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
-    elif "engine" in conn:
-        pytest.skip(reason="fails and hangs forever with engine")
 
     conn = request.getfixturevalue(conn)
     drop_table("test_frame_roundtrip", conn)
 
     pandasSQL = pandasSQL_builder(conn)
     assert pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
-    result = pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
+    with pandasSQL.run_transaction():
+        result = pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
 
     result.set_index("level_0", inplace=True)
     # result.index.astype(int)
@@ -2687,9 +2682,6 @@ def test_transactions(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_transaction_rollback(conn, request):
-    if "engine" in conn:
-        pytest.skip(reason="fails and hangs forever with engine")
-
     conn = request.getfixturevalue(conn)
     pandasSQL = pandasSQL_builder(conn)
     with pandasSQL.run_transaction() as trans:
@@ -2718,13 +2710,14 @@ def test_transaction_rollback(conn, request):
     except DummyException:
         # ignore raised exception
         pass
-    res = pandasSQL.read_query("SELECT * FROM test_trans")
+    with pandasSQL.run_transaction():
+        res = pandasSQL.read_query("SELECT * FROM test_trans")
     assert len(res) == 0
 
     # Make sure when transaction is committed, rows do get inserted
     with pandasSQL.run_transaction() as trans:
         trans.execute(ins_sql)
-    res2 = pandasSQL.read_query("SELECT * FROM test_trans")
+        res2 = pandasSQL.read_query("SELECT * FROM test_trans")
     assert len(res2) == 1
 
 
