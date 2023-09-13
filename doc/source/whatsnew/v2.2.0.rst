@@ -188,6 +188,7 @@ Bug fixes
 ~~~~~~~~~
 - Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
 - Bug in :class:`pandas.core.window.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
+- Bug in :class:`pandas.io.parsers.ArrowParserWrapper` where ``usecols`` wasn't working when using pyarrow to read a csv with no headers (:issue:`54459`)
 
 Categorical
 ^^^^^^^^^^^
