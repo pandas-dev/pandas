@@ -31,6 +31,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY311,
     is_ci_environment,
@@ -2477,7 +2478,7 @@ def test_dt_tz(tz):
         dtype=ArrowDtype(pa.timestamp("ns", tz=tz)),
     )
     result = ser.dt.tz
-    assert result == tz
+    assert result == timezones.maybe_get_tz(tz)
 
 
 def test_dt_isocalendar():
