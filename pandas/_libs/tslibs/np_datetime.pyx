@@ -642,9 +642,9 @@ cdef int64_t convert_reso(
         mult = get_conversion_factor(from_reso, to_reso)
         overflow_limit = INT64_MAX // mult
         if value > overflow_limit or value < -overflow_limit:
+            # Note: caller is responsible for re-raising as OutOfBoundsTimedelta
             raise OverflowError("result would overflow")
 
-        # Note: caller is responsible for re-raising as OutOfBoundsTimedelta
         res_value = value * mult
 
     return res_value
