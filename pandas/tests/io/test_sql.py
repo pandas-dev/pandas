@@ -1141,18 +1141,21 @@ class PandasSQLTest:
     def _read_sql_iris_parameter(self, sql_strings):
         query = sql_strings["read_parameters"][self.flavor]
         params = ("Iris-setosa", 5.1)
-        iris_frame = self.pandasSQL.read_query(query, params=params)
+        with self.pandasSQL.run_transaction():
+            iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
 
     def _read_sql_iris_named_parameter(self, sql_strings):
         query = sql_strings["read_named_parameters"][self.flavor]
         params = {"name": "Iris-setosa", "length": 5.1}
-        iris_frame = self.pandasSQL.read_query(query, params=params)
+        with self.pandasSQL.run_transaction():
+            iris_frame = self.pandasSQL.read_query(query, params=params)
         check_iris_frame(iris_frame)
 
     def _read_sql_iris_no_parameter_with_percent(self, sql_strings):
         query = sql_strings["read_no_parameters_with_percent"][self.flavor]
-        iris_frame = self.pandasSQL.read_query(query, params=None)
+        with self.pandasSQL.run_transaction():
+            iris_frame = self.pandasSQL.read_query(query, params=None)
         check_iris_frame(iris_frame)
 
     def _to_sql_empty(self, test_frame1):
@@ -1182,7 +1185,8 @@ class PandasSQLTest:
     def _roundtrip(self, test_frame1):
         self.drop_table("test_frame_roundtrip", self.conn)
         assert self.pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
-        result = self.pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
+        with self.pandasSQL.run_transaction():
+            result = self.pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
 
         result.set_index("level_0", inplace=True)
         # result.index.astype(int)
@@ -1232,13 +1236,14 @@ class PandasSQLTest:
         except DummyException:
             # ignore raised exception
             pass
-        res = self.pandasSQL.read_query("SELECT * FROM test_trans")
+        with self.pandasSQL.run_transaction():
+            res = self.pandasSQL.read_query("SELECT * FROM test_trans")
         assert len(res) == 0
 
         # Make sure when transaction is committed, rows do get inserted
         with self.pandasSQL.run_transaction() as trans:
             trans.execute(ins_sql)
-        res2 = self.pandasSQL.read_query("SELECT * FROM test_trans")
+            res2 = self.pandasSQL.read_query("SELECT * FROM test_trans")
         assert len(res2) == 1
 
 
