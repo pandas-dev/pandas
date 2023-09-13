@@ -809,7 +809,7 @@ class TestSetOpsUnsorted:
         left = Index([1, 1])
         right = Index([True])
         result = left.difference(right)
-        expected = left.unique()
+        expected = Index([1])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
