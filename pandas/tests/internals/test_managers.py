@@ -98,7 +98,7 @@ def test_array_manager_depr_env_var(manager):
         check=True,
     )
     if manager == "block":
-        assert response.stderr.decode("utf-8") == ""
+        assert response.stderr.decode("utf-8") == "", response
     else:
         msg = "<string>:1: FutureWarning: Using ArrayManger through the environment"
-        assert response.stderr.decode("utf-8").startswith(msg)
+        assert response.stderr.decode("utf-8").startswith(msg), response
