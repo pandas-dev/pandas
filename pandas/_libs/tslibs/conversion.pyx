@@ -397,6 +397,7 @@ cdef _TSObject convert_datetime_to_tsobject(
     if nanos:
         obj.dts.ps = nanos * 1000
 
+    check_dts_bounds(&obj.dts, reso)
     obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
@@ -404,7 +405,6 @@ cdef _TSObject convert_datetime_to_tsobject(
         pps = periods_per_second(reso)
         obj.value -= int(offset.total_seconds() * pps)
 
-    check_dts_bounds(&obj.dts, reso)
     check_overflows(obj, reso)
     return obj
 
@@ -434,6 +434,7 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         datetime dt
         Py_ssize_t pos
 
+    check_dts_bounds(&dts, reso)
     value = npy_datetimestruct_to_datetime(reso, &dts)
     obj.dts = dts
     obj.tzinfo = timezone(timedelta(minutes=tzoffset))

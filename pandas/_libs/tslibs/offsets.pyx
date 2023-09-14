@@ -63,6 +63,7 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
+    check_dts_bounds,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -3093,6 +3094,8 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
                     days_in_month = get_days_in_month(dts.year, dts.month)
                     dts.day = min(to_day, days_in_month)
 
+                    with gil:
+                        check_dts_bounds(&dts, reso)
                     res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
                 # Analogous to: out[i] = res_val
@@ -4762,6 +4765,8 @@ cdef ndarray shift_quarters(
                 dts.month = month_add_months(dts, modby * n - months_since)
                 dts.day = get_day_of_month(&dts, day_opt)
 
+                with gil:
+                    check_dts_bounds(&dts, reso)
                 res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
             # Analogous to: out[i] = res_val
@@ -4820,6 +4825,8 @@ def shift_months(
                     dts.month = month_add_months(dts, months)
 
                     dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
+                    with gil:
+                        check_dts_bounds(&dts, reso)
                     res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
                 # Analogous to: out[i] = res_val
@@ -4846,6 +4853,8 @@ def shift_months(
                     dts.month = month_add_months(dts, months_to_roll)
                     dts.day = get_day_of_month(&dts, day_opt)
 
+                    with gil:
+                        check_dts_bounds(&dts, reso)
                     res_val = npy_datetimestruct_to_datetime(reso, &dts)
 
                 # Analogous to: out[i] = res_val

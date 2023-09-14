@@ -721,6 +721,8 @@ cdef int64_t unix_date_from_ymd(int year, int month, int day) noexcept nogil:
         npy_datetimestruct dts
         int64_t unix_date
 
+    with gil:
+        check_dts_bounds(&dts, NPY_FR_D)
     memset(&dts, 0, sizeof(npy_datetimestruct))
     dts.year = year
     dts.month = month
@@ -738,6 +740,8 @@ cdef int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) noexcept n
     cdef:
         int64_t result
 
+    with gil:
+        check_dts_bounds(dts, NPY_DATETIMEUNIT.NPY_FR_Y)
     result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_Y, dts)
     if dts.month > to_end:
         return result + 1
@@ -795,14 +799,20 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) noexcept nogi
         return dts_to_qtr_ordinal(dts, fmonth)
 
     elif freq_group == FR_WK:
+        with gil:
+            check_dts_bounds(dts, NPY_FR_D)
         unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
         return unix_date_to_week(unix_date, freq - FR_WK)
 
     elif freq == FR_BUS:
+        with gil:
+            check_dts_bounds(dts, NPY_FR_D)
         unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
         return DtoB(dts, 0, unix_date)
 
     unit = freq_group_code_to_npy_unit(freq)
+    with gil:
+        check_dts_bounds(dts, unit)
     return npy_datetimestruct_to_datetime(unit, dts)
 
 

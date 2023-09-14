@@ -94,8 +94,8 @@ def _test_parse_iso8601(ts: str):
     obj = _TSObject()
 
     string_to_dts(ts, &obj.dts, &out_bestunit, &out_local, &out_tzoffset, True)
+    check_dts_bounds(&obj.dts, NPY_FR_ns)
     obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
-    check_dts_bounds(&obj.dts)
     if out_local == 1:
         obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
         obj.value = tz_localize_to_utc_single(obj.value, obj.tzinfo)

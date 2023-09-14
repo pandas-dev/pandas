@@ -325,6 +325,7 @@ def array_strptime(
             if string_to_dts_succeeded:
                 # No error reported by string_to_dts, pick back up
                 # where we left off
+                check_dts_bounds(&dts, NPY_FR_ns)
                 value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
                 if out_local == 1:
                     # Store the out_tzoffset in seconds
@@ -513,6 +514,7 @@ def array_strptime(
             dts.us = us
             dts.ps = ns * 1000
 
+            check_dts_bounds(&dts, NPY_FR_ns)
             iresult[i] = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
             check_dts_bounds(&dts)
 

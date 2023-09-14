@@ -267,6 +267,7 @@ cdef int64_t pydatetime_to_dt64(datetime val,
     Note we are assuming that the datetime object is timezone-naive.
     """
     pydatetime_to_dtstruct(val, dts)
+    check_dts_bounds(dts, reso)
     return npy_datetimestruct_to_datetime(reso, dts)
 
 
@@ -282,6 +283,7 @@ cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=NPY_FR_ns
 ):
     pydate_to_dtstruct(val, dts)
+    check_dts_bounds(dts, reso)
     return npy_datetimestruct_to_datetime(reso, dts)
 
 
