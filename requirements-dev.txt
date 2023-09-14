@@ -77,7 +77,6 @@ ipywidgets
 nbformat
 notebook>=6.0.3
 ipykernel
-jinja2
 markdown
 feedparser
 pyyaml
