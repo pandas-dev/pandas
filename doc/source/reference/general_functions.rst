@@ -58,6 +58,7 @@ Top-level dealing with datetimelike data
    period_range
    timedelta_range
    infer_freq
+   guess_datetime_format
 
 Top-level dealing with Interval data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
