@@ -286,6 +286,7 @@ value. (:issue:`17054`)
 
 .. ipython:: python
 
+    from io import StringIO
     result = pd.read_html(StringIO("""
       <table>
         <thead>

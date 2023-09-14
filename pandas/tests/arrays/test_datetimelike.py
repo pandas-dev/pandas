@@ -324,19 +324,12 @@ class SharedTests:
         ):
             arr.searchsorted("foo")
 
-        if string_storage == "python":
-            arr_type = "StringArray"
-        elif string_storage == "pyarrow":
-            arr_type = "ArrowStringArray"
-        else:
-            arr_type = "ArrowStringArrayNumpySemantics"
-
         with pd.option_context("string_storage", string_storage):
             with pytest.raises(
                 TypeError,
                 match=re.escape(
                     f"value should be a '{arr1d._scalar_type.__name__}', 'NaT', "
-                    f"or array of those. Got '{arr_type}' instead."
+                    "or array of those. Got string array instead."
                 ),
             ):
                 arr.searchsorted([str(arr[1]), "baz"])
