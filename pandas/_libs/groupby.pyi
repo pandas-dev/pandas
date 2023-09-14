@@ -185,13 +185,14 @@ def group_idxmin_idxmax(
     out: npt.NDArray[np.intp],
     counts: npt.NDArray[np.int64],
     values: np.ndarray,  # ndarray[groupby_t, ndim=2]
-    labels: npt.NDArray[np.int64],  # const intp[:]
+    labels: npt.NDArray[np.intp_t],
     min_count: int = ...,
     is_datetimelike: bool = ...,
     mask: np.ndarray | None = ...,
     name: str = ...,
     skipna: bool = ...,
     result_mask: np.ndarray | None = ...,
+    seen: npt.NDArray[np.uint8] | None = ...,
 ) -> None: ...
 def group_cummin(
     out: np.ndarray,  # groupby_t[:, ::1]
