@@ -63,7 +63,7 @@ class IndexType(types.Buffer):
         return type(self)(dtype, layout, self.pyclass)
 
 
-class SeriesType(types.ArrayCompatible):
+class SeriesType(types.Type):
     """
     The type class for Series objects.
     """
@@ -150,6 +150,10 @@ class IndexModel(models.StructModel):
             # typed dict
             # It maps from values in the index to their integer positions in the array
             ("hashmap", types.DictType(fe_type.dtype, types.intp)),
+            # Pointer to the Index object this was created from, or that it
+            # boxes to
+            # https://numba.discourse.group/t/qst-how-to-cache-the-boxing-of-an-object/2128/2?u=lithomas1
+            ("parent", types.pyobject)
         ]
         models.StructModel.__init__(self, dmm, fe_type, members)
 
@@ -195,8 +199,20 @@ def pdseries_constructor(context, builder, sig, args):
     return impl_ret_borrowed(context, builder, sig.return_type, series._getvalue())
 
 
-@lower_builtin(Index, types.Array, types.DictType)
+@lower_builtin(Index, types.Array, types.DictType, types.pyobject)
 def index_constructor_2arg(context, builder, sig, args):
+    (data, hashmap, parent) = args
+    index = cgutils.create_struct_proxy(sig.return_type)(context, builder)
+
+    index.data = data
+    index.hashmap = hashmap
+    index.parent = parent
+    return impl_ret_borrowed(context, builder, sig.return_type, index._getvalue())
+
+@lower_builtin(Index, types.Array, types.DictType)
+def index_constructor_2arg_parent(context, builder, sig, args):
+    # Basically same as index_constructor_1arg, but also lets you specify the
+    # parent object
     (data, hashmap) = args
     index = cgutils.create_struct_proxy(sig.return_type)(context, builder)
 
@@ -230,9 +246,11 @@ def unbox_index(typ, obj, c):
     """
     data_obj = c.pyapi.object_getattr_string(obj, "_data")
     index = cgutils.create_struct_proxy(typ)(c.context, c.builder)
+    # If we see an object array, assume its been validated as only containing strings
+    # We still need to do the conversion though
     index.data = c.unbox(typ.as_array, data_obj).value
     typed_dict_obj = c.pyapi.unserialize(c.pyapi.serialize_object(numba.typed.Dict))
-    # Create an empty typed dict in numba
+    # Create an empty typed dict in numba for the hasmap for indexing
     # equiv of numba.typed.Dict.empty(typ.dtype, types.intp)
     arr_type_obj = c.pyapi.unserialize(c.pyapi.serialize_object(typ.dtype))
     intp_type_obj = c.pyapi.unserialize(c.pyapi.serialize_object(types.intp))
@@ -240,6 +258,8 @@ def unbox_index(typ, obj, c):
         typed_dict_obj, "empty", (arr_type_obj, intp_type_obj)
     )
     index.hashmap = c.unbox(types.DictType(typ.dtype, types.intp), hashmap_obj).value
+    # Set the parent for speedy boxing.
+    index.parent = obj
 
     # Decrefs
     c.pyapi.decref(data_obj)
@@ -283,19 +303,36 @@ def box_index(typ, val, c):
     # First build a Numpy array object, then wrap it in a Index
     index = cgutils.create_struct_proxy(typ)(c.context, c.builder, value=val)
 
-    # TODO: preserve the original class for the index
-    # Also need preserve the name of the Index
+    res = cgutils.alloca_once_value(c.builder, index.parent)
 
-    # class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(typ.pyclass))
-    class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(Index))
-    array_obj = c.box(typ.as_array, index.data)
-    # this is basically Index._simple_new(array_obj, name_obj) in python
-    index_obj = c.pyapi.call_method(class_obj, "_simple_new", (array_obj,))
+    # Does parent exist?
+    # (it means already boxed once, or Index same as original df.index or df.columns)
+    # xref https://github.com/numba/numba/blob/596e8a55334cc46854e3192766e643767bd7c934/numba/core/boxing.py#L593C17-L593C17
+    with c.builder.if_else(cgutils.is_not_null(c.builder, index.parent)) as (has_parent, otherwise):
+        with has_parent:
+            c.pyapi.incref(index.parent)
+        with otherwise:
+            # TODO: preserve the original class for the index
+            # Also need preserve the name of the Index
+            # class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(typ.pyclass))
+            class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(Index))
+            array_obj = c.box(typ.as_array, index.data)
+            if isinstance(typ.dtype, types.UnicodeCharSeq):
+                # We converted to numpy string dtype, convert back
+                # to object since _simple_new won't do that for uss
+                object_str_obj = c.pyapi.unserialize(c.pyapi.serialize_object("object"))
+                array_obj = c.pyapi.call_method(array_obj, "astype", (object_str_obj,))
+                c.pyapi.decref(object_str_obj)
+            # this is basically Index._simple_new(array_obj, name_obj) in python
+            index_obj = c.pyapi.call_method(class_obj, "_simple_new", (array_obj,))
+            index.parent = index_obj
+            c.pyapi.print_object(index.parent)
+            c.builder.store(index_obj, res)
 
-    # Decrefs
-    c.pyapi.decref(class_obj)
-    c.pyapi.decref(array_obj)
-    return index_obj
+            # Decrefs
+            c.pyapi.decref(class_obj)
+            c.pyapi.decref(array_obj)
+    return c.builder.load(res)
 
 
 @box(SeriesType)
@@ -333,7 +370,8 @@ def box_series(typ, val, c):
     return series_obj
 
 
-# Add common series reductions
+# Add common series reductions (e.g. mean, sum),
+# and also add common binops (e.g. add, sub, mul, div)
 
 
 def generate_series_reduction(reduction, reduction_method):
@@ -347,6 +385,23 @@ def generate_series_reduction(reduction, reduction_method):
     return series_reduction
 
 
+def generate_series_binop(binop):
+    @overload(binop)
+    def series_binop(series1, value):
+        if isinstance(series1, SeriesType):
+            if isinstance(value, SeriesType):
+                def series_binop_impl(series1, series2):
+                    # TODO: Check index matching?
+                    return Series(binop(series1.values, series2.values), series1.index, series1.name)
+                return series_binop_impl
+            else:
+                def series_binop_impl(series1, value):
+                    return Series(binop(series1.values, value), series1.index, series1.name)
+                return series_binop_impl
+
+    return series_binop
+
+
 series_reductions = [
     ("sum", np.sum),
     ("mean", np.mean),
@@ -355,6 +410,16 @@ series_reductions = [
 ]
 for reduction, reduction_method in series_reductions:
     generate_series_reduction(reduction, reduction_method)
+
+series_binops = [
+    operator.add,
+    operator.sub,
+    operator.mul,
+    operator.truediv
+]
+
+for binop in series_binops:
+    generate_series_binop(binop)
 
 
 # get_loc on Index
