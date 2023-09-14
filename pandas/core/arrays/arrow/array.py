@@ -18,6 +18,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
+    timezones,
 )
 from pandas.compat import (
     pa_version_under7p0,
@@ -2192,11 +2193,11 @@ class ArrowExtensionArray(
         return type(self)(result)
 
     def _str_removeprefix(self, prefix: str):
-        # TODO: Should work once https://github.com/apache/arrow/issues/14991 is fixed
-        # starts_with = pc.starts_with(self._pa_array, pattern=prefix)
-        # removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
-        # result = pc.if_else(starts_with, removed, self._pa_array)
-        # return type(self)(result)
+        if not pa_version_under13p0:
+            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
+            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
+            result = pc.if_else(starts_with, removed, self._pa_array)
+            return type(self)(result)
         predicate = lambda val: val.removeprefix(prefix)
         result = self._apply_elementwise(predicate)
         return type(self)(pa.chunked_array(result))
@@ -2425,7 +2426,7 @@ class ArrowExtensionArray(
 
     @property
     def _dt_tz(self):
-        return self.dtype.pyarrow_dtype.tz
+        return timezones.maybe_get_tz(self.dtype.pyarrow_dtype.tz)
 
     @property
     def _dt_unit(self):
