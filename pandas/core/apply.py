@@ -955,7 +955,11 @@ class FrameApply(NDFrameApply):
             result = np.squeeze(result)
         else:
             result = np.apply_along_axis(
-                wrap_function(self.func), self.axis, self.values
+                wrap_function(self.func),
+                self.axis,
+                self.values,
+                *self.args,
+                **self.kwargs,
             )
 
         # TODO: mixed type case
@@ -1863,12 +1867,12 @@ def warn_alias_replacement(
         full_alias = alias
     else:
         full_alias = f"{type(obj).__name__}.{alias}"
-        alias = f"'{alias}'"
+        alias = f'"{alias}"'
     warnings.warn(
         f"The provided callable {func} is currently using "
         f"{full_alias}. In a future version of pandas, "
         f"the provided callable will be used directly. To keep current "
-        f"behavior pass {alias} instead.",
+        f"behavior pass the string {alias} instead.",
         category=FutureWarning,
         stacklevel=find_stack_level(),
     )
