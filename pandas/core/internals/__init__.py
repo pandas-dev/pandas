@@ -1,4 +1,3 @@
-from pandas.core.internals.api import make_block
 from pandas.core.internals.array_manager import (
     ArrayManager,
     SingleArrayManager,
@@ -6,11 +5,6 @@ from pandas.core.internals.array_manager import (
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
-)
-from pandas.core.internals.blocks import (  # io.pytables, io.packers
-    Block,
-    DatetimeTZBlock,
-    ExtensionBlock,
 )
 from pandas.core.internals.concat import concatenate_managers
 from pandas.core.internals.managers import (
@@ -41,7 +35,14 @@ def __getattr__(name: str):
 
     from pandas.util._exceptions import find_stack_level
 
-    if name in ["NumericBlock", "ObjectBlock"]:
+    if name in [
+        "NumericBlock",
+        "ObjectBlock",
+        "Block",
+        "ExtensionBlock",
+        "DatetimeTZBlock",
+        "make_block",
+    ]:
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
@@ -52,6 +53,22 @@ def __getattr__(name: str):
             from pandas.core.internals.blocks import NumericBlock
 
             return NumericBlock
+        elif name == "DatetimeTZBlock":
+            from pandas.core.internals.blocks import DatetimeTZBlock
+
+            return DatetimeTZBlock
+        elif name == "ExtensionBlock":
+            from pandas.core.internals.blocks import ExtensionBlock
+
+            return ExtensionBlock
+        elif name == "Block":
+            from pandas.core.internals.blocks import Block
+
+            return Block
+        elif name == "make_block":
+            from pandas.core.internals.api import make_block
+
+            return make_block
         else:
             from pandas.core.internals.blocks import ObjectBlock
 

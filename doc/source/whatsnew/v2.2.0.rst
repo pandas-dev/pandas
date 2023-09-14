@@ -169,6 +169,8 @@ Deprecations
 - Deprecated strings ``T``, ``S``, ``L``, ``U``, and ``N`` denoting frequencies in :class:`Minute`, :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano` (:issue:`52536`)
 - Deprecated strings ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
+- Deprecated ``core.internals`` members ``Block``, ``ExtensionBlock``, ``DatetimeTZBlock``, and ``make_block``, use public APIs instead (:issue:`??`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.performance:
