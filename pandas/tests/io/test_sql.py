@@ -428,7 +428,8 @@ def drop_table(
         conn.execute(f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}")
         conn.commit()
     else:
-        sql.SQLDatabase(conn).drop_table(table_name)
+        with conn.begin() as con:
+            sql.SQLDatabase(con).drop_table(table_name)
 
 
 def drop_view(
@@ -443,11 +444,8 @@ def drop_view(
             view_name
         )
         stmt = sqlalchemy.text(f"DROP VIEW IF EXISTS {quoted_view}")
-        if isinstance(conn, sqlalchemy.engine.Engine):
-            with conn.connect() as conn:
-                conn.execute(stmt)
-        else:
-            conn.execute(stmt)
+        with conn.begin() as con:
+            con.execute(stmt)
 
 
 @pytest.fixture
@@ -469,12 +467,10 @@ def mysql_pymysql_engine(iris_path, types_data):
     if not insp.has_table("iris_view"):
         create_and_load_iris_view(engine)
     yield engine
-    with engine.connect() as conn:
-        with conn.begin():
-            for view in get_all_views(conn):
-                drop_view(view, conn)
-            for tbl in get_all_tables(conn):
-                drop_table(tbl, conn)
+    for view in get_all_views(engine):
+        drop_view(view, engine)
+    for tbl in get_all_tables(engine):
+        drop_table(tbl, engine)
     engine.dispose()
 
 
@@ -500,12 +496,10 @@ def postgresql_psycopg2_engine(iris_path, types_data):
     if not insp.has_table("iris_view"):
         create_and_load_iris_view(engine)
     yield engine
-    with engine.connect() as conn:
-        with conn.begin():
-            for view in get_all_views(conn):
-                drop_view(view, conn)
-            for tbl in get_all_tables(conn):
-                drop_table(tbl, conn)
+    for view in get_all_views(engine):
+        drop_view(view, engine)
+    for tbl in get_all_tables(engine):
+        drop_table(tbl, engine)
     engine.dispose()
 
 
@@ -538,13 +532,10 @@ def sqlite_engine(sqlite_str, iris_path, types_data):
         create_and_load_types(engine, types_data, "sqlite")
 
     yield engine
-    with engine.connect() as conn:
-        with conn.begin():
-            for view in get_all_views(conn):
-                drop_view(view, conn)
-            for tbl in get_all_tables(conn):
-                drop_table(tbl, conn)
-
+    for view in get_all_views(engine):
+        drop_view(view, engine)
+    for tbl in get_all_tables(engine):
+        drop_table(tbl, engine)
     engine.dispose()
 
 
@@ -607,12 +598,10 @@ def sqlite_sqlalchemy_memory_engine(iris_path, types_data):
         create_and_load_types(engine, types_data, "sqlite")
 
     yield engine
-    with engine.connect() as conn:
-        with conn.begin():
-            for view in get_all_views(conn):
-                drop_view(view, conn)
-            for tbl in get_all_tables(conn):
-                drop_table(tbl, conn)
+    for view in get_all_views(engine):
+        drop_view(view, engine)
+    for tbl in get_all_tables(engine):
+        drop_table(tbl, engine)
 
 
 @pytest.fixture
@@ -2203,11 +2192,9 @@ def test_roundtrip(conn, request, test_frame1):
         pytest.skip("sqlite_str has no inspection system")
 
     conn = request.getfixturevalue(conn)
-    drop_table("test_frame_roundtrip", conn)
-
     pandasSQL = pandasSQL_builder(conn)
-    assert pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
     with pandasSQL.run_transaction():
+        assert pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
         result = pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
 
     result.set_index("level_0", inplace=True)
@@ -2740,7 +2727,6 @@ def test_get_schema_create_table(conn, request, test_frame3):
     create_sql = sql.get_schema(test_frame3, tbl, con=conn)
     blank_test_df = test_frame3.iloc[:0]
 
-    drop_table(tbl, conn)
     create_sql = text(create_sql)
     if isinstance(conn, Engine):
         with conn.connect() as newcon:
