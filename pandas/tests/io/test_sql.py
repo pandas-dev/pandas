@@ -445,7 +445,7 @@ def drop_view(
         )
         stmt = sqlalchemy.text(f"DROP VIEW IF EXISTS {quoted_view}")
         with conn.begin() as con:
-            con.execute(stmt)
+            con.execute(stmt)  # type: ignore[union-attr]
 
 
 @pytest.fixture
