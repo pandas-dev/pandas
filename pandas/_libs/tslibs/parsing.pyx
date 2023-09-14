@@ -882,6 +882,17 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     str or None : ret
         datetime format string (for `strftime` or `strptime`),
         or None if it can't be guessed.
+
+    Examples
+    --------
+    # successful guess
+    # returns a datetime formatted string
+    >>> guess_datetime_format('13/09/2023')
+    '%d/%m/%Y'
+
+    # unsuccessful guess due to date string with extra or unexpected characters
+    # returns nothing
+     >>> guess_datetime_format('2023|September|13')
     """
     cdef:
         NPY_DATETIMEUNIT out_bestunit
