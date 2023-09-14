@@ -31,6 +31,7 @@ __all__ = [
 
 
 def __getattr__(name: str):
+    # GH#55139
     import warnings
 
     from pandas.util._exceptions import find_stack_level

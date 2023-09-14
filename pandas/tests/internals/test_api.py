@@ -58,6 +58,7 @@ def test_namespace():
     ],
 )
 def test_deprecations(name):
+    # GH#55139
     msg = f"{name} is deprecated.* Use public APIs instead"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         getattr(internals, name)

@@ -112,6 +112,7 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int
 
 
 def __getattr__(name: str):
+    # GH#55139
     import warnings
 
     from pandas.util._exceptions import find_stack_level
