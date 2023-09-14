@@ -2487,6 +2487,13 @@ class TestDataFramePlots:
                 assert ax.get_ylim() == (0, 100)
                 assert ax.get_yticks()[0] == 99
 
+    @pytest.mark.slow
+    def test_plot_no_warning(self):
+        df = tm.makeTimeDataFrame()
+        with tm.assert_produces_warning(False):
+            _ = df.plot()
+            _ = df.T.plot()
+
 
 def _generate_4_axes_via_gridspec():
     import matplotlib.pyplot as plt

@@ -973,3 +973,8 @@ class TestSeriesPlots:
         ax = series.plot(color=None)
         expected = _unpack_cycler(mpl.pyplot.rcParams)[:1]
         _check_colors(ax.get_lines(), linecolors=expected)
+
+    @pytest.mark.slow
+    def test_plot_no_warning(self, ts):
+        with tm.assert_produces_warning(False):
+            _ = ts.plot()
