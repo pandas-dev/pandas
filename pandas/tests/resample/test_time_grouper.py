@@ -305,10 +305,10 @@ def test_repr():
 )
 def test_upsample_sum(method, method_args, expected_values):
     s = Series(1, index=date_range("2017", periods=2, freq="H"))
-    resampled = s.resample("30T")
+    resampled = s.resample("30min")
     index = pd.DatetimeIndex(
         ["2017-01-01T00:00:00", "2017-01-01T00:30:00", "2017-01-01T01:00:00"],
-        freq="30T",
+        freq="30min",
     )
     result = methodcaller(method, **method_args)(resampled)
     expected = Series(expected_values, index=index)
@@ -323,12 +323,14 @@ def test_groupby_resample_interpolate():
 
     df["week_starting"] = date_range("01/01/2018", periods=3, freq="W")
 
-    result = (
-        df.set_index("week_starting")
-        .groupby("volume")
-        .resample("1D")
-        .interpolate(method="linear")
-    )
+    msg = "DataFrameGroupBy.resample operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = (
+            df.set_index("week_starting")
+            .groupby("volume")
+            .resample("1D")
+            .interpolate(method="linear")
+        )
 
     expected_ind = pd.MultiIndex.from_tuples(
         [

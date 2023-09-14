@@ -5,6 +5,8 @@ from typing import final
 import numpy as np
 import pytest
 
+from pandas.core.dtypes.common import is_string_dtype
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core import ops
@@ -128,12 +130,18 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         # series & scalar
+        if all_arithmetic_operators == "__rmod__" and is_string_dtype(data.dtype):
+            pytest.skip("Skip testing Python string formatting")
+
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
         self.check_opname(ser, op_name, ser.iloc[0])
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
         # frame & scalar
+        if all_arithmetic_operators == "__rmod__" and is_string_dtype(data.dtype):
+            pytest.skip("Skip testing Python string formatting")
+
         op_name = all_arithmetic_operators
         df = pd.DataFrame({"A": data})
         self.check_opname(df, op_name, data[0])

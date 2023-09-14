@@ -71,6 +71,7 @@ from pandas.core.indexes.api import (
     Index,
     MultiIndex,
 )
+from pandas.util.version import Version
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -144,6 +145,7 @@ def pytest_collection_modifyitems(items, config) -> None:
         ("is_sparse", "is_sparse is deprecated"),
         ("NDFrame.replace", "The 'method' keyword"),
         ("NDFrame.replace", "Series.replace without 'value'"),
+        ("NDFrame.clip", "Downcasting behavior in Series and DataFrame methods"),
         ("Series.idxmin", "The behavior of Series.idxmin"),
         ("Series.idxmax", "The behavior of Series.idxmax"),
         ("SeriesGroupBy.idxmin", "The behavior of Series.idxmin"),
@@ -192,6 +194,10 @@ def pytest_collection_modifyitems(items, config) -> None:
             item.add_marker(pytest.mark.arraymanager)
 
 
+hypothesis_health_checks = [hypothesis.HealthCheck.too_slow]
+if Version(hypothesis.__version__) >= Version("6.83.2"):
+    hypothesis_health_checks.append(hypothesis.HealthCheck.differing_executors)
+
 # Hypothesis
 hypothesis.settings.register_profile(
     "ci",
@@ -203,7 +209,7 @@ hypothesis.settings.register_profile(
     # 2022-02-09: Changed deadline from 500 -> None. Deadline leads to
     # non-actionable, flaky CI failures (# GH 24641, 44969, 45118, 44969)
     deadline=None,
-    suppress_health_check=(hypothesis.HealthCheck.too_slow,),
+    suppress_health_check=tuple(hypothesis_health_checks),
 )
 hypothesis.settings.load_profile("ci")
 
@@ -493,7 +499,7 @@ box_with_array2 = box_with_array
 
 
 @pytest.fixture
-def dict_subclass():
+def dict_subclass() -> type[dict]:
     """
     Fixture for a dictionary subclass.
     """
@@ -506,7 +512,7 @@ def dict_subclass():
 
 
 @pytest.fixture
-def non_dict_mapping_subclass():
+def non_dict_mapping_subclass() -> type[abc.Mapping]:
     """
     Fixture for a non-mapping dictionary subclass.
     """

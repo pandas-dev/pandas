@@ -7,7 +7,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython>=0.29.33
+  - cython>=0.29.33, <3.0.1
   - meson[ninja]=1.0.1
   - meson-python=0.13.1
 
@@ -47,6 +47,7 @@ dependencies:
   - pymysql>=1.0.2
   - pyreadstat>=1.1.5
   - pytables>=3.7.0
+  - python-calamine>=0.1.6
   - pyxlsb>=1.0.9
   - s3fs>=2022.05.0
   - scipy>=1.8.1

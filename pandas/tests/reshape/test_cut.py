@@ -21,7 +21,7 @@ from pandas import (
     to_datetime,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
+from pandas.api.types import CategoricalDtype
 import pandas.core.reshape.tile as tmod
 
 
@@ -359,7 +359,7 @@ def test_cut_return_intervals():
         IntervalIndex.from_breaks(exp_bins, closed="right").take(
             [0, 0, 0, 1, 1, 1, 2, 2, 2]
         )
-    ).astype(CDT(ordered=True))
+    ).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -370,7 +370,7 @@ def test_series_ret_bins():
 
     expected = Series(
         IntervalIndex.from_breaks([-0.003, 1.5, 3], closed="right").repeat(2)
-    ).astype(CDT(ordered=True))
+    ).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -445,7 +445,7 @@ def test_datetime_bin(conv):
                 Interval(Timestamp(bin_data[1]), Timestamp(bin_data[2])),
             ]
         )
-    ).astype(CDT(ordered=True))
+    ).astype(CategoricalDtype(ordered=True))
 
     bins = [conv(v) for v in bin_data]
     result = Series(cut(data, bins=bins))
@@ -491,7 +491,7 @@ def test_datetime_cut(data):
                 ),
             ]
         )
-    ).astype(CDT(ordered=True))
+    ).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(Series(result), expected)
 
 
@@ -534,7 +534,7 @@ def test_datetime_tz_cut(bins, box):
                 ),
             ]
         )
-    ).astype(CDT(ordered=True))
+    ).astype(CategoricalDtype(ordered=True))
     tm.assert_series_equal(result, expected)
 
 
@@ -700,7 +700,7 @@ def test_cut_with_duplicated_index_lowest_included():
 def test_cut_with_nonexact_categorical_indices():
     # GH 42424
 
-    ser = Series(range(0, 100))
+    ser = Series(range(100))
     ser1 = cut(ser, 10).value_counts().head(5)
     ser2 = cut(ser, 10).value_counts().tail(5)
     result = DataFrame({"1": ser1, "2": ser2})
