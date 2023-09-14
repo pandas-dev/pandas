@@ -185,7 +185,7 @@ def group_idxmin_idxmax(
     out: npt.NDArray[np.intp],
     counts: npt.NDArray[np.int64],
     values: np.ndarray,  # ndarray[groupby_t, ndim=2]
-    labels: npt.NDArray[np.intp_t],
+    labels: npt.NDArray[np.intp],
     min_count: int = ...,
     is_datetimelike: bool = ...,
     mask: np.ndarray | None = ...,
