@@ -112,7 +112,7 @@ TimeArrayLike = Union["DatetimeArray", "TimedeltaArray"]
 # Cannot use `Sequence` because a string is a sequence, and we don't want to
 # accept that.  Could refine if https://github.com/python/typing/issues/256 is
 # resolved to differentiate between Sequence[str] and str
-ListLike = Union[AnyArrayLike, list, range]
+ListLike = Union[AnyArrayLike, list, tuple, range]
 
 # scalars
 

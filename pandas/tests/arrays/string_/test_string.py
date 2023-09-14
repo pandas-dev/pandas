@@ -377,8 +377,16 @@ def test_astype_int(dtype):
     tm.assert_numpy_array_equal(result, expected)
 
     arr = pd.array(["1", pd.NA, "3"], dtype=dtype)
-    msg = r"int\(\) argument must be a string, a bytes-like object or a( real)? number"
-    with pytest.raises(TypeError, match=msg):
+    if dtype.storage == "pyarrow_numpy":
+        err = ValueError
+        msg = "cannot convert float NaN to integer"
+    else:
+        err = TypeError
+        msg = (
+            r"int\(\) argument must be a string, a bytes-like "
+            r"object or a( real)? number"
+        )
+    with pytest.raises(err, match=msg):
         arr.astype("int64")
 
 
