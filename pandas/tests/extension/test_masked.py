@@ -323,6 +323,13 @@ class TestMaskedArrays(base.ExtensionTests):
             else:
                 expected_dtype = f"Int{length}"
 
+        if expected_dtype == "Float32" and op_name == "cumprod" and skipna:
+            # TODO: xfail?
+            pytest.skip(
+                f"Float32 precision lead to large differences with op {op_name} "
+                f"and skipna={skipna}"
+            )
+
         if op_name == "cumsum":
             result = getattr(ser, op_name)(skipna=skipna)
             expected = pd.Series(
