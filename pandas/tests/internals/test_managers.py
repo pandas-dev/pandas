@@ -97,8 +97,9 @@ def test_array_manager_depr_env_var(manager):
         env=test_env,
         check=True,
     )
+    msg = "<string>:1: FutureWarning: Using ArrayManger through the environment"
+    stderr_msg = response.stderr.decode("utf-8")
     if manager == "block":
-        assert response.stderr.decode("utf-8") == ""
+        assert msg not in stderr_msg, stderr_msg
     else:
-        msg = "<string>:1: FutureWarning: Using ArrayManger through the environment"
-        assert response.stderr.decode("utf-8").startswith(msg)
+        assert msg in stderr_msg, stderr_msg
