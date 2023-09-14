@@ -97,9 +97,6 @@ def test_array_manager_depr_env_var(manager):
         env=test_env,
         check=True,
     )
-    msg = "<string>:1: FutureWarning: Using ArrayManger through the environment"
+    msg = "FutureWarning: The env variable PANDAS_DATA_MANAGER is set"
     stderr_msg = response.stderr.decode("utf-8")
-    if manager == "block":
-        assert msg not in stderr_msg, stderr_msg
-    else:
-        assert msg in stderr_msg, stderr_msg
+    assert msg in stderr_msg, stderr_msg
