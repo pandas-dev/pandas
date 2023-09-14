@@ -544,7 +544,7 @@ class PeriodProperties(Properties):
     1    2000-01-01 01:00
     2    2000-01-01 02:00
     3    2000-01-01 03:00
-    dtype: period[H]
+    dtype: period[h]
     >>> hours_series.dt.hour
     0    0
     1    1

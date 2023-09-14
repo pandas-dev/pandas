@@ -533,7 +533,7 @@ class TestPeriodDtype(Base):
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert is_period_dtype(dtype)
 
-            pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="H")
+            pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="h")
 
             assert is_period_dtype(pidx.dtype)
             assert is_period_dtype(pidx)

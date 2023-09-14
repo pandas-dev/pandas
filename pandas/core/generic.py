@@ -8932,7 +8932,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='12H')
+        >>> i = pd.date_range('2018-04-09', periods=4, freq='12h')
         >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
         >>> ts
                              A
@@ -11264,7 +11264,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2015-03-29 01:59:59.999999999+01:00    0
         2015-03-29 03:30:00+02:00              1
         dtype: int64
-        >>> s.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
+        >>> s.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
         2015-03-29 03:30:00+02:00    0
         2015-03-29 03:30:00+02:00    1
         dtype: int64

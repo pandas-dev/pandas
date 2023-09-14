@@ -716,7 +716,7 @@ cdef datetime dateutil_parse(
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
 
-            # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
+            # dateutil can return a datetime with a tzoffset outside of (-24h, 24h)
             #  bounds, which is invalid (can be constructed, but raises if we call
             #  str(ret)).  Check that and raise here if necessary.
             try:

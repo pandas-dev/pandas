@@ -369,13 +369,13 @@ class Resampler(BaseGroupBy, PandasObject):
         >>> s
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         >>> resampled = s.resample('15min')
         >>> resampled.transform(lambda x: (x - x.mean()) / x.std())
         2018-01-01 00:00:00   NaN
         2018-01-01 01:00:00   NaN
-        Freq: H, dtype: float64
+        Freq: h, dtype: float64
         """
         return self._selected_obj.groupby(self._timegrouper).transform(
             arg, *args, **kwargs
@@ -597,7 +597,7 @@ class Resampler(BaseGroupBy, PandasObject):
         >>> s
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         >>> s.resample('15min').nearest()
         2018-01-01 00:00:00    1
@@ -666,7 +666,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
         2018-01-01 02:00:00    3
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         >>> s.resample('30min').bfill()
         2018-01-01 00:00:00    1
@@ -777,7 +777,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
         2018-01-01 02:00:00    3
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         Without filling the missing values you get:
 
@@ -833,7 +833,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:00:00    1.0
         2018-01-01 01:00:00    NaN
         2018-01-01 02:00:00    3.0
-        Freq: H, dtype: float64
+        Freq: h, dtype: float64
 
         >>> sm.resample('30min').fillna('backfill')
         2018-01-01 00:00:00    1.0
@@ -2479,8 +2479,8 @@ def _get_timestamp_range_edges(
             origin = Timestamp("1970-01-01", tz=index_tz)
 
         if isinstance(freq, Day):
-            # _adjust_dates_anchored assumes 'D' means 24H, but first/last
-            # might contain a DST transition (23H, 24H, or 25H).
+            # _adjust_dates_anchored assumes 'D' means 24h, but first/last
+            # might contain a DST transition (23h, 24h, or 25h).
             # So "pretend" the dates are naive when adjusting the endpoints
             first = first.tz_localize(None)
             last = last.tz_localize(None)

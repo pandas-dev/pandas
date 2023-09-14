@@ -1442,7 +1442,7 @@ cdef class _Timedelta(timedelta):
         Resolution:     Return value
 
         * Days:         'D'
-        * Hours:        'H'
+        * Hours:        'h'
         * Minutes:      'min'
         * Seconds:      's'
         * Milliseconds: 'ms'
@@ -1725,8 +1725,8 @@ class Timedelta(_Timedelta):
 
         .. deprecated:: 2.2.0
 
-            Values `T`, `S`, `L`, `U`, and `N` are deprecated in favour of the values
-            `min`, `s`, `ms`, `us`, and `ns`.
+            Values `H`, `T`, `S`, `L`, `U`, and `N` are deprecated in favour of the values
+            `h`, `min`, `s`, `ms`, `us`, and `ns`.
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,

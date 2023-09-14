@@ -286,10 +286,10 @@ class Resolution(Enum):
 
         Examples
         --------
-        >>> Resolution.get_reso_from_freqstr('H')
+        >>> Resolution.get_reso_from_freqstr('h')
         <Resolution.RESO_HR: 5>
 
-        >>> Resolution.get_reso_from_freqstr('H') == Resolution.RESO_HR
+        >>> Resolution.get_reso_from_freqstr('h') == Resolution.RESO_HR
         True
         """
         try:

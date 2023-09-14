@@ -392,7 +392,7 @@ The ``freq`` parameter can passed a variety of :ref:`frequency aliases <timeseri
 
    pd.timedelta_range(start="1 days", end="2 days", freq="30min")
 
-   pd.timedelta_range(start="1 days", periods=5, freq="2D5H")
+   pd.timedelta_range(start="1 days", periods=5, freq="2D5h")
 
 
 Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
