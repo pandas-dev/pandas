@@ -1807,6 +1807,7 @@ def group_idxmin_idxmax(
     str name="idxmin",
     bint skipna=True,
     uint8_t[:, ::1] result_mask=None,
+    uint8_t[::1] seen=None,
 ):
     """
     Compute index of minimum/maximum of columns of `values`, in row groups `labels`.
@@ -1839,6 +1840,10 @@ def group_idxmin_idxmax(
     result_mask : ndarray[bool, ndim=2], optional
         If not None, these specify locations in the output that are NA.
         Modified in-place.
+    seen : ndarray[bool]
+        Whether a group has been seen. While duplicative of counts, this is passed
+        by idxmin/idxmax and modified inplace in order to make it back to the GroupBy
+        method.
 
     Notes
     -----
@@ -1860,11 +1865,17 @@ def group_idxmin_idxmax(
     if not len(values) == labels.shape[0]:
         raise AssertionError("len(index) != len(labels)")
 
-    group_min_or_max = np.empty_like(out, dtype=values.dtype)
-    # Using -2 to indicate a label is never seen
-    out[:] = -2
-
     N, K = (<object>values).shape
+
+    group_min_or_max = np.empty_like(out, dtype=values.dtype)
+    if N > 0 and K > 0:
+        # When N or K is zero, we never use group_min_or_max
+        group_min_or_max[:] = _get_min_or_max(
+            values[0, 0], compute_max, is_datetimelike
+        )
+    # When using transform, we need a valid value for take in the case
+    # a category is not observed; these values will be dropped
+    out[:] = 0
 
     # TODO(cython3): De-duplicate once conditional-nogil is available
     if numeric_object_t is object:
@@ -1872,8 +1883,8 @@ def group_idxmin_idxmax(
             lab = labels[i]
             if lab < 0:
                 continue
+            seen[lab] = 1
 
-            counts[lab] += 1
             for j in range(K):
                 if not skipna and out[lab, j] == -1:
                     # Once we've hit NA there is no going back
@@ -1887,15 +1898,15 @@ def group_idxmin_idxmax(
                     isna_entry = checknull(val)
 
                 if isna_entry:
-                    if out[lab, j] == -2 or not skipna:
+                    if not skipna:
                         out[lab, j] = -1
                 else:
                     if compute_max:
-                        if out[lab, j] == -2 or val > group_min_or_max[lab, j]:
+                        if val > group_min_or_max[lab, j]:
                             group_min_or_max[lab, j] = val
                             out[lab, j] = i
                     else:
-                        if out[lab, j] == -2 or val < group_min_or_max[lab, j]:
+                        if val < group_min_or_max[lab, j]:
                             group_min_or_max[lab, j] = val
                             out[lab, j] = i
     else:
@@ -1904,8 +1915,8 @@ def group_idxmin_idxmax(
                 lab = labels[i]
                 if lab < 0:
                     continue
+                seen[lab] = 1
 
-                counts[lab] += 1
                 for j in range(K):
                     if not skipna and out[lab, j] == -1:
                         # Once we've hit NA there is no going back
@@ -1918,15 +1929,15 @@ def group_idxmin_idxmax(
                         isna_entry = _treat_as_na(val, is_datetimelike)
 
                     if isna_entry:
-                        if out[lab, j] == -2 or not skipna:
+                        if not skipna:
                             out[lab, j] = -1
                     else:
                         if compute_max:
-                            if out[lab, j] == -2 or val > group_min_or_max[lab, j]:
+                            if val > group_min_or_max[lab, j]:
                                 group_min_or_max[lab, j] = val
                                 out[lab, j] = i
                         else:
-                            if out[lab, j] == -2 or val < group_min_or_max[lab, j]:
+                            if val < group_min_or_max[lab, j]:
                                 group_min_or_max[lab, j] = val
                                 out[lab, j] = i
 

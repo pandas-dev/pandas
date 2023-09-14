@@ -642,7 +642,6 @@ Performance improvements
 - Performance improvement in :meth:`Series.str.get` for PyArrow-backed strings (:issue:`53152`)
 - Performance improvement in :meth:`Series.str.split` with ``expand=True`` for PyArrow-backed strings (:issue:`53585`)
 - Performance improvement in :meth:`Series.to_numpy` when dtype is a NumPy float dtype and ``na_value`` is ``np.nan`` (:issue:`52430`)
-- Performance improvement in :meth:`SeriesGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`DataFrameGroupBy.idxmin` (:issue:`54234`)
 - Performance improvement in :meth:`~arrays.ArrowExtensionArray.astype` when converting from a PyArrow timestamp or duration dtype to NumPy (:issue:`53326`)
 - Performance improvement in various :class:`MultiIndex` set and indexing operations (:issue:`53955`)
 - Performance improvement when doing various reshaping operations on :class:`arrays.IntegerArray` & :class:`arrays.FloatingArray` by avoiding doing unnecessary validation (:issue:`53013`)

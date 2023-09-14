@@ -3323,18 +3323,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Exclude NA/null values. If an entire row/column is NA, the result
             will be NA.
         ignore_unobserved : bool, default False
-            When an unobserved group is encountered, do not raise. This used for
-            transform where unobserved groups do not play an impact on the result.
+            When True and an unobserved group is encountered, do not raise. This used
+            for transform where unobserved groups do not play an impact on the result.
 
         Returns
         -------
         Series or DataFrame
             idxmax or idxmin for the groupby operation.
         """
+        # seen is passed to the Cython code and mutated
+        seen = np.zeros(self.ngroups, dtype="bool")
 
         def post_process(res):
             has_na_value = (res._values == -1).any(axis=None)
-            has_unobserved = (res._values == -2).any(axis=None)
+            has_unobserved = not seen.all()
             raise_err = not ignore_unobserved and has_unobserved
             if (
                 not self.observed
@@ -3364,20 +3366,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
 
             index = self.obj._get_axis(self.axis)
-
-            values = res._values
-            if not self.observed and ignore_unobserved and has_unobserved:
-                # -2 indicates unobserved category; recode as 0 to not unnecessarily
-                # coerce the resulting dtype. These values will be removed.
-                values = np.where(values == -2, 0, values)
-
             if res.size == 0:
                 result = res.astype(index.dtype)
             else:
                 if isinstance(index, MultiIndex):
                     index = index.to_flat_index()
+                values = res._values
                 na_value = na_value_for_dtype(index.dtype, compat=False)
-
                 if isinstance(res, Series):
                     result = res._constructor(
                         index.array.take(values, allow_fill=True, fill_value=na_value),
@@ -3392,6 +3387,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         )
                     result = self.obj._constructor(buf, index=res.index)
                     result.columns = res.columns
+
             return result
 
         result = self._agg_general(
@@ -3400,6 +3396,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             alias=how,
             post_process=post_process,
             skipna=skipna,
+            seen=seen,
         )
         return result
 
