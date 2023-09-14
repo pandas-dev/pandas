@@ -23,7 +23,7 @@ defaults:
 jobs:
   ubuntu:
     runs-on: ubuntu-22.04
-    timeout-minutes: 180
+    timeout-minutes: 30
     strategy:
       matrix:
         env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml]
@@ -158,19 +158,19 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
 
-    - name: Test (not single_cpu)
-      uses: ./.github/actions/run-tests
-      if: ${{ matrix.name != 'Pypy' }}
-      env:
-        # Set pattern to not single_cpu if not already set
-        PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
-
     - name: Test (single_cpu)
       uses: ./.github/actions/run-tests
       env:
         PATTERN: 'single_cpu'
         PYTEST_WORKERS: 0
       if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
+
+    - name: Test (not single_cpu)
+      uses: ./.github/actions/run-tests
+      if: ${{ matrix.name != 'Pypy' }}
+      env:
+        # Set pattern to not single_cpu if not already set
+        PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
 
   macos-windows:
     timeout-minutes: 180
