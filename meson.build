@@ -4,7 +4,7 @@ project(
     'c', 'cpp', 'cython',
     version: run_command(['python', 'generate_version.py', '--print'], check: true).stdout().strip(),
     license: 'BSD-3',
-    meson_version: '>=1.0.1',
+    meson_version: '>=1.2.1',
     default_options: [
         'buildtype=release',
         # TODO: Reactivate werror, some warnings on Windows
