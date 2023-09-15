@@ -1558,7 +1558,7 @@ cdef float64_t calc_weighted_var(float64_t t,
         if nobs == 1:
             result = 0
         else:
-            result = t * win_n / ((win_n - ddof) * sum_w)
+            result = t * nobs / ((nobs - ddof) * sum_w)
             if result < 0:
                 result = 0
     else:
@@ -1599,68 +1599,20 @@ cdef void add_weighted_var(float64_t val,
     cdef:
         float64_t temp, q, r
 
-    if val != val:
-        return
-
     nobs[0] = nobs[0] + 1
 
-    q = val - mean[0]
-    temp = sum_w[0] + w
-    r = q * w / temp
+    if nobs[0] == 1:
+        sum_w[0] = w
+        mean[0] = val
 
-    mean[0] = mean[0] + r
-    t[0] = t[0] + r * sum_w[0] * q
-    sum_w[0] = temp
+    else:
+        q = val - mean[0]
+        temp = sum_w[0] + w
+        r = q * w / temp
 
-
-cdef void remove_weighted_var(float64_t val,
-                              float64_t w,
-                              float64_t *t,
-                              float64_t *sum_w,
-                              float64_t *mean,
-                              float64_t *nobs) noexcept nogil:
-    """
-    Update weighted mean, sum of weights and sum of weighted squared
-    differences to remove value and weight pair from weighted variance
-    calculation using West's method.
-
-    Paper: https://dl.acm.org/citation.cfm?id=359153
-
-    Parameters
-    ----------
-    val: float64_t
-        window values
-    w: float64_t
-        window weights
-    t: float64_t
-        sum of weighted squared differences
-    sum_w: float64_t
-        sum of weights
-    mean: float64_t
-        weighted mean
-    nobs: float64_t
-        number of observations
-    """
-
-    cdef:
-        float64_t temp, q, r
-
-    if val == val:
-        nobs[0] = nobs[0] - 1
-
-        if nobs[0]:
-            q = val - mean[0]
-            temp = sum_w[0] - w
-            r = q * w / temp
-
-            mean[0] = mean[0] - r
-            t[0] = t[0] - r * sum_w[0] * q
-            sum_w[0] = temp
-
-        else:
-            t[0] = 0
-            sum_w[0] = 0
-            mean[0] = 0
+        mean[0] = mean[0] + r
+        t[0] = t[0] + r * sum_w[0] * q
+        sum_w[0] = temp
 
 
 def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
@@ -1690,44 +1642,38 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
     """
 
     cdef:
-        float64_t t = 0, sum_w = 0, mean = 0, nobs = 0
-        float64_t val, pre_val, w, pre_w
-        Py_ssize_t i, n, win_n
-        float64_t[:] output
+        float64_t val, w
+        Py_ssize_t in_i, win_i, add_i, n, win_n
+        float64_t[:] output, t, mean, sum_w, nobs
 
     n = len(values)
     win_n = len(weights)
+
     output = np.empty(n, dtype=np.float64)
+    t = np.zeros(n, dtype=np.float64)
+    mean = np.zeros(n, dtype=np.float64)
+    sum_w = np.zeros(n, dtype=np.float64)
+    nobs = np.zeros(n, dtype=np.float64)
 
     with nogil:
+        for win_i in range(win_n):
+            w = weights[win_i]
+            if w != w:
+                continue
 
-        for i in range(min(win_n, n)):
-            add_weighted_var(values[i], weights[i], &t,
-                             &sum_w, &mean, &nobs)
+            for in_i in range(n - (win_n - win_i) + 1):
+                val = values[in_i]
 
-            output[i] = calc_weighted_var(t, sum_w, win_n,
-                                          ddof, nobs, minp)
+                if val == val:
+                    add_i = in_i + (win_n - win_i) - 1
+                    add_weighted_var(
+                        val, w, &t[add_i], &sum_w[add_i], &mean[add_i], &nobs[add_i]
+                    )
 
-        for i in range(win_n, n):
-            val = values[i]
-            pre_val = values[i - win_n]
-
-            w = weights[i % win_n]
-            pre_w = weights[(i - win_n) % win_n]
-
-            if val == val:
-                if pre_val == pre_val:
-                    remove_weighted_var(pre_val, pre_w, &t,
-                                        &sum_w, &mean, &nobs)
-
-                add_weighted_var(val, w, &t, &sum_w, &mean, &nobs)
-
-            elif pre_val == pre_val:
-                remove_weighted_var(pre_val, pre_w, &t,
-                                    &sum_w, &mean, &nobs)
-
-            output[i] = calc_weighted_var(t, sum_w, win_n,
-                                          ddof, nobs, minp)
+        for in_i in range(n):
+            output[in_i] = calc_weighted_var(
+                t[in_i], sum_w[in_i], win_n, ddof, nobs[in_i], minp
+            )
 
     return output
 
