@@ -11,7 +11,6 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
-    Final,
     cast,
 )
 
@@ -30,7 +29,10 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import FreqGroup
+from pandas._libs.tslibs.dtypes import (
+    FreqGroup,
+    periods_per_day,
+)
 from pandas._typing import F
 
 from pandas.core.dtypes.common import (
@@ -60,15 +62,6 @@ if TYPE_CHECKING:
 
     from pandas._libs.tslibs.offsets import BaseOffset
 
-# constants
-HOURS_PER_DAY: Final = 24.0
-MIN_PER_HOUR: Final = 60.0
-SEC_PER_MIN: Final = 60.0
-
-SEC_PER_HOUR: Final = SEC_PER_MIN * MIN_PER_HOUR
-SEC_PER_DAY: Final = SEC_PER_HOUR * HOURS_PER_DAY
-
-MUSEC_PER_DAY: Final = 10**6 * SEC_PER_DAY
 
 _mpl_units = {}  # Cache for units overwritten by us
 
@@ -495,7 +488,7 @@ def _get_default_annual_spacing(nyears) -> tuple[int, int]:
     return (min_spacing, maj_spacing)
 
 
-def period_break(dates: PeriodIndex, period: str) -> np.ndarray:
+def _period_break(dates: PeriodIndex, period: str) -> np.ndarray:
     """
     Returns the indices where the given period changes.
 
@@ -527,42 +520,46 @@ def has_level_label(label_flags: np.ndarray, vmin: float) -> bool:
         return True
 
 
-def _daily_finder(vmin, vmax, freq: BaseOffset):
+def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
     # error: "BaseOffset" has no attribute "_period_dtype_code"
     dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
     freq_group = FreqGroup.from_period_dtype_code(dtype_code)
 
-    periodsperday = -1
+    ppd = -1  # placeholder for above-day freqs
 
     if dtype_code >= FreqGroup.FR_HR.value:
-        if freq_group == FreqGroup.FR_NS:
-            periodsperday = 24 * 60 * 60 * 1000000000
-        elif freq_group == FreqGroup.FR_US:
-            periodsperday = 24 * 60 * 60 * 1000000
-        elif freq_group == FreqGroup.FR_MS:
-            periodsperday = 24 * 60 * 60 * 1000
-        elif freq_group == FreqGroup.FR_SEC:
-            periodsperday = 24 * 60 * 60
-        elif freq_group == FreqGroup.FR_MIN:
-            periodsperday = 24 * 60
-        elif freq_group == FreqGroup.FR_HR:
-            periodsperday = 24
-        else:  # pragma: no cover
-            raise ValueError(f"unexpected frequency: {dtype_code}")
-        periodsperyear = 365 * periodsperday
-        periodspermonth = 28 * periodsperday
-
+        ppd = periods_per_day(freq._creso)
+        ppm = 28 * ppd
+        ppy = 365 * ppd
     elif freq_group == FreqGroup.FR_BUS:
-        periodsperyear = 261
-        periodspermonth = 19
+        ppm = 19
+        ppy = 261
     elif freq_group == FreqGroup.FR_DAY:
-        periodsperyear = 365
-        periodspermonth = 28
+        ppm = 28
+        ppy = 365
     elif freq_group == FreqGroup.FR_WK:
-        periodsperyear = 52
-        periodspermonth = 3
-    else:  # pragma: no cover
-        raise ValueError("unexpected frequency")
+        ppm = 3
+        ppy = 52
+    elif freq_group == FreqGroup.FR_MTH:
+        ppm = 1
+        ppy = 12
+    elif freq_group == FreqGroup.FR_QTR:
+        ppm = -1  # placerholder
+        ppy = 4
+    elif freq_group == FreqGroup.FR_ANN:
+        ppm = -1  # placeholder
+        ppy = 1
+    else:
+        raise NotImplementedError(f"Unsupported frequency: {dtype_code}")
+
+    return ppd, ppm, ppy
+
+
+def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
+    # error: "BaseOffset" has no attribute "_period_dtype_code"
+    dtype_code = freq._period_dtype_code  # type: ignore[attr-defined]
+
+    periodsperday, periodspermonth, periodsperyear = _get_periods_per_ymd(freq)
 
     # save this for later usage
     vmin_orig = vmin
@@ -595,43 +592,43 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
 
     # Case 1. Less than a month
     if span <= periodspermonth:
-        day_start = period_break(dates_, "day")
-        month_start = period_break(dates_, "month")
+        day_start = _period_break(dates_, "day")
+        month_start = _period_break(dates_, "month")
 
-        def _hour_finder(label_interval, force_year_start) -> None:
+        def _hour_finder(label_interval: int, force_year_start: bool) -> None:
             _hour = dates_.hour
             _prev_hour = (dates_ - 1 * dates_.freq).hour
             hour_start = (_hour - _prev_hour) != 0
             info_maj[day_start] = True
             info_min[hour_start & (_hour % label_interval == 0)] = True
-            year_start = period_break(dates_, "year")
+            year_start = _period_break(dates_, "year")
             info_fmt[hour_start & (_hour % label_interval == 0)] = "%H:%M"
             info_fmt[day_start] = "%H:%M\n%d-%b"
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
             if force_year_start and not has_level_label(year_start, vmin_orig):
                 info_fmt[first_label(day_start)] = "%H:%M\n%d-%b\n%Y"
 
-        def _minute_finder(label_interval) -> None:
-            hour_start = period_break(dates_, "hour")
+        def _minute_finder(label_interval: int) -> None:
+            hour_start = _period_break(dates_, "hour")
             _minute = dates_.minute
             _prev_minute = (dates_ - 1 * dates_.freq).minute
             minute_start = (_minute - _prev_minute) != 0
             info_maj[hour_start] = True
             info_min[minute_start & (_minute % label_interval == 0)] = True
-            year_start = period_break(dates_, "year")
+            year_start = _period_break(dates_, "year")
             info_fmt = info["fmt"]
             info_fmt[minute_start & (_minute % label_interval == 0)] = "%H:%M"
             info_fmt[day_start] = "%H:%M\n%d-%b"
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
 
-        def _second_finder(label_interval) -> None:
-            minute_start = period_break(dates_, "minute")
+        def _second_finder(label_interval: int) -> None:
+            minute_start = _period_break(dates_, "minute")
             _second = dates_.second
             _prev_second = (dates_ - 1 * dates_.freq).second
             second_start = (_second - _prev_second) != 0
             info["maj"][minute_start] = True
             info["min"][second_start & (_second % label_interval == 0)] = True
-            year_start = period_break(dates_, "year")
+            year_start = _period_break(dates_, "year")
             info_fmt = info["fmt"]
             info_fmt[second_start & (_second % label_interval == 0)] = "%H:%M:%S"
             info_fmt[day_start] = "%H:%M:%S\n%d-%b"
@@ -672,7 +669,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
         else:
             info_maj[month_start] = True
             info_min[day_start] = True
-            year_start = period_break(dates_, "year")
+            year_start = _period_break(dates_, "year")
             info_fmt = info["fmt"]
             info_fmt[day_start] = "%d"
             info_fmt[month_start] = "%d\n%b"
@@ -685,15 +682,15 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
 
     # Case 2. Less than three months
     elif span <= periodsperyear // 4:
-        month_start = period_break(dates_, "month")
+        month_start = _period_break(dates_, "month")
         info_maj[month_start] = True
         if dtype_code < FreqGroup.FR_HR.value:
             info["min"] = True
         else:
-            day_start = period_break(dates_, "day")
+            day_start = _period_break(dates_, "day")
             info["min"][day_start] = True
-        week_start = period_break(dates_, "week")
-        year_start = period_break(dates_, "year")
+        week_start = _period_break(dates_, "week")
+        year_start = _period_break(dates_, "year")
         info_fmt[week_start] = "%d"
         info_fmt[month_start] = "\n\n%b"
         info_fmt[year_start] = "\n\n%b\n%Y"
@@ -704,9 +701,9 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
                 info_fmt[first_label(month_start)] = "\n\n%b\n%Y"
     # Case 3. Less than 14 months ...............
     elif span <= 1.15 * periodsperyear:
-        year_start = period_break(dates_, "year")
-        month_start = period_break(dates_, "month")
-        week_start = period_break(dates_, "week")
+        year_start = _period_break(dates_, "year")
+        month_start = _period_break(dates_, "month")
+        week_start = _period_break(dates_, "week")
         info_maj[month_start] = True
         info_min[week_start] = True
         info_min[year_start] = False
@@ -717,17 +714,17 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
             info_fmt[first_label(month_start)] = "%b\n%Y"
     # Case 4. Less than 2.5 years ...............
     elif span <= 2.5 * periodsperyear:
-        year_start = period_break(dates_, "year")
-        quarter_start = period_break(dates_, "quarter")
-        month_start = period_break(dates_, "month")
+        year_start = _period_break(dates_, "year")
+        quarter_start = _period_break(dates_, "quarter")
+        month_start = _period_break(dates_, "month")
         info_maj[quarter_start] = True
         info_min[month_start] = True
         info_fmt[quarter_start] = "%b"
         info_fmt[year_start] = "%b\n%Y"
     # Case 4. Less than 4 years .................
     elif span <= 4 * periodsperyear:
-        year_start = period_break(dates_, "year")
-        month_start = period_break(dates_, "month")
+        year_start = _period_break(dates_, "year")
+        month_start = _period_break(dates_, "month")
         info_maj[year_start] = True
         info_min[month_start] = True
         info_min[year_start] = False
@@ -738,15 +735,15 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
         info_fmt[year_start] = "%b\n%Y"
     # Case 5. Less than 11 years ................
     elif span <= 11 * periodsperyear:
-        year_start = period_break(dates_, "year")
-        quarter_start = period_break(dates_, "quarter")
+        year_start = _period_break(dates_, "year")
+        quarter_start = _period_break(dates_, "quarter")
         info_maj[year_start] = True
         info_min[quarter_start] = True
         info_min[year_start] = False
         info_fmt[year_start] = "%Y"
     # Case 6. More than 12 years ................
     else:
-        year_start = period_break(dates_, "year")
+        year_start = _period_break(dates_, "year")
         year_break = dates_[year_start].year
         nyears = span / periodsperyear
         (min_anndef, maj_anndef) = _get_default_annual_spacing(nyears)
@@ -759,8 +756,8 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
     return info
 
 
-def _monthly_finder(vmin, vmax, freq):
-    periodsperyear = 12
+def _monthly_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
+    _, _, periodsperyear = _get_periods_per_ymd(freq)
 
     vmin_orig = vmin
     (vmin, vmax) = (int(vmin), int(vmax))
@@ -829,8 +826,8 @@ def _monthly_finder(vmin, vmax, freq):
     return info
 
 
-def _quarterly_finder(vmin, vmax, freq):
-    periodsperyear = 4
+def _quarterly_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
+    _, _, periodsperyear = _get_periods_per_ymd(freq)
     vmin_orig = vmin
     (vmin, vmax) = (int(vmin), int(vmax))
     span = vmax - vmin + 1
@@ -876,7 +873,7 @@ def _quarterly_finder(vmin, vmax, freq):
     return info
 
 
-def _annual_finder(vmin, vmax, freq):
+def _annual_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
     (vmin, vmax) = (int(vmin), int(vmax + 1))
     span = vmax - vmin + 1
 
@@ -1087,7 +1084,7 @@ class TimeSeries_TimedeltaFormatter(Formatter):
         """
         Convert seconds to 'D days HH:MM:SS.F'
         """
-        s, ns = divmod(x, 10**9)
+        s, ns = divmod(x, 10**9)  # TODO(non-nano): this looks like it assumes ns
         m, s = divmod(s, 60)
         h, m = divmod(m, 60)
         d, h = divmod(h, 24)
