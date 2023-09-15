@@ -1948,7 +1948,7 @@ class DataFrame(NDFrame, OpsMixin):
         orient: Literal[
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
-        into = dict,
+        into=dict,
         index: bool = True,
     ):
         """

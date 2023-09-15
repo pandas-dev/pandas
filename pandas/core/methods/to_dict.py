@@ -17,19 +17,20 @@ from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core import common as com
 
 if TYPE_CHECKING:
-    from pandas import DataFrame
     from pandas._typing import MutableMappingT
+
+    from pandas import DataFrame
 
 
 @overload
 def to_dict(
     df: DataFrame,
-    orient: Literal[
-        "dict", "list", "series", "split", "tight", "index"] = ...,
+    orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
     into: type[MutableMappingT] | MutableMappingT = ...,
     index: bool = True,
 ) -> MutableMappingT:
     ...
+
 
 @overload
 def to_dict(
@@ -40,12 +41,13 @@ def to_dict(
 ) -> list[MutableMappingT]:
     ...
 
+
 def to_dict(
     df: DataFrame,
     orient: Literal[
         "dict", "list", "series", "split", "tight", "records", "index"
     ] = "dict",
-    into = dict,
+    into=dict,
     index: bool = True,
 ):
     """
