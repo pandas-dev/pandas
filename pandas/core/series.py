@@ -4622,7 +4622,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         # Validate axis argument
         self._get_axis_number(axis)
-        if not series_ops_only and not isinstance(func, str):
+        if not series_ops_only and not isinstance(func, (str, np.ufunc)):
             cls_name = type(self).__name__
             warnings.warn(
                 f"{cls_name}.transform will in the future only operate on "
