@@ -4,6 +4,7 @@ from datetime import (
 )
 import itertools
 import re
+import warnings
 
 import numpy as np
 import pytest
@@ -36,13 +37,17 @@ from pandas.core.arrays import (
 from pandas.core.internals import (
     BlockManager,
     SingleBlockManager,
-    make_block,
 )
 from pandas.core.internals.blocks import (
     ensure_block_shape,
     maybe_coerce_values,
     new_block,
 )
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from pandas.core.internals import make_block
+
 
 # this file contains BlockManager specific tests
 # TODO(ArrayManager) factor out interleave_dtype tests
