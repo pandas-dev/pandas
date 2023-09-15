@@ -191,6 +191,7 @@ Bug fixes
 - Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
 - Bug in :class:`pandas.core.window.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
+- Bug in :meth:`pandas.core.window.Window.var` and :meth:`pandas.core.window.Window.std` where implementation of the algorithm was incorrect (:issue:`53273` and :issue:`54333`)
 
 Categorical
 ^^^^^^^^^^^
