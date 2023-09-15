@@ -2489,6 +2489,8 @@ class TestDataFramePlots:
 
     @pytest.mark.slow
     def test_plot_no_warning(self):
+        # GH 55138
+        # TODO(3.0): this can be removed once Period[B] deprecation is enforced
         df = tm.makeTimeDataFrame()
         with tm.assert_produces_warning(False):
             _ = df.plot()
