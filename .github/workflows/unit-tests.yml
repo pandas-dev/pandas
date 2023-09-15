@@ -77,6 +77,11 @@ jobs:
             env_file: actions-311-numpydev.yaml
             pattern: "not slow and not network and not single_cpu"
             test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+          - name: "ASAN/UBSAN"
+            env_file: actions-311-numpydev.yaml
+            pattern: "not slow and not network and not single_cpu"
+            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+            sanitize: true
           - name: "Pyarrow Nightly"
             env_file: actions-311-pyarrownightly.yaml
             pattern: "not slow and not network and not single_cpu"
@@ -90,6 +95,7 @@ jobs:
       PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
       PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
       TEST_ARGS: ${{ matrix.test_args || '' }}
+      SANITIZE: ${{ matrix.sanitize || false }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
     concurrency:
@@ -158,13 +164,13 @@ jobs:
       id: build
       uses: ./.github/actions/build_pandas
       with:
-        sanitize: true
+        sanitize: ${{ env.SANITIZE }}
 
     - name: Test (not single_cpu)
       uses: ./.github/actions/run-tests
       if: ${{ matrix.name != 'Pypy' }}
       with:
-        sanitize: true
+        sanitize: ${{ env.SANITIZE }}
       env:
         # Set pattern to not single_cpu if not already set
         PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
