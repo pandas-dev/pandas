@@ -670,7 +670,6 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
         else:
             info_maj[month_start] = True
             info_min[day_start] = True
-            info_fmt = info["fmt"]
             info_fmt[day_start] = "%d"
             info_fmt[month_start] = "%d\n%b"
             info_fmt[year_start] = "%d\n%b\n%Y"
@@ -792,6 +791,7 @@ def _monthly_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
         quarter_start = (dates_ % 3 == 0).nonzero()
         info_maj[year_start] = True
         # TODO: Check the following : is it really info['fmt'] ?
+        #  2023-09-15 this is reached in test_finder_monthly
         info["fmt"][quarter_start] = True
         info["min"] = True
 
