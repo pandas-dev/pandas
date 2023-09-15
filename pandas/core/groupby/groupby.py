@@ -1970,7 +1970,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # TODO: avoid special casing SparseArray here
                 if how in ["any", "all"] and isinstance(values, SparseArray):
                     pass
-                if alt is None or how in ["any", "all", "std", "sem"]:
+                elif alt is None or how in ["any", "all", "std", "sem"]:
                     raise  # TODO: re-raise as TypeError?  should not be reached
             else:
                 return result
@@ -3337,7 +3337,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         def post_process(res):
             has_na_value = (res._values == -1).any(axis=None)
             has_unobserved = not seen.all()
-            raise_err = not ignore_unobserved and has_unobserved
+            raise_err: bool | np.bool_ = not ignore_unobserved and has_unobserved
             if (
                 not self.observed
                 and not ignore_unobserved
