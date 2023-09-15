@@ -14,19 +14,19 @@ The full license is in the LICENSE file, distributed with this software.
 */
 
 void *new_rd_source(PyObject *obj) {
-    rd_source *rds = (rd_source *)malloc(sizeof(rd_source));
+  rd_source *rds = (rd_source *)malloc(sizeof(rd_source));
 
-    if (rds == NULL) {
-        PyErr_NoMemory();
-        return NULL;
-    }
-    /* hold on to this object */
-    Py_INCREF(obj);
-    rds->obj = obj;
-    rds->buffer = NULL;
-    rds->position = 0;
+  if (rds == NULL) {
+    PyErr_NoMemory();
+    return NULL;
+  }
+  /* hold on to this object */
+  Py_INCREF(obj);
+  rds->obj = obj;
+  rds->buffer = NULL;
+  rds->position = 0;
 
-    return (void *)rds;
+  return (void *)rds;
 }
 
 /*
@@ -36,11 +36,11 @@ void *new_rd_source(PyObject *obj) {
  */
 
 int del_rd_source(void *rds) {
-    Py_XDECREF(RDS(rds)->obj);
-    Py_XDECREF(RDS(rds)->buffer);
-    free(rds);
+  Py_XDECREF(RDS(rds)->obj);
+  Py_XDECREF(RDS(rds)->buffer);
+  free(rds);
 
-    return 0;
+  return 0;
 }
 
 /*
@@ -51,57 +51,57 @@ int del_rd_source(void *rds) {
 
 void *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
                       int *status, const char *encoding_errors) {
-    PyGILState_STATE state;
-    PyObject *result, *func, *args, *tmp;
+  PyGILState_STATE state;
+  PyObject *result, *func, *args, *tmp;
 
-    void *retval;
+  void *retval;
 
-    size_t length;
-    rd_source *src = RDS(source);
-    state = PyGILState_Ensure();
+  size_t length;
+  rd_source *src = RDS(source);
+  state = PyGILState_Ensure();
 
-    /* delete old object */
-    Py_XDECREF(src->buffer);
-    src->buffer = NULL;
-    args = Py_BuildValue("(i)", nbytes);
+  /* delete old object */
+  Py_XDECREF(src->buffer);
+  src->buffer = NULL;
+  args = Py_BuildValue("(i)", nbytes);
 
-    func = PyObject_GetAttrString(src->obj, "read");
+  func = PyObject_GetAttrString(src->obj, "read");
 
-    /* Note: PyObject_CallObject requires the GIL */
-    result = PyObject_CallObject(func, args);
-    Py_XDECREF(args);
-    Py_XDECREF(func);
+  /* Note: PyObject_CallObject requires the GIL */
+  result = PyObject_CallObject(func, args);
+  Py_XDECREF(args);
+  Py_XDECREF(func);
 
-    if (result == NULL) {
-        PyGILState_Release(state);
-        *bytes_read = 0;
-        *status = CALLING_READ_FAILED;
-        return NULL;
-    } else if (!PyBytes_Check(result)) {
-        tmp = PyUnicode_AsEncodedString(result, "utf-8", encoding_errors);
-        Py_DECREF(result);
-        if (tmp == NULL) {
-            PyGILState_Release(state);
-            return NULL;
-        }
-        result = tmp;
-    }
-
-    length = PySequence_Length(result);
-
-    if (length == 0)
-        *status = REACHED_EOF;
-    else
-        *status = 0;
-
-    /* hang on to the Python object */
-    src->buffer = result;
-    retval = (void *)PyBytes_AsString(result);
-
+  if (result == NULL) {
     PyGILState_Release(state);
+    *bytes_read = 0;
+    *status = CALLING_READ_FAILED;
+    return NULL;
+  } else if (!PyBytes_Check(result)) {
+    tmp = PyUnicode_AsEncodedString(result, "utf-8", encoding_errors);
+    Py_DECREF(result);
+    if (tmp == NULL) {
+      PyGILState_Release(state);
+      return NULL;
+    }
+    result = tmp;
+  }
 
-    /* TODO: more error handling */
-    *bytes_read = length;
+  length = PySequence_Length(result);
 
-    return retval;
+  if (length == 0)
+    *status = REACHED_EOF;
+  else
+    *status = 0;
+
+  /* hang on to the Python object */
+  src->buffer = result;
+  retval = (void *)PyBytes_AsString(result);
+
+  PyGILState_Release(state);
+
+  /* TODO: more error handling */
+  *bytes_read = length;
+
+  return retval;
 }
