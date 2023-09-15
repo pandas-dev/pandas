@@ -49,6 +49,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 
+from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
@@ -80,6 +81,8 @@ def frame_apply(
     raw: bool = False,
     result_type: str | None = None,
     by_row: Literal[False, "compat"] = "compat",
+    engine: str = "python",
+    engine_kwargs: dict[str, bool] | None = None,
     args=None,
     kwargs=None,
 ) -> FrameApply:
@@ -100,6 +103,8 @@ def frame_apply(
         raw=raw,
         result_type=result_type,
         by_row=by_row,
+        engine=engine,
+        engine_kwargs=engine_kwargs,
         args=args,
         kwargs=kwargs,
     )
@@ -756,11 +761,15 @@ class FrameApply(NDFrameApply):
         result_type: str | None,
         *,
         by_row: Literal[False, "compat"] = False,
+        engine: str = "python",
+        engine_kwargs: dict[str, bool] | None = None,
         args,
         kwargs,
     ) -> None:
         if by_row is not False and by_row != "compat":
             raise ValueError(f"by_row={by_row} not allowed")
+        self.engine = engine
+        self.engine_kwargs = engine_kwargs
         super().__init__(
             obj, func, raw, result_type, by_row=by_row, args=args, kwargs=kwargs
         )
@@ -805,6 +814,12 @@ class FrameApply(NDFrameApply):
 
     def apply(self) -> DataFrame | Series:
         """compute the results"""
+
+        if self.engine == "numba" and not self.raw:
+            raise ValueError(
+                "The numba engine in DataFrame.apply can only be used when raw=True"
+            )
+
         # dispatch to handle list-like or dict-like
         if is_list_like(self.func):
             return self.apply_list_or_dict_like()
@@ -834,7 +849,7 @@ class FrameApply(NDFrameApply):
 
         # raw
         elif self.raw:
-            return self.apply_raw()
+            return self.apply_raw(engine=self.engine, engine_kwargs=self.engine_kwargs)
 
         return self.apply_standard()
 
@@ -907,7 +922,7 @@ class FrameApply(NDFrameApply):
         else:
             return self.obj.copy()
 
-    def apply_raw(self):
+    def apply_raw(self, engine="python", engine_kwargs=None):
         """apply to the values as a numpy array"""
 
         def wrap_function(func):
@@ -925,7 +940,27 @@ class FrameApply(NDFrameApply):
 
             return wrapper
 
-        result = np.apply_along_axis(wrap_function(self.func), self.axis, self.values)
+        if engine == "numba":
+            engine_kwargs = {} if engine_kwargs is None else engine_kwargs
+
+            # error: Argument 1 to "__call__" of "_lru_cache_wrapper" has
+            # incompatible type "Callable[..., Any] | str | list[Callable
+            # [..., Any] | str] | dict[Hashable,Callable[..., Any] | str |
+            # list[Callable[..., Any] | str]]"; expected "Hashable"
+            nb_looper = generate_apply_looper(
+                self.func, **engine_kwargs  # type: ignore[arg-type]
+            )
+            result = nb_looper(self.values, self.axis)
+            # If we made the result 2-D, squeeze it back to 1-D
+            result = np.squeeze(result)
+        else:
+            result = np.apply_along_axis(
+                wrap_function(self.func),
+                self.axis,
+                self.values,
+                *self.args,
+                **self.kwargs,
+            )
 
         # TODO: mixed type case
         if result.ndim == 2:
@@ -1832,12 +1867,12 @@ def warn_alias_replacement(
         full_alias = alias
     else:
         full_alias = f"{type(obj).__name__}.{alias}"
-        alias = f"'{alias}'"
+        alias = f'"{alias}"'
     warnings.warn(
         f"The provided callable {func} is currently using "
         f"{full_alias}. In a future version of pandas, "
         f"the provided callable will be used directly. To keep current "
-        f"behavior pass {alias} instead.",
+        f"behavior pass the string {alias} instead.",
         category=FutureWarning,
         stacklevel=find_stack_level(),
     )
