@@ -686,8 +686,8 @@ def test_header_delim_whitespace(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_usecols_no_header_pyarrow(all_parsers):
-    parser = all_parsers
+def test_usecols_no_header_pyarrow(pyarrow_parser_only):
+    parser = pyarrow_parser_only
     data = """
 a,i,x
 b,j,y
