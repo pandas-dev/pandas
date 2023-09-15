@@ -563,15 +563,15 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
 
     # save this for later usage
     vmin_orig = vmin
+    (vmin, vmax) = (int(vmin), int(vmax))
+    span = vmax - vmin + 1
 
-    (vmin, vmax) = (
-        Period(ordinal=int(vmin), freq=freq),
-        Period(ordinal=int(vmax), freq=freq),
+    dates_ = period_range(
+        start=Period(ordinal=vmin, freq=freq),
+        end=Period(ordinal=vmax, freq=freq),
+        freq=freq,
     )
-    assert isinstance(vmin, Period)
-    assert isinstance(vmax, Period)
-    span = vmax.ordinal - vmin.ordinal + 1
-    dates_ = period_range(start=vmin, end=vmax, freq=freq)
+
     # Initialize the output
     info = np.zeros(
         span, dtype=[("val", np.int64), ("maj", bool), ("min", bool), ("fmt", "|S20")]
@@ -874,6 +874,7 @@ def _quarterly_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
 
 
 def _annual_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
+    # Note: small difference here vs other finders in adding 1 to vmax
     (vmin, vmax) = (int(vmin), int(vmax + 1))
     span = vmax - vmin + 1
 
