@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Literal,
+    overload,
 )
 import warnings
 
@@ -17,16 +18,36 @@ from pandas.core import common as com
 
 if TYPE_CHECKING:
     from pandas import DataFrame
+    from pandas._typing import MutableMappingT
 
+
+@overload
+def to_dict(
+    df: DataFrame,
+    orient: Literal[
+        "dict", "list", "series", "split", "tight", "index"] = ...,
+    into: type[MutableMappingT] | MutableMappingT = ...,
+    index: bool = True,
+) -> MutableMappingT:
+    ...
+
+@overload
+def to_dict(
+    df: DataFrame,
+    orient: Literal["records"],
+    into: type[MutableMappingT] | MutableMappingT,
+    index: bool = True,
+) -> list[MutableMappingT]:
+    ...
 
 def to_dict(
     df: DataFrame,
     orient: Literal[
         "dict", "list", "series", "split", "tight", "records", "index"
     ] = "dict",
-    into: type[dict] | dict = dict,
+    into = dict,
     index: bool = True,
-) -> dict | list[dict]:
+):
     """
     Convert the DataFrame to a dictionary.
 
@@ -54,7 +75,7 @@ def to_dict(
             'tight' as an allowed value for the ``orient`` argument
 
     into : class, default dict
-        The collections.abc.Mapping subclass used for all Mappings
+        The collections.abc.MutableMapping subclass used for all Mappings
         in the return value.  Can be the actual class or an empty
         instance of the mapping type you want.  If you want a
         collections.defaultdict, you must pass it initialized.
@@ -69,8 +90,8 @@ def to_dict(
     Returns
     -------
     dict, list or collections.abc.Mapping
-        Return a collections.abc.Mapping object representing the DataFrame.
-        The resulting transformation depends on the `orient` parameter.
+        Return a collections.abc.MutableMapping object representing the
+        DataFrame. The resulting transformation depends on the `orient` parameter.
     """
     if not df.columns.is_unique:
         warnings.warn(

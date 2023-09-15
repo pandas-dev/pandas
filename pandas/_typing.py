@@ -4,6 +4,7 @@ from collections.abc import (
     Hashable,
     Iterator,
     Mapping,
+    MutableMapping,
     Sequence,
 )
 from datetime import (
@@ -100,6 +101,7 @@ else:
     TypeGuard: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
+MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
 
 # array-like
 

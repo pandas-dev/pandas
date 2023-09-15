@@ -229,6 +229,7 @@ if TYPE_CHECKING:
         Level,
         MergeHow,
         MergeValidate,
+        MutableMappingT,
         NaAction,
         NaPosition,
         NsmallestNlargestKeep,
@@ -1925,18 +1926,18 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(
         self,
         orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
-        into: type[dict] | dict = ...,
+        into: type[MutableMappingT] | MutableMappingT = ...,
         index: bool = ...,
-    ) -> dict:
+    ) -> MutableMappingT:
         ...
 
     @overload
     def to_dict(
         self,
         orient: Literal["records"],
-        into: type[dict] | dict = ...,
+        into: type[MutableMappingT] | MutableMappingT = ...,
         index: bool = ...,
-    ) -> list[dict]:
+    ) -> list[MutableMappingT]:
         ...
 
     @deprecate_nonkeyword_arguments(
@@ -1947,9 +1948,9 @@ class DataFrame(NDFrame, OpsMixin):
         orient: Literal[
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
-        into: type[dict] | dict = dict,
+        into = dict,
         index: bool = True,
-    ) -> dict | list[dict]:
+    ):
         """
         Convert the DataFrame to a dictionary.
 
@@ -1977,7 +1978,7 @@ class DataFrame(NDFrame, OpsMixin):
                 'tight' as an allowed value for the ``orient`` argument
 
         into : class, default dict
-            The collections.abc.Mapping subclass used for all Mappings
+            The collections.abc.MutableMapping subclass used for all Mappings
             in the return value.  Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
@@ -1991,9 +1992,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        dict, list or collections.abc.Mapping
-            Return a collections.abc.Mapping object representing the DataFrame.
-            The resulting transformation depends on the `orient` parameter.
+        dict, list or collections.abc.MutableMapping
+            Return a collections.abc.MutableMapping object representing the
+            DataFrame. The resulting transformation depends on the `orient`
+            parameter.
 
         See Also
         --------
