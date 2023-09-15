@@ -22,6 +22,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #endif  // NPY_NO_DEPRECATED_API
 
+#include <stdbool.h>
 #include <Python.h>
 
 #include <numpy/arrayobject.h>
@@ -304,17 +305,42 @@ PyObject *extract_utc_offset(PyObject *obj) {
 /*
  * Converts a datetime from a datetimestruct to a datetime based
  * on a metadata unit. The date is assumed to be valid.
+ *
+ * In case of an overflow, the library returns -1 and sets the
+ * overflow argument to true
  */
 npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
-                                            const npy_datetimestruct *dts) {
+                                            const npy_datetimestruct *dts,
+                                            bool *overflow) {
     npy_datetime ret;
 
     if (base == NPY_FR_Y) {
         /* Truncate to the year */
+      if (dts->year < INT64_MIN + 1970) {
+        *overflow = true;
+        return -1;
+      }
         ret = dts->year - 1970;
     } else if (base == NPY_FR_M) {
-        /* Truncate to the month */
-        ret = 12 * (dts->year - 1970) + (dts->month - 1);
+      /* Truncate to the month */
+      if (dts->year < INT64_MIN + 1970) {
+        *overflow = true;
+        return -1;
+      }
+      const npy_int64 years = dts->year - 1970;
+
+      if ((years > INT64_MAX / 12) || (years < INT64_MIN / 12)) {
+        *overflow = true;
+        return -1;
+      }
+      const npy_int64 months = years * 12;
+
+      if (dts->month == INT32_MIN) {
+        *overflow = true;
+        return -1;
+      }
+
+      ret = months + dts->month - 1;
     } else {
         /* Otherwise calculate the number of days to start */
         npy_int64 days = get_datetimestruct_days(dts);
@@ -325,15 +351,34 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
                 if (days >= 0) {
                     ret = days / 7;
                 } else {
-                    ret = (days - 6) / 7;
+                  if (days < INT64_MIN + 6) {
+                    *overflow = true;
+                    return -1;
+                  }
+                  ret = (days - 6) / 7;
                 }
                 break;
             case NPY_FR_D:
                 ret = days;
                 break;
-            case NPY_FR_h:
-                ret = days * 24 + dts->hour;
-                break;
+        case NPY_FR_h: {
+          if ((days > INT64_MAX / 24) || (days < INT64_MIN / 24)) {
+            *overflow = true;
+            return -1;
+          }
+          npy_int64 hours = days * 24;
+
+          if (
+              ((dts->hour > 0) && (hours > INT64_MAX - dts->hour))
+              || ((dts->hour < 0) && (hours < INT64_MIN - dts->hour))
+              ) {
+            *overflow = true;
+            return -1;
+          }
+
+          ret = hours + dts->hour;
+          break;
+        }
             case NPY_FR_m:
                 ret = (days * 24 + dts->hour) * 60 + dts->min;
                 break;

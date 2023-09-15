@@ -67,7 +67,8 @@ static const npy_datetimestruct _M_MAX_DTS = {
 PyObject *extract_utc_offset(PyObject *obj);
 
 npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
-                                            const npy_datetimestruct *dts);
+                                            const npy_datetimestruct *dts,
+                                            bool *overflow);
 
 void pandas_datetime_to_datetimestruct(npy_datetime val, NPY_DATETIMEUNIT fr,
                                        npy_datetimestruct *result);
