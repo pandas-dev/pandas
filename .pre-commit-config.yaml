@@ -157,6 +157,8 @@ repos:
         name: clang-format
         entry: clang-format
         language: conda
+        additional_dependencies:
+          - clang-format
         files: ^pandas/_libs/src|^pandas/_libs/include
         args: [-i]
         types_or: [c, c++]
