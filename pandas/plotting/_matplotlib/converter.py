@@ -33,7 +33,10 @@ from pandas._libs.tslibs.dtypes import (
     FreqGroup,
     periods_per_day,
 )
-from pandas._typing import F
+from pandas._typing import (
+    F,
+    npt,
+)
 
 from pandas.core.dtypes.common import (
     is_float,
@@ -488,7 +491,7 @@ def _get_default_annual_spacing(nyears) -> tuple[int, int]:
     return (min_spacing, maj_spacing)
 
 
-def _period_break(dates: PeriodIndex, period: str) -> np.ndarray:
+def _period_break(dates: PeriodIndex, period: str) -> npt.NDArray[np.intp]:
     """
     Returns the indices where the given period changes.
 
@@ -499,12 +502,17 @@ def _period_break(dates: PeriodIndex, period: str) -> np.ndarray:
     period : str
         Name of the period to monitor.
     """
+    mask = _period_break_mask(dates, period)
+    return np.nonzero(mask)[0]
+
+
+def _period_break_mask(dates: PeriodIndex, period: str) -> npt.NDArray[np.bool_]:
     current = getattr(dates, period)
     previous = getattr(dates - 1 * dates.freq, period)
-    return np.nonzero(current - previous)[0]
+    return current != previous
 
 
-def has_level_label(label_flags: np.ndarray, vmin: float) -> bool:
+def has_level_label(label_flags: npt.NDArray[np.intp], vmin: float) -> bool:
     """
     Returns true if the ``label_flags`` indicate there is at least one label
     for this level.
@@ -594,14 +602,13 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
     if span <= periodspermonth:
         day_start = _period_break(dates_, "day")
         month_start = _period_break(dates_, "month")
+        year_start = _period_break(dates_, "year")
 
         def _hour_finder(label_interval: int, force_year_start: bool) -> None:
             _hour = dates_.hour
-            _prev_hour = (dates_ - 1 * dates_.freq).hour
-            hour_start = (_hour - _prev_hour) != 0
+            hour_start = _period_break_mask(dates_, "hour")
             info_maj[day_start] = True
             info_min[hour_start & (_hour % label_interval == 0)] = True
-            year_start = _period_break(dates_, "year")
             info_fmt[hour_start & (_hour % label_interval == 0)] = "%H:%M"
             info_fmt[day_start] = "%H:%M\n%d-%b"
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
@@ -611,11 +618,9 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
         def _minute_finder(label_interval: int) -> None:
             hour_start = _period_break(dates_, "hour")
             _minute = dates_.minute
-            _prev_minute = (dates_ - 1 * dates_.freq).minute
-            minute_start = (_minute - _prev_minute) != 0
+            minute_start = _period_break_mask(dates_, "minute")
             info_maj[hour_start] = True
             info_min[minute_start & (_minute % label_interval == 0)] = True
-            year_start = _period_break(dates_, "year")
             info_fmt[minute_start & (_minute % label_interval == 0)] = "%H:%M"
             info_fmt[day_start] = "%H:%M\n%d-%b"
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
@@ -623,11 +628,9 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
         def _second_finder(label_interval: int) -> None:
             minute_start = _period_break(dates_, "minute")
             _second = dates_.second
-            _prev_second = (dates_ - 1 * dates_.freq).second
-            second_start = (_second - _prev_second) != 0
+            second_start = _period_break_mask(dates_, "second")
             info_maj[minute_start] = True
             info_min[second_start & (_second % label_interval == 0)] = True
-            year_start = _period_break(dates_, "year")
             info_fmt[second_start & (_second % label_interval == 0)] = "%H:%M:%S"
             info_fmt[day_start] = "%H:%M:%S\n%d-%b"
             info_fmt[year_start] = "%H:%M:%S\n%d-%b\n%Y"
@@ -667,7 +670,6 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
         else:
             info_maj[month_start] = True
             info_min[day_start] = True
-            year_start = _period_break(dates_, "year")
             info_fmt = info["fmt"]
             info_fmt[day_start] = "%d"
             info_fmt[month_start] = "%d\n%b"
@@ -885,8 +887,9 @@ def _annual_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
 
     (min_anndef, maj_anndef) = _get_default_annual_spacing(span)
     major_idx = dates_ % maj_anndef == 0
+    minor_idx = dates_ % min_anndef == 0
     info["maj"][major_idx] = True
-    info["min"][(dates_ % min_anndef == 0)] = True
+    info["min"][minor_idx] = True
     info["fmt"][major_idx] = "%Y"
 
     return info
