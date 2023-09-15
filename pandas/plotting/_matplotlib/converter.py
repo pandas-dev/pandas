@@ -616,7 +616,6 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
             info_maj[hour_start] = True
             info_min[minute_start & (_minute % label_interval == 0)] = True
             year_start = _period_break(dates_, "year")
-            info_fmt = info["fmt"]
             info_fmt[minute_start & (_minute % label_interval == 0)] = "%H:%M"
             info_fmt[day_start] = "%H:%M\n%d-%b"
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
@@ -626,10 +625,9 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
             _second = dates_.second
             _prev_second = (dates_ - 1 * dates_.freq).second
             second_start = (_second - _prev_second) != 0
-            info["maj"][minute_start] = True
-            info["min"][second_start & (_second % label_interval == 0)] = True
+            info_maj[minute_start] = True
+            info_min[second_start & (_second % label_interval == 0)] = True
             year_start = _period_break(dates_, "year")
-            info_fmt = info["fmt"]
             info_fmt[second_start & (_second % label_interval == 0)] = "%H:%M:%S"
             info_fmt[day_start] = "%H:%M:%S\n%d-%b"
             info_fmt[year_start] = "%H:%M:%S\n%d-%b\n%Y"
