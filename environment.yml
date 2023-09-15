@@ -74,6 +74,7 @@ dependencies:
   - cxx-compiler
 
   # code checks
+  - clang-format=15.0.7
   - flake8=6.0.0  # run in subprocess over docstring examples
   - mypy=1.4.1  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py

@@ -70,13 +70,6 @@ repos:
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: trailing-whitespace
-- repo: https://github.com/pocc/pre-commit-hooks
-  rev: v1.3.5
-  hooks:
-    - id: clang-format
-      files: ^pandas/_libs/src|^pandas/_libs/include
-      args: [-i]
-      types_or: [c, c++]
 -   repo: https://github.com/pylint-dev/pylint
     rev: v3.0.0a7
     hooks:
@@ -160,6 +153,13 @@ repos:
         types: [pyi]
         args: [scripts/run_stubtest.py]
         stages: [manual]
+    -   id: clang-format
+        name: clang-format
+        entry: clang-format
+        language: system
+        files: ^pandas/_libs/src|^pandas/_libs/include
+        args: [-i]
+        types_or: [c, c++]
     -   id: inconsistent-namespace-usage
         name: 'Check for inconsistent use of pandas namespace'
         entry: python scripts/check_for_inconsistent_pandas_namespace.py

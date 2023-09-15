@@ -51,6 +51,7 @@ seaborn
 moto
 flask
 asv>=0.5.1
+clang-format==15.0.7
 flake8==6.0.0
 mypy==1.4.1
 tokenize-rt
