@@ -18,6 +18,7 @@ from pandas._libs import lib
 from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
+    timezones,
 )
 from pandas.compat import (
     pa_version_under7p0,
@@ -1992,9 +1993,17 @@ class ArrowExtensionArray(
                 **kwargs,
             )
 
-        masked = self._to_masked()
+        # maybe convert to a compatible dtype optimized for groupby
+        values: ExtensionArray
+        pa_type = self._pa_array.type
+        if pa.types.is_timestamp(pa_type):
+            values = self._to_datetimearray()
+        elif pa.types.is_duration(pa_type):
+            values = self._to_timedeltaarray()
+        else:
+            values = self._to_masked()
 
-        result = masked._groupby_op(
+        result = values._groupby_op(
             how=how,
             has_dropped_na=has_dropped_na,
             min_count=min_count,
@@ -2425,7 +2434,7 @@ class ArrowExtensionArray(
 
     @property
     def _dt_tz(self):
-        return self.dtype.pyarrow_dtype.tz
+        return timezones.maybe_get_tz(self.dtype.pyarrow_dtype.tz)
 
     @property
     def _dt_unit(self):

@@ -69,7 +69,7 @@ computation = ['scipy>=1.8.1', 'xarray>=2022.03.0']
 fss = ['fsspec>=2022.05.0']
 aws = ['s3fs>=2022.05.0']
 gcp = ['gcsfs>=2022.05.0', 'pandas-gbq>=0.17.5']
-excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.10', 'pyxlsb>=1.0.9', 'xlrd>=2.0.1', 'xlsxwriter>=3.0.3']
+excel = ['odfpy>=1.4.1', 'openpyxl>=3.0.10', 'python-calamine>=0.1.6', 'pyxlsb>=1.0.9', 'xlrd>=2.0.1', 'xlsxwriter>=3.0.3']
 parquet = ['pyarrow>=7.0.0']
 feather = ['pyarrow>=7.0.0']
 hdf5 = [# blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
@@ -112,6 +112,7 @@ all = ['beautifulsoup4>=4.11.1',
        'pytest>=7.3.2',
        'pytest-xdist>=2.2.0',
        'pytest-asyncio>=0.17.0',
+       'python-calamine>=0.1.6',
        'pyxlsb>=1.0.9',
        'qtpy>=2.2.0',
        'scipy>=1.8.1',
