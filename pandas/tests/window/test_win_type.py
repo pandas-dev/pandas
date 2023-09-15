@@ -665,13 +665,15 @@ def test_cmov_window_special_linear_range(win_types_special, step):
 @pytest.mark.parametrize("scale", [0, 0.1, 0.01, 0.001, 0.0001])
 def test_weighted_std_through_mean(win_types, step, scale, size):
     # GH 53273
+    pytest.importorskip("scipy")
+    window = 5
     s = Series(np.random.default_rng(0).normal(loc=1, scale=scale, size=size))
 
-    squared_mean = (s**2).rolling(5, win_type=win_types).mean()
-    mean = s.rolling(5, win_type=win_types).mean()
+    squared_mean = (s**2).rolling(window, win_type=win_types).mean()
+    mean = s.rolling(window, win_type=win_types).mean()
     expected = (squared_mean - mean**2).pow(0.5)
 
-    result = s.rolling(5, win_type=win_types).std(ddof=0)
+    result = s.rolling(window, win_type=win_types).std(ddof=0)
 
     tm.assert_series_equal(expected, result)
 
