@@ -74,7 +74,7 @@ repos:
   rev: v1.3.5
   hooks:
     - id: clang-format
-      include: ^pandas/_libs/src|^pandas/_libs/include
+      files: ^pandas/_libs/src|^pandas/_libs/include
       args: [-i]
       types_or: [c, c++]
 -   repo: https://github.com/pylint-dev/pylint
