@@ -235,6 +235,7 @@ class Apply(metaclass=abc.ABCMeta):
         if not by_row:
             result = obj.apply(func, by_row=by_row, args=args, **kwargs)
         else:
+            print(func, isinstance(func, np.ufunc))
             # func is either str or callable
             func = cast(AggFuncTypeBase, func)
             try:

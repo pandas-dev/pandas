@@ -1130,7 +1130,7 @@ Passing a dict of functions will allow selective transforming per column.
 
 .. ipython:: python
 
-   tsdf.transform({"A": np.abs, "B": lambda x: x + 1})
+   tsdf.transform({"A": np.abs, "B": lambda x: x + 1}, series_ops_only=True)
 
 Passing a dict of lists will generate a MultiIndexed DataFrame with these
 selective transforms.
