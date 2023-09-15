@@ -301,104 +301,138 @@ PyObject *extract_utc_offset(PyObject *obj) {
     return tmp;
 }
 
+
+static inline int64_t scaleYearToEpoch(int64_t year) { return year - 1970; }
+
+static inline int64_t scaleYearsToMonths(int64_t years) { return years * 12; }
+
+static inline int64_t scaleDaysToWeeks(int64_t days) {
+  if (days >= 0) {
+    return days / 7;
+  } else {
+    return (days - 6) / 7;
+  }
+}
+
+static inline int64_t scaleDaysToHours(int64_t days) { return days * 24; }
+
+static inline int64_t scaleHoursToMinutes(int64_t hours) { return hours * 60; }
+
+static inline int64_t scaleMinutesToSeconds(int64_t minutes) {
+  return minutes * 60;
+}
+
+static inline int64_t scaleSecondsToMilliseconds(int64_t seconds) {
+  return seconds * 1000;
+}
+
+static inline int64_t scaleSecondsToMicroseconds(int64_t seconds) {
+  return seconds * 1000000;
+}
+
+static inline int64_t scaleMicrosecondsToNanoseconds(int64_t microseconds) {
+  return microseconds * 1000;
+}
+
+static inline int64_t scaleMicrosecondsToPicoseconds(int64_t microseconds) {
+  return microseconds * 1000000;
+}
+
+static inline int64_t scalePicosecondsToFemtoseconds(int64_t picoseconds) {
+  return picoseconds * 1000;
+}
+
+static inline int64_t scalePicosecondsToAttoseconds(int64_t picoseconds) {
+  return picoseconds * 1000000;
+}
+
 /*
  * Converts a datetime from a datetimestruct to a datetime based
  * on a metadata unit. The date is assumed to be valid.
  */
 npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
                                             const npy_datetimestruct *dts) {
-    npy_datetime ret;
+    if ((base == NPY_FR_Y) || (base == NPY_FR_M)) {
+      const int64_t years = scaleYearToEpoch(dts->year);
+      if (base == NPY_FR_Y) {
+        return years;
+      }
 
-    if (base == NPY_FR_Y) {
-        /* Truncate to the year */
-        ret = dts->year - 1970;
-    } else if (base == NPY_FR_M) {
-        /* Truncate to the month */
-        ret = 12 * (dts->year - 1970) + (dts->month - 1);
-    } else {
-        /* Otherwise calculate the number of days to start */
-        npy_int64 days = get_datetimestruct_days(dts);
-
-        switch (base) {
-            case NPY_FR_W:
-                /* Truncate to weeks */
-                if (days >= 0) {
-                    ret = days / 7;
-                } else {
-                    ret = (days - 6) / 7;
-                }
-                break;
-            case NPY_FR_D:
-                ret = days;
-                break;
-            case NPY_FR_h:
-                ret = days * 24 + dts->hour;
-                break;
-            case NPY_FR_m:
-                ret = (days * 24 + dts->hour) * 60 + dts->min;
-                break;
-            case NPY_FR_s:
-                ret = ((days * 24 + dts->hour) * 60 + dts->min) * 60 + dts->sec;
-                break;
-            case NPY_FR_ms:
-                ret = (((days * 24 + dts->hour) * 60 + dts->min) * 60 +
-                       dts->sec) *
-                          1000 +
-                      dts->us / 1000;
-                break;
-            case NPY_FR_us:
-                ret = (((days * 24 + dts->hour) * 60 + dts->min) * 60 +
-                       dts->sec) *
-                          1000000 +
-                      dts->us;
-                break;
-            case NPY_FR_ns:
-                ret = ((((days * 24 + dts->hour) * 60 + dts->min) * 60 +
-                        dts->sec) *
-                           1000000 +
-                       dts->us) *
-                          1000 +
-                      dts->ps / 1000;
-                break;
-            case NPY_FR_ps:
-                ret = ((((days * 24 + dts->hour) * 60 + dts->min) * 60 +
-                        dts->sec) *
-                           1000000 +
-                       dts->us) *
-                          1000000 +
-                      dts->ps;
-                break;
-            case NPY_FR_fs:
-                /* only 2.6 hours */
-                ret = (((((days * 24 + dts->hour) * 60 + dts->min) * 60 +
-                         dts->sec) *
-                            1000000 +
-                        dts->us) *
-                           1000000 +
-                       dts->ps) *
-                          1000 +
-                      dts->as / 1000;
-                break;
-            case NPY_FR_as:
-                /* only 9.2 secs */
-                ret = (((((days * 24 + dts->hour) * 60 + dts->min) * 60 +
-                         dts->sec) *
-                            1000000 +
-                        dts->us) *
-                           1000000 +
-                       dts->ps) *
-                          1000000 +
-                      dts->as;
-                break;
-            default:
-                /* Something got corrupted */
-                PyErr_SetString(
-                    PyExc_ValueError,
-                    "NumPy datetime metadata with corrupt unit value");
-                return -1;
-        }
+      int64_t months = scaleYearsToMonths(years);
+      months += dts->month - 1;
+      if (base == NPY_FR_M) {
+        return months;
+      }
     }
-    return ret;
+
+    const int64_t days = get_datetimestruct_days(dts);
+    if (base == NPY_FR_D) {
+      return days;
+    }
+
+    if (base == NPY_FR_W) {
+      return scaleDaysToWeeks(days);
+    }
+
+    int64_t hours = scaleDaysToHours(days);
+    hours += dts->hour;
+    if (base == NPY_FR_h) {
+      return hours;
+    }
+
+
+    int64_t minutes = scaleHoursToMinutes(hours);
+    minutes += dts->min;
+    if (base == NPY_FR_m) {
+      return minutes;
+    }
+
+    int64_t seconds = scaleMinutesToSeconds(minutes);
+    seconds += dts->sec;
+    if (base == NPY_FR_s) {
+      return seconds;
+    }
+
+    if (base == NPY_FR_ms) {
+      int64_t milliseconds = scaleSecondsToMilliseconds(seconds);
+      milliseconds += dts->us / 1000;
+      return milliseconds;
+    }
+
+    int64_t microseconds = scaleSecondsToMicroseconds(seconds);
+    microseconds += dts->us;
+    if (base == NPY_FR_us) {
+      return microseconds;
+    }
+
+    if (base == NPY_FR_ns) {
+      int64_t nanoseconds = scaleMicrosecondsToNanoseconds(microseconds);
+      nanoseconds += dts->ps / 1000;
+      return nanoseconds;
+    }
+
+    int64_t picoseconds = scaleMicrosecondsToPicoseconds(microseconds);
+    picoseconds += dts->ps;
+    if (base == NPY_FR_ps) {
+      return picoseconds;
+    }
+
+    if (base == NPY_FR_fs) {
+      int64_t femtoseconds = scalePicosecondsToFemtoseconds(picoseconds);
+      femtoseconds += dts->as / 1000;
+      return femtoseconds;
+    }
+
+    if (base == NPY_FR_as) {
+      int64_t attoseconds = scalePicosecondsToAttoseconds(picoseconds);
+      attoseconds += dts->as;
+      return attoseconds;
+    }
+
+    /* Something got corrupted */
+    PyErr_SetString(PyExc_ValueError,
+                    "NumPy datetime metadata with corrupt unit value");
+    return -1;
 }
 
 /*
