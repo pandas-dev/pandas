@@ -605,33 +605,33 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
         year_start = _period_break(dates_, "year")
 
         def _hour_finder(label_interval: int, force_year_start: bool) -> None:
-            _hour = dates_.hour
-            hour_start = _period_break_mask(dates_, "hour")
+            target = dates_.hour
+            mask = _period_break_mask(dates_, "hour")
             info_maj[day_start] = True
-            info_min[hour_start & (_hour % label_interval == 0)] = True
-            info_fmt[hour_start & (_hour % label_interval == 0)] = "%H:%M"
+            info_min[mask & (target % label_interval == 0)] = True
+            info_fmt[mask & (target % label_interval == 0)] = "%H:%M"
             info_fmt[day_start] = "%H:%M\n%d-%b"
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
             if force_year_start and not has_level_label(year_start, vmin_orig):
                 info_fmt[first_label(day_start)] = "%H:%M\n%d-%b\n%Y"
 
         def _minute_finder(label_interval: int) -> None:
+            target = dates_.minute
             hour_start = _period_break(dates_, "hour")
-            _minute = dates_.minute
-            minute_start = _period_break_mask(dates_, "minute")
+            mask = _period_break_mask(dates_, "minute")
             info_maj[hour_start] = True
-            info_min[minute_start & (_minute % label_interval == 0)] = True
-            info_fmt[minute_start & (_minute % label_interval == 0)] = "%H:%M"
+            info_min[mask & (target % label_interval == 0)] = True
+            info_fmt[mask & (target % label_interval == 0)] = "%H:%M"
             info_fmt[day_start] = "%H:%M\n%d-%b"
             info_fmt[year_start] = "%H:%M\n%d-%b\n%Y"
 
         def _second_finder(label_interval: int) -> None:
+            target = dates_.second
             minute_start = _period_break(dates_, "minute")
-            _second = dates_.second
-            second_start = _period_break_mask(dates_, "second")
+            mask = _period_break_mask(dates_, "second")
             info_maj[minute_start] = True
-            info_min[second_start & (_second % label_interval == 0)] = True
-            info_fmt[second_start & (_second % label_interval == 0)] = "%H:%M:%S"
+            info_min[mask & (target % label_interval == 0)] = True
+            info_fmt[mask & (target % label_interval == 0)] = "%H:%M:%S"
             info_fmt[day_start] = "%H:%M:%S\n%d-%b"
             info_fmt[year_start] = "%H:%M:%S\n%d-%b\n%Y"
 
