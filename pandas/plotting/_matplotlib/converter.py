@@ -536,7 +536,8 @@ def _get_periods_per_ymd(freq: BaseOffset) -> tuple[int, int, int]:
     ppd = -1  # placeholder for above-day freqs
 
     if dtype_code >= FreqGroup.FR_HR.value:
-        ppd = periods_per_day(freq._creso)
+        # error: "BaseOffset" has no attribute "_creso"
+        ppd = periods_per_day(freq._creso)  # type: ignore[attr-defined]
         ppm = 28 * ppd
         ppy = 365 * ppd
     elif freq_group == FreqGroup.FR_BUS:
