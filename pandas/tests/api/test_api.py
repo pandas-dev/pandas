@@ -381,3 +381,7 @@ def test_pandas_array_alias():
         res = pd.arrays.PandasArray
 
     assert res is pd.arrays.NumpyExtensionArray
+
+
+def test_set_module():
+    assert pd.DataFrame.__module__ == "pandas"

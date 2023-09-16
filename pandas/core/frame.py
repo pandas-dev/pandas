@@ -66,6 +66,7 @@ from pandas.util._decorators import (
     Substitution,
     deprecate_nonkeyword_arguments,
     doc,
+    set_module,
 )
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
@@ -489,6 +490,7 @@ ValueError: columns overlap but no suffix specified:
 # DataFrame class
 
 
+@set_module("pandas")
 class DataFrame(NDFrame, OpsMixin):
     """
     Two-dimensional, size-mutable, potentially heterogeneous tabular data.
