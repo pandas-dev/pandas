@@ -9829,6 +9829,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
     See Also
     --------
+    DataFrame.apply : Perform any type of operations.
+    DataFrame.transform : Perform transformation type operations.
     pandas.core.groupby.GroupBy : Perform operations over groups.
     pandas.core.resample.Resampler : Perform operations over resampled bins.
     pandas.core.window.Rolling : Perform operations over rolling window.
