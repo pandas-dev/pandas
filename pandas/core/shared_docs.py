@@ -35,7 +35,6 @@ scalar, Series or DataFrame
     * Series : when DataFrame.agg is called with a single function
     * DataFrame : when DataFrame.agg is called with several functions
 
-    Return scalar, Series or DataFrame.
 {see_also}
 Notes
 -----
