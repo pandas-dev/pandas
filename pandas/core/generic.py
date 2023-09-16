@@ -9660,7 +9660,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         .. deprecated:: 2.1.0
-            Please create a mask and filter using `.loc` instead
+            Please create a mask and filter using `.loc` instead. See examples for both cases.
 
         Examples
         --------
@@ -9680,9 +9680,24 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-04-13  3
         2018-04-15  4
 
+        This is an alternative example. If you are not sure the index is sorted.        
+        >>> ts[ts.index >= ts.index.max() - pd.Timedelta(days=3)] # doctest: +SKIP
+                    A
+        2018-04-13  3
+        2018-04-15  4
+
+        This is a faster alternative example. If you are sure the index is sorted.
+        >>> ts.loc[ts.index.max() - pd.Timedelta(days=3):] # doctest: +SKIP
+                    A
+        2018-04-13  3
+        2018-04-15  4
+
+
         Notice the data for 3 last calendar days were returned, not the last
         3 observed days in the dataset, and therefore data for 2018-04-11 was
         not returned.
+
+
         """
         warnings.warn(
             "last is deprecated and will be removed in a future version. "
