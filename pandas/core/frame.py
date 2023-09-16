@@ -9835,7 +9835,9 @@ class DataFrame(NDFrame, OpsMixin):
     pandas.core.resample.Resampler : Perform operations over resampled bins.
     pandas.core.window.Rolling : Perform operations over rolling window.
     pandas.core.window.Expanding : Perform operations over expanding window.
-    pandas.core.window.ExponentialMovingWindow : Perform operation over exponential"""
+    pandas.core.window.ExponentialMovingWindow : Perform operation over exponential
+        weighted window.
+    """
     )
 
     _agg_examples_doc = dedent(
