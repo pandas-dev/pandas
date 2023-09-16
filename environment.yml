@@ -85,7 +85,7 @@ dependencies:
   - google-auth
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
-  - pydata-sphinx-theme
+  - pydata-sphinx-theme=0.13
   - pytest-cython  # doctest
   - sphinx
   - sphinx-design

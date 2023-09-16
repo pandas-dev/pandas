@@ -60,7 +60,7 @@ gitdb
 google-auth
 natsort
 numpydoc
-pydata-sphinx-theme
+pydata-sphinx-theme==0.13
 pytest-cython
 sphinx
 sphinx-design
