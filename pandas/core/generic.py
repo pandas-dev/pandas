@@ -9696,8 +9696,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notice the data for 3 last calendar days were returned, not the last
         3 observed days in the dataset, and therefore data for 2018-04-11 was
         not returned.
-
-
         """
         warnings.warn(
             "last is deprecated and will be removed in a future version. "
