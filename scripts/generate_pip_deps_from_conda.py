@@ -32,6 +32,27 @@ RENAME = {
     "seaborn-base": "seaborn",
     "sqlalchemy": "SQLAlchemy",
 }
+ADD_ENV_MARKERS = {
+    "pytables": " ; sys_platform != 'darwin' and platform_machine != 'arm64'",
+}
+
+
+def rename(orig_name: str) -> str:
+    if orig_name in RENAME:
+        return RENAME[orig_name]
+    return orig_name
+
+
+def remap_version(package: str, version: str) -> str:
+    if package in REMAP_VERSION:
+        return REMAP_VERSION[package]
+    return version
+
+
+def retrieve_env_markers(package: str) -> str:
+    if package in ADD_ENV_MARKERS:
+        return ADD_ENV_MARKERS[package]
+    return ""
 
 
 def conda_package_to_pip(package: str):
@@ -46,23 +67,22 @@ def conda_package_to_pip(package: str):
     """
     package = re.sub("(?<=[^<>])=", "==", package).strip()
 
+    if package in EXCLUDE:
+        return
+
     for compare in ("<=", ">=", "=="):
         if compare in package:
             pkg, version = package.split(compare)
             if pkg in EXCLUDE:
                 return
-            if pkg in REMAP_VERSION:
-                return "".join((pkg, compare, REMAP_VERSION[pkg]))
-            if pkg in RENAME:
-                return "".join((RENAME[pkg], compare, version))
+            return "".join((
+                rename(pkg),
+                compare,
+                remap_version(pkg, version),
+                retrieve_env_markers(pkg),
+            ))
 
-    if package in EXCLUDE:
-        return
-
-    if package in RENAME:
-        return RENAME[package]
-
-    return package
+    return "".join((rename(package), retrieve_env_markers(package)))
 
 
 def generate_pip_from_conda(
