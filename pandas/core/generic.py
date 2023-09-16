@@ -9660,7 +9660,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         .. deprecated:: 2.1.0
-            Please create a mask and filter using `.loc` instead. See examples for both cases.
+            Please create a mask and filter using `.loc` instead. 
+            See examples for both cases.
 
         Examples
         --------
