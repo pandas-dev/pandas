@@ -75,12 +75,14 @@ def conda_package_to_pip(package: str):
             pkg, version = package.split(compare)
             if pkg in EXCLUDE:
                 return
-            return "".join((
-                rename(pkg),
-                compare,
-                remap_version(pkg, version),
-                retrieve_env_markers(pkg),
-            ))
+            return "".join(
+                (
+                    rename(pkg),
+                    compare,
+                    remap_version(pkg, version),
+                    retrieve_env_markers(pkg),
+                )
+            )
 
     return "".join((rename(package), retrieve_env_markers(package)))
 
