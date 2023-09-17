@@ -144,7 +144,7 @@ In Pandas v3.0:
 1. `Series.apply` & `DataFrame.apply` will be removed from the code base (question: or added to `_hidden_attrs`?).
 1. The `agg` & `transform` will always operate on series/columns/rows data and the `series_ops_only` parameter will have no effect and be deprecated and removed in v4.0 (it must be kept in v3.x in order to facilitate the switch from v2.x to v3.0).
 
-## PDEP-13 History
+## PDEP History
 
 - 24 august 2023: Initial version (proposed to change `Series.apply` & `DataFrame.apply` to always operate on series/columns/rows)
 - 17. september 2023: version 2 (renamed and proposing to deprecate `Series.apply` & `DataFrame.apply` and make `agg`/`transform` always operate on series/columns/rows)
