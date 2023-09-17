@@ -234,8 +234,8 @@ jobs:
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
-          # No longer possible to easily compile numpy > 1.26 from source 
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy<1.26 python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
+          # No longer possible to easily compile numpy > 1.26 from source
+          python -m pip install --no-cache-dir versioneer[toml] cython "numpy<1.26" python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
           python -m pip install --no-cache-dir --no-build-isolation -e .
           python -m pip list --no-cache-dir
           export PANDAS_CI=1
