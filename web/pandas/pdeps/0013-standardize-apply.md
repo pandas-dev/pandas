@@ -1,339 +1,146 @@
-# PDEP-13: Make the Series.apply method operate Series-wise
+# PDEP-13: Deprecate the apply method on Series & DataFrame in favor of series-based operations using the agg and transform methods
 
 - Created: 24 August 2023
 - Status: Under discussion
 - Discussion: [#52140](https://github.com/pandas-dev/pandas/issues/52509)
 - Author: [Terji Petersen](https://github.com/topper-123)
-- Revision: 1
+- Revision: 2
 
 ## Abstract
 
-Currently, giving an input to `Series.apply` is treated differently depending on the type of the input:
+The `apply`, `transform` and `agg` methods have very complex behavior because they in some cases operate on elements in series, in some cases on series and sometimes try one first, and it that fails, falls back to try the other. There is not a logical system how these behaviors are arranged and it can therefore be difficult for users to understand these methods.
 
-1. if the input is a numpy `ufunc`, `series.apply(func)` is equivalent to `func(series)`, i.e. similar to `series.pipe(func)`.
-2. if the input is a callable, but not a numpy `ufunc`, `series.apply(func)` is similar to `Series([func(val) for val in series], index=series.index)`, i.e. similar to `series.map(func)`
-3. if the input is a list-like or dict-like, `series.apply(func_list)` is equivalent to `series.agg(func_list)` (which is subtly different than `series.apply`)
+I propose to change how `apply`, `transform` and `agg` as follows:
 
-In contrast, `DataFrame.apply` has a consistent behavior:
+1. the `agg` & `transform` methods of `Series`, `DataFrame` & `groupby` will always operate series-wise and never element-wise
+2. `Series.apply` & `DataFrame.apply` will be deprecated.
+3. `groupby.apply` will not be deprecated (because it behaves differently than `Series.apply` & `DataFrame.apply`)
 
-1. if the input is a callable, `df.apply(func)` always calls each columns in the DataFrame, so is similar to `func(col) for _, col in
-df.items()` + wrapping functionality
-2. if the input is a list-like or dict-like, `df.apply` call each item in the list/dict and wraps the result as needed. So for example if the input is a list, `df.apply(func_list)` is equivalent to `[df.apply(func) for func in func_list]` + wrapping functionality
+The above changes means that the future behavior, when users want to apply arbitrary callables in pandas, can be described as follows:
 
-(it can be noted that `Series.apply` and  `DataFrame.apply` already treat string input equivalently, so this proposal will not change how `Series.apply` treats string input. For background information, it can also be noted that `df.apply(..., axis=1)` will iterate over each row of frame dataframe, which is the expected behavior).
+1. When users want to operate on single elements in a `Series` or `DataFrame`, they should use `Series.map` and `DataFrame.map` respectively.
+2. When users want to aggregate a `Series`, columns/rows of a `DataFrame` or groups in `groupby` objects, they should use `Series.agg`, `DataFrame.agg` and `groupby.agg` respectively.
+3. When users want to transform a `Series`, columns/rows of a `DataFrame` or groups in `groupby` objects, they should use `Series.transform`, `DataFrame.transform` and `groupby.transform` respectively.
 
-This PDEP proposes that:
-
-- The current behavior of `Series.apply` described above will be deprecated in Pandas 2.2.
-- Single callables given to the `.apply` methods of `Series` will in Pandas 3.0 always be called on the whole `Series`, so `series.apply(func)` will become similar to `func(series)`,
-- Lists or dicts given to the `Series.apply` will in Pandas 3.0 always applied using `Series.apply` on each element of the list/dict, instead of being equivalent to calling `Series.agg` on it, i.e. `series.apply(func_list)` will be equivalent to `[series.apply(func) for func in func_list]` + wrapping functionality.
-
-In short, this PDEP proposes changing `Series.apply` to be more similar to how `DataFrame.apply` works on single dataframe columns, i.e. operate on the whole series. If a user wants to map a callable to each element of a Series, they should be directed to use `Series.map` instead of using `Series.apply`.
+The use of `Series.apply` &  `DataFrame.apply` will after that change in almost all cases be replaced by one of the above methods. In the very few cases where `Series.apply` &  `DataFrame.apply` cannot be substituted by `map`, `agg` or `transform`, it will be accepted that users will have to find alternative ways to apply the functions, i.e. typically apply the functions manually and possibly concatenating the results.
 
 ## Motivation
 
-`Series.apply` is currently a very complex method, whose behaviour will differ depending on the nature of its input.
+The current behavior of `apply`, `agg` & `transform` is very complex and therefore difficult to understand for non-expert users. The difficulty is especially that the methods sometimes apply callables on elements of series/dataframes, sometimes on Series or columns/rows of Dataframes and sometimes try element-wise operation and if that fails, falls back to series-wise operations.
 
-`Series.apply` & `Series.map` currently often behave very similar, but differently enough for it to be confusing when it's a good idea to use one over the other and especially when `Series.apply` is a bad idea to use.
+Below is an overview of the current behavior in table form for `agg`, `transform` & `apply` ( The description may not be 100 % accurate because of various special cases in the current implementation, but will give a good understanding of the current behavior).
 
-Also, calling `Series.apply` currently gives a different result than the per-column result from calling `DataFrame.apply`, which can be confusing for users who expect `Series.apply` to be the `Series` version of `DataFrame.apply`, similar to how `Series.agg` is the `Series` version of `DataFrame.agg`. For example, currently some functions may work fine with `DataFrame.apply`, but may fail, be very slow when given to `Series.apply` or give a different result than the per-column result from `DataFrame.apply`.
+### agg
 
-### Similarities and differences between `Series.apply` and `Series.map`
+|                                    | Series                           | DataFrame                        | groupby   |
+|:-----------------------------------|:---------------------------------|:---------------------------------|:----------|
+| ufunc or list/dict of ufuncs       | series                           | series                           | series    |
+| other callables (non ufunc)        | Try elements, fallback to series | series                           | series    |
+| list/dict of callables (non-ufunc) | Try elements, fallback to series | Try elements, fallback to series | series    |
 
-The similarity between the methods is especially that they both fall back to use `Series._map_values` and there use `algorithms.map_array` or `ExtensionArray.map` as relevant.
+### transform
 
-The differences are many, but each one is relative minor:
+|                                    | Series                           | DataFrame                        | groupby   |
+|:-----------------------------------|:---------------------------------|:---------------------------------|:----------|
+| ufunc or list/dict of ufuncs       | series                           | series                           | series    |
+| other callables (non ufunc)        | Try elements, fallback to series | series                           | series    |
+| list/dict of callables (non-ufunc) | Try elements, fallback to series | Try elements, fallback to series | series    |
 
-1. `Series.map` has a `na_action` parameter, which `Series.apply` doesn't
-2. `Series.apply` can take advantage of numpy ufuncs, which `Series.map` can't
-3. `Series.apply` can take `args` and `**kwargs`, which `Series.map` can't
-4. `Series.apply` is more general and can take a string, e.g. `"sum"`, or lists or dicts of inputs which `Series.map` can't.
-5. when given a numpy ufunc, the ufunc will be called on the whole Series, when given to `Series.apply` and on each element of the series, if given to `Series.map`.
+### apply
 
-In addition, `Series.apply` has some functionality, which `Series.map` does not, but which has already been deprecated:
+|                                    | Series   | DataFrame   | groupby   |
+|:-----------------------------------|:---------|:------------|:----------|
+| ufunc or list/dict of ufuncs       | series   | series      | series    |
+| other callables (non ufunc)        | elements | series      | series    |
+| list/dict of callables (non-ufunc) | Try elements, fallback to series | series    | series    |
 
-6. `Series.apply` has a `convert_dtype` parameter, which has been deprecated (deprecated in pandas 2.1, see [GH52257](https://github.com/pandas-dev/pandas/pull/52257))
-7. `Series.apply` will return a Dataframe, if its result is a list of Series (deprecated in pandas 2.1, see [GH52123]()https://github.com/pandas-dev/pandas/pull/52123)).
+The 3 tables show that:
 
-### Similarities and differences between `Series.apply` and `DataFrame.apply`
+1. when given numpy ufuncs, callables given to `agg`/`transform`/`apply` operate on series data
+2. when used on groupby objects, callables given to `agg`/`transform`/`apply` operate on series data
+3. else, in some case it will try element-wise operation and fall back to series-wise operations if that fails, in some case will operate on series data and in some cases on element data.
 
-`Series.apply` and `DataFrame.apply` are similar when given numpy ufuncs as inputs, but when given non-ufuncs as inputs, `Series.apply` and `DataFrame.apply` will behave differently, because `series.apply(func)` will be similar to `series.map(func)` while `Dataframe.apply(func)` will call the input on each column series and combine the result.
+The above differences result on some non-obvious differences in how the same callable given to `agg`/`transform`/`apply` will behave.
 
-If given a list-like or dict-like, `Series.apply` will behave similar to `Series.agg`, while `DataFrame.apply` will call each element in the list-like/dict-like on each column and combine the results.
-
-Also `DataFrame.apply` has some parameters (`raw` and `result_type`) which are relevant for a 2D DataFrame, but may not be relevant for `Series.apply`, because `Series` is a 1D structure.
-
-## Examples of problems with the current way `Series.apply` works
-
-The above similarities and many minor differences makes for confusing and too complex rules for when its a good idea to use `Series.apply` over `Series.map` to do operations, and vica versa, and for when a callable will work well with `Series.apply` versus `DataFrame.apply`. Some examples will show some examples below.
-
-First some setup:
+For example, calling `agg` using the same callable will give different results depending on context:
 
 ```python
->>> import numpy as np
 >>> import pandas as pd
+>>> df = pd.DataFrame({"A": range(3)})
 >>>
->>> small_ser = pd.Series([1, 2, 3])
->>> large_ser = pd.Series(range(100_000))
-```
-
-### 1: string vs numpy funcs in `Series.apply`
-
-```python
->>> small_ser.apply("sum")
-6
->>> small_ser.apply(np.sum)
-0    1
-1    2
-2    3
+>>> df.agg(lambda x: np.sum(x))  # ok
+A    3
 dtype: int64
+>>> df.agg([lambda x: np.sum(x)])  # not ok
+         A
+  <lambda>
+0        0
+1        1
+2        2
+>>> df.A.agg(lambda x: np.sum(x))  # not ok
+0    0
+1    1
+2    2
+Name: A, dtype: int64
 ```
 
-It will surprise users that these two give different results. Also, anyone using the second pattern is probably making a mistake.
-
-Note that giving `np.sum` to `DataFrame.apply` aggregates properly:
+It can also have great effect on performance, even when the result is correct. For example:
 
 ```python
->>> pd.DataFrame(small_ser).apply(np.sum)
-0    6
-dtype: int64
+>>> df = pd.DataFrame({"A": range(1_000_000)})
+>>> %tiemit df.transform(lambda x: x + 1)  # fast
+1.43 ms ± 3.6 µs per loop (mean ± std. dev. of 7 runs, 1,000 loops each)
+ >>> %timeit df.transform([lambda x: x + 1])  # slow
+163 ms ± 754 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
+ >>> %timeit df.A.transform(lambda x: x + 1)  # slow
+162 ms ± 980 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
 ```
 
-This PDEP proposes that callables will be applies to the whole `Series`, so we in the future will have:
+The reason for the great performance difference is that `df.transform(func)` operates on series data, which is fast, while `df.transform(func_list)` will attempt elementwise operation first, and if that works (which is does here), will be much slower than series operations.
 
-```python
->>> small_ser.apply(np.sum)
-6
-```
+In addition to the above effects of the current implementation of `agg`/`transform` & `apply`, see [#52140](https://github.com/pandas-dev/pandas/issues/52140) for more examples of the unexpected effects of how `apply` is implemented.
 
-### 2 Callables vs. list/dict of callables
+It can also be noted that `Series.apply` & `DataFrame.apply` could almost always be replaced with calls to `agg`, `transform` & `map`, if `agg` & `transform` were to always operate on series data. For some examples, see the table below for alternative methodt to `apply(func)`:
 
-Giving functions and lists/dicts of functions will give different results:
+| func                    | Series     | DataFrame   |
+|:--------------------|:-----------|:------------|
+| lambda x: str(x)    | .map       | .map        |
+| lambda x: x + 1     | .transform | .transform  |
+| [lambda x: x.sum()] | .agg       | .agg        |
+``
 
-```python
->>> small_ser.apply(np.sum)
-0    1
-1    2
-2    3
-dtype: int64
->>> small_ser.apply([np.sum])
-sum    6
-dtype: int64
-```
-
-Also with non-numpy callables:
-
-```python
->>> small_ser.apply(lambda x: x.sum())
-AttributeError: 'int' object has no attribute 'sum'
->>> small_ser.apply([lambda x: x.sum()])
-<lambda>    6
-dtype: int64
-```
-
-In both cases above the difference is that `Series.apply` operates element-wise, if given a callable, but series-wise if given a list/dict of callables.
-
-This PDEP proposes that callables will be applies to the whole `Series`, so we in the future will have:
-
-```python
->>> small_ser.apply(lambda x: x.sum())
-6
->>> small_ser.apply([lambda x: x.sum()])
-<lambda>    6
-dtype: int64
-```
-
-### 3. Functions in `Series.apply`
-
-The `Series.apply` doc string have examples with using lambdas, but using lambdas in `Series.apply` is often a bad practices because of bad performance:
-
-```python
->>> %timeit large_ser.apply(lambda x: x + 1)
-24.1 ms ± 88.8 µs per loop
-```
-
-Currently, `Series` does not have a method that makes a callable operate on a series' data. Instead users need to use `Series.pipe` for that operation in order for the operation to be efficient:
-
-```python
->>> %timeit large_ser.pipe(lambda x: x + 1)
-44 µs ± 363 ns per loop
-```
-
-(The reason for the above performance differences is that apply gets called on each single element, while `pipe` calls `x.__add__(1)`, which operates on the whole array).
-
-Note also that `.pipe` operates on the `Series` while `apply`currently operates on each element in the data, so there is some differences that may have some consequence in some cases.
-
-This PDEP proposes that callables will be applies to the whole `Series`, so we in the future `Series.apply` will be as fast as `Series.pipe`.
-
-### 4. ufuncs in `Series.apply` vs. normal functions
-
-Performance-wise, ufuncs are fine in `Series.apply`, but non-ufunc functions are not:
-
-```python
->>> %timeit large_ser.apply(np.sqrt)
-71.6 µs ± 1.17 µs per loop
->>> %timeit large_ser.apply(lambda x:np.sqrt(x))
-63.6 ms ± 1.03 ms per loop (mean ± std. dev. of 7 runs, 10 loops each)
-```
-
-It is difficult to understand why ufuncs are fast in `apply`, while other callables are slow in `apply` (answer: it's because ufuncs operate on the whole Series, while other callables operate elementwise).
-
-This PDEP proposes that callables will be applies to the whole `Series`, so we in the future non-ufunc functions in `Series.apply` will be as fast as ufuncs.
-
-### 5. callables in `Series.apply` is slow, callables in `DataFrame.apply` is fast
-
-Above it was shown that using (non-ufunc) callables in `Series.apply` is bad performance-wise. OTOH using them in `DataFrame.apply` is fine:
-
-```python
->>> %timeit large_ser.apply(lambda x: x + 1)
-24.3 ms ± 24 µs per loop (mean ± std. dev. of 7 runs, 10 loops each)
->>> %timeit pd.DataFrame(large_ser).apply(lambda x: x + 1)
-160 µs +- 1.17 µs per loop (mean ± std. dev. of 7 runs, 10,000 loops each)
-```
-
-Having callables being fast to use in the `DataFrame.apply` method, but slow in `Series.apply` is confusing for users.
-
-This PDEP proposes that callables will be applies to the whole `Series`, so we in the future `Series.apply` will be as fast as `DataFrame.apply` already is.
-
-### 6. callables in `Series.apply` may fail, while callables in `DataFrame.apply` do not and vica versa
-
-```python
->>> ser.apply(lambda x: x.sum())
-AttributeError: 'int' object has no attribute 'sum'
->>> pd.DataFrame(ser).apply(lambda x: x.sum())
-0    6
-dtype: int64
-```
-
-Having callables fail when used in `Series.apply`, but work in `DataFrame.Apply` or vica versa is confusing for users.
-
-This PDEP proposes that callables will be applied to the whole `Series`, so callables given to `Series.apply` will work the same as when given to `DataFrame.apply`, so in the future we will have that:
-
-```python
->>> ser.apply(lambda x: x.sum())
-6
->>> pd.DataFrame(ser).apply(lambda x: x.sum())
-0    6
-dtype: int64
-```
-
-### 7.  `Series.apply` vs. `Series.agg`
-
-The doc string for `Series.agg` says about the method's `func` parameter: "If a function, must ... work when passed ... to Series.apply". But compare these:
-
-```python
->>> small_ser.agg(np.sum)
-6
->>> small_ser.apply(np.sum)
-0    1
-1    2
-2    3
-dtype: int64
-```
-
-Users would expect these two to give the same result.
-
-This PDEP proposes that callables will be applied to the whole `Series`, so in the future we will have:
-
-```python
->>> small_ser.agg(np.sum)
-6
->>> small_ser.apply(np.sum)
-6
-```
-
-### 8. dictlikes vs. listlikes in `Series.apply`
-
-Giving a *list* of transforming arguments to `Series.apply` returns a `DataFrame`:
-
-```python
->>> small_ser.apply(["sqrt", np.abs])
-       sqrt  absolute
-0  1.000000         1
-1  1.414214         2
-2  1.732051         3
-```
-
-But giving a *dict* of transforming arguments returns a `Series` with a `MultiIndex`:
-
-```python
->>> small_ser.apply({"sqrt" :"sqrt", "abs" : np.abs})
-sqrt  0    1.000000
-      1    1.414214
-      2    1.732051
-abs   0    1.000000
-      1    2.000000
-      2    3.000000
-dtype: float64
-```
-
-These two should give same-shaped output for consistency. Using `Series.transform` instead of `Series.apply`, it returns a `DataFrame` in both cases and I think the dictlike example above should return a `DataFrame` similar to the listlike example.
-
-Minor additional info: listlikes and dictlikes of aggregation arguments do behave the same, so this is only a problem with dictlikes of transforming arguments when using `apply`.
-
-This PDEP proposes that the result from giving list-likes and dict-likes to `Series.apply` will have the same shape as when given list-likes currently:
-
-```python
->>> small_ser.apply(["sqrt", np.abs])
-       sqrt  absolute
-0  1.000000         1
-1  1.414214         2
-2  1.732051         3
->>> small_ser.apply({"sqrt" :"sqrt", "abs" : np.abs})
-       sqrt  absolute
-0  1.000000         1
-1  1.414214         2
-2  1.732051         3
-```
+Because of their flexibility, `Series.apply` & `DataFrame.apply` are considered unnecessarily complex, and it would be better to direct users to use `.map`, `.agg` or `.transform`, as appropriate in the given situation.
 
 ## Proposal
 
-With the above in mind, it is proposed that:
+With the above in mind, it is proposed that in the future:
 
-1. When given a callable, `Series.apply` always operate on the series. I.e. let `series.apply(func)` be similar to `func(series)` + the needed additional functionality.
-2. When given a list-like or dict-like, `Series.apply` will apply each element of the list-like/dict-like to the series. I.e. `series.apply(func_list)` will be similar to `[series.apply(func) for func in func_list]` + the needed additional functionality
-3. The changes made to `Series.apply`will propagate to `Series.agg` and `Series.transform` as needed.
+1. the `agg` & `transform` methods of `Series`, `DataFrame` will always operate series-wise and never element-wise
+2. `Series.apply` & `DataFrame.apply` will be deprecated.
+3. `groupby.apply` will not be deprecated (because it behaves differently than `Series.apply` & `DataFrame.apply`)
 
-The difference between `Series.apply()` & `Series.map()` will then be that:
+The above changes means that the future behavior, when users want to apply arbitrary callables in pandas, can be described as follows:
 
-* `Series.apply()` makes the passed-in callable operate on the series, similarly to how `(DataFrame|SeriesGroupby|DataFrameGroupBy).apply` operate on series. This is very fast and can do almost anything,
-* `Series.map()` makes the passed-in callable operate on each series data elements individually. This is very flexible, but can be very slow, so should only be used if `Series.apply` can't do it.
+1. When users want to operate on single elements in a `Series` or `DataFrame`, they should use `Series.map` and `DataFrame.map` respectively.
+2. When users want to aggregate a `Series`, columns/rows of a `DataFrame` or groups in `groupby` objects, they should use `Series.agg`, `DataFrame.agg` and `groupby.agg` respectively.
+3. When users want to transform a `Series`, columns/rows of a `DataFrame` or groups in `groupby` objects, they should use `Series.transform`, `DataFrame.transform` and `groupby.transform` respectively.
 
-so, this API change will help make Pandas `Series.(apply|map)` API  clearer without losing functionality and let their functionality  be explainable in a simple manner, which would be a win for Pandas.
-
-The result from the above change will be that `Series.apply` will operate similar to how `DataFrame.apply` works already per column, similar to how `Series.map` operates similar to how `DataFrame.map` works per column. This will give better coherence between same-named methods on `DataFrames` and `Series`.
+The use of `Series.apply` &  `DataFrame.apply` will after that change in almost all cases be replaced by `map`, `agg` or `transform`, so will be deprecated. In the very few cases where `Series.apply` &  `DataFrame.apply` cannot be substituted by `map`, `agg` or `transform`, it will be accepted that users will have to find alternative ways to apply the functions, i.e. typically apply the functions manually and possibly concatenating the results.
 
 ## Deprecation process
 
-To change the behavior to the current behavior will have to be deprecated. This can be done by adding a `by_row` parameter to `Series.apply`, so when  `by_rows=True`, `Series.apply` will be backward compatible, and when `by_rows=False`, `Series.apply` will operate Series-wise. If the parameter is not set a warning will we emitted and the parameter will be set to `True`, i.e. be backward compatible. So we will have in pandas v2.2:
+To change the current behavior, it will have to be deprecated. This will be done by in v2.2:
 
-```python
->>> def apply(self, ..., by_row: bool | NoDefault=no_default, ...):
-    if by_row is no_default:
-        warn("The by_row parameter will be set to False in the future",
-            DeprecationWarning,
-            stacklevel=find_stack_level()
-        )
-        by_row = True
-    ...
-```
+1. Deprecate `Series.apply` & `DataFrame.apply`.
+2. Add a `series_ops_only` with type `bool | lib.NoDefault` parameter to `agg` & `transform` methods of `Series` & `DataFrame`. When `series_ops_only` is set to False, `agg` & `transform` will behave as they do currently. When set to True, `agg` & `transform` will never operate on elements, but always on Series. When set to `no_default`, `agg` & `transform` will behave as `series_ops_only=False`, but will emit a FutureWarning the current behavior will be reoved in the future.
 
-In pandas v3.0 the signature will change to:
+(It can be noted that `groupby.agg`, `groupby.transform` & `groupby.apply` are not proposed changed in this PDEP, because `groupby.agg`, `groupby.transform` already behave as desired and `groupby.apply` behaves differently than `Series.apply` & `DataFrame.apply`)
 
-```python
->>> def apply(self, ..., by_row: NoDefault=no_default, ...):
-    if by_row is not no_default:
-        warn("Do not use the by_row parameter, it will be removed in the future",
-            DeprecationWarning,
-            stacklevel=find_stack_level()
-        )
-    ...
-```
-
-I.e. the `by_row` parameter will be in the signature in v3.0 in order be backward compatible with v2.x, but will have no effect and will emit a warning if set in method calls.
-
-In Pandas v4.0, the `by_row` parameter will be removed.
+In Pandas v3.0:
+1. `Series.apply` & `DataFrame.apply` will be removed from the code base (question: or added to `_hidden_attrs`?).
+1. The `agg` & `transform` will always operate on series/columns/rows data and the `series_ops_only` parameter will have no effect and be deprecated and removed in v4.0 (it must be kept in v3.x in order to facilitate the switch from v2.x to v3.0).
 
 ## PDEP-13 History
 
-- 24 august 2023: Initial version
+- 24 august 2023: Initial version (proposed to change `Series.apply` & `DataFrame.apply` to always operate on series/columns/rows)
+- 17. september 2023: version 2 (renamed and proposing to deprecate `Series.apply` & `DataFrame.apply` and make `agg`/`transform` always operate on series/columns/rows)
