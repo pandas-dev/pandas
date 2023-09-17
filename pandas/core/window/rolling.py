@@ -937,6 +937,11 @@ class Window(BaseWindow):
 
         For `Series` this parameter is unused and defaults to 0.
 
+        .. deprecated:: 2.1.0
+
+            'axis' keyword in DataFrame.rolling is deprecated.
+            Call the method without the axis keyword instead.
+
     closed : str, default None
         If ``'right'``, the first point in the window is excluded from calculations.
 
