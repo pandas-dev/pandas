@@ -1558,7 +1558,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> pd.DataFrame({'col': [False]}).bool()  # doctest: +SKIP
         False
 
-
         Alternative
         --------
         This is an alternative method and will only work
