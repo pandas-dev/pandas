@@ -10,7 +10,7 @@
 
 The `apply`, `transform` and `agg` methods have very complex behavior because they in some cases operate on elements in series, in some cases on series and sometimes try one first, and it that fails, falls back to try the other. There is not a logical system how these behaviors are arranged and it can therefore be difficult for users to understand these methods.
 
-I propose to change how `apply`, `transform` and `agg` as follows:
+It is proposed that `apply`, `transform` and `agg` in the future will work as follows:
 
 1. the `agg` & `transform` methods of `Series`, `DataFrame` & `groupby` will always operate series-wise and never element-wise
 2. `Series.apply` & `DataFrame.apply` will be deprecated.
@@ -22,13 +22,15 @@ The above changes means that the future behavior, when users want to apply arbit
 2. When users want to aggregate a `Series`, columns/rows of a `DataFrame` or groups in `groupby` objects, they should use `Series.agg`, `DataFrame.agg` and `groupby.agg` respectively.
 3. When users want to transform a `Series`, columns/rows of a `DataFrame` or groups in `groupby` objects, they should use `Series.transform`, `DataFrame.transform` and `groupby.transform` respectively.
 
-The use of `Series.apply` &  `DataFrame.apply` will after that change in almost all cases be replaced by one of the above methods. In the very few cases where `Series.apply` &  `DataFrame.apply` cannot be substituted by `map`, `agg` or `transform`, it will be accepted that users will have to find alternative ways to apply the functions, i.e. typically apply the functions manually and possibly concatenating the results.
+The use of `Series.apply` &  `DataFrame.apply` will after the proposed change in almost all cases be replaced by `map`, `agg` or `transform`. In the very few cases where `Series.apply` &  `DataFrame.apply` cannot be substituted by `map`, `agg` or `transform`, it is proposed that it will be accepted that users will have to find alternative ways to apply the functions, i.e. typically apply the functions manually and possibly concatenating the results.
 
 ## Motivation
 
 The current behavior of `apply`, `agg` & `transform` is very complex and therefore difficult to understand for non-expert users. The difficulty is especially that the methods sometimes apply callables on elements of series/dataframes, sometimes on Series or columns/rows of Dataframes and sometimes try element-wise operation and if that fails, falls back to series-wise operations.
 
-Below is an overview of the current behavior in table form for `agg`, `transform` & `apply` ( The description may not be 100 % accurate because of various special cases in the current implementation, but will give a good understanding of the current behavior).
+Below is an overview of the current behavior in table form when giving callables to `agg`, `transform` & `apply`. As an example on how to read the tables, when a non-ufunc callable is given to `Series.agg`, `Series.agg` will first try to apply the callable to each element in the series, and if that fails, will fall back to call the series using the callable.
+
+(The description may not be 100 % accurate because of various special cases in the current implementation, but will give a good understanding of the current behavior).
 
 ### agg
 
@@ -100,7 +102,7 @@ The reason for the great performance difference is that `df.transform(func)` ope
 
 In addition to the above effects of the current implementation of `agg`/`transform` & `apply`, see [#52140](https://github.com/pandas-dev/pandas/issues/52140) for more examples of the unexpected effects of how `apply` is implemented.
 
-It can also be noted that `Series.apply` & `DataFrame.apply` could almost always be replaced with calls to `agg`, `transform` & `map`, if `agg` & `transform` were to always operate on series data. For some examples, see the table below for alternative methodt to `apply(func)`:
+It can also be noted that `Series.apply` & `DataFrame.apply` could almost always be replaced with calls to `agg`, `transform` & `map`, if `agg` & `transform` were to always operate on series data. For some examples, see the table below for alternatives using `apply(func)`:
 
 | func                    | Series     | DataFrame   |
 |:--------------------|:-----------|:------------|
@@ -115,7 +117,9 @@ Because of their flexibility, `Series.apply` & `DataFrame.apply` are considered 
 
 With the above in mind, it is proposed that in the future:
 
-1. the `agg` & `transform` methods of `Series`, `DataFrame` will always operate series-wise and never element-wise
+It is proposed that `apply`, `transform` and `agg` in the future will work as follows:
+
+1. the `agg` & `transform` methods of `Series`, `DataFrame` & `groupby` will always operate series-wise and never element-wise
 2. `Series.apply` & `DataFrame.apply` will be deprecated.
 3. `groupby.apply` will not be deprecated (because it behaves differently than `Series.apply` & `DataFrame.apply`)
 
@@ -125,7 +129,9 @@ The above changes means that the future behavior, when users want to apply arbit
 2. When users want to aggregate a `Series`, columns/rows of a `DataFrame` or groups in `groupby` objects, they should use `Series.agg`, `DataFrame.agg` and `groupby.agg` respectively.
 3. When users want to transform a `Series`, columns/rows of a `DataFrame` or groups in `groupby` objects, they should use `Series.transform`, `DataFrame.transform` and `groupby.transform` respectively.
 
-The use of `Series.apply` &  `DataFrame.apply` will after that change in almost all cases be replaced by `map`, `agg` or `transform`, so will be deprecated. In the very few cases where `Series.apply` &  `DataFrame.apply` cannot be substituted by `map`, `agg` or `transform`, it will be accepted that users will have to find alternative ways to apply the functions, i.e. typically apply the functions manually and possibly concatenating the results.
+The use of `Series.apply` &  `DataFrame.apply` will after the proposed change in almost all cases be replaced by `map`, `agg` or `transform`. In the very few cases where `Series.apply` &  `DataFrame.apply` cannot be substituted by `map`, `agg` or `transform`, it is proposed that it will be accepted that users will have to find alternative ways to apply the functions, i.e. typically apply the functions manually and possibly concatenating the results.
+
+It can be noted that `groupby.agg`, `groupby.transform` & `groupby.apply` are not proposed changed in this PDEP, because `groupby.agg`, `groupby.transform` already behave as desired and `groupby.apply` behaves differently than `Series.apply` & `DataFrame.apply`. Likewise, the behavior when given ufuncs will remain unchanged, because the behavior is already as intended in all cases.
 
 ## Deprecation process
 
@@ -133,8 +139,6 @@ To change the current behavior, it will have to be deprecated. This will be done
 
 1. Deprecate `Series.apply` & `DataFrame.apply`.
 2. Add a `series_ops_only` with type `bool | lib.NoDefault` parameter to `agg` & `transform` methods of `Series` & `DataFrame`. When `series_ops_only` is set to False, `agg` & `transform` will behave as they do currently. When set to True, `agg` & `transform` will never operate on elements, but always on Series. When set to `no_default`, `agg` & `transform` will behave as `series_ops_only=False`, but will emit a FutureWarning the current behavior will be reoved in the future.
-
-(It can be noted that `groupby.agg`, `groupby.transform` & `groupby.apply` are not proposed changed in this PDEP, because `groupby.agg`, `groupby.transform` already behave as desired and `groupby.apply` behaves differently than `Series.apply` & `DataFrame.apply`)
 
 In Pandas v3.0:
 1. `Series.apply` & `DataFrame.apply` will be removed from the code base (question: or added to `_hidden_attrs`?).
