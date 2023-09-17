@@ -1725,8 +1725,8 @@ class Timedelta(_Timedelta):
 
         .. deprecated:: 2.2.0
 
-            Values `H`, `T`, `S`, `L`, `U`, and `N` are deprecated in favour of the values
-            `h`, `min`, `s`, `ms`, `us`, and `ns`.
+            Values `H`, `T`, `S`, `L`, `U`, and `N` are deprecated in favour
+            of the values `h`, `min`, `s`, `ms`, `us`, and `ns`.
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
