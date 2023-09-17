@@ -1,4 +1,4 @@
-# PDEP-13: Deprecate the apply method on Series & DataFrame in favor of series-based operations using the agg and transform methods
+# PDEP-13: Deprecate the apply method on Series & DataFrame and make the agg and transform methods operate on series data
 
 - Created: 24 August 2023
 - Status: Under discussion
