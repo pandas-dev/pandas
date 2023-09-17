@@ -109,9 +109,10 @@ It can also be noted that `Series.apply` & `DataFrame.apply` could almost always
 | lambda x: str(x)    | .map       | .map        |
 | lambda x: x + 1     | .transform | .transform  |
 | [lambda x: x.sum()] | .agg       | .agg        |
-``
 
-Because of their flexibility, `Series.apply` & `DataFrame.apply` are considered unnecessarily complex, and it would be better to direct users to use `.map`, `.agg` or `.transform`, as appropriate in the given situation.
+So, for example, `ser.apply(lambda x: str(x))` can be replaced with `ser.map(lambda x: str(x))` while `df.apply([lambda x: x.sum()])` can be replaced with `df.agg([lambda x: x.sum()])`.
+
+Overall, because of their flexibility, `Series.apply` & `DataFrame.apply` are considered unnecessarily complex, and it would be clearer for users to use `.map`, `.agg` or `.transform`, as appropriate in the given situation.
 
 ## Proposal
 
