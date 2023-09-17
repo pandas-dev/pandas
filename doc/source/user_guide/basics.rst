@@ -1112,7 +1112,7 @@ will be the names of the transforming functions.
 
 .. ipython:: python
 
-   tsdf.transform([np.abs, lambda x: x + 1])
+   tsdf.transform([np.abs, lambda x: x + 1], series_ops_only=True)
 
 Passing multiple functions to a Series will yield a DataFrame. The
 resulting column names will be the transforming functions.
