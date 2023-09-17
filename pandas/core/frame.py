@@ -1926,11 +1926,17 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
         into: type[dict] = ...,
+        index: bool = ...,
     ) -> dict:
         ...
 
     @overload
-    def to_dict(self, orient: Literal["records"], into: type[dict] = ...) -> list[dict]:
+    def to_dict(
+        self,
+        orient: Literal["records"],
+        into: type[dict] = ...,
+        index: bool = ...,
+    ) -> list[dict]:
         ...
 
     @deprecate_nonkeyword_arguments(
@@ -8863,20 +8869,20 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df = pd.DataFrame({'Animal': ['Falcon', 'Falcon',
         ...                               'Parrot', 'Parrot'],
         ...                    'Max Speed': [380., 370., 24., 26.]})
-        >>> df.groupby("Animal", group_keys=True).apply(lambda x: x)
-                  Animal  Max Speed
+        >>> df.groupby("Animal", group_keys=True)[['Max Speed']].apply(lambda x: x)
+                  Max Speed
         Animal
-        Falcon 0  Falcon      380.0
-               1  Falcon      370.0
-        Parrot 2  Parrot       24.0
-               3  Parrot       26.0
+        Falcon 0      380.0
+               1      370.0
+        Parrot 2       24.0
+               3       26.0
 
-        >>> df.groupby("Animal", group_keys=False).apply(lambda x: x)
-           Animal  Max Speed
-        0  Falcon      380.0
-        1  Falcon      370.0
-        2  Parrot       24.0
-        3  Parrot       26.0
+        >>> df.groupby("Animal", group_keys=False)[['Max Speed']].apply(lambda x: x)
+           Max Speed
+        0      380.0
+        1      370.0
+        2       24.0
+        3       26.0
         """
         )
     )
@@ -9823,11 +9829,11 @@ class DataFrame(NDFrame, OpsMixin):
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    pandas.core.groupby.GroupBy : Perform operations over groups.
-    pandas.core.resample.Resampler : Perform operations over resampled bins.
-    pandas.core.window.Rolling : Perform operations over rolling window.
-    pandas.core.window.Expanding : Perform operations over expanding window.
-    pandas.core.window.ExponentialMovingWindow : Perform operation over exponential
+    pandas.DataFrame.groupby : Perform operations over groups.
+    pandas.DataFrame.resample : Perform operations over resampled bins.
+    pandas.DataFrame.rolling : Perform operations over rolling window.
+    pandas.DataFrame.expanding : Perform operations over expanding window.
+    pandas.core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
         weighted window.
     """
     )
@@ -9919,6 +9925,8 @@ class DataFrame(NDFrame, OpsMixin):
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
         by_row: Literal[False, "compat"] = "compat",
+        engine: Literal["python", "numba"] = "python",
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         """
@@ -9978,6 +9986,35 @@ class DataFrame(NDFrame, OpsMixin):
             If False, the funcs will be passed the whole Series at once.
 
             .. versionadded:: 2.1.0
+
+        engine : {'python', 'numba'}, default 'python'
+            Choose between the python (default) engine or the numba engine in apply.
+
+            The numba engine will attempt to JIT compile the passed function,
+            which may result in speedups for large DataFrames.
+            It also supports the following engine_kwargs :
+
+            - nopython (compile the function in nopython mode)
+            - nogil (release the GIL inside the JIT compiled function)
+            - parallel (try to apply the function in parallel over the DataFrame)
+
+            Note: The numba compiler only supports a subset of
+            valid Python/numpy operations.
+
+            Please read more about the `supported python features
+            <https://numba.pydata.org/numba-doc/dev/reference/pysupported.html>`_
+            and `supported numpy features
+            <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
+            in numba to learn what you can or cannot use in the passed function.
+
+            As of right now, the numba engine can only be used with raw=True.
+
+            .. versionadded:: 2.2.0
+
+        engine_kwargs : dict
+            Pass keyword arguments to the engine.
+            This is currently only used by the numba engine,
+            see the documentation for the engine argument for more information.
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -10078,6 +10115,8 @@ class DataFrame(NDFrame, OpsMixin):
             raw=raw,
             result_type=result_type,
             by_row=by_row,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
             args=args,
             kwargs=kwargs,
         )
@@ -11297,7 +11336,7 @@ class DataFrame(NDFrame, OpsMixin):
     def any(  # type: ignore[override]
         self,
         *,
-        axis: Axis = 0,
+        axis: Axis | None = 0,
         bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -11312,7 +11351,7 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(make_doc("all", ndim=2))
     def all(
         self,
-        axis: Axis = 0,
+        axis: Axis | None = 0,
         bool_only: bool = False,
         skipna: bool = True,
         **kwargs,
@@ -11711,6 +11750,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
+        method: Literal["single", "table"] = ...,
     ) -> Series:
         ...
 
@@ -11721,6 +11761,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
+        method: Literal["single", "table"] = ...,
     ) -> Series | DataFrame:
         ...
 
@@ -11731,6 +11772,7 @@ class DataFrame(NDFrame, OpsMixin):
         axis: Axis = ...,
         numeric_only: bool = ...,
         interpolation: QuantileInterpolation = ...,
+        method: Literal["single", "table"] = ...,
     ) -> Series | DataFrame:
         ...
 
@@ -11830,11 +11872,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         if not is_list_like(q):
             # BlockManager.quantile expects listlike, so we wrap and unwrap here
-            # error: List item 0 has incompatible type "Union[float, Union[Union[
-            # ExtensionArray, ndarray[Any, Any]], Index, Series], Sequence[float]]";
-            # expected "float"
-            res_df = self.quantile(  # type: ignore[call-overload]
-                [q],
+            # error: List item 0 has incompatible type "float | ExtensionArray |
+            # ndarray[Any, Any] | Index | Series | Sequence[float]"; expected "float"
+            res_df = self.quantile(
+                [q],  # type: ignore[list-item]
                 axis=axis,
                 numeric_only=numeric_only,
                 interpolation=interpolation,

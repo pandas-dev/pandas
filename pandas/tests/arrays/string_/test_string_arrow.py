@@ -12,7 +12,10 @@ from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
 )
-from pandas.core.arrays.string_arrow import ArrowStringArray
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringArrayNumpySemantics,
+)
 
 skip_if_no_pyarrow = pytest.mark.skipif(
     pa_version_under7p0,
@@ -167,6 +170,9 @@ def test_pyarrow_not_installed_raises():
         ArrowStringArray([])
 
     with pytest.raises(ImportError, match=msg):
+        ArrowStringArrayNumpySemantics([])
+
+    with pytest.raises(ImportError, match=msg):
         ArrowStringArray._from_sequence(["a", None, "b"])
 
 
@@ -235,9 +241,10 @@ def test_setitem_invalid_indexer_raises():
 
 
 @skip_if_no_pyarrow
-def test_pickle_roundtrip():
+@pytest.mark.parametrize("dtype", ["string[pyarrow]", "string[pyarrow_numpy]"])
+def test_pickle_roundtrip(dtype):
     # GH 42600
-    expected = pd.Series(range(10), dtype="string[pyarrow]")
+    expected = pd.Series(range(10), dtype=dtype)
     expected_sliced = expected.head(2)
     full_pickled = pickle.dumps(expected)
     sliced_pickled = pickle.dumps(expected_sliced)
@@ -249,3 +256,11 @@ def test_pickle_roundtrip():
 
     result_sliced = pickle.loads(sliced_pickled)
     tm.assert_series_equal(result_sliced, expected_sliced)
+
+
+@skip_if_no_pyarrow
+def test_string_dtype_error_message():
+    # GH#55051
+    msg = "Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'."
+    with pytest.raises(ValueError, match=msg):
+        StringDtype("bla")
