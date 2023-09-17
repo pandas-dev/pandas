@@ -2044,7 +2044,7 @@ class TestPandasContainer:
             )
 
         if orient == "values":
-            expected.columns = list(range(0, 8))
+            expected.columns = list(range(8))
 
         tm.assert_frame_equal(result, expected)
 

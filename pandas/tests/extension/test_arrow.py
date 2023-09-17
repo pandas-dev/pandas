@@ -31,6 +31,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY311,
     is_ci_environment,
@@ -40,6 +41,7 @@ from pandas.compat import (
     pa_version_under9p0,
     pa_version_under11p0,
     pa_version_under13p0,
+    pa_version_under14p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -917,7 +919,7 @@ class TestArrowArray(base.ExtensionTests):
                 or (
                     opname
                     in ("__truediv__", "__rtruediv__", "__floordiv__", "__rfloordiv__")
-                    and not pa_version_under13p0
+                    and not pa_version_under14p0
                 )
             )
             and pa.types.is_duration(pa_dtype)
@@ -1592,6 +1594,19 @@ def test_to_numpy_null_array_no_dtype():
     arr = pd.array([pd.NA, pd.NA], dtype="null[pyarrow]")
     result = arr.to_numpy(dtype=None)
     expected = np.array([pd.NA] * 2, dtype="object")
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_to_numpy_without_dtype():
+    # GH 54808
+    arr = pd.array([True, pd.NA], dtype="boolean[pyarrow]")
+    result = arr.to_numpy(na_value=False)
+    expected = np.array([True, False], dtype=np.bool_)
+    tm.assert_numpy_array_equal(result, expected)
+
+    arr = pd.array([1.0, pd.NA], dtype="float32[pyarrow]")
+    result = arr.to_numpy(na_value=0.0)
+    expected = np.array([1.0, 0.0], dtype=np.float32)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -2418,7 +2433,7 @@ def test_dt_tz(tz):
         dtype=ArrowDtype(pa.timestamp("ns", tz=tz)),
     )
     result = ser.dt.tz
-    assert result == tz
+    assert result == timezones.maybe_get_tz(tz)
 
 
 def test_dt_isocalendar():
@@ -2977,6 +2992,15 @@ def test_groupby_count_return_arrow_dtype(data_missing):
         dtype="int64[pyarrow]",
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_fixed_size_list():
+    # GH#55000
+    ser = pd.Series(
+        [[1, 2], [3, 4]], dtype=ArrowDtype(pa.list_(pa.int64(), list_size=2))
+    )
+    result = ser.dtype.type
+    assert result == list
 
 
 def test_arrowextensiondtype_dataframe_repr():
