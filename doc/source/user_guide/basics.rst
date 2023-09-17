@@ -1119,7 +1119,7 @@ resulting column names will be the transforming functions.
 
 .. ipython:: python
 
-   tsdf["A"].transform([np.abs, lambda x: x + 1])
+   tsdf["A"].transform([np.abs, lambda x: x + 1], series_ops_only=True)
 
 
 Transforming with a dict

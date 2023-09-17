@@ -1,3 +1,5 @@
+import numpy as np
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.api.types import is_list_like
@@ -12,7 +14,9 @@ frame_transform_kernels = [x for x in sorted(transformation_kernels) if x != "cu
 
 def transform_obj(obj, func, *args, axis=0, series_ops_only=False, **kwargs):
     """helper function to ease use of series_ops_only and deprecation warning."""
-    if series_ops_only:
+    if isinstance(func, np.ufunc):
+        result = obj.transform(func, axis, *args, **kwargs)
+    elif series_ops_only:
         result = obj.transform(
             func, axis, *args, series_ops_only=series_ops_only, **kwargs
         )

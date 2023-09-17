@@ -28,7 +28,7 @@ def unpack_obj(obj, klass, axis):
     return obj
 
 
-def test_transform_ufunc(axis, float_frame, frame_or_series, series_ops_only):
+def test_transform_ufunc(axis, float_frame, frame_or_series):
     # GH 35964
     obj = unpack_obj(float_frame, frame_or_series, axis)
 
@@ -36,7 +36,7 @@ def test_transform_ufunc(axis, float_frame, frame_or_series, series_ops_only):
         f_sqrt = np.sqrt(obj)
 
     # ufunc
-    result = transform_obj(obj, np.sqrt, axis=axis, series_ops_only=series_ops_only)
+    result = transform_obj(obj, np.sqrt, axis=axis)
     expected = f_sqrt
     tm.assert_equal(result, expected)
 
