@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-from abc import (
-    ABC,
-    abstractmethod,
-)
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -104,7 +100,7 @@ if TYPE_CHECKING:
 from pandas.compat.numpy import function as nv
 
 
-class BaseMaskedArray(OpsMixin, ExtensionArray, ABC):
+class BaseMaskedArray(OpsMixin, ExtensionArray):
     """
     Base class for masked arrays (which use _data and _mask to store the data).
 
@@ -170,9 +166,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray, ABC):
         return str
 
     @property
-    @abstractmethod
     def dtype(self) -> BaseMaskedDtype:
-        ...
+        raise NotImplementedError
 
     @overload
     def __getitem__(self, item: ScalarIndexer) -> Any:
@@ -254,11 +249,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray, ABC):
         return new_values
 
     @classmethod
-    @abstractmethod
     def _coerce_to_array(
         cls, values, *, dtype: DtypeObj, copy: bool = False
     ) -> tuple[np.ndarray, np.ndarray]:
-        ...
+        raise NotImplementedError
 
     def _validate_setitem_value(self, value):
         """
