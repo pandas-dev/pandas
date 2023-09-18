@@ -257,7 +257,7 @@ Strings
 
 Interval
 ^^^^^^^^
--
+- Bug in :class:`Interval` ``__repr__`` not displaying UTC offsets for :class:`Timestamp` bounds. Additionally the hour, minute and second components will now be shown. (:issue:`55015`)
 -
 
 Indexing

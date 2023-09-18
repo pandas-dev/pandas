@@ -1039,8 +1039,9 @@ def interval_range(
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
     ...                   end=pd.Timestamp('2017-01-04'))
-    IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
-                   (2017-01-03, 2017-01-04]],
+    IntervalIndex([(2017-01-01 00:00:00, 2017-01-02 00:00:00],
+                   (2017-01-02 00:00:00, 2017-01-03 00:00:00],
+                   (2017-01-03 00:00:00, 2017-01-04 00:00:00]],
                   dtype='interval[datetime64[ns], right]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
@@ -1056,8 +1057,9 @@ def interval_range(
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
     ...                   periods=3, freq='MS')
-    IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
-                   (2017-03-01, 2017-04-01]],
+    IntervalIndex([(2017-01-01 00:00:00, 2017-02-01 00:00:00],
+                   (2017-02-01 00:00:00, 2017-03-01 00:00:00],
+                   (2017-03-01 00:00:00, 2017-04-01 00:00:00]],
                   dtype='interval[datetime64[ns], right]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
