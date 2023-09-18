@@ -8323,8 +8323,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * DataFrame : when `self` is a DataFrame and `where` is an
               array-like
 
-            Return scalar, Series, or DataFrame.
-
         See Also
         --------
         merge_asof : Perform an asof merge. Similar to left join.
@@ -10395,7 +10393,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # make sure we are boolean
         fill_value = bool(inplace)
-        cond = cond.fillna(fill_value)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "Downcasting object dtype arrays",
+                category=FutureWarning,
+            )
+            cond = cond.fillna(fill_value)
+        cond = cond.infer_objects(copy=False)
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
