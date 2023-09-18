@@ -801,8 +801,7 @@ cpdef ndarray[object] ensure_string_array(
         # short-circuit, all elements are str
         return result
 
-    from pandas.core.dtypes.common import is_float_dtype
-    if is_float_dtype(arr.dtype):  # non-optimized path
+    if arr.dtype.kind == "f":  # non-optimized path
         for i in range(n):
             val = arr[i]
 
