@@ -3351,6 +3351,7 @@ def test_roundtripping_datetimes(sqlite_sqlalchemy_memory_engine):
     assert result == "2020-12-31 12:00:00.000000"
 
 
+@pytest.mark.db
 def test_psycopg2_schema_support(postgresql_psycopg2_engine):
     conn = postgresql_psycopg2_engine
 
@@ -3425,6 +3426,7 @@ def test_psycopg2_schema_support(postgresql_psycopg2_engine):
     tm.assert_frame_equal(concat([df, df], ignore_index=True), res)
 
 
+@pytest.mark.db
 def test_self_join_date_columns(postgresql_psycopg2_engine):
     # GH 44421
     conn = postgresql_psycopg2_engine
