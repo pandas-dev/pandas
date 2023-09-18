@@ -801,6 +801,29 @@ cpdef ndarray[object] ensure_string_array(
         # short-circuit, all elements are str
         return result
 
+    from pandas.core.dtypes.common import is_float_dtype
+    if is_float_dtype(arr.dtype):  # non-optimized path
+        print("going non-optimal route")
+        for i in range(n):
+            val = arr[i]
+
+            if not already_copied:
+                result = result.copy()
+                already_copied = True
+
+            if not checknull(val):
+                # f"{val}" is not always equivalent to str(val) for floats
+                result[i] = str(val)
+            else:
+                if convert_na_value:
+                    val = na_value
+                if skipna:
+                    result[i] = val
+                else:
+                    result[i] = f"{val}"
+
+        return result
+
     newarr = np.asarray(arr, dtype=object)
     for i in range(n):
         val = newarr[i]
