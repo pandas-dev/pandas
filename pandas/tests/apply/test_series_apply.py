@@ -420,13 +420,18 @@ def test_agg_evaluate_lambdas(string_series):
 def test_with_nested_series(datetime_series, op_name):
     # GH 2316
     # .agg with a reducer and a transform, what to do
-    result = getattr(datetime_series, op_name)(
-        lambda x: Series([x, x**2], index=["x", "x^2"])
-    )
+    msg = "cannot aggregate"
+    warning = FutureWarning if op_name == "agg" else None
+    with tm.assert_produces_warning(warning, match=msg):
+        # GH52123
+        result = getattr(datetime_series, op_name)(
+            lambda x: Series([x, x**2], index=["x", "x^2"])
+        )
     expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
     tm.assert_frame_equal(result, expected)
 
-    result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
     tm.assert_frame_equal(result, expected)
 
 
