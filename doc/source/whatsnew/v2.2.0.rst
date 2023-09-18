@@ -36,6 +36,34 @@ There are two advantages of this engine:
 
 For more, see :ref:`io.calamine` in the user guide on IO tools.
 
+.. _whatsnew_220.enhancements.struct_accessor:
+
+Series.struct accessor to with PyArrow structured data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``Series.struct`` accessor provides attributes and methods for processing
+data with ``struct[pyarrow]`` dtype Series. For example,
+:meth:`Series.struct.explode` converts PyArrow structured data to a pandas
+DataFrame. (:issue:`54938`)
+
+.. ipython:: python
+
+    import pyarrow as pa
+    series = pd.Series(
+        [
+            {"project": "pandas", "version": "2.2.0"},
+            {"project": "numpy", "version": "1.25.2"},
+            {"project": "pyarrow", "version": "13.0.0"},
+        ],
+        dtype=pd.ArrowDtype(
+            pa.struct([
+                ("project", pa.string()),
+                ("version", pa.string()),
+            ])
+        ),
+    )
+    series.struct.explode()
+
 .. _whatsnew_220.enhancements.enhancement2:
 
 enhancement2
