@@ -1527,7 +1527,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         .. deprecated:: 2.1.0
 
            bool is deprecated and will be removed in future version of pandas.
-           For series use pandas.Series.item.
+           For ``Series`` use ``pandas.Series.item``.
 
         This must be a boolean scalar value, either True or False. It will raise a
         ValueError if the Series or DataFrame does not have exactly 1 element, or that
