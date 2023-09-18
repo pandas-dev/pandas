@@ -86,6 +86,7 @@ def test_series_creation():
     tm.assert_series_equal(result, s_array)
 
 
+@pytest.mark.single_cpu
 @pytest.mark.parametrize("manager", ["block", "array"])
 def test_array_manager_depr_env_var(manager):
     # GH#55043
