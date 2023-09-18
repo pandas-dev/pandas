@@ -803,7 +803,6 @@ cpdef ndarray[object] ensure_string_array(
 
     from pandas.core.dtypes.common import is_float_dtype
     if is_float_dtype(arr.dtype):  # non-optimized path
-        print("going non-optimal route")
         for i in range(n):
             val = arr[i]
 
