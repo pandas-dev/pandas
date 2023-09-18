@@ -96,6 +96,7 @@ class TestDataFrameIndexingWhere:
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     def test_where_alignment(self, where_frame, float_string_frame):
         # aligning
         def _check_align(df, cond, other, check_dtypes=True):
@@ -170,6 +171,7 @@ class TestDataFrameIndexingWhere:
         with pytest.raises(ValueError, match=msg):
             df.mask(0)
 
+    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     def test_where_set(self, where_frame, float_string_frame, mixed_int_frame):
         # where inplace
 

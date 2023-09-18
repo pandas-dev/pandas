@@ -498,7 +498,11 @@ class Block(PandasObject, libinternals.Block):
 
     @final
     def _maybe_downcast(
-        self, blocks: list[Block], downcast, using_cow: bool, caller: str
+        self,
+        blocks: list[Block],
+        downcast,
+        using_cow: bool,
+        caller: str,
     ) -> list[Block]:
         if downcast is False:
             return blocks
@@ -510,9 +514,29 @@ class Block(PandasObject, libinternals.Block):
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
 
+            if caller == "fillna" and get_option("future.no_silent_downcasting"):
+                return blocks
+
             nbs = extend_blocks(
                 [blk.convert(using_cow=using_cow, copy=not using_cow) for blk in blocks]
             )
+            if caller == "fillna":
+                if len(nbs) != len(blocks) or not all(
+                    x.dtype == y.dtype for x, y in zip(nbs, blocks)
+                ):
+                    # GH#54261
+                    warnings.warn(
+                        "Downcasting object dtype arrays on .fillna, .ffill, .bfill "
+                        "is deprecated and will change in a future version. "
+                        "Call result.infer_objects(copy=False) instead. "
+                        "To opt-in to the future "
+                        "behavior, set "
+                        "`pd.set_option('future.no_silent_downcasting', True)`",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+
+            return nbs
 
         elif downcast is None:
             return blocks
@@ -1549,7 +1573,7 @@ class Block(PandasObject, libinternals.Block):
         data = extract_array(new_values, extract_numpy=True)
 
         nb = self.make_block_same_class(data, refs=refs)
-        return nb._maybe_downcast([nb], downcast, using_cow, caller="pad_or_backfill")
+        return nb._maybe_downcast([nb], downcast, using_cow, caller="fillna")
 
     @final
     def interpolate(

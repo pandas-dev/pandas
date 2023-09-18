@@ -1217,7 +1217,16 @@ class Parser:
             if not self.dtype:
                 if all(notna(data)):
                     return data, False
-                return data.fillna(np.nan), True
+
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "Downcasting object dtype arrays",
+                        category=FutureWarning,
+                    )
+                    filled = data.fillna(np.nan)
+
+                return filled, True
 
             elif self.dtype is True:
                 pass

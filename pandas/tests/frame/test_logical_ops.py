@@ -151,6 +151,7 @@ class TestDataFrameLogicalOperators:
 
         _check_unary_op(operator.inv)  # TODO: belongs elsewhere
 
+    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     def test_logical_with_nas(self):
         d = DataFrame({"a": [np.nan, False], "b": [True, True]})
 

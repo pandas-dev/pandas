@@ -360,7 +360,9 @@ class TestFillNA:
         expected = Series([np.dtype("object")] * 5, index=[1, 2, 3, 4, 5])
         tm.assert_series_equal(result, expected)
 
-        result = df.fillna(1)
+        msg = "Downcasting object dtype arrays"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.fillna(1)
         expected = DataFrame(1, index=["A", "B", "C"], columns=[1, 2, 3, 4, 5])
         tm.assert_frame_equal(result, expected)
 
@@ -817,7 +819,8 @@ def test_fillna_nones_inplace():
         [[None, None], [None, None]],
         columns=["A", "B"],
     )
-    with tm.assert_produces_warning(False):
+    msg = "Downcasting object dtype arrays"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
         df.fillna(value={"A": 1, "B": 2}, inplace=True)
 
     expected = DataFrame([[1, 2], [1, 2]], columns=["A", "B"])

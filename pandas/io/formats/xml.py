@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import doc
@@ -202,7 +203,13 @@ class BaseXMLFormatter:
             df = df.reset_index()
 
         if self.na_rep is not None:
-            df = df.fillna(self.na_rep)
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    "Downcasting object dtype arrays",
+                    category=FutureWarning,
+                )
+                df = df.fillna(self.na_rep)
 
         return df.to_dict(orient="index")
 

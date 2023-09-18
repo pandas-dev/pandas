@@ -15,6 +15,7 @@ from pandas.core import ops
 
 
 class TestSeriesLogicalOps:
+    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize("bool_op", [operator.and_, operator.or_, operator.xor])
     def test_bool_operators_with_nas(self, bool_op):
         # boolean &, |, ^ should work with object arrays and propagate NAs

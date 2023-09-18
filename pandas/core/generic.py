@@ -10393,7 +10393,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # make sure we are boolean
         fill_value = bool(inplace)
-        cond = cond.fillna(fill_value)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "Downcasting object dtype arrays",
+                category=FutureWarning,
+            )
+            cond = cond.fillna(fill_value)
+        cond = cond.infer_objects(copy=False)
 
         msg = "Boolean array expected for the condition, not {dtype}"
 

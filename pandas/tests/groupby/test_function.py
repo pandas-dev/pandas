@@ -1534,6 +1534,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             method(*args, **kwargs)
 
 
+@pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
