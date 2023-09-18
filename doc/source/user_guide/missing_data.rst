@@ -401,7 +401,7 @@ Limit the number of NA values filled
 
    df.ffill(limit=1)
 
-NA values can be replaced with corresponding value from a :class:`Series`` or :class:`DataFrame``
+NA values can be replaced with corresponding value from a :class:`Series` or :class:`DataFrame`
 where the index and column aligns between the original object and the filled object.
 
 .. ipython:: python
@@ -660,7 +660,7 @@ Pass a list of regular expressions that will replace matches with a scalar.
 
 .. ipython:: python
 
-   df.replace([r"\s*\.\s*", r"a|b"], np.nan, regex=True)
+   df.replace([r"\s*\.\s*", r"a|b"], "placeholder", regex=True)
 
 All of the regular expression examples can also be passed with the
 ``to_replace`` argument as the ``regex`` argument. In this case the ``value``
@@ -669,7 +669,7 @@ dictionary.
 
 .. ipython:: python
 
-   df.replace(regex=[r"\s*\.\s*", r"a|b"], value=np.nan)
+   df.replace(regex=[r"\s*\.\s*", r"a|b"], value="placeholder")
 
 .. note::
 

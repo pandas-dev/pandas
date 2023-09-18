@@ -9,7 +9,7 @@ dependencies:
   # build dependencies
   - versioneer[toml]
   - cython=0.29.33
-  - meson[ninja]=1.0.1
+  - meson[ninja]=1.2.1
   - meson-python=0.13.1
 
   # test dependencies
@@ -85,7 +85,7 @@ dependencies:
   - google-auth
   - natsort  # DataFrame.sort_values doctest
   - numpydoc
-  - pydata-sphinx-theme
+  - pydata-sphinx-theme=0.13
   - pytest-cython  # doctest
   - sphinx
   - sphinx-design
