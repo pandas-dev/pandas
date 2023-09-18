@@ -776,6 +776,7 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         bint already_copied = True
+        ndarray[object] newarr
 
     if hasattr(arr, "to_numpy"):
 
@@ -800,8 +801,9 @@ cpdef ndarray[object] ensure_string_array(
         # short-circuit, all elements are str
         return result
 
+    newarr = np.asarray(arr, dtype=object)
     for i in range(n):
-        val = arr[i]
+        val = newarr[i]
 
         if isinstance(val, str):
             continue
