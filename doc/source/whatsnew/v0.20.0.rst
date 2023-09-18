@@ -640,9 +640,14 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s.map(lambda x: x.hour)
+   In [66]: s.map(lambda x: x.hour)
+   Out[66]:
+   0    0
+   1    1
+   2    2
+   Length: 3, dtype: int64
 
 
 .. _whatsnew_0200.api_breaking.index_dt_field:

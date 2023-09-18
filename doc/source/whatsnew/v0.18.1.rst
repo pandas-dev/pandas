@@ -296,12 +296,38 @@ Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiI
 
 On other levels
 
-.. ipython:: python
+.. code-block:: ipython
 
-   idx = pd.IndexSlice
-   dft2 = dft2.swaplevel(0, 1).sort_index()
-   dft2
-   dft2.loc[idx[:, "2013-01-05"], :]
+   In [26]: idx = pd.IndexSlice
+
+   In [27]: dft2 = dft2.swaplevel(0, 1).sort_index()
+
+   In [28]: dft2
+   Out[28]:
+                                 A
+   a 2013-01-01 00:00:00  0.469112
+     2013-01-01 12:00:00 -1.509059
+     2013-01-02 00:00:00  1.212112
+     2013-01-02 12:00:00  0.119209
+     2013-01-03 00:00:00 -0.861849
+   ...                         ...
+   b 2013-01-03 12:00:00  1.071804
+     2013-01-04 00:00:00 -0.706771
+     2013-01-04 12:00:00  0.271860
+     2013-01-05 00:00:00  0.567020
+     2013-01-05 12:00:00 -1.087401
+
+   [20 rows x 1 columns]
+
+   In [29]: dft2.loc[idx[:, "2013-01-05"], :]
+   Out[29]:
+                                 A
+   a 2013-01-05 00:00:00 -0.424972
+     2013-01-05 12:00:00  0.276232
+   b 2013-01-05 00:00:00  0.567020
+     2013-01-05 12:00:00 -1.087401
+
+   [4 rows x 1 columns]
 
 .. _whatsnew_0181.enhancements.assembling:
 
