@@ -1604,6 +1604,7 @@ cdef void add_weighted_var(float64_t val,
     if nobs[0] == 1:
         sum_w[0] = w
         mean[0] = val
+        t[0] = 0
 
     else:
         q = val - mean[0]
@@ -1642,38 +1643,26 @@ def roll_weighted_var(const float64_t[:] values, const float64_t[:] weights,
     """
 
     cdef:
+        float64_t t, sum_w, mean, nobs
         float64_t val, w
-        Py_ssize_t in_i, win_i, add_i, n, win_n
-        float64_t[:] output, t, mean, sum_w, nobs
+        Py_ssize_t in_i, win_i, n, win_n
+        float64_t[:] output
 
     n = len(values)
     win_n = len(weights)
 
     output = np.empty(n, dtype=np.float64)
-    t = np.zeros(n, dtype=np.float64)
-    mean = np.zeros(n, dtype=np.float64)
-    sum_w = np.zeros(n, dtype=np.float64)
-    nobs = np.zeros(n, dtype=np.float64)
 
-    with nogil:
-        for win_i in range(win_n):
+    for in_i in range(n):
+        nobs = 0
+        for win_i in range(max(0, win_n - in_i - 1), win_n):
             w = weights[win_i]
-            if w != w:
-                continue
+            val = values[win_i - win_n + in_i + 1]
 
-            for in_i in range(n - (win_n - win_i) + 1):
-                val = values[in_i]
+            if val == val and w == w:
+                add_weighted_var(val, w, &t, &sum_w, &mean, &nobs)
 
-                if val == val:
-                    add_i = in_i + (win_n - win_i) - 1
-                    add_weighted_var(
-                        val, w, &t[add_i], &sum_w[add_i], &mean[add_i], &nobs[add_i]
-                    )
-
-        for in_i in range(n):
-            output[in_i] = calc_weighted_var(
-                t[in_i], sum_w[in_i], win_n, ddof, nobs[in_i], minp
-            )
+        output[in_i] = calc_weighted_var(t, sum_w, win_n, ddof, nobs, minp)
 
     return output
 
