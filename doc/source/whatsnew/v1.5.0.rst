@@ -505,12 +505,16 @@ upon serialization. (Related issue :issue:`12997`)
 
 *New Behavior*
 
-.. ipython:: python
+.. code-block:: ipython
 
-    from io import StringIO
-    a.to_json(date_format='iso')
+    In [34]: from io import StringIO
+
+    In [35]: a.to_json(date_format='iso')
+    Out[35]: '{"2020-12-28T00:00:00.000Z":0,"2020-12-28T01:00:00.000Z":1,"2020-12-28T02:00:00.000Z":2}'
+
     # Roundtripping now works
-    pd.read_json(StringIO(a.to_json(date_format='iso')), typ="series").index == a.index
+    In [36]: pd.read_json(StringIO(a.to_json(date_format='iso')), typ="series").index == a.index
+    Out[36]: array([ True,  True,  True])
 
 .. _whatsnew_150.notable_bug_fixes.groupby_value_counts_categorical:
 
