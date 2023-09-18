@@ -836,8 +836,6 @@ class TestReplaceSeriesCoercion(CoercionBase):
             # tested below
             return
 
-        result = obj.replace(replacer)
-
         if (from_key == "float64" and to_key in ("int64")) or (
             from_key == "complex128" and to_key in ("int64", "float64")
         ):
@@ -850,6 +848,17 @@ class TestReplaceSeriesCoercion(CoercionBase):
         else:
             exp = pd.Series(self.rep[to_key], index=index, name="yyy")
             assert exp.dtype == to_key
+
+        msg = "Downcasting behavior in `replace`"
+        warn = FutureWarning
+        if (
+            exp.dtype == obj.dtype
+            or exp.dtype == object
+            or (exp.dtype.kind in "iufc" and obj.dtype.kind in "iufc")
+        ):
+            warn = None
+        with tm.assert_produces_warning(warn, match=msg):
+            result = obj.replace(replacer)
 
         tm.assert_series_equal(result, exp)
 
@@ -866,10 +875,13 @@ class TestReplaceSeriesCoercion(CoercionBase):
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
 
-        result = obj.replace(replacer)
-
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
         assert exp.dtype == to_key
+
+        msg = "Downcasting behavior in `replace`"
+        warn = FutureWarning if exp.dtype != object else None
+        with tm.assert_produces_warning(warn, match=msg):
+            result = obj.replace(replacer)
 
         tm.assert_series_equal(result, exp)
 
@@ -888,16 +900,22 @@ class TestReplaceSeriesCoercion(CoercionBase):
         obj = pd.Series(self.rep[from_key], index=index, name="yyy")
         assert obj.dtype == from_key
 
-        result = obj.replace(replacer)
-
         exp = pd.Series(self.rep[to_key], index=index, name="yyy")
+        warn = FutureWarning
         if isinstance(obj.dtype, pd.DatetimeTZDtype) and isinstance(
             exp.dtype, pd.DatetimeTZDtype
         ):
             # with mismatched tzs, we retain the original dtype as of 2.0
             exp = exp.astype(obj.dtype)
+            warn = None
         else:
             assert exp.dtype == to_key
+            if to_key == from_key:
+                warn = None
+
+        msg = "Downcasting behavior in `replace`"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = obj.replace(replacer)
 
         tm.assert_series_equal(result, exp)
 
