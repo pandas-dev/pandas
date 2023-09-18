@@ -349,9 +349,15 @@ More consistent behavior for some groupby methods:
 
 - groupby head and tail respect column selection:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     g[['B']].head(1)
+     In [19]: g[['B']].head(1)
+     Out[19]:
+        B
+     0  2
+     2  6
+
+     [2 rows x 1 columns]
 
 - groupby ``nth`` now reduces by default; filtering can be achieved by passing ``as_index=False``. With an optional ``dropna`` argument to ignore
   NaN. See :ref:`the docs <groupby.nth>`.
