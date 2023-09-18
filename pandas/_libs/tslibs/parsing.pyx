@@ -888,13 +888,9 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     Examples
     --------
-    >>> # Successful guess
-    >>> # Returns a datetime formatted string
     >>> guess_datetime_format('09/13/2023')
     '%m/%d/%Y'
 
-    >>> # Unsuccessful guess due to date string with extra or unexpected characters
-    >>> # Returns nothing
     >>> guess_datetime_format('2023|September|13')
     """
     cdef:
