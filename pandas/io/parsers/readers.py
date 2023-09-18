@@ -238,7 +238,8 @@ parse_dates : bool, list of Hashable, list of lists or dict of {{Hashable : list
 default False
     The behavior is as follows:
 
-    * ``bool``. If ``True`` -> try parsing the index.
+    * ``bool``. If ``True`` -> try parsing the index. Note: Automatically set to
+      ``True`` if ``date_format`` or ``date_parser`` arguments have been passed.
     * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
     * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse
