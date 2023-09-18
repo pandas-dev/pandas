@@ -288,7 +288,7 @@ Period
 
 Plotting
 ^^^^^^^^
--
+- Bug in :meth:`DataFrame.plot.box` with ``vert=False`` and a matplotlib ``Axes`` created with ``sharey=True`` (:issue:`54941`)
 -
 
 Groupby/resample/rolling
