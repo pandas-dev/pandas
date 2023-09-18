@@ -1117,7 +1117,7 @@ Indexing
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` where ``KeyError`` was not raised for a ``MultiIndex`` when the key was less than or equal to the number of levels in the :class:`MultiIndex` (:issue:`14885`).
 - Bug in which :meth:`DataFrame.append` produced an erroneous warning indicating that a ``KeyError`` will be thrown in the future when the data to be appended contains new columns (:issue:`22252`).
 - Bug in which :meth:`DataFrame.to_csv` caused a segfault for a reindexed data frame, when the indices were single-level :class:`MultiIndex` (:issue:`26303`).
-- Fixed bug where assigning a :class:`arrays.PandasArray` to a :class:`pandas.core.frame.DataFrame` would raise error (:issue:`26390`)
+- Fixed bug where assigning a :class:`arrays.PandasArray` to a :class:`pandas.DataFrame` would raise error (:issue:`26390`)
 - Allow keyword arguments for callable local reference used in the :meth:`DataFrame.query` string (:issue:`26426`)
 - Fixed a ``KeyError`` when indexing a :class:`MultiIndex` level with a list containing exactly one label, which is missing (:issue:`27148`)
 - Bug which produced ``AttributeError`` on partial matching :class:`Timestamp` in a :class:`MultiIndex`  (:issue:`26944`)
@@ -1205,7 +1205,7 @@ GroupBy/resample/rolling
 - Bug in :meth:`pandas.core.groupby.GroupBy.cumsum`, :meth:`pandas.core.groupby.GroupBy.cumprod`, :meth:`pandas.core.groupby.GroupBy.cummin` and :meth:`pandas.core.groupby.GroupBy.cummax` with categorical column having absent categories, would return incorrect result or segfault (:issue:`16771`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.nth` where NA values in the grouping would return incorrect results (:issue:`26011`)
 - Bug in :meth:`pandas.core.groupby.SeriesGroupBy.transform` where transforming an empty group would raise a ``ValueError`` (:issue:`26208`)
-- Bug in :meth:`pandas.core.frame.DataFrame.groupby` where passing a :class:`pandas.core.groupby.grouper.Grouper` would return incorrect groups when using the ``.groups`` accessor (:issue:`26326`)
+- Bug in :meth:`pandas.DataFrame.groupby` where passing a :class:`pandas.core.groupby.grouper.Grouper` would return incorrect groups when using the ``.groups`` accessor (:issue:`26326`)
 - Bug in :meth:`pandas.core.groupby.GroupBy.agg` where incorrect results are returned for uint64 columns. (:issue:`26310`)
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where MemoryError is raised with empty window (:issue:`26005`)
 - Bug in :meth:`pandas.core.window.Rolling.median` and :meth:`pandas.core.window.Rolling.quantile` where incorrect results are returned with ``closed='left'`` and ``closed='neither'`` (:issue:`26005`)

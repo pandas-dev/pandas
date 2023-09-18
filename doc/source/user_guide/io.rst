@@ -2701,7 +2701,7 @@ in the method ``to_string`` described above.
 .. note::
 
    Not all of the possible options for ``DataFrame.to_html`` are shown here for
-   brevity's sake. See :func:`~pandas.core.frame.DataFrame.to_html` for the
+   brevity's sake. See :func:`~pandas.DataFrame.to_html` for the
    full set of options.
 
 .. note::
@@ -6020,7 +6020,7 @@ Stata format
 Writing to stata format
 '''''''''''''''''''''''
 
-The method :func:`~pandas.core.frame.DataFrame.to_stata` will write a DataFrame
+The method :func:`~pandas.DataFrame.to_stata` will write a DataFrame
 into a .dta file. The format version of this file is always 115 (Stata 12).
 
 .. ipython:: python
@@ -6060,7 +6060,7 @@ outside of this range, the variable is cast to ``int16``.
 .. warning::
 
   :class:`~pandas.io.stata.StataWriter` and
-  :func:`~pandas.core.frame.DataFrame.to_stata` only support fixed width
+  :func:`~pandas.DataFrame.to_stata` only support fixed width
   strings containing up to 244 characters, a limitation imposed by the version
   115 dta file format. Attempting to write *Stata* dta files with strings
   longer than 244 characters raises a ``ValueError``.
@@ -6299,7 +6299,7 @@ ignored.
    In [2]: df = pd.DataFrame({'A': np.random.randn(sz), 'B': [1] * sz})
 
    In [3]: df.info()
-   <class 'pandas.core.frame.DataFrame'>
+   <class 'pandas.DataFrame'>
    RangeIndex: 1000000 entries, 0 to 999999
    Data columns (total 2 columns):
    A    1000000 non-null float64

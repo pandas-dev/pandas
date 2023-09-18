@@ -214,7 +214,7 @@ class IndexingMixin:
            a  b  c  d
         0  1  2  3  4
         >>> type(df.iloc[[0]])
-        <class 'pandas.core.frame.DataFrame'>
+        <class 'pandas.DataFrame'>
 
         >>> df.iloc[[0, 1]]
              a    b    c    d
