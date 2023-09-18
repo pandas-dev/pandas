@@ -4,7 +4,7 @@
 pip
 versioneer[toml]
 cython==0.29.33
-meson[ninja]==1.0.1
+meson[ninja]==1.2.1
 meson-python==0.13.1
 pytest>=7.3.2
 pytest-cov
@@ -60,7 +60,7 @@ gitdb
 google-auth
 natsort
 numpydoc
-pydata-sphinx-theme
+pydata-sphinx-theme==0.13
 pytest-cython
 sphinx
 sphinx-design
