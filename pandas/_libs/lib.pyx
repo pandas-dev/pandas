@@ -2833,9 +2833,14 @@ NoDefault = Literal[_NoDefault.no_default]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=True,
-                   object na_value=no_default, cnp.dtype dtype=np.dtype(object)
-                   ) -> np.ndarray:
+def map_infer_mask(
+        ndarray[object] arr,
+        object f,
+        const uint8_t[:] mask,
+        bint convert=True,
+        object na_value=no_default,
+        cnp.dtype dtype=np.dtype(object)
+) -> np.ndarray:
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 
