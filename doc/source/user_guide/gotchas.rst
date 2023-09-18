@@ -379,7 +379,7 @@ constructors using something similar to the following:
 .. ipython:: python
 
    x = np.array(list(range(10)), ">i4")  # big endian
-   newx = x.byteswap().newbyteorder()  # force native byteorder
+   newx = x.byteswap().view(x.dtype.newbyteorder())  # force native byteorder
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order
