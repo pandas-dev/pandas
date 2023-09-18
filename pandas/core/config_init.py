@@ -513,11 +513,11 @@ reader_engine_doc = """
     auto, {others}.
 """
 
-_xls_options = ["xlrd"]
-_xlsm_options = ["xlrd", "openpyxl"]
-_xlsx_options = ["xlrd", "openpyxl"]
-_ods_options = ["odf"]
-_xlsb_options = ["pyxlsb"]
+_xls_options = ["xlrd", "calamine"]
+_xlsm_options = ["xlrd", "openpyxl", "calamine"]
+_xlsx_options = ["xlrd", "openpyxl", "calamine"]
+_ods_options = ["odf", "calamine"]
+_xlsb_options = ["pyxlsb", "calamine"]
 
 
 with cf.config_prefix("io.excel.xls"):
