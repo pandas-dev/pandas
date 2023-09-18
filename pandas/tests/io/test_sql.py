@@ -2164,8 +2164,6 @@ def test_create_table(conn, request):
 def test_drop_table(conn, request):
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
-    elif "engine" in conn:
-        pytest.skip(reason="fails and hangs forever with engine")
 
     conn = request.getfixturevalue(conn)
 
@@ -2173,12 +2171,14 @@ def test_drop_table(conn, request):
 
     temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
     pandasSQL = sql.SQLDatabase(conn)
-    assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
+    with pandasSQL.run_transaction():
+        assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
 
     insp = inspect(conn)
     assert insp.has_table("temp_frame")
 
-    pandasSQL.drop_table("temp_frame")
+    with pandasSQL.run_transaction():
+        pandasSQL.drop_table("temp_frame")
     try:
         insp.clear_cache()  # needed with SQLAlchemy 2.0, unavailable prior
     except AttributeError:
@@ -2207,11 +2207,10 @@ def test_roundtrip(conn, request, test_frame1):
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_execute_sql(conn, request):
-    if "engine" in conn:
-        pytest.skip(reason="hangs forever in CI with engine")
     conn = request.getfixturevalue(conn)
     pandasSQL = pandasSQL_builder(conn)
-    iris_results = pandasSQL.execute("SELECT * FROM iris")
+    with pandasSQL.run_transaction():
+        iris_results = pandasSQL.execute("SELECT * FROM iris")
     row = iris_results.fetchone()
     tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
@@ -2614,9 +2613,6 @@ def test_nan_string(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_save_index(conn, request):
-    if "engine" in conn:
-        pytest.skip(reason="fails and hangs forever with engine")
-
     conn_name = conn
     conn = request.getfixturevalue(conn)
     df = DataFrame.from_records(
@@ -2625,7 +2621,8 @@ def test_to_sql_save_index(conn, request):
 
     pandasSQL = pandasSQL_builder(conn)
     tbl_name = "test_to_sql_saves_index"
-    assert pandasSQL.to_sql(df, tbl_name) == 2
+    with pandasSQL.run_transaction():
+        assert pandasSQL.to_sql(df, tbl_name) == 2
 
     if conn_name in {"sqlite_buildin", "sqlite_str"}:
         ixs = sql.read_sql_query(
@@ -2650,9 +2647,6 @@ def test_to_sql_save_index(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_transactions(conn, request):
-    if "engine" in conn:
-        pytest.skip(reason="hangs forever in CI with engine")
-
     conn_name = conn
     conn = request.getfixturevalue(conn)
 
@@ -2981,8 +2975,6 @@ def test_invalid_engine(conn, request, test_frame1):
         request.node.add_marker(
             pytest.mark.xfail(reason="SQLiteDatabase does not raise for bad engine")
         )
-    if "engine" in conn:
-        pytest.skip(reason="hangs forever in CI with engine")
 
     conn = request.getfixturevalue(conn)
     msg = "engine must be one of 'auto', 'sqlalchemy'"
@@ -2991,18 +2983,15 @@ def test_invalid_engine(conn, request, test_frame1):
         pandasSQL.to_sql(test_frame1, "test_frame1", engine="bad_engine")
 
 
-@pytest.mark.skip("Couldn't get this to work?")
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_with_sql_engine(conn, request, test_frame1):
     """`to_sql` with the `engine` param"""
-    if "engine" in conn:
-        pytest.skip(reason="hangs forever in CI with engine")
-
     # mostly copied from this class's `_to_sql()` method
     conn = request.getfixturevalue(conn)
     pandasSQL = pandasSQL_builder(conn)
-    assert pandasSQL.to_sql(test_frame1, "test_frame1", engine="auto") == 4
-    assert pandasSQL.has_table("test_frame1")
+    with pandasSQL.run_transaction():
+        assert pandasSQL.to_sql(test_frame1, "test_frame1", engine="auto") == 4
+        assert pandasSQL.has_table("test_frame1")
 
     num_entries = len(test_frame1)
     num_rows = count_rows(conn, "test_frame1")
@@ -3011,17 +3000,14 @@ def test_to_sql_with_sql_engine(conn, request, test_frame1):
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 def test_options_sqlalchemy(conn, request, test_frame1):
-    if "engine" in conn:
-        pytest.skip("fails and hangs forever with engine")
-    elif conn == "sqlite_str":
-        pytest.skip("may hang on old versions of sqlite")
     # use the set option
     conn = request.getfixturevalue(conn)
     with pd.option_context("io.sql.engine", "sqlalchemy"):
         pandasSQL = pandasSQL_builder(conn)
-        assert pandasSQL.to_sql(test_frame1, "test_frame1") == 4
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(test_frame1, "test_frame1") == 4
+            assert pandasSQL.has_table("test_frame1")
 
-        assert pandasSQL.has_table("test_frame1")
         num_entries = len(test_frame1)
         num_rows = count_rows(conn, "test_frame1")
         assert num_rows == num_entries
@@ -3029,18 +3015,14 @@ def test_options_sqlalchemy(conn, request, test_frame1):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_options_auto(conn, request, test_frame1):
-    if "engine" in conn:
-        pytest.skip("fails and hangs forever with engine")
-    elif conn == "sqlite_str":
-        pytest.skip("may hang on old versions of sqlite")
-
     # use the set option
     conn = request.getfixturevalue(conn)
     with pd.option_context("io.sql.engine", "auto"):
         pandasSQL = pandasSQL_builder(conn)
-        assert pandasSQL.to_sql(test_frame1, "test_frame1") == 4
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(test_frame1, "test_frame1") == 4
+            assert pandasSQL.has_table("test_frame1")
 
-        assert pandasSQL.has_table("test_frame1")
         num_entries = len(test_frame1)
         num_rows = count_rows(conn, "test_frame1")
         assert num_rows == num_entries
@@ -3486,11 +3468,13 @@ def test_create_and_drop_table(sqlite_sqlalchemy_memory_engine):
     temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
     pandasSQL = sql.SQLDatabase(conn)
 
-    assert pandasSQL.to_sql(temp_frame, "drop_test_frame") == 4
+    with pandasSQL.run_transaction():
+        assert pandasSQL.to_sql(temp_frame, "drop_test_frame") == 4
 
     assert pandasSQL.has_table("drop_test_frame")
 
-    pandasSQL.drop_table("drop_test_frame")
+    with pandasSQL.run_transaction():
+        pandasSQL.drop_table("drop_test_frame")
 
     assert not pandasSQL.has_table("drop_test_frame")
 
