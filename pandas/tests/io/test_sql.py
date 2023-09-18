@@ -614,26 +614,26 @@ def sqlite_buildin_iris(sqlite_buildin, iris_path, types_data):
 
 
 mysql_connectable = [
-    "mysql_pymysql_engine",
-    "mysql_pymysql_conn",
+    pytest.param("mysql_pymysql_engine", marks=pytest.mark.db),
+    pytest.param("mysql_pymysql_conn", marks=pytest.mark.db),
 ]
 
 
 postgresql_connectable = [
-    "postgresql_psycopg2_engine",
-    "postgresql_psycopg2_conn",
+    pytest.param("postgresql_psycopg2_engine", marks=pytest.mark.db),
+    pytest.param("postgresql_psycopg2_conn", marks=pytest.mark.db),
 ]
 
 sqlite_connectable = [
-    "sqlite_engine",
-    "sqlite_conn",
-    "sqlite_str",
+    pytest.param("sqlite_engine", marks=pytest.mark.db),
+    pytest.param("sqlite_conn", marks=pytest.mark.db),
+    pytest.param("sqlite_str", marks=pytest.mark.db),
 ]
 
 sqlite_iris_connectable = [
-    "sqlite_iris_engine",
-    "sqlite_iris_conn",
-    "sqlite_iris_str",
+    pytest.param("sqlite_iris_engine", marks=pytest.mark.db),
+    pytest.param("sqlite_iris_conn", marks=pytest.mark.db),
+    pytest.param("sqlite_iris_str", marks=pytest.mark.db),
 ]
 
 sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
