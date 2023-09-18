@@ -1773,7 +1773,7 @@ the string values returned are correct."""
             self._data_read = True
         # if necessary, swap the byte order to native here
         if self._byteorder != self._native_byteorder:
-            raw_data = raw_data.byteswap().newbyteorder()
+            raw_data = raw_data.byteswap().view(raw_data.dtype.newbyteorder())
 
         if convert_categoricals:
             self._read_value_labels()
