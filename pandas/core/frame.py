@@ -4915,7 +4915,9 @@ class DataFrame(NDFrame, OpsMixin):
         column : str, number, or hashable object
             Label of the inserted column.
         value : Scalar, Series, or array-like
+            Content of the inserted column.
         allow_duplicates : bool, optional, default lib.no_default
+            Allow duplicate column labels to be created.
 
         See Also
         --------
