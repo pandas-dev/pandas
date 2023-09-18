@@ -939,8 +939,8 @@ class Window(BaseWindow):
 
         .. deprecated:: 2.1.0
 
-            'axis' keyword in DataFrame.rolling is deprecated.
-            Call the method without the axis keyword instead.
+            The axis keyword is deprecated. For ``axis=1``,
+            transpose the DataFrame first instead.
 
     closed : str, default None
         If ``'right'``, the first point in the window is excluded from calculations.
