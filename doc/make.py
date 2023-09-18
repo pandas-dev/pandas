@@ -123,14 +123,14 @@ class DocBuilder:
 
         Parameters
         ----------
-        kind : {'html', 'latex'}
+        kind : {'html', 'latex', 'linkcheck'}
 
         Examples
         --------
         >>> DocBuilder(num_jobs=4)._sphinx_build('html')
         """
-        if kind not in ("html", "latex"):
-            raise ValueError(f"kind must be html or latex, not {kind}")
+        if kind not in ("html", "latex", "linkcheck"):
+            raise ValueError(f"kind must be html or latex or linkcheck, not {kind}")
 
         cmd = ["sphinx-build", "-b", kind]
         if self.num_jobs:
@@ -292,14 +292,8 @@ class DocBuilder:
         """
         Check for broken links in the documentation.
         """
-        cmd = ["_sphinx_build", "-b", "linkcheck"]
-        cmd += [
-            "-d",
-            os.path.join(BUILD_PATH, "doctrees"),
-            SOURCE_PATH,
-            os.path.join(BUILD_PATH, "linkcheck"),
-        ]
-        subprocess.call(cmd)
+        ret_code = self._sphinx_build("linkcheck")
+        return ret_code
 
 
 def main():
@@ -383,8 +377,6 @@ def main():
         args.warnings_are_errors,
     )
 
-    if args.command == "linkcheck":
-        builder.linkcheck()
 
 
 if __name__ == "__main__":
