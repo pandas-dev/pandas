@@ -12,10 +12,7 @@ from pandas.core.internals import api
 
 
 def test_internals_api():
-    msg = "make_block is deprecated.* Use public APIs instead"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        mb = internals.make_block
-    assert mb is api.make_block
+    assert internals.make_block is api.make_block
 
 
 def test_namespace():
@@ -32,6 +29,7 @@ def test_namespace():
         "ops",
     ]
     expected = [
+        "make_block",
         "DataManager",
         "ArrayManager",
         "BlockManager",
@@ -54,7 +52,6 @@ def test_namespace():
         "Block",
         "ExtensionBlock",
         "DatetimeTZBlock",
-        "make_block",
     ],
 )
 def test_deprecations(name):
@@ -63,9 +60,8 @@ def test_deprecations(name):
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
         getattr(internals, name)
 
-    if name not in ["make_block", "NumericBlock", "ObjectBlock"]:
-        # NumericBlock and ObjectBlock are not in the internals.api namespace;
-        #  make_block is not deprecated there.
+    if name not in ["NumericBlock", "ObjectBlock"]:
+        # NumericBlock and ObjectBlock are not in the internals.api namespace
         with tm.assert_produces_warning(DeprecationWarning, match=msg):
             getattr(api, name)
 

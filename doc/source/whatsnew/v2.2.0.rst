@@ -177,7 +177,7 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 - Changed :meth:`Timedelta.resolution_string` to return ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
-- Deprecated ``core.internals`` members ``Block``, ``ExtensionBlock``, ``DatetimeTZBlock``, and ``make_block``, use public APIs instead (:issue:`55139`)
+- Deprecated ``core.internals`` members ``Block``, ``ExtensionBlock``, and ``DatetimeTZBlock``, use public APIs instead (:issue:`55139`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_clipboard`. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_csv` except ``path_or_buf``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_dict`. (:issue:`54229`)

@@ -1,3 +1,4 @@
+from pandas.core.internals.api import make_block  # 2023-09-18 pyarrow uses this
 from pandas.core.internals.array_manager import (
     ArrayManager,
     SingleArrayManager,
@@ -42,7 +43,6 @@ def __getattr__(name: str):
         "Block",
         "ExtensionBlock",
         "DatetimeTZBlock",
-        "make_block",
     ]:
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
@@ -66,10 +66,6 @@ def __getattr__(name: str):
             from pandas.core.internals.blocks import Block
 
             return Block
-        elif name == "make_block":
-            from pandas.core.internals.api import make_block
-
-            return make_block
         else:
             from pandas.core.internals.blocks import ObjectBlock
 
