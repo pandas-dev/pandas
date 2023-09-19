@@ -375,7 +375,7 @@ def main():
         args.verbosity,
         args.warnings_are_errors,
     )
-
+    return getattr(builder, args.command)()
 
 
 if __name__ == "__main__":
