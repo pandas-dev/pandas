@@ -1954,17 +1954,7 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
 
 def test_rolling_rolling_sum_window_microseconds_confilict_timestamp():
     # GH#55106
-    df_time = DataFrame(
-        {"B": [0, 1, 2, 4, 5, 6]},
-        index=[
-            Timestamp("20130101 09:00:00"),
-            Timestamp("20130101 09:00:02"),
-            Timestamp("20130101 09:00:03"),
-            Timestamp("20130101 09:00:06"),
-            Timestamp("20130101 09:00:07"),
-            Timestamp("20130101 09:00:08"),
-        ],
-    )
+    df = DataFrame({"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5))
     sum_in_nanosecs = df_time.rolling("1s").sum()
     # micro seconds / milliseconds should not breaks the correct rolling
     df_time.index = df_time.index.as_unit("us")
