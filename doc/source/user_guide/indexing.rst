@@ -1879,7 +1879,7 @@ Last, the subsequent example will **not** work at all, and so should be avoided:
    :okwarning:
    :okexcept:
 
-   with option_context('mode.chained_assignment','raise'):
+   with pd.option_context('mode.chained_assignment','raise'):
        dfd.loc[0]['a'] = 1111
 
 .. warning::
