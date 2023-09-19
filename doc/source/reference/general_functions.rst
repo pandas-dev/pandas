@@ -59,6 +59,12 @@ Top-level dealing with datetimelike data
    timedelta_range
    infer_freq
 
+.. autosummary::
+   :toctree: api/
+   :currentmodule: pandas.tseries.frequencies
+
+   guess_datetime_format
+
 Top-level dealing with datetimelike data formatting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
