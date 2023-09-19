@@ -1262,8 +1262,9 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "BA, BY", "business year end frequency"
     "AS, YS", "year start frequency"
     "BAS, BYS", "business year start frequency"
-    "bh", "business hour frequency"
     "h", "hourly frequency"
+    "bh", "business hour frequency"
+    "cbh", "custom business hour frequency"
     "min", "minutely frequency"
     "s", "secondly frequency"
     "ms", "milliseconds"
@@ -1272,7 +1273,8 @@ frequencies. We will refer to these aliases as *offset aliases*.
 
 .. deprecated:: 2.2.0
 
-   Aliases ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
+   Aliases ``H``, ``BH``, ``CBH``, ``T``, ``S``, ``L``, ``U``, and ``N``
+   are deprecated in favour of the aliases ``h``, ``bh``, ``cbh``,
    ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 .. note::
@@ -1331,8 +1333,8 @@ frequencies. We will refer to these aliases as *period aliases*.
 
 .. deprecated:: 2.2.0
 
-   Aliases ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
-   ``min``, ``s``, ``ms``, ``us``, and ``ns``.
+   Aliases ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
+   ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 
 Combining aliases
