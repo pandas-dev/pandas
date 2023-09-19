@@ -230,11 +230,13 @@ jobs:
               git -c user.email="you@example.com" merge --no-commit my_ref_name
           fi
       - name: Build environment and Run Tests
+        # https://github.com/numpy/numpy/issues/24703#issuecomment-1722379388
         run: |
           /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
+          python -m pip install numpy --config-settings=setup-args="-Dallow-noblas=true"
+          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
           python -m pip install --no-cache-dir --no-build-isolation -e .
           python -m pip list --no-cache-dir
           export PANDAS_CI=1
