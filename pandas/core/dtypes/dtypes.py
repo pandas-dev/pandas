@@ -70,7 +70,7 @@ if TYPE_CHECKING:
     from collections.abc import MutableMapping
     from datetime import tzinfo
 
-    import pyarrow as pa  # noqa: F811, TCH004
+    import pyarrow as pa  # noqa: TCH004
 
     from pandas._typing import (
         Dtype,
@@ -213,6 +213,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     base = np.dtype("O")
     _metadata = ("categories", "ordered")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+    _supports_2d = False
+    _can_fast_transpose = False
 
     def __init__(self, categories=None, ordered: Ordered = False) -> None:
         self._finalize(categories, ordered, fastpath=False)
@@ -730,6 +732,8 @@ class DatetimeTZDtype(PandasExtensionDtype):
     _metadata = ("unit", "tz")
     _match = re.compile(r"(datetime64|M8)\[(?P<unit>.+), (?P<tz>.+)\]")
     _cache_dtypes: dict[str_type, PandasExtensionDtype] = {}
+    _supports_2d = True
+    _can_fast_transpose = True
 
     @property
     def na_value(self) -> NaTType:
@@ -973,6 +977,8 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
     _cache_dtypes: dict[BaseOffset, int] = {}  # type: ignore[assignment]
     __hash__ = PeriodDtypeBase.__hash__
     _freq: BaseOffset
+    _supports_2d = True
+    _can_fast_transpose = True
 
     def __new__(cls, freq) -> PeriodDtype:  # noqa: PYI034
         """
@@ -1435,6 +1441,8 @@ class NumpyEADtype(ExtensionDtype):
     """
 
     _metadata = ("_dtype",)
+    _supports_2d = False
+    _can_fast_transpose = False
 
     def __init__(self, dtype: npt.DTypeLike | NumpyEADtype | None) -> None:
         if isinstance(dtype, NumpyEADtype):
@@ -2139,6 +2147,8 @@ class ArrowDtype(StorageExtensionDtype):
             #  something more representative of the scalar
             return CategoricalDtypeType
         elif pa.types.is_list(pa_type) or pa.types.is_large_list(pa_type):
+            return list
+        elif pa.types.is_fixed_size_list(pa_type):
             return list
         elif pa.types.is_map(pa_type):
             return list

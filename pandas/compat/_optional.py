@@ -39,6 +39,7 @@ VERSIONS = {
     "pyarrow": "7.0.0",
     "pyreadstat": "1.1.5",
     "pytest": "7.3.2",
+    "python-calamine": "0.1.6",
     "pyxlsb": "1.0.9",
     "s3fs": "2022.05.0",
     "scipy": "1.8.1",
@@ -64,6 +65,7 @@ INSTALL_MAPPING = {
     "lxml.etree": "lxml",
     "odf": "odfpy",
     "pandas_gbq": "pandas-gbq",
+    "python_calamine": "python-calamine",
     "sqlalchemy": "SQLAlchemy",
     "tables": "pytables",
 }
