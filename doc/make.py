@@ -292,8 +292,7 @@ class DocBuilder:
         """
         Check for broken links in the documentation.
         """
-        ret_code = self._sphinx_build("linkcheck")
-        return ret_code
+        return self._sphinx_build("linkcheck")
 
 
 def main():
