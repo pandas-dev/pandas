@@ -130,7 +130,7 @@ class DocBuilder:
         >>> DocBuilder(num_jobs=4)._sphinx_build('html')
         """
         if kind not in ("html", "latex", "linkcheck"):
-            raise ValueError(f"kind must be html or latex or linkcheck, not {kind}")
+            raise ValueError(f"kind must be html, latex or linkcheck, not {kind}")
 
         cmd = ["sphinx-build", "-b", kind]
         if self.num_jobs:
