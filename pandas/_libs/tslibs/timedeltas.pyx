@@ -30,6 +30,9 @@ from cpython.datetime cimport (
     PyDelta_Check,
     import_datetime,
     timedelta,
+    PyDateTime_DELTA_GET_DAYS,
+    PyDateTime_DELTA_GET_SECONDS,
+    PyDateTime_DELTA_GET_MICROSECONDS
 )
 
 import_datetime()
@@ -1694,6 +1697,21 @@ cdef class _Timedelta(timedelta):
         elif self._creso < other._creso:
             self = self._as_creso(other._creso)
         return self, other
+
+    def _get_pytimedelta_days(self):
+        # exposing C-API functions for testing purposes only
+        # consistent behavior is NOT guaranteed
+        return PyDateTime_DELTA_GET_DAYS(self)
+
+    def _get_pytimedelta_seconds(self):
+        # exposing C-API functions for testing purposes only
+        # consistent behavior is NOT guaranteed
+        return PyDateTime_DELTA_GET_SECONDS(self)
+
+    def _get_pytimedelta_microseconds(self):
+        # exposing C-API functions for testing purposes only
+        # consistent behavior is NOT guaranteed
+        return PyDateTime_DELTA_GET_MICROSECONDS(self)
 
 
 # Python front end to C extension type _Timedelta

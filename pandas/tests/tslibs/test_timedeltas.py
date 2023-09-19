@@ -147,3 +147,15 @@ def test_ints_to_pytimedelta_unsupported(unit):
     msg = "Only resolutions 's', 'ms', 'us', 'ns' are supported"
     with pytest.raises(NotImplementedError, match=msg):
         ints_to_pytimedelta(arr, box=True)
+
+def test_non_nano_c_api():
+    d1 = Timedelta(days=1)
+    assert d1._get_pytimedelta_days() == 1
+    d2 = d1.as_unit("s")
+    assert d2._get_pytimedelta_days() == 1
+
+def test_non_nano_c_api_overflow():
+    ...
+
+def test_non_nano_c_api_underflow():
+    ...
