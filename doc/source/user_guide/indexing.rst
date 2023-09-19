@@ -1837,7 +1837,7 @@ This however is operating on a copy and will not work.
    :okwarning:
    :okexcept:
 
-   with option_context('mode.chained_assignment','warn'):
+   with pd.option_context('mode.chained_assignment','warn'):
        dfb[dfb['a'].str.startswith('o')]['c'] = 42
 
 A chained assignment can also crop up in setting in a mixed dtype frame.
@@ -1879,7 +1879,7 @@ Last, the subsequent example will **not** work at all, and so should be avoided:
    :okwarning:
    :okexcept:
 
-   with option_context('mode.chained_assignment','raise'):
+   with pd.option_context('mode.chained_assignment','raise'):
        dfd.loc[0]['a'] = 1111
 
 .. warning::
