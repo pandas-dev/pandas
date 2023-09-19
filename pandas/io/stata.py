@@ -1773,7 +1773,7 @@ the string values returned are correct."""
             self._data_read = True
         # if necessary, swap the byte order to native here
         if self._byteorder != self._native_byteorder:
-            raw_data = raw_data.byteswap().newbyteorder()
+            raw_data = raw_data.byteswap().view(raw_data.dtype.newbyteorder())
 
         if convert_categoricals:
             self._read_value_labels()
@@ -2963,7 +2963,7 @@ supported types."""
         """No-op, future compatibility"""
         return data
 
-    def _prepare_data(self) -> np.recarray:
+    def _prepare_data(self) -> np.rec.recarray:
         data = self.data
         typlist = self.typlist
         convert_dates = self._convert_dates
@@ -2983,7 +2983,14 @@ supported types."""
         for i, col in enumerate(data):
             typ = typlist[i]
             if typ <= self._max_string_length:
-                data[col] = data[col].fillna("").apply(_pad_bytes, args=(typ,))
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "Downcasting object dtype arrays",
+                        category=FutureWarning,
+                    )
+                    dc = data[col].fillna("")
+                data[col] = dc.apply(_pad_bytes, args=(typ,))
                 stype = f"S{typ}"
                 dtypes[col] = stype
                 data[col] = data[col].astype(stype)
@@ -2995,7 +3002,7 @@ supported types."""
 
         return data.to_records(index=False, column_dtypes=dtypes)
 
-    def _write_data(self, records: np.recarray) -> None:
+    def _write_data(self, records: np.rec.recarray) -> None:
         self._write_bytes(records.tobytes())
 
     @staticmethod

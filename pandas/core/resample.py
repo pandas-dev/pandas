@@ -33,7 +33,10 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_warning,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -58,6 +61,7 @@ from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
+    _apply_groupings_depr,
     _pipe_template,
     get_groupby,
 )
@@ -164,6 +168,7 @@ class Resampler(BaseGroupBy, PandasObject):
         gpr_index: Index,
         group_keys: bool = False,
         selection=None,
+        include_groups: bool = True,
     ) -> None:
         self._timegrouper = timegrouper
         self.keys = None
@@ -172,6 +177,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self.kind = kind
         self.group_keys = group_keys
         self.as_index = True
+        self.include_groups = include_groups
 
         self.obj, self.ax, self._indexer = self._timegrouper._set_grouper(
             self._convert_obj(obj), sort=True, gpr_index=gpr_index
@@ -445,7 +451,9 @@ class Resampler(BaseGroupBy, PandasObject):
             #  a DataFrame column, but aggregate_item_by_item operates column-wise
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
-            result = grouped.apply(how, *args, **kwargs)
+            result = _apply(
+                grouped, how, *args, include_groups=self.include_groups, **kwargs
+            )
 
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -457,15 +465,21 @@ class Resampler(BaseGroupBy, PandasObject):
 
             # we have a non-reducing function
             # try to evaluate
-            result = grouped.apply(how, *args, **kwargs)
+            result = _apply(
+                grouped, how, *args, include_groups=self.include_groups, **kwargs
+            )
 
         return self._wrap_result(result)
 
-    def _get_resampler_for_grouping(self, groupby: GroupBy, key):
+    def _get_resampler_for_grouping(
+        self, groupby: GroupBy, key, include_groups: bool = True
+    ):
         """
         Return the correct class for resampling with groupby.
         """
-        return self._resampler_for_grouping(groupby=groupby, key=key, parent=self)
+        return self._resampler_for_grouping(
+            groupby=groupby, key=key, parent=self, include_groups=include_groups
+        )
 
     def _wrap_result(self, result):
         """
@@ -1591,6 +1605,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
         groupby: GroupBy,
         key=None,
         selection: IndexLabel | None = None,
+        include_groups: bool = False,
     ) -> None:
         # reached via ._gotitem and _get_resampler_for_grouping
 
@@ -1613,6 +1628,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
         self.ax = parent.ax
         self.obj = parent.obj
+        self.include_groups = include_groups
 
     @no_type_check
     def _apply(self, f, *args, **kwargs):
@@ -1629,7 +1645,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
             return x.apply(f, *args, **kwargs)
 
-        result = self._groupby.apply(func)
+        result = _apply(self._groupby, func, include_groups=self.include_groups)
         return self._wrap_result(result)
 
     _upsample = _apply
@@ -1677,6 +1693,8 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
 
 class DatetimeIndexResampler(Resampler):
+    ax: DatetimeIndex
+
     @property
     def _resampler_for_grouping(self):
         return DatetimeIndexResamplerGroupby
@@ -1808,7 +1826,11 @@ class DatetimeIndexResampler(Resampler):
         return result
 
 
-class DatetimeIndexResamplerGroupby(_GroupByMixin, DatetimeIndexResampler):
+# error: Definition of "ax" in base class "_GroupByMixin" is incompatible
+# with definition in base class "DatetimeIndexResampler"
+class DatetimeIndexResamplerGroupby(  # type: ignore[misc]
+    _GroupByMixin, DatetimeIndexResampler
+):
     """
     Provides a resample of a groupby implementation
     """
@@ -1819,6 +1841,10 @@ class DatetimeIndexResamplerGroupby(_GroupByMixin, DatetimeIndexResampler):
 
 
 class PeriodIndexResampler(DatetimeIndexResampler):
+    # error: Incompatible types in assignment (expression has type "PeriodIndex", base
+    # class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
+    ax: PeriodIndex  # type: ignore[assignment]
+
     @property
     def _resampler_for_grouping(self):
         return PeriodIndexResamplerGroupby
@@ -1925,7 +1951,11 @@ class PeriodIndexResampler(DatetimeIndexResampler):
         return self._wrap_result(new_obj)
 
 
-class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
+# error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
+# definition in base class "PeriodIndexResampler"
+class PeriodIndexResamplerGroupby(  # type: ignore[misc]
+    _GroupByMixin, PeriodIndexResampler
+):
     """
     Provides a resample of a groupby implementation.
     """
@@ -1936,6 +1966,10 @@ class PeriodIndexResamplerGroupby(_GroupByMixin, PeriodIndexResampler):
 
 
 class TimedeltaIndexResampler(DatetimeIndexResampler):
+    # error: Incompatible types in assignment (expression has type "TimedeltaIndex",
+    # base class "DatetimeIndexResampler" defined the type as "DatetimeIndex")
+    ax: TimedeltaIndex  # type: ignore[assignment]
+
     @property
     def _resampler_for_grouping(self):
         return TimedeltaIndexResamplerGroupby
@@ -1953,7 +1987,11 @@ class TimedeltaIndexResampler(DatetimeIndexResampler):
         return binner
 
 
-class TimedeltaIndexResamplerGroupby(_GroupByMixin, TimedeltaIndexResampler):
+# error: Definition of "ax" in base class "_GroupByMixin" is incompatible with
+# definition in base class "DatetimeIndexResampler"
+class TimedeltaIndexResamplerGroupby(  # type: ignore[misc]
+    _GroupByMixin, TimedeltaIndexResampler
+):
     """
     Provides a resample of a groupby implementation.
     """
@@ -1982,6 +2020,7 @@ def get_resampler_for_grouping(
     limit: int | None = None,
     kind=None,
     on=None,
+    include_groups: bool = True,
     **kwargs,
 ) -> Resampler:
     """
@@ -1990,7 +2029,9 @@ def get_resampler_for_grouping(
     # .resample uses 'on' similar to how .groupby uses 'key'
     tg = TimeGrouper(freq=rule, key=on, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
-    return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
+    return resampler._get_resampler_for_grouping(
+        groupby=groupby, include_groups=include_groups, key=tg.key
+    )
 
 
 class TimeGrouper(Grouper):
@@ -2784,3 +2825,18 @@ def maybe_warn_args_and_kwargs(cls, kernel: str, args, kwargs) -> None:
         category=FutureWarning,
         stacklevel=find_stack_level(),
     )
+
+
+def _apply(
+    grouped: GroupBy, how: Callable, *args, include_groups: bool, **kwargs
+) -> DataFrame:
+    # GH#7155 - rewrite warning to appear as if it came from `.resample`
+    target_message = "DataFrameGroupBy.apply operated on the grouping columns"
+    new_message = _apply_groupings_depr.format("DataFrameGroupBy", "resample")
+    with rewrite_warning(
+        target_message=target_message,
+        target_category=FutureWarning,
+        new_message=new_message,
+    ):
+        result = grouped.apply(how, *args, include_groups=include_groups, **kwargs)
+    return result
