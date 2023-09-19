@@ -153,7 +153,7 @@ class IndexModel(models.StructModel):
             # Pointer to the Index object this was created from, or that it
             # boxes to
             # https://numba.discourse.group/t/qst-how-to-cache-the-boxing-of-an-object/2128/2?u=lithomas1
-            ("parent", types.pyobject)
+            ("parent", types.pyobject),
         ]
         models.StructModel.__init__(self, dmm, fe_type, members)
 
@@ -208,6 +208,7 @@ def index_constructor_2arg(context, builder, sig, args):
     index.hashmap = hashmap
     index.parent = parent
     return impl_ret_borrowed(context, builder, sig.return_type, index._getvalue())
+
 
 @lower_builtin(Index, types.Array, types.DictType)
 def index_constructor_2arg_parent(context, builder, sig, args):
@@ -308,7 +309,10 @@ def box_index(typ, val, c):
     # Does parent exist?
     # (it means already boxed once, or Index same as original df.index or df.columns)
     # xref https://github.com/numba/numba/blob/596e8a55334cc46854e3192766e643767bd7c934/numba/core/boxing.py#L593C17-L593C17
-    with c.builder.if_else(cgutils.is_not_null(c.builder, index.parent)) as (has_parent, otherwise):
+    with c.builder.if_else(cgutils.is_not_null(c.builder, index.parent)) as (
+        has_parent,
+        otherwise,
+    ):
         with has_parent:
             c.pyapi.incref(index.parent)
         with otherwise:
@@ -390,13 +394,23 @@ def generate_series_binop(binop):
     def series_binop(series1, value):
         if isinstance(series1, SeriesType):
             if isinstance(value, SeriesType):
+
                 def series_binop_impl(series1, series2):
                     # TODO: Check index matching?
-                    return Series(binop(series1.values, series2.values), series1.index, series1.name)
+                    return Series(
+                        binop(series1.values, series2.values),
+                        series1.index,
+                        series1.name,
+                    )
+
                 return series_binop_impl
             else:
+
                 def series_binop_impl(series1, value):
-                    return Series(binop(series1.values, value), series1.index, series1.name)
+                    return Series(
+                        binop(series1.values, value), series1.index, series1.name
+                    )
+
                 return series_binop_impl
 
     return series_binop
@@ -411,12 +425,7 @@ series_reductions = [
 for reduction, reduction_method in series_reductions:
     generate_series_reduction(reduction, reduction_method)
 
-series_binops = [
-    operator.add,
-    operator.sub,
-    operator.mul,
-    operator.truediv
-]
+series_binops = [operator.add, operator.sub, operator.mul, operator.truediv]
 
 for binop in series_binops:
     generate_series_binop(binop)

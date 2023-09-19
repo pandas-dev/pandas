@@ -25,28 +25,31 @@ def engine(request):
     return request.param
 
 
-def test_apply(float_frame):
+def test_apply(float_frame, engine, request):
+    if engine == "numba":
+        mark = pytest.mark.xfail(reason="numba engine not supporting numpy ufunc yet")
+        request.node.add_marker(mark)
     with np.errstate(all="ignore"):
         # ufunc
         result = np.sqrt(float_frame["A"])
-        expected = float_frame.apply(np.sqrt)["A"]
+        expected = float_frame.apply(np.sqrt, engine=engine)["A"]
         tm.assert_series_equal(result, expected)
 
         # aggregator
-        result = float_frame.apply(np.mean)["A"]
+        result = float_frame.apply(np.mean, engine=engine)["A"]
         expected = np.mean(float_frame["A"])
         assert result == expected
 
         d = float_frame.index[0]
-        result = float_frame.apply(np.mean, axis=1)
+        result = float_frame.apply(np.mean, axis=1, engine=engine)
         expected = np.mean(float_frame.xs(d))
         assert result[d] == expected
         assert result.index is float_frame.index
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_args(float_frame, axis):
-    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,))
+def test_apply_args(float_frame, axis, engine):
+    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,), engine=engine)
     expected = float_frame + 1
     tm.assert_frame_equal(result, expected)
 
@@ -93,11 +96,11 @@ def test_apply_mixed_datetimelike():
 
 
 @pytest.mark.parametrize("func", [np.sqrt, np.mean])
-def test_apply_empty(func):
+def test_apply_empty(func, engine=engine):
     # empty
     empty_frame = DataFrame()
 
-    result = empty_frame.apply(func)
+    result = empty_frame.apply(func, engine=engine)
     assert result.empty
 
 
@@ -113,10 +116,10 @@ def test_apply_float_frame(float_frame, engine):
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_empty_except_index():
+def test_apply_empty_except_index(engine):
     # GH 2476
     expected = DataFrame(index=["a"])
-    result = expected.apply(lambda x: x["a"], axis=1)
+    result = expected.apply(lambda x: x["a"], axis=1, engine=engine)
     tm.assert_frame_equal(result, expected)
 
 
@@ -319,12 +322,6 @@ def test_apply_empty_infer_type(ax, func, raw, axis, engine, request):
     with np.errstate(all="ignore"):
         test_res = func(np.array([], dtype="f8"))
         is_reduction = not isinstance(test_res, np.ndarray)
-
-        if engine == "numba" and raw is False:
-            mark = pytest.mark.xfail(
-                reason="numba engine only supports raw=True at the moment"
-            )
-            request.node.add_marker(mark)
 
         result = df.apply(func, axis=axis, engine=engine, raw=raw)
         if is_reduction:
@@ -980,9 +977,12 @@ def test_result_type_shorter_list(int_frame_const_col):
     tm.assert_frame_equal(result, expected)
 
 
-def test_result_type_broadcast(int_frame_const_col):
+def test_result_type_broadcast(int_frame_const_col, request):
     # result_type should be consistent no matter which
     # path we take in the code
+    if engine == "numba":
+        mark = pytest.mark.xfail(reason="numba engine doesn't support list return")
+        request.node.add_marker(mark)
     df = int_frame_const_col
     # broadcast result
     result = df.apply(lambda x: [1, 2, 3], axis=1, result_type="broadcast")
@@ -990,35 +990,54 @@ def test_result_type_broadcast(int_frame_const_col):
     tm.assert_frame_equal(result, expected)
 
 
-def test_result_type_broadcast_series_func(int_frame_const_col):
+def test_result_type_broadcast_series_func(int_frame_const_col, engine, request):
     # result_type should be consistent no matter which
     # path we take in the code
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="numba Series constructor only support ndarrays not list data"
+        )
+        request.node.add_marker(mark)
     df = int_frame_const_col
     columns = ["other", "col", "names"]
     result = df.apply(
-        lambda x: Series([1, 2, 3], index=columns), axis=1, result_type="broadcast"
+        lambda x: Series([1, 2, 3], index=columns),
+        axis=1,
+        result_type="broadcast",
+        engine=engine,
     )
     expected = df.copy()
     tm.assert_frame_equal(result, expected)
 
 
-def test_result_type_series_result(int_frame_const_col):
+def test_result_type_series_result(int_frame_const_col, engine, request):
     # result_type should be consistent no matter which
     # path we take in the code
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="numba Series constructor only support ndarrays not list data"
+        )
+        request.node.add_marker(mark)
     df = int_frame_const_col
     # series result
-    result = df.apply(lambda x: Series([1, 2, 3], index=x.index), axis=1)
+    result = df.apply(lambda x: Series([1, 2, 3], index=x.index), axis=1, engine=engine)
     expected = df.copy()
     tm.assert_frame_equal(result, expected)
 
 
-def test_result_type_series_result_other_index(int_frame_const_col):
+def test_result_type_series_result_other_index(int_frame_const_col, engine, request):
     # result_type should be consistent no matter which
     # path we take in the code
+
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="no support in numba Series constructor for list of columns"
+        )
+        request.node.add_marker(mark)
     df = int_frame_const_col
     # series result with other index
     columns = ["other", "col", "names"]
-    result = df.apply(lambda x: Series([1, 2, 3], index=columns), axis=1)
+    result = df.apply(lambda x: Series([1, 2, 3], index=columns), axis=1, engine=engine)
     expected = df.copy()
     expected.columns = columns
     tm.assert_frame_equal(result, expected)
@@ -1378,17 +1397,26 @@ def test_agg_args_kwargs(axis, args, kwargs):
 
 
 @pytest.mark.parametrize("num_cols", [2, 3, 5])
-def test_frequency_is_original(num_cols):
+def test_frequency_is_original(num_cols, engine, request):
     # GH 22150
+    if engine == "numba":
+        mark = pytest.mark.xfail(reason="numba engine only supports numeric indices")
+        request.node.add_marker(mark)
     index = pd.DatetimeIndex(["1950-06-30", "1952-10-24", "1953-05-29"])
     original = index.copy()
-    df = DataFrame(1, index=index, columns=range(num_cols))
+    df = DataFrame(1, index=index, columns=range(num_cols), engine=engine)
     df.apply(lambda x: x)
     assert index.freq == original.freq
 
 
-def test_apply_datetime_tz_issue():
+def test_apply_datetime_tz_issue(engine, request):
     # GH 29052
+
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="numba engine doesn't support non-numeric indexes"
+        )
+        request.node.add_marker(mark)
 
     timestamps = [
         Timestamp("2019-03-15 12:34:31.909000+0000", tz="UTC"),
@@ -1396,7 +1424,7 @@ def test_apply_datetime_tz_issue():
         Timestamp("2019-03-15 12:34:34.660000+0000", tz="UTC"),
     ]
     df = DataFrame(data=[0, 1, 2], index=timestamps)
-    result = df.apply(lambda x: x.name, axis=1)
+    result = df.apply(lambda x: x.name, axis=1, engine=engine)
     expected = Series(index=timestamps, data=timestamps)
 
     tm.assert_series_equal(result, expected)
@@ -1459,10 +1487,10 @@ def test_apply_empty_list_reduce():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_no_suffix_index():
+def test_apply_no_suffix_index(engine):
     # GH36189
     pdf = DataFrame([[4, 9]] * 3, columns=["A", "B"])
-    result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()], engine=engine)
     expected = DataFrame(
         {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
     )
@@ -1511,10 +1539,12 @@ def test_aggregation_func_column_order():
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_getitem_axis_1():
+def test_apply_getitem_axis_1(engine):
     # GH 13427
     df = DataFrame({"a": [0, 1, 2], "b": [1, 2, 3]})
-    result = df[["a", "a"]].apply(lambda x: x.iloc[0] + x.iloc[1], axis=1)
+    result = df[["a", "a"]].apply(
+        lambda x: x.iloc[0] + x.iloc[1], axis=1, engine=engine
+    )
     expected = Series([0, 2, 4])
     tm.assert_series_equal(result, expected)
 
@@ -1554,10 +1584,10 @@ def test_apply_type():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_on_empty_dataframe():
+def test_apply_on_empty_dataframe(engine):
     # GH 39111
     df = DataFrame({"a": [1, 2], "b": [3, 0]})
-    result = df.head(0).apply(lambda x: max(x["a"], x["b"]), axis=1)
+    result = df.head(0).apply(lambda x: max(x["a"], x["b"]), axis=1, engine=engine)
     expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
 
@@ -1655,14 +1685,3 @@ def test_agg_dist_like_and_nonunique_columns():
     result = df.agg({"A": "count"})
     expected = df["A"].count()
     tm.assert_series_equal(result, expected)
-
-
-def test_numba_unsupported():
-    df = DataFrame(
-        {"A": [None, 2, 3], "B": [1.0, np.nan, 3.0], "C": ["foo", None, "bar"]}
-    )
-    with pytest.raises(
-        ValueError,
-        match="The numba engine in DataFrame.apply can only be used when raw=True",
-    ):
-        df.apply(lambda x: x, engine="numba", raw=False)

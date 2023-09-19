@@ -603,6 +603,12 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series, DataFrame, or None
             Result when self.func is a list-like or dict-like, None otherwise.
         """
+
+        if self.engine == "numba":
+            raise NotImplementedError(
+                "The 'numba' engine doesn't support list-like/dict likes of callables yet."
+            )
+
         if self.axis == 1 and isinstance(self.obj, ABCDataFrame):
             return self.obj.T.apply(self.func, 0, args=self.args, **self.kwargs).T
 
@@ -828,6 +834,10 @@ class FrameApply(NDFrameApply):
 
         # dispatch to handle list-like or dict-like
         if is_list_like(self.func):
+            if self.engine == "numba":
+                raise NotImplementedError(
+                    "the 'numba' engine doesn't support lists of callables yet"
+                )
             return self.apply_list_or_dict_like()
 
         # all empty
@@ -836,10 +846,18 @@ class FrameApply(NDFrameApply):
 
         # string dispatch
         if isinstance(self.func, str):
+            if self.engine == "numba":
+                raise NotImplementedError(
+                    "the 'numba' engine doesn't support using a string as the callable function"
+                )
             return self.apply_str()
 
         # ufunc
         elif isinstance(self.func, np.ufunc):
+            if self.engine == "numba":
+                raise NotImplementedError(
+                    "the 'numba' engine doesn't support using a numpy ufunc as the callable function"
+                )
             with np.errstate(all="ignore"):
                 results = self.obj._mgr.apply("apply", func=self.func)
             # _constructor will retain self.index and self.columns
@@ -847,6 +865,10 @@ class FrameApply(NDFrameApply):
 
         # broadcasting
         if self.result_type == "broadcast":
+            if self.engine == "numba":
+                raise NotImplementedError(
+                    "the 'numba' engine doesn't support result_type='broadcast'"
+                )
             return self.apply_broadcast(self.obj)
 
         # one axis empty
@@ -1075,10 +1097,10 @@ class FrameRowApply(FrameApply):
         func, nogil=True, nopython=True, parallel=False
     ) -> Callable[[npt.NDarray], dict[int, Any]]:
         from pandas import Series
+
         # Dummy import just to make the extensions loaded in
         # This isn't an entrypoint since we don't want users
         # using Series/DF in numba code outside of apply
-        from pandas.core._numba.extensions import SeriesType
 
         numba = import_optional_dependency("numba")
 
@@ -1201,12 +1223,8 @@ class FrameColumnApply(FrameApply):
         # Dummy import just to make the extensions loaded in
         # This isn't an entrypoint since we don't want users
         # using Series/DF in numba code outside of apply
-        from pandas.core._numba.extensions import SeriesType
 
-        from pandas import (
-            Index,
-            Series,
-        )
+        from pandas import Series
 
         numba = import_optional_dependency("numba")
 
@@ -1215,7 +1233,7 @@ class FrameColumnApply(FrameApply):
         @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
         def numba_func(values, col_names_index, index_values):
             results = {}
-            #col_names_index = Index(col_names)
+            # col_names_index = Index(col_names)
             for i in range(values.shape[0]):
                 # Create the series
                 # TODO: values corrupted without the copy
