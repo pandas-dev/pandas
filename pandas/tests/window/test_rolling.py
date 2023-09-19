@@ -1952,12 +1952,15 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         tm.assert_series_equal(result, expected)
 
 
-def test_rolling_rolling_sum_window_microseconds_confilict_timestamp():
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_rolling_rolling_sum_window_microseconds_confilict_timestamp(unit):
     # GH#55106
-    df_time = DataFrame({"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5))
+    df_time = DataFrame(
+        {"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5)
+    )
     sum_in_nanosecs = df_time.rolling("1s").sum()
     # micro seconds / milliseconds should not breaks the correct rolling
-    df_time.index = df_time.index.as_unit("us")
+    df_time.index = df_time.index.as_unit(unit)
     sum_in_microsecs = df_time.rolling("1s").sum()
     sum_in_microsecs.index = sum_in_microsecs.index.as_unit("ns")
     tm.assert_frame_equal(sum_in_nanosecs, sum_in_microsecs)
