@@ -266,6 +266,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`Index.difference` not returning a unique set of values when ``other`` is empty or ``other`` is considered non-comparable (:issue:`55113`)
+- Bug in setting :class:`Categorical` values into a :class:`DataFrame` with numpy dtypes raising ``RecursionError`` (:issue:`52927`)
 -
 
 Missing
