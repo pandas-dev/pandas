@@ -45,6 +45,7 @@ class TestTimedeltas:
     @pytest.mark.parametrize(
         "depr_unit, unit",
         [
+            ("H", "hour"),
             ("T", "minute"),
             ("t", "minute"),
             ("S", "second"),
@@ -56,7 +57,8 @@ class TestTimedeltas:
             ("n", "nanosecond"),
         ],
     )
-    def test_timedelta_units_T_S_L_U_N_deprecated(self, depr_unit, unit):
+    def test_timedelta_units_H_T_S_L_U_N_deprecated(self, depr_unit, unit):
+        # GH#52536
         depr_msg = (
             f"'{depr_unit}' is deprecated and will be removed in a future version."
         )

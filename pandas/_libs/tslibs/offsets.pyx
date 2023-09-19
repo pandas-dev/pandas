@@ -4502,7 +4502,7 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {"h", "MS", "ms", "s", "bh", "cbh"}
+_dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s"}
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
@@ -4611,6 +4611,7 @@ cpdef to_offset(freq):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
+                print("1111111111111 = ", name)
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = _lite_rule_alias.get(name) or name
@@ -4619,6 +4620,7 @@ cpdef to_offset(freq):
                 if not stride:
                     stride = 1
 
+                print("2222222222 = ", prefix)
                 if prefix in c_DEPR_ABBREVS:
                     warnings.warn(
                         f"\'{prefix}\' is deprecated and will be removed in a "

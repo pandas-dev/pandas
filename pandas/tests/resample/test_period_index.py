@@ -898,7 +898,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
     def test_resample_t_l_deprecated(self):
-        # GH 52536
+        # GH#52536
         msg_t = "'T' is deprecated and will be removed in a future version."
         msg_l = "'L' is deprecated and will be removed in a future version."
 

@@ -1042,6 +1042,7 @@ def test_timedelta_attribute_precision():
 @pytest.mark.parametrize(
     "unit,unit_depr",
     [
+        ("h", "H"),
         ("min", "T"),
         ("s", "S"),
         ("ms", "L"),
@@ -1049,8 +1050,8 @@ def test_timedelta_attribute_precision():
         ("us", "U"),
     ],
 )
-def test_units_t_l_u_n_deprecated(unit, unit_depr):
-    # GH 52536
+def test_units_H_T_S_L_N_U_deprecated(unit, unit_depr):
+    # GH#52536
     msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
 
     expected = Timedelta(1, unit=unit)
