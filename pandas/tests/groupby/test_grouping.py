@@ -131,6 +131,20 @@ class TestSelection:
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "func", [lambda x: x.sum(), lambda x: x.agg(lambda y: y.sum())]
+    )
+    def test_getitem_from_grouper(self, func):
+        # GH 50383
+        df = DataFrame({"a": [1, 1, 2], "b": 3, "c": 4, "d": 5})
+        gb = df.groupby(["a", "b"])[["a", "c"]]
+
+        idx = MultiIndex.from_tuples([(1, 3), (2, 3)], names=["a", "b"])
+        expected = DataFrame({"a": [2, 2], "c": [8, 4]}, index=idx)
+        result = func(gb)
+
+        tm.assert_frame_equal(result, expected)
+
     def test_indices_grouped_by_tuple_with_lambda(self):
         # GH 36158
         df = DataFrame(

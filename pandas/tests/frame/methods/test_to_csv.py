@@ -1326,6 +1326,6 @@ class TestDataFrameToCSV:
         )
         df["a"] = df["a"].astype("category")
         result = df.to_csv()
-        expected_rows = [",a", '0,"[2020-01-01, 2020-01-02]"']
+        expected_rows = [",a", '0,"[2020-01-01 00:00:00, 2020-01-02 00:00:00]"']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
