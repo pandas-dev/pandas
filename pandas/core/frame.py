@@ -7262,8 +7262,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df
           first_name middle_name
         0       John       Smith
-        1       Anne        <NA>
-        2       John        <NA>
+        1       Anne         NaN
+        2       John         NaN
         3       Beth      Louise
 
         >>> df.value_counts()
