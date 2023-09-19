@@ -776,6 +776,7 @@ cpdef ndarray[object] ensure_string_array(
     result = np.asarray(arr, dtype="object")
 
     if copy and (result is arr or np.may_share_memory(arr, result)):
+        # GH#54654
         result = result.copy()
     elif not copy and result is arr:
         already_copied = False
