@@ -718,4 +718,4 @@ def test_groupby_op_with_nullables(na_option):
     df = DataFrame({"x": [None]}, dtype="Float64")
     result = df.groupby("x", dropna=False)["x"].rank(method="min", na_option=na_option)
     expected = Series([1.0], dtype="float64", name=result.name)
-    tm.assert_series_equal(result, expected, check_dtype=False)
+    tm.assert_series_equal(result, expected)
