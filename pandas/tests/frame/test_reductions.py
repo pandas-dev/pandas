@@ -1155,6 +1155,7 @@ class TestDataFrameAnalytics:
     def test_any_all_bool_with_na(self, opname, axis, bool_frame_with_na):
         getattr(bool_frame_with_na, opname)(axis=axis, bool_only=False)
 
+    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize("opname", ["any", "all"])
     def test_any_all_bool_frame(self, opname, bool_frame_with_na):
         # GH#12863: numpy gives back non-boolean data for object type

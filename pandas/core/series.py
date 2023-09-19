@@ -76,10 +76,7 @@ from pandas.core.dtypes.common import (
     pandas_dtype,
     validate_all_hashable,
 )
-from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
-    ExtensionDtype,
-)
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.generic import ABCDataFrame
 from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.missing import (
@@ -101,6 +98,7 @@ from pandas.core import (
 from pandas.core.accessor import CachedAccessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.arrow import StructAccessor
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.construction import (
@@ -4389,7 +4387,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3      4
         dtype: object
         """
-        if isinstance(self.dtype, ArrowDtype) and self.dtype.type == list:
+        if isinstance(self.dtype, ExtensionDtype):
             values, counts = self._values._explode()
         elif len(self) and is_object_dtype(self.dtype):
             values, counts = reshape.explode(np.asarray(self._values))
@@ -4398,7 +4396,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result.reset_index(drop=True) if ignore_index else result
 
         if ignore_index:
-            index = default_index(len(values))
+            index: Index = default_index(len(values))
         else:
             index = self.index.repeat(counts)
 
@@ -5787,6 +5785,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     cat = CachedAccessor("cat", CategoricalAccessor)
     plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
     sparse = CachedAccessor("sparse", SparseAccessor)
+    struct = CachedAccessor("struct", StructAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series
