@@ -133,7 +133,6 @@ def iris_table_metadata(dialect: str):
 
 
 def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
-    cur = conn.cursor()
     stmt = """CREATE TABLE iris (
             "SepalLength" REAL,
             "SepalWidth" REAL,
@@ -141,12 +140,55 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
             "PetalWidth" REAL,
             "Name" TEXT
         )"""
-    cur.execute(stmt)
-    with iris_file.open(newline=None, encoding="utf-8") as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader)
-        stmt = "INSERT INTO iris VALUES(?, ?, ?, ?, ?)"
-        cur.executemany(stmt, reader)
+    with conn.cursor() as cur:
+        cur.execute(stmt)
+        with iris_file.open(newline=None, encoding="utf-8") as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader)
+            stmt = "INSERT INTO iris VALUES($1, $2, $3, $4, $5)"
+            # ADBC requires explicit types - no implicit str -> float conversion
+            records = []
+            records = [
+                (
+                    float(row[0]),
+                    float(row[1]),
+                    float(row[2]),
+                    float(row[3]),
+                    row[4],
+                )
+                for row in reader
+            ]
+
+            cur.executemany(stmt, records)
+
+
+def create_and_load_iris_postgresql(conn, iris_file: Path):
+    stmt = """CREATE TABLE iris (
+            "SepalLength" DOUBLE PRECISION,
+            "SepalWidth" DOUBLE PRECISION,
+            "PetalLength" DOUBLE PRECISION,
+            "PetalWidth" DOUBLE PRECISION,
+            "Name" TEXT
+        )"""
+    with conn.cursor() as cur:
+        cur.execute(stmt)
+        with iris_file.open(newline=None, encoding="utf-8") as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader)
+            stmt = "INSERT INTO iris VALUES($1, $2, $3, $4, $5)"
+            # ADBC requires explicit types - no implicit str -> float conversion
+            records = [
+                (
+                    float(row[0]),
+                    float(row[1]),
+                    float(row[2]),
+                    float(row[3]),
+                    row[4],
+                )
+                for row in reader
+            ]
+
+            cur.executemany(stmt, records)
 
 
 def create_and_load_iris(conn, iris_file: Path, dialect: str):
@@ -233,26 +275,48 @@ def types_table_metadata(dialect: str):
     return types
 
 
-def create_and_load_types_sqlite3(conn: sqlite3.Connection, types_data: list[dict]):
-    cur = conn.cursor()
-    stmt = """CREATE TABLE types (
-                    "TextCol" TEXT,
-                    "DateCol" TEXT,
-                    "IntDateCol" INTEGER,
-                    "IntDateOnlyCol" INTEGER,
-                    "FloatCol" REAL,
-                    "IntCol" INTEGER,
-                    "BoolCol" INTEGER,
-                    "IntColWithNull" INTEGER,
-                    "BoolColWithNull" INTEGER
-                )"""
-    cur.execute(stmt)
+def create_and_load_types_sqlite3(conn, types_data: list[dict]):
+    with conn.cursor() as cur:
+        stmt = """CREATE TABLE types (
+                        "TextCol" TEXT,
+                        "DateCol" TEXT,
+                        "IntDateCol" INTEGER,
+                        "IntDateOnlyCol" INTEGER,
+                        "FloatCol" REAL,
+                        "IntCol" INTEGER,
+                        "BoolCol" INTEGER,
+                        "IntColWithNull" INTEGER,
+                        "BoolColWithNull" INTEGER
+                    )"""
+        cur.execute(stmt)
 
-    stmt = """
-            INSERT INTO types
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """
-    cur.executemany(stmt, types_data)
+        stmt = """
+                INSERT INTO types
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """
+        cur.executemany(stmt, types_data)
+
+
+def create_and_load_types_postgresql(conn, types_data: list[dict]):
+    with conn.cursor() as cur:
+        stmt = """CREATE TABLE types (
+                        "TextCol" TEXT,
+                        "DateCol" TEXT,
+                        "IntDateCol" INTEGER,
+                        "IntDateOnlyCol" INTEGER,
+                        "FloatCol" DOUBLE PRECISION,
+                        "IntCol" INTEGER,
+                        "BoolCol" INTEGER,
+                        "IntColWithNull" INTEGER,
+                        "BoolColWithNull" INTEGER
+                    )"""
+        cur.execute(stmt)
+
+        stmt = """
+                INSERT INTO types
+                VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                """
+        cur.executemany(stmt, types_data)
 
 
 def create_and_load_types(conn, types_data: list[dict], dialect: str):
@@ -417,9 +481,24 @@ def get_all_views(conn):
         c = conn.execute("SELECT name FROM sqlite_master WHERE type='view'")
         return [view[0] for view in c.fetchall()]
     else:
-        from sqlalchemy import inspect
+        adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+        if adbc and isinstance(conn, adbc.Connection):
+            results = []
+            info = conn.adbc_get_objects().read_all().to_pylist()
+            for catalog in info:
+                catalog["catalog_name"]
+                for schema in catalog["catalog_db_schemas"]:
+                    schema_name = schema["db_schema_name"]
+                    for table in schema["db_schema_tables"]:
+                        if table["table_type"] == "view":
+                            table_name = table["table_name"]
+                            results.append((schema_name, table_name))
 
-        return inspect(conn).get_view_names()
+            return results
+        else:
+            from sqlalchemy import inspect
+
+            return inspect(conn).get_view_names()
 
 
 def get_all_tables(conn):
@@ -427,9 +506,22 @@ def get_all_tables(conn):
         c = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
         return [table[0] for table in c.fetchall()]
     else:
-        from sqlalchemy import inspect
+        adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+        if adbc and isinstance(conn, adbc.Connection):
+            results = []
+            info = conn.adbc_get_objects().read_all().to_pylist()
+            for catalog in info:
+                for schema in catalog["catalog_db_schemas"]:
+                    for table in schema["db_schema_tables"]:
+                        if table["table_type"] == "table":
+                            table_name = table["table_name"]
+                            results.append(table_name)
 
-        return inspect(conn).get_table_names()
+            return results
+        else:
+            from sqlalchemy import inspect
+
+            return inspect(conn).get_table_names()
 
 
 def drop_table(
@@ -439,9 +531,15 @@ def drop_table(
     if isinstance(conn, sqlite3.Connection):
         conn.execute(f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}")
         conn.commit()
+
     else:
-        with conn.begin() as con:
-            sql.SQLDatabase(con).drop_table(table_name)
+        adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+        if adbc and isinstance(conn, adbc.Connection):
+            with conn.cursor() as cur:
+                cur.execute(f"DROP TABLE IF EXISTS {table_name}")
+        else:
+            with conn.begin() as con:
+                sql.SQLDatabase(con).drop_table(table_name)
 
 
 def drop_view(
@@ -452,12 +550,17 @@ def drop_view(
         conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
         conn.commit()
     else:
-        quoted_view = conn.engine.dialect.identifier_preparer.quote_identifier(
-            view_name
-        )
-        stmt = sqlalchemy.text(f"DROP VIEW IF EXISTS {quoted_view}")
-        with conn.begin() as con:
-            con.execute(stmt)  # type: ignore[union-attr]
+        adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+        if adbc and isinstance(conn, adbc.Connection):
+            with conn.cursor() as cur:
+                cur.execute(f"DROP TABLE IF EXISTS {view_name}")
+        else:
+            quoted_view = conn.engine.dialect.identifier_preparer.quote_identifier(
+                view_name
+            )
+            stmt = sqlalchemy.text(f"DROP VIEW IF EXISTS {quoted_view}")
+            with conn.begin() as con:
+                con.execute(stmt)  # type: ignore[union-attr]
 
 
 @pytest.fixture
@@ -522,7 +625,7 @@ def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
 
 
 @pytest.fixture
-def postgresql_adbc_conn(iris_path):
+def postgresql_adbc_conn(iris_path, types_data):
     if pa_version_under8p0:
         pytest.skip("ADBC requires pyarrow >= 8.0.0")
     pytest.importorskip("adbc_driver_postgresql")
@@ -535,11 +638,25 @@ def postgresql_adbc_conn(iris_path):
             conn.adbc_get_table_schema("iris")
         except mgr.OperationalError:
             conn.rollback()
-            create_and_load_iris(conn, iris_path, "postgresql")
+            create_and_load_iris_postgresql(conn, iris_path)
+        try:
+            conn.adbc_get_table_schema("types")
+        except mgr.OperationalError:
+            conn.rollback()
+            # ADBC cannot cast boolean data
+            new_data = []
+            for entry in types_data:
+                entry["BoolCol"] = int(entry["BoolCol"])
+                if entry["BoolColWithNull"] is not None:
+                    entry["BoolColWithNull"] = int(entry["BoolColWithNull"])
+                new_data.append(tuple(entry.values()))
+
+            create_and_load_types_postgresql(conn, new_data)
         yield conn
-        with conn.cursor() as cur:
-            cur.execute("DROP TABLE IF EXISTS test_frame")
-            cur.execute("DROP TABLE IF EXISTS iris")
+        for view in get_all_views(conn):
+            drop_view(view, conn)
+        for tbl in get_all_tables(conn):
+            drop_table(tbl, conn)
 
 
 @pytest.fixture
@@ -579,7 +696,7 @@ def sqlite_conn(sqlite_engine):
 
 
 @pytest.fixture
-def sqlite_adbc_conn(iris_path):
+def sqlite_adbc_conn(iris_path, types_data):
     if pa_version_under8p0:
         pytest.skip("ADBC requires pyarrow >= 8.0.0")
     pytest.importorskip("adbc_driver_sqlite")
@@ -593,11 +710,25 @@ def sqlite_adbc_conn(iris_path):
                 conn.adbc_get_table_schema("iris")
             except mgr.InternalError:  # note arrow-adbc issue 1022
                 conn.rollback()
-                create_and_load_iris(conn, iris_path, "sqlite")
+                create_and_load_iris_sqlite3(conn, iris_path)
+            try:
+                conn.adbc_get_table_schema("types")
+            except mgr.InternalError:  # note arrow-adbc issue 1022
+                conn.rollback()
+                new_data = []
+                for entry in types_data:
+                    entry["BoolCol"] = int(entry["BoolCol"])
+                    if entry["BoolColWithNull"] is not None:
+                        entry["BoolColWithNull"] = int(entry["BoolColWithNull"])
+                    entry.pop("DateColWithTz")
+                    new_data.append(tuple(entry.values()))
+
+                create_and_load_types_sqlite3(conn, new_data)
             yield conn
-            with conn.cursor() as cur:
-                cur.execute("DROP TABLE IF EXISTS test_frame")
-                cur.execute("DROP TABLE IF EXISTS iris")
+            for view in get_all_views(conn):
+                drop_view(view, conn)
+            for tbl in get_all_tables(conn):
+                drop_table(tbl, conn)
 
 
 @pytest.fixture
@@ -730,6 +861,12 @@ def test_dataframe_to_sql(conn, test_frame1, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_dataframe_to_sql_empty(conn, test_frame1, request):
+    if conn == "postgresql_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="postgres ADBC driver doesn't like empty dataset",
+            )
+        )
     # GH 51086 if conn is sqlite_engine
     conn = request.getfixturevalue(conn)
     empty_df = test_frame1.iloc[:0]
@@ -921,6 +1058,10 @@ def test_read_iris_table(conn, request):
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
 def test_read_iris_table_chunksize(conn, request):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
+        )
     conn = request.getfixturevalue(conn)
     iris_frame = concat(read_sql_table("iris", conn, chunksize=7))
     check_iris_frame(iris_frame)
@@ -1314,6 +1455,10 @@ def test_api_read_sql_view(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_api_read_sql_with_chunksize_no_result(conn, request):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
+        )
     conn = request.getfixturevalue(conn)
     query = 'SELECT * FROM iris_view WHERE "SepalLength" < 0.0'
     with_batch = sql.read_sql_query(query, conn, chunksize=5)
@@ -1430,6 +1575,10 @@ def test_api_roundtrip(conn, request, test_frame1):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_roundtrip_chunksize(conn, request, test_frame1):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
+        )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_frame_roundtrip", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -1462,6 +1611,10 @@ def test_api_date_parsing(conn, request):
     conn = request.getfixturevalue(conn)
     # Test date parsing in read_sql
     # No Parsing
+    if "adbc" in conn_name:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="parse_dates argument NotImplemented with ADBC")
+        )
     df = sql.read_sql_query("SELECT * FROM types", conn)
     if not ("mysql" in conn_name or "postgres" in conn_name):
         assert not issubclass(df.DateCol.dtype.type, np.datetime64)
@@ -1536,6 +1689,10 @@ def test_api_custom_dateparsing_error(
         request.node.add_marker(
             pytest.mark.xfail(reason="failing combination of arguments")
         )
+    elif "adbc" in conn_name:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="parse_dates argument NotImplemented with ADBC")
+        )
 
     expected = types_data_frame.astype({"DateCol": "datetime64[ns]"})
 
@@ -1558,6 +1715,10 @@ def test_api_custom_dateparsing_error(
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_api_date_and_index(conn, request):
     # Test case where same column appears in parse_date and index_col
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="index_col argument NotImplemented with ADBC")
+        )
     conn = request.getfixturevalue(conn)
     df = sql.read_sql_query(
         "SELECT * FROM types",
@@ -1614,6 +1775,10 @@ def test_api_complex_raises(conn, request):
     ],
 )
 def test_api_to_sql_index_label(conn, request, index_name, index_label, expected):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="index_label argument NotImplemented with ADBC")
+        )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_index_label", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -1635,6 +1800,10 @@ def test_api_to_sql_index_label_multiindex(conn, request):
             pytest.mark.xfail(
                 reason="MySQL can fail using TEXT without length as key", strict=False
             )
+        )
+    elif "adbc" in conn_name:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="index_label argument NotImplemented with ADBC")
         )
 
     conn = request.getfixturevalue(conn)
@@ -1729,6 +1898,11 @@ def test_api_multiindex_roundtrip(conn, request):
 )
 def test_api_dtype_argument(conn, request, dtype):
     # GH10285 Add dtype argument to read_sql_query
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="dtype argument NotImplemented with ADBC")
+        )
+
     conn_name = conn
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_dtype_argument", conn):
@@ -1812,6 +1986,10 @@ def test_api_get_schema_keys(conn, request, test_frame1):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_chunksize_read(conn, request):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
+        )
     conn_name = conn
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_chunksize", conn):
@@ -3326,6 +3504,10 @@ def dtype_backend_expected():
 @pytest.mark.parametrize("conn", all_connectable)
 def test_chunksize_empty_dtypes(conn, request):
     # GH#50245
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
+        )
     conn = request.getfixturevalue(conn)
     dtypes = {"a": "int64", "b": "object"}
     df = DataFrame(columns=["a", "b"]).astype(dtypes)
