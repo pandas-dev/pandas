@@ -4634,11 +4634,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         Invoke function on values of Series.
 
-        .. deprecated:: 2.1.0
-
-            If the result from ``func`` is a ``Series``, wrapping the output in a
-            ``DataFrame`` instead of a ``Series`` has been deprecated.
-
         Can be ufunc (a NumPy function that applies to the entire Series)
         or a Python function that only works on single values.
 
