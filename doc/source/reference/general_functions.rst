@@ -60,7 +60,6 @@ Top-level dealing with datetimelike data
    infer_freq
 
 .. autosummary::
-   :toctree: api/
    :currentmodule: pandas.tseries.frequencies
 
    guess_datetime_format
