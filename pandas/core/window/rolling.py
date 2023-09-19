@@ -937,6 +937,11 @@ class Window(BaseWindow):
 
         For `Series` this parameter is unused and defaults to 0.
 
+        .. deprecated:: 2.1.0
+
+            The axis keyword is deprecated. For ``axis=1``,
+            transpose the DataFrame first instead.
+
     closed : str, default None
         If ``'right'``, the first point in the window is excluded from calculations.
 
