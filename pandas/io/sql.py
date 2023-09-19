@@ -2059,9 +2059,35 @@ class ADBCDatabase(PandasSQL):
     def __init__(self, con) -> None:
         self.con = con
 
-    def execute(self, sql: str | Select | TextClause, params=None):
+    @contextmanager
+    def run_transaction(self):
         with self.con.cursor() as cur:
-            return cur.execute(sql)
+            try:
+                yield cur
+            except Exception:
+                self.con.rollback()
+                raise
+            self.con.commit()
+
+    def execute(self, sql: str | Select | TextClause, params=None):
+        if not isinstance(sql, str):
+            raise TypeError("Query must be a string unless using sqlalchemy.")
+        args = [] if params is None else [params]
+        cur = self.con.cursor()
+        try:
+            cur.execute(sql, *args)
+            return cur
+        except Exception as exc:
+            try:
+                self.con.rollback()
+            except Exception as inner_exc:  # pragma: no cover
+                ex = DatabaseError(
+                    f"Execution failed on sql: {sql}\n{exc}\nunable to rollback"
+                )
+                raise ex from inner_exc
+
+            ex = DatabaseError(f"Execution failed on sql '{sql}': {exc}")
+            raise ex from exc
 
     def read_table(
         self,
@@ -2263,7 +2289,11 @@ class ADBCDatabase(PandasSQL):
 
         import pyarrow as pa
 
-        tbl = pa.Table.from_pandas(frame, preserve_index=index)
+        try:
+            tbl = pa.Table.from_pandas(frame, preserve_index=index)
+        except pa.ArrowNotImplementedError as exc:
+            raise ValueError("datatypes not supported") from exc
+
         with self.con.cursor() as cur:
             total_inserted = cur.adbc_ingest(table_name, tbl, mode=mode)
 

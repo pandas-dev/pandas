@@ -161,6 +161,8 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
 
             cur.executemany(stmt, records)
 
+    conn.commit()
+
 
 def create_and_load_iris_postgresql(conn, iris_file: Path):
     stmt = """CREATE TABLE iris (
@@ -190,12 +192,13 @@ def create_and_load_iris_postgresql(conn, iris_file: Path):
 
             cur.executemany(stmt, records)
 
+    conn.commit()
+
 
 def create_and_load_iris(conn, iris_file: Path, dialect: str):
     from sqlalchemy import insert
-    from sqlalchemy.engine import Engine
 
-    adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+    import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
     iris = iris_table_metadata(dialect)
 
     with iris_file.open(newline=None, encoding="utf-8") as csvfile:
@@ -203,24 +206,10 @@ def create_and_load_iris(conn, iris_file: Path, dialect: str):
         header = next(reader)
         params = [dict(zip(header, row)) for row in reader]
         stmt = insert(iris).values(params)
-        if isinstance(conn, Engine):
-            with conn.connect() as conn:
-                with conn.begin():
-                    iris.drop(conn, checkfirst=True)
-                    iris.create(bind=conn)
-                    conn.execute(stmt)
-        elif adbc and isinstance(conn, adbc.Connection):
-            from sqlalchemy.schema import CreateTable
-
-            create_stmt = CreateTable(iris, if_not_exists=True)
-            with conn.cursor() as cur:
-                cur.execute(str(create_stmt))
-                cur.execute(str(stmt.compile(compile_kwargs={"literal_binds": True})))
-        else:
-            with conn.begin():
-                iris.drop(conn, checkfirst=True)
-                iris.create(bind=conn)
-                conn.execute(stmt)
+        with conn.begin() as con:
+            iris.drop(con, checkfirst=True)
+            iris.create(bind=con)
+            con.execute(stmt)
 
 
 def create_and_load_iris_view(conn):
@@ -229,17 +218,17 @@ def create_and_load_iris_view(conn):
         cur = conn.cursor()
         cur.execute(stmt)
     else:
-        from sqlalchemy import text
-        from sqlalchemy.engine import Engine
-
-        stmt = text(stmt)
-        if isinstance(conn, Engine):
-            with conn.connect() as conn:
-                with conn.begin():
-                    conn.execute(stmt)
+        adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
+        if adbc and isinstance(conn, adbc.Connection):
+            with conn.cursor() as cur:
+                cur.execute(stmt)
+            conn.commit()
         else:
-            with conn.begin():
-                conn.execute(stmt)
+            from sqlalchemy import text
+
+            stmt = text(stmt)
+            with conn.begin() as con:
+                con.execute(stmt)
 
 
 def types_table_metadata(dialect: str):
@@ -296,6 +285,8 @@ def create_and_load_types_sqlite3(conn, types_data: list[dict]):
                 """
         cur.executemany(stmt, types_data)
 
+    conn.commit()
+
 
 def create_and_load_types_postgresql(conn, types_data: list[dict]):
     with conn.cursor() as cur:
@@ -317,6 +308,8 @@ def create_and_load_types_postgresql(conn, types_data: list[dict]):
                 VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 """
         cur.executemany(stmt, types_data)
+
+    conn.commit()
 
 
 def create_and_load_types(conn, types_data: list[dict], dialect: str):
@@ -488,11 +481,11 @@ def get_all_views(conn):
             for catalog in info:
                 catalog["catalog_name"]
                 for schema in catalog["catalog_db_schemas"]:
-                    schema_name = schema["db_schema_name"]
+                    schema["db_schema_name"]
                     for table in schema["db_schema_tables"]:
                         if table["table_type"] == "view":
-                            table_name = table["table_name"]
-                            results.append((schema_name, table_name))
+                            view_name = table["table_name"]
+                            results.append(view_name)
 
             return results
         else:
@@ -553,7 +546,7 @@ def drop_view(
         adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
         if adbc and isinstance(conn, adbc.Connection):
             with conn.cursor() as cur:
-                cur.execute(f"DROP TABLE IF EXISTS {view_name}")
+                cur.execute(f"DROP VIEW IF EXISTS {view_name}")
         else:
             quoted_view = conn.engine.dialect.identifier_preparer.quote_identifier(
                 view_name
@@ -640,6 +633,11 @@ def postgresql_adbc_conn(iris_path, types_data):
             conn.rollback()
             create_and_load_iris_postgresql(conn, iris_path)
         try:
+            conn.adbc_get_table_schema("iris_view")
+        except mgr.OperationalError:  # note arrow-adbc issue 1022
+            conn.rollback()
+            create_and_load_iris_view(conn)
+        try:
             conn.adbc_get_table_schema("types")
         except mgr.OperationalError:
             conn.rollback()
@@ -712,6 +710,11 @@ def sqlite_adbc_conn(iris_path, types_data):
                 conn.rollback()
                 create_and_load_iris_sqlite3(conn, iris_path)
             try:
+                conn.adbc_get_table_schema("iris_view")
+            except mgr.InternalError:  # note arrow-adbc issue 1022
+                conn.rollback()
+                create_and_load_iris_view(conn)
+            try:
                 conn.adbc_get_table_schema("types")
             except mgr.InternalError:  # note arrow-adbc issue 1022
                 conn.rollback()
@@ -724,6 +727,7 @@ def sqlite_adbc_conn(iris_path, types_data):
                     new_data.append(tuple(entry.values()))
 
                 create_and_load_types_sqlite3(conn, new_data)
+                conn.commit()
             yield conn
             for view in get_all_views(conn):
                 drop_view(view, conn)
@@ -1103,8 +1107,8 @@ def test_default_type_conversion(conn, request):
     assert issubclass(df.FloatCol.dtype.type, np.floating)
     assert issubclass(df.IntCol.dtype.type, np.integer)
 
-    # MySQL/sqlite has no real BOOL type
-    if "postgresql" in conn_name:
+    # MySQL/sqlite has no real BOOL type, but ADBC loses this
+    if "postgresql" in conn_name and "adbc" not in conn_name:
         assert issubclass(df.BoolCol.dtype.type, np.bool_)
     else:
         assert issubclass(df.BoolCol.dtype.type, np.integer)
@@ -1404,6 +1408,13 @@ def flavor():
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_parameter(conn, request, sql_strings, flavor):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'params' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
     conn_name = conn
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_parameters"][flavor(conn_name)]
@@ -1417,6 +1428,13 @@ def test_read_sql_iris_parameter(conn, request, sql_strings, flavor):
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'params' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
     conn_name = conn
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_named_parameters"][flavor(conn_name)]
@@ -1602,6 +1620,7 @@ def test_api_execute_sql(conn, request):
     with sql.pandasSQL_builder(conn) as pandas_sql:
         iris_results = pandas_sql.execute("SELECT * FROM iris")
         row = iris_results.fetchone()
+        iris_results.close()
     tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
 
@@ -1749,9 +1768,14 @@ def test_api_timedelta(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_complex_raises(conn, request):
+    conn_name = conn
     conn = request.getfixturevalue(conn)
     df = DataFrame({"a": [1 + 1j, 2j]})
-    msg = "Complex datatypes not supported"
+
+    if "adbc" in conn_name:
+        msg = "datatypes not supported"
+    else:
+        msg = "Complex datatypes not supported"
     with pytest.raises(ValueError, match=msg):
         assert df.to_sql("test_complex", con=conn) is None
 
@@ -1868,6 +1892,13 @@ def test_api_to_sql_index_label_multiindex(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_multiindex_roundtrip(conn, request):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'index_col' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_multiindex_roundtrip", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -1932,6 +1963,13 @@ def test_api_integer_col_names(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_get_schema(conn, request, test_frame1):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'get_schema' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
     conn = request.getfixturevalue(conn)
     create_sql = sql.get_schema(test_frame1, "test", con=conn)
     assert "CREATE" in create_sql
@@ -1940,6 +1978,13 @@ def test_api_get_schema(conn, request, test_frame1):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_get_schema_with_schema(conn, request, test_frame1):
     # GH28486
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'get_schema' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
     conn = request.getfixturevalue(conn)
     create_sql = sql.get_schema(test_frame1, "test", con=conn, schema="pypi")
     assert "CREATE TABLE pypi." in create_sql
@@ -1947,6 +1992,13 @@ def test_api_get_schema_with_schema(conn, request, test_frame1):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_get_schema_dtypes(conn, request):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'get_schema' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
     conn_name = conn
     conn = request.getfixturevalue(conn)
     float_frame = DataFrame({"a": [1.1, 1.2], "b": [2.1, 2.2]})
@@ -1964,6 +2016,13 @@ def test_api_get_schema_dtypes(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_get_schema_keys(conn, request, test_frame1):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'get_schema' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
     conn_name = conn
     conn = request.getfixturevalue(conn)
     frame = DataFrame({"Col1": [1.1, 1.2], "Col2": [2.1, 2.2]})
@@ -2035,6 +2094,13 @@ def test_api_chunksize_read(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_categorical(conn, request):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="categorical dtype not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
     # GH8624
     # test that categorical gets written correctly as dense column
     conn = request.getfixturevalue(conn)
@@ -2071,6 +2137,10 @@ def test_api_unicode_column_name(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_escaped_table_name(conn, request):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="see arrow-adbc gh issue 1080")
+        )
     # GH 13206
     conn_name = conn
     conn = request.getfixturevalue(conn)
@@ -2115,6 +2185,13 @@ def test_read_table_columns(conn, request, test_frame1):
     conn_name = conn
     if conn_name == "sqlite_buildin":
         request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
+    elif "adbc" in conn_name:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'columns' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
 
     conn = request.getfixturevalue(conn)
     sql.to_sql(test_frame1, "test_frame", conn)
@@ -2127,6 +2204,13 @@ def test_read_table_columns(conn, request, test_frame1):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_read_table_index_col(conn, request, test_frame1):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="'index_col' not implemented for ADBC drivers",
+                strict=True,
+            )
+        )
     # test columns argument in read_table
     conn_name = conn
     if conn_name == "sqlite_buildin":
@@ -2502,7 +2586,8 @@ def test_execute_sql(conn, request):
     pandasSQL = pandasSQL_builder(conn)
     with pandasSQL.run_transaction():
         iris_results = pandasSQL.execute("SELECT * FROM iris")
-    row = iris_results.fetchone()
+        row = iris_results.fetchone()
+        iris_results.close()
     tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
 
@@ -2915,7 +3000,7 @@ def test_to_sql_save_index(conn, request):
     with pandasSQL.run_transaction():
         assert pandasSQL.to_sql(df, tbl_name) == 2
 
-    if conn_name in {"sqlite_buildin", "sqlite_str"}:
+    if conn_name in {"sqlite_buildin", "sqlite_str"} or "adbc" in conn_name:
         ixs = sql.read_sql_query(
             "SELECT * FROM sqlite_master WHERE type = 'index' "
             f"AND tbl_name = '{tbl_name}'",
@@ -2943,7 +3028,7 @@ def test_transactions(conn, request):
 
     stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
     pandasSQL = pandasSQL_builder(conn)
-    if conn_name != "sqlite_buildin":
+    if conn_name != "sqlite_buildin" and "adbc" not in conn_name:
         from sqlalchemy import text
 
         stmt = text(stmt)
@@ -2954,11 +3039,19 @@ def test_transactions(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_transaction_rollback(conn, request):
+    if conn == "postgresql_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="broken for postgres ADBC driver - needs investigation",
+                strict=True,
+            )
+        )
+    conn_name = conn
     conn = request.getfixturevalue(conn)
     pandasSQL = pandasSQL_builder(conn)
     with pandasSQL.run_transaction() as trans:
         stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
-        if isinstance(pandasSQL, SQLiteDatabase):
+        if "adbc" in conn_name or isinstance(pandasSQL, SQLiteDatabase):
             trans.execute(stmt)
         else:
             from sqlalchemy import text
@@ -3262,9 +3355,11 @@ def test_temporary_table(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_invalid_engine(conn, request, test_frame1):
-    if conn == "sqlite_buildin":
+    if conn == "sqlite_buildin" or "adbc" in conn:
         request.node.add_marker(
-            pytest.mark.xfail(reason="SQLiteDatabase does not raise for bad engine")
+            pytest.mark.xfail(
+                reason="SQLiteDatabase/ADBCDatabase does not raise for bad engine"
+            )
         )
 
     conn = request.getfixturevalue(conn)
@@ -3355,6 +3450,9 @@ def test_read_sql_dtype_backend(
     conn = request.getfixturevalue(conn)
     table = "test"
     df = dtype_backend_data
+    if "adbc" in conn_name:
+        # adbc cannot write / roundtrip booleans
+        df = df.drop(columns=["e", "f"])
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
     with pd.option_context("mode.string_storage", string_storage):
@@ -3362,7 +3460,14 @@ def test_read_sql_dtype_backend(
             f"Select * from {table}", conn, dtype_backend=dtype_backend
         )
     expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
+    if "adbc" in conn_name:
+        # adbc cannot write / roundtrip booleans
+        expected = expected.drop(columns=["e", "f"])
     tm.assert_frame_equal(result, expected)
+
+    if "adbc" in conn_name:
+        # adbc does not support chunksize argument
+        return
 
     with pd.option_context("mode.string_storage", string_storage):
         iterator = getattr(pd, func)(
@@ -3387,7 +3492,7 @@ def test_read_sql_dtype_backend_table(
     dtype_backend_data,
     dtype_backend_expected,
 ):
-    if "sqlite" in conn:
+    if "sqlite" in conn and "adbc" not in conn:
         request.node.add_marker(
             pytest.mark.xfail(
                 reason=(
@@ -3401,12 +3506,22 @@ def test_read_sql_dtype_backend_table(
     conn = request.getfixturevalue(conn)
     table = "test"
     df = dtype_backend_data
+    if "adbc" in conn_name:
+        # adbc cannot write / roundtrip booleans
+        df = df.drop(columns=["e", "f"])
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
     with pd.option_context("mode.string_storage", string_storage):
         result = getattr(pd, func)(table, conn, dtype_backend=dtype_backend)
     expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
+    if "adbc" in conn_name:
+        # adbc cannot write / roundtrip booleans
+        expected = expected.drop(columns=["e", "f"])
     tm.assert_frame_equal(result, expected)
+
+    if "adbc" in conn_name:
+        # adbc does not support chunksize argument
+        return
 
     with pd.option_context("mode.string_storage", string_storage):
         iterator = getattr(pd, func)(
@@ -3423,9 +3538,13 @@ def test_read_sql_dtype_backend_table(
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_table", "read_sql_query"])
 def test_read_sql_invalid_dtype_backend_table(conn, request, func, dtype_backend_data):
+    conn_name = conn
     conn = request.getfixturevalue(conn)
     table = "test"
     df = dtype_backend_data
+    if "adbc" in conn_name:
+        # adbc cannot write / roundtrip booleans
+        df = df.drop(columns=["e", "f"])
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
     msg = (
@@ -3528,6 +3647,10 @@ def test_chunksize_empty_dtypes(conn, request):
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
 def test_read_sql_dtype(conn, request, func, dtype_backend):
     # GH#50797
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="dtype argument NotImplemented with ADBC")
+        )
     conn = request.getfixturevalue(conn)
     table = "test"
     df = DataFrame({"a": [1, 2, 3], "b": 5})
