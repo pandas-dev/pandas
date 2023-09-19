@@ -34,6 +34,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug for :class:`ArrowDtype` raising ``NotImplementedError`` for fixed-size list (:issue:`55000`)
+- Fixed bug in :func:`is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
 - Fixed bug in :meth:`DataFrame.stack` with ``future_stack=True`` and columns a non-:class:`MultiIndex` consisting of tuples (:issue:`54948`)
 - Fixed bug in :meth:`Series.pct_change` and :meth:`DataFrame.pct_change` showing unnecessary ``FutureWarning`` (:issue:`54981`)
 
