@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.timedeltas import (
+    _python_get_unit_from_dtype,
     array_to_timedelta64,
     delta_to_nanoseconds,
     ints_to_pytimedelta,
@@ -148,14 +149,90 @@ def test_ints_to_pytimedelta_unsupported(unit):
     with pytest.raises(NotImplementedError, match=msg):
         ints_to_pytimedelta(arr, box=True)
 
-def test_non_nano_c_api():
-    d1 = Timedelta(days=1)
-    assert d1._get_pytimedelta_days() == 1
-    d2 = d1.as_unit("s")
-    assert d2._get_pytimedelta_days() == 1
 
-def test_non_nano_c_api_overflow():
-    ...
+@pytest.mark.parametrize(
+    "original_unit,value,new_unit,expected_pytime_days,expected_pytime_seconds,expected_pytime_microseconds",
+    [
+        ["days", 1, "s", 1, 0, 0],
+        ["seconds", 1, "s", 0, 1, 0],
+        ["milliseconds", 1, "ms", 0, 0, 1000],
+        ["microseconds", 1, "us", 0, 0, 1],
+        ["days", 1, "ms", 1, 0, 0],
+        ["days", 1, "us", 1, 0, 0],
+    ],
+)
+def test_timedelta_as_unit_conversion(
+    original_unit,
+    value,
+    new_unit,
+    expected_pytime_days,
+    expected_pytime_seconds,
+    expected_pytime_microseconds,
+):
+    kwargs = {original_unit: value}
+    orig_timedelta = Timedelta(**kwargs)
 
-def test_non_nano_c_api_underflow():
-    ...
+    converted_timedelta = orig_timedelta.as_unit(new_unit)
+
+    assert orig_timedelta._get_pytimedelta_days() == expected_pytime_days
+    assert converted_timedelta._get_pytimedelta_days() == expected_pytime_days
+    assert orig_timedelta._get_pytimedelta_seconds() == expected_pytime_seconds
+    assert converted_timedelta._get_pytimedelta_seconds() == expected_pytime_seconds
+    assert (
+        orig_timedelta._get_pytimedelta_microseconds() == expected_pytime_microseconds
+    )
+    assert (
+        converted_timedelta._get_pytimedelta_microseconds()
+        == expected_pytime_microseconds
+    )
+
+
+@pytest.mark.parametrize(
+    "unit,value,expected_pytime_days,expected_pytime_seconds,expected_pytime_microseconds",
+    [
+        ["s", 1, 0, 1, 0],
+        ["s", 86400, 1, 0, 0],
+        ["s", 86401, 1, 1, 0],
+        ["ms", 1, 0, 0, 1],
+        ["ms", 1000, 0, 1, 0],
+        ["ms", 86400000, 1, 0, 0],
+        ["ms", 86401001, 1, 1, 1],
+    ],
+)
+def test_non_nano_c_api(
+    unit,
+    value,
+    expected_pytime_days,
+    expected_pytime_seconds,
+    expected_pytime_microseconds,
+):
+    tmp_delta = Timedelta(days=1)  # just for exposing the function under test
+    dtype = np.dtype(f"m8[{unit}]")
+    reso = _python_get_unit_from_dtype(dtype)
+
+    uut_delta = tmp_delta._from_value_and_reso(value, reso)
+
+    assert uut_delta._get_pytimedelta_days() == expected_pytime_days
+    assert uut_delta._get_pytimedelta_seconds() == expected_pytime_seconds
+    assert uut_delta._get_pytimedelta_microseconds() == expected_pytime_microseconds
+
+
+@pytest.mark.parametrize(
+    "unit,value",
+    [
+        ["s", 86400000000000],  # (86400 s/day)*(1 billion days)
+        ["ms", 86400000000000000],  # (86400000 ms/day)*(1 billion days)
+        ["s", -86400000000000],
+        ["ms", -86400000000000000],
+    ],
+)
+def test_non_nano_c_api_pytimedelta_overflow(unit, value):
+    tmp_delta = Timedelta(days=1)  # just for exposing the function under test
+    dtype = np.dtype(f"m8[{unit}]")
+    reso = _python_get_unit_from_dtype(dtype)
+
+    uut_delta = tmp_delta._from_value_and_reso(value, reso)
+
+    assert uut_delta._get_pytimedelta_days() == 0
+    assert uut_delta._get_pytimedelta_seconds() == 0
+    assert uut_delta._get_pytimedelta_microseconds() == 0

@@ -27,12 +27,12 @@ cnp.import_array()
 
 from cpython.datetime cimport (
     PyDateTime_Check,
+    PyDateTime_DELTA_GET_DAYS,
+    PyDateTime_DELTA_GET_MICROSECONDS,
+    PyDateTime_DELTA_GET_SECONDS,
     PyDelta_Check,
     import_datetime,
     timedelta,
-    PyDateTime_DELTA_GET_DAYS,
-    PyDateTime_DELTA_GET_SECONDS,
-    PyDateTime_DELTA_GET_MICROSECONDS
 )
 
 import_datetime()
@@ -989,6 +989,13 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
     td_base._is_populated = 0
     td_base._creso = reso
     return td_base
+
+
+def _python_get_unit_from_dtype(dtype):
+    # exposing numpy unit translation for pytest purposes only
+    # alternative would be hardcoding resos in the test file,
+    # potentially breaking tests unnecessarily if these resos change
+    return get_unit_from_dtype(dtype)
 
 
 class MinMaxReso:
