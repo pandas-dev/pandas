@@ -38,16 +38,10 @@ def cls(dtype):
 
 def test_repr(dtype):
     df = pd.DataFrame({"A": pd.array(["a", pd.NA, "b"], dtype=dtype)})
-    if dtype.storage == "pyarrow_numpy":
-        expected = "     A\n0    a\n1  NaN\n2    b"
-    else:
-        expected = "      A\n0     a\n1  <NA>\n2     b"
+    expected = "     A\n0    a\n1  NaN\n2    b"
     assert repr(df) == expected
 
-    if dtype.storage == "pyarrow_numpy":
-        expected = "0      a\n1    NaN\n2      b\nName: A, dtype: string"
-    else:
-        expected = "0       a\n1    <NA>\n2       b\nName: A, dtype: string"
+    expected = "0      a\n1    NaN\n2      b\nName: A, dtype: string"
     assert repr(df.A) == expected
 
     if dtype.storage == "pyarrow":

@@ -63,5 +63,5 @@ def test_repr_array_long():
 def test_frame_repr(data_missing):
     df = pd.DataFrame({"A": data_missing})
     result = repr(df)
-    expected = "      A\n0  <NA>\n1     1"
+    expected = "     A\n0  NaN\n1    1"
     assert result == expected

@@ -283,9 +283,9 @@ def test_nullable_float_to_string(float_ea_dtype):
     result = s.to_string()
     expected = dedent(
         """\
-        0     0.0
-        1     1.0
-        2    <NA>"""
+        0    0.0
+        1    1.0
+        2    NaN"""
     )
     assert result == expected
 
@@ -297,9 +297,9 @@ def test_nullable_int_to_string(any_int_ea_dtype):
     result = s.to_string()
     expected = dedent(
         """\
-        0       0
-        1       1
-        2    <NA>"""
+        0      0
+        1      1
+        2    NaN"""
     )
     assert result == expected
 
