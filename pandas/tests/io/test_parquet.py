@@ -8,10 +8,8 @@ import pathlib
 import numpy as np
 import pytest
 
-from pandas._config import (
-    get_option,
-    using_copy_on_write,
-)
+from pandas._config import using_copy_on_write
+from pandas._config.config import _get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
@@ -61,7 +59,8 @@ pytestmark = pytest.mark.filterwarnings(
         pytest.param(
             "fastparquet",
             marks=pytest.mark.skipif(
-                not _HAVE_FASTPARQUET or get_option("mode.data_manager") == "array",
+                not _HAVE_FASTPARQUET
+                or _get_option("mode.data_manager", silent=True) == "array",
                 reason="fastparquet is not installed or ArrayManager is used",
             ),
         ),
@@ -88,7 +87,7 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    elif get_option("mode.data_manager") == "array":
+    elif _get_option("mode.data_manager", silent=True) == "array":
         pytest.skip("ArrayManager is not supported with fastparquet")
     return "fastparquet"
 
