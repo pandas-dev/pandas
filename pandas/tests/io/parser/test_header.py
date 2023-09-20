@@ -696,9 +696,9 @@ b,j,y
         StringIO(data),
         header=None,
         usecols=[0, 1],
-        dtype="object",
+        dtype="string[pyarrow]",
         dtype_backend="pyarrow",
         engine="pyarrow",
     )
-    expected = DataFrame([["a", "i"], ["b", "j"]])
+    expected = DataFrame([["a", "i"], ["b", "j"]], dtype="string[pyarrow]")
     tm.assert_frame_equal(result, expected)
