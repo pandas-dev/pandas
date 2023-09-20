@@ -132,7 +132,7 @@ def iris_table_metadata(dialect: str):
     return iris
 
 
-def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
+def create_and_load_iris_sqlite3(conn, iris_file: Path):
     stmt = """CREATE TABLE iris (
             "SepalLength" REAL,
             "SepalWidth" REAL,
@@ -140,7 +140,9 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
             "PetalWidth" REAL,
             "Name" TEXT
         )"""
-    with conn.cursor() as cur:
+
+    if isinstance(conn, sqlite3.Connection):
+        cur = conn.cursor()
         cur.execute(stmt)
         with iris_file.open(newline=None, encoding="utf-8") as csvfile:
             reader = csv.reader(csvfile)
@@ -160,8 +162,29 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
             ]
 
             cur.executemany(stmt, records)
+    else:
+        with conn.cursor() as cur:
+            cur.execute(stmt)
+            with iris_file.open(newline=None, encoding="utf-8") as csvfile:
+                reader = csv.reader(csvfile)
+                next(reader)
+                stmt = "INSERT INTO iris VALUES($1, $2, $3, $4, $5)"
+                # ADBC requires explicit types - no implicit str -> float conversion
+                records = []
+                records = [
+                    (
+                        float(row[0]),
+                        float(row[1]),
+                        float(row[2]),
+                        float(row[3]),
+                        row[4],
+                    )
+                    for row in reader
+                ]
 
-    conn.commit()
+                cur.executemany(stmt, records)
+
+        conn.commit()
 
 
 def create_and_load_iris_postgresql(conn, iris_file: Path):
@@ -265,27 +288,33 @@ def types_table_metadata(dialect: str):
 
 
 def create_and_load_types_sqlite3(conn, types_data: list[dict]):
-    with conn.cursor() as cur:
-        stmt = """CREATE TABLE types (
-                        "TextCol" TEXT,
-                        "DateCol" TEXT,
-                        "IntDateCol" INTEGER,
-                        "IntDateOnlyCol" INTEGER,
-                        "FloatCol" REAL,
-                        "IntCol" INTEGER,
-                        "BoolCol" INTEGER,
-                        "IntColWithNull" INTEGER,
-                        "BoolColWithNull" INTEGER
-                    )"""
-        cur.execute(stmt)
+    stmt = """CREATE TABLE types (
+                    "TextCol" TEXT,
+                    "DateCol" TEXT,
+                    "IntDateCol" INTEGER,
+                    "IntDateOnlyCol" INTEGER,
+                    "FloatCol" REAL,
+                    "IntCol" INTEGER,
+                    "BoolCol" INTEGER,
+                    "IntColWithNull" INTEGER,
+                    "BoolColWithNull" INTEGER
+                )"""
 
-        stmt = """
+    ins_stmt = """
                 INSERT INTO types
                 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
-        cur.executemany(stmt, types_data)
 
-    conn.commit()
+    if isinstance(conn, sqlite3.Connection):
+        cur = conn.cursor()
+        cur.execute(stmt)
+        cur.executemany(ins_stmt, types_data)
+    else:
+        with conn.cursor() as cur:
+            cur.execute(stmt)
+            cur.executemany(ins_stmt, types_data)
+
+        conn.commit()
 
 
 def create_and_load_types_postgresql(conn, types_data: list[dict]):
@@ -1447,8 +1476,8 @@ def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_no_parameter_with_percent(conn, request, sql_strings, flavor):
-    if "mysql" in conn or "postgresql" in conn:
-        request.node.add_marker(pytest.mark.xfail(reason="broken test"))
+    if "mysql" in conn or ("postgresql" in conn and "adbc" not in conn):
+        request.node.add_marker(pytest.mark.xfail(reason="broken test", strict=True))
 
     conn_name = conn
     conn = request.getfixturevalue(conn)
@@ -1549,6 +1578,7 @@ def test_api_to_sql_append(conn, request, test_frame1):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_to_sql_type_mapping(conn, request, test_frame3):
+    conn_name = conn
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_frame5", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -1557,6 +1587,9 @@ def test_api_to_sql_type_mapping(conn, request, test_frame3):
     sql.to_sql(test_frame3, "test_frame5", conn, index=False)
     result = sql.read_sql("SELECT * FROM test_frame5", conn)
 
+    if conn_name == "postgresql_adbc_conn":
+        # postgresql driver does not maintain capitalization
+        result.columns = ["index", "A", "B"]
     tm.assert_frame_equal(test_frame3, result)
 
 
@@ -1575,6 +1608,7 @@ def test_api_to_sql_series(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_roundtrip(conn, request, test_frame1):
+    conn_name = conn
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_frame_roundtrip", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -1584,6 +1618,10 @@ def test_api_roundtrip(conn, request, test_frame1):
     result = sql.read_sql_query("SELECT * FROM test_frame_roundtrip", con=conn)
 
     # HACK!
+    if "adbc" in conn_name:
+        result = result.rename(columns={"__index_level_0__": "level_0"})
+    if conn_name == "postgresql_adbc_conn":
+        result = result.rename(columns={"a": "A", "b": "B", "c": "C", "d": "D"})
     result.index = test_frame1.index
     result.set_index("level_0", inplace=True)
     result.index.astype(int)
@@ -1929,9 +1967,13 @@ def test_api_multiindex_roundtrip(conn, request):
 )
 def test_api_dtype_argument(conn, request, dtype):
     # GH10285 Add dtype argument to read_sql_query
-    if "adbc" in conn:
+    if "adbc" in conn and dtype:
         request.node.add_marker(
             pytest.mark.xfail(reason="dtype argument NotImplemented with ADBC")
+        )
+    elif conn == "postgresql_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="does not properly handle capitalized cols")
         )
 
     conn_name = conn
@@ -1956,6 +1998,10 @@ def test_api_dtype_argument(conn, request, dtype):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_integer_col_names(conn, request):
+    if conn == "postgresql_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="fails with syntax error", strict=True)
+        )
     conn = request.getfixturevalue(conn)
     df = DataFrame([[1, 2], [3, 4]], columns=[0, 1])
     sql.to_sql(df, "test_frame_integer_col_names", conn, if_exists="replace")
@@ -2163,6 +2209,14 @@ def test_api_escaped_table_name(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_read_sql_duplicate_columns(conn, request):
     # GH#53117
+    if conn == "postgresql_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="fails with syntax error", strict=True)
+        )
+    elif conn == "sqlite_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(reason="fails with ValueError", strict=True)
+        )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_table", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -2279,7 +2333,7 @@ def test_not_reflect_all_tables(sqlite_conn):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_warning_case_insensitive_table_name(conn, request, test_frame1):
     conn_name = conn
-    if conn_name == "sqlite_buildin":
+    if conn_name == "sqlite_buildin" or "adbc" in conn_name:
         request.node.add_marker(pytest.mark.xfail(reason="Does not raise warning"))
 
     conn = request.getfixturevalue(conn)
@@ -2428,7 +2482,7 @@ def test_query_by_select_obj(conn, request):
 def test_column_with_percentage(conn, request):
     # GH 37157
     conn_name = conn
-    if conn_name == "sqlite_buildin":
+    if conn_name in {"sqlite_buildin", "postgresql_adbc_conn"}:
         request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
 
     conn = request.getfixturevalue(conn)
@@ -2566,12 +2620,17 @@ def test_roundtrip(conn, request, test_frame1):
     if conn == "sqlite_str":
         pytest.skip("sqlite_str has no inspection system")
 
+    conn_name = conn
     conn = request.getfixturevalue(conn)
     pandasSQL = pandasSQL_builder(conn)
     with pandasSQL.run_transaction():
         assert pandasSQL.to_sql(test_frame1, "test_frame_roundtrip") == 4
         result = pandasSQL.read_query("SELECT * FROM test_frame_roundtrip")
 
+    if "adbc" in conn_name:
+        result = result.rename(columns={"__index_level_0__": "level_0"})
+    if conn_name == "postgresql_adbc_conn":
+        result = result.rename(columns={"a": "A", "b": "B", "c": "C", "d": "D"})
     result.set_index("level_0", inplace=True)
     # result.index.astype(int)
 
@@ -2989,6 +3048,10 @@ def test_nan_string(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_to_sql_save_index(conn, request):
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="not working with ADBC drivers", strict=True)
+        )
     conn_name = conn
     conn = request.getfixturevalue(conn)
     df = DataFrame.from_records(
