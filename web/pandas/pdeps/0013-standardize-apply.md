@@ -142,7 +142,7 @@ To change the current behavior, it will have to be deprecated. However, `Series.
 This means that in v2.2:
 
 1. Calls to `Series.apply` and `DataFrame.apply`will emit a `DeprecationWarning` with an appropriate deprecation message.
-2. A `series_ops_only` with type `bool | lib.NoDefault` parameter will be added to the `agg` and `transform` methods of `Series` and `DataFrame`. When `series_ops_only` is set to False, `agg` and `transform` will behave as they do currently. When set to True, `agg` and `transform` will never operate on elements, but always on Series. When set to `no_default`, `agg` and `transform` will behave as `series_ops_only=False`, but will emit a FutureWarning the current behavior will be reoved in the future.
+2. A `series_ops_only` argument with type `bool | lib.NoDefault` parameter will be added to the `agg` and `transform` methods of `Series` and `DataFrame` with a default value of `lib.NoDefault`. When `series_ops_only` is set to `False`, `agg` and `transform` will behave as they do currently. When set to `True`, `agg` and `transform` will never operate on elements, but always on Series. When set to `no_default`, `agg` and `transform` will behave as `series_ops_only=False`, but will emit a `DeprecationWarning`, the current behavior will be removed in the future.
 
 In Pandas v3.0:
 1. Calls to `Series.apply` and `DataFrame.apply` will emit a `FutureWarning` and emit an appropriate deprecation message.
