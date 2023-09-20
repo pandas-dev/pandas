@@ -26,10 +26,8 @@ import weakref
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_copy_on_write,
-)
+from pandas._config import using_copy_on_write
+from pandas._config.config import _get_option
 
 from pandas._libs import (
     lib,
@@ -404,7 +402,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if fastpath:
             # data is a ndarray, index is defined
             if not isinstance(data, (SingleBlockManager, SingleArrayManager)):
-                manager = get_option("mode.data_manager")
+                manager = _get_option("mode.data_manager", silent=True)
                 if manager == "block":
                     data = SingleBlockManager.from_array(data, index)
                 elif manager == "array":
@@ -510,7 +508,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             data = sanitize_array(data, index, dtype, copy)
 
-            manager = get_option("mode.data_manager")
+            manager = _get_option("mode.data_manager", silent=True)
             if manager == "block":
                 data = SingleBlockManager.from_array(data, index, refs=refs)
             elif manager == "array":
@@ -4634,11 +4632,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         """
         Invoke function on values of Series.
-
-        .. deprecated:: 2.1.0
-
-            If the result from ``func`` is a ``Series``, wrapping the output in a
-            ``DataFrame`` instead of a ``Series`` has been deprecated.
 
         Can be ufunc (a NumPy function that applies to the entire Series)
         or a Python function that only works on single values.
