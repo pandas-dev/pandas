@@ -576,7 +576,7 @@ cdef datetime _parse_dateabbr_string(str date_string, datetime default,
             # e.g. if "Q" is not in date_string and .index raised
             pass
 
-    if date_len == 6 and freq == "M":
+    if date_len == 6 and freq == "ME":
         year = int(date_string[:4])
         month = int(date_string[4:6])
         try:

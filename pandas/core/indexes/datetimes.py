@@ -65,6 +65,8 @@ if TYPE_CHECKING:
         PeriodIndex,
     )
 
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
+
 
 def _new_DatetimeIndex(cls, d):
     """
@@ -533,7 +535,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
-        per = Period(parsed, freq=reso.attr_abbrev)
+        freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
+        per = Period(parsed, freq=freq)
         start, end = per.start_time, per.end_time
 
         # GH 24076
@@ -944,26 +947,26 @@ def date_range(
 
     **Other Parameters**
 
-    Changed the `freq` (frequency) to ``'M'`` (month end frequency).
+    Changed the `freq` (frequency) to ``'ME'`` (month end frequency).
 
-    >>> pd.date_range(start='1/1/2018', periods=5, freq='M')
+    >>> pd.date_range(start='1/1/2018', periods=5, freq='ME')
     DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31', '2018-04-30',
                    '2018-05-31'],
-                  dtype='datetime64[ns]', freq='M')
+                  dtype='datetime64[ns]', freq='ME')
 
     Multiples are allowed
 
-    >>> pd.date_range(start='1/1/2018', periods=5, freq='3M')
+    >>> pd.date_range(start='1/1/2018', periods=5, freq='3ME')
     DatetimeIndex(['2018-01-31', '2018-04-30', '2018-07-31', '2018-10-31',
                    '2019-01-31'],
-                  dtype='datetime64[ns]', freq='3M')
+                  dtype='datetime64[ns]', freq='3ME')
 
     `freq` can also be specified as an Offset object.
 
     >>> pd.date_range(start='1/1/2018', periods=5, freq=pd.offsets.MonthEnd(3))
     DatetimeIndex(['2018-01-31', '2018-04-30', '2018-07-31', '2018-10-31',
                    '2019-01-31'],
-                  dtype='datetime64[ns]', freq='3M')
+                  dtype='datetime64[ns]', freq='3ME')
 
     Specify `tz` to set the timezone.
 
