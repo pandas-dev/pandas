@@ -2511,11 +2511,12 @@ cdef class _Period(PeriodMixin):
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
-    def strftime(self, fmt: str) -> str:
+    def strftime(self, fmt: str | None) -> str:
         r"""
         Returns a formatted string representation of the :class:`Period`.
 
-        ``fmt`` must be a string containing one or several directives.
+        ``fmt`` must be ``None`` or a string containing one or several directives.
+        When ``None``, the format will be determined from the frequency of the Period.
         The method recognizes the same directives as the :func:`time.strftime`
         function of the standard Python distribution, as well as the specific
         additional directives ``%f``, ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.

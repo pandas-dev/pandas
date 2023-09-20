@@ -1989,6 +1989,7 @@ class Timedelta(_Timedelta):
         ----------
         freq : str
             Frequency string indicating the rounding resolution.
+            It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
         Returns
         -------
@@ -2016,6 +2017,7 @@ class Timedelta(_Timedelta):
         ----------
         freq : str
             Frequency string indicating the flooring resolution.
+            It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
         Examples
         --------
@@ -2035,6 +2037,7 @@ class Timedelta(_Timedelta):
         ----------
         freq : str
             Frequency string indicating the ceiling resolution.
+            It uses the same units as class constructor :class:`~pandas.Timedelta`.
 
         Examples
         --------
