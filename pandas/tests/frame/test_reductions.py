@@ -752,7 +752,7 @@ class TestDataFrameAnalytics:
             tm.makeDateIndex(0),
             tm.makeNumericIndex(0, dtype=int),
             tm.makeNumericIndex(0, dtype=float),
-            tm.makeDateIndex(0, freq="M"),
+            tm.makeDateIndex(0, freq="ME"),
             tm.makePeriodIndex(0),
         ],
     )
