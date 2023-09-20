@@ -1035,7 +1035,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
                 if m is not None:
                     freq = m.group("freq")
 
-            freq_offset = to_offset(freq)
+            freq_offset = to_offset(freq, is_period=True)
             if freq_offset is not None:
                 return freq_offset
 

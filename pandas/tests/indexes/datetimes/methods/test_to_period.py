@@ -20,7 +20,7 @@ import pandas._testing as tm
 
 class TestToPeriod:
     def test_dti_to_period(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
         pi1 = dti.to_period()
         pi2 = dti.to_period(freq="D")
         pi3 = dti.to_period(freq="3D")
@@ -67,21 +67,27 @@ class TestToPeriod:
         for off in offsets:
             rng = date_range("01-Jan-2012", periods=8, freq=off)
             prng = rng.to_period()
-            assert prng.freq == "M"
+            assert prng.freqstr == "M"
 
-        rng = date_range("01-Jan-2012", periods=8, freq="M")
+        rng = date_range("01-Jan-2012", periods=8, freq="ME")
         prng = rng.to_period()
-        assert prng.freq == "M"
+        assert prng.freqstr == "M"
 
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             date_range("01-Jan-2012", periods=8, freq="EOM")
 
-    @pytest.mark.parametrize("freq", ["2M", MonthEnd(2)])
-    def test_dti_to_period_2monthish(self, freq):
-        dti = date_range("2020-01-01", periods=3, freq=freq)
+    @pytest.mark.parametrize(
+        "freq_offset, freq_period",
+        [
+            ("2ME", "2M"),
+            (MonthEnd(2), MonthEnd(2)),
+        ],
+    )
+    def test_dti_to_period_2monthish(self, freq_offset, freq_period):
+        dti = date_range("2020-01-01", periods=3, freq=freq_offset)
         pi = dti.to_period()
 
-        tm.assert_index_equal(pi, period_range("2020-01", "2020-05", freq=freq))
+        tm.assert_index_equal(pi, period_range("2020-01", "2020-05", freq=freq_period))
 
     def test_to_period_infer(self):
         # https://github.com/pandas-dev/pandas/issues/33358

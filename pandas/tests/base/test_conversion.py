@@ -176,7 +176,7 @@ class TestToIterable:
         assert s.dtype == "Period[M]"
         for res, exp in zip(s, vals):
             assert isinstance(res, pd.Period)
-            assert res.freq == "M"
+            assert res.freq == "ME"
             assert res == exp
 
 

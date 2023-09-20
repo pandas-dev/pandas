@@ -1,7 +1,7 @@
 from numpy cimport int64_t
 
 
-cpdef to_offset(object obj)
+cpdef to_offset(object obj, bint is_period=*)
 cdef bint is_offset_object(object obj)
 cdef bint is_tick_object(object obj)
 

@@ -168,7 +168,7 @@ def test_parsers_quarter_invalid(date_str):
     [("201101", datetime(2011, 1, 1, 0, 0)), ("200005", datetime(2000, 5, 1, 0, 0))],
 )
 def test_parsers_month_freq(date_str, expected):
-    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq="M")
+    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq="ME")
     assert result == expected
 
 

@@ -977,10 +977,10 @@ class TestPeriodIndexArithmetic:
         pi = tm.box_expected(pi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
 
-        result = pi + to_offset("3M")
+        result = pi + to_offset("3ME")
         tm.assert_equal(result, expected)
 
-        result = to_offset("3M") + pi
+        result = to_offset("3ME") + pi
         tm.assert_equal(result, expected)
 
     # ---------------------------------------------------------------

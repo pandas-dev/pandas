@@ -53,7 +53,7 @@ def base_delta_code_pair(request):
 freqs = (
     [f"Q-{month}" for month in MONTHS]
     + [f"{annual}-{month}" for annual in ["A", "BA"] for month in MONTHS]
-    + ["M", "BM", "BMS"]
+    + ["ME", "BM", "BMS"]
     + [f"WOM-{count}{day}" for count in range(1, 5) for day in DAYS]
     + [f"W-{day}" for day in DAYS]
 )
@@ -162,7 +162,7 @@ def test_fifth_week_of_month():
 
 def test_monthly_ambiguous():
     rng = DatetimeIndex(["1/31/2000", "2/29/2000", "3/31/2000"])
-    assert rng.inferred_freq == "M"
+    assert rng.inferred_freq == "ME"
 
 
 def test_annual_ambiguous():
@@ -217,7 +217,7 @@ def test_infer_freq_index(freq, expected):
         {
             "AS-JAN": ["2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01"],
             "Q-OCT": ["2009-01-31", "2009-04-30", "2009-07-31", "2009-10-31"],
-            "M": ["2010-11-30", "2010-12-31", "2011-01-31", "2011-02-28"],
+            "ME": ["2010-11-30", "2010-12-31", "2011-01-31", "2011-02-28"],
             "W-SAT": ["2010-12-25", "2011-01-01", "2011-01-08", "2011-01-15"],
             "D": ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"],
             "H": [
@@ -450,7 +450,7 @@ def test_series_period_index(freq):
         frequencies.infer_freq(s)
 
 
-@pytest.mark.parametrize("freq", ["M", "ms", "s"])
+@pytest.mark.parametrize("freq", ["ME", "ms", "s"])
 def test_series_datetime_index(freq):
     s = Series(date_range("20130101", periods=10, freq=freq))
     inferred = frequencies.infer_freq(s)

@@ -70,7 +70,7 @@ def test_transform():
 
     # GH 8430
     df = tm.makeTimeDataFrame()
-    g = df.groupby(pd.Grouper(freq="M"))
+    g = df.groupby(pd.Grouper(freq="ME"))
     g.transform(lambda x: x - 1)
 
     # GH 9700

@@ -177,6 +177,31 @@ Other API changes
 
 Deprecations
 ~~~~~~~~~~~~
+
+Deprecate alias ``M`` in favour of ``ME`` for offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The alias ``M`` is deprecated in favour of ``ME`` for offsets, please use ``ME`` for "month end" instead of ``M`` (:issue:`9586`)
+
+For example:
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [7]: pd.date_range('2020-01-01', periods=3, freq='M')
+    Out [7]:
+    DatetimeIndex(['2020-01-31', '2020-02-29', '2020-03-31'],
+                  dtype='datetime64[ns]', freq='M')
+
+*Future behavior*:
+
+.. ipython:: python
+
+    pd.date_range('2020-01-01', periods=3, freq='ME')
+
+Other Deprecations
+^^^^^^^^^^^^^^^^^^
 - Changed :meth:`Timedelta.resolution_string` to return ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_clipboard`. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_csv` except ``path_or_buf``. (:issue:`54229`)

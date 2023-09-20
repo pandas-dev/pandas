@@ -1076,7 +1076,7 @@ class TestDatetime64Arithmetic:
     # Note: freq here includes both Tick and non-Tick offsets; this is
     #  relevant because historically integer-addition was allowed if we had
     #  a freq.
-    @pytest.mark.parametrize("freq", ["H", "D", "W", "M", "MS", "Q", "B", None])
+    @pytest.mark.parametrize("freq", ["H", "D", "W", "2ME", "MS", "Q", "B", None])
     @pytest.mark.parametrize("dtype", [None, "uint8"])
     def test_dt64arr_addsub_intlike(
         self, request, dtype, box_with_array, freq, tz_naive_fixture

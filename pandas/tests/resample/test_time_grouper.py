@@ -70,7 +70,7 @@ def test_apply_iteration():
     N = 1000
     ind = date_range(start="2000-01-01", freq="D", periods=N)
     df = DataFrame({"open": 1, "close": 2}, index=ind)
-    tg = Grouper(freq="M")
+    tg = Grouper(freq="ME")
 
     grouper, _ = tg._get_grouper(df)
 

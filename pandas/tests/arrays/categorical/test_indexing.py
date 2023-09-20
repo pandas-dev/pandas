@@ -141,7 +141,8 @@ class TestCategoricalIndexing:
 
     def test_periodindex(self):
         idx1 = PeriodIndex(
-            ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"], freq="M"
+            ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"],
+            freq="M",
         )
 
         cat1 = Categorical(idx1)
@@ -152,7 +153,8 @@ class TestCategoricalIndexing:
         tm.assert_index_equal(cat1.categories, exp_idx)
 
         idx2 = PeriodIndex(
-            ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"], freq="M"
+            ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"],
+            freq="M",
         )
         cat2 = Categorical(idx2, ordered=True)
         str(cat2)
