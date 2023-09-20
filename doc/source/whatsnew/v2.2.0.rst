@@ -236,7 +236,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
--
+- Bug in :func:`_timedelta_from_value_and_reso` causing pytimedelta C-APIs to be incorrect (:issue:`54682`)
 -
 
 Timezones
