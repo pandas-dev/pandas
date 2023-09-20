@@ -50,6 +50,9 @@ def period_index(freqstr):
     # TODO: non-monotone indexes; NaTs, different start dates
     with warnings.catch_warnings():
         # suppress deprecation of Period[B]
+        warnings.filterwarnings(
+            "ignore", message="Period with BDay freq", category=FutureWarning
+        )
         freqstr = freq_to_period_freqstr(1, freqstr)
         pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return pi
