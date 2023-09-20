@@ -4586,7 +4586,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         join_index, (left_indexer, right_indexer)
 
-         Examples
+        Examples
         --------
         >>> idx1 = pd.Index([1, 2, 3])
         >>> idx2 = pd.Index([4, 5, 6])
