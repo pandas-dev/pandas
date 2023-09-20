@@ -43,6 +43,7 @@ from pandas._config import (
     get_option,
     using_copy_on_write,
 )
+from pandas._config.config import _get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -694,7 +695,7 @@ class DataFrame(NDFrame, OpsMixin):
                 NDFrame.__init__(self, data)
                 return
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
 
         # GH47215
         if isinstance(index, set):
@@ -2411,7 +2412,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             columns = columns.drop(exclude)
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
         return cls(mgr)
@@ -2612,7 +2613,7 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
         columns = ensure_index(columns)
         if len(columns) != len(arrays):
             raise ValueError("len(columns) must match len(arrays)")
