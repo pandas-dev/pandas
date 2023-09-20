@@ -1526,7 +1526,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         .. deprecated:: 2.1.0
 
-           bool is deprecated and will be removed in future version of pandas
+           bool is deprecated and will be removed in future version of pandas.
+           For ``Series`` use ``pandas.Series.item``.
 
         This must be a boolean scalar value, either True or False. It will raise a
         ValueError if the Series or DataFrame does not have exactly 1 element, or that
@@ -1555,6 +1556,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> pd.DataFrame({'col': [True]}).bool()  # doctest: +SKIP
         True
         >>> pd.DataFrame({'col': [False]}).bool()  # doctest: +SKIP
+        False
+
+        This is an alternative method and will only work
+        for single element objects with a boolean value:
+
+        >>> pd.Series([True]).item()  # doctest: +SKIP
+        True
+        >>> pd.Series([False]).item()  # doctest: +SKIP
         False
         """
 
@@ -8323,8 +8332,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * DataFrame : when `self` is a DataFrame and `where` is an
               array-like
 
-            Return scalar, Series, or DataFrame.
-
         See Also
         --------
         merge_asof : Perform an asof merge. Similar to left join.
@@ -10395,7 +10402,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # make sure we are boolean
         fill_value = bool(inplace)
-        cond = cond.fillna(fill_value)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "Downcasting object dtype arrays",
+                category=FutureWarning,
+            )
+            cond = cond.fillna(fill_value)
+        cond = cond.infer_objects(copy=False)
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
