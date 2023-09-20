@@ -1,6 +1,6 @@
 .. _whatsnew_211:
 
-What's new in 2.1.1 (September XX, 2023)
+What's new in 2.1.1 (September 20, 2023)
 ----------------------------------------
 
 These are the changes in pandas 2.1.1. See :ref:`release` for a full changelog
