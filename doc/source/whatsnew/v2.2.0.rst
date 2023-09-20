@@ -288,6 +288,8 @@ Strings
 Interval
 ^^^^^^^^
 - Bug in :class:`Interval` ``__repr__`` not displaying UTC offsets for :class:`Timestamp` bounds. Additionally the hour, minute and second components will now be shown. (:issue:`55015`)
+- Bug in :meth:`IntervalIndex.get_indexer` with datetime or timedelta intervals incorrectly matching on integer targets (:issue:`47772`)
+- Bug in :meth:`IntervalIndex.get_indexer` with timezone-aware datetime intervals incorrectly matching on a sequence of timezone-naive targets (:issue:`47772`)
 -
 
 Indexing
@@ -349,6 +351,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 
 .. ***DO NOT USE THIS SECTION***
 
