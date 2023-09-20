@@ -951,6 +951,11 @@ cdef class BlockValuesRefs:
         else:
             self.referenced_blocks = []
 
+    def _clear_dead_references(self) -> None:
+        self.referenced_blocks = [
+            ref for ref in self.referenced_blocks if ref() is not None
+        ]
+
     def add_reference(self, blk: SharedBlock) -> None:
         """Adds a new reference to our reference collection.
 
@@ -959,6 +964,7 @@ cdef class BlockValuesRefs:
         blk: SharedBlock
             The block that the new references should point to.
         """
+        self._clear_dead_references()
         self.referenced_blocks.append(weakref.ref(blk))
 
     def add_index_reference(self, index: object) -> None:
@@ -969,6 +975,7 @@ cdef class BlockValuesRefs:
         index : Index
             The index that the new reference should point to.
         """
+        self._clear_dead_references()
         self.referenced_blocks.append(weakref.ref(index))
 
     def has_reference(self) -> bool:
@@ -981,8 +988,6 @@ cdef class BlockValuesRefs:
         -------
         bool
         """
-        self.referenced_blocks = [
-            ref for ref in self.referenced_blocks if ref() is not None
-        ]
+        self._clear_dead_references()
         # Checking for more references than block pointing to itself
         return len(self.referenced_blocks) > 1
