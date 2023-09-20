@@ -460,6 +460,12 @@ class Block(PandasObject, libinternals.Block):
         and will receive the same block
         """
         new_dtype = find_result_type(self.values.dtype, other)
+        if new_dtype == self.dtype:
+            # GH#52927 avoid RecursionError
+            raise AssertionError(
+                "Something has gone wrong, please report a bug at "
+                "https://github.com/pandas-dev/pandas/issues"
+            )
 
         # In a future version of pandas, the default will be that
         # setting `nan` into an integer series won't raise.

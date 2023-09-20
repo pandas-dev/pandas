@@ -199,6 +199,7 @@ Deprecations
 - Deprecated strings ``T``, ``S``, ``L``, ``U``, and ``N`` denoting frequencies in :class:`Minute`, :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano` (:issue:`52536`)
 - Deprecated strings ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
+- Deprecated the option ``mode.data_manager`` and the ``ArrayManager``; only the ``BlockManager`` will be available in future versions (:issue:`55043`)
 - Deprecating downcasting the results of :meth:`DataFrame.fillna`, :meth:`Series.fillna`, :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, :meth:`Series.bfill` in object-dtype cases. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`54261`)
 
 .. ---------------------------------------------------------------------------
@@ -268,6 +269,7 @@ Interval
 Indexing
 ^^^^^^^^
 - Bug in :meth:`Index.difference` not returning a unique set of values when ``other`` is empty or ``other`` is considered non-comparable (:issue:`55113`)
+- Bug in setting :class:`Categorical` values into a :class:`DataFrame` with numpy dtypes raising ``RecursionError`` (:issue:`52927`)
 -
 
 Missing
