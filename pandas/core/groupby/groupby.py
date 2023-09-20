@@ -3331,12 +3331,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             idxmax or idxmin for the groupby operation.
         """
-        # seen is passed to the Cython code and mutated
-        seen = np.zeros(self.ngroups, dtype="bool")
+        # unobserved is passed to the Cython code and mutated
+        unobserved = np.ones(self.ngroups, dtype="bool")
 
         def post_process(res):
             has_na_value = (res._values == -1).any(axis=None)
-            has_unobserved = not seen.all()
+            has_unobserved = unobserved.any()
             raise_err: bool | np.bool_ = not ignore_unobserved and has_unobserved
             if (
                 not self.observed
@@ -3350,6 +3350,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result_len = np.prod(
                     [len(ping.group_index) for ping in self.grouper.groupings]
                 )
+                assert len(res) <= result_len
                 raise_err = len(res) < result_len
             if raise_err:
                 raise ValueError(
@@ -3396,7 +3397,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             alias=how,
             post_process=post_process,
             skipna=skipna,
-            seen=seen,
+            unobserved=unobserved,
         )
         return result
 

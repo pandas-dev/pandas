@@ -192,7 +192,7 @@ def group_idxmin_idxmax(
     name: str = ...,
     skipna: bool = ...,
     result_mask: np.ndarray | None = ...,
-    seen: npt.NDArray[np.uint8] | None = ...,
+    unobserved: npt.NDArray[np.uint8] | None = ...,
 ) -> None: ...
 def group_cummin(
     out: np.ndarray,  # groupby_t[:, ::1]

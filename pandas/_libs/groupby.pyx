@@ -1807,7 +1807,7 @@ def group_idxmin_idxmax(
     str name="idxmin",
     bint skipna=True,
     uint8_t[:, ::1] result_mask=None,
-    uint8_t[::1] seen=None,
+    uint8_t[::1] unobserved=None,
 ):
     """
     Compute index of minimum/maximum of columns of `values`, in row groups `labels`.
@@ -1840,8 +1840,8 @@ def group_idxmin_idxmax(
     result_mask : ndarray[bool, ndim=2], optional
         If not None, these specify locations in the output that are NA.
         Modified in-place.
-    seen : ndarray[bool]
-        Whether a group has been seen. While duplicative of counts, this is passed
+    unobserved : ndarray[bool]
+        Whether a group has been observed. While duplicative of counts, this is passed
         by idxmin/idxmax and modified inplace in order to make it back to the GroupBy
         method.
 
@@ -1883,7 +1883,7 @@ def group_idxmin_idxmax(
             lab = labels[i]
             if lab < 0:
                 continue
-            seen[lab] = 1
+            unobserved[lab] = 0
 
             for j in range(K):
                 if not skipna and out[lab, j] == -1:
@@ -1915,7 +1915,7 @@ def group_idxmin_idxmax(
                 lab = labels[i]
                 if lab < 0:
                     continue
-                seen[lab] = 1
+                unobserved[lab] = 0
 
                 for j in range(K):
                     if not skipna and out[lab, j] == -1:
