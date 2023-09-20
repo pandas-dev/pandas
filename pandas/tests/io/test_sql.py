@@ -860,7 +860,10 @@ sqlite_iris_connectable = [
 
 sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
 
-adbc_connectable = ["postgresql_adbc_conn", "sqlite_adbc_conn"]
+adbc_connectable = [
+    pytest.param("postgresql_adbc_conn", marks=pytest.mark.db),
+    pytest.param("sqlite_adbc_conn", marks=pytest.mark.db),
+]
 
 sqlalchemy_connectable_iris = (
     mysql_connectable + postgresql_connectable + sqlite_iris_connectable
@@ -1791,13 +1794,20 @@ def test_api_date_and_index(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_timedelta(conn, request):
     # see #6921
+    conn_name = conn
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_timedelta", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
             pandasSQL.drop_table("test_timedelta")
 
     df = to_timedelta(Series(["00:00:01", "00:00:03"], name="foo")).to_frame()
-    with tm.assert_produces_warning(UserWarning):
+
+    if "adbc" in conn_name:
+        exp_warning = None
+    else:
+        exp_warning = UserWarning
+
+    with tm.assert_produces_warning(exp_warning):
         result_count = df.to_sql(name="test_timedelta", con=conn)
     assert result_count == 2
     result = sql.read_sql_query("SELECT * FROM test_timedelta", conn)
