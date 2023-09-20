@@ -203,6 +203,30 @@ def test_timedelta_as_unit_conversion(
         ["us", 86400000001, 1, 0, 1],
         ["ns", 1, 0, 0, 0],
         ["ns", 1000, 0, 0, 1],
+        # cases for just below the upper limit of pytimedelta
+        [
+            "s",
+            86399999999999,
+            999999999,
+            86399,
+            0,
+        ],  # (86400 s/day)*(1 billion days) - 1 s
+        [
+            "ms",
+            86399999999999999,
+            999999999,
+            86399,
+            999000,
+        ],  # (86400000 ms/day)*(1 billion days) - 1 ms
+        # cases for just above the lower limit of pytimedelta
+        ["s", -86399999913600, -999999999, 0, 0],  # (86400 s/day)*(1 billion - 1 days)
+        [
+            "ms",
+            -86399999913600000,
+            -999999999,
+            0,
+            0,
+        ],  # (86400000 ms/day)*(1 billion - 1 days)
     ],
 )
 def test_non_nano_c_api(
@@ -226,10 +250,12 @@ def test_non_nano_c_api(
 @pytest.mark.parametrize(
     "unit,value",
     [
+        # upper limit for pytimedelta is 1 billion days
         ["s", 86400000000000],  # (86400 s/day)*(1 billion days)
         ["ms", 86400000000000000],  # (86400000 ms/day)*(1 billion days)
-        ["s", -86400000000000],
-        ["ms", -86400000000000000],
+        # lower limit for pytimedelta is (1 billion - 1) days
+        ["s", -86399999913601],  # (86400 s/day)*(1 billion - 1 days) - 1 s
+        ["ms", -86399999913600001],  # (86400000 ms/day)*(1 billion - 1 days) - 1 ms
     ],
 )
 def test_non_nano_c_api_pytimedelta_overflow(unit, value):

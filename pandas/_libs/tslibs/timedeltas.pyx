@@ -154,6 +154,20 @@ cdef dict timedelta_abbrevs = {
 
 _no_input = object()
 
+# pytimedeltas may fall in the following range: [-999999999 days, 1000000000 days)
+# for example, 999999999 days, 86399 seconds is in the range,
+# whereas -999999999 days, -86399 seconds is not in the range
+
+# upper bound for unit seconds: 1000000000 days * 86400 s/day
+cdef int64_t PYTIMEDELTA_UPPER_S = 86400000000000
+# lower bound for unit seconds: -999999999 days * 86400 s/day
+cdef int64_t PYTIMEDELTA_LOWER_S = -86399999913600
+
+# upper bound for unit milliseconds: 1000000000 days * 86400000 ms/day
+cdef int64_t PYTIMEDELTA_UPPER_MS = 86400000000000000
+# lower bound for unit milliseconds: -999999999 days * 86400000 s/day
+cdef int64_t PYTIMEDELTA_LOWER_MS = -86399999913600000
+
 # ----------------------------------------------------------------------
 # API
 
@@ -970,12 +984,12 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
         td_base = _Timedelta.__new__(cls, microseconds=int(value))
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        if value < 86400000000000000 and value > -86400000000000000:
+        if value < PYTIMEDELTA_UPPER_MS and value >= PYTIMEDELTA_LOWER_MS:
             td_base = _Timedelta.__new__(cls, milliseconds=int(value))
         else:
             td_base = _Timedelta.__new__(cls, milliseconds=0)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        if value < 86400000000000 and value > -86400000000000:
+        if value < PYTIMEDELTA_UPPER_S and value >= PYTIMEDELTA_LOWER_S:
             td_base = _Timedelta.__new__(cls, seconds=int(value))
         else:
             td_base = _Timedelta.__new__(cls, seconds=0)
