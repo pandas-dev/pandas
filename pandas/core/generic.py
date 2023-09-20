@@ -39,6 +39,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import (
     AlignJoin,
     AnyArrayLike,
@@ -1526,7 +1527,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         .. deprecated:: 2.1.0
 
-           bool is deprecated and will be removed in future version of pandas
+           bool is deprecated and will be removed in future version of pandas.
+           For ``Series`` use ``pandas.Series.item``.
 
         This must be a boolean scalar value, either True or False. It will raise a
         ValueError if the Series or DataFrame does not have exactly 1 element, or that
@@ -1555,6 +1557,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> pd.DataFrame({'col': [True]}).bool()  # doctest: +SKIP
         True
         >>> pd.DataFrame({'col': [False]}).bool()  # doctest: +SKIP
+        False
+
+        This is an alternative method and will only work
+        for single element objects with a boolean value:
+
+        >>> pd.Series([True]).item()  # doctest: +SKIP
+        True
+        >>> pd.Series([False]).item()  # doctest: +SKIP
         False
         """
 
@@ -8323,8 +8333,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             * DataFrame : when `self` is a DataFrame and `where` is an
               array-like
 
-            Return scalar, Series, or DataFrame.
-
         See Also
         --------
         merge_asof : Perform an asof merge. Similar to left join.
@@ -9164,11 +9172,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
-            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
-            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
@@ -9400,7 +9408,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         5     18     100    2018-02-11
         6     17      40    2018-02-18
         7     19      50    2018-02-25
-        >>> df.resample('M', on='week_starting').mean()
+        >>> df.resample('ME', on='week_starting').mean()
                        price  volume
         week_starting
         2018-01-31     10.75    62.5
@@ -9560,7 +9568,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         offset : str, DateOffset or dateutil.relativedelta
             The offset length of the data that will be selected. For instance,
-            '1M' will display all the rows having their index within the first month.
+            '1ME' will display all the rows having their index within the first month.
 
         Returns
         -------
@@ -10395,7 +10403,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         # make sure we are boolean
         fill_value = bool(inplace)
-        cond = cond.fillna(fill_value)
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                "Downcasting object dtype arrays",
+                category=FutureWarning,
+            )
+            cond = cond.fillna(fill_value)
+        cond = cond.infer_objects(copy=False)
 
         msg = "Boolean array expected for the condition, not {dtype}"
 
@@ -10952,15 +10967,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 raise ValueError(msg)
 
         elif isinstance(freq, str):
-            freq = to_offset(freq)
+            is_period = isinstance(index, PeriodIndex)
+            freq = to_offset(freq, is_period=is_period)
 
         if isinstance(index, PeriodIndex):
             orig_freq = to_offset(index.freq)
             if freq != orig_freq:
                 assert orig_freq is not None  # for mypy
                 raise ValueError(
-                    f"Given freq {freq.rule_code} does not match "
-                    f"PeriodIndex freq {orig_freq.rule_code}"
+                    f"Given freq {freq_to_period_freqstr(freq.n, freq.name)} "
+                    f"does not match PeriodIndex freq "
+                    f"{freq_to_period_freqstr(orig_freq.n, orig_freq.name)}"
                 )
             new_ax = index.shift(periods)
         else:
@@ -11683,7 +11700,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. deprecated:: 2.1
 
         freq : DateOffset, timedelta, or str, optional
-            Increment to use from time series API (e.g. 'M' or BDay()).
+            Increment to use from time series API (e.g. 'ME' or BDay()).
         **kwargs
             Additional keyword arguments are passed into
             `DataFrame.shift` or `Series.shift`.
