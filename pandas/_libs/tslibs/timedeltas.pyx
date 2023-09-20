@@ -970,9 +970,15 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
         td_base = _Timedelta.__new__(cls, microseconds=int(value))
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        td_base = _Timedelta.__new__(cls, milliseconds=0)
+        if value < 86400000000000000 and value > -86400000000000000:
+            td_base = _Timedelta.__new__(cls, milliseconds=int(value))
+        else:
+            td_base = _Timedelta.__new__(cls, milliseconds=0)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        td_base = _Timedelta.__new__(cls, seconds=0)
+        if value < 86400000000000 and value > -86400000000000:
+            td_base = _Timedelta.__new__(cls, seconds=int(value))
+        else:
+            td_base = _Timedelta.__new__(cls, seconds=0)
     # Other resolutions are disabled but could potentially be implemented here:
     # elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
     #    td_base = _Timedelta.__new__(Timedelta, minutes=int(value))
