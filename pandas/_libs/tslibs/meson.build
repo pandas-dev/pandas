@@ -31,7 +31,28 @@ foreach ext_name, ext_dict : tslibs_sources
     )
 endforeach
 
-py.install_sources(
+sources_to_install = [
     '__init__.py',
-    subdir: 'pandas/_libs/tslibs'
-)
+    'ccalendar.pyi',
+    'conversion.pyi',
+    'dtypes.pyi',
+    'fields.pyi',
+    'nattype.pyi',
+    'np_datetime.pyi',
+    'offsets.pyi',
+    'parsing.pyi',
+    'period.pyi',
+    'strptime.pyi',
+    'timedeltas.pyi',
+    'timestamps.pyi',
+    'timezones.pyi',
+    'tzconversion.pyi',
+    'vectorized.pyi'
+]
+
+foreach source: sources_to_install
+    py.install_sources(
+        source,
+        subdir: 'pandas/_libs/tslibs'
+    )
+endforeach
