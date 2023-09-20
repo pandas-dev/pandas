@@ -18,6 +18,7 @@ py.extension_module(
 )
 
 sources_to_install = [
+    '__init__.py',
     'aggregations.pyi',
     'indexers.pyi'
 ]
