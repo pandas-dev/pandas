@@ -975,10 +975,12 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
         _Timedelta td_base
 
     assert value != NPY_NAT
-    # For millisecond and second resos, we cannot actually pass int(value) because
-    #  many cases would fall outside of the pytimedelta implementation bounds.
-    #  We pass 0 instead, and override seconds, microseconds, days.
-    #  In principle we could pass 0 for ns and us too.
+    # In order to not break the C-API for pytimedeltas,
+    # we pass values when they are within bounds
+    # and pass zero when values are not within bounds.
+    # Thus pytimedelta C-API values are stop working only when they
+    # should, while allowing Pandas Timedeltas to work for
+    # a broader set of values than the pytimedelta bounds.
     if reso == NPY_FR_ns:
         td_base = _Timedelta.__new__(cls, microseconds=int(value) // 1000)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
@@ -1100,8 +1102,8 @@ cdef class _Timedelta(timedelta):
         >>> td.days
         0
         """
-        # NB: using the python C-API PyDateTime_DELTA_GET_DAYS will fail
-        #  (or be incorrect)
+        # NB: using the python C-API PyDateTime_DELTA_GET_DAYS may fail
+        #  (or may be incorrect)
         self._ensure_components()
         return self._d
 
@@ -1138,15 +1140,15 @@ cdef class _Timedelta(timedelta):
         >>> td.seconds
         42
         """
-        # NB: using the python C-API PyDateTime_DELTA_GET_SECONDS will fail
-        #  (or be incorrect)
+        # NB: using the python C-API PyDateTime_DELTA_GET_SECONDS may fail
+        #  (or may be incorrect)
         self._ensure_components()
         return self._h * 3600 + self._m * 60 + self._s
 
     @property
     def microseconds(self) -> int:  # TODO(cython3): make cdef property
-        # NB: using the python C-API PyDateTime_DELTA_GET_MICROSECONDS will fail
-        #  (or be incorrect)
+        # NB: using the python C-API PyDateTime_DELTA_GET_MICROSECONDS may fail
+        #  (or may be incorrect)
         self._ensure_components()
         return self._ms * 1000 + self._us
 
