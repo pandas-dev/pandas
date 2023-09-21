@@ -525,6 +525,29 @@ Sparse-dtype specific methods and attributes are provided under the
    Series.sparse.from_coo
    Series.sparse.to_coo
 
+
+.. _api.series.struct:
+
+Struct accessor
+~~~~~~~~~~~~~~~
+
+Arrow struct-dtype specific methods and attributes are provided under the
+``Series.struct`` accessor.
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_attribute.rst
+
+   Series.struct.dtypes
+
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor_method.rst
+
+   Series.struct.field
+   Series.struct.explode
+
+
 .. _api.series.flags:
 
 Flags

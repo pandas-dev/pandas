@@ -15,6 +15,7 @@ from cpython.datetime cimport (
     time as dt_time,
     timedelta,
 )
+import warnings
 
 import_datetime()
 
@@ -45,6 +46,8 @@ from pandas._libs.tslibs.ccalendar import (
     int_to_weekday,
     weekday_to_int,
 )
+from pandas.util._exceptions import find_stack_level
+
 
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
@@ -2851,7 +2854,7 @@ cdef class MonthEnd(MonthOffset):
     Timestamp('2022-01-31 00:00:00')
     """
     _period_dtype_code = PeriodDtypeCode.M
-    _prefix = "M"
+    _prefix = "ME"
     _day_opt = "end"
 
 
@@ -4457,7 +4460,7 @@ prefix_mapping = {
         CustomBusinessMonthEnd,  # 'CBM'
         CustomBusinessMonthBegin,  # 'CBMS'
         CustomBusinessHour,  # 'CBH'
-        MonthEnd,  # 'M'
+        MonthEnd,  # 'ME'
         MonthBegin,  # 'MS'
         Nano,  # 'ns'
         SemiMonthEnd,  # 'SM'
@@ -4502,7 +4505,8 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {"MS", "ms", "s"}
+_dont_uppercase = {"MS", "ms", "s", "me"}
+
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
@@ -4543,7 +4547,7 @@ def _get_offset(name: str) -> BaseOffset:
     return _offset_map[name]
 
 
-cpdef to_offset(freq):
+cpdef to_offset(freq, bint is_period=False):
     """
     Return DateOffset object from string or datetime.timedelta object.
 
@@ -4611,6 +4615,22 @@ cpdef to_offset(freq):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
+                if is_period is False and name == "M":
+                    warnings.warn(
+                        "\'M\' will be deprecated, please use \'ME\' "
+                        "for \'month end\'",
+                        UserWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    name = "ME"
+                if is_period is True and name == "ME":
+                    raise ValueError(
+                        r"for Period, please use \'M\' "
+                        "instead of \'ME\'"
+                    )
+                elif is_period is True and name == "M":
+                    name = "ME"
+
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = _lite_rule_alias.get(name) or name

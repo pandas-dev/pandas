@@ -555,7 +555,6 @@ Other Deprecations
 - Deprecated behavior of :func:`concat` when :class:`DataFrame` has columns that are all-NA, in a future version these will not be discarded when determining the resulting dtype (:issue:`40893`)
 - Deprecated behavior of :meth:`Series.dt.to_pydatetime`, in a future version this will return a :class:`Series` containing python ``datetime`` objects instead of an ``ndarray`` of datetimes; this matches the behavior of other :attr:`Series.dt` properties (:issue:`20306`)
 - Deprecated logical operations (``|``, ``&``, ``^``) between pandas objects and dtype-less sequences (e.g. ``list``, ``tuple``), wrap a sequence in a :class:`Series` or NumPy array before operating instead (:issue:`51521`)
-- Deprecated making :meth:`Series.apply` return a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object. In the future this will return a :class:`Series` whose values are themselves :class:`Series`. This pattern was very slow and it's recommended to use alternative methods to archive the same goal (:issue:`52116`)
 - Deprecated parameter ``convert_type`` in :meth:`Series.apply` (:issue:`52140`)
 - Deprecated passing a dictionary to :meth:`.SeriesGroupBy.agg`; pass a list of aggregations instead (:issue:`50684`)
 - Deprecated the ``fastpath`` keyword in :class:`Categorical` constructor, use :meth:`Categorical.from_codes` instead (:issue:`20110`)
@@ -892,4 +891,4 @@ Other
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v2.0.3..v2.1.0|HEAD
+.. contributors:: v2.0.3..v2.1.0
