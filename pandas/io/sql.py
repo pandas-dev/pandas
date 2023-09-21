@@ -61,6 +61,7 @@ from pandas.core.api import (
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.base import PandasObject
 import pandas.core.common as com
+from pandas.core.common import maybe_make_list
 from pandas.core.internals.construction import convert_object_array
 from pandas.core.tools.datetimes import to_datetime
 
@@ -185,7 +186,7 @@ def _wrap_result(
     dtype: DtypeArg | None = None,
     dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ):
-    """Wrap result set of query in a DataFrame."""
+    """Wrap result set of a SQLAlchemy query in a DataFrame."""
     frame = _convert_arrays_to_dataframe(data, columns, coerce_float, dtype_backend)
 
     if dtype:
@@ -197,6 +198,25 @@ def _wrap_result(
         frame = frame.set_index(index_col)
 
     return frame
+
+
+def _wrap_result_adbc(
+    df: DataFrame,
+    *,
+    index_col=None,
+    parse_dates=None,
+    dtype: DtypeArg | None = None,
+):
+    """Wrap result set of a SQLAlchemy query in a DataFrame."""
+    if dtype:
+        df = df.astype(dtype)
+
+    df = _parse_date_columns(df, parse_dates)
+
+    if index_col is not None:
+        df = df.set_index(index_col)
+
+    return df
 
 
 def execute(sql, con, params=None):
@@ -2121,25 +2141,26 @@ class ADBCDatabase(PandasSQL):
         SQLDatabase.read_query
 
         """
-        if index_col:
-            raise NotImplementedError("'index_col' is not implemented for ADBC drivers")
         if coerce_float is not True:
             raise NotImplementedError(
                 "'coerce_float' is not implemented for ADBC drivers"
             )
-        if parse_dates:
-            raise NotImplementedError(
-                "'parse_dates' is not implemented for ADBC drivers"
-            )
-        if columns:
-            raise NotImplementedError("'columns' is not implemented for ADBC drivers")
         if chunksize:
             raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
 
-        if schema:
-            stmt = f"SELECT * FROM {schema}.{table_name}"
+        if columns:
+            if index_col:
+                index_select = maybe_make_list(index_col)
+            else:
+                index_select = []
+            to_select = index_select + columns
+            select_list = ", ".join(f'"{x}"' for x in to_select)
         else:
-            stmt = f"SELECT * FROM {table_name}"
+            select_list = "*"
+        if schema:
+            stmt = f"SELECT {select_list} FROM {schema}.{table_name}"
+        else:
+            stmt = f"SELECT {select_list} FROM {table_name}"
 
         mapping: type[ArrowDtype] | None | Callable
         if dtype_backend == "pyarrow":
@@ -2157,7 +2178,13 @@ class ADBCDatabase(PandasSQL):
 
         with self.con.cursor() as cur:
             cur.execute(stmt)
-            return cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+            df = cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+
+        return _wrap_result_adbc(
+            df,
+            index_col=index_col,
+            parse_dates=parse_dates,
+        )
 
     def read_query(
         self,
@@ -2188,22 +2215,14 @@ class ADBCDatabase(PandasSQL):
         read_sql
 
         """
-        if index_col:
-            raise NotImplementedError("'index_col' is not implemented for ADBC drivers")
         if coerce_float is not True:
             raise NotImplementedError(
                 "'coerce_float' is not implemented for ADBC drivers"
-            )
-        if parse_dates:
-            raise NotImplementedError(
-                "'parse_dates' is not implemented for ADBC drivers"
             )
         if params:
             raise NotImplementedError("'params' is not implemented for ADBC drivers")
         if chunksize:
             raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
-        if dtype:
-            raise NotImplementedError("'dtype' is not implemented for ADBC drivers")
 
         mapping: type[ArrowDtype] | None | Callable
         if dtype_backend == "pyarrow":
@@ -2217,7 +2236,14 @@ class ADBCDatabase(PandasSQL):
 
         with self.con.cursor() as cur:
             cur.execute(sql)
-            return cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+            df = cur.fetch_arrow_table().to_pandas(types_mapper=mapping)
+
+        return _wrap_result_adbc(
+            df,
+            index_col=index_col,
+            parse_dates=parse_dates,
+            dtype=dtype,
+        )
 
     read_sql = read_query
 

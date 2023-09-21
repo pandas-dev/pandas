@@ -1940,13 +1940,6 @@ def test_api_to_sql_index_label_multiindex(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_multiindex_roundtrip(conn, request):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'index_col' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_multiindex_roundtrip", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -2249,13 +2242,6 @@ def test_read_table_columns(conn, request, test_frame1):
     conn_name = conn
     if conn_name == "sqlite_buildin":
         request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
-    elif "adbc" in conn_name:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'columns' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
 
     conn = request.getfixturevalue(conn)
     sql.to_sql(test_frame1, "test_frame", conn)
@@ -2268,13 +2254,6 @@ def test_read_table_columns(conn, request, test_frame1):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_read_table_index_col(conn, request, test_frame1):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'index_col' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
     # test columns argument in read_table
     conn_name = conn
     if conn_name == "sqlite_buildin":
@@ -2492,7 +2471,7 @@ def test_query_by_select_obj(conn, request):
 def test_column_with_percentage(conn, request):
     # GH 37157
     conn_name = conn
-    if conn_name in {"sqlite_buildin", "postgresql_adbc_conn"}:
+    if conn_name == "sqlite_buildin":
         request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
 
     conn = request.getfixturevalue(conn)
