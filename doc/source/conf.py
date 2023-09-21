@@ -172,9 +172,7 @@ copyright = f"{datetime.now().year}"
 import pandas  # isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
-# version = str(pandas.__version__)
-
-version = str(pandas.__version__).split("+")[0]
+version = str(pandas.__version__)
 
 # The full version, including alpha/beta/rc tags.
 release = version
