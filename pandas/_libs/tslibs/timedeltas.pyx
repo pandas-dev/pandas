@@ -26,7 +26,6 @@ from numpy cimport (
 cnp.import_array()
 
 from cpython.datetime cimport (
-    MAX_DELTA_DAYS,
     PyDateTime_Check,
     PyDateTime_DELTA_GET_DAYS,
     PyDateTime_DELTA_GET_MICROSECONDS,
