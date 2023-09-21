@@ -1884,9 +1884,6 @@ class Rolling(RollingAndExpandingMixin):
             else:
                 self._win_freq_i8 = freq.nanos
 
-            if self._on.dtype == "M8[us]":
-                self._win_freq_i8 /= 1000
-
             # min_periods must be an integer
             if self.min_periods is None:
                 self.min_periods = 1
