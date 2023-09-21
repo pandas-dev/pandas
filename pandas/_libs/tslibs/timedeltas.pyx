@@ -26,6 +26,7 @@ from numpy cimport (
 cnp.import_array()
 
 from cpython.datetime cimport (
+    MAX_DELTA_DAYS,
     PyDateTime_Check,
     PyDateTime_DELTA_GET_DAYS,
     PyDateTime_DELTA_GET_MICROSECONDS,
@@ -159,14 +160,14 @@ _no_input = object()
 # whereas -999999999 days, -86399 seconds is not in the range
 
 # upper bound for unit seconds: 1000000000 days * 86400 s/day
-cdef int64_t PYTIMEDELTA_UPPER_S = 86400000000000
+cdef int64_t PYTIMEDELTA_UPPER_S = (MAX_DELTA_DAYS + 1) * 86400
 # lower bound for unit seconds: -999999999 days * 86400 s/day
-cdef int64_t PYTIMEDELTA_LOWER_S = -86399999913600
+cdef int64_t PYTIMEDELTA_LOWER_S = -MAX_DELTA_DAYS * 86400
 
 # upper bound for unit milliseconds: 1000000000 days * 86400000 ms/day
-cdef int64_t PYTIMEDELTA_UPPER_MS = 86400000000000000
+cdef int64_t PYTIMEDELTA_UPPER_MS = PYTIMEDELTA_UPPER_S * 1000
 # lower bound for unit milliseconds: -999999999 days * 86400000 s/day
-cdef int64_t PYTIMEDELTA_LOWER_MS = -86399999913600000
+cdef int64_t PYTIMEDELTA_LOWER_MS = -PYTIMEDELTA_LOWER_S * 1000
 
 # ----------------------------------------------------------------------
 # API
