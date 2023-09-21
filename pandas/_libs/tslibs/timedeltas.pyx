@@ -158,6 +158,10 @@ _no_input = object()
 # for example, 999999999 days, 86399 seconds is in the range,
 # whereas -999999999 days, -86399 seconds is not in the range
 
+# the relevant constant is defined in CPython _datetimemodule.c,
+# rather than datetime.h, so we have to define it again here
+cdef int64_t MAX_DELTA_DAYS = 999999999
+
 # upper bound for unit seconds: 1000000000 days * 86400 s/day
 cdef int64_t PYTIMEDELTA_UPPER_S = (MAX_DELTA_DAYS + 1) * 86400
 # lower bound for unit seconds: -999999999 days * 86400 s/day
@@ -166,7 +170,7 @@ cdef int64_t PYTIMEDELTA_LOWER_S = -MAX_DELTA_DAYS * 86400
 # upper bound for unit milliseconds: 1000000000 days * 86400000 ms/day
 cdef int64_t PYTIMEDELTA_UPPER_MS = PYTIMEDELTA_UPPER_S * 1000
 # lower bound for unit milliseconds: -999999999 days * 86400000 s/day
-cdef int64_t PYTIMEDELTA_LOWER_MS = -PYTIMEDELTA_LOWER_S * 1000
+cdef int64_t PYTIMEDELTA_LOWER_MS = PYTIMEDELTA_LOWER_S * 1000
 
 # ----------------------------------------------------------------------
 # API
