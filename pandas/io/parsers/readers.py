@@ -401,6 +401,13 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.
           Only supported when ``engine='python'``
 
+    .. versionchanged:: 2.2.0
+
+        - Callable, function with signature
+          as described in `pyarrow documentation
+          <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
+          #pyarrow.csv.ParseOptions.invalid_row_handler>_` when ``engine='pyarrow'``
+
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\\t'``) will be
     used as the ``sep`` delimiter. Equivalent to setting ``sep='\\s+'``. If this option
@@ -494,7 +501,6 @@ _pyarrow_unsupported = {
     "thousands",
     "memory_map",
     "dialect",
-    "on_bad_lines",
     "delim_whitespace",
     "quoting",
     "lineterminator",
@@ -2142,9 +2148,10 @@ def _refine_defaults_read(
     elif on_bad_lines == "skip":
         kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
     elif callable(on_bad_lines):
-        if engine != "python":
+        if engine not in ["python", "pyarrow"]:
             raise ValueError(
-                "on_bad_line can only be a callable function if engine='python'"
+                "on_bad_line can only be a callable function "
+                "if engine='python' or 'pyarrow'"
             )
         kwds["on_bad_lines"] = on_bad_lines
     else:
