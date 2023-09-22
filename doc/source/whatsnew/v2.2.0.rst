@@ -351,7 +351,6 @@ Styler
 
 Other
 ^^^^^
-- Add complex128 to the types of numerical data we test across the test suite (:issue:`54761`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 
 .. ***DO NOT USE THIS SECTION***

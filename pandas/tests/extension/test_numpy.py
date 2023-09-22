@@ -283,7 +283,7 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
     series_array_exc = None
 
     def _get_expected_exception(
-        self, op_name: str, obj, other, request
+        self, op_name: str, obj, other, *args, **kwargs
     ) -> type[Exception] | None:
         # Find the Exception, if any we expect to raise calling
         #  obj.__op_name__(other)
@@ -311,7 +311,7 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
                             marked_reason = f"{dtype.name} dtype"
                             break
                 if marked_reason:
-                    request.node.add_marker(
+                    kwargs["request"].node.add_marker(
                         pytest.mark.xfail(
                             raises=TypeError,
                             reason=f"{marked_reason} does not support {op_name}",
@@ -319,26 +319,35 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
                         )
                     )
                     return TypeError
-        return super()._get_expected_exception(op_name, obj, other, request)
+        return super()._get_expected_exception(op_name, obj, other)
 
     @skip_nested
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
-        super().test_arith_series_with_scalar(data, all_arithmetic_operators, request)
+        super().test_arith_series_with_scalar(
+            data, all_arithmetic_operators, request=request
+        )
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
         opname = all_arithmetic_operators
         if data.dtype.numpy_dtype == object and opname not in ["__add__", "__radd__"]:
             mark = pytest.mark.xfail(reason="Fails for object dtype")
             request.node.add_marker(mark)
-        super().test_arith_series_with_array(data, all_arithmetic_operators, request)
+        super().test_arith_series_with_array(
+            data, all_arithmetic_operators, request=request
+        )
 
     @skip_nested
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
-        super().test_arith_frame_with_scalar(data, all_arithmetic_operators, request)
+        super().test_arith_frame_with_scalar(
+            data, all_arithmetic_operators, request=request
+        )
 
     @skip_nested
     def test_divmod(self, data, request):
-        super().test_divmod(data, request)
+        super().test_divmod(data, request=request)
+
+    def test_divmod_series_array(self, data, data_for_twos, request):
+        super().test_divmod_series_array(data, data_for_twos, request=request)
 
 
 class TestPrinting(BaseNumPyTests, base.BasePrintingTests):

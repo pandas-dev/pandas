@@ -67,7 +67,7 @@ def data_for_grouping():
 
 class TestDecimalArray(base.ExtensionTests):
     def _get_expected_exception(
-        self, op_name: str, obj, other, request
+        self, op_name: str, obj, other, *args, **kwargs
     ) -> type[Exception] | None:
         return None
 
@@ -108,7 +108,7 @@ class TestDecimalArray(base.ExtensionTests):
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i)) for i in alter]
         self._compare_other(ser, data, comparison_op, other)
 
-    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators
         ser = pd.Series(data)
 
@@ -120,13 +120,13 @@ class TestDecimalArray(base.ExtensionTests):
 
         # Decimal supports ops with int, but not float
         other = pd.Series([int(d * 100) for d in data])
-        self.check_opname(ser, op_name, other, request)
+        self.check_opname(ser, op_name, other)
 
         if "mod" not in op_name:
-            self.check_opname(ser, op_name, ser * 2, request)
+            self.check_opname(ser, op_name, ser * 2)
 
-        self.check_opname(ser, op_name, 0, request)
-        self.check_opname(ser, op_name, 5, request)
+        self.check_opname(ser, op_name, 0)
+        self.check_opname(ser, op_name, 5)
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
 
@@ -330,11 +330,11 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     series_array_exc = None
 
     def _get_expected_exception(
-        self, op_name: str, obj, other, request
+        self, op_name: str, obj, other
     ) -> type[Exception] | None:
         return None
 
-    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators
         s = pd.Series(data)
 
@@ -346,13 +346,13 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
         # Decimal supports ops with int, but not float
         other = pd.Series([int(d * 100) for d in data])
-        self.check_opname(s, op_name, other, request)
+        self.check_opname(s, op_name, other)
 
         if "mod" not in op_name:
-            self.check_opname(s, op_name, s * 2, request)
+            self.check_opname(s, op_name, s * 2)
 
-        self.check_opname(s, op_name, 0, request)
-        self.check_opname(s, op_name, 5, request)
+        self.check_opname(s, op_name, 0)
+        self.check_opname(s, op_name, 5)
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
 

@@ -153,7 +153,7 @@ class TestCategorical(base.ExtensionTests):
                     reason="rmod never called when string is first argument"
                 )
             )
-        super().test_arith_frame_with_scalar(data, op_name, request)
+        super().test_arith_frame_with_scalar(data, op_name)
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         op_name = all_arithmetic_operators
@@ -163,7 +163,7 @@ class TestCategorical(base.ExtensionTests):
                     reason="rmod never called when string is first argument"
                 )
             )
-        super().test_arith_series_with_scalar(data, op_name, request)
+        super().test_arith_series_with_scalar(data, op_name)
 
     def _compare_other(self, ser: pd.Series, data, op, other):
         op_name = f"__{op.__name__}__"

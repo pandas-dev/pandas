@@ -72,10 +72,10 @@ def data_for_grouping(dtype):
 
 
 class TestPeriodArray(base.ExtensionTests):
-    def _get_expected_exception(self, op_name, obj, other, request):
+    def _get_expected_exception(self, op_name, obj, other, *args, **kwargs):
         if op_name in ("__sub__", "__rsub__"):
             return None
-        return super()._get_expected_exception(op_name, obj, other, request)
+        return super()._get_expected_exception(op_name, obj, other, *args, **kwargs)
 
     def _supports_accumulation(self, ser, op_name: str) -> bool:
         return op_name in ["cummin", "cummax"]
