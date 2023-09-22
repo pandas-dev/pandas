@@ -3041,28 +3041,25 @@ def test_factorize_chunked_dictionary():
 )
 def test_groupby_reductions(data, how, request):
     # GH 55234
-    mark_pyarrow = pytest.mark.xfail(
-        raises=pa.ArrowNotImplementedError,
-        reason="no kernel matching input types",
-    )
-    mark_fallback = pytest.mark.xfail(
-        raises=TypeError,
-        reason="agg function failed",
-    )
     pa_type = data._pa_array.type
+
+    pyarrow_err_msg = (pa.ArrowNotImplementedError, "no kernel matching input types")
+    fallback_err_msg = (TypeError, "agg function failed")
+    err, msg = None, None
+
     if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
         if how in ["any", "all", "sem", "std"]:
-            request.node.add_marker(mark_pyarrow)
+            err, msg = pyarrow_err_msg
         elif how in ["sum", "prod", "mean", "var"]:
-            request.node.add_marker(mark_fallback)
+            err, msg = fallback_err_msg
     elif pa.types.is_duration(pa_type):
         if how in ["prod", "var"]:
-            request.node.add_marker(mark_fallback)
+            err, msg = fallback_err_msg
     elif pa.types.is_temporal(pa_type):
         if how in ["any", "all"]:
-            request.node.add_marker(mark_pyarrow)
+            err, msg = pyarrow_err_msg
         elif how in ["sum", "prod", "var"]:
-            request.node.add_marker(mark_fallback)
+            err, msg = fallback_err_msg
 
     null_index = 8
     assert pd.notnull(data[0])
@@ -3079,8 +3076,14 @@ def test_groupby_reductions(data, how, request):
     groups = np.array(["B", "C", "A", "D"]).repeat(group_lengths)
     values = data.take([loc for arr in group_locs for loc in arr])
     df = pd.DataFrame({"key": groups, "val": values})
+    gby = df.groupby("key", sort=False)["val"]
 
-    result = df.groupby("key", sort=False)["val"].aggregate(how)
+    if err is not None:
+        with pytest.raises(err, match=msg):
+            result = gby.aggregate(how)
+        return
+    else:
+        result = gby.aggregate(how)
 
     expected_type = data.take(group_locs[0])._reduce_pyarrow(how).type
     expected_arr = pa.array(

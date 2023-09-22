@@ -1589,19 +1589,18 @@ class ArrowExtensionArray(
         pa.Scalar or pa.ChunkedArray
         """
         pa_type = self._pa_array.type
-        cast_kwargs = {"safe": False}
         if name in ["min", "max", "sum"] and pa.types.is_duration(pa_type):
             result = result.cast(pa_type)
         if name in ["median", "mean"] and pa.types.is_temporal(pa_type):
             if not pa_version_under13p0:
                 nbits = pa_type.bit_width
                 if nbits == 32:
-                    result = pc.cast(result, pa.int32(), **cast_kwargs)
+                    result = pc.cast(result, pa.int32(), safe=False)
                 else:
-                    result = pc.cast(result, pa.int64(), **cast_kwargs)
+                    result = pc.cast(result, pa.int64(), safe=False)
             result = result.cast(pa_type)
         if name in ["std", "sem"] and pa.types.is_temporal(pa_type):
-            result = pc.cast(result, pa.int64(), **cast_kwargs)
+            result = pc.cast(result, pa.int64(), safe=False)
             if pa.types.is_duration(pa_type):
                 result = result.cast(pa_type)
             elif pa.types.is_time(pa_type):
