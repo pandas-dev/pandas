@@ -208,7 +208,6 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "Y": "Y",
     "W": "W",
     "ME": "M",
-    "Y": "Y",
     "BY": "Y",
     "YS": "Y",
     "BYS": "Y",

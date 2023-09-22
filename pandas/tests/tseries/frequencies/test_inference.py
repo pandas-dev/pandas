@@ -52,7 +52,7 @@ def base_delta_code_pair(request):
 
 freqs = (
     [f"Q-{month}" for month in MONTHS]
-    + [f"{annual}-{month}" for annual in ["A", "BA"] for month in MONTHS]
+    + [f"{annual}-{month}" for annual in ["Y", "BA"] for month in MONTHS]
     + ["ME", "BM", "BMS"]
     + [f"WOM-{count}{day}" for count in range(1, 5) for day in DAYS]
     + [f"W-{day}" for day in DAYS]
@@ -167,7 +167,7 @@ def test_monthly_ambiguous():
 
 def test_annual_ambiguous():
     rng = DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
-    assert rng.inferred_freq == "A-JAN"
+    assert rng.inferred_freq == "Y-JAN"
 
 
 @pytest.mark.parametrize("count", range(1, 5))
@@ -359,7 +359,7 @@ def test_not_monotonic():
     rng = DatetimeIndex(["1/31/2000", "1/31/2001", "1/31/2002"])
     rng = rng[::-1]
 
-    assert rng.inferred_freq == "-1A-JAN"
+    assert rng.inferred_freq == "-1Y-JAN"
 
 
 def test_non_datetime_index2():
@@ -479,18 +479,18 @@ def test_series_datetime_index(freq):
         "Q@JAN",
         "Q@FEB",
         "Q@MAR",
-        "A@JAN",
-        "A@FEB",
-        "A@MAR",
-        "A@APR",
-        "A@MAY",
-        "A@JUN",
-        "A@JUL",
-        "A@AUG",
-        "A@SEP",
-        "A@OCT",
-        "A@NOV",
-        "A@DEC",
+        "Y@JAN",
+        "Y@FEB",
+        "Y@MAR",
+        "Y@APR",
+        "Y@MAY",
+        "Y@JUN",
+        "Y@JUL",
+        "Y@AUG",
+        "Y@SEP",
+        "Y@OCT",
+        "Y@NOV",
+        "Y@DEC",
         "Y@JAN",
         "WOM@1MON",
         "WOM@2MON",

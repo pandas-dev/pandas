@@ -104,7 +104,7 @@ class TestAsFreq:
         assert index_name == obj.asfreq("10D").index.name
 
     def test_asfreq_ts(self, frame_or_series):
-        index = period_range(freq="A", start="1/1/2001", end="12/31/2010")
+        index = period_range(freq="Y", start="1/1/2001", end="12/31/2010")
         obj = DataFrame(
             np.random.default_rng(2).standard_normal((len(index), 3)), index=index
         )

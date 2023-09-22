@@ -36,7 +36,7 @@ class TestReindexSetIndex:
         # GH#6631
         df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = date_range("2011/01/01", periods=6, freq="ME", tz="US/Eastern")
-        idx2 = date_range("2013", periods=6, freq="A", tz="Asia/Tokyo")
+        idx2 = date_range("2013", periods=6, freq="Y", tz="Asia/Tokyo")
 
         df = df.set_index(idx1)
         tm.assert_index_equal(df.index, idx1)
