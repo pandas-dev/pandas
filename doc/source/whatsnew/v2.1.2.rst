@@ -29,7 +29,7 @@ Bug fixes
 
 Other
 ~~~~~
-- Reverted the deprecation that disallowed :meth:`Series.apply` returning a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object (:issue:`52116`)
+- Changed the ``FutureWarning`` raised when ``observed=False`` in :meth:`DataFrame.groupby` and :meth:`Series.groupby` to a ``DeprecationWarning`` (:issue:`54970`)
 -
 
 .. ---------------------------------------------------------------------------
