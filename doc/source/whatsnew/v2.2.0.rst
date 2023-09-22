@@ -326,7 +326,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
--
+- Bug in :meth:`.SeriesGroupBy.var` and :meth:`.DataFrameGroupBy.var` where the dtype would be ``np.float64`` for data with :class:`ArrowDtype` with ``pyarrow.decimal128`` type (:issue:`54627`)
 -
 
 Reshaping

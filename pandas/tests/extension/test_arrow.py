@@ -503,19 +503,7 @@ class TestArrowArray(base.ExtensionTests):
             and pa.types.is_decimal(pa_dtype)
         ):
             request.node.add_marker(xfail_mark)
-        elif (
-            all_numeric_reductions == "sem"
-            and pa_version_under8p0
-            and (dtype._is_numeric or pa.types.is_temporal(pa_dtype))
-        ):
-            request.node.add_marker(xfail_mark)
-
-        elif pa.types.is_boolean(pa_dtype) and all_numeric_reductions in {
-            "sem",
-            "std",
-            "var",
-            "median",
-        }:
+        elif all_numeric_reductions == "median" and pa.types.is_boolean(pa_dtype):
             request.node.add_marker(xfail_mark)
         super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
@@ -3046,3 +3034,63 @@ def test_factorize_chunked_dictionary():
     exp_uniques = pd.Index(ArrowExtensionArray(pa_array.combine_chunks()))
     tm.assert_numpy_array_equal(res_indices, exp_indicies)
     tm.assert_index_equal(res_uniques, exp_uniques)
+
+
+@pytest.mark.parametrize(
+    "how", ["any", "all", "sum", "prod", "min", "max", "mean", "sem", "std", "var"]
+)
+def test_groupby_reductions(data, how, request):
+    # GH #####
+    mark_pyarrow = pytest.mark.xfail(
+        raises=pa.ArrowNotImplementedError,
+        reason="no kernel matching input types",
+    )
+    mark_fallback = pytest.mark.xfail(
+        raises=TypeError,
+        reason="agg function failed",
+    )
+    pa_type = data._pa_array.type
+    if pa.types.is_string(pa_type) or pa.types.is_binary(pa_type):
+        if how in ["any", "all", "sem", "std"]:
+            request.node.add_marker(mark_pyarrow)
+        elif how in ["sum", "prod", "mean", "var"]:
+            request.node.add_marker(mark_fallback)
+    elif pa.types.is_duration(pa_type):
+        if how in ["prod", "var"]:
+            request.node.add_marker(mark_fallback)
+    elif pa.types.is_temporal(pa_type):
+        if how in ["any", "all"]:
+            request.node.add_marker(mark_pyarrow)
+        elif how in ["sum", "prod", "var"]:
+            request.node.add_marker(mark_fallback)
+
+    null_index = 8
+    assert pd.notnull(data[0])
+    assert pd.notnull(data[1])
+    assert pd.isnull(data[null_index])
+
+    group_locs = [
+        [0, 1, 1],
+        [0, 1, null_index],
+        [null_index, 0],
+        [null_index],
+    ]
+    group_lengths = [len(group) for group in group_locs]
+    groups = np.array(["B", "C", "A", "D"]).repeat(group_lengths)
+    values = data.take([loc for arr in group_locs for loc in arr])
+    df = pd.DataFrame({"key": groups, "val": values})
+
+    result = df.groupby("key", sort=False)["val"].aggregate(how)
+
+    expected_type = data.take(group_locs[0])._reduce_pyarrow(how).type
+    expected_arr = pa.array(
+        [pd.Series(data.take(locs)).agg(how) for locs in group_locs],
+        type=expected_type,
+        from_pandas=True,
+    )
+    expected = pd.Series(
+        ArrowExtensionArray(expected_arr),
+        index=pd.Index(["B", "C", "A", "D"], name="key"),
+        name="val",
+    )
+    tm.assert_series_equal(result, expected)

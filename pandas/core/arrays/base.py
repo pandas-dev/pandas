@@ -2248,7 +2248,7 @@ class ExtensionArray:
         Parameters
         ----------
         how : {'any', 'all', 'sum', 'prod', 'min', 'max', 'mean', 'median',
-               'median', 'var', 'std', 'sem', 'nth', 'last', 'ohlc',
+               'var', 'std', 'sem', 'nth', 'first', 'last', 'ohlc',
                'cumprod', 'cumsum', 'cummin', 'cummax', 'rank'}
         has_dropped_na : bool
         min_count : int

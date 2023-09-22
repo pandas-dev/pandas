@@ -3,9 +3,11 @@ from itertools import product
 from string import ascii_letters
 
 import numpy as np
+import pyarrow as pa
 
 from pandas import (
     NA,
+    ArrowDtype,
     Categorical,
     DataFrame,
     Index,
@@ -1079,6 +1081,68 @@ class Resample:
         self.df_multiindex.groupby(level="groups").resample(
             "10s", level="timedeltas"
         ).mean()
+
+
+class GroupByAggregateArrowDtypes:
+    param_names = ["dtype", "method"]
+    params = [
+        [
+            ArrowDtype(pa.bool_()),
+            ArrowDtype(pa.decimal128(25, 3)),
+            ArrowDtype(pa.float64()),
+            ArrowDtype(pa.int32()),
+            ArrowDtype(pa.string()),
+            ArrowDtype(pa.timestamp("s", "UTC")),
+            ArrowDtype(pa.duration("ms")),
+        ],
+        [
+            "any",
+            "all",
+            "count",
+            "sum",
+            "prod",
+            "min",
+            "max",
+            "mean",
+            "median",
+            "std",
+        ],
+    ]
+
+    def setup(self, dtype, method):
+        size = (200_000, 10)
+        pa_type = dtype.pyarrow_dtype
+        if pa.types.is_floating(pa_type):
+            values = np.random.randn(*size)
+        elif pa.types.is_integer(pa_type):
+            values = np.random.randint(0, 10_000, size)
+        elif pa.types.is_decimal(pa_type):
+            values = np.random.randn(*size)
+        elif pa.types.is_boolean(pa_type):
+            values = np.random.randint(0, 2, size, dtype=np.bool_)
+        elif pa.types.is_timestamp(pa_type):
+            if method in ["any", "all", "sum", "prod"]:
+                raise NotImplementedError
+            values = np.random.randint(0, 10_000, size)
+        elif pa.types.is_duration(pa_type):
+            if method == "prod":
+                raise NotImplementedError
+            values = np.random.randint(0, 10_000, size)
+        elif pa.types.is_string(pa_type):
+            if method in ["any", "all", "sum", "prod", "mean", "median", "std"]:
+                raise NotImplementedError
+            values = tm.rands_array(nchars=10, size=size)
+        else:
+            raise NotImplementedError
+
+        columns = list("abcdefghij")
+        df = DataFrame(values, columns=columns, dtype=dtype)
+        df.iloc[::10, ::2] = NA
+        df["key"] = np.random.randint(0, high=100, size=(len(values)))
+        self.df = df
+
+    def time_frame_agg(self, dtype, method):
+        self.df.groupby("key").agg(method)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
