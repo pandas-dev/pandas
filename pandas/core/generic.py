@@ -12477,14 +12477,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2
 
         >>> s = pd.Series([None, None])
-        >>> s.first_valid_index()
-        >>> s.last_valid_index()
+        >>> print(s.first_valid_index())
+        None
+        >>> print(s.last_valid_index())
+        None
 
         If all elements in Series are NA/null, returns None.
 
         >>> s = pd.Series()
-        >>> s.first_valid_index()
-        >>> s.last_valid_index()
+        >>> print(s.first_valid_index())
+        None
+        >>> print(s.last_valid_index())
+        None
 
         If Series is empty, returns None.
 
@@ -12507,8 +12511,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         0  None   None
         1  None   None
         2  None   None
-        >>> df.first_valid_index()
-        >>> df.last_valid_index()
+        >>> print(df.first_valid_index())
+        None
+        >>> print(df.last_valid_index())
+        None
 
         If all elements in DataFrame are NA/null, returns None.
 
@@ -12517,8 +12523,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Empty DataFrame
         Columns: []
         Index: []
-        >>> df.first_valid_index()
-        >>> df.last_valid_index()
+        >>> print(df.first_valid_index())
+        None
+        >>> print(df.last_valid_index())
+        None
 
         If DataFrame is empty, returns None.
         """
