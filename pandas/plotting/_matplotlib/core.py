@@ -1115,12 +1115,12 @@ class MPLPlot(ABC):
         return errors
 
     def _get_subplots(self):
-        from matplotlib.axes import Subplot
+        from matplotlib.axes import Axes
 
         return [
             ax
             for ax in self.fig.get_axes()
-            if (isinstance(ax, Subplot) and ax.get_subplotspec() is not None)
+            if (isinstance(ax, Axes) and ax.get_subplotspec() is not None)
         ]
 
     def _get_axes_layout(self) -> tuple[int, int]:
@@ -1169,8 +1169,10 @@ class PlanePlot(MPLPlot, ABC):
         x, y = self.x, self.y
         xlabel = self.xlabel if self.xlabel is not None else pprint_thing(x)
         ylabel = self.ylabel if self.ylabel is not None else pprint_thing(y)
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
+        # error: Argument 1 to "set_xlabel" of "_AxesBase" has incompatible
+        # type "Hashable"; expected "str"
+        ax.set_xlabel(xlabel)  # type: ignore[arg-type]
+        ax.set_ylabel(ylabel)  # type: ignore[arg-type]
 
     def _plot_colorbar(self, ax: Axes, **kwds):
         # Addresses issues #10611 and #10678:
@@ -1244,7 +1246,7 @@ class ScatterPlot(PlanePlot):
         else:
             cmap = None
 
-        if color_by_categorical:
+        if color_by_categorical and cmap is not None:
             from matplotlib import colors
 
             n_cats = len(self.data[c].cat.categories)
@@ -1504,7 +1506,9 @@ class LinePlot(MPLPlot):
         if self._need_to_set_index:
             xticks = ax.get_xticks()
             xticklabels = [get_label(x) for x in xticks]
-            ax.xaxis.set_major_locator(FixedLocator(xticks))
+            # error: Argument 1 to "FixedLocator" has incompatible type "ndarray[Any,
+            # Any]"; expected "Sequence[float]"
+            ax.xaxis.set_major_locator(FixedLocator(xticks))  # type: ignore[arg-type]
             ax.set_xticklabels(xticklabels)
 
         # If the index is an irregular time series, then by default
@@ -1817,7 +1821,9 @@ class BarhPlot(BarPlot):
         ax.set_yticklabels(ticklabels)
         if name is not None and self.use_index:
             ax.set_ylabel(name)
-        ax.set_xlabel(self.xlabel)
+        # error: Argument 1 to "set_xlabel" of "_AxesBase" has incompatible type
+        # "Hashable | None"; expected "str"
+        ax.set_xlabel(self.xlabel)  # type: ignore[arg-type]
 
 
 class PiePlot(MPLPlot):

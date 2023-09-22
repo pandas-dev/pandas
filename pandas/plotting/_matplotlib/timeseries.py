@@ -114,7 +114,7 @@ def _upsample_others(ax: Axes, freq, kwargs) -> None:
         labels.extend(rlabels)
 
     if legend is not None and kwargs.get("legend", True) and len(lines) > 0:
-        title = legend.get_title().get_text()
+        title: str | None = legend.get_title().get_text()
         if title == "None":
             title = None
         ax.legend(lines, labels, loc="best", title=title)
