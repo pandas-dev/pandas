@@ -12451,7 +12451,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Notes
         -----
-        If all elements are non-NA/null, returns None.
+        If all elements are NA/null, returns None.
         Also returns None for empty {klass}.
 
         Examples
