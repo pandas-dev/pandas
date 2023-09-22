@@ -979,7 +979,7 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
             )
 
 
-@xfail_pyarrow 
+@xfail_pyarrow
 def test_parse_tz_aware(all_parsers, request):
     # See gh-1693
     parser = all_parsers
