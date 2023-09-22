@@ -49,7 +49,6 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
-    infer_fill_value,
     is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
@@ -1841,8 +1840,12 @@ class _iLocIndexer(_LocationIndexer):
                             self.obj[key] = empty_value
 
                         else:
-                            # FIXME: GH#42099#issuecomment-864326014
-                            self.obj[key] = infer_fill_value(value)
+                            # avoid circular import
+                            from pandas.core.series import Series
+
+                            new = Series(index=self.obj.index)
+                            new[key] = value
+                            self.obj[key] = new
 
                         new_indexer = convert_from_missing_indexer_tuple(
                             indexer, self.obj.axes

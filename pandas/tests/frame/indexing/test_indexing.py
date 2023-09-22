@@ -1890,6 +1890,14 @@ class TestDeprecatedIndexers:
             df.loc[key] = 1
 
 
+def test_adding_new_conditional_column() -> None:
+    # https://github.com/pandas-dev/pandas/issues/55025
+    df = DataFrame({"x": [1]})
+    df.loc[df["x"] == 1, "y"] = "1"
+    expected = DataFrame({"x": [1], "y": ["1"]})
+    tm.assert_frame_equal(df, expected)
+
+
 class TestSetitemValidation:
     # This is adapted from pandas/tests/arrays/masked/test_indexing.py
     # but checks for warnings instead of errors.
