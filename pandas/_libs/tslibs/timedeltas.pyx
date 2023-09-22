@@ -154,24 +154,6 @@ cdef dict timedelta_abbrevs = {
 
 _no_input = object()
 
-# pytimedeltas may fall in the following range: [-999999999 days, 1000000000 days)
-# for example, 999999999 days, 86399 seconds is in the range,
-# whereas -999999999 days, -86399 seconds is not in the range
-
-# the relevant constant is defined in CPython _datetimemodule.c,
-# rather than datetime.h, so we have to define it again here
-cdef int64_t MAX_DELTA_DAYS = 999999999
-
-# upper bound for unit seconds: 1000000000 days * 86400 s/day
-cdef int64_t PYTIMEDELTA_UPPER_S = (MAX_DELTA_DAYS + 1) * 86400
-# lower bound for unit seconds: -999999999 days * 86400 s/day
-cdef int64_t PYTIMEDELTA_LOWER_S = -MAX_DELTA_DAYS * 86400
-
-# upper bound for unit milliseconds: 1000000000 days * 86400000 ms/day
-cdef int64_t PYTIMEDELTA_UPPER_MS = PYTIMEDELTA_UPPER_S * 1000
-# lower bound for unit milliseconds: -999999999 days * 86400000 s/day
-cdef int64_t PYTIMEDELTA_LOWER_MS = PYTIMEDELTA_LOWER_S * 1000
-
 # ----------------------------------------------------------------------
 # API
 
@@ -979,25 +961,27 @@ cdef _timedelta_from_value_and_reso(cls, int64_t value, NPY_DATETIMEUNIT reso):
         _Timedelta td_base
 
     assert value != NPY_NAT
+
     # In order to not break the C-API for pytimedeltas,
     # we pass values when they are within bounds
     # and pass zero when values are not within bounds.
-    # Thus pytimedelta C-API values are stop working only when they
+    # Thus pytimedelta C-API values stop working only when they
     # should, while allowing Pandas Timedeltas to work for
     # a broader set of values than the pytimedelta bounds.
+
     if reso == NPY_FR_ns:
         td_base = _Timedelta.__new__(cls, microseconds=int(value) // 1000)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_us:
         td_base = _Timedelta.__new__(cls, microseconds=int(value))
     elif reso == NPY_DATETIMEUNIT.NPY_FR_ms:
-        if value < PYTIMEDELTA_UPPER_MS and value >= PYTIMEDELTA_LOWER_MS:
+        try:
             td_base = _Timedelta.__new__(cls, milliseconds=int(value))
-        else:
+        except OverflowError:
             td_base = _Timedelta.__new__(cls, milliseconds=0)
     elif reso == NPY_DATETIMEUNIT.NPY_FR_s:
-        if value < PYTIMEDELTA_UPPER_S and value >= PYTIMEDELTA_LOWER_S:
+        try:
             td_base = _Timedelta.__new__(cls, seconds=int(value))
-        else:
+        except OverflowError:
             td_base = _Timedelta.__new__(cls, seconds=0)
     # Other resolutions are disabled but could potentially be implemented here:
     # elif reso == NPY_DATETIMEUNIT.NPY_FR_m:
