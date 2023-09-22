@@ -402,7 +402,7 @@ def is_period_dtype(arr_or_dtype) -> bool:
     False
     >>> is_period_dtype(pd.Period("2017-01-01"))
     False
-    >>> is_period_dtype(pd.PeriodIndex([], freq="A"))
+    >>> is_period_dtype(pd.PeriodIndex([], freq="Y"))
     True
     """
     warnings.warn(
