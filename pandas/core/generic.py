@@ -12466,11 +12466,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         type of index
 
-        Notes
-        -----
-        If all elements are NA/null, returns None.
-        Also returns None for empty {klass}.
-
         Examples
         --------
         For Series:
@@ -12480,6 +12475,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1
         >>> s.last_valid_index()
         2
+
+        >>> s = pd.Series([None, None])
+        >>> s.first_valid_index()
+        >>> s.last_valid_index()
+
+        If all elements in Series are NA/null, returns None.
+
+        >>> s = pd.Series()
+        >>> s.first_valid_index()
+        >>> s.last_valid_index()
+
+        If Series is empty, returns None.
 
         For DataFrame:
 
@@ -12493,6 +12500,27 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1
         >>> df.last_valid_index()
         2
+
+        >>> df = pd.DataFrame({{'A': [None, None, None], 'B': [None, None, None]}})
+        >>> df
+             A      B
+        0  None   None
+        1  None   None
+        2  None   None
+        >>> df.first_valid_index()
+        >>> df.last_valid_index()
+
+        If all elements in DataFrame are NA/null, returns None.
+
+        >>> df = pd.DataFrame()
+        >>> df
+        Empty DataFrame
+        Columns: []
+        Index: []
+        >>> df.first_valid_index()
+        >>> df.last_valid_index()
+
+        If DataFrame is empty, returns None.
         """
         return self._find_valid_index(how="first")
 
