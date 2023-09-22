@@ -3040,7 +3040,7 @@ def test_factorize_chunked_dictionary():
     "how", ["any", "all", "sum", "prod", "min", "max", "mean", "sem", "std", "var"]
 )
 def test_groupby_reductions(data, how, request):
-    # GH #####
+    # GH 55234
     mark_pyarrow = pytest.mark.xfail(
         raises=pa.ArrowNotImplementedError,
         reason="no kernel matching input types",
