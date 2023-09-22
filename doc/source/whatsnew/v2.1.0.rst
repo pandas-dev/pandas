@@ -789,6 +789,7 @@ Plotting
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 - Bug in :meth:`.DataFrameGroupBy.idxmin`, :meth:`.SeriesGroupBy.idxmin`, :meth:`.DataFrameGroupBy.idxmax`, :meth:`.SeriesGroupBy.idxmax` returns wrong dtype when used on an empty DataFrameGroupBy or SeriesGroupBy (:issue:`51423`)
+- Bug in :meth:`DataFrame.groupby.rank` on nullable datatypes when passing ``na_option="bottom"`` or ``na_option="top"`` (:issue:`54206`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` in incorrectly allowing non-fixed ``freq`` when resampling on a :class:`TimedeltaIndex` (:issue:`51896`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` losing time zone when resampling empty data (:issue:`53664`)
 - Bug in :meth:`DataFrame.resample` and :meth:`Series.resample` where ``origin`` has no effect in resample when values are outside of axis  (:issue:`53662`)
