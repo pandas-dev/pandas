@@ -255,11 +255,11 @@ def test_resample_how_callables(unit):
         def __call__(self, x):
             return str(type(x))
 
-    df_standard = df.resample("M").apply(fn)
-    df_lambda = df.resample("M").apply(lambda x: str(type(x)))
-    df_partial = df.resample("M").apply(partial(fn))
-    df_partial2 = df.resample("M").apply(partial(fn, a=2))
-    df_class = df.resample("M").apply(FnClass())
+    df_standard = df.resample("ME").apply(fn)
+    df_lambda = df.resample("ME").apply(lambda x: str(type(x)))
+    df_partial = df.resample("ME").apply(partial(fn))
+    df_partial2 = df.resample("ME").apply(partial(fn, a=2))
+    df_class = df.resample("ME").apply(FnClass())
 
     tm.assert_frame_equal(df_standard, df_lambda)
     tm.assert_frame_equal(df_standard, df_partial)
@@ -428,14 +428,14 @@ def test_resample_frame_basic_cy_funcs(f, unit):
     df = tm.makeTimeDataFrame()
     df.index = df.index.as_unit(unit)
 
-    b = Grouper(freq="M")
+    b = Grouper(freq="ME")
     g = df.groupby(b)
 
     # check all cython functions work
     g._cython_agg_general(f, alt=None, numeric_only=True)
 
 
-@pytest.mark.parametrize("freq", ["A", "M"])
+@pytest.mark.parametrize("freq", ["A", "ME"])
 def test_resample_frame_basic_M_A(freq, unit):
     df = tm.makeTimeDataFrame()
     df.index = df.index.as_unit(unit)
@@ -443,7 +443,7 @@ def test_resample_frame_basic_M_A(freq, unit):
     tm.assert_series_equal(result["A"], df["A"].resample(freq).mean())
 
 
-@pytest.mark.parametrize("freq", ["W-WED", "M"])
+@pytest.mark.parametrize("freq", ["W-WED", "ME"])
 def test_resample_frame_basic_kind(freq, unit):
     df = tm.makeTimeDataFrame()
     df.index = df.index.as_unit(unit)
@@ -517,7 +517,7 @@ def test_upsample_with_limit(unit):
 
 
 @pytest.mark.parametrize("freq", ["5D", "10H", "5Min", "10s"])
-@pytest.mark.parametrize("rule", ["Y", "3M", "15D", "30H", "15Min", "30s"])
+@pytest.mark.parametrize("rule", ["Y", "3ME", "15D", "30H", "15Min", "30s"])
 def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
     # GH 33939
     rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz_aware_fixture).as_unit(
@@ -670,7 +670,7 @@ def test_resample_reresample(unit):
     [
         ["A-DEC", {"start": "1990", "end": "2000", "freq": "a-dec"}],
         ["A-JUN", {"start": "1990", "end": "2000", "freq": "a-jun"}],
-        ["M", {"start": "1990-01", "end": "2000-01", "freq": "M"}],
+        ["ME", {"start": "1990-01", "end": "2000-01", "freq": "M"}],
     ],
 )
 def test_resample_timestamp_to_period(
@@ -710,7 +710,7 @@ def test_downsample_non_unique(unit):
     rng2 = rng.repeat(5).values
     ts = Series(np.random.default_rng(2).standard_normal(len(rng2)), index=rng2)
 
-    result = ts.resample("M").mean()
+    result = ts.resample("ME").mean()
 
     expected = ts.groupby(lambda x: x.month).mean()
     assert len(result) == 2
@@ -739,8 +739,8 @@ def test_resample_axis1(unit):
 
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        result = df.resample("M", axis=1).mean()
-    expected = df.T.resample("M").mean().T
+        result = df.resample("ME", axis=1).mean()
+    expected = df.T.resample("ME").mean().T
     tm.assert_frame_equal(result, expected)
 
 
@@ -765,7 +765,7 @@ def test_resample_single_group(end, unit):
 
     rng = date_range("2000-1-1", f"2000-{end}-10", freq="D").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
-    tm.assert_series_equal(ts.resample("M").sum(), ts.resample("M").apply(mysum))
+    tm.assert_series_equal(ts.resample("ME").sum(), ts.resample("ME").apply(mysum))
 
 
 def test_resample_single_group_std(unit):
@@ -1045,7 +1045,7 @@ def test_resample_to_period_monthly_buglet(unit):
     rng = date_range("1/1/2000", "12/31/2000").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
-    result = ts.resample("M", kind="period").mean()
+    result = ts.resample("ME", kind="period").mean()
     exp_index = period_range("Jan-2000", "Dec-2000", freq="M")
     tm.assert_index_equal(result.index, exp_index)
 
@@ -1138,7 +1138,7 @@ def test_monthly_resample_error(unit):
     dates = date_range("4/16/2012 20:00", periods=5000, freq="h").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(dates)), index=dates)
     # it works!
-    ts.resample("M")
+    ts.resample("ME")
 
 
 def test_nanosecond_resample_error():
@@ -1163,20 +1163,20 @@ def test_resample_anchored_intraday(simple_date_range_series, unit):
     rng = date_range("1/1/2012", "4/1/2012", freq="100min").as_unit(unit)
     df = DataFrame(rng.month, index=rng)
 
-    result = df.resample("M").mean()
-    expected = df.resample("M", kind="period").mean().to_timestamp(how="end")
+    result = df.resample("ME").mean()
+    expected = df.resample("ME", kind="period").mean().to_timestamp(how="end")
     expected.index += Timedelta(1, "ns") - Timedelta(1, "D")
     expected.index = expected.index.as_unit(unit)._with_freq("infer")
-    assert expected.index.freq == "M"
+    assert expected.index.freq == "ME"
     tm.assert_frame_equal(result, expected)
 
-    result = df.resample("M", closed="left").mean()
-    exp = df.shift(1, freq="D").resample("M", kind="period").mean()
+    result = df.resample("ME", closed="left").mean()
+    exp = df.shift(1, freq="D").resample("ME", kind="period").mean()
     exp = exp.to_timestamp(how="end")
 
     exp.index = exp.index + Timedelta(1, "ns") - Timedelta(1, "D")
     exp.index = exp.index.as_unit(unit)._with_freq("infer")
-    assert exp.index.freq == "M"
+    assert exp.index.freq == "ME"
     tm.assert_frame_equal(result, exp)
 
     rng = date_range("1/1/2012", "4/1/2012", freq="100min").as_unit(unit)
@@ -1201,7 +1201,7 @@ def test_resample_anchored_intraday(simple_date_range_series, unit):
 
     ts = simple_date_range_series("2012-04-29 23:00", "2012-04-30 5:00", freq="h")
     ts.index = ts.index.as_unit(unit)
-    resampled = ts.resample("M").mean()
+    resampled = ts.resample("ME").mean()
     assert len(resampled) == 1
 
 
@@ -1254,7 +1254,7 @@ def test_corner_cases_date(simple_date_range_series, unit):
     # resample to periods
     ts = simple_date_range_series("2000-04-28", "2000-04-30 11:00", freq="h")
     ts.index = ts.index.as_unit(unit)
-    result = ts.resample("M", kind="period").mean()
+    result = ts.resample("ME", kind="period").mean()
     assert len(result) == 1
     assert result.index[0] == Period("2000-04", freq="M")
 
@@ -1321,23 +1321,23 @@ def test_how_lambda_functions(simple_date_range_series, unit):
     ts = simple_date_range_series("1/1/2000", "4/1/2000")
     ts.index = ts.index.as_unit(unit)
 
-    result = ts.resample("M").apply(lambda x: x.mean())
-    exp = ts.resample("M").mean()
+    result = ts.resample("ME").apply(lambda x: x.mean())
+    exp = ts.resample("ME").mean()
     tm.assert_series_equal(result, exp)
 
-    foo_exp = ts.resample("M").mean()
+    foo_exp = ts.resample("ME").mean()
     foo_exp.name = "foo"
-    bar_exp = ts.resample("M").std()
+    bar_exp = ts.resample("ME").std()
     bar_exp.name = "bar"
 
-    result = ts.resample("M").apply([lambda x: x.mean(), lambda x: x.std(ddof=1)])
+    result = ts.resample("ME").apply([lambda x: x.mean(), lambda x: x.std(ddof=1)])
     result.columns = ["foo", "bar"]
     tm.assert_series_equal(result["foo"], foo_exp)
     tm.assert_series_equal(result["bar"], bar_exp)
 
     # this is a MI Series, so comparing the names of the results
     # doesn't make sense
-    result = ts.resample("M").aggregate(
+    result = ts.resample("ME").aggregate(
         {"foo": lambda x: x.mean(), "bar": lambda x: x.std(ddof=1)}
     )
     tm.assert_series_equal(result["foo"], foo_exp, check_names=False)
@@ -1398,10 +1398,10 @@ dates3 = [pd.NaT] + dates1 + [pd.NaT]
 def test_resample_timegrouper(dates):
     # GH 7227
     df = DataFrame({"A": dates, "B": np.arange(len(dates))})
-    result = df.set_index("A").resample("M").count()
+    result = df.set_index("A").resample("ME").count()
     exp_idx = DatetimeIndex(
         ["2014-07-31", "2014-08-31", "2014-09-30", "2014-10-31", "2014-11-30"],
-        freq="M",
+        freq="ME",
         name="A",
     )
     expected = DataFrame({"B": [1, 0, 2, 2, 1]}, index=exp_idx)
@@ -1409,11 +1409,11 @@ def test_resample_timegrouper(dates):
         expected.index = expected.index._with_freq(None)
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby(Grouper(freq="M", key="A")).count()
+    result = df.groupby(Grouper(freq="ME", key="A")).count()
     tm.assert_frame_equal(result, expected)
 
     df = DataFrame({"A": dates, "B": np.arange(len(dates)), "C": np.arange(len(dates))})
-    result = df.set_index("A").resample("M").count()
+    result = df.set_index("A").resample("ME").count()
     expected = DataFrame(
         {"B": [1, 0, 2, 2, 1], "C": [1, 0, 2, 2, 1]},
         index=exp_idx,
@@ -1423,7 +1423,7 @@ def test_resample_timegrouper(dates):
         expected.index = expected.index._with_freq(None)
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby(Grouper(freq="M", key="A")).count()
+    result = df.groupby(Grouper(freq="ME", key="A")).count()
     tm.assert_frame_equal(result, expected)
 
 
@@ -1485,7 +1485,7 @@ def test_resample_nunique_with_date_gap(func, unit):
     index2 = date_range("4-15-2000", "5-15-2000", freq="h").as_unit(unit)
     index3 = index.append(index2)
     s = Series(range(len(index3)), index=index3, dtype="int64")
-    r = s.resample("M")
+    r = s.resample("ME")
     result = r.count()
     expected = func(r)
     tm.assert_series_equal(result, expected)
@@ -1872,9 +1872,9 @@ def test_resample_equivalent_offsets(n1, freq1, n2, freq2, k, unit):
         ("19910905", "19920406", "D", "19910905", "19920407"),
         ("19910905 00:00", "19920406 06:00", "D", "19910905", "19920407"),
         ("19910905 06:00", "19920406 06:00", "H", "19910905 06:00", "19920406 07:00"),
-        ("19910906", "19920406", "M", "19910831", "19920430"),
-        ("19910831", "19920430", "M", "19910831", "19920531"),
-        ("1991-08", "1992-04", "M", "19910831", "19920531"),
+        ("19910906", "19920406", "ME", "19910831", "19920430"),
+        ("19910831", "19920430", "ME", "19910831", "19920531"),
+        ("1991-08", "1992-04", "ME", "19910831", "19920531"),
     ],
 )
 def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last, unit):
@@ -1895,7 +1895,7 @@ def test_get_timestamp_range_edges(first, last, freq, exp_first, exp_last, unit)
 @pytest.mark.parametrize("duplicates", [True, False])
 def test_resample_apply_product(duplicates, unit):
     # GH 5586
-    index = date_range(start="2012-01-31", freq="M", periods=12).as_unit(unit)
+    index = date_range(start="2012-01-31", freq="ME", periods=12).as_unit(unit)
 
     ts = Series(range(12), index=index)
     df = DataFrame({"A": ts, "B": ts + 2})
@@ -1968,7 +1968,7 @@ def test_resample_calendar_day_with_dst(
 @pytest.mark.parametrize("func", ["min", "max", "first", "last"])
 def test_resample_aggregate_functions_min_count(func, unit):
     # GH#37768
-    index = date_range(start="2020", freq="M", periods=3).as_unit(unit)
+    index = date_range(start="2020", freq="ME", periods=3).as_unit(unit)
     ser = Series([1, np.nan, np.nan], index)
     result = getattr(ser.resample("Q"), func)(min_count=2)
     expected = Series(
@@ -2040,4 +2040,14 @@ def test_resample_empty_series_with_tz():
         [], freq="2MS", name="ts", dtype="datetime64[ns, Atlantic/Faroe]"
     )
     expected = Series([], index=expected_idx, name="values", dtype="float64")
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_M_deprecated():
+    depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
+
+    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    expected = s.resample("2ME").mean()
+    with tm.assert_produces_warning(UserWarning, match=depr_msg):
+        result = s.resample("2M").mean()
     tm.assert_series_equal(result, expected)
