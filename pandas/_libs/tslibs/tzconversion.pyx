@@ -462,7 +462,7 @@ cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
 
 
 cdef _get_utc_bounds(
-    ndarray vals,
+    ndarray[int64_t] vals,
     int64_t* tdata,
     Py_ssize_t ntrans,
     const int64_t[::1] deltas,
@@ -472,7 +472,7 @@ cdef _get_utc_bounds(
     # result_a) or right of the DST transition (store in result_b)
 
     cdef:
-        ndarray result_a, result_b
+        ndarray[int64_t] result_a, result_b
         Py_ssize_t i, n = vals.size
         int64_t val, v_left, v_right
         Py_ssize_t isl, isr, pos_left, pos_right
