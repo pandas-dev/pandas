@@ -1,0 +1,28 @@
+name: Broken linkcheck
+on:
+    schedule:
+    # Run monthly on the 1st day of the month
+        - cron: '0 0 1 * *' 
+jobs:
+    linkcheck:
+        runs-on: ubuntu-latest
+        
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+          with:
+                fetch-depth: 0  
+
+        - name: Setup Python
+          id: setup_python
+          uses: actions/setup-python@v4      
+          with:
+            python-version: '3.10'
+            cache: 'pip'
+            cache-dependency-path: 'requirements-dev.txt'
+
+        - name: Install requirements-dev.txt
+          run: pip install -r requirements-dev.txt 
+
+        - name: Run linkcheck script
+          run: python make.py linkcheck           
