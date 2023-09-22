@@ -1322,7 +1322,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     "to True in a future version of pandas. Pass observed=False to "
                     "retain current behavior or observed=True to adopt the future "
                     "default and silence this warning.",
-                    FutureWarning,
+                    DeprecationWarning,
                     stacklevel=find_stack_level(),
                 )
             observed = False
