@@ -175,7 +175,7 @@ def to_json(
 
     if mode == "a" and (not lines or orient != "records"):
         msg = (
-            "mode='a' (append) is only supported when"
+            "mode='a' (append) is only supported when "
             "lines is True and orient is 'records'"
         )
         raise ValueError(msg)
