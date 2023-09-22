@@ -1895,7 +1895,7 @@ class Timestamp(_Timestamp):
         cdef:
             int64_t nanos
 
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period=False)
         freq.nanos  # raises on non-fixed freq
         nanos = delta_to_nanoseconds(freq, self._creso)
         if nanos == 0:
