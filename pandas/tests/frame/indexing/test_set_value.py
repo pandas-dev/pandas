@@ -26,10 +26,7 @@ class TestSetValue:
         assert float_frame._get_value("foobar", "qux") == 0
 
         res = float_frame.copy()
-        with tm.assert_produces_warning(
-            FutureWarning, match="Setting an item of incompatible dtype"
-        ):
-            res._set_value("foobar", "baz", "sam")
+        res._set_value("foobar", "baz", "sam")
         assert res["baz"].dtype == np.object_
 
         res = float_frame.copy()
