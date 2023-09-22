@@ -107,6 +107,7 @@ from pandas.core.arrays import (
     IntegerArray,
     SparseArray,
 )
+from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -142,6 +143,7 @@ from pandas.core.util.numba_ import (
 if TYPE_CHECKING:
     from typing import Any
 
+    from pandas.core.resample import Resampler
     from pandas.core.window import (
         ExpandingGroupby,
         ExponentialMovingWindowGroupby,
@@ -178,6 +180,19 @@ _apply_docs = {
         A callable that takes a {input} as its first argument, and
         returns a dataframe, a series or a scalar. In addition the
         callable may take positional and keyword arguments.
+    include_groups : bool, default True
+        When True, will attempt to apply ``func`` to the groupings in
+        the case that they are columns of the DataFrame. If this raises a
+        TypeError, the result will be computed with the groupings excluded.
+        When False, the groupings will be excluded when applying ``func``.
+
+        .. versionadded:: 2.2.0
+
+        .. deprecated:: 2.2.0
+
+           Setting include_groups to True is deprecated. Only the value
+           False will be allowed in a future version of pandas.
+
     args, kwargs : tuple and dict
         Optional positional and keyword arguments to pass to ``func``.
 
@@ -270,7 +285,7 @@ _apply_docs = {
     each group together into a Series, including setting the index as
     appropriate:
 
-    >>> g1.apply(lambda x: x.C.max() - x.B.min())
+    >>> g1.apply(lambda x: x.C.max() - x.B.min(), include_groups=False)
     A
     a    5
     b    2
@@ -1033,7 +1048,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         owl     1  2  3
         toucan  1  5  6
         eagle   7  8  9
-        >>> df.groupby(by=["a"]).get_group(1)
+        >>> df.groupby(by=["a"]).get_group((1,))
                 a  b  c
         owl     1  2  3
         toucan  1  5  6
@@ -1053,12 +1068,33 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         2023-01-15    2
         dtype: int64
         """
+        keys = self.keys
+        level = self.level
+        # mypy doesn't recognize level/keys as being sized when passed to len
+        if (is_list_like(level) and len(level) == 1) or (  # type: ignore[arg-type]
+            is_list_like(keys) and len(keys) == 1  # type: ignore[arg-type]
+        ):
+            # GH#25971
+            if isinstance(name, tuple) and len(name) == 1:
+                # Allow users to pass tuples of length 1 to silence warning
+                name = name[0]
+            elif not isinstance(name, tuple):
+                warnings.warn(
+                    "When grouping with a length-1 list-like, "
+                    "you will need to pass a length-1 tuple to get_group in a future "
+                    "version of pandas. Pass `(name,)` instead of `name` to silence "
+                    "this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
         inds = self._get_index(name)
         if not len(inds):
             raise KeyError(name)
 
         if obj is None:
-            return self._selected_obj.iloc[inds]
+            indexer = inds if self.axis == 0 else (slice(None), inds)
+            return self._selected_obj.iloc[indexer]
         else:
             warnings.warn(
                 "obj is deprecated and will be removed in a future version. "
@@ -1725,7 +1761,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             input="dataframe", examples=_apply_docs["dataframe_examples"]
         )
     )
-    def apply(self, func, *args, **kwargs) -> NDFrameT:
+    def apply(self, func, *args, include_groups: bool = True, **kwargs) -> NDFrameT:
         orig_func = func
         func = com.is_builtin_func(func)
         if orig_func != func:
@@ -1758,10 +1794,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             f = func
 
+        if not include_groups:
+            return self._python_apply_general(f, self._obj_with_exclusions)
+
         # ignore SettingWithCopy here in case the user mutates
         with option_context("mode.chained_assignment", None):
             try:
                 result = self._python_apply_general(f, self._selected_obj)
+                if (
+                    not isinstance(self.obj, Series)
+                    and self._selection is None
+                    and self._selected_obj.shape != self._obj_with_exclusions.shape
+                ):
+                    warnings.warn(
+                        message=_apply_groupings_depr.format(
+                            type(self).__name__, "apply"
+                        ),
+                        category=FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
             except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
@@ -2073,7 +2124,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def any(self, skipna: bool = True):
+    def any(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if any value in the group is truthful, else False.
 
@@ -2129,7 +2180,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     @Substitution(name="groupby")
     @Substitution(see_also=_common_see_also)
-    def all(self, skipna: bool = True):
+    def all(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if all values in the group are truthful, else False.
 
@@ -2261,7 +2312,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return IntegerArray(
                     counted[0], mask=np.zeros(counted.shape[1], dtype=np.bool_)
                 )
-            elif isinstance(bvalues, ArrowExtensionArray):
+            elif isinstance(bvalues, ArrowExtensionArray) and not isinstance(
+                bvalues.dtype, StringDtype
+            ):
                 return type(bvalues)._from_sequence(counted[0])
             if is_series:
                 assert counted.ndim == 2
@@ -2376,7 +2429,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result.__finalize__(self.obj, method="groupby")
 
     @final
-    def median(self, numeric_only: bool = False):
+    def median(self, numeric_only: bool = False) -> NDFrameT:
         """
         Compute median of groups, excluding missing values.
 
@@ -2805,7 +2858,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result.__finalize__(self.obj, method="value_counts")
 
     @final
-    def sem(self, ddof: int = 1, numeric_only: bool = False):
+    def sem(self, ddof: int = 1, numeric_only: bool = False) -> NDFrameT:
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -3096,7 +3149,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         2   30   72"""
         ),
     )
-    def prod(self, numeric_only: bool = False, min_count: int = 0):
+    def prod(self, numeric_only: bool = False, min_count: int = 0) -> NDFrameT:
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
@@ -3238,7 +3291,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    def first(self, numeric_only: bool = False, min_count: int = -1):
+    def first(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
         """
         Compute the first non-null entry of each column.
 
@@ -3308,7 +3361,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def last(self, numeric_only: bool = False, min_count: int = -1):
+    def last(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
         """
         Compute the last non-null entry of each column.
 
@@ -3495,7 +3548,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    def resample(self, rule, *args, **kwargs):
+    def resample(self, rule, *args, include_groups: bool = True, **kwargs) -> Resampler:
         """
         Provide resampling when using a TimeGrouper.
 
@@ -3509,7 +3562,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         rule : str or DateOffset
             The offset string or object representing target grouper conversion.
-        *args, **kwargs
+        *args
+            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
+            `on`, and other arguments of `TimeGrouper`.
+        include_groups : bool, default True
+            When True, will attempt to include the groupings in the operation in
+            the case that they are columns of the DataFrame. If this raises a
+            TypeError, the result will be computed with the groupings excluded.
+            When False, the groupings will be excluded when applying ``func``.
+
+            .. versionadded:: 2.2.0
+
+            .. deprecated:: 2.2.0
+
+               Setting include_groups to True is deprecated. Only the value
+               False will be allowed in a future version of pandas.
+
+        **kwargs
             Possible arguments are `how`, `fill_method`, `limit`, `kind` and
             `on`, and other arguments of `TimeGrouper`.
 
@@ -3530,7 +3599,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> idx = pd.date_range('1/1/2000', periods=4, freq='T')
+        >>> idx = pd.date_range('1/1/2000', periods=4, freq='min')
         >>> df = pd.DataFrame(data=4 * [range(2)],
         ...                   index=idx,
         ...                   columns=['a', 'b'])
@@ -3545,59 +3614,71 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the DataFrame into 3 minute bins and sum the values of
         the timestamps falling into a bin.
 
-        >>> df.groupby('a').resample('3T').sum()
-                                 a  b
+        >>> df.groupby('a').resample('3min', include_groups=False).sum()
+                                 b
         a
-        0   2000-01-01 00:00:00  0  2
-            2000-01-01 00:03:00  0  1
-        5   2000-01-01 00:00:00  5  1
+        0   2000-01-01 00:00:00  2
+            2000-01-01 00:03:00  1
+        5   2000-01-01 00:00:00  1
 
         Upsample the series into 30 second bins.
 
-        >>> df.groupby('a').resample('30S').sum()
-                            a  b
+        >>> df.groupby('a').resample('30s', include_groups=False).sum()
+                            b
         a
-        0   2000-01-01 00:00:00  0  1
-            2000-01-01 00:00:30  0  0
-            2000-01-01 00:01:00  0  1
-            2000-01-01 00:01:30  0  0
-            2000-01-01 00:02:00  0  0
-            2000-01-01 00:02:30  0  0
-            2000-01-01 00:03:00  0  1
-        5   2000-01-01 00:02:00  5  1
+        0   2000-01-01 00:00:00  1
+            2000-01-01 00:00:30  0
+            2000-01-01 00:01:00  1
+            2000-01-01 00:01:30  0
+            2000-01-01 00:02:00  0
+            2000-01-01 00:02:30  0
+            2000-01-01 00:03:00  1
+        5   2000-01-01 00:02:00  1
 
         Resample by month. Values are assigned to the month of the period.
 
-        >>> df.groupby('a').resample('M').sum()
-                    a  b
+        >>> df.groupby('a').resample('ME', include_groups=False).sum()
+                    b
         a
-        0   2000-01-31  0  3
-        5   2000-01-31  5  1
+        0   2000-01-31  3
+        5   2000-01-31  1
 
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> df.groupby('a').resample('3T', closed='right').sum()
-                                 a  b
+        >>> (
+        ...     df.groupby('a')
+        ...     .resample('3min', closed='right', include_groups=False)
+        ...     .sum()
+        ... )
+                                 b
         a
-        0   1999-12-31 23:57:00  0  1
-            2000-01-01 00:00:00  0  2
-        5   2000-01-01 00:00:00  5  1
+        0   1999-12-31 23:57:00  1
+            2000-01-01 00:00:00  2
+        5   2000-01-01 00:00:00  1
 
         Downsample the series into 3 minute bins and close the right side of
         the bin interval, but label each bin using the right edge instead of
         the left.
 
-        >>> df.groupby('a').resample('3T', closed='right', label='right').sum()
-                                 a  b
+        >>> (
+        ...     df.groupby('a')
+        ...     .resample('3min', closed='right', label='right', include_groups=False)
+        ...     .sum()
+        ... )
+                                 b
         a
-        0   2000-01-01 00:00:00  0  1
-            2000-01-01 00:03:00  0  2
-        5   2000-01-01 00:03:00  5  1
+        0   2000-01-01 00:00:00  1
+            2000-01-01 00:03:00  2
+        5   2000-01-01 00:03:00  1
         """
         from pandas.core.resample import get_resampler_for_grouping
 
-        return get_resampler_for_grouping(self, rule, *args, **kwargs)
+        # mypy flags that include_groups could be specified via `*args` or `**kwargs`
+        # GH#54961 would resolve.
+        return get_resampler_for_grouping(  # type: ignore[misc]
+            self, rule, *args, include_groups=include_groups, **kwargs
+        )
 
     @final
     def rolling(self, *args, **kwargs) -> RollingGroupby:
@@ -5703,3 +5784,13 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
         mi = MultiIndex(levels=levels, codes=codes, names=[idx.name, None])
 
     return mi
+
+
+# GH#7155
+_apply_groupings_depr = (
+    "{}.{} operated on the grouping columns. This behavior is deprecated, "
+    "and in a future version of pandas the grouping columns will be excluded "
+    "from the operation. Either pass `include_groups=False` to exclude the "
+    "groupings or explicitly select the grouping columns after groupby to silence "
+    "this warning."
+)

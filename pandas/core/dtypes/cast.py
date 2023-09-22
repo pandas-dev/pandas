@@ -68,6 +68,7 @@ from pandas.core.dtypes.dtypes import (
     PeriodDtype,
 )
 from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
     ABCIndex,
     ABCSeries,
 )
@@ -799,10 +800,9 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
 
         dtype = _dtype_obj
         if using_pyarrow_string_dtype():
-            import pyarrow as pa
+            from pandas.core.arrays.string_ import StringDtype
 
-            pa_dtype = pa.string()
-            dtype = ArrowDtype(pa_dtype)
+            dtype = StringDtype(storage="pyarrow_numpy")
 
     elif isinstance(val, (np.datetime64, dt.datetime)):
         try:
@@ -1707,8 +1707,6 @@ def can_hold_element(arr: ArrayLike, element: Any) -> bool:
                 arr._validate_setitem_value(element)
                 return True
             except (ValueError, TypeError):
-                # TODO: re-use _catch_deprecated_value_error to ensure we are
-                #  strict about what exceptions we allow through here.
                 return False
 
         # This is technically incorrect, but maintains the behavior of
@@ -1774,6 +1772,23 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
                         #  see TestSetitemFloatNDarrayIntoIntegerSeries
                         return casted
                     raise LossySetitemError
+
+                elif isinstance(element, ABCExtensionArray) and isinstance(
+                    element.dtype, CategoricalDtype
+                ):
+                    # GH#52927 setting Categorical value into non-EA frame
+                    # TODO: general-case for EAs?
+                    try:
+                        casted = element.astype(dtype)
+                    except (ValueError, TypeError):
+                        raise LossySetitemError
+                    # Check for cases of either
+                    #  a) lossy overflow/rounding or
+                    #  b) semantic changes like dt64->int64
+                    comp = casted == element
+                    if not comp.all():
+                        raise LossySetitemError
+                    return casted
 
                 # Anything other than integer we cannot hold
                 raise LossySetitemError

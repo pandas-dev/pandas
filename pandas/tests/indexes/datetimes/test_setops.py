@@ -269,7 +269,7 @@ class TestDatetimeIndexSetOps:
 
     # parametrize over both anchored and non-anchored freqs, as they
     #  have different code paths
-    @pytest.mark.parametrize("freq", ["T", "B"])
+    @pytest.mark.parametrize("freq", ["min", "B"])
     def test_intersection_empty(self, tz_aware_fixture, freq):
         # empty same freq GH2129
         tz = tz_aware_fixture
@@ -283,7 +283,7 @@ class TestDatetimeIndexSetOps:
         assert result.freq == rng.freq
 
         # no overlap GH#33604
-        check_freq = freq != "T"  # We don't preserve freq on non-anchored offsets
+        check_freq = freq != "min"  # We don't preserve freq on non-anchored offsets
         result = rng[:3].intersection(rng[-3:])
         tm.assert_index_equal(result, rng[:0])
         if check_freq:
@@ -343,9 +343,11 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
 
+        # preserve frequency when the difference is a contiguous
+        # subset of the original range
         other = date_range("20160922", "20160925", freq="D")
         idx_diff = index.difference(other, sort)
-        expected = DatetimeIndex(["20160920", "20160921"], freq=None)
+        expected = DatetimeIndex(["20160920", "20160921"], freq="D")
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
 

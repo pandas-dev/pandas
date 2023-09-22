@@ -65,6 +65,7 @@ from pandas.io.parsers.python_parser import (
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Iterable,
         Mapping,
         Sequence,
     )
@@ -237,7 +238,8 @@ parse_dates : bool, list of Hashable, list of lists or dict of {{Hashable : list
 default False
     The behavior is as follows:
 
-    * ``bool``. If ``True`` -> try parsing the index.
+    * ``bool``. If ``True`` -> try parsing the index. Note: Automatically set to
+      ``True`` if ``date_format`` or ``date_parser`` arguments have been passed.
     * ``list`` of ``int`` or names. e.g. If ``[1, 2, 3]`` -> try parsing columns 1, 2, 3
       each as a separate date column.
     * ``list`` of ``list``. e.g.  If ``[[1, 3]]`` -> combine columns 1 and 3 and parse
@@ -279,11 +281,20 @@ date_parser : Callable, optional
        Use ``date_format`` instead, or read in as ``object`` and then apply
        :func:`~pandas.to_datetime` as-needed.
 date_format : str or dict of column -> format, optional
-   Format to use for parsing dates when used in conjunction with ``parse_dates``.
-   For anything more complex, please read in as ``object`` and then apply
-   :func:`~pandas.to_datetime` as-needed.
+    Format to use for parsing dates when used in conjunction with ``parse_dates``.
+    The strftime to parse time, e.g. :const:`"%d/%m/%Y"`. See
+    `strftime documentation
+    <https://docs.python.org/3/library/datetime.html
+    #strftime-and-strptime-behavior>`_ for more information on choices, though
+    note that :const:`"%f"` will parse all the way up to nanoseconds.
+    You can also pass:
 
-   .. versionadded:: 2.0.0
+    - "ISO8601", to parse any `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_
+        time string (not necessarily in exactly the same format);
+    - "mixed", to infer the format for each element individually. This is risky,
+        and you should probably use it along with `dayfirst`.
+
+    .. versionadded:: 2.0.0
 dayfirst : bool, default False
     DD/MM format dates, international and European format.
 cache_dates : bool, default True
@@ -628,7 +639,10 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -638,8 +652,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
-    keep_default_na: bool = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
     skip_blank_lines: bool = ...,
@@ -685,7 +701,10 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -695,7 +714,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -742,7 +764,10 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -752,7 +777,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -799,7 +827,10 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -809,7 +840,10 @@ def read_csv(
     skiprows: list[int] | int | Callable[[Hashable], bool] | None = ...,
     skipfooter: int = ...,
     nrows: int | None = ...,
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -867,7 +901,10 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = "infer",
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = None,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -879,7 +916,10 @@ def read_csv(
     skipfooter: int = 0,
     nrows: int | None = None,
     # NA and Missing Data Handling
-    na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = None,
+    na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = None,
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
@@ -959,7 +999,10 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1016,7 +1059,10 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1073,7 +1119,10 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1130,7 +1179,10 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = ...,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1200,7 +1252,10 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = "infer",
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols: list[HashableT] | Callable[[Hashable], bool] | None = None,
+    usecols: list[HashableT]
+    | tuple[HashableT]
+    | Callable[[Hashable], bool]
+    | None = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -1283,6 +1338,51 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
+@overload
+def read_fwf(
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    *,
+    colspecs: Sequence[tuple[int, int]] | str | None = ...,
+    widths: Sequence[int] | None = ...,
+    infer_nrows: int = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    iterator: Literal[True],
+    chunksize: int | None = ...,
+    **kwds,
+) -> TextFileReader:
+    ...
+
+
+@overload
+def read_fwf(
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    *,
+    colspecs: Sequence[tuple[int, int]] | str | None = ...,
+    widths: Sequence[int] | None = ...,
+    infer_nrows: int = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    iterator: bool = ...,
+    chunksize: int,
+    **kwds,
+) -> TextFileReader:
+    ...
+
+
+@overload
+def read_fwf(
+    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    *,
+    colspecs: Sequence[tuple[int, int]] | str | None = ...,
+    widths: Sequence[int] | None = ...,
+    infer_nrows: int = ...,
+    dtype_backend: DtypeBackend | lib.NoDefault = ...,
+    iterator: Literal[False] = ...,
+    chunksize: None = ...,
+    **kwds,
+) -> DataFrame:
+    ...
+
+
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
     *,
@@ -1290,6 +1390,8 @@ def read_fwf(
     widths: Sequence[int] | None = None,
     infer_nrows: int = 100,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
+    iterator: bool = False,
+    chunksize: int | None = None,
     **kwds,
 ) -> DataFrame | TextFileReader:
     r"""
@@ -1388,6 +1490,8 @@ def read_fwf(
     kwds["colspecs"] = colspecs
     kwds["infer_nrows"] = infer_nrows
     kwds["engine"] = "python-fwf"
+    kwds["iterator"] = iterator
+    kwds["chunksize"] = chunksize
 
     check_dtype_backend(dtype_backend)
     kwds["dtype_backend"] = dtype_backend

@@ -1,0 +1,55 @@
+.. _whatsnew_211:
+
+What's new in 2.1.1 (September 20, 2023)
+----------------------------------------
+
+These are the changes in pandas 2.1.1. See :ref:`release` for a full changelog
+including other versions of pandas.
+
+{{ header }}
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_211.regressions:
+
+Fixed regressions
+~~~~~~~~~~~~~~~~~
+- Fixed regression in :func:`concat` when :class:`DataFrame` 's have two different extension dtypes (:issue:`54848`)
+- Fixed regression in :func:`merge` when merging over a PyArrow string index (:issue:`54894`)
+- Fixed regression in :func:`read_csv` when ``usecols`` is given and ``dtypes`` is a dict for ``engine="python"`` (:issue:`54868`)
+- Fixed regression in :func:`read_csv` when ``delim_whitespace`` is True (:issue:`54918`, :issue:`54931`)
+- Fixed regression in :meth:`.GroupBy.get_group` raising for ``axis=1`` (:issue:`54858`)
+- Fixed regression in :meth:`DataFrame.__setitem__` raising ``AssertionError`` when setting a :class:`Series` with a partial :class:`MultiIndex` (:issue:`54875`)
+- Fixed regression in :meth:`DataFrame.filter` not respecting the order of elements for ``filter`` (:issue:`54980`)
+- Fixed regression in :meth:`DataFrame.to_sql` not roundtripping datetime columns correctly for sqlite (:issue:`54877`)
+- Fixed regression in :meth:`DataFrameGroupBy.agg` when aggregating a DataFrame with duplicate column names using a dictionary (:issue:`55006`)
+- Fixed regression in :meth:`MultiIndex.append` raising when appending overlapping :class:`IntervalIndex` levels (:issue:`54934`)
+- Fixed regression in :meth:`Series.drop_duplicates` for PyArrow strings (:issue:`54904`)
+- Fixed regression in :meth:`Series.interpolate` raising when ``fill_value`` was given (:issue:`54920`)
+- Fixed regression in :meth:`Series.value_counts` raising for numeric data if ``bins`` was specified (:issue:`54857`)
+- Fixed regression in comparison operations for PyArrow backed columns not propagating exceptions correctly (:issue:`54944`)
+- Fixed regression when comparing a :class:`Series` with ``datetime64`` dtype with ``None`` (:issue:`54870`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_211.bug_fixes:
+
+Bug fixes
+~~~~~~~~~
+- Fixed bug for :class:`ArrowDtype` raising ``NotImplementedError`` for fixed-size list (:issue:`55000`)
+- Fixed bug in :meth:`DataFrame.stack` with ``future_stack=True`` and columns a non-:class:`MultiIndex` consisting of tuples (:issue:`54948`)
+- Fixed bug in :meth:`Series.dt.tz` with :class:`ArrowDtype` where a string was returned instead of a ``tzinfo`` object (:issue:`55003`)
+- Fixed bug in :meth:`Series.pct_change` and :meth:`DataFrame.pct_change` showing unnecessary ``FutureWarning`` (:issue:`54981`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_211.other:
+
+Other
+~~~~~
+- Reverted the deprecation that disallowed :meth:`Series.apply` returning a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object (:issue:`52116`)
+
+.. ---------------------------------------------------------------------------
+.. _whatsnew_211.contributors:
+
+Contributors
+~~~~~~~~~~~~
+
+.. contributors:: v2.1.0..v2.1.1|HEAD

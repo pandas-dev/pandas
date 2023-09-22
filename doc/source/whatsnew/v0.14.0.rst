@@ -328,19 +328,36 @@ More consistent behavior for some groupby methods:
 
 - groupby ``head`` and ``tail`` now act more like ``filter`` rather than an aggregation:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
-     g = df.groupby('A')
-     g.head(1)  # filters DataFrame
+     In [1]: df = pd.DataFrame([[1, 2], [1, 4], [5, 6]], columns=['A', 'B'])
 
-     g.apply(lambda x: x.head(1))  # used to simply fall-through
+     In [2]: g = df.groupby('A')
+
+     In [3]: g.head(1)  # filters DataFrame
+     Out[3]:
+        A  B
+     0  1  2
+     2  5  6
+
+     In [4]: g.apply(lambda x: x.head(1))  # used to simply fall-through
+     Out[4]:
+          A  B
+     A
+     1 0  1  2
+     5 2  5  6
 
 - groupby head and tail respect column selection:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     g[['B']].head(1)
+     In [19]: g[['B']].head(1)
+     Out[19]:
+        B
+     0  2
+     2  6
+
+     [2 rows x 1 columns]
 
 - groupby ``nth`` now reduces by default; filtering can be achieved by passing ``as_index=False``. With an optional ``dropna`` argument to ignore
   NaN. See :ref:`the docs <groupby.nth>`.
@@ -843,10 +860,20 @@ Enhancements
                     datetime.datetime(2013, 9, 5, 10, 0)]})
      df
 
-     df.pivot_table(values='Quantity',
-                    index=pd.Grouper(freq='M', key='Date'),
-                    columns=pd.Grouper(freq='M', key='PayDay'),
-                    aggfunc="sum")
+  .. code-block:: ipython
+
+     In [75]: df.pivot_table(values='Quantity',
+        ....:                index=pd.Grouper(freq='M', key='Date'),
+        ....:                columns=pd.Grouper(freq='M', key='PayDay'),
+        ....:                aggfunc="sum")
+     Out[75]:
+     PayDay      2013-09-30  2013-10-31  2013-11-30
+     Date
+     2013-09-30         NaN         3.0         NaN
+     2013-10-31         6.0         NaN         1.0
+     2013-11-30         NaN         9.0         NaN
+
+     [3 rows x 3 columns]
 
 - Arrays of strings can be wrapped to a specified width (``str.wrap``) (:issue:`6999`)
 - Add :meth:`~Series.nsmallest` and :meth:`Series.nlargest` methods to Series, See :ref:`the docs <basics.nsorted>` (:issue:`3960`)

@@ -101,7 +101,7 @@ class TestGetItem:
             rng[:, None]
 
     def test_getitem_int_list(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
         dti2 = dti[[1, 3, 5]]
 
         v1 = dti2[0]
@@ -426,7 +426,7 @@ class TestGetLoc:
         step = 24 * 3600
 
         for n in ns:
-            idx = date_range("2014-11-26", periods=n, freq="S")
+            idx = date_range("2014-11-26", periods=n, freq="s")
             ts = pd.Series(np.random.default_rng(2).standard_normal(n), index=idx)
             locs = np.arange(start, n, step, dtype=np.intp)
 

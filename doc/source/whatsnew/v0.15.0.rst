@@ -185,7 +185,29 @@ Constructing a ``TimedeltaIndex`` with a regular range
 .. ipython:: python
 
    pd.timedelta_range('1 days', periods=5, freq='D')
-   pd.timedelta_range(start='1 days', end='2 days', freq='30T')
+
+.. code-block:: python
+
+   In [20]: pd.timedelta_range(start='1 days', end='2 days', freq='30T')
+   Out[20]:
+   TimedeltaIndex(['1 days 00:00:00', '1 days 00:30:00', '1 days 01:00:00',
+                   '1 days 01:30:00', '1 days 02:00:00', '1 days 02:30:00',
+                   '1 days 03:00:00', '1 days 03:30:00', '1 days 04:00:00',
+                   '1 days 04:30:00', '1 days 05:00:00', '1 days 05:30:00',
+                   '1 days 06:00:00', '1 days 06:30:00', '1 days 07:00:00',
+                   '1 days 07:30:00', '1 days 08:00:00', '1 days 08:30:00',
+                   '1 days 09:00:00', '1 days 09:30:00', '1 days 10:00:00',
+                   '1 days 10:30:00', '1 days 11:00:00', '1 days 11:30:00',
+                   '1 days 12:00:00', '1 days 12:30:00', '1 days 13:00:00',
+                   '1 days 13:30:00', '1 days 14:00:00', '1 days 14:30:00',
+                   '1 days 15:00:00', '1 days 15:30:00', '1 days 16:00:00',
+                   '1 days 16:30:00', '1 days 17:00:00', '1 days 17:30:00',
+                   '1 days 18:00:00', '1 days 18:30:00', '1 days 19:00:00',
+                   '1 days 19:30:00', '1 days 20:00:00', '1 days 20:30:00',
+                   '1 days 21:00:00', '1 days 21:30:00', '1 days 22:00:00',
+                   '1 days 22:30:00', '1 days 23:00:00', '1 days 23:30:00',
+                   '2 days 00:00:00'],
+                  dtype='timedelta64[ns]', freq='30T')
 
 You can now use a ``TimedeltaIndex`` as the index of a pandas object
 

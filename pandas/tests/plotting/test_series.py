@@ -715,7 +715,7 @@ class TestSeriesPlots:
     )
     def test_errorbar_plot_ts(self, yerr):
         # test time series plotting
-        ix = date_range("1/1/2000", "1/1/2001", freq="M")
+        ix = date_range("1/1/2000", "1/1/2001", freq="ME")
         ts = Series(np.arange(12), index=ix, name="x")
         yerr.index = ix
 
