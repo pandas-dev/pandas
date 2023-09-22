@@ -43,6 +43,7 @@ from pandas._config import (
     get_option,
     using_copy_on_write,
 )
+from pandas._config.config import _get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -694,7 +695,7 @@ class DataFrame(NDFrame, OpsMixin):
                 NDFrame.__init__(self, data)
                 return
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
 
         # GH47215
         if isinstance(index, set):
@@ -2411,7 +2412,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             columns = columns.drop(exclude)
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
         return cls(mgr)
@@ -2612,7 +2613,7 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
         columns = ensure_index(columns)
         if len(columns) != len(arrays):
             raise ValueError("len(columns) must match len(arrays)")
@@ -4915,7 +4916,9 @@ class DataFrame(NDFrame, OpsMixin):
         column : str, number, or hashable object
             Label of the inserted column.
         value : Scalar, Series, or array-like
+            Content of the inserted column.
         allow_duplicates : bool, optional, default lib.no_default
+            Allow duplicate column labels to be created.
 
         See Also
         --------
@@ -9829,11 +9832,11 @@ class DataFrame(NDFrame, OpsMixin):
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    pandas.core.groupby.GroupBy : Perform operations over groups.
-    pandas.core.resample.Resampler : Perform operations over resampled bins.
-    pandas.core.window.Rolling : Perform operations over rolling window.
-    pandas.core.window.Expanding : Perform operations over expanding window.
-    pandas.core.window.ExponentialMovingWindow : Perform operation over exponential
+    pandas.DataFrame.groupby : Perform operations over groups.
+    pandas.DataFrame.resample : Perform operations over resampled bins.
+    pandas.DataFrame.rolling : Perform operations over rolling window.
+    pandas.DataFrame.expanding : Perform operations over expanding window.
+    pandas.core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
         weighted window.
     """
     )
@@ -9925,6 +9928,8 @@ class DataFrame(NDFrame, OpsMixin):
         result_type: Literal["expand", "reduce", "broadcast"] | None = None,
         args=(),
         by_row: Literal[False, "compat"] = "compat",
+        engine: Literal["python", "numba"] = "python",
+        engine_kwargs: dict[str, bool] | None = None,
         **kwargs,
     ):
         """
@@ -9984,6 +9989,35 @@ class DataFrame(NDFrame, OpsMixin):
             If False, the funcs will be passed the whole Series at once.
 
             .. versionadded:: 2.1.0
+
+        engine : {'python', 'numba'}, default 'python'
+            Choose between the python (default) engine or the numba engine in apply.
+
+            The numba engine will attempt to JIT compile the passed function,
+            which may result in speedups for large DataFrames.
+            It also supports the following engine_kwargs :
+
+            - nopython (compile the function in nopython mode)
+            - nogil (release the GIL inside the JIT compiled function)
+            - parallel (try to apply the function in parallel over the DataFrame)
+
+            Note: The numba compiler only supports a subset of
+            valid Python/numpy operations.
+
+            Please read more about the `supported python features
+            <https://numba.pydata.org/numba-doc/dev/reference/pysupported.html>`_
+            and `supported numpy features
+            <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
+            in numba to learn what you can or cannot use in the passed function.
+
+            As of right now, the numba engine can only be used with raw=True.
+
+            .. versionadded:: 2.2.0
+
+        engine_kwargs : dict
+            Pass keyword arguments to the engine.
+            This is currently only used by the numba engine,
+            see the documentation for the engine argument for more information.
         **kwargs
             Additional keyword arguments to pass as keywords arguments to
             `func`.
@@ -10084,6 +10118,8 @@ class DataFrame(NDFrame, OpsMixin):
             raw=raw,
             result_type=result_type,
             by_row=by_row,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
             args=args,
             kwargs=kwargs,
         )

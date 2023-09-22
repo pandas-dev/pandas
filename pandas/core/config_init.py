@@ -454,6 +454,13 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory(["block", "array"]),
     )
 
+cf.deprecate_option(
+    # GH#55043
+    "mode.data_manager",
+    "data_manager option is deprecated and will be removed in a future "
+    "version. Only the BlockManager will be available.",
+)
+
 
 # TODO better name?
 copy_on_write_doc = """
@@ -513,11 +520,11 @@ reader_engine_doc = """
     auto, {others}.
 """
 
-_xls_options = ["xlrd"]
-_xlsm_options = ["xlrd", "openpyxl"]
-_xlsx_options = ["xlrd", "openpyxl"]
-_ods_options = ["odf"]
-_xlsb_options = ["pyxlsb"]
+_xls_options = ["xlrd", "calamine"]
+_xlsm_options = ["xlrd", "openpyxl", "calamine"]
+_xlsx_options = ["xlrd", "openpyxl", "calamine"]
+_ods_options = ["odf", "calamine"]
+_xlsb_options = ["pyxlsb", "calamine"]
 
 
 with cf.config_prefix("io.excel.xls"):

@@ -31,6 +31,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY311,
     is_ci_environment,
@@ -2444,7 +2445,7 @@ def test_dt_tz(tz):
         dtype=ArrowDtype(pa.timestamp("ns", tz=tz)),
     )
     result = ser.dt.tz
-    assert result == tz
+    assert result == timezones.maybe_get_tz(tz)
 
 
 def test_dt_isocalendar():
@@ -3036,6 +3037,14 @@ def test_duration_fillna_numpy(pa_type):
     result = ser1.fillna(ser2)
     expected = pd.Series([1, 2], dtype=ArrowDtype(pa_type))
     tm.assert_series_equal(result, expected)
+
+
+def test_comparison_not_propagating_arrow_error():
+    # GH#54944
+    a = pd.Series([1 << 63], dtype="uint64[pyarrow]")
+    b = pd.Series([None], dtype="int64[pyarrow]")
+    with pytest.raises(pa.lib.ArrowInvalid, match="Integer value"):
+        a < b
 
 
 def test_factorize_chunked_dictionary():

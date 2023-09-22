@@ -3637,7 +3637,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Resample by month. Values are assigned to the month of the period.
 
-        >>> df.groupby('a').resample('M', include_groups=False).sum()
+        >>> df.groupby('a').resample('ME', include_groups=False).sum()
                     b
         a
         0   2000-01-31  3
