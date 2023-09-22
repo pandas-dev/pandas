@@ -238,7 +238,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`)
 - Performance improvement in :meth:`Index.difference` (:issue:`55108`)
 - Performance improvement when indexing with more than 4 keys (:issue:`54550`)
--
+- Performance improvement when localizing time to UTC (:issue:`55241`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.bug_fixes:
