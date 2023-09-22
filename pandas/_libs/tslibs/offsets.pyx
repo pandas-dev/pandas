@@ -2496,7 +2496,7 @@ cdef class YearEnd(YearOffset):
     """
 
     _default_month = 12
-    _prefix = "A"
+    _prefix = "Y"
     _day_opt = "end"
 
     cdef readonly:
@@ -4447,7 +4447,7 @@ prefix_mapping = {
     offset._prefix: offset
     for offset in [
         YearBegin,  # 'AS'
-        YearEnd,  # 'A'
+        YearEnd,  # 'Y'
         BYearBegin,  # 'BAS'
         BYearEnd,  # 'BA'
         BusinessDay,  # 'B'
@@ -4489,8 +4489,7 @@ _lite_rule_alias = {
     "W": "W-SUN",
     "Q": "Q-DEC",
 
-    "A": "A-DEC",      # YearEnd(month=12),
-    "Y": "A-DEC",
+    "Y": "Y-DEC",      # YearEnd(month=12),
     "AS": "AS-JAN",    # YearBegin(month=1),
     "YS": "AS-JAN",
     "BA": "BA-DEC",    # BYearEnd(month=12),
