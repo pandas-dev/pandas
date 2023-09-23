@@ -405,13 +405,20 @@ class TestBase:
         tm.assert_index_equal(result, expected)
 
     def test_insert_base(self, index):
-        result = index[1:4]
+        trimmed = index[1:4]
 
         if not len(index):
             pytest.skip("Not applicable for empty index")
 
         # test 0th element
-        assert index[0:4].equals(result.insert(0, index[0]))
+        warn = None
+        if index.dtype == object and index.inferred_type == "boolean":
+            # GH#51363
+            warn = FutureWarning
+        msg = "The behavior of Index.insert with object-dtype is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = trimmed.insert(0, index[0])
+        assert index[0:4].equals(result)
 
     def test_insert_out_of_bounds(self, index):
         # TypeError/IndexError matches what np.insert raises in these cases

@@ -6900,7 +6900,18 @@ class Index(IndexOpsMixin, PandasObject):
             loc = loc if loc >= 0 else loc - 1
             new_values[loc] = item
 
-        return Index._with_infer(new_values, name=self.name)
+        out = Index._with_infer(new_values, name=self.name)
+        if self.dtype == object and out.dtype != object:
+            # GH#51363
+            warnings.warn(
+                "The behavior of Index.insert with object-dtype is deprecated, "
+                "in a future version this will return an object-dtype Index "
+                "instead of inferring a non-object dtype. To retain the old "
+                "behavior, do `idx.insert(loc, item).infer_objects(copy=False)`",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return out
 
     def drop(
         self,
