@@ -4,7 +4,7 @@ on:
     workflow_dispatch: # Enable manual triggering
     #schedule:
     # Run monthly on the 1st day of the month
-        #- cron: '0 0 1 * *' 
+        #- cron: '0 0 1 * *'
 jobs:
     linkcheck:
         runs-on: ubuntu-latest
@@ -13,7 +13,7 @@ jobs:
         - name: Checkout
           uses: actions/checkout@v4
           with:
-                fetch-depth: 0 
+                fetch-depth: 0
 
         - name: Setup Python
           id: setup_python
@@ -24,7 +24,7 @@ jobs:
             cache-dependency-path: 'requirements-dev.txt'
 
         - name: Install requirements-dev.txt
-          run: pip install -r requirements-dev.txt 
+          run: pip install -r requirements-dev.txt
 
         - name: Run linkcheck script
           run: python make.py linkcheck
