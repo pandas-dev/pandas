@@ -1,8 +1,9 @@
 name: Broken linkcheck
 on:
-    schedule:
+    workflow_dispatch: # Enable manual triggering
+    #schedule:
     # Run monthly on the 1st day of the month
-        - cron: '0 0 1 * *' 
+        #- cron: '0 0 1 * *' 
 jobs:
     linkcheck:
         runs-on: ubuntu-latest
