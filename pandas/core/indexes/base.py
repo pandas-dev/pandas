@@ -3598,14 +3598,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         if len(other) == 0:
             # Note: we do not (yet) sort even if sort=None GH#24959
-            result = self.rename(result_name)
+            result = self.unique().rename(result_name)
             if sort is True:
                 return result.sort_values()
             return result
 
         if not self._should_compare(other):
             # Nothing matches -> difference is everything
-            result = self.rename(result_name)
+            result = self.unique().rename(result_name)
             if sort is True:
                 return result.sort_values()
             return result
@@ -3938,12 +3938,8 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self.dtype, IntervalDtype):
             if isinstance(target.dtype, IntervalDtype):
                 return False
-            # See https://github.com/pandas-dev/pandas/issues/47772 the commented
-            # out code can be restored (instead of hardcoding `return True`)
-            # once that issue is fixed
             # "Index" has no attribute "left"
-            # return self.left._should_compare(target)  # type: ignore[attr-defined]
-            return True
+            return self.left._should_compare(target)  # type: ignore[attr-defined]
         return False
 
     @final

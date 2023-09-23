@@ -771,7 +771,7 @@ To create year and month cross tabulation:
 
    df = pd.DataFrame(
        {"value": np.random.randn(36)},
-       index=pd.date_range("2011-01-01", freq="M", periods=36),
+       index=pd.date_range("2011-01-01", freq="ME", periods=36),
    )
 
    pd.pivot_table(
@@ -794,12 +794,12 @@ Apply
        index=["I", "II", "III"],
    )
 
-   def make_df(ser):
-       new_vals = [pd.Series(value, name=name) for name, value in ser.items()]
-       return pd.DataFrame(new_vals)
+   def SeriesFromSubList(aList):
+       return pd.Series(aList)
 
-   df_orgz = pd.concat({ind: row.pipe(make_df) for ind, row in df.iterrows()})
-
+   df_orgz = pd.concat(
+       {ind: row.apply(SeriesFromSubList) for ind, row in df.iterrows()}
+   )
    df_orgz
 
 `Rolling apply with a DataFrame returning a Series

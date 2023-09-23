@@ -1078,18 +1078,6 @@ cdef class _Timestamp(ABCTimestamp):
 
         return result
 
-    @property
-    def _short_repr(self) -> str:
-        # format a Timestamp with only _date_repr if possible
-        # otherwise _repr_base
-        if (self.hour == 0 and
-                self.minute == 0 and
-                self.second == 0 and
-                self.microsecond == 0 and
-                self.nanosecond == 0):
-            return self._date_repr
-        return self._repr_base
-
     # -----------------------------------------------------------------
     # Conversion Methods
 
@@ -1907,7 +1895,7 @@ class Timestamp(_Timestamp):
         cdef:
             int64_t nanos
 
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period=False)
         freq.nanos  # raises on non-fixed freq
         nanos = delta_to_nanoseconds(freq, self._creso)
         if nanos == 0:

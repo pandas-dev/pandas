@@ -26,10 +26,8 @@ import weakref
 
 import numpy as np
 
-from pandas._config import (
-    get_option,
-    using_copy_on_write,
-)
+from pandas._config import using_copy_on_write
+from pandas._config.config import _get_option
 
 from pandas._libs import (
     lib,
@@ -77,7 +75,6 @@ from pandas.core.dtypes.common import (
     validate_all_hashable,
 )
 from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
     CategoricalDtype,
     ExtensionDtype,
 )
@@ -102,6 +99,7 @@ from pandas.core import (
 from pandas.core.accessor import CachedAccessor
 from pandas.core.apply import SeriesApply
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.arrow import StructAccessor
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.arrays.string_ import StringDtype
@@ -408,7 +406,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if fastpath:
             # data is a ndarray, index is defined
             if not isinstance(data, (SingleBlockManager, SingleArrayManager)):
-                manager = get_option("mode.data_manager")
+                manager = _get_option("mode.data_manager", silent=True)
                 if manager == "block":
                     data = SingleBlockManager.from_array(data, index)
                 elif manager == "array":
@@ -514,7 +512,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             data = sanitize_array(data, index, dtype, copy)
 
-            manager = get_option("mode.data_manager")
+            manager = _get_option("mode.data_manager", silent=True)
             if manager == "block":
                 data = SingleBlockManager.from_array(data, index, refs=refs)
             elif manager == "array":
@@ -4396,7 +4394,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         3      4
         dtype: object
         """
-        if isinstance(self.dtype, ArrowDtype) and self.dtype.type == list:
+        if isinstance(self.dtype, ExtensionDtype):
             values, counts = self._values._explode()
         elif len(self) and is_object_dtype(self.dtype):
             values, counts = reshape.explode(np.asarray(self._values))
@@ -4643,11 +4641,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     ) -> DataFrame | Series:
         """
         Invoke function on values of Series.
-
-        .. deprecated:: 2.1.0
-
-            If the result from ``func`` is a ``Series``, wrapping the output in a
-            ``DataFrame`` instead of a ``Series`` has been deprecated.
 
         Can be ufunc (a NumPy function that applies to the entire Series)
         or a Python function that only works on single values.
@@ -5794,6 +5787,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     cat = CachedAccessor("cat", CategoricalAccessor)
     plot = CachedAccessor("plot", pandas.plotting.PlotAccessor)
     sparse = CachedAccessor("sparse", SparseAccessor)
+    struct = CachedAccessor("struct", StructAccessor)
 
     # ----------------------------------------------------------------------
     # Add plotting methods to Series

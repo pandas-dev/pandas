@@ -420,13 +420,18 @@ def test_agg_evaluate_lambdas(string_series):
 def test_with_nested_series(datetime_series, op_name):
     # GH 2316
     # .agg with a reducer and a transform, what to do
-    msg = "Returning a DataFrame from Series.apply when the supplied function"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    msg = "cannot aggregate"
+    warning = FutureWarning if op_name == "agg" else None
+    with tm.assert_produces_warning(warning, match=msg):
         # GH52123
         result = getattr(datetime_series, op_name)(
             lambda x: Series([x, x**2], index=["x", "x^2"])
         )
     expected = DataFrame({"x": datetime_series, "x^2": datetime_series**2})
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = datetime_series.agg(lambda x: Series([x, x**2], index=["x", "x^2"]))
     tm.assert_frame_equal(result, expected)
 
 
@@ -512,10 +517,7 @@ def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
         index = dti.tz_localize("UTC").index
     else:
         index = dti.index
-    msg = "Returning a DataFrame from Series.apply when the supplied function"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH52123
-        result = Series(index).apply(lambda x: Series([1, 2]))
+    result = Series(index).apply(lambda x: Series([1, 2]))
     tm.assert_frame_equal(result, exp)
 
 
@@ -662,19 +664,7 @@ def test_apply_dictlike_lambda(ops, by_row, expected):
 def test_apply_retains_column_name(by_row):
     # GH 16380
     df = DataFrame({"x": range(3)}, Index(range(3), name="x"))
-    func = lambda x: Series(range(x + 1), Index(range(x + 1), name="y"))
-
-    if not by_row:
-        # GH53400
-        msg = "'Series' object cannot be interpreted as an integer"
-        with pytest.raises(TypeError, match=msg):
-            df.x.apply(func, by_row=by_row)
-        return
-
-    msg = "Returning a DataFrame from Series.apply when the supplied function"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
-        # GH52123
-        result = df.x.apply(func, by_row=by_row)
+    result = df.x.apply(lambda x: Series(range(x + 1), Index(range(x + 1), name="y")))
     expected = DataFrame(
         [[0.0, np.nan, np.nan], [0.0, 1.0, np.nan], [0.0, 1.0, 2.0]],
         columns=Index(range(3), name="y"),
@@ -689,3 +679,11 @@ def test_apply_type():
     result = s.apply(type)
     expected = Series([int, str, type], index=["a", "b", "c"])
     tm.assert_series_equal(result, expected)
+
+
+def test_series_apply_unpack_nested_data():
+    # GH#55189
+    ser = Series([[1, 2, 3], [4, 5, 6, 7]])
+    result = ser.apply(lambda x: Series(x))
+    expected = DataFrame({0: [1.0, 4.0], 1: [2.0, 5.0], 2: [3.0, 6.0], 3: [np.nan, 7]})
+    tm.assert_frame_equal(result, expected)
