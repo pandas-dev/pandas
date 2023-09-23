@@ -8,12 +8,12 @@ on:
 jobs:
     linkcheck:
         runs-on: ubuntu-latest
-        
+
         steps:
         - name: Checkout
           uses: actions/checkout@v4
           with:
-                fetch-depth: 0  
+                fetch-depth: 0 
 
         - name: Setup Python
           id: setup_python
