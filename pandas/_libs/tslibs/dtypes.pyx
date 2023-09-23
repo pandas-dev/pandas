@@ -204,7 +204,7 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "us": "us",
     "ns": "ns",
     "H": "H",
-    "Q": "Q",
+    "QE": "Q",
     "A": "A",
     "W": "W",
     "ME": "M",
@@ -214,6 +214,7 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "BYS": "A",
 }
 OFFSET_DEPR_FREQSTR: dict[str, str]= {
+    "Q": "QE",
     "M": "ME",
 }
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR

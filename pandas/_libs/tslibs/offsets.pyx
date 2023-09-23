@@ -2746,7 +2746,7 @@ cdef class QuarterEnd(QuarterOffset):
     Timestamp('2022-03-31 00:00:00')
     """
     _default_starting_month = 3
-    _prefix = "Q"
+    _prefix = "QE"
     _day_opt = "end"
 
     cdef readonly:
@@ -4471,7 +4471,7 @@ prefix_mapping = {
         Second,  # 's'
         Minute,  # 'min'
         Micro,  # 'us'
-        QuarterEnd,  # 'Q'
+        QuarterEnd,  # 'QE'
         QuarterBegin,  # 'QS'
         Milli,  # 'ms'
         Hour,  # 'H'
@@ -4489,7 +4489,7 @@ opattern = re.compile(
 
 _lite_rule_alias = {
     "W": "W-SUN",
-    "Q": "Q-DEC",
+    "QE": "QE-DEC",
 
     "A": "A-DEC",      # YearEnd(month=12),
     "Y": "A-DEC",
