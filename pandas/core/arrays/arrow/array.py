@@ -1466,7 +1466,7 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
-        data_to_reduce = self._get_values_for_reduction(name)
+        data_to_reduce = self._values_for_reduction(name)
 
         if name == "sem":
 
@@ -1516,7 +1516,7 @@ class ArrowExtensionArray(
 
         return self._maybe_cast_reduction_result(result, name)
 
-    def _get_values_for_reduction(self, name: str) -> pa.ChunkedArray:
+    def _values_for_reduction(self, name: str) -> pa.ChunkedArray:
         """
         Return the underlying ChunkedArray, possibly cast to a different type in
         order to support reductions.
@@ -1574,7 +1574,7 @@ class ArrowExtensionArray(
         """
         Maybe cast a reduction result to a different pyarrow type.
 
-        See ArrowExtensionArray._get_values_for_reduction.
+        See ArrowExtensionArray._values_for_reduction.
 
         Parameters
         ----------
@@ -2085,7 +2085,7 @@ class ArrowExtensionArray(
                 return result
             return type(self)._from_sequence(result, copy=False)
 
-        arr = self._get_values_for_reduction(how)
+        arr = self._values_for_reduction(how)
 
         pa_name = {
             "prod": "product",
