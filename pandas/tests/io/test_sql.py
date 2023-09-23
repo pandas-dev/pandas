@@ -1,20 +1,3 @@
-"""SQL io tests
-
-The SQL tests are broken down in different classes:
-
-- `PandasSQLTest`: base class with common methods for all test classes
-- Tests for the public API (only tests with sqlite3)
-    - `_TestSQLApi` base class
-    - `TestSQLApi`: test the public API with sqlalchemy engine
-    - `TestSQLiteFallbackApi`: test the public API with a sqlite DBAPI
-      connection
-- Tests for the different SQL flavors (flavor specific type conversions)
-    - Tests for the sqlalchemy mode: `_TestSQLAlchemy` is the base class with
-      common methods. The different tested flavors (sqlite3, MySQL,
-      PostgreSQL) derive from the base class
-    - Tests for the fallback mode (`TestSQLiteFallback`)
-
-"""
 from __future__ import annotations
 
 import contextlib
@@ -29,6 +12,7 @@ from datetime import (
 from io import StringIO
 from pathlib import Path
 import sqlite3
+from typing import TYPE_CHECKING
 import uuid
 
 import numpy as np
@@ -69,12 +53,8 @@ from pandas.io.sql import (
     read_sql_table,
 )
 
-try:
+if TYPE_CHECKING:
     import sqlalchemy
-
-    SQLALCHEMY_INSTALLED = True
-except ImportError:
-    SQLALCHEMY_INSTALLED = False
 
 
 @pytest.fixture
@@ -433,6 +413,8 @@ def drop_view(
     view_name: str,
     conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
 ):
+    import sqlalchemy
+
     if isinstance(conn, sqlite3.Connection):
         conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
         conn.commit()
@@ -1981,9 +1963,9 @@ def test_sqlalchemy_integer_overload_mapping(conn, request, integer):
         sql.SQLTable("test_type", db, frame=df)
 
 
-@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="fails without SQLAlchemy")
 @pytest.mark.parametrize("conn", all_connectable)
 def test_database_uri_string(conn, request, test_frame1):
+    pytest.importorskip("sqlalchemy")
     conn = request.getfixturevalue(conn)
     # Test read_sql and .to_sql method with a database URI (GH10654)
     # db_uri = 'sqlite:///:memory:' # raises
@@ -2003,9 +1985,9 @@ def test_database_uri_string(conn, request, test_frame1):
 
 
 @td.skip_if_installed("pg8000")
-@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="fails without SQLAlchemy")
 @pytest.mark.parametrize("conn", all_connectable)
 def test_pg8000_sqlalchemy_passthrough_error(conn, request):
+    pytest.importorskip("sqlalchemy")
     conn = request.getfixturevalue(conn)
     # using driver that will not be installed on CI to trigger error
     # in sqlalchemy.create_engine -> test passing of this error to user
@@ -2076,7 +2058,7 @@ def test_sql_open_close(test_frame3):
     tm.assert_frame_equal(test_frame3, result)
 
 
-@pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
+@td.skip_if_installed("sqlalchemy")
 def test_con_string_import_error():
     conn = "mysql://root@localhost/pandas"
     msg = "Using URI string without sqlalchemy installed"
@@ -2084,7 +2066,7 @@ def test_con_string_import_error():
         sql.read_sql("SELECT * FROM iris", conn)
 
 
-@pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
+@td.skip_if_installed("sqlalchemy")
 def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
     class MockSqliteConnection:
         def __init__(self, *args, **kwargs) -> None:
@@ -3025,8 +3007,8 @@ def test_options_auto(conn, request, test_frame1):
         assert num_rows == num_entries
 
 
-@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="fails without SQLAlchemy")
 def test_options_get_engine():
+    pytest.importorskip("sqlalchemy")
     assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
 
     with pd.option_context("io.sql.engine", "sqlalchemy"):
