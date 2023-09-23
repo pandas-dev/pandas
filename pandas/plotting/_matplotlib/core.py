@@ -465,7 +465,12 @@ class MPLPlot(ABC):
 
     def _has_plotted_object(self, ax: Axes) -> bool:
         """check whether ax has data"""
-        return len(ax.lines) != 0 or len(ax.artists) != 0 or len(ax.containers) != 0
+        # error: "Axes" has no attribute "containers"
+        return (
+            len(ax.lines) != 0
+            or len(ax.artists) != 0
+            or len(ax.containers) != 0  # type: ignore[attr-defined]
+        )
 
     def _maybe_right_yaxis(self, ax: Axes, axes_num):
         if not self.on_right(axes_num):
@@ -482,9 +487,16 @@ class MPLPlot(ABC):
             # otherwise, create twin axes
             orig_ax, new_ax = ax, ax.twinx()
             # TODO: use Matplotlib public API when available
-            new_ax._get_lines = orig_ax._get_lines
-            new_ax._get_patches_for_fill = orig_ax._get_patches_for_fill
-            orig_ax.right_ax, new_ax.left_ax = new_ax, orig_ax
+            new_ax._get_lines = orig_ax._get_lines  # type: ignore[attr-defined]
+            # TODO #54485
+            new_ax._get_patches_for_fill = (  # type: ignore[attr-defined]
+                orig_ax._get_patches_for_fill  # type: ignore[attr-defined]
+            )
+            # TODO #54485
+            orig_ax.right_ax, new_ax.left_ax = (  # type: ignore[attr-defined]
+                new_ax,
+                orig_ax,
+            )
 
             if not self._has_plotted_object(orig_ax):  # no data on left y
                 orig_ax.get_yaxis().set_visible(False)
@@ -1437,11 +1449,13 @@ class LinePlot(MPLPlot):
             decorate_axes(ax.left_ax, freq, kwds)
         if hasattr(ax, "right_ax"):
             decorate_axes(ax.right_ax, freq, kwds)
-        ax._plot_data.append((data, self._kind, kwds))
+        # TODO #54485
+        ax._plot_data.append((data, self._kind, kwds))  # type: ignore[attr-defined]
 
         lines = self._plot(ax, data.index, data.values, style=style, **kwds)
         # set date formatter, locators and rescale limits
-        format_dateaxis(ax, ax.freq, data.index)
+        # TODO #54485
+        format_dateaxis(ax, ax.freq, data.index)  # type: ignore[attr-defined]
         return lines
 
     def _get_stacking_id(self):
@@ -1455,11 +1469,15 @@ class LinePlot(MPLPlot):
         if stacking_id is None:
             return
         if not hasattr(ax, "_stacker_pos_prior"):
-            ax._stacker_pos_prior = {}
+            # TODO #54485
+            ax._stacker_pos_prior = {}  # type: ignore[attr-defined]
         if not hasattr(ax, "_stacker_neg_prior"):
-            ax._stacker_neg_prior = {}
-        ax._stacker_pos_prior[stacking_id] = np.zeros(n)
-        ax._stacker_neg_prior[stacking_id] = np.zeros(n)
+            # TODO #54485
+            ax._stacker_neg_prior = {}  # type: ignore[attr-defined]
+        # TODO #54485
+        ax._stacker_pos_prior[stacking_id] = np.zeros(n)  # type: ignore[attr-defined]
+        # TODO #54485
+        ax._stacker_neg_prior[stacking_id] = np.zeros(n)  # type: ignore[attr-defined]
 
     @classmethod
     def _get_stacked_values(cls, ax: Axes, stacking_id, values, label):
@@ -1470,9 +1488,17 @@ class LinePlot(MPLPlot):
             cls._initialize_stacker(ax, stacking_id, len(values))
 
         if (values >= 0).all():
-            return ax._stacker_pos_prior[stacking_id] + values
+            # TODO #54485
+            return (
+                ax._stacker_pos_prior[stacking_id]  # type: ignore[attr-defined]
+                + values
+            )
         elif (values <= 0).all():
-            return ax._stacker_neg_prior[stacking_id] + values
+            # TODO #54485
+            return (
+                ax._stacker_neg_prior[stacking_id]  # type: ignore[attr-defined]
+                + values
+            )
 
         raise ValueError(
             "When stacked is True, each column must be either "
@@ -1485,9 +1511,11 @@ class LinePlot(MPLPlot):
         if stacking_id is None:
             return
         if (values >= 0).all():
-            ax._stacker_pos_prior[stacking_id] += values
+            # TODO #54485
+            ax._stacker_pos_prior[stacking_id] += values  # type: ignore[attr-defined]
         elif (values <= 0).all():
-            ax._stacker_neg_prior[stacking_id] += values
+            # TODO #54485
+            ax._stacker_neg_prior[stacking_id] += values  # type: ignore[attr-defined]
 
     def _args_adjust(self) -> None:
         pass
@@ -1587,9 +1615,11 @@ class AreaPlot(LinePlot):
         if stacking_id is None:
             start = np.zeros(len(y))
         elif (y >= 0).all():
-            start = ax._stacker_pos_prior[stacking_id]
+            # TODO #54485
+            start = ax._stacker_pos_prior[stacking_id]  # type: ignore[attr-defined]
         elif (y <= 0).all():
-            start = ax._stacker_neg_prior[stacking_id]
+            # TODO #54485
+            start = ax._stacker_neg_prior[stacking_id]  # type: ignore[attr-defined]
         else:
             start = np.zeros(len(y))
 

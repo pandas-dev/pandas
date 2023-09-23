@@ -3160,7 +3160,7 @@ def dtype_backend_data() -> DataFrame:
 
 @pytest.fixture
 def dtype_backend_expected():
-    def func(storage, dtype_backend, conn_name):
+    def func(storage, dtype_backend, conn_name) -> DataFrame:
         string_array: StringArray | ArrowStringArray
         string_array_na: StringArray | ArrowStringArray
         if storage == "python":

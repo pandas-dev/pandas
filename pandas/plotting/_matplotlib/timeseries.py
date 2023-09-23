@@ -124,7 +124,8 @@ def _replot_ax(ax: Axes, freq, kwargs):
     data = getattr(ax, "_plot_data", None)
 
     # clear current axes and data
-    ax._plot_data = []
+    # TODO #54485
+    ax._plot_data = []  # type: ignore[attr-defined]
     ax.clear()
 
     decorate_axes(ax, freq, kwargs)
@@ -136,7 +137,8 @@ def _replot_ax(ax: Axes, freq, kwargs):
             series = series.copy()
             idx = series.index.asfreq(freq, how="S")
             series.index = idx
-            ax._plot_data.append((series, plotf, kwds))
+            # TODO #54485
+            ax._plot_data.append((series, plotf, kwds))  # type: ignore[attr-defined]
 
             # for tsplot
             if isinstance(plotf, str):
@@ -153,17 +155,23 @@ def _replot_ax(ax: Axes, freq, kwargs):
 def decorate_axes(ax: Axes, freq, kwargs) -> None:
     """Initialize axes for time-series plotting"""
     if not hasattr(ax, "_plot_data"):
-        ax._plot_data = []
+        # TODO #54485
+        ax._plot_data = []  # type: ignore[attr-defined]
 
-    ax.freq = freq
+    # TODO #54485
+    ax.freq = freq  # type: ignore[attr-defined]
     xaxis = ax.get_xaxis()
-    xaxis.freq = freq
+    # TODO #54485
+    xaxis.freq = freq  # type: ignore[attr-defined]
     if not hasattr(ax, "legendlabels"):
-        ax.legendlabels = [kwargs.get("label", None)]
+        # TODO #54485
+        ax.legendlabels = [kwargs.get("label", None)]  # type: ignore[attr-defined]
     else:
         ax.legendlabels.append(kwargs.get("label", None))
-    ax.view_interval = None
-    ax.date_axis_info = None
+    # TODO #54485
+    ax.view_interval = None  # type: ignore[attr-defined]
+    # TODO #54485
+    ax.date_axis_info = None  # type: ignore[attr-defined]
 
 
 def _get_ax_freq(ax: Axes):
