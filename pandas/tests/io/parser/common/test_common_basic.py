@@ -80,7 +80,6 @@ def test_override_set_noconvert_columns():
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_read_csv_local(all_parsers, csv1):
     prefix = "file:///" if compat.is_platform_windows() else "file://"
     parser = all_parsers
@@ -175,7 +174,6 @@ def test_read_csv_low_memory_no_rows_with_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_read_csv_dataframe(all_parsers, csv1):
     parser = all_parsers
     result = parser.read_csv(csv1, index_col=0, parse_dates=True)

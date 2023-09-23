@@ -979,7 +979,6 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
             )
 
 
-@xfail_pyarrow
 def test_parse_tz_aware(all_parsers, request):
     # See gh-1693
     parser = all_parsers
@@ -2224,7 +2223,6 @@ def test_parse_dates_dict_format_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
 def test_parse_dates_arrow_engine(all_parsers):
     # GH#53295
     parser = all_parsers
