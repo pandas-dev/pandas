@@ -1000,9 +1000,13 @@ def duplicated(
     duplicated : ndarray[bool]
     """
     if hasattr(values, "dtype"):
-        if isinstance(values.dtype, ArrowDtype) and values.dtype.kind in "ifub":
-            values = values._to_masked()  # type: ignore[union-attr]
-
+        if isinstance(values.dtype, ArrowDtype):
+            if values.dtype.kind in "ifub":
+                values = values._to_masked()  # type: ignore[union-attr]
+            else:
+                values = (
+                    values._maybe_convert_datelike_array()  # type: ignore[union-attr]
+                )
         if isinstance(values.dtype, BaseMaskedDtype):
             values = cast("BaseMaskedArray", values)
             return htable.duplicated(values._data, keep=keep, mask=values._mask)

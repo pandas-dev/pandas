@@ -72,7 +72,16 @@ class Duplicated:
     params = [
         [True, False],
         ["first", "last", False],
-        ["int", "uint", "float", "string", "datetime64[ns]", "datetime64[ns, tz]"],
+        [
+            "int",
+            "uint",
+            "float",
+            "string",
+            "datetime64[ns]",
+            "datetime64[ns, tz]",
+            "timestamp[ms][pyarrow]",
+            "duration[s][pyarrow]",
+        ],
     ]
     param_names = ["unique", "keep", "dtype"]
 
@@ -87,6 +96,8 @@ class Duplicated:
             "datetime64[ns, tz]": pd.date_range(
                 "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
             ),
+            "timestamp[ms][pyarrow]": pd.Index(np.arange(N), dtype=dtype),
+            "duration[s][pyarrow]": pd.Index(np.arange(N), dtype=dtype),
         }[dtype]
         if not unique:
             data = data.repeat(5)
