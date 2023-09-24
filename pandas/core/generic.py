@@ -39,6 +39,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import (
     AlignJoin,
     AnyArrayLike,
@@ -9171,11 +9172,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
-            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
-            for all frequency offsets except for 'M', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
@@ -9407,7 +9408,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         5     18     100    2018-02-11
         6     17      40    2018-02-18
         7     19      50    2018-02-25
-        >>> df.resample('M', on='week_starting').mean()
+        >>> df.resample('ME', on='week_starting').mean()
                        price  volume
         week_starting
         2018-01-31     10.75    62.5
@@ -9567,7 +9568,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         ----------
         offset : str, DateOffset or dateutil.relativedelta
             The offset length of the data that will be selected. For instance,
-            '1M' will display all the rows having their index within the first month.
+            '1ME' will display all the rows having their index within the first month.
 
         Returns
         -------
@@ -10966,15 +10967,17 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 raise ValueError(msg)
 
         elif isinstance(freq, str):
-            freq = to_offset(freq)
+            is_period = isinstance(index, PeriodIndex)
+            freq = to_offset(freq, is_period=is_period)
 
         if isinstance(index, PeriodIndex):
             orig_freq = to_offset(index.freq)
             if freq != orig_freq:
                 assert orig_freq is not None  # for mypy
                 raise ValueError(
-                    f"Given freq {freq.rule_code} does not match "
-                    f"PeriodIndex freq {orig_freq.rule_code}"
+                    f"Given freq {freq_to_period_freqstr(freq.n, freq.name)} "
+                    f"does not match PeriodIndex freq "
+                    f"{freq_to_period_freqstr(orig_freq.n, orig_freq.name)}"
                 )
             new_ax = index.shift(periods)
         else:
@@ -11697,7 +11700,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             .. deprecated:: 2.1
 
         freq : DateOffset, timedelta, or str, optional
-            Increment to use from time series API (e.g. 'M' or BDay()).
+            Increment to use from time series API (e.g. 'ME' or BDay()).
         **kwargs
             Additional keyword arguments are passed into
             `DataFrame.shift` or `Series.shift`.
@@ -12463,11 +12466,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         type of index
 
-        Notes
-        -----
-        If all elements are non-NA/null, returns None.
-        Also returns None for empty {klass}.
-
         Examples
         --------
         For Series:
@@ -12477,6 +12475,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1
         >>> s.last_valid_index()
         2
+
+        >>> s = pd.Series([None, None])
+        >>> print(s.first_valid_index())
+        None
+        >>> print(s.last_valid_index())
+        None
+
+        If all elements in Series are NA/null, returns None.
+
+        >>> s = pd.Series()
+        >>> print(s.first_valid_index())
+        None
+        >>> print(s.last_valid_index())
+        None
+
+        If Series is empty, returns None.
 
         For DataFrame:
 
@@ -12490,6 +12504,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1
         >>> df.last_valid_index()
         2
+
+        >>> df = pd.DataFrame({{'A': [None, None, None], 'B': [None, None, None]}})
+        >>> df
+             A      B
+        0  None   None
+        1  None   None
+        2  None   None
+        >>> print(df.first_valid_index())
+        None
+        >>> print(df.last_valid_index())
+        None
+
+        If all elements in DataFrame are NA/null, returns None.
+
+        >>> df = pd.DataFrame()
+        >>> df
+        Empty DataFrame
+        Columns: []
+        Index: []
+        >>> print(df.first_valid_index())
+        None
+        >>> print(df.last_valid_index())
+        None
+
+        If DataFrame is empty, returns None.
         """
         return self._find_valid_index(how="first")
 
@@ -12529,6 +12568,39 @@ Returns
 {examples}
 """
 
+_sum_prod_doc = """
+{desc}
+
+Parameters
+----------
+axis : {axis_descr}
+    Axis for the function to be applied on.
+    For `Series` this parameter is unused and defaults to 0.
+
+    .. warning::
+
+        The behavior of DataFrame.{name} with ``axis=None`` is deprecated,
+        in a future version this will reduce over both axes and return a scalar
+        To retain the old behavior, pass axis=0 (or do not pass axis).
+
+    .. versionadded:: 2.0.0
+
+skipna : bool, default True
+    Exclude NA/null values when computing the result.
+numeric_only : bool, default False
+    Include only float, int, boolean columns. Not implemented for Series.
+
+{min_count}\
+**kwargs
+    Additional keyword arguments to be passed to the function.
+
+Returns
+-------
+{name1} or scalar\
+{see_also}\
+{examples}
+"""
+
 _num_ddof_doc = """
 {desc}
 
@@ -12536,6 +12608,13 @@ Parameters
 ----------
 axis : {axis_descr}
     For `Series` this parameter is unused and defaults to 0.
+
+    .. warning::
+
+        The behavior of DataFrame.{name} with ``axis=None`` is deprecated,
+        in a future version this will reduce over both axes and return a scalar
+        To retain the old behavior, pass axis=0 (or do not pass axis).
+
 skipna : bool, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
@@ -13243,7 +13322,7 @@ def make_doc(name: str, ndim: int) -> str:
         kwargs = {"min_count": ""}
 
     elif name == "sum":
-        base_doc = _num_doc
+        base_doc = _sum_prod_doc
         desc = (
             "Return the sum of the values over the requested axis.\n\n"
             "This is equivalent to the method ``numpy.sum``."
@@ -13253,7 +13332,7 @@ def make_doc(name: str, ndim: int) -> str:
         kwargs = {"min_count": _min_count_stub}
 
     elif name == "prod":
-        base_doc = _num_doc
+        base_doc = _sum_prod_doc
         desc = "Return the product of the values over the requested axis."
         see_also = _stat_func_see_also
         examples = _prod_examples
@@ -13537,6 +13616,7 @@ def make_doc(name: str, ndim: int) -> str:
 
     docstr = base_doc.format(
         desc=desc,
+        name=name,
         name1=name1,
         name2=name2,
         axis_descr=axis_descr,

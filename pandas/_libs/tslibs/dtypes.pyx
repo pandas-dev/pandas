@@ -13,7 +13,6 @@ from pandas._libs.tslibs.np_datetime cimport (
 
 import_pandas_datetime()
 
-
 cdef class PeriodDtypeBase:
     """
     Similar to an actual dtype, this contains all of the information
@@ -185,6 +184,45 @@ _attrname_to_abbrevs = {
 }
 cdef dict attrname_to_abbrevs = _attrname_to_abbrevs
 cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
+
+OFFSET_TO_PERIOD_FREQSTR: dict = {
+    "WEEKDAY": "D",
+    "EOM": "M",
+    "BM": "M",
+    "BQS": "Q",
+    "QS": "Q",
+    "BQ": "Q",
+    "BA": "A",
+    "AS": "A",
+    "BAS": "A",
+    "MS": "M",
+    "D": "D",
+    "B": "B",
+    "min": "min",
+    "s": "s",
+    "ms": "ms",
+    "us": "us",
+    "ns": "ns",
+    "H": "H",
+    "Q": "Q",
+    "A": "A",
+    "W": "W",
+    "ME": "M",
+    "Y": "A",
+    "BY": "A",
+    "YS": "A",
+    "BYS": "A",
+}
+cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
+
+cpdef freq_to_period_freqstr(freq_n, freq_name):
+    if freq_n == 1:
+        freqstr = f"""{c_OFFSET_TO_PERIOD_FREQSTR.get(
+            freq_name, freq_name)}"""
+    else:
+        freqstr = f"""{freq_n}{c_OFFSET_TO_PERIOD_FREQSTR.get(
+            freq_name, freq_name)}"""
+    return freqstr
 
 # Map deprecated resolution abbreviations to correct resolution abbreviations
 DEPR_ABBREVS: dict[str, str]= {

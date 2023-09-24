@@ -1416,7 +1416,7 @@ Groupby a specific column with the desired frequency. This is like resampling.
 
 .. ipython:: python
 
-   df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="1ME", key="Date"), "Buyer"])[["Quantity"]].sum()
 
 When ``freq`` is specified, the object returned by ``pd.Grouper`` will be an
 instance of ``pandas.api.typing.TimeGrouper``. You have an ambiguous specification
@@ -1426,9 +1426,9 @@ in that you have a named index and a column that could be potential groupers.
 
    df = df.set_index("Date")
    df["Date"] = df.index + pd.offsets.MonthEnd(2)
-   df.groupby([pd.Grouper(freq="6M", key="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="6ME", key="Date"), "Buyer"])[["Quantity"]].sum()
 
-   df.groupby([pd.Grouper(freq="6M", level="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="6ME", level="Date"), "Buyer"])[["Quantity"]].sum()
 
 
 Taking the first rows of each group
