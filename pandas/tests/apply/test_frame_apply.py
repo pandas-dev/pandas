@@ -48,8 +48,11 @@ def test_apply(float_frame, engine, request):
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_args(float_frame, axis, engine):
-    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,), engine=engine)
+@pytest.mark.parametrize("raw", [True, False])
+def test_apply_args(float_frame, axis, raw, engine):
+    result = float_frame.apply(
+        lambda x, y: x + y, axis, args=(1,), raw=raw, engine=engine
+    )
     expected = float_frame + 1
     tm.assert_frame_equal(result, expected)
 

@@ -13,7 +13,7 @@ import pandas._testing as tm
 
 @pytest.mark.parametrize(
     "freqstr,exp_freqstr",
-    [("D", "D"), ("W", "D"), ("M", "D"), ("s", "s"), ("min", "s"), ("H", "s")],
+    [("D", "D"), ("W", "D"), ("ME", "D"), ("s", "s"), ("min", "s"), ("H", "s")],
 )
 def test_get_to_timestamp_base(freqstr, exp_freqstr):
     off = to_offset(freqstr)
@@ -89,7 +89,7 @@ def test_cat(args):
         ("1H", "2021-01-01T09:00:00"),
         ("1D", "2021-01-02T08:00:00"),
         ("1W", "2021-01-03T08:00:00"),
-        ("1M", "2021-01-31T08:00:00"),
+        ("1ME", "2021-01-31T08:00:00"),
         ("1Y", "2021-12-31T08:00:00"),
     ],
 )

@@ -606,7 +606,8 @@ class Apply(metaclass=abc.ABCMeta):
 
         if self.engine == "numba":
             raise NotImplementedError(
-                "The 'numba' engine doesn't support list-like/dict likes of callables yet."
+                "The 'numba' engine doesn't support list-like/"
+                "dict likes of callables yet."
             )
 
         if self.axis == 1 and isinstance(self.obj, ABCDataFrame):
@@ -848,7 +849,8 @@ class FrameApply(NDFrameApply):
         if isinstance(self.func, str):
             if self.engine == "numba":
                 raise NotImplementedError(
-                    "the 'numba' engine doesn't support using a string as the callable function"
+                    "the 'numba' engine doesn't support using "
+                    "a string as the callable function"
                 )
             return self.apply_str()
 
@@ -856,7 +858,8 @@ class FrameApply(NDFrameApply):
         elif isinstance(self.func, np.ufunc):
             if self.engine == "numba":
                 raise NotImplementedError(
-                    "the 'numba' engine doesn't support using a numpy ufunc as the callable function"
+                    "the 'numba' engine doesn't support "
+                    "using a numpy ufunc as the callable function"
                 )
             with np.errstate(all="ignore"):
                 results = self.obj._mgr.apply("apply", func=self.func)
@@ -983,7 +986,11 @@ class FrameApply(NDFrameApply):
             result = np.squeeze(result)
         else:
             result = np.apply_along_axis(
-                wrap_function(self.func), self.axis, self.values
+                wrap_function(self.func),
+                self.axis,
+                self.values,
+                *self.args,
+                **self.kwargs,
             )
 
         # TODO: mixed type case
@@ -1125,7 +1132,8 @@ class FrameRowApply(FrameApply):
         if col_names_values.dtype == object:
             if not lib.is_string_array(col_names_values):
                 raise ValueError(
-                    "The numba engine only supports using string or numeric column names"
+                    "The numba engine only supports "
+                    "using string or numeric column names"
                 )
             col_names_values = col_names_values.astype("U")
         df_index = self.obj.index
@@ -1258,7 +1266,8 @@ class FrameColumnApply(FrameApply):
         if self.columns._data.dtype == object:
             if not lib.is_string_array(self.columns._data):
                 raise ValueError(
-                    "The numba engine only supports using string or numeric column names"
+                    "The numba engine only supports "
+                    "using string or numeric column names"
                 )
             # Remember to set this back!!!
             self.columns._data = self.columns._data.astype("U")
@@ -1457,14 +1466,6 @@ class SeriesApply(NDFrameApply):
         )
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
-            warnings.warn(
-                "Returning a DataFrame from Series.apply when the supplied function "
-                "returns a Series is deprecated and will be removed in a future "
-                "version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )  # GH52116
-
             # GH#43986 Need to do list(mapped) in order to get treated as nested
             #  See also GH#25959 regarding EA support
             return obj._constructor_expanddim(list(mapped), index=obj.index)
