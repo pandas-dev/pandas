@@ -930,7 +930,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         if all(isinstance(t, DatetimeTZDtype) and t.tz == self.tz for t in dtypes):
-            np_dtype = np.max([t.base for t in [self, *dtypes]])
+            np_dtype = np.max([cast(DatetimeTZDtype, t).base for t in [self, *dtypes]])
             unit = np.datetime_data(np_dtype)[0]
             return type(self)(unit=unit, tz=self.tz)
         return super()._get_common_dtype(dtypes)
