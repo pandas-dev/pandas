@@ -123,6 +123,8 @@ class Apply(metaclass=abc.ABCMeta):
         result_type: str | None,
         *,
         by_row: Literal[False, "compat", "_compat"] = "compat",
+        engine: str = "python",
+        engine_kwargs: dict[str, bool] | None = None,
         args,
         kwargs,
     ) -> None:
@@ -134,6 +136,9 @@ class Apply(metaclass=abc.ABCMeta):
 
         self.args = args or ()
         self.kwargs = kwargs or {}
+
+        self.engine = engine
+        self.engine_kwargs = {} if engine_kwargs is None else engine_kwargs
 
         if result_type not in [None, "reduce", "broadcast", "expand"]:
             raise ValueError(
@@ -777,10 +782,16 @@ class FrameApply(NDFrameApply):
     ) -> None:
         if by_row is not False and by_row != "compat":
             raise ValueError(f"by_row={by_row} not allowed")
-        self.engine = engine
-        self.engine_kwargs = {} if engine_kwargs is None else engine_kwargs
         super().__init__(
-            obj, func, raw, result_type, by_row=by_row, args=args, kwargs=kwargs
+            obj,
+            func,
+            raw,
+            result_type,
+            by_row=by_row,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            args=args,
+            kwargs=kwargs,
         )
 
     # ---------------------------------------------------------------
@@ -1108,6 +1119,7 @@ class FrameRowApply(FrameApply):
         # Dummy import just to make the extensions loaded in
         # This isn't an entrypoint since we don't want users
         # using Series/DF in numba code outside of apply
+        from pandas.core._numba.extensions import SeriesType  # noqa: F401
 
         numba = import_optional_dependency("numba")
 
@@ -1231,8 +1243,8 @@ class FrameColumnApply(FrameApply):
         # Dummy import just to make the extensions loaded in
         # This isn't an entrypoint since we don't want users
         # using Series/DF in numba code outside of apply
-
         from pandas import Series
+        from pandas.core._numba.extensions import SeriesType  # noqa: F401
 
         numba = import_optional_dependency("numba")
 

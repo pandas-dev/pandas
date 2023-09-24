@@ -49,7 +49,10 @@ def test_apply(float_frame, engine, request):
 
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
-def test_apply_args(float_frame, axis, raw, engine):
+def test_apply_args(float_frame, axis, raw, engine, request):
+    if engine == "numba":
+        mark = pytest.mark.xfail(reason="numba engine doesn't support args")
+        request.node.add_marker(mark)
     result = float_frame.apply(
         lambda x, y: x + y, axis, args=(1,), raw=raw, engine=engine
     )
@@ -1407,8 +1410,8 @@ def test_frequency_is_original(num_cols, engine, request):
         request.node.add_marker(mark)
     index = pd.DatetimeIndex(["1950-06-30", "1952-10-24", "1953-05-29"])
     original = index.copy()
-    df = DataFrame(1, index=index, columns=range(num_cols), engine=engine)
-    df.apply(lambda x: x)
+    df = DataFrame(1, index=index, columns=range(num_cols))
+    df.apply(lambda x: x, engine=engine)
     assert index.freq == original.freq
 
 
@@ -1490,8 +1493,13 @@ def test_apply_empty_list_reduce():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_no_suffix_index(engine):
+def test_apply_no_suffix_index(engine, request):
     # GH36189
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="numba engine doesn't support list-likes/dict-like callables"
+        )
+        request.node.add_marker(mark)
     pdf = DataFrame([[4, 9]] * 3, columns=["A", "B"])
     result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()], engine=engine)
     expected = DataFrame(
