@@ -335,7 +335,7 @@ lxml                      4.8.0              xml             XML parser for read
 SQL databases
 ^^^^^^^^^^^^^
 
-Traditional ODBC drivers are installable with ``pip install "pandas[postgresql, mysql, sql-other]"``.  ADBC drivers
+Traditional drivers are installable with ``pip install "pandas[postgresql, mysql, sql-other]"``.  ADBC drivers
 must be installed separately.
 
 ========================= ================== =============== =============================================================
@@ -346,8 +346,8 @@ SQLAlchemy                1.4.36             postgresql,     SQL support for dat
                                              sql-other
 psycopg2                  2.9.3              postgresql      PostgreSQL engine for sqlalchemy
 pymysql                   1.0.2              mysql           MySQL engine for sqlalchemy
-adbc-driver-postgresql    0.6.0                              ADBC Driver for PostgreSQL
-adbc-driver-sqlite        0.6.0                              ADBC Driver for SQLite
+adbc-driver-postgresql    0.7.0                              ADBC Driver for PostgreSQL
+adbc-driver-sqlite        0.7.0                              ADBC Driver for SQLite
 ========================= ================== =============== =============================================================
 
 Other data sources

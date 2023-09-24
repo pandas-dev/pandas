@@ -86,8 +86,8 @@ output_formatting = ['jinja2>=3.1.2', 'tabulate>=0.8.10']
 clipboard = ['PyQt5>=5.15.6', 'qtpy>=2.2.0']
 compression = ['zstandard>=0.17.0']
 consortium-standard = ['dataframe-api-compat>=0.1.7']
-all = ['adbc_driver_postgresql>=0.6.0',
-       'adbc_driver_sqlite>=0.6.0',
+all = ['adbc-driver-postgresql>=0.7.0',
+       'adbc-driver-sqlite>=0.7.0',
        'beautifulsoup4>=4.11.1',
        # blosc only available on conda (https://github.com/Blosc/python-blosc/issues/297)
        #'blosc>=1.21.0',

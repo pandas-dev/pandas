@@ -318,24 +318,36 @@ def create_and_load_types_sqlite3(conn, types_data: list[dict]):
 
 
 def create_and_load_types_postgresql(conn, types_data: list[dict]):
+    # Boolean support not added until 0.8.0
+    adbc = import_optional_dependency("adbc_driver_manager")
+    from pandas.util.version import Version
+
+    if Version(adbc.__version__) < Version("0.8.0"):
+        bool_type = "INTEGER"
+    else:
+        bool_type = "BOOLEAN"
+
     with conn.cursor() as cur:
-        stmt = """CREATE TABLE types (
+        stmt = f"""CREATE TABLE types (
                         "TextCol" TEXT,
-                        "DateCol" TEXT,
+                        "DateCol" TIMESTAMP,
                         "IntDateCol" INTEGER,
                         "IntDateOnlyCol" INTEGER,
                         "FloatCol" DOUBLE PRECISION,
                         "IntCol" INTEGER,
-                        "BoolCol" INTEGER,
+                        "BoolCol" {bool_type},
                         "IntColWithNull" INTEGER,
-                        "BoolColWithNull" INTEGER
+                        "BoolColWithNull" {bool_type},
+                        "DateColWithTz" TIMESTAMP WITH TIME ZONE
                     )"""
         cur.execute(stmt)
 
         stmt = """
                 INSERT INTO types
-                VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                VALUES($1, $2::timestamp, $3, $4, $5, $6, $7, $8, $9,
+                       $10::timestamptz)
                 """
+
         cur.executemany(stmt, types_data)
 
     conn.commit()
@@ -658,25 +670,31 @@ def postgresql_adbc_conn(iris_path, types_data):
     with dbapi.connect(uri) as conn:
         try:
             conn.adbc_get_table_schema("iris")
-        except mgr.OperationalError:
+        except mgr.ProgrammingError:
             conn.rollback()
             create_and_load_iris_postgresql(conn, iris_path)
         try:
             conn.adbc_get_table_schema("iris_view")
-        except mgr.OperationalError:  # note arrow-adbc issue 1022
+        except mgr.ProgrammingError:  # note arrow-adbc issue 1022
             conn.rollback()
             create_and_load_iris_view(conn)
         try:
             conn.adbc_get_table_schema("types")
-        except mgr.OperationalError:
+        except mgr.ProgrammingError:
             conn.rollback()
-            # ADBC cannot cast boolean data
-            new_data = []
-            for entry in types_data:
-                entry["BoolCol"] = int(entry["BoolCol"])
-                if entry["BoolColWithNull"] is not None:
-                    entry["BoolColWithNull"] = int(entry["BoolColWithNull"])
-                new_data.append(tuple(entry.values()))
+            # Boolean support not added until 0.8.0
+            adbc = import_optional_dependency("adbc_driver_manager")
+            from pandas.util.version import Version
+
+            if Version(adbc.__version__) < Version("0.8.0"):
+                new_data = []
+                for entry in types_data:
+                    entry["BoolCol"] = int(entry["BoolCol"])
+                    if entry["BoolColWithNull"] is not None:
+                        entry["BoolColWithNull"] = int(entry["BoolColWithNull"])
+                    new_data.append(tuple(entry.values()))
+            else:
+                new_data = [tuple(entry.values()) for entry in types_data]
 
             create_and_load_types_postgresql(conn, new_data)
         yield conn
@@ -735,17 +753,17 @@ def sqlite_adbc_conn(iris_path, types_data):
         with dbapi.connect(uri) as conn:
             try:
                 conn.adbc_get_table_schema("iris")
-            except mgr.InternalError:  # note arrow-adbc issue 1022
+            except mgr.ProgrammingError:
                 conn.rollback()
                 create_and_load_iris_sqlite3(conn, iris_path)
             try:
                 conn.adbc_get_table_schema("iris_view")
-            except mgr.InternalError:  # note arrow-adbc issue 1022
+            except mgr.ProgrammingError:
                 conn.rollback()
                 create_and_load_iris_view(conn)
             try:
                 conn.adbc_get_table_schema("types")
-            except mgr.InternalError:  # note arrow-adbc issue 1022
+            except mgr.ProgrammingError:
                 conn.rollback()
                 new_data = []
                 for entry in types_data:
@@ -1671,10 +1689,6 @@ def test_api_date_parsing(conn, request):
     conn = request.getfixturevalue(conn)
     # Test date parsing in read_sql
     # No Parsing
-    if "adbc" in conn_name:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="parse_dates argument NotImplemented with ADBC")
-        )
     df = sql.read_sql_query("SELECT * FROM types", conn)
     if not ("mysql" in conn_name or "postgres" in conn_name):
         assert not issubclass(df.DateCol.dtype.type, np.datetime64)
@@ -1748,10 +1762,6 @@ def test_api_custom_dateparsing_error(
     if text == "types" and conn_name == "sqlite_buildin_iris":
         request.node.add_marker(
             pytest.mark.xfail(reason="failing combination of arguments")
-        )
-    elif "adbc" in conn_name:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="parse_dates argument NotImplemented with ADBC")
         )
 
     expected = types_data_frame.astype({"DateCol": "datetime64[ns]"})
@@ -3503,8 +3513,12 @@ def test_read_sql_dtype_backend(
     table = "test"
     df = dtype_backend_data
     if "adbc" in conn_name:
-        # adbc cannot write / roundtrip booleans
-        df = df.drop(columns=["e", "f"])
+        # Boolean support not added until 0.8.0
+        adbc = import_optional_dependency("adbc_driver_manager")
+        from pandas.util.version import Version
+
+        if Version(adbc.__version__) < Version("0.8.0"):
+            df = df.drop(columns=["e", "f"])
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
     with pd.option_context("mode.string_storage", string_storage):
@@ -3513,8 +3527,11 @@ def test_read_sql_dtype_backend(
         )
     expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
     if "adbc" in conn_name:
-        # adbc cannot write / roundtrip booleans
-        expected = expected.drop(columns=["e", "f"])
+        adbc = import_optional_dependency("adbc_driver_manager")
+        from pandas.util.version import Version
+
+        if Version(adbc.__version__) < Version("0.8.0"):
+            expected = expected.drop(columns=["e", "f"])
     tm.assert_frame_equal(result, expected)
 
     if "adbc" in conn_name:
@@ -3559,16 +3576,22 @@ def test_read_sql_dtype_backend_table(
     table = "test"
     df = dtype_backend_data
     if "adbc" in conn_name:
-        # adbc cannot write / roundtrip booleans
-        df = df.drop(columns=["e", "f"])
+        adbc = import_optional_dependency("adbc_driver_manager")
+        from pandas.util.version import Version
+
+        if Version(adbc.__version__) < Version("0.8.0"):
+            df = df.drop(columns=["e", "f"])
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
     with pd.option_context("mode.string_storage", string_storage):
         result = getattr(pd, func)(table, conn, dtype_backend=dtype_backend)
     expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
     if "adbc" in conn_name:
-        # adbc cannot write / roundtrip booleans
-        expected = expected.drop(columns=["e", "f"])
+        adbc = import_optional_dependency("adbc_driver_manager")
+        from pandas.util.version import Version
+
+        if Version(adbc.__version__) < Version("0.8.0"):
+            expected = expected.drop(columns=["e", "f"])
     tm.assert_frame_equal(result, expected)
 
     if "adbc" in conn_name:
@@ -3595,8 +3618,11 @@ def test_read_sql_invalid_dtype_backend_table(conn, request, func, dtype_backend
     table = "test"
     df = dtype_backend_data
     if "adbc" in conn_name:
-        # adbc cannot write / roundtrip booleans
-        df = df.drop(columns=["e", "f"])
+        adbc = import_optional_dependency("adbc_driver_manager")
+        from pandas.util.version import Version
+
+        if Version(adbc.__version__) < Version("0.8.0"):
+            df = df.drop(columns=["e", "f"])
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
     msg = (

@@ -206,6 +206,7 @@ def _wrap_result_adbc(
     index_col=None,
     parse_dates=None,
     dtype: DtypeArg | None = None,
+    dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
 ):
     """Wrap result set of a SQLAlchemy query in a DataFrame."""
     if dtype:
@@ -2121,8 +2122,7 @@ class ADBCDatabase(PandasSQL):
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
         """
-        Read SQL database table into a DataFrame. Only keyword arguments used
-        are table_name and schema. Other keywords will raise NotImplementedError.
+        Read SQL database table into a DataFrame.
 
         Parameters
         ----------
