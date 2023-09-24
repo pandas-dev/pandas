@@ -2068,6 +2068,11 @@ def test_empty_groupby(columns, keys, values, method, op, using_array_manager, d
             result = get_result(numeric_only=True)
             expected = get_categorical_invalid_expected()
             tm.assert_equal(result, expected)
+        elif op in ["idxmin", "idxmax"] and isinstance(columns, list):
+            with pytest.raises(
+                ValueError, match="empty group due to unobserved categories"
+            ):
+                get_result(numeric_only=True)
         return
 
     if op in ["prod", "sum", "skew"]:

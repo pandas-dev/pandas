@@ -5763,9 +5763,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             expected_len = np.prod(
                 [len(ping.group_index) for ping in self.grouper.groupings]
             )
-            assert len(self.grouper.result_index) <= expected_len
+            if len(self.grouper.groupings) == 1:
+                result_len = len(self.grouper.groupings[0].grouping_vector.unique())
+            else:
+                result_len = len(self.grouper.result_index)
+            assert result_len <= expected_len
             # result_index only contains observed groups
-            has_unobserved = len(self.grouper.result_index) < expected_len
+            has_unobserved = result_len < expected_len
             raise_err = not ignore_unobserved and has_unobserved
         else:
             raise_err = False
@@ -5794,7 +5798,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 raise ValueError(
                     f"Can't get {how} of an empty group due to unobserved categories. "
                     "Specify observed=True in groupby instead."
-                )
+                ) from None
             raise
 
         result = result.astype(self.obj.index.dtype) if result.empty else result
