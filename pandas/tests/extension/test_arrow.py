@@ -1023,22 +1023,7 @@ class TestArrowArray(base.ExtensionTests):
                 raises=pa.ArrowInvalid,
                 reason="Invalid decimal function: power_checked",
             )
-
         return mark
-
-    def test_round(self, data, request):
-        mark = None         
-        if not (
-            pa.types.is_float32(data.dtype.pyarrow_dtype)
-            or pa.types.is_float64(data.dtype.pyarrow_dtype)
-            or pa.types.is_decimal(data.dtype.pyarrow_dtype)
-        ):
-            pytest.mark.xfail(
-               reason="ArrowArray.round converts dtype to double",
-        )
-        if mark is not None:
-            request.node.add_marker(mark)
-        super().test_round(data)
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
