@@ -1027,16 +1027,15 @@ class TestArrowArray(base.ExtensionTests):
         return mark
 
     def test_round(self, data, request):
-        mark = pytest.mark.xfail(
-            # raises=pa.ArrowInvalid,
-            reason="ArrowArray.round converts dtype to double",
-        )
-        if (
+        mark = None         
+        if not (
             pa.types.is_float32(data.dtype.pyarrow_dtype)
             or pa.types.is_float64(data.dtype.pyarrow_dtype)
             or pa.types.is_decimal(data.dtype.pyarrow_dtype)
         ):
-            mark = None
+            pytest.mark.xfail(
+               reason="ArrowArray.round converts dtype to double",
+        )
         if mark is not None:
             request.node.add_marker(mark)
         super().test_round(data)
