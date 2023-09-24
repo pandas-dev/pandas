@@ -24,7 +24,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame,
-    DatetimeTZDtype,
     Index,
     MultiIndex,
     Series,
@@ -243,6 +242,51 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
             types.drop(conn, checkfirst=True)
             types.create(bind=conn)
             conn.execute(stmt)
+
+
+def create_and_load_postgres_datetz(conn):
+    from sqlalchemy import (
+        Column,
+        DateTime,
+        MetaData,
+        Table,
+        insert,
+    )
+    from sqlalchemy.engine import Engine
+
+    metadata = MetaData()
+    datetz = Table("datetz", metadata, Column("DateColWithTz", DateTime(timezone=True)))
+    datetz_data = [
+        {
+            "DateColWithTz": "2000-01-01 00:00:00-08:00",
+        },
+        {
+            "DateColWithTz": "2000-06-01 00:00:00-07:00",
+        },
+    ]
+    stmt = insert(datetz).values(datetz_data)
+    if isinstance(conn, Engine):
+        with conn.connect() as conn:
+            with conn.begin():
+                datetz.drop(conn, checkfirst=True)
+                datetz.create(bind=conn)
+                conn.execute(stmt)
+    else:
+        with conn.begin():
+            datetz.drop(conn, checkfirst=True)
+            datetz.create(bind=conn)
+            conn.execute(stmt)
+
+    # "2000-01-01 00:00:00-08:00" should convert to
+    # "2000-01-01 08:00:00"
+    # "2000-06-01 00:00:00-07:00" should convert to
+    # "2000-06-01 07:00:00"
+    # GH 6415
+    expected_data = [
+        Timestamp("2000-01-01 08:00:00", tz="UTC"),
+        Timestamp("2000-06-01 07:00:00", tz="UTC"),
+    ]
+    return Series(expected_data, name="DateColWithTz")
 
 
 def check_iris_frame(frame: DataFrame):
@@ -2315,82 +2359,40 @@ def test_default_date_load(conn, request):
     assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
 
-@pytest.mark.parametrize("conn", sqlalchemy_connectable_types)
-def test_datetime_with_timezone(conn, request):
+@pytest.mark.parametrize("conn", postgresql_connectable)
+@pytest.mark.parametrize("parse_dates", [None, ["DateColWithTz"]])
+def test_datetime_with_timezone_query(conn, request, parse_dates):
     # edge case that converts postgresql datetime with time zone types
     # to datetime64[ns,psycopg2.tz.FixedOffsetTimezone..], which is ok
     # but should be more natural, so coerce to datetime64[ns] for now
-
-    def check(col):
-        # check that a column is either datetime64[ns]
-        # or datetime64[ns, UTC]
-        if lib.is_np_dtype(col.dtype, "M"):
-            # "2000-01-01 00:00:00-08:00" should convert to
-            # "2000-01-01 08:00:00"
-            assert col[0] == Timestamp("2000-01-01 08:00:00")
-
-            # "2000-06-01 00:00:00-07:00" should convert to
-            # "2000-06-01 07:00:00"
-            assert col[1] == Timestamp("2000-06-01 07:00:00")
-
-        elif isinstance(col.dtype, DatetimeTZDtype):
-            assert str(col.dt.tz) == "UTC"
-
-            # "2000-01-01 00:00:00-08:00" should convert to
-            # "2000-01-01 08:00:00"
-            # "2000-06-01 00:00:00-07:00" should convert to
-            # "2000-06-01 07:00:00"
-            # GH 6415
-            expected_data = [
-                Timestamp("2000-01-01 08:00:00", tz="UTC"),
-                Timestamp("2000-06-01 07:00:00", tz="UTC"),
-            ]
-            expected = Series(expected_data, name=col.name)
-            tm.assert_series_equal(col, expected)
-
-        else:
-            raise AssertionError(f"DateCol loaded with incorrect type -> {col.dtype}")
+    conn = request.getfixturevalue(conn)
+    expected = create_and_load_postgres_datetz(conn)
 
     # GH11216
+    df = read_sql_query("select * from datetz", conn, parse_dates=parse_dates)
+    col = df.DateColWithTz
+    tm.assert_series_equal(col, expected)
+
+
+@pytest.mark.parametrize("conn", postgresql_connectable)
+def test_datetime_with_timezone_query_chunksize(conn, request):
     conn = request.getfixturevalue(conn)
-    df = read_sql_query("select * from types", conn)
-    if not hasattr(df, "DateColWithTz"):
-        request.node.add_marker(
-            pytest.mark.xfail(reason="no column with datetime with time zone")
-        )
-
-    # this is parsed on Travis (linux), but not on macosx for some reason
-    # even with the same versions of psycopg2 & sqlalchemy, possibly a
-    # Postgresql server version difference
-    col = df.DateColWithTz
-    assert isinstance(col.dtype, DatetimeTZDtype)
-
-    df = read_sql_query("select * from types", conn, parse_dates=["DateColWithTz"])
-    if not hasattr(df, "DateColWithTz"):
-        request.node.add_marker(
-            pytest.mark.xfail(reason="no column with datetime with time zone")
-        )
-    col = df.DateColWithTz
-    assert isinstance(col.dtype, DatetimeTZDtype)
-    assert str(col.dt.tz) == "UTC"
-    check(df.DateColWithTz)
+    expected = create_and_load_postgres_datetz(conn)
 
     df = concat(
-        list(read_sql_query("select * from types", conn, chunksize=1)),
+        list(read_sql_query("select * from datetz", conn, chunksize=1)),
         ignore_index=True,
     )
     col = df.DateColWithTz
-    assert isinstance(col.dtype, DatetimeTZDtype)
-    assert str(col.dt.tz) == "UTC"
-    expected = sql.read_sql_table("types", conn)
-    col = expected.DateColWithTz
-    assert isinstance(col.dtype, DatetimeTZDtype)
-    tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz)
+    tm.assert_series_equal(col, expected)
 
-    # xref #7139
-    # this might or might not be converted depending on the postgres driver
-    df = sql.read_sql_table("types", conn)
-    check(df.DateColWithTz)
+
+@pytest.mark.parametrize("conn", postgresql_connectable)
+def test_datetime_with_timezone_table(conn, request):
+    conn = request.getfixturevalue(conn)
+    expected = create_and_load_postgres_datetz(conn)
+    result = sql.read_sql_table("datetz", conn)
+    tm.assert_frame_equal(result, expected.to_frame())
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
