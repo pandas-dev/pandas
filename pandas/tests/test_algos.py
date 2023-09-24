@@ -1282,6 +1282,16 @@ class TestValueCounts:
         result = s.value_counts()
         expected.index = expected.index.as_ordered()
         tm.assert_series_equal(result, expected, check_index_type=True)
+    
+    def test_value_counts_gh55224(self):
+        s = Series(data = ['a', 'b', 'c', 'b'])
+        result = s.astype('string').value_counts(sort=False)
+        expected = Series(
+            data=pd.array([1, 2, 1], dtype=pd.Int64Dtype()),
+            index=pd.array(["a", "b", "c"], dtype="string"),
+            name="count"
+        )
+        tm.assert_series_equal(result, expected)
 
     def test_categorical_nans(self):
         s = Series(Categorical(list("aaaaabbbcc")))  # 4,3,2,1 (nan)

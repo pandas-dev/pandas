@@ -1753,7 +1753,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     notnull = notna
 
-    def value_counts(self, dropna: bool = True) -> Series:
+    def value_counts(self, dropna: bool = True, sort: bool = True) -> Series:
         """
         Return a Series containing counts of each category.
 
@@ -1763,6 +1763,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ----------
         dropna : bool, default True
             Don't include counts of NaN.
+        sort : bool, default True
+            Present for only API compatibility. For categorical
+            data, sorting does not have any effect on the output. 
 
         Returns
         -------

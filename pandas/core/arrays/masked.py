@@ -1021,7 +1021,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     def _values_for_argsort(self) -> np.ndarray:
         return self._data
 
-    def value_counts(self, dropna: bool = True) -> Series:
+    def value_counts(self, dropna: bool = True, sort: bool = True) -> Series:
         """
         Returns a Series containing counts of each unique value.
 
@@ -1029,6 +1029,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         ----------
         dropna : bool, default True
             Don't include counts of missing values.
+        sort: bool, default True
+            Present for only API compatibility.
 
         Returns
         -------
