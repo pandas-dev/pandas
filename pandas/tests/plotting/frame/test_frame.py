@@ -3,7 +3,6 @@ from datetime import (
     date,
     datetime,
 )
-import gc
 import itertools
 import re
 import string
@@ -2050,8 +2049,6 @@ class TestDataFramePlots:
 
         # have matplotlib delete all the figures
         plt.close("all")
-        # force a garbage collection
-        gc.collect()
         assert ref() is None
 
     def test_df_gridspec_patterns_vert_horiz(self):
