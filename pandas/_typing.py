@@ -86,7 +86,7 @@ if TYPE_CHECKING:
     # Name "npt._ArrayLikeInt_co" is not defined  [name-defined]
     NumpySorter = Optional[npt._ArrayLikeInt_co]  # type: ignore[name-defined]
 
-    from typing_extensions import SupportsIndex
+    from typing import SupportsIndex
 
     if sys.version_info >= (3, 10):
         from typing import TypeGuard  # pyright: ignore[reportUnusedImport]
