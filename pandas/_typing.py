@@ -120,7 +120,7 @@ PythonScalar = Union[str, float, bool]
 DatetimeLikeScalar = Union["Period", "Timestamp", "Timedelta"]
 PandasScalar = Union["Period", "Timestamp", "Timedelta", "Interval"]
 Scalar = Union[PythonScalar, PandasScalar, np.datetime64, np.timedelta64, date]
-IntStrT = TypeVar("IntStrT", int, str)
+IntStrT = TypeVar("IntStrT", bound=Union[int, str])
 
 
 # timestamp and timedelta convertible types
