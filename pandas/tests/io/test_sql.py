@@ -197,8 +197,6 @@ def types_table_metadata(dialect: str):
         Column("IntColWithNull", Integer),
         Column("BoolColWithNull", bool_type),
     )
-    if dialect == "postgresql":
-        types.append_column(Column("DateColWithTz", DateTime(timezone=True)))
     return types
 
 
@@ -339,7 +337,6 @@ def types_data():
             "BoolCol": False,
             "IntColWithNull": 1,
             "BoolColWithNull": False,
-            "DateColWithTz": "2000-01-01 00:00:00-08:00",
         },
         {
             "TextCol": "first",
@@ -351,7 +348,6 @@ def types_data():
             "BoolCol": False,
             "IntColWithNull": None,
             "BoolColWithNull": None,
-            "DateColWithTz": "2000-06-01 00:00:00-07:00",
         },
     ]
 
@@ -497,8 +493,6 @@ def mysql_pymysql_engine_iris(mysql_pymysql_engine, iris_path):
 
 @pytest.fixture
 def mysql_pymysql_engine_types(mysql_pymysql_engine, types_data):
-    for entry in types_data:
-        entry.pop("DateColWithTz")
     create_and_load_types(mysql_pymysql_engine, types_data, "mysql")
     yield mysql_pymysql_engine
 
@@ -620,8 +614,6 @@ def sqlite_conn_iris(sqlite_engine_iris):
 def sqlite_str_types(sqlite_str, types_data):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     engine = sqlalchemy.create_engine(sqlite_str)
-    for entry in types_data:
-        entry.pop("DateColWithTz")
     create_and_load_types(engine, types_data, "sqlite")
     engine.dispose()
     return sqlite_str
@@ -629,8 +621,6 @@ def sqlite_str_types(sqlite_str, types_data):
 
 @pytest.fixture
 def sqlite_engine_types(sqlite_engine, types_data):
-    for entry in types_data:
-        entry.pop("DateColWithTz")
     create_and_load_types(sqlite_engine, types_data, "sqlite")
     yield sqlite_engine
 
@@ -657,11 +647,8 @@ def sqlite_buildin_iris(sqlite_buildin, iris_path):
 
 @pytest.fixture
 def sqlite_buildin_types(sqlite_buildin, types_data):
-    new_types_data = []
-    for entry in types_data:
-        entry.pop("DateColWithTz")
-        new_types_data.append(tuple(entry.values()))
-    create_and_load_types_sqlite3(sqlite_buildin, new_types_data)
+    types_data = [tuple(entry.values()) for entry in types_data]
+    create_and_load_types_sqlite3(sqlite_buildin, types_data)
     yield sqlite_buildin
 
 
@@ -1197,14 +1184,14 @@ def test_execute_typeerror(sqlite_engine_iris):
             sql.execute("select * from iris", sqlite_engine_iris)
 
 
-def test_execute_deprecated(sqlite_engine_iris):
+def test_execute_deprecated(sqlite_conn_iris):
     # GH50185
     with tm.assert_produces_warning(
         FutureWarning,
         match="`pandas.io.sql.execute` is deprecated and "
         "will be removed in the future version.",
     ):
-        sql.execute("select * from iris", sqlite_engine_iris)
+        sql.execute("select * from iris", sqlite_conn_iris)
 
 
 def flavor(conn_name):
@@ -1505,7 +1492,6 @@ def test_api_custom_dateparsing_error(
     )
     if "postgres" in conn_name:
         # TODO: clean up types_data_frame fixture
-        result = result.drop(columns=["DateColWithTz"])
         result["BoolCol"] = result["BoolCol"].astype(int)
         result["BoolColWithNull"] = result["BoolColWithNull"].astype(float)
 
@@ -2309,7 +2295,7 @@ def test_read_table_absent_raises(conn, request):
         sql.read_sql_table("this_doesnt_exist", con=conn)
 
 
-@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_types)
 def test_sqlalchemy_default_type_conversion(conn, request):
     conn_name = conn
     if conn_name == "sqlite_str":
@@ -2343,7 +2329,7 @@ def test_bigint(conn, request):
     tm.assert_frame_equal(df, result)
 
 
-@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_types)
 def test_default_date_load(conn, request):
     conn_name = conn
     if conn_name == "sqlite_str":
