@@ -890,7 +890,6 @@ class ExtensionArray:
         limit,
         limit_direction,
         limit_area,
-        fill_value,
         copy: bool,
         **kwargs,
     ) -> Self:
@@ -904,7 +903,6 @@ class ExtensionArray:
         ...                 limit=3,
         ...                 limit_direction="forward",
         ...                 index=pd.Index([1, 2, 3, 4]),
-        ...                 fill_value=1,
         ...                 copy=False,
         ...                 axis=0,
         ...                 limit_area="inside"
