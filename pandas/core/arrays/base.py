@@ -2141,6 +2141,19 @@ class ExtensionArray:
         # error: Incompatible return value type (got "Union[ExtensionArray,
         # ndarray[Any, Any]]", expected "Self")
         return mode(self, dropna=dropna)  # type: ignore[return-value]
+        
+    def round(self, decimals: int = 0, *args, **kwargs) -> Self:
+        # Implementer note: This is a non-optimized default implementation.
+        # Implementers are encouraged to override this method to avoid
+        # elementwise rounding.
+        if not self.dtype._is_numeric or self.dtype._is_boolean:
+            raise TypeError(
+                f"Cannot round {self.dtype} dtype as it is non-numeric or boolean"
+            )
+        return self._from_sequence(
+            [round(element) if not isna(element) else element for element in self.data],
+            dtype=self.dtype,
+        )
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(
@@ -2336,19 +2349,6 @@ class ExtensionOpsMixin:
         setattr(cls, "__ror__", cls._create_logical_method(roperator.ror_))
         setattr(cls, "__xor__", cls._create_logical_method(operator.xor))
         setattr(cls, "__rxor__", cls._create_logical_method(roperator.rxor))
-
-    def round(self, decimals: int = 0, *args, **kwargs) -> Self:
-        # Implementer note: This is a non-optimized default implementation.
-        # Implementers are encouraged to override this method to avoid
-        # elementwise rounding.
-        if not self.dtype._is_numeric or self.dtype._is_boolean:
-            raise TypeError(
-                f"Cannot round {self.dtype} dtype as it is non-numeric or boolean"
-            )
-        return self._from_sequence(
-            [round(element) if not isna(element) else element for element in self.data],
-            dtype=self.dtype,
-        )
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
