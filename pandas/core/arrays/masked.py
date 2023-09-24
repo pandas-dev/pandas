@@ -190,13 +190,8 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
 
         return self._simple_new(self._data[item], newmask)
 
-    def pad_or_backfill(
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
+    def _pad_or_backfill(
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
     ) -> Self:
         mask = self._mask
 
@@ -1491,6 +1486,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             result_mask = mask.copy()
         else:
             result_mask = np.zeros(ngroups, dtype=bool)
+
+        if how == "rank" and kwargs.get("na_option") in ["top", "bottom"]:
+            result_mask[:] = False
 
         res_values = op._cython_op_ndim_compat(
             self._data,

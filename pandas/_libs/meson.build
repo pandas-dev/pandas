@@ -69,7 +69,8 @@ libs_sources = {
     'index': {'sources': ['index.pyx', _index_class_helper]},
     'indexing': {'sources': ['indexing.pyx']},
     'internals': {'sources': ['internals.pyx']},
-    'interval': {'sources': ['interval.pyx', _intervaltree_helper]},
+    'interval': {'sources': ['interval.pyx', _intervaltree_helper],
+                 'deps': _khash_primitive_helper_dep},
     'join': {'sources': ['join.pyx', _khash_primitive_helper],
              'deps': _khash_primitive_helper_dep},
     'lib': {'sources': ['lib.pyx', 'src/parser/tokenizer.c']},
@@ -113,8 +114,40 @@ foreach ext_name, ext_dict : libs_sources
     )
 endforeach
 
-py.install_sources('__init__.py',
-                    pure: false,
-                    subdir: 'pandas/_libs')
+# Basically just __init__.py and the .pyi files
+sources_to_install = [
+    '__init__.py',
+    'algos.pyi',
+    'arrays.pyi',
+    'byteswap.pyi',
+    'groupby.pyi',
+    'hashing.pyi',
+    'hashtable.pyi',
+    'index.pyi',
+    'indexing.pyi',
+    'internals.pyi',
+    'interval.pyi',
+    'join.pyi',
+    'json.pyi',
+    'lib.pyi',
+    'missing.pyi',
+    'ops.pyi',
+    'ops_dispatch.pyi',
+    'parsers.pyi',
+    'properties.pyi',
+    'reshape.pyi',
+    'sas.pyi',
+    'sparse.pyi',
+    'testing.pyi',
+    'tslib.pyi',
+    'writers.pyi'
+]
+
+foreach source: sources_to_install
+    py.install_sources(
+        source,
+        subdir: 'pandas/_libs'
+    )
+endforeach
 
 subdir('window')
