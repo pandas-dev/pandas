@@ -5766,11 +5766,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if len(self.grouper.groupings) == 1:
                 result_len = len(self.grouper.groupings[0].grouping_vector.unique())
             else:
+                # result_index only contains observed groups in this case
                 result_len = len(self.grouper.result_index)
             assert result_len <= expected_len
-            # result_index only contains observed groups
             has_unobserved = result_len < expected_len
+
             raise_err = not ignore_unobserved and has_unobserved
+            # Only raise an error if there are columns to compute; otherwise we return
+            # an empty DataFrame with an index (possibly including unobserved) but no
+            # columns
+            data = self._obj_with_exclusions
+            if isinstance(data, DataFrame):
+                if numeric_only:
+                    data = data._get_numeric_data()
+                raise_err &= len(data.columns) > 0
         else:
             raise_err = False
         if raise_err:
