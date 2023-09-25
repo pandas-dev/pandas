@@ -26,4 +26,5 @@ jobs:
           run: pip install -r requirements-dev.txt
 
         - name: Run linkcheck script
+          working-directory: ./doc
           run: python make.py linkcheck
