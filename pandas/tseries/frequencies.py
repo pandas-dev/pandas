@@ -59,13 +59,6 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # Offset related functions
 
-_need_suffix = ["QS", "BQ", "BQS", "YS", "AS", "BY", "BA", "BYS", "BAS"]
-
-for _prefix in _need_suffix:
-    for _m in MONTHS:
-        key = f"{_prefix}-{_m}"
-        OFFSET_TO_PERIOD_FREQSTR[key] = OFFSET_TO_PERIOD_FREQSTR[_prefix]
-
 for _prefix in ["A", "Q"]:
     for _m in MONTHS:
         _alias = f"{_prefix}-{_m}"
@@ -502,10 +495,10 @@ def is_superperiod(source, target) -> bool:
     -------
     bool
     """
-    if target is None or source is None:
-        return False
     source = _maybe_coerce_freq(source)
     target = _maybe_coerce_freq(target)
+    if target is None or source is None:
+        return False
 
     if _is_annual(source):
         if _is_annual(target):
@@ -544,7 +537,7 @@ def is_superperiod(source, target) -> bool:
         return False
 
 
-def _maybe_coerce_freq(code) -> str:
+def _maybe_coerce_freq(code) -> str | None:
     """we might need to coerce a code to a rule_code
     and uppercase it
 
@@ -557,9 +550,10 @@ def _maybe_coerce_freq(code) -> str:
     -------
     str
     """
-    assert code is not None
     if isinstance(code, DateOffset):
         code = freq_to_period_freqstr(1, code.name)
+    if code is None:
+        return None
     if code in {"min", "s", "ms", "us", "ns"}:
         return code
     else:

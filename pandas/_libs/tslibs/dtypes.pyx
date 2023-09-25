@@ -189,13 +189,8 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "WEEKDAY": "D",
     "EOM": "M",
     "BM": "M",
-    "BQS": "Q",
-    "QS": "Q",
     "BQ": "Q",
     "BA": "A",
-    "AS": "A",
-    "BAS": "A",
-    "MS": "M",
     "D": "D",
     "B": "B",
     "min": "min",
@@ -210,18 +205,16 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "ME": "M",
     "Y": "A",
     "BY": "A",
-    "YS": "A",
-    "BYS": "A",
 }
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
 
 cpdef freq_to_period_freqstr(freq_n, freq_name):
     if freq_n == 1:
         freqstr = f"""{c_OFFSET_TO_PERIOD_FREQSTR.get(
-            freq_name, freq_name)}"""
+            freq_name, None)}"""
     else:
         freqstr = f"""{freq_n}{c_OFFSET_TO_PERIOD_FREQSTR.get(
-            freq_name, freq_name)}"""
+            freq_name, None)}"""
     return freqstr
 
 # Map deprecated resolution abbreviations to correct resolution abbreviations

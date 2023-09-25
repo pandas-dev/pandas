@@ -2051,3 +2051,16 @@ def test_resample_M_deprecated():
     with tm.assert_produces_warning(UserWarning, match=depr_msg):
         result = s.resample("2M").mean()
     tm.assert_series_equal(result, expected)
+
+
+def test_resample_ms_closed_right():
+    # https://github.com/pandas-dev/pandas/issues/55271
+    dti = date_range(start="2020-01-31", freq="1min", periods=6000)
+    df = DataFrame({"ts": dti}, index=dti)
+    grouped = df.resample("MS", closed="right")
+    result = grouped.last()
+    expected = DataFrame(
+        {"ts": [datetime(2020, 2, 1), datetime(2020, 2, 4, 3, 59)]},
+        index=DatetimeIndex([datetime(2020, 1, 1), datetime(2020, 2, 1)], freq="MS"),
+    )
+    tm.assert_frame_equal(result, expected)
