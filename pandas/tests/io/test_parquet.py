@@ -8,10 +8,8 @@ import pathlib
 import numpy as np
 import pytest
 
-from pandas._config import (
-    get_option,
-    using_copy_on_write,
-)
+from pandas._config import using_copy_on_write
+from pandas._config.config import _get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
@@ -61,7 +59,8 @@ pytestmark = pytest.mark.filterwarnings(
         pytest.param(
             "fastparquet",
             marks=pytest.mark.skipif(
-                not _HAVE_FASTPARQUET or get_option("mode.data_manager") == "array",
+                not _HAVE_FASTPARQUET
+                or _get_option("mode.data_manager", silent=True) == "array",
                 reason="fastparquet is not installed or ArrayManager is used",
             ),
         ),
@@ -88,7 +87,7 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    elif get_option("mode.data_manager") == "array":
+    elif _get_option("mode.data_manager", silent=True) == "array":
         pytest.skip("ArrayManager is not supported with fastparquet")
     return "fastparquet"
 
@@ -1012,7 +1011,7 @@ class TestParquetPyArrow(Base):
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
         pytest.importorskip("pyarrow")
-        df = pd.DataFrame({"a": list(range(0, 3))})
+        df = pd.DataFrame({"a": list(range(3))})
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine=pa)
             result = read_parquet(
@@ -1139,6 +1138,25 @@ class TestParquetPyArrow(Base):
         expected = pd.DataFrame({"a": ["123"]}, dtype="string[python]")
         tm.assert_frame_equal(result, expected)
 
+    def test_infer_string_large_string_type(self, tmp_path, pa):
+        # GH#54798
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        path = tmp_path / "large_string.p"
+
+        table = pa.table({"a": pa.array([None, "b", "c"], pa.large_string())})
+        pq.write_table(table, path)
+
+        with pd.option_context("future.infer_string", True):
+            result = read_parquet(path)
+        expected = pd.DataFrame(
+            data={"a": [None, "b", "c"]},
+            dtype="string[pyarrow_numpy]",
+            columns=pd.Index(["a"], dtype="string[pyarrow_numpy]"),
+        )
+        tm.assert_frame_equal(result, expected)
+
 
 class TestParquetFastParquet(Base):
     def test_basic(self, fp, df_full):
@@ -1200,7 +1218,7 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp)
 
     def test_filter_row_groups(self, fp):
-        d = {"a": list(range(0, 3))}
+        d = {"a": list(range(3))}
         df = pd.DataFrame(d)
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine=fp, compression=None, row_group_offsets=1)

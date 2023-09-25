@@ -70,7 +70,7 @@ if TYPE_CHECKING:
     from collections.abc import MutableMapping
     from datetime import tzinfo
 
-    import pyarrow as pa  # noqa: F811, TCH004
+    import pyarrow as pa  # noqa: TCH004
 
     from pandas._typing import (
         Dtype,
@@ -1035,7 +1035,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
                 if m is not None:
                     freq = m.group("freq")
 
-            freq_offset = to_offset(freq)
+            freq_offset = to_offset(freq, is_period=True)
             if freq_offset is not None:
                 return freq_offset
 
@@ -2147,6 +2147,8 @@ class ArrowDtype(StorageExtensionDtype):
             #  something more representative of the scalar
             return CategoricalDtypeType
         elif pa.types.is_list(pa_type) or pa.types.is_large_list(pa_type):
+            return list
+        elif pa.types.is_fixed_size_list(pa_type):
             return list
         elif pa.types.is_map(pa_type):
             return list

@@ -31,6 +31,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY311,
     is_ci_environment,
@@ -40,6 +41,7 @@ from pandas.compat import (
     pa_version_under9p0,
     pa_version_under11p0,
     pa_version_under13p0,
+    pa_version_under14p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -917,7 +919,7 @@ class TestArrowArray(base.ExtensionTests):
                 or (
                     opname
                     in ("__truediv__", "__rtruediv__", "__floordiv__", "__rfloordiv__")
-                    and not pa_version_under13p0
+                    and not pa_version_under14p0
                 )
             )
             and pa.types.is_duration(pa_dtype)
@@ -2431,7 +2433,7 @@ def test_dt_tz(tz):
         dtype=ArrowDtype(pa.timestamp("ns", tz=tz)),
     )
     result = ser.dt.tz
-    assert result == tz
+    assert result == timezones.maybe_get_tz(tz)
 
 
 def test_dt_isocalendar():
@@ -2992,6 +2994,15 @@ def test_groupby_count_return_arrow_dtype(data_missing):
     tm.assert_frame_equal(result, expected)
 
 
+def test_fixed_size_list():
+    # GH#55000
+    ser = pd.Series(
+        [[1, 2], [3, 4]], dtype=ArrowDtype(pa.list_(pa.int64(), list_size=2))
+    )
+    result = ser.dtype.type
+    assert result == list
+
+
 def test_arrowextensiondtype_dataframe_repr():
     # GH 54062
     df = pd.DataFrame(
@@ -3014,6 +3025,14 @@ def test_duration_fillna_numpy(pa_type):
     result = ser1.fillna(ser2)
     expected = pd.Series([1, 2], dtype=ArrowDtype(pa_type))
     tm.assert_series_equal(result, expected)
+
+
+def test_comparison_not_propagating_arrow_error():
+    # GH#54944
+    a = pd.Series([1 << 63], dtype="uint64[pyarrow]")
+    b = pd.Series([None], dtype="int64[pyarrow]")
+    with pytest.raises(pa.lib.ArrowInvalid, match="Integer value"):
+        a < b
 
 
 def test_factorize_chunked_dictionary():
