@@ -1,4 +1,3 @@
----
 name: Broken linkcheck
 on:
     workflow_dispatch: # Enable manual triggering
