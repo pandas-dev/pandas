@@ -1,3 +1,6 @@
+# Disable type checking for this module since numba's internals
+# are not typed, and we use numba's internals via its extension API
+# mypy: ignore-errors
 """
 Utility classes/functions to let numba recognize
 pandas Index/Series/DataFrame
@@ -38,14 +41,18 @@ from pandas.core.series import Series
 
 # TODO: Range index support
 # (not passing an index to series constructor doesn't work)
-class IndexType(types.Buffer):
+class IndexType(types.Type):
     """
     The type class for Index objects.
     """
 
-    def __init__(self, dtype, layout, pyclass) -> None:
+    def __init__(self, dtype, layout, pyclass: any) -> None:
         self.pyclass = pyclass
-        super().__init__(dtype, 1, layout)
+        name = f"index({dtype}, {layout})"
+        self.dtype = dtype
+        self.layout = layout
+        super().__init__(name)
+        # super().__init__(dtype, 1, layout)
 
     @property
     def key(self):
@@ -190,7 +197,7 @@ def pdseries_constructor(context, builder, sig, args):
 @lower_builtin(Series, types.Array, IndexType, types.intp)
 @lower_builtin(Series, types.Array, IndexType, types.float64)
 @lower_builtin(Series, types.Array, IndexType, types.unicode_type)
-def pdseries_constructor(context, builder, sig, args):
+def pdseries_constructor_with_name(context, builder, sig, args):
     data, index, name = args
     series = cgutils.create_struct_proxy(sig.return_type)(context, builder)
     series.index = index
@@ -351,7 +358,9 @@ def box_series(typ, val, c):
     name_obj = c.box(typ.namety, series.name)
     true_obj = c.pyapi.unserialize(c.pyapi.serialize_object(True))
     # TODO: Is borrowing none here safe?
-    # This is equivalent of pd.Series(data=array_obj, index=index_obj, dtype=None, name=name_obj, copy=None, fastpath=True)
+    # This is equivalent of
+    # pd.Series(data=array_obj, index=index_obj, dtype=None,
+    #           name=name_obj, copy=None, fastpath=True)
     series_obj = c.pyapi.call_function_objargs(
         class_obj,
         (
@@ -435,7 +444,7 @@ for binop in series_binops:
 @overload_method(IndexType, "get_loc")
 def index_get_loc(index, item):
     def index_get_loc_impl(index, item):
-        # Initialize the hash table if not initalized
+        # Initialize the hash table if not initialized
         if len(index.hashmap) == 0:
             for i, val in enumerate(index._data):
                 index.hashmap[val] = i
@@ -444,7 +453,7 @@ def index_get_loc(index, item):
     return index_get_loc_impl
 
 
-# Indexing for Series
+# Indexing for Series/Index
 
 
 @overload(operator.getitem)
@@ -456,6 +465,16 @@ def series_indexing(series, item):
             return series.iloc[loc]
 
         return series_getitem
+
+
+@overload(operator.getitem)
+def index_indexing(index, idx):
+    if isinstance(index, IndexType):
+
+        def index_getitem(index, idx):
+            return index._data[idx]
+
+        return index_getitem
 
 
 class IlocType(types.Type):
