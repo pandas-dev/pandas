@@ -132,7 +132,6 @@ class ExtensionArray:
     interpolate
     isin
     isna
-    pad_or_backfill
     ravel
     repeat
     searchsorted
@@ -143,11 +142,13 @@ class ExtensionArray:
     view
     _accumulate
     _concat_same_type
+    _explode
     _formatter
     _from_factorized
     _from_sequence
     _from_sequence_of_strings
     _hash_pandas_object
+    _pad_or_backfill
     _reduce
     _values_for_argsort
     _values_for_factorize
@@ -183,7 +184,7 @@ class ExtensionArray:
     methods:
 
     * fillna
-    * pad_or_backfill
+    * _pad_or_backfill
     * dropna
     * unique
     * factorize / _values_for_factorize
@@ -918,13 +919,8 @@ class ExtensionArray:
             f"{type(self).__name__} does not implement interpolate"
         )
 
-    def pad_or_backfill(
-        self,
-        *,
-        method: FillnaOptions,
-        limit: int | None = None,
-        limit_area: Literal["inside", "outside"] | None = None,
-        copy: bool = True,
+    def _pad_or_backfill(
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
     ) -> Self:
         """
         Pad or backfill values, used by Series/DataFrame ffill and bfill.
@@ -960,26 +956,26 @@ class ExtensionArray:
         Examples
         --------
         >>> arr = pd.array([np.nan, np.nan, 2, 3, np.nan, np.nan])
-        >>> arr.pad_or_backfill(method="backfill", limit=1)
+        >>> arr._pad_or_backfill(method="backfill", limit=1)
         <IntegerArray>
         [<NA>, 2, 2, 3, <NA>, <NA>]
         Length: 6, dtype: Int64
         """
 
         # If a 3rd-party EA has implemented this functionality in fillna,
-        #  we warn that they need to implement pad_or_backfill instead.
+        #  we warn that they need to implement _pad_or_backfill instead.
         if (
             type(self).fillna is not ExtensionArray.fillna
-            and type(self).pad_or_backfill is ExtensionArray.pad_or_backfill
+            and type(self)._pad_or_backfill is ExtensionArray._pad_or_backfill
         ):
-            # Check for pad_or_backfill here allows us to call
-            #  super().pad_or_backfill without getting this warning
+            # Check for _pad_or_backfill here allows us to call
+            #  super()._pad_or_backfill without getting this warning
             warnings.warn(
                 "ExtensionArray.fillna 'method' keyword is deprecated. "
-                "In a future version. arr.pad_or_backfill will be called "
+                "In a future version. arr._pad_or_backfill will be called "
                 "instead. 3rd-party ExtensionArray authors need to implement "
-                "pad_or_backfill.",
-                FutureWarning,
+                "_pad_or_backfill.",
+                DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
             return self.fillna(method=method, limit=limit)
@@ -1063,8 +1059,7 @@ class ExtensionArray:
         if method is not None:
             warnings.warn(
                 f"The 'method' keyword in {type(self).__name__}.fillna is "
-                "deprecated and will be removed in a future version. "
-                "Use pad_or_backfill instead.",
+                "deprecated and will be removed in a future version.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
@@ -1929,6 +1924,41 @@ class ExtensionArray:
         return hash_array(
             values, encoding=encoding, hash_key=hash_key, categorize=categorize
         )
+
+    def _explode(self) -> tuple[Self, npt.NDArray[np.uint64]]:
+        """
+        Transform each element of list-like to a row.
+
+        For arrays that do not contain list-like elements the default
+        implementation of this method just returns a copy and an array
+        of ones (unchanged index).
+
+        Returns
+        -------
+        ExtensionArray
+            Array with the exploded values.
+        np.ndarray[uint64]
+            The original lengths of each list-like for determining the
+            resulting index.
+
+        See Also
+        --------
+        Series.explode : The method on the ``Series`` object that this
+            extension array method is meant to support.
+
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> a = pd.array([[1, 2, 3], [4], [5, 6]],
+        ...              dtype=pd.ArrowDtype(pa.list_(pa.int64())))
+        >>> a._explode()
+        (<ArrowExtensionArray>
+        [1, 2, 3, 4, 5, 6]
+        Length: 6, dtype: int64[pyarrow], array([3, 1, 2], dtype=int32))
+        """
+        values = self.copy()
+        counts = np.ones(shape=(len(self),), dtype=np.uint64)
+        return values, counts
 
     def tolist(self) -> list:
         """

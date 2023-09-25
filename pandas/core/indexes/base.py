@@ -124,6 +124,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCDatetimeIndex,
+    ABCIntervalIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
@@ -1120,7 +1121,7 @@ class Index(IndexOpsMixin, PandasObject):
         allow_fill: bool = True,
         fill_value=None,
         **kwargs,
-    ):
+    ) -> Self:
         if kwargs:
             nv.validate_take((), kwargs)
         if is_scalar(indices):
@@ -1205,7 +1206,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
     @Appender(_index_shared_docs["repeat"] % _index_doc_kwargs)
-    def repeat(self, repeats, axis=None):
+    def repeat(self, repeats, axis: None = None) -> Self:
         repeats = ensure_platform_int(repeats)
         nv.validate_repeat((), {"axis": axis})
         res_values = self._values.repeat(repeats)
@@ -1396,8 +1397,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         values = self._values
 
-        if is_object_dtype(values.dtype):
-            values = cast(np.ndarray, values)
+        if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
+            values = np.asarray(values)
             values = lib.maybe_convert_objects(values, safe=True)
 
             result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]
@@ -3492,8 +3493,6 @@ class Index(IndexOpsMixin, PandasObject):
             and other.is_monotonic_increasing
             and self._can_use_libjoin
             and other._can_use_libjoin
-            and not isinstance(self, ABCMultiIndex)
-            and not isinstance(other, ABCMultiIndex)
         ):
             try:
                 res_indexer, indexer, _ = self._inner_indexer(other)
@@ -3528,7 +3527,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        np.ndarray or ExtensionArray
+        np.ndarray or ExtensionArray or MultiIndex
             The returned array will be unique.
         """
         left_unique = self.unique()
@@ -3545,6 +3544,7 @@ class Index(IndexOpsMixin, PandasObject):
             # unnecessary in the case with sort=None bc we will sort later
             taker = np.sort(taker)
 
+        result: MultiIndex | ExtensionArray | np.ndarray
         if isinstance(left_unique, ABCMultiIndex):
             result = left_unique.take(taker)
         else:
@@ -3598,14 +3598,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         if len(other) == 0:
             # Note: we do not (yet) sort even if sort=None GH#24959
-            result = self.rename(result_name)
+            result = self.unique().rename(result_name)
             if sort is True:
                 return result.sort_values()
             return result
 
         if not self._should_compare(other):
             # Nothing matches -> difference is everything
-            result = self.rename(result_name)
+            result = self.unique().rename(result_name)
             if sort is True:
                 return result.sort_values()
             return result
@@ -3615,21 +3615,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _difference(self, other, sort):
         # overridden by RangeIndex
-
-        this = self.unique()
-
-        indexer = this.get_indexer_for(other)
-        indexer = indexer.take((indexer != -1).nonzero()[0])
-
-        label_diff = np.setdiff1d(np.arange(this.size), indexer, assume_unique=True)
-
-        the_diff: MultiIndex | ArrayLike
-        if isinstance(this, ABCMultiIndex):
-            the_diff = this.take(label_diff)
-        else:
-            the_diff = this._values.take(label_diff)
+        other = other.unique()
+        the_diff = self[other.get_indexer_for(self) == -1]
+        the_diff = the_diff if self.is_unique else the_diff.unique()
         the_diff = _maybe_try_sort(the_diff, sort)
-
         return the_diff
 
     def _wrap_difference_result(self, other, result):
@@ -3949,12 +3938,8 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self.dtype, IntervalDtype):
             if isinstance(target.dtype, IntervalDtype):
                 return False
-            # See https://github.com/pandas-dev/pandas/issues/47772 the commented
-            # out code can be restored (instead of hardcoding `return True`)
-            # once that issue is fixed
             # "Index" has no attribute "left"
-            # return self.left._should_compare(target)  # type: ignore[attr-defined]
-            return True
+            return self.left._should_compare(target)  # type: ignore[attr-defined]
         return False
 
     @final
@@ -4446,7 +4431,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         indexer, missing = self.get_indexer_non_unique(target)
         check = indexer != -1
-        new_labels = self.take(indexer[check])
+        new_labels: Index | np.ndarray = self.take(indexer[check])
         new_indexer = None
 
         if len(missing):
@@ -4557,7 +4542,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         join_index, (left_indexer, right_indexer)
 
-         Examples
+        Examples
         --------
         >>> idx1 = pd.Index([1, 2, 3])
         >>> idx2 = pd.Index([4, 5, 6])
@@ -4632,28 +4617,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         _validate_join_method(how)
 
-        if not self.is_unique and not other.is_unique:
-            return self._join_non_unique(other, how=how, sort=sort)
-        elif not self.is_unique or not other.is_unique:
-            if self.is_monotonic_increasing and other.is_monotonic_increasing:
-                # Note: 2023-08-15 we *do* have tests that get here with
-                #  Categorical, string[python] (can use libjoin)
-                #  and Interval (cannot)
-                if self._can_use_libjoin and other._can_use_libjoin:
-                    # otherwise we will fall through to _join_via_get_indexer
-                    # GH#39133
-                    # go through object dtype for ea till engine is supported properly
-                    return self._join_monotonic(other, how=how)
-            else:
-                return self._join_non_unique(other, how=how, sort=sort)
-        elif (
-            # GH48504: exclude MultiIndex to avoid going through MultiIndex._values
-            self.is_monotonic_increasing
+        if (
+            not isinstance(self.dtype, CategoricalDtype)
+            and self.is_monotonic_increasing
             and other.is_monotonic_increasing
             and self._can_use_libjoin
             and other._can_use_libjoin
-            and not isinstance(self, ABCMultiIndex)
-            and not isinstance(self.dtype, CategoricalDtype)
+            and (self.is_unique or other.is_unique)
         ):
             # Categorical is monotonic if data are ordered as categories, but join can
             #  not handle this in case of not lexicographically monotonic GH#38502
@@ -4662,6 +4632,8 @@ class Index(IndexOpsMixin, PandasObject):
             except TypeError:
                 # object dtype; non-comparable objects
                 pass
+        elif not self.is_unique or not other.is_unique:
+            return self._join_non_unique(other, how=how, sort=sort)
 
         return self._join_via_get_indexer(other, how, sort)
 
@@ -4797,6 +4769,9 @@ class Index(IndexOpsMixin, PandasObject):
         join_idx = self.take(left_idx)
         right = other.take(right_idx)
         join_index = join_idx.putmask(mask, right)
+        if isinstance(join_index, ABCMultiIndex) and how == "outer":
+            # test_join_index_levels
+            join_index = join_index._sort_levels_monotonic()
         return join_index, left_idx, right_idx
 
     @final
@@ -5016,7 +4991,7 @@ class Index(IndexOpsMixin, PandasObject):
             # expected "Self")
             mask = lidx == -1
             join_idx = self.take(lidx)
-            right = other.take(ridx)
+            right = cast("MultiIndex", other.take(ridx))
             join_index = join_idx.putmask(mask, right)._sort_levels_monotonic()
             return join_index.set_names(name)  # type: ignore[return-value]
         else:
@@ -5042,10 +5017,10 @@ class Index(IndexOpsMixin, PandasObject):
                 or isinstance(self._values, (ArrowExtensionArray, BaseMaskedArray))
                 or self.dtype == "string[python]"
             )
-        # For IntervalIndex, the conversion to numpy converts
-        #  to object dtype, which negates the performance benefit of libjoin
-        # TODO: exclude RangeIndex and MultiIndex as these also make copies?
-        return not isinstance(self.dtype, IntervalDtype)
+        # Exclude index types where the conversion to numpy converts to object dtype,
+        #  which negates the performance benefit of libjoin
+        # TODO: exclude RangeIndex? Seems to break test_concat_datetime_timezone
+        return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex))
 
     # --------------------------------------------------------------------
     # Uncategorized Methods
@@ -5180,8 +5155,7 @@ class Index(IndexOpsMixin, PandasObject):
             # present
             return self._values.to_numpy()
 
-        # TODO: exclude ABCRangeIndex, ABCMultiIndex cases here as those create
-        #  copies.
+        # TODO: exclude ABCRangeIndex case here as it copies
         target = self._get_engine_target()
         if not isinstance(target, np.ndarray):
             raise ValueError("_can_use_libjoin should return False.")
@@ -5194,7 +5168,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if isinstance(self.values, BaseMaskedArray):
             return type(self.values)(result, np.zeros(result.shape, dtype=np.bool_))
-        elif isinstance(self.values, ArrowExtensionArray):
+        elif isinstance(self.values, (ArrowExtensionArray, StringArray)):
             return type(self.values)._from_sequence(result)
         return result
 
@@ -7002,7 +6976,7 @@ class Index(IndexOpsMixin, PandasObject):
             result._references.add_index_reference(result)
         return result
 
-    def diff(self, periods: int = 1):
+    def diff(self, periods: int = 1) -> Self:
         """
         Computes the difference between consecutive values in the Index object.
 
@@ -7030,7 +7004,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._constructor(self.to_series().diff(periods))
 
-    def round(self, decimals: int = 0):
+    def round(self, decimals: int = 0) -> Self:
         """
         Round each value in the Index to the given number of decimals.
 

@@ -693,20 +693,30 @@ class SortValues:
         self.df.sort_values(by="A", ascending=ascending)
 
 
-class SortIndexByColumns:
-    def setup(self):
+class SortMultiKey:
+    params = [True, False]
+    param_names = ["monotonic"]
+
+    def setup(self, monotonic):
         N = 10000
         K = 10
-        self.df = DataFrame(
+        df = DataFrame(
             {
                 "key1": tm.makeStringIndex(N).values.repeat(K),
                 "key2": tm.makeStringIndex(N).values.repeat(K),
                 "value": np.random.randn(N * K),
             }
         )
+        if monotonic:
+            df = df.sort_values(["key1", "key2"])
+        self.df_by_columns = df
+        self.df_by_index = df.set_index(["key1", "key2"])
 
-    def time_frame_sort_values_by_columns(self):
-        self.df.sort_values(by=["key1", "key2"])
+    def time_sort_values(self, monotonic):
+        self.df_by_columns.sort_values(by=["key1", "key2"])
+
+    def time_sort_index(self, monotonic):
+        self.df_by_index.sort_index()
 
 
 class Quantile:

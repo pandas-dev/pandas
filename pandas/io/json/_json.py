@@ -82,6 +82,7 @@ if TYPE_CHECKING:
         JSONEngine,
         JSONSerializable,
         ReadBuffer,
+        Self,
         StorageOptions,
         WriteBuffer,
     )
@@ -174,7 +175,7 @@ def to_json(
 
     if mode == "a" and (not lines or orient != "records"):
         msg = (
-            "mode='a' (append) is only supported when"
+            "mode='a' (append) is only supported when "
             "lines is True and orient is 'records'"
         )
         raise ValueError(msg)
@@ -1056,7 +1057,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         if self.handles is not None:
             self.handles.close()
 
-    def __iter__(self: JsonReader[FrameSeriesStrT]) -> JsonReader[FrameSeriesStrT]:
+    def __iter__(self) -> Self:
         return self
 
     @overload
@@ -1099,7 +1100,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         else:
             return obj
 
-    def __enter__(self) -> JsonReader[FrameSeriesStrT]:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -1216,7 +1217,16 @@ class Parser:
             if not self.dtype:
                 if all(notna(data)):
                     return data, False
-                return data.fillna(np.nan), True
+
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "Downcasting object dtype arrays",
+                        category=FutureWarning,
+                    )
+                    filled = data.fillna(np.nan)
+
+                return filled, True
 
             elif self.dtype is True:
                 pass
