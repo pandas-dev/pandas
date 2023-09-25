@@ -1741,7 +1741,9 @@ class TextFileReader(abc.Iterator):
         # Converting values to NA
         keep_default_na = options["keep_default_na"]
         remove_from_default_na = options["remove_from_default_na"]
-        na_values, na_fvalues = _clean_na_values(na_values, remove_from_default_na, keep_default_na)
+        na_values, na_fvalues = _clean_na_values(
+            na_values, remove_from_default_na, keep_default_na
+        )
 
         # handle skiprows; this is internally handled by the
         # c-engine, so only need for python and pyarrow parsers

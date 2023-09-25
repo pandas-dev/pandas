@@ -288,7 +288,7 @@ a,b,c,d
             ),
         ),
         (
-            {"na_values" ["nan"], "remove_from_default_na": ["nan"]},
+            {"na_values": ["nan"], "remove_from_default_na": ["nan"]},
             DataFrame(
                 {
                     "A": ["a", "b", np.nan, "d", "e", np.nan, "g"],
