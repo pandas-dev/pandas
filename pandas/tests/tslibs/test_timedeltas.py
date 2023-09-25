@@ -1,6 +1,7 @@
 import re
 
 import numpy as np
+import pyarrow as pa
 import pytest
 
 from pandas._libs.tslibs.timedeltas import (
@@ -174,17 +175,14 @@ def test_timedelta_as_unit_conversion(
 
     converted_timedelta = orig_timedelta.as_unit(new_unit)
 
-    assert orig_timedelta._get_pytimedelta_days() == expected_pytime_days
     assert converted_timedelta._get_pytimedelta_days() == expected_pytime_days
-    assert orig_timedelta._get_pytimedelta_seconds() == expected_pytime_seconds
     assert converted_timedelta._get_pytimedelta_seconds() == expected_pytime_seconds
-    assert (
-        orig_timedelta._get_pytimedelta_microseconds() == expected_pytime_microseconds
-    )
     assert (
         converted_timedelta._get_pytimedelta_microseconds()
         == expected_pytime_microseconds
     )
+    # finally test with pyarrow, since this was previously a bug
+    assert pa.scalar(converted_timedelta) == pa.scalar(orig_timedelta)
 
 
 @pytest.mark.parametrize(
@@ -240,7 +238,7 @@ def test_non_nano_c_api(
     dtype = np.dtype(f"m8[{unit}]")
     reso = _python_get_unit_from_dtype(dtype)
 
-    uut_delta = tmp_delta._from_value_and_reso(value, reso)
+    uut_delta = Timedelta(tmp_delta._from_value_and_reso(value, reso))
 
     assert uut_delta._get_pytimedelta_days() == expected_pytime_days
     assert uut_delta._get_pytimedelta_seconds() == expected_pytime_seconds
@@ -263,7 +261,7 @@ def test_non_nano_c_api_pytimedelta_overflow(unit, value):
     dtype = np.dtype(f"m8[{unit}]")
     reso = _python_get_unit_from_dtype(dtype)
 
-    uut_delta = tmp_delta._from_value_and_reso(value, reso)
+    uut_delta = Timedelta(tmp_delta._from_value_and_reso(value, reso))
 
     assert uut_delta._get_pytimedelta_days() == 0
     assert uut_delta._get_pytimedelta_seconds() == 0
