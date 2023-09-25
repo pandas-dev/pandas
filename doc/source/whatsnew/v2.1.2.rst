@@ -29,7 +29,7 @@ Bug fixes
 
 Other
 ~~~~~
-- Fixed non-working installation of optional dependency group `output_formatting`. Replacing underscore `_` with a dash `-` fixes broken dependency resolution. A correct way to use now is ``pip install pandas[output-formatting]``.
+- Fixed non-working installation of optional dependency group ``output_formatting``. Replacing underscore ``_`` with a dash ``-`` fixes broken dependency resolution. A correct way to use now is ``pip install pandas[output-formatting]``.
 -
 
 .. ---------------------------------------------------------------------------
