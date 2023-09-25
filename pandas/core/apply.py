@@ -812,6 +812,7 @@ class FrameApply(NDFrameApply):
     def series_generator(self) -> Generator[Series, None, None]:
         pass
 
+    @staticmethod
     @functools.cache
     @abc.abstractmethod
     def generate_numba_apply_func(

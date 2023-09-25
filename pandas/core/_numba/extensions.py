@@ -387,11 +387,11 @@ def box_series(typ, val, c):
 # and also add common binops (e.g. add, sub, mul, div)
 
 
-def generate_series_reduction(reduction, reduction_method):
-    @overload_method(SeriesType, reduction)
+def generate_series_reduction(ser_reduction, ser_method):
+    @overload_method(SeriesType, ser_reduction)
     def series_reduction(series):
         def series_reduction_impl(series):
-            return reduction_method(series.values)
+            return ser_method(series.values)
 
         return series_reduction_impl
 
@@ -436,8 +436,8 @@ for reduction, reduction_method in series_reductions:
 
 series_binops = [operator.add, operator.sub, operator.mul, operator.truediv]
 
-for binop in series_binops:
-    generate_series_binop(binop)
+for ser_binop in series_binops:
+    generate_series_binop(ser_binop)
 
 
 # get_loc on Index
