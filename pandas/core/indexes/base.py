@@ -4204,15 +4204,9 @@ class Index(IndexOpsMixin, PandasObject):
                 self._validate_indexer("slice", key.step, "getitem")
                 return key
 
-        # convert the slice to an indexer here
-
-        # special case for interval_dtype bc we do not do partial-indexing
-        #  on integer Intervals when slicing
-        # TODO: write this in terms of e.g. should_partial_index?
-        ints_are_positional = self._should_fallback_to_positional or isinstance(
-            self.dtype, IntervalDtype
-        )
-        is_positional = is_index_slice and ints_are_positional
+        # convert the slice to an indexer here; checking that the user didn't
+        #  pass a positional slice to loc
+        is_positional = is_index_slice and self._should_fallback_to_positional
 
         # if we are mixed and have integers
         if is_positional:
