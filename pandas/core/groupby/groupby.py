@@ -5771,7 +5771,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             assert result_len <= expected_len
             has_unobserved = result_len < expected_len
 
-            raise_err = not ignore_unobserved and has_unobserved
+            raise_err: bool | np.bool_ = not ignore_unobserved and has_unobserved
             # Only raise an error if there are columns to compute; otherwise we return
             # an empty DataFrame with an index (possibly including unobserved) but no
             # columns
