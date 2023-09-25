@@ -107,7 +107,7 @@ data however will be stored as ``object`` data.
 
    pd.Series(pd.period_range("1/1/2011", freq="M", periods=3))
    pd.Series([pd.DateOffset(1), pd.DateOffset(2)])
-   pd.Series(pd.date_range("1/1/2011", freq="M", periods=3))
+   pd.Series(pd.date_range("1/1/2011", freq="ME", periods=3))
 
 Lastly, pandas represents null date times, time deltas, and time spans as ``NaT`` which
 is useful for representing missing or null date like values and behaves similar
@@ -450,7 +450,7 @@ variety of :ref:`frequency aliases <timeseries.offset_aliases>`:
 
 .. ipython:: python
 
-   pd.date_range(start, periods=1000, freq="M")
+   pd.date_range(start, periods=1000, freq="ME")
 
    pd.bdate_range(start, periods=250, freq="BQS")
 
@@ -603,7 +603,7 @@ would include matching times on an included date:
    dft = pd.DataFrame(
        np.random.randn(100000, 1),
        columns=["A"],
-       index=pd.date_range("20130101", periods=100000, freq="T"),
+       index=pd.date_range("20130101", periods=100000, freq="min"),
    )
    dft
    dft.loc["2013"]
@@ -882,7 +882,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
     :class:`~pandas.tseries.offsets.WeekOfMonth`, ``'WOM'``, "the x-th day of the y-th week of each month"
     :class:`~pandas.tseries.offsets.LastWeekOfMonth`, ``'LWOM'``, "the x-th day of the last week of each month"
-    :class:`~pandas.tseries.offsets.MonthEnd`, ``'M'``, "calendar month end"
+    :class:`~pandas.tseries.offsets.MonthEnd`, ``'ME'``, "calendar month end"
     :class:`~pandas.tseries.offsets.MonthBegin`, ``'MS'``, "calendar month begin"
     :class:`~pandas.tseries.offsets.BMonthEnd` or :class:`~pandas.tseries.offsets.BusinessMonthEnd`, ``'BM'``, "business month end"
     :class:`~pandas.tseries.offsets.BMonthBegin` or :class:`~pandas.tseries.offsets.BusinessMonthBegin`, ``'BMS'``, "business month begin"
@@ -905,11 +905,11 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.CustomBusinessHour`, ``'CBH'``, "custom business hour"
     :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one absolute day"
     :class:`~pandas.tseries.offsets.Hour`, ``'H'``, "one hour"
-    :class:`~pandas.tseries.offsets.Minute`, ``'T'`` or ``'min'``,"one minute"
-    :class:`~pandas.tseries.offsets.Second`, ``'S'``, "one second"
-    :class:`~pandas.tseries.offsets.Milli`, ``'L'`` or ``'ms'``, "one millisecond"
-    :class:`~pandas.tseries.offsets.Micro`, ``'U'`` or ``'us'``, "one microsecond"
-    :class:`~pandas.tseries.offsets.Nano`, ``'N'``, "one nanosecond"
+    :class:`~pandas.tseries.offsets.Minute`, ``'min'``,"one minute"
+    :class:`~pandas.tseries.offsets.Second`, ``'s'``, "one second"
+    :class:`~pandas.tseries.offsets.Milli`, ``'ms'``, "one millisecond"
+    :class:`~pandas.tseries.offsets.Micro`, ``'us'``, "one microsecond"
+    :class:`~pandas.tseries.offsets.Nano`, ``'ns'``, "one nanosecond"
 
 ``DateOffsets`` additionally have :meth:`rollforward` and :meth:`rollback`
 methods for moving a date forward or backward respectively to a valid offset
@@ -1246,7 +1246,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "C", "custom business day frequency"
     "D", "calendar day frequency"
     "W", "weekly frequency"
-    "M", "month end frequency"
+    "ME", "month end frequency"
     "SM", "semi-month end frequency (15th and end of month)"
     "BM", "business month end frequency"
     "CBM", "custom business month end frequency"
@@ -1264,11 +1264,16 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "BAS, BYS", "business year start frequency"
     "BH", "business hour frequency"
     "H", "hourly frequency"
-    "T, min", "minutely frequency"
-    "S", "secondly frequency"
-    "L, ms", "milliseconds"
-    "U, us", "microseconds"
-    "N", "nanoseconds"
+    "min", "minutely frequency"
+    "s", "secondly frequency"
+    "ms", "milliseconds"
+    "us", "microseconds"
+    "ns", "nanoseconds"
+
+.. deprecated:: 2.2.0
+
+   Aliases ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
+   ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 .. note::
 
@@ -1318,11 +1323,16 @@ frequencies. We will refer to these aliases as *period aliases*.
     "Q", "quarterly frequency"
     "A, Y", "yearly frequency"
     "H", "hourly frequency"
-    "T, min", "minutely frequency"
-    "S", "secondly frequency"
-    "L, ms", "milliseconds"
-    "U, us", "microseconds"
-    "N", "nanoseconds"
+    "min", "minutely frequency"
+    "s", "secondly frequency"
+    "ms", "milliseconds"
+    "us", "microseconds"
+    "ns", "nanoseconds"
+
+.. deprecated:: 2.2.0
+
+   Aliases ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
+   ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 
 Combining aliases
@@ -1343,7 +1353,7 @@ You can combine together day and intraday offsets:
 
    pd.date_range(start, periods=10, freq="2h20min")
 
-   pd.date_range(start, periods=10, freq="1D10U")
+   pd.date_range(start, periods=10, freq="1D10us")
 
 Anchored offsets
 ~~~~~~~~~~~~~~~~
@@ -1635,7 +1645,7 @@ Basics
 
 .. ipython:: python
 
-   rng = pd.date_range("1/1/2012", periods=100, freq="S")
+   rng = pd.date_range("1/1/2012", periods=100, freq="s")
 
    ts = pd.Series(np.random.randint(0, 500, len(rng)), index=rng)
 
@@ -1680,7 +1690,7 @@ the end of the interval.
 .. warning::
 
     The default values for ``label`` and ``closed`` is '**left**' for all
-    frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W'
+    frequency offsets except for 'ME', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W'
     which all have a default of 'right'.
 
     This might unintendedly lead to looking ahead, where the value for a later
@@ -1725,11 +1735,11 @@ For upsampling, you can specify a way to upsample and the ``limit`` parameter to
 
    # from secondly to every 250 milliseconds
 
-   ts[:2].resample("250L").asfreq()
+   ts[:2].resample("250ms").asfreq()
 
-   ts[:2].resample("250L").ffill()
+   ts[:2].resample("250ms").ffill()
 
-   ts[:2].resample("250L").ffill(limit=2)
+   ts[:2].resample("250ms").ffill(limit=2)
 
 Sparse resampling
 ~~~~~~~~~~~~~~~~~
@@ -1752,7 +1762,7 @@ If we want to resample to the full range of the series:
 
 .. ipython:: python
 
-    ts.resample("3T").sum()
+    ts.resample("3min").sum()
 
 We can instead only resample those groups where we have points as follows:
 
@@ -1766,7 +1776,7 @@ We can instead only resample those groups where we have points as follows:
         freq = to_offset(freq)
         return pd.Timestamp((t.value // freq.delta.value) * freq.delta.value)
 
-    ts.groupby(partial(round, freq="3T")).sum()
+    ts.groupby(partial(round, freq="3min")).sum()
 
 .. _timeseries.aggregate:
 
@@ -1783,10 +1793,10 @@ Resampling a ``DataFrame``, the default will be to act on all columns with the s
 
    df = pd.DataFrame(
        np.random.randn(1000, 3),
-       index=pd.date_range("1/1/2012", freq="S", periods=1000),
+       index=pd.date_range("1/1/2012", freq="s", periods=1000),
        columns=["A", "B", "C"],
    )
-   r = df.resample("3T")
+   r = df.resample("3min")
    r.mean()
 
 We can select a specific column or columns using standard getitem.
@@ -1846,7 +1856,7 @@ to resample based on datetimelike column in the frame, it can passed to the
        ),
    )
    df
-   df.resample("M", on="date")[["a"]].sum()
+   df.resample("ME", on="date")[["a"]].sum()
 
 Similarly, if you instead want to resample by a datetimelike
 level of ``MultiIndex``, its name or location can be passed to the
@@ -1854,7 +1864,7 @@ level of ``MultiIndex``, its name or location can be passed to the
 
 .. ipython:: python
 
-   df.resample("M", level="d")[["a"]].sum()
+   df.resample("ME", level="d")[["a"]].sum()
 
 .. _timeseries.iterating-label:
 
@@ -2127,7 +2137,7 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
    pi.astype("datetime64[ns]")
 
    # convert to PeriodIndex
-   dti = pd.date_range("2011-01-01", freq="M", periods=3)
+   dti = pd.date_range("2011-01-01", freq="ME", periods=3)
    dti
    dti.astype("period[M]")
 
@@ -2155,7 +2165,7 @@ Passing a string representing a lower frequency than ``PeriodIndex`` returns par
    dfp = pd.DataFrame(
        np.random.randn(600, 1),
        columns=["A"],
-       index=pd.period_range("2013-01-01 9:00", periods=600, freq="T"),
+       index=pd.period_range("2013-01-01 9:00", periods=600, freq="min"),
    )
    dfp
    dfp.loc["2013-01-01 10H"]
@@ -2246,7 +2256,7 @@ and vice-versa using ``to_timestamp``:
 
 .. ipython:: python
 
-   rng = pd.date_range("1/1/2012", periods=5, freq="M")
+   rng = pd.date_range("1/1/2012", periods=5, freq="ME")
 
    ts = pd.Series(np.random.randn(len(rng)), index=rng)
 

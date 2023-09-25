@@ -796,11 +796,21 @@ class TestSetOpsUnsorted:
             assert result.name == expected
 
     def test_difference_empty_arg(self, index, sort):
-        first = index[5:20]
+        first = index.copy()
+        first = first[5:20]
         first.name = "name"
         result = first.difference([], sort)
+        expected = index[5:20].unique()
+        expected.name = "name"
+        tm.assert_index_equal(result, expected)
 
-        tm.assert_index_equal(result, first)
+    def test_difference_should_not_compare(self):
+        # GH 55113
+        left = Index([1, 1])
+        right = Index([True])
+        result = left.difference(right)
+        expected = Index([1])
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_difference_identity(self, index, sort):
@@ -898,4 +908,11 @@ class TestSetOpsUnsorted:
         idx2 = Index([3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
         result = idx.union(idx2)
         expected = Index([1, 2, 3, 4, 5], dtype=any_numeric_ea_and_arrow_dtype)
+        tm.assert_index_equal(result, expected)
+
+    def test_union_string_array(self, any_string_dtype):
+        idx1 = Index(["a"], dtype=any_string_dtype)
+        idx2 = Index(["b"], dtype=any_string_dtype)
+        result = idx1.union(idx2)
+        expected = Index(["a", "b"], dtype=any_string_dtype)
         tm.assert_index_equal(result, expected)

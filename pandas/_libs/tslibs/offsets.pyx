@@ -1,5 +1,8 @@
 import re
 import time
+import warnings
+
+from pandas.util._exceptions import find_stack_level
 
 cimport cython
 from cpython.datetime cimport (
@@ -12,6 +15,7 @@ from cpython.datetime cimport (
     time as dt_time,
     timedelta,
 )
+import warnings
 
 import_datetime()
 
@@ -42,6 +46,8 @@ from pandas._libs.tslibs.ccalendar import (
     int_to_weekday,
     weekday_to_int,
 )
+from pandas.util._exceptions import find_stack_level
+
 
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
@@ -50,7 +56,10 @@ from pandas._libs.tslibs.ccalendar cimport (
     get_lastbday,
 )
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
-from pandas._libs.tslibs.dtypes cimport periods_per_day
+from pandas._libs.tslibs.dtypes cimport (
+    c_DEPR_ABBREVS,
+    periods_per_day,
+)
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -621,10 +630,10 @@ cdef class BaseOffset:
         '2BH'
 
         >>> pd.offsets.Nano().freqstr
-        'N'
+        'ns'
 
         >>> pd.offsets.Nano(-3).freqstr
-        '-3N'
+        '-3ns'
         """
         try:
             code = self.rule_code
@@ -1191,7 +1200,7 @@ cdef class Minute(Tick):
     Timestamp('2022-12-09 14:50:00')
     """
     _nanos_inc = 60 * 1_000_000_000
-    _prefix = "T"
+    _prefix = "min"
     _period_dtype_code = PeriodDtypeCode.T
     _creso = NPY_DATETIMEUNIT.NPY_FR_m
 
@@ -1227,28 +1236,28 @@ cdef class Second(Tick):
     Timestamp('2022-12-09 14:59:50')
     """
     _nanos_inc = 1_000_000_000
-    _prefix = "S"
+    _prefix = "s"
     _period_dtype_code = PeriodDtypeCode.S
     _creso = NPY_DATETIMEUNIT.NPY_FR_s
 
 
 cdef class Milli(Tick):
     _nanos_inc = 1_000_000
-    _prefix = "L"
+    _prefix = "ms"
     _period_dtype_code = PeriodDtypeCode.L
     _creso = NPY_DATETIMEUNIT.NPY_FR_ms
 
 
 cdef class Micro(Tick):
     _nanos_inc = 1000
-    _prefix = "U"
+    _prefix = "us"
     _period_dtype_code = PeriodDtypeCode.U
     _creso = NPY_DATETIMEUNIT.NPY_FR_us
 
 
 cdef class Nano(Tick):
     _nanos_inc = 1
-    _prefix = "N"
+    _prefix = "ns"
     _period_dtype_code = PeriodDtypeCode.N
     _creso = NPY_DATETIMEUNIT.NPY_FR_ns
 
@@ -2845,7 +2854,7 @@ cdef class MonthEnd(MonthOffset):
     Timestamp('2022-01-31 00:00:00')
     """
     _period_dtype_code = PeriodDtypeCode.M
-    _prefix = "M"
+    _prefix = "ME"
     _day_opt = "end"
 
 
@@ -4451,18 +4460,18 @@ prefix_mapping = {
         CustomBusinessMonthEnd,  # 'CBM'
         CustomBusinessMonthBegin,  # 'CBMS'
         CustomBusinessHour,  # 'CBH'
-        MonthEnd,  # 'M'
+        MonthEnd,  # 'ME'
         MonthBegin,  # 'MS'
-        Nano,  # 'N'
+        Nano,  # 'ns'
         SemiMonthEnd,  # 'SM'
         SemiMonthBegin,  # 'SMS'
         Week,  # 'W'
-        Second,  # 'S'
-        Minute,  # 'T'
-        Micro,  # 'U'
+        Second,  # 's'
+        Minute,  # 'min'
+        Micro,  # 'us'
         QuarterEnd,  # 'Q'
         QuarterBegin,  # 'QS'
-        Milli,  # 'L'
+        Milli,  # 'ms'
         Hour,  # 'H'
         Day,  # 'D'
         WeekOfMonth,  # 'WOM'
@@ -4489,14 +4498,15 @@ _lite_rule_alias = {
     "BAS": "BAS-JAN",  # BYearBegin(month=1),
     "BYS": "BAS-JAN",
 
-    "Min": "T",
-    "min": "T",
-    "ms": "L",
-    "us": "U",
-    "ns": "N",
+    "Min": "min",
+    "min": "min",
+    "ms": "ms",
+    "us": "us",
+    "ns": "ns",
 }
 
-_dont_uppercase = {"MS", "ms"}
+_dont_uppercase = {"MS", "ms", "s", "me"}
+
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
 
@@ -4537,7 +4547,7 @@ def _get_offset(name: str) -> BaseOffset:
     return _offset_map[name]
 
 
-cpdef to_offset(freq):
+cpdef to_offset(freq, bint is_period=False):
     """
     Return DateOffset object from string or datetime.timedelta object.
 
@@ -4605,6 +4615,22 @@ cpdef to_offset(freq):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
+                if is_period is False and name == "M":
+                    warnings.warn(
+                        "\'M\' will be deprecated, please use \'ME\' "
+                        "for \'month end\'",
+                        UserWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    name = "ME"
+                if is_period is True and name == "ME":
+                    raise ValueError(
+                        r"for Period, please use \'M\' "
+                        "instead of \'ME\'"
+                    )
+                elif is_period is True and name == "M":
+                    name = "ME"
+
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
                 prefix = _lite_rule_alias.get(name) or name
@@ -4613,7 +4639,16 @@ cpdef to_offset(freq):
                 if not stride:
                     stride = 1
 
-                if prefix in {"D", "H", "T", "S", "L", "U", "N"}:
+                if prefix in c_DEPR_ABBREVS:
+                    warnings.warn(
+                        f"\'{prefix}\' is deprecated and will be removed in a "
+                        f"future version. Please use \'{c_DEPR_ABBREVS.get(prefix)}\' "
+                        f"instead of \'{prefix}\'.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    prefix = c_DEPR_ABBREVS[prefix]
+                if prefix in {"D", "H", "min", "s", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3H" or
                     #  "2.5T", so we can construct a Timedelta with the
                     #  matching unit and get our offset from delta_to_tick
