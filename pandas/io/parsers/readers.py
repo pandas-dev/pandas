@@ -211,7 +211,7 @@ na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, o
     + fill('", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
     + """ ".
 
-remove_from_default_na : : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
+remove_from_default_na : Hashable or Iterable of Hashable, optional
     Remvoe values from the default ``NaN`` values when parsing the data.
 
 keep_default_na : bool, default True
@@ -723,7 +723,6 @@ def read_csv(
     | None = ...,
     remove_from_default_na: Hashable
     | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
@@ -790,7 +789,6 @@ def read_csv(
     | None = ...,
     remove_from_default_na: Hashable
     | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
@@ -857,7 +855,6 @@ def read_csv(
     | None = ...,
     remove_from_default_na: Hashable
     | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
     | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
@@ -937,7 +934,6 @@ def read_csv(
     | None = None,
     remove_from_default_na: Hashable
     | Iterable[Hashable]
-    | Mapping[Hashable, Iterable[Hashable]]
     | None = ...,
     keep_default_na: bool = True,
     na_filter: bool = True,
@@ -1032,7 +1028,7 @@ def read_table(
     skipfooter: int = ...,
     nrows: int | None = ...,
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
-    remove_from_default_na: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    remove_from_default_na: Sequence[str] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -1093,7 +1089,7 @@ def read_table(
     skipfooter: int = ...,
     nrows: int | None = ...,
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
-    remove_from_default_na: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    remove_from_default_na: Sequence[str] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -1154,7 +1150,7 @@ def read_table(
     skipfooter: int = ...,
     nrows: int | None = ...,
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
-    remove_from_default_na: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    remove_from_default_na: Sequence[str] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -1215,7 +1211,7 @@ def read_table(
     skipfooter: int = ...,
     nrows: int | None = ...,
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
-    remove_from_default_na: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    remove_from_default_na: Sequence[str] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -1291,7 +1287,7 @@ def read_table(
     nrows: int | None = None,
     # NA and Missing Data Handling
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = None,
-    remove_from_default_na: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    remove_from_default_na: Sequence[str] | None = ...,
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
