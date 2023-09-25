@@ -33,11 +33,10 @@ from pandas.tests.frame.common import (
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
-def switch_numexpr_min_elements(request):
-    _MIN_ELEMENTS = expr._MIN_ELEMENTS
-    expr._MIN_ELEMENTS = request.param
-    yield request.param
-    expr._MIN_ELEMENTS = _MIN_ELEMENTS
+def switch_numexpr_min_elements(request, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(expr, "_MIN_ELEMENTS", request.param)
+        yield request.param
 
 
 class DummyElement:
@@ -1074,7 +1073,7 @@ class TestFrameArithmetic:
         ],
         ids=lambda x: x.__name__,
     )
-    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements, request):
+    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements):
         skip = {
             (operator.truediv, "bool"),
             (operator.pow, "bool"),
