@@ -211,6 +211,9 @@ na_values : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, o
     + fill('", "'.join(sorted(STR_NA_VALUES)), 70, subsequent_indent="    ")
     + """ ".
 
+remove_from_default_na : : Hashable, Iterable of Hashable or dict of {{Hashable : Iterable}}, optional
+    Remvoe values from the default ``NaN`` values when parsing the data.
+
 keep_default_na : bool, default True
     Whether or not to include the default ``NaN`` values when parsing the data.
     Depending on whether ``na_values`` is passed in, the behavior is as follows:
@@ -718,6 +721,10 @@ def read_csv(
     | Iterable[Hashable]
     | Mapping[Hashable, Iterable[Hashable]]
     | None = ...,
+    remove_from_default_na: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -781,6 +788,10 @@ def read_csv(
     | Iterable[Hashable]
     | Mapping[Hashable, Iterable[Hashable]]
     | None = ...,
+    remove_from_default_na: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -841,6 +852,10 @@ def read_csv(
     skipfooter: int = ...,
     nrows: int | None = ...,
     na_values: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
+    remove_from_default_na: Hashable
     | Iterable[Hashable]
     | Mapping[Hashable, Iterable[Hashable]]
     | None = ...,
@@ -920,6 +935,10 @@ def read_csv(
     | Iterable[Hashable]
     | Mapping[Hashable, Iterable[Hashable]]
     | None = None,
+    remove_from_default_na: Hashable
+    | Iterable[Hashable]
+    | Mapping[Hashable, Iterable[Hashable]]
+    | None = ...,
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
@@ -1013,6 +1032,7 @@ def read_table(
     skipfooter: int = ...,
     nrows: int | None = ...,
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    remove_from_default_na: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -1073,6 +1093,7 @@ def read_table(
     skipfooter: int = ...,
     nrows: int | None = ...,
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    remove_from_default_na: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -1133,6 +1154,7 @@ def read_table(
     skipfooter: int = ...,
     nrows: int | None = ...,
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    remove_from_default_na: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -1193,6 +1215,7 @@ def read_table(
     skipfooter: int = ...,
     nrows: int | None = ...,
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
+    remove_from_default_na: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = ...,
     na_filter: bool = ...,
     verbose: bool = ...,
@@ -1268,6 +1291,7 @@ def read_table(
     nrows: int | None = None,
     # NA and Missing Data Handling
     na_values: Sequence[str] | Mapping[str, Sequence[str]] | None = None,
+    remove_from_default_na: Sequence[str] | Mapping[str, Sequence[str]] | None = ...,
     keep_default_na: bool = True,
     na_filter: bool = True,
     verbose: bool = False,
@@ -1919,6 +1943,8 @@ def TextParser(*args, **kwds) -> TextFileReader:
         not in the header.
     na_values : scalar, str, list-like, or dict, optional
         Additional strings to recognize as NA/NaN.
+    remove_from_default_na : scalar, str, list-like, or dict, optional
+        Strings not to recognize as NA/NaN.
     keep_default_na : bool, default True
     thousands : str, optional
         Thousands separator
