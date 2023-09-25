@@ -259,7 +259,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
--
+- Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
 -
 
 Timedelta
