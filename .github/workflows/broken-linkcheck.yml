@@ -1,4 +1,4 @@
-name: Broken linkcheck
+name: Linkcheck
 on:
     workflow_dispatch: # Enable manual triggering
     #schedule:
