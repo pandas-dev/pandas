@@ -1,3 +1,8 @@
+# pyright: reportUnusedImport=false
+# Disabled since there's no way to do an ignore for both pyright
+# and ruff, and ruff should be sufficient
+# (The reason we need this is because the import of the numba extensions is unused
+# but is necessary to register the extensions)
 from __future__ import annotations
 
 import abc

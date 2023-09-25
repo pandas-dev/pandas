@@ -735,7 +735,7 @@ pythonVersion = "3.11"
 typeCheckingMode = "basic"
 useLibraryCodeForTypes = false
 include = ["pandas", "typings"]
-exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version"]
+exclude = ["pandas/tests", "pandas/io/clipboard", "pandas/util/version", "pandas/core/_numba/extensions.py"]
 # enable subset of "strict"
 reportDuplicateImport = true
 reportInconsistentConstructor = true
