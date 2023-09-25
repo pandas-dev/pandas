@@ -187,7 +187,7 @@ environment = {CFLAGS="-g0"}
 
 [tool.black]
 target-version = ['py39', 'py310']
-required-version = '23.7.0'
+required-version = '23.9.1'
 exclude = '''
 (
     asv_bench/env
