@@ -7,7 +7,7 @@ on:
     pull_request:
       paths:
         - ".github/workflows/broken-linkcheck.yml"
-        - "doc/make.py"  
+        - "doc/make.py"
 jobs:
     linkcheck:
         runs-on: ubuntu-latest
