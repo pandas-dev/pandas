@@ -277,6 +277,26 @@ a,b,c,d
                 }
             ),
         ),
+        (
+            {"remove_from_default_na": ["nan"]},
+            DataFrame(
+                {
+                    "A": ["a", "b", np.nan, "d", "e", "nan", "g"],
+                    "B": [1, 2, 3, 4, 5, 6, 7],
+                    "C": ["one", "two", "three", "nan", "five", np.nan, "seven"],
+                }
+            ),
+        ),
+        (
+            {"na_values" ["nan"], "remove_from_default_na": ["nan"]},
+            DataFrame(
+                {
+                    "A": ["a", "b", np.nan, "d", "e", np.nan, "g"],
+                    "B": [1, 2, 3, 4, 5, 6, 7],
+                    "C": ["one", "two", "three", np.nan, "five", np.nan, "seven"],
+                }
+            ),
+        ),
     ],
 )
 def test_na_values_keep_default(all_parsers, kwargs, expected):

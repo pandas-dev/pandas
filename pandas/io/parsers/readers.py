@@ -1740,7 +1740,8 @@ class TextFileReader(abc.Iterator):
 
         # Converting values to NA
         keep_default_na = options["keep_default_na"]
-        na_values, na_fvalues = _clean_na_values(na_values, keep_default_na)
+        remove_from_default_na = options["remove_from_default_na"]
+        na_values, na_fvalues = _clean_na_values(na_values, remove_from_default_na, keep_default_na)
 
         # handle skiprows; this is internally handled by the
         # c-engine, so only need for python and pyarrow parsers
@@ -1952,11 +1953,17 @@ def TextParser(*args, **kwds) -> TextFileReader:
     return TextFileReader(*args, **kwds)
 
 
-def _clean_na_values(na_values, keep_default_na: bool = True):
+def _clean_na_values(na_values, remove_from_default_na, keep_default_na: bool = True):
     na_fvalues: set | dict
+    if remove_from_default_na is None:
+        remove_from_default_na = set()
+    elif not is_list_like(remove_from_default_na):
+        remove_from_default_na = set([remove_from_default_na])
+    else:
+        remove_from_default_na = set(remove_from_default_na)
     if na_values is None:
         if keep_default_na:
-            na_values = STR_NA_VALUES
+            na_values = STR_NA_VALUES - remove_from_default_na
         else:
             na_values = set()
         na_fvalues = set()
@@ -1973,7 +1980,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True):
                 v = [v]
 
             if keep_default_na:
-                v = set(v) | STR_NA_VALUES
+                v = set(v) | (STR_NA_VALUES - remove_from_default_na)
 
             na_values[k] = v
         na_fvalues = {k: _floatify_na_values(v) for k, v in na_values.items()}
@@ -1982,7 +1989,7 @@ def _clean_na_values(na_values, keep_default_na: bool = True):
             na_values = [na_values]
         na_values = _stringify_na_values(na_values)
         if keep_default_na:
-            na_values = na_values | STR_NA_VALUES
+            na_values = na_values | (STR_NA_VALUES - remove_from_default_na)
 
         na_fvalues = _floatify_na_values(na_values)
 
