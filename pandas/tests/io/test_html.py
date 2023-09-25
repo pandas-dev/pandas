@@ -1366,7 +1366,7 @@ class TestReadHtml:
             assert len(dfs) == 1  # Should not parse hidden table
 
     @pytest.mark.parametrize("displayed_only", [True, False])
-    def test_displayed_only_with_many_elements(self, displayed_only):
+    def test_displayed_only_with_many_elements(self, displayed_only, flavor_read_html):
         html_table = """
         <table>
             <tr>
@@ -1383,7 +1383,9 @@ class TestReadHtml:
             </tr>
         </table>
         """
-        result = read_html(StringIO(html_table), displayed_only=displayed_only)[0]
+        result = flavor_read_html(StringIO(html_table), displayed_only=displayed_only)[
+            0
+        ]
         expected = DataFrame({"A": [1, 4], "B": [2, 5]})
         tm.assert_frame_equal(result, expected)
 
