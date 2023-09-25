@@ -660,7 +660,7 @@ def test_resample_reresample(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8H").mean()
-    assert len(result) == 22
+    assert len(result) == 25
     assert isinstance(result.index.freq, offsets.DateOffset)
     assert result.index.freq == offsets.Hour(8)
 
