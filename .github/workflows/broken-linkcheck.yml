@@ -4,6 +4,10 @@ on:
     #schedule:
     # Run monthly on the 1st day of the month
         #- cron: '0 0 1 * *'
+    pull_request:
+      paths:
+        - ".github/workflows/broken-linkcheck.yml"
+        - "doc/make.py"  
 jobs:
     linkcheck:
         runs-on: ubuntu-latest
