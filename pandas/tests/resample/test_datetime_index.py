@@ -660,7 +660,7 @@ def test_resample_reresample(unit):
     s = Series(np.random.default_rng(2).random(len(dti)), dti)
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8H").mean()
-    assert len(result) == 22
+    assert len(result) == 25
     assert isinstance(result.index.freq, offsets.DateOffset)
     assert result.index.freq == offsets.Hour(8)
 
@@ -2050,4 +2050,67 @@ def test_resample_M_deprecated():
     expected = s.resample("2ME").mean()
     with tm.assert_produces_warning(UserWarning, match=depr_msg):
         result = s.resample("2M").mean()
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_ms_closed_right():
+    # https://github.com/pandas-dev/pandas/issues/55271
+    dti = date_range(start="2020-01-31", freq="1min", periods=6000)
+    df = DataFrame({"ts": dti}, index=dti)
+    grouped = df.resample("MS", closed="right")
+    result = grouped.last()
+    expected = DataFrame(
+        {"ts": [datetime(2020, 2, 1), datetime(2020, 2, 4, 3, 59)]},
+        index=DatetimeIndex([datetime(2020, 1, 1), datetime(2020, 2, 1)], freq="MS"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("freq", ["B", "C"])
+def test_resample_c_b_closed_right(freq: str):
+    # https://github.com/pandas-dev/pandas/issues/55281
+    dti = date_range(start="2020-01-31", freq="1min", periods=6000)
+    df = DataFrame({"ts": dti}, index=dti)
+    grouped = df.resample(freq, closed="right")
+    result = grouped.last()
+    expected = DataFrame(
+        {
+            "ts": [
+                datetime(2020, 1, 31),
+                datetime(2020, 2, 3),
+                datetime(2020, 2, 4),
+                datetime(2020, 2, 4, 3, 59),
+            ]
+        },
+        index=DatetimeIndex(
+            [
+                datetime(2020, 1, 30),
+                datetime(2020, 1, 31),
+                datetime(2020, 2, 3),
+                datetime(2020, 2, 4),
+            ],
+            freq=freq,
+        ),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_b_55282():
+    # https://github.com/pandas-dev/pandas/issues/55282
+    s = Series(
+        [1, 2, 3, 4, 5, 6], index=date_range("2023-09-26", periods=6, freq="12H")
+    )
+    result = s.resample("B", closed="right", label="right").mean()
+    expected = Series(
+        [1.0, 2.5, 4.5, 6.0],
+        index=DatetimeIndex(
+            [
+                datetime(2023, 9, 26),
+                datetime(2023, 9, 27),
+                datetime(2023, 9, 28),
+                datetime(2023, 9, 29),
+            ],
+            freq="B",
+        ),
+    )
     tm.assert_series_equal(result, expected)
