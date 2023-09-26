@@ -85,17 +85,16 @@ def sql_strings():
     }
 
 
-def iris_table_metadata(dialect: str):
+def iris_table_metadata():
     from sqlalchemy import (
-        REAL,
         Column,
-        Float,
+        Double,
         MetaData,
         String,
         Table,
     )
 
-    dtype = Float if dialect == "postgresql" else REAL
+    dtype = Double
     metadata = MetaData()
     iris = Table(
         "iris",
@@ -126,11 +125,11 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
         cur.executemany(stmt, reader)
 
 
-def create_and_load_iris(conn, iris_file: Path, dialect: str):
+def create_and_load_iris(conn, iris_file: Path):
     from sqlalchemy import insert
     from sqlalchemy.engine import Engine
 
-    iris = iris_table_metadata(dialect)
+    iris = iris_table_metadata()
 
     with iris_file.open(newline=None, encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile)
@@ -446,7 +445,8 @@ def drop_table(
         conn.commit()
     else:
         with conn.begin() as con:
-            sql.SQLDatabase(con).drop_table(table_name)
+            with sql.SQLDatabase(con) as db:
+                db.drop_table(table_name)
 
 
 def drop_view(
@@ -2098,7 +2098,7 @@ def test_query_by_select_obj(conn, request):
         select,
     )
 
-    iris = iris_table_metadata("postgres")
+    iris = iris_table_metadata()
     name_select = select(iris).where(iris.c.Name == bindparam("name"))
     iris_df = sql.read_sql(name_select, conn, params={"name": "Iris-setosa"})
     all_names = set(iris_df["Name"])
@@ -2226,20 +2226,20 @@ def test_drop_table(conn, request):
     from sqlalchemy import inspect
 
     temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
-    pandasSQL = sql.SQLDatabase(conn)
-    with pandasSQL.run_transaction():
-        assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
+    with sql.SQLDatabase(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
 
-    insp = inspect(conn)
-    assert insp.has_table("temp_frame")
+        insp = inspect(conn)
+        assert insp.has_table("temp_frame")
 
-    with pandasSQL.run_transaction():
-        pandasSQL.drop_table("temp_frame")
-    try:
-        insp.clear_cache()  # needed with SQLAlchemy 2.0, unavailable prior
-    except AttributeError:
-        pass
-    assert not insp.has_table("temp_frame")
+        with pandasSQL.run_transaction():
+            pandasSQL.drop_table("temp_frame")
+        try:
+            insp.clear_cache()  # needed with SQLAlchemy 2.0, unavailable prior
+        except AttributeError:
+            pass
+        assert not insp.has_table("temp_frame")
 
 
 @pytest.mark.parametrize("conn", all_connectable)
