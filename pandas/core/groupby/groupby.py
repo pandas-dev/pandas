@@ -2012,15 +2012,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # If func is a reduction, we need to broadcast the
             # result to the whole group. Compute func result
             # and deal with possible broadcasting below.
-            # Temporarily set observed for dealing with categoricals.
-            with com.temp_setattr(self, "observed", True):
-                with com.temp_setattr(self, "as_index", True):
-                    # GH#49834 - result needs groups in the index for
-                    # _wrap_transform_fast_result
-                    if engine is not None:
-                        kwargs["engine"] = engine
-                        kwargs["engine_kwargs"] = engine_kwargs
-                    result = getattr(self, func)(*args, **kwargs)
+            with com.temp_setattr(self, "as_index", True):
+                # GH#49834 - result needs groups in the index for
+                # _wrap_transform_fast_result
+                if engine is not None:
+                    kwargs["engine"] = engine
+                    kwargs["engine_kwargs"] = engine_kwargs
+                result = getattr(self, func)(*args, **kwargs)
 
             return self._wrap_transform_fast_result(result)
 
