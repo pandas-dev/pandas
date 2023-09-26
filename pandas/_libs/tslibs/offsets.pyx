@@ -15,6 +15,7 @@ from cpython.datetime cimport (
     time as dt_time,
     timedelta,
 )
+
 import warnings
 
 import_datetime()
@@ -48,7 +49,6 @@ from pandas._libs.tslibs.ccalendar import (
 )
 from pandas.util._exceptions import find_stack_level
 
-
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
     get_days_in_month,
@@ -57,9 +57,9 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
+    c_DEPR_ABBREVS,
     c_OFFSET_DEPR_FREQSTR,
     c_REVERSE_OFFSET_DEPR_FREQSTR,
-    c_DEPR_ABBREVS,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
