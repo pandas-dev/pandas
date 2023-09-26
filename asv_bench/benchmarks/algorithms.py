@@ -1,6 +1,7 @@
 from importlib import import_module
 
 import numpy as np
+import pyarrow as pa
 
 import pandas as pd
 
@@ -97,11 +98,9 @@ class Duplicated:
                 "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
             ),
             "timestamp[ms][pyarrow]": pd.Index(
-                np.arange(N), dtype="timestamp[ms][pyarrow]"
+                np.arange(N), dtype=pd.ArrowDtype(pa.timestamp("ms"))
             ),
-            "duration[s][pyarrow]": pd.Index(
-                np.arange(N), dtype="duration[s][pyarrow]"
-            ),
+            "string[pyarrow]": tm.makeStringIndex(N).astype(pd.ArrowDtype(pa.string)),
         }[dtype]
         if not unique:
             data = data.repeat(5)

@@ -55,7 +55,6 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
-    ArrowDtype,
     BaseMaskedDtype,
     CategoricalDtype,
     ExtensionDtype,
@@ -984,9 +983,11 @@ def duplicated(
     """
     Return boolean ndarray denoting duplicate values.
 
+    Dispatches to ExtensionArray.duplicated for extension arrays.
+
     Parameters
     ----------
-    values : nd.array, ExtensionArray or Series
+    values : np.ndarray or ExtensionArray
         Array over which to check for duplicate values.
     keep : {'first', 'last', False}, default 'first'
         - ``first`` : Mark duplicates as ``True`` except for the first
@@ -999,20 +1000,40 @@ def duplicated(
     -------
     duplicated : ndarray[bool]
     """
-    if hasattr(values, "dtype"):
-        if isinstance(values.dtype, ArrowDtype):
-            if values.dtype.kind in "ifub":
-                values = values._to_masked()  # type: ignore[union-attr]
-            else:
-                values = (
-                    values._maybe_convert_datelike_array()  # type: ignore[union-attr]
-                )
-        if isinstance(values.dtype, BaseMaskedDtype):
-            values = cast("BaseMaskedArray", values)
-            return htable.duplicated(values._data, keep=keep, mask=values._mask)
+    if isinstance(values, ABCExtensionArray):
+        # dispatch to extension dtype's duplicated
+        return values.duplicated(keep=keep)
 
+    return duplicated_array(values, keep=keep)
+
+
+def duplicated_array(
+    values: ArrayLike,
+    keep: Literal["first", "last", False] = "first",
+    mask: npt.NDArray[np.bool_] | None = None,
+) -> npt.NDArray[np.bool_]:
+    """
+    Return boolean ndarray denoting duplicate values.
+
+    Parameters
+    ----------
+    values : np.ndarray or ExtensionArray
+        Array over which to check for duplicate values.
+    keep : {'first', 'last', False}, default 'first'
+        - ``first`` : Mark duplicates as ``True`` except for the first
+          occurrence.
+        - ``last`` : Mark duplicates as ``True`` except for the last
+          occurrence.
+        - False : Mark all duplicates as ``True``.
+    mask : ndarray[bool]
+        array indicating which elements to exclude from checking
+
+    Returns
+    -------
+    duplicated : ndarray[bool]
+    """
     values = _ensure_data(values)
-    return htable.duplicated(values, keep=keep)
+    return htable.duplicated(values, keep=keep, mask=mask)
 
 
 def mode(
