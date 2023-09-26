@@ -14,6 +14,27 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+
+.. _whatsnew_200.enhancements.case_when:
+
+Assignment based on one or more conditions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``pd.case_when`` API has now been added to support assignment based on one or more conditions.
+
+.. ipython:: python
+
+   import pandas as pd
+
+   df = pd.DataFrame(dict(a=[1, 2, 3], b=[4, 5, 6]))
+   df.assign(
+       new_column=pd.case_when(
+           df.a == 1, 'first', # condition, replacement
+           df.a.gt(1) & df.b.eq(5), 'second',
+           default='default', # optional
+       )
+   )
+
 .. _whatsnew_220.enhancements.calamine:
 
 Calamine engine for :func:`read_excel`

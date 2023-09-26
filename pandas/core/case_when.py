@@ -59,37 +59,26 @@ def case_when(
 
     Examples
     --------
-    >>> s = pd.Series([2, 0, 4, 8, np.nan])
+    >>> df = pd.DataFrame({"a": [0,0,1,2],
+    ...                    "b": [0,3,4,5],
+    ...                    "c": [6,7,8,9]
+    ...                  })
+    >>> df
+       a  b  c
+    0  0  0  6
+    1  0  3  7
+    2  1  4  8
+    3  2  5  9
 
-    Boundary values are included by default:
-
-    >>> s.between(1, 4)
-    0     True
-    1    False
-    2     True
-    3    False
-    4    False
-    dtype: bool
-
-    With `inclusive` set to ``"neither"`` boundary values are excluded:
-
-    >>> s.between(1, 4, inclusive="neither")
-    0     True
-    1    False
-    2    False
-    3    False
-    4    False
-    dtype: bool
-
-    `left` and `right` can be any scalar value:
-
-    >>> s = pd.Series(['Alice', 'Bob', 'Carol', 'Eve'])
-    >>> s.between('Anna', 'Daniel')
-    0    False
-    1     True
-    2     True
-    3    False
-    dtype: bool
+    >>> pd.case_when(df.a.gt(0), df.a, # condition, replacement
+    ...              df.b.gt(0), df.b,
+    ...              default=df.c # optional
+    ...             )
+    0    6
+    1    3
+    2    1
+    3    2
+    Name: c, dtype: int64
     """
     from pandas import Series
 
