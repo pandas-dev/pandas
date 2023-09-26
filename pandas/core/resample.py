@@ -1541,7 +1541,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
-    def quantile(self, q: float | AnyArrayLike = 0.5, **kwargs):
+    def quantile(self, q: float | list[float] | AnyArrayLike = 0.5, **kwargs):
         """
         Return value at the given quantile.
 
