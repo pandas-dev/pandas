@@ -22,8 +22,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._config import config
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -49,17 +47,6 @@ def get_local_am_pm():
     am_local = time(1).strftime("%p")
     pm_local = time(13).strftime("%p")
     return am_local, pm_local
-
-
-@pytest.fixture(autouse=True)
-def clean_config():
-    curr_deprecated_options = config._deprecated_options.copy()
-    curr_registered_options = config._registered_options.copy()
-    curr_global_config = config._global_config.copy()
-    yield
-    config._deprecated_options = curr_deprecated_options
-    config._registered_options = curr_registered_options
-    config._global_config = curr_global_config
 
 
 @pytest.fixture(params=["string", "pathlike", "buffer"])
@@ -3604,7 +3591,7 @@ def test_repr_html_ipython_config(ip):
     df._repr_html_()
     """
     )
-    result = ip.run_cell(code)
+    result = ip.run_cell(code, silent=True)
     assert not result.error_in_exec
 
 
