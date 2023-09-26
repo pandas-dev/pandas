@@ -72,6 +72,7 @@ from pandas._typing import (
     Renamer,
     Scalar,
     Self,
+    SequenceNotStr,
     SortKind,
     StorageOptions,
     Suffixes,
@@ -3273,7 +3274,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: None = ...,
         columns: Sequence[Hashable] | None = ...,
-        header: bool_t | list[str] = ...,
+        header: bool_t | SequenceNotStr[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
         formatters: FormattersType | None = ...,
@@ -3300,7 +3301,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str],
         columns: Sequence[Hashable] | None = ...,
-        header: bool_t | list[str] = ...,
+        header: bool_t | SequenceNotStr[str] = ...,
         index: bool_t = ...,
         na_rep: str = ...,
         formatters: FormattersType | None = ...,
@@ -3330,7 +3331,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         columns: Sequence[Hashable] | None = None,
-        header: bool_t | list[str] = True,
+        header: bool_t | SequenceNotStr[str] = True,
         index: bool_t = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
@@ -12466,11 +12467,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         -------
         type of index
 
-        Notes
-        -----
-        If all elements are non-NA/null, returns None.
-        Also returns None for empty {klass}.
-
         Examples
         --------
         For Series:
@@ -12480,6 +12476,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1
         >>> s.last_valid_index()
         2
+
+        >>> s = pd.Series([None, None])
+        >>> print(s.first_valid_index())
+        None
+        >>> print(s.last_valid_index())
+        None
+
+        If all elements in Series are NA/null, returns None.
+
+        >>> s = pd.Series()
+        >>> print(s.first_valid_index())
+        None
+        >>> print(s.last_valid_index())
+        None
+
+        If Series is empty, returns None.
 
         For DataFrame:
 
@@ -12493,6 +12505,31 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1
         >>> df.last_valid_index()
         2
+
+        >>> df = pd.DataFrame({{'A': [None, None, None], 'B': [None, None, None]}})
+        >>> df
+             A      B
+        0  None   None
+        1  None   None
+        2  None   None
+        >>> print(df.first_valid_index())
+        None
+        >>> print(df.last_valid_index())
+        None
+
+        If all elements in DataFrame are NA/null, returns None.
+
+        >>> df = pd.DataFrame()
+        >>> df
+        Empty DataFrame
+        Columns: []
+        Index: []
+        >>> print(df.first_valid_index())
+        None
+        >>> print(df.last_valid_index())
+        None
+
+        If DataFrame is empty, returns None.
         """
         return self._find_valid_index(how="first")
 
