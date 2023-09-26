@@ -912,9 +912,24 @@ class ExtensionArray:
         Length: 4, dtype: float64
         """
         # NB: we return type(self) even if copy=False
-        raise NotImplementedError(
-            f"{type(self).__name__} does not implement interpolate"
+        
+        if not self.dtype._is_numeric or self.dtype._is_boolean:
+            raise TypeError(
+                f"Cannot interpolate {type(self)} dtype as it is non-numeric or boolean"
+            )
+        data = self.to_numpy('float64', copy=copy)
+        missing.interpolate_2d_inplace(
+            data = data, 
+            axis = axis,
+            index = index,
+            method = method,
+            limit = limit,
+            limit_direction = limit_direction,
+            limit_area = limit_area,
+            **kwargs,
         )
+        return self._from_sequence(data, dtype=self.dtype)
+
 
     def _pad_or_backfill(
         self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True

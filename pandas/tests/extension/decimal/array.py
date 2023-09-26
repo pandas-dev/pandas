@@ -70,6 +70,8 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
     __array_priority__ = 1000
 
     def __init__(self, values, dtype=None, copy=False, context=None) -> None:
+        # Cast float np arrays to obj before converting to Decimal
+        values = np.asarray(values, dtype=object)
         for i, val in enumerate(values):
             if is_float(val) or is_integer(val):
                 if np.isnan(val):
@@ -81,7 +83,6 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
                     values[i] = DecimalDtype.type(val)  # type: ignore[arg-type]
             elif not isinstance(val, decimal.Decimal):
                 raise TypeError("All values must be of type " + str(decimal.Decimal))
-        values = np.asarray(values, dtype=object)
 
         self._data = values
         # Some aliases for common attribute names to ensure pandas supports

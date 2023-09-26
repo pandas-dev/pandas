@@ -704,3 +704,23 @@ class BaseMethodsTests:
     def test_equals_same_data_different_object(self, data):
         # https://github.com/pandas-dev/pandas/issues/34660
         assert pd.Series(data).equals(pd.Series(data))
+
+    @pytest.mark.parametrize("method", ['linear'])
+    def test_interpolate(self, data_for_sorting, method):
+        data = data_for_sorting
+        if not data.dtype._is_numeric or data.dtype._is_boolean:
+            pytest.skip("Interpolate is only valid for numeric non-boolean dtypes")
+
+        ser = pd.Series(data)
+        result = ser.interpolate(method)
+        
+        values = np.array(data, dtype=np.float64)
+        pd.core.missing.interpolate_2d_inplace(
+            data = np.array(values), 
+            axis = 0,
+            index = ser.index,
+            method = method
+        )
+        expected = pd.Series(values, dtype=data.dtype)
+
+        tm.assert_series_equal(result, expected)
