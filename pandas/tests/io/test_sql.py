@@ -486,7 +486,7 @@ def mysql_pymysql_engine():
 
 @pytest.fixture
 def mysql_pymysql_engine_iris(mysql_pymysql_engine, iris_path):
-    create_and_load_iris(mysql_pymysql_engine, iris_path, "mysql")
+    create_and_load_iris(mysql_pymysql_engine, iris_path)
     create_and_load_iris_view(mysql_pymysql_engine)
     yield mysql_pymysql_engine
 
@@ -533,7 +533,7 @@ def postgresql_psycopg2_engine():
 
 @pytest.fixture
 def postgresql_psycopg2_engine_iris(postgresql_psycopg2_engine, iris_path):
-    create_and_load_iris(postgresql_psycopg2_engine, iris_path, "postgres")
+    create_and_load_iris(postgresql_psycopg2_engine, iris_path)
     create_and_load_iris_view(postgresql_psycopg2_engine)
     yield postgresql_psycopg2_engine
 
@@ -591,7 +591,7 @@ def sqlite_conn(sqlite_engine):
 def sqlite_str_iris(sqlite_str, iris_path):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     engine = sqlalchemy.create_engine(sqlite_str)
-    create_and_load_iris(engine, iris_path, "sqlite")
+    create_and_load_iris(engine, iris_path)
     create_and_load_iris_view(engine)
     engine.dispose()
     return sqlite_str
@@ -599,7 +599,7 @@ def sqlite_str_iris(sqlite_str, iris_path):
 
 @pytest.fixture
 def sqlite_engine_iris(sqlite_engine, iris_path):
-    create_and_load_iris(sqlite_engine, iris_path, "sqlite")
+    create_and_load_iris(sqlite_engine, iris_path)
     create_and_load_iris_view(sqlite_engine)
     yield sqlite_engine
 
