@@ -99,6 +99,7 @@ from pandas.core.arrays import ExtensionArray
 from pandas.core.arrays.arrow import StructAccessor
 from pandas.core.arrays.categorical import CategoricalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
+from pandas.core.case_when import case_when
 from pandas.core.construction import (
     extract_array,
     sanitize_array,
@@ -5440,6 +5441,80 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             )
 
         return lmask & rmask
+
+    def case_when(
+        self,
+        *args,
+        level=None,
+    ) -> Series:
+        """
+        Replace values where the conditions are True.
+
+        Parameters
+        ----------
+        args : Variable argument of conditions and expected replacements.
+            Takes the form:
+                `condition0`, `replacement0`, `condition1`, `replacement1`, ...
+            `condition` should be a 1-D boolean array-like object or a callable.
+             If `condition` is a callable, it is computed on the Series
+             and should return boolean Series or array.
+             The callable must not change input the Series
+             (though pandas doesn`t check it). `replacement` should be a
+             1-D array-like object, a scalar or a callable.
+            If `replacement` is a callable, it is computed on the Series
+            and should return a scalar or Series. The callable
+            must not change the input Series
+            (though pandas doesn`t check it).
+
+        level : int, default None
+            Alignment level if needed.
+
+            .. versionchanged:: 2.2.0
+
+        Returns
+        -------
+        Series
+
+        See Also
+        --------
+        Series.mask : Replace values where the condition is True.
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 0, 4, 8, np.nan])
+
+        Boundary values are included by default:
+
+        >>> s.between(1, 4)
+        0     True
+        1    False
+        2     True
+        3    False
+        4    False
+        dtype: bool
+
+        With `inclusive` set to ``"neither"`` boundary values are excluded:
+
+        >>> s.between(1, 4, inclusive="neither")
+        0     True
+        1    False
+        2    False
+        3    False
+        4    False
+        dtype: bool
+
+        `left` and `right` can be any scalar value:
+
+        >>> s = pd.Series(['Alice', 'Bob', 'Carol', 'Eve'])
+        >>> s.between('Anna', 'Daniel')
+        0    False
+        1     True
+        2     True
+        3    False
+        dtype: bool
+        """
+        args = [com.apply_if_callable(arg, self) for arg in args]
+        return case_when(*args, default=self, level=level)
 
     # ----------------------------------------------------------------------
     # Convert to types that support pd.NA

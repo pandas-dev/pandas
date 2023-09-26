@@ -42,6 +42,7 @@ from pandas.core.arrays.integer import (
     UInt64Dtype,
 )
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.case_when import case_when
 from pandas.core.construction import array
 from pandas.core.flags import Flags
 from pandas.core.groupby import (
@@ -85,6 +86,7 @@ __all__ = [
     "ArrowDtype",
     "bdate_range",
     "BooleanDtype",
+    "case_when",
     "Categorical",
     "CategoricalDtype",
     "CategoricalIndex",
