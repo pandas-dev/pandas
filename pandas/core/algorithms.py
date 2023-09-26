@@ -978,36 +978,6 @@ def value_counts_arraylike(
 
 
 def duplicated(
-    values: ArrayLike, keep: Literal["first", "last", False] = "first"
-) -> npt.NDArray[np.bool_]:
-    """
-    Return boolean ndarray denoting duplicate values.
-
-    Dispatches to ExtensionArray.duplicated for extension arrays.
-
-    Parameters
-    ----------
-    values : np.ndarray or ExtensionArray
-        Array over which to check for duplicate values.
-    keep : {'first', 'last', False}, default 'first'
-        - ``first`` : Mark duplicates as ``True`` except for the first
-          occurrence.
-        - ``last`` : Mark duplicates as ``True`` except for the last
-          occurrence.
-        - False : Mark all duplicates as ``True``.
-
-    Returns
-    -------
-    duplicated : ndarray[bool]
-    """
-    if isinstance(values, ABCExtensionArray):
-        # dispatch to extension dtype's duplicated
-        return values.duplicated(keep=keep)
-
-    return duplicated_array(values, keep=keep)
-
-
-def duplicated_array(
     values: ArrayLike,
     keep: Literal["first", "last", False] = "first",
     mask: npt.NDArray[np.bool_] | None = None,

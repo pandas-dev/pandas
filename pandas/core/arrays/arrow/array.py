@@ -1312,7 +1312,7 @@ class ArrowExtensionArray(
             values = self.factorize()[0]
 
         mask = self.isna() if self._hasna else None
-        return algos.duplicated_array(values, keep=keep, mask=mask)
+        return algos.duplicated(values, keep=keep, mask=mask)
 
     def unique(self) -> Self:
         """

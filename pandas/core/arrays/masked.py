@@ -958,7 +958,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ) -> npt.NDArray[np.bool_]:
         values = self._data
         mask = self._mask
-        return algos.duplicated_array(values, keep=keep, mask=mask)
+        return algos.duplicated(values, keep=keep, mask=mask)
 
     def unique(self) -> Self:
         """
