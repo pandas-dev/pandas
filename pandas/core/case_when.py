@@ -158,30 +158,26 @@ def case_when(
             else pd_array(arr, dtype=common_dtype, copy=False)
             for arr in replacements
         ]
-        if default is not None:
-            if isinstance(default, ABCSeries):
-                default = default.astype(common_dtype, copy=False)
-            else:
-                default = pd_array(default, dtype=common_dtype, copy=False)
+        if (default is not None) and isinstance(default, ABCSeries):
+            default = default.astype(common_dtype, copy=False)
+        elif default is not None:
+            default = pd_array(default, dtype=common_dtype, copy=False)
     else:
         common_dtype = common_dtype[0]
 
-    if default is not None:
-        if not isinstance(default, ABCSeries):
-            ser = Series(default)
-        else:
-            ser = default[:]
-    else:
-        ser = construct_1d_arraylike_from_scalar(
+    if default is None:
+        default = construct_1d_arraylike_from_scalar(
             na_value_for_dtype(common_dtype, compat=False),
             length=bool_length,
             dtype=common_dtype,
         )
-        ser = Series(ser)
+        default = Series(default)
+    elif not isinstance(default, ABCSeries):
+        default = Series(default)
 
     for position, condition, replacement in zip(counter, conditions, replacements):
         try:
-            ser = ser.mask(
+            default = default.mask(
                 condition, other=replacement, axis=0, inplace=False, level=level
             )
         except Exception as error:
@@ -189,4 +185,4 @@ def case_when(
                 f"condition{position} and replacement{position} failed to evaluate. "
                 f"Original error message: {error}"
             ) from error
-    return ser
+    return default
