@@ -17,7 +17,6 @@ Fixed regressions
 - Fixed regression in :func:`merge` when merging over a PyArrow string index (:issue:`54894`)
 - Fixed regression in :func:`read_csv` when ``usecols`` is given and ``dtypes`` is a dict for ``engine="python"`` (:issue:`54868`)
 - Fixed regression in :func:`read_csv` when ``delim_whitespace`` is True (:issue:`54918`, :issue:`54931`)
-- Fixed bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
 - Fixed regression in :meth:`.GroupBy.get_group` raising for ``axis=1`` (:issue:`54858`)
 - Fixed regression in :meth:`DataFrame.__setitem__` raising ``AssertionError`` when setting a :class:`Series` with a partial :class:`MultiIndex` (:issue:`54875`)
 - Fixed regression in :meth:`DataFrame.filter` not respecting the order of elements for ``filter`` (:issue:`54980`)
@@ -36,8 +35,6 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug for :class:`ArrowDtype` raising ``NotImplementedError`` for fixed-size list (:issue:`55000`)
-- Fixed bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
-- Fixed bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
 - Fixed bug in :meth:`DataFrame.stack` with ``future_stack=True`` and columns a non-:class:`MultiIndex` consisting of tuples (:issue:`54948`)
 - Fixed bug in :meth:`Series.dt.tz` with :class:`ArrowDtype` where a string was returned instead of a ``tzinfo`` object (:issue:`55003`)
 - Fixed bug in :meth:`Series.pct_change` and :meth:`DataFrame.pct_change` showing unnecessary ``FutureWarning`` (:issue:`54981`)
