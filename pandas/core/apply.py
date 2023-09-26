@@ -955,7 +955,11 @@ class FrameApply(NDFrameApply):
             result = np.squeeze(result)
         else:
             result = np.apply_along_axis(
-                wrap_function(self.func), self.axis, self.values
+                wrap_function(self.func),
+                self.axis,
+                self.values,
+                *self.args,
+                **self.kwargs,
             )
 
         # TODO: mixed type case
@@ -1322,14 +1326,6 @@ class SeriesApply(NDFrameApply):
         )
 
         if len(mapped) and isinstance(mapped[0], ABCSeries):
-            warnings.warn(
-                "Returning a DataFrame from Series.apply when the supplied function "
-                "returns a Series is deprecated and will be removed in a future "
-                "version.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )  # GH52116
-
             # GH#43986 Need to do list(mapped) in order to get treated as nested
             #  See also GH#25959 regarding EA support
             return obj._constructor_expanddim(list(mapped), index=obj.index)

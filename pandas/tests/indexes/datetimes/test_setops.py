@@ -189,6 +189,14 @@ class TestDatetimeIndexSetOps:
         # Fails with "AttributeError: can't set attribute"
         i2.union(i1, sort=sort)
 
+    def test_union_same_timezone_different_units(self):
+        # GH 55238
+        idx1 = date_range("2000-01-01", periods=3, tz="UTC").as_unit("ms")
+        idx2 = date_range("2000-01-01", periods=3, tz="UTC").as_unit("us")
+        result = idx1.union(idx2)
+        expected = date_range("2000-01-01", periods=3, tz="UTC").as_unit("us")
+        tm.assert_index_equal(result, expected)
+
     # TODO: moved from test_datetimelike; de-duplicate with version below
     def test_intersection2(self):
         first = tm.makeDateIndex(10)
@@ -343,9 +351,11 @@ class TestDatetimeIndexSetOps:
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
 
+        # preserve frequency when the difference is a contiguous
+        # subset of the original range
         other = date_range("20160922", "20160925", freq="D")
         idx_diff = index.difference(other, sort)
-        expected = DatetimeIndex(["20160920", "20160921"], freq=None)
+        expected = DatetimeIndex(["20160920", "20160921"], freq="D")
         tm.assert_index_equal(idx_diff, expected)
         tm.assert_attr_equal("freq", idx_diff, expected)
 
