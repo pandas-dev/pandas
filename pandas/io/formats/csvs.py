@@ -21,6 +21,7 @@ from typing import (
 import numpy as np
 
 from pandas._libs import writers as libwriters
+from pandas._typing import SequenceNotStr
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.generic import (
@@ -109,7 +110,7 @@ class CSVFormatter:
         return self.fmt.decimal
 
     @property
-    def header(self) -> bool | list[str]:
+    def header(self) -> bool | SequenceNotStr[str]:
         return self.fmt.header
 
     @property
@@ -213,7 +214,7 @@ class CSVFormatter:
         return bool(self._has_aliases or self.header)
 
     @property
-    def write_cols(self) -> Sequence[Hashable]:
+    def write_cols(self) -> SequenceNotStr[Hashable]:
         if self._has_aliases:
             assert not isinstance(self.header, bool)
             if len(self.header) != len(self.cols):
@@ -224,7 +225,7 @@ class CSVFormatter:
         else:
             # self.cols is an ndarray derived from Index._format_native_types,
             #  so its entries are strings, i.e. hashable
-            return cast(Sequence[Hashable], self.cols)
+            return cast(SequenceNotStr[Hashable], self.cols)
 
     @property
     def encoded_labels(self) -> list[Hashable]:
