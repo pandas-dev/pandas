@@ -835,13 +835,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     def duplicated(
         self, keep: Literal["first", "last", False] = "first"
     ) -> npt.NDArray[np.bool_]:
-        null_mask = self.isna()
-        duplicated_isna = algos.duplicated(null_mask[null_mask], keep=keep)
-        duplicated_notna = algos.duplicated(self.sp_values, keep=keep)
-        result = np.zeros(len(self), dtype=np.bool_)
-        np.putmask(result, null_mask, duplicated_isna)
-        np.putmask(result, ~null_mask, duplicated_notna)
-        return result
+        return algos.duplicated(np.asarray(self), keep=keep)
 
     def unique(self) -> Self:
         uniques = algos.unique(self.sp_values)
