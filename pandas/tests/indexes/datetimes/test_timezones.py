@@ -272,8 +272,8 @@ class TestDatetimeIndexTimezones:
 
     def test_tz_convert_roundtrip(self, tz_aware_fixture):
         tz = tz_aware_fixture
-        idx1 = date_range(start="2014-01-01", end="2014-12-31", freq="M", tz="UTC")
-        exp1 = date_range(start="2014-01-01", end="2014-12-31", freq="M")
+        idx1 = date_range(start="2014-01-01", end="2014-12-31", freq="ME", tz="UTC")
+        exp1 = date_range(start="2014-01-01", end="2014-12-31", freq="ME")
 
         idx2 = date_range(start="2014-01-01", end="2014-12-31", freq="D", tz="UTC")
         exp2 = date_range(start="2014-01-01", end="2014-12-31", freq="D")

@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+import warnings
 
 from pandas._config import using_pyarrow_string_dtype
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.errors import (
+    ParserError,
+    ParserWarning,
+)
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.inference import is_integer
 
@@ -85,6 +91,30 @@ class ArrowParserWrapper(ParserBase):
             and option_name
             in ("delimiter", "quote_char", "escape_char", "ignore_empty_lines")
         }
+
+        on_bad_lines = self.kwds.get("on_bad_lines")
+        if on_bad_lines is not None:
+            if callable(on_bad_lines):
+                self.parse_options["invalid_row_handler"] = on_bad_lines
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.ERROR:
+                self.parse_options[
+                    "invalid_row_handler"
+                ] = None  # PyArrow raises an exception by default
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.WARN:
+
+                def handle_warning(invalid_row):
+                    warnings.warn(
+                        f"Expected {invalid_row.expected_columns} columns, but found "
+                        f"{invalid_row.actual_columns}: {invalid_row.text}",
+                        ParserWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    return "skip"
+
+                self.parse_options["invalid_row_handler"] = handle_warning
+            elif on_bad_lines == ParserBase.BadLineHandleMethod.SKIP:
+                self.parse_options["invalid_row_handler"] = lambda _: "skip"
+
         self.convert_options = {
             option_name: option_value
             for option_name, option_value in self.kwds.items()
@@ -190,12 +220,15 @@ class ArrowParserWrapper(ParserBase):
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
 
-        table = pyarrow_csv.read_csv(
-            self.src,
-            read_options=pyarrow_csv.ReadOptions(**self.read_options),
-            parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
-            convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
-        )
+        try:
+            table = pyarrow_csv.read_csv(
+                self.src,
+                read_options=pyarrow_csv.ReadOptions(**self.read_options),
+                parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
+                convert_options=pyarrow_csv.ConvertOptions(**self.convert_options),
+            )
+        except pa.ArrowInvalid as e:
+            raise ParserError(e) from e
 
         dtype_backend = self.kwds["dtype_backend"]
 

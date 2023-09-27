@@ -105,6 +105,7 @@ if TYPE_CHECKING:
         FloatFormatType,
         FormattersType,
         IndexLabel,
+        SequenceNotStr,
         StorageOptions,
         WriteBuffer,
     )
@@ -566,7 +567,7 @@ class DataFrameFormatter:
         frame: DataFrame,
         columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
-        header: bool | list[str] = True,
+        header: bool | SequenceNotStr[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
