@@ -5452,16 +5452,17 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Parameters
         ----------
-        args : array-like, scalar
+        *args : array-like, scalar
             Variable argument of conditions and expected replacements.
-            Takes the form:
-                `condition0`, `replacement0`, `condition1`, `replacement1`, ...
-            `condition` should be a 1-D boolean array-like object or a callable.
-             If `condition` is a callable, it is computed on the Series
-             and should return boolean Series or array.
-             The callable must not change input the Series
-             (though pandas doesn`t check it). `replacement` should be a
-             1-D array-like object, a scalar or a callable.
+            Takes the form:  `condition0`, `replacement0`,
+            `condition1`, `replacement1`, ... .
+            `condition` should be a 1-D boolean array-like object
+            or a callable. If `condition` is a callable,
+            it is computed on the Series
+            and should return a boolean Series or array.
+            The callable must not change the input Series
+            (though pandas doesn`t check it). `replacement` should be a
+            1-D array-like object, a scalar or a callable.
             If `replacement` is a callable, it is computed on the Series
             and should return a scalar or Series. The callable
             must not change the input Series
@@ -5494,9 +5495,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2  1  4  8
         3  2  5  9
 
-        >>> df.c.case_when(df.a.gt(0), df.a, # condition, replacement
-        ...                df.b.gt(0), df.b,
-        ...              )
+        >>> df.c.case_when(df.a.gt(0), df.a,  # condition, replacement
+        ...                df.b.gt(0), df.b)
         0    6
         1    3
         2    1

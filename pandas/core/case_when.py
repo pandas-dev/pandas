@@ -40,21 +40,24 @@ def case_when(
     ----------
     *args : array-like, scalar
         Variable argument of conditions and expected replacements.
-        Takes the form:
-            `condition0`, `replacement0`,
-            `condition1`, `replacement1`, ... .
+        Takes the form: `condition0`, `replacement0`,
+        `condition1`, `replacement1`, ... .
         `condition` should be a 1-D boolean array.
-         The provided `conditions` should have the same size.
+        The provided boolean conditions should have the same size.
         `replacement` should be a 1-D array or a scalar.
         If `replacement` is a 1-D array, it should have the same
         shape as the paired `condition`.
-        When multiple conditions are satisfied, the first one is used.
+        When multiple boolean conditions are satisfied,
+        the first replacement is used.
 
     default : scalar, array-like, default None
         If provided, it is the replacement value to use
         if all conditions evaluate to False.
         If default is a 1-D array, it should have the same shape as
-        `condition` and `replacement`.
+        `condition` and `replacement`. If not specified,
+        entries will be filled with the corresponding
+        NULL value (``np.nan`` for numpy dtypes, ``pd.NA`` for extension
+        dtypes).
 
     level : int, default None
         Alignment level if needed.
@@ -85,8 +88,7 @@ def case_when(
 
     >>> pd.case_when(df.a.gt(0), df.a,   # condition, replacement
     ...              df.b.gt(0), df.b,
-    ...              default=df.c # optional
-    ...            )
+    ...              default=df.c)        # optional
     0    6
     1    3
     2    1
