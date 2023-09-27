@@ -2141,7 +2141,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # Statistics, overridden ndarray methods
 
     # TODO: integrate bottleneck
-    def count(self):
+    def count(self) -> int:
         """
         Return number of non-NA/null observations in the Series.
 
