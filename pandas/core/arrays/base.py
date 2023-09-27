@@ -1140,7 +1140,12 @@ class ExtensionArray:
         >>> pd.array([1, 1, 2, 3, 3], dtype="Int64").duplicated()
         array([False,  True, False, False,  True])
         """
-        return duplicated(values=self, keep=keep, mask=self.isna())
+        null_mask = self.isna()
+        if isinstance(null_mask, np.ndarray):
+            mask = null_mask
+        else:
+            mask = None
+        return duplicated(values=self, keep=keep, mask=mask)
 
     def shift(self, periods: int = 1, fill_value: object = None) -> ExtensionArray:
         """
