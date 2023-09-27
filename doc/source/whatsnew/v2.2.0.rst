@@ -15,7 +15,7 @@ Enhancements
 ~~~~~~~~~~~~
 
 
-.. _whatsnew_200.enhancements.case_when:
+.. _whatsnew_220.enhancements.case_when:
 
 Create Series based on one or more conditions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
