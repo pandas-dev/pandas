@@ -18,7 +18,7 @@ Enhancements
 .. _whatsnew_200.enhancements.case_when:
 
 Create Series based on one or more conditions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :func:`case_when` function has been added to create a Series object based on one or more conditions. (:issue:`39154`)
 
