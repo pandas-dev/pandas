@@ -5444,15 +5444,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def case_when(
         self,
-        *args,
-        level=None,
+        *args: ArrayLike | Scalar,
+        level: int | None = None,
     ) -> Series:
         """
         Replace values where the conditions are True.
 
         Parameters
         ----------
-        args : Variable argument of conditions and expected replacements.
+        args : array-like, scalar
+            Variable argument of conditions and expected replacements.
             Takes the form:
                 `condition0`, `replacement0`, `condition1`, `replacement1`, ...
             `condition` should be a 1-D boolean array-like object or a callable.
@@ -5469,7 +5470,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         level : int, default None
             Alignment level if needed.
 
-            .. versionchanged:: 2.2.0
+            .. versionadded:: 2.2.0
 
         Returns
         -------
@@ -5481,10 +5482,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> df = pd.DataFrame({"a": [0,0,1,2],
-        ...                    "b": [0,3,4,5],
-        ...                    "c": [6,7,8,9]
-        ...                  })
+        >>> df = pd.DataFrame({
+        ...     "a": [0,0,1,2],
+        ...     "b": [0,3,4,5],
+        ...     "c": [6,7,8,9]
+        ... })
         >>> df
            a  b  c
         0  0  0  6
@@ -5494,7 +5496,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         >>> df.c.case_when(df.a.gt(0), df.a, # condition, replacement
         ...                df.b.gt(0), df.b,
-        ...               )
+        ...              )
         0    6
         1    3
         2    1

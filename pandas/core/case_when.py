@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pandas.core.dtypes.cast import (
@@ -19,18 +21,25 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 from pandas.core.common import convert_to_list_like
 from pandas.core.construction import array as pd_array
 
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Scalar,
+    )
+
 
 def case_when(
-    *args,
-    default=None,
-    level=None,
-):
+    *args: ArrayLike | Scalar,
+    default: Scalar | ArrayLike | None = None,
+    level: int | None = None,
+) -> ABCSeries:
     """
     Replace values where the conditions are True.
 
     Parameters
     ----------
-    args : Variable argument of conditions and expected replacements.
+    *args : array-like, scalar
+        Variable argument of conditions and expected replacements.
         Takes the form:
             `condition0`, `replacement0`,
             `condition1`, `replacement1`, ... .
@@ -41,7 +50,7 @@ def case_when(
         shape as the paired `condition`.
         When multiple conditions are satisfied, the first one is used.
 
-    default: scalar, one-dimensional array, default None
+    default : scalar, array-like, default None
         If provided, it is the replacement value to use
         if all conditions evaluate to False.
         If default is a 1-D array, it should have the same shape as
@@ -50,7 +59,7 @@ def case_when(
     level : int, default None
         Alignment level if needed.
 
-        .. versionchanged:: 2.2.0
+        .. versionadded:: 2.2.0
 
     Returns
     -------
@@ -62,10 +71,11 @@ def case_when(
 
     Examples
     --------
-    >>> df = pd.DataFrame({"a": [0,0,1,2],
-    ...                    "b": [0,3,4,5],
-    ...                    "c": [6,7,8,9]
-    ...                  })
+    >>> df = pd.DataFrame({
+    ...     "a": [0,0,1,2],
+    ...     "b": [0,3,4,5],
+    ...     "c": [6,7,8,9]
+    ... })
     >>> df
        a  b  c
     0  0  0  6
@@ -73,10 +83,10 @@ def case_when(
     2  1  4  8
     3  2  5  9
 
-    >>> pd.case_when(df.a.gt(0), df.a, # condition, replacement
+    >>> pd.case_when(df.a.gt(0), df.a,   # condition, replacement
     ...              df.b.gt(0), df.b,
     ...              default=df.c # optional
-    ...             )
+    ...            )
     0    6
     1    3
     2    1
