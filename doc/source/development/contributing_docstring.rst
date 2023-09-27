@@ -646,7 +646,7 @@ A simple example could be:
             pandas.Series
                 Subset of the original series with the n first values.
 
-            See Also
+            See also
             --------
             tail : Return the last n elements of the Series.
 
