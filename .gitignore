@@ -129,6 +129,7 @@ doc/source/index.rst
 doc/build/html/index.html
 # Windows specific leftover:
 doc/tmp.sv
+doc/tmp.csv
 env/
 doc/source/savefig/
 doc/source/_build
