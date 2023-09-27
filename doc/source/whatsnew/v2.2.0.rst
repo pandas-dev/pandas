@@ -17,10 +17,10 @@ Enhancements
 
 .. _whatsnew_200.enhancements.case_when:
 
-Assignment based on one or more conditions
+Create Series based on one or more conditions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :func:`case_when` function has been added to support assignment based on one or more conditions. (:issue:`39154`)
+The :func:`case_when` function has been added to create a Series object based on one or more conditions. (:issue:`39154`)
 
 .. ipython:: python
 
