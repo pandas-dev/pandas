@@ -131,6 +131,7 @@ doc/build/html/index.html
 doc/tmp.sv
 env/
 doc/source/savefig/
+doc/source/_build
 
 # Interactive terminal generated files #
 ########################################
