@@ -2301,7 +2301,7 @@ class TimeGrouper(Grouper):
             "BQ",
             "BA",
             "Q",
-            "A",
+            "Y",
             "W",
         ):
             # If the right end-point is on the last day of the month, roll forwards
