@@ -12,11 +12,11 @@ from datetime import (
 from io import StringIO
 from pathlib import Path
 import sqlite3
+from typing import TYPE_CHECKING
 import uuid
 
 import numpy as np
 import pytest
-import sqlalchemy
 
 from pandas._libs import lib
 import pandas.util._test_decorators as td
@@ -52,6 +52,9 @@ from pandas.io.sql import (
     read_sql_table,
 )
 
+if TYPE_CHECKING:
+    import sqlalchemy
+
 
 @pytest.fixture
 def sql_strings():
@@ -83,6 +86,7 @@ def sql_strings():
 
 
 def iris_table_metadata():
+    import sqlalchemy
     from sqlalchemy import (
         Column,
         Double,
