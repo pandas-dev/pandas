@@ -838,6 +838,7 @@ class TestDateRanges:
     @pytest.mark.parametrize(
         "freq,freq_depr",
         [
+            ("Y", "A"),
             ("min", "T"),
             ("s", "S"),
             ("ms", "L"),
@@ -845,7 +846,7 @@ class TestDateRanges:
             ("ns", "N"),
         ],
     )
-    def test_frequencies_T_S_L_U_N_deprecated(self, freq, freq_depr):
+    def test_frequencies_a_t_s_l_u_n_deprecated(self, freq, freq_depr):
         # GH#52536
         msg = f"'{freq_depr}' is deprecated and will be removed in a future version."
 

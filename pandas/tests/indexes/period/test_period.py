@@ -284,6 +284,15 @@ class TestPeriodIndex:
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2020-01-01", "2020-01-02"], freq="2ME")
 
+    def test_a_deprecated_from_time_series(self):
+        # GH#52536
+        msg = "'A' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index = period_range(freq="A", start="1/1/2001", end="12/1/2009")
+        series = Series(1, index=index)
+        assert isinstance(series, Series)
+
 
 def test_maybe_convert_timedelta():
     pi = PeriodIndex(["2000", "2001"], freq="D")
