@@ -23,16 +23,17 @@ from pandas.core.construction import array as pd_array
 
 if TYPE_CHECKING:
     from pandas._typing import (
-        ArrayLike,
+        AnyArrayLike,
         Scalar,
+        Series,
     )
 
 
 def case_when(
-    *args: ArrayLike | Scalar,
-    default: Scalar | ArrayLike | None = None,
+    *args: AnyArrayLike | Scalar,
+    default: Scalar | AnyArrayLike | None = None,
     level: int | None = None,
-) -> ABCSeries:
+) -> Series:
     """
     Replace values where the conditions are True.
 

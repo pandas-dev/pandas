@@ -5444,7 +5444,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def case_when(
         self,
-        *args: ArrayLike | Scalar,
+        *args: AnyArrayLike | Callable | Scalar,
         level: int | None = None,
     ) -> Series:
         """
