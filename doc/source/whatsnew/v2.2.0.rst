@@ -20,7 +20,7 @@ Enhancements
 Assignment based on one or more conditions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``pd.case_when`` API has now been added to support assignment based on one or more conditions.
+The :func:`case_when` function has been added to support assignment based on one or more conditions. (:issue:`39154`)
 
 .. ipython:: python
 
