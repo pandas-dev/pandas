@@ -10,7 +10,10 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.generic import (
+    ABCDataFrame,
+    ABCSeries,
+)
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.common import convert_to_list_like
@@ -105,7 +108,7 @@ def case_when(
         if condition.ndim > 1:
             raise ValueError(f"condition{num} is not a one dimensional array.")
         if not is_bool_dtype(condition):
-            raise ValueError(f"condition{num} is not a boolean array.")
+            raise TypeError(f"condition{num} is not a boolean array.")
         conditions.append(condition)
     bool_length = {condition.size for condition in conditions}
     if len(bool_length) > 1:
@@ -116,7 +119,8 @@ def case_when(
             default = construct_1d_arraylike_from_scalar(
                 default, length=bool_length, dtype=None
             )
-        default = convert_to_list_like(default)
+        if not isinstance(default, ABCDataFrame):
+            default = convert_to_list_like(default)
         if not hasattr(default, "shape"):
             default = pd_array(default, copy=False)
         if default.ndim > 1:
@@ -131,12 +135,16 @@ def case_when(
                 "of the boolean conditions."
             )
     replacements = []
+    # ideally we could skip these checks and let `Series.mask`
+    # handle it - however, this step is necessary to get
+    # a common dtype for multiple conditions and replacements.
     for num, replacement in zip(counter, args[-1::-2]):
         if is_scalar(replacement):
             replacement = construct_1d_arraylike_from_scalar(
                 replacement, length=bool_length, dtype=None
             )
-        replacement = convert_to_list_like(replacement)
+        if not isinstance(replacement, ABCDataFrame):
+            replacement = convert_to_list_like(replacement)
         if not hasattr(replacement, "shape"):
             replacement = pd_array(replacement, copy=False)
         if replacement.ndim > 1:
