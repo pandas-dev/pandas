@@ -7,6 +7,7 @@ from datetime import (
     time,
     timedelta,
 )
+import re
 
 import numpy as np
 import pytest
@@ -838,21 +839,23 @@ class TestDateRanges:
     @pytest.mark.parametrize(
         "freq,freq_depr",
         [
-            ("Y", "A"),
-            ("min", "T"),
-            ("s", "S"),
-            ("ms", "L"),
-            ("us", "U"),
-            ("ns", "N"),
+            ("2Y", "2A"),
+            ("200Y-MAY", "200A-MAY"),
+            ("2min", "2T"),
+            ("1s", "1S"),
+            ("2ms", "2L"),
+            ("1us", "1U"),
+            ("2ns", "2N"),
         ],
     )
     def test_frequencies_a_t_s_l_u_n_deprecated(self, freq, freq_depr):
         # GH#52536
-        msg = f"'{freq_depr}' is deprecated and will be removed in a future version."
+        freq_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
+        msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
 
-        expected = date_range("1/1/2000", periods=4, freq=freq)
+        expected = date_range("1/1/2000", periods=2, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = date_range("1/1/2000", periods=4, freq=freq_depr)
+            result = date_range("1/1/2000", periods=2, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
 
