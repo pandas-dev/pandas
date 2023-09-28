@@ -30,11 +30,10 @@ from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
-def switch_numexpr_min_elements(request):
-    _MIN_ELEMENTS = expr._MIN_ELEMENTS
-    expr._MIN_ELEMENTS = request.param
-    yield request.param
-    expr._MIN_ELEMENTS = _MIN_ELEMENTS
+def switch_numexpr_min_elements(request, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(expr, "_MIN_ELEMENTS", request.param)
+        yield
 
 
 def _permute(obj):

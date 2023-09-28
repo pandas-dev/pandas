@@ -1541,7 +1541,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
-    def quantile(self, q: float | AnyArrayLike = 0.5, **kwargs):
+    def quantile(self, q: float | list[float] | AnyArrayLike = 0.5, **kwargs):
         """
         Return value at the given quantile.
 
@@ -2297,7 +2297,17 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq != "D" and is_superperiod(self.freq, "D"):
+        if self.freq.name in ("BM", "ME", "W") or self.freq.name.split("-")[0] in (
+            "BQ",
+            "BA",
+            "Q",
+            "A",
+            "W",
+        ):
+            # If the right end-point is on the last day of the month, roll forwards
+            # until the last moment of that day. Note that we only do this for offsets
+            # which correspond to the end of a super-daily period - "month start", for
+            # example, is excluded.
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 edges_dti = binner.tz_localize(None)
