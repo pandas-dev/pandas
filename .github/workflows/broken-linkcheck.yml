@@ -34,4 +34,4 @@ jobs:
         - name: Display broken links
           if: failure()
           working-directory: ./doc
-          run: grep broken linkcheck.txt
+          run: grep -i broken linkcheck.txt
