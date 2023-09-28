@@ -218,6 +218,7 @@ Other Deprecations
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_parquet` except ``path``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_pickle` except ``path``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_string` except ``buf``. (:issue:`54229`)
+- Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_xml` except ``path_or_buffer``. (:issue:`54229`)
 - Deprecated automatic downcasting of object-dtype results in :meth:`Series.replace` and :meth:`DataFrame.replace`, explicitly call ``result = result.infer_objects(copy=False)`` instead. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`54710`)
 - Deprecated downcasting behavior in :meth:`Series.where`, :meth:`DataFrame.where`, :meth:`Series.mask`, :meth:`DataFrame.mask`, :meth:`Series.clip`, :meth:`DataFrame.clip`; in a future version these will not infer object-dtype columns to non-object dtype, or all-round floats to integer dtype. Call ``result.infer_objects(copy=False)`` on the result for object inference, or explicitly cast floats to ints. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`53656`)
 - Deprecated including the groups in computations when using :meth:`DataFrameGroupBy.apply` and :meth:`DataFrameGroupBy.resample`; pass ``include_groups=False`` to exclude the groups (:issue:`7155`)
