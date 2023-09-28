@@ -29,4 +29,9 @@ jobs:
 
         - name: Run linkcheck script
           working-directory: ./doc
-          run: python make.py linkcheck
+          run: python make.py linkcheck | tee linkcheck.txt
+          
+        - name: Display broken links
+          if: failure()
+          working-directory: ./doc
+          run: grep broken linkcheck.txt
