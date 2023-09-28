@@ -138,9 +138,9 @@ def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
     how: MergeHow = "inner",
-    on: IndexLabel | None = None,
-    left_on: IndexLabel | None = None,
-    right_on: IndexLabel | None = None,
+    on: IndexLabel | AnyArrayLike | None = None,
+    left_on: IndexLabel | AnyArrayLike | None = None,
+    right_on: IndexLabel | AnyArrayLike | None = None,
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
@@ -187,9 +187,9 @@ def merge(
 def _cross_merge(
     left: DataFrame,
     right: DataFrame,
-    on: IndexLabel | None = None,
-    left_on: IndexLabel | None = None,
-    right_on: IndexLabel | None = None,
+    on: IndexLabel | AnyArrayLike | None = None,
+    left_on: IndexLabel | AnyArrayLike | None = None,
+    right_on: IndexLabel | AnyArrayLike | None = None,
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
@@ -239,7 +239,9 @@ def _cross_merge(
     return res
 
 
-def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
+def _groupby_and_merge(
+    by, left: DataFrame | Series, right: DataFrame | Series, merge_pieces
+):
     """
     groupby & merge; we are always performing a left-by type operation
 
@@ -255,7 +257,7 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
         by = [by]
 
     lby = left.groupby(by, sort=False)
-    rby: groupby.DataFrameGroupBy | None = None
+    rby: groupby.DataFrameGroupBy | groupby.SeriesGroupBy | None = None
 
     # if we can groupby the rhs
     # then we can get vastly better perf
@@ -295,8 +297,8 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
 
 
 def merge_ordered(
-    left: DataFrame,
-    right: DataFrame,
+    left: DataFrame | Series,
+    right: DataFrame | Series,
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -737,9 +739,9 @@ class _MergeOperation:
         left: DataFrame | Series,
         right: DataFrame | Series,
         how: MergeHow | Literal["asof"] = "inner",
-        on: IndexLabel | None = None,
-        left_on: IndexLabel | None = None,
-        right_on: IndexLabel | None = None,
+        on: IndexLabel | AnyArrayLike | None = None,
+        left_on: IndexLabel | AnyArrayLike | None = None,
+        right_on: IndexLabel | AnyArrayLike | None = None,
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = True,
@@ -1272,12 +1274,7 @@ class _MergeOperation:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index._values)
                         if lk is not None and lk == rk:  # FIXME: what about other NAs?
-                            # avoid key upcast in corner case (length-0)
-                            lk = cast(Hashable, lk)
-                            if len(left) > 0:
-                                right_drop.append(rk)
-                            else:
-                                left_drop.append(lk)
+                            right_drop.append(rk)
                     else:
                         rk = cast(ArrayLike, rk)
                         right_keys.append(rk)
@@ -2421,7 +2418,8 @@ def _factorize_keys(
 
     elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
         if (isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype)) or (
-            isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
+            isinstance(lk.dtype, StringDtype)
+            and lk.dtype.storage in ["pyarrow", "pyarrow_numpy"]
         ):
             import pyarrow as pa
             import pyarrow.compute as pc

@@ -70,7 +70,7 @@ if TYPE_CHECKING:
     from collections.abc import MutableMapping
     from datetime import tzinfo
 
-    import pyarrow as pa  # noqa: F811, TCH004
+    import pyarrow as pa  # noqa: TCH004
 
     from pandas._typing import (
         Dtype,
@@ -928,6 +928,13 @@ class DatetimeTZDtype(PandasExtensionDtype):
         self._tz = state["tz"]
         self._unit = state["unit"]
 
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        if all(isinstance(t, DatetimeTZDtype) and t.tz == self.tz for t in dtypes):
+            np_dtype = np.max([cast(DatetimeTZDtype, t).base for t in [self, *dtypes]])
+            unit = np.datetime_data(np_dtype)[0]
+            return type(self)(unit=unit, tz=self.tz)
+        return super()._get_common_dtype(dtypes)
+
     @cache_readonly
     def index_class(self) -> type_t[DatetimeIndex]:
         from pandas import DatetimeIndex
@@ -1035,7 +1042,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
                 if m is not None:
                     freq = m.group("freq")
 
-            freq_offset = to_offset(freq)
+            freq_offset = to_offset(freq, is_period=True)
             if freq_offset is not None:
                 return freq_offset
 
@@ -2147,6 +2154,8 @@ class ArrowDtype(StorageExtensionDtype):
             #  something more representative of the scalar
             return CategoricalDtypeType
         elif pa.types.is_list(pa_type) or pa.types.is_large_list(pa_type):
+            return list
+        elif pa.types.is_fixed_size_list(pa_type):
             return list
         elif pa.types.is_map(pa_type):
             return list
