@@ -3292,7 +3292,8 @@ class DataFrame(NDFrame, OpsMixin):
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = ...,
         compression: CompressionOptions = ...,
         storage_options: StorageOptions | None = ...,
-    ) -> str: ...
+    ) -> str:
+        ...
 
     @overload
     def to_xml(
@@ -3314,8 +3315,8 @@ class DataFrame(NDFrame, OpsMixin):
         stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = ...,
         compression: CompressionOptions = ...,
         storage_options: StorageOptions | None = ...,
-    ) -> None: ...
-
+    ) -> None:
+        ...
 
     @deprecate_nonkeyword_arguments(
         version="3.0", allowed_args=["self", "path_or_buffer"], name="to_xml"
