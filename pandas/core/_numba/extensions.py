@@ -52,7 +52,6 @@ class IndexType(types.Type):
         self.dtype = dtype
         self.layout = layout
         super().__init__(name)
-        # super().__init__(dtype, 1, layout)
 
     @property
     def key(self):
@@ -126,7 +125,6 @@ def typeof_series(val, c):
 def type_series_constructor(context):
     def typer(data, index, name=None):
         if isinstance(index, IndexType) and isinstance(data, types.Array):
-            # assert data.layout == "C"
             assert data.ndim == 1
             if name is None:
                 name = types.intp

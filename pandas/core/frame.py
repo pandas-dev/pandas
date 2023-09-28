@@ -10001,6 +10001,10 @@ class DataFrame(NDFrame, OpsMixin):
             - nogil (release the GIL inside the JIT compiled function)
             - parallel (try to apply the function in parallel over the DataFrame)
 
+              Note: Due to limitations within numba/how pandas interfaces with numba,
+              you should only use this if raw=True
+
+
             Note: The numba compiler only supports a subset of
             valid Python/numpy operations.
 
@@ -10009,8 +10013,6 @@ class DataFrame(NDFrame, OpsMixin):
             and `supported numpy features
             <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
             in numba to learn what you can or cannot use in the passed function.
-
-            As of right now, the numba engine can only be used with raw=True.
 
             .. versionadded:: 2.2.0
 
