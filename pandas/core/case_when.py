@@ -23,15 +23,15 @@ from pandas.core.construction import array as pd_array
 
 if TYPE_CHECKING:
     from pandas._typing import (
-        AnyArrayLike,
+        ListLike,
         Scalar,
         Series,
     )
 
 
 def case_when(
-    *args: AnyArrayLike | Scalar,
-    default: Scalar | AnyArrayLike | None = None,
+    *args: ListLike | Scalar,
+    default: Scalar | ListLike | None = None,
     level: int | None = None,
 ) -> Series:
     """

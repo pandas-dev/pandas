@@ -168,6 +168,7 @@ if TYPE_CHECKING:
         IndexKeyFunc,
         IndexLabel,
         Level,
+        ListLike,
         NaPosition,
         NumpySorter,
         NumpyValueArrayLike,
@@ -5444,7 +5445,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def case_when(
         self,
-        *args: AnyArrayLike | Callable | Scalar,
+        *args: ListLike | Callable | Scalar,
         level: int | None = None,
     ) -> Series:
         """
