@@ -134,11 +134,6 @@ is the missing value for datetime data.
 
    Timestamp
 
-.. autosummary::
-   :toctree: api/
-
-   NaT
-
 Properties
 ~~~~~~~~~~
 .. autosummary::
@@ -256,11 +251,6 @@ is the missing value for timedelta data.
    :toctree: api/
 
    Timedelta
-
-.. autosummary::
-   :toctree: api/
-
-   NaT
 
 Properties
 ~~~~~~~~~~
