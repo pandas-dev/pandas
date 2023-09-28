@@ -2098,7 +2098,7 @@ def test_resample_c_b_closed_right(freq: str):
 def test_resample_b_55282():
     # https://github.com/pandas-dev/pandas/issues/55282
     s = Series(
-        [1, 2, 3, 4, 5, 6], index=date_range("2023-09-26", periods=6, freq="12H")
+        [1, 2, 3, 4, 5, 6], index=date_range("2023-09-26", periods=6, freq="12h")
     )
     result = s.resample("B", closed="right", label="right").mean()
     expected = Series(
