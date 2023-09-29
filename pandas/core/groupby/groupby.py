@@ -5776,7 +5776,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # an empty DataFrame with an index (possibly including unobserved) but no
             # columns
             data = self._obj_with_exclusions
-            if not raise_err and isinstance(data, DataFrame):
+            if raise_err and isinstance(data, DataFrame):
                 if numeric_only:
                     data = data._get_numeric_data()
                 raise_err = len(data.columns) > 0
