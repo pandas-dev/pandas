@@ -1940,6 +1940,8 @@ class DataFrame(NDFrame, OpsMixin):
     ) -> list[MutableMappingT]:
         ...
 
+    # error: Incompatible default for argument "into" (default has type "type
+    # [dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
     @deprecate_nonkeyword_arguments(
         version="3.0", allowed_args=["self", "orient"], name="to_dict"
     )
@@ -1948,9 +1950,10 @@ class DataFrame(NDFrame, OpsMixin):
         orient: Literal[
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
-        into=dict,
+        into: type[MutableMappingT]
+        | MutableMappingT = dict,  # type: ignore[assignment]
         index: bool = True,
-    ):
+    ) -> MutableMappingT | list[MutableMappingT]:
         """
         Convert the DataFrame to a dictionary.
 

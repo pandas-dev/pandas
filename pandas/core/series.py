@@ -1927,21 +1927,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.index
 
-    @overload
+    # error: Incompatible default for argument "into" (default has type "type[
+    # dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
     def to_dict(
         self,
-        into: type[MutableMappingT] = ...,
+        into: type[MutableMappingT]
+        | MutableMappingT = dict,  # type: ignore[assignment]
     ) -> MutableMappingT:
-        ...
-
-    @overload
-    def to_dict(
-        self,
-        into: MutableMappingT = ...,
-    ) -> MutableMappingT:
-        ...
-
-    def to_dict(self, into=dict):
         """
         Convert Series to {label -> value} dict or dict-like object.
 

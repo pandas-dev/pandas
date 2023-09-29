@@ -42,14 +42,16 @@ def to_dict(
     ...
 
 
+# error: Incompatible default for argument "into" (default has type "type[dict
+# [Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
 def to_dict(
     df: DataFrame,
     orient: Literal[
         "dict", "list", "series", "split", "tight", "records", "index"
     ] = "dict",
-    into=dict,
+    into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
     index: bool = True,
-):
+) -> MutableMappingT | list[MutableMappingT]:
     """
     Convert the DataFrame to a dictionary.
 
