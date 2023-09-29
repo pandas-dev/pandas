@@ -27,28 +27,6 @@ def to_dict(
     df: DataFrame,
     orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
     *,
-    into: type[dict] = ...,
-    index: bool = ...,
-) -> dict:
-    ...
-
-
-@overload
-def to_dict(
-    df: DataFrame,
-    orient: Literal["records"],
-    *,
-    into: type[dict] = ...,
-    index: bool = ...,
-) -> list[dict]:
-    ...
-
-
-@overload
-def to_dict(
-    df: DataFrame,
-    orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
-    *,
     into: type[MutableMappingT] | MutableMappingT,
     index: bool = ...,
 ) -> MutableMappingT:
@@ -63,6 +41,28 @@ def to_dict(
     into: type[MutableMappingT] | MutableMappingT,
     index: bool = ...,
 ) -> list[MutableMappingT]:
+    ...
+
+
+@overload
+def to_dict(
+    df: DataFrame,
+    orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
+    *,
+    into: type[dict] = ...,
+    index: bool = ...,
+) -> dict:
+    ...
+
+
+@overload
+def to_dict(
+    df: DataFrame,
+    orient: Literal["records"],
+    *,
+    into: type[dict] = ...,
+    index: bool = ...,
+) -> list[dict]:
     ...
 
 

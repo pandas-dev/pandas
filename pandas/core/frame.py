@@ -1929,26 +1929,6 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
         *,
-        into: type[dict] = ...,
-        index: bool = ...,
-    ) -> dict:
-        ...
-
-    @overload
-    def to_dict(
-        self,
-        orient: Literal["records"],
-        *,
-        into: type[dict] = ...,
-        index: bool = ...,
-    ) -> list[dict]:
-        ...
-
-    @overload
-    def to_dict(
-        self,
-        orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
-        *,
         into: type[MutableMappingT] | MutableMappingT,
         index: bool = ...,
     ) -> MutableMappingT:
@@ -1962,6 +1942,26 @@ class DataFrame(NDFrame, OpsMixin):
         into: type[MutableMappingT] | MutableMappingT,
         index: bool = ...,
     ) -> list[MutableMappingT]:
+        ...
+
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
+        *,
+        into: type[dict] = ...,
+        index: bool = ...,
+    ) -> dict:
+        ...
+
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["records"],
+        *,
+        into: type[dict] = ...,
+        index: bool = ...,
+    ) -> list[dict]:
         ...
 
     # error: Incompatible default for argument "into" (default has type "type

@@ -1925,13 +1925,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return self.index
 
     @overload
-    def to_dict(self, *, into: type[dict] = ...) -> dict:
-        ...
-
-    @overload
     def to_dict(
         self, *, into: type[MutableMappingT] | MutableMappingT
     ) -> MutableMappingT:
+        ...
+
+    @overload
+    def to_dict(self, *, into: type[dict] = ...) -> dict:
         ...
 
     # error: Incompatible default for argument "into" (default has type "type[
