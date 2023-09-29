@@ -1,9 +1,10 @@
 name: Linkcheck
 on:
-    workflow_dispatch: # Enable manual triggering
-    #schedule:
+    workflow_dispatch: 
+    # Enable manual triggering
+    schedule:
     # Run monthly on the 1st day of the month
-        #- cron: '0 0 1 * *'
+        - cron: '0 0 1 * *'
     pull_request:
       paths:
         - ".github/workflows/broken-linkcheck.yml"
@@ -37,4 +38,4 @@ jobs:
         - name: Display broken links
           if: failure()
           working-directory: ./doc
-          run: linkcheck.txt grep -i broken
+          run: grep broken linkcheck.txt
