@@ -92,7 +92,7 @@ class TestTimestampEquivDateRange:
         ts = Timestamp("20090415", tz=pytz.timezone("US/Eastern"))
         assert ts == stamp
 
-    @td.skip_if_windowsdate_range inclusive
+    @td.skip_if_windows
     def test_date_range_timestamp_equiv_explicit_dateutil(self):
         from pandas._libs.tslibs.timezones import dateutil_gettz as gettz
 
