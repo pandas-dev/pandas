@@ -1928,7 +1928,28 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(
         self,
         orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
-        into: type[MutableMappingT] | MutableMappingT = ...,
+        *,
+        into: type[dict] = ...,
+        index: bool = ...,
+    ) -> dict:
+        ...
+
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["records"],
+        *,
+        into: type[dict] = ...,
+        index: bool = ...,
+    ) -> list[dict]:
+        ...
+
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
+        *,
+        into: type[MutableMappingT] | MutableMappingT,
         index: bool = ...,
     ) -> MutableMappingT:
         ...
@@ -1937,7 +1958,8 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(
         self,
         orient: Literal["records"],
-        into: type[MutableMappingT] | MutableMappingT = ...,
+        *,
+        into: type[MutableMappingT] | MutableMappingT,
         index: bool = ...,
     ) -> list[MutableMappingT]:
         ...
@@ -2059,7 +2081,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.methods.to_dict import to_dict
 
-        return to_dict(self, orient, into, index)
+        return to_dict(self, orient, into=into, index=index)
 
     @deprecate_nonkeyword_arguments(
         version="3.0", allowed_args=["self", "destination_table"], name="to_gbq"

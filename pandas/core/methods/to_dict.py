@@ -26,8 +26,31 @@ if TYPE_CHECKING:
 def to_dict(
     df: DataFrame,
     orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
-    into: type[MutableMappingT] | MutableMappingT = ...,
-    index: bool = True,
+    *,
+    into: type[dict] = ...,
+    index: bool = ...,
+) -> dict:
+    ...
+
+
+@overload
+def to_dict(
+    df: DataFrame,
+    orient: Literal["records"],
+    *,
+    into: type[dict] = ...,
+    index: bool = ...,
+) -> list[dict]:
+    ...
+
+
+@overload
+def to_dict(
+    df: DataFrame,
+    orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
+    *,
+    into: type[MutableMappingT] | MutableMappingT,
+    index: bool = ...,
 ) -> MutableMappingT:
     ...
 
@@ -36,8 +59,9 @@ def to_dict(
 def to_dict(
     df: DataFrame,
     orient: Literal["records"],
+    *,
     into: type[MutableMappingT] | MutableMappingT,
-    index: bool = True,
+    index: bool = ...,
 ) -> list[MutableMappingT]:
     ...
 
@@ -49,6 +73,7 @@ def to_dict(
     orient: Literal[
         "dict", "list", "series", "split", "tight", "records", "index"
     ] = "dict",
+    *,
     into: type[MutableMappingT] | MutableMappingT = dict,  # type: ignore[assignment]
     index: bool = True,
 ) -> MutableMappingT | list[MutableMappingT]:
@@ -128,7 +153,7 @@ def to_dict(
     are_all_object_dtype_cols = len(box_native_indices) == len(df.dtypes)
 
     if orient == "dict":
-        return into_c((k, v.to_dict(into)) for k, v in df.items())
+        return into_c((k, v.to_dict(into=into)) for k, v in df.items())
 
     elif orient == "list":
         object_dtype_indices_as_set: set[int] = set(box_native_indices)
