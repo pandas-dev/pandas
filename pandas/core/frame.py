@@ -10054,7 +10054,6 @@ class DataFrame(NDFrame, OpsMixin):
               Note: Due to limitations within numba/how pandas interfaces with numba,
               you should only use this if raw=True
 
-
             Note: The numba compiler only supports a subset of
             valid Python/numpy operations.
 
