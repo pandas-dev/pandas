@@ -48,25 +48,6 @@ def _get_expected_range(
     inclusive_endpoints,
 ):
     """Helper to get expected range from a both inclusive range"""
-    left_match = begin_to_match == both_range[0]
-    right_match = end_to_match == both_range[-1]
-
-    print(begin_to_match, both_range[0], sep='\n')
-
-    """if inclusive_endpoints == "left" and right_match:
-        expected_range = both_range[:-1]
-    elif inclusive_endpoints == "right" and left_match:
-        expected_range = both_range[1:]
-    elif inclusive_endpoints == "neither" and left_match and right_match:
-        expected_range = both_range[1:-1]
-    elif inclusive_endpoints == "neither" and right_match:
-        expected_range = both_range[:-1]
-    elif inclusive_endpoints == "neither" and left_match:
-        expected_range = both_range[1:]
-    elif inclusive_endpoints == "both":
-        expected_range = both_range[:]
-    else:
-        expected_range = both_range[:]"""
 
     if inclusive_endpoints == "left":
         expected_range = both_range[:-1]
@@ -77,7 +58,9 @@ def _get_expected_range(
     elif inclusive_endpoints == "neither":
         expected_range = both_range[1:-1]
     else:
-        expected_range = both_range[:]
+        raise ValueError(
+            "Inclusive has to be either 'both', 'neither', 'left' or 'right'"
+        )
 
     return expected_range
 
