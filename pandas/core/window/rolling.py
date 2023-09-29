@@ -405,6 +405,8 @@ class BaseWindow(SelectionMixin):
         # TODO: why do we get here with e.g. MultiIndex?
         if needs_i8_conversion(self._on.dtype):
             idx = cast("PeriodIndex | DatetimeIndex | TimedeltaIndex", self._on)
+            if (type(idx) == DatetimeIndex) and (idx.T.unit != "ns"):
+                idx = idx.astype("datetime64[ns]")
             return idx.asi8
         return None
 

@@ -1950,3 +1950,30 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(rolling2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data_type",
+    [
+        "datetime64[us]",
+        "datetime64[ms]",
+        "datetime64[s]",
+    ],
+)
+def test_rolling_sum_on_dtypes(data_type):
+    # GH 55299
+    index = [
+        "2019-01-03 05:11",
+        "2019-01-03 05:23",
+        "2019-01-03 05:28",
+        "2019-01-03 05:32",
+        "2019-01-03 05:36",
+    ]
+    arr = [True, False, False, True, True]
+
+    df_exp = DataFrame({"arr": arr}, index=to_datetime(index).astype("datetime64[ns]"))
+    df_test = DataFrame({"arr": arr}, index=to_datetime(index).astype(data_type))
+    sum_df_exp = df_exp.rolling("5min").sum()
+    sum_df_test = df_test.rolling("5min").sum()
+
+    assert list(sum_df_test.values) == list(sum_df_exp.values)
