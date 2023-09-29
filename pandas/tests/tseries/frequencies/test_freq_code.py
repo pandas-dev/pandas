@@ -100,7 +100,7 @@ def test_compatibility(freqstr, expected):
 
 
 @pytest.mark.parametrize("freq", ["A", "T", "S", "L", "U", "N"])
-def test_units_a_t_s_l_u_n_deprecated_from_attrname_to_abbrevs(freq):
+def test_units_A_T_S_L_U_N_deprecated_from_attrname_to_abbrevs(freq):
     # GH#52536
     msg = f"'{freq}' is deprecated and will be removed in a future version."
 
