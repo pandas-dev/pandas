@@ -283,6 +283,7 @@ Bug fixes
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
 - Bug in :meth:`pandas.DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
 - Bug in :meth:`pandas.read_excel` with a ODS file without cached formatted cell for float values (:issue:`55219`)
+- Bug in :meth:`pandas.read_excel` where ODS files with comments on time value cells failed to parse (related to :issue:`55200`)
 
 Categorical
 ^^^^^^^^^^^
