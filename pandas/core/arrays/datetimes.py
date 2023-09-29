@@ -493,6 +493,19 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                 # 2022-01-09 I (brock) am not sure if it is possible for this
                 #  to overflow and cast to e.g. f8, but if it does we need to cast
                 i8values = i8values.astype("i8")
+        """
+        if start == end:
+            if not left_inclusive or not right_inclusive:
+                i8values = i8values[1:-1]
+        else:
+            start_i8 = Timestamp(start)._value
+            end_i8 = Timestamp(end)._value
+            if not left_inclusive or not right_inclusive:
+                if not left_inclusive and len(i8values):
+                    i8values = i8values[1:]
+                if not right_inclusive and len(i8values):
+                    i8values = i8values[:-1]
+        """
 
         if not left_inclusive:
             i8values = i8values[1:]
