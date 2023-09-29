@@ -69,10 +69,7 @@ class TestPeriodConstruction:
         assert i1 == i3
 
         i4 = Period("2005", freq="M")
-        i5 = Period("2005", freq="m")
-
         assert i1 != i4
-        assert i4 == i5
 
         i1 = Period.now(freq="Q")
         i2 = Period(datetime.now(), freq="Q")
@@ -1614,3 +1611,9 @@ def test_invalid_frequency_error_message():
     msg = "Invalid frequency: <WeekOfMonth: week=0, weekday=0>"
     with pytest.raises(ValueError, match=msg):
         Period("2012-01-02", freq="WOM-1MON")
+
+
+def test_invalid_frequency_period_error_message():
+    msg = "Invalid frequency: ME"
+    with pytest.raises(ValueError, match=msg):
+        Period("2012-01-02", freq="ME")

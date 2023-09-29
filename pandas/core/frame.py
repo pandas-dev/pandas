@@ -43,6 +43,7 @@ from pandas._config import (
     get_option,
     using_copy_on_write,
 )
+from pandas._config.config import _get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -240,6 +241,7 @@ if TYPE_CHECKING:
         Renamer,
         Scalar,
         Self,
+        SequenceNotStr,
         SortKind,
         StorageOptions,
         Suffixes,
@@ -695,7 +697,7 @@ class DataFrame(NDFrame, OpsMixin):
                 NDFrame.__init__(self, data)
                 return
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
 
         # GH47215
         if isinstance(index, set):
@@ -1187,7 +1189,7 @@ class DataFrame(NDFrame, OpsMixin):
         buf: None = ...,
         columns: Axes | None = ...,
         col_space: int | list[int] | dict[Hashable, int] | None = ...,
-        header: bool | list[str] = ...,
+        header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
         formatters: fmt.FormattersType | None = ...,
@@ -1212,7 +1214,7 @@ class DataFrame(NDFrame, OpsMixin):
         buf: FilePath | WriteBuffer[str],
         columns: Axes | None = ...,
         col_space: int | list[int] | dict[Hashable, int] | None = ...,
-        header: bool | list[str] = ...,
+        header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
         formatters: fmt.FormattersType | None = ...,
@@ -1250,7 +1252,7 @@ class DataFrame(NDFrame, OpsMixin):
         buf: FilePath | WriteBuffer[str] | None = None,
         columns: Axes | None = None,
         col_space: int | list[int] | dict[Hashable, int] | None = None,
-        header: bool | list[str] = True,
+        header: bool | SequenceNotStr[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: fmt.FormattersType | None = None,
@@ -2416,7 +2418,7 @@ class DataFrame(NDFrame, OpsMixin):
 
             columns = columns.drop(exclude)
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
         return cls(mgr)
@@ -2617,7 +2619,7 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
         columns = ensure_index(columns)
         if len(columns) != len(arrays):
             raise ValueError("len(columns) must match len(arrays)")
@@ -3275,6 +3277,55 @@ class DataFrame(NDFrame, OpsMixin):
             render_links=render_links,
         )
 
+    @overload
+    def to_xml(
+        self,
+        path_or_buffer: None = ...,
+        *,
+        index: bool = ...,
+        root_name: str | None = ...,
+        row_name: str | None = ...,
+        na_rep: str | None = ...,
+        attr_cols: list[str] | None = ...,
+        elem_cols: list[str] | None = ...,
+        namespaces: dict[str | None, str] | None = ...,
+        prefix: str | None = ...,
+        encoding: str = ...,
+        xml_declaration: bool | None = ...,
+        pretty_print: bool | None = ...,
+        parser: XMLParsers | None = ...,
+        stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = ...,
+        compression: CompressionOptions = ...,
+        storage_options: StorageOptions | None = ...,
+    ) -> str:
+        ...
+
+    @overload
+    def to_xml(
+        self,
+        path_or_buffer: FilePath | WriteBuffer[bytes] | WriteBuffer[str],
+        *,
+        index: bool = ...,
+        root_name: str | None = ...,
+        row_name: str | None = ...,
+        na_rep: str | None = ...,
+        attr_cols: list[str] | None = ...,
+        elem_cols: list[str] | None = ...,
+        namespaces: dict[str | None, str] | None = ...,
+        prefix: str | None = ...,
+        encoding: str = ...,
+        xml_declaration: bool | None = ...,
+        pretty_print: bool | None = ...,
+        parser: XMLParsers | None = ...,
+        stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = ...,
+        compression: CompressionOptions = ...,
+        storage_options: StorageOptions | None = ...,
+    ) -> None:
+        ...
+
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "path_or_buffer"], name="to_xml"
+    )
     @doc(
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"] % "path_or_buffer",
@@ -4920,7 +4971,9 @@ class DataFrame(NDFrame, OpsMixin):
         column : str, number, or hashable object
             Label of the inserted column.
         value : Scalar, Series, or array-like
+            Content of the inserted column.
         allow_duplicates : bool, optional, default lib.no_default
+            Allow duplicate column labels to be created.
 
         See Also
         --------
@@ -9834,11 +9887,11 @@ class DataFrame(NDFrame, OpsMixin):
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    pandas.core.groupby.GroupBy : Perform operations over groups.
-    pandas.core.resample.Resampler : Perform operations over resampled bins.
-    pandas.core.window.Rolling : Perform operations over rolling window.
-    pandas.core.window.Expanding : Perform operations over expanding window.
-    pandas.core.window.ExponentialMovingWindow : Perform operation over exponential
+    pandas.DataFrame.groupby : Perform operations over groups.
+    pandas.DataFrame.resample : Perform operations over resampled bins.
+    pandas.DataFrame.rolling : Perform operations over rolling window.
+    pandas.DataFrame.expanding : Perform operations over expanding window.
+    pandas.core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
         weighted window.
     """
     )
@@ -10565,9 +10618,9 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         right: DataFrame | Series,
         how: MergeHow = "inner",
-        on: IndexLabel | None = None,
-        left_on: IndexLabel | None = None,
-        right_on: IndexLabel | None = None,
+        on: IndexLabel | AnyArrayLike | None = None,
+        left_on: IndexLabel | AnyArrayLike | None = None,
+        right_on: IndexLabel | AnyArrayLike | None = None,
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = False,
