@@ -924,7 +924,7 @@ def value_counts_internal(
 
         else:
             values = _ensure_arraylike(values, func_name="value_counts")
-            keys, counts = value_counts_arraylike(values, dropna)
+            keys, counts, _ = value_counts_arraylike(values, dropna)
             if keys.dtype == np.float16:
                 keys = keys.astype(np.float32)
 
@@ -949,7 +949,7 @@ def value_counts_internal(
 # Called once from SparseArray, otherwise could be private
 def value_counts_arraylike(
     values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
-) -> tuple[ArrayLike, npt.NDArray[np.int64]]:
+) -> tuple[ArrayLike, npt.NDArray[np.int64], int]:
     """
     Parameters
     ----------
@@ -965,7 +965,7 @@ def value_counts_arraylike(
     original = values
     values = _ensure_data(values)
 
-    keys, counts = htable.value_count(values, dropna, mask=mask)
+    keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -975,7 +975,7 @@ def value_counts_arraylike(
             keys, counts = keys[mask], counts[mask]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
-    return res_keys, counts
+    return res_keys, counts, na_counter
 
 
 def duplicated(
