@@ -1041,7 +1041,7 @@ def mode(
 
     npresult, res_mask = htable.mode(values, dropna=dropna, mask=mask)
     if res_mask is not None:
-        return npresult, res_mask
+        return npresult, res_mask  # type: ignore[return-value]
 
     try:
         npresult = np.sort(npresult)
