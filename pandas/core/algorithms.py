@@ -1039,7 +1039,10 @@ def mode(
 
     values = _ensure_data(values)
 
-    npresult = htable.mode(values, dropna=dropna, mask=mask)
+    npresult, res_mask = htable.mode(values, dropna=dropna, mask=mask)
+    if res_mask is not None:
+        return npresult, res_mask
+
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
