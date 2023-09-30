@@ -30,7 +30,7 @@ def test_mode_extension_dtype(as_period):
 
 
 def test_mode_nullable_dtype(any_numeric_ea_dtype):
-    # GH#55339
+    # GH#55340
     ser = Series([1, 3, 2, pd.NA, 3, 2, pd.NA], dtype=any_numeric_ea_dtype)
     result = ser.mode(dropna=False)
     expected = Series([2, 3, pd.NA], dtype=any_numeric_ea_dtype)
