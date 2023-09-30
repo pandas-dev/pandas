@@ -331,11 +331,19 @@ class TestBase:
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
 
+        if not all(
+            isinstance(elem, type(index.values[0])) for elem in index.values[1:]
+        ):
+            pytest.skip("'<' not supported between instances of 'str' and 'int'")
         result = index.argsort()
         expected = np.array(index).argsort()
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     def test_numpy_argsort(self, index):
+        if not all(
+            isinstance(elem, type(index.values[0])) for elem in index.values[1:]
+        ):
+            pytest.skip("'<' not supported between instances of 'str' and 'int'")
         result = np.argsort(index)
         expected = index.argsort()
         tm.assert_numpy_array_equal(result, expected)
