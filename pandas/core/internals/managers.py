@@ -86,7 +86,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         AxisInt,
-        DtypeBackend,
         DtypeObj,
         QuantileInterpolation,
         Self,
@@ -431,30 +430,14 @@ class BaseBlockManager(DataManager):
 
         return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
 
-    def convert_dtypes(
-        self,
-        infer_objects: bool = True,
-        convert_string: bool = True,
-        convert_integer: bool = True,
-        convert_boolean: bool = True,
-        convert_floating: bool = True,
-        dtype_backend: DtypeBackend = "numpy_nullable",
-    ):
+    def convert_dtypes(self, **kwargs):
         if using_copy_on_write():
             copy = False
         else:
             copy = True
 
         return self.apply(
-            "convert_dtypes",
-            copy=copy,
-            using_cow=using_copy_on_write(),
-            infer_objects=infer_objects,
-            convert_string=convert_string,
-            convert_integer=convert_integer,
-            convert_boolean=convert_boolean,
-            convert_floating=convert_floating,
-            dtype_backend=dtype_backend,
+            "convert_dtypes", copy=copy, using_cow=using_copy_on_write(), **kwargs
         )
 
     def to_native_types(self, **kwargs) -> Self:

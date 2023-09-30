@@ -446,10 +446,7 @@ class Block(PandasObject, libinternals.Block):
         res_blocks = []
         for nb in self._split():
             rbs = func(nb, *args, **kwargs)
-            if isinstance(rbs, list):
-                res_blocks.extend(rbs)
-            else:
-                res_blocks.append(rbs)
+            res_blocks.extend(rbs)
         return res_blocks
 
     # ---------------------------------------------------------------------
