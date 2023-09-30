@@ -6924,7 +6924,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: string
         """
         check_dtype_backend(dtype_backend)
-        new_mgr = self._mgr.convert_dtypes(
+        new_mgr = self._mgr.convert_dtypes(  # type: ignore[union-attr]
             infer_objects=infer_objects,
             convert_string=convert_string,
             convert_integer=convert_integer,

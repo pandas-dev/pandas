@@ -727,7 +727,7 @@ class Block(PandasObject, libinternals.Block):
         if squeeze and values.ndim == 2:
             if values.shape[0] != 1:
                 raise ValueError("Can not squeeze with more than one column.")
-            values = values[0, :]
+            values = values[0, :]  # type: ignore[call-overload]
 
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
