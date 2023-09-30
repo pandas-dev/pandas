@@ -657,40 +657,36 @@ class Block(PandasObject, libinternals.Block):
         if infer_objects and self.is_object:
             blks = self.convert(copy=False, using_cow=using_cow)
         else:
-            blks = [self.copy(deep=copy)]
+            blks = [self]
 
         if not any(
             [convert_floating, convert_integer, convert_boolean, convert_string]
         ):
-            return blks
+            return [b.copy(deep=copy) for b in blks]
 
         rbs = []
         for blk in blks:
-            dtype = convert_dtypes(
-                blk.values,
-                convert_string,
-                convert_integer,
-                convert_boolean,
-                convert_floating,
-                infer_objects,
-                dtype_backend,
-            )
-            if dtype == self.dtype:
-                # Avoid block splitting if dtype does not change
-                rbs.append(blk)
+            # Determine dtype column by column
+            sub_blks = [blk] if blk.ndim == 1 or self.shape[0] == 1 else blk._split()
+            dtypes = [
+                convert_dtypes(
+                    b.values,
+                    convert_string,
+                    convert_integer,
+                    convert_boolean,
+                    convert_floating,
+                    infer_objects,
+                    dtype_backend,
+                )
+                for b in sub_blks
+            ]
+            if all(dtype == self.dtype for dtype in dtypes):
+                # Avoid block splitting if no dtype changes
+                rbs.append(blk.copy(deep=copy))
                 continue
 
-            if blk.ndim == 1 or blk.ndim == 2 and blk.shape[0] == 1:
-                result = [blk.astype(dtype=dtype, copy=copy, squeeze=True)]
-            else:
-                result = blk.split_and_operate(
-                    Block.astype,
-                    dtype=dtype,
-                    copy=copy,
-                    using_cow=using_cow,
-                    squeeze=True,
-                )
-            rbs.extend(result)
+            for dtype, b in zip(dtypes, sub_blks):
+                rbs.append(b.astype(dtype=dtype, copy=copy, squeeze=b.ndim != 1))
         return rbs
 
     # ---------------------------------------------------------------------
