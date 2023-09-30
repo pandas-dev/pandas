@@ -6924,36 +6924,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: string
         """
         check_dtype_backend(dtype_backend)
-        if self.ndim == 1:
-            return self._convert_dtypes(
-                infer_objects,
-                convert_string,
-                convert_integer,
-                convert_boolean,
-                convert_floating,
-                dtype_backend=dtype_backend,
-            )
-        else:
-            results = [
-                col._convert_dtypes(
-                    infer_objects,
-                    convert_string,
-                    convert_integer,
-                    convert_boolean,
-                    convert_floating,
-                    dtype_backend=dtype_backend,
-                )
-                for col_name, col in self.items()
-            ]
-            if len(results) > 0:
-                result = concat(results, axis=1, copy=False, keys=self.columns)
-                cons = cast(type["DataFrame"], self._constructor)
-                result = cons(result)
-                result = result.__finalize__(self, method="convert_dtypes")
-                # https://github.com/python/mypy/issues/8354
-                return cast(Self, result)
-            else:
-                return self.copy(deep=None)
+        new_mgr = self._mgr.convert_dtypes(
+            infer_objects=infer_objects,
+            convert_string=convert_string,
+            convert_integer=convert_integer,
+            convert_boolean=convert_boolean,
+            convert_floating=convert_floating,
+            dtype_backend=dtype_backend,
+        )
+        res = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+        return res.__finalize__(self, method="convert_dtypes")
 
     # ----------------------------------------------------------------------
     # Filling NA's

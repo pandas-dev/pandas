@@ -34,6 +34,7 @@ from pandas._libs.missing import NA
 from pandas._typing import (
     ArrayLike,
     AxisInt,
+    DtypeBackend,
     DtypeObj,
     F,
     FillnaOptions,
@@ -56,6 +57,7 @@ from pandas.core.dtypes.astype import (
 from pandas.core.dtypes.cast import (
     LossySetitemError,
     can_hold_element,
+    convert_dtypes,
     find_result_type,
     maybe_downcast_to_dtype,
     np_can_hold_element,
@@ -444,7 +446,10 @@ class Block(PandasObject, libinternals.Block):
         res_blocks = []
         for nb in self._split():
             rbs = func(nb, *args, **kwargs)
-            res_blocks.extend(rbs)
+            if isinstance(rbs, list):
+                res_blocks.extend(rbs)
+            else:
+                res_blocks.append(rbs)
         return res_blocks
 
     # ---------------------------------------------------------------------
@@ -638,6 +643,56 @@ class Block(PandasObject, libinternals.Block):
         res_values = maybe_coerce_values(res_values)
         return [self.make_block(res_values, refs=refs)]
 
+    def convert_dtypes(
+        self,
+        copy: bool,
+        using_cow: bool,
+        infer_objects: bool = True,
+        convert_string: bool = True,
+        convert_integer: bool = True,
+        convert_boolean: bool = True,
+        convert_floating: bool = True,
+        dtype_backend: DtypeBackend = "numpy_nullable",
+    ) -> list[Block]:
+        if infer_objects and self.is_object:
+            blks = self.convert(copy=False, using_cow=using_cow)
+        else:
+            blks = [self.copy(deep=copy)]
+
+        if not any(
+            [convert_floating, convert_integer, convert_boolean, convert_string]
+        ):
+            return blks
+
+        rbs = []
+        for blk in blks:
+            dtype = convert_dtypes(
+                blk.values,
+                convert_string,
+                convert_integer,
+                convert_boolean,
+                convert_floating,
+                infer_objects,
+                dtype_backend,
+            )
+            if dtype == self.dtype:
+                # Avoid block splitting if dtype does not change
+                rbs.append(blk)
+                continue
+
+            if blk.ndim == 1 or blk.ndim == 2 and blk.shape[0] == 1:
+                result = [blk.astype(dtype=dtype, copy=copy, squeeze=True)]
+            else:
+                result = blk.split_and_operate(
+                    Block.astype,
+                    dtype=dtype,
+                    copy=copy,
+                    using_cow=using_cow,
+                    squeeze=True,
+                )
+            rbs.extend(result)
+        return rbs
+
     # ---------------------------------------------------------------------
     # Array-Like Methods
 
@@ -653,6 +708,7 @@ class Block(PandasObject, libinternals.Block):
         copy: bool = False,
         errors: IgnoreRaise = "raise",
         using_cow: bool = False,
+        squeeze: bool = False,
     ) -> Block:
         """
         Coerce to the new dtype.
@@ -667,12 +723,18 @@ class Block(PandasObject, libinternals.Block):
             - ``ignore`` : suppress exceptions. On error return original object
         using_cow: bool, default False
             Signaling if copy on write copy logic is used.
+        squeeze : bool, default False
+            squeeze values to ndim=1 if only one column is given
 
         Returns
         -------
         Block
         """
         values = self.values
+        if squeeze and values.ndim == 2:
+            if values.shape[0] != 1:
+                raise ValueError("Can not squeeze with more than one column.")
+            values = values[0, :]
 
         new_values = astype_array_safe(values, dtype, copy=copy, errors=errors)
 
