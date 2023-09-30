@@ -19,6 +19,10 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
     int_to_weekday,
 )
+from pandas._libs.tslibs.dtypes import (
+    OFFSET_TO_PERIOD_FREQSTR,
+    freq_to_period_freqstr,
+)
 from pandas._libs.tslibs.fields import (
     build_field_sarray,
     month_position_check,
@@ -53,58 +57,29 @@ if TYPE_CHECKING:
     )
     from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 # ---------------------------------------------------------------------
-# Offset names ("time rules") and related functions
-
-_offset_to_period_map = {
-    "WEEKDAY": "D",
-    "EOM": "M",
-    "BM": "M",
-    "BQS": "Q",
-    "QS": "Q",
-    "BQ": "Q",
-    "BA": "A",
-    "AS": "A",
-    "BAS": "A",
-    "MS": "M",
-    "D": "D",
-    "B": "B",
-    "min": "min",
-    "s": "s",
-    "ms": "ms",
-    "us": "us",
-    "ns": "ns",
-    "H": "H",
-    "Q": "Q",
-    "A": "A",
-    "W": "W",
-    "M": "M",
-    "Y": "A",
-    "BY": "A",
-    "YS": "A",
-    "BYS": "A",
-}
+# Offset related functions
 
 _need_suffix = ["QS", "BQ", "BQS", "YS", "AS", "BY", "BA", "BYS", "BAS"]
 
 for _prefix in _need_suffix:
     for _m in MONTHS:
         key = f"{_prefix}-{_m}"
-        _offset_to_period_map[key] = _offset_to_period_map[_prefix]
+        OFFSET_TO_PERIOD_FREQSTR[key] = OFFSET_TO_PERIOD_FREQSTR[_prefix]
 
 for _prefix in ["A", "Q"]:
     for _m in MONTHS:
         _alias = f"{_prefix}-{_m}"
-        _offset_to_period_map[_alias] = _alias
+        OFFSET_TO_PERIOD_FREQSTR[_alias] = _alias
 
 for _d in DAYS:
-    _offset_to_period_map[f"W-{_d}"] = f"W-{_d}"
+    OFFSET_TO_PERIOD_FREQSTR[f"W-{_d}"] = f"W-{_d}"
 
 
 def get_period_alias(offset_str: str) -> str | None:
     """
     Alias to closest period strings BQ->Q etc.
     """
-    return _offset_to_period_map.get(offset_str, None)
+    return OFFSET_TO_PERIOD_FREQSTR.get(offset_str, None)
 
 
 # ---------------------------------------------------------------------
@@ -394,7 +369,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "MS", "bs": "BMS", "ce": "M", "be": "BM"}.get(pos_check)
+            return {"cs": "MS", "bs": "BMS", "ce": "ME", "be": "BM"}.get(pos_check)
 
     def _is_business_daily(self) -> bool:
         # quick check: cannot be business daily
@@ -584,7 +559,7 @@ def _maybe_coerce_freq(code) -> str:
     """
     assert code is not None
     if isinstance(code, DateOffset):
-        code = code.rule_code
+        code = freq_to_period_freqstr(1, code.name)
     if code in {"min", "s", "ms", "us", "ns"}:
         return code
     else:

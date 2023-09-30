@@ -30,11 +30,10 @@ from pandas.core.computation.check import NUMEXPR_INSTALLED
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
-def switch_numexpr_min_elements(request):
-    _MIN_ELEMENTS = expr._MIN_ELEMENTS
-    expr._MIN_ELEMENTS = request.param
-    yield request.param
-    expr._MIN_ELEMENTS = _MIN_ELEMENTS
+def switch_numexpr_min_elements(request, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(expr, "_MIN_ELEMENTS", request.param)
+        yield
 
 
 def _permute(obj):
@@ -639,10 +638,12 @@ class TestSeriesComparison:
         result = comparison_op(ser, val)
         expected = comparison_op(ser.dropna(), val).reindex(ser.index)
 
-        if comparison_op is operator.ne:
-            expected = expected.fillna(True).astype(bool)
-        else:
-            expected = expected.fillna(False).astype(bool)
+        msg = "Downcasting object dtype arrays"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            if comparison_op is operator.ne:
+                expected = expected.fillna(True).astype(bool)
+            else:
+                expected = expected.fillna(False).astype(bool)
 
         tm.assert_series_equal(result, expected)
 
