@@ -3767,7 +3767,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         quotechar: str = '"',
         lineterminator: str | None = None,
         chunksize: int | None = None,
-        date_format: str | None = None,
+        date_format: str | None = '%Y-%m-%d %H:%M:%S.%f%z',
         doublequote: bool_t = True,
         escapechar: str | None = None,
         decimal: str = ".",
