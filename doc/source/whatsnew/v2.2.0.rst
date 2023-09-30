@@ -14,6 +14,37 @@ including other versions of pandas.
 Enhancements
 ~~~~~~~~~~~~
 
+.. _whatsnew_220.enhancements.to_numpy_ea:
+
+ExtensionArray.to_numpy converts to suitable NumPy dtype
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`ExtensionArray.to_numpy`` will now convert to a suitable NumPy dtype instead
+of ``object`` dtype for nullable extension dtypes.
+
+*Old behavior:*
+
+.. code-block:: ipython
+
+    In [1]: ser = pd.Series([1, 2, 3], dtype="Int64")
+    In [2]: ser.to_numpy()
+    Out[2]: array([1, 2, 3], dtype=object)
+
+*New behavior:*
+
+.. ipython:: python
+
+    ser = pd.Series([1, 2, 3], dtype="Int64")
+    ser.to_numpy()
+
+The NumPy dtype is determined as follows:
+
+- float dtypes are cast to NumPy floats
+- integer dtypes without missing values are cast to NumPy integer dtypes
+- integer dtypes with missing values are cast to NumPy float dtypes and ``NaN`` is used as missing value indicator
+- boolean dtypes without missing values are cast to NumPy bool dtype
+- boolean dtypes with missing values keep object dtype
+
 .. _whatsnew_220.enhancements.calamine:
 
 Calamine engine for :func:`read_excel`
