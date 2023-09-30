@@ -995,7 +995,7 @@ def duplicated(
         - ``last`` : Mark duplicates as ``True`` except for the last
           occurrence.
         - False : Mark all duplicates as ``True``.
-    mask : ndarray[bool]
+    mask : ndarray[bool], optional
         array indicating which elements to exclude from checking
 
     Returns
