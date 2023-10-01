@@ -4329,6 +4329,10 @@ cdef class CustomBusinessHour(BusinessHour):
 
 
 cdef class _CustomBusinessMonth(BusinessMixin):
+    _attributes = tuple(
+        ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
+    )
+
     def __init__(
         self,
         n=1,
@@ -4458,9 +4462,6 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
     """
 
     _prefix = "CBM"
-    _attributes = tuple(
-        ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
-    )
 
 
 cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
@@ -4522,9 +4523,6 @@ cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
     """
 
     _prefix = "CBMS"
-    _attributes = tuple(
-        ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
-    )
 
 
 BDay = BusinessDay
