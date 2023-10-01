@@ -1133,7 +1133,7 @@ def convert_dtypes(
                 base_dtype = np.dtype(str)
             else:
                 base_dtype = inferred_dtype
-            if base_dtype.kind == "O" and isna(input_array).all():
+            if base_dtype.kind == "O" and len(input_array) > 0 and isna(input_array).all():
                 import pyarrow as pa
 
                 pa_type = pa.null()
