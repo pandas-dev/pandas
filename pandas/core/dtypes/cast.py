@@ -1134,7 +1134,7 @@ def convert_dtypes(
             else:
                 base_dtype = inferred_dtype
             if (
-                base_dtype.kind == "O"
+                base_dtype.kind == "O"  # type: ignore[union-attr]
                 and len(input_array) > 0
                 and isna(input_array).all()
             ):
