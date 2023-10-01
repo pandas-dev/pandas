@@ -6,6 +6,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -28,6 +30,9 @@ def mix_abc() -> dict[str, list[float | str]]:
 
 
 class TestDataFrameReplace:
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_replace_inplace(self, datetime_frame, float_string_frame):
         datetime_frame.loc[datetime_frame.index[:5], "A"] = np.nan
         datetime_frame.loc[datetime_frame.index[-5:], "A"] = np.nan
@@ -278,14 +283,25 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(res3, expec)
         tm.assert_frame_equal(res4, expec)
 
-    def test_regex_replace_dict_nested_non_first_character(self, any_string_dtype):
+    def test_regex_replace_dict_nested_non_first_character(
+        self, any_string_dtype, using_infer_string
+    ):
         # GH 25259
         dtype = any_string_dtype
         df = DataFrame({"first": ["abc", "bca", "cab"]}, dtype=dtype)
-        expected = DataFrame({"first": [".bc", "bc.", "c.b"]}, dtype=dtype)
-        result = df.replace({"a": "."}, regex=True)
+        if using_infer_string and any_string_dtype == "object":
+            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
+                result = df.replace({"a": "."}, regex=True)
+            expected = DataFrame({"first": [".bc", "bc.", "c.b"]})
+
+        else:
+            result = df.replace({"a": "."}, regex=True)
+            expected = DataFrame({"first": [".bc", "bc.", "c.b"]}, dtype=dtype)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_regex_replace_dict_nested_gh4115(self):
         df = DataFrame({"Type": ["Q", "T", "Q", "Q", "T"], "tmp": 2})
         expected = DataFrame({"Type": [0, 1, 0, 0, 1], "tmp": 2})
@@ -294,6 +310,9 @@ class TestDataFrameReplace:
             result = df.replace({"Type": {"Q": 0, "T": 1}})
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_regex_replace_list_to_scalar(self, mix_abc):
         df = DataFrame(mix_abc)
         expec = DataFrame(
@@ -322,6 +341,9 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(res2, expec)
         tm.assert_frame_equal(res3, expec)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_regex_replace_str_to_numeric(self, mix_abc):
         # what happens when you try to replace a numeric value with a regex?
         df = DataFrame(mix_abc)
@@ -337,6 +359,9 @@ class TestDataFrameReplace:
         tm.assert_frame_equal(res2, expec)
         tm.assert_frame_equal(res3, expec)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_regex_replace_regex_list_to_numeric(self, mix_abc):
         df = DataFrame(mix_abc)
         res = df.replace([r"\s*\.\s*", "b"], 0, regex=True)
@@ -415,12 +440,23 @@ class TestDataFrameReplace:
         ],
     )
     def test_regex_replace_string_types(
-        self, data, to_replace, expected, frame_or_series, any_string_dtype
+        self,
+        data,
+        to_replace,
+        expected,
+        frame_or_series,
+        any_string_dtype,
+        using_infer_string,
     ):
         # GH-41333, GH-35977
         dtype = any_string_dtype
         obj = frame_or_series(data, dtype=dtype)
-        result = obj.replace(to_replace, regex=True)
+        if using_infer_string and any_string_dtype == "object":
+            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
+                result = obj.replace(to_replace, regex=True)
+                dtype = "string[pyarrow_numpy]"
+        else:
+            result = obj.replace(to_replace, regex=True)
         expected = frame_or_series(expected, dtype=dtype)
 
         tm.assert_equal(result, expected)
@@ -522,6 +558,9 @@ class TestDataFrameReplace:
         result = df.replace(s, df.mean())
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_replace_convert(self):
         # gh 3907
         df = DataFrame([["foo", "bar", "bah"], ["bar", "foo", "bah"]])
@@ -533,6 +572,9 @@ class TestDataFrameReplace:
         res = rep.dtypes
         tm.assert_series_equal(expec, res)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_replace_mixed(self, float_string_frame):
         mf = float_string_frame
         mf.iloc[5:20, mf.columns.get_loc("foo")] = np.nan
@@ -588,7 +630,7 @@ class TestDataFrameReplace:
         result = df.replace(0, 0.5)
         tm.assert_frame_equal(result, expected)
 
-    def test_replace_mixed2(self):
+    def test_replace_mixed2(self, using_infer_string):
         # to object block upcasting
         df = DataFrame(
             {
@@ -607,11 +649,15 @@ class TestDataFrameReplace:
 
         expected = DataFrame(
             {
-                "A": Series(["foo", "bar"], dtype="object"),
+                "A": Series(["foo", "bar"]),
                 "B": Series([0, "foo"], dtype="object"),
             }
         )
-        result = df.replace([1, 2], ["foo", "bar"])
+        if using_infer_string:
+            with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
+                result = df.replace([1, 2], ["foo", "bar"])
+        else:
+            result = df.replace([1, 2], ["foo", "bar"])
         tm.assert_frame_equal(result, expected)
 
     def test_replace_mixed3(self):
@@ -894,6 +940,9 @@ class TestDataFrameReplace:
         with pytest.raises(ValueError, match=msg):
             df.replace(to_rep, values[1:])
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_replace_input_formats_scalar(self):
         df = DataFrame(
             {"A": [np.nan, 0, np.inf], "B": [0, 2, 5], "C": ["", "asdf", "fd"]}
@@ -922,6 +971,9 @@ class TestDataFrameReplace:
         # TODO
         pass
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_replace_dict_no_regex(self):
         answer = Series(
             {
@@ -945,6 +997,9 @@ class TestDataFrameReplace:
             result = answer.replace(weights)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_replace_series_no_regex(self):
         answer = Series(
             {
@@ -1051,7 +1106,10 @@ class TestDataFrameReplace:
         expected = df.replace({"a": dict(zip(astr, bstr))})
         tm.assert_frame_equal(result, expected)
 
-    def test_replace_swapping_bug(self):
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
+    def test_replace_swapping_bug(self, using_infer_string):
         df = DataFrame({"a": [True, False, True]})
         res = df.replace({"a": {True: "Y", False: "N"}})
         expect = DataFrame({"a": ["Y", "N", "Y"]})
@@ -1062,6 +1120,9 @@ class TestDataFrameReplace:
         expect = DataFrame({"a": ["Y", "N", "Y"]})
         tm.assert_frame_equal(res, expect)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_replace_period(self):
         d = {
             "fname": {
@@ -1098,6 +1159,9 @@ class TestDataFrameReplace:
             result = df.replace(d)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     def test_replace_datetime(self):
         d = {
             "fname": {
@@ -1318,6 +1382,9 @@ class TestDataFrameReplace:
         result = df.replace(to_replace)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     @pytest.mark.parametrize(
         "replacer",
         [
@@ -1478,10 +1545,12 @@ class TestDataFrameReplace:
         expected = DataFrame(["z", "b", "c"])
         tm.assert_frame_equal(result, expected)
 
-    def test_replace_intervals(self):
+    def test_replace_intervals(self, using_infer_string):
         # https://github.com/pandas-dev/pandas/issues/35931
         df = DataFrame({"a": [pd.Interval(0, 1), pd.Interval(0, 1)]})
-        result = df.replace({"a": {pd.Interval(0, 1): "x"}})
+        warning = FutureWarning if using_infer_string else None
+        with tm.assert_produces_warning(warning, match="Downcasting"):
+            result = df.replace({"a": {pd.Interval(0, 1): "x"}})
         expected = DataFrame({"a": ["x", "x"]})
         tm.assert_frame_equal(result, expected)
 
@@ -1582,6 +1651,9 @@ class TestDataFrameReplaceRegex:
         expected.loc[expected["a"] == ".", "a"] = expected_replace_val
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="can't set float into string"
+    )
     @pytest.mark.parametrize("regex", [False, True])
     def test_replace_regex_dtype_frame(self, regex):
         # GH-48644
@@ -1619,9 +1691,15 @@ class TestDataFrameReplaceRegex:
         result = df.replace(to_replace=[".", "def"], value=["_", None])
         tm.assert_frame_equal(result, expected)
 
-    def test_replace_object_splitting(self):
+    def test_replace_object_splitting(self, using_infer_string):
         # GH#53977
         df = DataFrame({"a": ["a"], "b": "b"})
-        assert len(df._mgr.blocks) == 1
+        if using_infer_string:
+            assert len(df._mgr.blocks) == 2
+        else:
+            assert len(df._mgr.blocks) == 1
         df.replace(to_replace=r"^\s*$", value="", inplace=True, regex=True)
-        assert len(df._mgr.blocks) == 1
+        if using_infer_string:
+            assert len(df._mgr.blocks) == 2
+        else:
+            assert len(df._mgr.blocks) == 1
