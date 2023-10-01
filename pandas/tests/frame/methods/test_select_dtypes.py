@@ -282,7 +282,7 @@ class TestSelectDtypes:
         result = df.select_dtypes(include=[np.number], exclude=["floating"])
         tm.assert_frame_equal(result, expected)
 
-    def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
+    def test_select_dtypes_not_an_attr_but_still_valid_dtype(self, using_infer_string):
         df = DataFrame(
             {
                 "a": list("abc"),
@@ -296,11 +296,17 @@ class TestSelectDtypes:
         df["g"] = df.f.diff()
         assert not hasattr(np, "u8")
         r = df.select_dtypes(include=["i8", "O"], exclude=["timedelta"])
-        e = df[["a", "b"]]
+        if using_infer_string:
+            e = df[["b"]]
+        else:
+            e = df[["a", "b"]]
         tm.assert_frame_equal(r, e)
 
         r = df.select_dtypes(include=["i8", "O", "timedelta64[ns]"])
-        e = df[["a", "b", "g"]]
+        if using_infer_string:
+            e = df[["b", "g"]]
+        else:
+            e = df[["a", "b", "g"]]
         tm.assert_frame_equal(r, e)
 
     def test_select_dtypes_empty(self):

@@ -683,10 +683,14 @@ class TestResetIndex:
         ),
     ],
 )
-def test_reset_index_dtypes_on_empty_frame_with_multiindex(array, dtype):
+def test_reset_index_dtypes_on_empty_frame_with_multiindex(
+    array, dtype, using_infer_string
+):
     # GH 19602 - Preserve dtype on empty DataFrame with MultiIndex
     idx = MultiIndex.from_product([[0, 1], [0.5, 1.0], array])
     result = DataFrame(index=idx)[:0].reset_index().dtypes
+    if using_infer_string and dtype == object:
+        dtype = "string"
     expected = Series({"level_0": np.int64, "level_1": np.float64, "level_2": dtype})
     tm.assert_series_equal(result, expected)
 
@@ -708,7 +712,9 @@ def test_reset_index_empty_frame_with_datetime64_multiindex():
     tm.assert_frame_equal(result, expected)
 
 
-def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
+def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby(
+    using_infer_string,
+):
     # https://github.com/pandas-dev/pandas/issues/35657
     df = DataFrame({"c1": [10.0], "c2": ["a"], "c3": pd.to_datetime("2020-01-01")})
     df = df.head(0).groupby(["c2", "c3"])[["c1"]].sum()
@@ -718,6 +724,8 @@ def test_reset_index_empty_frame_with_datetime64_multiindex_from_groupby():
     )
     expected["c3"] = expected["c3"].astype("datetime64[ns]")
     expected["c1"] = expected["c1"].astype("float64")
+    if using_infer_string:
+        expected["c2"] = expected["c2"].astype("string[pyarrow_numpy]")
     tm.assert_frame_equal(result, expected)
 
 
