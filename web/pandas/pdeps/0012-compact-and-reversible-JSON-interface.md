@@ -71,7 +71,7 @@ In [1]: from shapely.geometry import Point
         from datetime import date
         import pandas as pd
         import ntv_pandas as npd
-        
+
 In [2]: data = {'index':           [100, 200, 300, 400, 500, 600],
                 'dates::date':     [date(1964,1,1), date(1985,2,5), date(2022,1,21), date(1964,1,1), date(1985,2,5), date(2022,1,21)],
                 'value':           [10, 10, 20, 20, 30, 30],
