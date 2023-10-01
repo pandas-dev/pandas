@@ -274,7 +274,7 @@ class TestAstype:
         result = df.astype(dtypes)
         expected = DataFrame(
             {
-                0: vals[:, 0].astype(str),
+                0: Series(vals[:, 0].astype(str), dtype=object),
                 1: vals[:, 1],
                 2: pd.array(vals[:, 2], dtype="Float64"),
                 3: vals[:, 3],

@@ -16,7 +16,7 @@ class TestConvertDtypes:
     ):
         # Specific types are tested in tests/series/test_dtypes.py
         # Just check that it works for DataFrame here
-        if using_infer_string and string_storage == "python":
+        if using_infer_string:
             string_storage = "pyarrow_numpy"
         df = pd.DataFrame(
             {
