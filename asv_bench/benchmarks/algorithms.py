@@ -81,7 +81,7 @@ class Duplicated:
             "datetime64[ns]",
             "datetime64[ns, tz]",
             "timestamp[ms][pyarrow]",
-            "string[pyarrow]",
+            "duration[s][pyarrow]",
         ],
     ]
     param_names = ["unique", "keep", "dtype"]
@@ -100,7 +100,9 @@ class Duplicated:
             "timestamp[ms][pyarrow]": pd.Index(
                 np.arange(N), dtype=pd.ArrowDtype(pa.timestamp("ms"))
             ),
-            "string[pyarrow]": tm.makeStringIndex(N).astype(pd.ArrowDtype(pa.string())),
+            "duration[s][pyarrow]": pd.Index(
+                np.arange(N), dtype=pd.ArrowDtype(pa.duration("s"))
+            ),
         }[dtype]
         if not unique:
             data = data.repeat(5)
