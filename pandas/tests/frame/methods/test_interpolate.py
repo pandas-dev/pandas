@@ -67,7 +67,7 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(orig, obj.values)
         assert orig.squeeze()[1] == 1.5
 
-    def test_interp_basic(self, using_copy_on_write):
+    def test_interp_basic(self, using_copy_on_write, using_infer_string):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -85,7 +85,8 @@ class TestDataFrameInterpolate:
             }
         )
         msg = "DataFrame.interpolate with object dtype"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        warning = FutureWarning if not using_infer_string else None
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.interpolate()
         tm.assert_frame_equal(result, expected)
 
@@ -108,7 +109,7 @@ class TestDataFrameInterpolate:
         assert np.shares_memory(df["C"]._values, cvalues)
         assert np.shares_memory(df["D"]._values, dvalues)
 
-    def test_interp_basic_with_non_range_index(self):
+    def test_interp_basic_with_non_range_index(self, using_infer_string):
         df = DataFrame(
             {
                 "A": [1, 2, np.nan, 4],
@@ -119,7 +120,8 @@ class TestDataFrameInterpolate:
         )
 
         msg = "DataFrame.interpolate with object dtype"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        warning = FutureWarning if not using_infer_string else None
+        with tm.assert_produces_warning(warning, match=msg):
             result = df.set_index("C").interpolate()
         expected = df.set_index("C")
         expected.loc[3, "A"] = 3
