@@ -35,7 +35,7 @@ class TestReindexSetIndex:
     def test_dti_set_index_reindex_datetimeindex(self):
         # GH#6631
         df = DataFrame(np.random.default_rng(2).random(6))
-        idx1 = date_range("2011/01/01", periods=6, freq="M", tz="US/Eastern")
+        idx1 = date_range("2011/01/01", periods=6, freq="ME", tz="US/Eastern")
         idx2 = date_range("2013", periods=6, freq="A", tz="Asia/Tokyo")
 
         df = df.set_index(idx1)

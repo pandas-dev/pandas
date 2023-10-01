@@ -277,10 +277,10 @@ class TestDateRanges:
         tm.assert_index_equal(rng, exp)
         assert rng.freq == "-2A"
 
-        rng = date_range("2011-01-31", freq="-2M", periods=3)
-        exp = DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2M")
+        rng = date_range("2011-01-31", freq="-2ME", periods=3)
+        exp = DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2ME")
         tm.assert_index_equal(rng, exp)
-        assert rng.freq == "-2M"
+        assert rng.freq == "-2ME"
 
     def test_date_range_bms_bug(self):
         # #1645
@@ -638,7 +638,7 @@ class TestDateRanges:
         assert dr[0] == start
         assert dr[2] == end
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3H", "A"])
     def test_range_closed(self, freq, inclusive_endpoints_fixture):
         begin = datetime(2011, 1, 1)
         end = datetime(2014, 1, 1)
@@ -653,7 +653,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3H", "A"])
     def test_range_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
@@ -674,7 +674,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3H", "A"])
     def test_range_with_tz_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
@@ -750,7 +750,7 @@ class TestDateRanges:
 
     def test_years_only(self):
         # GH 6961
-        dr = date_range("2014", "2015", freq="M")
+        dr = date_range("2014", "2015", freq="ME")
         assert dr[0] == datetime(2014, 1, 31)
         assert dr[-1] == datetime(2014, 12, 31)
 

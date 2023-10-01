@@ -942,7 +942,7 @@ class TimeSeries_DateLocator(Locator):
         day: int = 1,
         plot_obj=None,
     ) -> None:
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period=True)
         self.freq = freq
         self.base = base
         (self.quarter, self.month, self.day) = (quarter, month, day)
@@ -1026,7 +1026,7 @@ class TimeSeries_DateFormatter(Formatter):
         dynamic_mode: bool = True,
         plot_obj=None,
     ) -> None:
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period=True)
         self.format = None
         self.freq = freq
         self.locs: list[Any] = []  # unused, for matplotlib compat
