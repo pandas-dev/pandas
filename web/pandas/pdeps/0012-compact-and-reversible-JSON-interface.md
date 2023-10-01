@@ -1,12 +1,12 @@
 # PDEP-12: Compact and reversible JSON interface
 
 - Created: 16 June 2023
-- Status: Under discussion
+- Status: Rejected
 - Discussion:
     [#53252](https://github.com/pandas-dev/pandas/issues/53252)
     [#55038](https://github.com/pandas-dev/pandas/issues/55038)
 - Author: [Philippe THOMY](https://github.com/loco-philippe)
-- Revision: 2
+- Revision: 3
 
 
 #### Summary
@@ -46,7 +46,7 @@ So, the JSON interface is not always reversible and has inconsistencies related 
 
 Another consequence is the partial application of the Table Schema specification in the `orient="table"` option (6 Table Schema data types are taken into account out of the 24 defined).
 
-Some JSON-interface problems are detailed in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#1---Current-Json-interface)
+Some JSON-interface problems are detailed in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/ntv-pandas/blob/main/example/example_json_pandas.ipynb#Current-Json-interface)
 
 
 ### Feature Description
@@ -63,27 +63,28 @@ The DataFrame resulting from this JSON is identical to the initial DataFrame (re
 
 With the existing JSON interface, this conversion is not possible.
 
+This example uses `ntv_pandas` module defined in the [ntv-pandas repository](https://github.com/loco-philippe/ntv-pandas#readme).
+
 *data example*
 ```python
 In [1]: from shapely.geometry import Point
         from datetime import date
-        from json_ntv import read_json as read_json
-        from json_ntv import to_json as to_json
-
+        import pandas as pd
+        import ntv_pandas as npd
+        
 In [2]: data = {'index':           [100, 200, 300, 400, 500, 600],
-                'dates::date':     pd.Series([date(1964,1,1), date(1985,2,5), date(2022,1,21), date(1964,1,1), date(1985,2,5), date(2022,1,21)]),
+                'dates::date':     [date(1964,1,1), date(1985,2,5), date(2022,1,21), date(1964,1,1), date(1985,2,5), date(2022,1,21)],
                 'value':           [10, 10, 20, 20, 30, 30],
                 'value32':         pd.Series([12, 12, 22, 22, 32, 32], dtype='int32'),
                 'res':             [10, 20, 30, 10, 20, 30],
-                'coord::point':    pd.Series([Point(1,2), Point(3,4), Point(5,6), Point(7,8), Point(3,4), Point(5,6)]),
+                'coord::point':    [Point(1,2), Point(3,4), Point(5,6), Point(7,8), Point(3,4), Point(5,6)],
                 'names':           pd.Series(['john', 'eric', 'judith', 'mila', 'hector', 'maria'], dtype='string'),
                 'unique':          True }
 
 In [3]: df = pd.DataFrame(data).set_index('index')
 
 In [4]: df
-Out[4]:
-              dates::date  value  value32  res coord::point   names  unique
+Out[4]:       dates::date  value  value32  res coord::point   names  unique
         index
         100    1964-01-01     10       12   10  POINT (1 2)    john    True
         200    1985-02-05     10       12   20  POINT (3 4)    eric    True
@@ -96,10 +97,9 @@ Out[4]:
 *JSON representation*
 
 ```python
-In [5]: df_to_json = to_json(df)
-        pprint(df_to_json, compact=True, width=120)
-Out[5]:
-        {':tab': {'coord::point': [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0], [3.0, 4.0], [5.0, 6.0]],
+In [5]: df_to_json = npd.to_json(df)
+        pprint(df_to_json, width=120)
+Out[5]: {':tab': {'coord::point': [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0], [3.0, 4.0], [5.0, 6.0]],
                   'dates::date': ['1964-01-01', '1985-02-05', '2022-01-21', '1964-01-01', '1985-02-05', '2022-01-21'],
                   'index': [100, 200, 300, 400, 500, 600],
                   'names::string': ['john', 'eric', 'judith', 'mila', 'hector', 'maria'],
@@ -112,15 +112,14 @@ Out[5]:
 *Reversibility*
 
 ```python
-In [5]: df_from_json = read_json(df_to_json)
+In [5]: df_from_json = npd.read_json(df_to_json)
         print('df created from JSON is equal to initial df ? ', df_from_json.equals(df))
-
 Out[5]: df created from JSON is equal to initial df ?  True
 ```
-Several other examples are provided in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#2---Series)
+Several other examples are provided in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/ntv-pandas/blob/main/example/example_ntv_pandas.ipynb)
 
 #### Table Schema JSON interface example
-In the example below (not yet implemented), a DataFrame with several Table Schema data types is converted to JSON.
+In the example below, a DataFrame with several Table Schema data types is converted to JSON.
 
 The DataFrame resulting from this JSON is identical to the initial DataFrame (reversibility).
 
@@ -137,8 +136,7 @@ In [2]: df = pd.DataFrame({
             })
 
 In [3]: df
-Out[3]:
-        end february::date coordinates::point             contact::email
+Out[3]: end february::date coordinates::point             contact::email
         0         2023-02-28   POINT (2.3 48.9)         john.doe@table.com
         1         2024-02-29   POINT (5.4 43.3)    lisa.minelli@schema.com
         2         2025-02-28   POINT (4.9 45.8)  walter.white@breaking.com
@@ -147,9 +145,9 @@ Out[3]:
 *JSON representation*
 
 ```python
-In [4]: pprint(df.to_json(orient='table'), compact=True, width=140, sort_dicts=False)
-Out[4]:
-        {'schema': {'fields': [{'name': 'index', 'type': 'integer'},
+In [4]: df_to_table = npd.to_json(df, table=True)
+        pprint(df_to_table, width=140, sort_dicts=False)
+Out[4]: {'schema': {'fields': [{'name': 'index', 'type': 'integer'},
                                {'name': 'end february', 'type': 'date'},
                                {'name': 'coordinates', 'type': 'geopoint', 'format': 'array'},
                                {'name': 'contact', 'type': 'string', 'format': 'email'}],
@@ -159,8 +157,18 @@ Out[4]:
                   {'index': 1, 'end february': '2024-02-29', 'coordinates': [5.4, 43.3], 'contact': 'lisa.minelli@schema.com'},
                   {'index': 2, 'end february': '2025-02-28', 'coordinates': [4.9, 45.8], 'contact': 'walter.white@breaking.com'}]}
 ```
+
+*Reversibility*
+
+```python
+In [5]: df_from_table = npd.read_json(df_to_table)
+        print('df created from JSON is equal to initial df ? ', df_from_table.equals(df))
+Out[5]: df created from JSON is equal to initial df ?  True
+```
+Several other examples are provided in the [linked NoteBook](https://nbviewer.org/github/loco-philippe/ntv-pandas/blob/main/example/example_table_pandas.ipynb)
+
 ## Scope
-The objective is to make available the proposed JSON interface for any type of data and for `orient="table"` option.
+The objective is to make available the proposed JSON interface for any type of data and for `orient="table"` option or a new option `orient="ntv"`.
 
 The proposed interface is compatible with existing data.
 
@@ -292,7 +300,7 @@ It seems to me that this proposal responds to important issues:
 - having a complete Table Schema interface
 
 ### Compatibility
-Interface can be used without NTV type (compatibility with existing data - [see examples](https://nbviewer.org/github/loco-philippe/NTV/blob/main/example/example_pandas.ipynb#4---Appendix-:-Series-tests))
+Interface can be used without NTV type (compatibility with existing data - [see examples](https://nbviewer.org/github/loco-philippe/ntv-pandas/blob/main/example/example_ntv_pandas.ipynb#Appendix-:-Series-tests))
 
 If the interface is available, throw a new `orient` option in the JSON interface, the use of the feature is decoupled from the other features.
 
@@ -402,13 +410,28 @@ To conclude,
 - if not, a third-party package listed in the [ecosystem](https://pandas.pydata.org/community/ecosystem.html) that reads/writes this format to/from pandas DataFrames should be considered
 
 ## Core team decision
-Implementation option : xxxx
+Vote was open from september-11 to setpember-26:
+- Final tally is 0 approvals, 5 abstentions, 7 disapprove. The quorum has been met. The PDEP fails.
+
+**Disapprove comments** :
+- 1 Given the newness of the proposed JSON NTV format, I would support (as described in the PDEP): "if not, a third-party package listed in the ecosystem that reads/writes this format to/from pandas DataFrames should be considered"
+- 2 Same reason as -1-, this should be a third party package for now
+- 3 Not mature enough, and not clear what the market size would be.
+- 4 for the same reason I left in the PDEP: "I think this (JSON-NTV format) does not meet the bar of being a commonly used format for implementation within pandas"
+- 5 agree with -4-
+- 6 agree with the other core-dev responders. I think work in the existing json interface is extremely valuable. A number of the original issues raised are just bug fixes / extensions of already existing functionality. Trying to start anew is likely not worth the migration effort. That said if a format is well supported in the community we can reconsider in the future (obviously json is well supported but the actual specification detailed here is too new / not accepted as a standard)
+- 7 while I do think having a more comprehensive JSON format would be worthwhile, making a new format part of pandas means an implicit endorsement of a standard that is still being reviewed by the broader community.
+
+**Decision**:
+- add the `ntv-pandas` package in the [ecosystem](https://pandas.pydata.org/community/ecosystem.html)
+- revisit again this PDEP at a later stage, for example in 1/2 to 1 year (based on the evolution of the Internet draft [JSON semantic format (JSON-NTV)](https://www.ietf.org/archive/id/draft-thomy-json-ntv-01.html) and the usage of the [ntv-pandas](https://github.com/loco-philippe/ntv-pandas#readme))
 
 ## Timeline
-Tbd
+Not applicable
 
 ## PDEP History
 
 - 16 June 2023: Initial draft
 - 22 July 2023: Add F.A.Q.
 - 06 September 2023: Add Table Schema extension
+- 01 Octobre: Add Core team decision
