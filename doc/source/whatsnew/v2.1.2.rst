@@ -13,6 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
+- Fixed bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
 - Fixed bug where PDEP-6 warning about setting an item of an incompatible dtype was being shown when creating a new conditional column (:issue:`55025`)
 -
 
@@ -21,7 +22,8 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
+- Fixed bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -29,7 +31,7 @@ Bug fixes
 
 Other
 ~~~~~
--
+- Fixed non-working installation of optional dependency group ``output_formatting``. Replacing underscore ``_`` with a dash ``-`` fixes broken dependency resolution. A correct way to use now is ``pip install pandas[output-formatting]``.
 -
 
 .. ---------------------------------------------------------------------------

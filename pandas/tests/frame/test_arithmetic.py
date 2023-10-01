@@ -22,22 +22,19 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.computation import expressions as expr
-from pandas.core.computation.expressions import (
-    _MIN_ELEMENTS,
-    NUMEXPR_INSTALLED,
-)
+from pandas.core.computation.expressions import _MIN_ELEMENTS
 from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
 )
+from pandas.util.version import Version
 
 
 @pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
-def switch_numexpr_min_elements(request):
-    _MIN_ELEMENTS = expr._MIN_ELEMENTS
-    expr._MIN_ELEMENTS = request.param
-    yield request.param
-    expr._MIN_ELEMENTS = _MIN_ELEMENTS
+def switch_numexpr_min_elements(request, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(expr, "_MIN_ELEMENTS", request.param)
+        yield request.param
 
 
 class DummyElement:
@@ -502,10 +499,19 @@ class TestFrameFlexArithmetic:
         result2 = df.floordiv(ser.values, axis=0)
         tm.assert_frame_equal(result2, expected)
 
-    @pytest.mark.skipif(not NUMEXPR_INSTALLED, reason="numexpr not installed")
     @pytest.mark.parametrize("opname", ["floordiv", "pow"])
-    def test_floordiv_axis0_numexpr_path(self, opname):
+    def test_floordiv_axis0_numexpr_path(self, opname, request):
         # case that goes through numexpr and has to fall back to masked_arith_op
+        ne = pytest.importorskip("numexpr")
+        if (
+            Version(ne.__version__) >= Version("2.8.7")
+            and opname == "pow"
+            and "python" in request.node.callspec.id
+        ):
+            request.node.add_marker(
+                pytest.mark.xfail(reason="https://github.com/pydata/numexpr/issues/454")
+            )
+
         op = getattr(operator, opname)
 
         arr = np.arange(_MIN_ELEMENTS + 100).reshape(_MIN_ELEMENTS // 100 + 1, -1) * 100
@@ -1074,7 +1080,7 @@ class TestFrameArithmetic:
         ],
         ids=lambda x: x.__name__,
     )
-    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements, request):
+    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements):
         skip = {
             (operator.truediv, "bool"),
             (operator.pow, "bool"),
