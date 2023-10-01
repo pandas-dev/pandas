@@ -608,6 +608,7 @@ class TestTimedeltas:
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
         msg = "Units 'M', 'Y', and 'y' are no longer supported"
+
         with pytest.raises(ValueError, match=msg):
             Timedelta(10, unit)
 
@@ -690,7 +691,7 @@ class TestTimedeltas:
 
         for freq, msg in [
             ("Y", "<YearEnd: month=12> is a non-fixed frequency"),
-            ("M", "<MonthEnd> is a non-fixed frequency"),
+            ("ME", "<MonthEnd> is a non-fixed frequency"),
             ("foobar", "Invalid frequency: foobar"),
         ]:
             with pytest.raises(ValueError, match=msg):
@@ -927,7 +928,6 @@ class TestTimedeltas:
 
     @pytest.mark.xfail(
         reason="pd.Timedelta violates the Python hash invariant (GH#44504).",
-        raises=AssertionError,
     )
     @given(
         st.integers(

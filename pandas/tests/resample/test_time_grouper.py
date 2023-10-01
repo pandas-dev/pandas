@@ -70,7 +70,7 @@ def test_apply_iteration():
     N = 1000
     ind = date_range(start="2000-01-01", freq="D", periods=N)
     df = DataFrame({"open": 1, "close": 2}, index=ind)
-    tg = Grouper(freq="M")
+    tg = Grouper(freq="ME")
 
     grouper, _ = tg._get_grouper(df)
 
@@ -323,12 +323,14 @@ def test_groupby_resample_interpolate():
 
     df["week_starting"] = date_range("01/01/2018", periods=3, freq="W")
 
-    result = (
-        df.set_index("week_starting")
-        .groupby("volume")
-        .resample("1D")
-        .interpolate(method="linear")
-    )
+    msg = "DataFrameGroupBy.resample operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = (
+            df.set_index("week_starting")
+            .groupby("volume")
+            .resample("1D")
+            .interpolate(method="linear")
+        )
 
     expected_ind = pd.MultiIndex.from_tuples(
         [

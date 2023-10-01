@@ -138,7 +138,7 @@ def _parse_date_columns(data_frame, parse_dates):
         if isinstance(df_col.dtype, DatetimeTZDtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
-            except TypeError:
+            except (KeyError, TypeError):
                 fmt = None
             data_frame.isetitem(i, _handle_date_column(df_col, format=fmt))
 
