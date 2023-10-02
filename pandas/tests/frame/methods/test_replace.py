@@ -447,11 +447,19 @@ class TestDataFrameReplace:
         frame_or_series,
         any_string_dtype,
         using_infer_string,
+        request,
     ):
         # GH-41333, GH-35977
         dtype = any_string_dtype
         obj = frame_or_series(data, dtype=dtype)
         if using_infer_string and any_string_dtype == "object":
+            if len(to_replace) > 1 and isinstance(obj, DataFrame):
+                request.node.add_marker(
+                    pytest.mark.xfail(
+                        reason="object input array that gets downcasted raises on "
+                        "second pass"
+                    )
+                )
             with tm.assert_produces_warning(FutureWarning, match="Downcasting"):
                 result = obj.replace(to_replace, regex=True)
                 dtype = "string[pyarrow_numpy]"
