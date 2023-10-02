@@ -301,7 +301,7 @@ def describe_timestamp_as_categorical_1d(
     names = ["count", "unique"]
     objcounts = data.value_counts()
     count_unique = len(objcounts[objcounts != 0])
-    result = [data.count(), count_unique]
+    result: list[float | Timestamp] = [data.count(), count_unique]
     dtype = None
     if count_unique > 0:
         top, freq = objcounts.index[0], objcounts.iloc[0]
