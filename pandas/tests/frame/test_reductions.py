@@ -1237,7 +1237,9 @@ class TestDataFrameAnalytics:
     @pytest.mark.parametrize("axis", [0, 1])
     @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
     @pytest.mark.parametrize("skipna", [True, False])
-    def test_any_all_object_dtype(self, axis, bool_agg_func, skipna):
+    def test_any_all_object_dtype(
+        self, axis, bool_agg_func, skipna, using_infer_string
+    ):
         # GH#35450
         df = DataFrame(
             data=[
@@ -1247,8 +1249,13 @@ class TestDataFrameAnalytics:
                 [np.nan, np.nan, "5", np.nan],
             ]
         )
+        if using_infer_string:
+            # na in object is True while in string pyarrow numpy it's false
+            val = False if axis == 0 and not skipna and bool_agg_func == "all" else True
+        else:
+            val = True
         result = getattr(df, bool_agg_func)(axis=axis, skipna=skipna)
-        expected = Series([True, True, True, True])
+        expected = Series([True, True, val, True])
         tm.assert_series_equal(result, expected)
 
     # GH#50947 deprecates this but it is not emitting a warning in some builds.
