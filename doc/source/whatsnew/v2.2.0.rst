@@ -310,7 +310,7 @@ Missing
 
 MultiIndex
 ^^^^^^^^^^
--
+- Bug in :meth:`MultiIndex.get_indexer` not raising ``ValueError`` when ``method`` provided and index is non-monotonic (:issue:`53452`)
 -
 
 I/O

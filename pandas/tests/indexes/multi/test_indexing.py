@@ -342,6 +342,19 @@ class TestGetIndexer:
         expected = np.array([4, 6, 7], dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
 
+    @pytest.mark.parametrize("method", ["pad", "ffill", "backfill", "bfill", "nearest"])
+    def test_get_indexer_methods_raise_for_non_monotonic(self, method):
+        # 53452
+        mi = MultiIndex.from_arrays([[0, 4, 2], [0, 4, 2]])
+        if method == "nearest":
+            err = NotImplementedError
+            msg = "not implemented yet for MultiIndex"
+        else:
+            err = ValueError
+            msg = "index must be monotonic increasing or decreasing"
+        with pytest.raises(err, match=msg):
+            mi.get_indexer([(1, 1)], method=method)
+
     def test_get_indexer_three_or_more_levels(self):
         # https://github.com/pandas-dev/pandas/issues/29896
         # tests get_indexer() on MultiIndexes with 3+ levels
