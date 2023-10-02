@@ -2299,8 +2299,8 @@ class ADBCDatabase(PandasSQL):
         else:
             table_name = name
 
-        # TODO: pandas if_exists="append" will still create the
-        # table if it does not exist; ADBC has append/create
+        # pandas if_exists="append" will still create the
+        # table if it does not exist; ADBC is more explicit with append/create
         # as applicable modes, so the semantics get blurred across
         # the libraries
         mode = "create"
