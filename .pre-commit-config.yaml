@@ -84,7 +84,7 @@ repos:
             '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
         ]
 -   repo: https://github.com/pylint-dev/pylint
-    rev: v3.0.0a7
+    rev: v3.0.0b0
     hooks:
     -   id: pylint
         stages: [manual]
