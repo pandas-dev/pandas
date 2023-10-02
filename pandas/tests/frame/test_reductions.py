@@ -590,14 +590,15 @@ class TestDataFrameAnalytics:
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
-    def test_mode_sortwarning(self):
+    def test_mode_sortwarning(self, using_infer_string):
         # Check for the warning that is raised when the mode
         # results cannot be sorted
 
         df = DataFrame({"A": [np.nan, np.nan, "a", "a"]})
         expected = DataFrame({"A": ["a", np.nan]})
 
-        with tm.assert_produces_warning(UserWarning):
+        warning = None if using_infer_string else UserWarning
+        with tm.assert_produces_warning(warning):
             result = df.mode(dropna=False)
             result = result.sort_values(by="A").reset_index(drop=True)
 
@@ -1273,7 +1274,8 @@ class TestDataFrameAnalytics:
     def test_any_all_bool_only(self):
         # GH 25101
         df = DataFrame(
-            {"col1": [1, 2, 3], "col2": [4, 5, 6], "col3": [None, None, None]}
+            {"col1": [1, 2, 3], "col2": [4, 5, 6], "col3": [None, None, None]},
+            columns=Index(["col1", "col2", "col3"], dtype=object),
         )
 
         result = df.all(bool_only=True)
