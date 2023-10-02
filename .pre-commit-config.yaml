@@ -20,11 +20,11 @@ ci:
 repos:
 -   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
     # black compiled with mypyc
-    rev: 23.7.0
+    rev: 23.9.1
     hooks:
       - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.287
+    rev: v0.0.291
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -107,7 +107,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.10.1
+    rev: v3.13.0
     hooks:
     -   id: pyupgrade
         args: [--py39-plus]
