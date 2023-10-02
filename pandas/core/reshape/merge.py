@@ -2443,6 +2443,8 @@ def _factorize_keys(
                 .astype(np.intp, copy=False),
                 len(dc.dictionary),
             )
+            if dc.null_count > 0:
+                count += 1
             if how == "right":
                 return rlab, llab, count
             return llab, rlab, count

@@ -158,9 +158,14 @@ def test_join_invalid_validate(left_no_dup, right_no_dup):
         left_no_dup.merge(right_no_dup, on="a", validate="invalid")
 
 
-def test_join_on_single_col_dup_on_right(left_no_dup, right_w_dups):
+@pytest.mark.parametrize("dtype", ["object", "string[pyarrow]"])
+def test_join_on_single_col_dup_on_right(left_no_dup, right_w_dups, dtype):
     # GH 46622
     # Dups on right allowed by one_to_many constraint
+    if dtype == "string[pyarrow]":
+        pytest.importorskip("pyarrow")
+    left_no_dup = left_no_dup.astype(dtype)
+    right_w_dups.index = right_w_dups.index.astype(dtype)
     left_no_dup.join(
         right_w_dups,
         on="a",
