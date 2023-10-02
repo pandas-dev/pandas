@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pandas._typing import (
+        AxisInt,
         Dtype,
         Scalar,
         npt,
@@ -500,6 +501,28 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _convert_int_dtype(self, result):
         return Int64Dtype().__from_arrow__(result)
+
+    def _rank(
+        self,
+        *,
+        axis: AxisInt = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        return self._convert_int_dtype(
+            self._rank_calc(
+                axis=axis,
+                method=method,
+                na_option=na_option,
+                ascending=ascending,
+                pct=pct,
+            )
+        )
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
