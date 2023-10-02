@@ -986,7 +986,7 @@ class Resampler(BaseGroupBy, PandasObject):
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
 
-            .. deprecated::2.1.0
+            .. deprecated:: 2.1.0
 
         ``**kwargs`` : optional
             Keyword arguments to pass on to the interpolating function.
