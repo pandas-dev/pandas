@@ -1298,7 +1298,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         df["col2"] = Series([1, 2, 3], dtype="category")
 
         expected_types = Series(
-            ["int64", "category", "category"], index=[0, "col1", "col2"]
+            ["int64", "category", "category"], index=[0, "col1", "col2"], dtype=object
         )
         tm.assert_series_equal(df.dtypes, expected_types)
 
