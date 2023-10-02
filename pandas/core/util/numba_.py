@@ -7,6 +7,7 @@ from typing import (
 )
 
 import numpy as np
+import types
 
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
@@ -81,7 +82,6 @@ def jit_user_function(func: Callable) -> Callable:
         import numba
     else:
         numba = import_optional_dependency("numba")
-    import types
 
     if numba.extending.is_jitted(func):
         # Don't jit a user passed jitted function
