@@ -281,7 +281,7 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
--
+- Bug in :meth:`Series.convert_dtypes` not converting all NA column to ``null[pyarrow]`` (:issue:`55346`)
 -
 
 Strings
