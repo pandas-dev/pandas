@@ -1,13 +1,13 @@
 """Common utilities for Numba operations"""
 from __future__ import annotations
 
+import types
 from typing import (
     TYPE_CHECKING,
     Callable,
 )
 
 import numpy as np
-import types
 
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import NumbaUtilError
