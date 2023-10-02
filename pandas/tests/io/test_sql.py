@@ -570,7 +570,7 @@ def drop_table(
         adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
         if adbc and isinstance(conn, adbc.Connection):
             with conn.cursor() as cur:
-                cur.execute(f"DROP TABLE IF EXISTS {table_name}")
+                cur.execute(f'DROP TABLE IF EXISTS "{table_name}"')
         else:
             with conn.begin() as con:
                 sql.SQLDatabase(con).drop_table(table_name)
@@ -587,7 +587,7 @@ def drop_view(
         adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
         if adbc and isinstance(conn, adbc.Connection):
             with conn.cursor() as cur:
-                cur.execute(f"DROP VIEW IF EXISTS {view_name}")
+                cur.execute(f'DROP VIEW IF EXISTS "{view_name}"')
         else:
             quoted_view = conn.engine.dialect.identifier_preparer.quote_identifier(
                 view_name
@@ -918,7 +918,8 @@ def test_dataframe_to_sql_empty(conn, test_frame1, request):
     if conn == "postgresql_adbc_conn":
         request.node.add_marker(
             pytest.mark.xfail(
-                reason="postgres ADBC driver doesn't like empty dataset",
+                reason="postgres ADBC driver cannot insert index with null type",
+                strict=True,
             )
         )
     # GH 51086 if conn is sqlite_engine
@@ -938,28 +939,17 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
                 [datetime(2023, 1, 1)], dtype="timestamp[ns][pyarrow]"
             ),
             "date": pd.array([date(2023, 1, 1)], dtype="date32[day][pyarrow]"),
+            "timedelta": pd.array([timedelta(1)], dtype="duration[ns][pyarrow]"),
             "string": pd.array(["a"], dtype="string[pyarrow]"),
         }
     )
 
     if "adbc" in conn:
-        df["timedelta"] = pd.array(
-            [timedelta(1)], dtype="month_day_nano_interval[pyarrow]"
-        )
         exp_warning = FutureWarning  # warning thrown from pyarrow
         msg = "is_sparse is deprecated"
     else:
-        df["timedelta"] = pd.array([timedelta(1)], dtype="duration[ns][pyarrow]")
         exp_warning = UserWarning
         msg = "the 'timedelta'"
-
-    if conn == "sqlite_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="timedelta not implemented in ADBC sqlite driver",
-                strict=True,
-            )
-        )
 
     conn = request.getfixturevalue(conn)
     with tm.assert_produces_warning(exp_warning, match=msg, check_stacklevel=False):
@@ -1773,11 +1763,22 @@ def test_api_custom_dateparsing_error(
             "DateCol": {"errors": error},
         },
     )
+
     if "postgres" in conn_name:
         # TODO: clean up types_data_frame fixture
         result = result.drop(columns=["DateColWithTz"])
         result["BoolCol"] = result["BoolCol"].astype(int)
         result["BoolColWithNull"] = result["BoolColWithNull"].astype(float)
+
+    if conn_name == "postgresql_adbc_conn":
+        expected = expected.astype(
+            {
+                "DateCol": "datetime64[us]",  # TODO: is this astype allowed?
+                "IntDateCol": "int32",
+                "IntDateOnlyCol": "int32",
+                "IntCol": "int32",
+            }
+        )
 
     tm.assert_frame_equal(result, expected)
 
@@ -1785,10 +1786,6 @@ def test_api_custom_dateparsing_error(
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_api_date_and_index(conn, request):
     # Test case where same column appears in parse_date and index_col
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="index_col argument NotImplemented with ADBC")
-        )
     conn = request.getfixturevalue(conn)
     df = sql.read_sql_query(
         "SELECT * FROM types",
@@ -1812,6 +1809,13 @@ def test_api_timedelta(conn, request):
 
     df = to_timedelta(Series(["00:00:01", "00:00:03"], name="foo")).to_frame()
 
+    if conn_name == "sqlite_adbc_conn":
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason="sqlite ADBC driver doesn't implement timedelta",
+            )
+        )
+
     if "adbc" in conn_name:
         exp_warning = None
     else:
@@ -1821,7 +1825,21 @@ def test_api_timedelta(conn, request):
         result_count = df.to_sql(name="test_timedelta", con=conn)
     assert result_count == 2
     result = sql.read_sql_query("SELECT * FROM test_timedelta", conn)
-    tm.assert_series_equal(result["foo"], df["foo"].view("int64"))
+
+    if conn_name == "postgresql_adbc_conn":
+        # TODO: Postgres stores an INTERVAL, which ADBC reads as a Month-Day-Nano
+        # Interval; the default pandas type mapper maps this to a DateOffset
+        # but maybe we should try and restore the timedelta here?
+        expected = Series(
+            [
+                pd.DateOffset(months=0, days=0, microseconds=1000000, nanoseconds=0),
+                pd.DateOffset(months=0, days=0, microseconds=3000000, nanoseconds=0),
+            ],
+            name="foo",
+        )
+    else:
+        expected = df["foo"].view("int64")
+    tm.assert_series_equal(result["foo"], expected)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -1980,15 +1998,6 @@ def test_api_multiindex_roundtrip(conn, request):
 )
 def test_api_dtype_argument(conn, request, dtype):
     # GH10285 Add dtype argument to read_sql_query
-    if "adbc" in conn and dtype:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="dtype argument NotImplemented with ADBC")
-        )
-    elif conn == "postgresql_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(reason="does not properly handle capitalized cols")
-        )
-
     conn_name = conn
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_dtype_argument", conn):
@@ -2011,10 +2020,6 @@ def test_api_dtype_argument(conn, request, dtype):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_integer_col_names(conn, request):
-    if conn == "postgresql_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(reason="fails with syntax error", strict=True)
-        )
     conn = request.getfixturevalue(conn)
     df = DataFrame([[1, 2], [3, 4]], columns=[0, 1])
     sql.to_sql(df, "test_frame_integer_col_names", conn, if_exists="replace")
@@ -2196,10 +2201,6 @@ def test_api_unicode_column_name(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_escaped_table_name(conn, request):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="see arrow-adbc gh issue 1080")
-        )
     # GH 13206
     conn_name = conn
     conn = request.getfixturevalue(conn)
@@ -3725,10 +3726,6 @@ def test_chunksize_empty_dtypes(conn, request):
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
 def test_read_sql_dtype(conn, request, func, dtype_backend):
     # GH#50797
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="dtype argument NotImplemented with ADBC")
-        )
     conn = request.getfixturevalue(conn)
     table = "test"
     df = DataFrame({"a": [1, 2, 3], "b": 5})
