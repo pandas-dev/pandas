@@ -30,8 +30,6 @@ __all__ = [
     "SingleBlockManager",
     "SingleArrayManager",
     "concatenate_managers",
-    # this is preserved here for downstream compatibility (GH-33892)
-    "create_block_manager_from_blocks",
 ]
 
 
