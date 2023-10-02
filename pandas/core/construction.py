@@ -562,7 +562,14 @@ def sanitize_array(
     if not is_list_like(data):
         if index is None:
             raise ValueError("index must be specified when data is not list-like")
-        data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
+        if isinstance(data, str) and using_pyarrow_string_dtype():
+            from pandas.core.arrays.string_ import StringDtype
+
+            dtype = StringDtype("pyarrow_numpy")
+            data = dtype.construct_array_type()._from_sequence_of_strings([data])
+        else:
+            data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
+
         return data
 
     elif isinstance(data, ABCExtensionArray):
