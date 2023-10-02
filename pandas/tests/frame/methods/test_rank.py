@@ -470,10 +470,14 @@ class TestRank:
             ("top", False, [2.0, 3.0, 1.0, 4.0]),
         ],
     )
-    def test_rank_object_first(self, frame_or_series, na_option, ascending, expected):
+    def test_rank_object_first(
+        self, frame_or_series, na_option, ascending, expected, using_infer_string
+    ):
         obj = frame_or_series(["foo", "foo", None, "foo"])
         result = obj.rank(method="first", na_option=na_option, ascending=ascending)
         expected = frame_or_series(expected)
+        if using_infer_string:
+            expected = expected.astype("uint64")
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
