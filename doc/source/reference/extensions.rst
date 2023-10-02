@@ -67,6 +67,8 @@ objects.
       api.extensions.ExtensionArray.ndim
       api.extensions.ExtensionArray.shape
       api.extensions.ExtensionArray.tolist
+      api.extensions.ExtensionArray.transpose
+      api.extensions.ExtensionArray.T
 
 Additionally, we have some utility methods for ensuring your object
 behaves correctly.

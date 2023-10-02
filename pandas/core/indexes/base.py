@@ -3501,7 +3501,7 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
             else:
                 # TODO: algos.unique1d should preserve DTA/TDA
-                if is_numeric_dtype(self):
+                if is_numeric_dtype(self.dtype):
                     # This is faster, because Index.unique() checks for uniqueness
                     # before calculating the unique values.
                     res = algos.unique1d(res_indexer)
@@ -5013,7 +5013,10 @@ class Index(IndexOpsMixin, PandasObject):
             )
         # Exclude index types where the conversion to numpy converts to object dtype,
         #  which negates the performance benefit of libjoin
-        # TODO: exclude RangeIndex? Seems to break test_concat_datetime_timezone
+        # Subclasses should override to return False if _get_join_target is
+        #  not zero-copy.
+        # TODO: exclude RangeIndex (which allocates memory)?
+        #  Doing so seems to break test_concat_datetime_timezone
         return not isinstance(self, (ABCIntervalIndex, ABCMultiIndex))
 
     # --------------------------------------------------------------------
@@ -6169,8 +6172,8 @@ class Index(IndexOpsMixin, PandasObject):
             If doing an inequality check, i.e. method is not None.
         """
         if method is not None:
-            other = _unpack_nested_dtype(target)
-            raise TypeError(f"Cannot compare dtypes {self.dtype} and {other.dtype}")
+            other_dtype = _unpack_nested_dtype(target)
+            raise TypeError(f"Cannot compare dtypes {self.dtype} and {other_dtype}")
 
         no_matches = -1 * np.ones(target.shape, dtype=np.intp)
         if unique:
@@ -6281,8 +6284,7 @@ class Index(IndexOpsMixin, PandasObject):
             #  respectively.
             return False
 
-        other = _unpack_nested_dtype(other)
-        dtype = other.dtype
+        dtype = _unpack_nested_dtype(other)
         return self._is_comparable_dtype(dtype) or is_object_dtype(dtype)
 
     def _is_comparable_dtype(self, dtype: DtypeObj) -> bool:
@@ -7585,7 +7587,7 @@ def get_unanimous_names(*indexes: Index) -> tuple[Hashable, ...]:
     return names
 
 
-def _unpack_nested_dtype(other: Index) -> Index:
+def _unpack_nested_dtype(other: Index) -> DtypeObj:
     """
     When checking if our dtype is comparable with another, we need
     to unpack CategoricalDtype to look at its categories.dtype.
@@ -7596,20 +7598,20 @@ def _unpack_nested_dtype(other: Index) -> Index:
 
     Returns
     -------
-    Index
+    np.dtype or ExtensionDtype
     """
     dtype = other.dtype
     if isinstance(dtype, CategoricalDtype):
         # If there is ever a SparseIndex, this could get dispatched
         #  here too.
-        return dtype.categories
+        return dtype.categories.dtype
     elif isinstance(dtype, ArrowDtype):
         # GH 53617
         import pyarrow as pa
 
         if pa.types.is_dictionary(dtype.pyarrow_dtype):
-            other = other.astype(ArrowDtype(dtype.pyarrow_dtype.value_type))
-    return other
+            other = other[:0].astype(ArrowDtype(dtype.pyarrow_dtype.value_type))
+    return other.dtype
 
 
 def _maybe_try_sort(result: Index | ArrayLike, sort: bool | None):
