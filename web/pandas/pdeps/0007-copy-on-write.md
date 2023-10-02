@@ -23,11 +23,12 @@ Short summary of the proposal:
 This addresses multiple aspects: 1) a clear and consistent user API (a clear rule: _any_
 subset or returned series/dataframe **always** behaves as a copy of the original, and
 thus never modifies the original) and 2) improving performance by avoiding excessive
-copies (eg a chained method workflow would no longer return an actual data copy at each
+copies (e.g. a chained method workflow would no longer return an actual data copy at each
 step).
 
 Because every single indexing step behaves as a copy, this also means that with this
-proposal, "chained assignment" (with multiple setitem steps) will _never_ work.
+proposal, "chained assignment" (with multiple setitem steps) will _never_ work and
+the `SettingWithCopyWarning` can be removed.
 
 ## Background
 
@@ -122,8 +123,8 @@ steps in a single indexing operation on the original (no "chained" setitem):
 
 In principle, there's nothing special about indexing when it comes to defensive copying.
 _Any_ method that returns a new series/dataframe without altering existing data (rename,
-set_index, possibly assign, dropping columns, etc.) currently returns a copy by default
-and is a candidate for returning a view:
+set_index, assign, dropping columns, etc.) currently returns a copy by default and is a
+candidate for returning a view:
 
 ```python
 >>> df2 = df.rename(columns=str.lower)
@@ -157,15 +158,15 @@ This proposal basically means that mutations _never_ propagate to _other_ object
 would happen with views). The only way to modify a DataFrame or Series is to modify the
 object itself directly.
 
-But let's illustrate this in Python terms. Consider that we have a DataFrame df1, and we
-assign that to another name df2:
+But let's illustrate this in Python terms. Consider that we have a DataFrame `df1`, and we
+assign that to another name `df2`:
 
 ```python
 >>> df1 = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
 >>> df2 = df1
 ```
 
-Although we have now two variables (df1 and df2), this assignment follows the standard
+Although we have now two variables (`df1` and `df2`), this assignment follows the standard
 python semantics, and both names are pointing to the same object ("df1 and df2 are
 _identical_"):
 
@@ -174,7 +175,7 @@ _identical_"):
 True
 ```
 
-Thus, if you modify DataFrame df2, this is also reflected in the other variable df1, and
+Thus, if you modify DataFrame `df2`, this is also reflected in the other variable `df1`, and
 the other way around (since it's the same object):
 
 ```python
@@ -186,8 +187,8 @@ the other way around (since it's the same object):
 ```
 
 In summary, modifications are only "propagated" between _identical_ objects (not just
-equal (`==`), but identical (`is`) in python terms
-([docs](https://docs.python.org/3/reference/expressions.html#is))). Propagation is not
+equal (`==`), but identical (`is`) in python terms, see
+[docs](https://docs.python.org/3/reference/expressions.html#is)). Propagation is not
 really the proper term, since there is only one object that was modified.
 
 However, when in some way creating a new object (even though it might be a DataFrame
@@ -215,15 +216,15 @@ And thus modifications to one will not propagate to the other:
 1
 ```
 
-In the current implementation, any getitem indexing operation returns _new_ objects, and also almost all
+Currently, any getitem indexing operation returns _new_ objects, and also almost all
 DataFrame/Series methods return a _new_ object (except with `inplace=True` in some
 cases), and thus follow the above logic of never modifying its parent/child DataFrame or
 Series (using the lazy Copy-on-Write mechanism where possible).
 
 ## Copy / view behaviour in NumPy versus pandas
 
-Numpy has the concept of "views" (an array that shares data with another array, viewing
-the same memory, see eg
+NumPy has the concept of "views" (an array that shares data with another array, viewing
+the same memory, see e.g.
 [this explanation](https://scipy-cookbook.readthedocs.io/items/ViewsVsCopies.html) for
 more details). Typically you create views as a slice of another array. But other
 indexing methods, often called "fancy indexing", do not return views but copies: using a
@@ -237,7 +238,7 @@ concepts of numpy.
 However, because DataFrames are not an array, the copy/view rules still differ from
 NumPy's rules with current pandas. Slicing rows generally gives a view (following
 NumPy), but slicing columns doesn't always give a view (this could be changed to match
-NumPy however, see "Alternatives" 1b below). Fancy indexing rows (eg with a list of
+NumPy however, see "Alternatives" 1b below). Fancy indexing rows (e.g. with a list of
 (positional) labels) gives a copy, but fancy indexing columns _could_ give a view
 (currently this gives a copy as well, but one of the "Alternatives" (1b) is to have this
 always return a view).
@@ -265,6 +266,7 @@ The [original document](https://docs.google.com/document/d/1csGE4qigPR2vzmU2--jw
 2. **Copy-on-Write**: The setitem operation would check if it's a view on another
    dataframe. If it is, then we would copy our data before mutating. (i.e. this
    proposal)
+
 3. **Error-on-Write**: The setitem operation would check if it's a subset of another
    dataframe (both view of copy). Only rather than copying in case of a view we would
    raise an exception telling the user to either copy the data with
@@ -274,7 +276,7 @@ The [original document](https://docs.google.com/document/d/1csGE4qigPR2vzmU2--jw
 This document basically proposes an extended version of option 2 (Copy-on-Write). Some
 arguments in favor of Copy-on-Write compared to the other options:
 
-* Copy-on-Write will improve the copy/view efficiency of _methods_ (eg rename,
+* Copy-on-Write will improve the copy/view efficiency of _methods_ (e.g. rename,
   (re)set_index, drop columns, etc. See section above). This will result in
   lower memory usage and better performance.
 
@@ -318,11 +320,11 @@ disadvantages:
 * Increased memory usage for some use cases: while the majority of use cases will
   see an improvement in memory usage with this proposal, there are a few use
   cases where this might not be the case. Specifically in cases where pandas currently
-  does return a view (eg slicing rows) and in the case you are fine with (or don't care
+  does return a view (e.g. slicing rows) and in the case you are fine with (or don't care
   about) the current behaviour of it being a view when mutating that subset (i.e.
   mutating the sliced subset also mutates the parent dataframe), in such a case the
   proposal would introduce a new copy compared to the current behaviour. There is a
-  workaround for this though: The copy is not needed if the previous object goes out
+  workaround for this though: the copy is not needed if the previous object goes out
   of scope, e.g. the variable is reassigned to something else.
 
 ## Backward compatibility
@@ -335,11 +337,10 @@ change like this will in any case need to be accompanied with a major version bu
 example pandas 3.0).
 
 Doing a traditional deprecation cycle that lives in several minor feature releases will
-be too noisy. Indexing is too common an operation to include a warning (even if
-we limit it to just those operations that previously returned views). However, this proposal
-is already implemented and thus available. Users can opt-in and test their code
-(this is possible starting with version 1.5
-with `pd.options.mode.copy_on_write = True`).
+be too noisy. Indexing is too common an operation to include a warning (even if we limit
+it to just those operations that previously returned views). However, this proposal is
+already implemented and thus available. Users can opt-in and test their code (this is
+possible starting with version 1.5 with `pd.options.mode.copy_on_write = True`).
 
 Further we will add a warning mode for pandas 2.2 that raises warnings for all cases that
 will change behaviour under the Copy-on-Write proposal. We can
@@ -349,8 +350,8 @@ and then finally upgrade to the new major release.
 
 ## Implementation
 
-The implementation is available since pandas
-1.5 (and significantly improved starting with pandas 2.0). It uses weakrefs to keep track of whether the
+The implementation is available since pandas 1.5 (and significantly improved starting
+with pandas 2.0). It uses weakrefs to keep track of whether the
 data of a Dataframe/Series are viewing the data of another (pandas) object or are being
 viewed by another object. This way, whenever the series/dataframe gets modified, we can
 check if its data first needs to be copied before mutating it
@@ -373,13 +374,13 @@ before importing pandas).
 Consider a "classic" case of chained indexing, which was the original motivation for the SettingWithCopy warning:
 
 ```python
->>> df[df['B'] > 4]['B'] = 10
+>>> df[df['B'] > 3]['B'] = 10
 ```
 
 That is roughly equivalent to
 
 ```python
->>> df2 = df[df['B'] > 4]  # Copy under NumPy's rules
+>>> df2 = df[df['B'] > 3]  # Copy under NumPy's rules
 >>> df2['B'] = 10  # Update (the copy) df2, df not changed
 >>> del df2  # All references to df2 are lost, goes out of scope
 ```
@@ -396,7 +397,7 @@ and are used. _With this proposal_, any chained assignment will not work, and so
 cases will stop working (e.g. the case above but switching the order):
 
 ```python
->>> df['B'][df['B'] > 4] = 10
+>>> df['B'][df['B'] > 3] = 10
 # or
 >>> df['B'][0:5] = 10
 ```
@@ -427,7 +428,7 @@ the warning is by doing a defensive copy (`df_filtered = df[df["A"] > 1].copy()`
 results in copying the data twice in the current implementation, Copy-on-Write would
 not require ``.copy()`` anymore).
 
-_With the current proposal_, the filtered dataframe is never a view and the above
+_With this proposal_, the filtered dataframe is never a view and the above
 workflow would work as expected without warning (and thus without needing the extra
 copy).
 
