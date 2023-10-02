@@ -2128,8 +2128,35 @@ class ADBCDatabase(PandasSQL):
         ----------
         table_name : str
             Name of SQL table in database.
+        coerce_float : bool, default True
+            Raises NotImplementedError
+        parse_dates : list or dict, default: None
+            - List of column names to parse as dates.
+            - Dict of ``{column_name: format string}`` where format string is
+              strftime compatible in case of parsing string times, or is one of
+              (D, s, ns, ms, us) in case of parsing integer timestamps.
+            - Dict of ``{column_name: arg}``, where the arg corresponds
+              to the keyword arguments of :func:`pandas.to_datetime`.
+              Especially useful with databases without native Datetime support,
+              such as SQLite.
+        columns : list, default: None
+            List of column names to select from SQL table.
         schema : string, default None
-            Name of SQL schema in database to read from
+            Name of SQL schema in database to query (if database flavor
+            supports this).  If specified, this overwrites the default
+            schema of the SQL database object.
+        chunksize : int, default None
+            Raises NotImplementedError
+        dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+            Back-end data type applied to the resultant :class:`DataFrame`
+            (still experimental). Behaviour is as follows:
+
+            * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+              (default).
+            * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+              DataFrame.
+
+            .. versionadded:: 2.0
 
         Returns
         -------
@@ -2198,12 +2225,34 @@ class ADBCDatabase(PandasSQL):
         dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
     ) -> DataFrame | Iterator[DataFrame]:
         """
-        Read SQL query into a DataFrame. Keyword arguments are discarded.
+        Read SQL query into a DataFrame.
 
         Parameters
         ----------
         sql : str
             SQL query to be executed.
+        index_col : string, optional, default: None
+            Column name to use as index for the returned DataFrame object.
+        coerce_float : bool, default True
+            Raises NotImplementedError
+        params : list, tuple or dict, optional, default: None
+            Raises NotImplementedError
+        parse_dates : list or dict, default: None
+            - List of column names to parse as dates.
+            - Dict of ``{column_name: format string}`` where format string is
+              strftime compatible in case of parsing string times, or is one of
+              (D, s, ns, ms, us) in case of parsing integer timestamps.
+            - Dict of ``{column_name: arg dict}``, where the arg dict
+              corresponds to the keyword arguments of
+              :func:`pandas.to_datetime` Especially useful with databases
+              without native Datetime support, such as SQLite.
+        chunksize : int, default None
+            Raises NotImplementedError
+        dtype : Type name or dict of columns
+            Data type for data or columns. E.g. np.float64 or
+            {'a': np.float64, 'b': np.int32, 'c': 'Int64'}
+
+            .. versionadded:: 1.3.0
 
         Returns
         -------
@@ -2263,7 +2312,6 @@ class ADBCDatabase(PandasSQL):
     ) -> int | None:
         """
         Write records stored in a DataFrame to a SQL database.
-        Only frame, name, if_exists, index and schema are valid arguments.
 
         Parameters
         ----------
@@ -2274,17 +2322,27 @@ class ADBCDatabase(PandasSQL):
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
+        index : boolean, default True
+            Write DataFrame index as a column.
+        index_label : string or sequence, default None
+            Raises NotImplementedError
         schema : string, default None
             Name of SQL schema in database to write to (if database flavor
             supports this). If specified, this overwrites the default
             schema of the SQLDatabase object.
+        chunksize : int, default None
+            Raises NotImplementedError
+        dtype : single type or dict of column name to SQL type, default None
+            Raises NotImplementedError
+        method : {None', 'multi', callable}, default None
+            Raises NotImplementedError
+        engine : {'auto', 'sqlalchemy'}, default 'auto'
+            Raises NotImplementedError if not set to 'auto'
         """
         if index_label:
             raise NotImplementedError(
                 "'index_label' is not implemented for ADBC drivers"
             )
-        if schema:
-            raise NotImplementedError("'schema' is not implemented for ADBC drivers")
         if chunksize:
             raise NotImplementedError("'chunksize' is not implemented for ADBC drivers")
         if dtype:
@@ -2292,7 +2350,9 @@ class ADBCDatabase(PandasSQL):
         if method:
             raise NotImplementedError("'method' is not implemented for ADBC drivers")
         if engine != "auto":
-            raise NotImplementedError("'auto' is not implemented for ADBC drivers")
+            raise NotImplementedError(
+                "engine != 'auto' not implemented for ADBC drivers"
+            )
 
         if schema:
             table_name = f"{schema}.{name}"
