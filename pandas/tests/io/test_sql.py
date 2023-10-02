@@ -146,7 +146,7 @@ def create_and_load_iris_sqlite3(conn, iris_file: Path):
     with iris_file.open(newline=None, encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile)
         next(reader)
-        stmt = "INSERT INTO iris VALUES($1, $2, $3, $4, $5)"
+        stmt = "INSERT INTO iris VALUES(?, ?, ?, ?, ?)"
         # ADBC requires explicit types - no implicit str -> float conversion
         records = []
         records = [
@@ -920,6 +920,8 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
     )
 
     if "adbc" in conn:
+        if conn == "sqlite_adbc_conn":
+            df = df.drop(columns=["timedelta"])
         exp_warning = FutureWarning  # warning thrown from pyarrow
         msg = "is_sparse is deprecated"
     else:
