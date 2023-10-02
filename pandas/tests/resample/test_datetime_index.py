@@ -2044,7 +2044,7 @@ def test_resample_empty_series_with_tz():
 
 
 def test_resample_M_deprecated():
-    depr_msg = "'M' will be deprecated, please use 'ME' for Offsets."
+    depr_msg = "'M' will be deprecated, please use 'ME' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
     expected = s.resample("2ME").mean()

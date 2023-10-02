@@ -242,7 +242,7 @@ DEPR_ABBREVS: dict[str, str]= {
     "A-JUL": "Y-JUL",
     "A-AUG": "Y-AUG",
     "A-SEP": "Y-SEP",
-    "A-OCT": "Y-OKT",
+    "A-OCT": "Y-OCT",
     "A-NOV": "Y-NOV",
     "T": "min",
     "t": "min",

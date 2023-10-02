@@ -235,7 +235,7 @@ class TestAsFreq:
         tm.assert_frame_equal(result, expected)
 
     def test_asfreq_frequency_M_deprecated(self):
-        depr_msg = "'M' will be deprecated, please use 'ME' for Offsets."
+        depr_msg = "'M' will be deprecated, please use 'ME' instead."
 
         index = date_range("1/1/2000", periods=4, freq="ME")
         df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
