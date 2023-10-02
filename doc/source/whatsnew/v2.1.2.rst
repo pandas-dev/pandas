@@ -24,7 +24,7 @@ Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
 - Fixed bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
--
+- Fixed bug in :meth:`Categorical.equals` if other has arrow backed string dtype (:issue:`TODO`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_212.other:
