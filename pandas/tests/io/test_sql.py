@@ -35,7 +35,10 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.compat import pa_version_under8p0
+from pandas.compat import (
+    pa_version_under8p0,
+    pa_version_under13p0,
+)
 from pandas.compat._optional import import_optional_dependency
 import pandas.util._test_decorators as td
 
@@ -1746,12 +1749,15 @@ def test_api_custom_dateparsing_error(
     if conn_name == "postgresql_adbc_conn":
         expected = expected.astype(
             {
-                "DateCol": "datetime64[us]",  # TODO: is this astype allowed?
                 "IntDateCol": "int32",
                 "IntDateOnlyCol": "int32",
                 "IntCol": "int32",
             }
         )
+
+        if not pa_version_under13p0:
+            # TODO: is this astype safe?
+            expected["DateCol"] = expected["DateCol"].astype("datetime64[us]")
 
     tm.assert_frame_equal(result, expected)
 
