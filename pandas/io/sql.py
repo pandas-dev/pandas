@@ -138,7 +138,7 @@ def _parse_date_columns(data_frame, parse_dates):
         if isinstance(df_col.dtype, DatetimeTZDtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
-            except TypeError:
+            except (KeyError, TypeError):
                 fmt = None
             data_frame.isetitem(i, _handle_date_column(df_col, format=fmt))
 
@@ -621,7 +621,7 @@ def read_sql(
     >>> conn = connect(':memory:')
     >>> df = pd.DataFrame(data=[[0, '10/11/12'], [1, '12/11/10']],
     ...                   columns=['int_column', 'date_column'])
-    >>> df.to_sql('test_data', conn)
+    >>> df.to_sql(name='test_data', con=conn)
     2
 
     >>> pd.read_sql('SELECT int_column, date_column FROM test_data', conn)
@@ -2091,13 +2091,11 @@ class SQLiteTable(SQLTable):
 
         adapt_date_iso = lambda val: val.isoformat()
         adapt_datetime_iso = lambda val: val.isoformat()
-        adapt_datetime_epoch = lambda val: int(val.timestamp())
 
         sqlite3.register_adapter(time, _adapt_time)
 
         sqlite3.register_adapter(date, adapt_date_iso)
         sqlite3.register_adapter(datetime, adapt_datetime_iso)
-        sqlite3.register_adapter(datetime, adapt_datetime_epoch)
 
         convert_date = lambda val: date.fromisoformat(val.decode())
         convert_datetime = lambda val: datetime.fromisoformat(val.decode())

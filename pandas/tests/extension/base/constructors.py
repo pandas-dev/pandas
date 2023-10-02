@@ -5,10 +5,9 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import ExtensionArray
 from pandas.core.internals.blocks import EABackedBlock
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseConstructorsTests(BaseExtensionTests):
+class BaseConstructorsTests:
     def test_from_sequence_from_cls(self, data):
         result = type(data)._from_sequence(data, dtype=data.dtype)
         tm.assert_extension_array_equal(result, data)
@@ -36,7 +35,8 @@ class BaseConstructorsTests(BaseExtensionTests):
         if hasattr(result._mgr, "blocks"):
             assert isinstance(result2._mgr.blocks[0], EABackedBlock)
 
-    def test_series_constructor_no_data_with_index(self, dtype, na_value):
+    def test_series_constructor_no_data_with_index(self, dtype):
+        na_value = dtype.na_value
         result = pd.Series(index=[1, 2, 3], dtype=dtype)
         expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=dtype)
         tm.assert_series_equal(result, expected)
@@ -46,7 +46,8 @@ class BaseConstructorsTests(BaseExtensionTests):
         expected = pd.Series([], index=pd.Index([], dtype="object"), dtype=dtype)
         tm.assert_series_equal(result, expected)
 
-    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
+    def test_series_constructor_scalar_na_with_index(self, dtype):
+        na_value = dtype.na_value
         result = pd.Series(na_value, index=[1, 2, 3], dtype=dtype)
         expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=dtype)
         tm.assert_series_equal(result, expected)

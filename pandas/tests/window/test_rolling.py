@@ -100,9 +100,9 @@ def test_freq_window_not_implemented(window):
         index=date_range("2015-12-24", periods=10, freq="D"),
     )
     with pytest.raises(
-        NotImplementedError, match="step is not supported with frequency windows"
+        NotImplementedError, match="^step (not implemented|is not supported)"
     ):
-        df.rolling("3D", step=3)
+        df.rolling(window, step=3).sum()
 
 
 @pytest.mark.parametrize("agg", ["cov", "corr"])
@@ -142,7 +142,7 @@ def test_constructor_timedelta_window_and_minperiods(window, raw):
         index=date_range("2017-08-08", periods=n, freq="D"),
     )
     expected = DataFrame(
-        {"value": np.append([np.NaN, 1.0], np.arange(3.0, 27.0, 3))},
+        {"value": np.append([np.nan, 1.0], np.arange(3.0, 27.0, 3))},
         index=date_range("2017-08-08", periods=n, freq="D"),
     )
     result_roll_sum = df.rolling(window=window, min_periods=2).sum()
@@ -300,6 +300,76 @@ def test_datetimelike_nonunique_index_centering(
     expected = frame_or_series(expected, index=index, dtype=float)
 
     result = df.rolling(window, center=True, closed=closed).sum()
+
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "closed,expected",
+    [
+        ("left", [np.nan, np.nan, 1, 1, 1, 10, 14, 14, 18, 21]),
+        ("neither", [np.nan, np.nan, 1, 1, 1, 9, 5, 5, 13, 8]),
+        ("right", [0, 1, 3, 6, 10, 14, 11, 18, 21, 17]),
+        ("both", [0, 1, 3, 6, 10, 15, 20, 27, 26, 30]),
+    ],
+)
+def test_variable_window_nonunique(closed, expected, frame_or_series):
+    # GH 20712
+    index = DatetimeIndex(
+        [
+            "2011-01-01",
+            "2011-01-01",
+            "2011-01-02",
+            "2011-01-02",
+            "2011-01-02",
+            "2011-01-03",
+            "2011-01-04",
+            "2011-01-04",
+            "2011-01-05",
+            "2011-01-06",
+        ]
+    )
+
+    df = frame_or_series(range(10), index=index, dtype=float)
+    expected = frame_or_series(expected, index=index, dtype=float)
+
+    result = df.rolling("2D", closed=closed).sum()
+
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "closed,expected",
+    [
+        ("left", [np.nan, np.nan, 1, 1, 1, 10, 15, 15, 18, 21]),
+        ("neither", [np.nan, np.nan, 1, 1, 1, 10, 15, 15, 13, 8]),
+        ("right", [0, 1, 3, 6, 10, 15, 21, 28, 21, 17]),
+        ("both", [0, 1, 3, 6, 10, 15, 21, 28, 26, 30]),
+    ],
+)
+def test_variable_offset_window_nonunique(closed, expected, frame_or_series):
+    # GH 20712
+    index = DatetimeIndex(
+        [
+            "2011-01-01",
+            "2011-01-01",
+            "2011-01-02",
+            "2011-01-02",
+            "2011-01-02",
+            "2011-01-03",
+            "2011-01-04",
+            "2011-01-04",
+            "2011-01-05",
+            "2011-01-06",
+        ]
+    )
+
+    df = frame_or_series(range(10), index=index, dtype=float)
+    expected = frame_or_series(expected, index=index, dtype=float)
+
+    offset = BusinessDay(2)
+    indexer = VariableOffsetWindowIndexer(index=index, offset=offset)
+    result = df.rolling(indexer, closed=closed, min_periods=1).sum()
 
     tm.assert_equal(result, expected)
 
@@ -920,7 +990,7 @@ def test_rolling_numerical_accuracy_kahan_mean(add):
     result = (
         df.resample("1s").ffill().rolling("3s", closed="left", min_periods=3).mean()
     )
-    dates = date_range("19700101 09:00:00", periods=7, freq="S")
+    dates = date_range("19700101 09:00:00", periods=7, freq="s")
     expected = DataFrame(
         {
             "A": [
@@ -1065,11 +1135,13 @@ def test_rolling_on_df_transposed():
     ("index", "window"),
     [
         (
-            period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="T"),
-            "2T",
+            period_range(start="2020-01-01 08:00", end="2020-01-01 08:08", freq="min"),
+            "2min",
         ),
         (
-            period_range(start="2020-01-01 08:00", end="2020-01-01 12:00", freq="30T"),
+            period_range(
+                start="2020-01-01 08:00", end="2020-01-01 12:00", freq="30min"
+            ),
             "1h",
         ),
     ],
@@ -1461,15 +1533,15 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
             0.03,
             0.03,
             0.001,
-            np.NaN,
+            np.nan,
             0.002,
             0.008,
-            np.NaN,
-            np.NaN,
-            np.NaN,
-            np.NaN,
-            np.NaN,
-            np.NaN,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
+            np.nan,
             0.005,
             0.2,
         ]
@@ -1480,8 +1552,8 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
         0.005,
         0.005,
         0.008,
-        np.NaN,
-        np.NaN,
+        np.nan,
+        np.nan,
         0.005,
         0.102500,
     ]
@@ -1495,7 +1567,7 @@ def test_rolling_mean_all_nan_window_floating_artifacts(start, exp_values):
 
 def test_rolling_sum_all_nan_window_floating_artifacts():
     # GH#41053
-    df = DataFrame([0.002, 0.008, 0.005, np.NaN, np.NaN, np.NaN])
+    df = DataFrame([0.002, 0.008, 0.005, np.nan, np.nan, np.nan])
     result = df.rolling(3, min_periods=0).sum()
     expected = DataFrame([0.002, 0.010, 0.015, 0.013, 0.005, 0.0])
     tm.assert_frame_equal(result, expected)

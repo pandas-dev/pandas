@@ -102,10 +102,10 @@ class TestToIterable:
         # test if items yields the correct boxed scalars
         # this only applies to series
         s = Series([1], dtype=dtype)
-        _, result = list(s.items())[0]
+        _, result = next(iter(s.items()))
         assert isinstance(result, rdtype)
 
-        _, result = list(s.items())[0]
+        _, result = next(iter(s.items()))
         assert isinstance(result, rdtype)
 
     @pytest.mark.parametrize(
@@ -176,7 +176,7 @@ class TestToIterable:
         assert s.dtype == "Period[M]"
         for res, exp in zip(s, vals):
             assert isinstance(res, pd.Period)
-            assert res.freq == "M"
+            assert res.freq == "ME"
             assert res == exp
 
 

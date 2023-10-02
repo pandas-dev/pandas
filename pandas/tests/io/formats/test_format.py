@@ -22,8 +22,6 @@ import numpy as np
 import pytest
 import pytz
 
-from pandas._config import config
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -49,17 +47,6 @@ def get_local_am_pm():
     am_local = time(1).strftime("%p")
     pm_local = time(13).strftime("%p")
     return am_local, pm_local
-
-
-@pytest.fixture(autouse=True)
-def clean_config():
-    curr_deprecated_options = config._deprecated_options.copy()
-    curr_registered_options = config._registered_options.copy()
-    curr_global_config = config._global_config.copy()
-    yield
-    config._deprecated_options = curr_deprecated_options
-    config._registered_options = curr_registered_options
-    config._global_config = curr_global_config
 
 
 @pytest.fixture(params=["string", "pathlike", "buffer"])
@@ -95,6 +82,8 @@ def assert_filepath_or_buffer_equals(
     """
     Assertion helper for checking filepath_or_buffer.
     """
+    if encoding is None:
+        encoding = "utf-8"
 
     def _assert_filepath_or_buffer_equals(expected):
         if filepath_or_buffer_id == "string":
@@ -322,7 +311,7 @@ class TestDataFrameFormatting:
         index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
         cols = ["\u03c8"]
         df = DataFrame(data, columns=cols, index=index1)
-        assert type(df.__repr__()) == str  # both py2 / 3
+        assert isinstance(df.__repr__(), str)
 
     def test_repr_no_backslash(self):
         with option_context("mode.sim_interactive", True):
@@ -3289,7 +3278,7 @@ class TestDatetime64Formatter:
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:00.000004"
 
-        x = Series(date_range("20130101 09:00:00", periods=5, freq="N"))
+        x = Series(date_range("20130101 09:00:00", periods=5, freq="ns"))
         x.iloc[1] = np.nan
         result = fmt.Datetime64Formatter(x).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00.000000000"
@@ -3318,6 +3307,14 @@ class TestDatetime64Formatter:
         result = formatter.get_result()
         assert result == ["10:10", "12:12"]
 
+    def test_datetime64formatter_tz_ms(self):
+        x = Series(
+            np.array(["2999-01-01", "2999-01-02", "NaT"], dtype="datetime64[ms]")
+        ).dt.tz_localize("US/Pacific")
+        result = fmt.Datetime64TZFormatter(x).get_result()
+        assert result[0].strip() == "2999-01-01 00:00:00-08:00"
+        assert result[1].strip() == "2999-01-02 00:00:00-08:00"
+
 
 class TestNaTFormatting:
     def test_repr(self):
@@ -3340,7 +3337,7 @@ class TestPeriodIndexFormat:
         assert per.strftime(None)[1] is np.nan  # ...except for NaTs
 
         # Same test with nanoseconds freq
-        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
         formatted = per.format()
         assert (formatted == per.strftime(None)).all()
         assert formatted[0] == "2003-01-01 12:01:01.123456789"
@@ -3350,19 +3347,19 @@ class TestPeriodIndexFormat:
         # GH#46252 custom formatting directives %l (ms) and %u (us)
 
         # 3 digits
-        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="l")
+        per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="ms")
         formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123000 ns=123000000)"
         assert formatted[1] == "03 12:01:01 (ms=124 us=124000 ns=124000000)"
 
         # 6 digits
-        per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="u")
+        per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="us")
         formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456000)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123457 ns=123457000)"
 
         # 9 digits
-        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="n")
+        per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
         formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456789)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123456 ns=123456790)"
@@ -3594,7 +3591,7 @@ def test_repr_html_ipython_config(ip):
     df._repr_html_()
     """
     )
-    result = ip.run_cell(code)
+    result = ip.run_cell(code, silent=True)
     assert not result.error_in_exec
 
 

@@ -485,8 +485,8 @@ class IndexOpsMixin(OpsMixin):
             types, this is the actual array. For NumPy native types, this
             is a thin (no copy) wrapper around :class:`numpy.ndarray`.
 
-            ``.array`` differs ``.values`` which may require converting the
-            data to a different form.
+            ``.array`` differs from ``.values``, which may require converting
+            the data to a different form.
 
         See Also
         --------
@@ -636,7 +636,7 @@ class IndexOpsMixin(OpsMixin):
         if isinstance(self.dtype, ExtensionDtype):
             return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
         elif kwargs:
-            bad_keys = list(kwargs.keys())[0]
+            bad_keys = next(iter(kwargs.keys()))
             raise TypeError(
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )

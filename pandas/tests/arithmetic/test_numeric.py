@@ -29,6 +29,13 @@ from pandas.tests.arithmetic.common import (
 )
 
 
+@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
+def switch_numexpr_min_elements(request, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(expr, "_MIN_ELEMENTS", request.param)
+        yield request.param
+
+
 @pytest.fixture(params=[Index, Series, tm.to_array])
 def box_pandas_1d_array(request):
     """
@@ -377,7 +384,7 @@ class TestDivisionByZero:
     def test_div_negative_zero(self, zero, numeric_idx, op):
         # Check that -1 / -0.0 returns np.inf, not -np.inf
         if numeric_idx.dtype == np.uint64:
-            return
+            pytest.skip(f"Not relevant for {numeric_idx.dtype}")
         idx = numeric_idx - 3
 
         expected = Index([-np.inf, -np.inf, -np.inf, np.nan, np.inf], dtype=np.float64)

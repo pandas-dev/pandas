@@ -174,18 +174,16 @@ class TestStata:
         )
         expected["yearly_date"] = expected["yearly_date"].astype("O")
 
+        path1 = datapath("io", "data", "stata", "stata2_114.dta")
+        path2 = datapath("io", "data", "stata", "stata2_115.dta")
+        path3 = datapath("io", "data", "stata", "stata2_117.dta")
+
         with tm.assert_produces_warning(UserWarning):
-            parsed_114 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_114.dta")
-            )
+            parsed_114 = self.read_dta(path1)
         with tm.assert_produces_warning(UserWarning):
-            parsed_115 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_115.dta")
-            )
+            parsed_115 = self.read_dta(path2)
         with tm.assert_produces_warning(UserWarning):
-            parsed_117 = self.read_dta(
-                datapath("io", "data", "stata", "stata2_117.dta")
-            )
+            parsed_117 = self.read_dta(path3)
             # 113 is buggy due to limits of date format support in Stata
             # parsed_113 = self.read_dta(
             # datapath("io", "data", "stata", "stata2_113.dta")
@@ -800,7 +798,7 @@ class TestStata:
         expected_values.insert(0, ".")
         for t in types:
             offset = valid_range[t][1]
-            for i in range(0, 27):
+            for i in range(27):
                 val = StataMissingValue(offset + 1 + i)
                 assert val.string == expected_values[i]
 
@@ -1477,9 +1475,9 @@ The repeated labels are:\n-+\nwolof
         df = read_stata(datapath("io", "data", "stata", "stata7_111.dta"))
         original = DataFrame(
             {
-                "y": [1, 1, 1, 1, 1, 0, 0, np.NaN, 0, 0],
-                "x": [1, 2, 1, 3, np.NaN, 4, 3, 5, 1, 6],
-                "w": [2, np.NaN, 5, 2, 4, 4, 3, 1, 2, 3],
+                "y": [1, 1, 1, 1, 1, 0, 0, np.nan, 0, 0],
+                "x": [1, 2, 1, 3, np.nan, 4, 3, 5, 1, 6],
+                "w": [2, np.nan, 5, 2, 4, 4, 3, 1, 2, 3],
                 "z": ["a", "b", "c", "d", "e", "", "g", "h", "i", "j"],
             }
         )

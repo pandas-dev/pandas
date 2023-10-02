@@ -123,7 +123,7 @@ class TestTimestampEquivDateRange:
 
 
 class TestDateRanges:
-    @pytest.mark.parametrize("freq", ["N", "U", "L", "T", "S", "H", "D"])
+    @pytest.mark.parametrize("freq", ["ns", "us", "ms", "min", "s", "H", "D"])
     def test_date_range_edges(self, freq):
         # GH#13672
         td = Timedelta(f"1{freq}")
@@ -277,10 +277,10 @@ class TestDateRanges:
         tm.assert_index_equal(rng, exp)
         assert rng.freq == "-2A"
 
-        rng = date_range("2011-01-31", freq="-2M", periods=3)
-        exp = DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2M")
+        rng = date_range("2011-01-31", freq="-2ME", periods=3)
+        exp = DatetimeIndex(["2011-01-31", "2010-11-30", "2010-09-30"], freq="-2ME")
         tm.assert_index_equal(rng, exp)
-        assert rng.freq == "-2M"
+        assert rng.freq == "-2ME"
 
     def test_date_range_bms_bug(self):
         # #1645
@@ -638,7 +638,7 @@ class TestDateRanges:
         assert dr[0] == start
         assert dr[2] == end
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3H", "A"])
     def test_range_closed(self, freq, inclusive_endpoints_fixture):
         begin = datetime(2011, 1, 1)
         end = datetime(2014, 1, 1)
@@ -653,7 +653,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3H", "A"])
     def test_range_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
@@ -674,7 +674,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2M", "7W", "3H", "A"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3H", "A"])
     def test_range_with_tz_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
@@ -750,7 +750,7 @@ class TestDateRanges:
 
     def test_years_only(self):
         # GH 6961
-        dr = date_range("2014", "2015", freq="M")
+        dr = date_range("2014", "2015", freq="ME")
         assert dr[0] == datetime(2014, 1, 31)
         assert dr[-1] == datetime(2014, 12, 31)
 
@@ -761,13 +761,13 @@ class TestDateRanges:
         expected_1 = DatetimeIndex(
             ["2005-01-12 10:00:00", "2005-01-12 15:45:00"],
             dtype="datetime64[ns]",
-            freq="345T",
+            freq="345min",
             tz=None,
         )
         expected_2 = DatetimeIndex(
             ["2005-01-13 10:00:00", "2005-01-13 15:45:00"],
             dtype="datetime64[ns]",
-            freq="345T",
+            freq="345min",
             tz=None,
         )
         tm.assert_index_equal(result_1, expected_1)
@@ -834,6 +834,25 @@ class TestDateRanges:
             ],
             name="a",
         )
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq,freq_depr",
+        [
+            ("min", "T"),
+            ("s", "S"),
+            ("ms", "L"),
+            ("us", "U"),
+            ("ns", "N"),
+        ],
+    )
+    def test_frequencies_T_S_L_U_N_deprecated(self, freq, freq_depr):
+        # GH#52536
+        msg = f"'{freq_depr}' is deprecated and will be removed in a future version."
+
+        expected = date_range("1/1/2000", periods=4, freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
 

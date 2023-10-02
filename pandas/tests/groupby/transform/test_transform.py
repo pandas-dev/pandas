@@ -70,7 +70,7 @@ def test_transform():
 
     # GH 8430
     df = tm.makeTimeDataFrame()
-    g = df.groupby(pd.Grouper(freq="M"))
+    g = df.groupby(pd.Grouper(freq="ME"))
     g.transform(lambda x: x - 1)
 
     # GH 9700
@@ -636,7 +636,9 @@ def test_transform_mixed_type():
         return group[:1]
 
     grouped = df.groupby("c")
-    result = grouped.apply(f)
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = grouped.apply(f)
 
     assert result["d"].dtype == np.float64
 
@@ -775,9 +777,8 @@ def frame_mi(frame):
         {"by": np.random.default_rng(2).integers(0, 50, size=10).astype(float)},
         {"level": 0},
         {"by": "string"},
-        # {"by": 'string_missing'}]:
-        # {"by": ['int','string']}]:
-        # TODO: remove or enable commented-out code
+        pytest.param({"by": "string_missing"}, marks=pytest.mark.xfail),
+        {"by": ["int", "string"]},
     ],
 )
 def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
@@ -791,7 +792,13 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
         f = gb[["float", "float_missing"]].apply(targop)
         expected = concat([f, i], axis=1)
     else:
-        expected = gb.apply(targop)
+        if op != "shift" or not isinstance(gb_target.get("by"), (str, list)):
+            warn = None
+        else:
+            warn = FutureWarning
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected = gb.apply(targop)
 
     expected = expected.sort_index(axis=1)
     if op == "shift":
@@ -825,9 +832,9 @@ def test_cython_transform_frame(request, op, args, targop, df_fix, gb_target):
         {"by": np.random.default_rng(2).integers(0, 50, size=10).astype(float)},
         {"level": 0},
         {"by": "string"},
-        # {"by": 'string_missing'}]:
-        # {"by": ['int','string']}]:
-        # TODO: remove or enable commented-out code
+        # TODO: create xfail condition given other params
+        # {"by": 'string_missing'},
+        {"by": ["int", "string"]},
     ],
 )
 @pytest.mark.parametrize(

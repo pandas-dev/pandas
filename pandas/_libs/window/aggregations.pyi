@@ -111,8 +111,8 @@ def ewm(
     com: float,  # float64_t
     adjust: bool,
     ignore_na: bool,
-    deltas: np.ndarray | None = None,  # const float64_t[:]
-    normalize: bool = True,
+    deltas: np.ndarray,  # const float64_t[:]
+    normalize: bool,
 ) -> np.ndarray: ...  # np.ndarray[np.float64]
 def ewmcov(
     input_x: np.ndarray,  # const float64_t[:]

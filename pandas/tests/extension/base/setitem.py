@@ -3,10 +3,9 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseSetitemTests(BaseExtensionTests):
+class BaseSetitemTests:
     @pytest.fixture(
         params=[
             lambda x: x.index,
@@ -360,7 +359,8 @@ class BaseSetitemTests(BaseExtensionTests):
 
         tm.assert_frame_equal(result, expected)
 
-    def test_setitem_with_expansion_row(self, data, na_value):
+    def test_setitem_with_expansion_row(self, data):
+        na_value = data.dtype.na_value
         df = pd.DataFrame({"data": data[:1]})
 
         df.loc[1, "data"] = data[1]

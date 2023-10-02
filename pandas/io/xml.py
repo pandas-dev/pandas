@@ -88,7 +88,7 @@ class _XMLFrameParser:
         Parse only the attributes at the specified ``xpath``.
 
     names : list
-        Column names for :class:`~pandas.DataFrame`of parsed XML data.
+        Column names for :class:`~pandas.DataFrame` of parsed XML data.
 
     dtype : dict
         Data type for data or columns. E.g. {{'a': np.float64,
@@ -177,7 +177,7 @@ class _XMLFrameParser:
         self.stylesheet = stylesheet
         self.iterparse = iterparse
         self.is_style = None
-        self.compression = compression
+        self.compression: CompressionOptions = compression
         self.storage_options = storage_options
 
     def parse_data(self) -> list[dict[str, str | None]]:

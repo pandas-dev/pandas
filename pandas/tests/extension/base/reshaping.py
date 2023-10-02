@@ -7,10 +7,9 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import ExtensionArray
 from pandas.core.internals.blocks import EABackedBlock
-from pandas.tests.extension.base.base import BaseExtensionTests
 
 
-class BaseReshapingTests(BaseExtensionTests):
+class BaseReshapingTests:
     """Tests for reshaping and concatenation."""
 
     @pytest.mark.parametrize("in_frame", [True, False])
@@ -73,7 +72,8 @@ class BaseReshapingTests(BaseExtensionTests):
         expected = pd.concat([df1["A"].astype("object"), df2["A"].astype("object")])
         tm.assert_series_equal(result, expected)
 
-    def test_concat_columns(self, data, na_value):
+    def test_concat_columns(self, data):
+        na_value = data.dtype.na_value
         df1 = pd.DataFrame({"A": data[:3]})
         df2 = pd.DataFrame({"B": [1, 2, 3]})
 
@@ -97,8 +97,9 @@ class BaseReshapingTests(BaseExtensionTests):
         result = pd.concat([df1["A"], df2["B"]], axis=1)
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_extension_arrays_copy_false(self, data, na_value):
+    def test_concat_extension_arrays_copy_false(self, data):
         # GH 20756
+        na_value = data.dtype.na_value
         df1 = pd.DataFrame({"A": data[:3]})
         df2 = pd.DataFrame({"B": data[3:7]})
         expected = pd.DataFrame(
@@ -123,7 +124,8 @@ class BaseReshapingTests(BaseExtensionTests):
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_align(self, data, na_value):
+    def test_align(self, data):
+        na_value = data.dtype.na_value
         a = data[:3]
         b = data[2:5]
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
@@ -134,7 +136,8 @@ class BaseReshapingTests(BaseExtensionTests):
         tm.assert_series_equal(r1, e1)
         tm.assert_series_equal(r2, e2)
 
-    def test_align_frame(self, data, na_value):
+    def test_align_frame(self, data):
+        na_value = data.dtype.na_value
         a = data[:3]
         b = data[2:5]
         r1, r2 = pd.DataFrame({"A": a}).align(pd.DataFrame({"A": b}, index=[1, 2, 3]))
@@ -149,8 +152,9 @@ class BaseReshapingTests(BaseExtensionTests):
         tm.assert_frame_equal(r1, e1)
         tm.assert_frame_equal(r2, e2)
 
-    def test_align_series_frame(self, data, na_value):
+    def test_align_series_frame(self, data):
         # https://github.com/pandas-dev/pandas/issues/20576
+        na_value = data.dtype.na_value
         ser = pd.Series(data, name="a")
         df = pd.DataFrame({"col": np.arange(len(ser) + 1)})
         r1, r2 = ser.align(df)
@@ -181,7 +185,7 @@ class BaseReshapingTests(BaseExtensionTests):
         df["A"] = data
         assert df.dtypes["A"] == data.dtype
 
-    def test_merge(self, data, na_value):
+    def test_merge(self, data):
         # GH-20743
         df1 = pd.DataFrame({"ext": data[:3], "int1": [1, 2, 3], "key": [0, 1, 2]})
         df2 = pd.DataFrame({"int2": [1, 2, 3, 4], "key": [0, 0, 1, 3]})
@@ -206,7 +210,8 @@ class BaseReshapingTests(BaseExtensionTests):
                 "int2": [1, 2, 3, np.nan, 4],
                 "key": [0, 0, 1, 2, 3],
                 "ext": data._from_sequence(
-                    [data[0], data[0], data[1], data[2], na_value], dtype=data.dtype
+                    [data[0], data[0], data[1], data[2], data.dtype.na_value],
+                    dtype=data.dtype,
                 ),
             }
         )
@@ -237,9 +242,9 @@ class BaseReshapingTests(BaseExtensionTests):
         result = pd.merge(df1, df2, on="key")
         expected = pd.DataFrame(
             {
-                "key": key.take([0, 0, 0, 0, 1]),
-                "val_x": [1, 1, 3, 3, 2],
-                "val_y": [1, 3, 1, 3, 2],
+                "key": key.take([0, 0, 1, 2, 2]),
+                "val_x": [1, 1, 2, 3, 3],
+                "val_y": [1, 3, 2, 1, 3],
             }
         )
         tm.assert_frame_equal(result, expected)

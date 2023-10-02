@@ -165,7 +165,7 @@ class TestSeriesConstructors:
         assert id(datetime_series.index) == id(derived.index)
 
         # Mixed type Series
-        mixed = Series(["hello", np.NaN], index=[0, 1])
+        mixed = Series(["hello", np.nan], index=[0, 1])
         assert mixed.dtype == np.object_
         assert np.isnan(mixed[1])
 
@@ -1022,7 +1022,7 @@ class TestSeriesConstructors:
     def test_constructor_dtype_datetime64_7(self):
         # GH6529
         # coerce datetime64 non-ns properly
-        dates = date_range("01-Jan-2015", "01-Dec-2015", freq="M")
+        dates = date_range("01-Jan-2015", "01-Dec-2015", freq="ME")
         values2 = dates.view(np.ndarray).astype("datetime64[ns]")
         expected = Series(values2, index=dates)
 
@@ -1464,8 +1464,8 @@ class TestSeriesConstructors:
         assert series.dtype == np.float64
 
     def test_fromValue(self, datetime_series):
-        nans = Series(np.NaN, index=datetime_series.index, dtype=np.float64)
-        assert nans.dtype == np.float_
+        nans = Series(np.nan, index=datetime_series.index, dtype=np.float64)
+        assert nans.dtype == np.float64
         assert len(nans) == len(datetime_series)
 
         strings = Series("foo", index=datetime_series.index)
@@ -2074,6 +2074,54 @@ class TestSeriesConstructors:
         ser = Series(idx, dtype="int64")
         ser.iloc[0] = 100
         tm.assert_index_equal(idx, expected)
+
+    def test_series_string_inference(self):
+        # GH#54430
+        pytest.importorskip("pyarrow")
+        dtype = "string[pyarrow_numpy]"
+        expected = Series(["a", "b"], dtype=dtype)
+        with pd.option_context("future.infer_string", True):
+            ser = Series(["a", "b"])
+        tm.assert_series_equal(ser, expected)
+
+        expected = Series(["a", 1], dtype="object")
+        with pd.option_context("future.infer_string", True):
+            ser = Series(["a", 1])
+        tm.assert_series_equal(ser, expected)
+
+    @pytest.mark.parametrize("na_value", [None, np.nan, pd.NA])
+    def test_series_string_with_na_inference(self, na_value):
+        # GH#54430
+        pytest.importorskip("pyarrow")
+        dtype = "string[pyarrow_numpy]"
+        expected = Series(["a", na_value], dtype=dtype)
+        with pd.option_context("future.infer_string", True):
+            ser = Series(["a", na_value])
+        tm.assert_series_equal(ser, expected)
+
+    def test_series_string_inference_scalar(self):
+        # GH#54430
+        pytest.importorskip("pyarrow")
+        expected = Series("a", index=[1], dtype="string[pyarrow_numpy]")
+        with pd.option_context("future.infer_string", True):
+            ser = Series("a", index=[1])
+        tm.assert_series_equal(ser, expected)
+
+    def test_series_string_inference_array_string_dtype(self):
+        # GH#54496
+        pytest.importorskip("pyarrow")
+        expected = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        with pd.option_context("future.infer_string", True):
+            ser = Series(np.array(["a", "b"]))
+        tm.assert_series_equal(ser, expected)
+
+    def test_series_string_inference_storage_definition(self):
+        # GH#54793
+        pytest.importorskip("pyarrow")
+        expected = Series(["a", "b"], dtype="string[pyarrow_numpy]")
+        with pd.option_context("future.infer_string", True):
+            result = Series(["a", "b"], dtype="string")
+        tm.assert_series_equal(result, expected)
 
 
 class TestSeriesConstructorIndexCoercion:

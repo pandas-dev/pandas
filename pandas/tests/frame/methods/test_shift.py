@@ -32,19 +32,23 @@ class TestDataFrameShift:
         expected2 = DataFrame([12345] * 5, dtype="Float64")
         tm.assert_frame_equal(res2, expected2)
 
-    def test_shift_disallow_freq_and_fill_value(self, frame_or_series):
+    def test_shift_deprecate_freq_and_fill_value(self, frame_or_series):
         # Can't pass both!
         obj = frame_or_series(
             np.random.default_rng(2).standard_normal(5),
             index=date_range("1/1/2000", periods=5, freq="H"),
         )
 
-        msg = "Cannot pass both 'freq' and 'fill_value' to (Series|DataFrame).shift"
-        with pytest.raises(ValueError, match=msg):
+        msg = (
+            "Passing a 'freq' together with a 'fill_value' silently ignores the "
+            "fill_value"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             obj.shift(1, fill_value=1, freq="H")
 
         if frame_or_series is DataFrame:
-            with pytest.raises(ValueError, match=msg):
+            obj.columns = date_range("1/1/2000", periods=1, freq="H")
+            with tm.assert_produces_warning(FutureWarning, match=msg):
                 obj.shift(1, axis=1, fill_value=1, freq="H")
 
     @pytest.mark.parametrize(
@@ -75,8 +79,8 @@ class TestDataFrameShift:
             index=date_range("1/1/2000", periods=5, freq="H"),
         )
 
-        result = ts.shift(1, freq="5T")
-        exp_index = ts.index.shift(1, freq="5T")
+        result = ts.shift(1, freq="5min")
+        exp_index = ts.index.shift(1, freq="5min")
         tm.assert_index_equal(result.index, exp_index)
 
         # GH#1063, multiple of same base
@@ -681,10 +685,10 @@ class TestDataFrameShift:
             {
                 "a_0": [1, 2, 3],
                 "b_0": [4, 5, 6],
-                "a_1": [np.NaN, 1.0, 2.0],
-                "b_1": [np.NaN, 4.0, 5.0],
-                "a_2": [np.NaN, np.NaN, 1.0],
-                "b_2": [np.NaN, np.NaN, 4.0],
+                "a_1": [np.nan, 1.0, 2.0],
+                "b_1": [np.nan, 4.0, 5.0],
+                "a_2": [np.nan, np.nan, 1.0],
+                "b_2": [np.nan, np.nan, 4.0],
             }
         )
         tm.assert_frame_equal(expected, shifted)
@@ -716,8 +720,11 @@ class TestDataFrameShift:
             df.shift(1, freq="H"),
         )
 
-        msg = r"Cannot pass both 'freq' and 'fill_value' to.*"
-        with pytest.raises(ValueError, match=msg):
+        msg = (
+            "Passing a 'freq' together with a 'fill_value' silently ignores the "
+            "fill_value"
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             df.shift([1, 2], fill_value=1, freq="H")
 
     def test_shift_with_iterable_check_other_arguments(self):

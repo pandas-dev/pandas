@@ -327,7 +327,7 @@ present in the more domain-specific statistical programming language `R
    ``numpy.unsignedinteger`` | ``uint8, uint16, uint32, uint64``
    ``numpy.object_`` | ``object_``
    ``numpy.bool_`` | ``bool_``
-   ``numpy.character`` | ``string_, unicode_``
+   ``numpy.character`` | ``bytes_, str_``
 
 The R language, by contrast, only has a handful of built-in data types:
 ``integer``, ``numeric`` (floating-point), ``character``, and
@@ -379,7 +379,7 @@ constructors using something similar to the following:
 .. ipython:: python
 
    x = np.array(list(range(10)), ">i4")  # big endian
-   newx = x.byteswap().newbyteorder()  # force native byteorder
+   newx = x.byteswap().view(x.dtype.newbyteorder())  # force native byteorder
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order

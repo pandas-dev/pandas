@@ -38,6 +38,8 @@ from cython cimport (
     floating,
 )
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs.missing import check_na_tuples_nonequal
 
 import_datetime()
@@ -142,7 +144,7 @@ cdef:
     object oINT64_MIN = <int64_t>INT64_MIN
     object oUINT64_MAX = <uint64_t>UINT64_MAX
 
-    float64_t NaN = <float64_t>np.NaN
+    float64_t NaN = <float64_t>np.nan
 
 # python-visible
 i8max = <int64_t>INT64_MAX
@@ -528,6 +530,22 @@ def has_infs(floating[:] arr) -> bool:
     return ret
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def has_only_ints_or_nan(floating[:] arr) -> bool:
+    cdef:
+        floating val
+        intp_t i
+
+    for i in range(len(arr)):
+        val = arr[i]
+        if (val != val) or (val == <int64_t>val):
+            continue
+        else:
+            return False
+    return True
+
+
 def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
@@ -758,6 +776,7 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         bint already_copied = True
+        ndarray[object] newarr
 
     if hasattr(arr, "to_numpy"):
 
@@ -782,8 +801,30 @@ cpdef ndarray[object] ensure_string_array(
         # short-circuit, all elements are str
         return result
 
+    if arr.dtype.kind == "f":  # non-optimized path
+        for i in range(n):
+            val = arr[i]
+
+            if not already_copied:
+                result = result.copy()
+                already_copied = True
+
+            if not checknull(val):
+                # f"{val}" is not always equivalent to str(val) for floats
+                result[i] = str(val)
+            else:
+                if convert_na_value:
+                    val = na_value
+                if skipna:
+                    result[i] = val
+                else:
+                    result[i] = f"{val}"
+
+        return result
+
+    newarr = np.asarray(arr, dtype=object)
     for i in range(n):
-        val = arr[i]
+        val = newarr[i]
 
         if isinstance(val, str):
             continue
@@ -1299,6 +1340,7 @@ cdef class Seen:
         bint datetimetz_      # seen_datetimetz
         bint period_          # seen_period
         bint interval_        # seen_interval
+        bint str_             # seen_str
 
     def __cinit__(self, bint coerce_numeric=False):
         """
@@ -1325,6 +1367,7 @@ cdef class Seen:
         self.datetimetz_ = False
         self.period_ = False
         self.interval_ = False
+        self.str_ = False
         self.coerce_numeric = coerce_numeric
 
     cdef bint check_uint64_conflict(self) except -1:
@@ -2615,6 +2658,13 @@ def maybe_convert_objects(ndarray[object] objects,
             else:
                 seen.object_ = True
                 break
+        elif isinstance(val, str):
+            if convert_non_numeric:
+                seen.str_ = True
+                break
+            else:
+                seen.object_ = True
+                break
         else:
             seen.object_ = True
             break
@@ -2669,6 +2719,14 @@ def maybe_convert_objects(ndarray[object] objects,
             return pi._data
         seen.object_ = True
 
+    elif seen.str_:
+        if using_pyarrow_string_dtype() and is_string_array(objects, skipna=True):
+            from pandas.core.arrays.string_ import StringDtype
+
+            dtype = StringDtype(storage="pyarrow_numpy")
+            return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
+
+        seen.object_ = True
     elif seen.interval_:
         if is_interval_array(objects):
             from pandas import IntervalIndex
@@ -2796,9 +2854,14 @@ NoDefault = Literal[_NoDefault.no_default]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=True,
-                   object na_value=no_default, cnp.dtype dtype=np.dtype(object)
-                   ) -> np.ndarray:
+def map_infer_mask(
+        ndarray[object] arr,
+        object f,
+        const uint8_t[:] mask,
+        bint convert=True,
+        object na_value=no_default,
+        cnp.dtype dtype=np.dtype(object)
+) -> np.ndarray:
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 

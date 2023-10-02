@@ -674,10 +674,7 @@ class TestDataFrameToCSV:
 
         # add in some nans
         df_float.iloc[30:50, 1:3] = np.nan
-
-        # ## this is a bug in read_csv right now ####
-        # df_dt.loc[30:50,1:3] = np.nan
-        # FIXME: don't leave commented-out
+        df_dt.iloc[30:50, 1:3] = np.nan
 
         df = pd.concat([df_float, df_int, df_bool, df_object, df_dt], axis=1)
 
@@ -1329,6 +1326,6 @@ class TestDataFrameToCSV:
         )
         df["a"] = df["a"].astype("category")
         result = df.to_csv()
-        expected_rows = [",a", '0,"[2020-01-01, 2020-01-02]"']
+        expected_rows = [",a", '0,"[2020-01-01 00:00:00, 2020-01-02 00:00:00]"']
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected

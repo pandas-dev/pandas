@@ -10,6 +10,8 @@ import pytest
 
 import pandas._config.config as cf
 
+from pandas._libs.tslibs import to_offset
+
 from pandas import (
     Index,
     Period,
@@ -255,7 +257,7 @@ class TestDateTimeConverter:
         result = converter.TimeFormatter(None)(time)
         assert result == format_expected
 
-    @pytest.mark.parametrize("freq", ("B", "L", "S"))
+    @pytest.mark.parametrize("freq", ("B", "ms", "s"))
     def test_dateindex_conversion(self, freq, dtc):
         rtol = 10**-9
         dateindex = tm.makeDateIndex(k=10, freq=freq)
@@ -386,11 +388,11 @@ def test_quarterly_finder(year_span):
     vmin = -1000
     vmax = vmin + year_span * 4
     span = vmax - vmin + 1
-    if span < 45:  # the quarterly finder is only invoked if the span is >= 45
-        return
+    if span < 45:
+        pytest.skip("the quarterly finder is only invoked if the span is >= 45")
     nyears = span / 4
     (min_anndef, maj_anndef) = converter._get_default_annual_spacing(nyears)
-    result = converter._quarterly_finder(vmin, vmax, "Q")
+    result = converter._quarterly_finder(vmin, vmax, to_offset("Q"))
     quarters = PeriodIndex(
         arrays.PeriodArray(np.array([x[0] for x in result]), dtype="period[Q]")
     )

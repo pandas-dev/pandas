@@ -39,11 +39,11 @@ from pandas.tseries import (
     params=[
         (timedelta(1), "D"),
         (timedelta(hours=1), "H"),
-        (timedelta(minutes=1), "T"),
-        (timedelta(seconds=1), "S"),
-        (np.timedelta64(1, "ns"), "N"),
-        (timedelta(microseconds=1), "U"),
-        (timedelta(microseconds=1000), "L"),
+        (timedelta(minutes=1), "min"),
+        (timedelta(seconds=1), "s"),
+        (np.timedelta64(1, "ns"), "ns"),
+        (timedelta(microseconds=1), "us"),
+        (timedelta(microseconds=1000), "ms"),
     ]
 )
 def base_delta_code_pair(request):
@@ -53,7 +53,7 @@ def base_delta_code_pair(request):
 freqs = (
     [f"Q-{month}" for month in MONTHS]
     + [f"{annual}-{month}" for annual in ["A", "BA"] for month in MONTHS]
-    + ["M", "BM", "BMS"]
+    + ["ME", "BM", "BMS"]
     + [f"WOM-{count}{day}" for count in range(1, 5) for day in DAYS]
     + [f"W-{day}" for day in DAYS]
 )
@@ -162,7 +162,7 @@ def test_fifth_week_of_month():
 
 def test_monthly_ambiguous():
     rng = DatetimeIndex(["1/31/2000", "2/29/2000", "3/31/2000"])
-    assert rng.inferred_freq == "M"
+    assert rng.inferred_freq == "ME"
 
 
 def test_annual_ambiguous():
@@ -217,7 +217,7 @@ def test_infer_freq_index(freq, expected):
         {
             "AS-JAN": ["2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01"],
             "Q-OCT": ["2009-01-31", "2009-04-30", "2009-07-31", "2009-10-31"],
-            "M": ["2010-11-30", "2010-12-31", "2011-01-31", "2011-02-28"],
+            "ME": ["2010-11-30", "2010-12-31", "2011-01-31", "2011-02-28"],
             "W-SAT": ["2010-12-25", "2011-01-01", "2011-01-08", "2011-01-15"],
             "D": ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"],
             "H": [
@@ -254,7 +254,8 @@ def test_infer_freq_tz_series(tz_naive_fixture):
     ],
 )
 @pytest.mark.parametrize(
-    "freq", ["H", "3H", "10T", "3601S", "3600001L", "3600000001U", "3600000000001N"]
+    "freq",
+    ["H", "3H", "10min", "3601s", "3600001ms", "3600000001us", "3600000000001ns"],
 )
 def test_infer_freq_tz_transition(tz_naive_fixture, date_pair, freq):
     # see gh-8772
@@ -437,7 +438,7 @@ def test_series_inconvertible_string():
         frequencies.infer_freq(Series(["foo", "bar"]))
 
 
-@pytest.mark.parametrize("freq", [None, "L"])
+@pytest.mark.parametrize("freq", [None, "ms"])
 def test_series_period_index(freq):
     # see gh-6407
     #
@@ -449,7 +450,7 @@ def test_series_period_index(freq):
         frequencies.infer_freq(s)
 
 
-@pytest.mark.parametrize("freq", ["M", "L", "S"])
+@pytest.mark.parametrize("freq", ["ME", "ms", "s"])
 def test_series_datetime_index(freq):
     s = Series(date_range("20130101", periods=10, freq=freq))
     inferred = frequencies.infer_freq(s)
@@ -530,12 +531,12 @@ def test_infer_freq_non_nano():
     arr = np.arange(10).astype(np.int64).view("M8[s]")
     dta = DatetimeArray._simple_new(arr, dtype=arr.dtype)
     res = frequencies.infer_freq(dta)
-    assert res == "S"
+    assert res == "s"
 
     arr2 = arr.view("m8[ms]")
     tda = TimedeltaArray._simple_new(arr2, dtype=arr2.dtype)
     res2 = frequencies.infer_freq(tda)
-    assert res2 == "L"
+    assert res2 == "ms"
 
 
 def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
