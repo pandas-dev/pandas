@@ -15,7 +15,7 @@ Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
 - Fixed bug where PDEP-6 warning about setting an item of an incompatible dtype was being shown when creating a new conditional column (:issue:`55025`)
-- Fixed bug in :class:`pandas.core.window.Rolling` where df.rolling does not work with 'datetime64[us]', 'datetime64[ms]', and 'datetime64[s]' index types for rolling functions (:issue:`55026`, :issue:`55106`, :issue:`55299`)
+- Fixed bug in :class:`pandas.core.window.Rolling` where non-nanosecond ``on`` would produce incorrect results (:issue:`55026`, :issue:`55106`, :issue:`55299`)
 -
 
 .. ---------------------------------------------------------------------------
