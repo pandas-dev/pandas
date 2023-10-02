@@ -1905,6 +1905,18 @@ def test_adding_new_conditional_column() -> None:
     tm.assert_frame_equal(df, expected)
 
 
+def test_add_new_column_infer_string():
+    # GH#
+    df = DataFrame({"x": [1]})
+    with pd.option_context("future.infer_string", True):
+        df.loc[df["x"] == 1, "y"] = "1"
+    expected = DataFrame(
+        {"x": [1], "y": Series(["1"], dtype="string[pyarrow_numpy]")},
+        columns=Index(["x", "y"], dtype="string[pyarrow_numpy]"),
+    )
+    tm.assert_frame_equal(df, expected)
+
+
 class TestSetitemValidation:
     # This is adapted from pandas/tests/arrays/masked/test_indexing.py
     # but checks for warnings instead of errors.
