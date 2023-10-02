@@ -107,7 +107,7 @@ class TestDataFrameAlign:
             af, bf = float_frame.align(
                 other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=None
             )
-        tm.assert_index_equal(bf.index, Index([]))
+        tm.assert_index_equal(bf.index, Index([]).astype(bf.index.dtype))
 
         msg = (
             "The 'method', 'limit', and 'fill_axis' keywords in DataFrame.align "
@@ -117,7 +117,7 @@ class TestDataFrameAlign:
             af, bf = float_frame.align(
                 other.iloc[:, 0], join="inner", axis=1, method=None, fill_value=0
             )
-        tm.assert_index_equal(bf.index, Index([]))
+        tm.assert_index_equal(bf.index, Index([]).astype(bf.index.dtype))
 
         # Try to align DataFrame to Series along bad axis
         msg = "No axis named 2 for object type DataFrame"

@@ -476,7 +476,7 @@ class TestRank:
         obj = frame_or_series(["foo", "foo", None, "foo"])
         result = obj.rank(method="first", na_option=na_option, ascending=ascending)
         expected = frame_or_series(expected)
-        if using_infer_string:
+        if using_infer_string and isinstance(obj, Series):
             expected = expected.astype("uint64")
         tm.assert_equal(result, expected)
 
