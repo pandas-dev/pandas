@@ -2014,7 +2014,7 @@ cdef class BusinessHour(BusinessMixin):
             nb_offset = 1
         else:
             nb_offset = -1
-        if self._prefix.startswith(("C", "c")):
+        if self._prefix.startswith(("c")):
             # CustomBusinessHour
             return CustomBusinessDay(
                 n=nb_offset,
