@@ -579,10 +579,17 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
     # save this for later usage
     vmin_orig = vmin
 
-    (vmin, vmax) = (
-        Period(ordinal=int(vmin), freq=freq),
-        Period(ordinal=int(vmax), freq=freq),
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", "Period with BDay freq is deprecated", category=FutureWarning
+        )
+        warnings.filterwarnings(
+            "ignore", r"PeriodDtype\[B\] is deprecated", category=FutureWarning
+        )
+        (vmin, vmax) = (
+            Period(ordinal=int(vmin), freq=freq),
+            Period(ordinal=int(vmax), freq=freq),
+        )
     assert isinstance(vmin, Period)
     assert isinstance(vmax, Period)
     span = vmax.ordinal - vmin.ordinal + 1
