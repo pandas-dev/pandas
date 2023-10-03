@@ -1953,29 +1953,32 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
 
 
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-def test_rolling_rolling_sum_window_microseconds_confilict_timestamp(unit):
+@pytest.mark.parametrize("tz", [None, "UTC"])
+def test_rolling_rolling_sum_window_microseconds_conflict_timestamp(unit, tz):
     # GH#55106
     df_time = DataFrame(
-        {"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5)
+        {"A": range(5)}, index=date_range("2013-01-01", freq="1s", periods=5, tz=tz)
     )
     sum_in_nanosecs = df_time.rolling("1s").sum()
-    # micro seconds / milliseconds should not breaks the correct rolling
+    # microseconds / milliseconds should not break the correct rolling
     df_time.index = df_time.index.as_unit(unit)
     sum_in_microsecs = df_time.rolling("1s").sum()
     sum_in_microsecs.index = sum_in_microsecs.index.as_unit("ns")
     tm.assert_frame_equal(sum_in_nanosecs, sum_in_microsecs)
 
+
 @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-def test_rolling_rolling_max_window_nanoseconds_confilict_timestamp(unit):
+@pytest.mark.parametrize("tz", [None, "UTC"])
+def test_rolling_rolling_max_window_nanoseconds_conflict_timestamp(unit, tz):
     # GH#55026
     window = Timedelta(days=4)
 
-    ref_dates = date_range("2023-01-01", "2023-01-10", unit="ns")
+    ref_dates = date_range("2023-01-01", "2023-01-10", unit="ns", tz=tz)
     ref_series = Series(0, index=ref_dates)
     ref_series.iloc[0] = 1
     ref_max_series = ref_series.rolling(window).max()
 
-    dates = date_range("2023-01-01", "2023-01-10", unit=unit)
+    dates = date_range("2023-01-01", "2023-01-10", unit=unit, tz=tz)
     series = Series(0, index=dates)
     series.iloc[0] = 1
     max_series = series.rolling(window).max()

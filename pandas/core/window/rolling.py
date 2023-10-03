@@ -405,6 +405,15 @@ class BaseWindow(SelectionMixin):
         # TODO: why do we get here with e.g. MultiIndex?
         if needs_i8_conversion(self._on.dtype):
             idx = cast("PeriodIndex | DatetimeIndex | TimedeltaIndex", self._on)
+            if (type(idx) == DatetimeIndex) and (idx.T.tz is not None):
+                if idx.T.unit == "s":
+                    return idx.asi8 * int(1e9)
+                elif idx.T.unit == "ms":
+                    return idx.asi8 * int(1e6)
+                elif idx.T.unit == "us":
+                    return idx.asi8 * int(1e3)
+                elif idx.T.unit == "ns":
+                    return idx.asi8
             return idx.asi8
         return None
 
