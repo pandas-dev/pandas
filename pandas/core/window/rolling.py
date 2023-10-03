@@ -112,6 +112,8 @@ if TYPE_CHECKING:
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
 
+from pandas.core.arrays.datetimelike import dtype_to_unit
+
 
 class BaseWindow(SelectionMixin):
     """Provides utilities for performing windowing operations."""
@@ -405,15 +407,6 @@ class BaseWindow(SelectionMixin):
         # TODO: why do we get here with e.g. MultiIndex?
         if needs_i8_conversion(self._on.dtype):
             idx = cast("PeriodIndex | DatetimeIndex | TimedeltaIndex", self._on)
-            if (type(idx) == DatetimeIndex) and (idx.T.tz is not None):
-                if idx.T.unit == "s":
-                    return idx.asi8 * int(1e9)
-                elif idx.T.unit == "ms":
-                    return idx.asi8 * int(1e6)
-                elif idx.T.unit == "us":
-                    return idx.asi8 * int(1e3)
-                elif idx.T.unit == "ns":
-                    return idx.asi8
             return idx.asi8
         return None
 
@@ -1898,12 +1891,13 @@ class Rolling(RollingAndExpandingMixin):
             else:
                 self._win_freq_i8 = freq.nanos
 
-            if self._on.dtype == "M8[us]":
-                self._win_freq_i8 /= 1e3
-            elif self._on.dtype == "M8[ms]":
-                self._win_freq_i8 /= 1e6
-            elif self._on.dtype == "M8[s]":
-                self._win_freq_i8 /= 1e9
+                unit = dtype_to_unit(self._on.dtype)
+                if unit == "us":
+                    self._win_freq_i8 /= 1e3
+                elif unit == "ms":
+                    self._win_freq_i8 /= 1e6
+                elif unit == "s":
+                    self._win_freq_i8 /= 1e9
 
             # min_periods must be an integer
             if self.min_periods is None:
