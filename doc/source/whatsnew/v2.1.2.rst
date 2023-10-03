@@ -24,7 +24,7 @@ Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
 - Fixed bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
-- Fixed bug in :meth:`Series.all`  and :meth:`Series.any` not treating missing values correctly (:issue:`TODO`)
+- Fixed bug in :meth:`Series.all`  and :meth:`Series.any` not treating missing values correctly (:issue:`55367`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_212.other:
