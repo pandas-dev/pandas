@@ -142,7 +142,7 @@ index_col : Hashable, Sequence of Hashable or False, optional
   Note: ``index_col=False`` can be used to force pandas to *not* use the first
   column as the index, e.g., when you have a malformed file with delimiters at
   the end of each line.
-usecols : list of Hashable or Callable, optional
+usecols : Sequence of Hashable or Callable, optional
     Subset of columns to select, denoted either by column labels or column indices.
     If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
