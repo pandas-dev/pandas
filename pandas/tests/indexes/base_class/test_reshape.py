@@ -55,7 +55,7 @@ class TestReshape:
         assert type(expected[2]) is type(val)
 
     def test_insert_none_into_string_numpy(self):
-        # GH#
+        # GH#55365
         pytest.importorskip("pyarrow")
         index = Index(["a", "b", "c"], dtype="string[pyarrow_numpy]")
         result = index.insert(-1, None)
