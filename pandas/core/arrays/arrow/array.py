@@ -43,6 +43,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
+    algorithms as algos,
     missing,
     roperator,
 )
@@ -1291,6 +1292,30 @@ class ArrowExtensionArray(
             result[mask] = na_value
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
+
+    @doc(ExtensionArray.duplicated)
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
+        pa_type = self._pa_array.type
+        if pa.types.is_floating(pa_type) or pa.types.is_integer(pa_type):
+            values = self.to_numpy(na_value=0)
+        elif pa.types.is_boolean(pa_type):
+            values = self.to_numpy(na_value=False)
+        elif pa.types.is_temporal(pa_type):
+            if pa_type.bit_width == 32:
+                pa_type = pa.int32()
+            else:
+                pa_type = pa.int64()
+            arr = self.astype(ArrowDtype(pa_type))
+            values = arr.to_numpy(na_value=0)
+        else:
+            # factorize the values to avoid the performance penalty of
+            # converting to object dtype
+            values = self.factorize()[0]
+
+        mask = self.isna() if self._hasna else None
+        return algos.duplicated(values, keep=keep, mask=mask)
 
     def unique(self) -> Self:
         """
