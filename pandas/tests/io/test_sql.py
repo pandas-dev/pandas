@@ -1639,8 +1639,6 @@ def test_api_roundtrip(conn, request, test_frame1):
     # HACK!
     if "adbc" in conn_name:
         result = result.rename(columns={"__index_level_0__": "level_0"})
-    if conn_name == "postgresql_adbc_conn":
-        result = result.rename(columns={"a": "A", "b": "B", "c": "C", "d": "D"})
     result.index = test_frame1.index
     result.set_index("level_0", inplace=True)
     result.index.astype(int)
@@ -1771,7 +1769,6 @@ def test_api_custom_dateparsing_error(
             "DateCol": {"errors": error},
         },
     )
-
     if "postgres" in conn_name:
         # TODO: clean up types_data_frame fixture
         result = result.drop(columns=["DateColWithTz"])
