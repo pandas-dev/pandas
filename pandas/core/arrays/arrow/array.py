@@ -1627,6 +1627,15 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
+        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if isinstance(result, pa.Array):
+            return type(self)(result)
+        else:
+            return result
+
+    def _reduce_calc(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         pa_result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
 
         if keepdims:
@@ -1637,7 +1646,7 @@ class ArrowExtensionArray(
                     [pa_result],
                     type=to_pyarrow_type(infer_dtype_from_scalar(pa_result)[0]),
                 )
-            return type(self)(result)
+            return result
 
         if pc.is_null(pa_result).as_py():
             return self.dtype.na_value

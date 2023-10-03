@@ -501,6 +501,14 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _convert_int_dtype(self, result):
         return Int64Dtype().__from_arrow__(result)
 
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if name in ("argmin", "argmax") and isinstance(result, pa.Array):
+            return self._convert_int_dtype(result)
+        return type(self)(result)
+
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _storage = "pyarrow_numpy"
