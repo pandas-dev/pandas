@@ -21,6 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :meth:`Categorical.equals` if other has arrow backed string dtype (:issue:`55364`)
 - Fixed bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax` raising for arrow dtypes (:issue:`55368`)
 - Fixed bug in :meth:`Index.insert` raising when inserting ``None`` into :class:`Index` with ``dtype="string[pyarrow_numpy]"`` (:issue:`55365`)
 -
