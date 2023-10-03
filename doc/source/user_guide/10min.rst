@@ -451,7 +451,7 @@ Merge
 Concat
 ~~~~~~
 
-pandas provides various facilities for easily combining together :class:`Series`` and
+pandas provides various facilities for easily combining together :class:`Series` and
 :class:`DataFrame` objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
