@@ -76,6 +76,7 @@ Other enhancements
 
 - :func:`read_csv` now supports ``on_bad_lines`` parameter with ``engine="pyarrow"``. (:issue:`54480`)
 - :meth:`ExtensionArray._explode` interface method added to allow extension type implementations of the ``explode`` method (:issue:`54833`)
+- :meth:`ExtensionArray.duplicated` added to allow extension type implementations of the ``duplicated`` method (:issue:`55255`)
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
 - Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
 -
@@ -241,6 +242,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
 - Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`)
 - Performance improvement in :meth:`Index.difference` (:issue:`55108`)
+- Performance improvement in :meth:`Series.duplicated` for pyarrow dtypes (:issue:`55255`)
 - Performance improvement when indexing with more than 4 keys (:issue:`54550`)
 - Performance improvement when localizing time to UTC (:issue:`55241`)
 

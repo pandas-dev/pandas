@@ -248,6 +248,18 @@ class BaseMethodsTests:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("keep", ["first", "last", False])
+    def test_duplicated(self, data, keep):
+        arr = data.take([0, 1, 0, 1])
+        result = arr.duplicated(keep=keep)
+        if keep == "first":
+            expected = np.array([False, False, True, True])
+        elif keep == "last":
+            expected = np.array([True, True, False, False])
+        else:
+            expected = np.array([True, True, True, True])
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
     @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
     def test_unique(self, data, box, method):

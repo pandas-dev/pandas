@@ -1365,7 +1365,10 @@ class IndexOpsMixin(OpsMixin):
 
     @final
     def _duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
-        return algorithms.duplicated(self._values, keep=keep)
+        arr = self._values
+        if isinstance(arr, ExtensionArray):
+            return arr.duplicated(keep=keep)
+        return algorithms.duplicated(arr, keep=keep)
 
     def _arith_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)

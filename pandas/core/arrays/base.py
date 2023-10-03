@@ -61,6 +61,7 @@ from pandas.core import (
     roperator,
 )
 from pandas.core.algorithms import (
+    duplicated,
     factorize_array,
     isin,
     map_array,
@@ -125,6 +126,7 @@ class ExtensionArray:
     astype
     copy
     dropna
+    duplicated
     factorize
     fillna
     equals
@@ -1115,6 +1117,31 @@ class ExtensionArray:
         """
         # error: Unsupported operand type for ~ ("ExtensionArray")
         return self[~self.isna()]  # type: ignore[operator]
+
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
+        """
+        Return boolean ndarray denoting duplicate values.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            - ``first`` : Mark duplicates as ``True`` except for the first occurrence.
+            - ``last`` : Mark duplicates as ``True`` except for the last occurrence.
+            - False : Mark all duplicates as ``True``.
+
+        Returns
+        -------
+        ndarray[bool]
+
+        Examples
+        --------
+        >>> pd.array([1, 1, 2, 3, 3], dtype="Int64").duplicated()
+        array([False,  True, False, False,  True])
+        """
+        mask = self.isna().astype(np.bool_, copy=False)
+        return duplicated(values=self, keep=keep, mask=mask)
 
     def shift(self, periods: int = 1, fill_value: object = None) -> ExtensionArray:
         """

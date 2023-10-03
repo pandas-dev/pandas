@@ -952,6 +952,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = self._mask.copy()
         return self._simple_new(data, mask)
 
+    @doc(ExtensionArray.duplicated)
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
+        values = self._data
+        mask = self._mask
+        return algos.duplicated(values, keep=keep, mask=mask)
+
     def unique(self) -> Self:
         """
         Compute the BaseMaskedArray of unique values.
