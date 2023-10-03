@@ -30,8 +30,12 @@ from pandas.compat import (
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import (
+    can_hold_element,
+    infer_dtype_from_scalar,
+)
 from pandas.core.dtypes.common import (
+    CategoricalDtype,
     is_array_like,
     is_bool_dtype,
     is_integer,
@@ -628,7 +632,9 @@ class ArrowExtensionArray(
 
     def _cmp_method(self, other, op):
         pc_func = ARROW_CMP_FUNCS[op.__name__]
-        if isinstance(other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)):
+        if isinstance(
+            other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)
+        ) or isinstance(getattr(other, "dtype", None), CategoricalDtype):
             result = pc_func(self._pa_array, self._box_pa(other))
         elif is_scalar(other):
             try:
@@ -1624,13 +1630,21 @@ class ArrowExtensionArray(
         pa_result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
 
         if keepdims:
-            result = pa.array([pa_result.as_py()], type=pa_result.type)
+            if isinstance(pa_result, pa.Scalar):
+                result = pa.array([pa_result.as_py()], type=pa_result.type)
+            else:
+                result = pa.array(
+                    [pa_result],
+                    type=to_pyarrow_type(infer_dtype_from_scalar(pa_result)[0]),
+                )
             return type(self)(result)
 
         if pc.is_null(pa_result).as_py():
             return self.dtype.na_value
-        else:
+        elif isinstance(pa_result, pa.Scalar):
             return pa_result.as_py()
+        else:
+            return pa_result
 
     def _explode(self):
         """

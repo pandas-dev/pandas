@@ -893,7 +893,6 @@ class ExtensionArray:
         limit,
         limit_direction,
         limit_area,
-        fill_value,
         copy: bool,
         **kwargs,
     ) -> Self:
