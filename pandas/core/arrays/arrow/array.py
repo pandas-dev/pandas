@@ -35,6 +35,7 @@ from pandas.core.dtypes.cast import (
     infer_dtype_from_scalar,
 )
 from pandas.core.dtypes.common import (
+    CategoricalDtype,
     is_array_like,
     is_bool_dtype,
     is_integer,
@@ -631,7 +632,9 @@ class ArrowExtensionArray(
 
     def _cmp_method(self, other, op):
         pc_func = ARROW_CMP_FUNCS[op.__name__]
-        if isinstance(other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)):
+        if isinstance(
+            other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)
+        ) or isinstance(getattr(other, "dtype", None), CategoricalDtype):
             result = pc_func(self._pa_array, self._box_pa(other))
         elif is_scalar(other):
             try:
