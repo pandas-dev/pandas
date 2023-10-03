@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import re
 from typing import (
     TYPE_CHECKING,
@@ -183,7 +184,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
 
         return int(cell.attributes.get((TABLENS, "number-columns-repeated"), 1))
 
-    def _parse_odf_time(self, value: str) -> pd.Timestamp:
+    def _parse_odf_time(self, value: str) -> datetime.time:
         """
         Helper function to convert ODF variant of ISO 8601 formatted duration
         "PnYnMnDTnHnMnS" - see https://www.w3.org/TR/xmlschema-2/#duration
@@ -191,11 +192,19 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         parts = re.match(r"^\s*PT\s*(\d+)\s*H\s*(\d+)\s*M\s*(\d+(\.\d+)?)\s*S$", value)
         if parts is None:
             raise ValueError(f"Failed to parse ODF time value: {value}")
-        h, m, s = parts.group(1, 2, 3)
-        # ignore date part from some representations as both pd.Timestamp
-        # and datetime.time restrict hour values to 0..23
-        h = str(int(h) % 24)
-        return pd.Timestamp(f"{h}:{m}:{s}")
+        hours, minutes, seconds, _, second_part = parts.group(*range(1, 6))
+        if second_part is None:
+            microseconds = 0
+        else:
+            microseconds = int(int(second_part) * pow(10, 6 - len(second_part)))
+        return datetime.time(
+            # ignore date part from some representations
+            # and datetime.time restrict hour values to 0..23
+            hour=int(hours) % 24,
+            minute=int(minutes),
+            second=int(seconds),
+            microsecond=microseconds,
+        )
 
     def _get_cell_value(self, cell) -> Scalar | NaTType:
         from odf.namespaces import OFFICENS
@@ -232,7 +241,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
             cell_value = cell.attributes.get((OFFICENS, "time-value"))
             stamp = self._parse_odf_time(str(cell_value))
             # cast needed here because Scalar doesn't include datetime.time
-            return cast(Scalar, stamp.time())
+            return cast(Scalar, stamp)
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")
