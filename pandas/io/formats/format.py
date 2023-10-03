@@ -263,10 +263,15 @@ class CategoricalFormatter:
 
 
 class SeriesFormatter:
+    """
+    Implement the main logic of Series.to_string, which underlies
+    Series.__repr__.
+    """
+
     def __init__(
         self,
         series: Series,
-        buf: IO[str] | None = None,
+        *,
         length: bool | str = True,
         header: bool = True,
         index: bool = True,
@@ -278,7 +283,7 @@ class SeriesFormatter:
         min_rows: int | None = None,
     ) -> None:
         self.series = series
-        self.buf = buf if buf is not None else StringIO()
+        self.buf = StringIO()
         self.name = name
         self.na_rep = na_rep
         self.header = header
@@ -422,7 +427,7 @@ class SeriesFormatter:
         return str("".join(result))
 
 
-class TextAdjustment:
+class _TextAdjustment:
     def __init__(self) -> None:
         self.encoding = get_option("display.encoding")
 
@@ -438,7 +443,7 @@ class TextAdjustment:
         )
 
 
-class EastAsianTextAdjustment(TextAdjustment):
+class _EastAsianTextAdjustment(_TextAdjustment):
     def __init__(self) -> None:
         super().__init__()
         if get_option("display.unicode.ambiguous_as_wide"):
@@ -477,12 +482,12 @@ class EastAsianTextAdjustment(TextAdjustment):
             return [x.rjust(_get_pad(x)) for x in texts]
 
 
-def get_adjustment() -> TextAdjustment:
+def get_adjustment() -> _TextAdjustment:
     use_east_asian_width = get_option("display.unicode.east_asian_width")
     if use_east_asian_width:
-        return EastAsianTextAdjustment()
+        return _EastAsianTextAdjustment()
     else:
-        return TextAdjustment()
+        return _TextAdjustment()
 
 
 def get_dataframe_repr_params() -> dict[str, Any]:
@@ -557,7 +562,11 @@ def get_series_repr_params() -> dict[str, Any]:
 
 
 class DataFrameFormatter:
-    """Class for processing dataframe formatting options and data."""
+    """
+    Class for processing dataframe formatting options and data.
+
+    Used by DataFrame.to_string, which backs DataFrame.__repr__.
+    """
 
     __doc__ = __doc__ if __doc__ else ""
     __doc__ += common_docstring + return_docstring
@@ -1169,16 +1178,16 @@ def save_to_buffer(
     """
     Perform serialization. Write to buf or return as string if buf is None.
     """
-    with get_buffer(buf, encoding=encoding) as f:
-        f.write(string)
+    with _get_buffer(buf, encoding=encoding) as fd:
+        fd.write(string)
         if buf is None:
             # error: "WriteBuffer[str]" has no attribute "getvalue"
-            return f.getvalue()  # type: ignore[attr-defined]
+            return fd.getvalue()  # type: ignore[attr-defined]
         return None
 
 
 @contextmanager
-def get_buffer(
+def _get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
 ) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
     """
@@ -1255,21 +1264,21 @@ def format_array(
     -------
     List[str]
     """
-    fmt_klass: type[GenericArrayFormatter]
+    fmt_klass: type[_GenericArrayFormatter]
     if lib.is_np_dtype(values.dtype, "M"):
-        fmt_klass = Datetime64Formatter
+        fmt_klass = _Datetime64Formatter
     elif isinstance(values.dtype, DatetimeTZDtype):
-        fmt_klass = Datetime64TZFormatter
+        fmt_klass = _Datetime64TZFormatter
     elif lib.is_np_dtype(values.dtype, "m"):
-        fmt_klass = Timedelta64Formatter
+        fmt_klass = _Timedelta64Formatter
     elif isinstance(values.dtype, ExtensionDtype):
-        fmt_klass = ExtensionArrayFormatter
+        fmt_klass = _ExtensionArrayFormatter
     elif lib.is_np_dtype(values.dtype, "fc"):
         fmt_klass = FloatArrayFormatter
     elif lib.is_np_dtype(values.dtype, "iu"):
-        fmt_klass = IntArrayFormatter
+        fmt_klass = _IntArrayFormatter
     else:
-        fmt_klass = GenericArrayFormatter
+        fmt_klass = _GenericArrayFormatter
 
     if space is None:
         space = 12
@@ -1297,7 +1306,7 @@ def format_array(
     return fmt_obj.get_result()
 
 
-class GenericArrayFormatter:
+class _GenericArrayFormatter:
     def __init__(
         self,
         values: Any,
@@ -1379,7 +1388,7 @@ class GenericArrayFormatter:
         vals = extract_array(self.values, extract_numpy=True)
         if not isinstance(vals, np.ndarray):
             raise TypeError(
-                "ExtensionArray formatting should use ExtensionArrayFormatter"
+                "ExtensionArray formatting should use _ExtensionArrayFormatter"
             )
         inferred = lib.map_infer(vals, is_float)
         is_float_type = (
@@ -1409,7 +1418,7 @@ class GenericArrayFormatter:
         return fmt_values
 
 
-class FloatArrayFormatter(GenericArrayFormatter):
+class FloatArrayFormatter(_GenericArrayFormatter):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -1610,7 +1619,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         return list(self.get_result_as_array())
 
 
-class IntArrayFormatter(GenericArrayFormatter):
+class _IntArrayFormatter(_GenericArrayFormatter):
     def _format_strings(self) -> list[str]:
         if self.leading_space is False:
             formatter_str = lambda x: f"{x:d}".format(x=x)
@@ -1621,7 +1630,7 @@ class IntArrayFormatter(GenericArrayFormatter):
         return fmt_values
 
 
-class Datetime64Formatter(GenericArrayFormatter):
+class _Datetime64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: np.ndarray | Series | DatetimeIndex | DatetimeArray,
@@ -1649,7 +1658,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         return fmt_values.tolist()
 
 
-class ExtensionArrayFormatter(GenericArrayFormatter):
+class _ExtensionArrayFormatter(_GenericArrayFormatter):
     def _format_strings(self) -> list[str]:
         values = extract_array(self.values, extract_numpy=True)
 
@@ -1828,7 +1837,7 @@ def get_format_datetime64_from_values(
     return date_format
 
 
-class Datetime64TZFormatter(Datetime64Formatter):
+class _Datetime64TZFormatter(_Datetime64Formatter):
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
         ido = is_dates_only(self.values)
@@ -1841,7 +1850,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
         return fmt_values
 
 
-class Timedelta64Formatter(GenericArrayFormatter):
+class _Timedelta64Formatter(_GenericArrayFormatter):
     def __init__(
         self,
         values: np.ndarray | TimedeltaIndex,
@@ -1911,7 +1920,7 @@ def _make_fixed_width(
     strings: list[str],
     justify: str = "right",
     minimum: int | None = None,
-    adj: TextAdjustment | None = None,
+    adj: _TextAdjustment | None = None,
 ) -> list[str]:
     if len(strings) == 0 or justify == "all":
         return strings
