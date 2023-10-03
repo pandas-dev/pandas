@@ -69,11 +69,6 @@ def on_cols_multi():
     return ["Origin", "Destination", "Period"]
 
 
-@pytest.fixture
-def idx_cols_multi():
-    return ["Origin", "Destination", "Period", "TripPurp", "LinkType"]
-
-
 class TestMergeMulti:
     def test_merge_on_multikey(self, left, right, join_type):
         on_cols = ["key1", "key2"]
@@ -815,9 +810,13 @@ class TestMergeMulti:
 
 
 class TestJoinMultiMulti:
-    def test_join_multi_multi(
-        self, left_multi, right_multi, join_type, on_cols_multi, idx_cols_multi
-    ):
+    def test_join_multi_multi(self, left_multi, right_multi, join_type, on_cols_multi):
+        left_names = left_multi.index.names
+        right_names = right_multi.index.names
+        if join_type == "right":
+            level_order = right_names + left_names.difference(right_names)
+        else:
+            level_order = left_names + right_names.difference(left_names)
         # Multi-index join tests
         expected = (
             merge(
@@ -826,7 +825,7 @@ class TestJoinMultiMulti:
                 how=join_type,
                 on=on_cols_multi,
             )
-            .set_index(idx_cols_multi)
+            .set_index(level_order)
             .sort_index()
         )
 
@@ -834,10 +833,17 @@ class TestJoinMultiMulti:
         tm.assert_frame_equal(result, expected)
 
     def test_join_multi_empty_frames(
-        self, left_multi, right_multi, join_type, on_cols_multi, idx_cols_multi
+        self, left_multi, right_multi, join_type, on_cols_multi
     ):
         left_multi = left_multi.drop(columns=left_multi.columns)
         right_multi = right_multi.drop(columns=right_multi.columns)
+
+        left_names = left_multi.index.names
+        right_names = right_multi.index.names
+        if join_type == "right":
+            level_order = right_names + left_names.difference(right_names)
+        else:
+            level_order = left_names + right_names.difference(left_names)
 
         expected = (
             merge(
@@ -846,7 +852,7 @@ class TestJoinMultiMulti:
                 how=join_type,
                 on=on_cols_multi,
             )
-            .set_index(idx_cols_multi)
+            .set_index(level_order)
             .sort_index()
         )
 

@@ -338,7 +338,9 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` ignoring ``sort`` parameter when passed :class:`DatetimeIndex` indexes (:issue:`54769`)
+- Bug in :func:`merge` reordering index levels when merging on a subset of levels (:issue:`34133`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
+-
 
 Sparse
 ^^^^^^
