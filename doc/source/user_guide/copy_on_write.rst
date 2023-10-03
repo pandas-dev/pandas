@@ -209,7 +209,7 @@ you are modifying one object inplace.
     df2.iloc[0, 0] = 100
 
 This creates two objects that share data and thus the setitem operation will trigger a
-copy. This is not necessary if you the initial object ``df`` isn't needed anymore.
+copy. This is not necessary if the initial object ``df`` isn't needed anymore.
 Simply reassigning to the same variable will invalidate the reference that is
 held by the object.
 
