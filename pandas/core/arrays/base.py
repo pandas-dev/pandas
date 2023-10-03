@@ -1707,6 +1707,13 @@ class ExtensionArray:
         Returns
         -------
         ExtensionArray
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).transpose()
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         return self[:]
 
