@@ -1906,7 +1906,7 @@ def test_adding_new_conditional_column() -> None:
 
 
 def test_add_new_column_infer_string():
-    # GH#
+    # GH#55366
     df = DataFrame({"x": [1]})
     with pd.option_context("future.infer_string", True):
         df.loc[df["x"] == 1, "y"] = "1"
