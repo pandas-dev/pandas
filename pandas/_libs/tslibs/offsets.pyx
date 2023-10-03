@@ -4731,6 +4731,17 @@ cpdef to_offset(freq, bint is_period=False):
                 if not stride:
                     stride = 1
 
+                if prefix in c_DEPR_ABBREVS:
+                    warnings.warn(
+                        f"\'{prefix}\' is deprecated and will be removed "
+                        f"in a future version. Please use "
+                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' "
+                        f"instead of \'{prefix}\'.",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                    prefix = c_DEPR_ABBREVS[prefix]
+
                 if prefix in {"D", "h", "min", "s", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3h" or
                     #  "2.5min", so we can construct a Timedelta with the
@@ -4743,17 +4754,6 @@ cpdef to_offset(freq, bint is_period=False):
                         #  into the offset
                         offset *= stride_sign
                 else:
-                    if prefix in c_DEPR_ABBREVS:
-                        warnings.warn(
-                            f"\'{prefix}\' is deprecated and will be removed "
-                            f"in a future version. Please use "
-                            f"\'{c_DEPR_ABBREVS.get(prefix)}\' "
-                            f"instead of \'{prefix}\'.",
-                            FutureWarning,
-                            stacklevel=find_stack_level(),
-                        )
-                        prefix = c_DEPR_ABBREVS[prefix]
-
                     stride = int(stride)
                     offset = _get_offset(prefix)
                     offset = offset * int(np.fabs(stride) * stride_sign)
