@@ -183,6 +183,8 @@ This array is read-only, which means that it can't be modified inplace:
     arr = df.to_numpy()
     arr[0, 0] = 100
 
+The same holds true for a Series, since a Series always consists of a single array.
+
 There are two potential solution to this:
 
 - Trigger a copy manually if you want to avoid updating DataFrames that share memory with your array.
