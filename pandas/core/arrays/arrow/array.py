@@ -30,7 +30,10 @@ from pandas.compat import (
 from pandas.util._decorators import doc
 from pandas.util._validators import validate_fillna_kwargs
 
-from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import (
+    can_hold_element,
+    infer_dtype_from_scalar,
+)
 from pandas.core.dtypes.common import (
     is_array_like,
     is_bool_dtype,
@@ -42,6 +45,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
+    algorithms as algos,
     missing,
     roperator,
 )
@@ -627,20 +631,22 @@ class ArrowExtensionArray(
 
     def _cmp_method(self, other, op):
         pc_func = ARROW_CMP_FUNCS[op.__name__]
-        try:
+        if isinstance(other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)):
             result = pc_func(self._pa_array, self._box_pa(other))
-        except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
-            if is_scalar(other):
+        elif is_scalar(other):
+            try:
+                result = pc_func(self._pa_array, self._box_pa(other))
+            except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
                 mask = isna(self) | isna(other)
                 valid = ~mask
                 result = np.zeros(len(self), dtype="bool")
                 result[valid] = op(np.array(self)[valid], other)
                 result = pa.array(result, type=pa.bool_())
                 result = pc.if_else(valid, result, None)
-            else:
-                raise NotImplementedError(
-                    f"{op.__name__} not implemented for {type(other)}"
-                )
+        else:
+            raise NotImplementedError(
+                f"{op.__name__} not implemented for {type(other)}"
+            )
         return ArrowExtensionArray(result)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
@@ -1287,6 +1293,30 @@ class ArrowExtensionArray(
             result[~mask] = data[~mask]._pa_array.to_numpy()
         return result
 
+    @doc(ExtensionArray.duplicated)
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
+        pa_type = self._pa_array.type
+        if pa.types.is_floating(pa_type) or pa.types.is_integer(pa_type):
+            values = self.to_numpy(na_value=0)
+        elif pa.types.is_boolean(pa_type):
+            values = self.to_numpy(na_value=False)
+        elif pa.types.is_temporal(pa_type):
+            if pa_type.bit_width == 32:
+                pa_type = pa.int32()
+            else:
+                pa_type = pa.int64()
+            arr = self.astype(ArrowDtype(pa_type))
+            values = arr.to_numpy(na_value=0)
+        else:
+            # factorize the values to avoid the performance penalty of
+            # converting to object dtype
+            values = self.factorize()[0]
+
+        mask = self.isna() if self._hasna else None
+        return algos.duplicated(values, keep=keep, mask=mask)
+
     def unique(self) -> Self:
         """
         Compute the ArrowExtensionArray of unique values.
@@ -1597,18 +1627,30 @@ class ArrowExtensionArray(
         pa_result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
 
         if keepdims:
-            result = pa.array([pa_result.as_py()], type=pa_result.type)
+            if isinstance(pa_result, pa.Scalar):
+                result = pa.array([pa_result.as_py()], type=pa_result.type)
+            else:
+                result = pa.array(
+                    [pa_result],
+                    type=to_pyarrow_type(infer_dtype_from_scalar(pa_result)[0]),
+                )
             return type(self)(result)
 
         if pc.is_null(pa_result).as_py():
             return self.dtype.na_value
-        else:
+        elif isinstance(pa_result, pa.Scalar):
             return pa_result.as_py()
+        else:
+            return pa_result
 
     def _explode(self):
         """
         See Series.explode.__doc__.
         """
+        # child class explode method supports only list types; return
+        # default implementation for non list types.
+        if not pa.types.is_list(self.dtype.pyarrow_dtype):
+            return super()._explode()
         values = self
         counts = pa.compute.list_value_length(values._pa_array)
         counts = counts.fill_null(1).to_numpy()
@@ -1993,9 +2035,17 @@ class ArrowExtensionArray(
                 **kwargs,
             )
 
-        masked = self._to_masked()
+        # maybe convert to a compatible dtype optimized for groupby
+        values: ExtensionArray
+        pa_type = self._pa_array.type
+        if pa.types.is_timestamp(pa_type):
+            values = self._to_datetimearray()
+        elif pa.types.is_duration(pa_type):
+            values = self._to_timedeltaarray()
+        else:
+            values = self._to_masked()
 
-        result = masked._groupby_op(
+        result = values._groupby_op(
             how=how,
             has_dropped_na=has_dropped_na,
             min_count=min_count,

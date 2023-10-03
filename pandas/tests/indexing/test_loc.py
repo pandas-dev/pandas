@@ -1657,6 +1657,14 @@ class TestLocBaseIndependent:
         expected = frame_or_series([0, 1, 10, 9, 11], index=obj.index)
         tm.assert_equal(obj, expected)
 
+    def test_loc_setitem_numpy_frame_categorical_value(self):
+        # GH#52927
+        df = DataFrame({"a": [1, 1, 1, 1, 1], "b": ["a", "a", "a", "a", "a"]})
+        df.loc[1:2, "a"] = Categorical([2, 2], categories=[1, 2])
+
+        expected = DataFrame({"a": [1, 2, 2, 1, 1], "b": ["a", "a", "a", "a", "a"]})
+        tm.assert_frame_equal(df, expected)
+
 
 class TestLocWithEllipsis:
     @pytest.fixture(params=[tm.loc, tm.iloc])

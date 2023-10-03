@@ -715,7 +715,7 @@ class TestSeriesPlots:
     )
     def test_errorbar_plot_ts(self, yerr):
         # test time series plotting
-        ix = date_range("1/1/2000", "1/1/2001", freq="M")
+        ix = date_range("1/1/2000", "1/1/2001", freq="ME")
         ts = Series(np.arange(12), index=ix, name="x")
         yerr.index = ix
 
@@ -973,3 +973,10 @@ class TestSeriesPlots:
         ax = series.plot(color=None)
         expected = _unpack_cycler(mpl.pyplot.rcParams)[:1]
         _check_colors(ax.get_lines(), linecolors=expected)
+
+    @pytest.mark.slow
+    def test_plot_no_warning(self, ts):
+        # GH 55138
+        # TODO(3.0): this can be removed once Period[B] deprecation is enforced
+        with tm.assert_produces_warning(False):
+            _ = ts.plot()

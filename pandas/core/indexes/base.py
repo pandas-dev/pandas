@@ -3598,14 +3598,14 @@ class Index(IndexOpsMixin, PandasObject):
 
         if len(other) == 0:
             # Note: we do not (yet) sort even if sort=None GH#24959
-            result = self.rename(result_name)
+            result = self.unique().rename(result_name)
             if sort is True:
                 return result.sort_values()
             return result
 
         if not self._should_compare(other):
             # Nothing matches -> difference is everything
-            result = self.rename(result_name)
+            result = self.unique().rename(result_name)
             if sort is True:
                 return result.sort_values()
             return result
@@ -3938,12 +3938,8 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(self.dtype, IntervalDtype):
             if isinstance(target.dtype, IntervalDtype):
                 return False
-            # See https://github.com/pandas-dev/pandas/issues/47772 the commented
-            # out code can be restored (instead of hardcoding `return True`)
-            # once that issue is fixed
             # "Index" has no attribute "left"
-            # return self.left._should_compare(target)  # type: ignore[attr-defined]
-            return True
+            return self.left._should_compare(target)  # type: ignore[attr-defined]
         return False
 
     @final
@@ -4015,8 +4011,8 @@ class Index(IndexOpsMixin, PandasObject):
         self, target: Index, method: str_t, limit: int | None = None, tolerance=None
     ) -> npt.NDArray[np.intp]:
         if self._is_multi:
-            # TODO: get_indexer_with_fill docstring says values must be _sorted_
-            #  but that doesn't appear to be enforced
+            if not (self.is_monotonic_increasing or self.is_monotonic_decreasing):
+                raise ValueError("index must be monotonic increasing or decreasing")
             # error: "IndexEngine" has no attribute "get_indexer_with_fill"
             engine = self._engine
             with warnings.catch_warnings():
@@ -4208,15 +4204,9 @@ class Index(IndexOpsMixin, PandasObject):
                 self._validate_indexer("slice", key.step, "getitem")
                 return key
 
-        # convert the slice to an indexer here
-
-        # special case for interval_dtype bc we do not do partial-indexing
-        #  on integer Intervals when slicing
-        # TODO: write this in terms of e.g. should_partial_index?
-        ints_are_positional = self._should_fallback_to_positional or isinstance(
-            self.dtype, IntervalDtype
-        )
-        is_positional = is_index_slice and ints_are_positional
+        # convert the slice to an indexer here; checking that the user didn't
+        #  pass a positional slice to loc
+        is_positional = is_index_slice and self._should_fallback_to_positional
 
         # if we are mixed and have integers
         if is_positional:
