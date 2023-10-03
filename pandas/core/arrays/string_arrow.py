@@ -617,4 +617,4 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
     def insert(self, loc: int, item) -> ArrowStringArrayNumpySemantics:
         if item is np.nan:
             item = libmissing.NA
-        return super().insert(loc, item)
+        return super().insert(loc, item)  # type: ignore[return-value]
