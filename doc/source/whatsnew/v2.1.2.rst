@@ -21,7 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax` raising for arrow dtypes (:issue:`55368`)
 -
 
 .. ---------------------------------------------------------------------------
