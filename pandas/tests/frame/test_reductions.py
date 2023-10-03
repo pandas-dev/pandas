@@ -1057,7 +1057,7 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
     def test_idxmax_arrow_types(self):
-        # GH#
+        # GH#55368
         pytest.importorskip("pyarrow")
 
         df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1]}, dtype="int64[pyarrow]")
