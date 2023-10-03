@@ -1641,7 +1641,7 @@ def safe_sort(
         else:
             mask = None
     else:
-        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
+        reverse_indexer = np.empty(len(sorter), dtype=int)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
         # Out of bound indices will be masked with `-1` next, so we
         # may deal with them here without performance loss using `mode='wrap'`

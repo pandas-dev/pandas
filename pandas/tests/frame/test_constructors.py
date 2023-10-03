@@ -1823,7 +1823,7 @@ class TestDataFrameConstructors:
             DataFrame("a", [1, 2], ["a", "c"], float)
 
     def test_constructor_with_datetimes(self):
-        intname = np.dtype(np.int_).name
+        intname = np.dtype(int).name
         floatname = np.dtype(np.float64).name
         objectname = np.dtype(np.object_).name
 
