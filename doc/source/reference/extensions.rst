@@ -49,6 +49,7 @@ objects.
       api.extensions.ExtensionArray.copy
       api.extensions.ExtensionArray.view
       api.extensions.ExtensionArray.dropna
+      api.extensions.ExtensionArray.duplicated
       api.extensions.ExtensionArray.equals
       api.extensions.ExtensionArray.factorize
       api.extensions.ExtensionArray.fillna
