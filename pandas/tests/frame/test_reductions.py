@@ -167,11 +167,17 @@ class TestDataFrameAnalytics:
             pytest.param("kurt", marks=td.skip_if_no_scipy),
         ],
     )
-    def test_stat_op_api_float_string_frame(self, float_string_frame, axis, opname):
-        if (opname in ("sum", "min", "max") and axis == 0) or opname in (
-            "count",
-            "nunique",
-        ):
+    def test_stat_op_api_float_string_frame(
+        self, float_string_frame, axis, opname, using_infer_string
+    ):
+        if (
+            (opname in ("sum", "min", "max") and axis == 0)
+            or opname
+            in (
+                "count",
+                "nunique",
+            )
+        ) and not (using_infer_string and opname == "sum"):
             getattr(float_string_frame, opname)(axis=axis)
         else:
             if opname in ["var", "std", "sem", "skew", "kurt"]:
@@ -197,7 +203,11 @@ class TestDataFrameAnalytics:
             elif opname in ["min", "max"]:
                 msg = "'[><]=' not supported between instances of 'float' and 'str'"
             elif opname == "median":
-                msg = re.compile(r"Cannot convert \[.*\] to numeric", flags=re.S)
+                msg = re.compile(
+                    r"Cannot convert \[.*\] to numeric|does not support", flags=re.S
+                )
+            if not isinstance(msg, re.Pattern):
+                msg = msg + "|does not support"
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
@@ -358,6 +368,7 @@ class TestDataFrameAnalytics:
                 "Could not convert",
                 "could not convert",
                 "can't multiply sequence by non-int",
+                "does not support",
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -369,6 +380,7 @@ class TestDataFrameAnalytics:
                     "Could not convert",
                     "could not convert",
                     "can't multiply sequence by non-int",
+                    "does not support",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -887,7 +899,8 @@ class TestDataFrameAnalytics:
 
     def test_mean_corner(self, float_frame, float_string_frame):
         # unit test when have object data
-        with pytest.raises(TypeError, match="Could not convert"):
+        msg = "Could not convert|does not support"
+        with pytest.raises(TypeError, match=msg):
             float_string_frame.mean(axis=0)
 
         # xs sum mixed type, just want to know it works...
