@@ -198,7 +198,7 @@ def test_reindex_int(datetime_series):
 
     # NO NaNs introduced
     reindexed_int = int_ts.reindex(int_ts.index[::2])
-    assert reindexed_int.dtype == np.int_
+    assert reindexed_int.dtype == np.dtype(int)
 
 
 def test_reindex_bool(datetime_series):
