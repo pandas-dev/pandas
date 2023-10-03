@@ -36,7 +36,7 @@ cdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna, const uint8_t
 cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8_t[:] mask=None):
 {{endif}}
     cdef:
-        Py_ssize_t i = 0
+        Py_ssize_t i = 0, na_counter = 0, na_add = 0
         Py_ssize_t n = len(values)
         kh_{{ttype}}_t *table
 
@@ -48,9 +48,6 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
         int ret = 0
         bint uses_mask = mask is not None
         bint isna_entry = False
-
-    if uses_mask and not dropna:
-        raise NotImplementedError("uses_mask not implemented with dropna=False")
 
     # we track the order in which keys are first seen (GH39009),
     # khash-map isn't insertion-ordered, thus:
@@ -82,25 +79,31 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
     for i in range(n):
         val = {{to_c_type}}(values[i])
 
+        if uses_mask:
+            isna_entry = mask[i]
+
         if dropna:
-            if uses_mask:
-                isna_entry = mask[i]
-            else:
+            if not uses_mask:
                 isna_entry = is_nan_{{c_type}}(val)
 
         if not dropna or not isna_entry:
-            k = kh_get_{{ttype}}(table, val)
-            if k != table.n_buckets:
-                table.vals[k] += 1
+            if uses_mask and isna_entry:
+                na_counter += 1
             else:
-                k = kh_put_{{ttype}}(table, val, &ret)
-                table.vals[k] = 1
-                result_keys.append(val)
+                k = kh_get_{{ttype}}(table, val)
+                if k != table.n_buckets:
+                    table.vals[k] += 1
+                else:
+                    k = kh_put_{{ttype}}(table, val, &ret)
+                    table.vals[k] = 1
+                    result_keys.append(val)
     {{endif}}
 
     # collect counts in the order corresponding to result_keys:
+    if na_counter > 0:
+        na_add = 1
     cdef:
-        int64_t[::1] result_counts = np.empty(table.size, dtype=np.int64)
+        int64_t[::1] result_counts = np.empty(table.size + na_add, dtype=np.int64)
 
     for i in range(table.size):
         {{if dtype == 'object'}}
@@ -110,9 +113,13 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
         {{endif}}
         result_counts[i] = table.vals[k]
 
+    if na_counter > 0:
+        result_counts[table.size] = na_counter
+        result_keys.append(val)
+
     kh_destroy_{{ttype}}(table)
 
-    return result_keys.to_array(), result_counts.base
+    return result_keys.to_array(), result_counts.base, na_counter
 
 
 @cython.wraparound(False)
@@ -399,10 +406,10 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
         ndarray[htfunc_t] modes
 
         int64_t[::1] counts
-        int64_t count, max_count = -1
+        int64_t count, _, max_count = -1
         Py_ssize_t nkeys, k, j = 0
 
-    keys, counts = value_count(values, dropna, mask=mask)
+    keys, counts, _ = value_count(values, dropna, mask=mask)
     nkeys = len(keys)
 
     modes = np.empty(nkeys, dtype=values.dtype)
