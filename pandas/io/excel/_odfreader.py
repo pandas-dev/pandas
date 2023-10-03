@@ -28,6 +28,12 @@ if TYPE_CHECKING:
 
     from pandas._libs.tslibs.nattype import NaTType
 
+# ODF variant of ISO 8601 time/duration format: "PThhhHmmMss.sssS"
+# see https://www.w3.org/TR/xmlschema-2/#duration for details
+ODF_ISOTIME_PATTERN = re.compile(
+    r"^\s*PT\s*(\d+)\s*H\s*(\d+)\s*M\s*(\d+)(\.(\d+))?\s*S$"
+)
+
 
 @doc(storage_options=_shared_docs["storage_options"])
 class ODFReader(BaseExcelReader["OpenDocument"]):
@@ -186,10 +192,9 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
 
     def _parse_odf_time(self, value: str) -> datetime.time:
         """
-        Helper function to convert ODF variant of ISO 8601 formatted duration
-        "PnYnMnDTnHnMnS" - see https://www.w3.org/TR/xmlschema-2/#duration
+        This helper function parses ODF time value
         """
-        parts = re.match(r"^\s*PT\s*(\d+)\s*H\s*(\d+)\s*M\s*(\d+(\.\d+)?)\s*S$", value)
+        parts = ODF_ISOTIME_PATTERN.match(value)
         if parts is None:
             raise ValueError(f"Failed to parse ODF time value: {value}")
         hours, minutes, seconds, _, second_part = parts.group(*range(1, 6))
