@@ -199,7 +199,7 @@ There are two potential solution to this:
 Patterns to avoid
 -----------------
 
-No defensiv copy will be performed if two objects share the same data while
+No defensive copy will be performed if two objects share the same data while
 you are modifying one object inplace.
 
 .. ipython:: python
