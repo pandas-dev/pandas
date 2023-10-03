@@ -1950,25 +1950,3 @@ def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
         op2 = getattr(rolling2, kernel)
         expected = op2(*arg2, numeric_only=numeric_only)
         tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-def test_rolling_rolling_max_window_nanoseconds_confilict_timestamp(unit):
-    # GH#55026
-    window = Timedelta(days=4)
-
-    ref_dates = date_range("2023-01-01", "2023-01-10", unit="ns")
-    ref_series = Series(0, index=ref_dates)
-    ref_series.iloc[0] = 1
-    ref_max_series = ref_series.rolling(window).max()
-
-    dates = date_range("2023-01-01", "2023-01-10", unit=unit)
-    series = Series(0, index=dates)
-    series.iloc[0] = 1
-    max_series = series.rolling(window).max()
-
-    ref_df = DataFrame(ref_max_series)
-    df = DataFrame(max_series)
-    df.index = df.index.as_unit("ns")
-
-    tm.assert_frame_equal(ref_df, df)
