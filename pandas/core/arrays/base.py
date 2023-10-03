@@ -1703,6 +1703,10 @@ class ExtensionArray:
 
         Because ExtensionArrays are always 1D, this is a no-op.  It is included
         for compatibility with np.ndarray.
+
+        Returns
+        -------
+        ExtensionArray
         """
         return self[:]
 
