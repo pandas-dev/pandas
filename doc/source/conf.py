@@ -162,7 +162,7 @@ master_doc = "index"
 # General information about the project.
 project = "pandas"
 # We have our custom "pandas_footer.html" template, using copyright for the current year
-copyright = f"{datetime.now().year}"
+copyright = f"{datetime.now().year},"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -172,7 +172,8 @@ copyright = f"{datetime.now().year}"
 import pandas  # isort:skip
 
 # version = '%s r%s' % (pandas.__version__, svn_version())
-version = str(pandas.__version__)
+# version = str(pandas.__version__)
+version = str(pandas.__version__).split("+")[0]
 
 # The full version, including alpha/beta/rc tags.
 release = version
