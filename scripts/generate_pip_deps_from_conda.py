@@ -33,6 +33,8 @@ RENAME = {
     "sqlalchemy": "SQLAlchemy",
 }
 ADD_ENV_MARKERS = {
+    # pytables has no wheels available for macOS arm, and installing from source generally fails 
+    # -> exclude from dev dependencies in this case
     "pytables": " ; sys_platform != 'darwin' and platform_machine != 'arm64'",
 }
 
