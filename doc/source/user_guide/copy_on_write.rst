@@ -220,7 +220,7 @@ held by the object.
     df.iloc[0, 0] = 100
 
 No copy is necessary in this example.
-Creating multiple references in the same method keeps unnecessary references alive
+Creating multiple references keeps unnecessary references alive
 and thus will hurt performance with Copy-on-Write.
 
 .. _copy_on_write.optimizations:
