@@ -566,11 +566,7 @@ def sanitize_array(
             from pandas.core.arrays.string_ import StringDtype
 
             dtype = StringDtype("pyarrow_numpy")
-            data = dtype.construct_array_type()._from_sequence_of_strings(
-                [data] * len(index)
-            )
-        else:
-            data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
+        data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
 
         return data
 
