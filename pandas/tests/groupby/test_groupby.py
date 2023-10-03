@@ -3004,12 +3004,12 @@ def test_groupby_reduce_period():
 
     res = gb.max()
     expected = ser[-10:]
-    expected.index = Index(range(10), dtype=np.int_)
+    expected.index = Index(range(10), dtype=int)
     tm.assert_series_equal(res, expected)
 
     res = gb.min()
     expected = ser[:10]
-    expected.index = Index(range(10), dtype=np.int_)
+    expected.index = Index(range(10), dtype=int)
     tm.assert_series_equal(res, expected)
 
 

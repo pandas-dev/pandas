@@ -8,6 +8,8 @@ from datetime import (
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_long
+
 import pandas as pd
 from pandas import (
     DatetimeIndex,
@@ -91,7 +93,7 @@ class TestGetItem:
         assert fancy_indexed.freq is None
 
         # 32-bit vs. 64-bit platforms
-        assert rng[4] == rng[np.int_(4)]
+        assert rng[4] == rng[np_long(4)]
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_getitem_matplotlib_hackaround(self, freq):

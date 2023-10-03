@@ -170,7 +170,7 @@ def test_infer_dtype_from_scalar(value, expected):
 @pytest.mark.parametrize(
     "arr, expected",
     [
-        ([1], np.int_),
+        ([1], np.dtype(int)),
         (np.array([1], dtype=np.int64), np.int64),
         ([np.nan, 1, ""], np.object_),
         (np.array([[1.0, 2.0]]), np.float64),

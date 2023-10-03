@@ -108,11 +108,11 @@ class TestDataFrameIndexing:
             data["A"] = newcolumndata
 
     def test_setitem_list2(self):
-        df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=np.int_)
+        df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=int)
         df.loc[1, ["tt1", "tt2"]] = [1, 2]
 
         result = df.loc[df.index[1], ["tt1", "tt2"]]
-        expected = Series([1, 2], df.columns, dtype=np.int_, name=1)
+        expected = Series([1, 2], df.columns, dtype=int, name=1)
         tm.assert_series_equal(result, expected)
 
         df["tt1"] = df["tt2"] = "0"

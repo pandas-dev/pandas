@@ -21,6 +21,21 @@ if _nlv < Version(_min_numpy_ver):
     )
 
 
+np_long: type
+np_ulong: type
+
+if _nlv >= Version("2.0.0.dev0"):
+    try:
+        np_long = np.long  # type: ignore[attr-defined]
+        np_ulong = np.ulong  # type: ignore[attr-defined]
+    except AttributeError:
+        np_long = np.int_
+        np_ulong = np.uint
+else:
+    np_long = np.int_
+    np_ulong = np.uint
+
+
 __all__ = [
     "np",
     "_np_version",

@@ -6,7 +6,10 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_linux
-from pandas.compat.numpy import np_version_gte1p24
+from pandas.compat.numpy import (
+    np_long,
+    np_version_gte1p24,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -561,7 +564,7 @@ class TestSeriesPlots:
         [
             ["scott", 20],
             [None, 20],
-            [None, np.int_(20)],
+            [None, np_long(20)],
             [0.5, np.linspace(-100, 100, 20)],
         ],
     )

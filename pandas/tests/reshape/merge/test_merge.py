@@ -365,7 +365,7 @@ class TestMerge:
         lkey = np.array([1])
         rkey = np.array([2])
         df = merge(df1, df2, left_on=lkey, right_on=rkey, how="outer")
-        assert df["key_0"].dtype == np.int_
+        assert df["key_0"].dtype == np.dtype(int)
 
     def test_handle_join_key_pass_array(self):
         left = DataFrame(
@@ -389,7 +389,7 @@ class TestMerge:
         rkey = np.array([1, 1, 2, 3, 4, 5])
 
         merged = merge(left, right, left_on=lkey, right_on=rkey, how="outer")
-        expected = Series([1, 1, 1, 1, 2, 2, 3, 4, 5], dtype=np.int_, name="key_0")
+        expected = Series([1, 1, 1, 1, 2, 2, 3, 4, 5], dtype=int, name="key_0")
         tm.assert_series_equal(merged["key_0"], expected)
 
         left = DataFrame({"value": np.arange(3)})

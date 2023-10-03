@@ -10,6 +10,10 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+from pandas.compat.numpy import (
+    np_long,
+    np_ulong,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1713,11 +1717,11 @@ class TestEmptyDataFrameReductions:
         "opname, dtype, exp_value, exp_dtype",
         [
             ("sum", np.int8, 0, np.int64),
-            ("prod", np.int8, 1, np.int_),
+            ("prod", np.int8, 1, np_long),
             ("sum", np.int64, 0, np.int64),
             ("prod", np.int64, 1, np.int64),
             ("sum", np.uint8, 0, np.uint64),
-            ("prod", np.uint8, 1, np.uint),
+            ("prod", np.uint8, 1, np_ulong),
             ("sum", np.uint64, 0, np.uint64),
             ("prod", np.uint64, 1, np.uint64),
             ("sum", np.float32, 0, np.float32),
