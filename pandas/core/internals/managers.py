@@ -93,6 +93,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas.api.extensions import ExtensionArray
+
 
 class BaseBlockManager(DataManager):
     """
@@ -966,19 +968,14 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         n = len(self)
 
-        # GH#46406
-        immutable_ea = isinstance(dtype, ExtensionDtype) and dtype._is_immutable
-
-        if isinstance(dtype, ExtensionDtype) and not immutable_ea:
-            cls = dtype.construct_array_type()
-            result = cls._empty((n,), dtype=dtype)
+        if isinstance(dtype, ExtensionDtype):
+            # TODO: use object dtype as workaround for non-performant
+            #  EA.__setitem__ methods. (primarily ArrowExtensionArray.__setitem__
+            #  when iteratively setting individual values)
+            #  https://github.com/pandas-dev/pandas/pull/54508#issuecomment-1675827918
+            result = np.empty(n, dtype=object)
         else:
-            # error: Argument "dtype" to "empty" has incompatible type
-            # "Union[Type[object], dtype[Any], ExtensionDtype, None]"; expected
-            # "None"
-            result = np.empty(
-                n, dtype=object if immutable_ea else dtype  # type: ignore[arg-type]
-            )
+            result = np.empty(n, dtype=dtype)
             result = ensure_wrapped_if_datetimelike(result)
 
         for blk in self.blocks:
@@ -987,9 +984,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
             for i, rl in enumerate(blk.mgr_locs):
                 result[rl] = blk.iget((i, loc))
 
-        if immutable_ea:
-            dtype = cast(ExtensionDtype, dtype)
-            result = dtype.construct_array_type()._from_sequence(result, dtype=dtype)
+        if isinstance(dtype, ExtensionDtype):
+            cls = dtype.construct_array_type()
+            result = cls._from_sequence(result, dtype=dtype)
 
         bp = BlockPlacement(slice(0, len(result)))
         block = new_block(result, placement=bp, ndim=1)
@@ -1055,7 +1052,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         value: ArrayLike,
         inplace: bool = False,
         refs: BlockValuesRefs | None = None,
-    ):
+    ) -> None:
         """
         Set new item in-place. Does not consolidate. Adds new Block if not
         contained in the current set of items
@@ -1879,7 +1876,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         # compatibility with 0.13.1.
         return axes_array, block_values, block_items, extra_state
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         def unpickle_block(values, mgr_locs, ndim: int) -> Block:
             # TODO(EA2D): ndim would be unnecessary with 2D EAs
             # older pickles may store e.g. DatetimeIndex instead of DatetimeArray
@@ -1968,7 +1965,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """The array that Series._values returns"""
         return self._block.values
 
-    def array_values(self):
+    def array_values(self) -> ExtensionArray:
         """The array that Series.array returns"""
         return self._block.array_values
 

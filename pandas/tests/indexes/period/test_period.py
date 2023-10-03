@@ -164,7 +164,7 @@ class TestPeriodIndex:
             period_range(freq="H", start="12/31/2001", end="1/1/2002 23:00"),
             period_range(freq="Min", start="12/31/2001", end="1/1/2002 00:20"),
             period_range(
-                freq="S", start="12/31/2001 00:00:00", end="12/31/2001 00:05:00"
+                freq="s", start="12/31/2001 00:00:00", end="12/31/2001 00:05:00"
             ),
             period_range(end=Period("2006-12-31", "W"), periods=10),
         ],
@@ -277,6 +277,12 @@ class TestPeriodIndex:
         empty_idx = PeriodIndex([], freq="A")
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
+
+    def test_period_index_frequency_ME_error_message(self):
+        msg = "Invalid frequency: 2ME"
+
+        with pytest.raises(ValueError, match=msg):
+            PeriodIndex(["2020-01-01", "2020-01-02"], freq="2ME")
 
 
 def test_maybe_convert_timedelta():

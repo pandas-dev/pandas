@@ -123,14 +123,14 @@ class DocBuilder:
 
         Parameters
         ----------
-        kind : {'html', 'latex'}
+        kind : {'html', 'latex', 'linkcheck'}
 
         Examples
         --------
         >>> DocBuilder(num_jobs=4)._sphinx_build('html')
         """
-        if kind not in ("html", "latex"):
-            raise ValueError(f"kind must be html or latex, not {kind}")
+        if kind not in ("html", "latex", "linkcheck"):
+            raise ValueError(f"kind must be html, latex or linkcheck, not {kind}")
 
         cmd = ["sphinx-build", "-b", kind]
         if self.num_jobs:
@@ -159,10 +159,10 @@ class DocBuilder:
         Open the rst file `page` and extract its title.
         """
         fname = os.path.join(SOURCE_PATH, f"{page}.rst")
-        option_parser = docutils.frontend.OptionParser(
-            components=(docutils.parsers.rst.Parser,)
+        doc = docutils.utils.new_document(
+            "<doc>",
+            docutils.frontend.get_default_settings(docutils.parsers.rst.Parser),
         )
-        doc = docutils.utils.new_document("<doc>", option_parser.get_default_values())
         with open(fname, encoding="utf-8") as f:
             data = f.read()
 
@@ -287,6 +287,12 @@ class DocBuilder:
         fnames = os.listdir(dirname)
         os.chdir(dirname)
         self._run_os("zip", zip_fname, "-r", "-q", *fnames)
+
+    def linkcheck(self):
+        """
+        Check for broken links in the documentation.
+        """
+        return self._sphinx_build("linkcheck")
 
 
 def main():

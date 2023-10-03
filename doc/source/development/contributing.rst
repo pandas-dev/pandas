@@ -311,6 +311,7 @@ If using :ref:`mamba <contributing.mamba>`, run:
 .. code-block:: shell
 
     git checkout main
+    git fetch upstream
     git merge upstream/main
     mamba activate pandas-dev
     mamba env update -f environment.yml --prune
@@ -320,6 +321,7 @@ If using :ref:`pip <contributing.pip>` , do:
 .. code-block:: shell
 
     git checkout main
+    git fetch upstream
     git merge upstream/main
     # activate the virtual environment based on your platform
     python -m pip install --upgrade -r requirements-dev.txt

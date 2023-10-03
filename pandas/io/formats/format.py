@@ -105,6 +105,7 @@ if TYPE_CHECKING:
         FloatFormatType,
         FormattersType,
         IndexLabel,
+        SequenceNotStr,
         StorageOptions,
         WriteBuffer,
     )
@@ -566,7 +567,7 @@ class DataFrameFormatter:
         frame: DataFrame,
         columns: Axes | None = None,
         col_space: ColspaceArgType | None = None,
-        header: bool | list[str] = True,
+        header: bool | SequenceNotStr[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: FormattersType | None = None,
@@ -1830,8 +1831,8 @@ def get_format_datetime64_from_values(
 class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
+        ido = is_dates_only(self.values)
         values = self.values.astype(object)
-        ido = is_dates_only(values)
         formatter = self.formatter or get_format_datetime64(
             ido, date_format=self.date_format
         )

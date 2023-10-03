@@ -247,14 +247,14 @@ Dependency                                            Minimum Version    pip ext
 Visualization
 ^^^^^^^^^^^^^
 
-Installable with ``pip install "pandas[plot, output_formatting]"``.
+Installable with ``pip install "pandas[plot, output-formatting]"``.
 
 ========================= ================== ================== =============================================================
 Dependency                Minimum Version    pip extra          Notes
 ========================= ================== ================== =============================================================
 matplotlib                3.6.1              plot               Plotting library
-Jinja2                    3.1.2              output_formatting  Conditional formatting with DataFrame.style
-tabulate                  0.8.10             output_formatting  Printing in Markdown-friendly format (see `tabulate`_)
+Jinja2                    3.1.2              output-formatting  Conditional formatting with DataFrame.style
+tabulate                  0.8.10             output-formatting  Printing in Markdown-friendly format (see `tabulate`_)
 ========================= ================== ================== =============================================================
 
 Computation
@@ -281,6 +281,7 @@ xlrd                      2.0.1              excel           Reading Excel
 xlsxwriter                3.0.3              excel           Writing Excel
 openpyxl                  3.0.10             excel           Reading / writing for xlsx files
 pyxlsb                    1.0.9              excel           Reading for xlsb files
+python-calamine           0.1.6              excel           Reading for xls/xlsx/xlsb/ods files
 ========================= ================== =============== =============================================================
 
 HTML
@@ -412,8 +413,6 @@ Installable with ``pip install "pandas[compression]"``
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
-brotli                    0.7.0              compression     Brotli compression
-python-snappy             0.6.1              compression     Snappy compression
 Zstandard                 0.17.0             compression     Zstandard compression
 ========================= ================== =============== =============================================================
 

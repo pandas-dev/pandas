@@ -55,6 +55,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     BaseMaskedDtype,
     CategoricalDtype,
     ExtensionDtype,
@@ -517,9 +518,9 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         return isin(np.asarray(comps_array), np.asarray(values))
 
     # GH16012
-    # Ensure np.in1d doesn't get object types or it *may* throw an exception
+    # Ensure np.isin doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
-    # in1d is faster for small sizes
+    # isin is faster for small sizes
     if (
         len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
@@ -530,10 +531,10 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         if isna(values).any():
 
             def f(c, v):
-                return np.logical_or(np.in1d(c, v), np.isnan(c))
+                return np.logical_or(np.isin(c, v).ravel(), np.isnan(c))
 
         else:
-            f = np.in1d
+            f = lambda a, b: np.isin(a, b).ravel()
 
     else:
         common = np_find_common_type(values.dtype, comps_array.dtype)
@@ -877,7 +878,9 @@ def value_counts_internal(
     if bins is not None:
         from pandas.core.reshape.tile import cut
 
-        values = Series(values, copy=False)
+        if isinstance(values, Series):
+            values = values._values
+
         try:
             ii = cut(values, bins, include_lowest=True)
         except TypeError as err:
@@ -921,7 +924,7 @@ def value_counts_internal(
 
         else:
             values = _ensure_arraylike(values, func_name="value_counts")
-            keys, counts = value_counts_arraylike(values, dropna)
+            keys, counts, _ = value_counts_arraylike(values, dropna)
             if keys.dtype == np.float16:
                 keys = keys.astype(np.float32)
 
@@ -946,7 +949,7 @@ def value_counts_internal(
 # Called once from SparseArray, otherwise could be private
 def value_counts_arraylike(
     values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
-) -> tuple[ArrayLike, npt.NDArray[np.int64]]:
+) -> tuple[ArrayLike, npt.NDArray[np.int64], int]:
     """
     Parameters
     ----------
@@ -962,7 +965,7 @@ def value_counts_arraylike(
     original = values
     values = _ensure_data(values)
 
-    keys, counts = htable.value_count(values, dropna, mask=mask)
+    keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -972,7 +975,7 @@ def value_counts_arraylike(
             keys, counts = keys[mask], counts[mask]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
-    return res_keys, counts
+    return res_keys, counts, na_counter
 
 
 def duplicated(
@@ -996,9 +999,13 @@ def duplicated(
     -------
     duplicated : ndarray[bool]
     """
-    if hasattr(values, "dtype") and isinstance(values.dtype, BaseMaskedDtype):
-        values = cast("BaseMaskedArray", values)
-        return htable.duplicated(values._data, keep=keep, mask=values._mask)
+    if hasattr(values, "dtype"):
+        if isinstance(values.dtype, ArrowDtype) and values.dtype.kind in "ifub":
+            values = values._to_masked()  # type: ignore[union-attr]
+
+        if isinstance(values.dtype, BaseMaskedDtype):
+            values = cast("BaseMaskedArray", values)
+            return htable.duplicated(values._data, keep=keep, mask=values._mask)
 
     values = _ensure_data(values)
     return htable.duplicated(values, keep=keep)

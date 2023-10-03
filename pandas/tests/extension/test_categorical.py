@@ -165,14 +165,14 @@ class TestCategorical(base.ExtensionTests):
             )
         super().test_arith_series_with_scalar(data, op_name)
 
-    def _compare_other(self, s, data, op, other):
+    def _compare_other(self, ser: pd.Series, data, op, other):
         op_name = f"__{op.__name__}__"
         if op_name not in ["__eq__", "__ne__"]:
             msg = "Unordered Categoricals can only compare equality or not"
             with pytest.raises(TypeError, match=msg):
                 op(data, other)
         else:
-            return super()._compare_other(s, data, op, other)
+            return super()._compare_other(ser, data, op, other)
 
     @pytest.mark.xfail(reason="Categorical overrides __repr__")
     @pytest.mark.parametrize("size", ["big", "small"])
