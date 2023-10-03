@@ -2743,6 +2743,13 @@ class TestDataFrameConstructors:
             df = DataFrame(np.array([["a", "c"], ["b", "d"]]), columns=["a", "b"])
         tm.assert_frame_equal(df, expected)
 
+    def test_frame_string_inference_block_dim(self):
+        # GH#55363
+        pytest.importorskip("pyarrow")
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
+        assert df._mgr.blocks[0].ndim == 2
+
 
 class TestDataFrameConstructorIndexInference:
     def test_frame_from_dict_of_series_overlapping_monthly_period_indexes(self):
