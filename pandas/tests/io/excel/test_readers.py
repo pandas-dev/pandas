@@ -1014,6 +1014,11 @@ class TestReaders:
         actual = pd.read_excel("times_1904" + read_ext, sheet_name="Sheet1")
         tm.assert_frame_equal(actual, expected)
 
+        if read_ext == ".ods":
+            msg = "Failed to parse ODF time value: PT01H5a2M00S"
+            with pytest.raises(ValueError, match=msg):
+                pd.read_excel("test_corrupted_time" + read_ext)
+
     def test_read_excel_multiindex(self, request, engine, read_ext):
         # see gh-4679
         if engine == "pyxlsb":
