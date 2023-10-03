@@ -507,7 +507,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
         if name in ("argmin", "argmax") and isinstance(result, pa.Array):
             return self._convert_int_dtype(result)
-        return type(self)(result)
+        elif isinstance(result, pa.Array):
+            return type(self)(result)
+        else:
+            return result
 
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
