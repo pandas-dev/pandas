@@ -936,9 +936,12 @@ def value_counts_internal(
             idx.name = index_name
 
             result = Series(counts, index=idx, name=name, copy=False)
-
+#changed sort behavior to account for bug and in case of future features
     if sort:
-        result = result.sort_values(ascending=ascending)
+        if ascending:
+            result = result.sort_index()
+        else:
+            result = result.sort_index(ascending=False)
 
     if normalize:
         result = result / counts.sum()
