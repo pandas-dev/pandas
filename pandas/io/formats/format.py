@@ -175,7 +175,7 @@ common_docstring: Final = """
             Character recognized as decimal separator, e.g. ',' in Europe.
     """
 
-_VALID_JUSTIFY_PARAMETERS = (
+VALID_JUSTIFY_PARAMETERS = (
     "left",
     "right",
     "center",
@@ -541,16 +541,9 @@ def get_series_repr_params() -> dict[str, Any]:
     True
     """
     width, height = get_terminal_size()
-    max_rows = (
-        height
-        if get_option("display.max_rows") == 0
-        else get_option("display.max_rows")
-    )
-    min_rows = (
-        height
-        if get_option("display.max_rows") == 0
-        else get_option("display.min_rows")
-    )
+    max_rows_opt = get_option("display.max_rows")
+    max_rows = height if max_rows_opt == 0 else max_rows_opt
+    min_rows = height if max_rows_opt == 0 else get_option("display.min_rows")
 
     return {
         "name": True,

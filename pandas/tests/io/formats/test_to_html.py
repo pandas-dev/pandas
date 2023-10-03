@@ -68,7 +68,7 @@ def biggie_df_fixture(request):
         return df
 
 
-@pytest.fixture(params=fmt._VALID_JUSTIFY_PARAMETERS)
+@pytest.fixture(params=fmt.VALID_JUSTIFY_PARAMETERS)
 def justify(request):
     return request.param
 
