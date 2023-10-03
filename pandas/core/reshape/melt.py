@@ -134,7 +134,9 @@ def melt(
 
     mcolumns = id_vars + var_name + [value_name]
 
-    if frame.shape[1] > 0:
+    if frame.shape[1] > 0 and not any(
+        not isinstance(dt, np.dtype) and dt._supports_2d for dt in frame.dtypes
+    ):
         mdata[value_name] = concat(
             [frame.iloc[:, i] for i in range(frame.shape[1])]
         ).values
