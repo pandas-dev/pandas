@@ -594,11 +594,7 @@ def _daily_finder(vmin, vmax, freq: BaseOffset):
         warnings.filterwarnings(
             "ignore", r"PeriodDtype\[B\] is deprecated", category=FutureWarning
         )
-        dates_ = period_range(
-            start=Period(ordinal=vmin, freq=freq),
-            end=Period(ordinal=vmax, freq=freq),
-            freq=freq,
-        )
+        dates_ = period_range(start=vmin, end=vmax, freq=freq)
 
     # Initialize the output
     info = np.zeros(

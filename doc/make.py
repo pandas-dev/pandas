@@ -133,8 +133,8 @@ class DocBuilder:
             raise ValueError(f"kind must be html or latex, not {kind}")
 
         cmd = ["sphinx-build", "-b", kind]
-        # if self.num_jobs:
-        #     cmd += ["-j", self.num_jobs]
+        if self.num_jobs:
+            cmd += ["-j", self.num_jobs]
         if self.warnings_are_errors:
             cmd += ["-W", "--keep-going"]
         if self.verbosity:
