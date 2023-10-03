@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import NDFrameT
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -985,7 +986,7 @@ class Resampler(BaseGroupBy, PandasObject):
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
 
-            .. deprecated::2.1.0
+            .. deprecated:: 2.1.0
 
         ``**kwargs`` : optional
             Keyword arguments to pass on to the interpolating function.
@@ -1540,7 +1541,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
-    def quantile(self, q: float | AnyArrayLike = 0.5, **kwargs):
+    def quantile(self, q: float | list[float] | AnyArrayLike = 0.5, **kwargs):
         """
         Return value at the given quantile.
 
@@ -2004,7 +2005,7 @@ def get_resampler(obj: Series | DataFrame, kind=None, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
     """
-    tg = TimeGrouper(**kwds)
+    tg = TimeGrouper(obj, **kwds)  # type: ignore[arg-type]
     return tg._get_resampler(obj, kind=kind)
 
 
@@ -2060,7 +2061,9 @@ class TimeGrouper(Grouper):
 
     def __init__(
         self,
+        obj: Grouper | None = None,
         freq: Frequency = "Min",
+        key: str | None = None,
         closed: Literal["left", "right"] | None = None,
         label: Literal["left", "right"] | None = None,
         how: str = "mean",
@@ -2084,9 +2087,21 @@ class TimeGrouper(Grouper):
         if convention not in {None, "start", "end", "e", "s"}:
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
-        freq = to_offset(freq)
+        if (
+            key is None
+            and obj is not None
+            and isinstance(obj.index, PeriodIndex)  # type: ignore[attr-defined]
+            or (
+                key is not None
+                and obj is not None
+                and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
+            )
+        ):
+            freq = to_offset(freq, is_period=True)
+        else:
+            freq = to_offset(freq)
 
-        end_types = {"M", "A", "Q", "BM", "BA", "BQ", "W"}
+        end_types = {"ME", "A", "Q", "BM", "BA", "BQ", "W"}
         rule = freq.rule_code
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
             if closed is None:
@@ -2148,7 +2163,7 @@ class TimeGrouper(Grouper):
         # always sort time groupers
         kwargs["sort"] = True
 
-        super().__init__(freq=freq, axis=axis, **kwargs)
+        super().__init__(freq=freq, key=key, axis=axis, **kwargs)
 
     def _get_resampler(self, obj: NDFrame, kind=None) -> Resampler:
         """
@@ -2170,7 +2185,6 @@ class TimeGrouper(Grouper):
 
         """
         _, ax, indexer = self._set_grouper(obj, gpr_index=None)
-
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
                 obj,
@@ -2283,7 +2297,17 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq != "D" and is_superperiod(self.freq, "D"):
+        if self.freq.name in ("BM", "ME", "W") or self.freq.name.split("-")[0] in (
+            "BQ",
+            "BA",
+            "Q",
+            "A",
+            "W",
+        ):
+            # If the right end-point is on the last day of the month, roll forwards
+            # until the last moment of that day. Note that we only do this for offsets
+            # which correspond to the end of a super-daily period - "month start", for
+            # example, is excluded.
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 edges_dti = binner.tz_localize(None)
@@ -2728,6 +2752,9 @@ def asfreq(
 
         if how is None:
             how = "E"
+
+        if isinstance(freq, BaseOffset):
+            freq = freq_to_period_freqstr(freq.n, freq.name)
 
         new_obj = obj.copy()
         new_obj.index = obj.index.asfreq(freq, how=how)

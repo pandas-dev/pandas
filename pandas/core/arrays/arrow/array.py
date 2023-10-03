@@ -627,20 +627,22 @@ class ArrowExtensionArray(
 
     def _cmp_method(self, other, op):
         pc_func = ARROW_CMP_FUNCS[op.__name__]
-        try:
+        if isinstance(other, (ArrowExtensionArray, np.ndarray, list, BaseMaskedArray)):
             result = pc_func(self._pa_array, self._box_pa(other))
-        except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
-            if is_scalar(other):
+        elif is_scalar(other):
+            try:
+                result = pc_func(self._pa_array, self._box_pa(other))
+            except (pa.lib.ArrowNotImplementedError, pa.lib.ArrowInvalid):
                 mask = isna(self) | isna(other)
                 valid = ~mask
                 result = np.zeros(len(self), dtype="bool")
                 result[valid] = op(np.array(self)[valid], other)
                 result = pa.array(result, type=pa.bool_())
                 result = pc.if_else(valid, result, None)
-            else:
-                raise NotImplementedError(
-                    f"{op.__name__} not implemented for {type(other)}"
-                )
+        else:
+            raise NotImplementedError(
+                f"{op.__name__} not implemented for {type(other)}"
+            )
         return ArrowExtensionArray(result)
 
     def _evaluate_op_method(self, other, op, arrow_funcs):
@@ -1609,6 +1611,10 @@ class ArrowExtensionArray(
         """
         See Series.explode.__doc__.
         """
+        # child class explode method supports only list types; return
+        # default implementation for non list types.
+        if not pa.types.is_list(self.dtype.pyarrow_dtype):
+            return super()._explode()
         values = self
         counts = pa.compute.list_value_length(values._pa_array)
         counts = counts.fill_null(1).to_numpy()
