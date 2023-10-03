@@ -1056,6 +1056,19 @@ class TestDataFrameAnalytics:
             expected = Series([1, 0, 1], index=["a", "b", "c"])
         tm.assert_series_equal(result, expected)
 
+    def test_idxmax_arrow_types(self):
+        # GH#55368
+        pytest.importorskip("pyarrow")
+
+        df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1]}, dtype="int64[pyarrow]")
+        result = df.idxmax()
+        expected = Series([1, 0], index=["a", "b"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin()
+        expected = Series([2, 1], index=["a", "b"])
+        tm.assert_series_equal(result, expected)
+
     def test_idxmax_axis_2(self, float_frame):
         frame = float_frame
         msg = "No axis named 2 for object type DataFrame"
