@@ -513,7 +513,7 @@ OffsetCalendar = Union[np.busdaycalendar, "AbstractHolidayCalendar"]
 # read_csv: usecols
 UsecolsArgType = Union[
     SequenceNotStr[Hashable],
-    Sequence[int],
+    range,
     AnyArrayLike,
     Callable[[HashableT], bool],
     None,
