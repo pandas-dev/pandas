@@ -2744,7 +2744,8 @@ class TestDataFrameConstructors:
         tm.assert_frame_equal(df, expected)
 
     def test_frame_string_inference_block_dim(self):
-        # GH#
+        # GH#55363
+        pytest.importorskip("pyarrow")
         with pd.option_context("future.infer_string", True):
             df = DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
         assert df._mgr.blocks[0].ndim == 2
