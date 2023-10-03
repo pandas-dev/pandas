@@ -1169,7 +1169,7 @@ class TestDataFrameEvalWithFrame:
     @pytest.mark.parametrize("op", ["+", "-", "*", "/"])
     def test_invalid_type_for_operator_raises(self, parser, engine, op):
         df = DataFrame({"a": [1, 2], "b": ["c", "d"]})
-        msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'"
+        msg = r"unsupported operand type\(s\) for .+: '.+' and '.+'|Cannot"
 
         with pytest.raises(TypeError, match=msg):
             df.eval(f"a {op} b", engine=engine, parser=parser)

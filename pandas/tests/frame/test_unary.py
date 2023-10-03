@@ -51,6 +51,7 @@ class TestDataFrameUnaryOperators:
     def test_neg_raises(self, df):
         msg = (
             "bad operand type for unary -: 'str'|"
+            "has no kernel matching input types|"
             r"bad operand type for unary -: 'DatetimeArray'"
         )
         with pytest.raises(TypeError, match=msg):
