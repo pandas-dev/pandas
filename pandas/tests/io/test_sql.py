@@ -1832,7 +1832,7 @@ def test_api_timedelta(conn, request):
     else:
         exp_warning = UserWarning
 
-    with tm.assert_produces_warning(exp_warning):
+    with tm.assert_produces_warning(exp_warning, check_stacklevel=False):
         result_count = df.to_sql(name="test_timedelta", con=conn)
     assert result_count == 2
     result = sql.read_sql_query("SELECT * FROM test_timedelta", conn)
