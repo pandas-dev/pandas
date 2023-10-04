@@ -902,7 +902,7 @@ def test_join_inner_multiindex_deterministic_order():
     result = left.join(right, how="inner")
     expected = DataFrame(
         {"e": [5], "f": [6]},
-        index=MultiIndex.from_tuples([(2, 1, 4, 3)], names=("b", "a", "d", "c")),
+        index=MultiIndex.from_tuples([(1, 2, 4, 3)], names=("a", "b", "d", "c")),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -926,10 +926,16 @@ def test_join_multiindex_one_level(join_type):
     )
     right = DataFrame(data={"d": 4}, index=MultiIndex.from_tuples([(2,)], names=("b",)))
     result = left.join(right, how=join_type)
-    expected = DataFrame(
-        {"c": [3], "d": [4]},
-        index=MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
-    )
+    if join_type == "right":
+        expected = DataFrame(
+            {"c": [3], "d": [4]},
+            index=MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
+        )
+    else:
+        expected = DataFrame(
+            {"c": [3], "d": [4]},
+            index=MultiIndex.from_tuples([(1, 2)], names=["a", "b"]),
+        )
     tm.assert_frame_equal(result, expected)
 
 
