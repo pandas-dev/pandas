@@ -2147,20 +2147,18 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # Defer to CategoricalFormatter's formatter.
         return None
 
-    def _tidy_repr(self, max_vals: int = 10, footer: bool = True) -> str:
+    def _tidy_repr(self, max_vals: int = 10) -> str:
         """
-        a short repr displaying only max_vals and an optional (but default
-        footer)
+        a short repr displaying only max_vals and a footer.
         """
         num = max_vals // 2
-        head = self[:num]._get_repr(length=False, footer=False)
-        tail = self[-(max_vals - num) :]._get_repr(length=False, footer=False)
+        head = self[:num]._get_repr(footer=False)
+        tail = self[-(max_vals - num) :]._get_repr(footer=False)
 
         result = f"{head[:-1]}, ..., {tail[1:]}"
-        if footer:
-            result = f"{result}\n{self._repr_footer()}"
+        result = f"{result}\n{self._repr_footer()}"
 
-        return str(result)
+        return result
 
     def _repr_categories(self) -> list[str]:
         """
@@ -2221,13 +2219,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         info = self._repr_categories_info()
         return f"Length: {len(self)}\n{info}"
 
-    def _get_repr(
-        self, length: bool = True, na_rep: str = "NaN", footer: bool = True
-    ) -> str:
+    def _get_repr(self, na_rep: str = "NaN", footer: bool = True) -> str:
         from pandas.io.formats import format as fmt
 
         formatter = fmt.CategoricalFormatter(
-            self, length=length, na_rep=na_rep, footer=footer
+            self, length=False, na_rep=na_rep, footer=footer
         )
         result = formatter.to_string()
         return str(result)
@@ -2240,9 +2236,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         if len(self._codes) > _maxlen:
             result = self._tidy_repr(_maxlen)
         elif len(self._codes) > 0:
-            result = self._get_repr(length=len(self) > _maxlen)
+            result = self._get_repr()
         else:
-            msg = self._get_repr(length=False, footer=True).replace("\n", ", ")
+            msg = self._get_repr().replace("\n", ", ")
             result = f"[], {msg}"
 
         return result
