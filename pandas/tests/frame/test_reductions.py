@@ -6,6 +6,8 @@ from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -386,6 +388,9 @@ class TestDataFrameAnalytics:
             with pytest.raises(TypeError, match=msg):
                 getattr(df, op)()
 
+    @pytest.mark.xfail(
+        using_pyarrow_string_dtype(), reason="sum doesn't work for arrow strings"
+    )
     def test_reduce_mixed_frame(self):
         # GH 6806
         df = DataFrame(
@@ -452,7 +457,9 @@ class TestDataFrameAnalytics:
 
         df = DataFrame(d)
 
-        with pytest.raises(TypeError, match="unsupported operand type"):
+        with pytest.raises(
+            TypeError, match="unsupported operand type|does not support"
+        ):
             df.mean()
         result = df[["A", "C"]].mean()
         expected = Series([2.7, 681.6], index=["A", "C"], dtype=object)
@@ -584,7 +591,7 @@ class TestDataFrameAnalytics:
                 "A": [12, 12, 19, 11],
                 "B": [10, 10, np.nan, 3],
                 "C": [1, np.nan, np.nan, np.nan],
-                "D": [np.nan, np.nan, "a", np.nan],
+                "D": Series([np.nan, np.nan, "a", np.nan], dtype=object),
                 "E": Categorical([np.nan, np.nan, "a", np.nan]),
                 "F": to_datetime(["NaT", "2000-1-2", "NaT", "NaT"]),
                 "G": to_timedelta(["1 days", "nan", "nan", "nan"]),
@@ -1868,6 +1875,9 @@ def test_sum_timedelta64_skipna_false(using_array_manager, request):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.xfail(
+    using_pyarrow_string_dtype(), reason="sum doesn't work with arrow strings"
+)
 def test_mixed_frame_with_integer_sum():
     # https://github.com/pandas-dev/pandas/issues/34520
     df = DataFrame([["a", 1]], columns=list("ab"))
