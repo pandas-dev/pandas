@@ -314,7 +314,7 @@ class CSVFormatter:
         slicer = slice(start_i, end_i)
         df = self.obj.iloc[slicer]
 
-        res = df._mgr.to_native_types(**self._number_format)
+        res = df._mgr.get_values_for_csv(**self._number_format)
         data = [res.iget_values(i) for i in range(len(res.items))]
 
         ix = self.data_index[slicer]._format_native_types(**self._number_format)
