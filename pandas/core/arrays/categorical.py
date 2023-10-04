@@ -1819,7 +1819,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return arr._from_backing_data(backing)
 
-    def _internal_get_values(self):
+    def _internal_get_values(self) -> ArrayLike:
         """
         Return the values.
 
@@ -1827,15 +1827,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        np.ndarray or Index
-            A numpy array of the same dtype as categorical.categories.dtype or
-            Index if datetime / periods.
+        np.ndarray or ExtensionArray
+            A numpy array or ExtensionArray of the same dtype as
+            categorical.categories.dtype.
         """
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories.dtype):
-            return self.categories.take(self._codes, fill_value=NaT)
+            return self.categories.take(self._codes, fill_value=NaT)._values
         elif is_integer_dtype(self.categories.dtype) and -1 in self._codes:
-            return self.categories.astype("object").take(self._codes, fill_value=np.nan)
+            return (
+                self.categories.astype("object")
+                .take(self._codes, fill_value=np.nan)
+                ._values
+            )
         return np.array(self)
 
     def check_for_ordered(self, op) -> None:

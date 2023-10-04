@@ -471,7 +471,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         from pandas.io.formats.format import get_format_timedelta64
 
         # Relies on TimeDelta._repr_base
-        formatter = get_format_timedelta64(self._ndarray, na_rep)
+        formatter = get_format_timedelta64(self, na_rep)
         # equiv: np.array([formatter(x) for x in self._ndarray])
         #  but independent of dimension
         return np.frompyfunc(formatter, 1, 1)(self._ndarray)
