@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import collections
+from copy import deepcopy
 import datetime as dt
 from functools import partial
 import gc
@@ -367,6 +368,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         See Also
         --------
         DataFrame.flags : Global flags applying to this object.
+
+        Notes
+        -----
+        Many operations that create new datasets will copy ``attrs``. Copies
+        are always deep so that changing ``attrs`` will only affect the
+        present dataset. ``pandas.concat`` copies ``attrs`` only if all input
+        datasets have the same ``attrs``.
 
         Examples
         --------
@@ -6191,8 +6199,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                stable across pandas releases.
         """
         if isinstance(other, NDFrame):
-            for name in other.attrs:
-                self.attrs[name] = other.attrs[name]
+            if other.attrs:
+                # We want attrs propagation to have minimal performance
+                # impact if attrs are not used; i.e. attrs is an empty dict.
+                # One could make the deepcopy unconditionally, but a deepcopy
+                # of an empty dict is 50x more expensive than the empty check.
+                self.attrs = deepcopy(other.attrs)
 
             self.flags.allows_duplicate_labels = other.flags.allows_duplicate_labels
             # For subclasses using _metadata.
@@ -6201,11 +6213,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 object.__setattr__(self, name, getattr(other, name, None))
 
         if method == "concat":
-            attrs = other.objs[0].attrs
-            check_attrs = all(objs.attrs == attrs for objs in other.objs[1:])
-            if check_attrs:
-                for name in attrs:
-                    self.attrs[name] = attrs[name]
+            # propagate attrs only if all concat arguments have the same attrs
+            if all(bool(obj.attrs) for obj in other.objs):
+                # all concatenate arguments have non-empty attrs
+                attrs = other.objs[0].attrs
+                have_same_attrs = all(obj.attrs == attrs for obj in other.objs[1:])
+                if have_same_attrs:
+                    self.attrs = deepcopy(attrs)
 
             allows_duplicate_labels = all(
                 x.flags.allows_duplicate_labels for x in other.objs
