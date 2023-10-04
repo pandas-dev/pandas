@@ -737,11 +737,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
-        if date_format is None:
-            ido = self._is_dates_only
-            if ido:
-                # Only dates and no timezone: provide a default format
-                date_format = "%Y-%m-%d"
+        if date_format is None and self._is_dates_only:
+            # Only dates and no timezone: provide a default format
+            date_format = "%Y-%m-%d"
 
         return tslib.format_array_from_datetime(
             self.asi8, tz=self.tz, format=date_format, na_rep=na_rep, reso=self._creso
