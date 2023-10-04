@@ -1087,7 +1087,8 @@ class TestSeriesReductions:
 
         ser = Series([None, "a"], dtype="string[pyarrow_numpy]")
         assert ser.any()
-        assert not ser.all()
+        assert ser.all()
+        assert not ser.all(skipna=False)
 
         ser = Series([None, ""], dtype="string[pyarrow_numpy]")
         assert not ser.any()
