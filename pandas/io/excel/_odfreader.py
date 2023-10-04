@@ -190,27 +190,6 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
 
         return int(cell.attributes.get((TABLENS, "number-columns-repeated"), 1))
 
-    def _parse_odf_time(self, value: str) -> datetime.time:
-        """
-        This helper function parses ODF time value
-        """
-        parts = ODF_ISOTIME_PATTERN.match(value)
-        if parts is None:
-            raise ValueError(f"Failed to parse ODF time value: {value}")
-        hours, minutes, seconds, _, second_part = parts.group(*range(1, 6))
-        if second_part is None:
-            microseconds = 0
-        else:
-            microseconds = int(int(second_part) * pow(10, 6 - len(second_part)))
-        return datetime.time(
-            # ignore date part from some representations
-            # and datetime.time restrict hour values to 0..23
-            hour=int(hours) % 24,
-            minute=int(minutes),
-            second=int(seconds),
-            microsecond=microseconds,
-        )
-
     def _get_cell_value(self, cell) -> Scalar | NaTType:
         from odf.namespaces import OFFICENS
 
@@ -243,10 +222,9 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.Timestamp(cell_value)
         elif cell_type == "time":
-            cell_value = cell.attributes.get((OFFICENS, "time-value"))
-            stamp = self._parse_odf_time(str(cell_value))
+            cell_value = self._get_cell_time_value(cell)
             # cast needed here because Scalar doesn't include datetime.time
-            return cast(Scalar, stamp)
+            return cast(Scalar, cell_value)
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")
@@ -277,3 +255,28 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
             else:
                 value.append(str(fragment).strip("\n"))
         return "".join(value)
+
+    def _get_cell_time_value(self, cell) -> datetime.time:
+        """
+        This helper function parses ODF time value
+        """
+        from odf.namespaces import OFFICENS
+
+        value = cell.attributes.get((OFFICENS, "time-value"))
+        parts = ODF_ISOTIME_PATTERN.match(value)
+        if parts is None:
+            raise ValueError(f"Failed to parse ODF time value: {value}")
+        hours, minutes, seconds, _, second_part = parts.group(*range(1, 6))
+        if second_part is None:
+            microseconds = 0
+        else:
+            microseconds = int(int(second_part) * pow(10, 6 - len(second_part)))
+
+        return datetime.time(
+            # ignore date part from some representations
+            # and datetime.time restrict hour values to 0..23
+            hour=int(hours) % 24,
+            minute=int(minutes),
+            second=int(seconds),
+            microsecond=microseconds,
+        )
