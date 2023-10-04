@@ -94,7 +94,8 @@ Here's a typical workflow for triaging a newly opened issue.
    edit the original post with your simpler reproducible example.
 
    Ensure the issue exists on the main branch and that it has the "Needs Triage" tag
-   until all steps have been completed.
+   until all steps have been completed. Add a comment to the issue once you have
+   verified it exists on the main branch, so others know it has been confirmed.
 
 5. **Is this a clearly defined feature request?**
 
