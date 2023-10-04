@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_long
+
 import pandas as pd
 
 
@@ -51,7 +53,7 @@ def test_reductions_return_types(dropna, data, all_numeric_reductions):
         s = s.dropna()
 
     if op in ("sum", "prod"):
-        assert isinstance(getattr(s, op)(), np.int_)
+        assert isinstance(getattr(s, op)(), np_long)
     elif op == "count":
         # Oddly on the 32 bit build (but not Windows), this is intc (!= intp)
         assert isinstance(getattr(s, op)(), np.integer)
