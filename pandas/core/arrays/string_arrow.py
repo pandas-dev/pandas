@@ -15,10 +15,7 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas.compat import (
-    pa_version_under7p0,
-    pa_version_under13p0,
-)
+from pandas.compat import pa_version_under7p0
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -447,40 +444,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         else:
             result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
         return type(self)(result)
-
-    def _str_removeprefix(self, prefix: str):
-        if not pa_version_under13p0:
-            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
-            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
-            result = pc.if_else(starts_with, removed, self._pa_array)
-            return type(self)(result)
-        return super()._str_removeprefix(prefix)
-
-    def _str_removesuffix(self, suffix: str):
-        ends_with = pc.ends_with(self._pa_array, pattern=suffix)
-        removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
-        result = pc.if_else(ends_with, removed, self._pa_array)
-        return type(self)(result)
-
-    def _str_count(self, pat: str, flags: int = 0):
-        if flags:
-            return super()._str_count(pat, flags)
-        result = pc.count_substring_regex(self._pa_array, pat)
-        return self._convert_int_dtype(result)
-
-    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if start != 0 and end is not None:
-            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
-            result = pc.find_substring(slices, sub)
-            not_found = pc.equal(result, -1)
-            offset_result = pc.add(result, end - start)
-            result = pc.if_else(not_found, result, offset_result)
-        elif start == 0 and end is None:
-            slices = self._pa_array
-            result = pc.find_substring(slices, sub)
-        else:
-            return super()._str_find(sub, start, end)
-        return self._convert_int_dtype(result)
 
     def _convert_int_dtype(self, result):
         return Int64Dtype().__from_arrow__(result)
