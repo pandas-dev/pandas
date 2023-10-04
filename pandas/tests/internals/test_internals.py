@@ -468,7 +468,7 @@ class TestBlockManager:
             np.random.default_rng(2).standard_normal(N).astype(int),
         )
         idx = mgr2.items.get_loc("quux")
-        assert mgr2.iget(idx).dtype == np.int_
+        assert mgr2.iget(idx).dtype == np.dtype(int)
 
         mgr2.iset(
             mgr2.items.get_loc("quux"), np.random.default_rng(2).standard_normal(N)
