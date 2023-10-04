@@ -222,9 +222,9 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
             cell_value = cell.attributes.get((OFFICENS, "date-value"))
             return pd.Timestamp(cell_value)
         elif cell_type == "time":
-            cell_value = self._get_cell_time_value(cell)
+            stamp = self._get_cell_time_value(cell)
             # cast needed here because Scalar doesn't include datetime.time
-            return cast(Scalar, cell_value)
+            return cast(Scalar, stamp)
         else:
             self.close()
             raise ValueError(f"Unrecognized type {cell_type}")
