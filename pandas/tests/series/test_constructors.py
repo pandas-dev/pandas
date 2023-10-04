@@ -2224,3 +2224,9 @@ def test_series_with_complex_nan(input_list):
     result = Series(ser.array)
     assert ser.dtype == "complex128"
     tm.assert_series_equal(ser, result)
+
+
+def test_series_with_multiindex_of_series():
+    # GH#55228
+    ind = [Series([1]), Series([2])]
+    Series([1.23], index=ind)

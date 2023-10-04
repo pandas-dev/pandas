@@ -866,7 +866,7 @@ def is_all_arraylike(obj: list) -> bool:
     for i in range(n):
         val = obj[i]
         if not (isinstance(val, list) or
-                util.is_array(val) or hasattr(val, "_data")):
+                util.is_array(val) or hasattr(type(val), "_data")):
             # TODO: EA?
             # exclude tuples, frozensets as they may be contained in an Index
             all_arrays = False
