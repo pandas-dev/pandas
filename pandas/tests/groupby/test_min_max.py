@@ -108,7 +108,7 @@ def test_max_inat_not_all_na():
 
     # Note: in converting to float64, the iNaT + 1 maps to iNaT, i.e. is lossy
     expected = Series({1: np.nan, 2: np.nan, 3: iNaT + 1})
-    expected.index = expected.index.astype(np.int_)
+    expected.index = expected.index.astype(int)
     tm.assert_series_equal(result, expected, check_exact=True)
 
 

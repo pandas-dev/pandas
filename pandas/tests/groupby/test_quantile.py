@@ -468,7 +468,7 @@ def test_groupby_quantile_dt64tz_period():
     # Check that we match the group-by-group result
     exp = {i: df.iloc[i::5].quantile(0.5) for i in range(5)}
     expected = DataFrame(exp).T.infer_objects()
-    expected.index = expected.index.astype(np.int_)
+    expected.index = expected.index.astype(int)
 
     tm.assert_frame_equal(result, expected)
 

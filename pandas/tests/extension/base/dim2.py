@@ -237,7 +237,7 @@ class Dim2CompatTests:
                 return NUMPY_INT_TO_DTYPE[np.dtype(int)]
             else:
                 # i.e. dtype.kind == "u"
-                return NUMPY_INT_TO_DTYPE[np.dtype(np.uint)]
+                return NUMPY_INT_TO_DTYPE[np.dtype("uint")]
 
         if method in ["sum", "prod"]:
             # std and var are not dtype-preserving
