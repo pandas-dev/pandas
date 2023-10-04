@@ -266,6 +266,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return libindex.DatetimeEngine
 
     _data: DatetimeArray
+    _values: DatetimeArray
     tz: dt.tzinfo | None
 
     # --------------------------------------------------------------------
