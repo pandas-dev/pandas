@@ -158,7 +158,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def _get_data_to_aggregate(
         self, *, numeric_only: bool = False, name: str | None = None
     ) -> SingleManager:
-        ser = self._selected_obj
+        ser = self._obj_with_exclusions
         single = ser._mgr
         if numeric_only and not is_numeric_dtype(ser.dtype):
             # GH#41291 match Series behavior
@@ -448,7 +448,7 @@ class SeriesGroupBy(GroupBy[Series]):
         initialized = False
 
         for name, group in self.grouper.get_iterator(
-            self._selected_obj, axis=self.axis
+            self._obj_with_exclusions, axis=self.axis
         ):
             # needed for pandas/tests/groupby/test_groupby.py::test_basic_aggregations
             object.__setattr__(group, "name", name)
@@ -519,7 +519,7 @@ class SeriesGroupBy(GroupBy[Series]):
     ):
         assert axis == 0  # handled by caller
 
-        obj = self._selected_obj
+        obj = self._obj_with_exclusions
 
         try:
             result = self.grouper._cython_operation(
@@ -546,7 +546,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         results = []
         for name, group in self.grouper.get_iterator(
-            self._selected_obj, axis=self.axis
+            self._obj_with_exclusions, axis=self.axis
         ):
             # this setattr is needed for test_transform_lambda_with_datetimetz
             object.__setattr__(group, "name", name)
@@ -618,7 +618,7 @@ class SeriesGroupBy(GroupBy[Series]):
             indices = [
                 self._get_index(name)
                 for name, group in self.grouper.get_iterator(
-                    self._selected_obj, axis=self.axis
+                    self._obj_with_exclusions, axis=self.axis
                 )
                 if true_and_notna(group)
             ]
@@ -1164,7 +1164,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nlargest, n=n, keep=keep)
-        data = self._selected_obj
+        data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
@@ -1175,7 +1175,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nsmallest, n=n, keep=keep)
-        data = self._selected_obj
+        data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
