@@ -3308,9 +3308,13 @@ class TestDatetime64Formatter:
         assert result == ["10:10", "12:12"]
 
     def test_datetime64formatter_tz_ms(self):
-        x = Series(
-            np.array(["2999-01-01", "2999-01-02", "NaT"], dtype="datetime64[ms]")
-        ).dt.tz_localize("US/Pacific")
+        x = (
+            Series(
+                np.array(["2999-01-01", "2999-01-02", "NaT"], dtype="datetime64[ms]")
+            )
+            .dt.tz_localize("US/Pacific")
+            ._values
+        )
         result = fmt.Datetime64TZFormatter(x).get_result()
         assert result[0].strip() == "2999-01-01 00:00:00-08:00"
         assert result[1].strip() == "2999-01-02 00:00:00-08:00"
