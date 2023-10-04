@@ -133,10 +133,36 @@ and ``sort=False``:
 
     result
 
-.. _whatsnew_220.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_220.notable_bug_fixes.multiindex_join_different_levels:
 
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
+:func:`merge` and :meth:`DataFrame.join` no longer reorder levels when levels differ
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, :func:`merge` and :meth:`DataFrame.join` would reorder
+index levels when joining on two indexes with different levels (:issue:`34133`).
+
+.. ipython:: python
+
+    left = pd.DataFrame({"left": 1}, index=pd.MultiIndex.from_tuples([("x", 1), ("x", 2)], names=["A", "B"]))
+    right = pd.DataFrame({"right": 2}, index=pd.MultiIndex.from_tuples([(1, 1), (2, 2)], names=["B", "C"]))
+    result = left.join(right)
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [5]: result
+    Out[5]:
+           left  right
+    B A C
+    1 x 1     1      2
+    2 x 2     1      2
+
+*New Behavior*
+
+.. ipython:: python
+
+    result
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.api_breaking:
@@ -254,6 +280,7 @@ Bug fixes
 - Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
 - Bug in :class:`pandas.core.window.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
+- Bug in :meth:`pandas.DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
 - Bug in :meth:`pandas.read_excel` with a ODS file without cached formatted cell for float values (:issue:`55219`)
 
 Categorical
@@ -341,6 +368,7 @@ Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` ignoring ``sort`` parameter when passed :class:`DatetimeIndex` indexes (:issue:`54769`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
+-
 
 Sparse
 ^^^^^^
