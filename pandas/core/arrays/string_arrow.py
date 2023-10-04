@@ -53,6 +53,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from pandas._typing import (
+        AxisInt,
         Dtype,
         Scalar,
         npt,
@@ -501,6 +502,28 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _convert_int_dtype(self, result):
         return Int64Dtype().__from_arrow__(result)
 
+    def _rank(
+        self,
+        *,
+        axis: AxisInt = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        return self._convert_int_dtype(
+            self._rank_calc(
+                axis=axis,
+                method=method,
+                na_option=na_option,
+                ascending=ascending,
+                pct=pct,
+            )
+        )
+
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _storage = "pyarrow_numpy"
@@ -584,7 +607,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
     def _convert_int_dtype(self, result):
-        result = result.to_numpy()
+        if isinstance(result, pa.Array):
+            result = result.to_numpy(zero_copy_only=False)
+        else:
+            result = result.to_numpy()
         if result.dtype == np.int32:
             result = result.astype(np.int64)
         return result
@@ -613,3 +639,8 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
             )
         else:
             return super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+
+    def insert(self, loc: int, item) -> ArrowStringArrayNumpySemantics:
+        if item is np.nan:
+            item = libmissing.NA
+        return super().insert(loc, item)  # type: ignore[return-value]
