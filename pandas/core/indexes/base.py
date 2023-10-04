@@ -1390,9 +1390,9 @@ class Index(IndexOpsMixin, PandasObject):
         if formatter is not None:
             return header + list(self.map(formatter))
 
-        return self._format_with_header(header, na_rep=na_rep)
+        return self._format_with_header(header=header, na_rep=na_rep)
 
-    def _format_with_header(self, header: list[str_t], na_rep: str_t) -> list[str_t]:
+    def _format_with_header(self, *, header: list[str_t], na_rep: str_t) -> list[str_t]:
         from pandas.io.formats.format import format_array
 
         values = self._values
