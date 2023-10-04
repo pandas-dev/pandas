@@ -1664,9 +1664,12 @@ def is_all_strings(value: ArrayLike) -> bool:
     dtype = value.dtype
 
     if isinstance(dtype, np.dtype):
-        return dtype == np.dtype("object") and lib.is_string_array(
-            np.asarray(value), skipna=False
-        )
+        if len(value) == 0:
+            return dtype == np.dtype("object")
+        else:
+            return dtype == np.dtype("object") and lib.is_string_array(
+                np.asarray(value), skipna=False
+            )
     elif isinstance(dtype, CategoricalDtype):
         return dtype.categories.inferred_type == "string"
     return dtype == "string"
