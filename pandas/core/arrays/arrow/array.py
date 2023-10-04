@@ -1747,7 +1747,7 @@ class ArrowExtensionArray(
             data = pa.chunked_array([data])
         self._pa_array = data
 
-    def _rank(
+    def _rank_calc(
         self,
         *,
         axis: AxisInt = 0,
@@ -1756,9 +1756,6 @@ class ArrowExtensionArray(
         ascending: bool = True,
         pct: bool = False,
     ):
-        """
-        See Series.rank.__doc__.
-        """
         if pa_version_under9p0 or axis != 0:
             ranked = super()._rank(
                 axis=axis,
@@ -1773,7 +1770,7 @@ class ArrowExtensionArray(
             else:
                 pa_type = pa.uint64()
             result = pa.array(ranked, type=pa_type, from_pandas=True)
-            return type(self)(result)
+            return result
 
         data = self._pa_array.combine_chunks()
         sort_keys = "ascending" if ascending else "descending"
@@ -1812,7 +1809,29 @@ class ArrowExtensionArray(
                 divisor = pc.count(result)
             result = pc.divide(result, divisor)
 
-        return type(self)(result)
+        return result
+
+    def _rank(
+        self,
+        *,
+        axis: AxisInt = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        return type(self)(
+            self._rank_calc(
+                axis=axis,
+                method=method,
+                na_option=na_option,
+                ascending=ascending,
+                pct=pct,
+            )
+        )
 
     def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str) -> Self:
         """
