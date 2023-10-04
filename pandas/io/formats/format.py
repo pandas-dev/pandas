@@ -106,7 +106,6 @@ if TYPE_CHECKING:
         SequenceNotStr,
         StorageOptions,
         WriteBuffer,
-        npt,
     )
 
     from pandas import (
@@ -1814,15 +1813,7 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    values_int = values.view(np.int64)
-    values_int = cast("npt.NDArray[np.int64]", values_int)
-
-    consider_values = values_int != iNaT
-
-    one_day_nanos = 86400 * 10**9
-    not_midnight = values_int % one_day_nanos != 0
-    both = np.logical_and(consider_values, not_midnight)
-    even_days = both.sum() == 0
+    even_days = values._is_dates_only
 
     if even_days:
         format = None
