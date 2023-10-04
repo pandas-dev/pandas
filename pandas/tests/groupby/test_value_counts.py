@@ -996,7 +996,7 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
     result = gp.value_counts(sort=True, normalize=normalize)
     expected = DataFrame(
         {
-            "level_0": np.array([4, 4, 5], dtype=np.int_),
+            "level_0": np.array([4, 4, 5], dtype=int),
             "A": [1, 1, 2],
             "level_2": [8, 8, 7],
             "B": [1, 3, 2],
