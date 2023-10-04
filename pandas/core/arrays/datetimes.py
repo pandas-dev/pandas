@@ -735,12 +735,16 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
-        from pandas.io.formats.format import get_format_datetime64_from_values
+        from pandas.io.formats.format import is_dates_only
 
-        fmt = get_format_datetime64_from_values(self, date_format)
+        if date_format is None:
+            ido = is_dates_only(self)
+            if ido:
+                # Only dates and no timezone: provide a default format
+                date_format = "%Y-%m-%d"
 
         return tslib.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep, reso=self._creso
+            self.asi8, tz=self.tz, format=date_format, na_rep=na_rep, reso=self._creso
         )
 
     # -----------------------------------------------------------------

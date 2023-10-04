@@ -1812,22 +1812,6 @@ def get_format_datetime64(
         return lambda x: _format_datetime64(x, nat_rep=nat_rep)
 
 
-def get_format_datetime64_from_values(
-    values: np.ndarray | DatetimeArray | DatetimeIndex, date_format: str | None
-) -> str | None:
-    """given values and a date_format, return a string format"""
-    if isinstance(values, np.ndarray) and values.ndim > 1:
-        # We don't actually care about the order of values, and DatetimeIndex
-        #  only accepts 1D values
-        values = values.ravel()
-
-    ido = is_dates_only(values)
-    if ido:
-        # Only dates and no timezone: provide a default format
-        return date_format or "%Y-%m-%d"
-    return date_format
-
-
 class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
