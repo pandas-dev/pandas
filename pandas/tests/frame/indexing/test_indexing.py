@@ -108,11 +108,11 @@ class TestDataFrameIndexing:
             data["A"] = newcolumndata
 
     def test_setitem_list2(self):
-        df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=np.int_)
+        df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=int)
         df.loc[1, ["tt1", "tt2"]] = [1, 2]
 
         result = df.loc[df.index[1], ["tt1", "tt2"]]
-        expected = Series([1, 2], df.columns, dtype=np.int_, name=1)
+        expected = Series([1, 2], df.columns, dtype=int, name=1)
         tm.assert_series_equal(result, expected)
 
         df["tt1"] = df["tt2"] = "0"
@@ -1919,7 +1919,8 @@ def test_adding_new_conditional_column() -> None:
 
 
 def test_add_new_column_infer_string():
-    # GH#
+    # GH#55366
+    pytest.importorskip("pyarrow")
     df = DataFrame({"x": [1]})
     with pd.option_context("future.infer_string", True):
         df.loc[df["x"] == 1, "y"] = "1"

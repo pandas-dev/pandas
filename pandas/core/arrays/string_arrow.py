@@ -618,7 +618,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
     def _convert_int_dtype(self, result):
-        result = result.to_numpy()
+        if isinstance(result, pa.Array):
+            result = result.to_numpy(zero_copy_only=False)
+        else:
+            result = result.to_numpy()
         if result.dtype == np.int32:
             result = result.astype(np.int64)
         return result
@@ -639,9 +642,11 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
         if name in ["any", "all"]:
-            arr = pc.and_kleene(
-                pc.invert(pc.is_null(self._pa_array)), pc.not_equal(self._pa_array, "")
-            )
+            if not skipna and name == "all":
+                nas = pc.invert(pc.is_null(self._pa_array))
+                arr = pc.and_kleene(nas, pc.not_equal(self._pa_array, ""))
+            else:
+                arr = pc.not_equal(self._pa_array, "")
             return ArrowExtensionArray(arr)._reduce(
                 name, skipna=skipna, keepdims=keepdims, **kwargs
             )

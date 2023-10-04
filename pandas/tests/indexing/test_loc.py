@@ -442,7 +442,7 @@ class TestLocBaseIndependent:
         )
 
         msg = (
-            rf"\"None of \[Index\(\[1, 2\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[1, 2\], dtype='{np.dtype(int)}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -460,7 +460,7 @@ class TestLocBaseIndependent:
             s.loc[-1]
 
         msg = (
-            rf"\"None of \[Index\(\[-1, -2\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[-1, -2\], dtype='{np.dtype(int)}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -476,7 +476,7 @@ class TestLocBaseIndependent:
 
         s["a"] = 2
         msg = (
-            rf"\"None of \[Index\(\[-2\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[-2\], dtype='{np.dtype(int)}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -493,7 +493,7 @@ class TestLocBaseIndependent:
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
 
         msg = (
-            rf"\"None of \[Index\(\[3\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[3\], dtype='{np.dtype(int)}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -510,7 +510,7 @@ class TestLocBaseIndependent:
 
         s.loc[[2]]
 
-        msg = f"\"None of [Index([3], dtype='{np.int_().dtype}')] are in the [index]"
+        msg = f"\"None of [Index([3], dtype='{np.dtype(int)}')] are in the [index]"
         with pytest.raises(KeyError, match=re.escape(msg)):
             s.loc[[3]]
 
@@ -1209,7 +1209,7 @@ class TestLocBaseIndependent:
         df = DataFrame(columns=["x", "y"])
         df.index = df.index.astype(np.int64)
         msg = (
-            rf"None of \[Index\(\[0, 1\], dtype='{np.int_().dtype}'\)\] "
+            rf"None of \[Index\(\[0, 1\], dtype='{np.dtype(int)}'\)\] "
             r"are in the \[index\]"
         )
         with pytest.raises(KeyError, match=msg):

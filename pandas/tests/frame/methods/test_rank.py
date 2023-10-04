@@ -502,7 +502,8 @@ class TestRank:
         [("string[pyarrow]", "Int64"), ("string[pyarrow_numpy]", "float64")],
     )
     def test_rank_string_dtype(self, dtype, exp_dtype):
-        # GH#
+        # GH#55362
+        pytest.importorskip("pyarrow")
         obj = Series(["foo", "foo", None, "foo"], dtype=dtype)
         result = obj.rank(method="first")
         expected = Series([1, 2, None, 3], dtype=exp_dtype)

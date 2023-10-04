@@ -240,10 +240,10 @@ def test_align_left_different_named_levels():
     result_left, result_right = left.align(right)
 
     expected_left = Series(
-        [2], index=pd.MultiIndex.from_tuples([(1, 3, 4, 2)], names=["a", "c", "d", "b"])
+        [2], index=pd.MultiIndex.from_tuples([(1, 4, 3, 2)], names=["a", "d", "c", "b"])
     )
     expected_right = Series(
-        [1], index=pd.MultiIndex.from_tuples([(1, 3, 4, 2)], names=["a", "c", "d", "b"])
+        [1], index=pd.MultiIndex.from_tuples([(1, 4, 3, 2)], names=["a", "d", "c", "b"])
     )
     tm.assert_series_equal(result_left, expected_left)
     tm.assert_series_equal(result_right, expected_right)
