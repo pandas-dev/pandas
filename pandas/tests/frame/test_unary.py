@@ -48,16 +48,25 @@ class TestDataFrameUnaryOperators:
             pd.DataFrame({"a": pd.to_datetime(["2017-01-22", "1970-01-01"])}),
         ],
     )
-    def test_neg_raises(self, df):
+    def test_neg_raises(self, df, using_infer_string):
         msg = (
             "bad operand type for unary -: 'str'|"
-            "has no kernel matching input types|"
             r"bad operand type for unary -: 'DatetimeArray'"
         )
-        with pytest.raises(TypeError, match=msg):
-            (-df)
-        with pytest.raises(TypeError, match=msg):
-            (-df["a"])
+        if using_infer_string:
+            import pyarrow as pa
+
+            msg = "has no kernel"
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
+                (-df)
+            with pytest.raises(pa.lib.ArrowNotImplementedError, match=msg):
+                (-df["a"])
+
+        else:
+            with pytest.raises(TypeError, match=msg):
+                (-df)
+            with pytest.raises(TypeError, match=msg):
+                (-df["a"])
 
     def test_invert(self, float_frame):
         df = float_frame

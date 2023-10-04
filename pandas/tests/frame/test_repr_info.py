@@ -7,6 +7,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas import (
     NA,
     Categorical,
@@ -167,6 +169,7 @@ NaT   4"""
 
         repr(biggie)
 
+    @pytest.mark.xfail(using_pyarrow_string_dtype(), reason="/r in")
     def test_repr(self, float_frame):
         buf = StringIO()
 
