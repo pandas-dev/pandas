@@ -12,10 +12,7 @@ from collections.abc import (
     Sequence,
 )
 from contextlib import contextmanager
-from csv import (
-    QUOTE_NONE,
-    QUOTE_NONNUMERIC,
-)
+from csv import QUOTE_NONE
 from decimal import Decimal
 from functools import partial
 from io import StringIO
@@ -196,47 +193,6 @@ return_docstring: Final = """
             If buf is None, returns the result as a string. Otherwise returns
             None.
     """
-
-
-class CategoricalFormatter:
-    def __init__(
-        self,
-        categorical: Categorical,
-        *,
-        footer: bool = True,
-    ) -> None:
-        self.categorical = categorical
-        self.footer = footer
-
-    def _get_formatted_values(self) -> list[str]:
-        return format_array(
-            self.categorical._internal_get_values(),
-            None,
-            float_format=None,
-            na_rep="NaN",
-            quoting=QUOTE_NONNUMERIC,
-        )
-
-    def to_string(self) -> str:
-        categorical = self.categorical
-
-        if len(categorical) == 0:
-            if self.footer:
-                return categorical._repr_categories_info()
-            else:
-                return ""
-
-        fmt_values = self._get_formatted_values()
-
-        fmt_values = [i.strip() for i in fmt_values]
-        values = ", ".join(fmt_values)
-        result = ["[" + values + "]"]
-        if self.footer:
-            footer = categorical._repr_categories_info()
-            if footer:
-                result.append(footer)
-
-        return str("\n".join(result))
 
 
 class SeriesFormatter:
