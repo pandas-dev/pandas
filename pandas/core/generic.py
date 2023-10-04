@@ -11694,7 +11694,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             How to handle NAs **before** computing percent changes.
 
             .. deprecated:: 2.1
-                `fill_method` is deprecated except `fill_method=None`.
+                All options of `fill_method` are deprecated except `fill_method=None`.
 
         limit : int, default None
             The number of consecutive NAs to fill before stopping.
