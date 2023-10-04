@@ -9,6 +9,7 @@ from pandas import (
 
 class TestTimedeltaIndexRendering:
     def test_repr_round_days_non_nano(self):
+        # GH#55405
         # we should get "1 days", not "1 days 00:00:00" with non-nano
         tdi = TimedeltaIndex(["1 days"], freq="D").as_unit("s")
         result = repr(tdi)
