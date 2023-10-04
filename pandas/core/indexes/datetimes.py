@@ -399,7 +399,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         if delta and delta % dt.timedelta(days=1) != dt.timedelta(days=0):
             return False
 
-        return self.tz is None and self._values._is_dates_only
+        return self._values._is_dates_only
 
     def __reduce__(self):
         d = {"data": self._data, "name": self.name}
