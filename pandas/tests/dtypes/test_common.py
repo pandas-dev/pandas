@@ -301,14 +301,23 @@ def test_is_categorical_dtype():
         assert com.is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
 
 
-def test_is_string_dtype():
-    assert not com.is_string_dtype(int)
-    assert not com.is_string_dtype(pd.Series([1, 2]))
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        (int, False),
+        (pd.Series([1, 2]), False),
+        (str, True),
+        (object, True),
+        (np.array(["a", "b"]), True),
+        (pd.StringDtype(), True),
+        (pd.Index([], dtype="O"), True),
+    ],
+)
+def test_is_string_dtype(dtype, expected):
+    # GH#54661
 
-    assert com.is_string_dtype(str)
-    assert com.is_string_dtype(object)
-    assert com.is_string_dtype(np.array(["a", "b"]))
-    assert com.is_string_dtype(pd.StringDtype())
+    result = com.is_string_dtype(dtype)
+    assert result is expected
 
 
 @pytest.mark.parametrize(
