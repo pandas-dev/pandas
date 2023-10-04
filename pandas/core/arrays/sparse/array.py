@@ -28,6 +28,7 @@ from pandas._libs.sparse import (
 from pandas._libs.tslibs import NaT
 from pandas.compat.numpy import function as nv
 from pandas.errors import PerformanceWarning
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import (
     validate_bool_kwarg,
@@ -830,6 +831,14 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         diff = np.r_[np.diff(indices), 2]
         return indices[(diff > 1).argmax()] + 1
 
+    @doc(ExtensionArray.duplicated)
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
+        values = np.asarray(self)
+        mask = np.asarray(self.isna())
+        return algos.duplicated(values, keep=keep, mask=mask)
+
     def unique(self) -> Self:
         uniques = algos.unique(self.sp_values)
         if len(self.sp_values) != len(self):
@@ -881,7 +890,7 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             Series,
         )
 
-        keys, counts = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
+        keys, counts, _ = algos.value_counts_arraylike(self.sp_values, dropna=dropna)
         fcounts = self.sp_index.ngaps
         if fcounts > 0 and (not self._null_fill_value or not dropna):
             mask = isna(keys) if self._null_fill_value else keys == self.fill_value
