@@ -2219,12 +2219,10 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         info = self._repr_categories_info()
         return f"Length: {len(self)}\n{info}"
 
-    def _get_repr(self, na_rep: str = "NaN", footer: bool = True) -> str:
+    def _get_repr(self, footer: bool = True) -> str:
         from pandas.io.formats import format as fmt
 
-        formatter = fmt.CategoricalFormatter(
-            self, length=False, na_rep=na_rep, footer=footer
-        )
+        formatter = fmt.CategoricalFormatter(self, footer=footer)
         result = formatter.to_string()
         return str(result)
 
@@ -2238,7 +2236,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif len(self._codes) > 0:
             result = self._get_repr()
         else:
+            msg2 = self._repr_categories_info()
             msg = self._get_repr().replace("\n", ", ")
+            assert msg == msg2, (msg, msg2)
             result = f"[], {msg}"
 
         return result

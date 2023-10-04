@@ -202,42 +202,19 @@ class CategoricalFormatter:
     def __init__(
         self,
         categorical: Categorical,
-        buf: IO[str] | None = None,
-        length: bool = True,
-        na_rep: str = "NaN",
+        *,
         footer: bool = True,
     ) -> None:
         self.categorical = categorical
-        self.buf = buf if buf is not None else StringIO("")
-        self.na_rep = na_rep
-        self.length = length
         self.footer = footer
-        self.quoting = QUOTE_NONNUMERIC
-
-    def _get_footer(self) -> str:
-        footer = ""
-
-        if self.length:
-            if footer:
-                footer += ", "
-            footer += f"Length: {len(self.categorical)}"
-
-        level_info = self.categorical._repr_categories_info()
-
-        # Levels are added in a newline
-        if footer:
-            footer += "\n"
-        footer += level_info
-
-        return str(footer)
 
     def _get_formatted_values(self) -> list[str]:
         return format_array(
             self.categorical._internal_get_values(),
             None,
             float_format=None,
-            na_rep=self.na_rep,
-            quoting=self.quoting,
+            na_rep="NaN",
+            quoting=QUOTE_NONNUMERIC,
         )
 
     def to_string(self) -> str:
@@ -245,7 +222,7 @@ class CategoricalFormatter:
 
         if len(categorical) == 0:
             if self.footer:
-                return self._get_footer()
+                return categorical._repr_categories_info()
             else:
                 return ""
 
@@ -255,7 +232,7 @@ class CategoricalFormatter:
         values = ", ".join(fmt_values)
         result = ["[" + values + "]"]
         if self.footer:
-            footer = self._get_footer()
+            footer = categorical._repr_categories_info()
             if footer:
                 result.append(footer)
 
