@@ -42,7 +42,6 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
-    iNaT,
 )
 from pandas._libs.tslibs.nattype import NaTType
 
