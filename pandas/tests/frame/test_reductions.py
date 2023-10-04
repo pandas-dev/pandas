@@ -10,6 +10,10 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+from pandas.compat.numpy import (
+    np_long,
+    np_ulong,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -1056,6 +1060,19 @@ class TestDataFrameAnalytics:
             expected = Series([1, 0, 1], index=["a", "b", "c"])
         tm.assert_series_equal(result, expected)
 
+    def test_idxmax_arrow_types(self):
+        # GH#55368
+        pytest.importorskip("pyarrow")
+
+        df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1]}, dtype="int64[pyarrow]")
+        result = df.idxmax()
+        expected = Series([1, 0], index=["a", "b"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin()
+        expected = Series([2, 1], index=["a", "b"])
+        tm.assert_series_equal(result, expected)
+
     def test_idxmax_axis_2(self, float_frame):
         frame = float_frame
         msg = "No axis named 2 for object type DataFrame"
@@ -1700,11 +1717,11 @@ class TestEmptyDataFrameReductions:
         "opname, dtype, exp_value, exp_dtype",
         [
             ("sum", np.int8, 0, np.int64),
-            ("prod", np.int8, 1, np.int_),
+            ("prod", np.int8, 1, np_long),
             ("sum", np.int64, 0, np.int64),
             ("prod", np.int64, 1, np.int64),
             ("sum", np.uint8, 0, np.uint64),
-            ("prod", np.uint8, 1, np.uint),
+            ("prod", np.uint8, 1, np_ulong),
             ("sum", np.uint64, 0, np.uint64),
             ("prod", np.uint64, 1, np.uint64),
             ("sum", np.float32, 0, np.float32),
