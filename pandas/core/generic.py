@@ -11694,6 +11694,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             How to handle NAs **before** computing percent changes.
 
             .. deprecated:: 2.1
+                `fill_method` is deprecated except `fill_method=None`.
 
         limit : int, default None
             The number of consecutive NAs to fill before stopping.
@@ -11799,18 +11800,60 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         GOOG  0.179241  0.094112   NaN
         APPL -0.252395 -0.011860   NaN
         """
-        # GH#53491
-        if fill_method is not lib.no_default or limit is not lib.no_default:
+        # GH#53491: deprecate the `fill_method` and `limit` keyword, except
+        # `fill_method=None` that does not fill missing values
+        if fill_method not in (lib.no_default, None) and limit is not lib.no_default:
+            # `fill_method` in FillnaOptions and `limit` is specified
             warnings.warn(
-                "The 'fill_method' and 'limit' keywords in "
-                f"{type(self).__name__}.pct_change are deprecated and will be "
-                "removed in a future version. Call "
+                f"fill_method={fill_method} and the limit keyword in "
+                f"{type(self).__name__}.pct_change are deprecated and will be removed "
+                "in a future version. Call "
+                f"{'bfill' if fill_method in ('backfill', 'bfill') else 'ffill'}"
+                f"(limit={limit}) before calling pct_change instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        elif fill_method not in (lib.no_default, None):
+            # `fill_method` in FillnaOptions and `limit` is not specified
+            warnings.warn(
+                f"fill_method={fill_method} in {type(self).__name__}.pct_change is "
+                "deprecated and will be removed in a future version. Call "
                 f"{'bfill' if fill_method in ('backfill', 'bfill') else 'ffill'} "
                 "before calling pct_change instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
-        if fill_method is lib.no_default:
+            limit = None
+        elif fill_method is None and limit is not lib.no_default:
+            # `fill_method` is None but `limit` is specified
+            warnings.warn(
+                f"The limit keyword in {type(self).__name__}.pct_change is deprecated "
+                "and will be removed in a future version. It does not have any effect "
+                "when using with fill_method=None. Remove it to silence this warning.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        elif fill_method is None:
+            # `fill_method` is None and `limit` is not specified: this should not be
+            # deprecated. TODO(3.x) allow only `fill_method=None` and raise on anything
+            # else; deprecate the `fill_method` keyword entirely. TODO(4.x) remove the
+            # `fill_method` keyword.
+            # https://github.com/pandas-dev/pandas/issues/53491#issuecomment-1728443050
+            limit = None
+        elif limit is not lib.no_default:
+            # `fill_method` is not specified but `limit` is specified
+            warnings.warn(
+                "The default fill_method='pad' and the limit keyword in "
+                f"{type(self).__name__}.pct_change are deprecated and will be removed "
+                f"in a future version. Call ffill(limit={limit}) before calling "
+                "pct_change to retain the current behavior and silence this warning.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            fill_method = "pad"
+        else:
+            # `fill_method` and `limit` are both not specified
+            # GH#54981: avoid unnecessary FutureWarning
             cols = self.items() if self.ndim == 2 else [(None, self)]
             for _, col in cols:
                 mask = col.isna().values
@@ -11825,10 +11868,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
-                    break
-            fill_method = "pad"
-        if limit is lib.no_default:
-            limit = None
+            fill_method, limit = "pad", None
 
         axis = self._get_axis_number(kwargs.pop("axis", "index"))
         if fill_method is None:
