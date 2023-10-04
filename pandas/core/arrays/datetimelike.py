@@ -2329,8 +2329,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values_int = self.asi8
         consider_values = values_int != iNaT
-        dtype = cast(np.dtype, self.dtype)  # since we checked tz above
-        reso = get_unit_from_dtype(dtype)
+        reso = get_unit_from_dtype(self.dtype)
         ppd = periods_per_day(reso)
 
         # TODO: can we reuse is_date_array_normalized?  would need a skipna kwd
