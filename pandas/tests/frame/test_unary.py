@@ -53,7 +53,7 @@ class TestDataFrameUnaryOperators:
             "bad operand type for unary -: 'str'|"
             r"bad operand type for unary -: 'DatetimeArray'"
         )
-        if using_infer_string:
+        if using_infer_string and df.dtypes.iloc[0] == "string":
             import pyarrow as pa
 
             msg = "has no kernel"
