@@ -251,6 +251,8 @@ def _maybe_cache(
 
         unique_dates = unique(arg)
         if len(unique_dates) < len(arg):
+            # GH#55345 checking for parse errors
+            convert_listlike(arg, format)
             cache_dates = convert_listlike(unique_dates, format)
             # GH#45319
             try:
