@@ -28,12 +28,14 @@ from pandas._libs.tslibs import (
     get_resolution,
     get_supported_reso,
     get_unit_from_dtype,
+    iNaT,
     ints_to_pydatetime,
     is_date_array_normalized,
     is_supported_unit,
     is_unitless,
     normalize_i8_timestamps,
     npy_unit_to_abbrev,
+    periods_per_day,
     timezones,
     to_offset,
     tz_convert_from_utc,
@@ -735,13 +737,32 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
-        from pandas.io.formats.format import get_format_datetime64_from_values
-
-        fmt = get_format_datetime64_from_values(self, date_format)
+        if date_format is None and self._is_dates_only:
+            # Only dates and no timezone: provide a default format
+            date_format = "%Y-%m-%d"
 
         return tslib.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep, reso=self._creso
+            self.asi8, tz=self.tz, format=date_format, na_rep=na_rep, reso=self._creso
         )
+
+    @property
+    def _is_dates_only(self) -> bool:
+        """
+        Check if we are round times at midnight (and no timezone), which will
+        be given a more compact __repr__ than other cases.
+        """
+        if self.tz is not None:
+            return False
+
+        values_int = self.asi8
+        consider_values = values_int != iNaT
+        dtype = cast(np.dtype, self.dtype)  # since we checked tz above
+        reso = get_unit_from_dtype(dtype)
+        ppd = periods_per_day(reso)
+
+        # TODO: can we reuse is_date_array_normalized?  would need a skipna kwd
+        even_days = np.logical_and(consider_values, values_int % ppd != 0).sum() == 0
+        return even_days
 
     # -----------------------------------------------------------------
     # Comparison Methods
@@ -1276,7 +1297,7 @@ default 'raise'
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
                       dtype='datetime64[ns]', freq='ME')
-        >>> idx.month_name(locale='pt_BR.utf8') # doctest: +SKIP
+        >>> idx.month_name(locale='pt_BR.utf8')  # doctest: +SKIP
         Index(['Janeiro', 'Fevereiro', 'Março'], dtype='object')
         """
         values = self._local_timestamps()
