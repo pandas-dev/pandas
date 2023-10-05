@@ -48,7 +48,7 @@ class TestFormattBase:
         adjoined = printing.adjoin(2, *data)
         assert adjoined == expected
 
-        adj = fmt.EastAsianTextAdjustment()
+        adj = fmt._EastAsianTextAdjustment()
 
         expected = """あ  dd    ggg
 b   ええ  hhh
@@ -73,7 +73,7 @@ c        ff         いいい"""
         assert adj.len(cols[2]) == 26
 
     def test_justify(self):
-        adj = fmt.EastAsianTextAdjustment()
+        adj = fmt._EastAsianTextAdjustment()
 
         def just(x, *args, **kwargs):
             # wrapper to test single str
@@ -95,7 +95,7 @@ c        ff         いいい"""
         assert just("パンダ", 10, mode="right") == "    パンダ"
 
     def test_east_asian_len(self):
-        adj = fmt.EastAsianTextAdjustment()
+        adj = fmt._EastAsianTextAdjustment()
 
         assert adj.len("abc") == 3
         assert adj.len("abc") == 3
@@ -106,11 +106,11 @@ c        ff         いいい"""
         assert adj.len("ﾊﾟﾝﾀﾞpanda") == 10
 
     def test_ambiguous_width(self):
-        adj = fmt.EastAsianTextAdjustment()
+        adj = fmt._EastAsianTextAdjustment()
         assert adj.len("¡¡ab") == 4
 
         with cf.option_context("display.unicode.ambiguous_as_wide", True):
-            adj = fmt.EastAsianTextAdjustment()
+            adj = fmt._EastAsianTextAdjustment()
             assert adj.len("¡¡ab") == 6
 
         data = [["あ", "b", "c"], ["dd", "ええ", "ff"], ["ggg", "¡¡ab", "いいい"]]
