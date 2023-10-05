@@ -1819,7 +1819,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         return arr._from_backing_data(backing)
 
-    def _internal_get_values(self):
+    def _internal_get_values(self) -> ArrayLike:
         """
         Return the values.
 
@@ -1827,15 +1827,19 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Returns
         -------
-        np.ndarray or Index
-            A numpy array of the same dtype as categorical.categories.dtype or
-            Index if datetime / periods.
+        np.ndarray or ExtensionArray
+            A numpy array or ExtensionArray of the same dtype as
+            categorical.categories.dtype.
         """
         # if we are a datetime and period index, return Index to keep metadata
         if needs_i8_conversion(self.categories.dtype):
-            return self.categories.take(self._codes, fill_value=NaT)
+            return self.categories.take(self._codes, fill_value=NaT)._values
         elif is_integer_dtype(self.categories.dtype) and -1 in self._codes:
-            return self.categories.astype("object").take(self._codes, fill_value=np.nan)
+            return (
+                self.categories.astype("object")
+                .take(self._codes, fill_value=np.nan)
+                ._values
+            )
         return np.array(self)
 
     def check_for_ordered(self, op) -> None:
@@ -2147,21 +2151,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # Defer to CategoricalFormatter's formatter.
         return None
 
-    def _tidy_repr(self, max_vals: int = 10, footer: bool = True) -> str:
-        """
-        a short repr displaying only max_vals and an optional (but default
-        footer)
-        """
-        num = max_vals // 2
-        head = self[:num]._get_repr(length=False, footer=False)
-        tail = self[-(max_vals - num) :]._get_repr(length=False, footer=False)
-
-        result = f"{head[:-1]}, ..., {tail[1:]}"
-        if footer:
-            result = f"{result}\n{self._repr_footer()}"
-
-        return str(result)
-
     def _repr_categories(self) -> list[str]:
         """
         return the base repr for the categories
@@ -2217,33 +2206,49 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         # replace to simple save space by
         return f"{levheader}[{levstring.replace(' < ... < ', ' ... ')}]"
 
-    def _repr_footer(self) -> str:
-        info = self._repr_categories_info()
-        return f"Length: {len(self)}\n{info}"
-
-    def _get_repr(
-        self, length: bool = True, na_rep: str = "NaN", footer: bool = True
-    ) -> str:
+    def _get_values_repr(self) -> str:
         from pandas.io.formats import format as fmt
 
-        formatter = fmt.CategoricalFormatter(
-            self, length=length, na_rep=na_rep, footer=footer
+        assert len(self) > 0
+
+        vals = self._internal_get_values()
+        fmt_values = fmt.format_array(
+            vals,
+            None,
+            float_format=None,
+            na_rep="NaN",
+            quoting=QUOTE_NONNUMERIC,
         )
-        result = formatter.to_string()
-        return str(result)
+
+        fmt_values = [i.strip() for i in fmt_values]
+        joined = ", ".join(fmt_values)
+        result = "[" + joined + "]"
+        return result
 
     def __repr__(self) -> str:
         """
         String representation.
         """
-        _maxlen = 10
-        if len(self._codes) > _maxlen:
-            result = self._tidy_repr(_maxlen)
-        elif len(self._codes) > 0:
-            result = self._get_repr(length=len(self) > _maxlen)
+        footer = self._repr_categories_info()
+        length = len(self)
+        max_len = 10
+        if length > max_len:
+            # In long cases we do not display all entries, so we add Length
+            #  information to the __repr__.
+            num = max_len // 2
+            head = self[:num]._get_values_repr()
+            tail = self[-(max_len - num) :]._get_values_repr()
+            body = f"{head[:-1]}, ..., {tail[1:]}"
+            length_info = f"Length: {len(self)}"
+            result = f"{body}\n{length_info}\n{footer}"
+        elif length > 0:
+            body = self._get_values_repr()
+            result = f"{body}\n{footer}"
         else:
-            msg = self._get_repr(length=False, footer=True).replace("\n", ", ")
-            result = f"[], {msg}"
+            # In the empty case we use a comma instead of newline to get
+            #  a more compact __repr__
+            body = "[]"
+            result = f"{body}, {footer}"
 
         return result
 

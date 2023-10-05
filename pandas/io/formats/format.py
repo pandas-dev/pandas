@@ -12,10 +12,7 @@ from collections.abc import (
     Sequence,
 )
 from contextlib import contextmanager
-from csv import (
-    QUOTE_NONE,
-    QUOTE_NONNUMERIC,
-)
+from csv import QUOTE_NONE
 from decimal import Decimal
 from functools import partial
 from io import StringIO
@@ -23,7 +20,6 @@ import math
 import re
 from shutil import get_terminal_size
 from typing import (
-    IO,
     TYPE_CHECKING,
     Any,
     Callable,
@@ -45,9 +41,7 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
-    get_unit_from_dtype,
     iNaT,
-    periods_per_day,
 )
 from pandas._libs.tslibs.nattype import NaTType
 
@@ -72,6 +66,7 @@ from pandas.core.dtypes.missing import (
 from pandas.core.arrays import (
     Categorical,
     DatetimeArray,
+    ExtensionArray,
     TimedeltaArray,
 )
 from pandas.core.arrays.string_ import StringDtype
@@ -108,6 +103,7 @@ if TYPE_CHECKING:
         SequenceNotStr,
         StorageOptions,
         WriteBuffer,
+        npt,
     )
 
     from pandas import (
@@ -175,7 +171,7 @@ common_docstring: Final = """
             Character recognized as decimal separator, e.g. ',' in Europe.
     """
 
-_VALID_JUSTIFY_PARAMETERS = (
+VALID_JUSTIFY_PARAMETERS = (
     "left",
     "right",
     "center",
@@ -198,75 +194,16 @@ return_docstring: Final = """
     """
 
 
-class CategoricalFormatter:
-    def __init__(
-        self,
-        categorical: Categorical,
-        buf: IO[str] | None = None,
-        length: bool = True,
-        na_rep: str = "NaN",
-        footer: bool = True,
-    ) -> None:
-        self.categorical = categorical
-        self.buf = buf if buf is not None else StringIO("")
-        self.na_rep = na_rep
-        self.length = length
-        self.footer = footer
-        self.quoting = QUOTE_NONNUMERIC
-
-    def _get_footer(self) -> str:
-        footer = ""
-
-        if self.length:
-            if footer:
-                footer += ", "
-            footer += f"Length: {len(self.categorical)}"
-
-        level_info = self.categorical._repr_categories_info()
-
-        # Levels are added in a newline
-        if footer:
-            footer += "\n"
-        footer += level_info
-
-        return str(footer)
-
-    def _get_formatted_values(self) -> list[str]:
-        return format_array(
-            self.categorical._internal_get_values(),
-            None,
-            float_format=None,
-            na_rep=self.na_rep,
-            quoting=self.quoting,
-        )
-
-    def to_string(self) -> str:
-        categorical = self.categorical
-
-        if len(categorical) == 0:
-            if self.footer:
-                return self._get_footer()
-            else:
-                return ""
-
-        fmt_values = self._get_formatted_values()
-
-        fmt_values = [i.strip() for i in fmt_values]
-        values = ", ".join(fmt_values)
-        result = ["[" + values + "]"]
-        if self.footer:
-            footer = self._get_footer()
-            if footer:
-                result.append(footer)
-
-        return str("\n".join(result))
-
-
 class SeriesFormatter:
+    """
+    Implement the main logic of Series.to_string, which underlies
+    Series.__repr__.
+    """
+
     def __init__(
         self,
         series: Series,
-        buf: IO[str] | None = None,
+        *,
         length: bool | str = True,
         header: bool = True,
         index: bool = True,
@@ -278,7 +215,7 @@ class SeriesFormatter:
         min_rows: int | None = None,
     ) -> None:
         self.series = series
-        self.buf = buf if buf is not None else StringIO()
+        self.buf = StringIO()
         self.name = name
         self.na_rep = na_rep
         self.header = header
@@ -422,7 +359,7 @@ class SeriesFormatter:
         return str("".join(result))
 
 
-class TextAdjustment:
+class _TextAdjustment:
     def __init__(self) -> None:
         self.encoding = get_option("display.encoding")
 
@@ -438,7 +375,7 @@ class TextAdjustment:
         )
 
 
-class EastAsianTextAdjustment(TextAdjustment):
+class _EastAsianTextAdjustment(_TextAdjustment):
     def __init__(self) -> None:
         super().__init__()
         if get_option("display.unicode.ambiguous_as_wide"):
@@ -477,12 +414,12 @@ class EastAsianTextAdjustment(TextAdjustment):
             return [x.rjust(_get_pad(x)) for x in texts]
 
 
-def get_adjustment() -> TextAdjustment:
+def get_adjustment() -> _TextAdjustment:
     use_east_asian_width = get_option("display.unicode.east_asian_width")
     if use_east_asian_width:
-        return EastAsianTextAdjustment()
+        return _EastAsianTextAdjustment()
     else:
-        return TextAdjustment()
+        return _TextAdjustment()
 
 
 def get_dataframe_repr_params() -> dict[str, Any]:
@@ -536,16 +473,9 @@ def get_series_repr_params() -> dict[str, Any]:
     True
     """
     width, height = get_terminal_size()
-    max_rows = (
-        height
-        if get_option("display.max_rows") == 0
-        else get_option("display.max_rows")
-    )
-    min_rows = (
-        height
-        if get_option("display.max_rows") == 0
-        else get_option("display.min_rows")
-    )
+    max_rows_opt = get_option("display.max_rows")
+    max_rows = height if max_rows_opt == 0 else max_rows_opt
+    min_rows = height if max_rows_opt == 0 else get_option("display.min_rows")
 
     return {
         "name": True,
@@ -557,7 +487,11 @@ def get_series_repr_params() -> dict[str, Any]:
 
 
 class DataFrameFormatter:
-    """Class for processing dataframe formatting options and data."""
+    """
+    Class for processing dataframe formatting options and data.
+
+    Used by DataFrame.to_string, which backs DataFrame.__repr__.
+    """
 
     __doc__ = __doc__ if __doc__ else ""
     __doc__ += common_docstring + return_docstring
@@ -1169,16 +1103,16 @@ def save_to_buffer(
     """
     Perform serialization. Write to buf or return as string if buf is None.
     """
-    with get_buffer(buf, encoding=encoding) as f:
-        f.write(string)
+    with _get_buffer(buf, encoding=encoding) as fd:
+        fd.write(string)
         if buf is None:
             # error: "WriteBuffer[str]" has no attribute "getvalue"
-            return f.getvalue()  # type: ignore[attr-defined]
+            return fd.getvalue()  # type: ignore[attr-defined]
         return None
 
 
 @contextmanager
-def get_buffer(
+def _get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
 ) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
     """
@@ -1216,7 +1150,7 @@ def get_buffer(
 
 
 def format_array(
-    values: Any,
+    values: ArrayLike,
     formatter: Callable | None,
     float_format: FloatFormatType | None = None,
     na_rep: str = "NaN",
@@ -1233,7 +1167,7 @@ def format_array(
 
     Parameters
     ----------
-    values
+    values : np.ndarray or ExtensionArray
     formatter
     float_format
     na_rep
@@ -1255,21 +1189,24 @@ def format_array(
     -------
     List[str]
     """
-    fmt_klass: type[GenericArrayFormatter]
+    fmt_klass: type[_GenericArrayFormatter]
     if lib.is_np_dtype(values.dtype, "M"):
-        fmt_klass = Datetime64Formatter
+        fmt_klass = _Datetime64Formatter
+        values = cast(DatetimeArray, values)
     elif isinstance(values.dtype, DatetimeTZDtype):
-        fmt_klass = Datetime64TZFormatter
+        fmt_klass = _Datetime64TZFormatter
+        values = cast(DatetimeArray, values)
     elif lib.is_np_dtype(values.dtype, "m"):
-        fmt_klass = Timedelta64Formatter
+        fmt_klass = _Timedelta64Formatter
+        values = cast(TimedeltaArray, values)
     elif isinstance(values.dtype, ExtensionDtype):
-        fmt_klass = ExtensionArrayFormatter
+        fmt_klass = _ExtensionArrayFormatter
     elif lib.is_np_dtype(values.dtype, "fc"):
         fmt_klass = FloatArrayFormatter
     elif lib.is_np_dtype(values.dtype, "iu"):
-        fmt_klass = IntArrayFormatter
+        fmt_klass = _IntArrayFormatter
     else:
-        fmt_klass = GenericArrayFormatter
+        fmt_klass = _GenericArrayFormatter
 
     if space is None:
         space = 12
@@ -1297,10 +1234,10 @@ def format_array(
     return fmt_obj.get_result()
 
 
-class GenericArrayFormatter:
+class _GenericArrayFormatter:
     def __init__(
         self,
-        values: Any,
+        values: ArrayLike,
         digits: int = 7,
         formatter: Callable | None = None,
         na_rep: str = "NaN",
@@ -1379,7 +1316,7 @@ class GenericArrayFormatter:
         vals = extract_array(self.values, extract_numpy=True)
         if not isinstance(vals, np.ndarray):
             raise TypeError(
-                "ExtensionArray formatting should use ExtensionArrayFormatter"
+                "ExtensionArray formatting should use _ExtensionArrayFormatter"
             )
         inferred = lib.map_infer(vals, is_float)
         is_float_type = (
@@ -1409,7 +1346,7 @@ class GenericArrayFormatter:
         return fmt_values
 
 
-class FloatArrayFormatter(GenericArrayFormatter):
+class FloatArrayFormatter(_GenericArrayFormatter):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -1610,7 +1547,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         return list(self.get_result_as_array())
 
 
-class IntArrayFormatter(GenericArrayFormatter):
+class _IntArrayFormatter(_GenericArrayFormatter):
     def _format_strings(self) -> list[str]:
         if self.leading_space is False:
             formatter_str = lambda x: f"{x:d}".format(x=x)
@@ -1621,10 +1558,12 @@ class IntArrayFormatter(GenericArrayFormatter):
         return fmt_values
 
 
-class Datetime64Formatter(GenericArrayFormatter):
+class _Datetime64Formatter(_GenericArrayFormatter):
+    values: DatetimeArray
+
     def __init__(
         self,
-        values: np.ndarray | Series | DatetimeIndex | DatetimeArray,
+        values: DatetimeArray,
         nat_rep: str = "NaT",
         date_format: None = None,
         **kwargs,
@@ -1637,21 +1576,23 @@ class Datetime64Formatter(GenericArrayFormatter):
         """we by definition have DO NOT have a TZ"""
         values = self.values
 
-        if not isinstance(values, DatetimeIndex):
-            values = DatetimeIndex(values)
+        dti = DatetimeIndex(values)
 
         if self.formatter is not None and callable(self.formatter):
-            return [self.formatter(x) for x in values]
+            return [self.formatter(x) for x in dti]
 
-        fmt_values = values._data._format_native_types(
+        fmt_values = dti._data._format_native_types(
             na_rep=self.nat_rep, date_format=self.date_format
         )
         return fmt_values.tolist()
 
 
-class ExtensionArrayFormatter(GenericArrayFormatter):
+class _ExtensionArrayFormatter(_GenericArrayFormatter):
+    values: ExtensionArray
+
     def _format_strings(self) -> list[str]:
         values = extract_array(self.values, extract_numpy=True)
+        values = cast(ExtensionArray, values)
 
         formatter = self.formatter
         fallback_formatter = None
@@ -1749,31 +1690,6 @@ def format_percentiles(
     return [i + "%" for i in out]
 
 
-def is_dates_only(values: np.ndarray | DatetimeArray | Index | DatetimeIndex) -> bool:
-    # return a boolean if we are only dates (and don't have a timezone)
-    if not isinstance(values, Index):
-        values = values.ravel()
-
-    if not isinstance(values, (DatetimeArray, DatetimeIndex)):
-        values = DatetimeIndex(values)
-
-    if values.tz is not None:
-        return False
-
-    values_int = values.asi8
-    consider_values = values_int != iNaT
-    # error: Argument 1 to "py_get_unit_from_dtype" has incompatible type
-    # "Union[dtype[Any], ExtensionDtype]"; expected "dtype[Any]"
-    reso = get_unit_from_dtype(values.dtype)  # type: ignore[arg-type]
-    ppd = periods_per_day(reso)
-
-    # TODO: can we reuse is_date_array_normalized?  would need a skipna kwd
-    even_days = np.logical_and(consider_values, values_int % ppd != 0).sum() == 0
-    if even_days:
-        return True
-    return False
-
-
 def _format_datetime64(x: NaTType | Timestamp, nat_rep: str = "NaT") -> str:
     if x is NaT:
         return nat_rep
@@ -1799,12 +1715,12 @@ def _format_datetime64_dateonly(
 
 
 def get_format_datetime64(
-    is_dates_only_: bool, nat_rep: str = "NaT", date_format: str | None = None
+    is_dates_only: bool, nat_rep: str = "NaT", date_format: str | None = None
 ) -> Callable:
     """Return a formatter callable taking a datetime64 as input and providing
     a string as output"""
 
-    if is_dates_only_:
+    if is_dates_only:
         return lambda x: _format_datetime64_dateonly(
             x, nat_rep=nat_rep, date_format=date_format
         )
@@ -1812,26 +1728,12 @@ def get_format_datetime64(
         return lambda x: _format_datetime64(x, nat_rep=nat_rep)
 
 
-def get_format_datetime64_from_values(
-    values: np.ndarray | DatetimeArray | DatetimeIndex, date_format: str | None
-) -> str | None:
-    """given values and a date_format, return a string format"""
-    if isinstance(values, np.ndarray) and values.ndim > 1:
-        # We don't actually care about the order of values, and DatetimeIndex
-        #  only accepts 1D values
-        values = values.ravel()
+class _Datetime64TZFormatter(_Datetime64Formatter):
+    values: DatetimeArray
 
-    ido = is_dates_only(values)
-    if ido:
-        # Only dates and no timezone: provide a default format
-        return date_format or "%Y-%m-%d"
-    return date_format
-
-
-class Datetime64TZFormatter(Datetime64Formatter):
     def _format_strings(self) -> list[str]:
         """we by definition have a TZ"""
-        ido = is_dates_only(self.values)
+        ido = self.values._is_dates_only
         values = self.values.astype(object)
         formatter = self.formatter or get_format_datetime64(
             ido, date_format=self.date_format
@@ -1841,10 +1743,12 @@ class Datetime64TZFormatter(Datetime64Formatter):
         return fmt_values
 
 
-class Timedelta64Formatter(GenericArrayFormatter):
+class _Timedelta64Formatter(_GenericArrayFormatter):
+    values: TimedeltaArray
+
     def __init__(
         self,
-        values: np.ndarray | TimedeltaIndex,
+        values: TimedeltaArray,
         nat_rep: str = "NaT",
         box: bool = False,
         **kwargs,
@@ -1861,7 +1765,7 @@ class Timedelta64Formatter(GenericArrayFormatter):
 
 
 def get_format_timedelta64(
-    values: np.ndarray | TimedeltaIndex | TimedeltaArray,
+    values: TimedeltaArray,
     nat_rep: str | float = "NaT",
     box: bool = False,
 ) -> Callable:
@@ -1872,18 +1776,13 @@ def get_format_timedelta64(
     If box, then show the return in quotes
     """
     values_int = values.view(np.int64)
+    values_int = cast("npt.NDArray[np.int64]", values_int)
 
     consider_values = values_int != iNaT
 
     one_day_nanos = 86400 * 10**9
-    # error: Unsupported operand types for % ("ExtensionArray" and "int")
-    not_midnight = values_int % one_day_nanos != 0  # type: ignore[operator]
-    # error: Argument 1 to "__call__" of "ufunc" has incompatible type
-    # "Union[Any, ExtensionArray, ndarray]"; expected
-    # "Union[Union[int, float, complex, str, bytes, generic],
-    # Sequence[Union[int, float, complex, str, bytes, generic]],
-    # Sequence[Sequence[Any]], _SupportsArray]"
-    both = np.logical_and(consider_values, not_midnight)  # type: ignore[arg-type]
+    not_midnight = values_int % one_day_nanos != 0
+    both = np.logical_and(consider_values, not_midnight)
     even_days = both.sum() == 0
 
     if even_days:
@@ -1911,7 +1810,7 @@ def _make_fixed_width(
     strings: list[str],
     justify: str = "right",
     minimum: int | None = None,
-    adj: TextAdjustment | None = None,
+    adj: _TextAdjustment | None = None,
 ) -> list[str]:
     if len(strings) == 0 or justify == "all":
         return strings
@@ -1941,7 +1840,7 @@ def _make_fixed_width(
     return result
 
 
-def _trim_zeros_complex(str_complexes: np.ndarray, decimal: str = ".") -> list[str]:
+def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[str]:
     """
     Separates the real and imaginary parts from the complex number, and
     executes the _trim_zeros_float method on each of those.
@@ -1987,7 +1886,7 @@ def _trim_zeros_single_float(str_float: str) -> str:
 
 
 def _trim_zeros_float(
-    str_floats: np.ndarray | list[str], decimal: str = "."
+    str_floats: ArrayLike | list[str], decimal: str = "."
 ) -> list[str]:
     """
     Trims the maximum number of trailing zeros equally from
@@ -2000,7 +1899,7 @@ def _trim_zeros_float(
     def is_number_with_decimal(x) -> bool:
         return re.match(number_regex, x) is not None
 
-    def should_trim(values: np.ndarray | list[str]) -> bool:
+    def should_trim(values: ArrayLike | list[str]) -> bool:
         """
         Determine if an array of strings should be trimmed.
 
