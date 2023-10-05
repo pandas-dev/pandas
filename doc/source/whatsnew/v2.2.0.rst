@@ -389,6 +389,8 @@ Styler
 Other
 ^^^^^
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
+- Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`??`)
+-
 
 .. ***DO NOT USE THIS SECTION***
 
