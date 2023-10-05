@@ -2167,11 +2167,11 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
         if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = format_array(self.categories[:num])
-            tail = format_array(self.categories[-num:])
+            head = format_array(self.categories[:num]._values)
+            tail = format_array(self.categories[-num:]._values)
             category_strs = head + ["..."] + tail
         else:
-            category_strs = format_array(self.categories)
+            category_strs = format_array(self.categories._values)
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
