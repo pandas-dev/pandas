@@ -3186,7 +3186,7 @@ class TestRepr_timedelta64:
 
 class TestTimedelta64Formatter:
     def test_days(self):
-        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")
+        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x, box=True).get_result()
         assert result[0].strip() == "'0 days'"
         assert result[1].strip() == "'1 days'"
@@ -3202,48 +3202,48 @@ class TestTimedelta64Formatter:
         assert result[0].strip() == "1 days"
 
     def test_days_neg(self):
-        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")
+        x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(-x, box=True).get_result()
         assert result[0].strip() == "'0 days'"
         assert result[1].strip() == "'-1 days'"
 
     def test_subdays(self):
-        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")
+        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(y, box=True).get_result()
         assert result[0].strip() == "'0 days 00:00:00'"
         assert result[1].strip() == "'0 days 00:00:01'"
 
     def test_subdays_neg(self):
-        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")
+        y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
         result = fmt._Timedelta64Formatter(-y, box=True).get_result()
         assert result[0].strip() == "'0 days 00:00:00'"
         assert result[1].strip() == "'-1 days +23:59:59'"
 
     def test_zero(self):
-        x = pd.to_timedelta(list(range(1)) + [NaT], unit="D")
+        x = pd.to_timedelta(list(range(1)) + [NaT], unit="D")._values
         result = fmt._Timedelta64Formatter(x, box=True).get_result()
         assert result[0].strip() == "'0 days'"
 
-        x = pd.to_timedelta(list(range(1)), unit="D")
+        x = pd.to_timedelta(list(range(1)), unit="D")._values
         result = fmt._Timedelta64Formatter(x, box=True).get_result()
         assert result[0].strip() == "'0 days'"
 
 
 class Test_Datetime64Formatter:
     def test_mixed(self):
-        x = Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), NaT])
+        x = Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), NaT])._values
         result = fmt._Datetime64Formatter(x).get_result()
         assert result[0].strip() == "2013-01-01 00:00:00"
         assert result[1].strip() == "2013-01-01 12:00:00"
 
     def test_dates(self):
-        x = Series([datetime(2013, 1, 1), datetime(2013, 1, 2), NaT])
+        x = Series([datetime(2013, 1, 1), datetime(2013, 1, 2), NaT])._values
         result = fmt._Datetime64Formatter(x).get_result()
         assert result[0].strip() == "2013-01-01"
         assert result[1].strip() == "2013-01-02"
 
     def test_date_nanos(self):
-        x = Series([Timestamp(200)])
+        x = Series([Timestamp(200)])._values
         result = fmt._Datetime64Formatter(x).get_result()
         assert result[0].strip() == "1970-01-01 00:00:00.000000200"
 
@@ -3252,41 +3252,41 @@ class Test_Datetime64Formatter:
         # make sure that we are consistently display date formatting
         x = Series(date_range("20130101 09:00:00", periods=5, freq="D"))
         x.iloc[1] = np.nan
-        result = fmt._Datetime64Formatter(x).get_result()
+        result = fmt._Datetime64Formatter(x._values).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-05 09:00:00"
 
         x = Series(date_range("20130101 09:00:00", periods=5, freq="s"))
         x.iloc[1] = np.nan
-        result = fmt._Datetime64Formatter(x).get_result()
+        result = fmt._Datetime64Formatter(x._values).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:04"
 
         x = Series(date_range("20130101 09:00:00", periods=5, freq="ms"))
         x.iloc[1] = np.nan
-        result = fmt._Datetime64Formatter(x).get_result()
+        result = fmt._Datetime64Formatter(x._values).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00.000"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:00.004"
 
         x = Series(date_range("20130101 09:00:00", periods=5, freq="us"))
         x.iloc[1] = np.nan
-        result = fmt._Datetime64Formatter(x).get_result()
+        result = fmt._Datetime64Formatter(x._values).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00.000000"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:00.000004"
 
         x = Series(date_range("20130101 09:00:00", periods=5, freq="ns"))
         x.iloc[1] = np.nan
-        result = fmt._Datetime64Formatter(x).get_result()
+        result = fmt._Datetime64Formatter(x._values).get_result()
         assert result[0].strip() == "2013-01-01 09:00:00.000000000"
         assert result[1].strip() == "NaT"
         assert result[4].strip() == "2013-01-01 09:00:00.000000004"
 
     def test_datetime64formatter_yearmonth(self):
-        x = Series([datetime(2016, 1, 1), datetime(2016, 2, 2)])
+        x = Series([datetime(2016, 1, 1), datetime(2016, 2, 2)])._values
 
         def format_func(x):
             return x.strftime("%Y-%m")
@@ -3298,7 +3298,7 @@ class Test_Datetime64Formatter:
     def test_datetime64formatter_hoursecond(self):
         x = Series(
             pd.to_datetime(["10:10:10.100", "12:12:12.120"], format="%H:%M:%S.%f")
-        )
+        )._values
 
         def format_func(x):
             return x.strftime("%H:%M")
