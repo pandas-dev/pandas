@@ -5004,6 +5004,42 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             tolerance=tolerance,
         )
 
+    @overload
+    def rename_axis(  # type: ignore[override]
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index = ...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: Literal[True],
+    ) -> None:
+        ...
+
+    @overload
+    def rename_axis(  # type: ignore[override]
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index = ...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: Literal[False] = ...,
+    ) -> Self:
+        ...
+
+    @overload
+    def rename_axis(  # type: ignore[override]
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index = ...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: bool = ...,
+    ) -> Self | None:
+        ...
+
     @doc(NDFrame.rename_axis)
     def rename_axis(  # type: ignore[override]
         self,
