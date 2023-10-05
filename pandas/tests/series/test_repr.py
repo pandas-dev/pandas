@@ -22,7 +22,7 @@ import pandas._testing as tm
 
 class TestSeriesRepr:
     def test_multilevel_name_print_0(self):
-        # None does not get printed, but 0 does
+        # GH#55415 None does not get printed, but 0 does
         # (matching DataFrame and flat index behavior)
         mi = pd.MultiIndex.from_product([range(2, 3), range(3, 4)], names=[0, None])
         ser = Series(1.5, index=mi)
