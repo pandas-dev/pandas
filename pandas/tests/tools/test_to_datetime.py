@@ -3686,3 +3686,11 @@ def test_to_datetime_with_empty_str_utc_false_offsets_and_format_mixed():
         to_datetime(
             ["2020-01-01 00:00+00:00", "2020-01-01 00:00+02:00", ""], format="mixed"
         )
+
+
+def test_to_datetime_parse_error_for_more_than_50rows():
+    # GH-55345
+    msg = 'when parsing with format "%Y-%m-%d": " 09", at position 50.'
+
+    with pytest.raises(ValueError, match=msg):
+        to_datetime(["2012-01-01"] * 50 + ["2012-01-02 09"])
