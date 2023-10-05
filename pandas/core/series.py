@@ -5004,12 +5004,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             tolerance=tolerance,
         )
 
-    @overload
-    def rename_axis(  # type: ignore[override]
+    @overload  # type: ignore[override]
+    def rename_axis(
         self,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
-        index = ...,
+        index=...,
         axis: Axis = ...,
         copy: bool = ...,
         inplace: Literal[True],
@@ -5017,11 +5017,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ...
 
     @overload
-    def rename_axis(  # type: ignore[override]
+    def rename_axis(
         self,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
-        index = ...,
+        index=...,
         axis: Axis = ...,
         copy: bool = ...,
         inplace: Literal[False] = ...,
@@ -5029,11 +5029,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ...
 
     @overload
-    def rename_axis(  # type: ignore[override]
+    def rename_axis(
         self,
         mapper: IndexLabel | lib.NoDefault = ...,
         *,
-        index = ...,
+        index=...,
         axis: Axis = ...,
         copy: bool = ...,
         inplace: bool = ...,
@@ -5041,7 +5041,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ...
 
     @doc(NDFrame.rename_axis)
-    def rename_axis(  # type: ignore[override]
+    def rename_axis(
         self,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
         *,
