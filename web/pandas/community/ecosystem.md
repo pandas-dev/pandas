@@ -345,6 +345,23 @@ which pandas excels.
 
 ## IO
 
+### [NTV-pandas](https://github.com/loco-philippe/ntv-pandas)*: A semantic, compact and reversible JSON-pandas converter*
+
+pandas provides JSON converter but three limitations are present:
+- the JSON-pandas converter take into account few data types,
+- the JSON-pandas converter is not always reversible (conversion round trip),
+- external data types (e.g. TableSchema types) are not included.
+
+The NTV-pandas converter uses the [semantic NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
+ to include a large set of data types in a JSON representation.
+
+The converter integrates:
+- all the pandas `dtype` and the data-type associated to a JSON representation,
+- an always reversible conversion,
+- a full compatibility with [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats).
+
+NTV-pandas was developped originally in the [json-NTV project](https://github.com/loco-philippe/NTV)
+
 ### [BCPandas](https://github.com/yehoshuadimarsky/bcpandas)
 
 BCPandas provides high performance writes from pandas to Microsoft SQL Server,
