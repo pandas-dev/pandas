@@ -30,6 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     using_copy_on_write,
+    warn_copy_on_write,
 )
 
 from pandas._libs import lib
@@ -4396,7 +4397,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         df.iloc[0:5]['group'] = 'a'
 
         """
-        if using_copy_on_write():
+        if using_copy_on_write() or warn_copy_on_write():
             return
 
         # return early if the check is not needed

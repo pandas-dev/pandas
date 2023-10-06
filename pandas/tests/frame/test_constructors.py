@@ -293,16 +293,21 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view_dataframe(self, using_copy_on_write):
+    def test_constructor_dtype_nocast_view_dataframe(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
         if using_copy_on_write:
             should_be_view.iloc[0, 0] = 99
             assert df.values[0, 0] == 1
         else:
-            should_be_view[0][0] = 99
+            warn = FutureWarning if warn_copy_on_write else None
+            with tm.assert_produces_warning(warn):
+                should_be_view[0][0] = 99
             assert df.values[0, 0] == 99
 
+    @pytest.mark.filterwarnings("ignore:Setting value on view:FutureWarning")
     def test_constructor_dtype_nocast_view_2d_array(
         self, using_array_manager, using_copy_on_write
     ):

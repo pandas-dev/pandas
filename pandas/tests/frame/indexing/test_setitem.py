@@ -1271,7 +1271,9 @@ class TestDataFrameSetitemCopyViewSemantics:
         tm.assert_frame_equal(view, expected)
 
     @td.skip_array_manager_invalid_test
-    def test_setitem_column_update_inplace(self, using_copy_on_write):
+    def test_setitem_column_update_inplace(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # https://github.com/pandas-dev/pandas/issues/47172
 
         labels = [f"c{i}" for i in range(10)]
@@ -1279,8 +1281,10 @@ class TestDataFrameSetitemCopyViewSemantics:
         values = df._mgr.blocks[0].values
 
         if not using_copy_on_write:
-            for label in df.columns:
-                df[label][label] = 1
+            warn = FutureWarning if warn_copy_on_write else None
+            with tm.assert_produces_warning(warn):
+                for label in df.columns:
+                    df[label][label] = 1
 
             # diagonal values all updated
             assert np.all(values[np.arange(10), np.arange(10)] == 1)

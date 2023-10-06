@@ -427,10 +427,10 @@ def test_indexing():
     # getting
 
     # GH 3070, make sure semantics work on Series/Frame
-    expected = ts["2001"]
-    expected.name = "A"
+    result = ts["2001"]
+    tm.assert_series_equal(result, ts.iloc[:12])
 
-    df = DataFrame({"A": ts})
+    df = DataFrame({"A": ts.copy()})
 
     # GH#36179 pre-2.0 df["2001"] operated as slicing on rows. in 2.0 it behaves
     #  like any other key, so raises
@@ -438,14 +438,16 @@ def test_indexing():
         df["2001"]
 
     # setting
+    ts = Series(np.random.default_rng(2).random(len(idx)), index=idx)
+    expected = ts.copy()
+    expected.iloc[:12] = 1
     ts["2001"] = 1
-    expected = ts["2001"]
-    expected.name = "A"
+    tm.assert_series_equal(ts, expected)
 
+    expected = df.copy()
+    expected.iloc[:12, 0] = 1
     df.loc["2001", "A"] = 1
-
-    with pytest.raises(KeyError, match="2001"):
-        df["2001"]
+    tm.assert_frame_equal(df, expected)
 
 
 def test_getitem_str_month_with_datetimeindex():

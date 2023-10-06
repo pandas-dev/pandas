@@ -16,7 +16,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 
 from pandas._libs import (
     internals as libinternals,
@@ -1988,9 +1991,17 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         in place, not returning a new Manager (and Block), and thus never changing
         the dtype.
         """
-        if using_copy_on_write() and not self._has_no_reference(0):
-            self.blocks = (self._block.copy(),)
-            self._cache.clear()
+        if not self._has_no_reference(0):
+            if using_copy_on_write():
+                self.blocks = (self._block.copy(),)
+                self._cache.clear()
+            elif warn_copy_on_write():
+                warnings.warn(
+                    "Setting value on view: behaviour will change in pandas 3.0 "
+                    "with Copy-on-Write ...",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         super().setitem_inplace(indexer, value)
 
