@@ -1748,16 +1748,15 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
         self,
         values: TimedeltaArray,
         nat_rep: str = "NaT",
-        box: bool = False,
         **kwargs,
     ) -> None:
+        # TODO: nat_rep is never passed, na_rep is.
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
-        self.box = box
 
     def _format_strings(self) -> list[str]:
         formatter = self.formatter or get_format_timedelta64(
-            self.values, nat_rep=self.nat_rep, box=self.box
+            self.values, nat_rep=self.nat_rep, box=False
         )
         return [formatter(x) for x in self.values]
 
