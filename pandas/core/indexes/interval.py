@@ -844,7 +844,6 @@ class IntervalIndex(ExtensionIndex):
 
     # --------------------------------------------------------------------
     # Rendering Methods
-    # __repr__ associated methods are based on MultiIndex
 
     def _format_with_header(self, *, header: list[str], na_rep: str) -> list[str]:
         # matches base class except for whitespace padding
