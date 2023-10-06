@@ -3249,10 +3249,12 @@ def test_get_group_axis_1():
 
 def test_groupby_ffill_with_duplicated_index():
     # GH#43412
-    df = DataFrame({"a": [1, 2, np.nan, 3, 4, 5]}, index=[0, 1, 2, 0, 1, 2])
+    df = DataFrame(
+        {"a": [1, 2, 3, 4, np.nan, np.nan]}, index=[0, 1, 2, 0, 1, 2], dtype=float
+    )
 
-    result = df.groupby(level=0).shift().ffill()
+    result = df.groupby(level=0).ffill()
     expected = DataFrame(
-        {"a": [np.nan, np.nan, np.nan, 1, 2, 2]}, index=[0, 1, 2, 0, 1, 2]
+        {"a": [1, 2, 3, 4, 2, 3]}, index=[0, 1, 2, 0, 1, 2], dtype=float
     )
     tm.assert_frame_equal(result, expected)
