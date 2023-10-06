@@ -18,7 +18,7 @@ Short summary of the proposal:
    views as much as possible under the hood, while ensuring the user API behaves as a
    copy.
 3. As a consequence, if you want to modify an object (DataFrame or Series), the only way
-   to do this is to modify that object itself directly.
+   to do this is to directly modify that object itself .
 
 This addresses multiple aspects: 1) a clear and consistent user API (a clear rule: _any_
 subset or returned series/dataframe **always** behaves as a copy of the original, and
