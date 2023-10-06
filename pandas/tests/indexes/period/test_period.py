@@ -18,7 +18,7 @@ import pandas._testing as tm
 
 class TestPeriodIndex:
     def test_make_time_series(self):
-        index = period_range(freq="A", start="1/1/2001", end="12/1/2009")
+        index = period_range(freq="Y", start="1/1/2001", end="12/1/2009")
         series = Series(1, index=index)
         assert isinstance(series, Series)
 
@@ -67,7 +67,7 @@ class TestPeriodIndex:
         tm.assert_numpy_array_equal(idx.asi8, exp)
 
     def test_period_index_length(self):
-        pi = period_range(freq="A", start="1/1/2001", end="12/1/2009")
+        pi = period_range(freq="Y", start="1/1/2001", end="12/1/2009")
         assert len(pi) == 9
 
         pi = period_range(freq="Q", start="1/1/2001", end="12/1/2009")
@@ -157,7 +157,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "periodindex",
         [
-            period_range(freq="A", start="1/1/2001", end="12/1/2005"),
+            period_range(freq="Y", start="1/1/2001", end="12/1/2005"),
             period_range(freq="Q", start="1/1/2001", end="12/1/2002"),
             period_range(freq="M", start="1/1/2001", end="1/1/2002"),
             period_range(freq="D", start="12/1/2001", end="6/1/2001"),
@@ -187,7 +187,7 @@ class TestPeriodIndex:
             assert getattr(x, field) == val
 
     def test_is_(self):
-        create_index = lambda: period_range(freq="A", start="1/1/2001", end="12/1/2009")
+        create_index = lambda: period_range(freq="Y", start="1/1/2001", end="12/1/2009")
         index = create_index()
         assert index.is_(index)
         assert not index.is_(create_index())
@@ -199,23 +199,23 @@ class TestPeriodIndex:
         assert ind2.is_(index)
         assert not index.is_(index[:])
         assert not index.is_(index.asfreq("M"))
-        assert not index.is_(index.asfreq("A"))
+        assert not index.is_(index.asfreq("Y"))
 
         assert not index.is_(index - 2)
         assert not index.is_(index - 0)
 
     def test_index_unique(self):
-        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
-        expected = PeriodIndex([2000, 2007, 2009], freq="A-JUN")
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="Y-JUN")
+        expected = PeriodIndex([2000, 2007, 2009], freq="Y-JUN")
         tm.assert_index_equal(idx.unique(), expected)
         assert idx.nunique() == 3
 
     def test_negative_ordinals(self):
-        Period(ordinal=-1000, freq="A")
-        Period(ordinal=0, freq="A")
+        Period(ordinal=-1000, freq="Y")
+        Period(ordinal=0, freq="Y")
 
-        idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq="A")
-        idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq="A")
+        idx1 = PeriodIndex(ordinal=[-1, 0, 1], freq="Y")
+        idx2 = PeriodIndex(ordinal=np.array([-1, 0, 1]), freq="Y")
         tm.assert_index_equal(idx1, idx2)
 
     def test_pindex_fieldaccessor_nat(self):
@@ -267,14 +267,14 @@ class TestPeriodIndex:
     def test_map(self):
         # test_map_dictlike generally tests
 
-        index = PeriodIndex([2005, 2007, 2009], freq="A")
+        index = PeriodIndex([2005, 2007, 2009], freq="Y")
         result = index.map(lambda x: x.ordinal)
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
 
     def test_format_empty(self):
         # GH35712
-        empty_idx = PeriodIndex([], freq="A")
+        empty_idx = PeriodIndex([], freq="Y")
         assert empty_idx.format() == []
         assert empty_idx.format(name=True) == [""]
 
@@ -283,6 +283,17 @@ class TestPeriodIndex:
 
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2020-01-01", "2020-01-02"], freq="2ME")
+
+    @pytest.mark.parametrize("freq", ["2A", "A-DEC", "200A-AUG"])
+    def test_a_deprecated_from_time_series(self, freq):
+        # GH#52536
+        freq_msg = freq[freq.index("A") :]
+        msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index = period_range(freq=freq, start="1/1/2001", end="12/1/2009")
+        series = Series(1, index=index)
+        assert isinstance(series, Series)
 
 
 def test_maybe_convert_timedelta():
