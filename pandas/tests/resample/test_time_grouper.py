@@ -24,7 +24,7 @@ def test_series():
 
 
 def test_apply(test_series):
-    grouper = Grouper(freq="A", label="right", closed="right")
+    grouper = Grouper(freq="Y", label="right", closed="right")
 
     grouped = test_series.groupby(grouper)
 
@@ -44,18 +44,18 @@ def test_count(test_series):
 
     expected = test_series.groupby(lambda x: x.year).count()
 
-    grouper = Grouper(freq="A", label="right", closed="right")
+    grouper = Grouper(freq="Y", label="right", closed="right")
     result = test_series.groupby(grouper).count()
     expected.index = result.index
     tm.assert_series_equal(result, expected)
 
-    result = test_series.resample("A").count()
+    result = test_series.resample("Y").count()
     expected.index = result.index
     tm.assert_series_equal(result, expected)
 
 
 def test_numpy_reduction(test_series):
-    result = test_series.resample("A", closed="right").prod()
+    result = test_series.resample("Y", closed="right").prod()
 
     msg = "using SeriesGroupBy.prod"
     with tm.assert_produces_warning(FutureWarning, match=msg):

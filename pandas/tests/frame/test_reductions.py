@@ -912,7 +912,7 @@ class TestDataFrameAnalytics:
                 "A": np.arange(3),
                 "B": date_range("2016-01-01", periods=3),
                 "C": pd.timedelta_range("1D", periods=3),
-                "D": pd.period_range("2016", periods=3, freq="A"),
+                "D": pd.period_range("2016", periods=3, freq="Y"),
             }
         )
         result = df.mean(numeric_only=True)
@@ -937,7 +937,7 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
         # mean of period is not allowed
-        df["D"] = pd.period_range("2016", periods=3, freq="A")
+        df["D"] = pd.period_range("2016", periods=3, freq="Y")
 
         with pytest.raises(TypeError, match="mean is not implemented for Period"):
             df.mean(numeric_only=False)

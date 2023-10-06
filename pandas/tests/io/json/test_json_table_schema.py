@@ -150,7 +150,7 @@ class TestTableSchemaType:
             pd.to_datetime(["2016"], utc=True),
             pd.Series(pd.to_datetime(["2016"])),
             pd.Series(pd.to_datetime(["2016"], utc=True)),
-            pd.period_range("2016", freq="A", periods=3),
+            pd.period_range("2016", freq="Y", periods=3),
         ],
     )
     def test_as_json_table_type_date_data(self, date_data):
@@ -480,9 +480,9 @@ class TestTableOrient:
         assert result == expected
 
     def test_convert_pandas_type_to_json_period_range(self):
-        arr = pd.period_range("2016", freq="A-DEC", periods=4)
+        arr = pd.period_range("2016", freq="Y-DEC", periods=4)
         result = convert_pandas_type_to_json_field(arr)
-        expected = {"name": "values", "type": "datetime", "freq": "A-DEC"}
+        expected = {"name": "values", "type": "datetime", "freq": "Y-DEC"}
         assert result == expected
 
     @pytest.mark.parametrize("kind", [pd.Categorical, pd.CategoricalIndex])

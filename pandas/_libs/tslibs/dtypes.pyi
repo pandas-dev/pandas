@@ -7,6 +7,7 @@ from pandas._libs.tslibs.timedeltas import UnitChoices
 _attrname_to_abbrevs: dict[str, str]
 _period_code_map: dict[str, int]
 OFFSET_TO_PERIOD_FREQSTR: dict[str, str]
+OFFSET_DEPR_FREQSTR: dict[str, str]
 DEPR_ABBREVS: dict[str, UnitChoices]
 
 def periods_per_day(reso: int) -> int: ...

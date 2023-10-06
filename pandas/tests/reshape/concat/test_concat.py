@@ -30,8 +30,8 @@ from pandas.tests.extension.decimal import to_decimal
 class TestConcatenate:
     def test_append_concat(self):
         # GH#1815
-        d1 = date_range("12/31/1990", "12/31/1999", freq="A-DEC")
-        d2 = date_range("12/31/2000", "12/31/2009", freq="A-DEC")
+        d1 = date_range("12/31/1990", "12/31/1999", freq="Y-DEC")
+        d2 = date_range("12/31/2000", "12/31/2009", freq="Y-DEC")
 
         s1 = Series(np.random.default_rng(2).standard_normal(10), d1)
         s2 = Series(np.random.default_rng(2).standard_normal(10), d2)

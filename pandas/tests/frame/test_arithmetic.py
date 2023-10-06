@@ -1236,7 +1236,7 @@ class TestFrameArithmeticUnsorted:
         assert result.index.tz is timezone.utc
 
     def test_align_frame(self):
-        rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
+        rng = pd.period_range("1/1/2000", "1/1/2010", freq="Y")
         ts = DataFrame(
             np.random.default_rng(2).standard_normal((len(rng), 3)), index=rng
         )

@@ -1306,7 +1306,7 @@ class TestSeriesConstructors:
         assert isna(series[2])
 
     def test_constructor_period_incompatible_frequency(self):
-        data = [Period("2000", "D"), Period("2001", "A")]
+        data = [Period("2000", "D"), Period("2001", "Y")]
         result = Series(data)
         assert result.dtype == object
         assert result.tolist() == data

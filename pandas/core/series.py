@@ -5672,7 +5672,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023    1
         2024    2
         2025    3
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
 
         The resulting frequency of the Timestamps is `YearBegin`
 
@@ -5691,7 +5691,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023-01-31    1
         2024-01-31    2
         2025-01-31    3
-        Freq: A-JAN, dtype: int64
+        Freq: Y-JAN, dtype: int64
         """
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
@@ -5726,12 +5726,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023    1
         2024    2
         2025    3
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
 
         Viewing the index
 
         >>> s.index
-        PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
+        PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
         """
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")

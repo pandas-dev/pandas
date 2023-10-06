@@ -12144,7 +12144,7 @@ class DataFrame(NDFrame, OpsMixin):
         For the yearly frequency
 
         >>> idx.to_period("Y")
-        PeriodIndex(['2001', '2002', '2003'], dtype='period[A-DEC]')
+        PeriodIndex(['2001', '2002', '2003'], dtype='period[Y-DEC]')
         """
         new_obj = self.copy(deep=copy and not using_copy_on_write())
 

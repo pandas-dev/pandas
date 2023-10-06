@@ -71,11 +71,11 @@ def test_from_datetime64_freq_2M(freq):
     "data, freq, msg",
     [
         (
-            [pd.Period("2017", "D"), pd.Period("2017", "A")],
+            [pd.Period("2017", "D"), pd.Period("2017", "Y")],
             None,
             "Input has different freq",
         ),
-        ([pd.Period("2017", "D")], "A", "Input has different freq"),
+        ([pd.Period("2017", "D")], "Y", "Input has different freq"),
     ],
 )
 def test_period_array_raises(data, freq, msg):

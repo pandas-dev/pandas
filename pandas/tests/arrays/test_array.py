@@ -350,7 +350,7 @@ def test_array_inference(data, expected):
     "data",
     [
         # mix of frequencies
-        [pd.Period("2000", "D"), pd.Period("2001", "A")],
+        [pd.Period("2000", "D"), pd.Period("2001", "Y")],
         # mix of closed
         [pd.Interval(0, 1, closed="left"), pd.Interval(1, 2, closed="right")],
         # Mix of timezones

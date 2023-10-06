@@ -54,7 +54,7 @@ def test_intra_day_conversion_factors(freq1, freq2, expected):
 
 
 @pytest.mark.parametrize(
-    "freq,expected", [("A", 0), ("M", 0), ("W", 1), ("D", 0), ("B", 0)]
+    "freq,expected", [("Y", 0), ("M", 0), ("W", 1), ("D", 0), ("B", 0)]
 )
 def test_period_ordinal_start_values(freq, expected):
     # information for Jan. 1, 1970.

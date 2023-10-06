@@ -435,7 +435,7 @@ def test_resample_frame_basic_cy_funcs(f, unit):
     g._cython_agg_general(f, alt=None, numeric_only=True)
 
 
-@pytest.mark.parametrize("freq", ["A", "ME"])
+@pytest.mark.parametrize("freq", ["Y", "ME"])
 def test_resample_frame_basic_M_A(freq, unit):
     df = tm.makeTimeDataFrame()
     df.index = df.index.as_unit(unit)
@@ -668,8 +668,8 @@ def test_resample_reresample(unit):
 @pytest.mark.parametrize(
     "freq, expected_kwargs",
     [
-        ["A-DEC", {"start": "1990", "end": "2000", "freq": "a-dec"}],
-        ["A-JUN", {"start": "1990", "end": "2000", "freq": "a-jun"}],
+        ["Y-DEC", {"start": "1990", "end": "2000", "freq": "y-dec"}],
+        ["Y-JUN", {"start": "1990", "end": "2000", "freq": "y-jun"}],
         ["ME", {"start": "1990-01", "end": "2000-01", "freq": "M"}],
     ],
 )
@@ -1246,7 +1246,7 @@ def test_corner_cases_period(simple_period_range_series):
     # miscellaneous test coverage
     len0pts = simple_period_range_series("2007-01", "2010-05", freq="M")[:0]
     # it works
-    result = len0pts.resample("A-DEC").mean()
+    result = len0pts.resample("Y-DEC").mean()
     assert len(result) == 0
 
 
@@ -2021,7 +2021,7 @@ def test_long_rule_non_nano():
                 "1900-12-31",
             ]
         ).astype("datetime64[s]"),
-        freq="200A-DEC",
+        freq="200Y-DEC",
     )
     expected = Series([1.0, 3.0, 6.5, 4.0, 3.0, 6.5, 4.0, 3.0, 6.5], index=expected_idx)
     tm.assert_series_equal(result, expected)
@@ -2044,7 +2044,7 @@ def test_resample_empty_series_with_tz():
 
 
 def test_resample_M_deprecated():
-    depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
+    depr_msg = "'M' will be deprecated, please use 'ME' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
     expected = s.resample("2ME").mean()

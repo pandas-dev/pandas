@@ -274,7 +274,7 @@ def test_is_period_dtype():
         assert not com.is_period_dtype(pd.Period("2017-01-01"))
 
         assert com.is_period_dtype(PeriodDtype(freq="D"))
-        assert com.is_period_dtype(pd.PeriodIndex([], freq="A"))
+        assert com.is_period_dtype(pd.PeriodIndex([], freq="Y"))
 
 
 def test_is_interval_dtype():

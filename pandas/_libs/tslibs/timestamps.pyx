@@ -1249,7 +1249,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> # Year end frequency
         >>> ts.to_period(freq='Y')
-        Period('2020', 'A-DEC')
+        Period('2020', 'Y-DEC')
 
         >>> # Month end frequency
         >>> ts.to_period(freq='M')
