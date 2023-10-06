@@ -192,9 +192,9 @@ class TestToIterable:
             "datetime64[ns, US/Central]",
         ),
         (
-            pd.PeriodIndex([2018, 2019], freq="A"),
+            pd.PeriodIndex([2018, 2019], freq="Y"),
             PeriodArray,
-            pd.core.dtypes.dtypes.PeriodDtype("A-DEC"),
+            pd.core.dtypes.dtypes.PeriodDtype("Y-DEC"),
         ),
         (pd.IntervalIndex.from_breaks([0, 1, 2]), IntervalArray, "interval"),
         (
