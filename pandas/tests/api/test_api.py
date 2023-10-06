@@ -381,3 +381,23 @@ def test_pandas_array_alias():
         res = pd.arrays.PandasArray
 
     assert res is pd.arrays.NumpyExtensionArray
+
+
+@pytest.mark.parametrize("submodule_name", ["groupby"])
+def test_depr_pandas_core_submodule(submodule_name):
+    # GH#27522
+
+    submodule = getattr(pd._core, submodule_name)
+    warning_msg = "pandas.core is deprecated"
+    for submodule_member_name in dir(submodule):
+        if submodule_member_name.startswith("__") and submodule_member_name.endswith(
+            "__"
+        ):
+            continue
+        submodule_member = getattr(submodule, submodule_member_name)
+        with tm.assert_produces_warning(DeprecationWarning, match=warning_msg):
+            core_submodule = __import__(
+                f"pandas.core.{submodule_name}", fromlist=[submodule_member_name]
+            )
+        with tm.assert_produces_warning(DeprecationWarning, match=warning_msg):
+            assert submodule_member is getattr(core_submodule, submodule_member_name)

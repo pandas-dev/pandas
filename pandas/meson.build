@@ -26,6 +26,7 @@ subdir('_libs')
 
 subdirs_list = [
     '_config',
+    '_core',
     '_testing',
     'api',
     'arrays',

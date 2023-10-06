@@ -55,6 +55,8 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "_iLocIndexer",
     # TODO(3.0): GH#55043 - remove upon removal of ArrayManager
     "_get_option",
+    # GH#27522
+    "_depr_core",
 }
 
 

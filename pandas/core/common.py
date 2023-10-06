@@ -650,3 +650,15 @@ def fill_missing_names(names: Sequence[Hashable | None]) -> list[Hashable]:
         list of column names with the None values replaced.
     """
     return [f"level_{i}" if name is None else name for i, name in enumerate(names)]
+
+
+def _depr_core() -> None:
+    warnings.warn(
+        "pandas.core is deprecated and has been renamed to "
+        "pandas._core. Accessing `_core` directly is discouraged as "
+        "members can change without warning.  You should use a public module "
+        "instead that exports the attribute in question. If you still would "
+        "like to access an attribute from it, please use pandas._core.",
+        DeprecationWarning,
+        stacklevel=3,
+    )
