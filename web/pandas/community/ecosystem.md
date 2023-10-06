@@ -347,20 +347,24 @@ which pandas excels.
 
 ### [NTV-pandas](https://github.com/loco-philippe/ntv-pandas)*: A semantic, compact and reversible JSON-pandas converter*
 
-pandas provides JSON converter but three limitations are present:
-- the JSON-pandas converter take into account few data types,
-- the JSON-pandas converter is not always reversible (conversion round trip),
-- external data types (e.g. TableSchema types) are not included.
+NTV-pandas provides a JSON converter with more data types than the ones supported by pandas directly.
 
-The NTV-pandas converter uses the [semantic NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
- to include a large set of data types in a JSON representation.
+It supports the following data types: 
+- pandas data types
+- data types defined in the [NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
+- data types defined in [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats)
 
-The converter integrates:
-- all the pandas `dtype` and the data-type associated to a JSON representation,
-- an always reversible conversion,
-- a full compatibility with [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats).
+The interface is always reversible (conversion round trip) with two formats (JSON-NTV and JSON-TableSchema).
 
-NTV-pandas was developed originally in the [json-NTV project](https://github.com/loco-philippe/NTV)
+*example*
+```python
+import ntv_pandas as npd
+
+jsn = df.npd.to_json(table=False) # save df as a JSON-value (format Table Schema if table is True else format NTV ) 
+df  = npd.read_json(jsn)  # load a JSON-value as a DataFrame
+
+df.equals(npd.read_json(df.npd.to_json(df))) # True in any case, whether table=True or not
+```
 
 ### [BCPandas](https://github.com/yehoshuadimarsky/bcpandas)
 
