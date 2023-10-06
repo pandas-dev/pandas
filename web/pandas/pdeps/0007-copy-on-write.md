@@ -440,13 +440,22 @@ is actually guaranteed to always be a view:
 ```python
 >>> df = pd.DataFrame({"A": [1, 2], "B": [3, 4], "C": [5, 6]})
 >>> s = df["A"]
->>> s.iloc[0] = 0   # will also modify df (but no longer with this proposal)
+>>> s.loc[0] = 0   # will also modify df (but no longer with this proposal)
 ```
 
 _With this proposal_, any indexing operation results in a copy, so also accessing a
 column as a Series (in practice, it will still be a view of course, but behave as a copy
 through Copy-on-Write). In the above example, mutating `s` will no longer modify the
 parent `df`.
+
+This situation is similar as the "chained assignment" case above, except with
+an explicit intermediate variable. To actually change the original DataFrame,
+the solution is the same: mutate directly the DataFrame in a single step.
+For example:
+
+```python
+>>> df.loc[0, "A"] = 0
+```
 
 ### "Shallow" copies
 
