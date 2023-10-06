@@ -345,11 +345,12 @@ which pandas excels.
 
 ## IO
 
-### [NTV-pandas](https://github.com/loco-philippe/ntv-pandas)*: A semantic, compact and reversible JSON-pandas converter*
+### [NTV-pandas](https://github.com/loco-philippe/ntv-pandas): *A semantic, compact and reversible JSON-pandas converter*
 
-NTV-pandas provides a JSON converter with more data types than the ones supported by pandas directly.
+`NTV-pandas` provides a JSON converter with more data types than the ones supported by pandas directly.
 
 It supports the following data types:
+
 - pandas data types
 - data types defined in the [NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
 - data types defined in [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats)
