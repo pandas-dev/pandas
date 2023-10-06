@@ -1652,9 +1652,9 @@ def _get_level_lengths(
         Result is a dictionary of (level, initial_position): span
     """
     if isinstance(index, MultiIndex):
-        levels = index._format_multi(sparsify=lib.no_default, names=False)
+        levels = index._format_multi(sparsify=lib.no_default, include_names=False)
     else:
-        levels = index._format_flat(name=False)
+        levels = index._format_flat(include_name=False)
 
     if hidden_elements is None:
         hidden_elements = []

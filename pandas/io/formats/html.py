@@ -282,7 +282,7 @@ class HTMLFormatter:
                 sentinel = lib.no_default
             else:
                 sentinel = False
-            levels = self.columns._format_multi(sparsify=sentinel, names=False)
+            levels = self.columns._format_multi(sparsify=sentinel, include_names=False)
             level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
             for lnum, (records, values) in enumerate(zip(level_lengths, levels)):
@@ -438,7 +438,7 @@ class HTMLFormatter:
                 index_values = self.fmt.tr_frame.index.map(fmt)
             else:
                 # only reached with non-Multi index
-                index_values = self.fmt.tr_frame.index._format_flat(name=False)
+                index_values = self.fmt.tr_frame.index._format_flat(include_name=False)
 
         row: list[str] = []
         for i in range(nrows):
@@ -481,13 +481,13 @@ class HTMLFormatter:
         nrows = len(frame)
 
         assert isinstance(frame.index, MultiIndex)
-        idx_values = frame.index._format_multi(sparsify=False, names=False)
+        idx_values = frame.index._format_multi(sparsify=False, include_names=False)
         idx_values = list(zip(*idx_values))
 
         if self.fmt.sparsify:
             # GH3547
             sentinel = lib.no_default
-            levels = frame.index._format_multi(sparsify=sentinel, names=False)
+            levels = frame.index._format_multi(sparsify=sentinel, include_names=False)
 
             level_lengths = get_level_lengths(levels, sentinel)
             inner_lvl = len(level_lengths) - 1
@@ -580,7 +580,7 @@ class HTMLFormatter:
                     )
 
                 idx_values = list(
-                    zip(*frame.index._format_multi(sparsify=False, names=False))
+                    zip(*frame.index._format_multi(sparsify=False, include_names=False))
                 )
                 row = []
                 row.extend(idx_values[i])
@@ -608,7 +608,7 @@ class NotebookFormatter(HTMLFormatter):
 
     def _get_columns_formatted_values(self) -> list[str]:
         # only reached with non-Multi Index
-        return self.columns._format_flat(name=False)
+        return self.columns._format_flat(include_name=False)
 
     def write_style(self) -> None:
         # We use the "scoped" attribute here so that the desired

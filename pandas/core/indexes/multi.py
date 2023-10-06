@@ -1447,7 +1447,7 @@ class MultiIndex(Index):
     def _format_multi(
         self,
         *,
-        names: bool,
+        include_names: bool,
         sparsify: bool | None | lib.NoDefault,
     ) -> list:
         if len(self) == 0:
@@ -1458,7 +1458,7 @@ class MultiIndex(Index):
             na = _get_na_rep(lev.dtype)
 
             if len(lev) > 0:
-                formatted = lev.take(level_codes)._format_flat(name=False)
+                formatted = lev.take(level_codes)._format_flat(include_name=False)
 
                 # we have some NA
                 mask = level_codes == -1
@@ -1479,7 +1479,7 @@ class MultiIndex(Index):
         for lev, lev_name in zip(stringified_levels, self.names):
             level = []
 
-            if names:
+            if include_names:
                 level.append(
                     pprint_thing(lev_name, escape_chars=("\t", "\r", "\n"))
                     if lev_name is not None
@@ -1500,7 +1500,7 @@ class MultiIndex(Index):
                 sentinel = sparsify
             # little bit of a kludge job for #1217
             result_levels = sparsify_labels(
-                result_levels, start=int(names), sentinel=sentinel
+                result_levels, start=int(include_names), sentinel=sentinel
             )
 
         return result_levels

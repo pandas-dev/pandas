@@ -317,11 +317,11 @@ class SeriesFormatter:
         index = series.index
         have_header = _has_names(index)
         if isinstance(index, MultiIndex):
-            fmt_index = index._format_multi(names=True, sparsify=None)
+            fmt_index = index._format_multi(include_names=True, sparsify=None)
             adj = get_adjustment()
             fmt_index = adj.adjoin(2, *fmt_index).split("\n")
         else:
-            fmt_index = index._format_flat(name=True)
+            fmt_index = index._format_flat(include_name=True)
         fmt_values = self._get_formatted_values()
 
         if self.is_truncated_vertically:
@@ -847,7 +847,7 @@ class DataFrameFormatter:
         columns = frame.columns
 
         if isinstance(columns, MultiIndex):
-            fmt_columns = columns._format_multi(sparsify=False, names=False)
+            fmt_columns = columns._format_multi(sparsify=False, include_names=False)
             fmt_columns = list(zip(*fmt_columns))
             dtypes = self.frame.dtypes._values
 
@@ -872,7 +872,7 @@ class DataFrameFormatter:
 
             str_columns = [list(x) for x in zip(*str_columns)]
         else:
-            fmt_columns = columns._format_flat(name=False)
+            fmt_columns = columns._format_flat(include_name=False)
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
@@ -904,10 +904,10 @@ class DataFrameFormatter:
             if isinstance(index, MultiIndex):
                 fmt_index = index._format_multi(
                     sparsify=self.sparsify,
-                    names=self.show_row_idx_names,
+                    include_names=self.show_row_idx_names,
                 )
             else:
-                fmt_index = [index._format_flat(name=self.show_row_idx_names)]
+                fmt_index = [index._format_flat(include_name=self.show_row_idx_names)]
 
         fmt_index = [
             tuple(

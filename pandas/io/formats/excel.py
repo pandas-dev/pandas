@@ -623,7 +623,9 @@ class ExcelFormatter:
             return
 
         columns = self.columns
-        level_strs = columns._format_multi(sparsify=self.merge_cells, names=False)
+        level_strs = columns._format_multi(
+            sparsify=self.merge_cells, include_names=False
+        )
         level_lengths = get_level_lengths(level_strs)
         coloffset = 0
         lnum = 0
@@ -811,7 +813,9 @@ class ExcelFormatter:
 
             if self.merge_cells:
                 # Format hierarchical rows as merged cells.
-                level_strs = self.df.index._format_multi(sparsify=True, names=False)
+                level_strs = self.df.index._format_multi(
+                    sparsify=True, include_names=False
+                )
                 level_lengths = get_level_lengths(level_strs)
 
                 for spans, levels, level_codes in zip(
