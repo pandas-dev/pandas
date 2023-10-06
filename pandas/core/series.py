@@ -4004,7 +4004,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if mask.any():
             # TODO(3.0): once this deprecation is enforced we can call
-            #  self.array.argsort directly, which will close GH#43840
+            #  self.array.argsort directly, which will close GH#43840 and
+            #  GH#12694
             warnings.warn(
                 "The behavior of Series.argsort in the presence of NA values is "
                 "deprecated. In a future version, NA values will be ordered "
