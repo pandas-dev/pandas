@@ -213,6 +213,24 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
             header=header, na_rep=na_rep, date_format=date_format
         )
 
+    def _format_flat(
+        self,
+        *,
+        name: bool,
+    ) -> list[str]:
+        """
+        Render a string representation of the Index.
+        """
+        header = []
+        if name:
+            header.append(
+                ibase.pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
+                if self.name is not None
+                else ""
+            )
+
+        return self._format_with_header(header, na_rep="NaT")
+
     def _format_with_header(
         self, *, header: list[str], na_rep: str, date_format: str | None = None
     ) -> list[str]:

@@ -314,8 +314,14 @@ class SeriesFormatter:
         if len(series) == 0:
             return f"{type(self.series).__name__}([], {footer})"
 
-        have_header = _has_names(series.index)
-        fmt_index = self.tr_series.index.format(name=True)
+        index = series.index
+        have_header = _has_names(index)
+        if isinstance(index, MultiIndex):
+            fmt_index = index._format_multi(names=True, sparsify=None)
+            adj = get_adjustment()
+            fmt_index = adj.adjoin(2, *fmt_index).split("\n")
+        else:
+            fmt_index = index._format_flat(name=True)
         fmt_values = self._get_formatted_values()
 
         if self.is_truncated_vertically:
@@ -841,7 +847,7 @@ class DataFrameFormatter:
         columns = frame.columns
 
         if isinstance(columns, MultiIndex):
-            fmt_columns = columns.format(sparsify=False, adjoin=False)
+            fmt_columns = columns._format_multi(sparsify=False, names=False)
             fmt_columns = list(zip(*fmt_columns))
             dtypes = self.frame.dtypes._values
 
@@ -866,7 +872,7 @@ class DataFrameFormatter:
 
             str_columns = [list(x) for x in zip(*str_columns)]
         else:
-            fmt_columns = columns.format()
+            fmt_columns = columns._format_flat(name=False)
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
@@ -884,15 +890,24 @@ class DataFrameFormatter:
         columns = frame.columns
         fmt = self._get_formatter("__index__")
 
-        if isinstance(index, MultiIndex):
-            fmt_index = index.format(
-                sparsify=self.sparsify,
-                adjoin=False,
-                names=self.show_row_idx_names,
-                formatter=fmt,
-            )
+        if fmt is not None:
+            if isinstance(index, MultiIndex):
+                fmt_index = index.format(
+                    sparsify=self.sparsify,
+                    adjoin=False,
+                    names=self.show_row_idx_names,
+                    formatter=fmt,
+                )
+            else:
+                fmt_index = [index.format(name=self.show_row_idx_names, formatter=fmt)]
         else:
-            fmt_index = [index.format(name=self.show_row_idx_names, formatter=fmt)]
+            if isinstance(index, MultiIndex):
+                fmt_index = index._format_multi(
+                    sparsify=self.sparsify,
+                    names=self.show_row_idx_names,
+                )
+            else:
+                fmt_index = [index._format_flat(name=self.show_row_idx_names)]
 
         fmt_index = [
             tuple(
