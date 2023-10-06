@@ -360,7 +360,7 @@ The converter integrates:
 - an always reversible conversion,
 - a full compatibility with [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats).
 
-NTV-pandas was developped originally in the [json-NTV project](https://github.com/loco-philippe/NTV)
+NTV-pandas was developed originally in the [json-NTV project](https://github.com/loco-philippe/NTV)
 
 ### [BCPandas](https://github.com/yehoshuadimarsky/bcpandas)
 
