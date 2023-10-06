@@ -493,7 +493,7 @@ class TestSetIndex:
         idx1 = idx1.append(idx1)
         idx2 = period_range("2013-01-01 09:00", periods=2, freq="H")
         idx2 = idx2.append(idx2).append(idx2)
-        idx3 = period_range("2005", periods=6, freq="A")
+        idx3 = period_range("2005", periods=6, freq="Y")
 
         df = df.set_index(idx1)
         df = df.set_index(idx2, append=True)
@@ -694,7 +694,7 @@ class TestSetIndexCustomLabelType:
         # GH#6631
         df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = period_range("2011/01/01", periods=6, freq="M")
-        idx2 = period_range("2013", periods=6, freq="A")
+        idx2 = period_range("2013", periods=6, freq="Y")
 
         df = df.set_index(idx1)
         tm.assert_index_equal(df.index, idx1)

@@ -66,7 +66,7 @@ for _prefix in _need_suffix:
         key = f"{_prefix}-{_m}"
         OFFSET_TO_PERIOD_FREQSTR[key] = OFFSET_TO_PERIOD_FREQSTR[_prefix]
 
-for _prefix in ["A", "Q"]:
+for _prefix in ["Y", "Q"]:
     for _m in MONTHS:
         _alias = f"{_prefix}-{_m}"
         OFFSET_TO_PERIOD_FREQSTR[_alias] = _alias
@@ -345,7 +345,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
+            return {"cs": "AS", "bs": "BAS", "ce": "Y", "be": "BA"}.get(pos_check)
 
     def _get_quarterly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
@@ -574,7 +574,7 @@ def _quarter_months_conform(source: str, target: str) -> bool:
 
 def _is_annual(rule: str) -> bool:
     rule = rule.upper()
-    return rule == "A" or rule.startswith("A-")
+    return rule == "Y" or rule.startswith("Y-")
 
 
 def _is_quarterly(rule: str) -> bool:

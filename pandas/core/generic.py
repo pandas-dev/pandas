@@ -9187,11 +9187,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
-            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'Y', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
-            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'Y', 'Q', 'BM',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
@@ -9362,12 +9362,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         assigned to the first quarter of the period.
 
         >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
-        ...                                             freq='A',
+        ...                                             freq='Y',
         ...                                             periods=2))
         >>> s
         2012    1
         2013    2
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
         >>> s.resample('Q', convention='start').asfreq()
         2012Q1    1.0
         2012Q2    NaN
