@@ -39,7 +39,7 @@ returning views vs. copies.
 
 We also care about performance. Returning views from indexing operations is faster and
 reduces memory usage. The same is true for several methods that don't modify the data
-such as setting/resetting the index, renaming columns, etc that can be used in a method
+such as setting/resetting the index, renaming columns, etc. that can be used in a method
 chaining workflow and currently return a new copy at each step.
 
 Finally, there are API / usability issues around views. It can be challenging to know
@@ -65,9 +65,9 @@ There are two possible behaviours the user might intend:
 
 Today, pandas' inconsistency means _neither_ of these workflows is really possible. The
 first is difficult, because indexing operations often (though not always) return copies,
-and even when a view is returned you sometimes get a SettingWithCopyWarning when
+and even when a view is returned you sometimes get a `SettingWithCopyWarning` when
 mutating. The second is somewhat possible, but requires many defensive copies (to avoid
-SettingWithCopyWarnings, or to ensure that you have a copy when a view _was_ returned).
+`SettingWithCopyWarning`, or to ensure that you have a copy when a view _was_ returned).
 
 ## Proposal
 
@@ -95,7 +95,7 @@ modified is a view on another dataframe (or is being viewed by another dataframe
 is, then we would copy the data before mutating.
 
 Taking the example from above, if the user wishes to not mutate the parent, we no longer
-require a defensive copy just to avoid a SettingWithCopyWarning.
+require a defensive copy just to avoid a `SettingWithCopyWarning`.
 
 ```python
 # Case 2: The user does not want mutating df2 to mutate the parent df, via CoW
@@ -303,7 +303,7 @@ See the GitHub comment with some more detailed argumentation:
 ## Disadvantages
 
 Other than the fact that this proposal would result in a backwards incompatible,
-breaking change in behaviour (see next section), there some other potential
+breaking change in behaviour (see next section), there are some other potential
 disadvantages:
 
 * Deviation from NumPy: NumPy uses the copy and view concepts, while in this proposal
@@ -403,7 +403,7 @@ cases will stop working (e.g. the case above but switching the order):
 ```
 
 These cases will raise a warning ``ChainedAssignmentError``, because they can never
-accomplished what the user intended. There will be false-positive cases when these
+accomplish what the user intended. There will be false-positive cases when these
 operations are triggered from Cython, because Cython uses a different reference counting
 mechanism. These cases should be rare, since calling pandas code from Cython does not
 have any performance benefits.
