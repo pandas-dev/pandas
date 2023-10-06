@@ -286,14 +286,14 @@ class TestPeriodIndexComparisons:
 
         msg = rf"Invalid comparison between dtype=period\[{freq}\] and Period"
         with pytest.raises(TypeError, match=msg):
-            base <= Period("2011", freq="A")
+            base <= Period("2011", freq="Y")
 
         with pytest.raises(TypeError, match=msg):
-            Period("2011", freq="A") >= base
+            Period("2011", freq="Y") >= base
 
         # TODO: Could parametrize over boxes for idx?
-        idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="A")
-        rev_msg = r"Invalid comparison between dtype=period\[A-DEC\] and PeriodArray"
+        idx = PeriodIndex(["2011", "2012", "2013", "2014"], freq="Y")
+        rev_msg = r"Invalid comparison between dtype=period\[Y-DEC\] and PeriodArray"
         idx_msg = rev_msg if box_with_array in [tm.to_array, pd.array] else msg
         with pytest.raises(TypeError, match=idx_msg):
             base <= idx
@@ -405,18 +405,18 @@ class TestPeriodSeriesComparisons:
         # GH#13200
         base = Series(
             [
-                Period("2011", freq="A"),
+                Period("2011", freq="Y"),
                 Period("2011-02", freq="M"),
-                Period("2013", freq="A"),
+                Period("2013", freq="Y"),
                 Period("2011-04", freq="M"),
             ]
         )
 
         ser = Series(
             [
-                Period("2012", freq="A"),
+                Period("2012", freq="Y"),
                 Period("2011-01", freq="M"),
-                Period("2013", freq="A"),
+                Period("2013", freq="Y"),
                 Period("2011-05", freq="M"),
             ]
         )
@@ -934,9 +934,9 @@ class TestPeriodIndexArithmetic:
     def test_pi_sub_isub_offset(self):
         # offset
         # DateOffset
-        rng = period_range("2014", "2024", freq="A")
+        rng = period_range("2014", "2024", freq="Y")
         result = rng - pd.offsets.YearEnd(5)
-        expected = period_range("2009", "2019", freq="A")
+        expected = period_range("2009", "2019", freq="Y")
         tm.assert_index_equal(result, expected)
         rng -= pd.offsets.YearEnd(5)
         tm.assert_index_equal(rng, expected)
@@ -1176,17 +1176,17 @@ class TestPeriodIndexArithmetic:
     def test_add_iadd_timedeltalike_annual(self):
         # offset
         # DateOffset
-        rng = period_range("2014", "2024", freq="A")
+        rng = period_range("2014", "2024", freq="Y")
         result = rng + pd.offsets.YearEnd(5)
-        expected = period_range("2019", "2029", freq="A")
+        expected = period_range("2019", "2029", freq="Y")
         tm.assert_index_equal(result, expected)
         rng += pd.offsets.YearEnd(5)
         tm.assert_index_equal(rng, expected)
 
     def test_pi_add_sub_timedeltalike_freq_mismatch_annual(self, mismatched_freq):
         other = mismatched_freq
-        rng = period_range("2014", "2024", freq="A")
-        msg = "Input has different freq(=.+)? from Period.*?\\(freq=A-DEC\\)"
+        rng = period_range("2014", "2024", freq="Y")
+        msg = "Input has different freq(=.+)? from Period.*?\\(freq=Y-DEC\\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             rng + other
         with pytest.raises(IncompatibleFrequency, match=msg):

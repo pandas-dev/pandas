@@ -247,7 +247,7 @@ class TestSeriesRepr:
         assert repr(s) == exp
 
     def test_format_pre_1900_dates(self):
-        rng = date_range("1/1/1850", "1/1/1950", freq="A-DEC")
+        rng = date_range("1/1/1850", "1/1/1950", freq="Y-DEC")
         rng.format()
         ts = Series(1, index=rng)
         repr(ts)
@@ -348,7 +348,7 @@ Categories (3, int64): [1, 2, 3]"""
 8    8
 9    9
 dtype: category
-Categories (10, {np.int_().dtype}): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
+Categories (10, {np.dtype(int)}): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
 
         assert repr(s) == exp
 
@@ -374,7 +374,7 @@ Categories (3, int64): [1 < 2 < 3]"""
 8    8
 9    9
 dtype: category
-Categories (10, {np.int_().dtype}): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
+Categories (10, {np.dtype(int)}): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
 
         assert repr(s) == exp
 

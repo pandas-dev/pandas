@@ -238,9 +238,9 @@ class TestGetItem:
 
 class TestGetLoc:
     def test_get_loc_msg(self):
-        idx = period_range("2000-1-1", freq="A", periods=10)
-        bad_period = Period("2012", "A")
-        with pytest.raises(KeyError, match=r"^Period\('2012', 'A-DEC'\)$"):
+        idx = period_range("2000-1-1", freq="Y", periods=10)
+        bad_period = Period("2012", "Y")
+        with pytest.raises(KeyError, match=r"^Period\('2012', 'Y-DEC'\)$"):
             idx.get_loc(bad_period)
 
         try:

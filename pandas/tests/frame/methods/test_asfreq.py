@@ -104,7 +104,7 @@ class TestAsFreq:
         assert index_name == obj.asfreq("10D").index.name
 
     def test_asfreq_ts(self, frame_or_series):
-        index = period_range(freq="A", start="1/1/2001", end="12/31/2010")
+        index = period_range(freq="Y", start="1/1/2001", end="12/31/2010")
         obj = DataFrame(
             np.random.default_rng(2).standard_normal((len(index), 3)), index=index
         )
@@ -235,7 +235,7 @@ class TestAsFreq:
         tm.assert_frame_equal(result, expected)
 
     def test_asfreq_frequency_M_deprecated(self):
-        depr_msg = r"\'M\' will be deprecated, please use \'ME\' for \'month end\'"
+        depr_msg = "'M' will be deprecated, please use 'ME' instead."
 
         index = date_range("1/1/2000", periods=4, freq="ME")
         df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})

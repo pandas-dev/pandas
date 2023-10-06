@@ -153,7 +153,7 @@ class TestSeriesArithmetic:
     # Some of these may end up in tests/arithmetic, but are not yet sorted
 
     def test_add_series_with_period_index(self):
-        rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
+        rng = pd.period_range("1/1/2000", "1/1/2010", freq="Y")
         ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         result = ts + ts[::2]
@@ -164,7 +164,7 @@ class TestSeriesArithmetic:
         result = ts + _permute(ts[::2])
         tm.assert_series_equal(result, expected)
 
-        msg = "Input has different freq=D from Period\\(freq=A-DEC\\)"
+        msg = "Input has different freq=D from Period\\(freq=Y-DEC\\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             ts + ts.asfreq("D", how="end")
 
@@ -941,8 +941,8 @@ def test_series_varied_multiindex_alignment():
     expected = Series(
         [1000, 2001, 3002, 4003],
         index=pd.MultiIndex.from_tuples(
-            [("x", 1, "a"), ("x", 2, "a"), ("y", 1, "a"), ("y", 2, "a")],
-            names=["xy", "num", "ab"],
+            [("a", "x", 1), ("a", "x", 2), ("a", "y", 1), ("a", "y", 2)],
+            names=["ab", "xy", "num"],
         ),
     )
     tm.assert_series_equal(result, expected)

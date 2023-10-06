@@ -74,12 +74,12 @@ enhancement2
 Other enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- :attr:`Series.attrs` / :attr:`DataFrame.attrs` now uses a deepcopy for propagating ``attrs`` (:issue:`54134`).
 - :func:`read_csv` now supports ``on_bad_lines`` parameter with ``engine="pyarrow"``. (:issue:`54480`)
 - :meth:`ExtensionArray._explode` interface method added to allow extension type implementations of the ``explode`` method (:issue:`54833`)
 - :meth:`ExtensionArray.duplicated` added to allow extension type implementations of the ``duplicated`` method (:issue:`55255`)
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
 - Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
--
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.notable_bug_fixes:
@@ -133,10 +133,36 @@ and ``sort=False``:
 
     result
 
-.. _whatsnew_220.notable_bug_fixes.notable_bug_fix2:
+.. _whatsnew_220.notable_bug_fixes.multiindex_join_different_levels:
 
-notable_bug_fix2
-^^^^^^^^^^^^^^^^
+:func:`merge` and :meth:`DataFrame.join` no longer reorder levels when levels differ
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions of pandas, :func:`merge` and :meth:`DataFrame.join` would reorder
+index levels when joining on two indexes with different levels (:issue:`34133`).
+
+.. ipython:: python
+
+    left = pd.DataFrame({"left": 1}, index=pd.MultiIndex.from_tuples([("x", 1), ("x", 2)], names=["A", "B"]))
+    right = pd.DataFrame({"right": 2}, index=pd.MultiIndex.from_tuples([(1, 1), (2, 2)], names=["B", "C"]))
+    result = left.join(right)
+
+*Old Behavior*
+
+.. code-block:: ipython
+
+    In [5]: result
+    Out[5]:
+           left  right
+    B A C
+    1 x 1     1      2
+    2 x 2     1      2
+
+*New Behavior*
+
+.. ipython:: python
+
+    result
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.api_breaking:
@@ -225,6 +251,7 @@ Other Deprecations
 - Deprecated downcasting behavior in :meth:`Series.where`, :meth:`DataFrame.where`, :meth:`Series.mask`, :meth:`DataFrame.mask`, :meth:`Series.clip`, :meth:`DataFrame.clip`; in a future version these will not infer object-dtype columns to non-object dtype, or all-round floats to integer dtype. Call ``result.infer_objects(copy=False)`` on the result for object inference, or explicitly cast floats to ints. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`53656`)
 - Deprecated including the groups in computations when using :meth:`DataFrameGroupBy.apply` and :meth:`DataFrameGroupBy.resample`; pass ``include_groups=False`` to exclude the groups (:issue:`7155`)
 - Deprecated not passing a tuple to :class:`DataFrameGroupBy.get_group` or :class:`SeriesGroupBy.get_group` when grouping by a length-1 list-like (:issue:`25971`)
+- Deprecated string ``A`` denoting frequency in :class:`YearEnd` and strings ``A-DEC``, ``A-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`52536`)
 - Deprecated strings ``H``, ``BH``, and ``CBH`` denoting frequencies in :class:`Hour`, :class:`BusinessHour`, :class:`CustomBusinessHour` (:issue:`52536`)
 - Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
@@ -254,7 +281,9 @@ Bug fixes
 ~~~~~~~~~
 - Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
 - Bug in :class:`pandas.core.window.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
+- Bug in :func:`pandas.api.types.is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
+- Bug in :meth:`pandas.DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
 - Bug in :meth:`pandas.read_excel` with a ODS file without cached formatted cell for float values (:issue:`55219`)
 
 Categorical
@@ -269,7 +298,7 @@ Datetimelike
 
 Timedelta
 ^^^^^^^^^
--
+- Bug in rendering (``__repr__``) of :class:`TimedeltaIndex` and :class:`Series` with timedelta64 values with non-nanosecond resolution entries that are all multiples of 24 hours failing to use the compact representation used in the nanosecond cases (:issue:`55405`)
 -
 
 Timezones
@@ -342,6 +371,7 @@ Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` ignoring ``sort`` parameter when passed :class:`DatetimeIndex` indexes (:issue:`54769`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
+-
 
 Sparse
 ^^^^^^

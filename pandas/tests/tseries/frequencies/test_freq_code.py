@@ -27,7 +27,7 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
 @pytest.mark.parametrize(
     "freqstr,expected",
     [
-        ("A", "year"),
+        ("Y", "year"),
         ("Q", "quarter"),
         ("M", "month"),
         ("D", "day"),
@@ -99,8 +99,8 @@ def test_compatibility(freqstr, expected):
     assert ts_np + do == np.datetime64(expected)
 
 
-@pytest.mark.parametrize("freq", ["H", "T", "S", "L", "N", "U"])
-def test_units_H_T_S_L_N_U_deprecated_from__attrname_to_abbrevs(freq):
+@pytest.mark.parametrize("freq", ["A", "H", "T", "S", "L", "U", "N"])
+def test_units_A_H_T_S_L_U_N_deprecated_from_attrname_to_abbrevs(freq):
     # GH#52536
     msg = f"'{freq}' is deprecated and will be removed in a future version."
 
