@@ -349,7 +349,7 @@ which pandas excels.
 
 NTV-pandas provides a JSON converter with more data types than the ones supported by pandas directly.
 
-It supports the following data types: 
+It supports the following data types:
 - pandas data types
 - data types defined in the [NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
 - data types defined in [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats)
@@ -360,7 +360,7 @@ The interface is always reversible (conversion round trip) with two formats (JSO
 ```python
 import ntv_pandas as npd
 
-jsn = df.npd.to_json(table=False) # save df as a JSON-value (format Table Schema if table is True else format NTV ) 
+jsn = df.npd.to_json(table=False) # save df as a JSON-value (format Table Schema if table is True else format NTV )
 df  = npd.read_json(jsn)  # load a JSON-value as a DataFrame
 
 df.equals(npd.read_json(df.npd.to_json(df))) # True in any case, whether table=True or not
