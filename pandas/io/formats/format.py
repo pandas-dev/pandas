@@ -298,17 +298,6 @@ class SeriesFormatter:
 
         return str(footer)
 
-    def _get_formatted_index(self) -> tuple[list[str], bool]:
-        index = self.tr_series.index
-
-        if isinstance(index, MultiIndex):
-            have_header = any(name for name in index.names)
-            fmt_index = index.format(names=True)
-        else:
-            have_header = index.name is not None
-            fmt_index = index.format(name=True)
-        return fmt_index, have_header
-
     def _get_formatted_values(self) -> list[str]:
         return format_array(
             self.tr_series._values,
@@ -325,7 +314,8 @@ class SeriesFormatter:
         if len(series) == 0:
             return f"{type(self.series).__name__}([], {footer})"
 
-        fmt_index, have_header = self._get_formatted_index()
+        have_header = _has_names(series.index)
+        fmt_index = self.tr_series.index.format(name=True)
         fmt_values = self._get_formatted_values()
 
         if self.is_truncated_vertically:
