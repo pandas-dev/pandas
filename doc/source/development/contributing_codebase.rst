@@ -528,7 +528,7 @@ If a test is known to fail but the manner in which it fails
 is not meant to be captured, use ``pytest.mark.xfail`` It is common to use this method for a test that
 exhibits buggy behavior or a non-implemented feature. If
 the failing test has flaky behavior, use the argument ``strict=False``. This
-will make it so pytest does not fail if the test happens to pass.
+will make it so pytest does not fail if the test happens to pass. Using ``strict=False`` is highly undesirable, please use it only as a last resort.
 
 Prefer the decorator ``@pytest.mark.xfail`` and the argument ``pytest.param``
 over usage within a test so that the test is appropriately marked during the
