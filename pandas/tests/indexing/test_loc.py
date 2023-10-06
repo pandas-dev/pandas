@@ -2166,6 +2166,19 @@ class TestLocSetitemWithExpansion:
         result.loc[df.index, "data"] = ser._values
         tm.assert_frame_equal(result, df)
 
+    def test_loc_setitem_ea_not_full_column(self):
+        # GH#39163
+        df = DataFrame({"A": range(5)})
+
+        val = date_range("2016-01-01", periods=3, tz="US/Pacific")
+
+        df.loc[[0, 1, 2], "B"] = val
+
+        bex = val.append(DatetimeIndex([pd.NaT, pd.NaT], dtype=val.dtype))
+        expected = DataFrame({"A": range(5), "B": bex})
+        assert expected.dtypes["B"] == val.dtype
+        tm.assert_frame_equal(df, expected)
+
 
 class TestLocCallable:
     def test_frame_loc_getitem_callable(self):
