@@ -1235,7 +1235,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     def _format_data(self) -> str:
         # TODO: integrate with categorical and make generic
-        # name argument is unused here; just for compat with base / categorical
         n = len(self)
         max_seq_items = min((get_option("display.max_seq_items") or n) // 10, 10)
 
@@ -1266,18 +1265,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return summary
 
     def __repr__(self) -> str:
-        # the short repr has no trailing newline, while the truncated
-        # repr does. So we include a newline in our template, and strip
-        # any trailing newlines from format_object_summary
         data = self._format_data()
         class_name = f"<{type(self).__name__}>\n"
 
         template = f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
         return template
-
-    def _format_space(self) -> str:
-        space = " " * (len(type(self).__name__) + 1)
-        return f"\n{space}"
 
     # ---------------------------------------------------------------------
     # Vectorized Interval Properties/Attributes
