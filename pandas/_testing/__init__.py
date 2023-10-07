@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+from collections import Counter
 from datetime import datetime
 from decimal import Decimal
 import operator
@@ -12,8 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     ContextManager,
-    Counter,
-    Iterable,
     cast,
 )
 
@@ -50,16 +49,10 @@ from pandas import (
     bdate_range,
 )
 from pandas._testing._io import (
-    close,
-    network,
     round_trip_localpath,
     round_trip_pathlib,
     round_trip_pickle,
     write_to_compressed,
-)
-from pandas._testing._random import (
-    rands,
-    rands_array,
 )
 from pandas._testing._warnings import (
     assert_produces_warning,
@@ -105,12 +98,14 @@ from pandas._testing.contexts import (
 from pandas.core.arrays import (
     BaseMaskedArray,
     ExtensionArray,
-    PandasArray,
+    NumpyExtensionArray,
 )
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from pandas._typing import (
         Dtype,
         Frequency,
@@ -274,6 +269,26 @@ else:
 EMPTY_STRING_PATTERN = re.compile("^$")
 
 
+arithmetic_dunder_methods = [
+    "__add__",
+    "__radd__",
+    "__sub__",
+    "__rsub__",
+    "__mul__",
+    "__rmul__",
+    "__floordiv__",
+    "__rfloordiv__",
+    "__truediv__",
+    "__rtruediv__",
+    "__pow__",
+    "__rpow__",
+    "__mod__",
+    "__rmod__",
+]
+
+comparison_dunder_methods = ["__eq__", "__ne__", "__le__", "__lt__", "__ge__", "__gt__"]
+
+
 def reset_display_options() -> None:
     """
     Reset the display options for printing and representing objects.
@@ -308,7 +323,7 @@ def box_expected(expected, box_cls, transpose: bool = True):
     if box_cls is pd.array:
         if isinstance(expected, RangeIndex):
             # pd.array would return an IntegerArray
-            expected = PandasArray(np.asarray(expected._values))
+            expected = NumpyExtensionArray(np.asarray(expected._values))
         else:
             expected = pd.array(expected, copy=False)
     elif box_cls is Index:
@@ -348,6 +363,22 @@ def to_array(obj):
 
 # -----------------------------------------------------------------------------
 # Others
+
+
+def rands_array(
+    nchars, size: int, dtype: NpDtype = "O", replace: bool = True
+) -> np.ndarray:
+    """
+    Generate an array of byte strings.
+    """
+    chars = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
+    retval = (
+        np.random.default_rng(2)
+        .choice(chars, size=nchars * np.prod(size), replace=replace)
+        .view((np.str_, nchars))
+        .reshape(size)
+    )
+    return retval.astype(dtype)
 
 
 def getCols(k) -> str:
@@ -392,9 +423,9 @@ def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
         if is_unsigned_integer_dtype(dtype):
             values += 2 ** (dtype.itemsize * 8 - 1)
     elif dtype.kind == "f":
-        values = np.random.random_sample(k) - np.random.random_sample(1)
+        values = np.random.default_rng(2).random(k) - np.random.default_rng(2).random(1)
         values.sort()
-        values = values * (10 ** np.random.randint(0, 9))
+        values = values * (10 ** np.random.default_rng(2).integers(0, 9))
     else:
         raise NotImplementedError(f"wrong dtype {dtype}")
 
@@ -442,7 +473,8 @@ def makeTimedeltaIndex(
 
 def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     dt = datetime(2000, 1, 1)
-    return pd.period_range(start=dt, periods=k, freq="B", name=name, **kwargs)
+    pi = pd.period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
+    return pi
 
 
 def makeMultiIndex(k: int = 10, names=None, **kwargs):
@@ -487,7 +519,7 @@ def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
 # make series
 def make_rand_series(name=None, dtype=np.float64) -> Series:
     index = makeStringIndex(_N)
-    data = np.random.randn(_N)
+    data = np.random.default_rng(2).standard_normal(_N)
     with np.errstate(invalid="ignore"):
         data = data.astype(dtype, copy=False)
     return Series(data, index=index, name=name)
@@ -510,21 +542,30 @@ def makeObjectSeries(name=None) -> Series:
 
 def getSeriesData() -> dict[str, Series]:
     index = makeStringIndex(_N)
-    return {c: Series(np.random.randn(_N), index=index) for c in getCols(_K)}
+    return {
+        c: Series(np.random.default_rng(i).standard_normal(_N), index=index)
+        for i, c in enumerate(getCols(_K))
+    }
 
 
 def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
     if nper is None:
         nper = _N
     return Series(
-        np.random.randn(nper), index=makeDateIndex(nper, freq=freq), name=name
+        np.random.default_rng(2).standard_normal(nper),
+        index=makeDateIndex(nper, freq=freq),
+        name=name,
     )
 
 
 def makePeriodSeries(nper=None, name=None) -> Series:
     if nper is None:
         nper = _N
-    return Series(np.random.randn(nper), index=makePeriodIndex(nper), name=name)
+    return Series(
+        np.random.default_rng(2).standard_normal(nper),
+        index=makePeriodIndex(nper),
+        name=name,
+    )
 
 
 def getTimeSeriesData(nper=None, freq: Frequency = "B") -> dict[str, Series]:
@@ -785,40 +826,6 @@ def makeCustomDataframe(
     data = [[data_gen_f(r, c) for c in range(ncols)] for r in range(nrows)]
 
     return DataFrame(data, index, columns, dtype=dtype)
-
-
-def _create_missing_idx(nrows, ncols, density: float, random_state=None):
-    if random_state is None:
-        random_state = np.random
-    else:
-        random_state = np.random.RandomState(random_state)
-
-    # below is cribbed from scipy.sparse
-    size = round((1 - density) * nrows * ncols)
-    # generate a few more to ensure unique values
-    min_rows = 5
-    fac = 1.02
-    extra_size = min(size + min_rows, fac * size)
-
-    def _gen_unique_rand(rng, _extra_size):
-        ind = rng.rand(int(_extra_size))
-        return np.unique(np.floor(ind * nrows * ncols))[:size]
-
-    ind = _gen_unique_rand(random_state, extra_size)
-    while ind.size < size:
-        extra_size *= 1.05
-        ind = _gen_unique_rand(random_state, extra_size)
-
-    j = np.floor(ind * 1.0 / nrows).astype(int)
-    i = (ind - j * nrows).astype(int)
-    return i.tolist(), j.tolist()
-
-
-def makeMissingDataframe(density: float = 0.9, random_state=None) -> DataFrame:
-    df = makeDataFrame()
-    i, j = _create_missing_idx(*df.shape, density=density, random_state=random_state)
-    df.iloc[i, j] = np.nan
-    return df
 
 
 class SubclassedSeries(Series):
@@ -1095,7 +1102,6 @@ __all__ = [
     "box_expected",
     "BYTES_DTYPES",
     "can_set_locale",
-    "close",
     "COMPLEX_DTYPES",
     "convert_rows_list_to_csv_str",
     "DATETIME64_DTYPES",
@@ -1132,7 +1138,6 @@ __all__ = [
     "makeFloatSeries",
     "makeIntervalIndex",
     "makeIntIndex",
-    "makeMissingDataframe",
     "makeMixedDataFrame",
     "makeMultiIndex",
     "makeNumericIndex",
@@ -1150,12 +1155,10 @@ __all__ = [
     "makeUIntIndex",
     "maybe_produces_warning",
     "NARROW_NP_DTYPES",
-    "network",
     "NP_NAT_OBJECTS",
     "NULL_OBJECTS",
     "OBJECT_DTYPES",
     "raise_assert_detail",
-    "rands",
     "reset_display_options",
     "raises_chained_assignment_error",
     "round_trip_localpath",

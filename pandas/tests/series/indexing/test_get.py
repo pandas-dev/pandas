@@ -166,7 +166,10 @@ def test_get_with_default():
 
 @pytest.mark.parametrize(
     "arr",
-    [np.random.randn(10), tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern")],
+    [
+        np.random.default_rng(2).standard_normal(10),
+        tm.makeDateIndex(10, name="a").tz_localize(tz="US/Eastern"),
+    ],
 )
 def test_get_with_ea(arr):
     # GH#21260

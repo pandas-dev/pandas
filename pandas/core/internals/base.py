@@ -6,20 +6,34 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
+    cast,
     final,
 )
 
 import numpy as np
 
+from pandas._config import using_copy_on_write
+
+from pandas._libs import (
+    algos as libalgos,
+    lib,
+)
 from pandas.errors import AbstractMethodError
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.cast import (
     find_common_type,
     np_can_hold_element,
 )
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    SparseDtype,
+)
 
 from pandas.core.base import PandasObject
+from pandas.core.construction import extract_array
 from pandas.core.indexes.api import (
     Index,
     default_index,
@@ -138,9 +152,133 @@ class DataManager(PandasObject):
     ) -> Self:
         raise AbstractMethodError(self)
 
+    def apply_with_block(
+        self,
+        f,
+        align_keys: list[str] | None = None,
+        **kwargs,
+    ) -> Self:
+        raise AbstractMethodError(self)
+
     @final
     def isna(self, func) -> Self:
         return self.apply("apply", func=func)
+
+    @final
+    def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
+        if limit is not None:
+            # Do this validation even if we go through one of the no-op paths
+            limit = libalgos.validate_limit(None, limit=limit)
+
+        return self.apply_with_block(
+            "fillna",
+            value=value,
+            limit=limit,
+            inplace=inplace,
+            downcast=downcast,
+            using_cow=using_copy_on_write(),
+        )
+
+    @final
+    def where(self, other, cond, align: bool) -> Self:
+        if align:
+            align_keys = ["other", "cond"]
+        else:
+            align_keys = ["cond"]
+            other = extract_array(other, extract_numpy=True)
+
+        return self.apply_with_block(
+            "where",
+            align_keys=align_keys,
+            other=other,
+            cond=cond,
+            using_cow=using_copy_on_write(),
+        )
+
+    @final
+    def putmask(self, mask, new, align: bool = True) -> Self:
+        if align:
+            align_keys = ["new", "mask"]
+        else:
+            align_keys = ["mask"]
+            new = extract_array(new, extract_numpy=True)
+
+        return self.apply_with_block(
+            "putmask",
+            align_keys=align_keys,
+            mask=mask,
+            new=new,
+            using_cow=using_copy_on_write(),
+        )
+
+    @final
+    def round(self, decimals: int, using_cow: bool = False) -> Self:
+        return self.apply_with_block(
+            "round",
+            decimals=decimals,
+            using_cow=using_cow,
+        )
+
+    @final
+    def replace(self, to_replace, value, inplace: bool) -> Self:
+        inplace = validate_bool_kwarg(inplace, "inplace")
+        # NDFrame.replace ensures the not-is_list_likes here
+        assert not lib.is_list_like(to_replace)
+        assert not lib.is_list_like(value)
+        return self.apply_with_block(
+            "replace",
+            to_replace=to_replace,
+            value=value,
+            inplace=inplace,
+            using_cow=using_copy_on_write(),
+        )
+
+    @final
+    def replace_regex(self, **kwargs) -> Self:
+        return self.apply_with_block(
+            "_replace_regex", **kwargs, using_cow=using_copy_on_write()
+        )
+
+    @final
+    def replace_list(
+        self,
+        src_list: list[Any],
+        dest_list: list[Any],
+        inplace: bool = False,
+        regex: bool = False,
+    ) -> Self:
+        """do a list replace"""
+        inplace = validate_bool_kwarg(inplace, "inplace")
+
+        bm = self.apply_with_block(
+            "replace_list",
+            src_list=src_list,
+            dest_list=dest_list,
+            inplace=inplace,
+            regex=regex,
+            using_cow=using_copy_on_write(),
+        )
+        bm._consolidate_inplace()
+        return bm
+
+    def interpolate(self, inplace: bool, **kwargs) -> Self:
+        return self.apply_with_block(
+            "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
+        )
+
+    def pad_or_backfill(self, inplace: bool, **kwargs) -> Self:
+        return self.apply_with_block(
+            "pad_or_backfill",
+            inplace=inplace,
+            **kwargs,
+            using_cow=using_copy_on_write(),
+        )
+
+    def shift(self, periods: int, fill_value) -> Self:
+        if fill_value is lib.no_default:
+            fill_value = None
+
+        return self.apply_with_block("shift", periods=periods, fill_value=fill_value)
 
     # --------------------------------------------------------------------
     # Consolidation: No-ops for all but BlockManager
@@ -223,3 +361,16 @@ def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:
         return None
 
     return find_common_type(dtypes)
+
+
+def ensure_np_dtype(dtype: DtypeObj) -> np.dtype:
+    # TODO: https://github.com/pandas-dev/pandas/issues/22791
+    # Give EAs some input on what happens here. Sparse needs this.
+    if isinstance(dtype, SparseDtype):
+        dtype = dtype.subtype
+        dtype = cast(np.dtype, dtype)
+    elif isinstance(dtype, ExtensionDtype):
+        dtype = np.dtype("object")
+    elif dtype == np.dtype(str):
+        dtype = np.dtype("object")
+    return dtype

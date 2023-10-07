@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Sequence,
+)
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Sequence,
+    Literal,
     cast,
 )
 
@@ -18,7 +21,6 @@ from pandas.util._decorators import (
 
 from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 from pandas.core.dtypes.common import (
-    is_integer_dtype,
     is_list_like,
     is_nested_list_like,
     is_scalar,
@@ -170,28 +172,6 @@ def __internal_pivot_table(
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
         agged = agged.dropna(how="all")
 
-        # gh-21133
-        # we want to down cast if
-        # the original values are ints
-        # as we grouped with a NaN value
-        # and then dropped, coercing to floats
-        for v in values:
-            if (
-                v in data
-                and is_integer_dtype(data[v])
-                and v in agged
-                and not is_integer_dtype(agged[v])
-            ):
-                if not isinstance(agged[v], ABCDataFrame) and isinstance(
-                    data[v].dtype, np.dtype
-                ):
-                    # exclude DataFrame case bc maybe_downcast_to_dtype expects
-                    #  ArrayLike
-                    # e.g. test_pivot_table_multiindex_columns_doctest_case
-                    #  agged.columns is a MultiIndex and 'v' is indexing only
-                    #  on its first level.
-                    agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
-
     table = agged
 
     # GH17038, this check should only happen if index is defined (not None)
@@ -207,26 +187,30 @@ def __internal_pivot_table(
                 to_unstack.append(i)
             else:
                 to_unstack.append(name)
-        table = agged.unstack(to_unstack)
+        table = agged.unstack(to_unstack, fill_value=fill_value)
 
     if not dropna:
         if isinstance(table.index, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.index.levels), names=table.index.names
             )
-            table = table.reindex(m, axis=0)
+            table = table.reindex(m, axis=0, fill_value=fill_value)
 
         if isinstance(table.columns, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.columns.levels), names=table.columns.names
             )
-            table = table.reindex(m, axis=1)
+            table = table.reindex(m, axis=1, fill_value=fill_value)
 
     if sort is True and isinstance(table, ABCDataFrame):
         table = table.sort_index(axis=1)
 
     if fill_value is not None:
-        table = table.fillna(fill_value, downcast="infer")
+        table = table.fillna(fill_value)
+        if aggfunc is len and not observed and lib.is_integer(fill_value):
+            # TODO: can we avoid this?  this used to be handled by
+            #  downcast="infer" in fillna
+            table = table.astype(np.int64)
 
     if margins:
         if dropna:
@@ -435,7 +419,7 @@ def _generate_marginal_results(
 
     if len(cols) > 0:
         row_margin = data[cols + values].groupby(cols, observed=observed).agg(aggfunc)
-        row_margin = row_margin.stack()
+        row_margin = row_margin.stack(future_stack=True)
 
         # slight hack
         new_order = [len(cols)] + list(range(len(cols)))
@@ -466,7 +450,7 @@ def _generate_marginal_results_without_values(
             return (margins_name,) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[rows].groupby(rows, observed=observed).apply(aggfunc)
+            margin = data.groupby(rows, observed=observed)[rows].apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -484,7 +468,7 @@ def _generate_marginal_results_without_values(
         margin_keys = table.columns
 
     if len(cols):
-        row_margin = data[cols].groupby(cols, observed=observed).apply(aggfunc)
+        row_margin = data.groupby(cols, observed=observed)[cols].apply(aggfunc)
     else:
         row_margin = Series(np.nan, index=result.columns)
 
@@ -511,8 +495,8 @@ def pivot(
     data: DataFrame,
     *,
     columns: IndexLabel,
-    index: IndexLabel | lib.NoDefault = lib.NoDefault,
-    values: IndexLabel | lib.NoDefault = lib.NoDefault,
+    index: IndexLabel | lib.NoDefault = lib.no_default,
+    values: IndexLabel | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     columns_listlike = com.convert_to_list_like(columns)
 
@@ -522,24 +506,25 @@ def pivot(
     data = data.copy(deep=False)
     data.index = data.index.copy()
     data.index.names = [
-        name if name is not None else lib.NoDefault for name in data.index.names
+        name if name is not None else lib.no_default for name in data.index.names
     ]
 
     indexed: DataFrame | Series
-    if values is lib.NoDefault:
-        if index is not lib.NoDefault:
+    if values is lib.no_default:
+        if index is not lib.no_default:
             cols = com.convert_to_list_like(index)
         else:
             cols = []
 
-        append = index is lib.NoDefault
+        append = index is lib.no_default
         # error: Unsupported operand types for + ("List[Any]" and "ExtensionArray")
         # error: Unsupported left operand type for + ("ExtensionArray")
         indexed = data.set_index(
             cols + columns_listlike, append=append  # type: ignore[operator]
         )
     else:
-        if index is lib.NoDefault:
+        index_list: list[Index] | list[Series]
+        if index is lib.no_default:
             if isinstance(data.index, MultiIndex):
                 # GH 23955
                 index_list = [
@@ -569,7 +554,7 @@ def pivot(
     # "Hashable"
     result = indexed.unstack(columns_listlike)  # type: ignore[arg-type]
     result.index.names = [
-        name if name is not lib.NoDefault else None for name in result.index.names
+        name if name is not lib.no_default else None for name in result.index.names
     ]
 
     return result
@@ -585,7 +570,7 @@ def crosstab(
     margins: bool = False,
     margins_name: Hashable = "All",
     dropna: bool = True,
-    normalize: bool = False,
+    normalize: bool | Literal[0, 1, "all", "index", "columns"] = False,
 ) -> DataFrame:
     """
     Compute a simple cross tabulation of two (or more) factors.

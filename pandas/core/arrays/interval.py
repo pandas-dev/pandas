@@ -8,9 +8,7 @@ from operator import (
 import textwrap
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     Literal,
-    Sequence,
     Union,
     overload,
 )
@@ -31,6 +29,7 @@ from pandas._typing import (
     ArrayLike,
     AxisInt,
     Dtype,
+    FillnaOptions,
     IntervalClosedType,
     NpDtype,
     PositionalIndexer,
@@ -100,13 +99,18 @@ from pandas.core.ops import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
+
     from pandas import (
         Index,
         Series,
     )
 
 
-IntervalSideT = Union[TimeArrayLike, np.ndarray]
+IntervalSide = Union[TimeArrayLike, np.ndarray]
 IntervalOrNA = Union[Interval, float]
 
 _interval_shared_docs: dict[str, str] = {}
@@ -215,8 +219,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return 1
 
     # To make mypy recognize the fields
-    _left: IntervalSideT
-    _right: IntervalSideT
+    _left: IntervalSide
+    _right: IntervalSide
     _dtype: IntervalDtype
 
     # ---------------------------------------------------------------------
@@ -233,8 +237,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         data = extract_array(data, extract_numpy=True)
 
         if isinstance(data, cls):
-            left: IntervalSideT = data._left
-            right: IntervalSideT = data._right
+            left: IntervalSide = data._left
+            right: IntervalSide = data._right
             closed = closed or data.closed
             dtype = IntervalDtype(left.dtype, closed=closed)
         else:
@@ -276,8 +280,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @classmethod
     def _simple_new(
         cls,
-        left: IntervalSideT,
-        right: IntervalSideT,
+        left: IntervalSide,
+        right: IntervalSide,
         dtype: IntervalDtype,
     ) -> Self:
         result = IntervalMixin.__new__(cls)
@@ -295,7 +299,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         closed: IntervalClosedType | None = None,
         copy: bool = False,
         dtype: Dtype | None = None,
-    ) -> tuple[IntervalSideT, IntervalSideT, IntervalDtype]:
+    ) -> tuple[IntervalSide, IntervalSide, IntervalDtype]:
         """Ensure correctness of input parameters for cls._simple_new."""
         from pandas.core.indexes.base import ensure_index
 
@@ -760,7 +764,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 if self.closed != other.categories.closed:
                     return invalid_comparison(self, other, op)
 
-                other = other.categories.take(
+                other = other.categories._values.take(
                     other.codes, allow_fill=True, fill_value=other.categories._na_value
                 )
 
@@ -886,7 +890,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         indexer = obj.argsort()[-1]
         return obj[indexer]
 
-    def fillna(self, value=None, method=None, limit: int | None = None) -> Self:
+    def _pad_or_backfill(  # pylint: disable=useless-parent-delegation
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+    ) -> Self:
+        # TODO(3.0): after EA.fillna 'method' deprecation is enforced, we can remove
+        #  this method entirely.
+        return super()._pad_or_backfill(method=method, limit=limit, copy=copy)
+
+    def fillna(
+        self, value=None, method=None, limit: int | None = None, copy: bool = True
+    ) -> Self:
         """
         Fill NA/NaN values using the specified method.
 
@@ -908,15 +921,20 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             be partially filled. If method is not specified, this is the
             maximum number of entries along the entire axis where NaNs will be
             filled.
+        copy : bool, default True
+            Whether to make a copy of the data before filling. If False, then
+            the original should be modified and no new memory should be allocated.
+            For ExtensionArray subclasses that cannot do this, it is at the
+            author's discretion whether to ignore "copy=False" or to raise.
 
         Returns
         -------
         filled : IntervalArray with NA/NaN filled
         """
+        if copy is False:
+            raise NotImplementedError
         if method is not None:
-            raise TypeError("Filling by method is not supported for IntervalArray.")
-        if limit is not None:
-            raise TypeError("limit is not supported for IntervalArray.")
+            return super().fillna(value=value, method=method, limit=limit)
 
         value_left, value_right = self._validate_scalar(value)
 
@@ -1013,8 +1031,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed_set.pop()
 
-        left = np.concatenate([interval.left for interval in to_concat])
-        right = np.concatenate([interval.right for interval in to_concat])
+        left: IntervalSide = np.concatenate([interval.left for interval in to_concat])
+        right: IntervalSide = np.concatenate([interval.right for interval in to_concat])
 
         left, right, dtype = cls._ensure_simple_new_inputs(left, right, closed=closed)
 
@@ -1265,7 +1283,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # Vectorized Interval Properties/Attributes
 
     @property
-    def left(self):
+    def left(self) -> Index:
         """
         Return the left endpoints of each Interval in the IntervalArray as an Index.
 
@@ -1285,7 +1303,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return Index(self._left, copy=False)
 
     @property
-    def right(self):
+    def right(self) -> Index:
         """
         Return the right endpoints of each Interval in the IntervalArray as an Index.
 
@@ -1644,8 +1662,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Parameters
         ----------
         na_tuple : bool, default True
-            Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
-            value itself if False, ``nan``.
+            If ``True``, return ``NA`` as a tuple ``(nan, nan)``. If ``False``,
+            just return ``NA`` as ``nan``.
 
         Returns
         -------
@@ -1657,12 +1675,16 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     @Appender(
         _interval_shared_docs["to_tuples"]
         % {
-            "return_type": "ndarray",
+            "return_type": (
+                "ndarray (if self is IntervalArray) or Index (if self is IntervalIndex)"
+            ),
             "examples": textwrap.dedent(
                 """\
 
          Examples
          --------
+         For :class:`pandas.IntervalArray`:
+
          >>> idx = pd.arrays.IntervalArray.from_tuples([(0, 1), (1, 2)])
          >>> idx
          <IntervalArray>
@@ -1670,6 +1692,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
          Length: 2, dtype: interval[int64, right]
          >>> idx.to_tuples()
          array([(0, 1), (1, 2)], dtype=object)
+
+         For :class:`pandas.IntervalIndex`:
+
+         >>> idx = pd.interval_range(start=0, end=2)
+         >>> idx
+         IntervalIndex([(0, 1], (1, 2]], dtype='interval[int64, right]')
+         >>> idx.to_tuples()
+         Index([(0, 1), (1, 2)], dtype='object')
          """
             ),
         }
@@ -1807,14 +1837,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 #  complex128 ndarray is much more performant.
                 left = self._combined.view("complex128")
                 right = values._combined.view("complex128")
-                # error: Argument 1 to "in1d" has incompatible type
+                # error: Argument 1 to "isin" has incompatible type
                 # "Union[ExtensionArray, ndarray[Any, Any],
                 # ndarray[Any, dtype[Any]]]"; expected
                 # "Union[_SupportsArray[dtype[Any]],
                 # _NestedSequence[_SupportsArray[dtype[Any]]], bool,
                 # int, float, complex, str, bytes, _NestedSequence[
                 # Union[bool, int, float, complex, str, bytes]]]"
-                return np.in1d(left, right)  # type: ignore[arg-type]
+                return np.isin(left, right).ravel()  # type: ignore[arg-type]
 
             elif needs_i8_conversion(self.left.dtype) ^ needs_i8_conversion(
                 values.left.dtype
@@ -1825,11 +1855,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return isin(self.astype(object), values.astype(object))
 
     @property
-    def _combined(self) -> IntervalSideT:
-        left = self.left._values.reshape(-1, 1)
-        right = self.right._values.reshape(-1, 1)
+    def _combined(self) -> IntervalSide:
+        # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
+        # has no attribute "reshape"  [union-attr]
+        left = self.left._values.reshape(-1, 1)  # type: ignore[union-attr]
+        right = self.right._values.reshape(-1, 1)  # type: ignore[union-attr]
         if needs_i8_conversion(left.dtype):
-            comb = left._concat_same_type([left, right], axis=1)
+            # error: Item "ndarray[Any, Any]" of "Any | ndarray[Any, Any]" has
+            # no attribute "_concat_same_type"
+            comb = left._concat_same_type(  # type: ignore[union-attr]
+                [left, right], axis=1
+            )
         else:
             comb = np.concatenate([left, right], axis=1)
         return comb

@@ -35,6 +35,8 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1994 Sun Microsystems, Inc.
 */
 
+// Licence at LICENSES/ULTRAJSON_LICENSE
+
 #include "pandas/vendored/ujson/python/version.h"
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
@@ -54,14 +56,9 @@ PyObject *JSONToObj(PyObject *self, PyObject *args, PyObject *kwargs);
     "encode_html_chars=True to encode < > & as unicode escape sequences."
 
 static PyMethodDef ujsonMethods[] = {
-    {"encode", (PyCFunction)objToJSON, METH_VARARGS | METH_KEYWORDS,
+    {"ujson_dumps", (PyCFunction)objToJSON, METH_VARARGS | METH_KEYWORDS,
      "Converts arbitrary object recursively into JSON. " ENCODER_HELP_TEXT},
-    {"decode", (PyCFunction)JSONToObj, METH_VARARGS | METH_KEYWORDS,
-     "Converts JSON as string to dict object structure. Use precise_float=True "
-     "to use high precision float decoder."},
-    {"dumps", (PyCFunction)objToJSON, METH_VARARGS | METH_KEYWORDS,
-     "Converts arbitrary object recursively into JSON. " ENCODER_HELP_TEXT},
-    {"loads", (PyCFunction)JSONToObj, METH_VARARGS | METH_KEYWORDS,
+    {"ujson_loads", (PyCFunction)JSONToObj, METH_VARARGS | METH_KEYWORDS,
      "Converts JSON as string to dict object structure. Use precise_float=True "
      "to use high precision float decoder."},
     {NULL, NULL, 0, NULL} /* Sentinel */

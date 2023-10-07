@@ -21,6 +21,16 @@ import pandas._testing as tm
 
 
 class TestSeriesRepr:
+    def test_multilevel_name_print_0(self):
+        # GH#55415 None does not get printed, but 0 does
+        # (matching DataFrame and flat index behavior)
+        mi = pd.MultiIndex.from_product([range(2, 3), range(3, 4)], names=[0, None])
+        ser = Series(1.5, index=mi)
+
+        res = repr(ser)
+        expected = "0   \n2  3    1.5\ndtype: float64"
+        assert res == expected
+
     def test_multilevel_name_print(self, lexsorted_two_level_string_multiindex):
         index = lexsorted_two_level_string_multiindex
         ser = Series(range(len(index)), index=index, name="sth")
@@ -67,7 +77,12 @@ class TestSeriesRepr:
 
     @pytest.mark.parametrize("args", [(), (0, -1)])
     def test_float_range(self, args):
-        str(Series(np.random.randn(1000), index=np.arange(1000, *args)))
+        str(
+            Series(
+                np.random.default_rng(2).standard_normal(1000),
+                index=np.arange(1000, *args),
+            )
+        )
 
     def test_empty_object(self):
         # empty
@@ -78,7 +93,7 @@ class TestSeriesRepr:
         str(string_series.astype(int))
 
         # with NaNs
-        string_series[5:7] = np.NaN
+        string_series[5:7] = np.nan
         str(string_series)
 
     def test_object(self, object_series):
@@ -114,14 +129,16 @@ class TestSeriesRepr:
 
     def test_tuple_name(self):
         biggie = Series(
-            np.random.randn(1000), index=np.arange(1000), name=("foo", "bar", "baz")
+            np.random.default_rng(2).standard_normal(1000),
+            index=np.arange(1000),
+            name=("foo", "bar", "baz"),
         )
         repr(biggie)
 
     @pytest.mark.parametrize("arg", [100, 1001])
     def test_tidy_repr_name_0(self, arg):
         # tidy repr
-        ser = Series(np.random.randn(arg), name=0)
+        ser = Series(np.random.default_rng(2).standard_normal(arg), name=0)
         rep_str = repr(ser)
         assert "Name: 0" in rep_str
 
@@ -149,7 +166,12 @@ class TestSeriesRepr:
         repr(a)  # should not raise exception
 
     def test_repr_bool_fails(self, capsys):
-        s = Series([DataFrame(np.random.randn(2, 2)) for i in range(5)])
+        s = Series(
+            [
+                DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
+                for i in range(5)
+            ]
+        )
 
         # It works (with no Cython exception barf)!
         repr(s)
@@ -197,13 +219,13 @@ class TestSeriesRepr:
         index = Index(
             [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)], dtype=object
         )
-        ts = Series(np.random.randn(len(index)), index)
+        ts = Series(np.random.default_rng(2).standard_normal(len(index)), index)
         repr(ts)
 
         ts = tm.makeTimeSeries(1000)
         assert repr(ts).splitlines()[-1].startswith("Freq:")
 
-        ts2 = ts.iloc[np.random.randint(0, len(ts) - 1, 400)]
+        ts2 = ts.iloc[np.random.default_rng(2).integers(0, len(ts) - 1, 400)]
         repr(ts2).splitlines()[-1]
 
     def test_latex_repr(self):
@@ -235,7 +257,7 @@ class TestSeriesRepr:
         assert repr(s) == exp
 
     def test_format_pre_1900_dates(self):
-        rng = date_range("1/1/1850", "1/1/1950", freq="A-DEC")
+        rng = date_range("1/1/1850", "1/1/1950", freq="Y-DEC")
         rng.format()
         ts = Series(1, index=rng)
         repr(ts)
@@ -336,7 +358,7 @@ Categories (3, int64): [1, 2, 3]"""
 8    8
 9    9
 dtype: category
-Categories (10, {np.int_().dtype}): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
+Categories (10, {np.dtype(int)}): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
 
         assert repr(s) == exp
 
@@ -362,7 +384,7 @@ Categories (3, int64): [1 < 2 < 3]"""
 8    8
 9    9
 dtype: category
-Categories (10, {np.int_().dtype}): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
+Categories (10, {np.dtype(int)}): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
 
         assert repr(s) == exp
 

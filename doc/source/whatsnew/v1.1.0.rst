@@ -208,7 +208,14 @@ For example:
     tz_strs = ["2010-01-01 12:00:00 +0100", "2010-01-01 12:00:00 -0100",
                "2010-01-01 12:00:00 +0300", "2010-01-01 12:00:00 +0400"]
     pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z', utc=True)
-    pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z')
+
+.. code-block:: ipython
+
+   In[37]: pd.to_datetime(tz_strs, format='%Y-%m-%d %H:%M:%S %z')
+   Out[37]:
+   Index([2010-01-01 12:00:00+01:00, 2010-01-01 12:00:00-01:00,
+          2010-01-01 12:00:00+03:00, 2010-01-01 12:00:00+04:00],
+         dtype='object')
 
 .. _whatsnew_110.grouper_resample_origin:
 

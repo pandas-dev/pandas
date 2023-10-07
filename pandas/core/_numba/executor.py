@@ -16,30 +16,92 @@ from pandas.compat._optional import import_optional_dependency
 
 
 @functools.cache
-def make_looper(func, result_dtype, nopython, nogil, parallel):
+def generate_apply_looper(func, nopython=True, nogil=True, parallel=False):
+    if TYPE_CHECKING:
+        import numba
+    else:
+        numba = import_optional_dependency("numba")
+    nb_compat_func = numba.extending.register_jitable(func)
+
+    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    def nb_looper(values, axis):
+        # Operate on the first row/col in order to get
+        # the output shape
+        if axis == 0:
+            first_elem = values[:, 0]
+            dim0 = values.shape[1]
+        else:
+            first_elem = values[0]
+            dim0 = values.shape[0]
+        res0 = nb_compat_func(first_elem)
+        # Use np.asarray to get shape for
+        # https://github.com/numba/numba/issues/4202#issuecomment-1185981507
+        buf_shape = (dim0,) + np.atleast_1d(np.asarray(res0)).shape
+        if axis == 0:
+            buf_shape = buf_shape[::-1]
+        buff = np.empty(buf_shape)
+
+        if axis == 1:
+            buff[0] = res0
+            for i in numba.prange(1, values.shape[0]):
+                buff[i] = nb_compat_func(values[i])
+        else:
+            buff[:, 0] = res0
+            for j in numba.prange(1, values.shape[1]):
+                buff[:, j] = nb_compat_func(values[:, j])
+        return buff
+
+    return nb_looper
+
+
+@functools.cache
+def make_looper(func, result_dtype, is_grouped_kernel, nopython, nogil, parallel):
     if TYPE_CHECKING:
         import numba
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
-    def column_looper(
-        values: np.ndarray,
-        start: np.ndarray,
-        end: np.ndarray,
-        min_periods: int,
-        *args,
-    ):
-        result = np.empty((values.shape[0], len(start)), dtype=result_dtype)
-        na_positions = {}
-        for i in numba.prange(values.shape[0]):
-            output, na_pos = func(
-                values[i], result_dtype, start, end, min_periods, *args
-            )
-            result[i] = output
-            if len(na_pos) > 0:
-                na_positions[i] = np.array(na_pos)
-        return result, na_positions
+    if is_grouped_kernel:
+
+        @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+        def column_looper(
+            values: np.ndarray,
+            labels: np.ndarray,
+            ngroups: int,
+            min_periods: int,
+            *args,
+        ):
+            result = np.empty((values.shape[0], ngroups), dtype=result_dtype)
+            na_positions = {}
+            for i in numba.prange(values.shape[0]):
+                output, na_pos = func(
+                    values[i], result_dtype, labels, ngroups, min_periods, *args
+                )
+                result[i] = output
+                if len(na_pos) > 0:
+                    na_positions[i] = np.array(na_pos)
+            return result, na_positions
+
+    else:
+
+        @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+        def column_looper(
+            values: np.ndarray,
+            start: np.ndarray,
+            end: np.ndarray,
+            min_periods: int,
+            *args,
+        ):
+            result = np.empty((values.shape[0], len(start)), dtype=result_dtype)
+            na_positions = {}
+            for i in numba.prange(values.shape[0]):
+                output, na_pos = func(
+                    values[i], result_dtype, start, end, min_periods, *args
+                )
+                result[i] = output
+                if len(na_pos) > 0:
+                    na_positions[i] = np.array(na_pos)
+            return result, na_positions
 
     return column_looper
 
@@ -96,6 +158,7 @@ identity_dtype_mapping: dict[np.dtype, Any] = {
 def generate_shared_aggregator(
     func: Callable[..., Scalar],
     dtype_mapping: dict[np.dtype, np.dtype],
+    is_grouped_kernel: bool,
     nopython: bool,
     nogil: bool,
     parallel: bool,
@@ -111,6 +174,11 @@ def generate_shared_aggregator(
     dtype_mapping: dict or None
         If not None, maps a dtype to a result dtype.
         Otherwise, will fall back to default mapping.
+    is_grouped_kernel: bool, default False
+        Whether func operates using the group labels (True)
+        or using starts/ends arrays
+
+        If true, you also need to pass the number of groups to this function
     nopython : bool
         nopython to be passed into numba.jit
     nogil : bool
@@ -130,13 +198,28 @@ def generate_shared_aggregator(
     # is less than min_periods
     # Cannot do this in numba nopython mode
     # (you'll run into type-unification error when you cast int -> float)
-    def looper_wrapper(values, start, end, min_periods, **kwargs):
+    def looper_wrapper(
+        values,
+        start=None,
+        end=None,
+        labels=None,
+        ngroups=None,
+        min_periods: int = 0,
+        **kwargs,
+    ):
         result_dtype = dtype_mapping[values.dtype]
-        column_looper = make_looper(func, result_dtype, nopython, nogil, parallel)
-        # Need to unpack kwargs since numba only supports *args
-        result, na_positions = column_looper(
-            values, start, end, min_periods, *kwargs.values()
+        column_looper = make_looper(
+            func, result_dtype, is_grouped_kernel, nopython, nogil, parallel
         )
+        # Need to unpack kwargs since numba only supports *args
+        if is_grouped_kernel:
+            result, na_positions = column_looper(
+                values, labels, ngroups, min_periods, *kwargs.values()
+            )
+        else:
+            result, na_positions = column_looper(
+                values, start, end, min_periods, *kwargs.values()
+            )
         if result.dtype.kind == "i":
             # Look if na_positions is not empty
             # If so, convert the whole block

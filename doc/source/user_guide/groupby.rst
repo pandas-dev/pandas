@@ -211,9 +211,9 @@ For example, the groups created by ``groupby()`` below are in the order they app
 .. ipython:: python
 
    df3 = pd.DataFrame({"X": ["A", "B", "A", "B"], "Y": [1, 4, 3, 2]})
-   df3.groupby(["X"]).get_group("A")
+   df3.groupby("X").get_group("A")
 
-   df3.groupby(["X"]).get_group("B")
+   df3.groupby(["X"]).get_group(("B",))
 
 
 .. _groupby.dropna:
@@ -271,7 +271,6 @@ the length of the ``groups`` dict, so it is largely just a convenience:
 ``GroupBy`` will tab complete column names (and other attributes):
 
 .. ipython:: python
-   :suppress:
 
    n = 10
    weight = np.random.normal(166, 20, size=n)
@@ -281,9 +280,6 @@ the length of the ``groups`` dict, so it is largely just a convenience:
    df = pd.DataFrame(
        {"height": height, "weight": weight, "gender": gender}, index=time
    )
-
-.. ipython:: python
-
    df
    gb = df.groupby("gender")
 
@@ -334,19 +330,14 @@ number:
 Grouping with multiple levels is supported.
 
 .. ipython:: python
-   :suppress:
 
    arrays = [
        ["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"],
        ["doo", "doo", "bee", "bee", "bop", "bop", "bop", "bop"],
        ["one", "two", "one", "two", "one", "two", "one", "two"],
    ]
-   tuples = list(zip(*arrays))
-   index = pd.MultiIndex.from_tuples(tuples, names=["first", "second", "third"])
+   index = pd.MultiIndex.from_arrays(arrays, names=["first", "second", "third"])
    s = pd.Series(np.random.randn(8), index=index)
-
-.. ipython:: python
-
    s
    s.groupby(level=["first", "second"]).sum()
 
@@ -428,6 +419,12 @@ This is mainly syntactic sugar for the alternative, which is much more verbose:
 
 Additionally, this method avoids recomputing the internal grouping information
 derived from the passed key.
+
+You can also include the grouping columns if you want to operate on them.
+
+.. ipython:: python
+
+   grouped[["A", "B"]].sum()
 
 .. _groupby.iterating-label:
 
@@ -878,7 +875,7 @@ will be broadcast across the group.
     grouped.transform("sum")
 
 In addition to string aliases, the :meth:`~.DataFrameGroupBy.transform` method can
-also except User-Defined functions (UDFs). The UDF must:
+also accept User-Defined Functions (UDFs). The UDF must:
 
 * Return a result that is either the same size as the group chunk or
   broadcastable to the size of the group chunk (e.g., a scalar,
@@ -963,7 +960,6 @@ match the shape of the input array.
 Another common data transform is to replace missing data with the group mean.
 
 .. ipython:: python
-   :suppress:
 
    cols = ["A", "B", "C"]
    values = np.random.randn(1000, 3)
@@ -971,9 +967,6 @@ Another common data transform is to replace missing data with the group mean.
    values[np.random.randint(0, 1000, 50), 1] = np.nan
    values[np.random.randint(0, 1000, 200), 2] = np.nan
    data_df = pd.DataFrame(values, columns=cols)
-
-.. ipython:: python
-
    data_df
 
    countries = np.array(["US", "UK", "GR", "JP"])
@@ -1066,7 +1059,7 @@ missing values with the ``ffill()`` method.
    ).set_index("date")
    df_re
 
-   df_re.groupby("group").resample("1D").ffill()
+   df_re.groupby("group").resample("1D", include_groups=False).ffill()
 
 .. _groupby.filter:
 
@@ -1220,6 +1213,19 @@ The dimension of the returned result can also change:
 
     grouped.apply(f)
 
+``apply`` on a Series can operate on a returned value from the applied function
+that is itself a series, and possibly upcast the result to a DataFrame:
+
+.. ipython:: python
+
+    def f(x):
+        return pd.Series([x, x ** 2], index=["x", "x^2"])
+
+
+    s = pd.Series(np.random.rand(5))
+    s
+    s.apply(f)
+
 Similar to :ref:`groupby.aggregate.agg`, the resulting dtype will reflect that of the
 apply function. If the results from different groups have different dtypes, then
 a common dtype will be determined in the same way as ``DataFrame`` construction.
@@ -1232,13 +1238,13 @@ the argument ``group_keys`` which defaults to ``True``. Compare
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=True).apply(lambda x: x)
+    df.groupby("A", group_keys=True).apply(lambda x: x, include_groups=False)
 
 with
 
 .. ipython:: python
 
-    df.groupby("A", group_keys=False).apply(lambda x: x)
+    df.groupby("A", group_keys=False).apply(lambda x: x, include_groups=False)
 
 
 Numba Accelerated Routines
@@ -1363,7 +1369,7 @@ implementation headache).
 Grouping with ordered factors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Categorical variables represented as instance of pandas's ``Categorical`` class
+Categorical variables represented as instances of pandas's ``Categorical`` class
 can be used as group keys. If so, the order of the levels will be preserved:
 
 .. ipython:: python
@@ -1410,7 +1416,7 @@ Groupby a specific column with the desired frequency. This is like resampling.
 
 .. ipython:: python
 
-   df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="1ME", key="Date"), "Buyer"])[["Quantity"]].sum()
 
 When ``freq`` is specified, the object returned by ``pd.Grouper`` will be an
 instance of ``pandas.api.typing.TimeGrouper``. You have an ambiguous specification
@@ -1420,9 +1426,9 @@ in that you have a named index and a column that could be potential groupers.
 
    df = df.set_index("Date")
    df["Date"] = df.index + pd.offsets.MonthEnd(2)
-   df.groupby([pd.Grouper(freq="6M", key="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="6ME", key="Date"), "Buyer"])[["Quantity"]].sum()
 
-   df.groupby([pd.Grouper(freq="6M", level="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="6ME", level="Date"), "Buyer"])[["Quantity"]].sum()
 
 
 Taking the first rows of each group
@@ -1496,7 +1502,7 @@ You can also select multiple rows from each group by specifying multiple nth val
    # get the first, 4th, and last date index for each month
    df.groupby([df.index.year, df.index.month]).nth([0, 3, -1])
 
-You may also use a slices or lists of slices.
+You may also use slices or lists of slices.
 
 .. ipython:: python
 
@@ -1722,8 +1728,8 @@ column index name will be used as the name of the inserted column:
        result = {"b_sum": x["b"].sum(), "c_mean": x["c"].mean()}
        return pd.Series(result, name="metrics")
 
-   result = df.groupby("a").apply(compute_metrics)
+   result = df.groupby("a").apply(compute_metrics, include_groups=False)
 
    result
 
-   result.stack()
+   result.stack(future_stack=True)

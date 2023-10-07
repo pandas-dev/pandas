@@ -59,7 +59,7 @@ from pandas._libs.util cimport get_nat
 
 cdef:
     float64_t FP_ERR = 1e-13
-    float64_t NaN = <float64_t>np.NaN
+    float64_t NaN = <float64_t>np.nan
     int64_t NPY_NAT = get_nat()
 
 
@@ -523,6 +523,42 @@ def validate_limit(nobs: int | None, limit=None) -> int:
         lim = limit
 
     return lim
+
+
+# TODO: overlap with libgroupby.group_fillna_indexer?
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_fill_indexer(const uint8_t[:] mask, limit=None):
+    """
+    Find an indexer to use for ffill to `take` on the array being filled.
+    """
+    cdef:
+        ndarray[intp_t, ndim=1] indexer
+        Py_ssize_t i, N = len(mask), last_valid
+        int lim
+
+        # fill_count is the number of consecutive NAs we have seen.
+        #  If it exceeds the given limit, we stop padding.
+        int fill_count = 0
+
+    lim = validate_limit(N, limit)
+    indexer = np.empty(N, dtype=np.intp)
+
+    last_valid = -1  # haven't yet seen anything non-NA
+
+    for i in range(N):
+        if not mask[i]:
+            indexer[i] = i
+            last_valid = i
+            fill_count = 0
+        else:
+            if fill_count < lim:
+                indexer[i] = last_valid
+            else:
+                indexer[i] = -1
+            fill_count += 1
+
+    return indexer
 
 
 @cython.boundscheck(False)

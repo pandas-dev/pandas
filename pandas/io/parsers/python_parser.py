@@ -4,22 +4,23 @@ from collections import (
     abc,
     defaultdict,
 )
+from collections.abc import (
+    Hashable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 import csv
 from io import StringIO
 import re
-import sys
 from typing import (
     IO,
     TYPE_CHECKING,
     DefaultDict,
-    Hashable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -27,8 +28,10 @@ from pandas._libs import lib
 from pandas.errors import (
     EmptyDataError,
     ParserError,
+    ParserWarning,
 )
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -207,7 +210,7 @@ class PythonParser(ParserBase):
                     self.pos += 1
                     line = f.readline()
                     lines = self._check_comments([[line]])[0]
-                lines_str = cast(List[str], lines)
+                lines_str = cast(list[str], lines)
 
                 # since `line` was a string, lines will be a list containing
                 # only a single string
@@ -777,8 +780,11 @@ class PythonParser(ParserBase):
         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
         if self.on_bad_lines == self.BadLineHandleMethod.WARN:
-            base = f"Skipping line {row_num}: "
-            sys.stderr.write(base + msg + "\n")
+            warnings.warn(
+                f"Skipping line {row_num}: {msg}\n",
+                ParserWarning,
+                stacklevel=find_stack_level(),
+            )
 
     def _next_iter_line(self, row_num: int) -> list[Scalar] | None:
         """
@@ -864,15 +870,16 @@ class PythonParser(ParserBase):
         filtered_lines : list of list of Scalars
             The same array of lines with the "empty" ones removed.
         """
-        ret = []
-        for line in lines:
-            # Remove empty lines and lines with only one whitespace value
+        # Remove empty lines and lines with only one whitespace value
+        ret = [
+            line
+            for line in lines
             if (
                 len(line) > 1
                 or len(line) == 1
                 and (not isinstance(line[0], str) or line[0].strip())
-            ):
-                ret.append(line)
+            )
+        ]
         return ret
 
     def _check_thousands(self, lines: list[list[Scalar]]) -> list[list[Scalar]]:
@@ -1174,17 +1181,17 @@ class PythonParser(ParserBase):
             )
         if self.columns and self.dtype:
             assert self._col_indices is not None
-            for i in self._col_indices:
+            for i, col in zip(self._col_indices, self.columns):
                 if not isinstance(self.dtype, dict) and not is_numeric_dtype(
                     self.dtype
                 ):
                     no_thousands_columns.add(i)
                 if (
                     isinstance(self.dtype, dict)
-                    and self.columns[i] in self.dtype
+                    and col in self.dtype
                     and (
-                        not is_numeric_dtype(self.dtype[self.columns[i]])
-                        or is_bool_dtype(self.dtype[self.columns[i]])
+                        not is_numeric_dtype(self.dtype[col])
+                        or is_bool_dtype(self.dtype[col])
                     )
                 ):
                     no_thousands_columns.add(i)

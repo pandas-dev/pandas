@@ -147,9 +147,8 @@ Look,a snake,🐍"""
             assert result == data.encode("utf-8")
 
     # Test that pyarrow can handle a file opened with get_handle
-    @td.skip_if_no("pyarrow")
     def test_get_handle_pyarrow_compat(self):
-        from pyarrow import csv
+        pa_csv = pytest.importorskip("pyarrow.csv")
 
         # Test latin1, ucs-2, and ucs-4 chars
         data = """a,b,c
@@ -161,7 +160,7 @@ Look,a snake,🐍"""
         )
         s = StringIO(data)
         with icom.get_handle(s, "rb", is_text=False) as handles:
-            df = csv.read_csv(handles.handle).to_pandas()
+            df = pa_csv.read_csv(handles.handle).to_pandas()
             tm.assert_frame_equal(df, expected)
             assert not s.closed
 

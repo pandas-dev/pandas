@@ -241,7 +241,7 @@ def test_if_sheet_exists_raises(ext, if_sheet_exists, msg):
     df = DataFrame({"fruit": ["pear"]})
     with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=re.escape(msg)):
-            df.to_excel(f, "foo", engine="openpyxl")
+            df.to_excel(f, sheet_name="foo", engine="openpyxl")
             with ExcelWriter(
                 f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
             ) as writer:

@@ -104,7 +104,7 @@ def test_map_series_stringdtype(any_string_dtype):
 
 @pytest.mark.parametrize(
     "data, expected_dtype",
-    [(["1-1", "1-1", np.NaN], "category"), (["1-1", "1-2", np.NaN], object)],
+    [(["1-1", "1-1", np.nan], "category"), (["1-1", "1-2", np.nan], object)],
 )
 def test_map_categorical_with_nan_values(data, expected_dtype):
     # GH 20714 bug fixed in: GH 24275
@@ -114,7 +114,7 @@ def test_map_categorical_with_nan_values(data, expected_dtype):
     s = Series(data, dtype="category")
 
     result = s.map(func, na_action="ignore")
-    expected = Series(["1", "1", np.NaN], dtype=expected_dtype)
+    expected = Series(["1", "1", np.nan], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -229,11 +229,11 @@ def test_map_int():
     left = Series({"a": 1.0, "b": 2.0, "c": 3.0, "d": 4})
     right = Series({1: 11, 2: 22, 3: 33})
 
-    assert left.dtype == np.float_
+    assert left.dtype == np.float64
     assert issubclass(right.dtype.type, np.integer)
 
     merged = left.map(right)
-    assert merged.dtype == np.float_
+    assert merged.dtype == np.float64
     assert isna(merged["d"])
     assert not isna(merged["c"])
 

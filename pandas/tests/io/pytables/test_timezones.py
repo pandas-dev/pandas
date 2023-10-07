@@ -180,7 +180,9 @@ def test_tseries_select_index_column(setup_path):
 
     # check that no tz still works
     rng = date_range("1/1/2000", "1/30/2000")
-    frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
+    )
 
     with ensure_clean_store(setup_path) as store:
         store.append("frame", frame)
@@ -189,7 +191,9 @@ def test_tseries_select_index_column(setup_path):
 
     # check utc
     rng = date_range("1/1/2000", "1/30/2000", tz="UTC")
-    frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
+    )
 
     with ensure_clean_store(setup_path) as store:
         store.append("frame", frame)
@@ -198,7 +202,9 @@ def test_tseries_select_index_column(setup_path):
 
     # double check non-utc
     rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
-    frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
+    )
 
     with ensure_clean_store(setup_path) as store:
         store.append("frame", frame)
@@ -211,7 +217,9 @@ def test_timezones_fixed_format_frame_non_empty(setup_path):
         # index
         rng = date_range("1/1/2000", "1/30/2000", tz="US/Eastern")
         rng = rng._with_freq(None)  # freq doesn't round-trip
-        df = DataFrame(np.random.randn(len(rng), 4), index=rng)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
+        )
         store["df"] = df
         result = store["df"]
         tm.assert_frame_equal(result, df)
@@ -262,7 +270,9 @@ def test_timezones_fixed_format_series_nonempty(setup_path, tz_aware_fixture):
 
 def test_fixed_offset_tz(setup_path):
     rng = date_range("1/1/2000 00:00:00-07:00", "1/30/2000 00:00:00-07:00")
-    frame = DataFrame(np.random.randn(len(rng), 4), index=rng)
+    frame = DataFrame(
+        np.random.default_rng(2).standard_normal((len(rng), 4)), index=rng
+    )
 
     with ensure_clean_store(setup_path) as store:
         store["frame"] = frame

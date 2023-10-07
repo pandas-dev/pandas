@@ -10,11 +10,11 @@ import pandas._testing as tm
 
 class TestDelete:
     def test_delete(self):
-        idx = date_range(start="2000-01-01", periods=5, freq="M", name="idx")
+        idx = date_range(start="2000-01-01", periods=5, freq="ME", name="idx")
 
         # preserve freq
-        expected_0 = date_range(start="2000-02-01", periods=4, freq="M", name="idx")
-        expected_4 = date_range(start="2000-01-01", periods=4, freq="M", name="idx")
+        expected_0 = date_range(start="2000-02-01", periods=4, freq="ME", name="idx")
+        expected_4 = date_range(start="2000-01-01", periods=4, freq="ME", name="idx")
 
         # reset freq to None
         expected_1 = DatetimeIndex(

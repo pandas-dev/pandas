@@ -34,12 +34,13 @@ def test_hash_error(index):
 
 def test_mutability(index):
     if not len(index):
-        return
+        pytest.skip("Test doesn't make sense for empty index")
     msg = "Index does not support mutable operations"
     with pytest.raises(TypeError, match=msg):
         index[0] = index[0]
 
 
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 def test_map_identity_mapping(index, request):
     # GH#12766
 

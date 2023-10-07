@@ -32,6 +32,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+bday_msg = "Period with BDay freq is deprecated"
+
 
 class TestPeriodConstruction:
     def test_custom_business_day_freq_raises(self):
@@ -59,27 +61,26 @@ class TestPeriodConstruction:
 
         assert i1 == i2
 
-        i1 = Period("2005", freq="A")
+        i1 = Period("2005", freq="Y")
         i2 = Period("2005")
-        i3 = Period("2005", freq="a")
+        i3 = Period("2005", freq="y")
 
         assert i1 == i2
         assert i1 == i3
 
         i4 = Period("2005", freq="M")
-        i5 = Period("2005", freq="m")
-
         assert i1 != i4
-        assert i4 == i5
 
-        i1 = Period.now("Q")
+        i1 = Period.now(freq="Q")
         i2 = Period(datetime.now(), freq="Q")
         i3 = Period.now("q")
 
         assert i1 == i2
         assert i1 == i3
 
-        i1 = Period.now("D")
+        # Pass in freq as a keyword argument sometimes as a test for
+        # https://github.com/pandas-dev/pandas/issues/53369
+        i1 = Period.now(freq="D")
         i2 = Period(datetime.now(), freq="D")
         i3 = Period.now(offsets.Day())
 
@@ -98,17 +99,17 @@ class TestPeriodConstruction:
         assert i1 == i3
 
         i1 = Period("2007-01-01 09:00:00.001")
-        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1000), freq="L")
+        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1000), freq="ms")
         assert i1 == expected
 
-        expected = Period("2007-01-01 09:00:00.001", freq="L")
+        expected = Period("2007-01-01 09:00:00.001", freq="ms")
         assert i1 == expected
 
         i1 = Period("2007-01-01 09:00:00.00101")
-        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq="U")
+        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq="us")
         assert i1 == expected
 
-        expected = Period("2007-01-01 09:00:00.00101", freq="U")
+        expected = Period("2007-01-01 09:00:00.00101", freq="us")
         assert i1 == expected
 
         msg = "Must supply freq for ordinal value"
@@ -140,20 +141,21 @@ class TestPeriodConstruction:
 
     def test_construction_bday(self):
         # Biz day construction, roll forward if non-weekday
-        i1 = Period("3/10/12", freq="B")
-        i2 = Period("3/10/12", freq="D")
-        assert i1 == i2.asfreq("B")
-        i2 = Period("3/11/12", freq="D")
-        assert i1 == i2.asfreq("B")
-        i2 = Period("3/12/12", freq="D")
-        assert i1 == i2.asfreq("B")
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            i1 = Period("3/10/12", freq="B")
+            i2 = Period("3/10/12", freq="D")
+            assert i1 == i2.asfreq("B")
+            i2 = Period("3/11/12", freq="D")
+            assert i1 == i2.asfreq("B")
+            i2 = Period("3/12/12", freq="D")
+            assert i1 == i2.asfreq("B")
 
-        i3 = Period("3/10/12", freq="b")
-        assert i1 == i3
+            i3 = Period("3/10/12", freq="b")
+            assert i1 == i3
 
-        i1 = Period(year=2012, month=3, day=10, freq="B")
-        i2 = Period("3/12/12", freq="B")
-        assert i1 == i2
+            i1 = Period(year=2012, month=3, day=10, freq="B")
+            i2 = Period("3/12/12", freq="B")
+            assert i1 == i2
 
     def test_construction_quarter(self):
         i1 = Period(year=2005, quarter=1, freq="Q")
@@ -222,11 +224,12 @@ class TestPeriodConstruction:
         assert Period("1/1/2005", freq=offsets.MonthEnd()) == Period(
             "1/1/2005", freq="M"
         )
-        assert Period("2005", freq=offsets.YearEnd()) == Period("2005", freq="A")
+        assert Period("2005", freq=offsets.YearEnd()) == Period("2005", freq="Y")
         assert Period("2005", freq=offsets.MonthEnd()) == Period("2005", freq="M")
-        assert Period("3/10/12", freq=offsets.BusinessDay()) == Period(
-            "3/10/12", freq="B"
-        )
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            assert Period("3/10/12", freq=offsets.BusinessDay()) == Period(
+                "3/10/12", freq="B"
+            )
         assert Period("3/10/12", freq=offsets.Day()) == Period("3/10/12", freq="D")
 
         assert Period(
@@ -239,17 +242,19 @@ class TestPeriodConstruction:
         assert Period(year=2005, month=3, day=1, freq=offsets.Day()) == Period(
             year=2005, month=3, day=1, freq="D"
         )
-        assert Period(year=2012, month=3, day=10, freq=offsets.BDay()) == Period(
-            year=2012, month=3, day=10, freq="B"
-        )
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            assert Period(year=2012, month=3, day=10, freq=offsets.BDay()) == Period(
+                year=2012, month=3, day=10, freq="B"
+            )
 
         expected = Period("2005-03-01", freq="3D")
         assert Period(year=2005, month=3, day=1, freq=offsets.Day(3)) == expected
         assert Period(year=2005, month=3, day=1, freq="3D") == expected
 
-        assert Period(year=2012, month=3, day=10, freq=offsets.BDay(3)) == Period(
-            year=2012, month=3, day=10, freq="3B"
-        )
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            assert Period(year=2012, month=3, day=10, freq=offsets.BDay(3)) == Period(
+                year=2012, month=3, day=10, freq="3B"
+            )
 
         assert Period(200701, freq=offsets.MonthEnd()) == Period(200701, freq="M")
 
@@ -274,17 +279,17 @@ class TestPeriodConstruction:
         assert i1 == i5
 
         i1 = Period("2007-01-01 09:00:00.001")
-        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1000), freq="L")
+        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1000), freq="ms")
         assert i1 == expected
 
-        expected = Period("2007-01-01 09:00:00.001", freq="L")
+        expected = Period("2007-01-01 09:00:00.001", freq="ms")
         assert i1 == expected
 
         i1 = Period("2007-01-01 09:00:00.00101")
-        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq="U")
+        expected = Period(datetime(2007, 1, 1, 9, 0, 0, 1010), freq="us")
         assert i1 == expected
 
-        expected = Period("2007-01-01 09:00:00.00101", freq="U")
+        expected = Period("2007-01-01 09:00:00.00101", freq="us")
         assert i1 == expected
 
     def test_invalid_arguments(self):
@@ -310,13 +315,13 @@ class TestPeriodConstruction:
 
         msg = '^Given date string "-2000" not likely a datetime$'
         with pytest.raises(ValueError, match=msg):
-            Period("-2000", "A")
+            Period("-2000", "Y")
         msg = "day is out of range for month"
         with pytest.raises(DateParseError, match=msg):
-            Period("0", "A")
+            Period("0", "Y")
         msg = "Unknown datetime string format, unable to parse"
         with pytest.raises(DateParseError, match=msg):
-            Period("1/1/-2000", "A")
+            Period("1/1/-2000", "Y")
 
     def test_constructor_corner(self):
         expected = Period("2007-01", freq="2M")
@@ -326,8 +331,8 @@ class TestPeriodConstruction:
 
         p = Period("2007-01-01", freq="D")
 
-        result = Period(p, freq="A")
-        exp = Period("2007", freq="A")
+        result = Period(p, freq="Y")
+        exp = Period("2007", freq="Y")
         assert result == exp
 
     def test_constructor_infer_freq(self):
@@ -338,28 +343,28 @@ class TestPeriodConstruction:
         assert p.freq == "H"
 
         p = Period("2007-01-01 07:10")
-        assert p.freq == "T"
+        assert p.freq == "min"
 
         p = Period("2007-01-01 07:10:15")
-        assert p.freq == "S"
+        assert p.freq == "s"
 
         p = Period("2007-01-01 07:10:15.123")
-        assert p.freq == "L"
+        assert p.freq == "ms"
 
         # We see that there are 6 digits after the decimal, so get microsecond
         #  even though they are all zeros.
         p = Period("2007-01-01 07:10:15.123000")
-        assert p.freq == "U"
+        assert p.freq == "us"
 
         p = Period("2007-01-01 07:10:15.123400")
-        assert p.freq == "U"
+        assert p.freq == "us"
 
     def test_multiples(self):
-        result1 = Period("1989", freq="2A")
-        result2 = Period("1989", freq="A")
+        result1 = Period("1989", freq="2Y")
+        result2 = Period("1989", freq="Y")
         assert result1.ordinal == result2.ordinal
-        assert result1.freqstr == "2A-DEC"
-        assert result2.freqstr == "A-DEC"
+        assert result1.freqstr == "2Y-DEC"
+        assert result2.freqstr == "Y-DEC"
         assert result1.freq == offsets.YearEnd(2)
         assert result2.freq == offsets.YearEnd()
 
@@ -385,7 +390,7 @@ class TestPeriodConstruction:
     @pytest.mark.parametrize("month", MONTHS)
     def test_period_cons_annual(self, month):
         # bugs in scikits.timeseries
-        freq = f"A-{month}"
+        freq = f"Y-{month}"
         exp = Period("1989", freq=freq)
         stamp = exp.to_timestamp("D", how="end") + timedelta(days=30)
         p = Period(stamp, freq=freq)
@@ -423,7 +428,7 @@ class TestPeriodConstruction:
         assert p == res
         assert isinstance(res, Period)
 
-    @pytest.mark.parametrize("freq", ["A", "M", "D", "H"])
+    @pytest.mark.parametrize("freq", ["Y", "M", "D", "H"])
     def test_construct_from_nat_string_and_freq(self, freq):
         per = Period("NaT", freq=freq)
         assert per is NaT
@@ -612,8 +617,11 @@ class TestPeriodMethods:
         expected = Timestamp("2011-04-01") - Timedelta(1, "ns")
         assert p.to_timestamp(how="E") == expected
 
+    @pytest.mark.filterwarnings(
+        "ignore:Period with BDay freq is deprecated:FutureWarning"
+    )
     def test_to_timestamp(self):
-        p = Period("1982", freq="A")
+        p = Period("1982", freq="Y")
         start_ts = p.to_timestamp(how="S")
         aliases = ["s", "StarT", "BEGIn"]
         for a in aliases:
@@ -627,7 +635,7 @@ class TestPeriodMethods:
             assert end_ts == p.to_timestamp("D", how=a)
             assert end_ts == p.to_timestamp("3D", how=a)
 
-        from_lst = ["A", "Q", "M", "W", "B", "D", "H", "Min", "S"]
+        from_lst = ["Y", "Q", "M", "W", "B", "D", "H", "Min", "s"]
 
         def _ex(p):
             if p.freq == "B":
@@ -645,7 +653,7 @@ class TestPeriodMethods:
 
         # Frequency other than daily
 
-        p = Period("1985", freq="A")
+        p = Period("1985", freq="Y")
 
         result = p.to_timestamp("H", how="end")
         expected = Timestamp(1986, 1, 1) - Timedelta(1, "ns")
@@ -653,10 +661,10 @@ class TestPeriodMethods:
         result = p.to_timestamp("3H", how="end")
         assert result == expected
 
-        result = p.to_timestamp("T", how="end")
+        result = p.to_timestamp("min", how="end")
         expected = Timestamp(1986, 1, 1) - Timedelta(1, "ns")
         assert result == expected
-        result = p.to_timestamp("2T", how="end")
+        result = p.to_timestamp("2min", how="end")
         assert result == expected
 
         result = p.to_timestamp(how="end")
@@ -666,18 +674,19 @@ class TestPeriodMethods:
         expected = datetime(1985, 1, 1)
         result = p.to_timestamp("H", how="start")
         assert result == expected
-        result = p.to_timestamp("T", how="start")
+        result = p.to_timestamp("min", how="start")
         assert result == expected
-        result = p.to_timestamp("S", how="start")
+        result = p.to_timestamp("s", how="start")
         assert result == expected
         result = p.to_timestamp("3H", how="start")
         assert result == expected
-        result = p.to_timestamp("5S", how="start")
+        result = p.to_timestamp("5s", how="start")
         assert result == expected
 
     def test_to_timestamp_business_end(self):
-        per = Period("1990-01-05", "B")  # Friday
-        result = per.to_timestamp("B", how="E")
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            per = Period("1990-01-05", "B")  # Friday
+            result = per.to_timestamp("B", how="E")
 
         expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
         assert result == expected
@@ -712,24 +721,27 @@ class TestPeriodMethods:
             ("2000-12-15", None, "2000-12-15", "D"),
             (
                 "2000-12-15 13:45:26.123456789",
-                "N",
+                "ns",
                 "2000-12-15 13:45:26.123456789",
-                "N",
+                "ns",
             ),
-            ("2000-12-15 13:45:26.123456789", "U", "2000-12-15 13:45:26.123456", "U"),
-            ("2000-12-15 13:45:26.123456", None, "2000-12-15 13:45:26.123456", "U"),
-            ("2000-12-15 13:45:26.123456789", "L", "2000-12-15 13:45:26.123", "L"),
-            ("2000-12-15 13:45:26.123", None, "2000-12-15 13:45:26.123", "L"),
-            ("2000-12-15 13:45:26", "S", "2000-12-15 13:45:26", "S"),
-            ("2000-12-15 13:45:26", "T", "2000-12-15 13:45", "T"),
+            ("2000-12-15 13:45:26.123456789", "us", "2000-12-15 13:45:26.123456", "us"),
+            ("2000-12-15 13:45:26.123456", None, "2000-12-15 13:45:26.123456", "us"),
+            ("2000-12-15 13:45:26.123456789", "ms", "2000-12-15 13:45:26.123", "ms"),
+            ("2000-12-15 13:45:26.123", None, "2000-12-15 13:45:26.123", "ms"),
+            ("2000-12-15 13:45:26", "s", "2000-12-15 13:45:26", "s"),
+            ("2000-12-15 13:45:26", "min", "2000-12-15 13:45", "min"),
             ("2000-12-15 13:45:26", "H", "2000-12-15 13:00", "H"),
-            ("2000-12-15", "Y", "2000", "A-DEC"),
+            ("2000-12-15", "Y", "2000", "Y-DEC"),
             ("2000-12-15", "Q", "2000Q4", "Q-DEC"),
             ("2000-12-15", "M", "2000-12", "M"),
             ("2000-12-15", "W", "2000-12-11/2000-12-17", "W-SUN"),
             ("2000-12-15", "D", "2000-12-15", "D"),
             ("2000-12-15", "B", "2000-12-15", "B"),
         ),
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:Period with BDay freq is deprecated:FutureWarning"
     )
     def test_repr(self, str_ts, freq, str_res, str_freq):
         p = Period(str_ts, freq=freq)
@@ -742,7 +754,7 @@ class TestPeriodMethods:
 
     def test_strftime(self):
         # GH#3363
-        p = Period("2000-1-1 12:34:12", freq="S")
+        p = Period("2000-1-1 12:34:12", freq="s")
         res = p.strftime("%Y-%m-%d %H:%M:%S")
         assert res == "2000-01-01 12:34:12"
         assert isinstance(res, str)
@@ -751,7 +763,7 @@ class TestPeriodMethods:
 class TestPeriodProperties:
     """Test properties such as year, month, weekday, etc...."""
 
-    @pytest.mark.parametrize("freq", ["A", "M", "D", "H"])
+    @pytest.mark.parametrize("freq", ["Y", "M", "D", "H"])
     def test_is_leap_year(self, freq):
         # GH 13727
         p = Period("2000-01-01 00:00:00", freq=freq)
@@ -786,19 +798,22 @@ class TestPeriodProperties:
     def test_freq_str(self):
         i1 = Period("1982", freq="Min")
         assert i1.freq == offsets.Minute()
-        assert i1.freqstr == "T"
+        assert i1.freqstr == "min"
 
+    @pytest.mark.filterwarnings(
+        "ignore:Period with BDay freq is deprecated:FutureWarning"
+    )
     def test_period_deprecated_freq(self):
         cases = {
             "M": ["MTH", "MONTH", "MONTHLY", "Mth", "month", "monthly"],
             "B": ["BUS", "BUSINESS", "BUSINESSLY", "WEEKDAY", "bus"],
             "D": ["DAY", "DLY", "DAILY", "Day", "Dly", "Daily"],
             "H": ["HR", "HOUR", "HRLY", "HOURLY", "hr", "Hour", "HRly"],
-            "T": ["minute", "MINUTE", "MINUTELY", "minutely"],
-            "S": ["sec", "SEC", "SECOND", "SECONDLY", "second"],
-            "L": ["MILLISECOND", "MILLISECONDLY", "millisecond"],
-            "U": ["MICROSECOND", "MICROSECONDLY", "microsecond"],
-            "N": ["NANOSECOND", "NANOSECONDLY", "nanosecond"],
+            "min": ["minute", "MINUTE", "MINUTELY", "minutely"],
+            "s": ["sec", "SEC", "SECOND", "SECONDLY", "second"],
+            "ms": ["MILLISECOND", "MILLISECONDLY", "millisecond"],
+            "us": ["MICROSECOND", "MICROSECONDLY", "microsecond"],
+            "ns": ["NANOSECOND", "NANOSECONDLY", "nanosecond"],
         }
 
         msg = INVALID_FREQ_ERR_MSG
@@ -840,22 +855,23 @@ class TestPeriodProperties:
     def test_inner_bounds_start_and_end_time(self, bound, offset, period_property):
         # GH #13346
         period = TestPeriodProperties._period_constructor(bound, -offset)
-        expected = period.to_timestamp().round(freq="S")
-        assert getattr(period, period_property).round(freq="S") == expected
-        expected = (bound - offset * Timedelta(1, unit="S")).floor("S")
-        assert getattr(period, period_property).floor("S") == expected
+        expected = period.to_timestamp().round(freq="s")
+        assert getattr(period, period_property).round(freq="s") == expected
+        expected = (bound - offset * Timedelta(1, unit="s")).floor("s")
+        assert getattr(period, period_property).floor("s") == expected
 
     def test_start_time(self):
-        freq_lst = ["A", "Q", "M", "D", "H", "T", "S"]
+        freq_lst = ["Y", "Q", "M", "D", "H", "min", "s"]
         xp = datetime(2012, 1, 1)
         for f in freq_lst:
             p = Period("2012", freq=f)
             assert p.start_time == xp
-        assert Period("2012", freq="B").start_time == datetime(2012, 1, 2)
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            assert Period("2012", freq="B").start_time == datetime(2012, 1, 2)
         assert Period("2012", freq="W").start_time == datetime(2011, 12, 26)
 
     def test_end_time(self):
-        p = Period("2012", freq="A")
+        p = Period("2012", freq="Y")
 
         def _ex(*args):
             return Timestamp(Timestamp(datetime(*args)).as_unit("ns")._value - 1)
@@ -879,9 +895,10 @@ class TestPeriodProperties:
         xp = _ex(2012, 1, 1, 1)
         assert xp == p.end_time
 
-        p = Period("2012", freq="B")
-        xp = _ex(2012, 1, 3)
-        assert xp == p.end_time
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            p = Period("2012", freq="B")
+            xp = _ex(2012, 1, 3)
+            assert xp == p.end_time
 
         p = Period("2012", freq="W")
         xp = _ex(2012, 1, 2)
@@ -902,8 +919,9 @@ class TestPeriodProperties:
 
     def test_end_time_business_friday(self):
         # GH#34449
-        per = Period("1990-01-05", "B")
-        result = per.end_time
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            per = Period("1990-01-05", "B")
+            result = per.end_time
 
         expected = Timestamp("1990-01-06") - Timedelta(nanoseconds=1)
         assert result == expected
@@ -918,7 +936,7 @@ class TestPeriodProperties:
 
     def test_properties_annually(self):
         # Test properties on Periods with annually frequency.
-        a_date = Period(freq="A", year=2007)
+        a_date = Period(freq="Y", year=2007)
         assert a_date.year == 2007
 
     def test_properties_quarterly(self):
@@ -979,7 +997,8 @@ class TestPeriodProperties:
 
     def test_properties_daily(self):
         # Test properties on Periods with daily frequency.
-        b_date = Period(freq="B", year=2007, month=1, day=1)
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            b_date = Period(freq="B", year=2007, month=1, day=1)
         #
         assert b_date.year == 2007
         assert b_date.quarter == 1
@@ -988,7 +1007,8 @@ class TestPeriodProperties:
         assert b_date.weekday == 0
         assert b_date.dayofyear == 1
         assert b_date.days_in_month == 31
-        assert Period(freq="B", year=2012, month=2, day=1).days_in_month == 29
+        with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+            assert Period(freq="B", year=2012, month=2, day=1).days_in_month == 29
 
         d_date = Period(freq="D", year=2007, month=1, day=1)
 
@@ -1176,11 +1196,11 @@ class TestArithmetic:
             nat - per
 
     def test_sub_delta(self):
-        left, right = Period("2011", freq="A"), Period("2007", freq="A")
+        left, right = Period("2011", freq="Y"), Period("2007", freq="Y")
         result = left - right
         assert result == 4 * right.freq
 
-        msg = r"Input has different freq=M from Period\(freq=A-DEC\)"
+        msg = r"Input has different freq=M from Period\(freq=Y-DEC\)"
         with pytest.raises(IncompatibleFrequency, match=msg):
             left - Period("2007-01", freq="M")
 
@@ -1296,7 +1316,7 @@ class TestArithmetic:
 
     def test_add_offset(self):
         # freq is DateOffset
-        for freq in ["A", "2A", "3A"]:
+        for freq in ["Y", "2Y", "3Y"]:
             p = Period("2011", freq=freq)
             exp = Period("2013", freq=freq)
             assert p + offsets.YearEnd(2) == exp
@@ -1447,7 +1467,7 @@ class TestArithmetic:
             ]
         )
 
-        for freq in ["A", "2A", "3A"]:
+        for freq in ["Y", "2Y", "3Y"]:
             p = Period("2011", freq=freq)
             assert p - offsets.YearEnd(2) == Period("2009", freq=freq)
 
@@ -1569,7 +1589,7 @@ def test_small_year_parsing():
 
 
 def test_negone_ordinals():
-    freqs = ["A", "M", "Q", "D", "H", "T", "S"]
+    freqs = ["Y", "M", "Q", "D", "H", "min", "s"]
 
     period = Period(ordinal=-1, freq="D")
     for freq in freqs:
@@ -1580,7 +1600,8 @@ def test_negone_ordinals():
         repr(period)
         assert period.year == 1969
 
-    period = Period(ordinal=-1, freq="B")
+    with tm.assert_produces_warning(FutureWarning, match=bday_msg):
+        period = Period(ordinal=-1, freq="B")
     repr(period)
     period = Period(ordinal=-1, freq="W")
     repr(period)
@@ -1590,3 +1611,9 @@ def test_invalid_frequency_error_message():
     msg = "Invalid frequency: <WeekOfMonth: week=0, weekday=0>"
     with pytest.raises(ValueError, match=msg):
         Period("2012-01-02", freq="WOM-1MON")
+
+
+def test_invalid_frequency_period_error_message():
+    msg = "Invalid frequency: ME"
+    with pytest.raises(ValueError, match=msg):
+        Period("2012-01-02", freq="ME")

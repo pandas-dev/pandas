@@ -18,7 +18,7 @@ import pandas._testing as tm
 class TestToTimestamp:
     def test_to_timestamp_non_contiguous(self):
         # GH#44100
-        dti = date_range("2021-10-18", periods=9, freq="B")
+        dti = date_range("2021-10-18", periods=9, freq="D")
         pi = dti.to_period()
 
         result = pi[::2].to_timestamp()
@@ -47,7 +47,7 @@ class TestToTimestamp:
         tm.assert_datetime_array_equal(result, expected, check_freq=False)
 
     def test_to_timestamp_freq(self):
-        idx = period_range("2017", periods=12, freq="A-DEC")
+        idx = period_range("2017", periods=12, freq="Y-DEC")
         result = idx.to_timestamp()
         expected = date_range("2017", periods=12, freq="AS-JAN")
         tm.assert_index_equal(result, expected)
@@ -72,12 +72,12 @@ class TestToTimestamp:
         tm.assert_index_equal(result3, exp)
         assert result3.freqstr == "3M"
 
-        msg = "Frequency must be positive, because it represents span: -2A"
+        msg = "Frequency must be positive, because it represents span: -2Y"
         with pytest.raises(ValueError, match=msg):
-            result.to_period(freq="-2A")
+            result.to_period(freq="-2Y")
 
     def test_to_timestamp_preserve_name(self):
-        index = period_range(freq="A", start="1/1/2001", end="12/1/2009", name="foo")
+        index = period_range(freq="Y", start="1/1/2001", end="12/1/2009", name="foo")
         assert index.name == "foo"
 
         conv = index.to_timestamp("D")

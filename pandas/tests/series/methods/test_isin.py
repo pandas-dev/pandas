@@ -34,7 +34,7 @@ class TestSeriesIsIn:
         s = Series(["A", "B", "C", "a", "B", "B", "A", "C"])
         msg = (
             r"only list-like objects are allowed to be passed to isin\(\), "
-            r"you passed a \[str\]"
+            r"you passed a `str`"
         )
         with pytest.raises(TypeError, match=msg):
             s.isin("a")

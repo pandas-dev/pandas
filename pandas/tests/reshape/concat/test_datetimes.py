@@ -77,23 +77,23 @@ class TestDatetimeConcat:
 
         exp_idx = DatetimeIndex(
             [
-                "2010-12-31 15:00:00+00:00",
-                "2010-12-31 16:00:00+00:00",
-                "2010-12-31 17:00:00+00:00",
                 "2010-12-31 23:00:00+00:00",
                 "2011-01-01 00:00:00+00:00",
                 "2011-01-01 01:00:00+00:00",
+                "2010-12-31 15:00:00+00:00",
+                "2010-12-31 16:00:00+00:00",
+                "2010-12-31 17:00:00+00:00",
             ]
         )
 
         expected = DataFrame(
             [
-                [np.nan, 1],
-                [np.nan, 2],
-                [np.nan, 3],
                 [1, np.nan],
                 [2, np.nan],
                 [3, np.nan],
+                [np.nan, 1],
+                [np.nan, 2],
+                [np.nan, 3],
             ],
             index=exp_idx,
             columns=["a", "b"],
@@ -112,7 +112,7 @@ class TestDatetimeConcat:
     def test_concat_datetimeindex_freq(self):
         # GH 3232
         # Monotonic index result
-        dr = date_range("01-Jan-2013", periods=100, freq="50L", tz="UTC")
+        dr = date_range("01-Jan-2013", periods=100, freq="50ms", tz="UTC")
         data = list(range(100))
         expected = DataFrame(data, index=dr)
         result = concat([expected[:50], expected[50:]])
@@ -578,7 +578,9 @@ def test_concat_float_datetime64(using_array_manager):
 
     if not using_array_manager:
         expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
-        result = concat([df_time, df_float.iloc[:0]])
+        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = concat([df_time, df_float.iloc[:0]])
         tm.assert_frame_equal(result, expected)
     else:
         expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")}).astype(

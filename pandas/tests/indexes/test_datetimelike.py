@@ -111,6 +111,7 @@ class TestDatetimeLike:
             lambda values, index: pd.Series(values, index, dtype=object),
         ],
     )
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_map_dictlike(self, mapper, simple_index):
         index = simple_index
         expected = index + index.freq

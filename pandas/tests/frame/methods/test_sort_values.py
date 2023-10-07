@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 import pytest
 
@@ -97,7 +95,9 @@ class TestDataFrameSortValues:
 
     def test_sort_values_inplace(self):
         frame = DataFrame(
-            np.random.randn(4, 4), index=[1, 2, 3, 4], columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((4, 4)),
+            index=[1, 2, 3, 4],
+            columns=["A", "B", "C", "D"],
         )
 
         sorted_df = frame.copy()
@@ -129,9 +129,11 @@ class TestDataFrameSortValues:
     def test_sort_values_multicolumn(self):
         A = np.arange(5).repeat(20)
         B = np.tile(np.arange(5), 20)
-        random.shuffle(A)
-        random.shuffle(B)
-        frame = DataFrame({"A": A, "B": B, "C": np.random.randn(100)})
+        np.random.default_rng(2).shuffle(A)
+        np.random.default_rng(2).shuffle(B)
+        frame = DataFrame(
+            {"A": A, "B": B, "C": np.random.default_rng(2).standard_normal(100)}
+        )
 
         result = frame.sort_values(by=["A", "B"])
         indexer = np.lexsort((frame["B"], frame["A"]))
@@ -598,7 +600,9 @@ class TestDataFrameSortValues:
 
     def test_sort_values_item_cache(self, using_array_manager, using_copy_on_write):
         # previous behavior incorrect retained an invalid _item_cache entry
-        df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
+        )
         df["D"] = df["A"] * 2
         ser = df["A"]
         if not using_array_manager:
@@ -642,7 +646,9 @@ class TestDataFrameSortValues:
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_inplace_key(self, sort_by_key):
         frame = DataFrame(
-            np.random.randn(4, 4), index=[1, 2, 3, 4], columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((4, 4)),
+            index=[1, 2, 3, 4],
+            columns=["A", "B", "C", "D"],
         )
 
         sorted_df = frame.copy()

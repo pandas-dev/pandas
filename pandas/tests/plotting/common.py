@@ -4,10 +4,7 @@ Module consolidating common testing functions for checking plotting.
 
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -18,6 +15,8 @@ from pandas import Series
 import pandas._testing as tm
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from matplotlib.axes import Axes
 
 
@@ -77,6 +76,8 @@ def _check_data(xp, rs):
     xp : matplotlib Axes object
     rs : matplotlib Axes object
     """
+    import matplotlib.pyplot as plt
+
     xp_lines = xp.get_lines()
     rs_lines = rs.get_lines()
 
@@ -86,7 +87,7 @@ def _check_data(xp, rs):
         rsdata = rsl.get_xydata()
         tm.assert_almost_equal(xpdata, rsdata)
 
-    tm.close()
+    plt.close("all")
 
 
 def _check_visible(collections, visible=True):
@@ -538,7 +539,7 @@ def _check_plot_works(f, default_axes=False, **kwargs):
             plt.savefig(path)
 
     finally:
-        tm.close(fig)
+        plt.close(fig)
 
     return ret
 

@@ -811,7 +811,7 @@ class TestOffsetAliases:
             assert k == v.copy()
 
     def test_rule_code(self):
-        lst = ["M", "MS", "BM", "BMS", "D", "B", "H", "T", "S", "L", "U"]
+        lst = ["ME", "MS", "BM", "BMS", "D", "B", "H", "min", "s", "ms", "us"]
         for k in lst:
             assert k == _get_offset(k).rule_code
             # should be cached - this is kind of an internals test...
@@ -839,7 +839,7 @@ class TestOffsetAliases:
             "NOV",
             "DEC",
         ]
-        base_lst = ["A", "AS", "BA", "BAS", "Q", "QS", "BQ", "BQS"]
+        base_lst = ["Y", "AS", "BA", "BAS", "Q", "QS", "BQ", "BQS"]
         for base in base_lst:
             for v in suffix_lst:
                 alias = "-".join([base, v])
@@ -858,7 +858,7 @@ def test_freq_offsets():
 class TestReprNames:
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
-        month_prefixes = ["A", "AS", "BA", "BAS", "Q", "BQ", "BQS", "QS"]
+        month_prefixes = ["Y", "AS", "BA", "BAS", "Q", "BQ", "BQS", "QS"]
         names = [
             prefix + "-" + month
             for prefix in month_prefixes

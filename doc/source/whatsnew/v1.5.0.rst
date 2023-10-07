@@ -221,6 +221,7 @@ apply converter methods, and parse dates (:issue:`43567`).
 
 .. ipython:: python
 
+    from io import StringIO
     xml_dates = """<?xml version='1.0' encoding='utf-8'?>
     <data>
       <row>
@@ -244,7 +245,7 @@ apply converter methods, and parse dates (:issue:`43567`).
     </data>"""
 
     df = pd.read_xml(
-        xml_dates,
+        StringIO(xml_dates),
         dtype={'sides': 'Int64'},
         converters={'degrees': str},
         parse_dates=['date']

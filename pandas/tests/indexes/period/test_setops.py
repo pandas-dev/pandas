@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import pandas as pd
 from pandas import (
@@ -10,7 +11,7 @@ import pandas._testing as tm
 
 
 def _permute(obj):
-    return obj.take(np.random.permutation(len(obj)))
+    return obj.take(np.random.default_rng(2).permutation(len(obj)))
 
 
 class TestPeriodIndex:
@@ -61,10 +62,10 @@ class TestPeriodIndex:
         )
 
         rng5 = PeriodIndex(
-            ["2000-01-01 09:01", "2000-01-01 09:03", "2000-01-01 09:05"], freq="T"
+            ["2000-01-01 09:01", "2000-01-01 09:03", "2000-01-01 09:05"], freq="min"
         )
         other5 = PeriodIndex(
-            ["2000-01-01 09:01", "2000-01-01 09:05", "2000-01-01 09:08"], freq="T"
+            ["2000-01-01 09:01", "2000-01-01 09:05", "2000-01-01 09:08"], freq="min"
         )
         expected5 = PeriodIndex(
             [
@@ -73,15 +74,15 @@ class TestPeriodIndex:
                 "2000-01-01 09:05",
                 "2000-01-01 09:08",
             ],
-            freq="T",
+            freq="min",
         )
 
         rng6 = period_range("2000-01-01", freq="M", periods=7)
         other6 = period_range("2000-04-01", freq="M", periods=7)
         expected6 = period_range("2000-01-01", freq="M", periods=10)
 
-        rng7 = period_range("2003-01-01", freq="A", periods=5)
-        other7 = period_range("1998-01-01", freq="A", periods=8)
+        rng7 = period_range("2003-01-01", freq="Y", periods=5)
+        other7 = period_range("1998-01-01", freq="Y", periods=8)
         expected7 = PeriodIndex(
             [
                 "2003",
@@ -95,7 +96,7 @@ class TestPeriodIndex:
                 "2001",
                 "2002",
             ],
-            freq="A",
+            freq="Y",
         )
 
         rng8 = PeriodIndex(
@@ -239,7 +240,7 @@ class TestPeriodIndex:
             assert result.freq == "D"
 
         # empty same freq
-        rng = date_range("6/1/2000", "6/15/2000", freq="T")
+        rng = date_range("6/1/2000", "6/15/2000", freq="min")
         result = rng[0:0].intersection(rng)
         assert len(result) == 0
 
@@ -273,10 +274,10 @@ class TestPeriodIndex:
         expected4 = rng4
 
         rng5 = PeriodIndex(
-            ["2000-01-01 09:03", "2000-01-01 09:01", "2000-01-01 09:05"], freq="T"
+            ["2000-01-01 09:03", "2000-01-01 09:01", "2000-01-01 09:05"], freq="min"
         )
-        other5 = PeriodIndex(["2000-01-01 09:01", "2000-01-01 09:05"], freq="T")
-        expected5 = PeriodIndex(["2000-01-01 09:03"], freq="T")
+        other5 = PeriodIndex(["2000-01-01 09:01", "2000-01-01 09:05"], freq="min")
+        expected5 = PeriodIndex(["2000-01-01 09:03"], freq="min")
 
         period_rng = [
             "2000-02-01",
@@ -292,9 +293,9 @@ class TestPeriodIndex:
         expected6 = PeriodIndex(["2000-02-01", "2000-01-01", "2000-03-01"], freq="M")
 
         period_rng = ["2003", "2007", "2006", "2005", "2004"]
-        rng7 = PeriodIndex(period_rng, freq="A")
-        other7 = period_range("1998-01-01", freq="A", periods=8)
-        expected7 = PeriodIndex(["2007", "2006"], freq="A")
+        rng7 = PeriodIndex(period_rng, freq="Y")
+        other7 = period_range("1998-01-01", freq="Y", periods=8)
+        expected7 = PeriodIndex(["2007", "2006"], freq="Y")
 
         for rng, other, expected in [
             (rng1, other1, expected1),
@@ -336,6 +337,7 @@ class TestPeriodIndex:
         result = idx_dup.intersection(idx_dup)
         tm.assert_index_equal(result, idx)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_union_duplicates(self):
         # GH#36289
         idx = period_range("2011-01-01", periods=2)

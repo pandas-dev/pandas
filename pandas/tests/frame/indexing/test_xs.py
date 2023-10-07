@@ -94,7 +94,10 @@ class TestXS:
         tm.assert_series_equal(result, expected)
 
     def test_xs_duplicates(self):
-        df = DataFrame(np.random.randn(5, 2), index=["b", "b", "c", "b", "a"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 2)),
+            index=["b", "b", "c", "b", "a"],
+        )
 
         cross = df.xs("c")
         exp = df.iloc[2]
@@ -150,7 +153,11 @@ class TestXSWithMultiIndex:
         tuples = list(zip(*arrays))
 
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
-        df = DataFrame(np.random.randn(3, 8), index=["A", "B", "C"], columns=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 8)),
+            index=["A", "B", "C"],
+            columns=index,
+        )
 
         result = df.xs(("one", "bar"), level=("second", "first"), axis=1)
 
@@ -162,7 +169,11 @@ class TestXSWithMultiIndex:
         dates = range(20111201, 20111205)
         ids = list("abcde")
         index = MultiIndex.from_product([dates, ids], names=["date", "secid"])
-        df = DataFrame(np.random.randn(len(index), 3), index, ["X", "Y", "Z"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(index), 3)),
+            index,
+            ["X", "Y", "Z"],
+        )
 
         result = df.xs(20111201, level="date")
         expected = df.loc[20111201, :]
@@ -176,7 +187,7 @@ class TestXSWithMultiIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_xs_level_eq_2(self):
-        arr = np.random.randn(3, 5)
+        arr = np.random.default_rng(2).standard_normal((3, 5))
         index = MultiIndex(
             levels=[["a", "p", "x"], ["b", "q", "y"], ["c", "r", "z"]],
             codes=[[2, 0, 1], [2, 0, 1], [2, 0, 1]],
@@ -266,7 +277,7 @@ class TestXSWithMultiIndex:
     )
     def test_xs_named_levels_axis_eq_1(self, key, level, exp_arr, exp_index):
         # see GH#2903
-        arr = np.random.randn(4, 4)
+        arr = np.random.default_rng(2).standard_normal((4, 4))
         index = MultiIndex(
             levels=[["a", "b"], ["bar", "foo", "hello", "world"]],
             codes=[[0, 0, 1, 1], [0, 1, 2, 3]],
@@ -337,7 +348,7 @@ class TestXSWithMultiIndex:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        obj = DataFrame(np.random.randn(6, 4), index=index)
+        obj = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
         if frame_or_series is Series:
             obj = obj[0]
 

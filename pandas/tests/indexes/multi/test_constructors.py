@@ -59,7 +59,7 @@ def test_constructor_nonhashable_names():
         codes=[[0, 0, 1, 1], [0, 1, 0, 1]],
         names=("foo", "bar"),
     )
-    renamed = [["foor"], ["barr"]]
+    renamed = [["fooo"], ["barr"]]
     with pytest.raises(TypeError, match=msg):
         mi.rename(names=renamed)
 
@@ -778,7 +778,7 @@ def test_datetimeindex():
     idx1 = pd.DatetimeIndex(
         ["2013-04-01 9:00", "2013-04-02 9:00", "2013-04-03 9:00"] * 2, tz="Asia/Tokyo"
     )
-    idx2 = date_range("2010/01/01", periods=6, freq="M", tz="US/Eastern")
+    idx2 = date_range("2010/01/01", periods=6, freq="ME", tz="US/Eastern")
     idx = MultiIndex.from_arrays([idx1, idx2])
 
     expected1 = pd.DatetimeIndex(

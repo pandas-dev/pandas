@@ -196,7 +196,11 @@ def test_no_multi_index_level_names_empty(all_parsers):
     # GH 10984
     parser = all_parsers
     midx = MultiIndex.from_tuples([("A", 1, 2), ("A", 1, 2), ("B", 1, 2)])
-    expected = DataFrame(np.random.randn(3, 3), index=midx, columns=["x", "y", "z"])
+    expected = DataFrame(
+        np.random.default_rng(2).standard_normal((3, 3)),
+        index=midx,
+        columns=["x", "y", "z"],
+    )
     with tm.ensure_clean() as path:
         expected.to_csv(path)
         result = parser.read_csv(path, index_col=[0, 1, 2])
@@ -228,16 +232,23 @@ I2,1,3
 
 
 @pytest.mark.slow
-def test_index_col_large_csv(all_parsers):
+def test_index_col_large_csv(all_parsers, monkeypatch):
     # https://github.com/pandas-dev/pandas/issues/37094
     parser = all_parsers
 
-    N = 1_000_001
-    df = DataFrame({"a": range(N), "b": np.random.randn(N)})
+    ARR_LEN = 100
+    df = DataFrame(
+        {
+            "a": range(ARR_LEN + 1),
+            "b": np.random.default_rng(2).standard_normal(ARR_LEN + 1),
+        }
+    )
 
     with tm.ensure_clean() as path:
         df.to_csv(path, index=False)
-        result = parser.read_csv(path, index_col=[0])
+        with monkeypatch.context() as m:
+            m.setattr("pandas.core.algorithms._MINIMUM_COMP_ARR_LEN", ARR_LEN)
+            result = parser.read_csv(path, index_col=[0])
 
     tm.assert_frame_equal(result, df.set_index("a"))
 

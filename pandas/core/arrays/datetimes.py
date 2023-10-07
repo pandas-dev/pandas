@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from datetime import (
     datetime,
-    time,
     timedelta,
     tzinfo,
 )
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     cast,
 )
 import warnings
@@ -41,7 +39,10 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
-from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.dtypes import (
+    abbrev_to_npy_unit,
+    freq_to_period_freqstr,
+)
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -72,6 +73,8 @@ from pandas.tseries.offsets import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pandas._typing import (
         DateTimeErrorChoices,
         IntervalClosedType,
@@ -83,8 +86,6 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
-
-_midnight = time(0, 0)
 
 
 def tz_to_dtype(
@@ -734,12 +735,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
-        from pandas.io.formats.format import get_format_datetime64_from_values
-
-        fmt = get_format_datetime64_from_values(self, date_format)
+        if date_format is None and self._is_dates_only:
+            # Only dates and no timezone: provide a default format
+            date_format = "%Y-%m-%d"
 
         return tslib.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep, reso=self._creso
+            self.asi8, tz=self.tz, format=date_format, na_rep=na_rep, reso=self._creso
         )
 
     # -----------------------------------------------------------------
@@ -1090,11 +1091,19 @@ default 'raise'
 
     def to_pydatetime(self) -> npt.NDArray[np.object_]:
         """
-        Return an ndarray of datetime.datetime objects.
+        Return an ndarray of ``datetime.datetime`` objects.
 
         Returns
         -------
         numpy.ndarray
+
+        Examples
+        --------
+        >>> idx = pd.date_range('2018-02-27', periods=3)
+        >>> idx.to_pydatetime()
+        array([datetime.datetime(2018, 2, 27, 0, 0),
+               datetime.datetime(2018, 2, 28, 0, 0),
+               datetime.datetime(2018, 3, 1, 0, 0)], dtype=object)
         """
         return ints_to_pydatetime(self.asi8, tz=self.tz, reso=self._creso)
 
@@ -1201,6 +1210,8 @@ default 'raise'
 
         if freq is None:
             freq = self.freqstr or self.inferred_freq
+            if isinstance(self.freq, BaseOffset):
+                freq = freq_to_period_freqstr(self.freq.n, self.freq.name)
 
             if freq is None:
                 raise ValueError(
@@ -1214,7 +1225,6 @@ default 'raise'
                 res = freq
 
             freq = res
-
         return PeriodArray._from_datetime64(self._ndarray, freq, tz=self.tz)
 
     # -----------------------------------------------------------------
@@ -1239,7 +1249,7 @@ default 'raise'
 
         Examples
         --------
-        >>> s = pd.Series(pd.date_range(start='2018-01', freq='M', periods=3))
+        >>> s = pd.Series(pd.date_range(start='2018-01', freq='ME', periods=3))
         >>> s
         0   2018-01-31
         1   2018-02-28
@@ -1251,10 +1261,10 @@ default 'raise'
         2       March
         dtype: object
 
-        >>> idx = pd.date_range(start='2018-01', freq='M', periods=3)
+        >>> idx = pd.date_range(start='2018-01', freq='ME', periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
-                      dtype='datetime64[ns]', freq='M')
+                      dtype='datetime64[ns]', freq='ME')
         >>> idx.month_name()
         Index(['January', 'February', 'March'], dtype='object')
 
@@ -1262,11 +1272,11 @@ default 'raise'
         for example: ``idx.month_name(locale='pt_BR.utf8')`` will return month
         names in Brazilian Portuguese language.
 
-        >>> idx = pd.date_range(start='2018-01', freq='M', periods=3)
+        >>> idx = pd.date_range(start='2018-01', freq='ME', periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
-                      dtype='datetime64[ns]', freq='M')
-        >>> idx.month_name(locale='pt_BR.utf8') # doctest: +SKIP
+                      dtype='datetime64[ns]', freq='ME')
+        >>> idx.month_name(locale='pt_BR.utf8')  # doctest: +SKIP
         Index(['Janeiro', 'Fevereiro', 'Março'], dtype='object')
         """
         values = self._local_timestamps()
@@ -1514,7 +1524,7 @@ default 'raise'
         Examples
         --------
         >>> datetime_series = pd.Series(
-        ...     pd.date_range("2000-01-01", periods=3, freq="M")
+        ...     pd.date_range("2000-01-01", periods=3, freq="ME")
         ... )
         >>> datetime_series
         0   2000-01-31
@@ -1583,7 +1593,7 @@ default 'raise'
         Examples
         --------
         >>> datetime_series = pd.Series(
-        ...     pd.date_range("2000-01-01", periods=3, freq="T")
+        ...     pd.date_range("2000-01-01", periods=3, freq="min")
         ... )
         >>> datetime_series
         0   2000-01-01 00:00:00
@@ -2032,7 +2042,7 @@ default 'raise'
         >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
         >>> idx
         DatetimeIndex(['2012-12-31', '2013-12-31', '2014-12-31'],
-                      dtype='datetime64[ns]', freq='A-DEC')
+                      dtype='datetime64[ns]', freq='Y-DEC')
         >>> idx.is_leap_year
         array([ True, False, False])
 
@@ -2097,23 +2107,40 @@ default 'raise'
         """
         Return sample standard deviation over requested axis.
 
-        Normalized by N-1 by default. This can be changed using the ddof argument
+        Normalized by `N-1` by default. This can be changed using ``ddof``.
 
         Parameters
         ----------
-        axis : int optional, default None
-            Axis for the function to be applied on.
-            For `Series` this parameter is unused and defaults to `None`.
+        axis : int, optional
+            Axis for the function to be applied on. For :class:`pandas.Series`
+            this parameter is unused and defaults to ``None``.
         ddof : int, default 1
-            Degrees of Freedom. The divisor used in calculations is N - ddof,
-            where N represents the number of elements.
+            Degrees of Freedom. The divisor used in calculations is `N - ddof`,
+            where `N` represents the number of elements.
         skipna : bool, default True
-            Exclude NA/null values. If an entire row/column is NA, the result will be
-            NA.
+            Exclude NA/null values. If an entire row/column is ``NA``, the result
+            will be ``NA``.
 
         Returns
         -------
         Timedelta
+
+        See Also
+        --------
+        numpy.ndarray.std : Returns the standard deviation of the array elements
+            along given axis.
+        Series.std : Return sample standard deviation over requested axis.
+
+        Examples
+        --------
+        For :class:`pandas.DatetimeIndex`:
+
+        >>> idx = pd.date_range('2001-01-01 00:00', periods=3)
+        >>> idx
+        DatetimeIndex(['2001-01-01', '2001-01-02', '2001-01-03'],
+                      dtype='datetime64[ns]', freq='D')
+        >>> idx.std()
+        Timedelta('1 days 00:00:00')
         """
         # Because std is translation-invariant, we can get self.std
         #  by calculating (self - Timestamp(0)).std, and we can do it

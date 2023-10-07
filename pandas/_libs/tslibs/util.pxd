@@ -75,7 +75,7 @@ cdef inline bint is_integer_object(object obj) noexcept nogil:
 
 cdef inline bint is_float_object(object obj) noexcept nogil:
     """
-    Cython equivalent of `isinstance(val, (float, np.float_))`
+    Cython equivalent of `isinstance(val, (float, np.float64))`
 
     Parameters
     ----------
@@ -91,7 +91,7 @@ cdef inline bint is_float_object(object obj) noexcept nogil:
 
 cdef inline bint is_complex_object(object obj) noexcept nogil:
     """
-    Cython equivalent of `isinstance(val, (complex, np.complex_))`
+    Cython equivalent of `isinstance(val, (complex, np.complex128))`
 
     Parameters
     ----------

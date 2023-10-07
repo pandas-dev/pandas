@@ -164,7 +164,7 @@ class TestAstype:
 
     def test_astype_str_float(self):
         # see GH#11302
-        result = DataFrame([np.NaN]).astype(str)
+        result = DataFrame([np.nan]).astype(str)
         expected = DataFrame(["nan"])
 
         tm.assert_frame_equal(result, expected)
@@ -264,7 +264,7 @@ class TestAstype:
 
     def test_astype_duplicate_col_series_arg(self):
         # GH#44417
-        vals = np.random.randn(3, 4)
+        vals = np.random.default_rng(2).standard_normal((3, 4))
         df = DataFrame(vals, columns=["A", "B", "C", "A"])
         dtypes = df.dtypes
         dtypes.iloc[0] = str

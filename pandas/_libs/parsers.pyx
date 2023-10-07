@@ -6,7 +6,6 @@ from csv import (
     QUOTE_NONE,
     QUOTE_NONNUMERIC,
 )
-import sys
 import time
 import warnings
 
@@ -117,6 +116,8 @@ cdef:
     float64_t INF = <float64_t>np.inf
     float64_t NEGINF = -INF
     int64_t DEFAULT_CHUNKSIZE = 256 * 1024
+
+DEFAULT_BUFFER_HEURISTIC = 2 ** 20
 
 
 cdef extern from "pandas/portable.h":
@@ -584,7 +585,7 @@ cdef class TextReader:
             raise EmptyDataError("No columns to parse from file")
 
         # Compute buffer_lines as function of table width.
-        heuristic = 2**20 // self.table_width
+        heuristic = DEFAULT_BUFFER_HEURISTIC // self.table_width
         self.buffer_lines = 1
         while self.buffer_lines * 2 < heuristic:
             self.buffer_lines *= 2
@@ -878,9 +879,15 @@ cdef class TextReader:
 
     cdef _check_tokenize_status(self, int status):
         if self.parser.warn_msg != NULL:
-            print(PyUnicode_DecodeUTF8(
-                self.parser.warn_msg, strlen(self.parser.warn_msg),
-                self.encoding_errors), file=sys.stderr)
+            warnings.warn(
+                PyUnicode_DecodeUTF8(
+                    self.parser.warn_msg,
+                    strlen(self.parser.warn_msg),
+                    self.encoding_errors
+                ),
+                ParserWarning,
+                stacklevel=find_stack_level()
+            )
             free(self.parser.warn_msg)
             self.parser.warn_msg = NULL
 

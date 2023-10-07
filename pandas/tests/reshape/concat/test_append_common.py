@@ -187,12 +187,9 @@ class TestConcatAppendCommon:
         exp_series_dtype = None
 
         if typ1 == typ2:
-            # same dtype is tested in test_concatlike_same_dtypes
-            return
+            pytest.skip("same dtype is tested in test_concatlike_same_dtypes")
         elif typ1 == "category" or typ2 == "category":
-            # The `vals1 + vals2` below fails bc one of these is a Categorical
-            #  instead of a list; we have separate dedicated tests for categorical
-            return
+            pytest.skip("categorical type tested elsewhere")
 
         # specify expected dtype
         if typ1 == "bool" and typ2 in ("int64", "float64"):
@@ -205,12 +202,10 @@ class TestConcatAppendCommon:
             exp_series_dtype = typ1
             mark = pytest.mark.xfail(reason="GH#39187 casting to object")
             request.node.add_marker(mark)
-        elif (
-            typ1 == "datetime64[ns, US/Eastern]"
-            or typ2 == "datetime64[ns, US/Eastern]"
-            or typ1 == "timedelta64[ns]"
-            or typ2 == "timedelta64[ns]"
-        ):
+        elif typ1 in {"datetime64[ns, US/Eastern]", "timedelta64[ns]"} or typ2 in {
+            "datetime64[ns, US/Eastern]",
+            "timedelta64[ns]",
+        }:
             exp_index_dtype = object
             exp_series_dtype = object
 
@@ -695,11 +690,14 @@ class TestConcatAppendCommon:
         s1 = Series([], dtype="category")
         s2 = Series([1, 2], dtype="category")
 
-        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
-        tm.assert_series_equal(s1._append(s2, ignore_index=True), s2)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), s2)
+            tm.assert_series_equal(s1._append(s2, ignore_index=True), s2)
 
-        tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s2)
-        tm.assert_series_equal(s2._append(s1, ignore_index=True), s2)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), s2)
+            tm.assert_series_equal(s2._append(s1, ignore_index=True), s2)
 
         s1 = Series([], dtype="category")
         s2 = Series([], dtype="category")
@@ -721,11 +719,13 @@ class TestConcatAppendCommon:
 
         # empty Series is ignored
         exp = Series([np.nan, np.nan])
-        tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
-        tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_series_equal(pd.concat([s1, s2], ignore_index=True), exp)
+            tm.assert_series_equal(s1._append(s2, ignore_index=True), exp)
 
-        tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
-        tm.assert_series_equal(s2._append(s1, ignore_index=True), exp)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            tm.assert_series_equal(pd.concat([s2, s1], ignore_index=True), exp)
+            tm.assert_series_equal(s2._append(s1, ignore_index=True), exp)
 
     def test_categorical_concat_append(self):
         cat = Categorical(["a", "b"], categories=["a", "b"])

@@ -25,7 +25,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -416,7 +416,8 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes") -> None:
 
 
 def assert_is_valid_plot_return_object(objs) -> None:
-    import matplotlib.pyplot as plt
+    from matplotlib.artist import Artist
+    from matplotlib.axes import Axes
 
     if isinstance(objs, (Series, np.ndarray)):
         for el in objs.ravel():
@@ -424,14 +425,14 @@ def assert_is_valid_plot_return_object(objs) -> None:
                 "one of 'objs' is not a matplotlib Axes instance, "
                 f"type encountered {repr(type(el).__name__)}"
             )
-            assert isinstance(el, (plt.Axes, dict)), msg
+            assert isinstance(el, (Axes, dict)), msg
     else:
         msg = (
             "objs is neither an ndarray of Artist instances nor a single "
             "ArtistArtist instance, tuple, or dict, 'objs' is a "
             f"{repr(type(objs).__name__)}"
         )
-        assert isinstance(objs, (plt.Artist, tuple, dict)), msg
+        assert isinstance(objs, (Artist, tuple, dict)), msg
 
 
 def assert_is_sorted(seq) -> None:
@@ -577,12 +578,12 @@ def raise_assert_detail(
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif isinstance(left, (CategoricalDtype, PandasDtype, StringDtype)):
+    elif isinstance(left, (CategoricalDtype, NumpyEADtype, StringDtype)):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif isinstance(right, (CategoricalDtype, PandasDtype, StringDtype)):
+    elif isinstance(right, (CategoricalDtype, NumpyEADtype, StringDtype)):
         right = repr(right)
 
     msg += f"""

@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 import operator
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -50,6 +47,8 @@ from pandas.core.indexes.extension import inherit_names
 from pandas.core.tools.times import to_time
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -65,6 +64,8 @@ if TYPE_CHECKING:
         DataFrame,
         PeriodIndex,
     )
+
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 
 
 def _new_DatetimeIndex(cls, d):
@@ -178,7 +179,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     yearfirst : bool, default False
         If True parse dates in `data` with the year first order.
     dtype : numpy.dtype or DatetimeTZDtype or str, default None
-        Note that the only NumPy dtype allowed is ‘datetime64[ns]’.
+        Note that the only NumPy dtype allowed is `datetime64[ns]`.
     copy : bool, default False
         Make a copy of input ndarray.
     name : label, default None
@@ -199,8 +200,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     timetz
     dayofyear
     day_of_year
-    weekofyear
-    week
     dayofweek
     day_of_week
     weekday
@@ -267,6 +266,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return libindex.DatetimeEngine
 
     _data: DatetimeArray
+    _values: DatetimeArray
     tz: dt.tzinfo | None
 
     # --------------------------------------------------------------------
@@ -328,7 +328,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         yearfirst: bool = False,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
     ) -> Self:
         if closed is not lib.no_default:
             # GH#52628
@@ -394,12 +394,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         bool
         """
-        from pandas.io.formats.format import is_dates_only
+        delta = getattr(self.freq, "delta", None)
 
-        # error: Argument 1 to "is_dates_only" has incompatible type
-        # "Union[ExtensionArray, ndarray]"; expected "Union[ndarray,
-        # DatetimeArray, Index, DatetimeIndex]"
-        return self.tz is None and is_dates_only(self._values)  # type: ignore[arg-type]
+        if delta and delta % dt.timedelta(days=1) != dt.timedelta(days=0):
+            return False
+
+        return self._values._is_dates_only
 
     def __reduce__(self):
         d = {"data": self._data, "name": self.name}
@@ -422,7 +422,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     def _formatter_func(self):
         from pandas.io.formats.format import get_format_datetime64
 
-        formatter = get_format_datetime64(is_dates_only_=self._is_dates_only)
+        formatter = get_format_datetime64(is_dates_only=self._is_dates_only)
         return lambda x: f"'{formatter(x)}'"
 
     # --------------------------------------------------------------------
@@ -481,6 +481,17 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         Returns
         -------
         DatetimeIndex
+
+        Examples
+        --------
+        >>> idx = pd.DatetimeIndex(['2023-01-01', '2023-01-02',
+        ...                        '2023-02-01', '2023-02-02'])
+        >>> idx
+        DatetimeIndex(['2023-01-01', '2023-01-02', '2023-02-01', '2023-02-02'],
+        dtype='datetime64[ns]', freq=None)
+        >>> idx.snap('MS')
+        DatetimeIndex(['2023-01-01', '2023-01-01', '2023-02-01', '2023-02-01'],
+        dtype='datetime64[ns]', freq=None)
         """
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
@@ -518,7 +529,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         -------
         lower, upper: pd.Timestamp
         """
-        per = Period(parsed, freq=reso.attr_abbrev)
+        freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
+        per = Period(parsed, freq=freq)
         start, end = per.start_time, per.end_time
 
         # GH 24076
@@ -666,18 +678,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             return Index.slice_indexer(self, start, end, step)
 
         mask = np.array(True)
-        raise_mask = np.array(True)
+        in_index = True
         if start is not None:
             start_casted = self._maybe_cast_slice_bound(start, "left")
             mask = start_casted <= self
-            raise_mask = start_casted == self
+            in_index &= (start_casted == self).any()
 
         if end is not None:
             end_casted = self._maybe_cast_slice_bound(end, "right")
             mask = (self <= end_casted) & mask
-            raise_mask = (end_casted == self) | raise_mask
+            in_index &= (end_casted == self).any()
 
-        if not raise_mask.any():
+        if not in_index:
             raise KeyError(
                 "Value based partial slicing on non-monotonic DatetimeIndexes "
                 "with non-existing keys is not allowed.",
@@ -809,7 +821,7 @@ def date_range(
     freq=None,
     tz=None,
     normalize: bool = False,
-    name: Hashable = None,
+    name: Hashable | None = None,
     inclusive: IntervalClosedType = "both",
     *,
     unit: str | None = None,
@@ -929,26 +941,26 @@ def date_range(
 
     **Other Parameters**
 
-    Changed the `freq` (frequency) to ``'M'`` (month end frequency).
+    Changed the `freq` (frequency) to ``'ME'`` (month end frequency).
 
-    >>> pd.date_range(start='1/1/2018', periods=5, freq='M')
+    >>> pd.date_range(start='1/1/2018', periods=5, freq='ME')
     DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31', '2018-04-30',
                    '2018-05-31'],
-                  dtype='datetime64[ns]', freq='M')
+                  dtype='datetime64[ns]', freq='ME')
 
     Multiples are allowed
 
-    >>> pd.date_range(start='1/1/2018', periods=5, freq='3M')
+    >>> pd.date_range(start='1/1/2018', periods=5, freq='3ME')
     DatetimeIndex(['2018-01-31', '2018-04-30', '2018-07-31', '2018-10-31',
                    '2019-01-31'],
-                  dtype='datetime64[ns]', freq='3M')
+                  dtype='datetime64[ns]', freq='3ME')
 
     `freq` can also be specified as an Offset object.
 
     >>> pd.date_range(start='1/1/2018', periods=5, freq=pd.offsets.MonthEnd(3))
     DatetimeIndex(['2018-01-31', '2018-04-30', '2018-07-31', '2018-10-31',
                    '2019-01-31'],
-                  dtype='datetime64[ns]', freq='3M')
+                  dtype='datetime64[ns]', freq='3ME')
 
     Specify `tz` to set the timezone.
 
@@ -1007,10 +1019,10 @@ def bdate_range(
     start=None,
     end=None,
     periods: int | None = None,
-    freq: Frequency = "B",
+    freq: Frequency | dt.timedelta = "B",
     tz=None,
     normalize: bool = True,
-    name: Hashable = None,
+    name: Hashable | None = None,
     weekmask=None,
     holidays=None,
     inclusive: IntervalClosedType = "both",

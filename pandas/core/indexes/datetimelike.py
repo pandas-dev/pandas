@@ -11,7 +11,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Sequence,
     cast,
     final,
 )
@@ -32,8 +31,12 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.compat.numpy import function as nv
-from pandas.errors import NullFrequencyError
+from pandas.errors import (
+    InvalidIndexError,
+    NullFrequencyError,
+)
 from pandas.util._decorators import (
     Appender,
     cache_readonly,
@@ -65,6 +68,7 @@ from pandas.core.indexes.range import RangeIndex
 from pandas.core.tools.timedeltas import to_timedelta
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from datetime import datetime
 
     from pandas._typing import (
@@ -105,8 +109,16 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @property
     @doc(DatetimeLikeArrayMixin.freqstr)
-    def freqstr(self) -> str | None:
-        return self._data.freqstr
+    def freqstr(self) -> str:
+        from pandas import PeriodIndex
+
+        if self._data.freqstr is not None and isinstance(
+            self._data, (PeriodArray, PeriodIndex)
+        ):
+            freq = freq_to_period_freqstr(self._data.freq.n, self._data.freq.name)
+            return freq
+        else:
+            return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
     @abstractmethod
@@ -165,7 +177,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         hash(key)
         try:
             self.get_loc(key)
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError, InvalidIndexError):
             return False
         return True
 
@@ -197,10 +209,12 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if formatter is not None:
             return header + list(self.map(formatter))
 
-        return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
+        return self._format_with_header(
+            header=header, na_rep=na_rep, date_format=date_format
+        )
 
     def _format_with_header(
-        self, header: list[str], na_rep: str = "NaT", date_format: str | None = None
+        self, *, header: list[str], na_rep: str, date_format: str | None = None
     ) -> list[str]:
         # matches base class except for whitespace padding and date_format
         return header + list(
@@ -436,6 +450,17 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
 
         Examples
         --------
+        For :class:`pandas.DatetimeIndex`:
+
+        >>> idx = pd.DatetimeIndex(['2020-01-02 01:02:03.004005006'])
+        >>> idx
+        DatetimeIndex(['2020-01-02 01:02:03.004005006'],
+                      dtype='datetime64[ns]', freq=None)
+        >>> idx.as_unit('s')
+        DatetimeIndex(['2020-01-02 01:02:03'], dtype='datetime64[s]', freq=None)
+
+        For :class:`pandas.TimedeltaIndex`:
+
         >>> tdelta_idx = pd.to_timedelta(['1 day 3 min 2 us 42 ns'])
         >>> tdelta_idx
         TimedeltaIndex(['1 days 00:03:00.000002042'],

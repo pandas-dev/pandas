@@ -22,7 +22,7 @@ class TestTimedeltaIndex:
     def test_misc_coverage(self):
         rng = timedelta_range("1 day", periods=5)
         result = rng.groupby(rng.days)
-        assert isinstance(list(result.values())[0][0], Timedelta)
+        assert isinstance(next(iter(result.values()))[0], Timedelta)
 
     def test_map(self):
         # test_map_dictlike generally tests

@@ -24,7 +24,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
 )
 
 if TYPE_CHECKING:
@@ -230,8 +230,8 @@ def astype_array_safe(
         raise TypeError(msg)
 
     dtype = pandas_dtype(dtype)
-    if isinstance(dtype, PandasDtype):
-        # Ensure we don't end up with a PandasArray
+    if isinstance(dtype, NumpyEADtype):
+        # Ensure we don't end up with a NumpyExtensionArray
         dtype = dtype.numpy_dtype
 
     try:

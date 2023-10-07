@@ -391,6 +391,11 @@ cdef class {{dtype_title}}Closed{{closed_title}}IntervalNode(IntervalNode):
         """Recursively query this node and its sub-nodes for intervals that
         overlap with the query point.
         """
+
+        # GH 51826: ensures nan is handled properly during reindexing
+        if np.isnan(point):
+            return
+
         cdef:
             int64_t[:] indices
             {{dtype}}_t[:] values

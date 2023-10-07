@@ -149,9 +149,9 @@ def test_time_rule_frame(raw, frame, compare_func, roll_func, kwargs, minp):
     ],
 )
 def test_nans(compare_func, roll_func, kwargs):
-    obj = Series(np.random.randn(50))
-    obj[:10] = np.NaN
-    obj[-10:] = np.NaN
+    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj[:10] = np.nan
+    obj[-10:] = np.nan
 
     result = getattr(obj.rolling(50, min_periods=30), roll_func)(**kwargs)
     tm.assert_almost_equal(result.iloc[-1], compare_func(obj[10:-10]))
@@ -164,7 +164,7 @@ def test_nans(compare_func, roll_func, kwargs):
     assert not isna(result.iloc[-6])
     assert isna(result.iloc[-5])
 
-    obj2 = Series(np.random.randn(20))
+    obj2 = Series(np.random.default_rng(2).standard_normal(20))
     result = getattr(obj2.rolling(10, min_periods=5), roll_func)(**kwargs)
     assert isna(result.iloc[3])
     assert notna(result.iloc[4])
@@ -176,9 +176,9 @@ def test_nans(compare_func, roll_func, kwargs):
 
 
 def test_nans_count():
-    obj = Series(np.random.randn(50))
-    obj[:10] = np.NaN
-    obj[-10:] = np.NaN
+    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj[:10] = np.nan
+    obj[-10:] = np.nan
     result = obj.rolling(50, min_periods=30).count()
     tm.assert_almost_equal(
         result.iloc[-1], np.isfinite(obj[10:-10]).astype(float).sum()
@@ -240,16 +240,16 @@ def test_min_periods_count(series, step):
     ],
 )
 def test_center(roll_func, kwargs, minp):
-    obj = Series(np.random.randn(50))
-    obj[:10] = np.NaN
-    obj[-10:] = np.NaN
+    obj = Series(np.random.default_rng(2).standard_normal(50))
+    obj[:10] = np.nan
+    obj[-10:] = np.nan
 
     result = getattr(obj.rolling(20, min_periods=minp, center=True), roll_func)(
         **kwargs
     )
     expected = (
         getattr(
-            concat([obj, Series([np.NaN] * 9)]).rolling(20, min_periods=minp), roll_func
+            concat([obj, Series([np.nan] * 9)]).rolling(20, min_periods=minp), roll_func
         )(**kwargs)
         .iloc[9:]
         .reset_index(drop=True)
@@ -388,7 +388,7 @@ def test_rolling_max_resample(step):
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series(list(range(0, 5)) + [10, 20], index=indices)
+    series = Series(list(range(5)) + [10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
@@ -425,7 +425,7 @@ def test_rolling_min_resample(step):
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series(list(range(0, 5)) + [10, 20], index=indices)
+    series = Series(list(range(5)) + [10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
@@ -445,7 +445,7 @@ def test_rolling_median_resample():
     # So that we can have 3 datapoints on last day (4, 10, and 20)
     indices.append(datetime(1975, 1, 5, 1))
     indices.append(datetime(1975, 1, 5, 2))
-    series = Series(list(range(0, 5)) + [10, 20], index=indices)
+    series = Series(list(range(5)) + [10, 20], index=indices)
     # Use floats instead of ints as values
     series = series.map(lambda x: float(x))
     # Sort chronologically
@@ -463,8 +463,12 @@ def test_rolling_median_resample():
 def test_rolling_median_memory_error():
     # GH11722
     n = 20000
-    Series(np.random.randn(n)).rolling(window=2, center=False).median()
-    Series(np.random.randn(n)).rolling(window=2, center=False).median()
+    Series(np.random.default_rng(2).standard_normal(n)).rolling(
+        window=2, center=False
+    ).median()
+    Series(np.random.default_rng(2).standard_normal(n)).rolling(
+        window=2, center=False
+    ).median()
 
 
 @pytest.mark.parametrize(

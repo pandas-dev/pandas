@@ -17,14 +17,14 @@ class TestPeriodIndexAsType:
     @pytest.mark.parametrize("dtype", [float, "timedelta64", "timedelta64[ns]"])
     def test_astype_raises(self, dtype):
         # GH#13149, GH#13209
-        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.NaN], freq="D")
+        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.nan], freq="D")
         msg = "Cannot cast PeriodIndex to dtype"
         with pytest.raises(TypeError, match=msg):
             idx.astype(dtype)
 
     def test_astype_conversion(self):
         # GH#13149, GH#13209
-        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.NaN], freq="D", name="idx")
+        idx = PeriodIndex(["2016-05-16", "NaT", NaT, np.nan], freq="D", name="idx")
 
         result = idx.astype(object)
         expected = Index(
@@ -44,7 +44,7 @@ class TestPeriodIndexAsType:
         expected = Index([str(x) for x in idx], name="idx")
         tm.assert_index_equal(result, expected)
 
-        idx = period_range("1990", "2009", freq="A", name="idx")
+        idx = period_range("1990", "2009", freq="Y", name="idx")
         result = idx.astype("i8")
         tm.assert_index_equal(result, Index(idx.asi8, name="idx"))
         tm.assert_numpy_array_equal(result.values, idx.asi8)

@@ -14,7 +14,6 @@ import pandas._testing as tm
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(
     "vals",
     [
@@ -33,7 +32,7 @@ import pandas._testing as tm
         [np.nan, np.nan, np.nan],
     ],
 )
-def test_groupby_bool_aggs(agg_func, skipna, vals):
+def test_groupby_bool_aggs(skipna, agg_func, vals):
     df = DataFrame({"key": ["a"] * 3 + ["b"] * 3, "val": vals * 2})
 
     # Figure out expectation using Python builtin
@@ -43,9 +42,11 @@ def test_groupby_bool_aggs(agg_func, skipna, vals):
     if skipna and all(isna(vals)) and agg_func == "any":
         exp = False
 
-    exp_df = DataFrame([exp] * 2, columns=["val"], index=Index(["a", "b"], name="key"))
+    expected = DataFrame(
+        [exp] * 2, columns=["val"], index=Index(["a", "b"], name="key")
+    )
     result = getattr(df.groupby("key"), agg_func)(skipna=skipna)
-    tm.assert_frame_equal(result, exp_df)
+    tm.assert_frame_equal(result, expected)
 
 
 def test_any():
@@ -63,7 +64,7 @@ def test_any():
 
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 def test_bool_aggs_dup_column_labels(bool_agg_func):
-    # 21668
+    # GH#21668
     df = DataFrame([[True, True]], columns=["a", "a"])
     grp_by = df.groupby([0])
     result = getattr(grp_by, bool_agg_func)()
@@ -73,7 +74,6 @@ def test_bool_aggs_dup_column_labels(bool_agg_func):
 
 
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
-@pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.parametrize(
     "data",
     [
@@ -141,7 +141,6 @@ def test_masked_mixed_types(dtype1, dtype2, exp_col1, exp_col2):
 
 @pytest.mark.parametrize("bool_agg_func", ["any", "all"])
 @pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
-@pytest.mark.parametrize("skipna", [True, False])
 def test_masked_bool_aggs_skipna(bool_agg_func, dtype, skipna, frame_or_series):
     # GH#40585
     obj = frame_or_series([pd.NA, 1], dtype=dtype)

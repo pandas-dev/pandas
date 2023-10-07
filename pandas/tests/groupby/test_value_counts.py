@@ -46,14 +46,13 @@ def tests_value_counts_index_names_category_column():
 
 # our starting frame
 def seed_df(seed_nans, n, m):
-    np.random.seed(1234)
     days = date_range("2015-08-24", periods=10)
 
     frame = DataFrame(
         {
-            "1st": np.random.choice(list("abcd"), n),
-            "2nd": np.random.choice(days, n),
-            "3rd": np.random.randint(1, m + 1, n),
+            "1st": np.random.default_rng(2).choice(list("abcd"), n),
+            "2nd": np.random.default_rng(2).choice(days, n),
+            "3rd": np.random.default_rng(2).integers(1, m + 1, n),
         }
     )
 
@@ -328,9 +327,12 @@ def test_against_frame_and_seriesgroupby(
     )
     if frame:
         # compare against apply with DataFrame value_counts
-        expected = gp.apply(
-            _frame_value_counts, ["gender", "education"], normalize, sort, ascending
-        )
+        warn = FutureWarning if groupby == "column" else None
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected = gp.apply(
+                _frame_value_counts, ["gender", "education"], normalize, sort, ascending
+            )
 
         if as_index:
             tm.assert_series_equal(result, expected)
@@ -994,7 +996,7 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
     result = gp.value_counts(sort=True, normalize=normalize)
     expected = DataFrame(
         {
-            "level_0": np.array([4, 4, 5], dtype=np.int_),
+            "level_0": np.array([4, 4, 5], dtype=int),
             "A": [1, 1, 2],
             "level_2": [8, 8, 7],
             "B": [1, 3, 2],

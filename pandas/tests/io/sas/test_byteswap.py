@@ -39,7 +39,7 @@ def test_float_byteswap(read_offset, number, float_type, should_byteswap):
 
 def _test(number, number_type, read_offset, should_byteswap):
     number = number_type(number)
-    data = np.random.default_rng().integers(0, 256, size=20, dtype="uint8")
+    data = np.random.default_rng(2).integers(0, 256, size=20, dtype="uint8")
     data[read_offset : read_offset + number.itemsize] = number[None].view("uint8")
     swap_func = {
         np.float32: read_float_with_byteswap,
