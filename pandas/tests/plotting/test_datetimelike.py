@@ -287,7 +287,6 @@ class TestTSPlot:
         ser = Series(np.random.default_rng(2).standard_normal(len(dr)), index=dr)
         _check_plot_works(ser.plot)
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_uhf(self):
         import pandas.plotting._matplotlib.converter as conv
 
@@ -303,7 +302,7 @@ class TestTSPlot:
         tlocs = axis.get_ticklocs()
         tlabels = axis.get_ticklabels()
         for loc, label in zip(tlocs, tlabels):
-            xp = conv._from_ordinal(loc).strftime("%H:%M:%S.%f")
+            xp = conv._from_ordinal(loc).strftime("%H:%M:%S")
             rs = str(label.get_text())
             if len(rs):
                 assert xp == rs
@@ -1330,7 +1329,6 @@ class TestTSPlot:
         # TODO: color cycle problems
         assert len(colors) == 4
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_format_date_axis(self):
         rng = date_range("1/1/2012", periods=12, freq="ME")
         df = DataFrame(np.random.default_rng(2).standard_normal((len(rng), 3)), rng)
@@ -1339,7 +1337,7 @@ class TestTSPlot:
         xaxis = ax.get_xaxis()
         for line in xaxis.get_ticklabels():
             if len(line.get_text()) > 0:
-                assert line.get_rotation() == 30
+                assert line.get_rotation() == 0.0
 
     def test_ax_plot(self):
         x = date_range(start="2012-01-02", periods=10, freq="D")
@@ -1550,19 +1548,16 @@ class TestTSPlot:
         s2.plot(ax=ax)
         s1.plot(ax=ax)
 
-    @pytest.mark.xfail(reason="GH9053 matplotlib does not use ax.xaxis.converter")
     def test_add_matplotlib_datetime64(self):
         # GH9053 - ensure that a plot with PeriodConverter still understands
-        # datetime64 data. This still fails because matplotlib overrides the
-        # ax.xaxis.converter with a DatetimeConverter
+        # datetime64 data.
         s = Series(
             np.random.default_rng(2).standard_normal(10),
             index=date_range("1970-01-02", periods=10),
         )
         ax = s.plot()
-        with tm.assert_produces_warning(DeprecationWarning):
-            # multi-dimensional indexing
-            ax.plot(s.index, s.values, color="g")
+        # multi-dimensional indexing
+        ax.plot(s.index, s.values, color="g")
         l1, l2 = ax.lines
         tm.assert_numpy_array_equal(l1.get_xydata(), l2.get_xydata())
 

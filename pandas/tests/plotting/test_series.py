@@ -5,11 +5,7 @@ from itertools import chain
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_linux
-from pandas.compat.numpy import (
-    np_long,
-    np_version_gte1p24,
-)
+from pandas.compat.numpy import np_long
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -276,11 +272,6 @@ class TestSeriesPlots:
         label2 = ax2.get_xlabel()
         assert label2 == ""
 
-    @pytest.mark.xfail(
-        np_version_gte1p24 and is_platform_linux(),
-        reason="Weird rounding problems",
-        strict=False,
-    )
     @pytest.mark.parametrize("axis, meth", [("yaxis", "bar"), ("xaxis", "barh")])
     def test_bar_log(self, axis, meth):
         expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
@@ -289,11 +280,6 @@ class TestSeriesPlots:
         ax = getattr(Series([200, 500]).plot, meth)(log=True, ax=ax)
         tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
 
-    @pytest.mark.xfail(
-        np_version_gte1p24 and is_platform_linux(),
-        reason="Weird rounding problems",
-        strict=False,
-    )
     @pytest.mark.parametrize(
         "axis, kind, res_meth",
         [["yaxis", "bar", "get_ylim"], ["xaxis", "barh", "get_xlim"]],
@@ -863,11 +849,6 @@ class TestSeriesPlots:
 
         _check_plot_works(s.plot)
 
-    @pytest.mark.xfail(
-        reason="GH#24426, see also "
-        "github.com/pandas-dev/pandas/commit/"
-        "ef1bd69fa42bbed5d09dd17f08c44fc8bfc2b685#r61470674"
-    )
     def test_plot_accessor_updates_on_inplace(self):
         ser = Series([1, 2, 3, 4])
         _, ax = mpl.pyplot.subplots()
@@ -875,7 +856,6 @@ class TestSeriesPlots:
         before = ax.xaxis.get_ticklocs()
 
         ser.drop([0, 1], inplace=True)
-        _, ax = mpl.pyplot.subplots()
         after = ax.xaxis.get_ticklocs()
         tm.assert_numpy_array_equal(before, after)
 

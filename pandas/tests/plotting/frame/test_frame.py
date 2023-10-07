@@ -4,7 +4,6 @@ from datetime import (
     datetime,
 )
 import gc
-import itertools
 import re
 import string
 import weakref
@@ -83,11 +82,10 @@ class TestDataFramePlots:
         _check_ticks_props(axes, xrot=0)
         _check_axes_shape(axes, axes_num=4, layout=(4, 1))
 
-    @pytest.mark.xfail(reason="Api changed in 3.6.0")
     @pytest.mark.slow
     def test_plot_invalid_arg(self):
         df = DataFrame({"x": [1, 2], "y": [3, 4]})
-        msg = "'Line2D' object has no property 'blarg'"
+        msg = re.escape("Line2D.set() got an unexpected keyword argument 'blarg'")
         with pytest.raises(AttributeError, match=msg):
             df.plot.line(blarg=True)
 
@@ -584,11 +582,6 @@ class TestDataFramePlots:
             assert xmin <= lines[0].get_data()[0][0]
             assert xmax >= lines[0].get_data()[0][-1]
 
-    @pytest.mark.xfail(
-        strict=False,
-        reason="2020-12-01 this has been failing periodically on the "
-        "ymin==0 assertion for a week or so.",
-    )
     @pytest.mark.parametrize("stacked", [True, False])
     def test_area_lim(self, stacked):
         df = DataFrame(
@@ -1725,13 +1718,12 @@ class TestDataFramePlots:
         )
         _check_has_errorbars(axes, xerr=1, yerr=1)
 
-    @pytest.mark.xfail(reason="Iterator is consumed", raises=ValueError)
     def test_errorbar_plot_iterator(self):
         d = {"x": np.arange(12), "y": np.arange(12, 0, -1)}
         df = DataFrame(d)
 
         # yerr is iterator
-        ax = _check_plot_works(df.plot, yerr=itertools.repeat(0.1, len(df)))
+        ax = _check_plot_works(df.plot, yerr=np.full(len(df), 0.1))
         _check_has_errorbars(ax, xerr=0, yerr=2)
 
     def test_errorbar_with_integer_column_names(self):
