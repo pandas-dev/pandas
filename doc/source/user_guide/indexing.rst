@@ -1725,7 +1725,7 @@ When a large data frame has a multiIndex on its row, you can use the ``index.get
 
 The level does not change after slicing because the slicing method only updates the code at slicing time, not the level.
 
-.. ipython:: python
+   .. code-block:: python
    
    Index([u'John', u'Josh'], dtype='object')
    Index([u'Alex', u'John', u'Josh'], dtype='object')
