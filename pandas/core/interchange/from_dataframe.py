@@ -391,11 +391,11 @@ def datetime_column_to_ndarray(col: Column) -> tuple[np.ndarray | pd.Series, Any
     if data_dtype[0] == DtypeKind.DATETIME:
         # temporary workaround to keep backwards compatibility due to
         # https://github.com/pandas-dev/pandas/issues/54781
-        # Consider dtype being `uint` to get number of units passed since the 01.01.1970
+        # Consider dtype being `int` to get number of units passed since 1970-01-01
         data_dtype = (
-            DtypeKind.UINT,
+            DtypeKind.INT,
             data_dtype[1],
-            getattr(ArrowCTypes, f"UINT{data_dtype[1]}"),
+            getattr(ArrowCTypes, f"INT{data_dtype[1]}"),
             Endianness.NATIVE,
         )
 

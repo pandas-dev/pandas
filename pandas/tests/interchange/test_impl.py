@@ -14,6 +14,7 @@ from pandas.core.interchange.dataframe_protocol import (
     DtypeKind,
 )
 from pandas.core.interchange.from_dataframe import from_dataframe
+from pandas.core.interchange.utils import ArrowCTypes
 
 
 @pytest.fixture
@@ -326,3 +327,17 @@ def test_interchange_from_non_pandas_tz_aware():
         dtype="datetime64[us, Asia/Kathmandu]",
     )
     tm.assert_frame_equal(expected, result)
+
+
+def test_interchange_from_corrected_buffer_dtypes() -> None:
+    df = pd.DataFrame({"ts": [datetime(2020, 1, 1), datetime(2020, 1, 2)]})
+    interchange = df.__dataframe__()
+    column = interchange.get_column_by_name("ts")
+    buffer_dtype = column.get_buffers()["data"][1]
+    buffer_dtype = (
+        DtypeKind.INT,
+        buffer_dtype[1],
+        ArrowCTypes.INT64,
+        buffer_dtype[3],
+    )
+    pd.api.interchange.from_dataframe(df)
