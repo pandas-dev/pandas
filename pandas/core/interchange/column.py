@@ -144,7 +144,12 @@ class PandasColumn(Column):
         elif isinstance(dtype, DatetimeTZDtype):
             byteorder = dtype.base.byteorder  # type: ignore[union-attr]
         else:
-            byteorder = dtype.byteorder
+            try:
+                byteorder = dtype.byteorder
+            except AttributeError:
+                raise ValueError(
+                    f"Data type {dtype} not supported by interchange protocol"
+                )
 
         return kind, dtype.itemsize * 8, dtype_to_arrow_c_fmt(dtype), byteorder
 

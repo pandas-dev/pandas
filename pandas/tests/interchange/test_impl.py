@@ -326,3 +326,17 @@ def test_interchange_from_non_pandas_tz_aware():
         dtype="datetime64[us, Asia/Kathmandu]",
     )
     tm.assert_frame_equal(expected, result)
+
+
+def test_not_handled() -> None:
+    pa = pytest.importorskip("pyarrow", "11.0.0")
+    df = pd.DataFrame(
+        {
+            "b": pd.Series([True, False], dtype="boolean"),
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="Data type boolean not supported by interchange protocol",
+    ):
+        pa.interchange.from_dataframe(df)
