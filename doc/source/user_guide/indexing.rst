@@ -1704,6 +1704,32 @@ You can assign a custom index to the ``index`` attribute:
    df_idx.index = pd.Index([10, 20, 30, 40], name="a")
    df_idx
 
+.. _index-sliced-dataframe:
+
+Index of the sliced data frame
+------------------------------
+
+When a large data frame has a multiIndex on its row, you can use the ``index.get_level_values()`` operation to reduce the data frame.
+
+.. ipython:: python
+
+   idx = pd.MultiIndex.from_product([['John', 'Josh', 'Alex'], list('abcde')],
+                                    names=['Person', 'Letter'])
+   large = pd.DataFrame(data=np.random.randn(15, 2),
+                        index=idx,
+                        columns=['one', 'two'])
+   small = large.loc[['Jo'==d[0:2] for d in large.index.get_level_values('Person')]]
+
+   small.index.levels[0]
+   large.index.levels[0]
+
+The level does not change after slicing because the slicing method only updates the code at slicing time, not the level.
+
+.. ipython:: python
+   
+   Index([u'John', u'Josh'], dtype='object')
+   Index([u'Alex', u'John', u'Josh'], dtype='object')
+
 .. _indexing.view_versus_copy:
 
 Returning a view versus a copy
