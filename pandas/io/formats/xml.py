@@ -8,6 +8,7 @@ import io
 from typing import (
     TYPE_CHECKING,
     Any,
+    final,
 )
 import warnings
 
@@ -41,7 +42,7 @@ if TYPE_CHECKING:
     storage_options=_shared_docs["storage_options"],
     compression_options=_shared_docs["compression_options"] % "path_or_buffer",
 )
-class BaseXMLFormatter:
+class _BaseXMLFormatter:
     """
     Subclass for formatting data in XML.
 
@@ -138,14 +139,14 @@ class BaseXMLFormatter:
         self.storage_options = storage_options
 
         self.orig_cols = self.frame.columns.tolist()
-        self.frame_dicts = self.process_dataframe()
+        self.frame_dicts = self._process_dataframe()
 
-        self.validate_columns()
-        self.validate_encoding()
-        self.prefix_uri = self.get_prefix_uri()
-        self.handle_indexes()
+        self._validate_columns()
+        self._validate_encoding()
+        self.prefix_uri = self._get_prefix_uri()
+        self._handle_indexes()
 
-    def build_tree(self) -> bytes:
+    def _build_tree(self) -> bytes:
         """
         Build tree from  data.
 
@@ -154,7 +155,8 @@ class BaseXMLFormatter:
         """
         raise AbstractMethodError(self)
 
-    def validate_columns(self) -> None:
+    @final
+    def _validate_columns(self) -> None:
         """
         Validate elems_cols and attrs_cols.
 
@@ -175,7 +177,8 @@ class BaseXMLFormatter:
                 f"{type(self.elem_cols).__name__} is not a valid type for elem_cols"
             )
 
-    def validate_encoding(self) -> None:
+    @final
+    def _validate_encoding(self) -> None:
         """
         Validate encoding.
 
@@ -189,7 +192,8 @@ class BaseXMLFormatter:
 
         codecs.lookup(self.encoding)
 
-    def process_dataframe(self) -> dict[int | str, dict[str, Any]]:
+    @final
+    def _process_dataframe(self) -> dict[int | str, dict[str, Any]]:
         """
         Adjust Data Frame to fit xml output.
 
@@ -213,7 +217,8 @@ class BaseXMLFormatter:
 
         return df.to_dict(orient="index")
 
-    def handle_indexes(self) -> None:
+    @final
+    def _handle_indexes(self) -> None:
         """
         Handle indexes.
 
@@ -234,7 +239,7 @@ class BaseXMLFormatter:
         if self.elem_cols:
             self.elem_cols = indexes + self.elem_cols
 
-    def get_prefix_uri(self) -> str:
+    def _get_prefix_uri(self) -> str:
         """
         Get uri of namespace prefix.
 
@@ -248,7 +253,8 @@ class BaseXMLFormatter:
 
         raise AbstractMethodError(self)
 
-    def other_namespaces(self) -> dict:
+    @final
+    def _other_namespaces(self) -> dict:
         """
         Define other namespaces.
 
@@ -320,7 +326,7 @@ class BaseXMLFormatter:
                 raise KeyError(f"no valid column, {col}")
 
     def write_output(self) -> str | None:
-        xml_doc = self.build_tree()
+        xml_doc = self._build_tree()
 
         if self.path_or_buffer is not None:
             with get_handle(
@@ -337,13 +343,13 @@ class BaseXMLFormatter:
             return xml_doc.decode(self.encoding).rstrip()
 
 
-class EtreeXMLFormatter(BaseXMLFormatter):
+class EtreeXMLFormatter(_BaseXMLFormatter):
     """
     Class for formatting data in xml using Python standard library
     modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
     """
 
-    def build_tree(self) -> bytes:
+    def _build_tree(self) -> bytes:
         from xml.etree.ElementTree import (
             Element,
             SubElement,
@@ -373,7 +379,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         )
 
         if self.pretty_print:
-            self.out_xml = self.prettify_tree()
+            self.out_xml = self._prettify_tree()
 
         if self.stylesheet is not None:
             raise ValueError(
@@ -382,7 +388,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
 
         return self.out_xml
 
-    def get_prefix_uri(self) -> str:
+    def _get_prefix_uri(self) -> str:
         from xml.etree.ElementTree import register_namespace
 
         uri = ""
@@ -407,7 +413,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
 
         self._build_elems(SubElement, d, elem_row)
 
-    def prettify_tree(self) -> bytes:
+    def _prettify_tree(self) -> bytes:
         """
         Output tree for pretty print format.
 
@@ -421,7 +427,7 @@ class EtreeXMLFormatter(BaseXMLFormatter):
         return dom.toprettyxml(indent="  ", encoding=self.encoding)
 
 
-class LxmlXMLFormatter(BaseXMLFormatter):
+class LxmlXMLFormatter(_BaseXMLFormatter):
     """
     Class for formatting data in xml using Python standard library
     modules: `xml.etree.ElementTree` and `xml.dom.minidom`.
@@ -430,9 +436,9 @@ class LxmlXMLFormatter(BaseXMLFormatter):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        self.convert_empty_str_key()
+        self._convert_empty_str_key()
 
-    def build_tree(self) -> bytes:
+    def _build_tree(self) -> bytes:
         """
         Build tree from  data.
 
@@ -467,11 +473,11 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         )
 
         if self.stylesheet is not None:
-            self.out_xml = self.transform_doc()
+            self.out_xml = self._transform_doc()
 
         return self.out_xml
 
-    def convert_empty_str_key(self) -> None:
+    def _convert_empty_str_key(self) -> None:
         """
         Replace zero-length string in `namespaces`.
 
@@ -482,7 +488,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
         if self.namespaces and "" in self.namespaces.keys():
             self.namespaces[None] = self.namespaces.pop("", "default")
 
-    def get_prefix_uri(self) -> str:
+    def _get_prefix_uri(self) -> str:
         uri = ""
         if self.namespaces:
             if self.prefix:
@@ -502,7 +508,7 @@ class LxmlXMLFormatter(BaseXMLFormatter):
 
         self._build_elems(SubElement, d, elem_row)
 
-    def transform_doc(self) -> bytes:
+    def _transform_doc(self) -> bytes:
         """
         Parse stylesheet from file or buffer and run it.
 
