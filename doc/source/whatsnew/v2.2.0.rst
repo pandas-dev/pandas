@@ -278,12 +278,6 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
-- Bug in :class:`pandas.core.window.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
-- Bug in :func:`pandas.api.types.is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
-- Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
-- Bug in :meth:`pandas.DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
-- Bug in :meth:`pandas.read_excel` with a ODS file without cached formatted cell for float values (:issue:`55219`)
 -
 
 Categorical
@@ -294,7 +288,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
--
+- Bug in :meth:`pandas.DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
 
 Timedelta
 ^^^^^^^^^
@@ -303,13 +297,13 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+-  Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
 -
 
 Numeric
 ^^^^^^^
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` causing rounding errors for large integers (:issue:`52505`)
--
+- Bug in :meth:`pandas.read_excel` with a ODS file without cached formatted cell for float values (:issue:`55219`)
 
 Conversion
 ^^^^^^^^^^
@@ -318,7 +312,7 @@ Conversion
 
 Strings
 ^^^^^^^
--
+- Bug in :func:`pandas.api.types.is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
 -
 
 Interval
@@ -333,7 +327,7 @@ Indexing
 ^^^^^^^^
 - Bug in :meth:`Index.difference` not returning a unique set of values when ``other`` is empty or ``other`` is considered non-comparable (:issue:`55113`)
 - Bug in setting :class:`Categorical` values into a :class:`DataFrame` with numpy dtypes raising ``RecursionError`` (:issue:`52927`)
--
+- Bug in :class:`pandas.core.window.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
 
 Missing
 ^^^^^^^
@@ -394,7 +388,8 @@ Other
 ^^^^^
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
--
+- Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
+
 
 .. ***DO NOT USE THIS SECTION***
 
