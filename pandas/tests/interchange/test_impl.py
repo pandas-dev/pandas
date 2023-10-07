@@ -330,18 +330,21 @@ def test_interchange_from_non_pandas_tz_aware():
 
 
 def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
-    df = pd.DataFrame({"a": ["foo", "bar"]})
+    # https://github.com/pandas-dev/pandas/issues/54781
+    df = pd.DataFrame({"a": ["foo", "bar"]}).__dataframe__()
     interchange = df.__dataframe__()
     column = interchange.get_column_by_name("a")
     buffers = column.get_buffers()
     buffers_data = buffers["data"]
     buffer_dtype = buffers_data[1]
     buffer_dtype = (
-        DtypeKind.INT,
-        buffer_dtype[1],
-        ArrowCTypes.INT64,
+        DtypeKind.UINT,
+        8,
+        ArrowCTypes.UINT8,
         buffer_dtype[3],
     )
     buffers["data"] = (buffers_data[0], buffer_dtype)
-    monkeypatch.setattr(column, "get_buffers", lambda: buffers)
+    column.get_buffers = lambda: buffers
+    interchange.get_column_by_name = lambda _: column
+    monkeypatch.setattr(df, "__dataframe__", lambda allow_copy: interchange)
     pd.api.interchange.from_dataframe(df)
