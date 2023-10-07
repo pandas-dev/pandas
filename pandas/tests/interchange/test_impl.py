@@ -329,15 +329,19 @@ def test_interchange_from_non_pandas_tz_aware():
     tm.assert_frame_equal(expected, result)
 
 
-def test_interchange_from_corrected_buffer_dtypes() -> None:
-    df = pd.DataFrame({"ts": [datetime(2020, 1, 1), datetime(2020, 1, 2)]})
+def test_interchange_from_corrected_buffer_dtypes(monkeypatch) -> None:
+    df = pd.DataFrame({"a": ["foo", "bar"]})
     interchange = df.__dataframe__()
-    column = interchange.get_column_by_name("ts")
-    buffer_dtype = column.get_buffers()["data"][1]
+    column = interchange.get_column_by_name("a")
+    buffers = column.get_buffers()
+    buffers_data = buffers["data"]
+    buffer_dtype = buffers_data[1]
     buffer_dtype = (
         DtypeKind.INT,
         buffer_dtype[1],
         ArrowCTypes.INT64,
         buffer_dtype[3],
     )
+    buffers["data"] = (buffers_data[0], buffer_dtype)
+    monkeypatch.setattr(column, "get_buffers", lambda: buffers)
     pd.api.interchange.from_dataframe(df)
