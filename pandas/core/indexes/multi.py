@@ -840,6 +840,37 @@ class MultiIndex(Index):
 
     @cache_readonly
     def levels(self) -> FrozenList:
+        """
+        Returns a tuple of Index objects representing the levels of the MultiIndex.
+
+        Each level is an Index object containing unique values from that level of the MultiIndex.
+
+        Returns
+        -------
+        levels : tuple of Index
+                Tuple of Index objects representing the levels of the MultiIndex.
+
+        Notes
+        -----
+        The levels are returned in the order they appear in the MultiIndex.
+        If the MultiIndex is sliced, this method still returns the original levels of the MultiIndex.
+        When using this method on a DataFrame index, it may show "extra" values if the DataFrame has been sliced.
+        This is because the levels are determined based on the original DataFrame index, not the sliced one.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> idx = pd.MultiIndex.from_product([['John', 'Josh', 'Alex'], list('abcde')], names=['Person', 'Letter'])
+        >>> large = pd.DataFrame(data=np.random.randn(15, 2), index=idx, columns=['one', 'two'])
+        >>> small = large.loc[['Jo'==d[0:2] for d in large.index.get_level_values('Person')]]
+
+        >>> print(large.index.levels)
+        FrozenList([['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']])
+
+        >>> print(large.index.levels)
+        FrozenList([['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']])
+        """
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
         # https://github.com/pandas-dev/pandas/issues/31648
