@@ -2017,9 +2017,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # _wrap_transform_fast_result
                 if func in ["idxmin", "idxmax"]:
                     func = cast(Literal["idxmin", "idxmax"], func)
-                    result = self._idxmax_idxmin(
-                        func, ignore_unobserved=True, axis=self.axis, **kwargs
-                    )
+                    result = self._idxmax_idxmin(func, True, *args, **kwargs)
                 else:
                     if engine is not None:
                         kwargs["engine"] = engine
@@ -5729,10 +5727,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _idxmax_idxmin(
         self,
         how: Literal["idxmax", "idxmin"],
-        axis: Axis = 0,
-        numeric_only: bool = False,
-        skipna: bool = True,
         ignore_unobserved: bool = False,
+        axis: Axis | lib.NoDefault = lib.no_default,
+        skipna: bool = True,
+        numeric_only: bool = False,
     ):
         """Compute idxmax/idxmin.
 
@@ -5757,6 +5755,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             idxmax or idxmin for the groupby operation.
         """
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, how)
+        else:
+            axis = self.axis
+
         if not self.observed and any(
             ping._passed_categorical for ping in self.grouper.groupings
         ):
