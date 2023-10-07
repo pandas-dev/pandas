@@ -5728,7 +5728,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self,
         how: Literal["idxmax", "idxmin"],
         ignore_unobserved: bool = False,
-        axis: Axis | lib.NoDefault = lib.no_default,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
         skipna: bool = True,
         numeric_only: bool = False,
     ):
@@ -5756,6 +5756,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             idxmax or idxmin for the groupby operation.
         """
         if axis is not lib.no_default:
+            if axis is None:
+                axis = self.axis
             axis = self.obj._get_axis_number(axis)
             self._deprecate_axis(axis, how)
         else:
