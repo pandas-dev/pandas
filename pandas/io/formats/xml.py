@@ -13,7 +13,10 @@ from typing import (
 import warnings
 
 from pandas.errors import AbstractMethodError
-from pandas.util._decorators import doc
+from pandas.util._decorators import (
+    cache_readonly,
+    doc,
+)
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.missing import isna
@@ -273,7 +276,8 @@ class _BaseXMLFormatter:
 
         return nmsp_dict
 
-    def build_attribs(self, d: dict[str, Any], elem_row: Any) -> Any:
+    @final
+    def _build_attribs(self, d: dict[str, Any], elem_row: Any) -> Any:
         """
         Create attributes of row.
 
@@ -293,6 +297,7 @@ class _BaseXMLFormatter:
                 raise KeyError(f"no valid column, {col}")
         return elem_row
 
+    @final
     def _get_flat_col_name(self, col: str | tuple) -> str:
         flat_col = col
         if isinstance(col, tuple):
@@ -303,17 +308,20 @@ class _BaseXMLFormatter:
             )
         return f"{self.prefix_uri}{flat_col}"
 
-    def build_elems(self, d: dict[str, Any], elem_row: Any) -> None:
+    @cache_readonly
+    def _sub_element_cls(self):
+        raise AbstractMethodError(self)
+
+    @final
+    def _build_elems(self, d: dict[str, Any], elem_row: Any) -> None:
         """
         Create child elements of row.
 
         This method adds child elements using elem_cols to row element and
         works with tuples for multindex or hierarchical columns.
         """
+        sub_element_cls = self._sub_element_cls
 
-        raise AbstractMethodError(self)
-
-    def _build_elems(self, sub_element_cls, d: dict[str, Any], elem_row: Any) -> None:
         if not self.elem_cols:
             return
 
@@ -325,6 +333,7 @@ class _BaseXMLFormatter:
             except KeyError:
                 raise KeyError(f"no valid column, {col}")
 
+    @final
     def write_output(self) -> str | None:
         xml_doc = self._build_tree()
 
@@ -365,11 +374,11 @@ class EtreeXMLFormatter(_BaseXMLFormatter):
 
             if not self.attr_cols and not self.elem_cols:
                 self.elem_cols = list(d.keys())
-                self.build_elems(d, elem_row)
+                self._build_elems(d, elem_row)
 
             else:
-                elem_row = self.build_attribs(d, elem_row)
-                self.build_elems(d, elem_row)
+                elem_row = self._build_attribs(d, elem_row)
+                self._build_elems(d, elem_row)
 
         self.out_xml = tostring(
             self.root,
@@ -408,10 +417,11 @@ class EtreeXMLFormatter(_BaseXMLFormatter):
 
         return uri
 
-    def build_elems(self, d: dict[str, Any], elem_row: Any) -> None:
+    @cache_readonly
+    def _sub_element_cls(self):
         from xml.etree.ElementTree import SubElement
 
-        self._build_elems(SubElement, d, elem_row)
+        return SubElement
 
     def _prettify_tree(self) -> bytes:
         """
@@ -458,11 +468,11 @@ class LxmlXMLFormatter(_BaseXMLFormatter):
 
             if not self.attr_cols and not self.elem_cols:
                 self.elem_cols = list(d.keys())
-                self.build_elems(d, elem_row)
+                self._build_elems(d, elem_row)
 
             else:
-                elem_row = self.build_attribs(d, elem_row)
-                self.build_elems(d, elem_row)
+                elem_row = self._build_attribs(d, elem_row)
+                self._build_elems(d, elem_row)
 
         self.out_xml = tostring(
             self.root,
@@ -503,10 +513,11 @@ class LxmlXMLFormatter(_BaseXMLFormatter):
 
         return uri
 
-    def build_elems(self, d: dict[str, Any], elem_row: Any) -> None:
+    @cache_readonly
+    def _sub_element_cls(self):
         from lxml.etree import SubElement
 
-        self._build_elems(SubElement, d, elem_row)
+        return SubElement
 
     def _transform_doc(self) -> bytes:
         """
