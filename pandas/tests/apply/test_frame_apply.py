@@ -18,13 +18,6 @@ import pandas._testing as tm
 from pandas.tests.frame.common import zip_frames
 
 
-@pytest.fixture(params=["python", "numba"])
-def engine(request):
-    if request.param == "numba":
-        pytest.importorskip("numba")
-    return request.param
-
-
 def test_apply(float_frame, engine, request):
     if engine == "numba":
         mark = pytest.mark.xfail(reason="numba engine not supporting numpy ufunc yet")
@@ -102,7 +95,7 @@ def test_apply_mixed_datetimelike():
 
 
 @pytest.mark.parametrize("func", [np.sqrt, np.mean])
-def test_apply_empty(func, engine=engine):
+def test_apply_empty(func, engine):
     # empty
     empty_frame = DataFrame()
 
@@ -983,7 +976,7 @@ def test_result_type_shorter_list(int_frame_const_col):
     tm.assert_frame_equal(result, expected)
 
 
-def test_result_type_broadcast(int_frame_const_col, request):
+def test_result_type_broadcast(int_frame_const_col, request, engine):
     # result_type should be consistent no matter which
     # path we take in the code
     if engine == "numba":
@@ -991,7 +984,9 @@ def test_result_type_broadcast(int_frame_const_col, request):
         request.node.add_marker(mark)
     df = int_frame_const_col
     # broadcast result
-    result = df.apply(lambda x: [1, 2, 3], axis=1, result_type="broadcast")
+    result = df.apply(
+        lambda x: [1, 2, 3], axis=1, result_type="broadcast", engine=engine
+    )
     expected = df.copy()
     tm.assert_frame_equal(result, expected)
 
@@ -1550,8 +1545,13 @@ def test_aggregation_func_column_order():
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_getitem_axis_1(engine):
+def test_apply_getitem_axis_1(engine, request):
     # GH 13427
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="numba engine not supporting duplicate index values"
+        )
+        request.node.add_marker(mark)
     df = DataFrame({"a": [0, 1, 2], "b": [1, 2, 3]})
     result = df[["a", "a"]].apply(
         lambda x: x.iloc[0] + x.iloc[1], axis=1, engine=engine

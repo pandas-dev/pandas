@@ -13,10 +13,8 @@ from __future__ import annotations
 import operator
 
 import numba
-from numba.core import (
-    cgutils,
-    types,
-)
+from numba import types
+from numba.core import cgutils
 from numba.core.datamodel import models
 from numba.core.extending import (
     NativeValue,
@@ -40,7 +38,7 @@ from pandas.core.series import Series
 
 
 # TODO: Range index support
-# (not passing an index to series constructor doesn't work)
+# (this currently lowers OK, but does not round-trip)
 class IndexType(types.Type):
     """
     The type class for Index objects.
@@ -149,6 +147,7 @@ def type_index_constructor(context):
 @register_model(IndexType)
 class IndexModel(models.StructModel):
     def __init__(self, dmm, fe_type) -> None:
+        # We don't want the numpy string scalar type in our hashmap
         members = [
             ("data", fe_type.as_array),
             # This is an attempt to emulate our hashtable code with a numba
@@ -238,6 +237,25 @@ def index_constructor_1arg(context, builder, sig, args):
         return Index(data, Dict.empty(key_type, value_type))
 
     return context.compile_internal(builder, index_impl, sig, args)
+
+
+# Helper to convert the unicodecharseq (numpy string scalar) into a unicode_type
+# (regular string)
+
+
+def maybe_cast_str(x):
+    # Dummy function that numba can overload
+    pass
+
+
+@overload(maybe_cast_str)
+def maybe_cast_str_impl(x):
+    """Converts numba UnicodeCharSeq (numpy string scalar) -> unicode type (string).
+    Is a no-op for other types."""
+    if isinstance(x, types.UnicodeCharSeq):
+        return lambda x: str(x)
+    else:
+        return lambda x: x
 
 
 @unbox(IndexType)
@@ -426,8 +444,12 @@ def generate_series_binop(binop):
 series_reductions = [
     ("sum", np.sum),
     ("mean", np.mean),
-    ("std", np.std),
-    ("var", np.var),
+    # Disabled due to discrepancies between numba std. dev
+    # and pandas std. dev (no way to specify dof)
+    # ("std", np.std),
+    # ("var", np.var),
+    ("min", np.min),
+    ("max", np.max),
 ]
 for reduction, reduction_method in series_reductions:
     generate_series_reduction(reduction, reduction_method)

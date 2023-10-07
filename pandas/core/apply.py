@@ -1075,6 +1075,14 @@ class FrameApply(NDFrameApply):
         return results, res_index
 
     def apply_series_numba(self):
+        if self.engine_kwargs.get("parallel", False):
+            raise NotImplementedError(
+                "Parallel apply is not supported when raw=False and engine='numba'"
+            )
+        if not self.obj.index.is_unique or not self.columns.is_unique:
+            raise NotImplementedError(
+                "The index/columns must be unique when raw=False and engine='numba'"
+            )
         results = self.apply_with_numba()
         return results, self.result_index
 
@@ -1128,6 +1136,7 @@ class FrameRowApply(FrameApply):
         # This isn't an entrypoint since we don't want users
         # using Series/DF in numba code outside of apply
         from pandas.core._numba.extensions import SeriesType  # noqa: F401
+        from pandas.core._numba.extensions import maybe_cast_str
 
         numba = import_optional_dependency("numba")
 
@@ -1138,7 +1147,9 @@ class FrameRowApply(FrameApply):
             results = {}
             for j in range(values.shape[1]):
                 # Create the series
-                ser = Series(values[:, j], index=df_index, name=str(col_names[j]))
+                ser = Series(
+                    values[:, j], index=df_index, name=maybe_cast_str(col_names[j])
+                )
                 results[j] = jitted_udf(ser)
             return results
 
@@ -1148,23 +1159,40 @@ class FrameRowApply(FrameApply):
         nb_func = self.generate_numba_apply_func(
             cast(Callable, self.func), **self.engine_kwargs
         )
-        orig_values = self.columns.to_numpy()
-        fixed_cols = False
-        if orig_values.dtype == object:
-            if not lib.is_string_array(orig_values):
+        # Since numpy/numba doesn't support object array of stringswell
+        # we'll do a sketchy thing where if index._data is object
+        # we convert to string and directly set index._data to that,
+        # setting it back after we call the function
+        fixed_obj_colnames = False
+        orig_cols = self.columns.to_numpy()
+        if self.columns._data.dtype == object:
+            if not lib.is_string_array(orig_cols):
                 raise ValueError(
                     "The numba engine only supports "
                     "using string or numeric column names"
                 )
-            col_names_values = orig_values.astype("U")
-            # Remember to set this back!
-            self.columns._data = col_names_values
-            fixed_cols = True
+            # Remember to set this back!!!
+            self.columns._data = orig_cols.astype("U")
+            fixed_obj_colnames = True
+
+        fixed_obj_index = False
+        orig_index = self.index.to_numpy()
+        if self.obj.index._data.dtype == object:
+            if not lib.is_string_array(orig_index):
+                raise ValueError(
+                    "The numba engine only supports "
+                    "using string or numeric index values"
+                )
+            # Remember to set this back!!!
+            self.obj.index._data = orig_index.astype("U")
+            fixed_obj_index = True
         df_index = self.obj.index
 
         res = dict(nb_func(self.values, self.columns, df_index))
-        if fixed_cols:
-            self.columns._data = orig_values
+        if fixed_obj_colnames:
+            self.columns._data = orig_cols
+        if fixed_obj_index:
+            self.obj.index._data = orig_index
         return res
 
     @property
@@ -1260,6 +1288,7 @@ class FrameColumnApply(FrameApply):
         # using Series/DF in numba code outside of apply
         from pandas import Series
         from pandas.core._numba.extensions import SeriesType  # noqa: F401
+        from pandas.core._numba.extensions import maybe_cast_str
 
         numba = import_optional_dependency("numba")
 
@@ -1271,7 +1300,11 @@ class FrameColumnApply(FrameApply):
             for i in range(values.shape[0]):
                 # Create the series
                 # TODO: values corrupted without the copy
-                ser = Series(values[i].copy(), index=col_names_index, name=index[i])
+                ser = Series(
+                    values[i].copy(),
+                    index=col_names_index,
+                    name=maybe_cast_str(index[i]),
+                )
                 results[i] = jitted_udf(ser)
 
             return results
@@ -1287,24 +1320,39 @@ class FrameColumnApply(FrameApply):
         # we'll do a sketchy thing where if index._data is object
         # we convert to string and directly set index._data to that,
         # setting it back after we call the function
-        fixed_obj_dtype = False
-        orig_data = self.columns.to_numpy()
+        fixed_obj_colnames = False
+        orig_cols = self.columns.to_numpy()
         if self.columns._data.dtype == object:
-            if not lib.is_string_array(orig_data):
+            if not lib.is_string_array(orig_cols):
                 raise ValueError(
                     "The numba engine only supports "
                     "using string or numeric column names"
                 )
             # Remember to set this back!!!
-            self.columns._data = orig_data.astype("U")
-            fixed_obj_dtype = True
+            self.columns._data = orig_cols.astype("U")
+            fixed_obj_colnames = True
+
+        fixed_obj_index = False
+        orig_index = self.index.to_numpy()
+        if self.obj.index._data.dtype == object:
+            if not lib.is_string_array(orig_index):
+                raise ValueError(
+                    "The numba engine only supports "
+                    "using string or numeric index values"
+                )
+            # Remember to set this back!!!
+            self.obj.index._data = orig_index.astype("U")
+            fixed_obj_index = True
 
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
         res = dict(nb_func(self.values, self.columns, self.obj.index))
 
-        if fixed_obj_dtype:
-            self.columns._data = orig_data
+        if fixed_obj_colnames:
+            self.columns._data = orig_cols
+
+        if fixed_obj_index:
+            self.obj.index._data = orig_index
 
         return res
 
