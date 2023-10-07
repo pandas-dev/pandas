@@ -366,7 +366,7 @@ class EtreeXMLFormatter(_BaseXMLFormatter):
         )
 
         self.root = Element(
-            f"{self.prefix_uri}{self.root_name}", attrib=self.other_namespaces()
+            f"{self.prefix_uri}{self.root_name}", attrib=self._other_namespaces()
         )
 
         for d in self.frame_dicts.values():
