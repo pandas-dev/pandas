@@ -336,8 +336,7 @@ def timedelta_range(
     **Specify a unit**
 
     >>> pd.timedelta_range("1 Day", periods=3, freq="100000D", unit="s")
-    TimedeltaIndex(['1 days 00:00:00', '100001 days 00:00:00',
-                    '200001 days 00:00:00'],
+    TimedeltaIndex(['1 days', '100001 days', '200001 days'],
                    dtype='timedelta64[s]', freq='100000D')
     """
     if freq is None and com.any_none(periods, start, end):

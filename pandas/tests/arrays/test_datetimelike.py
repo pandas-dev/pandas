@@ -11,6 +11,7 @@ from pandas._libs import (
     OutOfBoundsDatetime,
     Timestamp,
 )
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 
 import pandas as pd
 from pandas import (
@@ -31,7 +32,7 @@ from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
 # TODO: more freq variants
-@pytest.fixture(params=["D", "B", "W", "M", "Q", "Y"])
+@pytest.fixture(params=["D", "B", "W", "ME", "Q", "Y"])
 def freqstr(request):
     """Fixture returning parametrized frequency in string format."""
     return request.param
@@ -52,6 +53,7 @@ def period_index(freqstr):
         warnings.filterwarnings(
             "ignore", message="Period with BDay freq", category=FutureWarning
         )
+        freqstr = freq_to_period_freqstr(1, freqstr)
         pi = pd.period_range(start=Timestamp("2000-01-01"), periods=100, freq=freqstr)
     return pi
 
@@ -755,6 +757,7 @@ class TestDatetimeArray(SharedTests):
         dti = datetime_index
         arr = DatetimeArray(dti)
 
+        freqstr = freq_to_period_freqstr(1, freqstr)
         expected = dti.to_period(freq=freqstr)
         result = arr.to_period(freq=freqstr)
         assert isinstance(result, PeriodArray)

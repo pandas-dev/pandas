@@ -168,7 +168,7 @@ class TestDatetimeIndex:
 
     @pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
     def test_astype_object_tz(self, tz):
-        idx = date_range(start="2013-01-01", periods=4, freq="M", name="idx", tz=tz)
+        idx = date_range(start="2013-01-01", periods=4, freq="ME", name="idx", tz=tz)
         expected_list = [
             Timestamp("2013-01-31", tz=tz),
             Timestamp("2013-02-28", tz=tz),

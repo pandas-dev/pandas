@@ -140,7 +140,7 @@ class TestDatetime64:
         assert dti.is_month_start[0] == 1
 
     def test_datetimeindex_accessors5(self):
-        freq_m = to_offset("M")
+        freq_m = to_offset("ME")
         bm = to_offset("BM")
         qfeb = to_offset("Q-FEB")
         qsfeb = to_offset("QS-FEB")
@@ -256,7 +256,7 @@ class TestDatetime64:
         assert np.isnan(ts.day_name(locale=time_locale))
 
         # GH#12805
-        dti = date_range(freq="M", start="2012", end="2013")
+        dti = date_range(freq="ME", start="2012", end="2013")
         result = dti.month_name(locale=time_locale)
         expected = Index([month.capitalize() for month in expected_months])
 

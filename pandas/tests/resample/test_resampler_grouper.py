@@ -310,14 +310,14 @@ def test_apply_with_mutated_index():
         s = Series([1, 2], index=["a", "b"])
         return s
 
-    expected = df.groupby(pd.Grouper(freq="M")).apply(f)
+    expected = df.groupby(pd.Grouper(freq="ME")).apply(f)
 
-    result = df.resample("M").apply(f)
+    result = df.resample("ME").apply(f)
     tm.assert_frame_equal(result, expected)
 
     # A case for series
-    expected = df["col1"].groupby(pd.Grouper(freq="M"), group_keys=False).apply(f)
-    result = df["col1"].resample("M").apply(f)
+    expected = df["col1"].groupby(pd.Grouper(freq="ME"), group_keys=False).apply(f)
+    result = df["col1"].resample("ME").apply(f)
     tm.assert_series_equal(result, expected)
 
 
@@ -469,7 +469,7 @@ def test_resample_groupby_agg_listlike():
     # GH 42905
     ts = Timestamp("2021-02-28 00:00:00")
     df = DataFrame({"class": ["beta"], "value": [69]}, index=Index([ts], name="date"))
-    resampled = df.groupby("class").resample("M")["value"]
+    resampled = df.groupby("class").resample("ME")["value"]
     result = resampled.agg(["sum", "size"])
     expected = DataFrame(
         [[69, 1]],

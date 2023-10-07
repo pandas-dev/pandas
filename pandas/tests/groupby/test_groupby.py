@@ -1952,7 +1952,7 @@ def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = DataFrame(
         {
-            "eventDate": date_range(datetime.today(), periods=20, freq="M").tolist(),
+            "eventDate": date_range(datetime.today(), periods=20, freq="ME").tolist(),
             "thename": range(20),
         }
     )
@@ -3004,12 +3004,12 @@ def test_groupby_reduce_period():
 
     res = gb.max()
     expected = ser[-10:]
-    expected.index = Index(range(10), dtype=np.int_)
+    expected.index = Index(range(10), dtype=int)
     tm.assert_series_equal(res, expected)
 
     res = gb.min()
     expected = ser[:10]
-    expected.index = Index(range(10), dtype=np.int_)
+    expected.index = Index(range(10), dtype=int)
     tm.assert_series_equal(res, expected)
 
 

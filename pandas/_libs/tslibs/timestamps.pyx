@@ -1249,7 +1249,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> # Year end frequency
         >>> ts.to_period(freq='Y')
-        Period('2020', 'A-DEC')
+        Period('2020', 'Y-DEC')
 
         >>> # Month end frequency
         >>> ts.to_period(freq='M')
@@ -1895,7 +1895,7 @@ class Timestamp(_Timestamp):
         cdef:
             int64_t nanos
 
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period=False)
         freq.nanos  # raises on non-fixed freq
         nanos = delta_to_nanoseconds(freq, self._creso)
         if nanos == 0:

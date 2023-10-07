@@ -3161,8 +3161,6 @@ def dtype_backend_data() -> DataFrame:
 @pytest.fixture
 def dtype_backend_expected():
     def func(storage, dtype_backend, conn_name):
-        string_array: StringArray | ArrowStringArray
-        string_array_na: StringArray | ArrowStringArray
         if storage == "python":
             string_array = StringArray(np.array(["a", "b", "c"], dtype=np.object_))
             string_array_na = StringArray(np.array(["a", "b", pd.NA], dtype=np.object_))

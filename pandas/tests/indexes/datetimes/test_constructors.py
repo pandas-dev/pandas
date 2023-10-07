@@ -753,7 +753,7 @@ class TestDatetimeIndex:
             DatetimeIndex([1, 2], dtype=dtype)
 
     def test_constructor_name(self):
-        idx = date_range(start="2000-01-01", periods=1, freq="A", name="TEST")
+        idx = date_range(start="2000-01-01", periods=1, freq="Y", name="TEST")
         assert idx.name == "TEST"
 
     def test_000constructor_resolution(self):
@@ -972,14 +972,14 @@ class TestTimeSeries:
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH 6961
-        rng1 = date_range("2014", "2015", freq="M", tz=tz)
-        expected1 = date_range("2014-01-31", "2014-12-31", freq="M", tz=tz)
+        rng1 = date_range("2014", "2015", freq="ME", tz=tz)
+        expected1 = date_range("2014-01-31", "2014-12-31", freq="ME", tz=tz)
 
         rng2 = date_range("2014", "2015", freq="MS", tz=tz)
         expected2 = date_range("2014-01-01", "2015-01-01", freq="MS", tz=tz)
 
-        rng3 = date_range("2014", "2020", freq="A", tz=tz)
-        expected3 = date_range("2014-12-31", "2019-12-31", freq="A", tz=tz)
+        rng3 = date_range("2014", "2020", freq="Y", tz=tz)
+        expected3 = date_range("2014-12-31", "2019-12-31", freq="Y", tz=tz)
 
         rng4 = date_range("2014", "2020", freq="AS", tz=tz)
         expected4 = date_range("2014-01-01", "2020-01-01", freq="AS", tz=tz)
@@ -1010,7 +1010,7 @@ class TestTimeSeries:
         assert rng[0].second == 1
 
     def test_is_(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
         assert dti.is_(dti)
         assert dti.is_(dti.view())
         assert not dti.is_(dti.copy())
@@ -1036,7 +1036,7 @@ class TestTimeSeries:
         assert (index.asi8[50:100] != -1).all()
 
     @pytest.mark.parametrize(
-        "freq", ["M", "Q", "A", "D", "B", "BH", "min", "s", "ms", "us", "H", "ns", "C"]
+        "freq", ["ME", "Q", "Y", "D", "B", "BH", "min", "s", "ms", "us", "H", "ns", "C"]
     )
     def test_from_freq_recreate_from_data(self, freq):
         org = date_range(start="2001/02/01 09:00", freq=freq, periods=1)

@@ -107,7 +107,7 @@ data however will be stored as ``object`` data.
 
    pd.Series(pd.period_range("1/1/2011", freq="M", periods=3))
    pd.Series([pd.DateOffset(1), pd.DateOffset(2)])
-   pd.Series(pd.date_range("1/1/2011", freq="M", periods=3))
+   pd.Series(pd.date_range("1/1/2011", freq="ME", periods=3))
 
 Lastly, pandas represents null date times, time deltas, and time spans as ``NaT`` which
 is useful for representing missing or null date like values and behaves similar
@@ -450,7 +450,7 @@ variety of :ref:`frequency aliases <timeseries.offset_aliases>`:
 
 .. ipython:: python
 
-   pd.date_range(start, periods=1000, freq="M")
+   pd.date_range(start, periods=1000, freq="ME")
 
    pd.bdate_range(start, periods=250, freq="BQS")
 
@@ -882,7 +882,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.Week`, ``'W'``, "one week, optionally anchored on a day of the week"
     :class:`~pandas.tseries.offsets.WeekOfMonth`, ``'WOM'``, "the x-th day of the y-th week of each month"
     :class:`~pandas.tseries.offsets.LastWeekOfMonth`, ``'LWOM'``, "the x-th day of the last week of each month"
-    :class:`~pandas.tseries.offsets.MonthEnd`, ``'M'``, "calendar month end"
+    :class:`~pandas.tseries.offsets.MonthEnd`, ``'ME'``, "calendar month end"
     :class:`~pandas.tseries.offsets.MonthBegin`, ``'MS'``, "calendar month begin"
     :class:`~pandas.tseries.offsets.BMonthEnd` or :class:`~pandas.tseries.offsets.BusinessMonthEnd`, ``'BM'``, "business month end"
     :class:`~pandas.tseries.offsets.BMonthBegin` or :class:`~pandas.tseries.offsets.BusinessMonthBegin`, ``'BMS'``, "business month begin"
@@ -895,7 +895,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQ``, "business quarter end"
     :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
     :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
-    :class:`~pandas.tseries.offsets.YearEnd`, ``'A'``, "calendar year end"
+    :class:`~pandas.tseries.offsets.YearEnd`, ``'Y'``, "calendar year end"
     :class:`~pandas.tseries.offsets.YearBegin`, ``'AS'`` or ``'BYS'``,"calendar year begin"
     :class:`~pandas.tseries.offsets.BYearEnd`, ``'BA'``, "business year end"
     :class:`~pandas.tseries.offsets.BYearBegin`, ``'BAS'``, "business year begin"
@@ -1246,7 +1246,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "C", "custom business day frequency"
     "D", "calendar day frequency"
     "W", "weekly frequency"
-    "M", "month end frequency"
+    "ME", "month end frequency"
     "SM", "semi-month end frequency (15th and end of month)"
     "BM", "business month end frequency"
     "CBM", "custom business month end frequency"
@@ -1258,7 +1258,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "BQ", "business quarter end frequency"
     "QS", "quarter start frequency"
     "BQS", "business quarter start frequency"
-    "A, Y", "year end frequency"
+    "Y", "year end frequency"
     "BA, BY", "business year end frequency"
     "AS, YS", "year start frequency"
     "BAS, BYS", "business year start frequency"
@@ -1321,7 +1321,7 @@ frequencies. We will refer to these aliases as *period aliases*.
     "W", "weekly frequency"
     "M", "monthly frequency"
     "Q", "quarterly frequency"
-    "A, Y", "yearly frequency"
+    "Y", "yearly frequency"
     "H", "hourly frequency"
     "min", "minutely frequency"
     "s", "secondly frequency"
@@ -1331,8 +1331,8 @@ frequencies. We will refer to these aliases as *period aliases*.
 
 .. deprecated:: 2.2.0
 
-   Aliases ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
-   ``min``, ``s``, ``ms``, ``us``, and ``ns``.
+   Aliases ``A``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
+   ``Y``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 
 Combining aliases
@@ -1383,18 +1383,18 @@ For some frequencies you can specify an anchoring suffix:
     "(B)Q(S)\-SEP", "quarterly frequency, year ends in September"
     "(B)Q(S)\-OCT", "quarterly frequency, year ends in October"
     "(B)Q(S)\-NOV", "quarterly frequency, year ends in November"
-    "(B)A(S)\-DEC", "annual frequency, anchored end of December. Same as 'A'"
-    "(B)A(S)\-JAN", "annual frequency, anchored end of January"
-    "(B)A(S)\-FEB", "annual frequency, anchored end of February"
-    "(B)A(S)\-MAR", "annual frequency, anchored end of March"
-    "(B)A(S)\-APR", "annual frequency, anchored end of April"
-    "(B)A(S)\-MAY", "annual frequency, anchored end of May"
-    "(B)A(S)\-JUN", "annual frequency, anchored end of June"
-    "(B)A(S)\-JUL", "annual frequency, anchored end of July"
-    "(B)A(S)\-AUG", "annual frequency, anchored end of August"
-    "(B)A(S)\-SEP", "annual frequency, anchored end of September"
-    "(B)A(S)\-OCT", "annual frequency, anchored end of October"
-    "(B)A(S)\-NOV", "annual frequency, anchored end of November"
+    "(B)Y(S)\-DEC", "annual frequency, anchored end of December. Same as 'Y'"
+    "(B)Y(S)\-JAN", "annual frequency, anchored end of January"
+    "(B)Y(S)\-FEB", "annual frequency, anchored end of February"
+    "(B)Y(S)\-MAR", "annual frequency, anchored end of March"
+    "(B)Y(S)\-APR", "annual frequency, anchored end of April"
+    "(B)Y(S)\-MAY", "annual frequency, anchored end of May"
+    "(B)Y(S)\-JUN", "annual frequency, anchored end of June"
+    "(B)Y(S)\-JUL", "annual frequency, anchored end of July"
+    "(B)Y(S)\-AUG", "annual frequency, anchored end of August"
+    "(B)Y(S)\-SEP", "annual frequency, anchored end of September"
+    "(B)Y(S)\-OCT", "annual frequency, anchored end of October"
+    "(B)Y(S)\-NOV", "annual frequency, anchored end of November"
 
 These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
@@ -1690,7 +1690,7 @@ the end of the interval.
 .. warning::
 
     The default values for ``label`` and ``closed`` is '**left**' for all
-    frequency offsets except for 'M', 'A', 'Q', 'BM', 'BA', 'BQ', and 'W'
+    frequency offsets except for 'ME', 'Y', 'Q', 'BM', 'BA', 'BQ', and 'W'
     which all have a default of 'right'.
 
     This might unintendedly lead to looking ahead, where the value for a later
@@ -1856,7 +1856,7 @@ to resample based on datetimelike column in the frame, it can passed to the
        ),
    )
    df
-   df.resample("M", on="date")[["a"]].sum()
+   df.resample("ME", on="date")[["a"]].sum()
 
 Similarly, if you instead want to resample by a datetimelike
 level of ``MultiIndex``, its name or location can be passed to the
@@ -1864,7 +1864,7 @@ level of ``MultiIndex``, its name or location can be passed to the
 
 .. ipython:: python
 
-   df.resample("M", level="d")[["a"]].sum()
+   df.resample("ME", level="d")[["a"]].sum()
 
 .. _timeseries.iterating-label:
 
@@ -1995,7 +1995,7 @@ Because ``freq`` represents a span of ``Period``, it cannot be negative like "-3
 
 .. ipython:: python
 
-   pd.Period("2012", freq="A-DEC")
+   pd.Period("2012", freq="Y-DEC")
 
    pd.Period("2012-1-1", freq="D")
 
@@ -2008,7 +2008,7 @@ frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` 
 
 .. ipython:: python
 
-   p = pd.Period("2012", freq="A-DEC")
+   p = pd.Period("2012", freq="Y-DEC")
    p + 1
    p - 3
    p = pd.Period("2012-01", freq="2M")
@@ -2050,7 +2050,7 @@ return the number of frequency units between them:
 
 .. ipython:: python
 
-   pd.Period("2012", freq="A-DEC") - pd.Period("2002", freq="A-DEC")
+   pd.Period("2012", freq="Y-DEC") - pd.Period("2002", freq="Y-DEC")
 
 PeriodIndex and period_range
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2137,7 +2137,7 @@ The ``period`` dtype can be used in ``.astype(...)``. It allows one to change th
    pi.astype("datetime64[ns]")
 
    # convert to PeriodIndex
-   dti = pd.date_range("2011-01-01", freq="M", periods=3)
+   dti = pd.date_range("2011-01-01", freq="ME", periods=3)
    dti
    dti.astype("period[M]")
 
@@ -2184,7 +2184,7 @@ method. Let's start with the fiscal year 2011, ending in December:
 
 .. ipython:: python
 
-   p = pd.Period("2011", freq="A-DEC")
+   p = pd.Period("2011", freq="Y-DEC")
    p
 
 We can convert it to a monthly frequency. Using the ``how`` parameter, we can
@@ -2211,10 +2211,10 @@ input period:
 
    p = pd.Period("2011-12", freq="M")
 
-   p.asfreq("A-NOV")
+   p.asfreq("Y-NOV")
 
 Note that since we converted to an annual frequency that ends the year in
-November, the monthly period of December 2011 is actually in the 2012 A-NOV
+November, the monthly period of December 2011 is actually in the 2012 Y-NOV
 period.
 
 .. _timeseries.quarterly:
@@ -2256,7 +2256,7 @@ and vice-versa using ``to_timestamp``:
 
 .. ipython:: python
 
-   rng = pd.date_range("1/1/2012", periods=5, freq="M")
+   rng = pd.date_range("1/1/2012", periods=5, freq="ME")
 
    ts = pd.Series(np.random.randn(len(rng)), index=rng)
 

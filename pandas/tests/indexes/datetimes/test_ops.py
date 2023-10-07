@@ -20,9 +20,9 @@ class TestDatetimeIndexOps:
     @pytest.mark.parametrize(
         "freq,expected",
         [
-            ("A", "day"),
+            ("Y", "day"),
             ("Q", "day"),
-            ("M", "day"),
+            ("ME", "day"),
             ("D", "day"),
             ("H", "hour"),
             ("min", "minute"),
@@ -33,7 +33,7 @@ class TestDatetimeIndexOps:
     )
     def test_resolution(self, request, tz_naive_fixture, freq, expected):
         tz = tz_naive_fixture
-        if freq == "A" and not IS64 and isinstance(tz, tzlocal):
+        if freq == "Y" and not IS64 and isinstance(tz, tzlocal):
             request.node.add_marker(
                 pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
             )

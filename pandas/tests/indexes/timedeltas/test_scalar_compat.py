@@ -74,15 +74,15 @@ class TestVectorizedTimedelta:
 
         msg = "<MonthEnd> is a non-fixed frequency"
         with pytest.raises(ValueError, match=msg):
-            td.round(freq="M")
+            td.round(freq="ME")
         with pytest.raises(ValueError, match=msg):
-            elt.round(freq="M")
+            elt.round(freq="ME")
 
     @pytest.mark.parametrize(
         "freq,msg",
         [
             ("Y", "<YearEnd: month=12> is a non-fixed frequency"),
-            ("M", "<MonthEnd> is a non-fixed frequency"),
+            ("ME", "<MonthEnd> is a non-fixed frequency"),
             ("foobar", "Invalid frequency: foobar"),
         ],
     )

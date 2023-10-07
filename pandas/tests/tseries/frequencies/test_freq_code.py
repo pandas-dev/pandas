@@ -13,7 +13,7 @@ import pandas._testing as tm
 
 @pytest.mark.parametrize(
     "freqstr,exp_freqstr",
-    [("D", "D"), ("W", "D"), ("M", "D"), ("s", "s"), ("min", "s"), ("H", "s")],
+    [("D", "D"), ("W", "D"), ("ME", "D"), ("s", "s"), ("min", "s"), ("H", "s")],
 )
 def test_get_to_timestamp_base(freqstr, exp_freqstr):
     off = to_offset(freqstr)
@@ -27,7 +27,7 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
 @pytest.mark.parametrize(
     "freqstr,expected",
     [
-        ("A", "year"),
+        ("Y", "year"),
         ("Q", "quarter"),
         ("M", "month"),
         ("D", "day"),
@@ -89,7 +89,7 @@ def test_cat(args):
         ("1H", "2021-01-01T09:00:00"),
         ("1D", "2021-01-02T08:00:00"),
         ("1W", "2021-01-03T08:00:00"),
-        ("1M", "2021-01-31T08:00:00"),
+        ("1ME", "2021-01-31T08:00:00"),
         ("1Y", "2021-12-31T08:00:00"),
     ],
 )
@@ -99,9 +99,9 @@ def test_compatibility(freqstr, expected):
     assert ts_np + do == np.datetime64(expected)
 
 
-@pytest.mark.parametrize("freq", ["T", "S", "L", "N", "U"])
-def test_units_t_l_deprecated_from__attrname_to_abbrevs(freq):
-    # GH 52536
+@pytest.mark.parametrize("freq", ["A", "T", "S", "L", "U", "N"])
+def test_units_A_T_S_L_U_N_deprecated_from_attrname_to_abbrevs(freq):
+    # GH#52536
     msg = f"'{freq}' is deprecated and will be removed in a future version."
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
