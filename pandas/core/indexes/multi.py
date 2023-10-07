@@ -865,8 +865,6 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> import pandas as pd
-        >>> import numpy as np
         >>> idx = pd.MultiIndex.from_product([['John', 'Josh', 'Alex'],
         ...list('abcde')], names=['Person', 'Letter'])
         >>> large = pd.DataFrame(data=np.random.randn(15, 2),
