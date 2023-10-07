@@ -27,6 +27,7 @@ from typing import (
     cast,
 )
 from unicodedata import east_asian_width
+import warnings
 
 import numpy as np
 
@@ -891,15 +892,24 @@ class DataFrameFormatter:
         fmt = self._get_formatter("__index__")
 
         if fmt is not None:
-            if isinstance(index, MultiIndex):
-                fmt_index = index.format(
-                    sparsify=self.sparsify,
-                    adjoin=False,
-                    names=self.show_row_idx_names,
-                    formatter=fmt,
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    f"{type(index).__name__}.format is deprecated",
+                    FutureWarning,
                 )
-            else:
-                fmt_index = [index.format(name=self.show_row_idx_names, formatter=fmt)]
+                if isinstance(index, MultiIndex):
+                    # TODO: 2023-10-07 no tests get here
+                    fmt_index = index.format(
+                        sparsify=self.sparsify,
+                        adjoin=False,
+                        names=self.show_row_idx_names,
+                        formatter=fmt,
+                    )
+                else:
+                    fmt_index = [
+                        index.format(name=self.show_row_idx_names, formatter=fmt)
+                    ]
         else:
             if isinstance(index, MultiIndex):
                 fmt_index = index._format_multi(

@@ -1380,6 +1380,15 @@ class MultiIndex(Index):
         sparsify=None,
         adjoin: bool = True,
     ) -> list:
+        warnings.warn(
+            # GH#55413
+            f"{type(self).__name__}.format is deprecated and will be removed "
+            "in a future version. Convert using index.astype(str) or "
+            "index.map(formatter) instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         if name is not None:
             names = name
 
