@@ -418,6 +418,9 @@ def maybe_cythonize(extensions, *args, **kwargs):
 
     kwargs["nthreads"] = parsed.parallel
     build_ext.render_templates(_pxifiles)
+    if debugging_symbols_requested:
+        kwargs["gdb_debug"] = True
+
     return cythonize(extensions, *args, **kwargs)
 
 
