@@ -166,7 +166,7 @@ class TestPeriodIndex:
 
         msg = "'Period' object is not iterable"
         with pytest.raises(TypeError, match=msg):
-            PeriodIndex(data=Period("2007", freq="A"))
+            PeriodIndex(data=Period("2007", freq="Y"))
 
         result = PeriodIndex(iter(idx))
         tm.assert_index_equal(result, idx)
@@ -418,7 +418,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "freq_offset, freq_period",
         [
-            ("A", "A"),
+            ("Y", "Y"),
             ("ME", "M"),
             ("D", "D"),
             ("min", "min"),
@@ -453,7 +453,7 @@ class TestPeriodIndex:
             tm.assert_index_equal(pidx, expected)
 
     def test_constructor(self):
-        pi = period_range(freq="A", start="1/1/2001", end="12/1/2009")
+        pi = period_range(freq="Y", start="1/1/2001", end="12/1/2009")
         assert len(pi) == 9
 
         pi = period_range(freq="Q", start="1/1/2001", end="12/1/2009")
@@ -526,7 +526,7 @@ class TestPeriodIndex:
             Period("2006-12-31", ("w", 1))
 
     @pytest.mark.parametrize(
-        "freq", ["M", "Q", "A", "D", "B", "min", "s", "ms", "us", "ns", "H"]
+        "freq", ["M", "Q", "Y", "D", "B", "min", "s", "ms", "us", "ns", "H"]
     )
     @pytest.mark.filterwarnings(
         r"ignore:Period with BDay freq is deprecated:FutureWarning"
@@ -539,7 +539,7 @@ class TestPeriodIndex:
 
     def test_map_with_string_constructor(self):
         raw = [2005, 2007, 2009]
-        index = PeriodIndex(raw, freq="A")
+        index = PeriodIndex(raw, freq="Y")
 
         expected = Index([str(num) for num in raw])
         res = index.map(str)

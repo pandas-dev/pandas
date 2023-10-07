@@ -15,6 +15,7 @@ from cpython.datetime cimport (
     time as dt_time,
     timedelta,
 )
+
 import warnings
 
 import_datetime()
@@ -48,7 +49,6 @@ from pandas._libs.tslibs.ccalendar import (
 )
 from pandas.util._exceptions import find_stack_level
 
-
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
     get_days_in_month,
@@ -58,6 +58,8 @@ from pandas._libs.tslibs.ccalendar cimport (
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
     c_DEPR_ABBREVS,
+    c_OFFSET_DEPR_FREQSTR,
+    c_REVERSE_OFFSET_DEPR_FREQSTR,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -2496,7 +2498,7 @@ cdef class YearEnd(YearOffset):
     """
 
     _default_month = 12
-    _prefix = "A"
+    _prefix = "Y"
     _day_opt = "end"
 
     cdef readonly:
@@ -4329,28 +4331,6 @@ cdef class CustomBusinessHour(BusinessHour):
 
 
 cdef class _CustomBusinessMonth(BusinessMixin):
-    """
-    DateOffset subclass representing custom business month(s).
-
-    Increments between beginning/end of month dates.
-
-    Parameters
-    ----------
-    n : int, default 1
-        The number of months represented.
-    normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range.
-    weekmask : str, Default 'Mon Tue Wed Thu Fri'
-        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
-    holidays : list
-        List/array of dates to exclude from the set of valid business days,
-        passed to ``numpy.busdaycalendar``.
-    calendar : np.busdaycalendar
-        Calendar to integrate.
-    offset : timedelta, default timedelta(0)
-        Time offset to apply.
-    """
-
     _attributes = tuple(
         ["n", "normalize", "weekmask", "holidays", "calendar", "offset"]
     )
@@ -4426,10 +4406,124 @@ cdef class _CustomBusinessMonth(BusinessMixin):
 
 
 cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
+    """
+    DateOffset subclass representing custom business month(s).
+
+    Increments between end of month dates.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize end dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    holidays : list
+        List/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``.
+    calendar : np.busdaycalendar
+        Calendar to integrate.
+    offset : timedelta, default timedelta(0)
+        Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    In the example below we use the default parameters.
+
+    >>> ts = pd.Timestamp(2022, 8, 5)
+    >>> ts + pd.offsets.CustomBusinessMonthEnd()
+    Timestamp('2022-08-31 00:00:00')
+
+    Custom business month end can be specified by ``weekmask`` parameter.
+    To convert the returned datetime object to its string representation
+    the function strftime() is used in the next example.
+
+    >>> import datetime as dt
+    >>> freq = pd.offsets.CustomBusinessMonthEnd(weekmask="Wed Thu")
+    >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 12, 18),
+    ...               freq=freq).strftime('%a %d %b %Y %H:%M')
+    Index(['Thu 28 Jul 2022 00:00', 'Wed 31 Aug 2022 00:00',
+           'Thu 29 Sep 2022 00:00', 'Thu 27 Oct 2022 00:00',
+           'Wed 30 Nov 2022 00:00'],
+           dtype='object')
+
+    Using NumPy business day calendar you can define custom holidays.
+
+    >>> import datetime as dt
+    >>> bdc = np.busdaycalendar(holidays=['2022-08-01', '2022-09-30',
+    ...                                   '2022-10-31', '2022-11-01'])
+    >>> freq = pd.offsets.CustomBusinessMonthEnd(calendar=bdc)
+    >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 11, 10), freq=freq)
+    DatetimeIndex(['2022-07-29', '2022-08-31', '2022-09-29', '2022-10-28'],
+                   dtype='datetime64[ns]', freq='CBM')
+    """
+
     _prefix = "CBM"
 
 
 cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
+    """
+    DateOffset subclass representing custom business month(s).
+
+    Increments between beginning of month dates.
+
+    Parameters
+    ----------
+    n : int, default 1
+        The number of months represented.
+    normalize : bool, default False
+        Normalize start dates to midnight before generating date range.
+    weekmask : str, Default 'Mon Tue Wed Thu Fri'
+        Weekmask of valid business days, passed to ``numpy.busdaycalendar``.
+    holidays : list
+        List/array of dates to exclude from the set of valid business days,
+        passed to ``numpy.busdaycalendar``.
+    calendar : np.busdaycalendar
+        Calendar to integrate.
+    offset : timedelta, default timedelta(0)
+        Time offset to apply.
+
+    See Also
+    --------
+    :class:`~pandas.tseries.offsets.DateOffset` : Standard kind of date increment.
+
+    Examples
+    --------
+    In the example below we use the default parameters.
+
+    >>> ts = pd.Timestamp(2022, 8, 5)
+    >>> ts + pd.offsets.CustomBusinessMonthBegin()
+    Timestamp('2022-09-01 00:00:00')
+
+    Custom business month start can be specified by ``weekmask`` parameter.
+    To convert the returned datetime object to its string representation
+    the function strftime() is used in the next example.
+
+    >>> import datetime as dt
+    >>> freq = pd.offsets.CustomBusinessMonthBegin(weekmask="Wed Thu")
+    >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 12, 18),
+    ...               freq=freq).strftime('%a %d %b %Y %H:%M')
+    Index(['Wed 03 Aug 2022 00:00', 'Thu 01 Sep 2022 00:00',
+           'Wed 05 Oct 2022 00:00', 'Wed 02 Nov 2022 00:00',
+           'Thu 01 Dec 2022 00:00'],
+           dtype='object')
+
+    Using NumPy business day calendar you can define custom holidays.
+
+    >>> import datetime as dt
+    >>> bdc = np.busdaycalendar(holidays=['2022-08-01', '2022-09-30',
+    ...                                   '2022-10-31', '2022-11-01'])
+    >>> freq = pd.offsets.CustomBusinessMonthBegin(calendar=bdc)
+    >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 11, 10), freq=freq)
+    DatetimeIndex(['2022-08-02', '2022-09-01', '2022-10-03', '2022-11-02'],
+                   dtype='datetime64[ns]', freq='CBMS')
+    """
+
     _prefix = "CBMS"
 
 
@@ -4447,7 +4541,7 @@ prefix_mapping = {
     offset._prefix: offset
     for offset in [
         YearBegin,  # 'AS'
-        YearEnd,  # 'A'
+        YearEnd,  # 'Y'
         BYearBegin,  # 'BAS'
         BYearEnd,  # 'BA'
         BusinessDay,  # 'B'
@@ -4489,8 +4583,7 @@ _lite_rule_alias = {
     "W": "W-SUN",
     "Q": "Q-DEC",
 
-    "A": "A-DEC",      # YearEnd(month=12),
-    "Y": "A-DEC",
+    "Y": "Y-DEC",      # YearEnd(month=12),
     "AS": "AS-JAN",    # YearBegin(month=1),
     "YS": "AS-JAN",
     "BA": "BA-DEC",    # BYearEnd(month=12),
@@ -4615,21 +4708,22 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if is_period is False and name == "M":
+                if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
-                        "\'M\' will be deprecated, please use \'ME\' "
-                        "for \'month end\'",
+                        f"\'{name}\' will be deprecated, please use "
+                        f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
                         UserWarning,
                         stacklevel=find_stack_level(),
                     )
-                    name = "ME"
-                if is_period is True and name == "ME":
+                    name = c_OFFSET_DEPR_FREQSTR[name]
+                if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
                     raise ValueError(
-                        r"for Period, please use \'M\' "
-                        "instead of \'ME\'"
+                        f"for Period, please use "
+                        f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                        f"instead of \'{name}\'"
                     )
-                elif is_period is True and name == "M":
-                    name = "ME"
+                elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
+                    name = c_OFFSET_DEPR_FREQSTR.get(name)
 
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
@@ -4648,6 +4742,7 @@ cpdef to_offset(freq, bint is_period=False):
                         stacklevel=find_stack_level(),
                     )
                     prefix = c_DEPR_ABBREVS[prefix]
+
                 if prefix in {"D", "H", "min", "s", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3H" or
                     #  "2.5T", so we can construct a Timedelta with the
@@ -4661,7 +4756,7 @@ cpdef to_offset(freq, bint is_period=False):
                         offset *= stride_sign
                 else:
                     stride = int(stride)
-                    offset = _get_offset(name)
+                    offset = _get_offset(prefix)
                     offset = offset * int(np.fabs(stride) * stride_sign)
 
                 if delta is None:
