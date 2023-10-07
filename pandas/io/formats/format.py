@@ -298,17 +298,6 @@ class SeriesFormatter:
 
         return str(footer)
 
-    def _get_formatted_index(self) -> tuple[list[str], bool]:
-        index = self.tr_series.index
-
-        if isinstance(index, MultiIndex):
-            have_header = any(name for name in index.names)
-            fmt_index = index.format(names=True)
-        else:
-            have_header = index.name is not None
-            fmt_index = index.format(name=True)
-        return fmt_index, have_header
-
     def _get_formatted_values(self) -> list[str]:
         return format_array(
             self.tr_series._values,
@@ -325,7 +314,8 @@ class SeriesFormatter:
         if len(series) == 0:
             return f"{type(self.series).__name__}([], {footer})"
 
-        fmt_index, have_header = self._get_formatted_index()
+        have_header = _has_names(series.index)
+        fmt_index = self.tr_series.index.format(name=True)
         fmt_values = self._get_formatted_values()
 
         if self.is_truncated_vertically:
@@ -1748,16 +1738,15 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
         self,
         values: TimedeltaArray,
         nat_rep: str = "NaT",
-        box: bool = False,
         **kwargs,
     ) -> None:
+        # TODO: nat_rep is never passed, na_rep is.
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
-        self.box = box
 
     def _format_strings(self) -> list[str]:
         formatter = self.formatter or get_format_timedelta64(
-            self.values, nat_rep=self.nat_rep, box=self.box
+            self.values, nat_rep=self.nat_rep, box=False
         )
         return [formatter(x) for x in self.values]
 
