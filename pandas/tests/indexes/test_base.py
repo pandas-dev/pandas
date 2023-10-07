@@ -980,7 +980,7 @@ class TestIndex:
             Index(range(5)),
             tm.makeDateIndex(10),
             MultiIndex.from_tuples([("foo", "1"), ("bar", "3")]),
-            period_range(start="2000", end="2010", freq="A"),
+            period_range(start="2000", end="2010", freq="Y"),
         ],
     )
     def test_str_attribute_raises(self, index):

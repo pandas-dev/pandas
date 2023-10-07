@@ -28,14 +28,12 @@ from pandas._libs.tslibs import (
     get_resolution,
     get_supported_reso,
     get_unit_from_dtype,
-    iNaT,
     ints_to_pydatetime,
     is_date_array_normalized,
     is_supported_unit,
     is_unitless,
     normalize_i8_timestamps,
     npy_unit_to_abbrev,
-    periods_per_day,
     timezones,
     to_offset,
     tz_convert_from_utc,
@@ -744,25 +742,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         return tslib.format_array_from_datetime(
             self.asi8, tz=self.tz, format=date_format, na_rep=na_rep, reso=self._creso
         )
-
-    @property
-    def _is_dates_only(self) -> bool:
-        """
-        Check if we are round times at midnight (and no timezone), which will
-        be given a more compact __repr__ than other cases.
-        """
-        if self.tz is not None:
-            return False
-
-        values_int = self.asi8
-        consider_values = values_int != iNaT
-        dtype = cast(np.dtype, self.dtype)  # since we checked tz above
-        reso = get_unit_from_dtype(dtype)
-        ppd = periods_per_day(reso)
-
-        # TODO: can we reuse is_date_array_normalized?  would need a skipna kwd
-        even_days = np.logical_and(consider_values, values_int % ppd != 0).sum() == 0
-        return even_days
 
     # -----------------------------------------------------------------
     # Comparison Methods
@@ -2063,7 +2042,7 @@ default 'raise'
         >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
         >>> idx
         DatetimeIndex(['2012-12-31', '2013-12-31', '2014-12-31'],
-                      dtype='datetime64[ns]', freq='A-DEC')
+                      dtype='datetime64[ns]', freq='Y-DEC')
         >>> idx.is_leap_year
         array([ True, False, False])
 
