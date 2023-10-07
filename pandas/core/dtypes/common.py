@@ -402,7 +402,7 @@ def is_period_dtype(arr_or_dtype) -> bool:
     False
     >>> is_period_dtype(pd.Period("2017-01-01"))
     False
-    >>> is_period_dtype(pd.PeriodIndex([], freq="A"))
+    >>> is_period_dtype(pd.PeriodIndex([], freq="Y"))
     True
     """
     warnings.warn(
@@ -1664,9 +1664,12 @@ def is_all_strings(value: ArrayLike) -> bool:
     dtype = value.dtype
 
     if isinstance(dtype, np.dtype):
-        return dtype == np.dtype("object") and lib.is_string_array(
-            np.asarray(value), skipna=False
-        )
+        if len(value) == 0:
+            return dtype == np.dtype("object")
+        else:
+            return dtype == np.dtype("object") and lib.is_string_array(
+                np.asarray(value), skipna=False
+            )
     elif isinstance(dtype, CategoricalDtype):
         return dtype.categories.inferred_type == "string"
     return dtype == "string"

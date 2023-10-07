@@ -204,7 +204,7 @@ def test_align_dt64tzindex_mismatched_tzs():
 
 
 def test_align_periodindex(join_type):
-    rng = period_range("1/1/2000", "1/1/2010", freq="A")
+    rng = period_range("1/1/2000", "1/1/2010", freq="Y")
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     # TODO: assert something?
@@ -240,10 +240,10 @@ def test_align_left_different_named_levels():
     result_left, result_right = left.align(right)
 
     expected_left = Series(
-        [2], index=pd.MultiIndex.from_tuples([(1, 3, 4, 2)], names=["a", "c", "d", "b"])
+        [2], index=pd.MultiIndex.from_tuples([(1, 4, 3, 2)], names=["a", "d", "c", "b"])
     )
     expected_right = Series(
-        [1], index=pd.MultiIndex.from_tuples([(1, 3, 4, 2)], names=["a", "c", "d", "b"])
+        [1], index=pd.MultiIndex.from_tuples([(1, 4, 3, 2)], names=["a", "d", "c", "b"])
     )
     tm.assert_series_equal(result_left, expected_left)
     tm.assert_series_equal(result_right, expected_right)
