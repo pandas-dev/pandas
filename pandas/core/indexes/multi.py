@@ -843,42 +843,34 @@ class MultiIndex(Index):
         """
         Levels of the MultiIndex.
 
-        What are levels?
         Levels refer to the different hierarchical levels or layers in a MultiIndex.
         In a MultiIndex, each level represents a distinct dimension or category of
         the index.
 
-        How can levels be seen in pandas?
         To access the levels, you can use the levels attribute of the MultiIndex,
         which returns a tuple of Index objects. Each Index object represents a
         level in the MultiIndex and contains the unique values found in that
         specific level.
 
-        Notes
-        -----
-        If the MultiIndex is sliced, this method still returns the original
+        If the DataFrame not using all levels, this method still returns the original
         levels of the MultiIndex.
         When using this method on a DataFrame index, it may show "extra".
 
         Examples
         --------
-        Example 1:
-        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
-        ...                                  names=['number', 'color'])
+        >>> idx = pd.MultiIndex.from_product([('insect', 'mammal'),
+        ... ('goat', 'dog','cat','ant','spides')], names=['class', 'animal'])
         >>> idx.levels
-        FrozenList([[0, 1, 2], ['green', 'purple']])
+        FrozenList([['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']])
 
-        Example 2:
-        >>> idx = pd.MultiIndex.from_product([['John', 'Josh', 'Alex'],
-        ... list('abcde')], names=['Person', 'Letter'])
-        >>> large = pd.DataFrame(data=np.random.randn(15, 2),
+        >>> num = pd.DataFrame(data=np.random.randn(10, 2),
         ... index=idx, columns=['one', 'two'])
-        >>> small = large.loc[['Jo'==d[0:2] for d in
-        ... large.index.get_level_values('Person')]]
-        >>> large.index.levels
-        FrozenList([['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']])
-        >>> small.index.levels
-        FrozenList([['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']])
+        >>> insect_num = num.loc[['in'==d[0:2] for d in
+        ... num.index.get_level_values('class')]]
+        >>> num.index.levels
+        FrozenList([['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']])
+        >>> insect_num.index.levels
+        FrozenList([['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']])
         """
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
