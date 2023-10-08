@@ -847,24 +847,15 @@ class MultiIndex(Index):
         Levels of the MultiIndex.
 
         What are levels?
-        ----------------
         Levels refer to the different hierarchical levels or layers in a MultiIndex.
         In a MultiIndex, each level represents a distinct dimension or category of
         the index.
 
         How can levels be seen in pandas?
-        ---------------------------------
         To access the levels, you can use the levels attribute of the MultiIndex,
         which returns a tuple of Index objects. Each Index object represents a
         level in the MultiIndex and contains the unique values found in that
         specific level.
-
-        Examples
-        --------
-        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
-        ...                                  names=['number', 'color'])
-        >>> idx.levels
-        [[0, 1, 2], ['green', 'purple']]
 
         Notes
         -----
@@ -874,6 +865,13 @@ class MultiIndex(Index):
 
         Examples
         --------
+        Example 1:
+        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
+        ...                                  names=['number', 'color'])
+        >>> idx.levels
+        [[0, 1, 2], ['green', 'purple']]
+
+        Example 2:
         >>> idx = pd.MultiIndex.from_product([['John', 'Josh', 'Alex'],
         ... list('abcde')], names=['Person', 'Letter'])
         >>> large = pd.DataFrame(data=np.random.randn(15, 2),
