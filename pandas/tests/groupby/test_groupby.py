@@ -2001,21 +2001,9 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(
-    columns, keys, values, method, op, request, using_array_manager, dropna
-):
+def test_empty_groupby(columns, keys, values, method, op, using_array_manager, dropna):
     # GH8093 & GH26411
     override_dtype = None
-
-    if (
-        isinstance(values, Categorical)
-        and len(keys) == 1
-        and op in ["idxmax", "idxmin"]
-    ):
-        mark = pytest.mark.xfail(
-            raises=ValueError, match="attempt to get arg(min|max) of an empty sequence"
-        )
-        request.node.add_marker(mark)
 
     if isinstance(values, BooleanArray) and op in ["sum", "prod"]:
         # We expect to get Int64 back for these
@@ -2061,12 +2049,21 @@ def test_empty_groupby(
     is_dt64 = df.dtypes.iloc[0].kind == "M"
     is_cat = isinstance(values, Categorical)
 
-    if isinstance(values, Categorical) and not values.ordered and op in ["min", "max"]:
-        msg = f"Cannot perform {op} with non-ordered Categorical"
-        with pytest.raises(TypeError, match=msg):
+    if (
+        isinstance(values, Categorical)
+        and not values.ordered
+        and op in ["min", "max", "idxmin", "idxmax"]
+    ):
+        if op in ["min", "max"]:
+            msg = f"Cannot perform {op} with non-ordered Categorical"
+            klass = TypeError
+        else:
+            msg = f"Can't get {op} of an empty group due to unobserved categories"
+            klass = ValueError
+        with pytest.raises(klass, match=msg):
             get_result()
 
-        if isinstance(columns, list):
+        if op in ["min", "max"] and isinstance(columns, list):
             # i.e. DataframeGroupBy, not SeriesGroupBy
             result = get_result(numeric_only=True)
             expected = get_categorical_invalid_expected()

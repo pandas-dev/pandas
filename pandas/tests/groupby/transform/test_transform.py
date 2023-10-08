@@ -1637,3 +1637,19 @@ def test_as_index_no_change(keys, df, groupby_func):
     result = gb_as_index_true.transform(groupby_func, *args)
     expected = gb_as_index_false.transform(groupby_func, *args)
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["idxmax", "idxmin"])
+@pytest.mark.parametrize("numeric_only", [True, False])
+def test_idxmin_idxmax_transform_args(how, skipna, numeric_only):
+    # GH#55268 - ensure *args are passed through when calling transform
+    df = DataFrame({"a": [1, 1, 1, 2], "b": [3.0, 4.0, np.nan, 6.0], "c": list("abcd")})
+    gb = df.groupby("a")
+    msg = f"'axis' keyword in DataFrameGroupBy.{how} is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.transform(how, 0, skipna, numeric_only)
+    warn = None if skipna else FutureWarning
+    msg = f"The behavior of DataFrame.{how} with .* any-NA and skipna=False"
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = gb.transform(how, skipna=skipna, numeric_only=numeric_only)
+    tm.assert_frame_equal(result, expected)
