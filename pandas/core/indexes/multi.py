@@ -840,22 +840,34 @@ class MultiIndex(Index):
 
     @cache_readonly
     def levels(self) -> FrozenList:
+        # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
+        # create new IndexEngine
+        # https://github.com/pandas-dev/pandas/issues/31648
         """
-        Returns a tuple of Index objects representing the levels
-        of the MultiIndex.
+        Levels of the MultiIndex.
 
-        Each level is an Index object containing unique values
-        from that level of the MultiIndex.
-
-        Returns
+        What are levels?
         -------
-        levels : tuple of Index
-                Tuple of Index objects representing the levels
-                of the MultiIndex.
+        Levels refer to the different hierarchical levels or layers in a MultiIndex.
+        In a MultiIndex, each level represents a distinct dimension or category of
+        the index.
+
+        How can levels be seen in pandas?
+        -------
+        To access the levels, you can use the levels attribute of the MultiIndex,
+        which returns a tuple of Index objects. Each Index object represents a
+        level in the MultiIndex and contains the unique values found in that
+        specific level.
+
+        Examples
+        --------
+        >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
+        ...                                  names=['number', 'color'])
+        >>> idx.levels
+        [[0, 1, 2], ['green', 'purple']]
 
         Notes
         -----
-        The levels are returned in the order they appear in the MultiIndex.
         If the MultiIndex is sliced, this method still returns the original
         levels of the MultiIndex.
         When using this method on a DataFrame index, it may show "extra"
@@ -866,17 +878,17 @@ class MultiIndex(Index):
         Examples
         --------
         >>> idx = pd.MultiIndex.from_product([['John', 'Josh', 'Alex'],
-        ...list('abcde')], names=['Person', 'Letter'])
+        ... list('abcde')], names=['Person', 'Letter'])
         >>> large = pd.DataFrame(data=np.random.randn(15, 2),
-        ...index=idx, columns=['one', 'two'])
+        ... index=idx, columns=['one', 'two'])
         >>> small = large.loc[['Jo'==d[0:2] for d in
-        ...large.index.get_level_values('Person')]]
+        ... large.index.get_level_values('Person')]]
 
-        >>> print(large.index.levels)
-        FrozenList([['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']])
+        >>> large.index.levels
+        [['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']]
 
-        >>> print(large.index.levels)
-        FrozenList([['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']])
+        >>> large.index.levels
+        [['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']]
         """
         result = [x._rename(name=name) for x, name in zip(self._levels, self._names)]
         for level in result:
