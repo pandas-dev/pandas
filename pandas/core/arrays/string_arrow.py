@@ -339,7 +339,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _str_startswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
         if isinstance(pat, str):
             result = pc.starts_with(self._pa_array, pattern=pat)
-        elif isinstance(pat, tuple) and all(isinstance(x, str) for x in pat):
+        else:
             if len(pat) == 0:
                 # mimic existing behaviour of string extension array
                 # and python string method
@@ -351,8 +351,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
-        else:
-            raise TypeError("pat must be str or tuple[str, ...]")
         if not isna(na):
             result = result.fill_null(na)
         return self._result_converter(result)
@@ -360,7 +358,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _str_endswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
         if isinstance(pat, str):
             result = pc.ends_with(self._pa_array, pattern=pat)
-        elif isinstance(pat, tuple) and all(isinstance(x, str) for x in pat):
+        else:
             if len(pat) == 0:
                 # mimic existing behaviour of string extension array
                 # and python string method
@@ -372,8 +370,6 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
                 for p in pat[1:]:
                     result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
-        else:
-            raise TypeError("pat must be of type str or tuple[str, ...]")
         if not isna(na):
             result = result.fill_null(na)
         return self._result_converter(result)
