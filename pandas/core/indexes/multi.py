@@ -863,13 +863,13 @@ class MultiIndex(Index):
         >>> idx.levels
         FrozenList([['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']])
 
-        >>> num = pd.DataFrame(data=np.random.randn(10, 2),
-        ... index=idx, columns=['one', 'two'])
-        >>> insect_num = num.loc[['in'==d[0:2] for d in
-        ... num.index.get_level_values('class')]]
-        >>> num.index.levels
+        >>> leg_num = pd.DataFrame(data=(1,2,3,4,5,6,7,8,9,2),
+        ... index=idx, columns=['leg'])
+        >>> insect_leg_num = leg_num.loc[['insect'==d for d in
+        ... leg_num.index.get_level_values('class')]]
+        >>> leg_num.index.levels
         FrozenList([['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']])
-        >>> insect_num.index.levels
+        >>> insect_leg_num.index.levels
         FrozenList([['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']])
         """
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
