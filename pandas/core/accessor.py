@@ -13,8 +13,8 @@ from typing import (
 import warnings
 
 from pandas.util._decorators import (
+    Appender,
     doc,
-    Appender
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -260,13 +260,15 @@ def _register_accessor(name: str, cls):
     This function is used to register user defined Accessor classes for {klass}.
     An accessor class needs to:
 
-    * Have an init method 
+    * Have an init method
         * that accepts only a single {klass} object as an argument
-        * Raise an AttributeError if the {klass} object does not have correct input for this accessor (See examples)
+        * Raise an AttributeError if the {klass} object does not have correct
+          input for this accessor (See examples)
     * Have a method for every access pattern,
         * methods can take any argument signature
-        * if an access pattern doesn't need any additional arguments, it can be accessed as an attribute using the @property decorator.
-    
+        * if an access pattern doesn't need any additional arguments,
+        it can be accessed as an attribute using the @property decorator.
+
     """
 
     def decorator(accessor):
@@ -284,14 +286,16 @@ def _register_accessor(name: str, cls):
 
     return decorator
 
-df_accessor_example = """ 
-For instance, if you want your accessor to accept only integer data, the class might look like this:
-    
+
+df_accessor_example = """
+For instance, if you want your accessor to accept only integer data,
+the class might look like this:
+
 .. code-block:: python
 
     @pd.api.extensions.register_dataframe_accessor("my_accessor")
     class MyAccessor:
-        def __init__(self, pandas_obj):  
+        def __init__(self, pandas_obj):
             if not all(pandas_obj[col].dtype == 'int64' for col in pandas_obj.columns):
                 raise AttributeError("All columns should contain only integer values.")
             self._obj = pandas_obj
@@ -353,6 +357,8 @@ Back in an interactive IPython session:
     Out[2]: (5.0, 10.0)
     In [3]: ds.geo.plot()  # plots data on a map"
 """
+
+
 @Appender(df_accessor_example)
 @doc(_register_accessor, klass="DataFrame")
 def register_dataframe_accessor(name: str):
@@ -361,14 +367,14 @@ def register_dataframe_accessor(name: str):
     return _register_accessor(name, DataFrame)
 
 
-_series_docu =  """
+_series_docu = """
 
-    
+
 .. code-block:: python
 
     @pd.api.extensions.register_series_accessor("my_accessor")
     class MyAccessor:
-        def __init__(self, pandas_obj):  
+        def __init__(self, pandas_obj):
             if not infer_dtype(pandas_obj) == 'integer':
                 raise AttributeError("The series must contain only integer data.")
             self._obj = pandas_obj
@@ -412,12 +418,12 @@ In your library code::
         @property
         def lemma(self):
             lemmatizer = WordNetLemmatizer()
-            
+
             def lemmatize_sentence(sentence):
                 words = word_tokenize(sentence)
                 lemmatized_words = [lemmatizer.lemmatize(word) for word in words]
-                return ' '.join(lemmatized_words)  
-            
+                return ' '.join(lemmatized_words)
+
             return self._obj.apply(lemmatize_sentence)
 
 Back in an interactive IPython session:
@@ -433,14 +439,15 @@ Back in an interactive IPython session:
     dtype: object
 
 """
-@Appender(_series_docu) 
+
+
+@Appender(_series_docu)
 @doc(_register_accessor, klass="Series")
 def register_series_accessor(name: str):
-   
-    
     from pandas import Series
 
     return _register_accessor(name, Series)
+
 
 _index_docu = """
 
@@ -448,27 +455,27 @@ _index_docu = """
 
     @pd.api.extensions.register_index_accessor("my_accessor")
     class MyAccessor:
-        def __init__(self, raw_index):  
+        def __init__(self, raw_index):
                 if not all(isinstance(x, int) for x in raw_index):
                     raise AttributeError("The index can only be integer.")
                 self._obj = raw_index
-        
+
         def even(self):
-            return 
+            return
 
         @property
         def odd(self):
-            return 
+            return
 
 >>> df = pd.DataFrame.from_dict({
         'row2': {'1':1, '2':'a'},
         'row2': {'1':2, '2':'b'}
-        },orient='index') 
+        },orient='index')
 >>> df.index.my_accessor
 Traceback (most recent call last):
 ...
 AttributeError: The index can only be integer.
-            
+
 
 >>> df = pd.DataFrame({
         'col1': [1, 2, 3, 4],
@@ -476,7 +483,7 @@ AttributeError: The index can only be integer.
         }, index=[1, 2, 5, 8])
 >>> df.index.my_accessor.even()
 [2,8]
->>> df.index.my_accessor.number_of_odd  
+>>> df.index.my_accessor.number_of_odd
 2
 
 Examples
@@ -492,12 +499,16 @@ In your library code::
             try:
                 self._date=pd.to_datetime(self._raw)
             except:
-                raise AttributeError(f"Must be able to convert index {self._raw} to datetime")
-            
+                raise AttributeError(f"Must be able to convert"
+                    "index {self._raw} to datetime")
+
             min_data = self._date.min()
             max_data = self._date.max()
-            self._holydays = USFederalHolidayCalendar().holidays(start=min_data, end=max_data)
-        
+            self._holydays = (
+                USFederalHolidayCalendar()
+                .holidays(start=min_data, end=max_data)
+                )
+
         @property
         def weekend(self):
             is_weekend = self._date.weekday.isin([5,6])
@@ -511,30 +522,31 @@ Back in an interactive IPython session:
 
 .. code-block:: ipython
 
-    In[1]: excercise_data = pd.DataFrame.from_dict({
-                '1/1/2018':{'excercise':'run', 'minutes':30},
-                '1/4/2018':{'excercise':'swim', 'minutes':45},
-                '1/5/2018':{'excercise':'run', 'minutes':30},
-                '1/6/2018':{'excercise':'swim', 'minutes':45}
+    In[1]: exercise_data = pd.DataFrame.from_dict({
+                '1/1/2018':{'exercise':'run', 'minutes':30},
+                '1/4/2018':{'exercise':'swim', 'minutes':45},
+                '1/5/2018':{'exercise':'run', 'minutes':30},
+                '1/6/2018':{'exercise':'swim', 'minutes':45}
                 },orient='index')
 
-    In[2]: excercise_data
-    Out[2]: 	excercise	minutes
+    In[2]: exercise_data
+    Out[2]: 	exercise	minutes
     1/1/2018	run	        30
     1/4/2018	swim	        45
     1/5/2018	run	        30
     1/6/2018	swim	        45
 
-    In[3]: excercise_data.loc[excercise_data.index.timeoff.weekend]
-    Out[3]: 	excercise	minutes
+    In[3]: exercise_data.loc[exercise_data.index.timeoff.weekend]
+    Out[3]: 	exercise	minutes
     1/6/2018	swim	        45
     1/7/2018	run	        30
 
-    In[4]: excercise_data.loc[excercise_data.index.timeoff.holyday]
-    Out[4]:     excercise	minutes
+    In[4]: exercise_data.loc[exercise_data.index.timeoff.holyday]
+    Out[4]:     exercise	minutes
     1/1/2018	run	        30
 
 """
+
 
 @Appender(_index_docu)
 @doc(_register_accessor, klass="Index")
