@@ -397,9 +397,9 @@ class TestPeriodIndex:
         )
         tm.assert_index_equal(pidx, expected)
 
-        pidx = period_range(end="2014-01-01 17:00", freq="4H", periods=3)
+        pidx = period_range(end="2014-01-01 17:00", freq="4h", periods=3)
         expected = PeriodIndex(
-            ["2014-01-01 09:00", "2014-01-01 13:00", "2014-01-01 17:00"], freq="4H"
+            ["2014-01-01 09:00", "2014-01-01 13:00", "2014-01-01 17:00"], freq="4h"
         )
         tm.assert_index_equal(pidx, expected)
 
@@ -444,12 +444,12 @@ class TestPeriodIndex:
         tm.assert_index_equal(pidx, expected)
 
     def test_constructor_freq_combined(self):
-        for freq in ["1D1H", "1H1D"]:
+        for freq in ["1D1h", "1h1D"]:
             pidx = PeriodIndex(["2016-01-01", "2016-01-02"], freq=freq)
-            expected = PeriodIndex(["2016-01-01 00:00", "2016-01-02 00:00"], freq="25H")
-        for freq in ["1D1H", "1H1D"]:
+            expected = PeriodIndex(["2016-01-01 00:00", "2016-01-02 00:00"], freq="25h")
+        for freq in ["1D1h", "1h1D"]:
             pidx = period_range(start="2016-01-01", periods=2, freq=freq)
-            expected = PeriodIndex(["2016-01-01 00:00", "2016-01-02 01:00"], freq="25H")
+            expected = PeriodIndex(["2016-01-01 00:00", "2016-01-02 01:00"], freq="25h")
             tm.assert_index_equal(pidx, expected)
 
     def test_constructor(self):
@@ -470,7 +470,7 @@ class TestPeriodIndex:
             pi = period_range(freq="B", start="1/1/2001", end="12/31/2009")
         assert len(pi) == 261 * 9
 
-        pi = period_range(freq="H", start="1/1/2001", end="12/31/2001 23:00")
+        pi = period_range(freq="h", start="1/1/2001", end="12/31/2001 23:00")
         assert len(pi) == 365 * 24
 
         pi = period_range(freq="Min", start="1/1/2001", end="1/1/2001 23:59")
@@ -526,7 +526,7 @@ class TestPeriodIndex:
             Period("2006-12-31", ("w", 1))
 
     @pytest.mark.parametrize(
-        "freq", ["M", "Q", "Y", "D", "B", "min", "s", "ms", "us", "ns", "H"]
+        "freq", ["M", "Q", "Y", "D", "B", "min", "s", "ms", "us", "ns", "h"]
     )
     @pytest.mark.filterwarnings(
         r"ignore:Period with BDay freq is deprecated:FutureWarning"

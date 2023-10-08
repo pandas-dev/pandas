@@ -33,13 +33,13 @@ def test_frame(dti, _test_series):
 
 
 def test_str(_test_series):
-    r = _test_series.resample("H")
+    r = _test_series.resample("h")
     assert (
         "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
         "label=left, convention=start, origin=start_day]" in str(r)
     )
 
-    r = _test_series.resample("H", origin="2000-01-01")
+    r = _test_series.resample("h", origin="2000-01-01")
     assert (
         "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
         "label=left, convention=start, origin=2000-01-01 00:00:00]" in str(r)
@@ -47,12 +47,12 @@ def test_str(_test_series):
 
 
 def test_api(_test_series):
-    r = _test_series.resample("H")
+    r = _test_series.resample("h")
     result = r.mean()
     assert isinstance(result, Series)
     assert len(result) == 217
 
-    r = _test_series.to_frame().resample("H")
+    r = _test_series.to_frame().resample("h")
     result = r.mean()
     assert isinstance(result, DataFrame)
     assert len(result) == 217
@@ -127,36 +127,36 @@ def test_pipe(test_frame, _test_series):
     # GH17905
 
     # series
-    r = _test_series.resample("H")
+    r = _test_series.resample("h")
     expected = r.max() - r.mean()
     result = r.pipe(lambda x: x.max() - x.mean())
     tm.assert_series_equal(result, expected)
 
     # dataframe
-    r = test_frame.resample("H")
+    r = test_frame.resample("h")
     expected = r.max() - r.mean()
     result = r.pipe(lambda x: x.max() - x.mean())
     tm.assert_frame_equal(result, expected)
 
 
 def test_getitem(test_frame):
-    r = test_frame.resample("H")
+    r = test_frame.resample("h")
     tm.assert_index_equal(r._selected_obj.columns, test_frame.columns)
 
-    r = test_frame.resample("H")["B"]
+    r = test_frame.resample("h")["B"]
     assert r._selected_obj.name == test_frame.columns[1]
 
     # technically this is allowed
-    r = test_frame.resample("H")["A", "B"]
+    r = test_frame.resample("h")["A", "B"]
     tm.assert_index_equal(r._selected_obj.columns, test_frame.columns[[0, 1]])
 
-    r = test_frame.resample("H")["A", "B"]
+    r = test_frame.resample("h")["A", "B"]
     tm.assert_index_equal(r._selected_obj.columns, test_frame.columns[[0, 1]])
 
 
 @pytest.mark.parametrize("key", [["D"], ["A", "D"]])
 def test_select_bad_cols(key, test_frame):
-    g = test_frame.resample("H")
+    g = test_frame.resample("h")
     # 'A' should not be referenced as a bad column...
     # will have to rethink regex if you change message!
     msg = r"^\"Columns not found: 'D'\"$"
@@ -165,7 +165,7 @@ def test_select_bad_cols(key, test_frame):
 
 
 def test_attribute_access(test_frame):
-    r = test_frame.resample("H")
+    r = test_frame.resample("h")
     tm.assert_series_equal(r.A.sum(), r["A"].sum())
 
 
@@ -188,7 +188,7 @@ def test_api_compat_before_use(attr):
 def tests_raises_on_nuisance(test_frame):
     df = test_frame
     df["D"] = "foo"
-    r = df.resample("H")
+    r = df.resample("h")
     result = r[["A", "B"]].mean()
     expected = pd.concat([r.A.mean(), r.B.mean()], axis=1)
     tm.assert_frame_equal(result, expected)
@@ -1041,7 +1041,7 @@ def test_series_axis_param_depr(_test_series):
         "deprecated and will be removed in a future version."
     )
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        _test_series.resample("H", axis=0)
+        _test_series.resample("h", axis=0)
 
 
 def test_resample_empty():
@@ -1061,5 +1061,5 @@ def test_resample_empty():
             ]
         )
     )
-    result = df.resample("8H").mean()
+    result = df.resample("8h").mean()
     tm.assert_frame_equal(result, expected)

@@ -313,7 +313,7 @@ NaT   4"""
 
     def test_repr_categorical_dates_periods(self):
         # normal DataFrame
-        dt = date_range("2011-01-01 09:00", freq="H", periods=5, tz="US/Eastern")
+        dt = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
         p = period_range("2011-01", freq="M", periods=5)
         df = DataFrame({"dt": dt, "p": p})
         exp = """                         dt        p

@@ -603,10 +603,10 @@ cdef class BaseOffset:
         Examples
         --------
         >>> pd.offsets.Hour().name
-        'H'
+        'h'
 
         >>> pd.offsets.Hour(5).name
-        'H'
+        'h'
         """
         return self.rule_code
 
@@ -629,7 +629,7 @@ cdef class BaseOffset:
         '<5 * DateOffsets>'
 
         >>> pd.offsets.BusinessHour(2).freqstr
-        '2BH'
+        '2bh'
 
         >>> pd.offsets.Nano().freqstr
         'ns'
@@ -1166,7 +1166,7 @@ cdef class Hour(Tick):
     Timestamp('2022-12-09 11:00:00')
     """
     _nanos_inc = 3600 * 1_000_000_000
-    _prefix = "H"
+    _prefix = "h"
     _period_dtype_code = PeriodDtypeCode.H
     _creso = NPY_DATETIMEUNIT.NPY_FR_h
 
@@ -1630,7 +1630,7 @@ cdef class BusinessMixin(SingleConstructorOffset):
             # Older (<0.22.0) versions have offset attribute instead of _offset
             self._offset = state.pop("offset")
 
-        if self._prefix.startswith("C"):
+        if self._prefix.startswith(("C", "c")):
             # i.e. this is a Custom class
             weekmask = state.pop("weekmask")
             holidays = state.pop("holidays")
@@ -1696,7 +1696,7 @@ cdef class BusinessDay(BusinessMixin):
                 s = td.seconds
                 hrs = int(s / 3600)
                 if hrs != 0:
-                    off_str += str(hrs) + "H"
+                    off_str += str(hrs) + "h"
                     s -= hrs * 3600
                 mts = int(s / 60)
                 if mts != 0:
@@ -1893,10 +1893,10 @@ cdef class BusinessHour(BusinessMixin):
                    '2022-12-12 06:00:00', '2022-12-12 07:00:00',
                    '2022-12-12 10:00:00', '2022-12-12 11:00:00',
                    '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
-                   dtype='datetime64[ns]', freq='BH')
+                   dtype='datetime64[ns]', freq='bh')
     """
 
-    _prefix = "BH"
+    _prefix = "bh"
     _anchor = 0
     _attributes = tuple(["n", "normalize", "start", "end", "offset"])
     _adjust_dst = False
@@ -2016,7 +2016,7 @@ cdef class BusinessHour(BusinessMixin):
             nb_offset = 1
         else:
             nb_offset = -1
-        if self._prefix.startswith("C"):
+        if self._prefix.startswith(("c")):
             # CustomBusinessHour
             return CustomBusinessDay(
                 n=nb_offset,
@@ -2176,7 +2176,7 @@ cdef class BusinessHour(BusinessMixin):
 
         # adjust by business days first
         if bd != 0:
-            if self._prefix.startswith("C"):
+            if self._prefix.startswith("c"):
                 # GH#30593 this is a Custom offset
                 skip_bd = CustomBusinessDay(
                     n=bd,
@@ -2242,7 +2242,7 @@ cdef class BusinessHour(BusinessMixin):
             dt = datetime(
                 dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond
             )
-        # Valid BH can be on the different BusinessDay during midnight
+        # Valid bh can be on the different BusinessDay during midnight
         # Distinguish by the time spent from previous opening time
         return self._is_on_offset(dt)
 
@@ -2252,7 +2252,7 @@ cdef class BusinessHour(BusinessMixin):
         """
         # if self.normalize and not _is_normalized(dt):
         #     return False
-        # Valid BH can be on the different BusinessDay during midnight
+        # Valid bh can be on the different BusinessDay during midnight
         # Distinguish by the time spent from previous opening time
         if self.n >= 0:
             op = self._prev_opening_time(dt)
@@ -4277,7 +4277,7 @@ cdef class CustomBusinessHour(BusinessHour):
                    '2022-12-12 06:00:00', '2022-12-12 07:00:00',
                    '2022-12-12 10:00:00', '2022-12-12 11:00:00',
                    '2022-12-12 15:00:00', '2022-12-12 16:00:00'],
-                   dtype='datetime64[ns]', freq='CBH')
+                   dtype='datetime64[ns]', freq='cbh')
 
     Business days can be specified by ``weekmask`` parameter. To convert
     the returned datetime object to its string representation
@@ -4306,10 +4306,10 @@ cdef class CustomBusinessHour(BusinessHour):
                    '2022-12-15 11:00:00', '2022-12-15 12:00:00',
                    '2022-12-16 10:00:00', '2022-12-16 11:00:00',
                    '2022-12-16 12:00:00'],
-                   dtype='datetime64[ns]', freq='CBH')
+                   dtype='datetime64[ns]', freq='cbh')
     """
 
-    _prefix = "CBH"
+    _prefix = "cbh"
     _anchor = 0
     _attributes = tuple(
         ["n", "normalize", "weekmask", "holidays", "calendar", "start", "end", "offset"]
@@ -4549,11 +4549,11 @@ prefix_mapping = {
         BusinessMonthEnd,  # 'BM'
         BQuarterEnd,  # 'BQ'
         BQuarterBegin,  # 'BQS'
-        BusinessHour,  # 'BH'
+        BusinessHour,  # 'bh'
         CustomBusinessDay,  # 'C'
         CustomBusinessMonthEnd,  # 'CBM'
         CustomBusinessMonthBegin,  # 'CBMS'
-        CustomBusinessHour,  # 'CBH'
+        CustomBusinessHour,  # 'cbh'
         MonthEnd,  # 'ME'
         MonthBegin,  # 'MS'
         Nano,  # 'ns'
@@ -4566,7 +4566,7 @@ prefix_mapping = {
         QuarterEnd,  # 'Q'
         QuarterBegin,  # 'QS'
         Milli,  # 'ms'
-        Hour,  # 'H'
+        Hour,  # 'h'
         Day,  # 'D'
         WeekOfMonth,  # 'WOM'
         FY5253,
@@ -4598,7 +4598,7 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {"MS", "ms", "s", "me"}
+_dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s", "me"}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
@@ -4667,7 +4667,7 @@ cpdef to_offset(freq, bint is_period=False):
     >>> to_offset("5min")
     <5 * Minutes>
 
-    >>> to_offset("1D1H")
+    >>> to_offset("1D1h")
     <25 * Hours>
 
     >>> to_offset("2W")
@@ -4735,17 +4735,18 @@ cpdef to_offset(freq, bint is_period=False):
 
                 if prefix in c_DEPR_ABBREVS:
                     warnings.warn(
-                        f"\'{prefix}\' is deprecated and will be removed in a "
-                        f"future version. Please use \'{c_DEPR_ABBREVS.get(prefix)}\' "
+                        f"\'{prefix}\' is deprecated and will be removed "
+                        f"in a future version. Please use "
+                        f"\'{c_DEPR_ABBREVS.get(prefix)}\' "
                         f"instead of \'{prefix}\'.",
                         FutureWarning,
                         stacklevel=find_stack_level(),
                     )
                     prefix = c_DEPR_ABBREVS[prefix]
 
-                if prefix in {"D", "H", "min", "s", "ms", "us", "ns"}:
-                    # For these prefixes, we have something like "3H" or
-                    #  "2.5T", so we can construct a Timedelta with the
+                if prefix in {"D", "h", "min", "s", "ms", "us", "ns"}:
+                    # For these prefixes, we have something like "3h" or
+                    #  "2.5min", so we can construct a Timedelta with the
                     #  matching unit and get our offset from delta_to_tick
                     td = Timedelta(1, unit=prefix)
                     off = delta_to_tick(td)
