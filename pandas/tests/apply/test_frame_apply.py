@@ -839,7 +839,7 @@ def test_with_listlike_columns():
         {
             "a": Series(np.random.default_rng(2).standard_normal(4)),
             "b": ["a", "list", "of", "words"],
-            "ts": date_range("2016-10-01", periods=4, freq="H"),
+            "ts": date_range("2016-10-01", periods=4, freq="h"),
         }
     )
 
