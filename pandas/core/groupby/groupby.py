@@ -1936,7 +1936,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _cython_agg_general(
         self,
         how: str,
-        alt: Callable,
+        alt: Callable | None,
         numeric_only: bool = False,
         min_count: int = -1,
         **kwargs,
@@ -1964,11 +1964,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # TODO: avoid special casing SparseArray here
                 if how in ["any", "all"] and isinstance(values, SparseArray):
                     pass
-                elif how in ["any", "all", "std", "sem"]:
+                elif alt is None:
                     raise  # TODO: re-raise as TypeError?  should not be reached
             else:
                 return result
 
+            assert alt is not None
             result = self._agg_py_fallback(how, values, ndim=data.ndim, alt=alt)
             return result
 
@@ -2175,7 +2176,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         return self._cython_agg_general(
             "any",
-            alt=lambda x: Series(x).any(skipna=skipna),
+            alt=None,
             skipna=skipna,
         )
 
@@ -2232,7 +2233,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         return self._cython_agg_general(
             "all",
-            alt=lambda x: Series(x).all(skipna=skipna),
+            alt=None,
             skipna=skipna,
         )
 
@@ -2614,7 +2615,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             return self._cython_agg_general(
                 "std",
-                alt=lambda x: Series(x).std(ddof=ddof),
+                alt=None,
                 numeric_only=numeric_only,
                 ddof=ddof,
             )
@@ -2940,7 +2941,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
         return self._cython_agg_general(
             "sem",
-            alt=lambda x: Series(x).sem(ddof=ddof),
+            alt=None,
             numeric_only=numeric_only,
             ddof=ddof,
         )
