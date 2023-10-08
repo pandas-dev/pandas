@@ -15,6 +15,7 @@ from cpython.datetime cimport (
     time as dt_time,
     timedelta,
 )
+
 import warnings
 
 import_datetime()
@@ -48,7 +49,6 @@ from pandas._libs.tslibs.ccalendar import (
 )
 from pandas.util._exceptions import find_stack_level
 
-
 from pandas._libs.tslibs.ccalendar cimport (
     dayofweek,
     get_days_in_month,
@@ -58,6 +58,8 @@ from pandas._libs.tslibs.ccalendar cimport (
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
     c_DEPR_ABBREVS,
+    c_OFFSET_DEPR_FREQSTR,
+    c_REVERSE_OFFSET_DEPR_FREQSTR,
     periods_per_day,
 )
 from pandas._libs.tslibs.nattype cimport (
@@ -2496,7 +2498,7 @@ cdef class YearEnd(YearOffset):
     """
 
     _default_month = 12
-    _prefix = "A"
+    _prefix = "Y"
     _day_opt = "end"
 
     cdef readonly:
@@ -4539,7 +4541,7 @@ prefix_mapping = {
     offset._prefix: offset
     for offset in [
         YearBegin,  # 'AS'
-        YearEnd,  # 'A'
+        YearEnd,  # 'Y'
         BYearBegin,  # 'BAS'
         BYearEnd,  # 'BA'
         BusinessDay,  # 'B'
@@ -4581,8 +4583,7 @@ _lite_rule_alias = {
     "W": "W-SUN",
     "Q": "Q-DEC",
 
-    "A": "A-DEC",      # YearEnd(month=12),
-    "Y": "A-DEC",
+    "Y": "Y-DEC",      # YearEnd(month=12),
     "AS": "AS-JAN",    # YearBegin(month=1),
     "YS": "AS-JAN",
     "BA": "BA-DEC",    # BYearEnd(month=12),
@@ -4707,21 +4708,22 @@ cpdef to_offset(freq, bint is_period=False):
 
             tups = zip(split[0::4], split[1::4], split[2::4])
             for n, (sep, stride, name) in enumerate(tups):
-                if is_period is False and name == "M":
+                if is_period is False and name in c_OFFSET_DEPR_FREQSTR:
                     warnings.warn(
-                        "\'M\' will be deprecated, please use \'ME\' "
-                        "for \'month end\'",
+                        f"\'{name}\' will be deprecated, please use "
+                        f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
                         UserWarning,
                         stacklevel=find_stack_level(),
                     )
-                    name = "ME"
-                if is_period is True and name == "ME":
+                    name = c_OFFSET_DEPR_FREQSTR[name]
+                if is_period is True and name in c_REVERSE_OFFSET_DEPR_FREQSTR:
                     raise ValueError(
-                        r"for Period, please use \'M\' "
-                        "instead of \'ME\'"
+                        f"for Period, please use "
+                        f"\'{c_REVERSE_OFFSET_DEPR_FREQSTR.get(name)}\' "
+                        f"instead of \'{name}\'"
                     )
-                elif is_period is True and name == "M":
-                    name = "ME"
+                elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
+                    name = c_OFFSET_DEPR_FREQSTR.get(name)
 
                 if sep != "" and not sep.isspace():
                     raise ValueError("separator must be spaces")
@@ -4740,6 +4742,7 @@ cpdef to_offset(freq, bint is_period=False):
                         stacklevel=find_stack_level(),
                     )
                     prefix = c_DEPR_ABBREVS[prefix]
+
                 if prefix in {"D", "H", "min", "s", "ms", "us", "ns"}:
                     # For these prefixes, we have something like "3H" or
                     #  "2.5T", so we can construct a Timedelta with the
@@ -4753,7 +4756,7 @@ cpdef to_offset(freq, bint is_period=False):
                         offset *= stride_sign
                 else:
                     stride = int(stride)
-                    offset = _get_offset(name)
+                    offset = _get_offset(prefix)
                     offset = offset * int(np.fabs(stride) * stride_sign)
 
                 if delta is None:

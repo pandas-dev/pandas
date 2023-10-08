@@ -127,7 +127,7 @@ class TestSortValues:
     @pytest.mark.parametrize(
         "idx",
         [
-            PeriodIndex(["2011", "2012", "2013"], name="pidx", freq="A"),
+            PeriodIndex(["2011", "2012", "2013"], name="pidx", freq="Y"),
             Index([2011, 2012, 2013], name="idx"),  # for compatibility check
         ],
     )
@@ -275,10 +275,10 @@ class TestSortValues:
             ),
             (
                 PeriodIndex(
-                    ["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="A"
+                    ["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="Y"
                 ),
                 PeriodIndex(
-                    ["2011", "2011", "2012", "2013", "2015"], name="pidx", freq="A"
+                    ["2011", "2011", "2012", "2013", "2015"], name="pidx", freq="Y"
                 ),
             ),
             (
@@ -308,7 +308,7 @@ class TestSortValues:
 
 def test_order_stability_compat():
     # GH#35922. sort_values is stable both for normal and datetime-like Index
-    pidx = PeriodIndex(["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="A")
+    pidx = PeriodIndex(["2011", "2013", "2015", "2012", "2011"], name="pidx", freq="Y")
     iidx = Index([2011, 2013, 2015, 2012, 2011], name="idx")
     ordered1, indexer1 = pidx.sort_values(return_indexer=True, ascending=False)
     ordered2, indexer2 = iidx.sort_values(return_indexer=True, ascending=False)

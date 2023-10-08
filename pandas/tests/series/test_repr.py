@@ -21,6 +21,16 @@ import pandas._testing as tm
 
 
 class TestSeriesRepr:
+    def test_multilevel_name_print_0(self):
+        # GH#55415 None does not get printed, but 0 does
+        # (matching DataFrame and flat index behavior)
+        mi = pd.MultiIndex.from_product([range(2, 3), range(3, 4)], names=[0, None])
+        ser = Series(1.5, index=mi)
+
+        res = repr(ser)
+        expected = "0   \n2  3    1.5\ndtype: float64"
+        assert res == expected
+
     def test_multilevel_name_print(self, lexsorted_two_level_string_multiindex):
         index = lexsorted_two_level_string_multiindex
         ser = Series(range(len(index)), index=index, name="sth")
@@ -247,7 +257,7 @@ class TestSeriesRepr:
         assert repr(s) == exp
 
     def test_format_pre_1900_dates(self):
-        rng = date_range("1/1/1850", "1/1/1950", freq="A-DEC")
+        rng = date_range("1/1/1850", "1/1/1950", freq="Y-DEC")
         rng.format()
         ts = Series(1, index=rng)
         repr(ts)
