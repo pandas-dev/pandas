@@ -869,7 +869,7 @@ class MultiIndex(Index):
         >>> idx = pd.MultiIndex.from_product([(0, 1, 2), ('green', 'purple')],
         ...                                  names=['number', 'color'])
         >>> idx.levels
-        [[0, 1, 2], ['green', 'purple']]
+        FrozenList([[0, 1, 2], ['green', 'purple']])
 
         Example 2:
         >>> idx = pd.MultiIndex.from_product([['John', 'Josh', 'Alex'],
@@ -879,9 +879,9 @@ class MultiIndex(Index):
         >>> small = large.loc[['Jo'==d[0:2] for d in
         ... large.index.get_level_values('Person')]]
         >>> large.index.levels
-        [['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']]
+        FrozenList([['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']])
         >>> small.index.levels
-        [['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']]
+        FrozenList([['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']])
 
 
         """
