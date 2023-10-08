@@ -161,7 +161,7 @@ class TestPeriodIndex:
             period_range(freq="Q", start="1/1/2001", end="12/1/2002"),
             period_range(freq="M", start="1/1/2001", end="1/1/2002"),
             period_range(freq="D", start="12/1/2001", end="6/1/2001"),
-            period_range(freq="H", start="12/31/2001", end="1/1/2002 23:00"),
+            period_range(freq="h", start="12/31/2001", end="1/1/2002 23:00"),
             period_range(freq="Min", start="12/31/2001", end="1/1/2002 00:20"),
             period_range(
                 freq="s", start="12/31/2001 00:00:00", end="12/31/2001 00:05:00"
@@ -255,7 +255,7 @@ class TestPeriodIndex:
 
     def test_with_multi_index(self):
         # #1705
-        index = date_range("1/1/2012", periods=4, freq="12H")
+        index = date_range("1/1/2012", periods=4, freq="12h")
         index_as_arrays = [index.to_period(freq="D"), index.hour]
 
         s = Series([0, 1, 2, 3], index_as_arrays)
@@ -283,6 +283,15 @@ class TestPeriodIndex:
 
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(["2020-01-01", "2020-01-02"], freq="2ME")
+
+    def test_H_deprecated_from_time_series(self):
+        # GH#52536
+        msg = "'H' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            index = period_range(freq="2H", start="1/1/2001", end="12/1/2009")
+        series = Series(1, index=index)
+        assert isinstance(series, Series)
 
     @pytest.mark.parametrize("freq", ["2A", "A-DEC", "200A-AUG"])
     def test_a_deprecated_from_time_series(self, freq):

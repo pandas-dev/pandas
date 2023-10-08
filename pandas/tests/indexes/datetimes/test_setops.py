@@ -98,8 +98,8 @@ class TestDatetimeIndexSetOps:
         assert result.freq == ordered.freq
 
     def test_union_bug_1730(self, sort):
-        rng_a = date_range("1/1/2012", periods=4, freq="3H")
-        rng_b = date_range("1/1/2012", periods=4, freq="4H")
+        rng_a = date_range("1/1/2012", periods=4, freq="3h")
+        rng_b = date_range("1/1/2012", periods=4, freq="4h")
 
         result = rng_a.union(rng_b, sort=sort)
         exp = list(rng_a) + list(rng_b[1:])
@@ -308,7 +308,7 @@ class TestDatetimeIndexSetOps:
     def test_intersection_bug_1708(self):
         from pandas import DateOffset
 
-        index_1 = date_range("1/1/2012", periods=4, freq="12H")
+        index_1 = date_range("1/1/2012", periods=4, freq="12h")
         index_2 = index_1 + DateOffset(hours=1)
 
         result = index_1.intersection(index_2)

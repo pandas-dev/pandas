@@ -46,7 +46,7 @@ class TestReindexSetIndex:
     def test_dti_set_index_reindex_freq_with_tz(self):
         # GH#11314 with tz
         index = date_range(
-            datetime(2015, 10, 1), datetime(2015, 10, 1, 23), freq="H", tz="US/Eastern"
+            datetime(2015, 10, 1), datetime(2015, 10, 1, 23), freq="h", tz="US/Eastern"
         )
         df = DataFrame(
             np.random.default_rng(2).standard_normal((24, 1)),
@@ -54,7 +54,7 @@ class TestReindexSetIndex:
             index=index,
         )
         new_index = date_range(
-            datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="H", tz="US/Eastern"
+            datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="h", tz="US/Eastern"
         )
 
         result = df.set_index(new_index)
@@ -389,9 +389,9 @@ class TestDataFrameSelectReindex:
         # GH#38566
         obj = frame_or_series(
             [0, 1, 2, 3],
-            index=date_range("2020-01-01 00:00:00", periods=4, freq="H", tz="UTC"),
+            index=date_range("2020-01-01 00:00:00", periods=4, freq="h", tz="UTC"),
         )
-        new_index = date_range("2020-01-01 00:01:00", periods=4, freq="H", tz="UTC")
+        new_index = date_range("2020-01-01 00:01:00", periods=4, freq="h", tz="UTC")
         result = obj.reindex(new_index, method=method, tolerance=pd.Timedelta("1 hour"))
         expected = frame_or_series(exp_values, index=new_index)
         tm.assert_equal(result, expected)
@@ -1067,7 +1067,7 @@ class TestDataFrameSelectReindex:
         midx = MultiIndex.from_product(
             [
                 Categorical(["a", "b", "c"]),
-                Categorical(date_range("2012-01-01", periods=3, freq="H")),
+                Categorical(date_range("2012-01-01", periods=3, freq="h")),
             ]
         )
         df = DataFrame({"a": range(len(midx))}, index=midx)

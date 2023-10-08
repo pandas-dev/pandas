@@ -187,16 +187,27 @@ entirely valid.
 
 *pandas 0.22.0*
 
-.. ipython:: python
+.. code-block:: ipython
 
-   idx = pd.DatetimeIndex(["2017-01-01", "2017-01-02"])
-   pd.Series([1, 2], index=idx).resample("12H").sum()
+   In [14]: idx = pd.DatetimeIndex(["2017-01-01", "2017-01-02"])
+   In [15]: pd.Series([1, 2], index=idx).resample("12H").sum()
+   Out[15]:
+   2017-01-01 00:00:00    1
+   2017-01-01 12:00:00    0
+   2017-01-02 00:00:00    2
+   Freq: 12H, Length: 3, dtype: int64
 
 Once again, the ``min_count`` keyword is available to restore the 0.21 behavior.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   pd.Series([1, 2], index=idx).resample("12H").sum(min_count=1)
+   In [16]: pd.Series([1, 2], index=idx).resample("12H").sum(min_count=1)
+   Out[16]:
+   2017-01-01 00:00:00    1.0
+   2017-01-01 12:00:00    NaN
+   2017-01-02 00:00:00    2.0
+   Freq: 12H, Length: 3, dtype: float64
+
 
 Rolling and expanding
 ^^^^^^^^^^^^^^^^^^^^^

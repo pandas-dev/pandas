@@ -205,11 +205,11 @@ def test_group_shift_with_multiple_periods_and_freq():
     # GH#44424
     df = DataFrame(
         {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
-        index=date_range("1/1/2000", periods=5, freq="H"),
+        index=date_range("1/1/2000", periods=5, freq="h"),
     )
     shifted_df = df.groupby("b")[["a"]].shift(
         [0, 1],
-        freq="H",
+        freq="h",
     )
     expected_df = DataFrame(
         {
@@ -223,7 +223,7 @@ def test_group_shift_with_multiple_periods_and_freq():
                 5.0,
             ],
         },
-        index=date_range("1/1/2000", periods=6, freq="H"),
+        index=date_range("1/1/2000", periods=6, freq="h"),
     )
     tm.assert_frame_equal(shifted_df, expected_df)
 
@@ -244,11 +244,11 @@ def test_group_shift_with_multiple_periods_and_both_fill_and_freq_deprecated():
     # GH#44424
     df = DataFrame(
         {"a": [1, 2, 3, 4, 5], "b": [True, True, False, False, True]},
-        index=date_range("1/1/2000", periods=5, freq="H"),
+        index=date_range("1/1/2000", periods=5, freq="h"),
     )
     msg = (
         "Passing a 'freq' together with a 'fill_value' silently ignores the "
         "fill_value"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.groupby("b")[["a"]].shift([1, 2], fill_value=1, freq="H")
+        df.groupby("b")[["a"]].shift([1, 2], fill_value=1, freq="h")

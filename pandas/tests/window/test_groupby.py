@@ -1239,15 +1239,15 @@ class TestEWM:
         df = DataFrame(
             {
                 "id": ["a", "a", "b", "b", "b"],
-                "timestamp": date_range("2021-9-1", periods=5, freq="H"),
+                "timestamp": date_range("2021-9-1", periods=5, freq="h"),
                 "y": range(5),
             }
         )
-        grp = df.groupby("id").rolling("1H", on="timestamp")
+        grp = df.groupby("id").rolling("1h", on="timestamp")
         result = grp.count()
         expected_df = DataFrame(
             {
-                "timestamp": date_range("2021-9-1", periods=5, freq="H"),
+                "timestamp": date_range("2021-9-1", periods=5, freq="h"),
                 "y": [1.0] * 5,
             },
             index=MultiIndex.from_arrays(
@@ -1262,7 +1262,7 @@ class TestEWM:
             index=MultiIndex.from_arrays(
                 [
                     ["a", "a", "b", "b", "b"],
-                    date_range("2021-9-1", periods=5, freq="H"),
+                    date_range("2021-9-1", periods=5, freq="h"),
                 ],
                 names=["id", "timestamp"],
             ),

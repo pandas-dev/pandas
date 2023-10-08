@@ -65,7 +65,7 @@ class TestJoin:
         assert isinstance(result[0], Timestamp)
 
     def test_join_utc_convert(self, join_type):
-        rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
+        rng = date_range("1/1/2011", periods=100, freq="h", tz="utc")
 
         left = rng.tz_convert("US/Eastern")
         right = rng.tz_convert("Europe/Berlin")

@@ -112,14 +112,33 @@ to the index in the resample when :meth:`.Resampler.apply` is used.
    of pandas, not specifying ``group_keys`` will default to
    the same behavior as ``group_keys=False``.
 
-.. ipython:: python
+.. code-block:: ipython
 
-    df = pd.DataFrame(
-        {'a': range(6)},
-        index=pd.date_range("2021-01-01", periods=6, freq="8H")
-    )
-    df.resample("D", group_keys=True).apply(lambda x: x)
-    df.resample("D", group_keys=False).apply(lambda x: x)
+    In [11]: df = pd.DataFrame(
+       ....:     {'a': range(6)},
+       ....:     index=pd.date_range("2021-01-01", periods=6, freq="8H")
+       ....: )
+       ....:
+
+    In [12]: df.resample("D", group_keys=True).apply(lambda x: x)
+    Out[12]:
+                                    a
+    2021-01-01 2021-01-01 00:00:00  0
+               2021-01-01 08:00:00  1
+               2021-01-01 16:00:00  2
+    2021-01-02 2021-01-02 00:00:00  3
+               2021-01-02 08:00:00  4
+               2021-01-02 16:00:00  5
+
+    In [13]: df.resample("D", group_keys=False).apply(lambda x: x)
+    Out[13]:
+                         a
+    2021-01-01 00:00:00  0
+    2021-01-01 08:00:00  1
+    2021-01-01 16:00:00  2
+    2021-01-02 00:00:00  3
+    2021-01-02 08:00:00  4
+    2021-01-02 16:00:00  5
 
 Previously, the resulting index would depend upon the values returned by ``apply``,
 as seen in the following example.
@@ -461,19 +480,20 @@ upon serialization. (Related issue :issue:`12997`)
 
 *Old Behavior*
 
-.. ipython:: python
-
-    index = pd.date_range(
-        start='2020-12-28 00:00:00',
-        end='2020-12-28 02:00:00',
-        freq='1H',
-    )
-    a = pd.Series(
-        data=range(3),
-        index=index,
-    )
-
 .. code-block:: ipython
+
+    In [32]: index = pd.date_range(
+       ....:     start='2020-12-28 00:00:00',
+       ....:     end='2020-12-28 02:00:00',
+       ....:     freq='1H',
+       ....: )
+       ....:
+
+    In [33]: a = pd.Series(
+       ....:     data=range(3),
+       ....:     index=index,
+       ....: )
+       ....:
 
     In [4]: from io import StringIO
 
@@ -485,12 +505,16 @@ upon serialization. (Related issue :issue:`12997`)
 
 *New Behavior*
 
-.. ipython:: python
+.. code-block:: ipython
 
-    from io import StringIO
-    a.to_json(date_format='iso')
+    In [34]: from io import StringIO
+
+    In [35]: a.to_json(date_format='iso')
+    Out[35]: '{"2020-12-28T00:00:00.000Z":0,"2020-12-28T01:00:00.000Z":1,"2020-12-28T02:00:00.000Z":2}'
+
     # Roundtripping now works
-    pd.read_json(StringIO(a.to_json(date_format='iso')), typ="series").index == a.index
+    In [36]: pd.read_json(StringIO(a.to_json(date_format='iso')), typ="series").index == a.index
+    Out[36]: array([ True,  True,  True])
 
 .. _whatsnew_150.notable_bug_fixes.groupby_value_counts_categorical:
 

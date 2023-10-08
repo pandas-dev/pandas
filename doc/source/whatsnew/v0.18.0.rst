@@ -1000,10 +1000,16 @@ Other API changes
 ^^^^^^^^^^^^^^^^^
 - ``DataFrame.between_time`` and ``Series.between_time`` now only parse a fixed set of time strings. Parsing of date strings is no longer supported and raises a ``ValueError``. (:issue:`11818`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     s = pd.Series(range(10), pd.date_range('2015-01-01', freq='H', periods=10))
-     s.between_time("7:00am", "9:00am")
+     In [107]: s = pd.Series(range(10), pd.date_range('2015-01-01', freq='H', periods=10))
+
+     In [108]: s.between_time("7:00am", "9:00am")
+     Out[108]:
+     2015-01-01 07:00:00    7
+     2015-01-01 08:00:00    8
+     2015-01-01 09:00:00    9
+     Freq: H, Length: 3, dtype: int64
 
   This will now raise.
 

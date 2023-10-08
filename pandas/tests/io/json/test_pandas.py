@@ -521,7 +521,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(df_iso, df_unser_iso)
 
     def test_blocks_compat_GH9037(self):
-        index = pd.date_range("20000101", periods=10, freq="H")
+        index = pd.date_range("20000101", periods=10, freq="h")
         # freq doesn't round-trip
         index = DatetimeIndex(list(index), freq=None)
 

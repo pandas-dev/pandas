@@ -420,7 +420,7 @@ class TestDataFrameToCSV:
         # test roundtrip with inf, -inf, nan, as full columns and mix
         float_frame["G"] = np.nan
         f = lambda x: [np.inf, np.nan][np.random.default_rng(2).random() < 0.5]
-        float_frame["H"] = float_frame.index.map(f)
+        float_frame["h"] = float_frame.index.map(f)
 
         with tm.ensure_clean() as path:
             float_frame.to_csv(path)
@@ -1077,7 +1077,7 @@ class TestDataFrameToCSV:
                 "2013-10-26 23:00",
                 "2013-10-27 01:00",
                 tz="Europe/London",
-                freq="H",
+                freq="h",
                 ambiguous="infer",
             )
             i = times + td
@@ -1095,7 +1095,7 @@ class TestDataFrameToCSV:
 
     def test_to_csv_with_dst_transitions_with_pickle(self):
         # GH11619
-        idx = date_range("2015-01-01", "2015-12-31", freq="H", tz="Europe/Paris")
+        idx = date_range("2015-01-01", "2015-12-31", freq="h", tz="Europe/Paris")
         idx = idx._with_freq(None)  # freq does not round-trip
         idx._data._freq = None  # otherwise there is trouble on unpickle
         df = DataFrame({"values": 1, "idx": idx}, index=idx)

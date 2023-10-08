@@ -242,7 +242,7 @@ class ExtensionDtype:
 
         This is useful mainly for data types that accept parameters.
         For example, a period dtype accepts a frequency parameter that
-        can be set as ``period[H]`` (where H means hourly frequency).
+        can be set as ``period[h]`` (where H means hourly frequency).
 
         By default, in the abstract class, just the name of the type is
         expected. But subclasses can overwrite this method to accept

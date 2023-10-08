@@ -107,7 +107,7 @@ class TestCombineFirst:
         time_index = date_range(
             datetime(2021, 1, 1, 1),
             datetime(2021, 1, 1, 10),
-            freq="H",
+            freq="h",
             tz="Europe/Rome",
         )
         s1 = Series(range(10), index=time_index)

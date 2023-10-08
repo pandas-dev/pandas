@@ -43,8 +43,8 @@ class TestPeriodIndex:
         other3 = PeriodIndex([], freq="D")
         expected3 = period_range("1/1/2000", freq="D", periods=5)
 
-        rng4 = period_range("2000-01-01 09:00", freq="H", periods=5)
-        other4 = period_range("2000-01-02 09:00", freq="H", periods=5)
+        rng4 = period_range("2000-01-01 09:00", freq="h", periods=5)
+        other4 = period_range("2000-01-02 09:00", freq="h", periods=5)
         expected4 = PeriodIndex(
             [
                 "2000-01-01 09:00",
@@ -58,7 +58,7 @@ class TestPeriodIndex:
                 "2000-01-02 12:00",
                 "2000-01-02 13:00",
             ],
-            freq="H",
+            freq="h",
         )
 
         rng5 = PeriodIndex(
@@ -269,8 +269,8 @@ class TestPeriodIndex:
             "2000-01-01 11:00",
             "2000-01-01 13:00",
         ]
-        rng4 = PeriodIndex(period_rng, freq="H")
-        other4 = period_range("2000-01-02 09:00", freq="H", periods=5)
+        rng4 = PeriodIndex(period_rng, freq="h")
+        other4 = period_range("2000-01-02 09:00", freq="h", periods=5)
         expected4 = rng4
 
         rng5 = PeriodIndex(

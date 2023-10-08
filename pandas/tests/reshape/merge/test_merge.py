@@ -901,7 +901,7 @@ class TestMerge:
     def test_merge_datetime64tz_with_dst_transition(self):
         # GH 18885
         df1 = DataFrame(
-            pd.date_range("2017-10-29 01:00", periods=4, freq="H", tz="Europe/Madrid"),
+            pd.date_range("2017-10-29 01:00", periods=4, freq="h", tz="Europe/Madrid"),
             columns=["date"],
         )
         df1["value"] = 1
@@ -922,7 +922,7 @@ class TestMerge:
         expected = DataFrame(
             {
                 "date": pd.date_range(
-                    "2017-10-29 01:00", periods=7, freq="H", tz="Europe/Madrid"
+                    "2017-10-29 01:00", periods=7, freq="h", tz="Europe/Madrid"
                 ),
                 "value_x": [1] * 4 + [np.nan] * 3,
                 "value_y": [np.nan] * 4 + [2] * 3,

@@ -858,7 +858,7 @@ class TestDatetimeArray(SharedTests):
     def test_concat_same_type_different_freq(self):
         # we *can* concatenate DTI with different freqs.
         a = DatetimeArray(pd.date_range("2000", periods=2, freq="D", tz="US/Central"))
-        b = DatetimeArray(pd.date_range("2000", periods=2, freq="H", tz="US/Central"))
+        b = DatetimeArray(pd.date_range("2000", periods=2, freq="h", tz="US/Central"))
         result = DatetimeArray._concat_same_type([a, b])
         expected = DatetimeArray(
             pd.to_datetime(

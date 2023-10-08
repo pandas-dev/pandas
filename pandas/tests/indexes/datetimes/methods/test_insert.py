@@ -128,10 +128,10 @@ class TestInsert:
         assert result.freq is None
 
         for tz in ["US/Pacific", "Asia/Singapore"]:
-            idx = date_range("1/1/2000 09:00", periods=6, freq="H", tz=tz, name="idx")
+            idx = date_range("1/1/2000 09:00", periods=6, freq="h", tz=tz, name="idx")
             # preserve freq
             expected = date_range(
-                "1/1/2000 09:00", periods=7, freq="H", tz=tz, name="idx"
+                "1/1/2000 09:00", periods=7, freq="h", tz=tz, name="idx"
             )
             for d in [
                 Timestamp("2000-01-01 15:00", tz=tz),

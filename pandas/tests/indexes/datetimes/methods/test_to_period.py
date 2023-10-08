@@ -112,7 +112,7 @@ class TestToPeriod:
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
         dti = date_range("1/1/2000", "1/7/2002", freq="B")
-        pi = dti.to_period(freq="H")
+        pi = dti.to_period(freq="h")
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
     def test_to_period_millisecond(self):

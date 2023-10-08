@@ -2533,7 +2533,7 @@ class ArrowExtensionArray(
             "MS": "month",
             "W": "week",
             "D": "day",
-            "H": "hour",
+            "h": "hour",
             "min": "minute",
             "s": "second",
             "ms": "millisecond",

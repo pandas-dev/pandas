@@ -261,7 +261,7 @@ class TestGetIndexer:
         midx = MultiIndex.from_product(
             [
                 Categorical(["a", "b", "c"]),
-                Categorical(date_range("2012-01-01", periods=3, freq="H")),
+                Categorical(date_range("2012-01-01", periods=3, freq="h")),
             ]
         )
         result = midx.get_indexer(midx)
@@ -854,7 +854,7 @@ def test_timestamp_multiindex_indexer():
     # https://github.com/pandas-dev/pandas/issues/26944
     idx = MultiIndex.from_product(
         [
-            date_range("2019-01-01T00:15:33", periods=100, freq="H", name="date"),
+            date_range("2019-01-01T00:15:33", periods=100, freq="h", name="date"),
             ["x"],
             [3],
         ]
@@ -866,7 +866,7 @@ def test_timestamp_multiindex_indexer():
             date_range(
                 start="2019-01-02T00:15:33",
                 end="2019-01-05T03:15:33",
-                freq="H",
+                freq="h",
                 name="date",
             ),
             ["x"],

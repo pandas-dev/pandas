@@ -133,8 +133,8 @@ def test_sub_period_overflow():
 @pytest.mark.parametrize(
     "other",
     [
-        pd.Period("2000", freq="H"),
-        PeriodArray._from_sequence(["2000", "2001", "2000"], dtype="period[H]"),
+        pd.Period("2000", freq="h"),
+        PeriodArray._from_sequence(["2000", "2001", "2000"], dtype="period[h]"),
     ],
 )
 def test_where_different_freq_raises(other):

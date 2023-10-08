@@ -106,7 +106,7 @@ def test_agg_dict_parameter_cast_result_dtypes():
     df = DataFrame(
         {
             "class": ["A", "A", "B", "B", "C", "C", "D", "D"],
-            "time": date_range("1/1/2011", periods=8, freq="H"),
+            "time": date_range("1/1/2011", periods=8, freq="h"),
         }
     )
     df.loc[[0, 1, 2, 5], "time"] = None

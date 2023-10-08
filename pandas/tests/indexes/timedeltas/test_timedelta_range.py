@@ -46,6 +46,7 @@ class TestTimedeltas:
     @pytest.mark.parametrize(
         "depr_unit, unit",
         [
+            ("H", "hour"),
             ("T", "minute"),
             ("t", "minute"),
             ("S", "second"),
@@ -57,7 +58,8 @@ class TestTimedeltas:
             ("n", "nanosecond"),
         ],
     )
-    def test_timedelta_units_T_S_L_U_N_deprecated(self, depr_unit, unit):
+    def test_timedelta_units_H_T_S_L_U_N_deprecated(self, depr_unit, unit):
+        # GH#52536
         depr_msg = (
             f"'{depr_unit}' is deprecated and will be removed in a future version."
         )
@@ -68,12 +70,22 @@ class TestTimedeltas:
             tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "periods, freq", [(3, "2D"), (5, "D"), (6, "19H12min"), (7, "16H"), (9, "12H")]
+        "periods, freq", [(3, "2D"), (5, "D"), (6, "19h12min"), (7, "16h"), (9, "12h")]
     )
     def test_linspace_behavior(self, periods, freq):
         # GH 20976
         result = timedelta_range(start="0 days", end="4 days", periods=periods)
         expected = timedelta_range(start="0 days", end="4 days", freq=freq)
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("msg_freq, freq", [("H", "19H12min"), ("T", "19h12T")])
+    def test_timedelta_range_H_T_deprecated(self, freq, msg_freq):
+        # GH#52536
+        msg = f"'{msg_freq}' is deprecated and will be removed in a future version."
+
+        result = timedelta_range(start="0 days", end="4 days", periods=6)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = timedelta_range(start="0 days", end="4 days", freq=freq)
         tm.assert_index_equal(result, expected)
 
     def test_errors(self):
@@ -96,7 +108,7 @@ class TestTimedeltas:
 
         # too many params
         with pytest.raises(ValueError, match=msg):
-            timedelta_range(start="0 days", end="5 days", periods=10, freq="H")
+            timedelta_range(start="0 days", end="5 days", periods=10, freq="h")
 
     @pytest.mark.parametrize(
         "start, end, freq, expected_periods",

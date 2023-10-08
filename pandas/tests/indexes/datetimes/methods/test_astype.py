@@ -117,7 +117,7 @@ class TestDatetimeIndex:
 
     def test_astype_str_freq_and_name(self):
         # test astype string with freqH and name
-        dti = date_range("1/1/2011", periods=3, freq="H", name="test_name")
+        dti = date_range("1/1/2011", periods=3, freq="h", name="test_name")
         result = dti.astype(str)
         expected = Index(
             ["2011-01-01 00:00:00", "2011-01-01 01:00:00", "2011-01-01 02:00:00"],
@@ -129,7 +129,7 @@ class TestDatetimeIndex:
     def test_astype_str_freq_and_tz(self):
         # test astype string with freqH and timezone
         dti = date_range(
-            "3/6/2012 00:00", periods=2, freq="H", tz="Europe/London", name="test_name"
+            "3/6/2012 00:00", periods=2, freq="h", tz="Europe/London", name="test_name"
         )
         result = dti.astype(str)
         expected = Index(

@@ -13,7 +13,7 @@ import pandas._testing as tm
 
 @pytest.mark.parametrize(
     "freqstr,exp_freqstr",
-    [("D", "D"), ("W", "D"), ("ME", "D"), ("s", "s"), ("min", "s"), ("H", "s")],
+    [("D", "D"), ("W", "D"), ("ME", "D"), ("s", "s"), ("min", "s"), ("h", "s")],
 )
 def test_get_to_timestamp_base(freqstr, exp_freqstr):
     off = to_offset(freqstr)
@@ -31,7 +31,7 @@ def test_get_to_timestamp_base(freqstr, exp_freqstr):
         ("Q", "quarter"),
         ("M", "month"),
         ("D", "day"),
-        ("H", "hour"),
+        ("h", "hour"),
         ("min", "minute"),
         ("s", "second"),
         ("ms", "millisecond"),
@@ -43,7 +43,7 @@ def test_get_attrname_from_abbrev(freqstr, expected):
     assert Resolution.get_reso_from_freqstr(freqstr).attrname == expected
 
 
-@pytest.mark.parametrize("freq", ["D", "H", "min", "s", "ms", "us", "ns"])
+@pytest.mark.parametrize("freq", ["D", "h", "min", "s", "ms", "us", "ns"])
 def test_get_freq_roundtrip2(freq):
     obj = Resolution.get_reso_from_freqstr(freq)
     result = _attrname_to_abbrevs[obj.attrname]
@@ -55,9 +55,9 @@ def test_get_freq_roundtrip2(freq):
     [
         ((1.5, "min"), (90, "s")),
         ((62.4, "min"), (3744, "s")),
-        ((1.04, "H"), (3744, "s")),
+        ((1.04, "h"), (3744, "s")),
         ((1, "D"), (1, "D")),
-        ((0.342931, "H"), (1234551600, "us")),
+        ((0.342931, "h"), (1234551600, "us")),
         ((1.2345, "D"), (106660800, "ms")),
     ],
 )
@@ -73,7 +73,7 @@ def test_resolution_bumping(args, expected):
     [
         (0.5, "ns"),
         # Too much precision in the input can prevent.
-        (0.3429324798798269273987982, "H"),
+        (0.3429324798798269273987982, "h"),
     ],
 )
 def test_cat(args):
@@ -86,7 +86,7 @@ def test_cat(args):
 @pytest.mark.parametrize(
     "freqstr,expected",
     [
-        ("1H", "2021-01-01T09:00:00"),
+        ("1h", "2021-01-01T09:00:00"),
         ("1D", "2021-01-02T08:00:00"),
         ("1W", "2021-01-03T08:00:00"),
         ("1ME", "2021-01-31T08:00:00"),
@@ -99,8 +99,8 @@ def test_compatibility(freqstr, expected):
     assert ts_np + do == np.datetime64(expected)
 
 
-@pytest.mark.parametrize("freq", ["A", "T", "S", "L", "U", "N"])
-def test_units_A_T_S_L_U_N_deprecated_from_attrname_to_abbrevs(freq):
+@pytest.mark.parametrize("freq", ["A", "H", "T", "S", "L", "U", "N"])
+def test_units_A_H_T_S_L_U_N_deprecated_from_attrname_to_abbrevs(freq):
     # GH#52536
     msg = f"'{freq}' is deprecated and will be removed in a future version."
 

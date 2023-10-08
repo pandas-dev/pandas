@@ -99,7 +99,7 @@ class TestSetIndex:
         assert isinstance(idf.index, DatetimeIndex)
 
     def test_set_index_dst(self):
-        di = date_range("2006-10-29 00:00:00", periods=3, freq="H", tz="US/Pacific")
+        di = date_range("2006-10-29 00:00:00", periods=3, freq="h", tz="US/Pacific")
 
         df = DataFrame(data={"a": [0, 1, 2], "b": [3, 4, 5]}, index=di).reset_index()
         # single level
@@ -491,7 +491,7 @@ class TestSetIndex:
         df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = period_range("2011-01-01", periods=3, freq="M")
         idx1 = idx1.append(idx1)
-        idx2 = period_range("2013-01-01 09:00", periods=2, freq="H")
+        idx2 = period_range("2013-01-01 09:00", periods=2, freq="h")
         idx2 = idx2.append(idx2).append(idx2)
         idx3 = period_range("2005", periods=6, freq="Y")
 
@@ -500,7 +500,7 @@ class TestSetIndex:
         df = df.set_index(idx3, append=True)
 
         expected1 = period_range("2011-01-01", periods=3, freq="M")
-        expected2 = period_range("2013-01-01 09:00", periods=2, freq="H")
+        expected2 = period_range("2013-01-01 09:00", periods=2, freq="h")
 
         tm.assert_index_equal(df.index.levels[0], expected1)
         tm.assert_index_equal(df.index.levels[1], expected2)

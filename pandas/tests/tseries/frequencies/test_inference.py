@@ -38,7 +38,7 @@ from pandas.tseries import (
 @pytest.fixture(
     params=[
         (timedelta(1), "D"),
-        (timedelta(hours=1), "H"),
+        (timedelta(hours=1), "h"),
         (timedelta(minutes=1), "min"),
         (timedelta(seconds=1), "s"),
         (np.timedelta64(1, "ns"), "ns"),
@@ -220,7 +220,7 @@ def test_infer_freq_index(freq, expected):
             "ME": ["2010-11-30", "2010-12-31", "2011-01-31", "2011-02-28"],
             "W-SAT": ["2010-12-25", "2011-01-01", "2011-01-08", "2011-01-15"],
             "D": ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"],
-            "H": [
+            "h": [
                 "2011-12-31 22:00",
                 "2011-12-31 23:00",
                 "2012-01-01 00:00",
@@ -255,7 +255,7 @@ def test_infer_freq_tz_series(tz_naive_fixture):
 )
 @pytest.mark.parametrize(
     "freq",
-    ["H", "3H", "10min", "3601s", "3600001ms", "3600000001us", "3600000000001ns"],
+    ["h", "3h", "10min", "3601s", "3600001ms", "3600000001us", "3600000000001ns"],
 )
 def test_infer_freq_tz_transition(tz_naive_fixture, date_pair, freq):
     # see gh-8772
@@ -265,7 +265,7 @@ def test_infer_freq_tz_transition(tz_naive_fixture, date_pair, freq):
 
 
 def test_infer_freq_tz_transition_custom():
-    index = date_range("2013-11-03", periods=5, freq="3H").tz_localize(
+    index = date_range("2013-11-03", periods=5, freq="3h").tz_localize(
         "America/Chicago"
     )
     assert index.inferred_freq is None
@@ -274,7 +274,7 @@ def test_infer_freq_tz_transition_custom():
 @pytest.mark.parametrize(
     "data,expected",
     [
-        # Hourly freq in a day must result in "H"
+        # Hourly freq in a day must result in "h"
         (
             [
                 "2014-07-01 09:00",
@@ -284,7 +284,7 @@ def test_infer_freq_tz_transition_custom():
                 "2014-07-01 13:00",
                 "2014-07-01 14:00",
             ],
-            "H",
+            "h",
         ),
         (
             [
@@ -300,7 +300,7 @@ def test_infer_freq_tz_transition_custom():
                 "2014-07-02 10:00",
                 "2014-07-02 11:00",
             ],
-            "BH",
+            "bh",
         ),
         (
             [
@@ -316,7 +316,7 @@ def test_infer_freq_tz_transition_custom():
                 "2014-07-07 10:00",
                 "2014-07-07 11:00",
             ],
-            "BH",
+            "bh",
         ),
         (
             [
@@ -345,7 +345,7 @@ def test_infer_freq_tz_transition_custom():
                 "2014-07-08 15:00",
                 "2014-07-08 16:00",
             ],
-            "BH",
+            "bh",
         ),
     ],
 )

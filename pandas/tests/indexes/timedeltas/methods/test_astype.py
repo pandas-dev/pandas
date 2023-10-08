@@ -69,7 +69,7 @@ class TestTimedeltaIndex:
         tm.assert_numpy_array_equal(rng.asi8, result.values)
 
     def test_astype_uint(self):
-        arr = timedelta_range("1H", periods=2)
+        arr = timedelta_range("1h", periods=2)
 
         with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
             arr.astype("uint64")
@@ -104,10 +104,10 @@ class TestTimedeltaIndex:
             idx.astype(dtype)
 
     def test_astype_category(self):
-        obj = timedelta_range("1H", periods=2, freq="H")
+        obj = timedelta_range("1h", periods=2, freq="h")
 
         result = obj.astype("category")
-        expected = pd.CategoricalIndex([Timedelta("1H"), Timedelta("2H")])
+        expected = pd.CategoricalIndex([Timedelta("1h"), Timedelta("2h")])
         tm.assert_index_equal(result, expected)
 
         result = obj._data.astype("category")
@@ -115,7 +115,7 @@ class TestTimedeltaIndex:
         tm.assert_categorical_equal(result, expected)
 
     def test_astype_array_fallback(self):
-        obj = timedelta_range("1H", periods=2)
+        obj = timedelta_range("1h", periods=2)
         result = obj.astype(bool)
         expected = Index(np.array([True, True]))
         tm.assert_index_equal(result, expected)

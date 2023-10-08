@@ -28,7 +28,7 @@ Generate sequences of fixed-frequency dates and time spans
 
 .. ipython:: python
 
-   dti = pd.date_range("2018-01-01", periods=3, freq="H")
+   dti = pd.date_range("2018-01-01", periods=3, freq="h")
    dti
 
 Manipulating and converting date times with timezone information
@@ -43,10 +43,10 @@ Resampling or converting a time series to a particular frequency
 
 .. ipython:: python
 
-   idx = pd.date_range("2018-01-01", periods=5, freq="H")
+   idx = pd.date_range("2018-01-01", periods=5, freq="h")
    ts = pd.Series(range(len(idx)), index=idx)
    ts
-   ts.resample("2H").mean()
+   ts.resample("2h").mean()
 
 Performing date and time arithmetic with absolute or relative time increments
 
@@ -641,7 +641,7 @@ We are stopping on the included end-point as it is part of the index:
        np.random.randn(20, 1),
        columns=["A"],
        index=pd.MultiIndex.from_product(
-           [pd.date_range("20130101", periods=10, freq="12H"), ["a", "b"]]
+           [pd.date_range("20130101", periods=10, freq="12h"), ["a", "b"]]
        ),
    )
    dft2
@@ -901,10 +901,10 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.BYearBegin`, ``'BAS'``, "business year begin"
     :class:`~pandas.tseries.offsets.FY5253`, ``'RE'``, "retail (aka 52-53 week) year"
     :class:`~pandas.tseries.offsets.Easter`, None, "Easter holiday"
-    :class:`~pandas.tseries.offsets.BusinessHour`, ``'BH'``, "business hour"
-    :class:`~pandas.tseries.offsets.CustomBusinessHour`, ``'CBH'``, "custom business hour"
+    :class:`~pandas.tseries.offsets.BusinessHour`, ``'bh'``, "business hour"
+    :class:`~pandas.tseries.offsets.CustomBusinessHour`, ``'cbh'``, "custom business hour"
     :class:`~pandas.tseries.offsets.Day`, ``'D'``, "one absolute day"
-    :class:`~pandas.tseries.offsets.Hour`, ``'H'``, "one hour"
+    :class:`~pandas.tseries.offsets.Hour`, ``'h'``, "one hour"
     :class:`~pandas.tseries.offsets.Minute`, ``'min'``,"one minute"
     :class:`~pandas.tseries.offsets.Second`, ``'s'``, "one second"
     :class:`~pandas.tseries.offsets.Milli`, ``'ms'``, "one millisecond"
@@ -1262,8 +1262,9 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "BA, BY", "business year end frequency"
     "AS, YS", "year start frequency"
     "BAS, BYS", "business year start frequency"
-    "BH", "business hour frequency"
-    "H", "hourly frequency"
+    "h", "hourly frequency"
+    "bh", "business hour frequency"
+    "cbh", "custom business hour frequency"
     "min", "minutely frequency"
     "s", "secondly frequency"
     "ms", "milliseconds"
@@ -1272,7 +1273,8 @@ frequencies. We will refer to these aliases as *offset aliases*.
 
 .. deprecated:: 2.2.0
 
-   Aliases ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
+   Aliases ``H``, ``BH``, ``CBH``, ``T``, ``S``, ``L``, ``U``, and ``N``
+   are deprecated in favour of the aliases ``h``, ``bh``, ``cbh``,
    ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 .. note::
@@ -1322,7 +1324,7 @@ frequencies. We will refer to these aliases as *period aliases*.
     "M", "monthly frequency"
     "Q", "quarterly frequency"
     "Y", "yearly frequency"
-    "H", "hourly frequency"
+    "h", "hourly frequency"
     "min", "minutely frequency"
     "s", "secondly frequency"
     "ms", "milliseconds"
@@ -1331,8 +1333,8 @@ frequencies. We will refer to these aliases as *period aliases*.
 
 .. deprecated:: 2.2.0
 
-   Aliases ``A``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
-   ``Y``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
+   Aliases ``A``, ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` are deprecated in favour of the aliases
+   ``Y``, ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``.
 
 
 Combining aliases
@@ -1889,7 +1891,7 @@ natural and functions similarly to :py:func:`itertools.groupby`:
            ]
        ),
    )
-   resampled = small.resample("H")
+   resampled = small.resample("h")
 
    for name, group in resampled:
        print("Group: ", name)
@@ -1999,9 +2001,9 @@ Because ``freq`` represents a span of ``Period``, it cannot be negative like "-3
 
    pd.Period("2012-1-1", freq="D")
 
-   pd.Period("2012-1-1 19:00", freq="H")
+   pd.Period("2012-1-1 19:00", freq="h")
 
-   pd.Period("2012-1-1 19:00", freq="5H")
+   pd.Period("2012-1-1 19:00", freq="5h")
 
 Adding and subtracting integers from periods shifts the period by its own
 frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` (span).
@@ -2021,7 +2023,7 @@ If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``,
 
 .. ipython:: python
 
-   p = pd.Period("2014-07-01 09:00", freq="H")
+   p = pd.Period("2014-07-01 09:00", freq="h")
    p + pd.offsets.Hour(2)
    p + datetime.timedelta(minutes=120)
    p + np.timedelta64(7200, "s")
@@ -2097,7 +2099,7 @@ objects:
 
 .. ipython:: python
 
-   idx = pd.period_range("2014-07-01 09:00", periods=5, freq="H")
+   idx = pd.period_range("2014-07-01 09:00", periods=5, freq="h")
    idx
    idx + pd.offsets.Hour(2)
 
@@ -2168,13 +2170,13 @@ Passing a string representing a lower frequency than ``PeriodIndex`` returns par
        index=pd.period_range("2013-01-01 9:00", periods=600, freq="min"),
    )
    dfp
-   dfp.loc["2013-01-01 10H"]
+   dfp.loc["2013-01-01 10h"]
 
 As with ``DatetimeIndex``, the endpoints will be included in the result. The example below slices data starting from 10:00 to 11:59.
 
 .. ipython:: python
 
-   dfp["2013-01-01 10H":"2013-01-01 11H"]
+   dfp["2013-01-01 10h":"2013-01-01 11h"]
 
 
 Frequency conversion and resampling with PeriodIndex
@@ -2286,7 +2288,7 @@ the quarter end:
 
    ts = pd.Series(np.random.randn(len(prng)), prng)
 
-   ts.index = (prng.asfreq("M", "e") + 1).asfreq("H", "s") + 9
+   ts.index = (prng.asfreq("M", "e") + 1).asfreq("h", "s") + 9
 
    ts.head()
 
@@ -2505,7 +2507,7 @@ To remove time zone information, use ``tz_localize(None)`` or ``tz_convert(None)
 
 .. ipython:: python
 
-   didx = pd.date_range(start="2014-08-01 09:00", freq="H", periods=3, tz="US/Eastern")
+   didx = pd.date_range(start="2014-08-01 09:00", freq="h", periods=3, tz="US/Eastern")
    didx
    didx.tz_localize(None)
    didx.tz_convert(None)
@@ -2602,7 +2604,7 @@ can be controlled by the ``nonexistent`` argument. The following options are ava
 
 .. ipython:: python
 
-    dti = pd.date_range(start="2015-03-29 02:30:00", periods=3, freq="H")
+    dti = pd.date_range(start="2015-03-29 02:30:00", periods=3, freq="h")
     # 2:30 is a nonexistent time
 
 Localization of nonexistent times will raise an error by default.
@@ -2619,7 +2621,7 @@ Transform nonexistent times to ``NaT`` or shift the times.
     dti
     dti.tz_localize("Europe/Warsaw", nonexistent="shift_forward")
     dti.tz_localize("Europe/Warsaw", nonexistent="shift_backward")
-    dti.tz_localize("Europe/Warsaw", nonexistent=pd.Timedelta(1, unit="H"))
+    dti.tz_localize("Europe/Warsaw", nonexistent=pd.Timedelta(1, unit="h"))
     dti.tz_localize("Europe/Warsaw", nonexistent="NaT")
 
 

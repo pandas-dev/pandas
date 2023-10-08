@@ -273,7 +273,7 @@ def test_aggregate_with_nat_size():
 
 def test_repr():
     # GH18203
-    result = repr(Grouper(key="A", freq="H"))
+    result = repr(Grouper(key="A", freq="h"))
     expected = (
         "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
         "closed='left', label='left', how='mean', "
@@ -281,7 +281,7 @@ def test_repr():
     )
     assert result == expected
 
-    result = repr(Grouper(key="A", freq="H", origin="2000-01-01"))
+    result = repr(Grouper(key="A", freq="h", origin="2000-01-01"))
     expected = (
         "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
         "closed='left', label='left', how='mean', "
@@ -304,7 +304,7 @@ def test_repr():
     ],
 )
 def test_upsample_sum(method, method_args, expected_values):
-    s = Series(1, index=date_range("2017", periods=2, freq="H"))
+    s = Series(1, index=date_range("2017", periods=2, freq="h"))
     resampled = s.resample("30min")
     index = pd.DatetimeIndex(
         ["2017-01-01T00:00:00", "2017-01-01T00:30:00", "2017-01-01T01:00:00"],

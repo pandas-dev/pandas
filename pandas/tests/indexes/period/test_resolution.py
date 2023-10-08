@@ -11,7 +11,7 @@ class TestResolution:
             ("Q", "quarter"),
             ("M", "month"),
             ("D", "day"),
-            ("H", "hour"),
+            ("h", "hour"),
             ("min", "minute"),
             ("s", "second"),
             ("ms", "millisecond"),

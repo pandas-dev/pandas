@@ -194,7 +194,7 @@ class TestSlicing:
             s["2004-12-31"]
 
     def test_partial_slice_daily(self):
-        rng = date_range(freq="H", start=datetime(2005, 1, 31), periods=500)
+        rng = date_range(freq="h", start=datetime(2005, 1, 31), periods=500)
         s = Series(np.arange(len(rng)), index=rng)
 
         result = s["2005-1-31"]
