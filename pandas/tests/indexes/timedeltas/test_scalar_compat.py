@@ -63,8 +63,8 @@ class TestVectorizedTimedelta:
         )
         expected_elt = expected_rng[1]
 
-        tm.assert_index_equal(td.round(freq="H"), expected_rng)
-        assert elt.round(freq="H") == expected_elt
+        tm.assert_index_equal(td.round(freq="h"), expected_rng)
+        assert elt.round(freq="h") == expected_elt
 
         msg = INVALID_FREQ_ERR_MSG
         with pytest.raises(ValueError, match=msg):
@@ -121,7 +121,7 @@ class TestVectorizedTimedelta:
                 ),
             ),
             ("12min", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
-            ("H", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
+            ("h", t1c, TimedeltaIndex(["-1 days", "-1 days", "-1 days"])),
             ("d", t1c, TimedeltaIndex([-1, -1, -1], unit="D")),
         ]:
             r1 = t1.round(freq)

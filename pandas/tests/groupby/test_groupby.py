@@ -2054,8 +2054,13 @@ def test_empty_groupby(columns, keys, values, method, op, using_array_manager, d
         and not values.ordered
         and op in ["min", "max", "idxmin", "idxmax"]
     ):
-        msg = f"Cannot perform {op} with non-ordered Categorical"
-        with pytest.raises(TypeError, match=msg):
+        if op in ["min", "max"]:
+            msg = f"Cannot perform {op} with non-ordered Categorical"
+            klass = TypeError
+        else:
+            msg = f"Can't get {op} of an empty group due to unobserved categories"
+            klass = ValueError
+        with pytest.raises(klass, match=msg):
             get_result()
 
         if op in ["min", "max"] and isinstance(columns, list):
@@ -3001,12 +3006,12 @@ def test_groupby_reduce_period():
 
     res = gb.max()
     expected = ser[-10:]
-    expected.index = Index(range(10), dtype=np.int_)
+    expected.index = Index(range(10), dtype=int)
     tm.assert_series_equal(res, expected)
 
     res = gb.min()
     expected = ser[:10]
-    expected.index = Index(range(10), dtype=np.int_)
+    expected.index = Index(range(10), dtype=int)
     tm.assert_series_equal(res, expected)
 
 
