@@ -840,9 +840,6 @@ class MultiIndex(Index):
 
     @cache_readonly
     def levels(self) -> FrozenList:
-        # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
-        # create new IndexEngine
-        # https://github.com/pandas-dev/pandas/issues/31648
         """
         Levels of the MultiIndex.
 
@@ -861,7 +858,7 @@ class MultiIndex(Index):
         -----
         If the MultiIndex is sliced, this method still returns the original
         levels of the MultiIndex.
-        When using this method on a DataFrame index, it may show "extra"
+        When using this method on a DataFrame index, it may show "extra".
 
         Examples
         --------
@@ -882,9 +879,10 @@ class MultiIndex(Index):
         FrozenList([['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']])
         >>> small.index.levels
         FrozenList([['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']])
-
-
         """
+        # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
+        # create new IndexEngine
+        # https://github.com/pandas-dev/pandas/issues/31648
         result = [x._rename(name=name) for x, name in zip(self._levels, self._names)]
         for level in result:
             # disallow midx.levels[0].name = "foo"
