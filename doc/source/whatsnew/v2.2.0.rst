@@ -315,7 +315,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :func:`pandas.api.types.is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
--
+- Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]``  (:issue:`54942`)
 -
 
 Interval
@@ -382,7 +382,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
-- Bug in :meth:`DataSeries.str.startswith` and :meth:`DataSeries.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]``  (:issue:`54942`)
+-
 -
 
 Styler
