@@ -866,29 +866,7 @@ class MultiIndex(Index):
         >>> idx.levels
         [[0, 1, 2], ['green', 'purple']]
 
-        Notes
-        -----
-        If the MultiIndex is sliced, this method still returns the original
-        levels of the MultiIndex.
-        When using this method on a DataFrame index, it may show "extra"
-        values if the DataFrame has been sliced.
-        This is because the levels are determined based on the original
-        DataFrame index, not the sliced one.
 
-        Examples
-        --------
-        >>> idx = pd.MultiIndex.from_product([['John', 'Josh', 'Alex'],
-        ... list('abcde')], names=['Person', 'Letter'])
-        >>> large = pd.DataFrame(data=np.random.randn(15, 2),
-        ... index=idx, columns=['one', 'two'])
-        >>> small = large.loc[['Jo'==d[0:2] for d in
-        ... large.index.get_level_values('Person')]]
-
-        >>> large.index.levels
-        [['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']]
-
-        >>> large.index.levels
-        [['Alex', 'John', 'Josh'], ['a', 'b', 'c', 'd', 'e']]
         """
         result = [x._rename(name=name) for x, name in zip(self._levels, self._names)]
         for level in result:
