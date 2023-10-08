@@ -344,7 +344,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 # mimic existing behaviour of string extension array
                 # and python string method
                 result = pa.array(
-                    np.full(len(self._pa_array), False), mask=isna(self._pa_array)
+                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
                 )
             else:
                 result = pc.starts_with(self._pa_array, pattern=pat[0])
@@ -365,7 +365,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 # mimic existing behaviour of string extension array
                 # and python string method
                 result = pa.array(
-                    np.full(len(self._pa_array), False), mask=isna(self._pa_array)
+                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
                 )
             else:
                 result = pc.ends_with(self._pa_array, pattern=pat[0])
