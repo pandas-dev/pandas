@@ -480,7 +480,7 @@ class TestBlockManager:
             np.random.default_rng(2).standard_normal(N).astype(int),
         )
         idx = mgr2.items.get_loc("quux")
-        assert mgr2.iget(idx).dtype == np.int_
+        assert mgr2.iget(idx).dtype == np.dtype(int)
 
         mgr2.iset(
             mgr2.items.get_loc("quux"), np.random.default_rng(2).standard_normal(N)
@@ -1347,13 +1347,13 @@ class TestCanHoldElement:
         assert not blk._can_hold_element(elem)
 
     def test_period_can_hold_element_emptylist(self):
-        pi = period_range("2016", periods=3, freq="A")
+        pi = period_range("2016", periods=3, freq="Y")
         blk = new_block(pi._data.reshape(1, 3), BlockPlacement([1]), ndim=2)
 
         assert blk._can_hold_element([])
 
     def test_period_can_hold_element(self, element):
-        pi = period_range("2016", periods=3, freq="A")
+        pi = period_range("2016", periods=3, freq="Y")
 
         elem = element(pi)
         self.check_series_setitem(elem, pi, True)

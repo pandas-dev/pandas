@@ -1,8 +1,11 @@
+import datetime as dt
 from datetime import date
 
 import dateutil
 import numpy as np
 import pytest
+
+from pandas.compat.numpy import np_long
 
 import pandas as pd
 from pandas import (
@@ -54,7 +57,7 @@ class TestDatetimeIndex:
         # (which has value 1e9) and since the max value for np.int32 is ~2e9,
         # and since those machines won't promote np.int32 to np.int64, we get
         # overflow.
-        periods = np.int_(1000)
+        periods = np_long(1000)
 
         idx1 = date_range(start="2000", periods=periods, freq="s")
         assert len(idx1) == periods
@@ -94,7 +97,7 @@ class TestDatetimeIndex:
 
     def test_iteration_preserves_tz(self):
         # see gh-8890
-        index = date_range("2012-01-01", periods=3, freq="H", tz="US/Eastern")
+        index = date_range("2012-01-01", periods=3, freq="h", tz="US/Eastern")
 
         for i, ts in enumerate(index):
             result = ts
@@ -102,7 +105,7 @@ class TestDatetimeIndex:
             assert result == expected
 
         index = date_range(
-            "2012-01-01", periods=3, freq="H", tz=dateutil.tz.tzoffset(None, -28800)
+            "2012-01-01", periods=3, freq="h", tz=dateutil.tz.tzoffset(None, -28800)
         )
 
         for i, ts in enumerate(index):
@@ -199,3 +202,27 @@ class TestDatetimeIndex:
         result = np.asarray(idx, dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_CBH_deprecated(self):
+        msg = "'CBH' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = date_range(
+                dt.datetime(2022, 12, 11), dt.datetime(2022, 12, 13), freq="CBH"
+            )
+        result = DatetimeIndex(
+            [
+                "2022-12-12 09:00:00",
+                "2022-12-12 10:00:00",
+                "2022-12-12 11:00:00",
+                "2022-12-12 12:00:00",
+                "2022-12-12 13:00:00",
+                "2022-12-12 14:00:00",
+                "2022-12-12 15:00:00",
+                "2022-12-12 16:00:00",
+            ],
+            dtype="datetime64[ns]",
+            freq="cbh",
+        )
+
+        tm.assert_index_equal(result, expected)

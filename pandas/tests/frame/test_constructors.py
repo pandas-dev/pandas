@@ -1825,7 +1825,7 @@ class TestDataFrameConstructors:
             DataFrame("a", [1, 2], ["a", "c"], float)
 
     def test_constructor_with_datetimes(self):
-        intname = np.dtype(np.int_).name
+        intname = np.dtype(int).name
         floatname = np.dtype(np.float64).name
         objectname = np.dtype(np.object_).name
 
@@ -2473,8 +2473,8 @@ class TestDataFrameConstructors:
         [
             ([1, 2]),
             (["1", "2"]),
-            (list(date_range("1/1/2011", periods=2, freq="H"))),
-            (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
+            (list(date_range("1/1/2011", periods=2, freq="h"))),
+            (list(date_range("1/1/2011", periods=2, freq="h", tz="US/Eastern"))),
             ([Interval(left=0, right=5)]),
         ],
     )
@@ -2744,6 +2744,13 @@ class TestDataFrameConstructors:
         with pd.option_context("future.infer_string", True):
             df = DataFrame(np.array([["a", "c"], ["b", "d"]]), columns=["a", "b"])
         tm.assert_frame_equal(df, expected)
+
+    def test_frame_string_inference_block_dim(self):
+        # GH#55363
+        pytest.importorskip("pyarrow")
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
+        assert df._mgr.blocks[0].ndim == 2
 
 
 class TestDataFrameConstructorIndexInference:
