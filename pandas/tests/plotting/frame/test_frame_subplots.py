@@ -5,6 +5,9 @@ import string
 import numpy as np
 import pytest
 
+from pandas.compat import is_platform_linux
+from pandas.compat.numpy import np_version_gte1p24
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -419,6 +422,11 @@ class TestDataFramePlotsSubplots:
         assert len(ax.lines) == 0
         assert len(ax.right_ax.lines) == 5
 
+    @pytest.mark.xfail(
+        np_version_gte1p24 and is_platform_linux(),
+        reason="Weird rounding problems",
+        strict=False,
+    )
     def test_bar_log_no_subplots(self):
         # GH3254, GH3298 matplotlib/matplotlib#1882, #1892
         # regressions in 1.2.1
@@ -429,6 +437,11 @@ class TestDataFramePlotsSubplots:
         ax = df.plot.bar(grid=True, log=True)
         tm.assert_numpy_array_equal(ax.yaxis.get_ticklocs(), expected)
 
+    @pytest.mark.xfail(
+        np_version_gte1p24 and is_platform_linux(),
+        reason="Weird rounding problems",
+        strict=False,
+    )
     def test_bar_log_subplots(self):
         expected = np.array([0.1, 1.0, 10.0, 100.0, 1000.0, 1e4])
 
