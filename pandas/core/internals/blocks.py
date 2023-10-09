@@ -692,9 +692,18 @@ class Block(PandasObject, libinternals.Block):
         return newb
 
     @final
-    def to_native_types(self, na_rep: str = "nan", quoting=None, **kwargs) -> Block:
+    def get_values_for_csv(
+        self, *, float_format, date_format, decimal, na_rep: str = "nan", quoting=None
+    ) -> Block:
         """convert to our native types format"""
-        result = to_native_types(self.values, na_rep=na_rep, quoting=quoting, **kwargs)
+        result = get_values_for_csv(
+            self.values,
+            na_rep=na_rep,
+            quoting=quoting,
+            float_format=float_format,
+            date_format=date_format,
+            decimal=decimal,
+        )
         return self.make_block(result)
 
     @final
@@ -2593,14 +2602,14 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
     return values
 
 
-def to_native_types(
+def get_values_for_csv(
     values: ArrayLike,
     *,
+    date_format,
     na_rep: str = "nan",
     quoting=None,
     float_format=None,
     decimal: str = ".",
-    **kwargs,
 ) -> npt.NDArray[np.object_]:
     """convert to our native types format"""
     if isinstance(values, Categorical) and values.categories.dtype.kind in "Mm":
@@ -2615,14 +2624,16 @@ def to_native_types(
 
     if isinstance(values, (DatetimeArray, TimedeltaArray)):
         if values.ndim == 1:
-            result = values._format_native_types(na_rep=na_rep, **kwargs)
+            result = values._format_native_types(na_rep=na_rep, date_format=date_format)
             result = result.astype(object, copy=False)
             return result
 
         # GH#21734 Process every column separately, they might have different formats
         results_converted = []
         for i in range(len(values)):
-            result = values[i, :]._format_native_types(na_rep=na_rep, **kwargs)
+            result = values[i, :]._format_native_types(
+                na_rep=na_rep, date_format=date_format
+            )
             results_converted.append(result.astype(object, copy=False))
         return np.vstack(results_converted)
 
