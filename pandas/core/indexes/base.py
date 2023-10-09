@@ -1398,6 +1398,7 @@ class Index(IndexOpsMixin, PandasObject):
         self,
         *,
         include_name: bool,
+        formatter: Callable | None = None,
     ) -> list[str_t]:
         """
         Render a string representation of the Index.
@@ -1409,6 +1410,9 @@ class Index(IndexOpsMixin, PandasObject):
                 if self.name is not None
                 else ""
             )
+
+        if formatter is not None:
+            return header + list(self.map(formatter))
 
         return self._format_with_header(header=header, na_rep=self._default_na_rep)
 

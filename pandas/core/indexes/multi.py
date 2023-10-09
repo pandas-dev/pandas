@@ -1458,6 +1458,7 @@ class MultiIndex(Index):
         *,
         include_names: bool,
         sparsify: bool | None | lib.NoDefault,
+        formatter: Callable | None = None,
     ) -> list:
         if len(self) == 0:
             return []
@@ -1467,7 +1468,8 @@ class MultiIndex(Index):
             na = _get_na_rep(lev.dtype)
 
             if len(lev) > 0:
-                formatted = lev.take(level_codes)._format_flat(include_name=False)
+                taken = formatted = lev.take(level_codes)
+                formatted = taken._format_flat(include_name=False, formatter=formatter)
 
                 # we have some NA
                 mask = level_codes == -1
