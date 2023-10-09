@@ -655,7 +655,7 @@ class TestGroupBy:
         df = DataFrame(
             {
                 "label": ["a", "a", "a", "b", "b", "b"],
-                "period": [pd.Period(d, freq="H") for d in dates],
+                "period": [pd.Period(d, freq="h") for d in dates],
                 "value1": np.arange(6, dtype="int64"),
                 "value2": [1, 2] * 3,
             }
@@ -670,7 +670,7 @@ class TestGroupBy:
                 "2011-07-19 09:00:00",
                 "2011-07-19 09:00:00",
             ],
-            freq="H",
+            freq="h",
             name="period",
         )
         exp_idx2 = Index(["a", "b"] * 3, name="label")
@@ -685,7 +685,7 @@ class TestGroupBy:
         tm.assert_frame_equal(result, expected)
 
         # by level
-        didx = pd.PeriodIndex(dates, freq="H")
+        didx = pd.PeriodIndex(dates, freq="h")
         df = DataFrame(
             {"value1": np.arange(6, dtype="int64"), "value2": [1, 2, 3, 1, 2, 3]},
             index=didx,
@@ -693,7 +693,7 @@ class TestGroupBy:
 
         exp_idx = pd.PeriodIndex(
             ["2011-07-19 07:00:00", "2011-07-19 08:00:00", "2011-07-19 09:00:00"],
-            freq="H",
+            freq="h",
         )
         expected = DataFrame(
             {"value1": [3, 5, 7], "value2": [2, 4, 6]},
