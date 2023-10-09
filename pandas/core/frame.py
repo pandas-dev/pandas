@@ -9519,6 +9519,20 @@ class DataFrame(NDFrame, OpsMixin):
                 stack_multiple,
             )
 
+            if (
+                dropna is not lib.no_default
+                or sort is not lib.no_default
+                or self.columns.nlevels > 1
+            ):
+                warnings.warn(
+                    "The previous implementation of stack is deprecated and will be "
+                    "removed in a future version of pandas. See the What's New notes "
+                    "for pandas 2.1.0 for details. Specify future_stack=True to adopt "
+                    "the new implementation and silence this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
             if dropna is lib.no_default:
                 dropna = True
             if sort is lib.no_default:
