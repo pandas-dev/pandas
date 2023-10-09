@@ -70,9 +70,10 @@ class TestFactorize:
             expected_uniques = expected_uniques.astype(object)
 
         if sort:
-            if not all(
-                isinstance(elem, type(expected_uniques.values[0]))
-                for elem in expected_uniques.values[1:]
+            if (
+                len(expected_uniques.values) > 0
+                and isinstance(expected_uniques.values[0], int)
+                and isinstance(expected_uniques.values[1], str)
             ):
                 pytest.skip("'<' not supported between instances of 'str' and 'int'")
             expected_uniques = expected_uniques.sort_values()

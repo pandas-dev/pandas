@@ -631,7 +631,7 @@ def test_union_duplicates(index, request):
     values = index.unique().values.tolist()
     mi1 = MultiIndex.from_arrays([values, [1] * len(values)])
     mi2 = MultiIndex.from_arrays([[values[0]] + values, [1] * (len(values) + 1)])
-    if not all(isinstance(elem, type(values[0])) for elem in values[1:]):
+    if isinstance(index.values[0], int) and isinstance(index.values[1], str):
         pytest.skip("'<' not supported between instances of 'str' and 'int'")
     else:
         result = mi2.union(mi1)

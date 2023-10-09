@@ -448,11 +448,11 @@ class TestCommon:
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    if not all(
-        isinstance(sub, type(index_with_missing.values[0]))
-        for sub in index_with_missing.values[1:]
+    if any(isinstance(elem, int) for elem in index_with_missing.values[:]) and any(
+        isinstance(elem, str) for elem in index_with_missing.values[:]
     ):
-        pytest.skip("'<' not supported between instances of 'str' and 'int'")
+        with pytest.raises(TypeError, match="'<' not supported between "):
+            index_with_missing.sort_values(na_position=na_position)
     else:
         with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
             index_with_missing.sort_values(na_position=na_position)
@@ -473,7 +473,9 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values
-    if not all(isinstance(sub, type(not_na_vals[0])) for sub in not_na_vals[1:]):
+    if any(isinstance(elem, int) for elem in index_with_missing.values[:]) and any(
+        isinstance(elem, str) for elem in index_with_missing.values[:]
+    ):
         with pytest.raises(
             TypeError, match="'<' not supported between instances of 'int' and 'str'"
         ):

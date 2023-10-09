@@ -46,9 +46,10 @@ def test_value_counts(index_or_series_obj):
             # i.e IntegerDtype
             expected = expected.astype("Int64")
 
-    if not all(
-        isinstance(elem, type(index_or_series_obj.values[0]))
-        for elem in index_or_series_obj.values[1:]
+    if (
+        len(obj) > 0
+        and isinstance(obj.values[0], int)
+        and isinstance(obj.values[1], str)
     ):
         msg = "'<' not supported between "
         with pytest.raises(TypeError, match=msg):
@@ -74,9 +75,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         pytest.skip("Test doesn't make sense on empty data")
     elif isinstance(orig, MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
-    elif not all(
-        isinstance(elem, type(index_or_series_obj.values[0]))
-        for elem in index_or_series_obj.values[1:]
+    elif any(isinstance(elem, int) for elem in orig.values[:]) and any(
+        isinstance(elem, str) for elem in orig.values[:]
     ):
         pytest.skip("'<' not supported between instances of 'str' and 'int'")
 

@@ -33,7 +33,11 @@ from pandas.api.types import (
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
-    if not all(isinstance(elem, type(index.values[0])) for elem in index.values[1:]):
+    if (
+        len(index.values) > 0
+        and isinstance(index.values[0], int)
+        and isinstance(index.values[1], str)
+    ):
         with pytest.raises(TypeError, match="'<' not supported between "):
             index.sort_values()
     else:
@@ -101,9 +105,14 @@ def test_union_different_types(index_flat, index_flat2, request):
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
-    if not all(
-        isinstance(elem, type(idx1.values[0])) for elem in idx1.values[1:]
-    ) or not all(isinstance(elem, type(idx2.values[0])) for elem in idx2.values[1:]):
+    if (
+        len(idx1.values) > 0
+        and isinstance(idx1.values[0], int)
+        and isinstance(idx1.values[1], str)
+        or len(idx2.values) > 0
+        and isinstance(idx2.values[0], int)
+        and isinstance(idx2.values[1], str)
+    ):
         with pytest.raises(TypeError, match="'<' not supported between "):
             idx1.sort_values()
             idx2.sort_values()
@@ -379,8 +388,8 @@ class TestSetOps:
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        if not all(
-            isinstance(elem, type(second.values[0])) for elem in second.values[1:]
+        if any(isinstance(elem, int) for elem in second.values[:]) and any(
+            isinstance(elem, str) for elem in second.values[:]
         ):
             with pytest.raises(
                 TypeError,
@@ -455,8 +464,10 @@ class TestSetOps:
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        if not all(
-            isinstance(elem, type(index.values[0])) for elem in index.values[1:]
+        if (
+            len(index.values) > 0
+            and isinstance(index.values[0], int)
+            and isinstance(index.values[1], str)
         ):
             with pytest.raises(
                 TypeError,

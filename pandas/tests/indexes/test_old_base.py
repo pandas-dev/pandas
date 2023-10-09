@@ -331,26 +331,40 @@ class TestBase:
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
 
-        if not all(
-            isinstance(elem, type(index.values[0])) for elem in index.values[1:]
+        if (
+            len(index.values) > 0
+            and isinstance(index.values[0], int)
+            and isinstance(index.values[1], str)
         ):
-            pytest.skip("'<' not supported between instances of 'str' and 'int'")
-        result = index.argsort()
-        expected = np.array(index).argsort()
-        tm.assert_numpy_array_equal(result, expected, check_dtype=False)
+            with pytest.raises(
+                TypeError,
+                match="'<' not supported between instances of 'str' and 'int'",
+            ):
+                index.argsort()
+        else:
+            result = index.argsort()
+            expected = np.array(index).argsort()
+            tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     def test_numpy_argsort(self, index):
-        if not all(
-            isinstance(elem, type(index.values[0])) for elem in index.values[1:]
+        if (
+            len(index.values) > 0
+            and isinstance(index.values[0], int)
+            and isinstance(index.values[1], str)
         ):
-            pytest.skip("'<' not supported between instances of 'str' and 'int'")
-        result = np.argsort(index)
-        expected = index.argsort()
-        tm.assert_numpy_array_equal(result, expected)
+            with pytest.raises(
+                TypeError,
+                match="'<' not supported between instances of 'str' and 'int'",
+            ):
+                np.argsort(index)
+        else:
+            result = np.argsort(index)
+            expected = index.argsort()
+            tm.assert_numpy_array_equal(result, expected)
 
-        result = np.argsort(index, kind="mergesort")
-        expected = index.argsort(kind="mergesort")
-        tm.assert_numpy_array_equal(result, expected)
+            result = np.argsort(index, kind="mergesort")
+            expected = index.argsort(kind="mergesort")
+            tm.assert_numpy_array_equal(result, expected)
 
         # these are the only two types that perform
         # pandas compatibility input validation - the

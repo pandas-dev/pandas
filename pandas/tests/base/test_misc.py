@@ -151,11 +151,15 @@ def test_searchsorted(request, index_or_series_obj):
         #  comparison semantics https://github.com/numpy/numpy/issues/15981
         mark = pytest.mark.xfail(reason="complex objects are not comparable")
         request.node.add_marker(mark)
-    elif not all(
-        isinstance(elem, type(index_or_series_obj.values[0]))
-        for elem in index_or_series_obj.values[1:]
+    elif any(isinstance(elem, int) for elem in obj.values[:]) and any(
+        isinstance(elem, str) for elem in obj.values[:]
     ):
-        pytest.skip("'>' not supported between instances of 'str' and 'int'")
+        with pytest.raises(
+            TypeError, match="'>' not supported between instances of 'str' and 'int'"
+        ):
+            max_obj = max(obj, default=0)
+            index = np.searchsorted(obj, max_obj)
+        return
 
     max_obj = max(obj, default=0)
     index = np.searchsorted(obj, max_obj)
