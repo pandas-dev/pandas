@@ -861,7 +861,7 @@ class MultiIndex(Index):
         >>> idx = pd.MultiIndex.from_product([('insect', 'mammal'),
         ... ('goat', 'dog','cat','ant','spides')], names=['class', 'animal'])
         >>> print(idx.levels)
-        FrozenList([['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']])
+        [['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']]
 
         >>> leg_num = pd.DataFrame(data=(1,2,3,4,5,6,7,8,9,2),
         ... index=idx, columns=['leg'])
@@ -869,9 +869,9 @@ class MultiIndex(Index):
         ... leg_num.index.get_level_values('class')]]
 
         >>> print(leg_num.index.levels)
-        FrozenList([['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']])
+        [['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']]
         >>> print(insect_leg_num.index.levels)
-        FrozenList([['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']])
+        [['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']]
         """
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
