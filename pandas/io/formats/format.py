@@ -7,7 +7,6 @@ from __future__ import annotations
 from collections.abc import (
     Generator,
     Hashable,
-    Iterable,
     Mapping,
     Sequence,
 )
@@ -26,7 +25,6 @@ from typing import (
     Final,
     cast,
 )
-from unicodedata import east_asian_width
 
 import numpy as np
 
@@ -226,7 +224,7 @@ class SeriesFormatter:
             float_format = get_option("display.float_format")
         self.float_format = float_format
         self.dtype = dtype
-        self.adj = get_adjustment()
+        self.adj = printing.get_adjustment()
 
         self._chk_truncate()
 
@@ -345,69 +343,6 @@ class SeriesFormatter:
             result += "\n" + footer
 
         return str("".join(result))
-
-
-class _TextAdjustment:
-    def __init__(self) -> None:
-        self.encoding = get_option("display.encoding")
-
-    def len(self, text: str) -> int:
-        return len(text)
-
-    def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
-        return printing.justify(texts, max_len, mode=mode)
-
-    def adjoin(self, space: int, *lists, **kwargs) -> str:
-        return printing.adjoin(
-            space, *lists, strlen=self.len, justfunc=self.justify, **kwargs
-        )
-
-
-class _EastAsianTextAdjustment(_TextAdjustment):
-    def __init__(self) -> None:
-        super().__init__()
-        if get_option("display.unicode.ambiguous_as_wide"):
-            self.ambiguous_width = 2
-        else:
-            self.ambiguous_width = 1
-
-        # Definition of East Asian Width
-        # https://unicode.org/reports/tr11/
-        # Ambiguous width can be changed by option
-        self._EAW_MAP = {"Na": 1, "N": 1, "W": 2, "F": 2, "H": 1}
-
-    def len(self, text: str) -> int:
-        """
-        Calculate display width considering unicode East Asian Width
-        """
-        if not isinstance(text, str):
-            return len(text)
-
-        return sum(
-            self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
-        )
-
-    def justify(
-        self, texts: Iterable[str], max_len: int, mode: str = "right"
-    ) -> list[str]:
-        # re-calculate padding space per str considering East Asian Width
-        def _get_pad(t):
-            return max_len - self.len(t) + len(t)
-
-        if mode == "left":
-            return [x.ljust(_get_pad(x)) for x in texts]
-        elif mode == "center":
-            return [x.center(_get_pad(x)) for x in texts]
-        else:
-            return [x.rjust(_get_pad(x)) for x in texts]
-
-
-def get_adjustment() -> _TextAdjustment:
-    use_east_asian_width = get_option("display.unicode.east_asian_width")
-    if use_east_asian_width:
-        return _EastAsianTextAdjustment()
-    else:
-        return _TextAdjustment()
 
 
 def get_dataframe_repr_params() -> dict[str, Any]:
@@ -529,7 +464,7 @@ class DataFrameFormatter:
 
         self.tr_frame = self.frame
         self.truncate()
-        self.adj = get_adjustment()
+        self.adj = printing.get_adjustment()
 
     def get_strcols(self) -> list[list[str]]:
         """
@@ -1789,13 +1724,13 @@ def _make_fixed_width(
     strings: list[str],
     justify: str = "right",
     minimum: int | None = None,
-    adj: _TextAdjustment | None = None,
+    adj: printing._TextAdjustment | None = None,
 ) -> list[str]:
     if len(strings) == 0 or justify == "all":
         return strings
 
     if adj is None:
-        adjustment = get_adjustment()
+        adjustment = printing.get_adjustment()
     else:
         adjustment = adj
 
