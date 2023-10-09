@@ -852,26 +852,24 @@ class MultiIndex(Index):
         level in the MultiIndex and contains the unique values found in that
         specific level.
 
-        If the DataFrame not using all levels, this method still returns the original
-        levels of the MultiIndex.
-        When using this method on a DataFrame index, it may show "extra".
+        if a MultiIndex is created with levels A, B, C, and the DataFrame using
+        it filters out all rows of the level C, MultiIndex.levels will still
+        return A, B, C.
 
         Examples
         --------
-        >>> idx = pd.MultiIndex.from_product([('insect', 'mammal'),
-        ... ('goat', 'dog','cat','ant','spides')], names=['class', 'animal'])
-        >>> print(idx.levels)
-        [['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']]
+        >>> level1 = ['mammal']
+        >>> level2 = ['goat', 'human', 'cat', 'dog']
+        >>> index = pd.MultiIndex.from_product([level1, level2],
+        ... names=['Category', 'Animals'])
+        >>> leg_num = pd.DataFrame(data=(4, 2, 4, 4), index=index, columns=['Legs'])
+        >>> leg_num.index.levels
+        FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
 
-        >>> leg_num = pd.DataFrame(data=(1,2,3,4,5,6,7,8,9,2),
-        ... index=idx, columns=['leg'])
-        >>> insect_leg_num = leg_num.loc[['insect'==d for d in
-        ... leg_num.index.get_level_values('class')]]
-
-        >>> print(leg_num.index.levels)
-        [['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']]
-        >>> print(insect_leg_num.index.levels)
-        [['insect', 'mammal'], ['ant', 'cat', 'dog', 'goat', 'spides']]
+        # If the number of Legs is greater than 2 as the filter condition, the levels do not change
+        >>> large_leg_num = leg_num[leg_num.Legs > 2]
+        >>> large_leg_num.index.levels
+        FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
         """
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
