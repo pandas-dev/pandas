@@ -475,7 +475,7 @@ class TestGrouping:
         df = DataFrame(
             {
                 "id": ["a", "b"] * 3,
-                "b": date_range("2000-01-01", "2000-01-03", freq="9H"),
+                "b": date_range("2000-01-01", "2000-01-03", freq="9h"),
             }
         )
         grouper = Grouper(key="b", freq="D")

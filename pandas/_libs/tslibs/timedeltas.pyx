@@ -898,8 +898,8 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
             elif c in ["W", "D", "H", "M"]:
                 if c in ["H", "M"] and len(number) > 2:
                     raise ValueError(err_msg)
-                if c == "M":
-                    c = "min"
+                if c in ["M", "H"]:
+                    c = c.replace("M", "min").replace("H", "h")
                 unit.append(c)
                 r = timedelta_from_spec(number, "0", unit)
                 result += timedelta_as_neg(r, neg)
@@ -1442,7 +1442,7 @@ cdef class _Timedelta(timedelta):
         Resolution:     Return value
 
         * Days:         'D'
-        * Hours:        'H'
+        * Hours:        'h'
         * Minutes:      'min'
         * Seconds:      's'
         * Milliseconds: 'ms'
@@ -1484,7 +1484,7 @@ cdef class _Timedelta(timedelta):
         elif self._m:
             return "min"
         elif self._h:
-            return "H"
+            return "h"
         else:
             return "D"
 
@@ -1725,8 +1725,8 @@ class Timedelta(_Timedelta):
 
         .. deprecated:: 2.2.0
 
-            Values `T`, `S`, `L`, `U`, and `N` are deprecated in favour of the values
-            `min`, `s`, `ms`, `us`, and `ns`.
+            Values `H`, `T`, `S`, `L`, `U`, and `N` are deprecated in favour
+            of the values `h`, `min`, `s`, `ms`, `us`, and `ns`.
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,

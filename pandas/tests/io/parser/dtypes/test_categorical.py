@@ -275,9 +275,9 @@ def test_categorical_coerces_timestamp(all_parsers):
 
 def test_categorical_coerces_timedelta(all_parsers):
     parser = all_parsers
-    dtype = {"b": CategoricalDtype(pd.to_timedelta(["1H", "2H", "3H"]))}
+    dtype = {"b": CategoricalDtype(pd.to_timedelta(["1h", "2h", "3h"]))}
 
-    data = "b\n1H\n2H\n3H"
+    data = "b\n1h\n2h\n3h"
     expected = DataFrame({"b": Categorical(dtype["b"].categories)})
 
     result = parser.read_csv(StringIO(data), dtype=dtype)
