@@ -2238,6 +2238,8 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
+    char thousands = '0',
+    char decimal = '.',
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Convert object array to a numeric array if possible.
@@ -2388,7 +2390,7 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                floatify(val, &fval, &maybe_int)
+                floatify(val, &fval, &maybe_int, decimal, thousands)
 
                 if fval in na_values:
                     seen.saw_null()
