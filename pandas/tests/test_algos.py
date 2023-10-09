@@ -70,6 +70,11 @@ class TestFactorize:
             expected_uniques = expected_uniques.astype(object)
 
         if sort:
+            if not all(
+                isinstance(elem, type(expected_uniques.values[0]))
+                for elem in expected_uniques.values[1:]
+            ):
+                pytest.skip("'<' not supported between instances of 'str' and 'int'")
             expected_uniques = expected_uniques.sort_values()
 
         # construct an integer ndarray so that

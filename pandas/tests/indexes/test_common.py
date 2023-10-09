@@ -448,8 +448,14 @@ class TestCommon:
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        index_with_missing.sort_values(na_position=na_position)
+    if not all(
+        isinstance(sub, type(index_with_missing.values[0]))
+        for sub in index_with_missing.values[1:]
+    ):
+        pytest.skip("'<' not supported between instances of 'str' and 'int'")
+    else:
+        with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
+            index_with_missing.sort_values(na_position=na_position)
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
@@ -467,17 +473,25 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values
-    sorted_values = np.sort(not_na_vals)
-    if na_position == "first":
-        sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+    if not all(isinstance(sub, type(not_na_vals[0])) for sub in not_na_vals[1:]):
+        with pytest.raises(
+            TypeError, match="'<' not supported between instances of 'int' and 'str'"
+        ):
+            np.sort(not_na_vals)
     else:
-        sorted_values = np.concatenate([sorted_values, [None] * missing_count])
+        sorted_values = np.sort(not_na_vals)
+        if na_position == "first":
+            sorted_values = np.concatenate([[None] * missing_count, sorted_values])
+        else:
+            sorted_values = np.concatenate([sorted_values, [None] * missing_count])
 
-    # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
-    expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
+        # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
+        expected = type(index_with_missing)(
+            sorted_values, dtype=index_with_missing.dtype
+        )
 
-    result = index_with_missing.sort_values(na_position=na_position)
-    tm.assert_index_equal(result, expected)
+        result = index_with_missing.sort_values(na_position=na_position)
+        tm.assert_index_equal(result, expected)
 
 
 def test_ndarray_compat_properties(index):

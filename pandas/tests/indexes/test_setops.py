@@ -33,9 +33,13 @@ from pandas.api.types import (
 def test_union_same_types(index):
     # Union with a non-unique, non-monotonic index raises error
     # Only needed for bool index factory
-    idx1 = index.sort_values()
-    idx2 = index.sort_values()
-    assert idx1.union(idx2).dtype == idx1.dtype
+    if not all(isinstance(elem, type(index.values[0])) for elem in index.values[1:]):
+        with pytest.raises(TypeError, match="'<' not supported between "):
+            index.sort_values()
+    else:
+        idx1 = index.sort_values()
+        idx2 = index.sort_values()
+        assert idx1.union(idx2).dtype == idx1.dtype
 
 
 def test_union_different_types(index_flat, index_flat2, request):
@@ -97,19 +101,25 @@ def test_union_different_types(index_flat, index_flat2, request):
 
     # Union with a non-unique, non-monotonic index raises error
     # This applies to the boolean index
-    idx1 = idx1.sort_values()
-    idx2 = idx2.sort_values()
-
-    with tm.assert_produces_warning(warn, match=msg):
-        res1 = idx1.union(idx2)
-        res2 = idx2.union(idx1)
-
-    if any_uint64 and (idx1_signed or idx2_signed):
-        assert res1.dtype == np.dtype("O")
-        assert res2.dtype == np.dtype("O")
+    if not all(
+        isinstance(elem, type(idx1.values[0])) for elem in idx1.values[1:]
+    ) or not all(isinstance(elem, type(idx2.values[0])) for elem in idx2.values[1:]):
+        with pytest.raises(TypeError, match="'<' not supported between "):
+            idx1.sort_values()
+            idx2.sort_values()
     else:
-        assert res1.dtype == common_dtype
-        assert res2.dtype == common_dtype
+        idx1 = idx1.sort_values()
+        idx2 = idx2.sort_values()
+        with tm.assert_produces_warning(warn, match=msg):
+            res1 = idx1.union(idx2)
+            res2 = idx2.union(idx1)
+
+        if any_uint64 and (idx1_signed or idx2_signed):
+            assert res1.dtype == np.dtype("O")
+            assert res2.dtype == np.dtype("O")
+        else:
+            assert res1.dtype == common_dtype
+            assert res2.dtype == common_dtype
 
 
 @pytest.mark.parametrize(
@@ -369,9 +379,18 @@ class TestSetOps:
         # test copy.union(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        union = first.union(second).sort_values()
-        expected = index.set_names(expected_name).sort_values()
-        tm.assert_index_equal(union, expected)
+        if not all(
+            isinstance(elem, type(second.values[0])) for elem in second.values[1:]
+        ):
+            with pytest.raises(
+                TypeError,
+                match="'<' not supported between ",
+            ):
+                first.union(second).sort_values()
+        else:
+            union = first.union(second).sort_values()
+            expected = index.set_names(expected_name).sort_values()
+            tm.assert_index_equal(union, expected)
 
     @pytest.mark.parametrize(
         "fname, sname, expected_name",
@@ -436,9 +455,18 @@ class TestSetOps:
         # test copy.intersection(subset) - need sort for unicode and string
         first = index.copy().set_names(fname)
         second = index[1:].set_names(sname)
-        intersect = first.intersection(second).sort_values()
-        expected = index[1:].set_names(expected_name).sort_values()
-        tm.assert_index_equal(intersect, expected)
+        if not all(
+            isinstance(elem, type(index.values[0])) for elem in index.values[1:]
+        ):
+            with pytest.raises(
+                TypeError,
+                match="'<' not supported between ",
+            ):
+                first.intersection(second).sort_values()
+        else:
+            intersect = first.intersection(second).sort_values()
+            expected = index[1:].set_names(expected_name).sort_values()
+            tm.assert_index_equal(intersect, expected)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_intersection_name_retention_with_nameless(self, index):

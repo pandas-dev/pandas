@@ -46,12 +46,20 @@ def test_value_counts(index_or_series_obj):
             # i.e IntegerDtype
             expected = expected.astype("Int64")
 
-    # TODO(GH#32514): Order of entries with the same count is inconsistent
-    #  on CI (gh-32449)
-    if obj.duplicated().any():
-        result = result.sort_index()
-        expected = expected.sort_index()
-    tm.assert_series_equal(result, expected)
+    if not all(
+        isinstance(elem, type(index_or_series_obj.values[0]))
+        for elem in index_or_series_obj.values[1:]
+    ):
+        msg = "'<' not supported between "
+        with pytest.raises(TypeError, match=msg):
+            result.sort_index()
+    else:
+        # TODO(GH#32514): Order of entries with the same count is inco8nsistent
+        #  on CI (gh-32449)
+        if obj.duplicated().any():
+            result = result.sort_index()
+            expected = expected.sort_index()
+        tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("null_obj", [np.nan, None])
@@ -66,6 +74,11 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         pytest.skip("Test doesn't make sense on empty data")
     elif isinstance(orig, MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
+    elif not all(
+        isinstance(elem, type(index_or_series_obj.values[0]))
+        for elem in index_or_series_obj.values[1:]
+    ):
+        pytest.skip("'<' not supported between instances of 'str' and 'int'")
 
     values = obj._values
     values[0:2] = null_obj
