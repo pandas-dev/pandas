@@ -293,7 +293,7 @@ class TestRoundTrip:
             [
                 range(4),
                 pd.interval_range(
-                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6M"
+                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6ME"
                 ),
             ]
         )
@@ -751,7 +751,7 @@ class TestExcelWriter:
         tm.assert_frame_equal(expected, recons)
 
     def test_to_excel_periodindex(self, tsframe, path):
-        xp = tsframe.resample("M", kind="period").mean()
+        xp = tsframe.resample("ME", kind="period").mean()
 
         xp.to_excel(path, sheet_name="sht1")
 

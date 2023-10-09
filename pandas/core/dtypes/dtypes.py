@@ -928,6 +928,13 @@ class DatetimeTZDtype(PandasExtensionDtype):
         self._tz = state["tz"]
         self._unit = state["unit"]
 
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        if all(isinstance(t, DatetimeTZDtype) and t.tz == self.tz for t in dtypes):
+            np_dtype = np.max([cast(DatetimeTZDtype, t).base for t in [self, *dtypes]])
+            unit = np.datetime_data(np_dtype)[0]
+            return type(self)(unit=unit, tz=self.tz)
+        return super()._get_common_dtype(dtypes)
+
     @cache_readonly
     def index_class(self) -> type_t[DatetimeIndex]:
         from pandas import DatetimeIndex
@@ -1035,7 +1042,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
                 if m is not None:
                     freq = m.group("freq")
 
-            freq_offset = to_offset(freq)
+            freq_offset = to_offset(freq, is_period=True)
             if freq_offset is not None:
                 return freq_offset
 

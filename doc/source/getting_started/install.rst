@@ -247,14 +247,14 @@ Dependency                                            Minimum Version    pip ext
 Visualization
 ^^^^^^^^^^^^^
 
-Installable with ``pip install "pandas[plot, output_formatting]"``.
+Installable with ``pip install "pandas[plot, output-formatting]"``.
 
 ========================= ================== ================== =============================================================
 Dependency                Minimum Version    pip extra          Notes
 ========================= ================== ================== =============================================================
 matplotlib                3.6.1              plot               Plotting library
-Jinja2                    3.1.2              output_formatting  Conditional formatting with DataFrame.style
-tabulate                  0.8.10             output_formatting  Printing in Markdown-friendly format (see `tabulate`_)
+Jinja2                    3.1.2              output-formatting  Conditional formatting with DataFrame.style
+tabulate                  0.8.10             output-formatting  Printing in Markdown-friendly format (see `tabulate`_)
 ========================= ================== ================== =============================================================
 
 Computation

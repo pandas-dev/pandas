@@ -2332,7 +2332,7 @@ A few notes on the generated table schema:
 
   .. ipython:: python
 
-     s_per = pd.Series(1, index=pd.period_range("2016", freq="A-DEC", periods=4))
+     s_per = pd.Series(1, index=pd.period_range("2016", freq="Y-DEC", periods=4))
      build_table_schema(s_per)
 
 * Categoricals use the ``any`` type and an ``enum`` constraint listing
