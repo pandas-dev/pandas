@@ -844,16 +844,10 @@ class IntervalIndex(ExtensionIndex):
 
     # --------------------------------------------------------------------
     # Rendering Methods
-    # __repr__ associated methods are based on MultiIndex
 
     def _format_with_header(self, *, header: list[str], na_rep: str) -> list[str]:
         # matches base class except for whitespace padding
         return header + list(self._format_native_types(na_rep=na_rep))
-
-    def _format_data(self, name=None) -> str:
-        # TODO: integrate with categorical and make generic
-        # name argument is unused here; just for compat with base / categorical
-        return f"{self._data._format_data()},{self._format_space()}"
 
     # --------------------------------------------------------------------
     # Set Operations
