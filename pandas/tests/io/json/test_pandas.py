@@ -599,7 +599,7 @@ class TestPandasContainer:
         )
 
         # JSON deserialisation always creates unicode strings
-        df_mixed.columns = df_mixed.columns.astype("unicode")
+        df_mixed.columns = df_mixed.columns.astype(np.str_)
         data = StringIO(df_mixed.to_json(orient="split"))
         df_roundtrip = read_json(data, orient="split")
         tm.assert_frame_equal(
