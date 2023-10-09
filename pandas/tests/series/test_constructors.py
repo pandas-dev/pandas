@@ -2134,16 +2134,14 @@ class TestSeriesConstructorIndexCoercion:
         #  to DatetimeIndex GH#39307, GH#23598
         assert not isinstance(ser.index, DatetimeIndex)
 
-    def test_series_constructor_infer_multiindex(self):
-        index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
+    @pytest.mark.parametrize("container", [None, np.array, Series, Index])
+    @pytest.mark.parametrize("data", [1.0, range(4)])
+    def test_series_constructor_infer_multiindex(self, container, data):
+        indexes = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
+        if container is not None:
+            indexes = [container(ind) for ind in indexes]
 
-        multi = Series(1.0, index=[np.array(x) for x in index_lists])
-        assert isinstance(multi.index, MultiIndex)
-
-        multi = Series(1.0, index=index_lists)
-        assert isinstance(multi.index, MultiIndex)
-
-        multi = Series(range(4), index=index_lists)
+        multi = Series(data, index=indexes)
         assert isinstance(multi.index, MultiIndex)
 
 
@@ -2224,9 +2222,3 @@ def test_series_with_complex_nan(input_list):
     result = Series(ser.array)
     assert ser.dtype == "complex128"
     tm.assert_series_equal(ser, result)
-
-
-def test_series_with_multiindex_of_series():
-    # GH#55228
-    ind = [Series([1]), Series([2])]
-    Series([1.23], index=ind)
