@@ -866,7 +866,8 @@ class MultiIndex(Index):
         >>> leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
 
-        # If the number of Legs is greater than 2 as the filter condition, the levels do not change
+        # If the number of Legs is greater than 2 as the filter condition,
+        # the levels do not change
         >>> large_leg_num = leg_num[leg_num.Legs > 2]
         >>> large_leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
