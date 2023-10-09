@@ -253,7 +253,7 @@ class TestDataFrameToRecords:
             ),
             # Pass in a dtype instance.
             (
-                {"column_dtypes": np.dtype("unicode")},
+                {"column_dtypes": np.dtype(np.str_)},
                 np.rec.array(
                     [("0", "1", "0.2", "a"), ("1", "2", "1.5", "bc")],
                     dtype=[

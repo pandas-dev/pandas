@@ -977,7 +977,7 @@ class StataParser:
         # with a label, but the underlying variable is -127 to 100
         # we're going to drop the label and cast to int
         self.DTYPE_MAP = dict(
-            list(zip(range(1, 245), [np.dtype("a" + str(i)) for i in range(1, 245)]))
+            [(i, np.dtype(f"S{i}")) for i in range(1, 245)]
             + [
                 (251, np.dtype(np.int8)),
                 (252, np.dtype(np.int16)),

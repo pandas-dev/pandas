@@ -403,12 +403,12 @@ class TestAstype:
             #  bytes with obj.decode() instead of str(obj)
             item = "野菜食べないとやばい"
             ser = Series([item.encode()])
-            result = ser.astype("unicode")
+            result = ser.astype(np.str_)
             expected = Series([item])
             tm.assert_series_equal(result, expected)
 
         for ser in test_series:
-            res = ser.astype("unicode")
+            res = ser.astype(np.str_)
             expec = ser.map(str)
             tm.assert_series_equal(res, expec)
 
