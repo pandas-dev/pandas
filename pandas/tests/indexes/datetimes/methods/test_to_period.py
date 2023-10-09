@@ -60,7 +60,7 @@ class TestToPeriod:
     def test_to_period_annualish(self, off):
         rng = date_range("01-Jan-2012", periods=8, freq=off)
         prng = rng.to_period()
-        assert prng.freq == "A-DEC"
+        assert prng.freq == "Y-DEC"
 
     def test_to_period_monthish(self):
         offsets = ["MS", "BM"]
@@ -112,7 +112,7 @@ class TestToPeriod:
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
         dti = date_range("1/1/2000", "1/7/2002", freq="B")
-        pi = dti.to_period(freq="H")
+        pi = dti.to_period(freq="h")
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
     def test_to_period_millisecond(self):

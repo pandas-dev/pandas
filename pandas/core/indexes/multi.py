@@ -73,9 +73,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
     ABCSeries,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
@@ -768,8 +766,8 @@ class MultiIndex(Index):
                 vals = cast("CategoricalIndex", vals)
                 vals = vals._data._internal_get_values()
 
-            if isinstance(vals.dtype, ExtensionDtype) or isinstance(
-                vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
+            if isinstance(vals.dtype, ExtensionDtype) or lib.is_np_dtype(
+                vals.dtype, "mM"
             ):
                 vals = vals.astype(object)
 
@@ -1948,7 +1946,7 @@ class MultiIndex(Index):
                     # indexer to reorder the level codes
                     indexer = ensure_platform_int(indexer)
                     ri = lib.get_reverse_indexer(indexer, len(indexer))
-                    level_codes = algos.take_nd(ri, level_codes)
+                    level_codes = algos.take_nd(ri, level_codes, fill_value=-1)
 
             new_levels.append(lev)
             new_codes.append(level_codes)

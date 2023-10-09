@@ -127,7 +127,6 @@ generated/pandas.api.types.is_number,../reference/api/pandas.api.types.is_number
 generated/pandas.api.types.is_numeric_dtype,../reference/api/pandas.api.types.is_numeric_dtype
 generated/pandas.api.types.is_object_dtype,../reference/api/pandas.api.types.is_object_dtype
 generated/pandas.api.types.is_period_dtype,../reference/api/pandas.api.types.is_period_dtype
-generated/pandas.api.types.is_period,../reference/api/pandas.api.types.is_period
 generated/pandas.api.types.is_re_compilable,../reference/api/pandas.api.types.is_re_compilable
 generated/pandas.api.types.is_re,../reference/api/pandas.api.types.is_re
 generated/pandas.api.types.is_scalar,../reference/api/pandas.api.types.is_scalar
