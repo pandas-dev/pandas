@@ -142,7 +142,7 @@ _period_code_map = {
 
     "B": PeriodDtypeCode.B,        # Business days
     "D": PeriodDtypeCode.D,        # Daily
-    "H": PeriodDtypeCode.H,        # Hourly
+    "h": PeriodDtypeCode.H,        # Hourly
     "min": PeriodDtypeCode.T,      # Minutely
     "s": PeriodDtypeCode.S,        # Secondly
     "ms": PeriodDtypeCode.L,       # Millisecondly
@@ -175,7 +175,7 @@ _attrname_to_abbrevs = {
     "quarter": "Q",
     "month": "M",
     "day": "D",
-    "hour": "H",
+    "hour": "h",
     "minute": "min",
     "second": "s",
     "millisecond": "ms",
@@ -203,7 +203,7 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "ms": "ms",
     "us": "us",
     "ns": "ns",
-    "H": "H",
+    "h": "h",
     "Q": "Q",
     "Y": "Y",
     "W": "W",
@@ -244,6 +244,9 @@ DEPR_ABBREVS: dict[str, str]= {
     "A-SEP": "Y-SEP",
     "A-OCT": "Y-OCT",
     "A-NOV": "Y-NOV",
+    "H": "h",
+    "BH": "bh",
+    "CBH": "cbh",
     "T": "min",
     "t": "min",
     "S": "s",
@@ -339,10 +342,10 @@ class Resolution(Enum):
 
         Examples
         --------
-        >>> Resolution.get_reso_from_freqstr('H')
+        >>> Resolution.get_reso_from_freqstr('h')
         <Resolution.RESO_HR: 5>
 
-        >>> Resolution.get_reso_from_freqstr('H') == Resolution.RESO_HR
+        >>> Resolution.get_reso_from_freqstr('h') == Resolution.RESO_HR
         True
         """
         try:

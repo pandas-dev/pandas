@@ -2166,7 +2166,7 @@ c  10  11  12  13  14\
                 "B": [
                     pd.Period("2011-01", freq="M"),
                     pd.Period("2011-02-01", freq="D"),
-                    pd.Period("2011-03-01 09:00", freq="H"),
+                    pd.Period("2011-03-01 09:00", freq="h"),
                     pd.Period("2011-04", freq="M"),
                 ],
                 "C": list("abcd"),
@@ -2703,7 +2703,7 @@ class TestSeriesFormatting:
             [
                 pd.Period("2011-01", freq="M"),
                 pd.Period("2011-02-01", freq="D"),
-                pd.Period("2011-03-01 09:00", freq="H"),
+                pd.Period("2011-03-01 09:00", freq="h"),
             ]
         )
         exp = (
@@ -3330,10 +3330,10 @@ class TestNaTFormatting:
 
 class TestPeriodIndexFormat:
     def test_period_format_and_strftime_default(self):
-        per = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq="H")
-        msg = "PeriodIndex.format is deprecated"
+        per = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq="h")
 
         # Default formatting
+        msg = "PeriodIndex.format is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             formatted = per.format()
         assert formatted[0] == "2003-01-01 12:00"  # default: minutes not shown
@@ -3384,14 +3384,14 @@ class TestPeriodIndexFormat:
         # Converting to a period looses the timezone information
         # Since tz is currently set as utc, we'll see 2012
         with tm.assert_produces_warning(UserWarning, match="will drop timezone"):
-            per = dt.to_period(freq="H")
+            per = dt.to_period(freq="h")
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert per.format()[0] == "2012-12-31 23:00"
 
         # If tz is currently set as paris before conversion, we'll see 2013
         dt = dt.tz_convert("Europe/Paris")
         with tm.assert_produces_warning(UserWarning, match="will drop timezone"):
-            per = dt.to_period(freq="H")
+            per = dt.to_period(freq="h")
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert per.format()[0] == "2013-01-01 00:00"
 
@@ -3415,7 +3415,7 @@ class TestPeriodIndexFormat:
         # Change locale temporarily for this test.
         with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
             # Scalar
-            per = pd.Period("2018-03-11 13:00", freq="H")
+            per = pd.Period("2018-03-11 13:00", freq="h")
             assert per.strftime("%y é") == "18 é"
 
             # Index
@@ -3449,7 +3449,7 @@ class TestPeriodIndexFormat:
             am_local, pm_local = get_local_am_pm()
 
             # Scalar
-            per = pd.Period("2018-03-11 13:00", freq="H")
+            per = pd.Period("2018-03-11 13:00", freq="h")
             assert per.strftime("%p") == pm_local
 
             # Index

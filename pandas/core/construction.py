@@ -203,7 +203,7 @@ def array(
     ['2015-01-01 00:00:00', '2016-01-01 00:00:00']
     Length: 2, dtype: datetime64[ns]
 
-    >>> pd.array(["1H", "2H"], dtype='timedelta64[ns]')
+    >>> pd.array(["1h", "2h"], dtype='timedelta64[ns]')
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
