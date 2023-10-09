@@ -2357,7 +2357,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     return latex_styles
 
 
-def _escape_latex(s):
+def _escape_latex(s: str) -> str:
     r"""
     Replace the characters ``&``, ``%``, ``$``, ``#``, ``_``, ``{``, ``}``,
     ``~``, ``^``, and ``\`` in the string with LaTeX-safe sequences.
@@ -2392,7 +2392,7 @@ def _escape_latex(s):
     )
 
 
-def _math_mode_with_dollar(s):
+def _math_mode_with_dollar(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 
@@ -2425,7 +2425,7 @@ def _math_mode_with_dollar(s):
     return "".join(res).replace(r"rt8§=§7wz", r"\$")
 
 
-def _math_mode_with_parentheses(s):
+def _math_mode_with_parentheses(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 
@@ -2461,7 +2461,7 @@ def _math_mode_with_parentheses(s):
     return "".join(res)
 
 
-def _escape_latex_math(s):
+def _escape_latex_math(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 
