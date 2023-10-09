@@ -1306,7 +1306,7 @@ def test_positional_slice_groups_datetimelike():
     # GH 21651
     expected = DataFrame(
         {
-            "date": pd.date_range("2010-01-01", freq="12H", periods=5),
+            "date": pd.date_range("2010-01-01", freq="12h", periods=5),
             "vals": range(5),
             "let": list("abcde"),
         }

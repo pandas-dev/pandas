@@ -457,7 +457,7 @@ class TestIndex:
         ["string", "int64", "int32", "uint64", "uint32", "float64", "float32"],
         indirect=True,
     )
-    @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
+    @pytest.mark.parametrize("dtype", [int, np.bool_])
     def test_empty_fancy(self, index, dtype):
         empty_arr = np.array([], dtype=dtype)
         empty_index = type(index)([], dtype=index.dtype)
@@ -980,7 +980,7 @@ class TestIndex:
             Index(range(5)),
             tm.makeDateIndex(10),
             MultiIndex.from_tuples([("foo", "1"), ("bar", "3")]),
-            period_range(start="2000", end="2010", freq="A"),
+            period_range(start="2000", end="2010", freq="Y"),
         ],
     )
     def test_str_attribute_raises(self, index):
