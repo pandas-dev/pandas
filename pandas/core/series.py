@@ -48,6 +48,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -167,6 +168,7 @@ if TYPE_CHECKING:
         IndexKeyFunc,
         IndexLabel,
         Level,
+        MutableMappingT,
         NaPosition,
         NumpySorter,
         NumpyValueArrayLike,
@@ -1922,21 +1924,40 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.index
 
-    def to_dict(self, into: type[dict] = dict) -> dict:
+    @overload
+    def to_dict(
+        self, *, into: type[MutableMappingT] | MutableMappingT
+    ) -> MutableMappingT:
+        ...
+
+    @overload
+    def to_dict(self, *, into: type[dict] = ...) -> dict:
+        ...
+
+    # error: Incompatible default for argument "into" (default has type "type[
+    # dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self"], name="to_dict"
+    )
+    def to_dict(
+        self,
+        into: type[MutableMappingT]
+        | MutableMappingT = dict,  # type: ignore[assignment]
+    ) -> MutableMappingT:
         """
         Convert Series to {label -> value} dict or dict-like object.
 
         Parameters
         ----------
         into : class, default dict
-            The collections.abc.Mapping subclass to use as the return
-            object. Can be the actual class or an empty
-            instance of the mapping type you want.  If you want a
-            collections.defaultdict, you must pass it initialized.
+            The collections.abc.MutableMapping subclass to use as the return
+            object. Can be the actual class or an empty instance of the mapping
+            type you want.  If you want a collections.defaultdict, you must
+            pass it initialized.
 
         Returns
         -------
-        collections.abc.Mapping
+        collections.abc.MutableMapping
             Key-value representation of Series.
 
         Examples
@@ -1945,10 +1966,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.to_dict()
         {0: 1, 1: 2, 2: 3, 3: 4}
         >>> from collections import OrderedDict, defaultdict
-        >>> s.to_dict(OrderedDict)
+        >>> s.to_dict(into=OrderedDict)
         OrderedDict([(0, 1), (1, 2), (2, 3), (3, 4)])
         >>> dd = defaultdict(list)
-        >>> s.to_dict(dd)
+        >>> s.to_dict(into=dd)
         defaultdict(<class 'list'>, {0: 1, 1: 2, 2: 3, 3: 4})
         """
         # GH16122
@@ -2141,7 +2162,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # Statistics, overridden ndarray methods
 
     # TODO: integrate bottleneck
-    def count(self):
+    def count(self) -> int:
         """
         Return number of non-NA/null observations in the Series.
 
@@ -3983,7 +4004,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if mask.any():
             # TODO(3.0): once this deprecation is enforced we can call
-            #  self.array.argsort directly, which will close GH#43840
+            #  self.array.argsort directly, which will close GH#43840 and
+            #  GH#12694
             warnings.warn(
                 "The behavior of Series.argsort in the presence of NA values is "
                 "deprecated. In a future version, NA values will be ordered "
@@ -4983,8 +5005,44 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             tolerance=tolerance,
         )
 
+    @overload  # type: ignore[override]
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: Literal[True],
+    ) -> None:
+        ...
+
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: Literal[False] = ...,
+    ) -> Self:
+        ...
+
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: bool = ...,
+    ) -> Self | None:
+        ...
+
     @doc(NDFrame.rename_axis)
-    def rename_axis(  # type: ignore[override]
+    def rename_axis(
         self,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
         *,
@@ -5165,7 +5223,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> ser = pd.Series([1,2,3])
+        >>> ser = pd.Series([1, 2, 3])
 
         >>> ser.pop(0)
         1
@@ -5651,7 +5709,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023    1
         2024    2
         2025    3
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
 
         The resulting frequency of the Timestamps is `YearBegin`
 
@@ -5670,7 +5728,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023-01-31    1
         2024-01-31    2
         2025-01-31    3
-        Freq: A-JAN, dtype: int64
+        Freq: Y-JAN, dtype: int64
         """
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
@@ -5705,12 +5763,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023    1
         2024    2
         2025    3
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
 
         Viewing the index
 
         >>> s.index
-        PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
+        PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
         """
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")

@@ -101,19 +101,19 @@ cdef class PeriodDtypeBase:
 
 _period_code_map = {
     # Annual freqs with various fiscal year ends.
-    # eg, 2005 for A-FEB runs Mar 1, 2004 to Feb 28, 2005
-    "A-DEC": PeriodDtypeCode.A_DEC,  # Annual - December year end
-    "A-JAN": PeriodDtypeCode.A_JAN,  # Annual - January year end
-    "A-FEB": PeriodDtypeCode.A_FEB,  # Annual - February year end
-    "A-MAR": PeriodDtypeCode.A_MAR,  # Annual - March year end
-    "A-APR": PeriodDtypeCode.A_APR,  # Annual - April year end
-    "A-MAY": PeriodDtypeCode.A_MAY,  # Annual - May year end
-    "A-JUN": PeriodDtypeCode.A_JUN,  # Annual - June year end
-    "A-JUL": PeriodDtypeCode.A_JUL,  # Annual - July year end
-    "A-AUG": PeriodDtypeCode.A_AUG,  # Annual - August year end
-    "A-SEP": PeriodDtypeCode.A_SEP,  # Annual - September year end
-    "A-OCT": PeriodDtypeCode.A_OCT,  # Annual - October year end
-    "A-NOV": PeriodDtypeCode.A_NOV,  # Annual - November year end
+    # eg, 2005 for Y-FEB runs Mar 1, 2004 to Feb 28, 2005
+    "Y-DEC": PeriodDtypeCode.A_DEC,  # Annual - December year end
+    "Y-JAN": PeriodDtypeCode.A_JAN,  # Annual - January year end
+    "Y-FEB": PeriodDtypeCode.A_FEB,  # Annual - February year end
+    "Y-MAR": PeriodDtypeCode.A_MAR,  # Annual - March year end
+    "Y-APR": PeriodDtypeCode.A_APR,  # Annual - April year end
+    "Y-MAY": PeriodDtypeCode.A_MAY,  # Annual - May year end
+    "Y-JUN": PeriodDtypeCode.A_JUN,  # Annual - June year end
+    "Y-JUL": PeriodDtypeCode.A_JUL,  # Annual - July year end
+    "Y-AUG": PeriodDtypeCode.A_AUG,  # Annual - August year end
+    "Y-SEP": PeriodDtypeCode.A_SEP,  # Annual - September year end
+    "Y-OCT": PeriodDtypeCode.A_OCT,  # Annual - October year end
+    "Y-NOV": PeriodDtypeCode.A_NOV,  # Annual - November year end
 
     # Quarterly frequencies with various fiscal year ends.
     # eg, Q42005 for Q-OCT runs Aug 1, 2005 to Oct 31, 2005
@@ -142,7 +142,7 @@ _period_code_map = {
 
     "B": PeriodDtypeCode.B,        # Business days
     "D": PeriodDtypeCode.D,        # Daily
-    "H": PeriodDtypeCode.H,        # Hourly
+    "h": PeriodDtypeCode.H,        # Hourly
     "min": PeriodDtypeCode.T,      # Minutely
     "s": PeriodDtypeCode.S,        # Secondly
     "ms": PeriodDtypeCode.L,       # Millisecondly
@@ -156,26 +156,26 @@ _reverse_period_code_map = {
 # Yearly aliases; careful not to put these in _reverse_period_code_map
 _period_code_map.update({"Y" + key[1:]: _period_code_map[key]
                          for key in _period_code_map
-                         if key.startswith("A-")})
+                         if key.startswith("Y-")})
 
 _period_code_map.update({
     "Q": 2000,   # Quarterly - December year end (default quarterly)
-    "A": PeriodDtypeCode.A,   # Annual
+    "Y": PeriodDtypeCode.A,   # Annual
     "W": 4000,   # Weekly
     "C": 5000,   # Custom Business Day
 })
 
 cdef set _month_names = {
-    x.split("-")[-1] for x in _period_code_map.keys() if x.startswith("A-")
+    x.split("-")[-1] for x in _period_code_map.keys() if x.startswith("Y-")
 }
 
 # Map attribute-name resolutions to resolution abbreviations
 _attrname_to_abbrevs = {
-    "year": "A",
+    "year": "Y",
     "quarter": "Q",
     "month": "M",
     "day": "D",
-    "hour": "H",
+    "hour": "h",
     "minute": "min",
     "second": "s",
     "millisecond": "ms",
@@ -192,9 +192,9 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "BQS": "Q",
     "QS": "Q",
     "BQ": "Q",
-    "BA": "A",
-    "AS": "A",
-    "BAS": "A",
+    "BA": "Y",
+    "AS": "Y",
+    "BAS": "Y",
     "MS": "M",
     "D": "D",
     "B": "B",
@@ -203,17 +203,21 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "ms": "ms",
     "us": "us",
     "ns": "ns",
-    "H": "H",
+    "h": "h",
     "Q": "Q",
-    "A": "A",
+    "Y": "Y",
     "W": "W",
     "ME": "M",
-    "Y": "A",
-    "BY": "A",
-    "YS": "A",
-    "BYS": "A",
+    "BY": "Y",
+    "YS": "Y",
+    "BYS": "Y",
+}
+OFFSET_DEPR_FREQSTR: dict[str, str]= {
+    "M": "ME",
 }
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
+cdef dict c_OFFSET_DEPR_FREQSTR = OFFSET_DEPR_FREQSTR
+cdef dict c_REVERSE_OFFSET_DEPR_FREQSTR = {v: k for k, v in OFFSET_DEPR_FREQSTR.items()}
 
 cpdef freq_to_period_freqstr(freq_n, freq_name):
     if freq_n == 1:
@@ -226,6 +230,23 @@ cpdef freq_to_period_freqstr(freq_n, freq_name):
 
 # Map deprecated resolution abbreviations to correct resolution abbreviations
 DEPR_ABBREVS: dict[str, str]= {
+    "A": "Y",
+    "a": "Y",
+    "A-DEC": "Y-DEC",
+    "A-JAN": "Y-JAN",
+    "A-FEB": "Y-FEB",
+    "A-MAR": "Y-MAR",
+    "A-APR": "Y-APR",
+    "A-MAY": "Y-MAY",
+    "A-JUN": "Y-JUN",
+    "A-JUL": "Y-JUL",
+    "A-AUG": "Y-AUG",
+    "A-SEP": "Y-SEP",
+    "A-OCT": "Y-OCT",
+    "A-NOV": "Y-NOV",
+    "H": "h",
+    "BH": "bh",
+    "CBH": "cbh",
     "T": "min",
     "t": "min",
     "S": "s",
@@ -321,10 +342,10 @@ class Resolution(Enum):
 
         Examples
         --------
-        >>> Resolution.get_reso_from_freqstr('H')
+        >>> Resolution.get_reso_from_freqstr('h')
         <Resolution.RESO_HR: 5>
 
-        >>> Resolution.get_reso_from_freqstr('H') == Resolution.RESO_HR
+        >>> Resolution.get_reso_from_freqstr('h') == Resolution.RESO_HR
         True
         """
         try:

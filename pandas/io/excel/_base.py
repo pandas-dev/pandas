@@ -80,6 +80,7 @@ if TYPE_CHECKING:
         IntStrT,
         ReadBuffer,
         Self,
+        SequenceNotStr,
         StorageOptions,
         WriteExcelBuffer,
     )
@@ -387,7 +388,7 @@ def read_excel(
     sheet_name: str | int = ...,
     *,
     header: int | Sequence[int] | None = ...,
-    names: list[str] | None = ...,
+    names: SequenceNotStr[Hashable] | range | None = ...,
     index_col: int | Sequence[int] | None = ...,
     usecols: int
     | str
@@ -426,7 +427,7 @@ def read_excel(
     sheet_name: list[IntStrT] | None,
     *,
     header: int | Sequence[int] | None = ...,
-    names: list[str] | None = ...,
+    names: SequenceNotStr[Hashable] | range | None = ...,
     index_col: int | Sequence[int] | None = ...,
     usecols: int
     | str
@@ -465,7 +466,7 @@ def read_excel(
     sheet_name: str | int | list[IntStrT] | None = 0,
     *,
     header: int | Sequence[int] | None = 0,
-    names: list[str] | None = None,
+    names: SequenceNotStr[Hashable] | range | None = None,
     index_col: int | Sequence[int] | None = None,
     usecols: int
     | str
@@ -730,7 +731,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
         header: int | Sequence[int] | None = 0,
-        names=None,
+        names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
         dtype: DtypeArg | None = None,
@@ -1589,7 +1590,7 @@ class ExcelFile:
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
         header: int | Sequence[int] | None = 0,
-        names=None,
+        names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
         converters=None,
