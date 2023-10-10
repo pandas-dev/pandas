@@ -266,29 +266,24 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
 
     assert buffers["offsets"], "String buffers must contain offsets"
     # Retrieve the data buffer containing the UTF-8 code units
-    data_buff, data_dtype = buffers["data"]
+    data_buff, _ = buffers["data"]
 
-    if (data_dtype[1] == 8) and (
-        data_dtype[2]
-        in (
-            ArrowCTypes.STRING,
-            ArrowCTypes.LARGE_STRING,
-        )
-    ):  # format_str == utf-8
-        # temporary workaround to keep backwards compatibility due to
-        # https://github.com/pandas-dev/pandas/issues/54781
+    assert col.dtype[2] in (
+        ArrowCTypes.STRING,
+        ArrowCTypes.LARGE_STRING,
+    )  # format_str == utf-8
 
-        # We're going to reinterpret the buffer as uint8, so make sure we can do it
-        # safely
+    # We're going to reinterpret the buffer as uint8, so make sure we can do it
+    # safely
 
-        # Convert the buffers to NumPy arrays. In order to go from STRING to
-        # an equivalent ndarray, we claim that the buffer is uint8 (i.e., a byte array)
-        data_dtype = (
-            DtypeKind.UINT,
-            8,
-            ArrowCTypes.UINT8,
-            Endianness.NATIVE,
-        )
+    # Convert the buffers to NumPy arrays. In order to go from STRING to
+    # an equivalent ndarray, we claim that the buffer is uint8 (i.e., a byte array)
+    data_dtype = (
+        DtypeKind.UINT,
+        8,
+        ArrowCTypes.UINT8,
+        Endianness.NATIVE,
+    )
     # Specify zero offset as we don't want to chunk the string data
     data = buffer_to_ndarray(data_buff, data_dtype, offset=0, length=data_buff.bufsize)
 
@@ -386,22 +381,18 @@ def datetime_column_to_ndarray(col: Column) -> tuple[np.ndarray | pd.Series, Any
     buffers = col.get_buffers()
 
     _, _, format_str, _ = col.dtype
-    dbuf, data_dtype = buffers["data"]
+    dbuf, _ = buffers["data"]
 
-    if data_dtype[0] == DtypeKind.DATETIME:
-        # temporary workaround to keep backwards compatibility due to
-        # https://github.com/pandas-dev/pandas/issues/54781
-        # Consider dtype being `int` to get number of units passed since 1970-01-01
-        data_dtype = (
-            DtypeKind.INT,
-            data_dtype[1],
-            getattr(ArrowCTypes, f"INT{data_dtype[1]}"),
-            Endianness.NATIVE,
-        )
+    # Consider dtype being `int` to get number of units passed since 1970-01-01
 
     data = buffer_to_ndarray(
         dbuf,
-        data_dtype,
+        dtype=(
+            DtypeKind.INT,
+            col.dtype[1],
+            getattr(ArrowCTypes, f"INT{col.dtype[1]}"),
+            Endianness.NATIVE,
+        ),
         offset=col.offset,
         length=col.size(),
     )
