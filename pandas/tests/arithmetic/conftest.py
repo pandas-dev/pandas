@@ -21,13 +21,13 @@ def one(request):
 
     Examples
     --------
-    dti = pd.date_range('2016-01-01', periods=2, freq='H')
+    dti = pd.date_range('2016-01-01', periods=2, freq='h')
     dti
     DatetimeIndex(['2016-01-01 00:00:00', '2016-01-01 01:00:00'],
-    dtype='datetime64[ns]', freq='H')
+    dtype='datetime64[ns]', freq='h')
     dti + one
     DatetimeIndex(['2016-01-01 01:00:00', '2016-01-01 02:00:00'],
-    dtype='datetime64[ns]', freq='H')
+    dtype='datetime64[ns]', freq='h')
     """
     return request.param
 

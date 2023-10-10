@@ -1323,6 +1323,25 @@ class DataFrame(NDFrame, OpsMixin):
                 line_width=line_width,
             )
 
+    def _get_values_for_csv(
+        self,
+        *,
+        float_format: FloatFormatType | None,
+        date_format: str | None,
+        decimal: str,
+        na_rep: str,
+        quoting,  # int csv.QUOTE_FOO from stdlib
+    ) -> Self:
+        # helper used by to_csv
+        mgr = self._mgr.get_values_for_csv(
+            float_format=float_format,
+            date_format=date_format,
+            decimal=decimal,
+            na_rep=na_rep,
+            quoting=quoting,
+        )
+        return self._constructor_from_mgr(mgr, axes=mgr.axes)
+
     # ----------------------------------------------------------------------
 
     @property
@@ -3266,7 +3285,7 @@ class DataFrame(NDFrame, OpsMixin):
         ... </table>'''
         >>> assert html_string == df.to_html()
         """
-        if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
+        if justify is not None and justify not in fmt.VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
 
         formatter = fmt.DataFrameFormatter(
@@ -12144,7 +12163,7 @@ class DataFrame(NDFrame, OpsMixin):
         For the yearly frequency
 
         >>> idx.to_period("Y")
-        PeriodIndex(['2001', '2002', '2003'], dtype='period[A-DEC]')
+        PeriodIndex(['2001', '2002', '2003'], dtype='period[Y-DEC]')
         """
         new_obj = self.copy(deep=copy and not using_copy_on_write())
 
