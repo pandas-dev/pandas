@@ -365,7 +365,9 @@ def lexsort_indexer(
         if codes_given:
             mask = k == -1
             codes = k.copy()
-            n = len(codes)
+            # error: Item "ExtensionArray" of "Series | ExtensionArray |
+            # ndarray[Any, Any]" has no attribute "max"
+            n = codes.max() + 1 if len(codes) else 0  # type: ignore[union-attr]
             mask_n = n
             # error: Item "ExtensionArray" of "Union[Any, ExtensionArray,
             # ndarray[Any, Any]]" has no attribute "any"
