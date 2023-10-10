@@ -316,7 +316,7 @@ class SeriesFormatter:
         have_header = _has_names(index)
         if isinstance(index, MultiIndex):
             fmt_index = index._format_multi(include_names=True, sparsify=None)
-            adj = get_adjustment()
+            adj = printing.get_adjustment()
             fmt_index = adj.adjoin(2, *fmt_index).split("\n")
         else:
             fmt_index = index._format_flat(include_name=True)
