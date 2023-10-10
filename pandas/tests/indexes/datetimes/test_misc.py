@@ -146,7 +146,7 @@ class TestDatetime64:
         qsfeb = to_offset("QS-FEB")
         bq = to_offset("BQ")
         bqs_apr = to_offset("BQS-APR")
-        as_nov = to_offset("AS-NOV")
+        as_nov = to_offset("YS-NOV")
 
         tests = [
             (freq_m.is_month_start(Timestamp("2013-06-01")), 1),
@@ -185,6 +185,13 @@ class TestDatetime64:
 
         for ts, value in tests:
             assert ts == value
+
+    def test_my(self):
+            as_nov = to_offset("YS-NOV")
+            res1 = as_nov.is_year_start(Timestamp("2013-11-01"))
+            print("111111111 ", res1 == 1)
+            res2 = as_nov.is_year_end(Timestamp("2013-10-31"))
+            print("222222222 ", res2 == 1)
 
     def test_datetimeindex_accessors6(self):
         # GH 6538: Check that DatetimeIndex and its TimeStamp elements
