@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    Index,
+)
 import pandas._testing as tm
 
 
@@ -54,11 +57,11 @@ def test_numba_parallel_unsupported(float_frame):
         float_frame.apply(f, engine="numba", engine_kwargs={"parallel": True})
 
 
-def test_numba_nonunique_unsupported():
+def test_numba_nonunique_unsupported(apply_axis):
     f = lambda x: x
-    df = DataFrame({"a": [1, 2], "b": [1, 2]})
+    df = DataFrame({"a": [1, 2]}, index=Index(["a", "a"]))
     with pytest.raises(
         NotImplementedError,
         match="The index/columns must be unique when raw=False and engine='numba'",
     ):
-        df.apply(f, engine="numba", engine_kwargs={"parallel": True})
+        df.apply(f, engine="numba", axis=apply_axis)
