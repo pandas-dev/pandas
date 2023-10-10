@@ -33,7 +33,7 @@ def test_arrow_extension_type():
     "data, freq",
     [
         (pd.date_range("2017", periods=3), "D"),
-        (pd.date_range("2017", periods=3, freq="A"), "A-DEC"),
+        (pd.date_range("2017", periods=3, freq="Y"), "Y-DEC"),
     ],
 )
 def test_arrow_array(data, freq):
@@ -110,7 +110,7 @@ def test_arrow_load_from_zero_chunks():
 
 
 def test_arrow_table_roundtrip_without_metadata():
-    arr = PeriodArray([1, 2, 3], dtype="period[H]")
+    arr = PeriodArray([1, 2, 3], dtype="period[h]")
     arr[1] = pd.NaT
     df = pd.DataFrame({"a": arr})
 

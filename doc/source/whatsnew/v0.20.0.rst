@@ -614,11 +614,18 @@ New behavior:
 
 ``map`` on a ``Series`` with ``datetime64`` values may return ``int64`` dtypes rather than ``int32``
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s = pd.Series(pd.date_range('2011-01-02T00:00', '2011-01-02T02:00', freq='H')
-                 .tz_localize('Asia/Tokyo'))
-   s
+   In [64]: s = pd.Series(pd.date_range('2011-01-02T00:00', '2011-01-02T02:00', freq='H')
+      ....:               .tz_localize('Asia/Tokyo'))
+      ....:
+
+   In [65]: s
+   Out[65]:
+   0   2011-01-02 00:00:00+09:00
+   1   2011-01-02 01:00:00+09:00
+   2   2011-01-02 02:00:00+09:00
+   Length: 3, dtype: datetime64[ns, Asia/Tokyo]
 
 Previous behavior:
 
@@ -633,9 +640,14 @@ Previous behavior:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s.map(lambda x: x.hour)
+   In [66]: s.map(lambda x: x.hour)
+   Out[66]:
+   0    0
+   1    1
+   2    2
+   Length: 3, dtype: int64
 
 
 .. _whatsnew_0200.api_breaking.index_dt_field:
@@ -659,10 +671,12 @@ Previous behaviour:
 
 New behavior:
 
-.. ipython:: python
+.. code-block:: ipython
 
-   idx = pd.date_range("2015-01-01", periods=5, freq='10H')
-   idx.hour
+   In [67]: idx = pd.date_range("2015-01-01", periods=5, freq='10H')
+
+   In [68]: idx.hour
+   Out[68]: Index([0, 10, 20, 6, 16], dtype='int32')
 
 This has the advantage that specific ``Index`` methods are still available on the
 result. On the other hand, this might have backward incompatibilities: e.g.
