@@ -42,7 +42,9 @@ dependencies:
   - odfpy>=1.4.1
   - qtpy>=2.2.0
   - openpyxl>=3.0.10
-  - pandas-gbq>=0.17.5
+  # Disable pandas-gbq since it pins pyarrow and other deps
+  # to a version that doesn't support Python 3.12
+  #- pandas-gbq>=0.17.5
   # No psycopg2 Python 3.12 support yet
   #- psycopg2>=2.9.3
   - pyarrow>=7.0.0
