@@ -68,8 +68,8 @@ from pandas.core.dtypes.common import (
     is_integer,
     is_list_like,
 )
+from pandas.core.dtypes.generic import ABCMultiIndex
 
-from pandas.core.indexes.api import MultiIndex
 from pandas.core.shared_docs import _shared_docs
 
 _VALID_URLS = set(uses_relative + uses_netloc + uses_params)
@@ -90,6 +90,8 @@ if TYPE_CHECKING:
         StorageOptions,
         WriteBuffer,
     )
+
+    from pandas import MultiIndex
 
 
 @dataclasses.dataclass
@@ -1228,7 +1230,7 @@ def is_potential_multi_index(
 
     return bool(
         len(columns)
-        and not isinstance(columns, MultiIndex)
+        and not isinstance(columns, ABCMultiIndex)
         and all(isinstance(c, tuple) for c in columns if c not in list(index_col))
     )
 

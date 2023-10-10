@@ -107,7 +107,10 @@ from pandas.core.sorting import (
     lexsort_indexer,
 )
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    get_adjustment,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -1437,8 +1440,6 @@ class MultiIndex(Index):
             )
 
         if adjoin:
-            from pandas.io.formats.format import get_adjustment
-
             adj = get_adjustment()
             return adj.adjoin(space, *result_levels).split("\n")
         else:
