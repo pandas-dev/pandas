@@ -281,7 +281,7 @@ class TestFromRecords:
 
     def test_from_records_to_records(self):
         # from numpy documentation
-        arr = np.zeros((2,), dtype=("i4,f4,a10"))
+        arr = np.zeros((2,), dtype=("i4,f4,S10"))
         arr[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
 
         DataFrame.from_records(arr)
