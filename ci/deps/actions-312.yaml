@@ -54,7 +54,8 @@ dependencies:
   # No calamine Python 3.12 support yet
   #- python-calamine>=0.1.6
   - pyxlsb>=1.0.9
-  - s3fs>=2022.05.0
+  # This depends on aiohttp which doesn't support Python 3.12
+  #- s3fs>=2022.05.0
   - scipy>=1.8.1
   - sqlalchemy>=1.4.36
   - tabulate>=0.8.10
