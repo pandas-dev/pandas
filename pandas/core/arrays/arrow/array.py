@@ -2525,7 +2525,7 @@ class ArrowExtensionArray(
         if offset is None:
             raise ValueError(f"Must specify a valid frequency: {freq}")
         pa_supported_unit = {
-            "A": "year",
+            "Y": "year",
             "AS": "year",
             "Q": "quarter",
             "QS": "quarter",
@@ -2533,7 +2533,7 @@ class ArrowExtensionArray(
             "MS": "month",
             "W": "week",
             "D": "day",
-            "H": "hour",
+            "h": "hour",
             "min": "minute",
             "s": "second",
             "ms": "millisecond",
