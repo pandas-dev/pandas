@@ -96,7 +96,7 @@ cdef extern from "numpy/ndarrayobject.h":
     bint PyArray_CheckScalar(obj) nogil
 
 cdef extern from "pandas/parser/pd_parser.h":
-    int floatify(object, float64_t *result, int *maybe_int) except -1
+    int floatify(object, float64_t *result, int *maybe_int, char dec, char tsep) except -1
     void PandasParser_IMPORT()
 
 PandasParser_IMPORT
@@ -2238,8 +2238,8 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
-    char thousands = '0',
-    char decimal = '.',
+    str thousands='0',
+    str decimal='.',
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Convert object array to a numeric array if possible.
