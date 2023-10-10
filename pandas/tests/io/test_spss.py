@@ -124,7 +124,7 @@ def test_spss_metadata(datapath):
     fname = datapath("io", "data", "spss", "labelled-num.sav")
 
     df = pd.read_spss(fname)
-    assert df.attrs == {
+    metadata = {
         "column_names": ["VAR00002"],
         "column_labels": [None],
         "column_names_to_labels": {"VAR00002": None},
@@ -147,3 +147,4 @@ def test_spss_metadata(datapath):
         "file_label": None,
         "file_format": "sav/zsav",
     }
+    assert df.attrs == metadata
