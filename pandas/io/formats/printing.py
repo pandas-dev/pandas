@@ -45,7 +45,7 @@ def adjoin(space: int, *lists: list[str], **kwargs) -> str:
         function used to justify str. Needed for unicode handling.
     """
     strlen = kwargs.pop("strlen", len)
-    justfunc = kwargs.pop("justfunc", justify)
+    justfunc = kwargs.pop("justfunc", _adj_justify)
 
     newLists = []
     lengths = [max(map(strlen, x)) + space for x in lists[:-1]]
@@ -60,7 +60,7 @@ def adjoin(space: int, *lists: list[str], **kwargs) -> str:
     return "\n".join("".join(lines) for lines in toJoin)
 
 
-def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> list[str]:
+def _adj_justify(texts: Iterable[str], max_len: int, mode: str = "right") -> list[str]:
     """
     Perform ljust, center, rjust against string or list-like
     """
@@ -511,7 +511,15 @@ class _TextAdjustment:
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
-        return justify(texts, max_len, mode=mode)
+        """
+        Perform ljust, center, rjust against string or list-like
+        """
+        if mode == "left":
+            return [x.ljust(max_len) for x in texts]
+        elif mode == "center":
+            return [x.center(max_len) for x in texts]
+        else:
+            return [x.rjust(max_len) for x in texts]
 
     def adjoin(self, space: int, *lists, **kwargs) -> str:
         return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
