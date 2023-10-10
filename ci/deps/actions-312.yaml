@@ -34,7 +34,8 @@ dependencies:
   - gcsfs>=2022.05.0
   - jinja2>=3.1.2
   - lxml>=4.8.0
-  - matplotlib>=3.6.1, <3.8
+  # Need to unpin matplotlib from < 3.8 to get 3.12 support
+  #- matplotlib>=3.6.1, <3.8
   # No numba Python 3.12 support yet
   #- numba>=0.55.2
   - numexpr>=2.8.0
