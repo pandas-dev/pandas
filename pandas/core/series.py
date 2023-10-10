@@ -374,8 +374,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: Dtype | None = None,
         name=None,
         copy: bool | None = None,
-        fastpath: bool = False,
+        fastpath: bool | lib.NoDefault = lib.no_default,
     ) -> None:
+        if fastpath is not lib.no_default:
+            warnings.warn(
+                "The 'fastpath' keyword in pd.Series is deprecated and will "
+                "be removed in a future version.",
+                DeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            fastpath = False
+
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
@@ -1009,7 +1019,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         mgr = self._mgr.get_slice(slobj, axis=axis)
-        out = self._constructor(mgr, fastpath=True)
+        out = self._constructor_from_mgr(mgr, axes=mgr.axes)
+        out._name = self._name
         return out.__finalize__(self)
 
     def __getitem__(self, key):
