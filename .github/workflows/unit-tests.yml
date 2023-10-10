@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 180
     strategy:
       matrix:
-        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-3.12.yaml]
+        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-312.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         include:
