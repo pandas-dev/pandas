@@ -12,11 +12,11 @@ from datetime import (
 from io import StringIO
 from pathlib import Path
 import sqlite3
+from typing import TYPE_CHECKING
 import uuid
 
 import numpy as np
 import pytest
-import sqlalchemy
 
 from pandas._libs import lib
 import pandas.util._test_decorators as td
@@ -52,6 +52,9 @@ from pandas.io.sql import (
     read_sql_query,
     read_sql_table,
 )
+
+if TYPE_CHECKING:
+    import sqlalchemy
 
 
 @pytest.fixture
@@ -411,6 +414,8 @@ def drop_view(
     view_name: str,
     conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
 ):
+    import sqlalchemy
+
     if isinstance(conn, sqlite3.Connection):
         conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
         conn.commit()
