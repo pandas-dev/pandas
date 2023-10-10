@@ -376,7 +376,7 @@ def datetime_column_to_ndarray(col: Column) -> tuple[np.ndarray | pd.Series, Any
     """
     buffers = col.get_buffers()
 
-    _, _, format_str, _ = col.dtype
+    _, col_bit_width, format_str, _ = col.dtype
     dbuf, _ = buffers["data"]
     # Consider dtype being `uint` to get number of units passed since the 01.01.1970
 
@@ -384,7 +384,7 @@ def datetime_column_to_ndarray(col: Column) -> tuple[np.ndarray | pd.Series, Any
         dbuf,
         (
             DtypeKind.INT,
-            col.dtype[1],
+            col_bit_width,
             getattr(ArrowCTypes, f"INT{col.dtype[1]}"),
             Endianness.NATIVE,
         ),
