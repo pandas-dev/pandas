@@ -31,7 +31,8 @@ dependencies:
   - fsspec>=2022.05.0
   - html5lib>=1.1
   - hypothesis>=6.46.1
-  - gcsfs>=2022.05.0
+  # This depends on aiohttp which doesn't support Python 3.12
+  # - gcsfs>=2022.05.0
   - jinja2>=3.1.2
   - lxml>=4.8.0
   # Need to unpin matplotlib from < 3.8 to get 3.12 support
