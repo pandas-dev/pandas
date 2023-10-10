@@ -2187,7 +2187,7 @@ def _sequence_to_dt64(
     -------
     result : numpy.ndarray
         The sequence converted to a numpy array with dtype ``datetime64[unit]``.
-        Where `unit` is ns unless specified otherwise.
+        Where `unit` is ns unless specified otherwise by `out_unit`.
     tz : tzinfo or None
         Either the user-provided tzinfo or one inferred from the data.
     inferred_freq : Tick or None

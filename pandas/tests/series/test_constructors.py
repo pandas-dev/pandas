@@ -1149,7 +1149,7 @@ class TestSeriesConstructors:
         tm.assert_index_equal(result, dr)
 
     def test_constructor_with_datetime_tz_ms(self):
-        # explicit frequency
+        # GH#54620 explicit frequency
         result = Series([Timestamp("2999-01-01")], dtype="datetime64[ms, US/Pacific]")
         expected = Series(
             np.array(["2999-01-01"], dtype="datetime64[ms]")
