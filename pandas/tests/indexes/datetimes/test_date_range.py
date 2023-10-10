@@ -124,7 +124,7 @@ class TestTimestampEquivDateRange:
 
 
 class TestDateRanges:
-    @pytest.mark.parametrize("freq", ["ns", "us", "ms", "min", "s", "H", "D"])
+    @pytest.mark.parametrize("freq", ["ns", "us", "ms", "min", "s", "h", "D"])
     def test_date_range_edges(self, freq):
         # GH#13672
         td = Timedelta(f"1{freq}")
@@ -206,11 +206,11 @@ class TestDateRanges:
         # case with start later than 1970-01-01, overflow int64 but not uint64
         msg = "Cannot generate range with"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            date_range(start="1970-02-01", periods=106752 * 24, freq="H")
+            date_range(start="1970-02-01", periods=106752 * 24, freq="h")
 
         # case with end before 1970-01-01, overflow int64 but not uint64
         with pytest.raises(OutOfBoundsDatetime, match=msg):
-            date_range(end="1969-11-14", periods=106752 * 24, freq="H")
+            date_range(end="1969-11-14", periods=106752 * 24, freq="h")
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
@@ -224,11 +224,11 @@ class TestDateRanges:
         start = Timestamp(s_ts)
         end = Timestamp(e_ts)
 
-        expected = date_range(start=start, end=end, freq="-1H")
+        expected = date_range(start=start, end=end, freq="-1h")
         assert expected[0] == start
         assert expected[-1] == end
 
-        dti = date_range(end=end, periods=len(expected), freq="-1H")
+        dti = date_range(end=end, periods=len(expected), freq="-1h")
         tm.assert_index_equal(dti, expected)
 
     def test_date_range_out_of_bounds(self):
@@ -416,13 +416,13 @@ class TestDateRanges:
                 "2014-07-04 15:00",
                 "2014-07-04 16:00",
             ],
-            freq="BH",
+            freq="bh",
         )
-        rng = date_range("2014-07-04 09:00", "2014-07-04 16:00", freq="BH")
+        rng = date_range("2014-07-04 09:00", "2014-07-04 16:00", freq="bh")
         tm.assert_index_equal(idx, rng)
 
-        idx = DatetimeIndex(["2014-07-04 16:00", "2014-07-07 09:00"], freq="BH")
-        rng = date_range("2014-07-04 16:00", "2014-07-07 09:00", freq="BH")
+        idx = DatetimeIndex(["2014-07-04 16:00", "2014-07-07 09:00"], freq="bh")
+        rng = date_range("2014-07-04 16:00", "2014-07-07 09:00", freq="bh")
         tm.assert_index_equal(idx, rng)
 
         idx = DatetimeIndex(
@@ -452,9 +452,9 @@ class TestDateRanges:
                 "2014-07-08 15:00",
                 "2014-07-08 16:00",
             ],
-            freq="BH",
+            freq="bh",
         )
-        rng = date_range("2014-07-04 09:00", "2014-07-08 16:00", freq="BH")
+        rng = date_range("2014-07-04 09:00", "2014-07-08 16:00", freq="bh")
         tm.assert_index_equal(idx, rng)
 
     def test_date_range_timedelta(self):
@@ -481,13 +481,13 @@ class TestDateRanges:
             date_range(periods=10)
 
         with pytest.raises(ValueError, match=msg):
-            date_range(start="1/1/2000", freq="H")
+            date_range(start="1/1/2000", freq="h")
 
         with pytest.raises(ValueError, match=msg):
-            date_range(end="1/1/2000", freq="H")
+            date_range(end="1/1/2000", freq="h")
 
         with pytest.raises(ValueError, match=msg):
-            date_range(periods=10, freq="H")
+            date_range(periods=10, freq="h")
 
         with pytest.raises(ValueError, match=msg):
             date_range()
@@ -524,14 +524,14 @@ class TestDateRanges:
             pre_dst,
             pst_dst,
         ]
-        expected = DatetimeIndex(expect_data, freq="H")
-        result = date_range(start="2010-11-7", periods=3, freq="H", tz="US/Pacific")
+        expected = DatetimeIndex(expect_data, freq="h")
+        result = date_range(start="2010-11-7", periods=3, freq="h", tz="US/Pacific")
         tm.assert_index_equal(result, expected)
 
     def test_construct_with_different_start_end_string_format(self):
         # GH 12064
         result = date_range(
-            "2013-01-01 00:00:00+09:00", "2013/01/01 02:00:00+09:00", freq="H"
+            "2013-01-01 00:00:00+09:00", "2013/01/01 02:00:00+09:00", freq="h"
         )
         expected = DatetimeIndex(
             [
@@ -539,7 +539,7 @@ class TestDateRanges:
                 Timestamp("2013-01-01 01:00:00+09:00"),
                 Timestamp("2013-01-01 02:00:00+09:00"),
             ],
-            freq="H",
+            freq="h",
         )
         tm.assert_index_equal(result, expected)
 
@@ -638,7 +638,7 @@ class TestDateRanges:
         assert dr[0] == start
         assert dr[2] == end
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3H", "Y"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "Y"])
     def test_range_closed(self, freq, inclusive_endpoints_fixture):
         begin = datetime(2011, 1, 1)
         end = datetime(2014, 1, 1)
@@ -653,7 +653,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3H", "Y"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "Y"])
     def test_range_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
@@ -674,7 +674,7 @@ class TestDateRanges:
 
         tm.assert_index_equal(expected_range, result_range)
 
-    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3H", "Y"])
+    @pytest.mark.parametrize("freq", ["1D", "3D", "2ME", "7W", "3h", "Y"])
     def test_range_with_tz_closed_with_tz_aware_start_end(
         self, freq, inclusive_endpoints_fixture
     ):
@@ -841,6 +841,7 @@ class TestDateRanges:
         [
             ("2Y", "2A"),
             ("200Y-MAY", "200A-MAY"),
+            ("h", "H"),
             ("2min", "2T"),
             ("1s", "1S"),
             ("2ms", "2L"),
@@ -908,7 +909,7 @@ class TestDateRangeTZ:
         stamp = Timestamp("3/11/2012 05:00", tz=tzstr)
         assert stamp.hour == 5
 
-        rng = date_range("3/11/2012 04:00", periods=10, freq="H", tz=tzstr)
+        rng = date_range("3/11/2012 04:00", periods=10, freq="h", tz=tzstr)
 
         assert stamp == rng[1]
 
