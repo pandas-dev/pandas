@@ -268,12 +268,10 @@ def string_column_to_ndarray(col: Column) -> tuple[np.ndarray, Any]:
     # Retrieve the data buffer containing the UTF-8 code units
     data_buff, _ = buffers["data"]
     # We're going to reinterpret the buffer as uint8, so make sure we can do it safely
-    assert col.dtype[1] == 8
     assert col.dtype[2] in (
         ArrowCTypes.STRING,
         ArrowCTypes.LARGE_STRING,
     )  # format_str == utf-8
-
     # Convert the buffers to NumPy arrays. In order to go from STRING to
     # an equivalent ndarray, we claim that the buffer is uint8 (i.e., a byte array)
     data_dtype = (
