@@ -385,7 +385,7 @@ def datetime_column_to_ndarray(col: Column) -> tuple[np.ndarray | pd.Series, Any
         (
             DtypeKind.INT,
             col_bit_width,
-            getattr(ArrowCTypes, f"INT{col.dtype[1]}"),
+            getattr(ArrowCTypes, f"INT{col_bit_width}"),
             Endianness.NATIVE,
         ),
         offset=col.offset,
