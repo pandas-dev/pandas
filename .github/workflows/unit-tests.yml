@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 180
     strategy:
       matrix:
-        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml]
+        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml, actions-3.12.yaml]
         # Prevent the include jobs from overriding other jobs
         pattern: [""]
         include:
@@ -67,6 +67,10 @@ jobs:
             pandas_copy_on_write: "1"
           - name: "Copy-on-Write 3.11"
             env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
+          - name: "Copy-on-Write 3.12"
+            env_file: actions-312.yaml
             pattern: "not slow and not network and not single_cpu"
             pandas_copy_on_write: "1"
           - name: "Pypy"
@@ -308,7 +312,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    #if: false # Uncomment this to freeze the workflow, comment it to unfreeze
+    if: false # Uncomment this to freeze the workflow, comment it to unfreeze
     defaults:
       run:
         shell: bash -eou pipefail {0}
@@ -339,7 +343,7 @@ jobs:
       - name: Set up Python Dev Version
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12-dev'
+          python-version: '3.13-dev'
 
       - name: Build Environment
         run: |
