@@ -42,12 +42,13 @@ dependencies:
   - qtpy>=2.2.0
   - openpyxl>=3.0.10
   - pandas-gbq>=0.17.5
-  - psycopg2>=2.9.3
+  # No psycopg2 Python 3.12 support yet
+  #- psycopg2>=2.9.3
   - pyarrow>=7.0.0
   - pymysql>=1.0.2
   - pyreadstat>=1.1.5
   - pytables>=3.7.0
-  # Disable calamine since it doesn't have Python 3.12 support
+  # No calamine Python 3.12 support yet
   #- python-calamine>=0.1.6
   - pyxlsb>=1.0.9
   - s3fs>=2022.05.0
