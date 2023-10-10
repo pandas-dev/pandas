@@ -37,7 +37,7 @@ def test_arrow_roundtrip(data):
     assert table.field("a").type == str(data.dtype.numpy_dtype)
 
     msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = table.to_pandas()
     assert result["a"].dtype == data.dtype
     tm.assert_frame_equal(result, df)
@@ -57,7 +57,7 @@ def test_dataframe_from_arrow_types_mapper():
         [bools_array, ints_array, small_ints_array], ["bools", "ints", "small_ints"]
     )
     msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = record_batch.to_pandas(types_mapper=types_mapper)
     bools = pd.Series([True, None, False], dtype="boolean")
     ints = pd.Series([1, None, 2], dtype="Int64")
@@ -76,7 +76,7 @@ def test_arrow_load_from_zero_chunks(data):
         [pa.chunked_array([], type=table.field("a").type)], schema=table.schema
     )
     msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = table.to_pandas()
     assert result["a"].dtype == data.dtype
     tm.assert_frame_equal(result, df)
@@ -99,7 +99,7 @@ def test_arrow_sliced(data):
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
     msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = table.slice(2, None).to_pandas()
     expected = df.iloc[2:].reset_index(drop=True)
     tm.assert_frame_equal(result, expected)
@@ -108,7 +108,7 @@ def test_arrow_sliced(data):
     df2 = df.fillna(data[0])
     table = pa.table(df2)
     msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = table.slice(2, None).to_pandas()
     expected = df2.iloc[2:].reset_index(drop=True)
     tm.assert_frame_equal(result, expected)

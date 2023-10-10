@@ -171,7 +171,7 @@ def test_usecols_index_col_conflict2(all_parsers):
     msg = "Passing a BlockManager to DataFrame is deprecated"
     warn = None
     if parser.engine == "pyarrow":
-        warn = FutureWarning
+        warn = DeprecationWarning
     with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = parser.read_csv(
             StringIO(data), usecols=["b", "c", "d"], index_col=["b", "c"]
@@ -199,7 +199,7 @@ def test_usecols_index_col_middle(all_parsers):
     msg = "Passing a BlockManager to DataFrame is deprecated"
     warn = None
     if parser.engine == "pyarrow":
-        warn = FutureWarning
+        warn = DeprecationWarning
     with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), usecols=["b", "c", "d"], index_col="c")
     expected = DataFrame({"b": [2], "d": [4]}, index=Index([3], name="c"))
@@ -215,7 +215,7 @@ def test_usecols_index_col_end(all_parsers):
     msg = "Passing a BlockManager to DataFrame is deprecated"
     warn = None
     if parser.engine == "pyarrow":
-        warn = FutureWarning
+        warn = DeprecationWarning
     with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), usecols=["b", "c", "d"], index_col="d")
     expected = DataFrame({"b": [2], "c": [3]}, index=Index([4], name="d"))
@@ -286,7 +286,7 @@ def test_np_array_usecols(all_parsers):
     msg = "Passing a BlockManager to DataFrame is deprecated"
     warn = None
     if parser.engine == "pyarrow":
-        warn = FutureWarning
+        warn = DeprecationWarning
     with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), usecols=usecols)
     tm.assert_frame_equal(result, expected)
@@ -483,7 +483,7 @@ b,2,y
     msg = "Passing a BlockManager to DataFrame is deprecated"
     warn = None
     if parser.engine == "pyarrow":
-        warn = FutureWarning
+        warn = DeprecationWarning
     with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = parser.read_csv(
             StringIO(data),

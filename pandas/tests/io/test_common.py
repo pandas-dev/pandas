@@ -26,7 +26,7 @@ import pandas._testing as tm
 import pandas.io.common as icom
 
 pytestmark = pytest.mark.filterwarnings(
-    "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
 

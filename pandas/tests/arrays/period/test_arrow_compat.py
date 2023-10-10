@@ -82,14 +82,14 @@ def test_arrow_table_roundtrip():
     table = pa.table(df)
     assert isinstance(table.field("a").type, ArrowPeriodType)
     msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = table.to_pandas()
     assert isinstance(result["a"].dtype, PeriodDtype)
     tm.assert_frame_equal(result, df)
 
     table2 = pa.concat_tables([table, table])
     msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = table2.to_pandas()
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
@@ -110,7 +110,7 @@ def test_arrow_load_from_zero_chunks():
     )
 
     msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = table.to_pandas()
     assert isinstance(result["a"].dtype, PeriodDtype)
     tm.assert_frame_equal(result, df)
@@ -127,7 +127,7 @@ def test_arrow_table_roundtrip_without_metadata():
     assert table.schema.metadata is None
 
     msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         result = table.to_pandas()
     assert isinstance(result["a"].dtype, PeriodDtype)
     tm.assert_frame_equal(result, df)

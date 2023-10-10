@@ -498,7 +498,7 @@ def test_arrow_roundtrip(dtype, string_storage2):
     assert table.field("a").type == "string"
     with pd.option_context("string_storage", string_storage2):
         msg = "Passing a BlockManager to DataFrame is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
     expected = df.astype(f"string[{string_storage2}]")
@@ -519,7 +519,7 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage2):
     table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
     with pd.option_context("string_storage", string_storage2):
         msg = "Passing a BlockManager to DataFrame is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
     expected = df.astype(f"string[{string_storage2}]")

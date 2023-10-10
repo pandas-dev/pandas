@@ -24,7 +24,7 @@ pytestmark = [
         reason="GH 45651: This test can hang in our CI min_versions build",
     ),
     pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager to DataFrame:FutureWarning"
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
     ),
 ]
 

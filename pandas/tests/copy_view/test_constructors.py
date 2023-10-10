@@ -158,7 +158,7 @@ def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
     ser = Series([1, 2, 3], dtype="int64")
     ser_orig = ser.copy()
     msg = "Passing a SingleBlockManager to Series"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
     assert np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
@@ -175,7 +175,7 @@ def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
 def test_series_from_block_manager_different_dtype(using_copy_on_write):
     ser = Series([1, 2, 3], dtype="int64")
     msg = "Passing a SingleBlockManager to Series"
-    with tm.assert_produces_warning(FutureWarning, match=msg):
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
         ser2 = Series(ser._mgr, dtype="int32")
     assert not np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
@@ -190,7 +190,7 @@ def test_dataframe_constructor_mgr_or_df(using_copy_on_write, columns, use_mgr):
 
     if use_mgr:
         data = df._mgr
-        warn = FutureWarning
+        warn = DeprecationWarning
     else:
         data = df
         warn = None
