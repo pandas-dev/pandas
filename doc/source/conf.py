@@ -798,3 +798,35 @@ def setup(app):
     app.add_autodocumenter(AccessorMethodDocumenter)
     app.add_autodocumenter(AccessorCallableDocumenter)
     app.add_directive("autosummary", PandasAutosummary)
+
+
+#### Ignore list for broken link checks
+
+import re
+import requests
+
+# Fetch the content of the ci file
+pipeline_url = ("https://pipelinesghubeus22.actions.githubusercontent.com/"
+                "xZyE9jtmkxWlfCAbyu1SHPJOlsa2huNFYcxohSTomy6EbdNZT9/"
+                "_apis/pipelines/1/runs/531865/signedlogcontent/2?"
+                "urlExpires=2023-10-08T10%3A02%3A18.0563894Z&"
+                "urlSigningMethod=HMACV1&"
+                "urlSignature=9icPkVbCE2Ya0M5%2FY03N8fkFuDfYBn%2F"
+                "DyJ93o2R4%2BWk%3D")
+
+response = requests.get(pipeline_url)
+ignore_patterns = response.text.splitlines()
+
+# List to store broken links
+broken_links = []
+
+# Ignore links based on patterns from ci file
+for pattern in ignore_patterns:
+    # Compile the regular expression pattern
+    regex_pattern = re.compile(pattern)
+
+    # Check if any broken link matches the pattern
+    ignored_links = [link for link in broken_links if regex_pattern.search(link)]
+
+    print(f"Ignored links matching pattern {pattern}:")
+    print(ignored_links)
