@@ -118,6 +118,7 @@ def test_invalid_dtype_backend():
         pd.read_spss("test", dtype_backend="numpy")
 
 
+@pytest.mark.filterwarnings("ignore::pandas.errors.ChainedAssignmentError")
 def test_spss_metadata(datapath):
     # GH 54264
     fname = datapath("io", "data", "spss", "labelled-num.sav")
