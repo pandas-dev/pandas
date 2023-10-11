@@ -2177,7 +2177,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         category_strs = [x.strip() for x in category_strs]
         return category_strs
 
-    def _repr_categories_info(self) -> str:
+    def _get_repr_footer(self) -> str:
         """
         Returns a string representation of the footer.
         """
@@ -2229,7 +2229,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         String representation.
         """
-        footer = self._repr_categories_info()
+        footer = self._get_repr_footer()
         length = len(self)
         max_len = 10
         if length > max_len:
