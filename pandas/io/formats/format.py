@@ -1104,7 +1104,7 @@ def format_array(
         the leading space to pad between columns.
 
         When formatting an Index subclass
-        (e.g. IntervalIndex._format_native_types), we don't want the
+        (e.g. IntervalIndex._get_values_for_csv), we don't want the
         leading space since it should be left-aligned.
     fallback_formatter
 

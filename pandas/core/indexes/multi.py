@@ -1337,7 +1337,7 @@ class MultiIndex(Index):
         formatter_funcs = [level._formatter_func for level in self.levels]
         return tuple(func(val) for func, val in zip(formatter_funcs, tup))
 
-    def _format_native_types(
+    def _get_values_for_csv(
         self, *, na_rep: str = "nan", **kwargs
     ) -> npt.NDArray[np.object_]:
         new_levels = []
@@ -1345,7 +1345,7 @@ class MultiIndex(Index):
 
         # go through the levels and format them
         for level, level_codes in zip(self.levels, self.codes):
-            level_strs = level._format_native_types(na_rep=na_rep, **kwargs)
+            level_strs = level._get_values_for_csv(na_rep=na_rep, **kwargs)
             # add nan values, if there are any
             mask = level_codes == -1
             if mask.any():
@@ -1361,7 +1361,7 @@ class MultiIndex(Index):
 
         if len(new_levels) == 1:
             # a single-level multi-index
-            return Index(new_levels[0].take(new_codes[0]))._format_native_types()
+            return Index(new_levels[0].take(new_codes[0]))._get_values_for_csv()
         else:
             # reconstruct the multi-index
             mi = MultiIndex(
