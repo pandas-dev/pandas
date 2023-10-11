@@ -203,7 +203,10 @@ if TYPE_CHECKING:
         MultiIndex,
         Series,
     )
-    from pandas.core.arrays import PeriodArray
+    from pandas.core.arrays import (
+        IntervalArray,
+        PeriodArray,
+    )
 
 __all__ = ["Index"]
 
@@ -7659,11 +7662,13 @@ def get_values_for_csv(
 
     elif isinstance(values.dtype, PeriodDtype):
         # TODO: tests that get here in column path
+        values = cast("PeriodArray", values)
         res = values._format_native_types(na_rep=na_rep, date_format=date_format)
         return res
 
     elif isinstance(values.dtype, IntervalDtype):
         # TODO: tests that get here in column path
+        values = cast("IntervalArray", values)
         mask = values.isna()
         if not quoting:
             result = np.asarray(values).astype(str)
