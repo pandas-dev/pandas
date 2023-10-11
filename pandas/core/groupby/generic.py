@@ -158,7 +158,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def _get_data_to_aggregate(
         self, *, numeric_only: bool = False, name: str | None = None
     ) -> SingleManager:
-        ser = self._selected_obj
+        ser = self._obj_with_exclusions
         single = ser._mgr
         if numeric_only and not is_numeric_dtype(ser.dtype):
             # GH#41291 match Series behavior
@@ -448,7 +448,7 @@ class SeriesGroupBy(GroupBy[Series]):
         initialized = False
 
         for name, group in self.grouper.get_iterator(
-            self._selected_obj, axis=self.axis
+            self._obj_with_exclusions, axis=self.axis
         ):
             # needed for pandas/tests/groupby/test_groupby.py::test_basic_aggregations
             object.__setattr__(group, "name", name)
@@ -519,7 +519,7 @@ class SeriesGroupBy(GroupBy[Series]):
     ):
         assert axis == 0  # handled by caller
 
-        obj = self._selected_obj
+        obj = self._obj_with_exclusions
 
         try:
             result = self.grouper._cython_operation(
@@ -546,7 +546,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
         results = []
         for name, group in self.grouper.get_iterator(
-            self._selected_obj, axis=self.axis
+            self._obj_with_exclusions, axis=self.axis
         ):
             # this setattr is needed for test_transform_lambda_with_datetimetz
             object.__setattr__(group, "name", name)
@@ -618,7 +618,7 @@ class SeriesGroupBy(GroupBy[Series]):
             indices = [
                 self._get_index(name)
                 for name, group in self.grouper.get_iterator(
-                    self._selected_obj, axis=self.axis
+                    self._obj_with_exclusions, axis=self.axis
                 )
                 if true_and_notna(group)
             ]
@@ -1164,7 +1164,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nlargest, n=n, keep=keep)
-        data = self._selected_obj
+        data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
@@ -1175,7 +1175,7 @@ class SeriesGroupBy(GroupBy[Series]):
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
         f = partial(Series.nsmallest, n=n, keep=keep)
-        data = self._selected_obj
+        data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
         result = self._python_apply_general(f, data, not_indexed_same=True)
@@ -1185,15 +1185,13 @@ class SeriesGroupBy(GroupBy[Series]):
     def idxmin(
         self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
-        result = self._op_via_apply("idxmin", axis=axis, skipna=skipna)
-        return result.astype(self.obj.index.dtype) if result.empty else result
+        return self._idxmax_idxmin("idxmin", axis=axis, skipna=skipna)
 
     @doc(Series.idxmax.__doc__)
     def idxmax(
         self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
-        result = self._op_via_apply("idxmax", axis=axis, skipna=skipna)
-        return result.astype(self.obj.index.dtype) if result.empty else result
+        return self._idxmax_idxmin("idxmax", axis=axis, skipna=skipna)
 
     @doc(Series.corr.__doc__)
     def corr(
@@ -2187,22 +2185,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef              co2_emissions
         dtype: object
         """
-        if axis is not lib.no_default:
-            if axis is None:
-                axis = self.axis
-            axis = self.obj._get_axis_number(axis)
-            self._deprecate_axis(axis, "idxmax")
-        else:
-            axis = self.axis
-
-        def func(df):
-            return df.idxmax(axis=axis, skipna=skipna, numeric_only=numeric_only)
-
-        func.__name__ = "idxmax"
-        result = self._python_apply_general(
-            func, self._obj_with_exclusions, not_indexed_same=True
+        return self._idxmax_idxmin(
+            "idxmax", axis=axis, numeric_only=numeric_only, skipna=skipna
         )
-        return result.astype(self.obj.index.dtype) if result.empty else result
 
     def idxmin(
         self,
@@ -2282,22 +2267,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef                consumption
         dtype: object
         """
-        if axis is not lib.no_default:
-            if axis is None:
-                axis = self.axis
-            axis = self.obj._get_axis_number(axis)
-            self._deprecate_axis(axis, "idxmin")
-        else:
-            axis = self.axis
-
-        def func(df):
-            return df.idxmin(axis=axis, skipna=skipna, numeric_only=numeric_only)
-
-        func.__name__ = "idxmin"
-        result = self._python_apply_general(
-            func, self._obj_with_exclusions, not_indexed_same=True
+        return self._idxmax_idxmin(
+            "idxmin", axis=axis, numeric_only=numeric_only, skipna=skipna
         )
-        return result.astype(self.obj.index.dtype) if result.empty else result
 
     boxplot = boxplot_frame_groupby
 

@@ -28,14 +28,12 @@ from pandas._libs.tslibs import (
     get_resolution,
     get_supported_reso,
     get_unit_from_dtype,
-    iNaT,
     ints_to_pydatetime,
     is_date_array_normalized,
     is_supported_unit,
     is_unitless,
     normalize_i8_timestamps,
     npy_unit_to_abbrev,
-    periods_per_day,
     timezones,
     to_offset,
     tz_convert_from_utc,
@@ -745,25 +743,6 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             self.asi8, tz=self.tz, format=date_format, na_rep=na_rep, reso=self._creso
         )
 
-    @property
-    def _is_dates_only(self) -> bool:
-        """
-        Check if we are round times at midnight (and no timezone), which will
-        be given a more compact __repr__ than other cases.
-        """
-        if self.tz is not None:
-            return False
-
-        values_int = self.asi8
-        consider_values = values_int != iNaT
-        dtype = cast(np.dtype, self.dtype)  # since we checked tz above
-        reso = get_unit_from_dtype(dtype)
-        ppd = periods_per_day(reso)
-
-        # TODO: can we reuse is_date_array_normalized?  would need a skipna kwd
-        even_days = np.logical_and(consider_values, values_int % ppd != 0).sum() == 0
-        return even_days
-
     # -----------------------------------------------------------------
     # Comparison Methods
 
@@ -878,37 +857,37 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         to other time zones:
 
         >>> dti = pd.date_range(start='2014-08-01 09:00',
-        ...                     freq='H', periods=3, tz='Europe/Berlin')
+        ...                     freq='h', periods=3, tz='Europe/Berlin')
 
         >>> dti
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
                        '2014-08-01 10:00:00+02:00',
                        '2014-08-01 11:00:00+02:00'],
-                      dtype='datetime64[ns, Europe/Berlin]', freq='H')
+                      dtype='datetime64[ns, Europe/Berlin]', freq='h')
 
         >>> dti.tz_convert('US/Central')
         DatetimeIndex(['2014-08-01 02:00:00-05:00',
                        '2014-08-01 03:00:00-05:00',
                        '2014-08-01 04:00:00-05:00'],
-                      dtype='datetime64[ns, US/Central]', freq='H')
+                      dtype='datetime64[ns, US/Central]', freq='h')
 
         With the ``tz=None``, we can remove the timezone (after converting
         to UTC if necessary):
 
-        >>> dti = pd.date_range(start='2014-08-01 09:00', freq='H',
+        >>> dti = pd.date_range(start='2014-08-01 09:00', freq='h',
         ...                     periods=3, tz='Europe/Berlin')
 
         >>> dti
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
                        '2014-08-01 10:00:00+02:00',
                        '2014-08-01 11:00:00+02:00'],
-                        dtype='datetime64[ns, Europe/Berlin]', freq='H')
+                        dtype='datetime64[ns, Europe/Berlin]', freq='h')
 
         >>> dti.tz_convert(None)
         DatetimeIndex(['2014-08-01 07:00:00',
                        '2014-08-01 08:00:00',
                        '2014-08-01 09:00:00'],
-                        dtype='datetime64[ns]', freq='H')
+                        dtype='datetime64[ns]', freq='h')
         """
         tz = timezones.maybe_get_tz(tz)
 
@@ -1063,7 +1042,7 @@ default 'raise'
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
 
-        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
         0   2015-03-29 03:30:00+02:00
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
@@ -1153,13 +1132,13 @@ default 'raise'
 
         Examples
         --------
-        >>> idx = pd.date_range(start='2014-08-01 10:00', freq='H',
+        >>> idx = pd.date_range(start='2014-08-01 10:00', freq='h',
         ...                     periods=3, tz='Asia/Calcutta')
         >>> idx
         DatetimeIndex(['2014-08-01 10:00:00+05:30',
                        '2014-08-01 11:00:00+05:30',
                        '2014-08-01 12:00:00+05:30'],
-                        dtype='datetime64[ns, Asia/Calcutta]', freq='H')
+                        dtype='datetime64[ns, Asia/Calcutta]', freq='h')
         >>> idx.normalize()
         DatetimeIndex(['2014-08-01 00:00:00+05:30',
                        '2014-08-01 00:00:00+05:30',
@@ -2063,7 +2042,7 @@ default 'raise'
         >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
         >>> idx
         DatetimeIndex(['2012-12-31', '2013-12-31', '2014-12-31'],
-                      dtype='datetime64[ns]', freq='A-DEC')
+                      dtype='datetime64[ns]', freq='Y-DEC')
         >>> idx.is_leap_year
         array([ True, False, False])
 

@@ -79,9 +79,9 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     external_values,
     extract_pandas_array,
+    get_values_for_csv,
     maybe_coerce_values,
     new_block,
-    to_native_types,
 )
 from pandas.core.internals.managers import make_na_array
 
@@ -343,8 +343,17 @@ class BaseArrayManager(DataManager):
 
         return self.apply(_convert)
 
-    def to_native_types(self, **kwargs) -> Self:
-        return self.apply(to_native_types, **kwargs)
+    def get_values_for_csv(
+        self, *, float_format, date_format, decimal, na_rep: str = "nan", quoting=None
+    ) -> Self:
+        return self.apply(
+            get_values_for_csv,
+            na_rep=na_rep,
+            quoting=quoting,
+            float_format=float_format,
+            date_format=date_format,
+            decimal=decimal,
+        )
 
     @property
     def any_extension_types(self) -> bool:

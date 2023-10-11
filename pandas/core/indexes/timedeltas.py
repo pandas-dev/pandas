@@ -278,7 +278,7 @@ def timedelta_range(
     periods : int, default None
         Number of periods to generate.
     freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'D'
-        Frequency strings can have multiples, e.g. '5H'.
+        Frequency strings can have multiples, e.g. '5h'.
     name : str, default None
         Name of the resulting TimedeltaIndex.
     closed : str, default None
@@ -320,10 +320,10 @@ def timedelta_range(
     Only fixed frequencies can be passed, non-fixed frequencies such as
     'M' (month end) will raise.
 
-    >>> pd.timedelta_range(start='1 day', end='2 days', freq='6H')
+    >>> pd.timedelta_range(start='1 day', end='2 days', freq='6h')
     TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',
                     '1 days 18:00:00', '2 days 00:00:00'],
-                   dtype='timedelta64[ns]', freq='6H')
+                   dtype='timedelta64[ns]', freq='6h')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
     automatically (linearly spaced).
@@ -336,8 +336,7 @@ def timedelta_range(
     **Specify a unit**
 
     >>> pd.timedelta_range("1 Day", periods=3, freq="100000D", unit="s")
-    TimedeltaIndex(['1 days 00:00:00', '100001 days 00:00:00',
-                    '200001 days 00:00:00'],
+    TimedeltaIndex(['1 days', '100001 days', '200001 days'],
                    dtype='timedelta64[s]', freq='100000D')
     """
     if freq is None and com.any_none(periods, start, end):

@@ -7,7 +7,6 @@ from __future__ import annotations
 from collections.abc import (
     Generator,
     Hashable,
-    Iterable,
     Mapping,
     Sequence,
 )
@@ -26,7 +25,6 @@ from typing import (
     Final,
     cast,
 )
-from unicodedata import east_asian_width
 
 import numpy as np
 
@@ -41,7 +39,6 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
-    iNaT,
 )
 from pandas._libs.tslibs.nattype import NaTType
 
@@ -103,7 +100,6 @@ if TYPE_CHECKING:
         SequenceNotStr,
         StorageOptions,
         WriteBuffer,
-        npt,
     )
 
     from pandas import (
@@ -228,7 +224,7 @@ class SeriesFormatter:
             float_format = get_option("display.float_format")
         self.float_format = float_format
         self.dtype = dtype
-        self.adj = get_adjustment()
+        self.adj = printing.get_adjustment()
 
         self._chk_truncate()
 
@@ -300,17 +296,6 @@ class SeriesFormatter:
 
         return str(footer)
 
-    def _get_formatted_index(self) -> tuple[list[str], bool]:
-        index = self.tr_series.index
-
-        if isinstance(index, MultiIndex):
-            have_header = any(name for name in index.names)
-            fmt_index = index.format(names=True)
-        else:
-            have_header = index.name is not None
-            fmt_index = index.format(name=True)
-        return fmt_index, have_header
-
     def _get_formatted_values(self) -> list[str]:
         return format_array(
             self.tr_series._values,
@@ -327,7 +312,8 @@ class SeriesFormatter:
         if len(series) == 0:
             return f"{type(self.series).__name__}([], {footer})"
 
-        fmt_index, have_header = self._get_formatted_index()
+        have_header = _has_names(series.index)
+        fmt_index = self.tr_series.index.format(name=True)
         fmt_values = self._get_formatted_values()
 
         if self.is_truncated_vertically:
@@ -357,69 +343,6 @@ class SeriesFormatter:
             result += "\n" + footer
 
         return str("".join(result))
-
-
-class _TextAdjustment:
-    def __init__(self) -> None:
-        self.encoding = get_option("display.encoding")
-
-    def len(self, text: str) -> int:
-        return len(text)
-
-    def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
-        return printing.justify(texts, max_len, mode=mode)
-
-    def adjoin(self, space: int, *lists, **kwargs) -> str:
-        return printing.adjoin(
-            space, *lists, strlen=self.len, justfunc=self.justify, **kwargs
-        )
-
-
-class _EastAsianTextAdjustment(_TextAdjustment):
-    def __init__(self) -> None:
-        super().__init__()
-        if get_option("display.unicode.ambiguous_as_wide"):
-            self.ambiguous_width = 2
-        else:
-            self.ambiguous_width = 1
-
-        # Definition of East Asian Width
-        # https://unicode.org/reports/tr11/
-        # Ambiguous width can be changed by option
-        self._EAW_MAP = {"Na": 1, "N": 1, "W": 2, "F": 2, "H": 1}
-
-    def len(self, text: str) -> int:
-        """
-        Calculate display width considering unicode East Asian Width
-        """
-        if not isinstance(text, str):
-            return len(text)
-
-        return sum(
-            self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
-        )
-
-    def justify(
-        self, texts: Iterable[str], max_len: int, mode: str = "right"
-    ) -> list[str]:
-        # re-calculate padding space per str considering East Asian Width
-        def _get_pad(t):
-            return max_len - self.len(t) + len(t)
-
-        if mode == "left":
-            return [x.ljust(_get_pad(x)) for x in texts]
-        elif mode == "center":
-            return [x.center(_get_pad(x)) for x in texts]
-        else:
-            return [x.rjust(_get_pad(x)) for x in texts]
-
-
-def get_adjustment() -> _TextAdjustment:
-    use_east_asian_width = get_option("display.unicode.east_asian_width")
-    if use_east_asian_width:
-        return _EastAsianTextAdjustment()
-    else:
-        return _TextAdjustment()
 
 
 def get_dataframe_repr_params() -> dict[str, Any]:
@@ -541,7 +464,7 @@ class DataFrameFormatter:
 
         self.tr_frame = self.frame
         self.truncate()
-        self.adj = get_adjustment()
+        self.adj = printing.get_adjustment()
 
     def get_strcols(self) -> list[list[str]]:
         """
@@ -1750,16 +1673,15 @@ class _Timedelta64Formatter(_GenericArrayFormatter):
         self,
         values: TimedeltaArray,
         nat_rep: str = "NaT",
-        box: bool = False,
         **kwargs,
     ) -> None:
+        # TODO: nat_rep is never passed, na_rep is.
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
-        self.box = box
 
     def _format_strings(self) -> list[str]:
         formatter = self.formatter or get_format_timedelta64(
-            self.values, nat_rep=self.nat_rep, box=self.box
+            self.values, nat_rep=self.nat_rep, box=False
         )
         return [formatter(x) for x in self.values]
 
@@ -1775,15 +1697,7 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    values_int = values.view(np.int64)
-    values_int = cast("npt.NDArray[np.int64]", values_int)
-
-    consider_values = values_int != iNaT
-
-    one_day_nanos = 86400 * 10**9
-    not_midnight = values_int % one_day_nanos != 0
-    both = np.logical_and(consider_values, not_midnight)
-    even_days = both.sum() == 0
+    even_days = values._is_dates_only
 
     if even_days:
         format = None
@@ -1810,13 +1724,13 @@ def _make_fixed_width(
     strings: list[str],
     justify: str = "right",
     minimum: int | None = None,
-    adj: _TextAdjustment | None = None,
+    adj: printing._TextAdjustment | None = None,
 ) -> list[str]:
     if len(strings) == 0 or justify == "all":
         return strings
 
     if adj is None:
-        adjustment = get_adjustment()
+        adjustment = printing.get_adjustment()
     else:
         adjustment = adj
 
