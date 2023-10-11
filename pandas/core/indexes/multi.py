@@ -858,16 +858,14 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> level1 = ['mammal']
-        >>> level2 = ['goat', 'human', 'cat', 'dog']
-        >>> index = pd.MultiIndex.from_product([level1, level2],
-        ... names=['Category', 'Animals'])
+        >>> index = pd.MultiIndex.from_product([('mammal'), ('goat', 'human', 'cat', 'dog')],
+        ...                                  names=['Category', 'Animals'])
         >>> leg_num = pd.DataFrame(data=(4, 2, 4, 4), index=index, columns=['Legs'])
         >>> leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
 
-        # If the number of Legs is greater than 2 as the filter condition,
-        # the levels do not change
+        If the number of Legs is greater than 2 as the filter condition,
+        the levels do not change
         >>> large_leg_num = leg_num[leg_num.Legs > 2]
         >>> large_leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
