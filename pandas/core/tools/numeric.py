@@ -100,6 +100,12 @@ def to_numeric(
           DataFrame.
 
         .. versionadded:: 2.0
+    thousands: str, default ','
+        character used to seperate thousands, eg '.' for european data
+        must only be 1 character long
+    decimal: str, default '.'
+        character used to seperate decimals, eg ',' for european data
+        must only be 1 character long
 
     Returns
     -------
@@ -163,12 +169,25 @@ def to_numeric(
     1    2.1
     2    3.0
     dtype: Float32
+
+    Handling of data with non standard decimal or thousand seperators
+    >>> s = pd.Series(['1,5', '2.000.000', -3])
+    >>> pd.to_numeric(s, thousands='.', decimal=',')
+    0   1.5
+    1   2000000
+    2   -3
+    dtype: float64
     """
     if downcast not in (None, "integer", "signed", "unsigned", "float"):
         raise ValueError("invalid downcasting method provided")
 
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
+    
+    if len(decimal) > 1:
+        raise ValueError("decimal seperator must have length one")
+    if len(thousands) > 1:
+        raise ValueError("thousands seperator must have length one")
 
     check_dtype_backend(dtype_backend)
 
