@@ -76,6 +76,7 @@ Other enhancements
 
 - :attr:`Series.attrs` / :attr:`DataFrame.attrs` now uses a deepcopy for propagating ``attrs`` (:issue:`54134`).
 - :func:`read_csv` now supports ``on_bad_lines`` parameter with ``engine="pyarrow"``. (:issue:`54480`)
+- :func:`read_spss` now returns a :class:`DataFrame` that stores the metadata in :attr:`DataFrame.attrs`. (:issue:`54264`)
 - :meth:`ExtensionArray._explode` interface method added to allow extension type implementations of the ``explode`` method (:issue:`54833`)
 - :meth:`ExtensionArray.duplicated` added to allow extension type implementations of the ``duplicated`` method (:issue:`55255`)
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
@@ -232,7 +233,7 @@ For example:
 
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
-- Changed :meth:`Timedelta.resolution_string` to return ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
+- Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_clipboard`. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_csv` except ``path_or_buf``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_dict`. (:issue:`54229`)
@@ -252,9 +253,11 @@ Other Deprecations
 - Deprecated including the groups in computations when using :meth:`DataFrameGroupBy.apply` and :meth:`DataFrameGroupBy.resample`; pass ``include_groups=False`` to exclude the groups (:issue:`7155`)
 - Deprecated not passing a tuple to :class:`DataFrameGroupBy.get_group` or :class:`SeriesGroupBy.get_group` when grouping by a length-1 list-like (:issue:`25971`)
 - Deprecated string ``A`` denoting frequency in :class:`YearEnd` and strings ``A-DEC``, ``A-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`52536`)
-- Deprecated strings ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
+- Deprecated strings ``H``, ``BH``, and ``CBH`` denoting frequencies in :class:`Hour`, :class:`BusinessHour`, :class:`CustomBusinessHour` (:issue:`52536`)
+- Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
+- Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
 - Deprecated strings ``T``, ``S``, ``L``, ``U``, and ``N`` denoting frequencies in :class:`Minute`, :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano` (:issue:`52536`)
-- Deprecated strings ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
+- Deprecated the ``fastpath`` keyword in the :class:`Series` constructor (:issue:`20110`)
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
 - Deprecated the option ``mode.data_manager`` and the ``ArrayManager``; only the ``BlockManager`` will be available in future versions (:issue:`55043`)
 - Deprecating downcasting the results of :meth:`DataFrame.fillna`, :meth:`Series.fillna`, :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, :meth:`Series.bfill` in object-dtype cases. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`54261`)
@@ -278,13 +281,6 @@ Performance improvements
 
 Bug fixes
 ~~~~~~~~~
-- Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
-- Bug in :class:`pandas.core.window.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
-- Bug in :func:`pandas.api.types.is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
-- Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
-- Bug in :meth:`pandas.DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
-- Bug in :meth:`pandas.read_excel` with a ODS file without cached formatted cell for float values (:issue:`55219`)
--
 
 Categorical
 ^^^^^^^^^^^
@@ -303,7 +299,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
--
+- Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
 -
 
 Numeric
@@ -318,6 +314,7 @@ Conversion
 
 Strings
 ^^^^^^^
+- Bug in :func:`pandas.api.types.is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
 -
 -
 
@@ -351,6 +348,7 @@ I/O
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` where ``usecols`` wasn't working with a csv with no headers (:issue:`54459`)
 - Bug in :func:`read_excel`, with ``engine="xlrd"`` (``xls`` files) erroring when file contains NaNs/Infs (:issue:`54564`)
 - Bug in :func:`to_excel`, with ``OdsWriter`` (``ods`` files) writing boolean/string value (:issue:`54994`)
+- Bug in :meth:`pandas.read_excel` with an ODS file without cached formatted cell for float values (:issue:`55219`)
 
 Period
 ^^^^^^
@@ -364,15 +362,17 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
-- Fixed bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
-- Fixed bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
-- Fixed bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
+- Bug in :class:`pandas.core.window.Rolling` where duplicate datetimelike indexes are treated as consecutive rather than equal with ``closed='left'`` and ``closed='neither'`` (:issue:`20712`)
+- Bug in :meth:`DataFrame.resample` not respecting ``closed`` and ``label`` arguments for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55282`)
+- Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.BusinessDay` (:issue:`55281`)
+- Bug in :meth:`DataFrame.resample` where bin edges were not correct for :class:`~pandas.tseries.offsets.MonthBegin` (:issue:`55271`)
 -
 
 Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` ignoring ``sort`` parameter when passed :class:`DatetimeIndex` indexes (:issue:`54769`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
+- Bug in :meth:`pandas.DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
 -
 
 Sparse
@@ -393,6 +393,7 @@ Styler
 Other
 ^^^^^
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
+- Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
 -
 

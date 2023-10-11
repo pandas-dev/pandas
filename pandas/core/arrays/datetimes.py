@@ -857,37 +857,37 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         to other time zones:
 
         >>> dti = pd.date_range(start='2014-08-01 09:00',
-        ...                     freq='H', periods=3, tz='Europe/Berlin')
+        ...                     freq='h', periods=3, tz='Europe/Berlin')
 
         >>> dti
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
                        '2014-08-01 10:00:00+02:00',
                        '2014-08-01 11:00:00+02:00'],
-                      dtype='datetime64[ns, Europe/Berlin]', freq='H')
+                      dtype='datetime64[ns, Europe/Berlin]', freq='h')
 
         >>> dti.tz_convert('US/Central')
         DatetimeIndex(['2014-08-01 02:00:00-05:00',
                        '2014-08-01 03:00:00-05:00',
                        '2014-08-01 04:00:00-05:00'],
-                      dtype='datetime64[ns, US/Central]', freq='H')
+                      dtype='datetime64[ns, US/Central]', freq='h')
 
         With the ``tz=None``, we can remove the timezone (after converting
         to UTC if necessary):
 
-        >>> dti = pd.date_range(start='2014-08-01 09:00', freq='H',
+        >>> dti = pd.date_range(start='2014-08-01 09:00', freq='h',
         ...                     periods=3, tz='Europe/Berlin')
 
         >>> dti
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
                        '2014-08-01 10:00:00+02:00',
                        '2014-08-01 11:00:00+02:00'],
-                        dtype='datetime64[ns, Europe/Berlin]', freq='H')
+                        dtype='datetime64[ns, Europe/Berlin]', freq='h')
 
         >>> dti.tz_convert(None)
         DatetimeIndex(['2014-08-01 07:00:00',
                        '2014-08-01 08:00:00',
                        '2014-08-01 09:00:00'],
-                        dtype='datetime64[ns]', freq='H')
+                        dtype='datetime64[ns]', freq='h')
         """
         tz = timezones.maybe_get_tz(tz)
 
@@ -1042,7 +1042,7 @@ default 'raise'
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
 
-        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
         0   2015-03-29 03:30:00+02:00
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
@@ -1132,13 +1132,13 @@ default 'raise'
 
         Examples
         --------
-        >>> idx = pd.date_range(start='2014-08-01 10:00', freq='H',
+        >>> idx = pd.date_range(start='2014-08-01 10:00', freq='h',
         ...                     periods=3, tz='Asia/Calcutta')
         >>> idx
         DatetimeIndex(['2014-08-01 10:00:00+05:30',
                        '2014-08-01 11:00:00+05:30',
                        '2014-08-01 12:00:00+05:30'],
-                        dtype='datetime64[ns, Asia/Calcutta]', freq='H')
+                        dtype='datetime64[ns, Asia/Calcutta]', freq='h')
         >>> idx.normalize()
         DatetimeIndex(['2014-08-01 00:00:00+05:30',
                        '2014-08-01 00:00:00+05:30',

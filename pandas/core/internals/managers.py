@@ -430,12 +430,21 @@ class BaseBlockManager(DataManager):
 
         return self.apply("convert", copy=copy, using_cow=using_copy_on_write())
 
-    def to_native_types(self, **kwargs) -> Self:
+    def get_values_for_csv(
+        self, *, float_format, date_format, decimal, na_rep: str = "nan", quoting=None
+    ) -> Self:
         """
         Convert values to native types (strings / python objects) that are used
         in formatting (repr / csv).
         """
-        return self.apply("to_native_types", **kwargs)
+        return self.apply(
+            "get_values_for_csv",
+            na_rep=na_rep,
+            quoting=quoting,
+            float_format=float_format,
+            date_format=date_format,
+            decimal=decimal,
+        )
 
     @property
     def any_extension_types(self) -> bool:

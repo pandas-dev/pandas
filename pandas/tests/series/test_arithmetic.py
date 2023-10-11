@@ -457,7 +457,7 @@ class TestSeriesComparison:
     def test_ser_cmp_result_names(self, names, comparison_op):
         # datetime64 dtype
         op = comparison_op
-        dti = date_range("1949-06-07 03:00:00", freq="H", periods=5, name=names[0])
+        dti = date_range("1949-06-07 03:00:00", freq="h", periods=5, name=names[0])
         ser = Series(dti).rename(names[1])
         result = op(ser, dti)
         assert result.name == names[2]
@@ -713,7 +713,7 @@ class TestSeriesComparison:
 
 class TestTimeSeriesArithmetic:
     def test_series_add_tz_mismatch_converts_to_utc(self):
-        rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
+        rng = date_range("1/1/2011", periods=100, freq="h", tz="utc")
 
         perm = np.random.default_rng(2).permutation(100)[:90]
         ser1 = Series(
@@ -737,7 +737,7 @@ class TestTimeSeriesArithmetic:
         tm.assert_series_equal(result, expected)
 
     def test_series_add_aware_naive_raises(self):
-        rng = date_range("1/1/2011", periods=10, freq="H")
+        rng = date_range("1/1/2011", periods=10, freq="h")
         ser = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         ser_utc = ser.tz_localize("utc")

@@ -32,7 +32,7 @@ def df_schema():
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "c"],
             "C": pd.date_range("2016-01-01", freq="d", periods=4),
-            "D": pd.timedelta_range("1H", periods=4, freq="min"),
+            "D": pd.timedelta_range("1h", periods=4, freq="min"),
         },
         index=pd.Index(range(4), name="idx"),
     )
@@ -45,7 +45,7 @@ def df_table():
             "A": [1, 2, 3, 4],
             "B": ["a", "b", "c", "c"],
             "C": pd.date_range("2016-01-01", freq="d", periods=4),
-            "D": pd.timedelta_range("1H", periods=4, freq="min"),
+            "D": pd.timedelta_range("1h", periods=4, freq="min"),
             "E": pd.Series(pd.Categorical(["a", "b", "c", "c"])),
             "F": pd.Series(pd.Categorical(["a", "b", "c", "c"], ordered=True)),
             "G": [1.0, 2.0, 3, 4.0],
@@ -695,7 +695,7 @@ class TestTableOrientReader:
     @pytest.mark.parametrize("index_nm", [None, "idx", "index"])
     @pytest.mark.parametrize(
         "vals",
-        [{"timedeltas": pd.timedelta_range("1H", periods=4, freq="min")}],
+        [{"timedeltas": pd.timedelta_range("1h", periods=4, freq="min")}],
     )
     def test_read_json_table_orient_raises(self, index_nm, vals, recwarn):
         df = DataFrame(vals, index=pd.Index(range(4), name=index_nm))
