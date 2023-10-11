@@ -167,6 +167,9 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
         return np.asarray(values)
 
     elif is_complex_dtype(values.dtype):
+        if values.dtype.itemsize == 16:
+            # We have support for complex128
+            return np.asarray(values)
         return cast(np.ndarray, values)
 
     # datetimelike
