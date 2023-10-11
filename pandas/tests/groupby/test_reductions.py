@@ -10,12 +10,14 @@ from pandas._libs.tslibs import iNaT
 
 import pandas as pd
 from pandas import (
+    DataFrame,
     MultiIndex,
     Series,
     Timestamp,
     date_range,
     isna,
 )
+import pandas._testing as tm
 
 
 @pytest.mark.parametrize("agg_func", ["any", "all"])
@@ -278,13 +280,6 @@ def test_mean_on_timedelta():
         pd.to_timedelta([4, 5]), name="time", index=pd.Index(["A", "B"], name="cat")
     )
     tm.assert_series_equal(result, expected)
-
-
-import numpy as np
-
-import pandas as pd
-from pandas import DataFrame
-import pandas._testing as tm
 
 
 def test_cython_median():
