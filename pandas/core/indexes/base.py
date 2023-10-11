@@ -37,7 +37,6 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
-from pandas._libs.missing import is_float_nan
 from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
@@ -1390,16 +1389,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
             values = np.asarray(values)
-            values = lib.maybe_convert_objects(values, safe=True)
-
-            result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]
-
-            # could have nans
-            mask = is_float_nan(values)
-            if mask.any():
-                result_arr = np.array(result)
-                result_arr[mask] = na_rep
-                result = result_arr.tolist()
+            # TODO: why do we need different justify for these cases?
+            result = trim_front(format_array(values, None, justify="all"))
         else:
             result = trim_front(format_array(values, None, justify="left"))
         return header + result
