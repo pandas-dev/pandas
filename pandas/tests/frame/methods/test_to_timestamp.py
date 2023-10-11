@@ -44,7 +44,7 @@ class TestToTimestamp:
         if frame_or_series is Series:
             assert result.name == "A"
 
-        exp_index = date_range("1/1/2001", end="1/1/2009", freq="AS-JAN")
+        exp_index = date_range("1/1/2001", end="1/1/2009", freq="YS-JAN")
         result = obj.to_timestamp("D", "start")
         tm.assert_index_equal(result.index, exp_index)
 
@@ -88,7 +88,7 @@ class TestToTimestamp:
         tm.assert_index_equal(result.columns, exp_index)
         tm.assert_numpy_array_equal(result.values, df.values)
 
-        exp_index = date_range("1/1/2001", end="1/1/2009", freq="AS-JAN")
+        exp_index = date_range("1/1/2001", end="1/1/2009", freq="YS-JAN")
         result = df.to_timestamp("D", "start", axis=1)
         tm.assert_index_equal(result.columns, exp_index)
 
@@ -112,14 +112,14 @@ class TestToTimestamp:
 
         result1 = df.to_timestamp("5min", axis=1)
         result2 = df.to_timestamp("min", axis=1)
-        expected = date_range("2001-01-01", "2009-01-01", freq="AS")
+        expected = date_range("2001-01-01", "2009-01-01", freq="YS")
         assert isinstance(result1.columns, DatetimeIndex)
         assert isinstance(result2.columns, DatetimeIndex)
         tm.assert_numpy_array_equal(result1.columns.asi8, expected.asi8)
         tm.assert_numpy_array_equal(result2.columns.asi8, expected.asi8)
         # PeriodIndex.to_timestamp always use 'infer'
-        assert result1.columns.freqstr == "AS-JAN"
-        assert result2.columns.freqstr == "AS-JAN"
+        assert result1.columns.freqstr == "YS-JAN"
+        assert result2.columns.freqstr == "YS-JAN"
 
     def test_to_timestamp_invalid_axis(self):
         index = period_range(freq="Y", start="1/1/2001", end="12/1/2009")

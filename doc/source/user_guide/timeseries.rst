@@ -896,9 +896,9 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
     :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
     :class:`~pandas.tseries.offsets.YearEnd`, ``'Y'``, "calendar year end"
-    :class:`~pandas.tseries.offsets.YearBegin`, ``'AS'`` or ``'BYS'``,"calendar year begin"
-    :class:`~pandas.tseries.offsets.BYearEnd`, ``'BA'``, "business year end"
-    :class:`~pandas.tseries.offsets.BYearBegin`, ``'BAS'``, "business year begin"
+    :class:`~pandas.tseries.offsets.YearBegin`, ``'YS'`` or ``'BYS'``,"calendar year begin"
+    :class:`~pandas.tseries.offsets.BYearEnd`, ``'BY'``, "business year end"
+    :class:`~pandas.tseries.offsets.BYearBegin`, ``'BYS'``, "business year begin"
     :class:`~pandas.tseries.offsets.FY5253`, ``'RE'``, "retail (aka 52-53 week) year"
     :class:`~pandas.tseries.offsets.Easter`, None, "Easter holiday"
     :class:`~pandas.tseries.offsets.BusinessHour`, ``'bh'``, "business hour"
@@ -1259,9 +1259,9 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "QS", "quarter start frequency"
     "BQS", "business quarter start frequency"
     "Y", "year end frequency"
-    "BA, BY", "business year end frequency"
-    "AS, YS", "year start frequency"
-    "BAS, BYS", "business year start frequency"
+    "BY", "business year end frequency"
+    "YS", "year start frequency"
+    "BYS", "business year start frequency"
     "h", "hourly frequency"
     "bh", "business hour frequency"
     "cbh", "custom business hour frequency"
@@ -1692,7 +1692,7 @@ the end of the interval.
 .. warning::
 
     The default values for ``label`` and ``closed`` is '**left**' for all
-    frequency offsets except for 'ME', 'Y', 'Q', 'BM', 'BA', 'BQ', and 'W'
+    frequency offsets except for 'ME', 'Y', 'Q', 'BM', 'BY', 'BQ', and 'W'
     which all have a default of 'right'.
 
     This might unintendedly lead to looking ahead, where the value for a later

@@ -5729,7 +5729,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023-01-01    1
         2024-01-01    2
         2025-01-01    3
-        Freq: AS-JAN, dtype: int64
+        Freq: YS-JAN, dtype: int64
 
         Using `freq` which is the offset that the Timestamps will have
 

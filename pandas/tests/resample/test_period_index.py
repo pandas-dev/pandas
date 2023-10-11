@@ -660,7 +660,7 @@ class TestPeriodIndex:
 
     @pytest.mark.parametrize(
         "from_freq, to_freq",
-        [("D", "MS"), ("Q", "AS"), ("ME", "QS"), ("h", "D"), ("min", "h")],
+        [("D", "MS"), ("Q", "YS"), ("ME", "QS"), ("h", "D"), ("min", "h")],
     )
     def test_default_left_closed_label(self, from_freq, to_freq):
         idx = date_range(start="8/15/2012", periods=100, freq=from_freq)

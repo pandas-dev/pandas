@@ -2414,7 +2414,7 @@ cdef class BYearEnd(YearOffset):
 
     _outputName = "BusinessYearEnd"
     _default_month = 12
-    _prefix = "BA"
+    _prefix = "BY"
     _day_opt = "business_end"
 
 
@@ -2453,7 +2453,7 @@ cdef class BYearBegin(YearOffset):
 
     _outputName = "BusinessYearBegin"
     _default_month = 1
-    _prefix = "BAS"
+    _prefix = "BYS"
     _day_opt = "business_start"
 
 
@@ -2552,7 +2552,7 @@ cdef class YearBegin(YearOffset):
     """
 
     _default_month = 1
-    _prefix = "AS"
+    _prefix = "YS"
     _day_opt = "start"
 
 
@@ -4540,10 +4540,10 @@ CDay = CustomBusinessDay
 prefix_mapping = {
     offset._prefix: offset
     for offset in [
-        YearBegin,  # 'AS'
+        YearBegin,  # 'YS'
         YearEnd,  # 'Y'
-        BYearBegin,  # 'BAS'
-        BYearEnd,  # 'BA'
+        BYearBegin,  # 'BYS'
+        BYearEnd,  # 'BY'
         BusinessDay,  # 'B'
         BusinessMonthBegin,  # 'BMS'
         BusinessMonthEnd,  # 'BM'
@@ -4584,12 +4584,9 @@ _lite_rule_alias = {
     "Q": "Q-DEC",
 
     "Y": "Y-DEC",      # YearEnd(month=12),
-    "AS": "AS-JAN",    # YearBegin(month=1),
-    "YS": "AS-JAN",
-    "BA": "BA-DEC",    # BYearEnd(month=12),
-    "BY": "BA-DEC",
-    "BAS": "BAS-JAN",  # BYearBegin(month=1),
-    "BYS": "BAS-JAN",
+    "YS": "YS-JAN",    # YearBegin(month=1),
+    "BY": "BY-DEC",    # BYearEnd(month=12),
+    "BYS": "BYS-JAN",  # BYearBegin(month=1),
 
     "Min": "min",
     "min": "min",

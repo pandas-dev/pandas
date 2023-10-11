@@ -59,7 +59,7 @@ if TYPE_CHECKING:
 # --------------------------------------------------------------------
 # Offset related functions
 
-_need_suffix = ["QS", "BQ", "BQS", "YS", "AS", "BY", "BA", "BYS", "BAS"]
+_need_suffix = ["QS", "BQ", "BQS", "YS", "BY", "BYS"]
 
 for _prefix in _need_suffix:
     for _m in MONTHS:
@@ -345,7 +345,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "AS", "bs": "BAS", "ce": "Y", "be": "BA"}.get(pos_check)
+            return {"cs": "YS", "bs": "BYS", "ce": "Y", "be": "BY"}.get(pos_check)
 
     def _get_quarterly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:

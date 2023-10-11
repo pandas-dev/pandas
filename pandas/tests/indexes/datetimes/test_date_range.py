@@ -243,13 +243,12 @@ class TestDateRanges:
         rng = date_range("1/1/2000 00:00", "1/1/2000 00:18", freq="5min")
         assert len(rng) == 4
 
-    @pytest.mark.parametrize("freq", ["AS", "YS"])
-    def test_begin_year_alias(self, freq):
+    def test_begin_year_alias(self):
         # see gh-9313
-        rng = date_range("1/1/2013", "7/1/2017", freq=freq)
+        rng = date_range("1/1/2013", "7/1/2017", freq="YS")
         exp = DatetimeIndex(
             ["2013-01-01", "2014-01-01", "2015-01-01", "2016-01-01", "2017-01-01"],
-            freq=freq,
+            freq="YS",
         )
         tm.assert_index_equal(rng, exp)
 
@@ -261,12 +260,11 @@ class TestDateRanges:
         )
         tm.assert_index_equal(rng, exp)
 
-    @pytest.mark.parametrize("freq", ["BA", "BY"])
-    def test_business_end_year_alias(self, freq):
+    def test_business_end_year_alias(self):
         # see gh-9313
-        rng = date_range("1/1/2013", "7/1/2017", freq=freq)
+        rng = date_range("1/1/2013", "7/1/2017", freq="BY")
         exp = DatetimeIndex(
-            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-30"], freq=freq
+            ["2013-12-31", "2014-12-31", "2015-12-31", "2016-12-30"], freq="BY"
         )
         tm.assert_index_equal(rng, exp)
 
