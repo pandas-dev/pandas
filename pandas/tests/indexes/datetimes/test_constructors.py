@@ -648,7 +648,7 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             date_range(periods=10, freq="D")
 
-    @pytest.mark.parametrize("freq", ["AS", "W-SUN"])
+    @pytest.mark.parametrize("freq", ["YS", "W-SUN"])
     def test_constructor_datetime64_tzformat(self, freq):
         # see GH#6572: ISO 8601 format results in stdlib timezone object
         idx = date_range(
@@ -981,8 +981,8 @@ class TestTimeSeries:
         rng3 = date_range("2014", "2020", freq="Y", tz=tz)
         expected3 = date_range("2014-12-31", "2019-12-31", freq="Y", tz=tz)
 
-        rng4 = date_range("2014", "2020", freq="AS", tz=tz)
-        expected4 = date_range("2014-01-01", "2020-01-01", freq="AS", tz=tz)
+        rng4 = date_range("2014", "2020", freq="YS", tz=tz)
+        expected4 = date_range("2014-01-01", "2020-01-01", freq="YS", tz=tz)
 
         for rng, expected in [
             (rng1, expected1),

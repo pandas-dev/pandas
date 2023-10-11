@@ -1606,8 +1606,12 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         tc->type = (pc->longValue) ? JT_TRUE : JT_FALSE;
         return;
     } else if (PyArray_IsScalar(obj, Float) ||
-               PyArray_IsScalar(obj, Double) ||
-               PyArray_IsScalar(obj, LongDouble)) {
+               PyArray_IsScalar(obj, Double)) {
+        PyArray_CastScalarToCtype(obj, &(pc->longDoubleValue),
+                                  PyArray_DescrFromType(NPY_DOUBLE));
+        tc->type = JT_LONG_DOUBLE;
+        return;
+    } else if (PyArray_IsScalar(obj, LongDouble)) {
         PyArray_CastScalarToCtype(obj, &(pc->longDoubleValue),
                                   PyArray_DescrFromType(NPY_LONGDOUBLE));
         tc->type = JT_LONG_DOUBLE;
