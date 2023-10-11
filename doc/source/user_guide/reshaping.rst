@@ -136,7 +136,7 @@ Also, you can use :class:`Grouper` for ``index`` and ``columns`` keywords. For d
 
 .. ipython:: python
 
-   pd.pivot_table(df, values="D", index=pd.Grouper(freq="M", key="F"), columns="C")
+   pd.pivot_table(df, values="D", index=pd.Grouper(freq="ME", key="F"), columns="C")
 
 .. _reshaping.pivot.margins:
 

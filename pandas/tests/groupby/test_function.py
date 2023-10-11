@@ -544,6 +544,39 @@ def test_idxmin_idxmax_axis1():
             gb2.idxmax(axis=1)
 
 
+@pytest.mark.parametrize(
+    "func, values, expected_values, warn",
+    [
+        ("idxmin", [0, 1, 2], [0, 2], None),
+        ("idxmax", [0, 1, 2], [1, 2], None),
+        ("idxmin", [0, np.nan, 2], [np.nan, 2], FutureWarning),
+        ("idxmax", [0, np.nan, 2], [np.nan, 2], FutureWarning),
+        ("idxmin", [1, 0, np.nan], [1, np.nan], FutureWarning),
+        ("idxmax", [1, 0, np.nan], [0, np.nan], FutureWarning),
+    ],
+)
+@pytest.mark.parametrize("test_series", [True, False])
+def test_idxmin_idxmax_skipna_false(func, values, expected_values, warn, test_series):
+    # GH#54234
+    df = DataFrame(
+        {
+            "a": [1, 1, 2],
+            "b": values,
+        }
+    )
+    gb = df.groupby("a")
+    index = Index([1, 2], name="a")
+    expected = DataFrame({"b": expected_values}, index=index)
+    if test_series:
+        gb = gb["b"]
+        expected = expected["b"]
+    klass = "Series" if test_series else "DataFrame"
+    msg = f"The behavior of {klass}GroupBy.{func} with all-NA values"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(gb, func)(skipna=False)
+    tm.assert_equal(result, expected)
+
+
 @pytest.mark.parametrize("numeric_only", [True, False, None])
 def test_axis1_numeric_only(request, groupby_func, numeric_only):
     if groupby_func in ("idxmax", "idxmin"):
@@ -824,7 +857,7 @@ def test_nlargest_and_smallest_noop(data, groups, dtype, method):
         data = list(reversed(data))
     ser = Series(data, name="a")
     result = getattr(ser.groupby(groups), method)(n=2)
-    expidx = np.array(groups, dtype=np.int_) if isinstance(groups, list) else groups
+    expidx = np.array(groups, dtype=int) if isinstance(groups, list) else groups
     expected = Series(data, index=MultiIndex.from_arrays([expidx, ser.index]), name="a")
     tm.assert_series_equal(result, expected)
 
@@ -1534,6 +1567,7 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             method(*args, **kwargs)
 
 
+@pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
 @pytest.mark.parametrize("dtype", [bool, int, float, object])
 def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560

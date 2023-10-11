@@ -1184,6 +1184,7 @@ class TestDataFrameReshape:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize(
         "index, columns",
         [
@@ -1194,6 +1195,7 @@ class TestDataFrameReshape:
     )
     def test_stack_multi_columns_non_unique_index(self, index, columns, future_stack):
         # GH-28301
+
         df = DataFrame(index=index, columns=columns).fillna(1)
         stacked = df.stack(future_stack=future_stack)
         new_index = MultiIndex.from_tuples(stacked.index.to_numpy())

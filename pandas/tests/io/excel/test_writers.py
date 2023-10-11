@@ -293,7 +293,7 @@ class TestRoundTrip:
             [
                 range(4),
                 pd.interval_range(
-                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6M"
+                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6ME"
                 ),
             ]
         )
@@ -307,10 +307,10 @@ class TestRoundTrip:
                 [
                     range(4),
                     [
-                        "(2020-01-31, 2020-07-31]",
-                        "(2020-07-31, 2021-01-31]",
-                        "(2021-01-31, 2021-07-31]",
-                        "(2021-07-31, 2022-01-31]",
+                        "(2020-01-31 00:00:00, 2020-07-31 00:00:00]",
+                        "(2020-07-31 00:00:00, 2021-01-31 00:00:00]",
+                        "(2021-01-31 00:00:00, 2021-07-31 00:00:00]",
+                        "(2021-07-31 00:00:00, 2022-01-31 00:00:00]",
                     ],
                 ]
             ),
@@ -751,7 +751,7 @@ class TestExcelWriter:
         tm.assert_frame_equal(expected, recons)
 
     def test_to_excel_periodindex(self, tsframe, path):
-        xp = tsframe.resample("M", kind="period").mean()
+        xp = tsframe.resample("ME", kind="period").mean()
 
         xp.to_excel(path, sheet_name="sht1")
 
@@ -1197,7 +1197,9 @@ class TestExcelWriter:
     def test_true_and_false_value_options(self, path):
         # see gh-13347
         df = DataFrame([["foo", "bar"]], columns=["col1", "col2"])
-        expected = df.replace({"foo": True, "bar": False})
+        msg = "Downcasting behavior in `replace`"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = df.replace({"foo": True, "bar": False})
 
         df.to_excel(path)
         read_frame = pd.read_excel(

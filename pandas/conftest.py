@@ -49,6 +49,8 @@ from pytz import (
     utc,
 )
 
+from pandas._config.config import _get_option
+
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import (
@@ -1983,7 +1985,7 @@ def using_array_manager() -> bool:
     """
     Fixture to check if the array manager is being used.
     """
-    return pd.options.mode.data_manager == "array"
+    return _get_option("mode.data_manager", silent=True) == "array"
 
 
 @pytest.fixture
@@ -1991,7 +1993,10 @@ def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
-    return pd.options.mode.copy_on_write and pd.options.mode.data_manager == "block"
+    return (
+        pd.options.mode.copy_on_write
+        and _get_option("mode.data_manager", silent=True) == "block"
+    )
 
 
 warsaws = ["Europe/Warsaw", "dateutil/Europe/Warsaw"]

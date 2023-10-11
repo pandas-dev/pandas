@@ -111,7 +111,7 @@ def to_timedelta(
 
         * 'W'
         * 'D' / 'days' / 'day'
-        * 'hours' / 'hour' / 'hr' / 'h'
+        * 'hours' / 'hour' / 'hr' / 'h' / 'H'
         * 'm' / 'minute' / 'min' / 'minutes' / 'T'
         * 's' / 'seconds' / 'sec' / 'second' / 'S'
         * 'ms' / 'milliseconds' / 'millisecond' / 'milli' / 'millis' / 'L'
@@ -121,9 +121,9 @@ def to_timedelta(
         Must not be specified when `arg` context strings and ``errors="raise"``.
 
         .. deprecated:: 2.2.0
-            Units 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed
-            in a future version. Please use 'min', 's', 'ms', 'us', and 'ns' instead of
-            'T', 'S', 'L', 'U' and 'N'.
+            Units 'H', 'T', 'S', 'L', 'U' and 'N' are deprecated and will be removed
+            in a future version. Please use 'h', 'min', 's', 'ms', 'us', and 'ns'
+            instead of 'H', 'T', 'S', 'L', 'U' and 'N'.
 
     errors : {'ignore', 'raise', 'coerce'}, default 'raise'
         - If 'raise', then invalid parsing will raise an exception.
