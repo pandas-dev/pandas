@@ -76,6 +76,7 @@ Other enhancements
 
 - :attr:`Series.attrs` / :attr:`DataFrame.attrs` now uses a deepcopy for propagating ``attrs`` (:issue:`54134`).
 - :func:`read_csv` now supports ``on_bad_lines`` parameter with ``engine="pyarrow"``. (:issue:`54480`)
+- :func:`read_spss` now returns a :class:`DataFrame` that stores the metadata in :attr:`DataFrame.attrs`. (:issue:`54264`)
 - :meth:`ExtensionArray._explode` interface method added to allow extension type implementations of the ``explode`` method (:issue:`54833`)
 - :meth:`ExtensionArray.duplicated` added to allow extension type implementations of the ``duplicated`` method (:issue:`55255`)
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
@@ -256,6 +257,7 @@ Other Deprecations
 - Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
 - Deprecated strings ``T``, ``S``, ``L``, ``U``, and ``N`` denoting frequencies in :class:`Minute`, :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano` (:issue:`52536`)
+- Deprecated the ``fastpath`` keyword in the :class:`Series` constructor (:issue:`20110`)
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
 - Deprecated the option ``mode.data_manager`` and the ``ArrayManager``; only the ``BlockManager`` will be available in future versions (:issue:`55043`)
 - Deprecating downcasting the results of :meth:`DataFrame.fillna`, :meth:`Series.fillna`, :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, :meth:`Series.bfill` in object-dtype cases. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`54261`)

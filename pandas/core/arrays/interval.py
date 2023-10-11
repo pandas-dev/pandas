@@ -15,8 +15,6 @@ from typing import (
 
 import numpy as np
 
-from pandas._config import get_option
-
 from pandas._libs import lib
 from pandas._libs.interval import (
     VALID_CLOSED,
@@ -1233,51 +1231,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # Rendering Methods
 
-    def _format_data(self) -> str:
-        # TODO: integrate with categorical and make generic
-        # name argument is unused here; just for compat with base / categorical
-        n = len(self)
-        max_seq_items = min((get_option("display.max_seq_items") or n) // 10, 10)
-
-        formatter = str
-
-        if n == 0:
-            summary = "[]"
-        elif n == 1:
-            first = formatter(self[0])
-            summary = f"[{first}]"
-        elif n == 2:
-            first = formatter(self[0])
-            last = formatter(self[-1])
-            summary = f"[{first}, {last}]"
-        else:
-            if n > max_seq_items:
-                n = min(max_seq_items // 2, 10)
-                head = [formatter(x) for x in self[:n]]
-                tail = [formatter(x) for x in self[-n:]]
-                head_str = ", ".join(head)
-                tail_str = ", ".join(tail)
-                summary = f"[{head_str} ... {tail_str}]"
-            else:
-                tail = [formatter(x) for x in self]
-                tail_str = ", ".join(tail)
-                summary = f"[{tail_str}]"
-
-        return summary
-
-    def __repr__(self) -> str:
-        # the short repr has no trailing newline, while the truncated
-        # repr does. So we include a newline in our template, and strip
-        # any trailing newlines from format_object_summary
-        data = self._format_data()
-        class_name = f"<{type(self).__name__}>\n"
-
-        template = f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
-        return template
-
-    def _format_space(self) -> str:
-        space = " " * (len(type(self).__name__) + 1)
-        return f"\n{space}"
+    def _formatter(self, boxed: bool = False):
+        # returning 'str' here causes us to render as e.g. "(0, 1]" instead of
+        #  "Interval(0, 1, closed='right')"
+        return str
 
     # ---------------------------------------------------------------------
     # Vectorized Interval Properties/Attributes
