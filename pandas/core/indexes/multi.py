@@ -858,8 +858,8 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> index = pd.MultiIndex.from_product([('mammal'),
-        ... ('goat', 'human', 'cat', 'dog')],names=['Category', 'Animals'])
+        >>> index = pd.MultiIndex.from_product([['mammal'],
+        ... ('goat', 'human', 'cat', 'dog')], names=['Category', 'Animals'])
         >>> leg_num = pd.DataFrame(data=(4, 2, 4, 4), index=index, columns=['Legs'])
         >>> leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
