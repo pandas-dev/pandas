@@ -868,6 +868,7 @@ class MultiIndex(Index):
                  human       2
                  cat         4
                  dog         4
+
         >>> leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
 
@@ -880,6 +881,7 @@ class MultiIndex(Index):
         mammal   goat        4
                  cat         4
                  dog         4
+
         >>> large_leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
         """
