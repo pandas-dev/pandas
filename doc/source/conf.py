@@ -800,33 +800,38 @@ def setup(app):
     app.add_directive("autosummary", PandasAutosummary)
 
 
-#### Ignore list for broken link checks
+####### This is an ignore list for broken links found in CI run checks for broken-linkcheck.yml
 
-import re
-import requests
-
-# Fetch the content of the ci file
-pipeline_url = ("https://pipelinesghubeus22.actions.githubusercontent.com/"
-                "xZyE9jtmkxWlfCAbyu1SHPJOlsa2huNFYcxohSTomy6EbdNZT9/"
-                "_apis/pipelines/1/runs/531865/signedlogcontent/2?"
-                "urlExpires=2023-10-08T10%3A02%3A18.0563894Z&"
-                "urlSigningMethod=HMACV1&"
-                "urlSignature=9icPkVbCE2Ya0M5%2FY03N8fkFuDfYBn%2F"
-                "DyJ93o2R4%2BWk%3D")
-
-response = requests.get(pipeline_url)
-ignore_patterns = response.text.splitlines()
-
-# List to store broken links
-broken_links = []
-
-# Ignore links based on patterns from ci file
-for pattern in ignore_patterns:
-    # Compile the regular expression pattern
-    regex_pattern = re.compile(pattern)
-
-    # Check if any broken link matches the pattern
-    ignored_links = [link for link in broken_links if regex_pattern.search(link)]
-
-    print(f"Ignored links matching pattern {pattern}:")
-    print(ignored_links)
+linkcheck_ignore = [r'http://']
+linkcheck_ignore = [r'http://scatterci.github.io/pydata/pandas:\d+/']
+linkcheck_ignore = [r'http://specs.frictionlessdata.io/json-table-schema/:\d+/']
+linkcheck_ignore = [r'https://']
+linkcheck_ignore = [r'https://cloud.google.com/bigquery/docs/access-control#roles:\d+/']
+linkcheck_ignore = [r'https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query:\d+/']
+linkcheck_ignore = [r'https://crates.io/crates/calamine:\d+/']
+linkcheck_ignore = [r'https://devguide.python.org/setup/#macos:\d+/']
+linkcheck_ignore = [r'https://en.wikipedia.org/wiki/Imputation_(statistics:\d+/']
+linkcheck_ignore = [r'https://github.com/noatamir/pandas-dev:\d+/']
+linkcheck_ignore = [r'https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1:\d+/']
+linkcheck_ignore = [r'https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568:\d+/']
+linkcheck_ignore = [r'https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495:\d+/']
+linkcheck_ignore = [r'https://github.com/pandas-dev/pandas/issues/174151:\d+/']
+linkcheck_ignore = [r'https://gitpod.io/#https://github.com/USERNAME/pandas:\d+/']
+linkcheck_ignore = [r'https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/:\d+/']
+linkcheck_ignore = [r'https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table:\d+/']
+linkcheck_ignore = [r'https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html:\d+/']
+linkcheck_ignore = [r'https://nbviewer.ipython.org/gist/metakermit/5720498:\d+/']
+linkcheck_ignore = [r'https://numpy.org/doc/stable/user/basics.byteswapping.html:\d+/']
+linkcheck_ignore = [r'https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0:\d+/']
+linkcheck_ignore = [r'https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking:\d+/']
+linkcheck_ignore = [r'https://pandas.pydata.org/pandas-docs/stable/ecosystem.html:\d+/']
+linkcheck_ignore = [r'https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html:\d+/']
+linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm:\d+/']
+linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm:\d+/']
+linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm:\d+/']
+linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm:\d+/']
+linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/imlug/66845/HTML/default/viewer.htm#imlug_langref_sect455.htm:\d+/']
+linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm:\d+/']
+linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm:\d+/']
+linkcheck_ignore = [r'https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/:\d+/']
+linkcheck_ignore = [r'pandas.zip:\d+/']
