@@ -456,7 +456,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
             # With object-dtype we need a comparison that identifies
             #  e.g. int(2) as distinct from float(2)
-            return hash(self) == hash(other)
+            return set(self.categories) == set(other.categories)
 
     def __repr__(self) -> str_type:
         if self.categories is None:
