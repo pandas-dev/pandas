@@ -964,7 +964,7 @@ cdef class Tick(SingleConstructorOffset):
         try:
             return self.n * Timedelta(self._nanos_inc)
         except OverflowError as err:
-            # as_unit will raise a more useful OutOfBoundsTimedelta
+            # GH#55503 as_unit will raise a more useful OutOfBoundsTimedelta
             Timedelta(self).as_unit("ns")
             raise AssertionError("This should not be reached.")
 

@@ -1183,6 +1183,7 @@ class TestPeriodComparisons:
 
 class TestArithmetic:
     def test_add_overflow_raises(self):
+        # GH#55503
         per = Timestamp.max.to_period("ns")
 
         msg = "Python int too large to convert to C long"

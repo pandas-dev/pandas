@@ -1808,6 +1808,7 @@ class Timedelta(_Timedelta):
                     + seconds
                 )
             except OverflowError as err:
+                # GH#55503
                 msg = (
                     f"seconds={seconds}, milliseconds={ms}, "
                     f"microseconds={us}, nanoseconds={ns}"

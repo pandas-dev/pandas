@@ -239,7 +239,7 @@ def test_tick_addition(kls, expected):
 
 
 def test_tick_delta_overflow():
-    # raise OutOfBoundsTimedelta, not OverflowError
+    # GH#55503 raise OutOfBoundsTimedelta, not OverflowError
     tick = offsets.Day(10**9)
     msg = "Cannot cast 1000000000 days 00:00:00 to unit='ns' without overflow"
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
