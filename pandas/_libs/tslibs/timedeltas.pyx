@@ -1924,10 +1924,7 @@ class Timedelta(_Timedelta):
             int64_t result, unit
             ndarray[int64_t] arr
 
-        from pandas._libs.tslibs.offsets import to_offset
-
-        to_offset(freq).nanos  # raises on non-fixed freq
-        unit = delta_to_nanoseconds(to_offset(freq), self._creso)
+        unit = get_unit_for_round(freq, self._creso)
 
         arr = np.array([self._value], dtype="i8")
         try:
@@ -2284,3 +2281,11 @@ cdef bint _should_cast_to_timedelta(object obj):
     return (
         is_any_td_scalar(obj) or obj is None or obj is NaT or isinstance(obj, str)
     )
+
+
+cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1:
+    from pandas._libs.tslibs.offsets import to_offset
+
+    freq = to_offset(freq)
+    freq.nanos  # raises on non-fixed freq
+    return delta_to_nanoseconds(freq, creso)
