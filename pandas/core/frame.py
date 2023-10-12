@@ -5171,12 +5171,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     @property
     def _series(self):
-        return {
-            item: Series(
-                self._mgr.iget(idx), index=self.index, name=item, fastpath=True
-            )
-            for idx, item in enumerate(self.columns)
-        }
+        return {item: self._ixs(idx, axis=1) for idx, item in enumerate(self.columns)}
 
     # ----------------------------------------------------------------------
     # Reindexing and alignment
