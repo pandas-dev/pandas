@@ -874,7 +874,7 @@ class MultiIndex(Index):
 
         MultiIndex levels will not change even if the DataFrame using the MultiIndex
         does not contain all them anymore.
-        See How "human" is not in the DataFrame, but it is still in levels:
+        See how "human" is not in the DataFrame, but it is still in levels:
 
         >>> large_leg_num = leg_num[leg_num.Legs > 2]
         >>> large_leg_num
