@@ -1387,12 +1387,20 @@ class Index(IndexOpsMixin, PandasObject):
 
         values = self._values
 
-        if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
-            values = np.asarray(values)
+        if (
+            is_object_dtype(values.dtype)
+            or is_string_dtype(values.dtype)
+            or isinstance(self.dtype, (IntervalDtype, CategoricalDtype))
+        ):
             # TODO: why do we need different justify for these cases?
-            result = trim_front(format_array(values, None, justify="all"))
+            justify = "all"
         else:
-            result = trim_front(format_array(values, None, justify="left"))
+            justify = "left"
+        # passing leading_space=False breaks test_format_missing,
+        #  test_index_repr_in_frame_with_nan, but would otherwise make
+        #  trim_front unnecessary
+        formatted = format_array(values, None, justify=justify)
+        result = trim_front(formatted)
         return header + result
 
     def _format_native_types(
