@@ -74,7 +74,7 @@ The extra 2 bytes are for the quotes around the string
 */
 #define RESERVE_STRING(_len) (2 + ((_len)*6))
 
-static const double g_pow10[] = {1,
+static const long double g_pow10[] = {1,
                                  10,
                                  100,
                                  1000,
@@ -784,29 +784,29 @@ void Buffer_AppendLongUnchecked(JSONObjectEncoder *enc, JSINT64 value) {
     enc->offset += (wstr - (enc->offset));
 }
 
-int Buffer_AppendDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
-                                 double value) {
+int Buffer_AppendLongDoubleUnchecked(JSOBJ obj, JSONObjectEncoder *enc,
+                                 long double value) {
     /* if input is beyond the thresholds, revert to exponential */
-    const double thres_max = (double)1e16 - 1;
-    const double thres_min = (double)1e-15;
+    const long double thres_max = (long double)1e16 - 1;
+    const long double thres_min = (long double)1e-15;
     char precision_str[20];
     int count;
-    double diff = 0.0;
+    long double diff = 0.0;
     char *str = enc->offset;
     char *wstr = str;
     unsigned long long whole;
-    double tmp;
+    long double tmp;
     unsigned long long frac;
     int neg;
-    double pow10;
+    long double pow10;
 
     if (value == HUGE_VAL || value == -HUGE_VAL) {
-        SetError(obj, enc, "Invalid Inf value when encoding double");
+        SetError(obj, enc, "Invalid Inf value when encoding long double");
         return FALSE;
     }
 
     if (!(value == value)) {
-        SetError(obj, enc, "Invalid Nan value when encoding double");
+        SetError(obj, enc, "Invalid Nan value when encoding long double");
         return FALSE;
     }
 
@@ -942,7 +942,7 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
     This reservation must hold
 
     length of _name as encoded worst case +
-    maxLength of double to string OR maxLength of JSLONG to string
+    maxLength of long double to string OR maxLength of JSLONG to string
     */
 
     Buffer_Reserve(enc, 256 + RESERVE_STRING(cbName));
@@ -1076,9 +1076,9 @@ void encode(JSOBJ obj, JSONObjectEncoder *enc, const char *name,
             break;
         }
 
-        case JT_DOUBLE: {
-            if (!Buffer_AppendDoubleUnchecked(obj, enc,
-                                              enc->getDoubleValue(obj, &tc))) {
+        case JT_LONG_DOUBLE: {
+            if (!Buffer_AppendLongDoubleUnchecked(obj, enc,
+                                              enc->getLongDoubleValue(obj, &tc))) {
                 enc->endTypeContext(obj, &tc);
                 enc->level--;
                 return;

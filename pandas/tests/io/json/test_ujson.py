@@ -762,6 +762,14 @@ class TestNumpyJSONTests:
         )
         tm.assert_almost_equal(float_input, float_output)
 
+    def test_array_long_double(self):
+        dtype = np.longdouble
+        arr = np.arange(100.202, 200.202, 1, dtype=dtype)
+        arr = arr.reshape((5, 5, 4))
+
+        arr_out = np.array(ujson.ujson_loads(ujson.ujson_dumps(arr)), dtype=dtype)
+        tm.assert_almost_equal(arr, arr_out)
+
     def test_float_max(self, float_numpy_dtype):
         klass = np.dtype(float_numpy_dtype).type
         num = klass(np.finfo(float_numpy_dtype).max / 10)

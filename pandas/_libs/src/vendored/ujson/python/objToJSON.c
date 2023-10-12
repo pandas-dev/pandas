@@ -105,7 +105,7 @@ typedef struct __TypeContext {
     PyObject *attrList;
     PyObject *iterator;
 
-    double doubleValue;
+    long double longDoubleValue;
     JSINT64 longValue;
 
     char *cStr;
@@ -164,7 +164,7 @@ static TypeContext *createTypeContext(void) {
     pc->index = 0;
     pc->size = 0;
     pc->longValue = 0;
-    pc->doubleValue = 0.0;
+    pc->longDoubleValue = (long double) 0.0;
     pc->cStr = NULL;
     pc->npyarr = NULL;
     pc->pdblock = NULL;
@@ -1494,8 +1494,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         if (npy_isnan(val) || npy_isinf(val)) {
             tc->type = JT_NULL;
         } else {
-            pc->doubleValue = val;
-            tc->type = JT_DOUBLE;
+            pc->longDoubleValue = (long double) val;
+            tc->type = JT_LONG_DOUBLE;
         }
         return;
     } else if (PyBytes_Check(obj)) {
@@ -1507,8 +1507,8 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
         tc->type = JT_UTF8;
         return;
     } else if (object_is_decimal_type(obj)) {
-        pc->doubleValue = PyFloat_AsDouble(obj);
-        tc->type = JT_DOUBLE;
+        pc->longDoubleValue = (long double) PyFloat_AsDouble(obj);
+        tc->type = JT_LONG_DOUBLE;
         return;
     } else if (PyDateTime_Check(obj) || PyDate_Check(obj)) {
         if (object_is_nat_type(obj)) {
@@ -1605,10 +1605,12 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
                                   PyArray_DescrFromType(NPY_BOOL));
         tc->type = (pc->longValue) ? JT_TRUE : JT_FALSE;
         return;
-    } else if (PyArray_IsScalar(obj, Float) || PyArray_IsScalar(obj, Double)) {
-        PyArray_CastScalarToCtype(obj, &(pc->doubleValue),
-                                  PyArray_DescrFromType(NPY_DOUBLE));
-        tc->type = JT_DOUBLE;
+    } else if (PyArray_IsScalar(obj, Float) ||
+               PyArray_IsScalar(obj, Double) ||
+               PyArray_IsScalar(obj, LongDouble)) {
+        PyArray_CastScalarToCtype(obj, &(pc->longDoubleValue),
+                                  PyArray_DescrFromType(NPY_LONGDOUBLE));
+        tc->type = JT_LONG_DOUBLE;
         return;
     } else if (PyArray_Check(obj) && PyArray_CheckScalar(obj)) {
         PyErr_Format(PyExc_TypeError,
@@ -1925,8 +1927,8 @@ JSINT64 Object_getLongValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
     return GET_TC(tc)->longValue;
 }
 
-double Object_getDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
-    return GET_TC(tc)->doubleValue;
+long double Object_getLongDoubleValue(JSOBJ Py_UNUSED(obj), JSONTypeContext *tc) {
+    return GET_TC(tc)->longDoubleValue;
 }
 
 const char *Object_getBigNumStringValue(JSOBJ obj, JSONTypeContext *tc,
@@ -1970,7 +1972,6 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
     if (PyDateTimeAPI == NULL) {
         return NULL;
     }
-
     PandasDateTime_IMPORT;
     if (PandasDateTimeAPI == NULL) {
         return NULL;
@@ -2006,7 +2007,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
         Object_getStringValue,
         Object_getLongValue,
         NULL,  // getIntValue is unused
-        Object_getDoubleValue,
+        Object_getLongDoubleValue,
         Object_getBigNumStringValue,
         Object_iterBegin,
         Object_iterNext,

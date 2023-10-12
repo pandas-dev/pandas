@@ -138,19 +138,20 @@ typedef int64_t JSLONG;
 #endif
 
 enum JSTYPES {
-  JT_NULL,     // NULL
-  JT_TRUE,     // boolean true
-  JT_FALSE,    // boolean false
-  JT_INT,      // (JSINT32 (signed 32-bit))
-  JT_LONG,     // (JSINT64 (signed 64-bit))
-  JT_DOUBLE,   // (double)
-  JT_BIGNUM,   // integer larger than sys.maxsize
-  JT_UTF8,     // (char 8-bit)
-  JT_ARRAY,    // Array structure
-  JT_OBJECT,   // Key/Value structure
-  JT_INVALID,  // Internal, do not return nor expect
-  JT_POS_INF,  // Positive infinity
-  JT_NEG_INF,  // Negative infinity
+  JT_NULL,        // NULL
+  JT_TRUE,        // boolean true
+  JT_FALSE,       // boolean false
+  JT_INT,         // (JSINT32 (signed 32-bit))
+  JT_LONG,        // (JSINT64 (signed 64-bit))
+  JT_DOUBLE,      // (double)
+  JT_BIGNUM,      // integer larger than sys.maxsize
+  JT_UTF8,        // (char 8-bit)
+  JT_ARRAY,       // Array structure
+  JT_OBJECT,      // Key/Value structure
+  JT_INVALID,     // Internal, do not return nor expect
+  JT_POS_INF,     // Positive infinity
+  JT_NEG_INF,     // Negative infinity
+  JT_LONG_DOUBLE  // Long Double
 };
 
 typedef void * JSOBJ;
@@ -181,7 +182,7 @@ typedef struct __JSONObjectEncoder {
                                 size_t *_outLen);
   JSINT64 (*getLongValue)(JSOBJ obj, JSONTypeContext *tc);
   JSINT32 (*getIntValue)(JSOBJ obj, JSONTypeContext *tc);
-  double (*getDoubleValue)(JSOBJ obj, JSONTypeContext *tc);
+  long double (*getLongDoubleValue)(JSOBJ obj, JSONTypeContext *tc);
   const char *(*getBigNumStringValue)(JSOBJ obj, JSONTypeContext *tc,
                                 size_t *_outLen);
 
