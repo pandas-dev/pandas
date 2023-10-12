@@ -827,6 +827,14 @@ def _binary_op_method_timedeltalike(op, name):
 # ----------------------------------------------------------------------
 # Timedelta Construction
 
+cpdef disallow_ambiguous_unit(unit):
+    if unit in {"Y", "y", "M"}:
+        raise ValueError(
+            "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
+            "represent unambiguous timedelta values durations."
+        )
+
+
 cdef int64_t parse_iso_format_string(str ts) except? -1:
     """
     Extracts and cleanses the appropriate values from a match object with
@@ -1803,11 +1811,7 @@ class Timedelta(_Timedelta):
                 + int(kwargs.get("milliseconds", 0) * 1_000_000)
                 + seconds
             )
-        if unit in {"Y", "y", "M"}:
-            raise ValueError(
-                "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
-                "represent unambiguous timedelta values durations."
-            )
+        disallow_ambiguous_unit(unit)
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed
