@@ -862,27 +862,13 @@ class MultiIndex(Index):
         ... ('goat', 'human', 'cat', 'dog')], names=['Category', 'Animals'])
         >>> leg_num = pd.DataFrame(data=(4, 2, 4, 4), index=index, columns=['Legs'])
         >>> leg_num
-                          Legs
-        Category Animals
-        mammal   goat        4
-                 human       2
-                 cat         4
-                 dog         4
-
         >>> leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
 
         MultiIndex levels will not change even if the DataFrame using the MultiIndex
         does not contain all them anymore:
-
         >>> large_leg_num = leg_num[leg_num.Legs > 2]
         >>> large_leg_num
-                          Legs
-        Category Animals
-        mammal   goat        4
-                 cat         4
-                 dog         4
-
         >>> large_leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
         """
