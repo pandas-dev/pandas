@@ -145,9 +145,11 @@ from pandas.io.api import (
     ExcelWriter,
     read_excel,
     # parsers
+    read_apple_numbers,
     read_csv,
     read_fwf,
     read_table,
+    to_apple_numbers,
     # pickle
     read_pickle,
     to_pickle,
@@ -329,6 +331,7 @@ __all__ = [
     "pivot_table",
     "plotting",
     "qcut",
+    "read_apple_numbers",
     "read_clipboard",
     "read_csv",
     "read_excel",
@@ -356,6 +359,7 @@ __all__ = [
     "test",
     "testing",
     "timedelta_range",
+    "to_apple_numbers",
     "to_datetime",
     "to_numeric",
     "to_pickle",

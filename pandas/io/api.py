@@ -2,6 +2,10 @@
 Data IO api
 """
 
+from pandas.io.apple_numbers import (
+    read_apple_numbers,
+    to_apple_numbers,
+)
 from pandas.io.clipboards import read_clipboard
 from pandas.io.excel import (
     ExcelFile,
@@ -42,6 +46,7 @@ __all__ = [
     "ExcelWriter",
     "HDFStore",
     "read_clipboard",
+    "read_apple_numbers",
     "read_csv",
     "read_excel",
     "read_feather",
@@ -62,4 +67,5 @@ __all__ = [
     "read_table",
     "read_xml",
     "to_pickle",
+    "to_apple_numbers",
 ]
