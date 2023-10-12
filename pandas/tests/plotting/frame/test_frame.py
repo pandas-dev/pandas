@@ -603,7 +603,7 @@ class TestDataFramePlots:
         lines = ax.get_lines()
         assert xmin <= lines[0].get_data()[0][0]
         assert xmax >= lines[0].get_data()[0][-1]
-        assert ymin == 0, ymin
+        assert ymin == 0
 
         ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
         ymin, ymax = ax.get_ylim()
