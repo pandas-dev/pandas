@@ -348,7 +348,7 @@ jobs:
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
           python -m pip install versioneer[toml]
           python -m pip install python-dateutil pytz tzdata "cython<3.0.3" hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-cov pytest-asyncio>=0.17
-          python -m pip install -ve . --no-build-isolation --no-index
+          python -m pip install -ve . --no-build-isolation --no-index --no-deps
           python -m pip list
 
       - name: Run Tests

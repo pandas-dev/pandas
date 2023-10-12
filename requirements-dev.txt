@@ -12,7 +12,7 @@ pytest-xdist>=2.2.0
 pytest-asyncio>=0.17.0
 coverage
 python-dateutil
-numpy
+numpy<2
 pytz
 beautifulsoup4>=4.11.1
 blosc
