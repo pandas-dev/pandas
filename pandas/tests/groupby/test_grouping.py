@@ -734,7 +734,7 @@ class TestGrouping:
         # GH 14715
         df = DataFrame({"date": date_range("1/1/2011", periods=365, freq="D")})
         df.iloc[-1] = pd.NaT
-        grouper = Grouper(key="date", freq="AS")
+        grouper = Grouper(key="date", freq="YS")
 
         # Grouper in a list grouping
         result = df.groupby([grouper])

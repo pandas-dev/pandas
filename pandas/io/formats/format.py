@@ -259,11 +259,12 @@ class SeriesFormatter:
         name = self.series.name
         footer = ""
 
-        if getattr(self.series.index, "freq", None) is not None:
-            assert isinstance(
-                self.series.index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
-            )
-            footer += f"Freq: {self.series.index.freqstr}"
+        index = self.series.index
+        if (
+            isinstance(index, (DatetimeIndex, PeriodIndex, TimedeltaIndex))
+            and index.freq is not None
+        ):
+            footer += f"Freq: {index.freqstr}"
 
         if self.name is not False and name is not None:
             if footer:
@@ -289,7 +290,7 @@ class SeriesFormatter:
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
         if isinstance(self.tr_series.dtype, CategoricalDtype):
-            level_info = self.tr_series._values._repr_categories_info()
+            level_info = self.tr_series._values._get_repr_footer()
             if footer:
                 footer += "\n"
             footer += level_info
@@ -1215,18 +1216,16 @@ class _GenericArrayFormatter:
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                try:
-                    # try block for np.isnat specifically
-                    # determine na_rep if x is None or NaT-like
-                    if x is None:
-                        return "None"
-                    elif x is NA:
-                        return str(NA)
-                    elif x is NaT or np.isnat(x):
-                        return "NaT"
-                except (TypeError, ValueError):
-                    # np.isnat only handles datetime or timedelta objects
-                    pass
+                if x is None:
+                    return "None"
+                elif x is NA:
+                    return str(NA)
+                elif lib.is_float(x) and np.isinf(x):
+                    # TODO(3.0): this will be unreachable when use_inf_as_na
+                    #  deprecation is enforced
+                    return str(x)
+                elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
+                    return "NaT"
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
