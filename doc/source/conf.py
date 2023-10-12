@@ -802,8 +802,11 @@ def setup(app):
 
 ####### This is an ignore list for broken links found in CI run checks for broken-linkcheck.yml
 
-linkcheck_ignore = [r'http://']
-linkcheck_ignore = [r'http://scatterci.github.io/pydata/pandas:\d+/']
+linkcheck_ignore = [
+    r'http://',
+    r'http://scatterci.github.io/pydata/pandas:\d+/'
+    ...
+]
 linkcheck_ignore = [r'http://specs.frictionlessdata.io/json-table-schema/:\d+/']
 linkcheck_ignore = [r'https://']
 linkcheck_ignore = [r'https://cloud.google.com/bigquery/docs/access-control#roles:\d+/']
