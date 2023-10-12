@@ -4460,7 +4460,7 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
     >>> freq = pd.offsets.CustomBusinessMonthEnd(calendar=bdc)
     >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 11, 10), freq=freq)
     DatetimeIndex(['2022-07-29', '2022-08-31', '2022-09-29', '2022-10-28'],
-                   dtype='datetime64[ns]', freq='CBM')
+                   dtype='datetime64[ns]', freq='CBME')
     """
 
     _prefix = "CBME"
