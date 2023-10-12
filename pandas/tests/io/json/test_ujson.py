@@ -818,6 +818,13 @@ class TestNumpyJSONTests:
         with pytest.raises(TypeError, match=msg):
             ujson.ujson_dumps(np.array(1))
 
+    def test_array_long_double(self):
+        msg = re.compile(
+            "1234.5.*\\(np.longdouble\\) is not JSON serializable at the moment"
+        )
+        with pytest.raises(TypeError, match=msg):
+            ujson.ujson_dumps(np.longdouble(1234.5))
+
 
 class TestPandasJSONTests:
     def test_dataframe(self, orient):

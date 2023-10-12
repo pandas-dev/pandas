@@ -1610,6 +1610,11 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
                                   PyArray_DescrFromType(NPY_DOUBLE));
         tc->type = JT_DOUBLE;
         return;
+    } else if (PyArray_IsScalar(obj, LongDouble)) {
+        PyErr_Format(PyExc_TypeError,
+                     "%R (np.longdouble) is not JSON serializable at the moment",
+                     obj);
+        goto INVALID;
     } else if (PyArray_Check(obj) && PyArray_CheckScalar(obj)) {
         PyErr_Format(PyExc_TypeError,
                      "%R (0d array) is not JSON serializable at the moment",
