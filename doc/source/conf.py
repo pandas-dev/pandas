@@ -804,37 +804,36 @@ def setup(app):
 
 linkcheck_ignore = [
     r'http://',
-    r'http://scatterci.github.io/pydata/pandas:\d+/'
-    ...
+    r'http://scatterci.github.io/pydata/pandas',
+    r'http://specs.frictionlessdata.io/json-table-schema/',
+    r'https://',
+    r'https://cloud.google.com/bigquery/docs/access-control#roles',
+    r'https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query',
+    r'https://crates.io/crates/calamine',
+    r'https://devguide.python.org/setup/#macos',
+    r'https://en.wikipedia.org/wiki/Imputation_(statistics',
+    r'https://github.com/noatamir/pandas-dev',
+    r'https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1',
+    r'https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568',
+    r'https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495',
+    r'https://github.com/pandas-dev/pandas/issues/174151',
+    r'https://gitpod.io/#https://github.com/USERNAME/pandas',
+    r'https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/',
+    r'https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table',
+    r'https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html',
+    r'https://nbviewer.ipython.org/gist/metakermit/5720498',
+    r'https://numpy.org/doc/stable/user/basics.byteswapping.html',
+    r'https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0',
+    r'https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking',
+    r'https://pandas.pydata.org/pandas-docs/stable/ecosystem.html',
+    r'https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html',
+    r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm',
+    r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm',
+    r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm',
+    r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm',
+    r'https://support.sas.com/documentation/cdl/en/imlug/66845/HTML/default/viewer.htm#imlug_langref_sect455.htm',
+    r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm',
+    r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm',
+    r'https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/',
+    r'pandas.zip'
 ]
-linkcheck_ignore = [r'http://specs.frictionlessdata.io/json-table-schema/:\d+/']
-linkcheck_ignore = [r'https://']
-linkcheck_ignore = [r'https://cloud.google.com/bigquery/docs/access-control#roles:\d+/']
-linkcheck_ignore = [r'https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query:\d+/']
-linkcheck_ignore = [r'https://crates.io/crates/calamine:\d+/']
-linkcheck_ignore = [r'https://devguide.python.org/setup/#macos:\d+/']
-linkcheck_ignore = [r'https://en.wikipedia.org/wiki/Imputation_(statistics:\d+/']
-linkcheck_ignore = [r'https://github.com/noatamir/pandas-dev:\d+/']
-linkcheck_ignore = [r'https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1:\d+/']
-linkcheck_ignore = [r'https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568:\d+/']
-linkcheck_ignore = [r'https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495:\d+/']
-linkcheck_ignore = [r'https://github.com/pandas-dev/pandas/issues/174151:\d+/']
-linkcheck_ignore = [r'https://gitpod.io/#https://github.com/USERNAME/pandas:\d+/']
-linkcheck_ignore = [r'https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/:\d+/']
-linkcheck_ignore = [r'https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table:\d+/']
-linkcheck_ignore = [r'https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html:\d+/']
-linkcheck_ignore = [r'https://nbviewer.ipython.org/gist/metakermit/5720498:\d+/']
-linkcheck_ignore = [r'https://numpy.org/doc/stable/user/basics.byteswapping.html:\d+/']
-linkcheck_ignore = [r'https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0:\d+/']
-linkcheck_ignore = [r'https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking:\d+/']
-linkcheck_ignore = [r'https://pandas.pydata.org/pandas-docs/stable/ecosystem.html:\d+/']
-linkcheck_ignore = [r'https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html:\d+/']
-linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm:\d+/']
-linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm:\d+/']
-linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm:\d+/']
-linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm:\d+/']
-linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/imlug/66845/HTML/default/viewer.htm#imlug_langref_sect455.htm:\d+/']
-linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm:\d+/']
-linkcheck_ignore = [r'https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm:\d+/']
-linkcheck_ignore = [r'https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/:\d+/']
-linkcheck_ignore = [r'pandas.zip:\d+/']
