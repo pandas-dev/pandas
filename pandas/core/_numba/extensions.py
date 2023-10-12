@@ -266,8 +266,6 @@ def index_constructor_1arg(context, builder, sig, args):
 
 # Helper to convert the unicodecharseq (numpy string scalar) into a unicode_type
 # (regular string)
-
-
 def maybe_cast_str(x):
     # Dummy function that numba can overload
     pass
@@ -290,9 +288,7 @@ def unbox_index(typ, obj, c):
 
     Note: Object dtype is not allowed here
     """
-    # data_obj = c.pyapi.object_getattr_string(obj, "_data")
     data_obj = c.pyapi.object_getattr_string(obj, "_numba_data")
-    # data_obj = c.pyapi.object_getattr_string(obj, "_numba_data")
     index = cgutils.create_struct_proxy(typ)(c.context, c.builder)
     # If we see an object array, assume its been validated as only containing strings
     # We still need to do the conversion though
@@ -396,7 +392,6 @@ def box_series(typ, val, c):
     array_obj = c.box(typ.as_array, series.values)
     name_obj = c.box(typ.namety, series.name)
     true_obj = c.pyapi.unserialize(c.pyapi.serialize_object(True))
-    # TODO: Is borrowing none here safe?
     # This is equivalent of
     # pd.Series(data=array_obj, index=index_obj, dtype=None,
     #           name=name_obj, copy=None, fastpath=True)
@@ -424,8 +419,6 @@ def box_series(typ, val, c):
 
 # Add common series reductions (e.g. mean, sum),
 # and also add common binops (e.g. add, sub, mul, div)
-
-
 def generate_series_reduction(ser_reduction, ser_method):
     @overload_method(SeriesType, ser_reduction)
     def series_reduction(series):
@@ -497,8 +490,6 @@ def index_get_loc(index, item):
 
 
 # Indexing for Series/Index
-
-
 @overload(operator.getitem)
 def series_indexing(series, item):
     if isinstance(series, SeriesType):

@@ -1,8 +1,3 @@
-# pyright: reportUnusedImport=false
-# Disabled since there's no way to do an ignore for both pyright
-# and ruff, and ruff should be sufficient
-# (The reason we need this is because the import of the numba extensions is unused
-# but is necessary to register the extensions)
 from __future__ import annotations
 
 import abc
@@ -1130,15 +1125,12 @@ class FrameRowApply(FrameApply):
     def generate_numba_apply_func(
         func, nogil=True, nopython=True, parallel=False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+        numba = import_optional_dependency("numba")
         from pandas import Series
 
-        # Dummy import just to make the extensions loaded in
-        # This isn't an entrypoint since we don't want users
-        # using Series/DF in numba code outside of apply
-        from pandas.core._numba.extensions import SeriesType  # noqa: F401
+        # Import helper from extensions to cast string object -> np strings
+        # Note: This also has the side effect of loading our numba extensions
         from pandas.core._numba.extensions import maybe_cast_str
-
-        numba = import_optional_dependency("numba")
 
         jitted_udf = numba.extending.register_jitable(func)
 
@@ -1156,11 +1148,11 @@ class FrameRowApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        from pandas.core._numba.extensions import set_numba_data
-
         nb_func = self.generate_numba_apply_func(
             cast(Callable, self.func), **self.engine_kwargs
         )
+        from pandas.core._numba.extensions import set_numba_data
+
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
         with set_numba_data(self.obj.index) as index, set_numba_data(
@@ -1257,14 +1249,9 @@ class FrameColumnApply(FrameApply):
     def generate_numba_apply_func(
         func, nogil=True, nopython=True, parallel=False
     ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
-        # Dummy import just to make the extensions loaded in
-        # This isn't an entrypoint since we don't want users
-        # using Series/DF in numba code outside of apply
-        from pandas import Series
-        from pandas.core._numba.extensions import SeriesType  # noqa: F401
-        from pandas.core._numba.extensions import maybe_cast_str
-
         numba = import_optional_dependency("numba")
+        from pandas import Series
+        from pandas.core._numba.extensions import maybe_cast_str
 
         jitted_udf = numba.extending.register_jitable(func)
 
@@ -1286,11 +1273,11 @@ class FrameColumnApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
-        from pandas.core._numba.extensions import set_numba_data
-
         nb_func = self.generate_numba_apply_func(
             cast(Callable, self.func), **self.engine_kwargs
         )
+
+        from pandas.core._numba.extensions import set_numba_data
 
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
