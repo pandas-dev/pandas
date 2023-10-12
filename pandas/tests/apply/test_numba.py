@@ -1,11 +1,15 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas import (
     DataFrame,
     Index,
 )
 import pandas._testing as tm
+
+pytestmark = td.skip_if_no("numba")
 
 
 def test_numba_vs_python_noop(float_frame, apply_axis):
