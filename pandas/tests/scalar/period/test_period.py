@@ -1182,6 +1182,19 @@ class TestPeriodComparisons:
 
 
 class TestArithmetic:
+    def test_add_overflow_raises(self):
+        per = Timestamp.max.to_period("ns")
+
+        msg = "Python int too large to convert to C long"
+        with pytest.raises(OverflowError, match=msg):
+            per + 1
+
+        msg = "value too large"
+        with pytest.raises(OverflowError, match=msg):
+            per + Timedelta(1)
+        with pytest.raises(OverflowError, match=msg):
+            per + offsets.Nano(1)
+
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "m"])
     def test_add_sub_td64_nat(self, unit):
         # GH#47196
