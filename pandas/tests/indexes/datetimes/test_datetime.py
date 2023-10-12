@@ -23,17 +23,18 @@ import pandas._testing as tm
 class TestDatetimeIndex:
     def test_sub_datetime_preserves_freq(self, tz_naive_fixture):
         # GH#48818
+        # GH#41943 we cannot reliably preserve non-tick freq when crossing DST
         dti = date_range("2016-01-01", periods=12, tz=tz_naive_fixture)
 
         res = dti - dti[0]
         expected = pd.timedelta_range("0 Days", "11 Days")
         tm.assert_index_equal(res, expected)
-        assert res.freq == expected.freq
+        if tz_naive_fixture is None:
+            assert res.freq == expected.freq
+        else:
+            # we _could_ preserve for UTC and fixed-offsets
+            assert res.freq is None
 
-    @pytest.mark.xfail(
-        reason="The inherited freq is incorrect bc dti.freq is incorrect "
-        "https://github.com/pandas-dev/pandas/pull/48818/files#r982793461"
-    )
     def test_sub_datetime_preserves_freq_across_dst(self):
         # GH#48818
         ts = Timestamp("2016-03-11", tz="US/Pacific")

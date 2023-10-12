@@ -63,7 +63,7 @@ Further, operations among the scalars yield another scalar ``Timedelta``.
 
 .. ipython:: python
 
-   pd.Timedelta(pd.offsets.Day(2)) + pd.Timedelta(pd.offsets.Second(2)) + pd.Timedelta(
+   pd.Timedelta(pd.offsets.Hour(48)) + pd.Timedelta(pd.offsets.Second(2)) + pd.Timedelta(
        "00:00:00.000123"
    )
 

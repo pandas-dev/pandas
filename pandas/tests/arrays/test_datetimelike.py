@@ -91,7 +91,7 @@ class SharedTests:
     def arr1d(self):
         """Fixture returning DatetimeArray with daily frequency."""
         data = np.arange(10, dtype="i8") * 24 * 3600 * 10**9
-        arr = self.array_cls(data, freq="D")
+        arr = self.array_cls(data, freq="24h")
         return arr
 
     def test_compare_len1_raises(self, arr1d):

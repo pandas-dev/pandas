@@ -27,6 +27,7 @@ from pandas._libs import (
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     IncompatibleFrequency,
     NaT,
     NaTType,
@@ -897,9 +898,16 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if self.ndim != 1:
             return None
         try:
-            return frequencies.infer_freq(self)
+            res = frequencies.infer_freq(self)
         except ValueError:
             return None
+        if self.dtype.kind == "m" and res is not None and res.endswith("D"):
+            # TimedeltaArray freq must be a Tick, so we convert the inferred
+            #  daily freq to hourly.
+            if res == "D":
+                return "24h"
+            res = str(int(res[:-1]) * 24) + "h"
+        return res
 
     @property  # NB: override with cache_readonly in immutable subclasses
     def _resolution_obj(self) -> Resolution | None:
@@ -1040,6 +1048,10 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         elif isinstance(self.freq, Tick):
             # In these cases
             return self.freq
+        elif isinstance(self.freq, Day) and getattr(self, "tz", None) is None:
+            return self.freq
+            # TODO: are there tzaware cases when we can reliably preserve freq?
+            # We have a bunch of tests that seem to think so
         return None
 
     @final
@@ -1139,6 +1151,10 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         res_m8 = res_values.view(f"timedelta64[{self.unit}]")
 
         new_freq = self._get_arithmetic_result_freq(other)
+        if new_freq is not None:
+            # TODO: are we sure this is right?
+            new_freq = new_freq._maybe_to_hours()
+
         new_freq = cast("Tick | None", new_freq)
         return TimedeltaArray._simple_new(res_m8, dtype=res_m8.dtype, freq=new_freq)
 
@@ -1979,9 +1995,13 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if copy:
             values = values.copy()
         if freq:
+            if values.dtype.kind == "m" and isinstance(freq, Day):
+                raise TypeError("TimedeltaArray freq must be a Tick or None")
             freq = to_offset(freq)
-            if values.dtype.kind == "m" and not isinstance(freq, Tick):
-                raise TypeError("TimedeltaArray/Index freq must be a Tick")
+            if values.dtype.kind == "m":
+                freq = freq._maybe_to_hours()
+                if not isinstance(freq, Tick):
+                    raise TypeError("TimedeltaArray/Index freq must be a Tick")
 
         NDArrayBacked.__init__(self, values=values, dtype=dtype)
         self._freq = freq
@@ -2014,7 +2034,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         self._freq = value
 
     @classmethod
-    def _validate_frequency(cls, index, freq, **kwargs):
+    def _validate_frequency(cls, index, freq: BaseOffset, **kwargs):
         """
         Validate that a frequency is compatible with the values of a given
         Datetime Array/Index or Timedelta Array/Index
@@ -2130,6 +2150,10 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         values = self.view("i8")
         values = cast(np.ndarray, values)
         offset = to_offset(freq)
+
+        # In this context it is clear "D" means "24H"
+        offset = offset._maybe_to_hours()
+
         offset.nanos  # raises on non-fixed frequencies
         nanos = delta_to_nanoseconds(offset, self._creso)
         if nanos == 0:
@@ -2209,6 +2233,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             # As an internal method, we can ensure this assertion always holds
             assert freq == "infer"
             freq = to_offset(self.inferred_freq)
+
+        if self.dtype.kind == "m" and freq is not None:
+            assert isinstance(freq, Tick)
 
         arr = self.view()
         arr._freq = freq

@@ -23,7 +23,7 @@ class TestTimedeltaArrayConstructor:
 
         msg = (
             "Inferred frequency None from passed values does not "
-            "conform to passed frequency D"
+            "conform to passed frequency 24h"
         )
         with pytest.raises(ValueError, match=msg):
             TimedeltaArray(arr.view("timedelta64[ns]"), freq="D")

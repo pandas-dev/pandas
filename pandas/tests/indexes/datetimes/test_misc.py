@@ -295,6 +295,7 @@ def test_iter_readonly():
 
 def test_add_timedelta_preserves_freq():
     # GH#37295 should hold for any DTI with freq=None or Tick freq
+    # GH#51874 changed this, with tzaware we can no longer retain "D" in addition
     tz = "Canada/Eastern"
     dti = date_range(
         start=Timestamp("2019-03-26 00:00:00-0400", tz=tz),
@@ -302,4 +303,4 @@ def test_add_timedelta_preserves_freq():
         freq="D",
     )
     result = dti + Timedelta(days=1)
-    assert result.freq == dti.freq
+    assert result.freq is None

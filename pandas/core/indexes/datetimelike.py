@@ -26,6 +26,7 @@ from pandas._libs import (
 )
 from pandas._libs.tslibs import (
     BaseOffset,
+    Day,
     Resolution,
     Tick,
     parsing,
@@ -89,6 +90,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     _can_hold_strings = False
     _data: DatetimeArray | TimedeltaArray | PeriodArray
+    _freq: BaseOffset | None
 
     @doc(DatetimeLikeArrayMixin.mean)
     def mean(self, *, skipna: bool = True, axis: int | None = 0):
@@ -586,8 +588,9 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             # At this point we should have result.dtype == self.dtype
             #  and type(result) is type(self._data)
             result = self._wrap_setop_result(other, result)
-            return result._with_freq(None)._with_freq("infer")
-
+            result = result._with_freq(None)._with_freq("infer")
+            result = self._maybe_restore_day(result._data)
+            return result
         else:
             return self._fast_intersect(other, sort)
 
@@ -708,7 +711,18 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
             #  that result.freq == self.freq
             return result
         else:
-            return super()._union(other, sort)._with_freq("infer")
+            result = super()._union(other, sort)._with_freq("infer")
+            return self._maybe_restore_day(result)
+
+    def _maybe_restore_day(self, result: Self) -> Self:
+        if isinstance(self.freq, Day) and isinstance(result.freq, Tick):
+            # If we infer a 24H-like freq but are D, restore "D"
+            td = Timedelta(result.freq)
+            div, mod = divmod(td.value, 24 * 3600 * 10**9)
+            if mod == 0:
+                freq = to_offset("D") * div
+                result._freq = freq
+        return result
 
     # --------------------------------------------------------------------
     # Join Methods

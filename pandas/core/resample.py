@@ -2005,6 +2005,19 @@ def get_resampler(obj: Series | DataFrame, kind=None, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
     """
+    freq = kwds.get("freq", None)
+    if freq is not None:
+        # TODO: same thing in get_resampler_for_grouping?
+        axis = kwds.get("axis", 0)
+        axis = obj._get_axis_number(axis)
+        ax = obj.axes[axis]
+        if isinstance(ax, TimedeltaIndex):
+            # TODO: could disallow/deprecate Day _object_ while still
+            #  allowing "D" string?
+            freq = to_offset(freq)._maybe_to_hours()
+            freq = freq._maybe_to_hours()
+            kwds["freq"] = freq
+
     tg = TimeGrouper(obj, **kwds)  # type: ignore[arg-type]
     return tg._get_resampler(obj, kind=kind)
 
@@ -2335,29 +2348,28 @@ class TimeGrouper(Grouper):
                 f"an instance of {type(ax).__name__}"
             )
 
+        freq = self.freq._maybe_to_hours()
         if not isinstance(self.freq, Tick):
             # GH#51896
             raise ValueError(
                 "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
-                f"e.g. '24h' or '3D', not {self.freq}"
+                f"e.g. '24h' or '72h', not {freq}"
             )
 
         if not len(ax):
-            binner = labels = TimedeltaIndex(data=[], freq=self.freq, name=ax.name)
+            binner = labels = TimedeltaIndex(data=[], freq=freq, name=ax.name)
             return binner, [], labels
 
         start, end = ax.min(), ax.max()
 
         if self.closed == "right":
-            end += self.freq
+            end += freq
 
-        labels = binner = timedelta_range(
-            start=start, end=end, freq=self.freq, name=ax.name
-        )
+        labels = binner = timedelta_range(start=start, end=end, freq=freq, name=ax.name)
 
         end_stamps = labels
         if self.closed == "left":
-            end_stamps += self.freq
+            end_stamps += freq
 
         bins = ax.searchsorted(end_stamps, side=self.closed)
 
@@ -2526,7 +2538,7 @@ def _get_timestamp_range_edges(
     -------
     A tuple of length 2, containing the adjusted pd.Timestamp objects.
     """
-    if isinstance(freq, Tick):
+    if isinstance(freq, (Tick, Day)):
         index_tz = first.tz
         if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
@@ -2536,6 +2548,8 @@ def _get_timestamp_range_edges(
             origin = Timestamp("1970-01-01", tz=index_tz)
 
         if isinstance(freq, Day):
+            # TODO: should we change behavior for next comment now that Day
+            #  respects DST?
             # _adjust_dates_anchored assumes 'D' means 24h, but first/last
             # might contain a DST transition (23h, 24h, or 25h).
             # So "pretend" the dates are naive when adjusting the endpoints
@@ -2545,7 +2559,13 @@ def _get_timestamp_range_edges(
                 origin = origin.tz_localize(None)
 
         first, last = _adjust_dates_anchored(
-            first, last, freq, closed=closed, origin=origin, offset=offset, unit=unit
+            first,
+            last,
+            freq._maybe_to_hours(),
+            closed=closed,
+            origin=origin,
+            offset=offset,
+            unit=unit,
         )
         if isinstance(freq, Day):
             first = first.tz_localize(index_tz)

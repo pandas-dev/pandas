@@ -35,6 +35,7 @@ from pandas._config import (
 from pandas._libs import lib
 from pandas._libs.lib import is_range_indexer
 from pandas._libs.tslibs import (
+    Day,
     Period,
     Tick,
     Timestamp,
@@ -9640,7 +9641,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             return self.copy(deep=False)
 
         offset = to_offset(offset)
-        if not isinstance(offset, Tick) and offset.is_on_offset(self.index[0]):
+        if not isinstance(offset, (Tick, Day)) and offset.is_on_offset(self.index[0]):
             # GH#29623 if first value is end of period, remove offset with n = 1
             #  before adding the real offset
             end_date = end = self.index[0] - offset.base + offset
@@ -9648,7 +9649,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             end_date = end = self.index[0] + offset
 
         # Tick-like, e.g. 3 weeks
-        if isinstance(offset, Tick) and end_date in self.index:
+        if isinstance(offset, (Tick, Day)) and end_date in self.index:
             end = self.index.searchsorted(end_date, side="left")
             return self.iloc[:end]
 

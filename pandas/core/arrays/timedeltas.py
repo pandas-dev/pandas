@@ -15,6 +15,7 @@ from pandas._libs import (
     tslibs,
 )
 from pandas._libs.tslibs import (
+    Day,
     NaT,
     NaTType,
     Tick,
@@ -263,7 +264,15 @@ class TimedeltaArray(dtl.TimelikeOps):
         explicit_none = freq is None
         freq = freq if freq is not lib.no_default else None
 
+        if isinstance(freq, Day):
+            raise ValueError(
+                "Day offset object is not valid for TimedeltaIndex, "
+                "pass e.g. 24H instead."
+            )
+
         freq, freq_infer = dtl.maybe_infer_freq(freq)
+        if freq is not None:
+            freq = freq._maybe_to_hours()
 
         data, inferred_freq = sequence_to_td64ns(data, copy=copy, unit=unit)
         freq, freq_infer = dtl.validate_inferred_freq(freq, inferred_freq, freq_infer)
@@ -296,6 +305,9 @@ class TimedeltaArray(dtl.TimelikeOps):
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
             raise ValueError("Must provide freq argument if no data is supplied")
+
+        if isinstance(freq, Day):
+            raise TypeError("TimedeltaArray/Index freq must be a Tick or None")
 
         if com.count_not_none(start, end, periods, freq) != 3:
             raise ValueError(
