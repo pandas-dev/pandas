@@ -1942,8 +1942,8 @@ cdef class _Period(PeriodMixin):
         Examples
         --------
         >>> period = pd.Period('2023-1-1', freq='D')
-        >>> period.asfreq('H')
-        Period('2023-01-01 23:00', 'H')
+        >>> period.asfreq('h')
+        Period('2023-01-01 23:00', 'h')
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
@@ -2054,7 +2054,7 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> p = pd.Period("2018-03-11", freq='H')
+        >>> p = pd.Period("2018-03-11", freq='h')
         >>> p.day
         11
         """
@@ -2155,7 +2155,7 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> p = pd.Period("2018-03-11", "H")
+        >>> p = pd.Period("2018-03-11", "h")
         >>> p.weekofyear
         10
 
@@ -2186,7 +2186,7 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> p = pd.Period("2018-03-11", "H")
+        >>> p = pd.Period("2018-03-11", "h")
         >>> p.week
         10
 
@@ -2226,14 +2226,14 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> per = pd.Period('2017-12-31 22:00', 'H')
+        >>> per = pd.Period('2017-12-31 22:00', 'h')
         >>> per.day_of_week
         6
 
         For periods that span over multiple days, the day at the beginning of
         the period is returned.
 
-        >>> per = pd.Period('2017-12-31 22:00', '4H')
+        >>> per = pd.Period('2017-12-31 22:00', '4h')
         >>> per.day_of_week
         6
         >>> per.start_time.day_of_week
@@ -2277,14 +2277,14 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> per = pd.Period('2017-12-31 22:00', 'H')
+        >>> per = pd.Period('2017-12-31 22:00', 'h')
         >>> per.dayofweek
         6
 
         For periods that span over multiple days, the day at the beginning of
         the period is returned.
 
-        >>> per = pd.Period('2017-12-31 22:00', '4H')
+        >>> per = pd.Period('2017-12-31 22:00', '4h')
         >>> per.dayofweek
         6
         >>> per.start_time.dayofweek
@@ -2326,7 +2326,7 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> period = pd.Period("2015-10-23", freq='H')
+        >>> period = pd.Period("2015-10-23", freq='h')
         >>> period.day_of_year
         296
         >>> period = pd.Period("2012-12-31", freq='D')
@@ -2447,7 +2447,7 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> p = pd.Period("2018-03-11", freq='H')
+        >>> p = pd.Period("2018-03-11", freq='h')
         >>> p.daysinmonth
         31
         """
@@ -2482,8 +2482,8 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> pd.Period.now('H')  # doctest: +SKIP
-        Period('2023-06-12 11:00', 'H')
+        >>> pd.Period.now('h')  # doctest: +SKIP
+        Period('2023-06-12 11:00', 'h')
         """
         return Period(datetime.now(), freq=freq)
 
