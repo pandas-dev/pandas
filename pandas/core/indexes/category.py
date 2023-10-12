@@ -21,7 +21,6 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
     isna,
-    notna,
 )
 
 from pandas.core.arrays.categorical import (
@@ -37,8 +36,6 @@ from pandas.core.indexes.extension import (
     NDArrayBackedExtensionIndex,
     inherit_names,
 )
-
-from pandas.io.formats.printing import pprint_thing
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
@@ -355,13 +352,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         ]
         extra = super()._format_attrs()
         return attrs + extra
-
-    def _format_with_header(self, *, header: list[str], na_rep: str) -> list[str]:
-        result = [
-            pprint_thing(x, escape_chars=("\t", "\r", "\n")) if notna(x) else na_rep
-            for x in self._values
-        ]
-        return header + result
 
     # --------------------------------------------------------------------
 

@@ -216,6 +216,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
     def _format_with_header(
         self, *, header: list[str], na_rep: str, date_format: str | None = None
     ) -> list[str]:
+        # TODO: not reached in tests 2023-10-11
         # matches base class except for whitespace padding and date_format
         return header + list(
             self._format_native_types(na_rep=na_rep, date_format=date_format)
