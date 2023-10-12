@@ -330,7 +330,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     series_array_exc = None
 
     def _get_expected_exception(
-        self, op_name: str, obj, other
+        self, op_name: str, obj, other, *args, **kwargs
     ) -> type[Exception] | None:
         return None
 
