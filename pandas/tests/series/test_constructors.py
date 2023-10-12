@@ -335,8 +335,8 @@ class TestSeriesConstructors:
         [
             ([1, 2]),
             (["1", "2"]),
-            (list(date_range("1/1/2011", periods=2, freq="H"))),
-            (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
+            (list(date_range("1/1/2011", periods=2, freq="h"))),
+            (list(date_range("1/1/2011", periods=2, freq="h", tz="US/Eastern"))),
             ([Interval(left=0, right=5)]),
         ],
     )
@@ -1022,7 +1022,7 @@ class TestSeriesConstructors:
     def test_constructor_dtype_datetime64_7(self):
         # GH6529
         # coerce datetime64 non-ns properly
-        dates = date_range("01-Jan-2015", "01-Dec-2015", freq="M")
+        dates = date_range("01-Jan-2015", "01-Dec-2015", freq="ME")
         values2 = dates.view(np.ndarray).astype("datetime64[ns]")
         expected = Series(values2, index=dates)
 
@@ -1306,7 +1306,7 @@ class TestSeriesConstructors:
         assert isna(series[2])
 
     def test_constructor_period_incompatible_frequency(self):
-        data = [Period("2000", "D"), Period("2001", "A")]
+        data = [Period("2000", "D"), Period("2001", "Y")]
         result = Series(data)
         assert result.dtype == object
         assert result.tolist() == data
@@ -2158,7 +2158,7 @@ class TestSeriesConstructorInternals:
 
     @td.skip_array_manager_invalid_test
     def test_from_array(self):
-        result = Series(pd.array(["1H", "2H"], dtype="timedelta64[ns]"))
+        result = Series(pd.array(["1h", "2h"], dtype="timedelta64[ns]"))
         assert result._mgr.blocks[0].is_extension is False
 
         result = Series(pd.array(["2015"], dtype="datetime64[ns]"))
@@ -2166,7 +2166,7 @@ class TestSeriesConstructorInternals:
 
     @td.skip_array_manager_invalid_test
     def test_from_list_dtype(self):
-        result = Series(["1H", "2H"], dtype="timedelta64[ns]")
+        result = Series(["1h", "2h"], dtype="timedelta64[ns]")
         assert result._mgr.blocks[0].is_extension is False
 
         result = Series(["2015"], dtype="datetime64[ns]")

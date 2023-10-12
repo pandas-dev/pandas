@@ -16,7 +16,7 @@ import pandas._testing as tm
 class TestCombineFirst:
     def test_combine_first_period_datetime(self):
         # GH#3367
-        didx = date_range(start="1950-01-31", end="1950-07-31", freq="M")
+        didx = date_range(start="1950-01-31", end="1950-07-31", freq="ME")
         pidx = period_range(start=Period("1950-1"), end=Period("1950-7"), freq="M")
         # check to be consistent with DatetimeIndex
         for idx in [didx, pidx]:
@@ -107,7 +107,7 @@ class TestCombineFirst:
         time_index = date_range(
             datetime(2021, 1, 1, 1),
             datetime(2021, 1, 1, 10),
-            freq="H",
+            freq="h",
             tz="Europe/Rome",
         )
         s1 = Series(range(10), index=time_index)

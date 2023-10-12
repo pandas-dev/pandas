@@ -10,11 +10,11 @@ import pandas._testing as tm
 
 class TestDelete:
     def test_delete(self):
-        idx = date_range(start="2000-01-01", periods=5, freq="M", name="idx")
+        idx = date_range(start="2000-01-01", periods=5, freq="ME", name="idx")
 
         # preserve freq
-        expected_0 = date_range(start="2000-02-01", periods=4, freq="M", name="idx")
-        expected_4 = date_range(start="2000-01-01", periods=4, freq="M", name="idx")
+        expected_0 = date_range(start="2000-02-01", periods=4, freq="ME", name="idx")
+        expected_4 = date_range(start="2000-01-01", periods=4, freq="ME", name="idx")
 
         # reset freq to None
         expected_1 = DatetimeIndex(
@@ -42,25 +42,25 @@ class TestDelete:
 
         for tz in [None, "Asia/Tokyo", "US/Pacific"]:
             idx = date_range(
-                start="2000-01-01 09:00", periods=10, freq="H", name="idx", tz=tz
+                start="2000-01-01 09:00", periods=10, freq="h", name="idx", tz=tz
             )
 
             expected = date_range(
-                start="2000-01-01 10:00", periods=9, freq="H", name="idx", tz=tz
+                start="2000-01-01 10:00", periods=9, freq="h", name="idx", tz=tz
             )
             result = idx.delete(0)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
-            assert result.freqstr == "H"
+            assert result.freqstr == "h"
             assert result.tz == expected.tz
 
             expected = date_range(
-                start="2000-01-01 09:00", periods=9, freq="H", name="idx", tz=tz
+                start="2000-01-01 09:00", periods=9, freq="h", name="idx", tz=tz
             )
             result = idx.delete(-1)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
-            assert result.freqstr == "H"
+            assert result.freqstr == "h"
             assert result.tz == expected.tz
 
     def test_delete_slice(self):
@@ -105,13 +105,13 @@ class TestDelete:
             ts = Series(
                 1,
                 index=date_range(
-                    "2000-01-01 09:00", periods=10, freq="H", name="idx", tz=tz
+                    "2000-01-01 09:00", periods=10, freq="h", name="idx", tz=tz
                 ),
             )
             # preserve freq
             result = ts.drop(ts.index[:5]).index
             expected = date_range(
-                "2000-01-01 14:00", periods=5, freq="H", name="idx", tz=tz
+                "2000-01-01 14:00", periods=5, freq="h", name="idx", tz=tz
             )
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name

@@ -45,8 +45,9 @@ def test_apply(float_frame):
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_args(float_frame, axis):
-    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,))
+@pytest.mark.parametrize("raw", [True, False])
+def test_apply_args(float_frame, axis, raw):
+    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,), raw=raw)
     expected = float_frame + 1
     tm.assert_frame_equal(result, expected)
 
@@ -838,7 +839,7 @@ def test_with_listlike_columns():
         {
             "a": Series(np.random.default_rng(2).standard_normal(4)),
             "b": ["a", "list", "of", "words"],
-            "ts": date_range("2016-10-01", periods=4, freq="H"),
+            "ts": date_range("2016-10-01", periods=4, freq="h"),
         }
     )
 

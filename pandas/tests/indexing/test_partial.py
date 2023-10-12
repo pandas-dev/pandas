@@ -402,7 +402,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}'\)\] "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.dtype(int)}'\)\] "
             r"are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -483,7 +483,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}', "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.dtype(int)}', "
             r"name='idx'\)\] are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
