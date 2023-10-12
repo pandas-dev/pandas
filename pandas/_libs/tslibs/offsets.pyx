@@ -2930,7 +2930,7 @@ cdef class BusinessMonthEnd(MonthOffset):
     >>> pd.offsets.BMonthEnd().rollforward(ts)
     Timestamp('2022-11-30 00:00:00')
     """
-    _prefix = "BM"
+    _prefix = "BME"
     _day_opt = "business_end"
 
 
@@ -4463,7 +4463,7 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
                    dtype='datetime64[ns]', freq='CBM')
     """
 
-    _prefix = "CBM"
+    _prefix = "CBME"
 
 
 cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
@@ -4546,12 +4546,12 @@ prefix_mapping = {
         BYearEnd,  # 'BY'
         BusinessDay,  # 'B'
         BusinessMonthBegin,  # 'BMS'
-        BusinessMonthEnd,  # 'BM'
+        BusinessMonthEnd,  # 'BME'
         BQuarterEnd,  # 'BQ'
         BQuarterBegin,  # 'BQS'
         BusinessHour,  # 'bh'
         CustomBusinessDay,  # 'C'
-        CustomBusinessMonthEnd,  # 'CBM'
+        CustomBusinessMonthEnd,  # 'CBME'
         CustomBusinessMonthBegin,  # 'CBMS'
         CustomBusinessHour,  # 'cbh'
         MonthEnd,  # 'ME'
