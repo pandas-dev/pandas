@@ -10,6 +10,7 @@ Mostly vendored from https://github.com/numba/numba/blob/main/numba/tests/pdlike
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import operator
 
 import numba
@@ -32,9 +33,32 @@ from numba.core.extending import (
 from numba.core.imputils import impl_ret_borrowed
 import numpy as np
 
+from pandas._libs import lib
+
 from pandas.core.indexes.base import Index
 from pandas.core.indexing import _iLocIndexer
 from pandas.core.series import Series
+
+
+# Helper function to hack around fact that Index casts numpy string dtype to object
+#
+# Idea is to set an attribute on a Index called _numba_data
+# that is the original data, or the object data casted to numpy string dtype,
+# with a context manager that is unset afterwards
+@contextmanager
+def set_numba_data(index: Index):
+    numba_data = index._data
+    if numba_data.dtype == object:
+        if not lib.is_string_array(numba_data):
+            raise ValueError(
+                "The numba engine only supports using string or numeric column names"
+            )
+        numba_data = numba_data.astype("U")
+    try:
+        index._numba_data = numba_data
+        yield index
+    finally:
+        del index._numba_data
 
 
 # TODO: Range index support
@@ -104,7 +128,8 @@ def typeof_index(val, c):
     index.
     (you should check this before this gets lowered down to numba)
     """
-    arrty = typeof_impl(val._data, c)
+    # arrty = typeof_impl(val._data, c)
+    arrty = typeof_impl(val._numba_data, c)
     assert arrty.ndim == 1
     return IndexType(arrty.dtype, arrty.layout, type(val))
 
@@ -263,18 +288,17 @@ def unbox_index(typ, obj, c):
     """
     Convert a Index object to a native structure.
 
-    If it is object dtype, we'll attempt to cast it to one of
-    numpy's string dtypes.
-    (you are responsible for validating that the Index contains only
-    strings if its object type before lowering it to numba)
+    Note: Object dtype is not allowed here
     """
-    data_obj = c.pyapi.object_getattr_string(obj, "_data")
+    # data_obj = c.pyapi.object_getattr_string(obj, "_data")
+    data_obj = c.pyapi.object_getattr_string(obj, "_numba_data")
+    # data_obj = c.pyapi.object_getattr_string(obj, "_numba_data")
     index = cgutils.create_struct_proxy(typ)(c.context, c.builder)
     # If we see an object array, assume its been validated as only containing strings
     # We still need to do the conversion though
     index.data = c.unbox(typ.as_array, data_obj).value
     typed_dict_obj = c.pyapi.unserialize(c.pyapi.serialize_object(numba.typed.Dict))
-    # Create an empty typed dict in numba for the hasmap for indexing
+    # Create an empty typed dict in numba for the hashmap for indexing
     # equiv of numba.typed.Dict.empty(typ.dtype, types.intp)
     arr_type_obj = c.pyapi.unserialize(c.pyapi.serialize_object(typ.dtype))
     intp_type_obj = c.pyapi.unserialize(c.pyapi.serialize_object(types.intp))
@@ -353,7 +377,6 @@ def box_index(typ, val, c):
             # this is basically Index._simple_new(array_obj, name_obj) in python
             index_obj = c.pyapi.call_method(class_obj, "_simple_new", (array_obj,))
             index.parent = index_obj
-            c.pyapi.print_object(index.parent)
             c.builder.store(index_obj, res)
 
             # Decrefs

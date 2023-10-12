@@ -1156,43 +1156,17 @@ class FrameRowApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
+        from pandas.core._numba.extensions import set_numba_data
+
         nb_func = self.generate_numba_apply_func(
             cast(Callable, self.func), **self.engine_kwargs
         )
-        # Since numpy/numba doesn't support object array of stringswell
-        # we'll do a sketchy thing where if index._data is object
-        # we convert to string and directly set index._data to that,
-        # setting it back after we call the function
-        fixed_obj_colnames = False
-        orig_cols = self.columns.to_numpy()
-        if self.columns._data.dtype == object:
-            if not lib.is_string_array(orig_cols):
-                raise ValueError(
-                    "The numba engine only supports "
-                    "using string or numeric column names"
-                )
-            # Remember to set this back!!!
-            self.columns._data = orig_cols.astype("U")
-            fixed_obj_colnames = True
-
-        fixed_obj_index = False
-        orig_index = self.index.to_numpy()
-        if self.obj.index._data.dtype == object:
-            if not lib.is_string_array(orig_index):
-                raise ValueError(
-                    "The numba engine only supports "
-                    "using string or numeric index values"
-                )
-            # Remember to set this back!!!
-            self.obj.index._data = orig_index.astype("U")
-            fixed_obj_index = True
-        df_index = self.obj.index
-
-        res = dict(nb_func(self.values, self.columns, df_index))
-        if fixed_obj_colnames:
-            self.columns._data = orig_cols
-        if fixed_obj_index:
-            self.obj.index._data = orig_index
+        # Convert from numba dict to regular dict
+        # Our isinstance checks in the df constructor don't pass for numbas typed dict
+        with set_numba_data(self.obj.index) as index, set_numba_data(
+            self.columns
+        ) as columns:
+            res = dict(nb_func(self.values, columns, index))
         return res
 
     @property
@@ -1312,47 +1286,18 @@ class FrameColumnApply(FrameApply):
         return numba_func
 
     def apply_with_numba(self) -> dict[int, Any]:
+        from pandas.core._numba.extensions import set_numba_data
+
         nb_func = self.generate_numba_apply_func(
             cast(Callable, self.func), **self.engine_kwargs
         )
 
-        # Since numpy/numba doesn't support object array of stringswell
-        # we'll do a sketchy thing where if index._data is object
-        # we convert to string and directly set index._data to that,
-        # setting it back after we call the function
-        fixed_obj_colnames = False
-        orig_cols = self.columns.to_numpy()
-        if self.columns._data.dtype == object:
-            if not lib.is_string_array(orig_cols):
-                raise ValueError(
-                    "The numba engine only supports "
-                    "using string or numeric column names"
-                )
-            # Remember to set this back!!!
-            self.columns._data = orig_cols.astype("U")
-            fixed_obj_colnames = True
-
-        fixed_obj_index = False
-        orig_index = self.index.to_numpy()
-        if self.obj.index._data.dtype == object:
-            if not lib.is_string_array(orig_index):
-                raise ValueError(
-                    "The numba engine only supports "
-                    "using string or numeric index values"
-                )
-            # Remember to set this back!!!
-            self.obj.index._data = orig_index.astype("U")
-            fixed_obj_index = True
-
         # Convert from numba dict to regular dict
         # Our isinstance checks in the df constructor don't pass for numbas typed dict
-        res = dict(nb_func(self.values, self.columns, self.obj.index))
-
-        if fixed_obj_colnames:
-            self.columns._data = orig_cols
-
-        if fixed_obj_index:
-            self.obj.index._data = orig_index
+        with set_numba_data(self.obj.index) as index, set_numba_data(
+            self.columns
+        ) as columns:
+            res = dict(nb_func(self.values, columns, index))
 
         return res
 
