@@ -869,6 +869,7 @@ class MultiIndex(Index):
         does not contain all them anymore:
         >>> large_leg_num = leg_num[leg_num.Legs > 2]
         >>> large_leg_num
+        f
         >>> large_leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
         """
