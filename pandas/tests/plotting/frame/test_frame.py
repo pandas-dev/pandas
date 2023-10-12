@@ -607,7 +607,7 @@ class TestDataFramePlots:
 
         ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
         ymin, ymax = ax.get_ylim()
-        assert ymax == 0, ymax
+        assert ymax == 0
 
     def test_area_sharey_dont_overwrite(self):
         # GH37942
