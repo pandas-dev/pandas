@@ -47,7 +47,7 @@ def test_read_csv_with_custom_date_parser(all_parsers):
     # GH36111
     def __custom_date_parser(time):
         time = time.astype(np.float64)
-        time = time.astype(np.int_)  # convert float seconds to int type
+        time = time.astype(int)  # convert float seconds to int type
         return pd.to_timedelta(time, unit="s")
 
     testdata = StringIO(
@@ -87,7 +87,7 @@ def test_read_csv_with_custom_date_parser_parse_dates_false(all_parsers):
     # GH44366
     def __custom_date_parser(time):
         time = time.astype(np.float64)
-        time = time.astype(np.int_)  # convert float seconds to int type
+        time = time.astype(int)  # convert float seconds to int type
         return pd.to_timedelta(time, unit="s")
 
     testdata = StringIO(

@@ -73,9 +73,7 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
-    ABCDatetimeIndex,
     ABCSeries,
-    ABCTimedeltaIndex,
 )
 from pandas.core.dtypes.inference import is_array_like
 from pandas.core.dtypes.missing import (
@@ -109,7 +107,10 @@ from pandas.core.sorting import (
     lexsort_indexer,
 )
 
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    get_adjustment,
+    pprint_thing,
+)
 
 if TYPE_CHECKING:
     from pandas import (
@@ -768,8 +769,8 @@ class MultiIndex(Index):
                 vals = cast("CategoricalIndex", vals)
                 vals = vals._data._internal_get_values()
 
-            if isinstance(vals.dtype, ExtensionDtype) or isinstance(
-                vals, (ABCDatetimeIndex, ABCTimedeltaIndex)
+            if isinstance(vals.dtype, ExtensionDtype) or lib.is_np_dtype(
+                vals.dtype, "mM"
             ):
                 vals = vals.astype(object)
 
@@ -842,6 +843,53 @@ class MultiIndex(Index):
 
     @cache_readonly
     def levels(self) -> FrozenList:
+        """
+        Levels of the MultiIndex.
+
+        Levels refer to the different hierarchical levels or layers in a MultiIndex.
+        In a MultiIndex, each level represents a distinct dimension or category of
+        the index.
+
+        To access the levels, you can use the levels attribute of the MultiIndex,
+        which returns a tuple of Index objects. Each Index object represents a
+        level in the MultiIndex and contains the unique values found in that
+        specific level.
+
+        If a MultiIndex is created with levels A, B, C, and the DataFrame using
+        it filters out all rows of the level C, MultiIndex.levels will still
+        return A, B, C.
+
+        Examples
+        --------
+        >>> index = pd.MultiIndex.from_product([['mammal'],
+        ... ('goat', 'human', 'cat', 'dog')], names=['Category', 'Animals'])
+        >>> leg_num = pd.DataFrame(data=(4, 2, 4, 4), index=index, columns=['Legs'])
+        >>> leg_num
+                          Legs
+        Category Animals
+        mammal   goat        4
+                 human       2
+                 cat         4
+                 dog         4
+
+        >>> leg_num.index.levels
+        FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
+
+        MultiIndex levels will not change even if the DataFrame using the MultiIndex
+        does not contain all them anymore.
+        See how "human" is not in the DataFrame, but it is still in levels:
+
+        >>> large_leg_num = leg_num[leg_num.Legs > 2]
+        >>> large_leg_num
+                          Legs
+        Category Animals
+        mammal   goat        4
+                 cat         4
+                 dog         4
+
+        >>> large_leg_num.index.levels
+        FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
+        """
         # Use cache_readonly to ensure that self.get_locs doesn't repeatedly
         # create new IndexEngine
         # https://github.com/pandas-dev/pandas/issues/31648
@@ -1439,8 +1487,6 @@ class MultiIndex(Index):
             )
 
         if adjoin:
-            from pandas.io.formats.format import get_adjustment
-
             adj = get_adjustment()
             return adj.adjoin(space, *result_levels).split("\n")
         else:
@@ -1948,7 +1994,7 @@ class MultiIndex(Index):
                     # indexer to reorder the level codes
                     indexer = ensure_platform_int(indexer)
                     ri = lib.get_reverse_indexer(indexer, len(indexer))
-                    level_codes = algos.take_nd(ri, level_codes)
+                    level_codes = algos.take_nd(ri, level_codes, fill_value=-1)
 
             new_levels.append(lev)
             new_codes.append(level_codes)

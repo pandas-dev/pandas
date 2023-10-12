@@ -383,7 +383,7 @@ def ndarray_to_mgr(
             new_block(
                 dtype.construct_array_type()._from_sequence(data, dtype=dtype),
                 BlockPlacement(slice(i, i + 1)),
-                ndim=1,
+                ndim=2,
             )
             for i, data in enumerate(obj_columns)
         ]

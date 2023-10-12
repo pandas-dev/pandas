@@ -261,7 +261,7 @@ class TestGetIndexer:
         midx = MultiIndex.from_product(
             [
                 Categorical(["a", "b", "c"]),
-                Categorical(date_range("2012-01-01", periods=3, freq="H")),
+                Categorical(date_range("2012-01-01", periods=3, freq="h")),
             ]
         )
         result = midx.get_indexer(midx)
@@ -341,6 +341,19 @@ class TestGetIndexer:
         pad_indexer = mult_idx_1.get_indexer(mult_idx_2, method="ffill")
         expected = np.array([4, 6, 7], dtype=pad_indexer.dtype)
         tm.assert_almost_equal(expected, pad_indexer)
+
+    @pytest.mark.parametrize("method", ["pad", "ffill", "backfill", "bfill", "nearest"])
+    def test_get_indexer_methods_raise_for_non_monotonic(self, method):
+        # 53452
+        mi = MultiIndex.from_arrays([[0, 4, 2], [0, 4, 2]])
+        if method == "nearest":
+            err = NotImplementedError
+            msg = "not implemented yet for MultiIndex"
+        else:
+            err = ValueError
+            msg = "index must be monotonic increasing or decreasing"
+        with pytest.raises(err, match=msg):
+            mi.get_indexer([(1, 1)], method=method)
 
     def test_get_indexer_three_or_more_levels(self):
         # https://github.com/pandas-dev/pandas/issues/29896
@@ -841,7 +854,7 @@ def test_timestamp_multiindex_indexer():
     # https://github.com/pandas-dev/pandas/issues/26944
     idx = MultiIndex.from_product(
         [
-            date_range("2019-01-01T00:15:33", periods=100, freq="H", name="date"),
+            date_range("2019-01-01T00:15:33", periods=100, freq="h", name="date"),
             ["x"],
             [3],
         ]
@@ -853,7 +866,7 @@ def test_timestamp_multiindex_indexer():
             date_range(
                 start="2019-01-02T00:15:33",
                 end="2019-01-05T03:15:33",
-                freq="H",
+                freq="h",
                 name="date",
             ),
             ["x"],

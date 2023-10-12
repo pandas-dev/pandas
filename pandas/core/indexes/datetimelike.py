@@ -31,6 +31,7 @@ from pandas._libs.tslibs import (
     parsing,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
     InvalidIndexError,
@@ -108,8 +109,16 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @property
     @doc(DatetimeLikeArrayMixin.freqstr)
-    def freqstr(self) -> str | None:
-        return self._data.freqstr
+    def freqstr(self) -> str:
+        from pandas import PeriodIndex
+
+        if self._data.freqstr is not None and isinstance(
+            self._data, (PeriodArray, PeriodIndex)
+        ):
+            freq = freq_to_period_freqstr(self._data.freq.n, self._data.freq.name)
+            return freq
+        else:
+            return self._data.freqstr  # type: ignore[return-value]
 
     @cache_readonly
     @abstractmethod
@@ -200,11 +209,14 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if formatter is not None:
             return header + list(self.map(formatter))
 
-        return self._format_with_header(header, na_rep=na_rep, date_format=date_format)
+        return self._format_with_header(
+            header=header, na_rep=na_rep, date_format=date_format
+        )
 
     def _format_with_header(
-        self, header: list[str], na_rep: str = "NaT", date_format: str | None = None
+        self, *, header: list[str], na_rep: str, date_format: str | None = None
     ) -> list[str]:
+        # TODO: not reached in tests 2023-10-11
         # matches base class except for whitespace padding and date_format
         return header + list(
             self._format_native_types(na_rep=na_rep, date_format=date_format)

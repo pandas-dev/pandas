@@ -80,7 +80,11 @@ class TestIntervalIndexRendering:
                     ((Timestamp("20180102"), Timestamp("20180103"))),
                 ],
                 "both",
-                ["[2018-01-01, 2018-01-02]", "NaN", "[2018-01-02, 2018-01-03]"],
+                [
+                    "[2018-01-01 00:00:00, 2018-01-02 00:00:00]",
+                    "NaN",
+                    "[2018-01-02 00:00:00, 2018-01-03 00:00:00]",
+                ],
             ),
             (
                 [
@@ -100,6 +104,22 @@ class TestIntervalIndexRendering:
     def test_to_native_types(self, tuples, closed, expected_data):
         # GH 28210
         index = IntervalIndex.from_tuples(tuples, closed=closed)
-        result = index._format_native_types()
+        result = index._format_native_types(na_rep="NaN")
         expected = np.array(expected_data)
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_timestamp_with_timezone(self):
+        # GH 55035
+        index = IntervalIndex(
+            [
+                Interval(
+                    Timestamp("2020-01-01", tz="UTC"), Timestamp("2020-01-02", tz="UTC")
+                )
+            ]
+        )
+        result = repr(index)
+        expected = (
+            "IntervalIndex([(2020-01-01 00:00:00+00:00, 2020-01-02 00:00:00+00:00]], "
+            "dtype='interval[datetime64[ns, UTC], right]')"
+        )
+        assert result == expected

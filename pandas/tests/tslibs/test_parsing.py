@@ -138,8 +138,8 @@ def test_parsers_quarterly_with_freq_error(date_str, kwargs, msg):
     "date_str,freq,expected",
     [
         ("2013Q2", None, datetime(2013, 4, 1)),
-        ("2013Q2", "A-APR", datetime(2012, 8, 1)),
-        ("2013-Q2", "A-DEC", datetime(2013, 4, 1)),
+        ("2013Q2", "Y-APR", datetime(2012, 8, 1)),
+        ("2013-Q2", "Y-DEC", datetime(2013, 4, 1)),
     ],
 )
 def test_parsers_quarterly_with_freq(date_str, freq, expected):
@@ -148,7 +148,7 @@ def test_parsers_quarterly_with_freq(date_str, freq, expected):
 
 
 @pytest.mark.parametrize(
-    "date_str", ["2Q 2005", "2Q-200A", "2Q-200", "22Q2005", "2Q200.", "6Q-20"]
+    "date_str", ["2Q 2005", "2Q-200Y", "2Q-200", "22Q2005", "2Q200.", "6Q-20"]
 )
 def test_parsers_quarter_invalid(date_str):
     if date_str == "6Q-20":
@@ -168,7 +168,7 @@ def test_parsers_quarter_invalid(date_str):
     [("201101", datetime(2011, 1, 1, 0, 0)), ("200005", datetime(2000, 5, 1, 0, 0))],
 )
 def test_parsers_month_freq(date_str, expected):
-    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq="M")
+    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq="ME")
     assert result == expected
 
 

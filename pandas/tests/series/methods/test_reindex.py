@@ -152,7 +152,9 @@ def test_reindex_inference():
     # inference of new dtype
     s = Series([True, False, False, True], index=list("abcd"))
     new_index = "agc"
-    result = s.reindex(list(new_index)).ffill()
+    msg = "Downcasting object dtype arrays on"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.reindex(list(new_index)).ffill()
     expected = Series([True, True, False], index=list(new_index))
     tm.assert_series_equal(result, expected)
 
@@ -160,7 +162,9 @@ def test_reindex_inference():
 def test_reindex_downcasting():
     # GH4618 shifted series downcasting
     s = Series(False, index=range(5))
-    result = s.shift(1).bfill()
+    msg = "Downcasting object dtype arrays on"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = s.shift(1).bfill()
     expected = Series(False, index=range(5))
     tm.assert_series_equal(result, expected)
 
@@ -193,7 +197,7 @@ def test_reindex_int(datetime_series):
 
     # NO NaNs introduced
     reindexed_int = int_ts.reindex(int_ts.index[::2])
-    assert reindexed_int.dtype == np.int_
+    assert reindexed_int.dtype == np.dtype(int)
 
 
 def test_reindex_bool(datetime_series):
@@ -325,7 +329,7 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_m
 def test_reindex_datetimeindexes_tz_naive_and_aware():
     # GH 8306
     idx = date_range("20131101", tz="America/Chicago", periods=7)
-    newidx = date_range("20131103", periods=10, freq="H")
+    newidx = date_range("20131103", periods=10, freq="h")
     s = Series(range(7), index=idx)
     msg = (
         r"Cannot compare dtypes datetime64\[ns, America/Chicago\] "

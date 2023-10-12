@@ -977,7 +977,7 @@ class StataParser:
         # with a label, but the underlying variable is -127 to 100
         # we're going to drop the label and cast to int
         self.DTYPE_MAP = dict(
-            list(zip(range(1, 245), [np.dtype("a" + str(i)) for i in range(1, 245)]))
+            [(i, np.dtype(f"S{i}")) for i in range(1, 245)]
             + [
                 (251, np.dtype(np.int8)),
                 (252, np.dtype(np.int16)),
@@ -1773,7 +1773,7 @@ the string values returned are correct."""
             self._data_read = True
         # if necessary, swap the byte order to native here
         if self._byteorder != self._native_byteorder:
-            raw_data = raw_data.byteswap().newbyteorder()
+            raw_data = raw_data.byteswap().view(raw_data.dtype.newbyteorder())
 
         if convert_categoricals:
             self._read_value_labels()
@@ -2983,7 +2983,14 @@ supported types."""
         for i, col in enumerate(data):
             typ = typlist[i]
             if typ <= self._max_string_length:
-                data[col] = data[col].fillna("").apply(_pad_bytes, args=(typ,))
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "Downcasting object dtype arrays",
+                        category=FutureWarning,
+                    )
+                    dc = data[col].fillna("")
+                data[col] = dc.apply(_pad_bytes, args=(typ,))
                 stype = f"S{typ}"
                 dtypes[col] = stype
                 data[col] = data[col].astype(stype)

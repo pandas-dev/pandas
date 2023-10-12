@@ -15,7 +15,10 @@ from pandas._libs.tslibs import (
     Period,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import FreqGroup
+from pandas._libs.tslibs.dtypes import (
+    OFFSET_TO_PERIOD_FREQSTR,
+    FreqGroup,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -188,7 +191,7 @@ def _get_ax_freq(ax: Axes):
 
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
-    freqstr = to_offset(freq).rule_code
+    freqstr = to_offset(freq, is_period=True).rule_code
 
     return get_period_alias(freqstr)
 
@@ -198,7 +201,7 @@ def _get_freq(ax: Axes, series: Series):
     freq = getattr(series.index, "freq", None)
     if freq is None:
         freq = getattr(series.index, "inferred_freq", None)
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period=True)
 
     ax_freq = _get_ax_freq(ax)
 
@@ -232,7 +235,10 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
-        base = to_offset(freq_str)._period_dtype_code  # type: ignore[attr-defined]
+        freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
+        base = to_offset(
+            freq_str, is_period=True
+        )._period_dtype_code  # type: ignore[attr-defined]
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
