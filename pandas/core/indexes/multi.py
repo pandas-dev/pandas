@@ -852,7 +852,7 @@ class MultiIndex(Index):
         level in the MultiIndex and contains the unique values found in that
         specific level.
 
-        if a MultiIndex is created with levels A, B, C, and the DataFrame using
+        If a MultiIndex is created with levels A, B, C, and the DataFrame using
         it filters out all rows of the level C, MultiIndex.levels will still
         return A, B, C.
 
@@ -861,12 +861,25 @@ class MultiIndex(Index):
         >>> index = pd.MultiIndex.from_product([['mammal'],
         ... ('goat', 'human', 'cat', 'dog')], names=['Category', 'Animals'])
         >>> leg_num = pd.DataFrame(data=(4, 2, 4, 4), index=index, columns=['Legs'])
+        >>> leg_num
+                          Legs
+        Category Animals
+        mammal   goat        4
+                 human       2
+                 cat         4
+                 dog         4
         >>> leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
 
-        If the number of Legs is greater than 2 as the filter condition,
-        the levels do not change
+        MultiIndex levels will not change even if the DataFrame using the MultiIndex
+        does not contain all them anymore:
         >>> large_leg_num = leg_num[leg_num.Legs > 2]
+        >>> large_leg_num
+                          Legs
+        Category Animals
+        mammal   goat        4
+                 cat         4
+                 dog         4
         >>> large_leg_num.index.levels
         FrozenList([['mammal'], ['cat', 'dog', 'goat', 'human']])
         """
