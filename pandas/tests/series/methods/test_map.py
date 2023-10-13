@@ -494,14 +494,14 @@ def test_map_categorical_na_action(na_action, expected):
 
 
 def test_map_datetimetz():
-    values = pd.date_range("2011-01-01", "2011-01-02", freq="H").tz_localize(
+    values = pd.date_range("2011-01-01", "2011-01-02", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     s = Series(values, name="XX")
 
     # keep tz
     result = s.map(lambda x: x + pd.offsets.Day())
-    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="H").tz_localize(
+    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     exp = Series(exp_values, name="XX")

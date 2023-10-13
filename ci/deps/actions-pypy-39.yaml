@@ -9,7 +9,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - cython>=0.29.33
+  - cython>=0.29.33, <3.0.3
   - meson[ninja]=1.2.1
   - meson-python=0.13.1
 
@@ -21,7 +21,7 @@ dependencies:
   - hypothesis>=6.46.1
 
   # required
-  - numpy
+  - numpy<2
   - python-dateutil
   - pytz
   - pip:
