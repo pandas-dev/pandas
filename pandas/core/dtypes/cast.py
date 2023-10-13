@@ -1133,7 +1133,16 @@ def convert_dtypes(
                 base_dtype = np.dtype(str)
             else:
                 base_dtype = inferred_dtype
-            pa_type = to_pyarrow_type(base_dtype)
+            if (
+                base_dtype.kind == "O"  # type: ignore[union-attr]
+                and len(input_array) > 0
+                and isna(input_array).all()
+            ):
+                import pyarrow as pa
+
+                pa_type = pa.null()
+            else:
+                pa_type = to_pyarrow_type(base_dtype)
             if pa_type is not None:
                 inferred_dtype = ArrowDtype(pa_type)
     elif dtype_backend == "numpy_nullable" and isinstance(inferred_dtype, ArrowDtype):
