@@ -4,6 +4,7 @@ Tests for CategoricalIndex.__repr__ and related methods.
 import pandas._config.config as cf
 
 from pandas import CategoricalIndex
+import pandas._testing as tm
 
 
 class TestCategoricalIndexRepr:
@@ -11,7 +12,9 @@ class TestCategoricalIndexRepr:
         # GH#35439
         idx = CategoricalIndex(["aaaaaaaaa", "b"])
         expected = ["aaaaaaaaa", "b"]
-        assert idx.format() == expected
+        msg = r"CategoricalIndex\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert idx.format() == expected
 
     def test_string_categorical_index_repr(self):
         # short

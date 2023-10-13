@@ -559,15 +559,20 @@ class TestBase:
             pytest.skip("Tested elsewhere.")
         idx = simple_index
         expected = [str(x) for x in idx]
-        assert idx.format() == expected
+        msg = r"Index\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert idx.format() == expected
 
     def test_format_empty(self, simple_index):
         # GH35712
         if isinstance(simple_index, (PeriodIndex, RangeIndex)):
             pytest.skip("Tested elsewhere")
         empty_idx = type(simple_index)([])
-        assert empty_idx.format() == []
-        assert empty_idx.format(name=True) == [""]
+        msg = r"Index\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert empty_idx.format() == []
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert empty_idx.format(name=True) == [""]
 
     def test_fillna(self, index):
         # GH 11343
@@ -955,7 +960,9 @@ class TestNumericBase:
         idx = simple_index
         max_width = max(len(str(x)) for x in idx)
         expected = [str(x).ljust(max_width) for x in idx]
-        assert idx.format() == expected
+        msg = r"Index\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert idx.format() == expected
 
     def test_insert_non_na(self, simple_index):
         # GH#43921 inserting an element that we know we can hold should

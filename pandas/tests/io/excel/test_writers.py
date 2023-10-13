@@ -809,7 +809,7 @@ class TestExcelWriter:
                 reader, sheet_name="test1", header=header, index_col=[0, 1]
             )
         if not merge_cells:
-            fm = frame.columns.format(sparsify=False, adjoin=False, names=False)
+            fm = frame.columns._format_multi(sparsify=False, include_names=False)
             frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
         tm.assert_frame_equal(frame, df)
 

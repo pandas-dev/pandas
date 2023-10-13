@@ -666,13 +666,17 @@ class TestIndex:
         # include us since the default for Timestamp shows these but Index
         # formatting does not we are skipping)
         now = datetime.now()
+        msg = r"Index\.format is deprecated"
+
         if not str(now).endswith("000"):
             index = Index([now])
-            formatted = index.format()
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                formatted = index.format()
             expected = [str(index[0])]
             assert formatted == expected
 
-        Index([]).format()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Index([]).format()
 
     @pytest.mark.parametrize("vals", [[1, 2.0 + 3.0j, 4.0], ["a", "b", "c"]])
     def test_format_missing(self, vals, nulls_fixture):
@@ -682,7 +686,9 @@ class TestIndex:
         index = Index(vals, dtype=object)
         # TODO: case with complex dtype?
 
-        formatted = index.format()
+        msg = r"Index\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = index.format()
         null_repr = "NaN" if isinstance(nulls_fixture, float) else str(nulls_fixture)
         expected = [str(index[0]), str(index[1]), str(index[2]), null_repr]
 
