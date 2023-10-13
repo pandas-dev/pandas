@@ -30,16 +30,18 @@ def read_apple_numbers(
     """Load an Apple Numbers document from the file path."""
 
     import_optional_dependency("numbers_parser")
-
-    from numbers_parser import (
-        Document,
-        NumbersError,
-    )
+    import numbers_parser
 
     try:
-        Document(path)
-    except NumbersError:
-        raise ValueError("Numbers failed: e!r")
+        numbers_parser.Document(path)
+    except numbers_parser.exceptions.FileError as e:
+        raise FileNotFoundError(f"No such file or directory: '{path}'") from e
+    except numbers_parser.exceptions.NumbersError as e:
+        raise ValueError(
+            f"Numbers document '{path}' cannot be opened: {repr(e)}"
+        ) from e
+
+    raise NotImplementedError
 
 
 def to_apple_numbers(
@@ -51,3 +53,4 @@ def to_apple_numbers(
     """
     Write a DataFrame to an Apple Numbers document.
     """
+    raise NotImplementedError
