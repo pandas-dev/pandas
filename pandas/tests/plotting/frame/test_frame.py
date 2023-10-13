@@ -596,11 +596,11 @@ class TestDataFramePlots:
         lines = ax.get_lines()
         assert xmin <= lines[0].get_data()[0][0]
         assert xmax >= lines[0].get_data()[0][-1]
-        assert ymin == 0
+        assert ymin == 0, ymin
 
         ax = _check_plot_works(neg_df.plot.area, stacked=stacked)
         ymin, ymax = ax.get_ylim()
-        assert ymax == 0
+        assert ymax == 0, ymax
 
     def test_area_sharey_dont_overwrite(self):
         # GH37942
