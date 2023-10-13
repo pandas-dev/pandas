@@ -48,7 +48,6 @@ if TYPE_CHECKING:
         "sum",
         "std",
         "median",
-        "_format_native_types",
     ],
     TimedeltaArray,
 )

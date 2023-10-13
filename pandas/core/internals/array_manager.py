@@ -68,6 +68,7 @@ from pandas.core.indexes.api import (
     Index,
     ensure_index,
 )
+from pandas.core.indexes.base import get_values_for_csv
 from pandas.core.internals.base import (
     DataManager,
     SingleDataManager,
@@ -79,7 +80,6 @@ from pandas.core.internals.blocks import (
     ensure_block_shape,
     external_values,
     extract_pandas_array,
-    get_values_for_csv,
     maybe_coerce_values,
     new_block,
 )

@@ -118,7 +118,6 @@ def _new_DatetimeIndex(cls, d):
         "tzinfo",
         "dtype",
         "to_pydatetime",
-        "_format_native_types",
         "date",
         "time",
         "timetz",
