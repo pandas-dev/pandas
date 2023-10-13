@@ -1172,7 +1172,7 @@ def test_resample_anchored_intraday(simple_date_range_series, unit):
     assert len(resampled) == 1
 
 
-@pytest.mark.parametrize("freq", ["MS", "BMS", "QS-MAR", "AS-DEC", "AS-JUN"])
+@pytest.mark.parametrize("freq", ["MS", "BMS", "QS-MAR", "YS-DEC", "YS-JUN"])
 def test_resample_anchored_monthstart(simple_date_range_series, freq, unit):
     ts = simple_date_range_series("1/1/2000", "12/31/2002")
     ts.index = ts.index.as_unit(unit)
@@ -1320,7 +1320,7 @@ def test_resample_unequal_times(unit):
     df = DataFrame({"close": 1}, index=bad_ind)
 
     # it works!
-    df.resample("AS").sum()
+    df.resample("YS").sum()
 
 
 def test_resample_consistency(unit):
