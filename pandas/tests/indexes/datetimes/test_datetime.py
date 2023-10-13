@@ -1,5 +1,6 @@
 import datetime as dt
 from datetime import date
+import re
 
 import dateutil
 import numpy as np
@@ -223,6 +224,43 @@ class TestDatetimeIndex:
             ],
             dtype="datetime64[ns]",
             freq="cbh",
+        )
+
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq_depr, expected_values, expected_freq",
+        [
+            (
+                "2BA",
+                ["2020-12-31", "2022-12-30"],
+                "2BY-DEC",
+            ),
+            (
+                "AS-AUG",
+                ["2021-08-01", "2022-08-01", "2023-08-01"],
+                "YS-AUG",
+            ),
+            (
+                "1BAS-MAY",
+                ["2021-05-03", "2022-05-02", "2023-05-01"],
+                "1BYS-MAY",
+            ),
+        ],
+    )
+    def test_AS_BA_BAS_deprecated(self, freq_depr, expected_values, expected_freq):
+        # GH#55479
+        freq_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
+        msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = date_range(
+                dt.datetime(2020, 12, 1), dt.datetime(2023, 12, 1), freq=freq_depr
+            )
+        result = DatetimeIndex(
+            expected_values,
+            dtype="datetime64[ns]",
+            freq=expected_freq,
         )
 
         tm.assert_index_equal(result, expected)
