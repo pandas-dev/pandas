@@ -119,7 +119,7 @@ def read_apple_numbers(
     """
     import_optional_dependency("numbers_parser")
 
-    raise NotImplementedError
+    raise NotImplementedError("Apple Numbers support is in development")
 
 
 def to_apple_numbers(
@@ -185,4 +185,4 @@ def to_apple_numbers(
     """
     import_optional_dependency("numbers_parser")
 
-    raise NotImplementedError
+    raise NotImplementedError("Apple Numbers support is in development")
