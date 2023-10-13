@@ -12375,6 +12375,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Wrap arithmetic method to operate inplace.
         """
+        warn = True
+        if not PYPY and warn_copy_on_write():
+            if sys.getrefcount(self) <= 5:
+                # we are probably in an inplace setitem context (e.g. df['a'] += 1)
+                warn = False
+
         result = op(self, other)
 
         if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
@@ -12382,7 +12388,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
             # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"
             self._mgr.setitem_inplace(  # type: ignore[union-attr]
-                slice(None), result._values
+                slice(None), result._values, warn=warn
             )
             return self
 

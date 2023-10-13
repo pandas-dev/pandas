@@ -1981,7 +1981,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
 
-    def setitem_inplace(self, indexer, value) -> None:
+    def setitem_inplace(self, indexer, value, warn: bool = True) -> None:
         """
         Set values with indexer.
 
@@ -1995,7 +1995,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             if using_copy_on_write():
                 self.blocks = (self._block.copy(),)
                 self._cache.clear()
-            elif warn_copy_on_write():
+            elif warn and warn_copy_on_write():
                 warnings.warn(
                     "Setting value on view: behaviour will change in pandas 3.0 "
                     "with Copy-on-Write ...",
