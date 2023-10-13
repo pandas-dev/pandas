@@ -26,7 +26,10 @@ import weakref
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    using_copy_on_write,
+    warn_copy_on_write,
+)
 from pandas._config.config import _get_option
 
 from pandas._libs import (
@@ -1229,11 +1232,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self.iloc[loc]
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
-            if sys.getrefcount(self) <= 3:
+        cow_context = None
+        if not PYPY:
+            if using_copy_on_write() and sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
+            elif warn_copy_on_write() and sys.getrefcount(self) <= 3:
+                cow_context = "chained-assignment"
 
         check_dict_or_set_indexers(key)
         key = com.apply_if_callable(key, self)
@@ -1247,7 +1253,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return self._set_values(indexer, value)
 
         try:
-            self._set_with_engine(key, value)
+            self._set_with_engine(key, value, cow_context)
         except KeyError:
             # We have a scalar (or for MultiIndex or object-dtype, scalar-like)
             #  key that is not present in self.index.
@@ -1318,11 +1324,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         if cacher_needs_updating:
             self._maybe_update_cacher(inplace=True)
 
-    def _set_with_engine(self, key, value) -> None:
+    def _set_with_engine(self, key, value, cow_context=None) -> None:
         loc = self.index.get_loc(key)
 
         # this is equivalent to self._values[key] = value
-        self._mgr.setitem_inplace(loc, value)
+        self._mgr.setitem_inplace(loc, value, cow_context=cow_context)
 
     def _set_with(self, key, value) -> None:
         # We got here via exception-handling off of InvalidIndexError, so

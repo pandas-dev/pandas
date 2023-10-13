@@ -42,6 +42,7 @@ from numpy import ma
 from pandas._config import (
     get_option,
     using_copy_on_write,
+    warn_copy_on_write,
 )
 from pandas._config.config import _get_option
 
@@ -4197,11 +4198,13 @@ class DataFrame(NDFrame, OpsMixin):
         self._iset_item_mgr(loc, arraylike, inplace=False, refs=refs)
 
     def __setitem__(self, key, value) -> None:
-        if not PYPY and using_copy_on_write():
-            if sys.getrefcount(self) <= 3:
+        if not PYPY:
+            if using_copy_on_write() and sys.getrefcount(self) <= 3:
                 warnings.warn(
                     _chained_assignment_msg, ChainedAssignmentError, stacklevel=2
                 )
+            elif warn_copy_on_write() and sys.getrefcount(self) <= 3:
+                warnings.warn("ChainedAssignmentError", FutureWarning, stacklevel=2)
 
         key = com.apply_if_callable(key, self)
 

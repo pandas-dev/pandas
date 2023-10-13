@@ -539,8 +539,7 @@ def test_frame_setitem_copy_raises(
         with tm.raises_chained_assignment_error():
             df["foo"]["one"] = 2
     elif warn_copy_on_write:
-        # TODO(CoW-warn) should warn
-        with tm.assert_cow_warning(False):
+        with tm.assert_produces_warning(FutureWarning, match="ChainedAssignmentError"):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
@@ -558,8 +557,7 @@ def test_frame_setitem_copy_no_write(
         with tm.raises_chained_assignment_error():
             df["foo"]["one"] = 2
     elif warn_copy_on_write:
-        # TODO(CoW-warn) should warn
-        with tm.assert_cow_warning(False):
+        with tm.assert_produces_warning(FutureWarning, match="ChainedAssignmentError"):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"

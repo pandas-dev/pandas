@@ -2005,7 +2005,9 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
     def _can_hold_na(self) -> bool:
         return self._block._can_hold_na
 
-    def setitem_inplace(self, indexer, value, warn: bool = True) -> None:
+    def setitem_inplace(
+        self, indexer, value, warn: bool = True, cow_context=None
+    ) -> None:
         """
         Set values with indexer.
 
@@ -2022,11 +2024,28 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
                 self.blocks = (self._block.copy(),)
                 self._cache.clear()
             elif warn and warn_cow:
-                warnings.warn(
-                    COW_WARNING_SETITEM_MSG,
-                    FutureWarning,
-                    stacklevel=find_stack_level(),
-                )
+                if cow_context == "chained-assignment":
+                    warnings.warn(
+                        "ChainedAssignmentError: behaviour will change in pandas 3.0 "
+                        "with Copy-on-Write ...",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+                else:
+                    warnings.warn(
+                        COW_WARNING_SETITEM_MSG,
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
+        else:
+            if warn and warn_cow:
+                if cow_context == "chained-assignment":
+                    warnings.warn(
+                        "ChainedAssignmentError: behaviour will change in pandas 3.0 "
+                        "with Copy-on-Write ...",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
         super().setitem_inplace(indexer, value)
 
