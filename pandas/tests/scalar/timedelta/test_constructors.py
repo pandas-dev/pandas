@@ -15,6 +15,16 @@ from pandas import (
 )
 
 
+def test_construct_from_kwargs_overflow():
+    # GH#55503
+    msg = "seconds=86400000000000000000, milliseconds=0, microseconds=0, nanoseconds=0"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(days=10**6)
+    msg = "seconds=60000000000000000000, milliseconds=0, microseconds=0, nanoseconds=0"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        Timedelta(minutes=10**9)
+
+
 def test_construct_with_weeks_unit_overflow():
     # GH#47268 don't silently wrap around
     with pytest.raises(OutOfBoundsTimedelta, match="without overflow"):
@@ -208,8 +218,8 @@ def test_construction():
     assert Timedelta(offsets.Second(2)) == Timedelta(seconds=2)
 
     # GH#11995: unicode
-    expected = Timedelta("1H")
-    result = Timedelta("1H")
+    expected = Timedelta("1h")
+    result = Timedelta("1h")
     assert result == expected
     assert to_timedelta(offsets.Hour(2)) == Timedelta("0 days, 02:00:00")
 

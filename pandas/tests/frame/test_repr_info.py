@@ -313,7 +313,7 @@ NaT   4"""
 
     def test_repr_categorical_dates_periods(self):
         # normal DataFrame
-        dt = date_range("2011-01-01 09:00", freq="H", periods=5, tz="US/Eastern")
+        dt = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
         p = period_range("2011-01", freq="M", periods=5)
         df = DataFrame({"dt": dt, "p": p})
         exp = """                         dt        p
@@ -411,7 +411,7 @@ NaT   4"""
     def test_to_records_with_inf_as_na_record(self):
         # GH 48526
         expected = """   NaN  inf         record
-0  NaN    b    [0, inf, b]
+0  inf    b    [0, inf, b]
 1  NaN  NaN  [1, nan, nan]
 2    e    f      [2, e, f]"""
         msg = "use_inf_as_na option is deprecated"

@@ -31,7 +31,7 @@ class TestGetItem:
         # GH4226
         st = Timestamp("2013-07-01 00:00:00", tz="America/Los_Angeles")
         et = Timestamp("2013-07-02 00:00:00", tz="America/Los_Angeles")
-        dr = date_range(st, et, freq="H", name="timebucket")
+        dr = date_range(st, et, freq="h", name="timebucket")
         assert dr[1:].name == dr.name
 
     def test_getitem(self):
@@ -301,7 +301,7 @@ class TestTake:
         idx = date_range(
             start="2010-01-01 09:00",
             end="2010-02-01 09:00",
-            freq="H",
+            freq="h",
             tz=tz,
             name="idx",
         )
@@ -407,7 +407,7 @@ class TestGetLoc:
 
     def test_get_loc_time_obj(self):
         # time indexing
-        idx = date_range("2000-01-01", periods=24, freq="H")
+        idx = date_range("2000-01-01", periods=24, freq="h")
 
         result = idx.get_loc(time(12))
         expected = np.array([12])
@@ -603,7 +603,7 @@ class TestGetIndexer:
 class TestMaybeCastSliceBound:
     def test_maybe_cast_slice_bounds_empty(self):
         # GH#14354
-        empty_idx = date_range(freq="1H", periods=0, end="2015")
+        empty_idx = date_range(freq="1h", periods=0, end="2015")
 
         right = empty_idx._maybe_cast_slice_bound("2015-01-02", "right")
         exp = Timestamp("2015-01-02 23:59:59.999999999")

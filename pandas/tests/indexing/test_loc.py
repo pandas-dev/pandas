@@ -1464,7 +1464,7 @@ class TestLocBaseIndependent:
     def test_loc_setitem_datetimeindex_tz(self, idxer, tz_naive_fixture):
         # GH#11365
         tz = tz_naive_fixture
-        idx = date_range(start="2015-07-12", periods=3, freq="H", tz=tz)
+        idx = date_range(start="2015-07-12", periods=3, freq="h", tz=tz)
         expected = DataFrame(1.2, index=idx, columns=["var"])
         # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
@@ -2057,7 +2057,7 @@ class TestLocSetitemWithExpansion:
         start = Timestamp("2017-10-29 00:00:00+0200", tz="Europe/Madrid")
         end = Timestamp("2017-10-29 03:00:00+0100", tz="Europe/Madrid")
         ts = Timestamp("2016-10-10 03:00:00", tz="Europe/Madrid")
-        idx = date_range(start, end, inclusive="left", freq="H")
+        idx = date_range(start, end, inclusive="left", freq="h")
         assert ts not in idx  # i.e. result.loc setitem is with-expansion
 
         result = DataFrame(index=idx, columns=["value"])
@@ -2330,7 +2330,7 @@ class TestPartialStringSlicing:
         tm.assert_series_equal(result, expected)
 
     def test_loc_getitem_partial_string_slicing_with_timedeltaindex(self):
-        ix = timedelta_range(start="1 day", end="2 days", freq="1H")
+        ix = timedelta_range(start="1 day", end="2 days", freq="1h")
         ser = ix.to_series()
         result = ser.loc[:"1 days"]
         expected = ser.iloc[:-1]
@@ -2432,7 +2432,7 @@ class TestLabelSlicing:
         "index",
         [
             pd.period_range(start="2017-01-01", end="2018-01-01", freq="M"),
-            timedelta_range(start="1 day", end="2 days", freq="1H"),
+            timedelta_range(start="1 day", end="2 days", freq="1h"),
         ],
     )
     def test_loc_getitem_label_slice_period_timedelta(self, index):
@@ -2588,7 +2588,7 @@ class TestLocBooleanMask:
         df = DataFrame(
             np.arange(6.0).reshape(3, 2),
             columns=list("AB"),
-            index=date_range("1/1/2000", periods=3, freq="1H"),
+            index=date_range("1/1/2000", periods=3, freq="1h"),
         )
         expected = df.copy()
         expected["C"] = [expected.index[0]] + [pd.NaT, pd.NaT]
@@ -2887,7 +2887,7 @@ def test_loc_datetimelike_mismatched_dtypes():
     df = DataFrame(
         np.random.default_rng(2).standard_normal((5, 3)),
         columns=["a", "b", "c"],
-        index=date_range("2012", freq="H", periods=5),
+        index=date_range("2012", freq="h", periods=5),
     )
     # create dataframe with non-unique DatetimeIndex
     df = df.iloc[[0, 2, 2, 3]].copy()
