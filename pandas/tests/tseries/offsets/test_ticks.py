@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs.offsets import delta_to_tick
+from pandas.errors import OutOfBoundsTimedelta
 
 from pandas import (
     Timedelta,
@@ -235,6 +236,14 @@ def test_tick_addition(kls, expected):
         result = other + offset
         assert isinstance(result, Timedelta)
         assert result == expected
+
+
+def test_tick_delta_overflow():
+    # GH#55503 raise OutOfBoundsTimedelta, not OverflowError
+    tick = offsets.Day(10**9)
+    msg = "Cannot cast 1000000000 days 00:00:00 to unit='ns' without overflow"
+    with pytest.raises(OutOfBoundsTimedelta, match=msg):
+        tick.delta
 
 
 @pytest.mark.parametrize("cls", tick_classes)
