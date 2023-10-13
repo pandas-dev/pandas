@@ -229,7 +229,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
     # GH-18869 can't call nanops on empty groups, so hardcode expected
     # for these
     df = DataFrame([11, 12, 13], columns=["a"])
-    grps = np.arange(0, 25, 5, dtype=int)
+    grps = np.arange(0, 25, 5, dtype=np.int_)
     # add / sum
     result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
         "sum", alt=None, numeric_only=True
