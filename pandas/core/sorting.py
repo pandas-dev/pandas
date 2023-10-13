@@ -441,7 +441,7 @@ def nargsort(
     try:
         indexer = non_nan_idx[non_nans.argsort(kind=kind)]
     except TypeError as err:
-        msg = "'<' not supported between "
+        msg = "'<' not supported between instances of 'int' and 'str'"
         raise TypeError(msg) from err
     if not ascending:
         indexer = indexer[::-1]

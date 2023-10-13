@@ -151,9 +151,8 @@ def test_searchsorted(request, index_or_series_obj):
         #  comparison semantics https://github.com/numpy/numpy/issues/15981
         mark = pytest.mark.xfail(reason="complex objects are not comparable")
         request.node.add_marker(mark)
-    elif any(isinstance(elem, int) for elem in obj.values[:]) and any(
-        isinstance(elem, str) for elem in obj.values[:]
-    ):
+    # This check is written for the mixed-int-string entry
+    if tm.assert_mixed_int_string_entry(obj.values):
         with pytest.raises(
             TypeError, match="'>' not supported between instances of 'str' and 'int'"
         ):

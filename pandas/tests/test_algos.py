@@ -70,11 +70,8 @@ class TestFactorize:
             expected_uniques = expected_uniques.astype(object)
 
         if sort:
-            if (
-                len(expected_uniques.values) > 0
-                and isinstance(expected_uniques.values[0], int)
-                and isinstance(expected_uniques.values[1], str)
-            ):
+            # This check is written for the mixed-int-string entry
+            if tm.assert_mixed_int_string_entry(expected_uniques.values):
                 pytest.skip("'<' not supported between instances of 'str' and 'int'")
             expected_uniques = expected_uniques.sort_values()
 

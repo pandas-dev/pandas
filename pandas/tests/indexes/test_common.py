@@ -448,10 +448,11 @@ class TestCommon:
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
-    if any(isinstance(elem, int) for elem in index_with_missing.values[:]) and any(
-        isinstance(elem, str) for elem in index_with_missing.values[:]
-    ):
-        with pytest.raises(TypeError, match="'<' not supported between "):
+    # This check is written for the mixed-int-string entry
+    if tm.assert_mixed_int_string_entry(index_with_missing.values):
+        with pytest.raises(
+            TypeError, match="'<' not supported between instances of 'int' and 'str'"
+        ):
             index_with_missing.sort_values(na_position=na_position)
     else:
         with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
@@ -473,9 +474,8 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
 
     missing_count = np.sum(index_with_missing.isna())
     not_na_vals = index_with_missing[index_with_missing.notna()].values
-    if any(isinstance(elem, int) for elem in index_with_missing.values[:]) and any(
-        isinstance(elem, str) for elem in index_with_missing.values[:]
-    ):
+    # This check is written for the mixed-int-string entry
+    if tm.assert_mixed_int_string_entry(index_with_missing.values):
         with pytest.raises(
             TypeError, match="'<' not supported between instances of 'int' and 'str'"
         ):

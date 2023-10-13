@@ -331,11 +331,8 @@ class TestBase:
         if isinstance(index, CategoricalIndex):
             pytest.skip(f"{type(self).__name__} separately tested")
 
-        if (
-            len(index.values) > 0
-            and isinstance(index.values[0], int)
-            and isinstance(index.values[1], str)
-        ):
+        # This check is written for the mixed-int-string entry
+        if tm.assert_mixed_int_string_entry(index.values):
             with pytest.raises(
                 TypeError,
                 match="'<' not supported between instances of 'str' and 'int'",
@@ -347,11 +344,8 @@ class TestBase:
             tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
     def test_numpy_argsort(self, index):
-        if (
-            len(index.values) > 0
-            and isinstance(index.values[0], int)
-            and isinstance(index.values[1], str)
-        ):
+        # This check is written for the mixed-int-string entry
+        if tm.assert_mixed_int_string_entry(index.values):
             with pytest.raises(
                 TypeError,
                 match="'<' not supported between instances of 'str' and 'int'",

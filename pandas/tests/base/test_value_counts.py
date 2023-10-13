@@ -46,12 +46,9 @@ def test_value_counts(index_or_series_obj):
             # i.e IntegerDtype
             expected = expected.astype("Int64")
 
-    if (
-        len(obj) > 0
-        and isinstance(obj.values[0], int)
-        and isinstance(obj.values[1], str)
-    ):
-        msg = "'<' not supported between "
+    # This check is written for the mixed-int-string entry
+    if tm.assert_mixed_int_string_entry(obj.values):
+        msg = "'<' not supported between instances of 'int' and 'str'"
         with pytest.raises(TypeError, match=msg):
             result.sort_index()
     else:
@@ -75,9 +72,8 @@ def test_value_counts_null(null_obj, index_or_series_obj):
         pytest.skip("Test doesn't make sense on empty data")
     elif isinstance(orig, MultiIndex):
         pytest.skip(f"MultiIndex can't hold '{null_obj}'")
-    elif any(isinstance(elem, int) for elem in orig.values[:]) and any(
-        isinstance(elem, str) for elem in orig.values[:]
-    ):
+    # This check is written for the mixed-int-string entry
+    if tm.assert_mixed_int_string_entry(orig.values):
         pytest.skip("'<' not supported between instances of 'str' and 'int'")
 
     values = obj._values

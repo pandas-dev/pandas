@@ -160,7 +160,8 @@ def test_numpy_ufuncs_reductions(index, func, request):
         with pytest.raises(TypeError, match="is not ordered for"):
             func.reduce(index)
         return
-    elif isinstance(index.values[0], int) and isinstance(index.values[1], str):
+    # This check is written for the mixed-int-string entry
+    elif tm.assert_mixed_int_string_entry(index.values):
         with pytest.raises(
             TypeError, match=".* not supported between instances of 'int' and 'str'"
         ):
