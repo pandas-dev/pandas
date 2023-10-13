@@ -804,11 +804,11 @@ def setup(app):
 
 linkcheck_ignore = [
     re.escape(r'http://'),
-    re.escape((r'http://scatterci.github.io/pydata/pandas'),
+    re.escape(r'http://scatterci.github.io/pydata/pandas'),
     re.escape(r'http://specs.frictionlessdata.io/json-table-schema/'),
     re.escape(r'https://'),
     re.escape(r'https://cloud.google.com/bigquery/docs/access-control#roles'),
-    re.escape((r'https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query'),
+    re.escape(r'https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query'),
     re.escape(r'https://crates.io/crates/calamine'),
     re.escape(r'https://devguide.python.org/setup/#macos'),
     re.escape(r'https://en.wikipedia.org/wiki/Imputation_(statistics'),
