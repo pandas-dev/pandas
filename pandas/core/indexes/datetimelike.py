@@ -219,7 +219,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         # TODO: not reached in tests 2023-10-11
         # matches base class except for whitespace padding and date_format
         return header + list(
-            self._format_native_types(na_rep=na_rep, date_format=date_format)
+            self._get_values_for_csv(na_rep=na_rep, date_format=date_format)
         )
 
     @property
