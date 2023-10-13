@@ -2020,6 +2020,17 @@ def test_resample_M_deprecated():
     tm.assert_series_equal(result, expected)
 
 
+def test_resample_BM_deprecated():
+    # GH#52064
+    depr_msg = "'BM' is deprecated and will be removed in a future version."
+
+    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    expected = s.resample("2BME").mean()
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        result = s.resample("2BM").mean()
+    tm.assert_series_equal(result, expected)
+
+
 def test_resample_ms_closed_right():
     # https://github.com/pandas-dev/pandas/issues/55271
     dti = date_range(start="2020-01-31", freq="1min", periods=6000)
