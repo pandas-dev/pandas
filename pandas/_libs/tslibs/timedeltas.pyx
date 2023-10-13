@@ -1792,7 +1792,7 @@ class Timedelta(_Timedelta):
                 )
 
             # GH43764, convert any input to nanoseconds first and then
-            # create the timestamp. This ensures that any potential
+            # create the timedelta. This ensures that any potential
             # nanosecond contributions from kwargs parsed as floats
             # are taken into consideration.
             seconds = int((
@@ -1805,12 +1805,24 @@ class Timedelta(_Timedelta):
                 ) * 1_000_000_000
             )
 
-            value = np.timedelta64(
-                int(kwargs.get("nanoseconds", 0))
-                + int(kwargs.get("microseconds", 0) * 1_000)
-                + int(kwargs.get("milliseconds", 0) * 1_000_000)
-                + seconds
-            )
+            ns = kwargs.get("nanoseconds", 0)
+            us = kwargs.get("microseconds", 0)
+            ms = kwargs.get("milliseconds", 0)
+            try:
+                value = np.timedelta64(
+                    int(ns)
+                    + int(us * 1_000)
+                    + int(ms * 1_000_000)
+                    + seconds
+                )
+            except OverflowError as err:
+                # GH#55503
+                msg = (
+                    f"seconds={seconds}, milliseconds={ms}, "
+                    f"microseconds={us}, nanoseconds={ns}"
+                )
+                raise OutOfBoundsTimedelta(msg) from err
+
         disallow_ambiguous_unit(unit)
 
         # GH 30543 if pd.Timedelta already passed, return it
