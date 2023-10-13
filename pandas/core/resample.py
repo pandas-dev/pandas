@@ -2561,7 +2561,9 @@ def _get_timestamp_range_edges(
         first, last = _adjust_dates_anchored(
             first,
             last,
-            freq._maybe_to_hours(),
+            # error: Argument 3 to "_adjust_dates_anchored" has incompatible
+            # type "BaseOffset"; expected "Tick"
+            freq._maybe_to_hours(),  # type: ignore[arg-type]
             closed=closed,
             origin=origin,
             offset=offset,
