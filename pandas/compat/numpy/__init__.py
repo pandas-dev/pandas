@@ -1,6 +1,4 @@
 """ support numpy compatibility across versions """
-import warnings
-
 import numpy as np
 
 from pandas.util.version import Version
@@ -28,14 +26,8 @@ np_ulong: type
 
 if _nlv >= Version("2.0.0.dev0"):
     try:
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                r".*In the future `np\.long` will be defined as.*",
-                FutureWarning,
-            )
-            np_long = np.long  # type: ignore[attr-defined]
-            np_ulong = np.ulong  # type: ignore[attr-defined]
+        np_long = np.long  # type: ignore[attr-defined]
+        np_ulong = np.ulong  # type: ignore[attr-defined]
     except AttributeError:
         np_long = np.int_
         np_ulong = np.uint
