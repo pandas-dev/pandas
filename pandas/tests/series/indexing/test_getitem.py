@@ -137,7 +137,7 @@ class TestSeriesGetitemScalars:
         tz = timezones.maybe_get_tz(tzstr)
 
         index = date_range(
-            start="2012-12-24 16:00", end="2012-12-24 18:00", freq="H", tz=tzstr
+            start="2012-12-24 16:00", end="2012-12-24 18:00", freq="h", tz=tzstr
         )
         ts = Series(index=index, data=index.hour)
         time_pandas = Timestamp("2012-12-24 17:00", tz=tzstr)
