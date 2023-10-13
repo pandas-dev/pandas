@@ -1375,6 +1375,14 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Render a string representation of the Index.
         """
+        warnings.warn(
+            # GH#55413
+            f"{type(self).__name__}.format is deprecated and will be removed "
+            "in a future version. Convert using index.astype(str) or "
+            "index.map(formatter) instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         header = []
         if name:
             header.append(
@@ -1387,6 +1395,31 @@ class Index(IndexOpsMixin, PandasObject):
             return header + list(self.map(formatter))
 
         return self._format_with_header(header=header, na_rep=na_rep)
+
+    _default_na_rep = "NaN"
+
+    @final
+    def _format_flat(
+        self,
+        *,
+        include_name: bool,
+        formatter: Callable | None = None,
+    ) -> list[str_t]:
+        """
+        Render a string representation of the Index.
+        """
+        header = []
+        if include_name:
+            header.append(
+                pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
+                if self.name is not None
+                else ""
+            )
+
+        if formatter is not None:
+            return header + list(self.map(formatter))
+
+        return self._format_with_header(header=header, na_rep=self._default_na_rep)
 
     def _format_with_header(self, *, header: list[str_t], na_rep: str_t) -> list[str_t]:
         from pandas.io.formats.format import format_array
