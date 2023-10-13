@@ -1323,6 +1323,25 @@ class DataFrame(NDFrame, OpsMixin):
                 line_width=line_width,
             )
 
+    def _get_values_for_csv(
+        self,
+        *,
+        float_format: FloatFormatType | None,
+        date_format: str | None,
+        decimal: str,
+        na_rep: str,
+        quoting,  # int csv.QUOTE_FOO from stdlib
+    ) -> Self:
+        # helper used by to_csv
+        mgr = self._mgr.get_values_for_csv(
+            float_format=float_format,
+            date_format=date_format,
+            decimal=decimal,
+            na_rep=na_rep,
+            quoting=quoting,
+        )
+        return self._constructor_from_mgr(mgr, axes=mgr.axes)
+
     # ----------------------------------------------------------------------
 
     @property
@@ -5149,12 +5168,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     @property
     def _series(self):
-        return {
-            item: Series(
-                self._mgr.iget(idx), index=self.index, name=item, fastpath=True
-            )
-            for idx, item in enumerate(self.columns)
-        }
+        return {item: self._ixs(idx, axis=1) for idx, item in enumerate(self.columns)}
 
     # ----------------------------------------------------------------------
     # Reindexing and alignment
