@@ -602,7 +602,7 @@ class TestDateOffset:
     @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
     def test_constructor(self, kwd, request):
         if kwd == "millisecond":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
                     reason="Constructing DateOffset object with `millisecond` is not "
@@ -916,7 +916,7 @@ def test_month_offset_name(month_classes):
 @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
 def test_valid_relativedelta_kwargs(kwd, request):
     if kwd == "millisecond":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 raises=NotImplementedError,
                 reason="Constructing DateOffset object with `millisecond` is not "
