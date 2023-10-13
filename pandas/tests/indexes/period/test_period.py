@@ -275,8 +275,11 @@ class TestPeriodIndex:
     def test_format_empty(self):
         # GH35712
         empty_idx = PeriodIndex([], freq="Y")
-        assert empty_idx.format() == []
-        assert empty_idx.format(name=True) == [""]
+        msg = r"PeriodIndex\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert empty_idx.format() == []
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert empty_idx.format(name=True) == [""]
 
     def test_period_index_frequency_ME_error_message(self):
         msg = "Invalid frequency: 2ME"
