@@ -1186,7 +1186,13 @@ class TestArithmetic:
         # GH#55503
         per = Timestamp.max.to_period("ns")
 
-        msg = "Python int too large to convert to C long"
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                # windows, 32bit linux builds
+                "int too big to convert",
+            ]
+        )
         with pytest.raises(OverflowError, match=msg):
             per + 1
 
