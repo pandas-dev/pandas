@@ -68,6 +68,8 @@ UnitChoices: TypeAlias = Literal[
 ]
 _S = TypeVar("_S", bound=timedelta)
 
+def get_unit_for_round(freq, creso: int) -> int: ...
+def disallow_ambiguous_unit(unit: str | None) -> None: ...
 def ints_to_pytimedelta(
     arr: npt.NDArray[np.timedelta64],
     box: bool = ...,
