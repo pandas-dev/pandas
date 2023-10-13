@@ -425,7 +425,11 @@ timedelta-like}
     return result.base  # .base to get underlying ndarray
 
 
-cdef Py_ssize_t bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
+cdef Py_ssize_t bisect_right_i8(
+    const int64_t *data,
+    int64_t val,
+    Py_ssize_t n
+) noexcept:
     # Caller is responsible for checking n > 0
     # This looks very similar to local_search_right in the ndarray.searchsorted
     #  implementation.
@@ -463,7 +467,7 @@ cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
 
 cdef _get_utc_bounds(
     ndarray[int64_t] vals,
-    int64_t* tdata,
+    const int64_t* tdata,
     Py_ssize_t ntrans,
     const int64_t[::1] deltas,
     NPY_DATETIMEUNIT creso,
