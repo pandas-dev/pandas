@@ -1610,14 +1610,13 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
                                   PyArray_DescrFromType(NPY_DOUBLE));
         tc->type = JT_DOUBLE;
         return;
-    } else if (PyArray_IsScalar(obj, LongDouble)) {
+    } else if (PyArray_CheckScalar(obj)) {
+        /* This handles all cases of array of zero dimension (numpy.array(1)) OR
+        unimplemented serializable for numpy scalar type like: numpy.longdouble.
+        If we plan to handle any other numpy type for serializations,
+        we need to keep it above this block. */
         PyErr_Format(PyExc_TypeError,
-                     "%R (np.longdouble) is not JSON serializable at the moment",
-                     obj);
-        goto INVALID;
-    } else if (PyArray_Check(obj) && PyArray_CheckScalar(obj)) {
-        PyErr_Format(PyExc_TypeError,
-                     "%R (0d array) is not JSON serializable at the moment",
+                     "%R (numpy-scalar) is not JSON serializable at the moment",
                      obj);
         goto INVALID;
     } else if (object_is_na_type(obj)) {
