@@ -67,7 +67,7 @@ def data_for_grouping():
 
 class TestDecimalArray(base.ExtensionTests):
     def _get_expected_exception(
-        self, op_name: str, obj, other, *args, **kwargs
+        self, op_name: str, obj, other
     ) -> type[Exception] | None:
         return None
 
@@ -330,7 +330,7 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
     series_array_exc = None
 
     def _get_expected_exception(
-        self, op_name: str, obj, other, *args, **kwargs
+        self, op_name: str, obj, other
     ) -> type[Exception] | None:
         return None
 

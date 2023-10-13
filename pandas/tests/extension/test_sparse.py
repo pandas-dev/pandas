@@ -383,11 +383,11 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
 
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         self._skip_if_different_combine(data)
-        super().test_arith_series_with_scalar(data, all_arithmetic_operators, request)
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
         self._skip_if_different_combine(data)
-        super().test_arith_series_with_array(data, all_arithmetic_operators, request)
+        super().test_arith_series_with_array(data, all_arithmetic_operators)
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         if data.dtype.fill_value != 0:
@@ -403,7 +403,7 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
         ]:
             mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
             request.node.add_marker(mark)
-        super().test_arith_frame_with_scalar(data, all_arithmetic_operators, request)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 
 class TestComparisonOps(BaseSparseTests):

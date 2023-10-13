@@ -938,7 +938,7 @@ class TestArrowArray(base.ExtensionTests):
         )
 
     def _get_expected_exception(
-        self, op_name: str, obj, other, *args, **kwargs
+        self, op_name: str, obj, other
     ) -> type[Exception] | None:
         if op_name in ("__divmod__", "__rdivmod__"):
             return self.divmod_exc
@@ -1048,9 +1048,7 @@ class TestArrowArray(base.ExtensionTests):
         if mark is not None:
             request.node.add_marker(mark)
 
-        super().test_arith_series_with_scalar(
-            data, all_arithmetic_operators, request=request
-        )
+        super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1064,9 +1062,7 @@ class TestArrowArray(base.ExtensionTests):
         if mark is not None:
             request.node.add_marker(mark)
 
-            super().test_arith_frame_with_scalar(
-                data, all_arithmetic_operators, request=request
-            )
+            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1100,7 +1096,7 @@ class TestArrowArray(base.ExtensionTests):
         # since ser.iloc[0] is a python scalar
         other = pd.Series(pd.array([ser.iloc[0]] * len(ser), dtype=data.dtype))
 
-        self.check_opname(ser, op_name, other, request=request)
+        self.check_opname(ser, op_name, other)
 
     def test_add_series_with_extension_array(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
@@ -1112,7 +1108,7 @@ class TestArrowArray(base.ExtensionTests):
                     reason=f"raises on overflow for {pa_dtype}",
                 )
             )
-        super().test_add_series_with_extension_array(data, request=request)
+        super().test_add_series_with_extension_array(data)
 
     def test_invalid_other_comp(self, data, comparison_op):
         # GH 48833

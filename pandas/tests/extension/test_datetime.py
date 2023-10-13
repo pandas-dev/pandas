@@ -83,10 +83,10 @@ def na_cmp():
 
 # ----------------------------------------------------------------------------
 class TestDatetimeArray(base.ExtensionTests):
-    def _get_expected_exception(self, op_name, obj, other, *args, **kwargs):
+    def _get_expected_exception(self, op_name, obj, other):
         if op_name in ["__sub__", "__rsub__"]:
             return None
-        return super()._get_expected_exception(op_name, obj, other, *args, **kwargs)
+        return super()._get_expected_exception(op_name, obj, other)
 
     def _supports_accumulation(self, ser, op_name: str) -> bool:
         return op_name in ["cummin", "cummax"]

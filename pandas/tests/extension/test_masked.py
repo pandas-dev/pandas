@@ -162,7 +162,7 @@ def data_for_grouping(dtype):
 
 
 class TestMaskedArrays(base.ExtensionTests):
-    def _get_expected_exception(self, op_name, obj, other, *args, **kwargs):
+    def _get_expected_exception(self, op_name, obj, other):
         try:
             dtype = tm.get_dtype(obj)
         except AttributeError:

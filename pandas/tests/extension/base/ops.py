@@ -19,7 +19,7 @@ class BaseOpsUtil:
     divmod_exc: type[Exception] | None = TypeError
 
     def _get_expected_exception(
-        self, op_name: str, obj, other, *args, **kwargs
+        self, op_name: str, obj, other
     ) -> type[Exception] | None:
         # Find the Exception, if any we expect to raise calling
         #  obj.__op_name__(other)
