@@ -466,7 +466,7 @@ cdef str _render_tstamp(int64_t val, NPY_DATETIMEUNIT creso):
 
 
 cdef _get_utc_bounds(
-    const int64_t[:] vals,
+    ndarray[int64_t] vals,
     const int64_t* tdata,
     Py_ssize_t ntrans,
     const int64_t[::1] deltas,
