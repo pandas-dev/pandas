@@ -827,6 +827,14 @@ def _binary_op_method_timedeltalike(op, name):
 # ----------------------------------------------------------------------
 # Timedelta Construction
 
+cpdef disallow_ambiguous_unit(unit):
+    if unit in {"Y", "y", "M"}:
+        raise ValueError(
+            "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
+            "represent unambiguous timedelta values durations."
+        )
+
+
 cdef int64_t parse_iso_format_string(str ts) except? -1:
     """
     Extracts and cleanses the appropriate values from a match object with
@@ -1815,11 +1823,7 @@ class Timedelta(_Timedelta):
                 )
                 raise OutOfBoundsTimedelta(msg) from err
 
-        if unit in {"Y", "y", "M"}:
-            raise ValueError(
-                "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
-                "represent unambiguous timedelta values durations."
-            )
+        disallow_ambiguous_unit(unit)
 
         # GH 30543 if pd.Timedelta already passed, return it
         # check that only value is passed
@@ -1932,10 +1936,7 @@ class Timedelta(_Timedelta):
             int64_t result, unit
             ndarray[int64_t] arr
 
-        from pandas._libs.tslibs.offsets import to_offset
-
-        to_offset(freq).nanos  # raises on non-fixed freq
-        unit = delta_to_nanoseconds(to_offset(freq), self._creso)
+        unit = get_unit_for_round(freq, self._creso)
 
         arr = np.array([self._value], dtype="i8")
         try:
@@ -2292,3 +2293,11 @@ cdef bint _should_cast_to_timedelta(object obj):
     return (
         is_any_td_scalar(obj) or obj is None or obj is NaT or isinstance(obj, str)
     )
+
+
+cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1:
+    from pandas._libs.tslibs.offsets import to_offset
+
+    freq = to_offset(freq)
+    freq.nanos  # raises on non-fixed freq
+    return delta_to_nanoseconds(freq, creso)
