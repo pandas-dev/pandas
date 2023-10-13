@@ -381,11 +381,11 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             # general, so we can't make the expected. This is tested elsewhere
             pytest.skip("Incorrected expected from Series.combine and tested elsewhere")
 
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
+    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
         super().test_arith_series_with_scalar(data, all_arithmetic_operators)
 
-    def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
+    def test_arith_series_with_array(self, data, all_arithmetic_operators):
         self._skip_if_different_combine(data)
         super().test_arith_series_with_array(data, all_arithmetic_operators)
 

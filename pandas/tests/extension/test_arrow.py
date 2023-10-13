@@ -1062,7 +1062,7 @@ class TestArrowArray(base.ExtensionTests):
         if mark is not None:
             request.node.add_marker(mark)
 
-            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
+        super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
     def test_arith_series_with_array(self, data, all_arithmetic_operators, request):
         pa_dtype = data.dtype.pyarrow_dtype
