@@ -893,7 +893,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         TimedeltaIndex(['0 days', '10 days', '20 days'],
                        dtype='timedelta64[ns]', freq=None)
         >>> tdelta_idx.inferred_freq
-        '10D'
+        '240h'
         """
         if self.ndim != 1:
             return None
