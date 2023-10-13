@@ -408,20 +408,6 @@ raise a ValueError:
 
     pd.Series(['foo', 'bar', 'baz']) == pd.Series(['foo'])
 
-Note that this is different from the NumPy behavior where a comparison can
-be broadcast:
-
-.. ipython:: python
-
-    np.array([1, 2, 3]) == np.array([2])
-
-or it can return False if broadcasting can not be done:
-
-.. ipython:: python
-   :okwarning:
-
-    np.array([1, 2, 3]) == np.array([1, 2])
-
 Combining overlapping data sets
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

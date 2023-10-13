@@ -432,12 +432,12 @@ class TestPeriodDtype(Base):
             assert dt.freq == pd.tseries.offsets.Day(3)
 
         for s in [
-            "period[26H]",
-            "Period[26H]",
-            "26H",
-            "period[1D2H]",
-            "Period[1D2H]",
-            "1D2H",
+            "period[26h]",
+            "Period[26h]",
+            "26h",
+            "period[1D2h]",
+            "Period[1D2h]",
+            "1D2h",
         ]:
             dt = PeriodDtype(s)
             assert dt.freq == pd.tseries.offsets.Hour(26)
@@ -533,7 +533,7 @@ class TestPeriodDtype(Base):
         with tm.assert_produces_warning(FutureWarning, match=msg):
             assert is_period_dtype(dtype)
 
-            pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="H")
+            pidx = pd.period_range("2013-01-01 09:00", periods=5, freq="h")
 
             assert is_period_dtype(pidx.dtype)
             assert is_period_dtype(pidx)
@@ -916,6 +916,24 @@ class TestCategoricalDtypeParametrized:
         c2 = CategoricalDtype([1.0, 2.0, 3.0])
         assert c1 is not c2
         assert c1 != c2
+
+    def test_equal_but_different_mixed_dtypes(self):
+        c1 = CategoricalDtype([1, 2, "3"])
+        c2 = CategoricalDtype(["3", 1, 2])
+        assert c1 is not c2
+        assert c1 == c2
+
+    def test_equal_empty_ordered(self):
+        c1 = CategoricalDtype([], ordered=True)
+        c2 = CategoricalDtype([], ordered=True)
+        assert c1 is not c2
+        assert c1 == c2
+
+    def test_equal_empty_unordered(self):
+        c1 = CategoricalDtype([])
+        c2 = CategoricalDtype([])
+        assert c1 is not c2
+        assert c1 == c2
 
     @pytest.mark.parametrize("v1, v2", [([1, 2, 3], [1, 2, 3]), ([1, 2, 3], [3, 2, 1])])
     def test_order_hashes_different(self, v1, v2):

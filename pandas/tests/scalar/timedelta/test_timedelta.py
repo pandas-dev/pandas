@@ -608,6 +608,7 @@ class TestTimedeltas:
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
         msg = "Units 'M', 'Y', and 'y' are no longer supported"
+
         with pytest.raises(ValueError, match=msg):
             Timedelta(10, unit)
 
@@ -672,7 +673,7 @@ class TestTimedeltas:
             ("5s", Timedelta("1 days 02:34:55"), Timedelta("-1 days 02:34:55")),
             ("min", Timedelta("1 days 02:35:00"), Timedelta("-1 days 02:35:00")),
             ("12min", Timedelta("1 days 02:36:00"), Timedelta("-1 days 02:36:00")),
-            ("H", Timedelta("1 days 03:00:00"), Timedelta("-1 days 03:00:00")),
+            ("h", Timedelta("1 days 03:00:00"), Timedelta("-1 days 03:00:00")),
             ("d", Timedelta("1 days"), Timedelta("-1 days")),
         ],
     )
@@ -690,7 +691,7 @@ class TestTimedeltas:
 
         for freq, msg in [
             ("Y", "<YearEnd: month=12> is a non-fixed frequency"),
-            ("M", "<MonthEnd> is a non-fixed frequency"),
+            ("ME", "<MonthEnd> is a non-fixed frequency"),
             ("foobar", "Invalid frequency: foobar"),
         ]:
             with pytest.raises(ValueError, match=msg):
@@ -990,7 +991,7 @@ class TestTimedeltas:
 
     def test_resolution_string(self):
         assert Timedelta(days=1).resolution_string == "D"
-        assert Timedelta(days=1, hours=6).resolution_string == "H"
+        assert Timedelta(days=1, hours=6).resolution_string == "h"
         assert Timedelta(days=1, minutes=6).resolution_string == "min"
         assert Timedelta(days=1, seconds=6).resolution_string == "s"
         assert Timedelta(days=1, milliseconds=6).resolution_string == "ms"
@@ -1042,6 +1043,7 @@ def test_timedelta_attribute_precision():
 @pytest.mark.parametrize(
     "unit,unit_depr",
     [
+        ("h", "H"),
         ("min", "T"),
         ("s", "S"),
         ("ms", "L"),
@@ -1049,8 +1051,8 @@ def test_timedelta_attribute_precision():
         ("us", "U"),
     ],
 )
-def test_units_t_l_u_n_deprecated(unit, unit_depr):
-    # GH 52536
+def test_units_H_T_S_L_N_U_deprecated(unit, unit_depr):
+    # GH#52536
     msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
 
     expected = Timedelta(1, unit=unit)

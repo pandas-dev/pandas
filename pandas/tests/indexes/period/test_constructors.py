@@ -166,7 +166,7 @@ class TestPeriodIndex:
 
         msg = "'Period' object is not iterable"
         with pytest.raises(TypeError, match=msg):
-            PeriodIndex(data=Period("2007", freq="A"))
+            PeriodIndex(data=Period("2007", freq="Y"))
 
         result = PeriodIndex(iter(idx))
         tm.assert_index_equal(result, idx)
@@ -179,15 +179,15 @@ class TestPeriodIndex:
 
         result = PeriodIndex(idx, freq=offsets.MonthEnd())
         tm.assert_index_equal(result, idx)
-        assert result.freq == "M"
+        assert result.freq == "ME"
 
         result = PeriodIndex(idx, freq="2M")
         tm.assert_index_equal(result, idx.asfreq("2M"))
-        assert result.freq == "2M"
+        assert result.freq == "2ME"
 
         result = PeriodIndex(idx, freq=offsets.MonthEnd(2))
         tm.assert_index_equal(result, idx.asfreq("2M"))
-        assert result.freq == "2M"
+        assert result.freq == "2ME"
 
         result = PeriodIndex(idx, freq="D")
         exp = idx.asfreq("D", "e")
@@ -205,7 +205,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("box", [None, "series", "index"])
     def test_constructor_datetime64arr_ok(self, box):
         # https://github.com/pandas-dev/pandas/issues/23438
-        data = date_range("2017", periods=4, freq="M")
+        data = date_range("2017", periods=4, freq="ME")
         if box is None:
             data = data._values
         elif box == "series":
@@ -250,7 +250,7 @@ class TestPeriodIndex:
         idx = PeriodIndex([], freq="M")
         assert isinstance(idx, PeriodIndex)
         assert len(idx) == 0
-        assert idx.freq == "M"
+        assert idx.freq == "ME"
 
         with pytest.raises(ValueError, match="freq not specified"):
             PeriodIndex([])
@@ -397,9 +397,9 @@ class TestPeriodIndex:
         )
         tm.assert_index_equal(pidx, expected)
 
-        pidx = period_range(end="2014-01-01 17:00", freq="4H", periods=3)
+        pidx = period_range(end="2014-01-01 17:00", freq="4h", periods=3)
         expected = PeriodIndex(
-            ["2014-01-01 09:00", "2014-01-01 13:00", "2014-01-01 17:00"], freq="4H"
+            ["2014-01-01 09:00", "2014-01-01 13:00", "2014-01-01 17:00"], freq="4h"
         )
         tm.assert_index_equal(pidx, expected)
 
@@ -415,27 +415,45 @@ class TestPeriodIndex:
         with pytest.raises(ValueError, match=msg):
             period_range("2011-01", periods=3, freq="0M")
 
-    @pytest.mark.parametrize("freq", ["A", "M", "D", "min", "s"])
+    @pytest.mark.parametrize(
+        "freq_offset, freq_period",
+        [
+            ("Y", "Y"),
+            ("ME", "M"),
+            ("D", "D"),
+            ("min", "min"),
+            ("s", "s"),
+        ],
+    )
     @pytest.mark.parametrize("mult", [1, 2, 3, 4, 5])
-    def test_constructor_freq_mult_dti_compat(self, mult, freq):
-        freqstr = str(mult) + freq
-        pidx = period_range(start="2014-04-01", freq=freqstr, periods=10)
-        expected = date_range(start="2014-04-01", freq=freqstr, periods=10).to_period(
-            freqstr
-        )
+    def test_constructor_freq_mult_dti_compat(self, mult, freq_offset, freq_period):
+        freqstr_offset = str(mult) + freq_offset
+        freqstr_period = str(mult) + freq_period
+        pidx = period_range(start="2014-04-01", freq=freqstr_period, periods=10)
+        expected = date_range(
+            start="2014-04-01", freq=freqstr_offset, periods=10
+        ).to_period(freqstr_period)
+        tm.assert_index_equal(pidx, expected)
+
+    @pytest.mark.parametrize("mult", [1, 2, 3, 4, 5])
+    def test_constructor_freq_mult_dti_compat_month(self, mult):
+        pidx = period_range(start="2014-04-01", freq=f"{mult}M", periods=10)
+        expected = date_range(
+            start="2014-04-01", freq=f"{mult}ME", periods=10
+        ).to_period(f"{mult}M")
         tm.assert_index_equal(pidx, expected)
 
     def test_constructor_freq_combined(self):
-        for freq in ["1D1H", "1H1D"]:
+        for freq in ["1D1h", "1h1D"]:
             pidx = PeriodIndex(["2016-01-01", "2016-01-02"], freq=freq)
-            expected = PeriodIndex(["2016-01-01 00:00", "2016-01-02 00:00"], freq="25H")
-        for freq in ["1D1H", "1H1D"]:
+            expected = PeriodIndex(["2016-01-01 00:00", "2016-01-02 00:00"], freq="25h")
+        for freq in ["1D1h", "1h1D"]:
             pidx = period_range(start="2016-01-01", periods=2, freq=freq)
-            expected = PeriodIndex(["2016-01-01 00:00", "2016-01-02 01:00"], freq="25H")
+            expected = PeriodIndex(["2016-01-01 00:00", "2016-01-02 01:00"], freq="25h")
             tm.assert_index_equal(pidx, expected)
 
     def test_constructor(self):
-        pi = period_range(freq="A", start="1/1/2001", end="12/1/2009")
+        pi = period_range(freq="Y", start="1/1/2001", end="12/1/2009")
         assert len(pi) == 9
 
         pi = period_range(freq="Q", start="1/1/2001", end="12/1/2009")
@@ -452,7 +470,7 @@ class TestPeriodIndex:
             pi = period_range(freq="B", start="1/1/2001", end="12/31/2009")
         assert len(pi) == 261 * 9
 
-        pi = period_range(freq="H", start="1/1/2001", end="12/31/2001 23:00")
+        pi = period_range(freq="h", start="1/1/2001", end="12/31/2001 23:00")
         assert len(pi) == 365 * 24
 
         pi = period_range(freq="Min", start="1/1/2001", end="1/1/2001 23:59")
@@ -508,7 +526,7 @@ class TestPeriodIndex:
             Period("2006-12-31", ("w", 1))
 
     @pytest.mark.parametrize(
-        "freq", ["M", "Q", "A", "D", "B", "min", "s", "ms", "us", "ns", "H"]
+        "freq", ["M", "Q", "Y", "D", "B", "min", "s", "ms", "us", "ns", "h"]
     )
     @pytest.mark.filterwarnings(
         r"ignore:Period with BDay freq is deprecated:FutureWarning"
@@ -521,7 +539,7 @@ class TestPeriodIndex:
 
     def test_map_with_string_constructor(self):
         raw = [2005, 2007, 2009]
-        index = PeriodIndex(raw, freq="A")
+        index = PeriodIndex(raw, freq="Y")
 
         expected = Index([str(num) for num in raw])
         res = index.map(str)
