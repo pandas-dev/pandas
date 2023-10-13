@@ -1943,7 +1943,7 @@ class Timedelta(_Timedelta):
             result = round_nsint64(arr, mode, unit)[0]
         except OverflowError as err:
             raise OutOfBoundsTimedelta(
-                f"Cannot round {self} to freq={orig} without overflow"
+                f"Cannot round {self} to freq={freq} without overflow"
             ) from err
         return Timedelta._from_value_and_reso(result, self._creso)
 
