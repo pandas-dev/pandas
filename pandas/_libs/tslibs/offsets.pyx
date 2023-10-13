@@ -961,7 +961,12 @@ cdef class Tick(SingleConstructorOffset):
 
     @property
     def delta(self):
-        return self.n * Timedelta(self._nanos_inc)
+        try:
+            return self.n * Timedelta(self._nanos_inc)
+        except OverflowError as err:
+            # GH#55503 as_unit will raise a more useful OutOfBoundsTimedelta
+            Timedelta(self).as_unit("ns")
+            raise AssertionError("This should not be reached.")
 
     @property
     def nanos(self) -> int64_t:
