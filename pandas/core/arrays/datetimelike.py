@@ -37,7 +37,6 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
-    delta_to_nanoseconds,
     get_unit_from_dtype,
     iNaT,
     ints_to_pydatetime,
@@ -50,6 +49,7 @@ from pandas._libs.tslibs.fields import (
     round_nsint64,
 )
 from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
+from pandas._libs.tslibs.timedeltas import get_unit_for_round
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import (
     ArrayLike,
@@ -2149,13 +2149,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values = self.view("i8")
         values = cast(np.ndarray, values)
-        offset = to_offset(freq)
-
-        # In this context it is clear "D" means "24H"
-        offset = offset._maybe_to_hours()
-
-        offset.nanos  # raises on non-fixed frequencies
-        nanos = delta_to_nanoseconds(offset, self._creso)
+        nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             # GH 52761
             return self.copy()

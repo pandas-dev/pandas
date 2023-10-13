@@ -107,7 +107,7 @@ from pandas._libs.tslibs.np_datetime import (
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
-    delta_to_nanoseconds,
+    get_unit_for_round,
     is_any_td_scalar,
 )
 
@@ -1895,18 +1895,14 @@ class Timestamp(_Timestamp):
         cdef:
             int64_t nanos
 
-        # In this context it is sufficiently clear that "D" this means 24H
-        freq = to_offset(freq, is_period=False)._maybe_to_hours()
-        freq.nanos  # raises on non-fixed freq
-        nanos = delta_to_nanoseconds(freq, self._creso)
+        freq = to_offset(freq, is_period=False)
+        nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             if freq.nanos == 0:
                 raise ValueError("Division by zero in rounding")
 
             # e.g. self.unit == "s" and sub-second freq
             return self
-
-        # TODO: problem if nanos==0
 
         if self.tz is not None:
             value = self.tz_localize(None)._value
