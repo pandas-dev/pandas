@@ -285,17 +285,20 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 - :meth:`Categorical.isin` raising ``InvalidIndexError`` for categorical containing overlapping :class:`Interval` values (:issue:`34974`)
+- Bug in :meth:`CategoricalDtype.__eq__` returning false for unordered categorical data with mixed types (:issue:`55468`)
 -
 
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
--
+- Bug in :meth:`Tick.delta` with very large ticks raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
+- Bug in addition or subtraction of very large :class:`Tick` objects with :class:`Timestamp` or :class:`Timedelta` objects raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
+
 
 Timedelta
 ^^^^^^^^^
+- Bug in :class:`Timedelta` construction raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
 - Bug in rendering (``__repr__``) of :class:`TimedeltaIndex` and :class:`Series` with timedelta64 values with non-nanosecond resolution entries that are all multiples of 24 hours failing to use the compact representation used in the nanosecond cases (:issue:`55405`)
--
 
 Timezones
 ^^^^^^^^^
@@ -352,7 +355,7 @@ I/O
 
 Period
 ^^^^^^
--
+- Bug in :class:`Period` addition silently wrapping around instead of raising ``OverflowError`` (:issue:`55503`)
 -
 
 Plotting
