@@ -5,6 +5,7 @@ from libc.math cimport log10
 from numpy cimport (
     int32_t,
     int64_t,
+    is_datetime64_object,
 )
 
 cnp.import_array()
@@ -70,7 +71,6 @@ from pandas._libs.tslibs.tzconversion cimport (
     tz_localize_to_utc_single,
 )
 from pandas._libs.tslibs.util cimport (
-    is_datetime64_object,
     is_float_object,
     is_integer_object,
 )
