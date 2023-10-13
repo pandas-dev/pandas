@@ -16,6 +16,7 @@ import logging
 import os
 import sys
 import warnings
+import re
 
 import jinja2
 from numpydoc.docscrape import NumpyDocString
