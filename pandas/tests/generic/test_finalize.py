@@ -281,12 +281,12 @@ _all_methods = [
     (
         pd.Series,
         (1, pd.date_range("2000", periods=4)),
-        operator.methodcaller("asfreq", "H"),
+        operator.methodcaller("asfreq", "h"),
     ),
     (
         pd.DataFrame,
         ({"A": [1, 1, 1, 1]}, pd.date_range("2000", periods=4)),
-        operator.methodcaller("asfreq", "H"),
+        operator.methodcaller("asfreq", "h"),
     ),
     (
         pd.Series,
@@ -628,9 +628,9 @@ def test_string_method(method):
         operator.methodcaller("tz_localize", "CET"),
         operator.methodcaller("normalize"),
         operator.methodcaller("strftime", "%Y"),
-        operator.methodcaller("round", "H"),
-        operator.methodcaller("floor", "H"),
-        operator.methodcaller("ceil", "H"),
+        operator.methodcaller("round", "h"),
+        operator.methodcaller("floor", "h"),
+        operator.methodcaller("ceil", "h"),
         operator.methodcaller("month_name"),
         operator.methodcaller("day_name"),
     ],

@@ -898,8 +898,8 @@ cdef int64_t parse_iso_format_string(str ts) except? -1:
             elif c in ["W", "D", "H", "M"]:
                 if c in ["H", "M"] and len(number) > 2:
                     raise ValueError(err_msg)
-                if c == "M":
-                    c = "min"
+                if c in ["M", "H"]:
+                    c = c.replace("M", "min").replace("H", "h")
                 unit.append(c)
                 r = timedelta_from_spec(number, "0", unit)
                 result += timedelta_as_neg(r, neg)
@@ -1442,7 +1442,7 @@ cdef class _Timedelta(timedelta):
         Resolution:     Return value
 
         * Days:         'D'
-        * Hours:        'H'
+        * Hours:        'h'
         * Minutes:      'min'
         * Seconds:      's'
         * Milliseconds: 'ms'
@@ -1484,7 +1484,7 @@ cdef class _Timedelta(timedelta):
         elif self._m:
             return "min"
         elif self._h:
-            return "H"
+            return "h"
         else:
             return "D"
 
@@ -1725,8 +1725,8 @@ class Timedelta(_Timedelta):
 
         .. deprecated:: 2.2.0
 
-            Values `T`, `S`, `L`, `U`, and `N` are deprecated in favour of the values
-            `min`, `s`, `ms`, `us`, and `ns`.
+            Values `H`, `T`, `S`, `L`, `U`, and `N` are deprecated in favour
+            of the values `h`, `min`, `s`, `ms`, `us`, and `ns`.
 
     **kwargs
         Available kwargs: {days, seconds, microseconds,
@@ -1784,7 +1784,7 @@ class Timedelta(_Timedelta):
                 )
 
             # GH43764, convert any input to nanoseconds first and then
-            # create the timestamp. This ensures that any potential
+            # create the timedelta. This ensures that any potential
             # nanosecond contributions from kwargs parsed as floats
             # are taken into consideration.
             seconds = int((
@@ -1797,12 +1797,24 @@ class Timedelta(_Timedelta):
                 ) * 1_000_000_000
             )
 
-            value = np.timedelta64(
-                int(kwargs.get("nanoseconds", 0))
-                + int(kwargs.get("microseconds", 0) * 1_000)
-                + int(kwargs.get("milliseconds", 0) * 1_000_000)
-                + seconds
-            )
+            ns = kwargs.get("nanoseconds", 0)
+            us = kwargs.get("microseconds", 0)
+            ms = kwargs.get("milliseconds", 0)
+            try:
+                value = np.timedelta64(
+                    int(ns)
+                    + int(us * 1_000)
+                    + int(ms * 1_000_000)
+                    + seconds
+                )
+            except OverflowError as err:
+                # GH#55503
+                msg = (
+                    f"seconds={seconds}, milliseconds={ms}, "
+                    f"microseconds={us}, nanoseconds={ns}"
+                )
+                raise OutOfBoundsTimedelta(msg) from err
+
         if unit in {"Y", "y", "M"}:
             raise ValueError(
                 "Units 'M', 'Y', and 'y' are no longer supported, as they do not "

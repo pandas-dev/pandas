@@ -1223,7 +1223,7 @@ def test_frame_single_columns_object_sum_axis_1():
 
 class TestFrameArithmeticUnsorted:
     def test_frame_add_tz_mismatch_converts_to_utc(self):
-        rng = pd.date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
+        rng = pd.date_range("1/1/2011", periods=10, freq="h", tz="US/Eastern")
         df = DataFrame(
             np.random.default_rng(2).standard_normal(len(rng)), index=rng, columns=["a"]
         )
