@@ -35,8 +35,7 @@ dependencies:
   - jinja2>=3.1.2
   - lxml>=4.9.2
   - matplotlib>=3.6.3, <3.8
-  # test_numba_vs_cython segfaults with numba 0.57
-  - numba>=0.56.4, <0.57.0
+  - numba>=0.56.4
   - numexpr>=2.8.4
   - odfpy>=1.4.1
   - qtpy>=2.3.0
@@ -45,7 +44,7 @@ dependencies:
   - psycopg2>=2.9.5
   - pyarrow>=10.0.1
   - pymysql>=1.0.2
-  # - pyreadstat>=1.2.0 not available on ARM
+  - pyreadstat>=1.2.0
   - pytables>=3.8.0
   - python-calamine>=0.1.6
   - pyxlsb>=1.0.10
