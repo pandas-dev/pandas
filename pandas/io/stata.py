@@ -691,10 +691,7 @@ class StataValueLabel:
         self.labname = catarray.name
         self._encoding = encoding
         categories = catarray.cat.categories
-        self.value_labels: list[tuple[float, str]] = list(
-            zip(np.arange(len(categories)), categories)
-        )
-        self.value_labels.sort(key=lambda x: x[0])
+        self.value_labels = enumerate(categories)
 
         self._prepare_value_labels()
 
@@ -820,7 +817,7 @@ class StataNonCatValueLabel(StataValueLabel):
 
         self.labname = labname
         self._encoding = encoding
-        self.value_labels: list[tuple[float, str]] = sorted(
+        self.value_labels = sorted(  # type: ignore[assignment]
             value_labels.items(), key=lambda x: x[0]
         )
         self._prepare_value_labels()
@@ -1055,7 +1052,7 @@ class StataParser:
         }
 
         # Reserved words cannot be used as variable names
-        self.RESERVED_WORDS = (
+        self.RESERVED_WORDS = {
             "aggregate",
             "array",
             "boolean",
@@ -1116,7 +1113,7 @@ class StataParser:
             "_se",
             "with",
             "_n",
-        )
+        }
 
 
 class StataReader(StataParser, abc.Iterator):
@@ -1791,16 +1788,11 @@ the string values returned are correct."""
         data = self._do_convert_missing(data, convert_missing)
 
         if convert_dates:
-
-            def any_startswith(x: str) -> bool:
-                return any(x.startswith(fmt) for fmt in _date_formats)
-
-            cols = np.where([any_startswith(x) for x in self._fmtlist])[0]
-            for i in cols:
-                col = data.columns[i]
-                data[col] = _stata_elapsed_date_to_datetime_vec(
-                    data[col], self._fmtlist[i]
-                )
+            for i, fmt in enumerate(self._fmtlist):
+                if any(fmt.startswith(date_fmt) for date_fmt in _date_formats):
+                    data.iloc[:, i] = _stata_elapsed_date_to_datetime_vec(
+                        data.iloc[:, i], fmt
+                    )
 
         if convert_categoricals and self._format_version > 108:
             data = self._do_convert_categoricals(
