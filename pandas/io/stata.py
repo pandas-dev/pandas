@@ -2426,7 +2426,7 @@ class StataWriter(StataParser):
         Check for categorical columns, retain categorical information for
         Stata file and convert categorical data to int
         """
-        is_cat = [isinstance(data[col].dtype, CategoricalDtype) for col in data]
+        is_cat = [isinstance(dtype, CategoricalDtype) for dtype in data.dtypes]
         if not any(is_cat):
             return data
 
