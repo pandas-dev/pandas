@@ -21,6 +21,7 @@ import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
+    Timedelta,
     to_offset,
 )
 import pandas._libs.window.aggregations as window_aggregations
@@ -1889,15 +1890,8 @@ class Rolling(RollingAndExpandingMixin):
                     self._on.freq.nanos / self._on.freq.n
                 )
             else:
-                self._win_freq_i8 = freq.nanos
-
                 unit = dtype_to_unit(self._on.dtype)
-                if unit == "us":
-                    self._win_freq_i8 /= 1e3
-                elif unit == "ms":
-                    self._win_freq_i8 /= 1e6
-                elif unit == "s":
-                    self._win_freq_i8 /= 1e9
+                self._win_freq_i8 = Timedelta(freq).as_unit(unit)._value
 
             # min_periods must be an integer
             if self.min_periods is None:
