@@ -17,6 +17,7 @@ from pandas._libs.tslibs import (
 )
 from pandas._libs.tslibs.timedeltas import (
     Timedelta,
+    disallow_ambiguous_unit,
     parse_timedelta_unit,
 )
 
@@ -178,15 +179,10 @@ def to_timedelta(
     """
     if unit is not None:
         unit = parse_timedelta_unit(unit)
+        disallow_ambiguous_unit(unit)
 
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("errors must be one of 'ignore', 'raise', or 'coerce'.")
-
-    if unit in {"Y", "y", "M"}:
-        raise ValueError(
-            "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
-            "represent unambiguous timedelta values durations."
-        )
 
     if arg is None:
         return arg
