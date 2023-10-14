@@ -36,8 +36,8 @@ class TestConcatenate:
         s1 = Series(np.random.default_rng(2).standard_normal(10), d1)
         s2 = Series(np.random.default_rng(2).standard_normal(10), d2)
 
-        s1 = s1.to_period()
-        s2 = s2.to_period()
+        s1.index = s1.index.to_period()
+        s2.index = s2.index.to_period()
 
         # drops index
         result = concat([s1, s2])

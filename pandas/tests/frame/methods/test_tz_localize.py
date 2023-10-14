@@ -10,6 +10,8 @@ from pandas import (
 )
 import pandas._testing as tm
 
+depr_msg = "(Series|DataFrame).tz_localize is deprecated"
+
 
 class TestTZLocalize:
     # See also:
@@ -21,7 +23,8 @@ class TestTZLocalize:
         obj = DataFrame({"a": 1}, index=rng)
         obj = tm.get_obj(obj, frame_or_series)
 
-        result = obj.tz_localize("utc")
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = obj.tz_localize("utc")
         expected = DataFrame({"a": 1}, rng.tz_localize("UTC"))
         expected = tm.get_obj(expected, frame_or_series)
 
@@ -34,7 +37,8 @@ class TestTZLocalize:
         df = DataFrame({"a": 1}, index=rng)
 
         df = df.T
-        result = df.tz_localize("utc", axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = df.tz_localize("utc", axis=1)
         assert result.columns.tz is timezone.utc
 
         expected = DataFrame({"a": 1}, rng.tz_localize("UTC"))
@@ -48,7 +52,8 @@ class TestTZLocalize:
         ts = frame_or_series(ts)
 
         with pytest.raises(TypeError, match="Already tz-aware"):
-            ts.tz_localize("US/Eastern")
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                ts.tz_localize("US/Eastern")
 
     @pytest.mark.parametrize("copy", [True, False])
     def test_tz_localize_copy_inplace_mutate(self, copy, frame_or_series):
@@ -57,7 +62,8 @@ class TestTZLocalize:
             np.arange(0, 5), index=date_range("20131027", periods=5, freq="1h", tz=None)
         )
         orig = obj.copy()
-        result = obj.tz_localize("UTC", copy=copy)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = obj.tz_localize("UTC", copy=copy)
         expected = frame_or_series(
             np.arange(0, 5),
             index=date_range("20131027", periods=5, freq="1h", tz="UTC"),

@@ -541,7 +541,8 @@ def test_map_missing_mixed(vals, mapping, exp):
 def test_map_scalar_on_date_time_index_aware_series():
     # GH 25959
     # Calling map on a localized time series should not cause an error
-    series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
+    series = tm.makeTimeSeries(nper=30)
+    series.index = series.index.tz_localize("UTC")
     result = Series(series.index).map(lambda x: 1)
     tm.assert_series_equal(result, Series(np.ones(30), dtype="int64"))
 

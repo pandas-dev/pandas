@@ -513,10 +513,9 @@ def test_series_apply_no_suffix_index(by_row):
 def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
     # GH 25959
     # Calling apply on a localized time series should not cause an error
+    index = dti.index
     if aware:
-        index = dti.tz_localize("UTC").index
-    else:
-        index = dti.index
+        index = index.tz_localize("UTC")
     result = Series(index).apply(lambda x: Series([1, 2]))
     tm.assert_frame_equal(result, exp)
 
@@ -527,7 +526,8 @@ def test_apply_series_on_date_time_index_aware_series(dti, exp, aware):
 def test_apply_scalar_on_date_time_index_aware_series(by_row, expected):
     # GH 25959
     # Calling apply on a localized time series should not cause an error
-    series = tm.makeTimeSeries(nper=30).tz_localize("UTC")
+    series = tm.makeTimeSeries(nper=30)
+    series.index = series.index.tz_localize("UTC")
     result = Series(series.index).apply(lambda x: 1, by_row=by_row)
     tm.assert_equal(result, expected)
 

@@ -402,6 +402,14 @@ def ndframe_method(request):
 @pytest.mark.filterwarnings(
     "ignore:DataFrame.fillna with 'method' is deprecated:FutureWarning",
     "ignore:last is deprecated:FutureWarning",
+    "ignore:DataFrame.tz_localize is deprecated:FutureWarning",
+    "ignore:Series.tz_localize is deprecated:FutureWarning",
+    "ignore:DataFrame.tz_convert is deprecated:FutureWarning",
+    "ignore:Series.tz_convert is deprecated:FutureWarning",
+    "ignore:DataFrame.to_period is deprecated:FutureWarning",
+    "ignore:Series.to_period is deprecated:FutureWarning",
+    "ignore:DataFrame.to_timestamp is deprecated:FutureWarning",
+    "ignore:Series.to_timestamp is deprecated:FutureWarning",
 )
 def test_finalize_called(ndframe_method):
     cls, init_args, method = ndframe_method

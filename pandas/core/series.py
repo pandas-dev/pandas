@@ -5741,6 +5741,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2025-01-31    3
         Freq: Y-JAN, dtype: int64
         """
+        warnings.warn(
+            # GH#52110
+            f"{type(self).__name__}.to_timestamp is deprecated and will be "
+            "removed in a future version. Use "
+            "obj.set_axis(obj.index.to_timestamp(...)) instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 
@@ -5781,6 +5790,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.index
         PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
         """
+        warnings.warn(
+            # GH#52110
+            f"{type(self).__name__}.to_period is deprecated and will be "
+            "removed in a future version. Use "
+            "obj.set_axis(obj.index.to_period(freq)) instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
 

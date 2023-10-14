@@ -12103,6 +12103,15 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df2.index
         DatetimeIndex(['2023-01-31', '2024-01-31'], dtype='datetime64[ns]', freq=None)
         """
+        warnings.warn(
+            # GH#52110
+            f"{type(self).__name__}.to_timestamp is deprecated and will be "
+            "removed in a future version. Use "
+            "obj.set_axis(obj.index.to_timestamp(...)) instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         new_obj = self.copy(deep=copy and not using_copy_on_write())
 
         axis_name = self._get_axis_name(axis)
@@ -12160,6 +12169,15 @@ class DataFrame(NDFrame, OpsMixin):
         >>> idx.to_period("Y")
         PeriodIndex(['2001', '2002', '2003'], dtype='period[Y-DEC]')
         """
+        warnings.warn(
+            # GH#52110
+            f"{type(self).__name__}.to_period is deprecated and will be "
+            "removed in a future version. Use "
+            "obj.set_axis(obj.index.to_period(freq)) instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         new_obj = self.copy(deep=copy and not using_copy_on_write())
 
         axis_name = self._get_axis_name(axis)

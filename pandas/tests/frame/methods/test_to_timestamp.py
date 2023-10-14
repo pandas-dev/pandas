@@ -38,32 +38,39 @@ class TestToTimestamp:
 
         exp_index = date_range("1/1/2001", end="12/31/2009", freq="Y-DEC")
         exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "ns")
-        result = obj.to_timestamp("D", "end")
+        msg = rf"{type(obj).__name__}\.to_timestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.to_timestamp("D", "end")
         tm.assert_index_equal(result.index, exp_index)
         tm.assert_numpy_array_equal(result.values, obj.values)
         if frame_or_series is Series:
             assert result.name == "A"
 
         exp_index = date_range("1/1/2001", end="1/1/2009", freq="YS-JAN")
-        result = obj.to_timestamp("D", "start")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.to_timestamp("D", "start")
         tm.assert_index_equal(result.index, exp_index)
 
-        result = obj.to_timestamp(how="start")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.to_timestamp(how="start")
         tm.assert_index_equal(result.index, exp_index)
 
         delta = timedelta(hours=23)
-        result = obj.to_timestamp("H", "end")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.to_timestamp("H", "end")
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "h") - Timedelta(1, "ns")
         tm.assert_index_equal(result.index, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
-        result = obj.to_timestamp("T", "end")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.to_timestamp("T", "end")
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "ns")
         tm.assert_index_equal(result.index, exp_index)
 
-        result = obj.to_timestamp("S", "end")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.to_timestamp("S", "end")
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
@@ -82,36 +89,44 @@ class TestToTimestamp:
         # columns
         df = df.T
 
+        msg = r"DataFrame\.to_timestamp is deprecated"
+
         exp_index = date_range("1/1/2001", end="12/31/2009", freq="Y-DEC")
         exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "ns")
-        result = df.to_timestamp("D", "end", axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.to_timestamp("D", "end", axis=1)
         tm.assert_index_equal(result.columns, exp_index)
         tm.assert_numpy_array_equal(result.values, df.values)
 
         exp_index = date_range("1/1/2001", end="1/1/2009", freq="YS-JAN")
-        result = df.to_timestamp("D", "start", axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.to_timestamp("D", "start", axis=1)
         tm.assert_index_equal(result.columns, exp_index)
 
         delta = timedelta(hours=23)
-        result = df.to_timestamp("H", "end", axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.to_timestamp("H", "end", axis=1)
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "h") - Timedelta(1, "ns")
         tm.assert_index_equal(result.columns, exp_index)
 
         delta = timedelta(hours=23, minutes=59)
-        result = df.to_timestamp("min", "end", axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.to_timestamp("min", "end", axis=1)
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "m") - Timedelta(1, "ns")
         tm.assert_index_equal(result.columns, exp_index)
 
-        result = df.to_timestamp("S", "end", axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df.to_timestamp("S", "end", axis=1)
         delta = timedelta(hours=23, minutes=59, seconds=59)
         exp_index = _get_with_delta(delta)
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
         tm.assert_index_equal(result.columns, exp_index)
 
-        result1 = df.to_timestamp("5min", axis=1)
-        result2 = df.to_timestamp("min", axis=1)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result1 = df.to_timestamp("5min", axis=1)
+            result2 = df.to_timestamp("min", axis=1)
         expected = date_range("2001-01-01", "2009-01-01", freq="YS")
         assert isinstance(result1.columns, DatetimeIndex)
         assert isinstance(result2.columns, DatetimeIndex)
@@ -128,8 +143,10 @@ class TestToTimestamp:
         )
 
         # invalid axis
+        msg = rf"{type(obj).__name__}\.to_timestamp is deprecated"
         with pytest.raises(ValueError, match="axis"):
-            obj.to_timestamp(axis=2)
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                obj.to_timestamp(axis=2)
 
     def test_to_timestamp_hourly(self, frame_or_series):
         index = period_range(freq="h", start="1/1/2001", end="1/2/2001")
@@ -138,7 +155,9 @@ class TestToTimestamp:
             obj = obj.to_frame()
 
         exp_index = date_range("1/1/2001 00:59:59", end="1/2/2001 00:59:59", freq="h")
-        result = obj.to_timestamp(how="end")
+        msg = rf"{type(obj).__name__}\.to_timestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = obj.to_timestamp(how="end")
         exp_index = exp_index + Timedelta(1, "s") - Timedelta(1, "ns")
         tm.assert_index_equal(result.index, exp_index)
         if frame_or_series is Series:
@@ -148,7 +167,9 @@ class TestToTimestamp:
         # GH#33327
         obj = frame_or_series(index=index, dtype=object)
 
+        depr_msg = r"\.to_timestamp is deprecated"
         if not isinstance(index, PeriodIndex):
             msg = f"unsupported Type {type(index).__name__}"
             with pytest.raises(TypeError, match=msg):
-                obj.to_timestamp()
+                with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                    obj.to_timestamp()

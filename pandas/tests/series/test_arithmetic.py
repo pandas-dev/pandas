@@ -729,8 +729,8 @@ class TestTimeSeriesArithmetic:
 
         result = ser1 + ser2
 
-        uts1 = ser1.tz_convert("utc")
-        uts2 = ser2.tz_convert("utc")
+        uts1 = ser1.set_axis(ser1.index.tz_convert("utc"))
+        uts2 = ser2.set_axis(ser2.index.tz_convert("utc"))
         expected = uts1 + uts2
 
         assert result.index.tz is timezone.utc
@@ -740,7 +740,7 @@ class TestTimeSeriesArithmetic:
         rng = date_range("1/1/2011", periods=10, freq="h")
         ser = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
-        ser_utc = ser.tz_localize("utc")
+        ser_utc = ser.set_axis(ser.index.tz_localize("utc"))
 
         msg = "Cannot join tz-naive with tz-aware DatetimeIndex"
         with pytest.raises(Exception, match=msg):

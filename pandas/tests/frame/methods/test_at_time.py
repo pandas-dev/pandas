@@ -23,10 +23,11 @@ class TestAtTime:
             np.random.default_rng(2).standard_normal(len(rng)), index=rng
         )
 
-        ts_local = ts.tz_localize(tzstr)
+        ts_local = ts.set_axis(ts.index.tz_localize(tzstr))
 
         result = ts_local.at_time(time(10, 0))
-        expected = ts.at_time(time(10, 0)).tz_localize(tzstr)
+        expected = ts.at_time(time(10, 0))
+        expected = expected.set_axis(expected.index.tz_localize(tzstr))
         tm.assert_equal(result, expected)
         assert timezones.tz_compare(result.index.tz, tz)
 

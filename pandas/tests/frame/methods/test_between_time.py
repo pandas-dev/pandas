@@ -51,11 +51,12 @@ class TestBetweenTime:
         if frame_or_series is DataFrame:
             ts = ts.to_frame()
 
-        ts_local = ts.tz_localize(tzstr)
+        ts_local = ts.set_axis(ts.index.tz_localize(tzstr))
 
         t1, t2 = time(10, 0), time(11, 0)
         result = ts_local.between_time(t1, t2)
-        expected = ts.between_time(t1, t2).tz_localize(tzstr)
+        expected = ts.between_time(t1, t2)
+        expected = expected.set_axis(expected.index.tz_localize(tzstr))
         tm.assert_equal(result, expected)
         assert timezones.tz_compare(result.index.tz, tz)
 

@@ -97,7 +97,7 @@ class TestFrameAsof:
 
         # Check that we handle PeriodIndex correctly, dont end up with
         #  period.ordinal for series name
-        df = df.to_period("D")
+        df = df.set_axis(df.index.to_period("D"))
         result = df.asof("1989-12-31")
         assert isinstance(result.name, Period)
 

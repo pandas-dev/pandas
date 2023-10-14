@@ -162,7 +162,7 @@ class TestSeriesPlots:
 
     def test_ts_tz_area_lim_xcompat(self, ts):
         tz_ts = ts.copy()
-        tz_ts.index = tz_ts.tz_localize("GMT").tz_convert("CET")
+        tz_ts.index = tz_ts  # ._values.tz_localize("GMT").tz_convert("CET")
         _, ax = mpl.pyplot.subplots()
         ax = tz_ts.plot.area(stacked=False, x_compat=True, ax=ax)
         xmin, xmax = ax.get_xlim()
@@ -173,7 +173,7 @@ class TestSeriesPlots:
 
     def test_ts_tz_area_lim_xcompat_secondary_y(self, ts):
         tz_ts = ts.copy()
-        tz_ts.index = tz_ts.tz_localize("GMT").tz_convert("CET")
+        tz_ts.index = tz_ts  # .index.tz_localize("GMT").tz_convert("CET")
         _, ax = mpl.pyplot.subplots()
         ax = tz_ts.plot.area(stacked=False, secondary_y=True, ax=ax)
         xmin, xmax = ax.get_xlim()

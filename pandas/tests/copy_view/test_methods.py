@@ -136,6 +136,22 @@ def test_methods_copy_keyword(
         msg = "'DataFrame.swapaxes' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             df2 = method(df, copy=copy)
+    elif "tz_convert" in request.node.callspec.id:
+        msg = "DataFrame.tz_convert is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df2 = method(df, copy=copy)
+    elif "tz_localize" in request.node.callspec.id:
+        msg = "DataFrame.tz_localize is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df2 = method(df, copy=copy)
+    elif "to_timestamp" in request.node.callspec.id:
+        msg = "DataFrame.to_timestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df2 = method(df, copy=copy)
+    elif "to_period" in request.node.callspec.id:
+        msg = "DataFrame.to_period is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df2 = method(df, copy=copy)
     else:
         df2 = method(df, copy=copy)
 
@@ -211,6 +227,22 @@ def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write)
 
     if "swapaxes" in request.node.callspec.id:
         msg = "'Series.swapaxes' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser2 = method(ser, copy=copy)
+    elif "tz_convert" in request.node.callspec.id:
+        msg = "Series.tz_convert is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser2 = method(ser, copy=copy)
+    elif "tz_localize" in request.node.callspec.id:
+        msg = "Series.tz_localize is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser2 = method(ser, copy=copy)
+    elif "to_timestamp" in request.node.callspec.id:
+        msg = "Series.to_timestamp is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            ser2 = method(ser, copy=copy)
+    elif "to_period" in request.node.callspec.id:
+        msg = "Series.to_period is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             ser2 = method(ser, copy=copy)
     else:
@@ -766,7 +798,9 @@ def test_to_timestamp(using_copy_on_write, obj):
     obj.index = Index([Period("2012-1-1", freq="D"), Period("2012-1-2", freq="D")])
 
     obj_orig = obj.copy()
-    obj2 = obj.to_timestamp()
+    depr_msg = f"{type(obj).__name__}.to_timestamp is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        obj2 = obj.to_timestamp()
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
@@ -784,7 +818,9 @@ def test_to_period(using_copy_on_write, obj):
     obj.index = Index([Timestamp("2019-12-31"), Timestamp("2020-12-31")])
 
     obj_orig = obj.copy()
-    obj2 = obj.to_period(freq="Y")
+    depr_msg = f"{type(obj).__name__}.to_period is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        obj2 = obj.to_period(freq="Y")
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
@@ -1314,7 +1350,9 @@ def test_tz_convert_localize(using_copy_on_write, func, tz):
         [1, 2], index=date_range(start="2014-08-01 09:00", freq="h", periods=2, tz=tz)
     )
     ser_orig = ser.copy()
-    ser2 = getattr(ser, func)("US/Central")
+    depr_msg = f"Series.{func} is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        ser2 = getattr(ser, func)("US/Central")
 
     if using_copy_on_write:
         assert np.shares_memory(ser.values, ser2.values)

@@ -235,6 +235,7 @@ Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 - Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
 - Deprecated :meth:`Index.format`, use ``index.astype(str)`` or ``index.map(formatter)`` instead (:issue:`55413`)
+- Deprecated :meth:`Series.to_period`, :meth:`DataFrame.to_period`, :meth:`Series.to_timestamp`, :meth:`DataFrame.to_timestamp`, :meth:`Series.tz_localize`, :meth:`DataFrame.tz_localize`, :meth:`Series.tz_convert`, :meth:`DataFrame.tz_convert`, use the relevant methods on ``obj.set_axis(obj.index.relevant_method(...))`` instead (:issue:`52110`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_clipboard`. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_csv` except ``path_or_buf``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_dict`. (:issue:`54229`)

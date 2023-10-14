@@ -1228,7 +1228,7 @@ class TestFrameArithmeticUnsorted:
             np.random.default_rng(2).standard_normal(len(rng)), index=rng, columns=["a"]
         )
 
-        df_moscow = df.tz_convert("Europe/Moscow")
+        df_moscow = df.set_axis(df.index.tz_convert("Europe/Moscow"))
         result = df + df_moscow
         assert result.index.tz is timezone.utc
 

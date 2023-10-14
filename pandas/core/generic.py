@@ -11217,6 +11217,14 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2018-09-14 23:30:00    1
         dtype: int64
         """
+        warnings.warn(
+            # GH#52110
+            f"{type(self).__name__}.tz_convert is deprecated and will be "
+            "removed in a future version. Use "
+            "obj.set_axis(obj.index.tz_convert(tz)) instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         axis = self._get_axis_number(axis)
         ax = self._get_axis(axis)
 
@@ -11389,6 +11397,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2015-03-29 03:30:00+02:00    1
         dtype: int64
         """
+        warnings.warn(
+            # GH#52110
+            f"{type(self).__name__}.tz_localize is deprecated and will be "
+            "removed in a future version. Use "
+            "obj.set_axis(obj.index.tz_localize(tz)) instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not isinstance(
             nonexistent, dt.timedelta
