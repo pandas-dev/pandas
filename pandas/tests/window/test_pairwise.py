@@ -392,7 +392,7 @@ class TestPairwise:
     def test_corr_freq_memory_error(self):
         # GH 31789
         s = Series(range(5), index=date_range("2020", periods=5))
-        result = s.rolling("12H").corr(s)
+        result = s.rolling("12h").corr(s)
         expected = Series([np.nan] * 5, index=date_range("2020", periods=5))
         tm.assert_series_equal(result, expected)
 
