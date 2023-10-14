@@ -906,7 +906,7 @@ cdef class BlockValuesRefs:
             ]
             nr_of_refs = len(self.referenced_blocks)
             if nr_of_refs < self.clear_counter // 2:
-                self.clear_counter = self.clear_counter // 2
+                self.clear_counter = max(self.clear_counter // 2, 500)
             elif nr_of_refs > self.clear_counter:
                 self.clear_counter = min(self.clear_counter * 2, nr_of_refs)
 
