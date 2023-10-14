@@ -30,4 +30,4 @@ dependencies:
     - "--pre"
     - "numpy"
     - "scipy"
-    - "tzdata>=2022.1"
+    - "tzdata>=2022.7"

@@ -3073,7 +3073,7 @@ class DataFrame(NDFrame, OpsMixin):
             (e.g. via builtin open function). If path is None,
             a bytes object is returned.
         engine : {'pyarrow'}, default 'pyarrow'
-            ORC library to use. Pyarrow must be >= 7.0.0.
+            ORC library to use.
         index : bool, optional
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.

@@ -256,7 +256,7 @@ class ArrowExtensionArray(
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
         if pa_version_under7p0:
-            msg = "pyarrow>=7.0.0 is required for PyArrow backed ArrowExtensionArray."
+            msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._pa_array = pa.chunked_array([values])

@@ -128,7 +128,7 @@ class StringDtype(StorageExtensionDtype):
             )
         if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under7p0:
             raise ImportError(
-                "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
             )
         self.storage = storage
 

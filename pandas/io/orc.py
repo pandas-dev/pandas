@@ -168,7 +168,7 @@ def to_orc(
         (e.g. via builtin open function). If path is None,
         a bytes object is returned.
     engine : str, default 'pyarrow'
-        ORC library to use. Pyarrow must be >= 7.0.0.
+        ORC library to use.
     index : bool, optional
         If ``True``, include the dataframe's index(es) in the file output. If
         ``False``, they will not be written to the file.
@@ -237,7 +237,7 @@ def to_orc(
 
     if engine != "pyarrow":
         raise ValueError("engine must be 'pyarrow'")
-    engine = import_optional_dependency(engine, min_version="7.0.0")
+    engine = import_optional_dependency(engine, min_version="10.0.1")
     pa = import_optional_dependency("pyarrow")
     orc = import_optional_dependency("pyarrow.orc")
 
