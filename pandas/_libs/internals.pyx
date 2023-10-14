@@ -890,17 +890,25 @@ cdef class BlockValuesRefs:
     """
     cdef:
         public list referenced_blocks
+        public int clear_counter
 
     def __cinit__(self, blk: Block | None = None) -> None:
         if blk is not None:
             self.referenced_blocks = [weakref.ref(blk)]
         else:
             self.referenced_blocks = []
+        self.clear_counter = 500  # set reasonably high
 
-    def _clear_dead_references(self) -> None:
-        self.referenced_blocks = [
-            ref for ref in self.referenced_blocks if ref() is not None
-        ]
+    def _clear_dead_references(self, force=False) -> None:
+        if force or len(self.referenced_blocks) > self.clear_counter:
+            self.referenced_blocks = [
+                ref for ref in self.referenced_blocks if ref() is not None
+            ]
+            nr_of_refs = len(self.referenced_blocks)
+            if nr_of_refs < self.clear_counter // 2:
+                self.clear_counter = self.clear_counter // 2
+            elif nr_of_refs > self.clear_counter:
+                self.clear_counter = self.clear_counter * 2
 
     def add_reference(self, blk: Block) -> None:
         """Adds a new reference to our reference collection.
@@ -934,6 +942,6 @@ cdef class BlockValuesRefs:
         -------
         bool
         """
-        self._clear_dead_references()
+        self._clear_dead_references(force=True)
         # Checking for more references than block pointing to itself
         return len(self.referenced_blocks) > 1
