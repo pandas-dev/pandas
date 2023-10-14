@@ -230,6 +230,7 @@ if TYPE_CHECKING:
         Level,
         MergeHow,
         MergeValidate,
+        MutableMappingT,
         NaAction,
         NaPosition,
         NsmallestNlargestKeep,
@@ -1927,6 +1928,27 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(
         self,
         orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
+        *,
+        into: type[MutableMappingT] | MutableMappingT,
+        index: bool = ...,
+    ) -> MutableMappingT:
+        ...
+
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["records"],
+        *,
+        into: type[MutableMappingT] | MutableMappingT,
+        index: bool = ...,
+    ) -> list[MutableMappingT]:
+        ...
+
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
+        *,
         into: type[dict] = ...,
         index: bool = ...,
     ) -> dict:
@@ -1936,11 +1958,14 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(
         self,
         orient: Literal["records"],
+        *,
         into: type[dict] = ...,
         index: bool = ...,
     ) -> list[dict]:
         ...
 
+    # error: Incompatible default for argument "into" (default has type "type
+    # [dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
     @deprecate_nonkeyword_arguments(
         version="3.0", allowed_args=["self", "orient"], name="to_dict"
     )
@@ -1949,9 +1974,10 @@ class DataFrame(NDFrame, OpsMixin):
         orient: Literal[
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
-        into: type[dict] = dict,
+        into: type[MutableMappingT]
+        | MutableMappingT = dict,  # type: ignore[assignment]
         index: bool = True,
-    ) -> dict | list[dict]:
+    ) -> MutableMappingT | list[MutableMappingT]:
         """
         Convert the DataFrame to a dictionary.
 
@@ -1979,7 +2005,7 @@ class DataFrame(NDFrame, OpsMixin):
                 'tight' as an allowed value for the ``orient`` argument
 
         into : class, default dict
-            The collections.abc.Mapping subclass used for all Mappings
+            The collections.abc.MutableMapping subclass used for all Mappings
             in the return value.  Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
@@ -1993,9 +2019,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        dict, list or collections.abc.Mapping
-            Return a collections.abc.Mapping object representing the DataFrame.
-            The resulting transformation depends on the `orient` parameter.
+        dict, list or collections.abc.MutableMapping
+            Return a collections.abc.MutableMapping object representing the
+            DataFrame. The resulting transformation depends on the `orient`
+            parameter.
 
         See Also
         --------
@@ -2054,7 +2081,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.methods.to_dict import to_dict
 
-        return to_dict(self, orient, into, index)
+        return to_dict(self, orient, into=into, index=index)
 
     @deprecate_nonkeyword_arguments(
         version="3.0", allowed_args=["self", "destination_table"], name="to_gbq"

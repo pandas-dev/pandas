@@ -48,6 +48,7 @@ from pandas.errors import (
 from pandas.util._decorators import (
     Appender,
     Substitution,
+    deprecate_nonkeyword_arguments,
     doc,
 )
 from pandas.util._exceptions import find_stack_level
@@ -167,6 +168,7 @@ if TYPE_CHECKING:
         IndexKeyFunc,
         IndexLabel,
         Level,
+        MutableMappingT,
         NaPosition,
         NumpySorter,
         NumpyValueArrayLike,
@@ -1922,21 +1924,40 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         """
         return self.index
 
-    def to_dict(self, into: type[dict] = dict) -> dict:
+    @overload
+    def to_dict(
+        self, *, into: type[MutableMappingT] | MutableMappingT
+    ) -> MutableMappingT:
+        ...
+
+    @overload
+    def to_dict(self, *, into: type[dict] = ...) -> dict:
+        ...
+
+    # error: Incompatible default for argument "into" (default has type "type[
+    # dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self"], name="to_dict"
+    )
+    def to_dict(
+        self,
+        into: type[MutableMappingT]
+        | MutableMappingT = dict,  # type: ignore[assignment]
+    ) -> MutableMappingT:
         """
         Convert Series to {label -> value} dict or dict-like object.
 
         Parameters
         ----------
         into : class, default dict
-            The collections.abc.Mapping subclass to use as the return
-            object. Can be the actual class or an empty
-            instance of the mapping type you want.  If you want a
-            collections.defaultdict, you must pass it initialized.
+            The collections.abc.MutableMapping subclass to use as the return
+            object. Can be the actual class or an empty instance of the mapping
+            type you want.  If you want a collections.defaultdict, you must
+            pass it initialized.
 
         Returns
         -------
-        collections.abc.Mapping
+        collections.abc.MutableMapping
             Key-value representation of Series.
 
         Examples
@@ -1945,10 +1966,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         >>> s.to_dict()
         {0: 1, 1: 2, 2: 3, 3: 4}
         >>> from collections import OrderedDict, defaultdict
-        >>> s.to_dict(OrderedDict)
+        >>> s.to_dict(into=OrderedDict)
         OrderedDict([(0, 1), (1, 2), (2, 3), (3, 4)])
         >>> dd = defaultdict(list)
-        >>> s.to_dict(dd)
+        >>> s.to_dict(into=dd)
         defaultdict(<class 'list'>, {0: 1, 1: 2, 2: 3, 3: 4})
         """
         # GH16122
