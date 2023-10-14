@@ -908,7 +908,7 @@ cdef class BlockValuesRefs:
             if nr_of_refs < self.clear_counter // 2:
                 self.clear_counter = self.clear_counter // 2
             elif nr_of_refs > self.clear_counter:
-                self.clear_counter = self.clear_counter * 2
+                self.clear_counter = min(self.clear_counter * 2, nr_of_refs)
 
     def add_reference(self, blk: Block) -> None:
         """Adds a new reference to our reference collection.
