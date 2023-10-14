@@ -587,6 +587,7 @@ class TestDataFramePlots:
         df = DataFrame(
             np.random.default_rng(2).random((6, 4)), columns=["x", "y", "z", "four"]
         )
+        print(df.to_string())
 
         neg_df = -df
 
