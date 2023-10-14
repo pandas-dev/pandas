@@ -900,6 +900,10 @@ cdef class BlockValuesRefs:
         self.clear_counter = 500  # set reasonably high
 
     def _clear_dead_references(self, force=False) -> None:
+        # Use exponential backoff to decide when we want to clear references
+        # if force=False. Clearing for every insertion causes slowdowns if
+        # all these objects stay alive, e.g. df.items() for wide DataFrames
+        # see GH#55245 and GH#55008
         if force or len(self.referenced_blocks) > self.clear_counter:
             self.referenced_blocks = [
                 ref for ref in self.referenced_blocks if ref() is not None
