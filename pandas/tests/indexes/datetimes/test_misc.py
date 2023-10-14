@@ -141,7 +141,7 @@ class TestDatetime64:
 
     def test_datetimeindex_accessors5(self):
         freq_m = to_offset("ME")
-        bm = to_offset("BM")
+        bm = to_offset("BME")
         qfeb = to_offset("Q-FEB")
         qsfeb = to_offset("QS-FEB")
         bq = to_offset("BQ")

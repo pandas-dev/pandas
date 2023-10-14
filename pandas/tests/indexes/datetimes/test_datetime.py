@@ -264,3 +264,17 @@ class TestDatetimeIndex:
         )
 
         tm.assert_index_equal(result, expected)
+
+    def test_BM_deprecated(self):
+        # GH#52064
+        msg = "'BM' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = date_range(start="2016-02-21", end="2016-08-21", freq="2BM")
+        result = DatetimeIndex(
+            ["2016-02-29", "2016-04-29", "2016-06-30"],
+            dtype="datetime64[ns]",
+            freq="2BME",
+        )
+
+        tm.assert_index_equal(result, expected)

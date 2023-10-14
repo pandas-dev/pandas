@@ -32,16 +32,16 @@ class TestAsFreq:
                     datetime(2009, 11, 30),
                     datetime(2009, 12, 31),
                 ],
-                freq="BM",
+                freq="BME",
             ),
         )
 
         daily_ts = ts.asfreq("B")
-        monthly_ts = daily_ts.asfreq("BM")
+        monthly_ts = daily_ts.asfreq("BME")
         tm.assert_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq("B", method="pad")
-        monthly_ts = daily_ts.asfreq("BM")
+        monthly_ts = daily_ts.asfreq("BME")
         tm.assert_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq(offsets.BDay())
@@ -140,12 +140,12 @@ class TestAsFreq:
     def test_asfreq_empty(self, datetime_frame):
         # test does not blow up on length-0 DataFrame
         zero_length = datetime_frame.reindex([])
-        result = zero_length.asfreq("BM")
+        result = zero_length.asfreq("BME")
         assert result is not zero_length
 
     def test_asfreq(self, datetime_frame):
         offset_monthly = datetime_frame.asfreq(offsets.BMonthEnd())
-        rule_monthly = datetime_frame.asfreq("BM")
+        rule_monthly = datetime_frame.asfreq("BME")
 
         tm.assert_frame_equal(offset_monthly, rule_monthly)
 

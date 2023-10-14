@@ -360,7 +360,7 @@ class TestTSPlot:
             assert PeriodIndex(data=idx).freqstr == "B"
 
     def test_business_freq_convert(self):
-        bts = tm.makeTimeSeries(300).asfreq("BM")
+        bts = tm.makeTimeSeries(300).asfreq("BME")
         ts = bts.to_period("M")
         _, ax = mpl.pyplot.subplots()
         bts.plot(ax=ax)

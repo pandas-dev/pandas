@@ -757,7 +757,7 @@ class TestOffsetNames:
     def test_get_offset_name(self):
         assert BDay().freqstr == "B"
         assert BDay(2).freqstr == "2B"
-        assert BMonthEnd().freqstr == "BM"
+        assert BMonthEnd().freqstr == "BME"
         assert Week(weekday=0).freqstr == "W-MON"
         assert Week(weekday=1).freqstr == "W-TUE"
         assert Week(weekday=2).freqstr == "W-WED"
@@ -776,8 +776,8 @@ def test_get_offset():
     pairs = [
         ("B", BDay()),
         ("b", BDay()),
-        ("bm", BMonthEnd()),
-        ("Bm", BMonthEnd()),
+        ("bme", BMonthEnd()),
+        ("Bme", BMonthEnd()),
         ("W-MON", Week(weekday=0)),
         ("W-TUE", Week(weekday=1)),
         ("W-WED", Week(weekday=2)),
@@ -811,7 +811,7 @@ class TestOffsetAliases:
             assert k == v.copy()
 
     def test_rule_code(self):
-        lst = ["ME", "MS", "BM", "BMS", "D", "B", "h", "min", "s", "ms", "us"]
+        lst = ["ME", "MS", "BME", "BMS", "D", "B", "h", "min", "s", "ms", "us"]
         for k in lst:
             assert k == _get_offset(k).rule_code
             # should be cached - this is kind of an internals test...
