@@ -1991,11 +1991,13 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         in place, not returning a new Manager (and Block), and thus never changing
         the dtype.
         """
-        if not self._has_no_reference(0):
-            if using_copy_on_write():
+        using_cow = using_copy_on_write()
+        warn_cow = warn_copy_on_write()
+        if using_cow or warn_cow and not self._has_no_reference(0):
+            if using_cow:
                 self.blocks = (self._block.copy(),)
                 self._cache.clear()
-            elif warn and warn_copy_on_write():
+            elif warn and warn_cow:
                 warnings.warn(
                     "Setting value on view: behaviour will change in pandas 3.0 "
                     "with Copy-on-Write ...",

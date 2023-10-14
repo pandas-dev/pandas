@@ -163,7 +163,7 @@ def test_subset_column_slice(
         assert not np.shares_memory(get_array(subset, "b"), get_array(df, "b"))
     else:
         # we only get a warning in case of a single block
-        # TODO
+        # TODO(CoW-warn) should warn
         warn = (
             SettingWithCopyWarning
             if (single_block and not warn_copy_on_write)
@@ -326,7 +326,7 @@ def test_subset_set_with_row_indexer(
     ):
         pytest.skip("setitem with labels selects on columns")
 
-    # TODO
+    # TODO(CoW-warn) should warn
     if using_copy_on_write or warn_copy_on_write:
         indexer_si(subset)[indexer] = 0
     else:
@@ -358,7 +358,7 @@ def test_subset_set_with_mask(backend, using_copy_on_write, warn_copy_on_write):
 
     mask = subset > 3
 
-    # TODO
+    # TODO(CoW-warn) should warn
     if using_copy_on_write or warn_copy_on_write:
         subset[mask] = 0
     else:
@@ -392,7 +392,7 @@ def test_subset_set_column(backend, using_copy_on_write, warn_copy_on_write):
     else:
         arr = pd.array([10, 11], dtype="Int64")
 
-    # TODO
+    # TODO(CoW-warn) should warn
     if using_copy_on_write or warn_copy_on_write:
         subset["a"] = arr
     else:
@@ -493,7 +493,7 @@ def test_subset_set_columns(backend, using_copy_on_write, warn_copy_on_write, dt
     df_orig = df.copy()
     subset = df[1:3]
 
-    # TODO
+    # TODO(CoW-warn) should warn
     if using_copy_on_write or warn_copy_on_write:
         subset[["a", "c"]] = 0
     else:
@@ -1004,7 +1004,7 @@ def test_column_as_series_no_item_cache(
     else:
         assert s1 is s2
 
-    # TODO
+    # TODO(CoW-warn) should warn
     if using_copy_on_write or warn_copy_on_write or using_array_manager:
         s1.iloc[0] = 0
     else:
