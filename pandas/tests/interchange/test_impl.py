@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from pandas._libs.tslibs import iNaT
-import pandas.util._test_decorators as td
+from pandas.compat.numpy import np_version_lt1p23
 
 import pandas as pd
 import pandas._testing as tm
@@ -263,7 +263,7 @@ def test_datetime():
     tm.assert_frame_equal(df, from_dataframe(df.__dataframe__()))
 
 
-@td.skip_if_np_lt("1.23")
+@pytest.mark.skipif(np_version_lt1p23, reason="Numpy > 1.23 required")
 def test_categorical_to_numpy_dlpack():
     # https://github.com/pandas-dev/pandas/issues/48393
     df = pd.DataFrame({"A": pd.Categorical(["a", "b", "a"])})
