@@ -1163,7 +1163,6 @@ class StataReader(StataParser, abc.Iterator):
 
         # State variables for the file
         self._close_file: Callable[[], None] | None = None
-        self._has_string_data = False
         self._missing_values = False
         self._can_read_value_labels = False
         self._column_selector_set = False
@@ -1292,8 +1291,6 @@ class StataReader(StataParser, abc.Iterator):
             self._read_new_header()
         else:
             self._read_old_header(first_char)
-
-        self._has_string_data = any(isinstance(x, int) for x in self._typlist)
 
     def _read_new_header(self) -> None:
         # The first part of the header is common to 117 - 119.
