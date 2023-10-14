@@ -1361,12 +1361,12 @@ class StataReader(StataParser, abc.Iterator):
                 dtyplist.append(str(typ))
             else:
                 try:
-                    typlist.append(self.TYPE_MAP_XML[typ])
-                    dtyplist.append(self.DTYPE_MAP_XML[typ])
+                    typlist.append(self.TYPE_MAP_XML[typ])  # type: ignore[arg-type]
+                    dtyplist.append(self.DTYPE_MAP_XML[typ])  # type: ignore[arg-type]
                 except KeyError as err:
                     raise ValueError(f"cannot convert stata types [{typ}]") from err
 
-        return typlist, dtyplist
+        return typlist, dtyplist  # type: ignore[return-value]
 
     def _get_varlist(self) -> list[str]:
         # 33 in order formats, 129 in formats 118 and 119
