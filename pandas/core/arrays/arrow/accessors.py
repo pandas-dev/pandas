@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pandas.compat import pa_version_under7p0
+from pandas.compat import pa_version_under10p1
 
-if not pa_version_under7p0:
+if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
 
