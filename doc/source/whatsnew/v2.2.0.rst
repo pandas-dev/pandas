@@ -272,7 +272,7 @@ Other Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- Performance improvement for :meth:`Series.value_counts` and :meth:`Series.mode` (:issue:`54984`, :issue:`55340`)
+- Performance improvement for :meth:`Series.value_counts` and :meth:`Series.mode` for masked dtypes (:issue:`54984`, :issue:`55340`)
 - Performance improvement in :func:`concat` with ``axis=1`` and objects with unaligned indexes (:issue:`55084`)
 - Performance improvement in :func:`to_dict` on converting DataFrame to dictionary (:issue:`50990`)
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
