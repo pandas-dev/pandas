@@ -1084,7 +1084,7 @@ class TestDatetime64Arithmetic:
         # GH#19959, GH#19123, GH#19012
         tz = tz_naive_fixture
         if box_with_array is pd.DataFrame:
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(raises=ValueError, reason="Axis alignment fails")
             )
 
