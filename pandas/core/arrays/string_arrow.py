@@ -555,7 +555,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
     def _convert_int_dtype(self, result):
         if isinstance(result, pa.Array):
             result = result.to_numpy(zero_copy_only=False)
-        elif not isinstance(result, np,ndarray):
+        elif not isinstance(result, np.ndarray):
             result = result.to_numpy()
         if result.dtype == np.int32:
             result = result.astype(np.int64)
