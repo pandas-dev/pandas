@@ -444,6 +444,17 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
         return type(self)(result)
 
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if name in ("argmin", "argmax") and isinstance(result, pa.Array):
+            return self._convert_int_dtype(result)
+        elif isinstance(result, pa.Array):
+            return type(self)(result)
+        else:
+            return result
+
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _storage = "pyarrow_numpy"
