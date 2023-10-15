@@ -226,7 +226,7 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
         elif "- pip:" in line:
             continue
         elif seen_required and line.strip():
-            if "#" in line:
+            if "=" not in line:
                 # ignore comment in yaml
                 continue
             if "==" in line:
