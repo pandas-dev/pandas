@@ -77,7 +77,6 @@ Other enhancements
 - :func:`read_csv` now supports ``on_bad_lines`` parameter with ``engine="pyarrow"``. (:issue:`54480`)
 - :meth:`ExtensionArray._explode` interface method added to allow extension type implementations of the ``explode`` method (:issue:`54833`)
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
-- Implement masked algorithms for :meth:`Series.value_counts` and :meth:`Series.mode` (:issue:`54984`, :issue:`55340`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -236,6 +235,7 @@ Other Deprecations
 
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
+- Performance improvement for :meth:`Series.value_counts` and :meth:`Series.mode` (:issue:`54984`, :issue:`55340`)
 - Performance improvement in :func:`concat` with ``axis=1`` and objects with unaligned indexes (:issue:`55084`)
 - Performance improvement in :func:`to_dict` on converting DataFrame to dictionary (:issue:`50990`)
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
