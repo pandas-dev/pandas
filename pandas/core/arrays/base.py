@@ -2351,15 +2351,16 @@ class ExtensionArray:
     def _factorize_with_other_for_merge(
         self, other: Self, sort: bool = False
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
-        """Factorizes two arrays to get codes for merge operations.
+        """
+        Factorize two arrays to get codes for merge operations.
 
         This allows extension array authors to implement efficient factorizations
         for merge operations.
 
         Parameters
         ----------
-        other : ExtensionArray with the same dtype as self.
-        sort : Whether to sort the result.
+        other : ExtensionArray with the same dtype as self
+        sort : Whether to sort the result
 
         Returns
         -------

@@ -1,3 +1,6 @@
+
+
+
 #!/bin/bash
 #
 # Run checks related to code quality.
