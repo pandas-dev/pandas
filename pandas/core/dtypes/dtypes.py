@@ -456,7 +456,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
             # With object-dtype we need a comparison that identifies
             #  e.g. int(2) as distinct from float(2)
-            return hash(self) == hash(other)
+            return set(left) == set(right)
 
     def __repr__(self) -> str_type:
         if self.categories is None:
@@ -927,6 +927,13 @@ class DatetimeTZDtype(PandasExtensionDtype):
         # pickle -> need to set the settable private ones here (see GH26067)
         self._tz = state["tz"]
         self._unit = state["unit"]
+
+    def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
+        if all(isinstance(t, DatetimeTZDtype) and t.tz == self.tz for t in dtypes):
+            np_dtype = np.max([cast(DatetimeTZDtype, t).base for t in [self, *dtypes]])
+            unit = np.datetime_data(np_dtype)[0]
+            return type(self)(unit=unit, tz=self.tz)
+        return super()._get_common_dtype(dtypes)
 
     @cache_readonly
     def index_class(self) -> type_t[DatetimeIndex]:
