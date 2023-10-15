@@ -2365,6 +2365,7 @@ class ExtensionArray:
         -------
         tuple of codes for left and right and the number of unique elements.
         """
+        # self and other have equal dtypes after _values_for_factorize
         lk, _ = self._values_for_factorize()
         rk, _ = other._values_for_factorize()
         return factorize_arrays(lk, rk, sort)

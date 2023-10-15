@@ -1708,6 +1708,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
     def _factorize_with_other_for_merge(
         self, other: Self, sort: bool = False
     ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp], int]:
+        # caller is responsible for ensuring self.dtype == other.dtype
         lk = np.asarray(self._ndarray, dtype=np.int64)
         rk = np.asarray(other._ndarray, dtype=np.int64)
         return factorize_arrays(lk, rk, sort)

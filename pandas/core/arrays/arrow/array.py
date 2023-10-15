@@ -2648,6 +2648,8 @@ class ArrowExtensionArray(
             or pa.types.is_date(self.dtype.pyarrow_dtype)
             or pa.types.is_timestamp(self.dtype.pyarrow_dtype)
         ):
+            # Keep using current logic
+            # TODO: check if new implementation with dictionary_encode is faster
             lk = self.to_numpy(na_value=1, dtype=self.dtype.numpy_dtype)
             rk = other.to_numpy(na_value=1, dtype=lk.dtype)
 
@@ -2667,15 +2669,12 @@ class ArrowExtensionArray(
         )
         length = len(dc.dictionary)
 
-        llab, rlab, count = (
-            pc.fill_null(dc.indices[slice(len_left)], length)
-            .to_numpy()
-            .astype(np.intp, copy=False),
-            pc.fill_null(dc.indices[slice(len_left, None)], length)
-            .to_numpy()
-            .astype(np.intp, copy=False),
-            len(dc.dictionary),
-        )
+        llab = pc.fill_null(dc.indices[slice(len_left)], length)
+        llab = llab.to_numpy().astype(np.intp, copy=False)
+        rlab = pc.fill_null(dc.indices[slice(len_left, None)], length)
+        rlab = rlab.to_numpy().astype(np.intp, copy=False)
+        count = len(dc.dictionary)
+
         if dc.null_count > 0:
             count += 1
         return llab, rlab, count
