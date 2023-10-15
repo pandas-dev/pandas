@@ -166,6 +166,7 @@ class TestSeriesConvertDtypes:
         self,
         test_cases,
         params,
+        using_infer_string,
     ):
         data, maindtype, expected_default, expected_other = test_cases
         if (
@@ -200,7 +201,8 @@ class TestSeriesConvertDtypes:
             if all(params_dict[key] is val for key, val in zip(spec[::2], spec[1::2])):
                 expected_dtype = dtype
         if (
-            expected_default == "string"
+            using_infer_string
+            and expected_default == "string"
             and expected_dtype == object
             and params[0]
             and not params[1]
