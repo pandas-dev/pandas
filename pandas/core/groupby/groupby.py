@@ -5341,22 +5341,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # `fill_method=None` that does not fill missing values
         if fill_method not in (lib.no_default, None) and limit is not lib.no_default:
             # `fill_method` in FillnaOptions and `limit` is specified
+            fill_type = "bfill" if fill_method in ("backfill", "bfill") else "ffill"
             warnings.warn(
                 f"fill_method={fill_method} and the limit keyword in "
                 f"{type(self).__name__}.pct_change are deprecated and will be removed "
-                "in a future version. Call "
-                f"{'bfill' if fill_method in ('backfill', 'bfill') else 'ffill'}"
-                f"(limit={limit}) before calling pct_change instead.",
+                f"in a future version. Use obj.{fill_type}(limit={limit}).pct_change"
+                "(fill_method=None) instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
         elif fill_method not in (lib.no_default, None):
             # `fill_method` in FillnaOptions and `limit` is not specified
+            fill_type = "bfill" if fill_method in ("backfill", "bfill") else "ffill"
             warnings.warn(
                 f"fill_method={fill_method} in {type(self).__name__}.pct_change is "
-                "deprecated and will be removed in a future version. Call "
-                f"{'bfill' if fill_method in ('backfill', 'bfill') else 'ffill'} "
-                "before calling pct_change instead.",
+                "deprecated and will be removed in a future version. Use "
+                f"obj.{fill_type}().pct_change(fill_method=None) instead.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
@@ -5382,8 +5382,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             warnings.warn(
                 "The default fill_method='pad' and the limit keyword in "
                 f"{type(self).__name__}.pct_change are deprecated and will be removed "
-                f"in a future version. Call ffill(limit={limit}) before calling "
-                "pct_change to retain the current behavior and silence this warning.",
+                f"in a future version. Use obj.ffill(limit={limit}).pct_change"
+                "(fill_method=None) to retain the current behavior and silence this "
+                "warning.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
@@ -5391,20 +5392,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             # `fill_method` and `limit` are both not specified
             # GH#54981: avoid unnecessary FutureWarning
-            cols = self.items() if self.ndim == 2 else [(None, self)]
-            for _, col in cols:
-                mask = col.isna().values
-                mask = mask[np.argmax(~mask) :]
-                if mask.any():
-                    warnings.warn(
-                        "The default fill_method='pad' in "
-                        f"{type(self).__name__}.pct_change is deprecated and will be "
-                        "removed in a future version. Call ffill before calling "
-                        "pct_change to retain current behavior and silence this "
-                        "warning.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
+            warnings.warn(
+                "The default fill_method='pad' and the limit keyword in "
+                f"{type(self).__name__}.pct_change are deprecated and will be removed "
+                f"in a future version. Use obj.ffill().pct_change(fill_method=None) "
+                "to retain the current behavior and silence this warning.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
             fill_method, limit = "pad", None
 
         if axis is not lib.no_default:
