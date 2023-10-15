@@ -197,7 +197,7 @@ class TestSeriesConstructors:
             Series([1, 3, 2], index=df)
 
     @pytest.mark.parametrize("input_class", [list, dict, OrderedDict])
-    def test_constructor_empty(self, input_class):
+    def test_constructor_empty(self, input_class, using_infer_string):
         empty = Series()
         empty2 = Series(input_class())
 
@@ -228,7 +228,10 @@ class TestSeriesConstructors:
 
             # GH 19853 : with empty string, index and dtype str
             empty = Series("", dtype=str, index=range(3))
-            empty2 = Series("", index=range(3))
+            if using_infer_string:
+                empty2 = Series("", index=range(3), dtype=object)
+            else:
+                empty2 = Series("", index=range(3))
             tm.assert_series_equal(empty, empty2)
 
     @pytest.mark.parametrize("input_arg", [np.nan, float("nan")])
