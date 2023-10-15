@@ -45,7 +45,7 @@ A,B,C
             mark = pytest.mark.xfail(
                 reason="Custom terminator not supported with Python engine"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         data = data.replace("\n", read_kwargs.get("lineterminator"))
 
@@ -146,7 +146,7 @@ def test_comment_char_in_default_value(all_parsers, request):
     if all_parsers.engine == "c":
         reason = "see gh-34002: works on the python engine but not the c engine"
         # NA value containing comment char is interpreted as comment
-        request.node.add_marker(pytest.mark.xfail(reason=reason, raises=AssertionError))
+        request.applymarker(pytest.mark.xfail(reason=reason, raises=AssertionError))
     parser = all_parsers
 
     data = (

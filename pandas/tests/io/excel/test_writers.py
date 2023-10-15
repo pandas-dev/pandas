@@ -217,7 +217,7 @@ class TestRoundTrip:
                     reason="Column index name cannot be serialized unless "
                     "it's a MultiIndex"
                 )
-                request.node.add_marker(mark)
+                request.applymarker(mark)
 
             # Empty name case current read in as
             # unnamed levels, not Nones.
