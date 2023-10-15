@@ -729,7 +729,7 @@ class TestDataFrameAnalytics:
             mark = pytest.mark.xfail(
                 reason="GH#51446: Incorrect type inference on NaT in reduction result"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         df = DataFrame({"a": to_datetime(values)})
         result = df.std(skipna=skipna)
         if not skipna or all(value is pd.NaT for value in values):
@@ -1071,6 +1071,15 @@ class TestDataFrameAnalytics:
 
         result = df.idxmin()
         expected = Series([2, 1], index=["a", "b"])
+        tm.assert_series_equal(result, expected)
+
+        df = DataFrame({"a": ["b", "c", "a"]}, dtype="string[pyarrow]")
+        result = df.idxmax(numeric_only=False)
+        expected = Series([1], index=["a"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin(numeric_only=False)
+        expected = Series([2], index=["a"])
         tm.assert_series_equal(result, expected)
 
     def test_idxmax_axis_2(self, float_frame):
@@ -1585,7 +1594,7 @@ class TestDataFrameReductions:
         self, request, frame_or_series, all_reductions
     ):
         if all_reductions == "count":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="Count does not accept skipna")
             )
         obj = frame_or_series([1, 2, 3])
@@ -1813,7 +1822,7 @@ def test_sum_timedelta64_skipna_false(using_array_manager, request):
         mark = pytest.mark.xfail(
             reason="Incorrect type inference on NaT in reduction result"
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     arr = np.arange(8).astype(np.int64).view("m8[s]").reshape(4, 2)
     arr[-1, -1] = "Nat"
