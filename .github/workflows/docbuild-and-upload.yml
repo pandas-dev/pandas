@@ -67,7 +67,7 @@ jobs:
       run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
 
     - name: Upload web
-      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' web/build/ web@${{ secrets.server_ip }}:/var/www/html
+      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' web/build/ web@${{ secrets.server_ip }}:/var/www/html
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload dev docs
