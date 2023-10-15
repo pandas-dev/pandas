@@ -327,9 +327,12 @@ def test_against_frame_and_seriesgroupby(
     )
     if frame:
         # compare against apply with DataFrame value_counts
-        expected = gp.apply(
-            _frame_value_counts, ["gender", "education"], normalize, sort, ascending
-        )
+        warn = FutureWarning if groupby == "column" else None
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(warn, match=msg):
+            expected = gp.apply(
+                _frame_value_counts, ["gender", "education"], normalize, sort, ascending
+            )
 
         if as_index:
             tm.assert_series_equal(result, expected)
@@ -993,7 +996,7 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
     result = gp.value_counts(sort=True, normalize=normalize)
     expected = DataFrame(
         {
-            "level_0": np.array([4, 4, 5], dtype=np.int_),
+            "level_0": np.array([4, 4, 5], dtype=int),
             "A": [1, 1, 2],
             "level_2": [8, 8, 7],
             "B": [1, 3, 2],

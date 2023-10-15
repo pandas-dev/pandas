@@ -7,11 +7,11 @@ class TestResolution:
     @pytest.mark.parametrize(
         "freq,expected",
         [
-            ("A", "year"),
+            ("Y", "year"),
             ("Q", "quarter"),
             ("M", "month"),
             ("D", "day"),
-            ("H", "hour"),
+            ("h", "hour"),
             ("min", "minute"),
             ("s", "second"),
             ("ms", "millisecond"),

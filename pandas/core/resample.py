@@ -24,6 +24,7 @@ from pandas._libs.tslibs import (
     Timestamp,
     to_offset,
 )
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas._typing import NDFrameT
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
@@ -32,7 +33,10 @@ from pandas.util._decorators import (
     Substitution,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_warning,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -57,6 +61,7 @@ from pandas.core.groupby.generic import SeriesGroupBy
 from pandas.core.groupby.groupby import (
     BaseGroupBy,
     GroupBy,
+    _apply_groupings_depr,
     _pipe_template,
     get_groupby,
 )
@@ -163,6 +168,7 @@ class Resampler(BaseGroupBy, PandasObject):
         gpr_index: Index,
         group_keys: bool = False,
         selection=None,
+        include_groups: bool = True,
     ) -> None:
         self._timegrouper = timegrouper
         self.keys = None
@@ -171,6 +177,7 @@ class Resampler(BaseGroupBy, PandasObject):
         self.kind = kind
         self.group_keys = group_keys
         self.as_index = True
+        self.include_groups = include_groups
 
         self.obj, self.ax, self._indexer = self._timegrouper._set_grouper(
             self._convert_obj(obj), sort=True, gpr_index=gpr_index
@@ -369,13 +376,13 @@ class Resampler(BaseGroupBy, PandasObject):
         >>> s
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         >>> resampled = s.resample('15min')
         >>> resampled.transform(lambda x: (x - x.mean()) / x.std())
         2018-01-01 00:00:00   NaN
         2018-01-01 01:00:00   NaN
-        Freq: H, dtype: float64
+        Freq: h, dtype: float64
         """
         return self._selected_obj.groupby(self._timegrouper).transform(
             arg, *args, **kwargs
@@ -444,7 +451,9 @@ class Resampler(BaseGroupBy, PandasObject):
             #  a DataFrame column, but aggregate_item_by_item operates column-wise
             #  on Series, raising AttributeError or KeyError
             #  (depending on whether the column lookup uses getattr/__getitem__)
-            result = grouped.apply(how, *args, **kwargs)
+            result = _apply(
+                grouped, how, *args, include_groups=self.include_groups, **kwargs
+            )
 
         except ValueError as err:
             if "Must produce aggregated value" in str(err):
@@ -456,15 +465,21 @@ class Resampler(BaseGroupBy, PandasObject):
 
             # we have a non-reducing function
             # try to evaluate
-            result = grouped.apply(how, *args, **kwargs)
+            result = _apply(
+                grouped, how, *args, include_groups=self.include_groups, **kwargs
+            )
 
         return self._wrap_result(result)
 
-    def _get_resampler_for_grouping(self, groupby: GroupBy, key):
+    def _get_resampler_for_grouping(
+        self, groupby: GroupBy, key, include_groups: bool = True
+    ):
         """
         Return the correct class for resampling with groupby.
         """
-        return self._resampler_for_grouping(groupby=groupby, key=key, parent=self)
+        return self._resampler_for_grouping(
+            groupby=groupby, key=key, parent=self, include_groups=include_groups
+        )
 
     def _wrap_result(self, result):
         """
@@ -597,7 +612,7 @@ class Resampler(BaseGroupBy, PandasObject):
         >>> s
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         >>> s.resample('15min').nearest()
         2018-01-01 00:00:00    1
@@ -666,7 +681,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
         2018-01-01 02:00:00    3
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         >>> s.resample('30min').bfill()
         2018-01-01 00:00:00    1
@@ -777,7 +792,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:00:00    1
         2018-01-01 01:00:00    2
         2018-01-01 02:00:00    3
-        Freq: H, dtype: int64
+        Freq: h, dtype: int64
 
         Without filling the missing values you get:
 
@@ -833,7 +848,7 @@ class Resampler(BaseGroupBy, PandasObject):
         2018-01-01 00:00:00    1.0
         2018-01-01 01:00:00    NaN
         2018-01-01 02:00:00    3.0
-        Freq: H, dtype: float64
+        Freq: h, dtype: float64
 
         >>> sm.resample('30min').fillna('backfill')
         2018-01-01 00:00:00    1.0
@@ -971,7 +986,7 @@ class Resampler(BaseGroupBy, PandasObject):
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
 
-            .. deprecated::2.1.0
+            .. deprecated:: 2.1.0
 
         ``**kwargs`` : optional
             Keyword arguments to pass on to the interpolating function.
@@ -1526,7 +1541,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
-    def quantile(self, q: float | AnyArrayLike = 0.5, **kwargs):
+    def quantile(self, q: float | list[float] | AnyArrayLike = 0.5, **kwargs):
         """
         Return value at the given quantile.
 
@@ -1590,6 +1605,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
         groupby: GroupBy,
         key=None,
         selection: IndexLabel | None = None,
+        include_groups: bool = False,
     ) -> None:
         # reached via ._gotitem and _get_resampler_for_grouping
 
@@ -1612,6 +1628,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
         self.ax = parent.ax
         self.obj = parent.obj
+        self.include_groups = include_groups
 
     @no_type_check
     def _apply(self, f, *args, **kwargs):
@@ -1628,7 +1645,7 @@ class _GroupByMixin(PandasObject, SelectionMixin):
 
             return x.apply(f, *args, **kwargs)
 
-        result = self._groupby.apply(func)
+        result = _apply(self._groupby, func, include_groups=self.include_groups)
         return self._wrap_result(result)
 
     _upsample = _apply
@@ -1988,7 +2005,7 @@ def get_resampler(obj: Series | DataFrame, kind=None, **kwds) -> Resampler:
     """
     Create a TimeGrouper and return our resampler.
     """
-    tg = TimeGrouper(**kwds)
+    tg = TimeGrouper(obj, **kwds)  # type: ignore[arg-type]
     return tg._get_resampler(obj, kind=kind)
 
 
@@ -2003,6 +2020,7 @@ def get_resampler_for_grouping(
     limit: int | None = None,
     kind=None,
     on=None,
+    include_groups: bool = True,
     **kwargs,
 ) -> Resampler:
     """
@@ -2011,7 +2029,9 @@ def get_resampler_for_grouping(
     # .resample uses 'on' similar to how .groupby uses 'key'
     tg = TimeGrouper(freq=rule, key=on, **kwargs)
     resampler = tg._get_resampler(groupby.obj, kind=kind)
-    return resampler._get_resampler_for_grouping(groupby=groupby, key=tg.key)
+    return resampler._get_resampler_for_grouping(
+        groupby=groupby, include_groups=include_groups, key=tg.key
+    )
 
 
 class TimeGrouper(Grouper):
@@ -2041,7 +2061,9 @@ class TimeGrouper(Grouper):
 
     def __init__(
         self,
+        obj: Grouper | None = None,
         freq: Frequency = "Min",
+        key: str | None = None,
         closed: Literal["left", "right"] | None = None,
         label: Literal["left", "right"] | None = None,
         how: str = "mean",
@@ -2065,9 +2087,21 @@ class TimeGrouper(Grouper):
         if convention not in {None, "start", "end", "e", "s"}:
             raise ValueError(f"Unsupported value {convention} for `convention`")
 
-        freq = to_offset(freq)
+        if (
+            key is None
+            and obj is not None
+            and isinstance(obj.index, PeriodIndex)  # type: ignore[attr-defined]
+            or (
+                key is not None
+                and obj is not None
+                and getattr(obj[key], "dtype", None) == "period"  # type: ignore[index]
+            )
+        ):
+            freq = to_offset(freq, is_period=True)
+        else:
+            freq = to_offset(freq)
 
-        end_types = {"M", "A", "Q", "BM", "BA", "BQ", "W"}
+        end_types = {"ME", "Y", "Q", "BME", "BY", "BQ", "W"}
         rule = freq.rule_code
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
             if closed is None:
@@ -2129,7 +2163,7 @@ class TimeGrouper(Grouper):
         # always sort time groupers
         kwargs["sort"] = True
 
-        super().__init__(freq=freq, axis=axis, **kwargs)
+        super().__init__(freq=freq, key=key, axis=axis, **kwargs)
 
     def _get_resampler(self, obj: NDFrame, kind=None) -> Resampler:
         """
@@ -2151,7 +2185,6 @@ class TimeGrouper(Grouper):
 
         """
         _, ax, indexer = self._set_grouper(obj, gpr_index=None)
-
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(
                 obj,
@@ -2264,7 +2297,17 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq != "D" and is_superperiod(self.freq, "D"):
+        if self.freq.name in ("BME", "ME", "W") or self.freq.name.split("-")[0] in (
+            "BQ",
+            "BY",
+            "Q",
+            "Y",
+            "W",
+        ):
+            # If the right end-point is on the last day of the month, roll forwards
+            # until the last moment of that day. Note that we only do this for offsets
+            # which correspond to the end of a super-daily period - "month start", for
+            # example, is excluded.
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 edges_dti = binner.tz_localize(None)
@@ -2296,7 +2339,7 @@ class TimeGrouper(Grouper):
             # GH#51896
             raise ValueError(
                 "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
-                f"e.g. '24H' or '3D', not {self.freq}"
+                f"e.g. '24h' or '3D', not {self.freq}"
             )
 
         if not len(ax):
@@ -2485,24 +2528,16 @@ def _get_timestamp_range_edges(
     """
     if isinstance(freq, Tick):
         index_tz = first.tz
-
-        if isinstance(origin, Timestamp) and origin.tz != index_tz:
+        if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
-
-        elif isinstance(origin, Timestamp):
-            if origin <= first:
-                first = origin
-            elif origin >= last:
-                last = origin
-
         if origin == "epoch":
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
             origin = Timestamp("1970-01-01", tz=index_tz)
 
         if isinstance(freq, Day):
-            # _adjust_dates_anchored assumes 'D' means 24H, but first/last
-            # might contain a DST transition (23H, 24H, or 25H).
+            # _adjust_dates_anchored assumes 'D' means 24h, but first/last
+            # might contain a DST transition (23h, 24h, or 25h).
             # So "pretend" the dates are naive when adjusting the endpoints
             first = first.tz_localize(None)
             last = last.tz_localize(None)
@@ -2516,9 +2551,6 @@ def _get_timestamp_range_edges(
             first = first.tz_localize(index_tz)
             last = last.tz_localize(index_tz)
     else:
-        if isinstance(origin, Timestamp):
-            first = origin
-
         first = first.normalize()
         last = last.normalize()
 
@@ -2710,6 +2742,9 @@ def asfreq(
         if how is None:
             how = "E"
 
+        if isinstance(freq, BaseOffset):
+            freq = freq_to_period_freqstr(freq.n, freq.name)
+
         new_obj = obj.copy()
         new_obj.index = obj.index.asfreq(freq, how=how)
 
@@ -2789,3 +2824,18 @@ def maybe_warn_args_and_kwargs(cls, kernel: str, args, kwargs) -> None:
         category=FutureWarning,
         stacklevel=find_stack_level(),
     )
+
+
+def _apply(
+    grouped: GroupBy, how: Callable, *args, include_groups: bool, **kwargs
+) -> DataFrame:
+    # GH#7155 - rewrite warning to appear as if it came from `.resample`
+    target_message = "DataFrameGroupBy.apply operated on the grouping columns"
+    new_message = _apply_groupings_depr.format("DataFrameGroupBy", "resample")
+    with rewrite_warning(
+        target_message=target_message,
+        target_category=FutureWarning,
+        new_message=new_message,
+    ):
+        result = grouped.apply(how, *args, include_groups=include_groups, **kwargs)
+    return result

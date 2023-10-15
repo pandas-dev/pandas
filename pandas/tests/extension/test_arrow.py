@@ -31,6 +31,7 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
+from pandas._libs.tslibs import timezones
 from pandas.compat import (
     PY311,
     is_ci_environment,
@@ -40,6 +41,7 @@ from pandas.compat import (
     pa_version_under9p0,
     pa_version_under11p0,
     pa_version_under13p0,
+    pa_version_under14p0,
 )
 
 from pandas.core.dtypes.dtypes import (
@@ -917,7 +919,7 @@ class TestArrowArray(base.ExtensionTests):
                 or (
                     opname
                     in ("__truediv__", "__rtruediv__", "__floordiv__", "__rfloordiv__")
-                    and not pa_version_under13p0
+                    and not pa_version_under14p0
                 )
             )
             and pa.types.is_duration(pa_dtype)
@@ -2431,7 +2433,7 @@ def test_dt_tz(tz):
         dtype=ArrowDtype(pa.timestamp("ns", tz=tz)),
     )
     result = ser.dt.tz
-    assert result == tz
+    assert result == timezones.maybe_get_tz(tz)
 
 
 def test_dt_isocalendar():
@@ -2482,10 +2484,10 @@ def test_dt_roundlike_tz_options_not_supported(method):
         dtype=ArrowDtype(pa.timestamp("ns")),
     )
     with pytest.raises(NotImplementedError, match="ambiguous is not supported."):
-        getattr(ser.dt, method)("1H", ambiguous="NaT")
+        getattr(ser.dt, method)("1h", ambiguous="NaT")
 
     with pytest.raises(NotImplementedError, match="nonexistent is not supported."):
-        getattr(ser.dt, method)("1H", nonexistent="NaT")
+        getattr(ser.dt, method)("1h", nonexistent="NaT")
 
 
 @pytest.mark.parametrize("method", ["ceil", "floor", "round"])
@@ -2504,7 +2506,7 @@ def test_dt_roundlike_unsupported_freq(method):
 @pytest.mark.xfail(
     pa_version_under7p0, reason="Methods not supported for pyarrow < 7.0"
 )
-@pytest.mark.parametrize("freq", ["D", "H", "min", "s", "ms", "us", "ns"])
+@pytest.mark.parametrize("freq", ["D", "h", "min", "s", "ms", "us", "ns"])
 @pytest.mark.parametrize("method", ["ceil", "floor", "round"])
 def test_dt_ceil_year_floor(freq, method):
     ser = pd.Series(
@@ -3023,6 +3025,14 @@ def test_duration_fillna_numpy(pa_type):
     result = ser1.fillna(ser2)
     expected = pd.Series([1, 2], dtype=ArrowDtype(pa_type))
     tm.assert_series_equal(result, expected)
+
+
+def test_comparison_not_propagating_arrow_error():
+    # GH#54944
+    a = pd.Series([1 << 63], dtype="uint64[pyarrow]")
+    b = pd.Series([None], dtype="int64[pyarrow]")
+    with pytest.raises(pa.lib.ArrowInvalid, match="Integer value"):
+        a < b
 
 
 def test_factorize_chunked_dictionary():
