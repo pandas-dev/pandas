@@ -521,7 +521,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(df_iso, df_unser_iso)
 
     def test_blocks_compat_GH9037(self):
-        index = pd.date_range("20000101", periods=10, freq="H")
+        index = pd.date_range("20000101", periods=10, freq="h")
         # freq doesn't round-trip
         index = DatetimeIndex(list(index), freq=None)
 
@@ -604,7 +604,7 @@ class TestPandasContainer:
         )
 
         # JSON deserialisation always creates unicode strings
-        df_mixed.columns = df_mixed.columns.astype("unicode")
+        df_mixed.columns = df_mixed.columns.astype(np.str_)
         data = StringIO(df_mixed.to_json(orient="split"))
         df_roundtrip = read_json(data, orient="split")
         tm.assert_frame_equal(

@@ -497,3 +497,9 @@ class TestDataFrameInterpolate:
         result = df.interpolate(inplace=True)
         assert result is None
         tm.assert_frame_equal(df, expected)
+
+    def test_interpolate_ea_raise(self):
+        # GH#55347
+        df = DataFrame({"a": [1, None, 2]}, dtype="Int64")
+        with pytest.raises(NotImplementedError, match="does not implement"):
+            df.interpolate()

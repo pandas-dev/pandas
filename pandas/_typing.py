@@ -4,6 +4,7 @@ from collections.abc import (
     Hashable,
     Iterator,
     Mapping,
+    MutableMapping,
     Sequence,
 )
 from datetime import (
@@ -103,6 +104,7 @@ else:
     TypeGuard: Any = None
 
 HashableT = TypeVar("HashableT", bound=Hashable)
+MutableMappingT = TypeVar("MutableMappingT", bound=MutableMapping)
 
 # array-like
 
@@ -507,3 +509,12 @@ ExcelWriterIfSheetExists = Literal["error", "new", "replace", "overlay"]
 
 # Offsets
 OffsetCalendar = Union[np.busdaycalendar, "AbstractHolidayCalendar"]
+
+# read_csv: usecols
+UsecolsArgType = Union[
+    SequenceNotStr[Hashable],
+    range,
+    AnyArrayLike,
+    Callable[[HashableT], bool],
+    None,
+]
