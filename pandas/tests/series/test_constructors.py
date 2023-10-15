@@ -152,7 +152,7 @@ class TestSeriesConstructors:
         assert ser.dtype == ea_dtype
         tm.assert_series_equal(ser, expected)
 
-    def test_constructor(self, datetime_series):
+    def test_constructor(self, datetime_series, using_infer_string):
         empty_series = Series()
         assert datetime_series.index._is_all_dates
 
@@ -166,7 +166,7 @@ class TestSeriesConstructors:
 
         # Mixed type Series
         mixed = Series(["hello", np.nan], index=[0, 1])
-        assert mixed.dtype == np.object_
+        assert mixed.dtype == np.object_ if not using_infer_string else "string"
         assert np.isnan(mixed[1])
 
         assert not empty_series.index._is_all_dates
@@ -1445,7 +1445,7 @@ class TestSeriesConstructors:
 
     # https://github.com/pandas-dev/pandas/issues/22698
     @pytest.mark.filterwarnings("ignore:elementwise comparison:FutureWarning")
-    def test_fromDict(self):
+    def test_fromDict(self, using_infer_string):
         data = {"a": 0, "b": 1, "c": 2, "d": 3}
 
         series = Series(data)
@@ -1457,19 +1457,19 @@ class TestSeriesConstructors:
 
         data = {"a": 0, "b": "1", "c": "2", "d": "3"}
         series = Series(data)
-        assert series.dtype == np.object_
+        assert series.dtype == np.object_ if not using_infer_string else "string"
 
         data = {"a": "0", "b": "1"}
         series = Series(data, dtype=float)
         assert series.dtype == np.float64
 
-    def test_fromValue(self, datetime_series):
+    def test_fromValue(self, datetime_series, using_infer_string):
         nans = Series(np.nan, index=datetime_series.index, dtype=np.float64)
         assert nans.dtype == np.float64
         assert len(nans) == len(datetime_series)
 
         strings = Series("foo", index=datetime_series.index)
-        assert strings.dtype == np.object_
+        assert strings.dtype == np.object_ if not using_infer_string else "string"
         assert len(strings) == len(datetime_series)
 
         d = datetime.now()
