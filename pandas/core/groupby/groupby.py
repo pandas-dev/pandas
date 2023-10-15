@@ -5337,70 +5337,24 @@ class GroupBy(BaseGroupBy[NDFrameT]):
          catfish    NaN    NaN
         goldfish    0.2  0.125
         """
-        # GH#53491: deprecate the `fill_method` and `limit` keyword, except
-        # `fill_method=None` that does not fill missing values
-        if fill_method not in (lib.no_default, None) and limit is not lib.no_default:
-            # `fill_method` in FillnaOptions and `limit` is specified
-            fill_type = "bfill" if fill_method in ("backfill", "bfill") else "ffill"
-            warnings.warn(
-                f"fill_method={fill_method} and the limit keyword in "
-                f"{type(self).__name__}.pct_change are deprecated and will be removed "
-                f"in a future version. Use obj.{fill_type}(limit={limit}).pct_change"
-                "(fill_method=None) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        elif fill_method not in (lib.no_default, None):
-            # `fill_method` in FillnaOptions and `limit` is not specified
-            fill_type = "bfill" if fill_method in ("backfill", "bfill") else "ffill"
-            warnings.warn(
-                f"fill_method={fill_method} in {type(self).__name__}.pct_change is "
-                "deprecated and will be removed in a future version. Use "
-                f"obj.{fill_type}().pct_change(fill_method=None) instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        # GH#53491
+        msg = (
+            "The 'fill_method' keyword being not None and the 'limit' keyword in "
+            f"{type(self).__name__}.pct_change are deprecated and will be removed "
+            "in a future version. Either fill in any non-leading NA values prior "
+            "to calling pct_change or specify 'fill_method=None' to not fill NA "
+            "values."
+        )
+        if fill_method not in (lib.no_default, None) or limit is not lib.no_default:
+            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+        if fill_method is lib.no_default:
+            if limit is lib.no_default and any(
+                grp.isna().values.any() for _, grp in self
+            ):
+                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            fill_method = "ffill"
+        if limit is lib.no_default:
             limit = None
-        elif fill_method is None and limit is not lib.no_default:
-            # `fill_method` is None but `limit` is specified
-            warnings.warn(
-                f"The limit keyword in {type(self).__name__}.pct_change is deprecated "
-                "and will be removed in a future version. It does not have any effect "
-                "when using with fill_method=None. Remove it to silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-        elif fill_method is None:
-            # `fill_method` is None and `limit` is not specified: this should not be
-            # deprecated. TODO(3.x) allow only `fill_method=None` and raise on anything
-            # else; deprecate the `fill_method` keyword entirely. TODO(4.x) remove the
-            # `fill_method` keyword.
-            # https://github.com/pandas-dev/pandas/issues/53491#issuecomment-1728443050
-            limit = None
-        elif limit is not lib.no_default:
-            # `fill_method` is not specified but `limit` is specified
-            warnings.warn(
-                "The default fill_method='pad' and the limit keyword in "
-                f"{type(self).__name__}.pct_change are deprecated and will be removed "
-                f"in a future version. Use obj.ffill(limit={limit}).pct_change"
-                "(fill_method=None) to retain the current behavior and silence this "
-                "warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            fill_method = "pad"
-        else:
-            # `fill_method` and `limit` are both not specified
-            # GH#54981: avoid unnecessary FutureWarning
-            warnings.warn(
-                "The default fill_method='pad' and the limit keyword in "
-                f"{type(self).__name__}.pct_change are deprecated and will be removed "
-                f"in a future version. Use obj.ffill().pct_change(fill_method=None) "
-                "to retain the current behavior and silence this warning.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            fill_method, limit = "pad", None
 
         if axis is not lib.no_default:
             axis = self.obj._get_axis_number(axis)
