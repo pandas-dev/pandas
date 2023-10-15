@@ -38,6 +38,7 @@ class TestUpdate:
             expected = DataFrame(
                 [[1, np.nan, "foo"], [3, 2.0, np.nan]], columns=["a", "b", "c"]
             )
+            expected["c"] = expected["c"].astype(object)
         tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
