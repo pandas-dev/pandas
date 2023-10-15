@@ -1663,7 +1663,14 @@ class ExtensionArray:
             self, self._formatter(), indent_for_name=False
         ).rstrip(", \n")
         class_name = f"<{type(self).__name__}>\n"
-        return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
+        footer = self._get_repr_footer()
+        return f"{class_name}{data}\n{footer}"
+
+    def _get_repr_footer(self) -> str:
+        # GH#24278
+        if self.ndim > 1:
+            return f"Shape: {self.shape}, dtype: {self.dtype}"
+        return f"Length: {len(self)}, dtype: {self.dtype}"
 
     def _repr_2d(self) -> str:
         from pandas.io.formats.printing import format_object_summary
@@ -1679,7 +1686,8 @@ class ExtensionArray:
         ]
         data = ",\n".join(lines)
         class_name = f"<{type(self).__name__}>"
-        return f"{class_name}\n[\n{data}\n]\nShape: {self.shape}, dtype: {self.dtype}"
+        footer = self._get_repr_footer()
+        return f"{class_name}\n[\n{data}\n]\n{footer}"
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         """
@@ -1729,6 +1737,17 @@ class ExtensionArray:
 
         Because ExtensionArrays are always 1D, this is a no-op.  It is included
         for compatibility with np.ndarray.
+
+        Returns
+        -------
+        ExtensionArray
+
+        Examples
+        --------
+        >>> pd.array([1, 2, 3]).transpose()
+        <IntegerArray>
+        [1, 2, 3]
+        Length: 3, dtype: Int64
         """
         return self[:]
 

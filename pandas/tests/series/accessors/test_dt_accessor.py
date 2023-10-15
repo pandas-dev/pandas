@@ -345,30 +345,30 @@ class TestSeriesDatetimeValues:
         )
         df1["date"] = df1["date"].dt.tz_convert("Europe/Madrid")
         # infer
-        result = getattr(df1.date.dt, method)("H", ambiguous="infer")
+        result = getattr(df1.date.dt, method)("h", ambiguous="infer")
         expected = df1["date"]
         tm.assert_series_equal(result, expected)
 
         # bool-array
-        result = getattr(df1.date.dt, method)("H", ambiguous=[True, False, False])
+        result = getattr(df1.date.dt, method)("h", ambiguous=[True, False, False])
         tm.assert_series_equal(result, expected)
 
         # NaT
-        result = getattr(df1.date.dt, method)("H", ambiguous="NaT")
+        result = getattr(df1.date.dt, method)("h", ambiguous="NaT")
         expected = df1["date"].copy()
         expected.iloc[0:2] = pd.NaT
         tm.assert_series_equal(result, expected)
 
         # raise
         with tm.external_error_raised(pytz.AmbiguousTimeError):
-            getattr(df1.date.dt, method)("H", ambiguous="raise")
+            getattr(df1.date.dt, method)("h", ambiguous="raise")
 
     @pytest.mark.parametrize(
         "method, ts_str, freq",
         [
             ["ceil", "2018-03-11 01:59:00-0600", "5min"],
             ["round", "2018-03-11 01:59:00-0600", "5min"],
-            ["floor", "2018-03-11 03:01:00-0500", "2H"],
+            ["floor", "2018-03-11 03:01:00-0500", "2h"],
         ],
     )
     def test_dt_round_tz_nonexistent(self, method, ts_str, freq):
@@ -598,7 +598,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
     def test_strftime_period_hours(self):
-        ser = Series(period_range("20130101", periods=4, freq="H"))
+        ser = Series(period_range("20130101", periods=4, freq="h"))
         result = ser.dt.strftime("%Y/%m/%d %H:%M:%S")
         expected = Series(
             [
@@ -776,8 +776,8 @@ class TestSeriesPeriodValuesDtAccessor:
             [Period("2016-01", freq="M"), Period("2016-02", freq="M")],
             [Period("2016-01-01", freq="D"), Period("2016-01-02", freq="D")],
             [
-                Period("2016-01-01 00:00:00", freq="H"),
-                Period("2016-01-01 01:00:00", freq="H"),
+                Period("2016-01-01 00:00:00", freq="h"),
+                Period("2016-01-01 01:00:00", freq="h"),
             ],
             [
                 Period("2016-01-01 00:00:00", freq="M"),

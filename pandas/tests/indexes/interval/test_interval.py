@@ -87,7 +87,7 @@ class TestIntervalIndex:
             [1, 1, 2, 5, 15, 53, 217, 1014, 5335, 31240, 201608],
             [-np.inf, -100, -10, 0.5, 1, 1.5, 3.8, 101, 202, np.inf],
             pd.to_datetime(["20170101", "20170202", "20170303", "20170404"]),
-            pd.to_timedelta(["1ns", "2ms", "3s", "4min", "5H", "6D"]),
+            pd.to_timedelta(["1ns", "2ms", "3s", "4min", "5h", "6D"]),
         ],
     )
     def test_length(self, closed, breaks):
@@ -689,13 +689,13 @@ class TestIntervalIndex:
 
         # test get_indexer
         start = Timestamp("1999-12-31T12:00", tz=tz)
-        target = date_range(start=start, periods=7, freq="12H")
+        target = date_range(start=start, periods=7, freq="12h")
         actual = index.get_indexer(target)
         expected = np.array([-1, -1, 0, 0, 1, 1, 2], dtype="intp")
         tm.assert_numpy_array_equal(actual, expected)
 
         start = Timestamp("2000-01-08T18:00", tz=tz)
-        target = date_range(start=start, periods=7, freq="6H")
+        target = date_range(start=start, periods=7, freq="6h")
         actual = index.get_indexer(target)
         expected = np.array([7, 7, 8, 8, 8, 8, -1], dtype="intp")
         tm.assert_numpy_array_equal(actual, expected)
