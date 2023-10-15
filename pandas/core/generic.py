@@ -11819,15 +11819,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         APPL -0.252395 -0.011860   NaN
         """
         # GH#53491
-        msg = (
-            "The 'fill_method' keyword being not None and the 'limit' keyword in "
-            f"{type(self).__name__}.pct_change are deprecated and will be removed "
-            "in a future version. Either fill in any non-leading NA values prior "
-            "to calling pct_change or specify 'fill_method=None' to not fill NA "
-            "values."
-        )
         if fill_method not in (lib.no_default, None) or limit is not lib.no_default:
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                "The 'fill_method' keyword being not None and the 'limit' keyword in "
+                f"{type(self).__name__}.pct_change are deprecated and will be removed "
+                "in a future version. Either fill in any non-leading NA values prior "
+                "to calling pct_change or specify 'fill_method=None' to not fill NA "
+                "values.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         if fill_method is lib.no_default:
             if limit is lib.no_default:
                 cols = self.items() if self.ndim == 2 else [(None, self)]
@@ -11835,8 +11836,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     mask = col.isna().values
                     mask = mask[np.argmax(~mask) :]
                     if mask.any():
-                        warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
-                    break
+                        warnings.warn(
+                            "The default fill_method='pad' in "
+                            f"{type(self).__name__}.pct_change is deprecated and will "
+                            "be removed in a future version. Either fill in any "
+                            "non-leading NA values prior to calling pct_change or "
+                            "specify 'fill_method=None' to not fill NA values.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                        break
             fill_method = "pad"
         if limit is lib.no_default:
             limit = None

@@ -5338,20 +5338,29 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         goldfish    0.2  0.125
         """
         # GH#53491
-        msg = (
-            "The 'fill_method' keyword being not None and the 'limit' keyword in "
-            f"{type(self).__name__}.pct_change are deprecated and will be removed "
-            "in a future version. Either fill in any non-leading NA values prior "
-            "to calling pct_change or specify 'fill_method=None' to not fill NA "
-            "values."
-        )
         if fill_method not in (lib.no_default, None) or limit is not lib.no_default:
-            warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+            warnings.warn(
+                "The 'fill_method' keyword being not None and the 'limit' keyword in "
+                f"{type(self).__name__}.pct_change are deprecated and will be removed "
+                "in a future version. Either fill in any non-leading NA values prior "
+                "to calling pct_change or specify 'fill_method=None' to not fill NA "
+                "values.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         if fill_method is lib.no_default:
             if limit is lib.no_default and any(
                 grp.isna().values.any() for _, grp in self
             ):
-                warnings.warn(msg, FutureWarning, stacklevel=find_stack_level())
+                warnings.warn(
+                    "The default fill_method='ffill' in "
+                    f"{type(self).__name__}.pct_change is deprecated and will "
+                    "be removed in a future version. Either fill in any "
+                    "non-leading NA values prior to calling pct_change or "
+                    "specify 'fill_method=None' to not fill NA values.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
             fill_method = "ffill"
         if limit is lib.no_default:
             limit = None
