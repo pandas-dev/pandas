@@ -2471,8 +2471,8 @@ class TestDataFrameConstructors:
         [
             ([1, 2]),
             (["1", "2"]),
-            (list(date_range("1/1/2011", periods=2, freq="H"))),
-            (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
+            (list(date_range("1/1/2011", periods=2, freq="h"))),
+            (list(date_range("1/1/2011", periods=2, freq="h", tz="US/Eastern"))),
             ([Interval(left=0, right=5)]),
         ],
     )
@@ -3171,7 +3171,7 @@ class TestFromScalar:
                 "non-nano, but DatetimeArray._from_sequence has not",
                 strict=True,
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         scalar = datetime(9999, 1, 1)
         exp_dtype = "M8[us]"  # pydatetime objects default to this reso
@@ -3207,7 +3207,7 @@ class TestFromScalar:
                 "to non-nano, but TimedeltaArray._from_sequence has not",
                 strict=True,
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
         exp_dtype = "m8[us]"  # smallest reso that fits

@@ -599,12 +599,12 @@ class TestRollingTS:
         # more sophisticated comparison of integer vs.
         # time-based windowing
         df = DataFrame(
-            {"B": np.arange(50)}, index=date_range("20130101", periods=50, freq="H")
+            {"B": np.arange(50)}, index=date_range("20130101", periods=50, freq="h")
         )
         # in-range data
         dft = df.between_time("09:00", "16:00")
 
-        r = dft.rolling(window="5H")
+        r = dft.rolling(window="5h")
 
         result = getattr(r, f)()
 

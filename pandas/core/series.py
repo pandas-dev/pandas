@@ -372,8 +372,18 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         dtype: Dtype | None = None,
         name=None,
         copy: bool | None = None,
-        fastpath: bool = False,
+        fastpath: bool | lib.NoDefault = lib.no_default,
     ) -> None:
+        if fastpath is not lib.no_default:
+            warnings.warn(
+                "The 'fastpath' keyword in pd.Series is deprecated and will "
+                "be removed in a future version.",
+                DeprecationWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            fastpath = False
+
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
@@ -1007,7 +1017,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         # axis kwarg is retained for compat with NDFrame method
         #  _slice is *always* positional
         mgr = self._mgr.get_slice(slobj, axis=axis)
-        out = self._constructor(mgr, fastpath=True)
+        out = self._constructor_from_mgr(mgr, axes=mgr.axes)
+        out._name = self._name
         return out.__finalize__(self)
 
     def __getitem__(self, key):
@@ -4002,7 +4013,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if mask.any():
             # TODO(3.0): once this deprecation is enforced we can call
-            #  self.array.argsort directly, which will close GH#43840
+            #  self.array.argsort directly, which will close GH#43840 and
+            #  GH#12694
             warnings.warn(
                 "The behavior of Series.argsort in the presence of NA values is "
                 "deprecated. In a future version, NA values will be ordered "
@@ -5002,8 +5014,44 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             tolerance=tolerance,
         )
 
+    @overload  # type: ignore[override]
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: Literal[True],
+    ) -> None:
+        ...
+
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: Literal[False] = ...,
+    ) -> Self:
+        ...
+
+    @overload
+    def rename_axis(
+        self,
+        mapper: IndexLabel | lib.NoDefault = ...,
+        *,
+        index=...,
+        axis: Axis = ...,
+        copy: bool = ...,
+        inplace: bool = ...,
+    ) -> Self | None:
+        ...
+
     @doc(NDFrame.rename_axis)
-    def rename_axis(  # type: ignore[override]
+    def rename_axis(
         self,
         mapper: IndexLabel | lib.NoDefault = lib.no_default,
         *,
@@ -5184,7 +5232,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         Examples
         --------
-        >>> ser = pd.Series([1,2,3])
+        >>> ser = pd.Series([1, 2, 3])
 
         >>> ser.pop(0)
         1
@@ -5637,7 +5685,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023    1
         2024    2
         2025    3
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
 
         The resulting frequency of the Timestamps is `YearBegin`
 
@@ -5646,7 +5694,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023-01-01    1
         2024-01-01    2
         2025-01-01    3
-        Freq: AS-JAN, dtype: int64
+        Freq: YS-JAN, dtype: int64
 
         Using `freq` which is the offset that the Timestamps will have
 
@@ -5656,7 +5704,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023-01-31    1
         2024-01-31    2
         2025-01-31    3
-        Freq: A-JAN, dtype: int64
+        Freq: Y-JAN, dtype: int64
         """
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")
@@ -5691,12 +5739,12 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023    1
         2024    2
         2025    3
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
 
         Viewing the index
 
         >>> s.index
-        PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
+        PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
         """
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")

@@ -9019,7 +9019,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='12H')
+        >>> i = pd.date_range('2018-04-09', periods=4, freq='12h')
         >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
         >>> ts
                              A
@@ -9167,11 +9167,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
-            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'Y', 'Q', 'BME',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
-            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'Y', 'Q', 'BME',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
@@ -9201,6 +9201,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionadded:: 1.3.0
 
+            .. note::
+
+                Only takes effect for Tick-frequencies (i.e. fixed frequencies like
+                days, hours, and minutes, rather than months or quarters).
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
 
@@ -9342,12 +9346,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         assigned to the first quarter of the period.
 
         >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
-        ...                                             freq='A',
+        ...                                             freq='Y',
         ...                                             periods=2))
         >>> s
         2012    1
         2013    2
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
         >>> s.resample('Q', convention='start').asfreq()
         2012Q1    1.0
         2012Q2    NaN
@@ -9471,12 +9475,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:26:00    24
         Freq: 17min, dtype: int64
 
-        >>> ts.resample('17W', origin='2000-01-01').sum()
-        2000-01-02      0
-        2000-04-30      0
-        2000-08-27      0
-        2000-12-24    108
-        Freq: 17W-SUN, dtype: int64
+        >>> ts.resample('17min', origin='2000-01-01').sum()
+        2000-10-01 23:24:00     3
+        2000-10-01 23:41:00    15
+        2000-10-01 23:58:00    45
+        2000-10-02 00:15:00    45
+        Freq: 17min, dtype: int64
 
         If you want to adjust the start of the bins with an `offset` Timedelta, the two
         following lines are equivalent:
@@ -9678,7 +9682,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Get the rows for the last 3 days:
 
-        >>> ts.last('3D') # doctest: +SKIP
+        >>> ts.last('3D')  # doctest: +SKIP
                     A
         2018-04-13  3
         2018-04-15  4
@@ -11188,7 +11192,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Pass None to convert to UTC and get a tz-naive index:
 
         >>> s = pd.Series([1],
-        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+        ...               index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
         >>> s.tz_convert(None)
         2018-09-14 23:30:00    1
         dtype: int64
@@ -11306,7 +11310,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Pass None to convert to tz-naive index and preserve local time:
 
         >>> s = pd.Series([1],
-        ...     index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
+        ...               index=pd.DatetimeIndex(['2018-09-15 01:30:00+02:00']))
         >>> s.tz_localize(None)
         2018-09-15 01:30:00    1
         dtype: int64
@@ -11360,7 +11364,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2015-03-29 01:59:59.999999999+01:00    0
         2015-03-29 03:30:00+02:00              1
         dtype: int64
-        >>> s.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
+        >>> s.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
         2015-03-29 03:30:00+02:00    0
         2015-03-29 03:30:00+02:00    1
         dtype: int64
@@ -11549,10 +11553,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Describing a ``DataFrame``. By default only numeric fields
         are returned.
 
-        >>> df = pd.DataFrame({'categorical': pd.Categorical(['d','e','f']),
+        >>> df = pd.DataFrame({'categorical': pd.Categorical(['d', 'e', 'f']),
         ...                    'numeric': [1, 2, 3],
         ...                    'object': ['a', 'b', 'c']
-        ...                   })
+        ...                    })
         >>> df.describe()
                numeric
         count      3.0
@@ -11890,7 +11894,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def any(
         self,
-        axis: Axis = 0,
+        axis: Axis | None = 0,
         bool_only: bool_t = False,
         skipna: bool_t = True,
         **kwargs,
@@ -12668,9 +12672,9 @@ _var_examples = """
 Examples
 --------
 >>> df = pd.DataFrame({'person_id': [0, 1, 2, 3],
-...                   'age': [21, 25, 62, 43],
-...                   'height': [1.61, 1.87, 1.49, 2.01]}
-...                  ).set_index('person_id')
+...                    'age': [21, 25, 62, 43],
+...                    'height': [1.61, 1.87, 1.49, 2.01]}
+...                   ).set_index('person_id')
 >>> df
            age  height
 person_id
@@ -13496,7 +13500,7 @@ def make_doc(name: str, ndim: int) -> str:
             With a DataFrame
 
             >>> df = pd.DataFrame({'a': [1, 2, 3], 'b': [2, 3, 4], 'c': [1, 3, 5]},
-            ...                  index=['tiger', 'zebra', 'cow'])
+            ...                   index=['tiger', 'zebra', 'cow'])
             >>> df
                     a   b   c
             tiger   1   2   1
@@ -13520,7 +13524,7 @@ def make_doc(name: str, ndim: int) -> str:
             getting an error.
 
             >>> df = pd.DataFrame({'a': [1, 2, 3], 'b': ['T', 'Z', 'X']},
-            ...                  index=['tiger', 'zebra', 'cow'])
+            ...                   index=['tiger', 'zebra', 'cow'])
             >>> df.skew(numeric_only=True)
             a   0.0
             dtype: float64"""
