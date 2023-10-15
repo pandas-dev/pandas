@@ -97,7 +97,6 @@ def test_nunique_null(null_obj, index_or_series_obj):
         assert obj.nunique(dropna=False) == max(0, num_unique_values)
 
 
-@pytest.mark.single_cpu
 def test_unique_bad_unicode(index_or_series):
     # regression test for #34550
     uval = "\ud83d"  # smiley emoji
@@ -111,6 +110,24 @@ def test_unique_bad_unicode(index_or_series):
     else:
         expected = np.array(["\ud83d"], dtype=object)
         tm.assert_numpy_array_equal(result, expected)
+
+
+def test_unique_45929(index_or_series):
+    # regression test for #45929
+    data_list = [
+        "1 \udcd6a NY",
+        "2 \udcd6b NY",
+        "3 \ud800c NY",
+        "4 \udcd6d NY",
+        "5 \udcc3e NY",
+    ]
+
+    obj = index_or_series(data_list)
+    assert len(obj.unique()) == len(data_list)
+    assert len(obj.value_counts()) == len(data_list)
+    assert len(np.unique(data_list)) == len(data_list)
+    assert len(set(data_list)) == len(data_list)
+    assert obj.is_unique
 
 
 @pytest.mark.parametrize("dropna", [True, False])
