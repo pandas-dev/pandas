@@ -1362,7 +1362,7 @@ class TestSeriesConstructors:
                 reason="Construction from dict goes through "
                 "maybe_convert_objects which casts to nano"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         d = {"a": ea_scalar}
         result = Series(d, index=["a"])
         expected = Series(ea_scalar, index=["a"], dtype=ea_dtype)
@@ -1688,7 +1688,7 @@ class TestSeriesConstructors:
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         with pytest.raises(ValueError, match=msg):
             Series([], dtype=dtype)

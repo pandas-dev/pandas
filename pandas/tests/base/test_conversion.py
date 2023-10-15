@@ -337,7 +337,7 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
 
     if arr.dtype.name == "int64" and box is pd.array:
         mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     result = thing.to_numpy()
     tm.assert_numpy_array_equal(result, expected)

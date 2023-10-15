@@ -127,9 +127,7 @@ def test_utf8_bom(all_parsers, data, kwargs, expected, request):
         and kwargs.get("skip_blank_lines", True)
     ):
         # Manually xfail, since we don't have mechanism to xfail specific version
-        request.node.add_marker(
-            pytest.mark.xfail(reason="Pyarrow can't read blank lines")
-        )
+        request.applymarker(pytest.mark.xfail(reason="Pyarrow can't read blank lines"))
 
     result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
     tm.assert_frame_equal(result, expected)

@@ -881,7 +881,7 @@ def test_none_comparison(request, series_with_simple_index):
     series = series_with_simple_index
 
     if len(series) < 1:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="Test doesn't make sense on empty data")
         )
 

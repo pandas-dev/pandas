@@ -194,7 +194,7 @@ class TestEval:
                 reason="Looks like expected is negative, unclear whether "
                 "expected is incorrect or result is incorrect"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         skip_these = ["in", "not in"]
         ex = f"~(lhs {op} rhs)"
 
@@ -860,7 +860,7 @@ class TestAlignment:
                 f"parser={parser}, index_name={index_name}, "
                 f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
             )
-            request.node.add_marker(pytest.mark.xfail(reason=reason, strict=False))
+            request.applymarker(pytest.mark.xfail(reason=reason, strict=False))
         df = tm.makeCustomDataframe(
             10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
         )
@@ -1883,7 +1883,7 @@ def test_negate_lt_eq_le(engine, parser):
 def test_eval_no_support_column_name(request, column):
     # GH 44603
     if column in ["True", "False", "inf", "Inf"]:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 raises=KeyError,
                 reason=f"GH 47859 DataFrame eval not supported with {column}",

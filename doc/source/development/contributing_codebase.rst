@@ -540,7 +540,7 @@ xfail during the testing phase. To do so, use the ``request`` fixture:
 
     def test_xfail(request):
         mark = pytest.mark.xfail(raises=TypeError, reason="Indicate why here")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
 xfail is not to be used for tests involving failure due to invalid user arguments.
 For these tests, we need to verify the correct exception type and error message

@@ -591,7 +591,7 @@ def test_categorical_transformers(
     # GH#36327
     if transformation_func == "fillna":
         msg = "GH#49651 fillna may incorrectly reorders results when dropna=False"
-        request.node.add_marker(pytest.mark.xfail(reason=msg, strict=False))
+        request.applymarker(pytest.mark.xfail(reason=msg, strict=False))
 
     values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(

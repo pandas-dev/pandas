@@ -817,7 +817,7 @@ def test_to_sql_callable(conn, test_frame1, request):
 def test_default_type_conversion(conn, request):
     conn_name = conn
     if conn_name == "sqlite_buildin_iris":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="sqlite_buildin connection does not implement read_sql_table"
             )
@@ -1155,7 +1155,7 @@ def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_no_parameter_with_percent(conn, request, sql_strings, flavor):
     if "mysql" in conn or "postgresql" in conn:
-        request.node.add_marker(pytest.mark.xfail(reason="broken test"))
+        request.applymarker(pytest.mark.xfail(reason="broken test"))
 
     conn_name = conn
     conn = request.getfixturevalue(conn)
@@ -1399,7 +1399,7 @@ def test_api_custom_dateparsing_error(
     conn_name = conn
     conn = request.getfixturevalue(conn)
     if text == "types" and conn_name == "sqlite_buildin_iris":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="failing combination of arguments")
         )
 
@@ -1497,7 +1497,7 @@ def test_api_to_sql_index_label(conn, request, index_name, index_label, expected
 def test_api_to_sql_index_label_multiindex(conn, request):
     conn_name = conn
     if "mysql" in conn_name:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="MySQL can fail using TEXT without length as key", strict=False
             )
@@ -1802,7 +1802,7 @@ def test_read_table_columns(conn, request, test_frame1):
     # test columns argument in read_table
     conn_name = conn
     if conn_name == "sqlite_buildin":
-        request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
+        request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
 
     conn = request.getfixturevalue(conn)
     sql.to_sql(test_frame1, "test_frame", conn)
@@ -1818,7 +1818,7 @@ def test_read_table_index_col(conn, request, test_frame1):
     # test columns argument in read_table
     conn_name = conn
     if conn_name == "sqlite_buildin":
-        request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
+        request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
 
     conn = request.getfixturevalue(conn)
     sql.to_sql(test_frame1, "test_frame", conn)
@@ -1839,7 +1839,7 @@ def test_read_table_index_col(conn, request, test_frame1):
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_delegate(conn, request):
     if conn == "sqlite_buildin_iris":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="sqlite_buildin connection does not implement read_sql_table"
             )
@@ -1884,7 +1884,7 @@ def test_not_reflect_all_tables(sqlite_conn):
 def test_warning_case_insensitive_table_name(conn, request, test_frame1):
     conn_name = conn
     if conn_name == "sqlite_buildin":
-        request.node.add_marker(pytest.mark.xfail(reason="Does not raise warning"))
+        request.applymarker(pytest.mark.xfail(reason="Does not raise warning"))
 
     conn = request.getfixturevalue(conn)
     # see gh-7815
@@ -2034,7 +2034,7 @@ def test_column_with_percentage(conn, request):
     # GH 37157
     conn_name = conn
     if conn_name == "sqlite_buildin":
-        request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
+        request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
 
     conn = request.getfixturevalue(conn)
     df = DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
@@ -2226,7 +2226,7 @@ def test_sqlalchemy_default_type_conversion(conn, request):
     if conn_name == "sqlite_str":
         pytest.skip("types tables not created in sqlite_str fixture")
     elif "mysql" in conn_name or "sqlite" in conn_name:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="boolean dtype not inferred properly")
         )
 
@@ -2260,7 +2260,7 @@ def test_default_date_load(conn, request):
     if conn_name == "sqlite_str":
         pytest.skip("types tables not created in sqlite_str fixture")
     elif "sqlite" in conn_name:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="sqlite does not read date properly")
         )
 
@@ -2310,7 +2310,7 @@ def test_datetime_with_timezone(conn, request):
     conn = request.getfixturevalue(conn)
     df = read_sql_query("select * from types", conn)
     if not hasattr(df, "DateColWithTz"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="no column with datetime with time zone")
         )
 
@@ -2322,7 +2322,7 @@ def test_datetime_with_timezone(conn, request):
 
     df = read_sql_query("select * from types", conn, parse_dates=["DateColWithTz"])
     if not hasattr(df, "DateColWithTz"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="no column with datetime with time zone")
         )
     col = df.DateColWithTz
@@ -2689,7 +2689,7 @@ def test_get_schema_create_table(conn, request, test_frame3):
     # TINYINT (which read_sql_table returns as an int and causes a dtype
     # mismatch)
     if conn == "sqlite_str":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="test does not support sqlite_str fixture")
         )
 
@@ -2901,7 +2901,7 @@ def test_to_sql_with_negative_npinf(conn, request, input):
 
         if Version(pymysql.__version__) < Version("1.0.3") and "infe0" in df.columns:
             mark = pytest.mark.xfail(reason="GH 36465")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         msg = "inf cannot be used with MySQL"
         with pytest.raises(ValueError, match=msg):
@@ -2953,7 +2953,7 @@ def test_temporary_table(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_invalid_engine(conn, request, test_frame1):
     if conn == "sqlite_buildin":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="SQLiteDatabase does not raise for bad engine")
         )
 
@@ -3078,7 +3078,7 @@ def test_read_sql_dtype_backend_table(
     dtype_backend_expected,
 ):
     if "sqlite" in conn:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=(
                     "SQLite actually returns proper boolean values via "

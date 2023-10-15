@@ -204,7 +204,7 @@ def test_skiprows_lineterminator(all_parsers, lineterminator, request):
 
     if parser.engine == "python" and lineterminator == "\r":
         mark = pytest.mark.xfail(reason="'CR' not respect with the Python parser yet")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     data = data.replace("\n", lineterminator)
     result = parser.read_csv(

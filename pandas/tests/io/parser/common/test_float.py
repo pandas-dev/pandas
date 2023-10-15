@@ -55,7 +55,7 @@ def test_too_many_exponent_digits(all_parsers_all_precisions, exp, request):
     if precision == "round_trip":
         if exp == 999999999999999999 and is_platform_linux():
             mark = pytest.mark.xfail(reason="GH38794, on Linux gives object result")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         value = np.inf if exp > 0 else 0.0
         expected = DataFrame({"data": [value]})

@@ -325,7 +325,7 @@ def test_apply_empty_infer_type(ax, func, raw, axis, engine, request):
             mark = pytest.mark.xfail(
                 reason="numba engine only supports raw=True at the moment"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         result = df.apply(func, axis=axis, engine=engine, raw=raw)
         if is_reduction:

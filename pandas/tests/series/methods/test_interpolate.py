@@ -831,7 +831,7 @@ class TestSeriesInterpolateData:
         method, kwargs = interp_methods_ind
 
         if method in {"cubic", "zero"}:
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=f"{method} interpolation is not supported for TimedeltaIndex"
                 )

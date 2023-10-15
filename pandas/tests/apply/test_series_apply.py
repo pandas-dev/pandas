@@ -321,7 +321,7 @@ def test_transform(string_series, by_row):
 def test_transform_partial_failure(op, request):
     # GH 35964
     if op in ("ffill", "bfill", "pad", "backfill", "shift"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason=f"{op} is successful on any dtype")
         )
 

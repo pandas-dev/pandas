@@ -142,7 +142,7 @@ def test_apply_out_of_range(request, tz_naive_fixture, _offset):
         if isinstance(tz, tzlocal) and not IS64 and _offset is not DateOffset:
             # If we hit OutOfBoundsDatetime on non-64 bit machines
             # we'll drop out of the try clause before the next test
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
             )
         elif (
@@ -150,7 +150,7 @@ def test_apply_out_of_range(request, tz_naive_fixture, _offset):
             and is_platform_windows()
             and _offset in (QuarterEnd, BQuarterBegin, BQuarterEnd)
         ):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="After GH#49737 t.tzinfo is None on CI")
             )
         assert str(t.tzinfo) == str(result.tzinfo)

@@ -1831,7 +1831,7 @@ class TestToDatetimeUnit:
 
         # TODO: this should also work
         if isinstance(item, float):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=f"{type(item).__name__} in np.array should work"
                 )

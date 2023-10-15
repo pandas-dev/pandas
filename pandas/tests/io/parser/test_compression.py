@@ -105,7 +105,7 @@ def test_compression(
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Cannot deduce compression from buffer of compressed data."
             )

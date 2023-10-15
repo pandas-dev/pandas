@@ -418,7 +418,7 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
         pytest.skip("idxmax and idx_min tested in test_idxmin_idxmax_axis1")
     if groupby_func in ("corrwith", "skew"):
         msg = "GH#47723 groupby.corrwith and skew do not correctly implement axis=1"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        request.applymarker(pytest.mark.xfail(reason=msg))
 
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 4)), columns=["A", "B", "C", "D"]
@@ -822,7 +822,7 @@ def test_duplicate_columns(request, groupby_func, as_index):
     # GH#50806
     if groupby_func == "corrwith":
         msg = "GH#50845 - corrwith fails when there are duplicate columns"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        request.applymarker(pytest.mark.xfail(reason=msg))
     df = DataFrame([[1, 3, 6], [1, 4, 7], [2, 5, 8]], columns=list("abb"))
     args = get_groupby_method_args(groupby_func, df)
     gb = df.groupby("a", as_index=as_index)

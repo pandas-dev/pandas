@@ -92,7 +92,7 @@ class TestPreserves:
 
     def test_ndframe_getitem_caching_issue(self, request, using_copy_on_write):
         if not using_copy_on_write:
-            request.node.add_marker(pytest.mark.xfail(reason="Unclear behavior."))
+            request.applymarker(pytest.mark.xfail(reason="Unclear behavior."))
         # NDFrame.__getitem__ will cache the first df['A']. May need to
         # invalidate that cache? Update the cached entries?
         df = pd.DataFrame({"A": [0]}).set_flags(allows_duplicate_labels=False)

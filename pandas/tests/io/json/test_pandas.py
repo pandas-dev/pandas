@@ -242,7 +242,7 @@ class TestPandasContainer:
     ):
         # TODO: create a better frame to test with and improve coverage
         if orient in ("index", "columns"):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=f"Can't have duplicate index values for orient '{orient}')"
                 )
@@ -1893,7 +1893,7 @@ class TestPandasContainer:
         # GH 31615
         if isinstance(nulls_fixture, Decimal):
             mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         result = DataFrame([[nulls_fixture]]).to_json()
         assert result == '{"0":{"0":null}}'
