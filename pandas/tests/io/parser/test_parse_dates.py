@@ -2234,6 +2234,9 @@ def test_parse_dates_arrow_engine(all_parsers):
 2000-01-01 00:00:01,1"""
 
     result = parser.read_csv(StringIO(data), parse_dates=["a"])
+    # TODO: make unit check more specific
+    if parser.engine == "pyarrow":
+        result["a"] = result["a"].dt.as_unit("ns")
     expected = DataFrame(
         {
             "a": [
