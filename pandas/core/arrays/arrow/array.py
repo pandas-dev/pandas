@@ -2676,6 +2676,8 @@ class ArrowExtensionArray(
             .astype(np.intp, copy=False),
             len(dc.dictionary),
         )
+        if dc.null_count > 0:
+            count += 1
         return llab, rlab, count
 
 
