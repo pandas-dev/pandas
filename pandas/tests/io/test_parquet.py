@@ -228,11 +228,10 @@ def check_partition_names(path, expected):
     expected: iterable of str
         Expected partition names.
     """
-    import pyarrow.parquet as pq
+    import pyarrow.dataset as ds
 
-    dataset = pq.ParquetDataset(path, validate_schema=False)
-    assert len(dataset.partitions.partition_names) == len(expected)
-    assert dataset.partitions.partition_names == set(expected)
+    dataset = ds.dataset(path, partitioning="hive")
+    assert dataset.partitioning.schema.names == expected
 
 
 def test_invalid_engine(df_compat):
