@@ -278,7 +278,7 @@ Installable with ``pip install "pandas[excel]"``.
 Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
 xlrd                      2.0.1              excel           Reading Excel
-xlsxwriter                3.0.4              excel           Writing Excel
+xlsxwriter                3.0.5              excel           Writing Excel
 openpyxl                  3.1.0             excel           Reading / writing for xlsx files
 pyxlsb                    1.0.10              excel           Reading for xlsb files
 python-calamine           0.1.6              excel           Reading for xls/xlsx/xlsb/ods files
@@ -343,7 +343,7 @@ Dependency                Minimum Version    pip extra       Notes
 SQLAlchemy                2.0.0             postgresql,     SQL support for databases other than sqlite
                                              mysql,
                                              sql-other
-psycopg2                  2.9.5              postgresql      PostgreSQL engine for sqlalchemy
+psycopg2                  2.9.6              postgresql      PostgreSQL engine for sqlalchemy
 pymysql                   1.0.2              mysql           MySQL engine for sqlalchemy
 ========================= ================== =============== =============================================================
 
@@ -356,7 +356,7 @@ Installable with ``pip install "pandas[hdf5, parquet, feather, spss, excel]"``
 Dependency                Minimum Version    pip extra        Notes
 ========================= ================== ================ =============================================================
 PyTables                  3.8.0              hdf5             HDF5-based reading / writing
-blosc                     1.21.2             hdf5             Compression for HDF5; only available on ``conda``
+blosc                     1.21.3             hdf5             Compression for HDF5; only available on ``conda``
 zlib                                         hdf5             Compression for HDF5
 fastparquet               2022.12.0              -                Parquet reading / writing (pyarrow is default)
 pyarrow                   10.0.1              parquet, feather Parquet, ORC, and feather reading / writing

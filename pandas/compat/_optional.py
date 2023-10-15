@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 VERSIONS = {
     "bs4": "4.11.2",
-    "blosc": "1.21.2",
+    "blosc": "1.21.3",
     "bottleneck": "1.3.6",
     "dataframe-api-compat": "0.1.7",
     "fastparquet": "2022.12.0",
@@ -32,7 +32,7 @@ VERSIONS = {
     "odfpy": "1.4.1",
     "openpyxl": "3.1.0",
     "pandas_gbq": "0.19.0",
-    "psycopg2": "2.9.5",  # (dt dec pq3 ext lo64)
+    "psycopg2": "2.9.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
     "pyarrow": "10.0.1",
     "pyreadstat": "1.2.0",
@@ -46,7 +46,7 @@ VERSIONS = {
     "tabulate": "0.9.0",
     "xarray": "2022.12.0",
     "xlrd": "2.0.1",
-    "xlsxwriter": "3.0.4",
+    "xlsxwriter": "3.0.5",
     "zstandard": "0.19.0",
     "tzdata": "2022.7",
     "qtpy": "2.3.0",
