@@ -614,22 +614,6 @@ financial applications. See the :ref:`Time Series section <timeseries>`.
    ts = pd.Series(np.random.randint(0, 500, len(rng)), index=rng)
    ts.resample("5Min").sum()
 
-:meth:`Series.tz_localize` localizes a time series to a time zone:
-
-.. ipython:: python
-
-   rng = pd.date_range("3/6/2012 00:00", periods=5, freq="D")
-   ts = pd.Series(np.random.randn(len(rng)), rng)
-   ts
-   ts_utc = ts.tz_localize("UTC")
-   ts_utc
-
-:meth:`Series.tz_convert` converts a timezones aware time series to another time zone:
-
-.. ipython:: python
-
-   ts_utc.tz_convert("US/Eastern")
-
 Adding a non-fixed duration (:class:`~pandas.tseries.offsets.BusinessDay`) to a time series:
 
 .. ipython:: python
