@@ -234,6 +234,7 @@ For example:
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 - Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
+- Deprecated :meth:`Index.format`, use ``index.astype(str)`` or ``index.map(formatter)`` instead (:issue:`55413`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_clipboard`. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_csv` except ``path_or_buf``. (:issue:`54229`)
 - Deprecated allowing non-keyword arguments in :meth:`DataFrame.to_dict`. (:issue:`54229`)
@@ -252,7 +253,11 @@ Other Deprecations
 - Deprecated downcasting behavior in :meth:`Series.where`, :meth:`DataFrame.where`, :meth:`Series.mask`, :meth:`DataFrame.mask`, :meth:`Series.clip`, :meth:`DataFrame.clip`; in a future version these will not infer object-dtype columns to non-object dtype, or all-round floats to integer dtype. Call ``result.infer_objects(copy=False)`` on the result for object inference, or explicitly cast floats to ints. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`53656`)
 - Deprecated including the groups in computations when using :meth:`DataFrameGroupBy.apply` and :meth:`DataFrameGroupBy.resample`; pass ``include_groups=False`` to exclude the groups (:issue:`7155`)
 - Deprecated not passing a tuple to :class:`DataFrameGroupBy.get_group` or :class:`SeriesGroupBy.get_group` when grouping by a length-1 list-like (:issue:`25971`)
-- Deprecated string ``A`` denoting frequency in :class:`YearEnd` and strings ``A-DEC``, ``A-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`52536`)
+- Deprecated string ``AS`` denoting frequency in :class:`YearBegin` and strings ``AS-DEC``, ``AS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`54275`)
+- Deprecated string ``A`` denoting frequency in :class:`YearEnd` and strings ``A-DEC``, ``A-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`54275`)
+- Deprecated string ``BAS`` denoting frequency in :class:`BYearBegin` and strings ``BAS-DEC``, ``BAS-JAN``, etc. denoting annual frequencies with various fiscal year starts (:issue:`54275`)
+- Deprecated string ``BA`` denoting frequency in :class:`BYearEnd` and strings ``BA-DEC``, ``BA-JAN``, etc. denoting annual frequencies with various fiscal year ends (:issue:`54275`)
+- Deprecated strings ``BM``, and ``CBM`` denoting frequencies in :class:`BusinessMonthEnd`, :class:`CustomBusinessMonthEnd` (:issue:`52064`)
 - Deprecated strings ``H``, ``BH``, and ``CBH`` denoting frequencies in :class:`Hour`, :class:`BusinessHour`, :class:`CustomBusinessHour` (:issue:`52536`)
 - Deprecated strings ``H``, ``S``, ``U``, and ``N`` denoting units in :func:`to_timedelta` (:issue:`52536`)
 - Deprecated strings ``H``, ``T``, ``S``, ``L``, ``U``, and ``N`` denoting units in :class:`Timedelta` (:issue:`52536`)
@@ -261,6 +266,7 @@ Other Deprecations
 - Deprecated the extension test classes ``BaseNoReduceTests``, ``BaseBooleanReduceTests``, and ``BaseNumericReduceTests``, use ``BaseReduceTests`` instead (:issue:`54663`)
 - Deprecated the option ``mode.data_manager`` and the ``ArrayManager``; only the ``BlockManager`` will be available in future versions (:issue:`55043`)
 - Deprecating downcasting the results of :meth:`DataFrame.fillna`, :meth:`Series.fillna`, :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, :meth:`Series.bfill` in object-dtype cases. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`54261`)
+-
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.performance:
@@ -285,17 +291,20 @@ Bug fixes
 Categorical
 ^^^^^^^^^^^
 - :meth:`Categorical.isin` raising ``InvalidIndexError`` for categorical containing overlapping :class:`Interval` values (:issue:`34974`)
+- Bug in :meth:`CategoricalDtype.__eq__` returning false for unordered categorical data with mixed types (:issue:`55468`)
 -
 
 Datetimelike
 ^^^^^^^^^^^^
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
--
+- Bug in :meth:`Tick.delta` with very large ticks raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
+- Bug in addition or subtraction of very large :class:`Tick` objects with :class:`Timestamp` or :class:`Timedelta` objects raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
+
 
 Timedelta
 ^^^^^^^^^
+- Bug in :class:`Timedelta` construction raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
 - Bug in rendering (``__repr__``) of :class:`TimedeltaIndex` and :class:`Series` with timedelta64 values with non-nanosecond resolution entries that are all multiples of 24 hours failing to use the compact representation used in the nanosecond cases (:issue:`55405`)
--
 
 Timezones
 ^^^^^^^^^
@@ -352,7 +361,7 @@ I/O
 
 Period
 ^^^^^^
--
+- Bug in :class:`Period` addition silently wrapping around instead of raising ``OverflowError`` (:issue:`55503`)
 -
 
 Plotting
@@ -394,6 +403,7 @@ Other
 ^^^^^
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
+- Bug in rendering ``inf`` values inside a a :class:`DataFrame` with the ``use_inf_as_na`` option enabled (:issue:`55483`)
 - Bug in rendering a :class:`Series` with a :class:`MultiIndex` when one of the index level's names is 0 not having that name displayed (:issue:`55415`)
 -
 
