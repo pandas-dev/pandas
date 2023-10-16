@@ -387,10 +387,10 @@ class DatetimeProperties(Properties):
         >>> ser.dt.isocalendar()
            year  week  day
         0  2009    53     5
-        1   NaN   NaN   NaN
+        1  <NA>  <NA>  <NA>
         >>> ser.dt.isocalendar().week
         0      53
-        1     NaN
+        1    <NA>
         Name: week, dtype: UInt32
         """
         return self._get_values().isocalendar().set_index(self._parent.index)

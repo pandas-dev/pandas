@@ -1254,7 +1254,7 @@ class DataFrame(NDFrame, OpsMixin):
         col_space: int | list[int] | dict[Hashable, int] | None = None,
         header: bool | SequenceNotStr[str] = True,
         index: bool = True,
-        na_rep: str = "NaN",
+        na_rep: str = "<NA>",
         formatters: fmt.FormattersType | None = None,
         float_format: fmt.FloatFormatType | None = None,
         sparsify: bool | None = None,
@@ -7354,8 +7354,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df
           first_name middle_name
         0       John       Smith
-        1       Anne         NaN
-        2       John         NaN
+        1       Anne        <NA>
+        2       John        <NA>
         3       Beth      Louise
 
         >>> df.value_counts()

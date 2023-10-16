@@ -6907,9 +6907,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> dfn = df.convert_dtypes()
         >>> dfn
            a  b      c     d     e      f
-        0  1  x   True     h    10    NaN
-        1  2  y  False     i   NaN  100.5
-        2  3  z    NaN   NaN    20  200.0
+        0  1  x   True     h    10   <NA>
+        1  2  y  False     i  <NA>  100.5
+        2  3  z   <NA>  <NA>    20  200.0
 
         >>> dfn.dtypes
         a             Int32
@@ -6934,7 +6934,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         >>> s.convert_dtypes()
         0       a
         1       b
-        2     NaN
+        2    <NA>
         dtype: string
         """
         check_dtype_backend(dtype_backend)

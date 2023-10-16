@@ -1226,7 +1226,7 @@ class _GenericArrayFormatter:
                 if x is None:
                     return "None"
                 elif x is NA:
-                    return str(NA)
+                    return self.na_rep
                 elif lib.is_float(x) and np.isinf(x):
                     # TODO(3.0): this will be unreachable when use_inf_as_na
                     #  deprecation is enforced
