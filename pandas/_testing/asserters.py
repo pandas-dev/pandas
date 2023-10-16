@@ -440,7 +440,10 @@ def assert_is_sorted(seq) -> None:
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
-    assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    if isinstance(seq, np.ndarray):
+        assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    else:
+        assert_extension_array_equal(seq, seq[seq.argsort()])
 
 
 def assert_categorical_equal(
