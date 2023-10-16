@@ -141,7 +141,7 @@ def test_searchsorted(request, index_or_series_obj):
 
     if isinstance(obj, pd.MultiIndex):
         # See gh-14833
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="np.searchsorted doesn't work on pd.MultiIndex: GH 14833"
             )
@@ -150,7 +150,8 @@ def test_searchsorted(request, index_or_series_obj):
         # TODO: Should Series cases also raise? Looks like they use numpy
         #  comparison semantics https://github.com/numpy/numpy/issues/15981
         mark = pytest.mark.xfail(reason="complex objects are not comparable")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
+
     # This check is written for the mixed-int-string entry
     if tm.assert_mixed_int_string_entry(obj.values):
         with pytest.raises(

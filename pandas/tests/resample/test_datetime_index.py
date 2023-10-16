@@ -498,12 +498,12 @@ def test_resample_how_method(unit):
 
 def test_resample_extra_index_point(unit):
     # GH#9756
-    index = date_range(start="20150101", end="20150331", freq="BM").as_unit(unit)
+    index = date_range(start="20150101", end="20150331", freq="BME").as_unit(unit)
     expected = DataFrame({"A": Series([21, 41, 63], index=index)})
 
     index = date_range(start="20150101", end="20150331", freq="B").as_unit(unit)
     df = DataFrame({"A": Series(range(len(index)), index=index)}, dtype="int64")
-    result = df.resample("BM").last()
+    result = df.resample("BME").last()
     tm.assert_frame_equal(result, expected)
 
 
@@ -796,34 +796,24 @@ def test_resample_offset(unit):
 
 
 @pytest.mark.parametrize(
-    "kwargs, expected",
+    "kwargs",
     [
-        (
-            {"origin": "1999-12-31 23:57:00"},
-            ["1999-12-31 23:57:00", "2000-01-01 01:57:00"],
-        ),
-        (
-            {"origin": Timestamp("1970-01-01 00:02:00")},
-            ["1970-01-01 00:02:00", "2000-01-01 01:57:00"],
-        ),
-        (
-            {"origin": "epoch", "offset": "2m"},
-            ["1999-12-31 23:57:00", "2000-01-01 01:57:00"],
-        ),
+        {"origin": "1999-12-31 23:57:00"},
+        {"origin": Timestamp("1970-01-01 00:02:00")},
+        {"origin": "epoch", "offset": "2m"},
         # origin of '1999-31-12 12:02:00' should be equivalent for this case
-        (
-            {"origin": "1999-12-31 12:02:00"},
-            ["1999-12-31 12:02:00", "2000-01-01 01:57:00"],
-        ),
-        ({"offset": "-3m"}, ["1999-12-31 23:57:00", "2000-01-01 01:57:00"]),
+        {"origin": "1999-12-31 12:02:00"},
+        {"offset": "-3m"},
     ],
 )
-def test_resample_origin(kwargs, unit, expected):
+def test_resample_origin(kwargs, unit):
     # GH 31809
     rng = date_range("2000-01-01 00:00:00", "2000-01-01 02:00", freq="s").as_unit(unit)
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
-    exp_rng = date_range(expected[0], expected[1], freq="5min").as_unit(unit)
+    exp_rng = date_range(
+        "1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min"
+    ).as_unit(unit)
 
     resampled = ts.resample("5min", **kwargs).mean()
     tm.assert_index_equal(resampled.index, exp_rng)
@@ -851,31 +841,6 @@ def test_resample_bad_offset(offset, unit):
     msg = f"'offset' should be a Timedelta convertible type. Got '{offset}' instead."
     with pytest.raises(ValueError, match=msg):
         ts.resample("5min", offset=offset)
-
-
-def test_resample_monthstart_origin():
-    # GH 53662
-    df = DataFrame({"ts": [datetime(1999, 12, 31, 0, 0, 0)], "values": [10.0]})
-    result = df.resample("2MS", on="ts", origin="1999-11-01")["values"].sum()
-    excepted = Series(
-        [10.0],
-        index=DatetimeIndex(
-            ["1999-11-01"], dtype="datetime64[ns]", name="ts", freq="2MS"
-        ),
-    )
-    tm.assert_index_equal(result.index, excepted.index)
-
-    df = DataFrame({"ts": [datetime(1999, 12, 31, 20)], "values": [10.0]})
-    result = df.resample(
-        "3YS", on="ts", closed="left", label="left", origin=datetime(1995, 1, 1)
-    )["values"].sum()
-    expected = Series(
-        [0, 10.0],
-        index=DatetimeIndex(
-            ["1995-01-01", "1998-01-01"], dtype="datetime64[ns]", name="ts", freq="3YS"
-        ),
-    )
-    tm.assert_index_equal(result.index, expected.index)
 
 
 def test_resample_origin_prime_freq(unit):
@@ -909,7 +874,7 @@ def test_resample_origin_prime_freq(unit):
     tm.assert_index_equal(resampled.index, exp_rng)
 
     exp_rng = date_range(
-        "2000-01-01 00:00:00", "2000-10-02 00:15:00", freq="17min"
+        "2000-10-01 23:24:00", "2000-10-02 00:15:00", freq="17min"
     ).as_unit(unit)
     resampled = ts.resample("17min", origin="2000-01-01").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
@@ -928,12 +893,14 @@ def test_resample_origin_with_tz(unit):
     exp_rng = date_range(
         "1999-12-31 23:57:00", "2000-01-01 01:57", freq="5min", tz=tz
     ).as_unit(unit)
-    resampled = ts.resample("5min", origin="epoch", offset="2m").mean()
+    resampled = ts.resample("5min", origin="1999-12-31 23:57:00+00:00").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
-    resampled = ts.resample(
-        "5min", origin=Timestamp("1999-12-31 23:57:00", tz=tz)
-    ).mean()
+    # origin of '1999-31-12 12:02:00+03:00' should be equivalent for this case
+    resampled = ts.resample("5min", origin="1999-12-31 12:02:00+03:00").mean()
+    tm.assert_index_equal(resampled.index, exp_rng)
+
+    resampled = ts.resample("5min", origin="epoch", offset="2m").mean()
     tm.assert_index_equal(resampled.index, exp_rng)
 
     with pytest.raises(ValueError, match=msg):
@@ -1205,7 +1172,7 @@ def test_resample_anchored_intraday(simple_date_range_series, unit):
     assert len(resampled) == 1
 
 
-@pytest.mark.parametrize("freq", ["MS", "BMS", "QS-MAR", "AS-DEC", "AS-JUN"])
+@pytest.mark.parametrize("freq", ["MS", "BMS", "QS-MAR", "YS-DEC", "YS-JUN"])
 def test_resample_anchored_monthstart(simple_date_range_series, freq, unit):
     ts = simple_date_range_series("1/1/2000", "12/31/2002")
     ts.index = ts.index.as_unit(unit)
@@ -1353,7 +1320,7 @@ def test_resample_unequal_times(unit):
     df = DataFrame({"close": 1}, index=bad_ind)
 
     # it works!
-    df.resample("AS").sum()
+    df.resample("YS").sum()
 
 
 def test_resample_consistency(unit):
@@ -2050,6 +2017,17 @@ def test_resample_M_deprecated():
     expected = s.resample("2ME").mean()
     with tm.assert_produces_warning(UserWarning, match=depr_msg):
         result = s.resample("2M").mean()
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_BM_deprecated():
+    # GH#52064
+    depr_msg = "'BM' is deprecated and will be removed in a future version."
+
+    s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
+    expected = s.resample("2BME").mean()
+    with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+        result = s.resample("2BM").mean()
     tm.assert_series_equal(result, expected)
 
 
