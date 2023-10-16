@@ -101,6 +101,7 @@ if TYPE_CHECKING:
         AstypeArg,
         AxisInt,
         Dtype,
+        DtypeObj,
         NpDtype,
         Ordered,
         Self,
@@ -508,6 +509,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> Self:
         return cls(scalars, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
+        if dtype is None:
+            # The _from_scalars strictness doesn't make much sense in this case.
+            raise NotImplementedError
+
+        res = cls._from_sequence(scalars, dtype=dtype)
+
+        # if there are any non-category elements in scalars, these will be
+        #  converted to NAs in res.
+        mask = isna(scalars)
+        if not (mask == res.isna()).all():
+            # Some non-category element in scalars got converted to NA in res.
+            raise ValueError
+        return res
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:

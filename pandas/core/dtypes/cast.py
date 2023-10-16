@@ -464,16 +464,11 @@ def maybe_cast_pointwise_result(
     """
 
     if isinstance(dtype, ExtensionDtype):
-        if not isinstance(dtype, (CategoricalDtype, DatetimeTZDtype)):
-            # TODO: avoid this special-casing
-            # We have to special case categorical so as not to upcast
-            # things like counts back to categorical
-
-            cls = dtype.construct_array_type()
-            if same_dtype:
-                result = _maybe_cast_to_extension_array(cls, result, dtype=dtype)
-            else:
-                result = _maybe_cast_to_extension_array(cls, result)
+        cls = dtype.construct_array_type()
+        if same_dtype:
+            result = _maybe_cast_to_extension_array(cls, result, dtype=dtype)
+        else:
+            result = _maybe_cast_to_extension_array(cls, result)
 
     elif (numeric_only and dtype.kind in "iufcb") or not numeric_only:
         result = maybe_downcast_to_dtype(result, dtype)
@@ -498,11 +493,14 @@ def _maybe_cast_to_extension_array(
     -------
     ExtensionArray or obj
     """
-    from pandas.core.arrays.string_ import BaseStringArray
+    result: ArrayLike
 
-    # Everything can be converted to StringArrays, but we may not want to convert
-    if issubclass(cls, BaseStringArray) and lib.infer_dtype(obj) != "string":
-        return obj
+    if dtype is not None:
+        try:
+            result = cls._from_scalars(obj, dtype=dtype)
+        except (TypeError, ValueError):
+            return obj
+        return result
 
     try:
         result = cls._from_sequence(obj, dtype=dtype)
