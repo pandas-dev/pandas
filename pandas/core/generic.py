@@ -12379,6 +12379,15 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Wrap arithmetic method to operate inplace.
         """
         result = op(self, other)
+        if self._typ == "series" and result.dtype != self.dtype:
+            warnings.warn(
+                f"Setting an item of incompatible dtype is deprecated "
+                "and will raise in a future error of pandas. "
+                f"Value '{other}' has dtype incompatible with {self.values.dtype}, "
+                "please explicitly cast to a compatible dtype first.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
 
         if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
             # GH#36498 this inplace op can _actually_ be inplace.

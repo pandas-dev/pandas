@@ -1341,3 +1341,12 @@ class TestDataFrameSetitemCopyViewSemantics:
             index=Index([], dtype="datetime64[ns]", name="date"),
         )
         tm.assert_frame_equal(df, expected)
+
+
+def test_iadd_incompatible_dtype() -> None:
+    # https://github.com/pandas-dev/pandas/issues/39584
+    df = DataFrame({"a": [1, 1, 2], "b": [4, 5, 6]})
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        df.loc[:, "a"] += 0.1
+    expected = DataFrame({"a": [1.1, 1.1, 2.1], "b": [4, 5, 6]})
+    tm.assert_frame_equal(df, expected)

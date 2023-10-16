@@ -1809,3 +1809,12 @@ def test_setitem_empty_mask_dont_upcast_dt64():
     ser.mask(mask, "foo", inplace=True)
     assert ser.dtype == dti.dtype  # no-op -> dont upcast
     tm.assert_series_equal(ser, orig)
+
+
+def test_iadd_incompatible_dtype() -> None:
+    # https://github.com/pandas-dev/pandas/issues/39584
+    ser = Series([1, 2, 3])
+    with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+        ser.loc[:] += 2.2
+    expected = Series([3.2, 4.2, 5.2])
+    tm.assert_series_equal(ser, expected)
