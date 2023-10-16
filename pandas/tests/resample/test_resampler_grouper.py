@@ -151,19 +151,6 @@ def test_groupby_with_origin():
     start, end = "1/1/2000 00:00:00", "1/31/2000 00:00"
     middle = "1/15/2000 00:00:00"
 
-    # test origin on 1970-01-01 00:00:00
-    rng = date_range("1970-01-01 00:00:00", end, freq="1231min")  # prime number
-    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
-    middle_ts = rng[len(rng) // 2]
-    ts2 = ts[middle_ts:end]
-
-    origin = Timestamp(0)
-    adjusted_grouper = pd.Grouper(freq=freq, origin=origin)
-    adjusted_count_ts = ts.groupby(adjusted_grouper).agg("count")
-    adjusted_count_ts = adjusted_count_ts[middle_ts:end]
-    adjusted_count_ts2 = ts2.groupby(adjusted_grouper).agg("count")
-    tm.assert_series_equal(adjusted_count_ts, adjusted_count_ts2[middle_ts:end])
-
     rng = date_range(start, end, freq="1231min")  # prime number
     ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
     ts2 = ts[middle:end]
@@ -177,18 +164,25 @@ def test_groupby_with_origin():
     with pytest.raises(AssertionError, match="Index are different"):
         tm.assert_index_equal(count_ts.index, count_ts2.index)
 
-    # test origin on 2049-10-18 20:00:00
+    # test origin on 1970-01-01 00:00:00
+    origin = Timestamp(0)
+    adjusted_grouper = pd.Grouper(freq=freq, origin=origin)
+    adjusted_count_ts = ts.groupby(adjusted_grouper).agg("count")
+    adjusted_count_ts = adjusted_count_ts[middle:end]
+    adjusted_count_ts2 = ts2.groupby(adjusted_grouper).agg("count")
+    tm.assert_series_equal(adjusted_count_ts, adjusted_count_ts2)
 
-    rng = date_range(start, "2049-10-18 20:00:00", freq="1231min")  # prime number
-    ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
-    middle_ts = rng[len(rng) // 2]
-    ts2 = ts[middle_ts:end]
+    # test origin on 2049-10-18 20:00:00
     origin_future = Timestamp(0) + pd.Timedelta("1399min") * 30_000
     adjusted_grouper2 = pd.Grouper(freq=freq, origin=origin_future)
     adjusted2_count_ts = ts.groupby(adjusted_grouper2).agg("count")
-    adjusted2_count_ts = adjusted2_count_ts[middle_ts:end]
+    adjusted2_count_ts = adjusted2_count_ts[middle:end]
     adjusted2_count_ts2 = ts2.groupby(adjusted_grouper2).agg("count")
     tm.assert_series_equal(adjusted2_count_ts, adjusted2_count_ts2)
+
+    # both grouper use an adjusted timestamp that is a multiple of 1399 min
+    # they should be equals even if the adjusted_timestamp is in the future
+    tm.assert_series_equal(adjusted_count_ts, adjusted2_count_ts2)
 
 
 def test_nearest():
@@ -327,10 +321,10 @@ def test_apply_columns_multilevel():
     ind = date_range(start="2017-01-01", freq="15Min", periods=8)
     df = DataFrame(np.array([0] * 16).reshape(8, 2), index=ind, columns=cols)
     agg_dict = {col: (np.sum if col[3] == "one" else np.mean) for col in df.columns}
-    result = df.resample("H").apply(lambda x: agg_dict[x.name](x))
+    result = df.resample("h").apply(lambda x: agg_dict[x.name](x))
     expected = DataFrame(
         2 * [[0, 0.0]],
-        index=date_range(start="2017-01-01", freq="1H", periods=2),
+        index=date_range(start="2017-01-01", freq="1h", periods=2),
         columns=pd.MultiIndex.from_tuples(
             [("A", "a", "", "one"), ("B", "b", "i", "two")]
         ),
@@ -418,14 +412,14 @@ def test_apply_to_one_column_of_df():
     )
 
     # access "col" via getattr -> make sure we handle AttributeError
-    result = df.resample("H").apply(lambda group: group.col.sum())
+    result = df.resample("h").apply(lambda group: group.col.sum())
     expected = Series(
-        [3, 12, 21, 9], index=date_range("2012-01-01", periods=4, freq="H")
+        [3, 12, 21, 9], index=date_range("2012-01-01", periods=4, freq="h")
     )
     tm.assert_series_equal(result, expected)
 
     # access "col" via _getitem__ -> make sure we handle KeyErrpr
-    result = df.resample("H").apply(lambda group: group["col"].sum())
+    result = df.resample("h").apply(lambda group: group["col"].sum())
     tm.assert_series_equal(result, expected)
 
 
@@ -608,7 +602,7 @@ def test_groupby_resample_size_all_index_same():
     # GH 46826
     df = DataFrame(
         {"A": [1] * 3 + [2] * 3 + [1] * 3 + [2] * 3, "B": np.arange(12)},
-        index=date_range("31/12/2000 18:00", freq="H", periods=12),
+        index=date_range("31/12/2000 18:00", freq="h", periods=12),
     )
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):

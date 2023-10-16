@@ -80,7 +80,7 @@ def _new_PeriodIndex(cls, **d):
     PeriodArray,
     wrap=True,
 )
-@inherit_names(["is_leap_year", "_format_native_types"], PeriodArray)
+@inherit_names(["is_leap_year"], PeriodArray)
 class PeriodIndex(DatetimeIndexOpsMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.

@@ -47,7 +47,7 @@ def test_read_csv_with_custom_date_parser(all_parsers):
     # GH36111
     def __custom_date_parser(time):
         time = time.astype(np.float64)
-        time = time.astype(np.int_)  # convert float seconds to int type
+        time = time.astype(int)  # convert float seconds to int type
         return pd.to_timedelta(time, unit="s")
 
     testdata = StringIO(
@@ -87,7 +87,7 @@ def test_read_csv_with_custom_date_parser_parse_dates_false(all_parsers):
     # GH44366
     def __custom_date_parser(time):
         time = time.astype(np.float64)
-        time = time.astype(np.int_)  # convert float seconds to int type
+        time = time.astype(int)  # convert float seconds to int type
         return pd.to_timedelta(time, unit="s")
 
     testdata = StringIO(
@@ -157,7 +157,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         mark = pytest.mark.xfail(
             reason="pyarrow doesn't support disabling auto-inference on column numbers."
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     def date_parser(*date_cols):
         """
@@ -326,7 +326,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         mark = pytest.mark.xfail(
             reason="pyarrow doesn't support disabling auto-inference on column numbers."
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     kwds = {
         "header": None,
@@ -1836,7 +1836,7 @@ def test_hypothesis_delimited_date(
     request, date_format, dayfirst, delimiter, test_datetime
 ):
     if date_format == "%m %Y" and delimiter == ".":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="parse_datetime_string cannot reliably tell whether "
                 "e.g. %m.%Y is a float or a date"
