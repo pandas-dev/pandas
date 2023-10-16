@@ -10,7 +10,7 @@ requires = [
     # we don't want to force users to compile with 1.25 though
     # (Ideally, in the future, though, oldest-supported-numpy can be dropped when our min numpy is 1.25.x)
     "oldest-supported-numpy>=2022.8.16; python_version<'3.12'",
-    "numpy>=1.26.0; python_version>='3.12'",
+    "numpy>=1.26.0,<2; python_version>='3.12'",
     "versioneer[toml]"
 ]
 
@@ -29,9 +29,9 @@ authors = [
 license = {file = 'LICENSE'}
 requires-python = '>=3.9'
 dependencies = [
-  "numpy>=1.22.4; python_version<'3.11'",
-  "numpy>=1.23.2; python_version=='3.11'",
-  "numpy>=1.26.0; python_version>='3.12'",
+  "numpy>=1.22.4,<2; python_version<'3.11'",
+  "numpy>=1.23.2,<2; python_version=='3.11'",
+  "numpy>=1.26.0,<2; python_version>='3.12'",
   "python-dateutil>=2.8.2",
   "pytz>=2020.1",
   "tzdata>=2022.1"

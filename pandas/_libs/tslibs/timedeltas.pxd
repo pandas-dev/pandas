@@ -4,6 +4,7 @@ from numpy cimport int64_t
 from .np_datetime cimport NPY_DATETIMEUNIT
 
 
+cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1
 # Exposed for tslib, not intended for outside use.
 cpdef int64_t delta_to_nanoseconds(
     delta, NPY_DATETIMEUNIT reso=*, bint round_ok=*

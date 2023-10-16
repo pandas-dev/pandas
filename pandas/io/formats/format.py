@@ -7,7 +7,6 @@ from __future__ import annotations
 from collections.abc import (
     Generator,
     Hashable,
-    Iterable,
     Mapping,
     Sequence,
 )
@@ -26,7 +25,6 @@ from typing import (
     Final,
     cast,
 )
-from unicodedata import east_asian_width
 
 import numpy as np
 
@@ -226,7 +224,7 @@ class SeriesFormatter:
             float_format = get_option("display.float_format")
         self.float_format = float_format
         self.dtype = dtype
-        self.adj = get_adjustment()
+        self.adj = printing.get_adjustment()
 
         self._chk_truncate()
 
@@ -261,11 +259,12 @@ class SeriesFormatter:
         name = self.series.name
         footer = ""
 
-        if getattr(self.series.index, "freq", None) is not None:
-            assert isinstance(
-                self.series.index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
-            )
-            footer += f"Freq: {self.series.index.freqstr}"
+        index = self.series.index
+        if (
+            isinstance(index, (DatetimeIndex, PeriodIndex, TimedeltaIndex))
+            and index.freq is not None
+        ):
+            footer += f"Freq: {index.freqstr}"
 
         if self.name is not False and name is not None:
             if footer:
@@ -291,7 +290,7 @@ class SeriesFormatter:
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
         if isinstance(self.tr_series.dtype, CategoricalDtype):
-            level_info = self.tr_series._values._repr_categories_info()
+            level_info = self.tr_series._values._get_repr_footer()
             if footer:
                 footer += "\n"
             footer += level_info
@@ -314,8 +313,14 @@ class SeriesFormatter:
         if len(series) == 0:
             return f"{type(self.series).__name__}([], {footer})"
 
-        have_header = _has_names(series.index)
-        fmt_index = self.tr_series.index.format(name=True)
+        index = series.index
+        have_header = _has_names(index)
+        if isinstance(index, MultiIndex):
+            fmt_index = index._format_multi(include_names=True, sparsify=None)
+            adj = printing.get_adjustment()
+            fmt_index = adj.adjoin(2, *fmt_index).split("\n")
+        else:
+            fmt_index = index._format_flat(include_name=True)
         fmt_values = self._get_formatted_values()
 
         if self.is_truncated_vertically:
@@ -345,69 +350,6 @@ class SeriesFormatter:
             result += "\n" + footer
 
         return str("".join(result))
-
-
-class _TextAdjustment:
-    def __init__(self) -> None:
-        self.encoding = get_option("display.encoding")
-
-    def len(self, text: str) -> int:
-        return len(text)
-
-    def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
-        return printing.justify(texts, max_len, mode=mode)
-
-    def adjoin(self, space: int, *lists, **kwargs) -> str:
-        return printing.adjoin(
-            space, *lists, strlen=self.len, justfunc=self.justify, **kwargs
-        )
-
-
-class _EastAsianTextAdjustment(_TextAdjustment):
-    def __init__(self) -> None:
-        super().__init__()
-        if get_option("display.unicode.ambiguous_as_wide"):
-            self.ambiguous_width = 2
-        else:
-            self.ambiguous_width = 1
-
-        # Definition of East Asian Width
-        # https://unicode.org/reports/tr11/
-        # Ambiguous width can be changed by option
-        self._EAW_MAP = {"Na": 1, "N": 1, "W": 2, "F": 2, "H": 1}
-
-    def len(self, text: str) -> int:
-        """
-        Calculate display width considering unicode East Asian Width
-        """
-        if not isinstance(text, str):
-            return len(text)
-
-        return sum(
-            self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
-        )
-
-    def justify(
-        self, texts: Iterable[str], max_len: int, mode: str = "right"
-    ) -> list[str]:
-        # re-calculate padding space per str considering East Asian Width
-        def _get_pad(t):
-            return max_len - self.len(t) + len(t)
-
-        if mode == "left":
-            return [x.ljust(_get_pad(x)) for x in texts]
-        elif mode == "center":
-            return [x.center(_get_pad(x)) for x in texts]
-        else:
-            return [x.rjust(_get_pad(x)) for x in texts]
-
-
-def get_adjustment() -> _TextAdjustment:
-    use_east_asian_width = get_option("display.unicode.east_asian_width")
-    if use_east_asian_width:
-        return _EastAsianTextAdjustment()
-    else:
-        return _TextAdjustment()
 
 
 def get_dataframe_repr_params() -> dict[str, Any]:
@@ -529,7 +471,7 @@ class DataFrameFormatter:
 
         self.tr_frame = self.frame
         self.truncate()
-        self.adj = get_adjustment()
+        self.adj = printing.get_adjustment()
 
     def get_strcols(self) -> list[list[str]]:
         """
@@ -841,7 +783,7 @@ class DataFrameFormatter:
         columns = frame.columns
 
         if isinstance(columns, MultiIndex):
-            fmt_columns = columns.format(sparsify=False, adjoin=False)
+            fmt_columns = columns._format_multi(sparsify=False, include_names=False)
             fmt_columns = list(zip(*fmt_columns))
             dtypes = self.frame.dtypes._values
 
@@ -866,7 +808,7 @@ class DataFrameFormatter:
 
             str_columns = [list(x) for x in zip(*str_columns)]
         else:
-            fmt_columns = columns.format()
+            fmt_columns = columns._format_flat(include_name=False)
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
@@ -885,14 +827,15 @@ class DataFrameFormatter:
         fmt = self._get_formatter("__index__")
 
         if isinstance(index, MultiIndex):
-            fmt_index = index.format(
+            fmt_index = index._format_multi(
                 sparsify=self.sparsify,
-                adjoin=False,
-                names=self.show_row_idx_names,
+                include_names=self.show_row_idx_names,
                 formatter=fmt,
             )
         else:
-            fmt_index = [index.format(name=self.show_row_idx_names, formatter=fmt)]
+            fmt_index = [
+                index._format_flat(include_name=self.show_row_idx_names, formatter=fmt)
+            ]
 
         fmt_index = [
             tuple(
@@ -1169,7 +1112,7 @@ def format_array(
         the leading space to pad between columns.
 
         When formatting an Index subclass
-        (e.g. IntervalIndex._format_native_types), we don't want the
+        (e.g. IntervalIndex._get_values_for_csv), we don't want the
         leading space since it should be left-aligned.
     fallback_formatter
 
@@ -1280,18 +1223,16 @@ class _GenericArrayFormatter:
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                try:
-                    # try block for np.isnat specifically
-                    # determine na_rep if x is None or NaT-like
-                    if x is None:
-                        return "None"
-                    elif x is NA:
-                        return str(NA)
-                    elif x is NaT or np.isnat(x):
-                        return "NaT"
-                except (TypeError, ValueError):
-                    # np.isnat only handles datetime or timedelta objects
-                    pass
+                if x is None:
+                    return "None"
+                elif x is NA:
+                    return str(NA)
+                elif lib.is_float(x) and np.isinf(x):
+                    # TODO(3.0): this will be unreachable when use_inf_as_na
+                    #  deprecation is enforced
+                    return str(x)
+                elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
+                    return "NaT"
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
@@ -1789,13 +1730,13 @@ def _make_fixed_width(
     strings: list[str],
     justify: str = "right",
     minimum: int | None = None,
-    adj: _TextAdjustment | None = None,
+    adj: printing._TextAdjustment | None = None,
 ) -> list[str]:
     if len(strings) == 0 or justify == "all":
         return strings
 
     if adj is None:
-        adjustment = get_adjustment()
+        adjustment = printing.get_adjustment()
     else:
         adjustment = adj
 
