@@ -410,6 +410,9 @@ JSONEngine = Literal["ujson", "pyarrow"]
 # read_xml parsers
 XMLParsers = Literal["lxml", "etree"]
 
+# read_html flavors
+HTMLFlavors = Literal["lxml", "html5lib", "bs4"]
+
 # Interval closed type
 IntervalLeftRight = Literal["left", "right"]
 IntervalClosedType = Union[IntervalLeftRight, Literal["both", "neither"]]
