@@ -254,7 +254,7 @@ Dependency                Minimum Version    pip extra          Notes
 ========================= ================== ================== =============================================================
 matplotlib                3.6.3              plot               Plotting library
 Jinja2                    3.1.2              output-formatting  Conditional formatting with DataFrame.style
-tabulate                  0.9.0             output-formatting  Printing in Markdown-friendly format (see `tabulate`_)
+tabulate                  0.9.0              output-formatting  Printing in Markdown-friendly format (see `tabulate`_)
 ========================= ================== ================== =============================================================
 
 Computation
@@ -279,8 +279,8 @@ Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
 xlrd                      2.0.1              excel           Reading Excel
 xlsxwriter                3.0.5              excel           Writing Excel
-openpyxl                  3.1.0             excel           Reading / writing for xlsx files
-pyxlsb                    1.0.10              excel           Reading for xlsb files
+openpyxl                  3.1.0              excel           Reading / writing for xlsx files
+pyxlsb                    1.0.10             excel           Reading for xlsb files
 python-calamine           0.1.6              excel           Reading for xls/xlsx/xlsb/ods files
 ========================= ================== =============== =============================================================
 
@@ -340,7 +340,7 @@ Installable with ``pip install "pandas[postgresql, mysql, sql-other]"``.
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
-SQLAlchemy                2.0.0             postgresql,     SQL support for databases other than sqlite
+SQLAlchemy                2.0.0              postgresql,     SQL support for databases other than sqlite
                                              mysql,
                                              sql-other
 psycopg2                  2.9.6              postgresql      PostgreSQL engine for sqlalchemy
@@ -358,8 +358,8 @@ Dependency                Minimum Version    pip extra        Notes
 PyTables                  3.8.0              hdf5             HDF5-based reading / writing
 blosc                     1.21.3             hdf5             Compression for HDF5; only available on ``conda``
 zlib                                         hdf5             Compression for HDF5
-fastparquet               2022.12.0              -                Parquet reading / writing (pyarrow is default)
-pyarrow                   10.0.1              parquet, feather Parquet, ORC, and feather reading / writing
+fastparquet               2022.12.0          -                Parquet reading / writing (pyarrow is default)
+pyarrow                   10.0.1             parquet, feather Parquet, ORC, and feather reading / writing
 pyreadstat                1.2.0              spss             SPSS files (.sav) reading
 odfpy                     1.4.1              excel            Open document format (.odf, .ods, .odt) reading / writing
 ========================= ================== ================ =============================================================
