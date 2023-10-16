@@ -397,7 +397,7 @@ def test_compound(
         expected[column] = [education_df[column][row] for row in expected_rows]
     if normalize:
         expected["proportion"] = expected_count
-        expected["proportion"] /= expected_group_size
+        expected["proportion"] = expected["proportion"] / expected_group_size
     else:
         expected["count"] = expected_count
     tm.assert_frame_equal(result, expected)

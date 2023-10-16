@@ -2831,7 +2831,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # GH#43999 - deprecation of observed=False
                 observed=False,
             ).transform("sum")
-            result_series /= indexed_group_size
+            result_series = result_series / indexed_group_size
 
             # Handle groups of non-observed categories
             result_series = result_series.fillna(0.0)
