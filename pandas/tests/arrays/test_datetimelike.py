@@ -32,7 +32,7 @@ from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
 # TODO: more freq variants
-@pytest.fixture(params=["D", "B", "W", "ME", "Q", "Y"])
+@pytest.fixture(params=["D", "B", "W", "ME", "QE", "Y"])
 def freqstr(request):
     """Fixture returning parametrized frequency in string format."""
     return request.param

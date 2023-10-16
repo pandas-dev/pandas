@@ -389,7 +389,7 @@ class TestTableOrient:
         result["schema"].pop("pandas_version")
 
         fields = [
-            {"freq": "Q-JAN", "name": "index", "type": "datetime"},
+            {"freq": "QE-JAN", "name": "index", "type": "datetime"},
             {"name": "values", "type": "integer"},
         ]
 

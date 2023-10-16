@@ -57,8 +57,6 @@ from pandas._libs.tslibs.ccalendar cimport (
 )
 from pandas._libs.tslibs.conversion cimport localize_pydatetime
 from pandas._libs.tslibs.dtypes cimport (
-    c_OFFSET_DEPR_FREQSTR,
-    c_REVERSE_OFFSET_DEPR_FREQSTR,
     c_DEPR_ABBREVS,
     c_OFFSET_DEPR_FREQSTR,
     c_REVERSE_OFFSET_DEPR_FREQSTR,

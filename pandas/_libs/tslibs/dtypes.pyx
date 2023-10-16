@@ -202,6 +202,18 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
     "ns": "ns",
     "h": "h",
     "QE": "Q",
+    "QE-DEC": "Q-DEC",
+    "QE-JAN": "Q-JAN",
+    "QE-FEB": "Q-FEB",
+    "QE-MAR": "Q-MAR",
+    "QE-APR": "Q-APR",
+    "QE-MAY": "Q-MAY",
+    "QE-JUN": "Q-JUN",
+    "QE-JUL": "Q-JUL",
+    "QE-AUG": "Q-AUG",
+    "QE-SEP": "Q-SEP",
+    "QE-OCT": "Q-OCT",
+    "QE-NOV": "Q-NOV",
     "W": "W",
     "ME": "M",
     "Y": "Y",
@@ -211,10 +223,19 @@ OFFSET_TO_PERIOD_FREQSTR: dict = {
 }
 OFFSET_DEPR_FREQSTR: dict[str, str]= {
     "M": "ME",
-}
-OFFSET_DEPR_FREQSTR: dict[str, str]= {
     "Q": "QE",
-    "M": "ME",
+    "Q-DEC": "QE-DEC",
+    "Q-JAN": "QE-JAN",
+    "Q-FEB": "QE-FEB",
+    "Q-MAR": "QE-MAR",
+    "Q-APR": "QE-APR",
+    "Q-MAY": "QE-MAY",
+    "Q-JUN": "QE-JUN",
+    "Q-JUL": "QE-JUL",
+    "Q-AUG": "QE-AUG",
+    "Q-SEP": "QE-SEP",
+    "Q-OCT": "QE-OCT",
+    "Q-NOV": "QE-NOV",
 }
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
 cdef dict c_OFFSET_DEPR_FREQSTR = OFFSET_DEPR_FREQSTR

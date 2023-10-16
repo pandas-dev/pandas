@@ -21,7 +21,7 @@ class TestDatetimeIndexOps:
         "freq,expected",
         [
             ("Y", "day"),
-            ("Q", "day"),
+            ("QE", "day"),
             ("ME", "day"),
             ("D", "day"),
             ("h", "hour"),

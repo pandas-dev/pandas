@@ -1036,7 +1036,8 @@ class TestTimeSeries:
         assert (index.asi8[50:100] != -1).all()
 
     @pytest.mark.parametrize(
-        "freq", ["ME", "Q", "Y", "D", "B", "bh", "min", "s", "ms", "us", "h", "ns", "C"]
+        "freq",
+        ["ME", "QE", "Y", "D", "B", "bh", "min", "s", "ms", "us", "h", "ns", "C"],
     )
     def test_from_freq_recreate_from_data(self, freq):
         org = date_range(start="2001/02/01 09:00", freq=freq, periods=1)

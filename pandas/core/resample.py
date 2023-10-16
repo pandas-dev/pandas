@@ -2300,7 +2300,7 @@ class TimeGrouper(Grouper):
         if self.freq.name in ("BME", "ME", "W") or self.freq.name.split("-")[0] in (
             "BQ",
             "BY",
-            "Q",
+            "QE",
             "Y",
             "W",
         ):

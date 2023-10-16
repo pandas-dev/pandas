@@ -73,10 +73,8 @@ class TestPeriodConstruction:
 
         i1 = Period.now(freq="Q")
         i2 = Period(datetime.now(), freq="Q")
-        i3 = Period.now("q")
 
         assert i1 == i2
-        assert i1 == i3
 
         # Pass in freq as a keyword argument sometimes as a test for
         # https://github.com/pandas-dev/pandas/issues/53369

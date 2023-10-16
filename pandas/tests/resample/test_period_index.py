@@ -134,7 +134,7 @@ class TestPeriodIndex:
         "rule,expected_error_msg",
         [
             ("y-dec", "<YearEnd: month=12>"),
-            ("q-mar", "<QuarterEnd: startingMonth=3>"),
+            ("qe-mar", "<QuarterEnd: startingMonth=3>"),
             ("M", "<MonthEnd>"),
             ("w-thu", "<Week: weekday=3>"),
         ],
@@ -367,7 +367,7 @@ class TestPeriodIndex:
         # GH2073
         s = Series(
             np.arange(9, dtype="int64"),
-            index=date_range("2010-01-01", periods=9, freq="Q"),
+            index=date_range("2010-01-01", periods=9, freq="QE"),
         )
         last = s.resample("ME").ffill()
         both = s.resample("ME").ffill().resample("ME").last().astype("int64")
@@ -647,7 +647,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "from_freq, to_freq", [("D", "ME"), ("Q", "Y"), ("ME", "Q"), ("D", "W")]
+        "from_freq, to_freq", [("D", "ME"), ("QE", "Y"), ("ME", "QE"), ("D", "W")]
     )
     def test_default_right_closed_label(self, from_freq, to_freq):
         idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
@@ -660,7 +660,7 @@ class TestPeriodIndex:
 
     @pytest.mark.parametrize(
         "from_freq, to_freq",
-        [("D", "MS"), ("Q", "YS"), ("ME", "QS"), ("h", "D"), ("min", "h")],
+        [("D", "MS"), ("QE", "YS"), ("ME", "QS"), ("h", "D"), ("min", "h")],
     )
     def test_default_left_closed_label(self, from_freq, to_freq):
         idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
