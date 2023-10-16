@@ -695,6 +695,7 @@ def postgresql_adbc_conn(iris_path, types_data):
             drop_view(view, conn)
         for tbl in get_all_tables(conn):
             drop_table(tbl, conn)
+        conn.commit()
 
 
 @pytest.fixture
@@ -773,6 +774,7 @@ def sqlite_adbc_conn(iris_path, types_data):
                 drop_view(view, conn)
             for tbl in get_all_tables(conn):
                 drop_table(tbl, conn)
+            conn.commit()
 
 
 @pytest.fixture
