@@ -210,7 +210,7 @@ def test_null_byte_char(request, all_parsers):
 
     if parser.engine == "c" or (parser.engine == "python" and PY311):
         if parser.engine == "python" and PY311:
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="In Python 3.11, this is read as an empty character not null"
                 )
@@ -230,7 +230,7 @@ def test_open_file(request, all_parsers):
     # GH 39024
     parser = all_parsers
     if parser.engine == "c":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=f"{parser.engine} engine does not support sep=None "
                 f"with delim_whitespace=False"

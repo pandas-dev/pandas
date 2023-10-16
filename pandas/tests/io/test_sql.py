@@ -1,20 +1,3 @@
-"""SQL io tests
-
-The SQL tests are broken down in different classes:
-
-- `PandasSQLTest`: base class with common methods for all test classes
-- Tests for the public API (only tests with sqlite3)
-    - `_TestSQLApi` base class
-    - `TestSQLApi`: test the public API with sqlalchemy engine
-    - `TestSQLiteFallbackApi`: test the public API with a sqlite DBAPI
-      connection
-- Tests for the different SQL flavors (flavor specific type conversions)
-    - Tests for the sqlalchemy mode: `_TestSQLAlchemy` is the base class with
-      common methods. The different tested flavors (sqlite3, MySQL,
-      PostgreSQL) derive from the base class
-    - Tests for the fallback mode (`TestSQLiteFallback`)
-
-"""
 from __future__ import annotations
 
 import contextlib
@@ -29,6 +12,7 @@ from datetime import (
 from io import StringIO
 from pathlib import Path
 import sqlite3
+from typing import TYPE_CHECKING
 import uuid
 
 import numpy as np
@@ -74,12 +58,8 @@ from pandas.io.sql import (
     read_sql_table,
 )
 
-try:
+if TYPE_CHECKING:
     import sqlalchemy
-
-    SQLALCHEMY_INSTALLED = True
-except ImportError:
-    SQLALCHEMY_INSTALLED = False
 
 
 @pytest.fixture
@@ -580,13 +560,16 @@ def drop_table(
                 cur.execute(f'DROP TABLE IF EXISTS "{table_name}"')
         else:
             with conn.begin() as con:
-                sql.SQLDatabase(con).drop_table(table_name)
+                with sql.SQLDatabase(con) as db:
+                    db.drop_table(table_name)
 
 
 def drop_view(
     view_name: str,
     conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
 ):
+    import sqlalchemy
+
     if isinstance(conn, sqlite3.Connection):
         conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
         conn.commit()
@@ -1147,7 +1130,7 @@ def test_to_sql_callable(conn, test_frame1, request):
 def test_default_type_conversion(conn, request):
     conn_name = conn
     if conn_name == "sqlite_buildin_iris":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="sqlite_buildin connection does not implement read_sql_table"
             )
@@ -1471,10 +1454,9 @@ def test_read_sql_iris_parameter(conn, request, sql_strings, flavor):
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_parameters"][flavor(conn_name)]
     params = ("Iris-setosa", 5.1)
-    pandasSQL = pandasSQL_builder(conn)
-
-    with pandasSQL.run_transaction():
-        iris_frame = pandasSQL.read_query(query, params=params)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            iris_frame = pandasSQL.read_query(query, params=params)
     check_iris_frame(iris_frame)
 
 
@@ -1500,15 +1482,15 @@ def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_iris_no_parameter_with_percent(conn, request, sql_strings, flavor):
     if "mysql" in conn or ("postgresql" in conn and "adbc" not in conn):
-        request.node.add_marker(pytest.mark.xfail(reason="broken test", strict=True))
+        request.applymarker(pytest.mark.xfail(reason="broken test"))
 
     conn_name = conn
     conn = request.getfixturevalue(conn)
 
     query = sql_strings["read_no_parameters_with_percent"][flavor(conn_name)]
-    pandasSQL = pandasSQL_builder(conn)
-    with pandasSQL.run_transaction():
-        iris_frame = pandasSQL.read_query(query, params=None)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            iris_frame = pandasSQL.read_query(query, params=None)
     check_iris_frame(iris_frame)
 
 
@@ -1756,7 +1738,7 @@ def test_api_custom_dateparsing_error(
     conn_name = conn
     conn = request.getfixturevalue(conn)
     if text == "types" and conn_name == "sqlite_buildin_iris":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="failing combination of arguments")
         )
 
@@ -1904,7 +1886,7 @@ def test_api_to_sql_index_label(conn, request, index_name, index_label, expected
 def test_api_to_sql_index_label_multiindex(conn, request):
     conn_name = conn
     if "mysql" in conn_name:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="MySQL can fail using TEXT without length as key", strict=False
             )
@@ -2256,7 +2238,7 @@ def test_read_table_columns(conn, request, test_frame1):
     # test columns argument in read_table
     conn_name = conn
     if conn_name == "sqlite_buildin":
-        request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
+        request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
 
     conn = request.getfixturevalue(conn)
     sql.to_sql(test_frame1, "test_frame", conn)
@@ -2272,7 +2254,7 @@ def test_read_table_index_col(conn, request, test_frame1):
     # test columns argument in read_table
     conn_name = conn
     if conn_name == "sqlite_buildin":
-        request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
+        request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
 
     conn = request.getfixturevalue(conn)
     sql.to_sql(test_frame1, "test_frame", conn)
@@ -2293,7 +2275,7 @@ def test_read_table_index_col(conn, request, test_frame1):
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_read_sql_delegate(conn, request):
     if conn == "sqlite_buildin_iris":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="sqlite_buildin connection does not implement read_sql_table"
             )
@@ -2338,7 +2320,7 @@ def test_not_reflect_all_tables(sqlite_conn):
 def test_warning_case_insensitive_table_name(conn, request, test_frame1):
     conn_name = conn
     if conn_name == "sqlite_buildin" or "adbc" in conn_name:
-        request.node.add_marker(pytest.mark.xfail(reason="Does not raise warning"))
+        request.applymarker(pytest.mark.xfail(reason="Does not raise warning"))
 
     conn = request.getfixturevalue(conn)
     # see gh-7815
@@ -2350,7 +2332,8 @@ def test_warning_case_insensitive_table_name(conn, request, test_frame1):
             r"sensitivity issues. Consider using lower case table names."
         ),
     ):
-        sql.SQLDatabase(conn).check_case_sensitive("TABLE1", "")
+        with sql.SQLDatabase(conn) as db:
+            db.check_case_sensitive("TABLE1", "")
 
     # Test that the warning is certainly NOT triggered in a normal case.
     with tm.assert_produces_warning(None):
@@ -2366,10 +2349,10 @@ def test_sqlalchemy_type_mapping(conn, request):
     df = DataFrame(
         {"time": to_datetime(["2014-12-12 01:54", "2014-12-11 02:54"], utc=True)}
     )
-    db = sql.SQLDatabase(conn)
-    table = sql.SQLTable("test_type", db, frame=df)
-    # GH 9086: TIMESTAMP is the suggested type for datetimes with timezones
-    assert isinstance(table.table.c["time"].type, TIMESTAMP)
+    with sql.SQLDatabase(conn) as db:
+        table = sql.SQLTable("test_type", db, frame=df)
+        # GH 9086: TIMESTAMP is the suggested type for datetimes with timezones
+        assert isinstance(table.table.c["time"].type, TIMESTAMP)
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -2397,10 +2380,10 @@ def test_sqlalchemy_integer_mapping(conn, request, integer, expected):
     # GH35076 Map pandas integer to optimal SQLAlchemy integer type
     conn = request.getfixturevalue(conn)
     df = DataFrame([0, 1], columns=["a"], dtype=integer)
-    db = sql.SQLDatabase(conn)
-    table = sql.SQLTable("test_type", db, frame=df)
+    with sql.SQLDatabase(conn) as db:
+        table = sql.SQLTable("test_type", db, frame=df)
 
-    result = str(table.table.c.a.type)
+        result = str(table.table.c.a.type)
     assert result == expected
 
 
@@ -2410,16 +2393,16 @@ def test_sqlalchemy_integer_overload_mapping(conn, request, integer):
     conn = request.getfixturevalue(conn)
     # GH35076 Map pandas integer to optimal SQLAlchemy integer type
     df = DataFrame([0, 1], columns=["a"], dtype=integer)
-    db = sql.SQLDatabase(conn)
-    with pytest.raises(
-        ValueError, match="Unsigned 64 bit integer datatype is not supported"
-    ):
-        sql.SQLTable("test_type", db, frame=df)
+    with sql.SQLDatabase(conn) as db:
+        with pytest.raises(
+            ValueError, match="Unsigned 64 bit integer datatype is not supported"
+        ):
+            sql.SQLTable("test_type", db, frame=df)
 
 
-@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="fails without SQLAlchemy")
 @pytest.mark.parametrize("conn", all_connectable)
 def test_database_uri_string(conn, request, test_frame1):
+    pytest.importorskip("sqlalchemy")
     conn = request.getfixturevalue(conn)
     # Test read_sql and .to_sql method with a database URI (GH10654)
     # db_uri = 'sqlite:///:memory:' # raises
@@ -2439,9 +2422,9 @@ def test_database_uri_string(conn, request, test_frame1):
 
 
 @td.skip_if_installed("pg8000")
-@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="fails without SQLAlchemy")
 @pytest.mark.parametrize("conn", all_connectable)
 def test_pg8000_sqlalchemy_passthrough_error(conn, request):
+    pytest.importorskip("sqlalchemy")
     conn = request.getfixturevalue(conn)
     # using driver that will not be installed on CI to trigger error
     # in sqlalchemy.create_engine -> test passing of this error to user
@@ -2487,7 +2470,7 @@ def test_column_with_percentage(conn, request):
     # GH 37157
     conn_name = conn
     if conn_name == "sqlite_buildin":
-        request.node.add_marker(pytest.mark.xfail(reason="Not Implemented"))
+        request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
 
     conn = request.getfixturevalue(conn)
     df = DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
@@ -2512,7 +2495,7 @@ def test_sql_open_close(test_frame3):
     tm.assert_frame_equal(test_frame3, result)
 
 
-@pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
+@td.skip_if_installed("sqlalchemy")
 def test_con_string_import_error():
     conn = "mysql://root@localhost/pandas"
     msg = "Using URI string without sqlalchemy installed"
@@ -2520,7 +2503,7 @@ def test_con_string_import_error():
         sql.read_sql("SELECT * FROM iris", conn)
 
 
-@pytest.mark.skipif(SQLALCHEMY_INSTALLED, reason="SQLAlchemy is installed")
+@td.skip_if_installed("sqlalchemy")
 def test_con_unknown_dbapi2_class_does_not_error_without_sql_alchemy_installed():
     class MockSqliteConnection:
         def __init__(self, *args, **kwargs) -> None:
@@ -2603,20 +2586,20 @@ def test_drop_table(conn, request):
     from sqlalchemy import inspect
 
     temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
-    pandasSQL = sql.SQLDatabase(conn)
-    with pandasSQL.run_transaction():
-        assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
+    with sql.SQLDatabase(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(temp_frame, "temp_frame") == 4
 
-    insp = inspect(conn)
-    assert insp.has_table("temp_frame")
+        insp = inspect(conn)
+        assert insp.has_table("temp_frame")
 
-    with pandasSQL.run_transaction():
-        pandasSQL.drop_table("temp_frame")
-    try:
-        insp.clear_cache()  # needed with SQLAlchemy 2.0, unavailable prior
-    except AttributeError:
-        pass
-    assert not insp.has_table("temp_frame")
+        with pandasSQL.run_transaction():
+            pandasSQL.drop_table("temp_frame")
+        try:
+            insp.clear_cache()  # needed with SQLAlchemy 2.0, unavailable prior
+        except AttributeError:
+            pass
+        assert not insp.has_table("temp_frame")
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -2649,6 +2632,10 @@ def test_execute_sql(conn, request):
         iris_results = pandasSQL.execute("SELECT * FROM iris")
         row = iris_results.fetchone()
         iris_results.close()
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            iris_results = pandasSQL.execute("SELECT * FROM iris")
+            row = iris_results.fetchone()
     tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
 
@@ -2682,7 +2669,7 @@ def test_sqlalchemy_default_type_conversion(conn, request):
     if conn_name == "sqlite_str":
         pytest.skip("types tables not created in sqlite_str fixture")
     elif "mysql" in conn_name or "sqlite" in conn_name:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="boolean dtype not inferred properly")
         )
 
@@ -2716,7 +2703,7 @@ def test_default_date_load(conn, request):
     if conn_name == "sqlite_str":
         pytest.skip("types tables not created in sqlite_str fixture")
     elif "sqlite" in conn_name:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="sqlite does not read date properly")
         )
 
@@ -2766,7 +2753,7 @@ def test_datetime_with_timezone(conn, request):
     conn = request.getfixturevalue(conn)
     df = read_sql_query("select * from types", conn)
     if not hasattr(df, "DateColWithTz"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="no column with datetime with time zone")
         )
 
@@ -2778,7 +2765,7 @@ def test_datetime_with_timezone(conn, request):
 
     df = read_sql_query("select * from types", conn, parse_dates=["DateColWithTz"])
     if not hasattr(df, "DateColWithTz"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="no column with datetime with time zone")
         )
     col = df.DateColWithTz
@@ -2851,7 +2838,7 @@ def test_naive_datetimeindex_roundtrip(conn, request):
     # GH 23510
     # Ensure that a naive DatetimeIndex isn't converted to UTC
     conn = request.getfixturevalue(conn)
-    dates = date_range("2018-01-01", periods=5, freq="6H")._with_freq(None)
+    dates = date_range("2018-01-01", periods=5, freq="6h")._with_freq(None)
     expected = DataFrame({"nums": range(5)}, index=dates)
     assert expected.to_sql(name="foo_table", con=conn, index_label="info_date") == 5
     result = sql.read_sql_table("foo_table", conn, index_col="info_date")
@@ -3062,10 +3049,10 @@ def test_to_sql_save_index(conn, request):
         [(1, 2.1, "line1"), (2, 1.5, "line2")], columns=["A", "B", "C"], index=["A"]
     )
 
-    pandasSQL = pandasSQL_builder(conn)
     tbl_name = "test_to_sql_saves_index"
-    with pandasSQL.run_transaction():
-        assert pandasSQL.to_sql(df, tbl_name) == 2
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(df, tbl_name) == 2
 
     if conn_name in {"sqlite_buildin", "sqlite_str"}:
         ixs = sql.read_sql_query(
@@ -3094,14 +3081,14 @@ def test_transactions(conn, request):
     conn = request.getfixturevalue(conn)
 
     stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
-    pandasSQL = pandasSQL_builder(conn)
     if conn_name != "sqlite_buildin" and "adbc" not in conn_name:
         from sqlalchemy import text
 
         stmt = text(stmt)
 
-    with pandasSQL.run_transaction() as trans:
-        trans.execute(stmt)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction() as trans:
+            trans.execute(stmt)
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -3115,42 +3102,42 @@ def test_transaction_rollback(conn, request):
         )
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    pandasSQL = pandasSQL_builder(conn)
-    with pandasSQL.run_transaction() as trans:
-        stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
-        if "adbc" in conn_name or isinstance(pandasSQL, SQLiteDatabase):
-            trans.execute(stmt)
-        else:
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction() as trans:
+            stmt = "CREATE TABLE test_trans (A INT, B TEXT)"
+            if "adbc" in conn_name or isinstance(pandasSQL, SQLiteDatabase):
+                trans.execute(stmt)
+            else:
+                from sqlalchemy import text
+
+                stmt = text(stmt)
+                trans.execute(stmt)
+
+        class DummyException(Exception):
+            pass
+
+        # Make sure when transaction is rolled back, no rows get inserted
+        ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
+        if isinstance(pandasSQL, SQLDatabase):
             from sqlalchemy import text
 
-            stmt = text(stmt)
-            trans.execute(stmt)
+            ins_sql = text(ins_sql)
+        try:
+            with pandasSQL.run_transaction() as trans:
+                trans.execute(ins_sql)
+                raise DummyException("error")
+        except DummyException:
+            # ignore raised exception
+            pass
+        with pandasSQL.run_transaction():
+            res = pandasSQL.read_query("SELECT * FROM test_trans")
+        assert len(res) == 0
 
-    class DummyException(Exception):
-        pass
-
-    # Make sure when transaction is rolled back, no rows get inserted
-    ins_sql = "INSERT INTO test_trans (A,B) VALUES (1, 'blah')"
-    if isinstance(pandasSQL, SQLDatabase):
-        from sqlalchemy import text
-
-        ins_sql = text(ins_sql)
-    try:
+        # Make sure when transaction is committed, rows do get inserted
         with pandasSQL.run_transaction() as trans:
             trans.execute(ins_sql)
-            raise DummyException("error")
-    except DummyException:
-        # ignore raised exception
-        pass
-    with pandasSQL.run_transaction():
-        res = pandasSQL.read_query("SELECT * FROM test_trans")
-    assert len(res) == 0
-
-    # Make sure when transaction is committed, rows do get inserted
-    with pandasSQL.run_transaction() as trans:
-        trans.execute(ins_sql)
-        res2 = pandasSQL.read_query("SELECT * FROM test_trans")
-    assert len(res2) == 1
+            res2 = pandasSQL.read_query("SELECT * FROM test_trans")
+        assert len(res2) == 1
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -3159,7 +3146,7 @@ def test_get_schema_create_table(conn, request, test_frame3):
     # TINYINT (which read_sql_table returns as an int and causes a dtype
     # mismatch)
     if conn == "sqlite_str":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="test does not support sqlite_str fixture")
         )
 
@@ -3371,7 +3358,7 @@ def test_to_sql_with_negative_npinf(conn, request, input):
 
         if Version(pymysql.__version__) < Version("1.0.3") and "infe0" in df.columns:
             mark = pytest.mark.xfail(reason="GH 36465")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         msg = "inf cannot be used with MySQL"
         with pytest.raises(ValueError, match=msg):
@@ -3423,7 +3410,7 @@ def test_temporary_table(conn, request):
 @pytest.mark.parametrize("conn", all_connectable)
 def test_invalid_engine(conn, request, test_frame1):
     if conn == "sqlite_buildin" or "adbc" in conn:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="SQLiteDatabase/ADBCDatabase does not raise for bad engine"
             )
@@ -3431,9 +3418,9 @@ def test_invalid_engine(conn, request, test_frame1):
 
     conn = request.getfixturevalue(conn)
     msg = "engine must be one of 'auto', 'sqlalchemy'"
-    pandasSQL = pandasSQL_builder(conn)
-    with pytest.raises(ValueError, match=msg):
-        pandasSQL.to_sql(test_frame1, "test_frame1", engine="bad_engine")
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pytest.raises(ValueError, match=msg):
+            pandasSQL.to_sql(test_frame1, "test_frame1", engine="bad_engine")
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -3441,10 +3428,10 @@ def test_to_sql_with_sql_engine(conn, request, test_frame1):
     """`to_sql` with the `engine` param"""
     # mostly copied from this class's `_to_sql()` method
     conn = request.getfixturevalue(conn)
-    pandasSQL = pandasSQL_builder(conn)
-    with pandasSQL.run_transaction():
-        assert pandasSQL.to_sql(test_frame1, "test_frame1", engine="auto") == 4
-        assert pandasSQL.has_table("test_frame1")
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(test_frame1, "test_frame1", engine="auto") == 4
+            assert pandasSQL.has_table("test_frame1")
 
     num_entries = len(test_frame1)
     num_rows = count_rows(conn, "test_frame1")
@@ -3456,10 +3443,10 @@ def test_options_sqlalchemy(conn, request, test_frame1):
     # use the set option
     conn = request.getfixturevalue(conn)
     with pd.option_context("io.sql.engine", "sqlalchemy"):
-        pandasSQL = pandasSQL_builder(conn)
-        with pandasSQL.run_transaction():
-            assert pandasSQL.to_sql(test_frame1, "test_frame1") == 4
-            assert pandasSQL.has_table("test_frame1")
+        with pandasSQL_builder(conn) as pandasSQL:
+            with pandasSQL.run_transaction():
+                assert pandasSQL.to_sql(test_frame1, "test_frame1") == 4
+                assert pandasSQL.has_table("test_frame1")
 
         num_entries = len(test_frame1)
         num_rows = count_rows(conn, "test_frame1")
@@ -3471,18 +3458,18 @@ def test_options_auto(conn, request, test_frame1):
     # use the set option
     conn = request.getfixturevalue(conn)
     with pd.option_context("io.sql.engine", "auto"):
-        pandasSQL = pandasSQL_builder(conn)
-        with pandasSQL.run_transaction():
-            assert pandasSQL.to_sql(test_frame1, "test_frame1") == 4
-            assert pandasSQL.has_table("test_frame1")
+        with pandasSQL_builder(conn) as pandasSQL:
+            with pandasSQL.run_transaction():
+                assert pandasSQL.to_sql(test_frame1, "test_frame1") == 4
+                assert pandasSQL.has_table("test_frame1")
 
         num_entries = len(test_frame1)
         num_rows = count_rows(conn, "test_frame1")
         assert num_rows == num_entries
 
 
-@pytest.mark.skipif(not SQLALCHEMY_INSTALLED, reason="fails without SQLAlchemy")
 def test_options_get_engine():
+    pytest.importorskip("sqlalchemy")
     assert isinstance(get_engine("sqlalchemy"), SQLAlchemyEngine)
 
     with pd.option_context("io.sql.engine", "sqlalchemy"):
@@ -3563,7 +3550,7 @@ def test_read_sql_dtype_backend_table(
     dtype_backend_expected,
 ):
     if "sqlite" in conn and "adbc" not in conn:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=(
                     "SQLite actually returns proper boolean values via "
@@ -3953,17 +3940,16 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
 def test_create_and_drop_table(sqlite_sqlalchemy_memory_engine):
     conn = sqlite_sqlalchemy_memory_engine
     temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
-    pandasSQL = sql.SQLDatabase(conn)
+    with sql.SQLDatabase(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            assert pandasSQL.to_sql(temp_frame, "drop_test_frame") == 4
 
-    with pandasSQL.run_transaction():
-        assert pandasSQL.to_sql(temp_frame, "drop_test_frame") == 4
+        assert pandasSQL.has_table("drop_test_frame")
 
-    assert pandasSQL.has_table("drop_test_frame")
+        with pandasSQL.run_transaction():
+            pandasSQL.drop_table("drop_test_frame")
 
-    with pandasSQL.run_transaction():
-        pandasSQL.drop_table("drop_test_frame")
-
-    assert not pandasSQL.has_table("drop_test_frame")
+        assert not pandasSQL.has_table("drop_test_frame")
 
 
 def test_sqlite_datetime_date(sqlite_buildin):
