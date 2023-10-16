@@ -894,7 +894,7 @@ class DataFrame(NDFrame, OpsMixin):
         ----------
         nan_as_null : bool, default False
             `nan_as_null` is DEPRECATED and has no effect. Please avoid using
-            it; it will be removed in a future release (after Aug 2024).
+            it; it will be removed in a future release.
         allow_copy : bool, default True
             Whether to allow memory copying when exporting. If set to False
             it would cause non-zero-copy exports to fail.
