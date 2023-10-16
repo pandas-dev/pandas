@@ -1134,6 +1134,8 @@ class FrameRowApply(FrameApply):
 
         jitted_udf = numba.extending.register_jitable(func)
 
+        # Currently the parallel argument doesn't get passed through here
+        # (it's disabled) since the dicts in numba aren't thread-safe.
         @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
         def numba_func(values, col_names, df_index):
             results = {}
@@ -1258,6 +1260,8 @@ class FrameColumnApply(FrameApply):
         @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
         def numba_func(values, col_names_index, index):
             results = {}
+            # Currently the parallel argument doesn't get passed through here
+            # (it's disabled) since the dicts in numba aren't thread-safe.
             for i in range(values.shape[0]):
                 # Create the series
                 # TODO: values corrupted without the copy

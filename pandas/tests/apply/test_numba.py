@@ -19,15 +19,19 @@ def test_numba_vs_python_noop(float_frame, apply_axis):
     tm.assert_frame_equal(result, expected)
 
 
-def test_numba_vs_python_indexing(float_frame):
-    row_func = lambda x: x["A"]
-    result = float_frame.apply(row_func, engine="numba", axis=1)
-    expected = float_frame.apply(row_func, engine="python", axis=1)
+def test_numba_vs_python_indexing():
+    frame = DataFrame(
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": [7.0, 8.0, 9.0]},
+        index=Index(["A", "B", "C"]),
+    )
+    row_func = lambda x: x["c"]
+    result = frame.apply(row_func, engine="numba", axis=1)
+    expected = frame.apply(row_func, engine="python", axis=1)
     tm.assert_series_equal(result, expected)
 
-    row_func = lambda x: x["ZqgszYBfuL"]  # This is a label in the index
-    result = float_frame.apply(row_func, engine="numba", axis=0)
-    expected = float_frame.apply(row_func, engine="python", axis=0)
+    col_func = lambda x: x["A"]
+    result = frame.apply(col_func, engine="numba", axis=0)
+    expected = frame.apply(col_func, engine="python", axis=0)
     tm.assert_series_equal(result, expected)
 
 
