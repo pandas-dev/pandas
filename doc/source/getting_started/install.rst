@@ -265,7 +265,7 @@ Installable with ``pip install "pandas[computation]"``.
 ========================= ================== =============== =============================================================
 Dependency                Minimum Version    pip extra       Notes
 ========================= ================== =============== =============================================================
-SciPy                     1.10.0              computation     Miscellaneous statistical functions
+SciPy                     1.10.0             computation     Miscellaneous statistical functions
 xarray                    2022.12.0          computation     pandas-like API for N-dimensional data
 ========================= ================== =============== =============================================================
 
