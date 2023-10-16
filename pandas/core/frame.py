@@ -7389,7 +7389,7 @@ class DataFrame(NDFrame, OpsMixin):
         if sort:
             counts = counts.sort_values(ascending=ascending)
         if normalize:
-            counts /= counts.sum()
+            counts = counts / counts.sum()
 
         # Force MultiIndex for a list_like subset with a single column
         if is_list_like(subset) and len(subset) == 1:  # type: ignore[arg-type]

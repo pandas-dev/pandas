@@ -1742,7 +1742,8 @@ class TestFrameArithmeticUnsorted:
         # dtype change
         s = s_orig.copy()
         s2 = s
-        s += 1.5
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            s += 1.5
         tm.assert_series_equal(s, s2)
         tm.assert_series_equal(s_orig + 1.5, s)
 
@@ -1767,7 +1768,8 @@ class TestFrameArithmeticUnsorted:
 
         df = df_orig.copy()
         df2 = df
-        df["A"] += 1.5
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            df["A"] += 1.5
         expected = DataFrame({"A": arr.copy() + 1.5, "B": "foo"})
         tm.assert_frame_equal(df, expected)
         tm.assert_frame_equal(df2, expected)
