@@ -338,7 +338,6 @@ def test_to_string_na_rep_and_float_format(na_rep):
 def test_to_string_max_rows_zero(data, expected):
     # GH35394
     result = DataFrame(data=data).to_string(max_rows=0)
-    print(repr(result))
     assert result == expected
 
 
