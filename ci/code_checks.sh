@@ -176,9 +176,8 @@ fi
 
 ### SINGLE-PAGE DOCS ###
 if [[ -z "$CHECK" || "$CHECK" == "single-docs" ]]; then
-    python doc/make.py --warnings-are-errors --single pandas.Series.value_counts
-    python doc/make.py --warnings-are-errors --single pandas.Series.str.split
-    python doc/make.py clean
+    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.value_counts
+    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.str.split
 fi
 
 exit $RET
