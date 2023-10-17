@@ -1729,7 +1729,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def to_string(
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
-        na_rep: str = "<NA>",
+        na_rep: str = lib.no_default,
         float_format: str | None = None,
         header: bool = True,
         index: bool = True,

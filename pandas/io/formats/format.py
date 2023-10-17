@@ -1223,17 +1223,30 @@ class _GenericArrayFormatter:
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                if x is None:
-                    return "None"
-                elif x is NA:
+                if self.na_rep is lib.no_default:
+                    if x is None:
+                        return "None"
+                    elif x is NA:
+                        return str(NA)
+                    elif lib.is_float(x) and np.isinf(x):
+                        # TODO(3.0): this will be unreachable when use_inf_as_na
+                        #  deprecation is enforced
+                        return str(x)
+                    elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
+                        return "NaT"
+                    return "NaN"
+                else:
+                    if x is None:
+                        return "None"
+                    elif x is NA:
+                        return self.na_rep
+                    elif lib.is_float(x) and np.isinf(x):
+                        # TODO(3.0): this will be unreachable when use_inf_as_na
+                        #  deprecation is enforced
+                        return str(x)
+                    elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
+                        return "NaT"
                     return self.na_rep
-                elif lib.is_float(x) and np.isinf(x):
-                    # TODO(3.0): this will be unreachable when use_inf_as_na
-                    #  deprecation is enforced
-                    return str(x)
-                elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
-                    return "NaT"
-                return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
             elif isinstance(x, StringDtype):

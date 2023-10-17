@@ -327,11 +327,11 @@ def test_to_string_na_rep_and_float_format(na_rep):
         ),
         (
             {"col1": ["Abc", 0.756], "col2": [np.nan, 4.5435]},
-            "    col1    col2\n0    Abc    <NA>\n1  0.756  4.5435",
+            "    col1    col2\n0    Abc     NaN\n1  0.756  4.5435",
         ),
         (
             {"col1": [np.nan, "a"], "col2": [0.009, 3.543], "col3": ["Abc", 23]},
-            "   col1   col2 col3\n0  <NA>  0.009  Abc\n1     a  3.543   23",
+            "  col1   col2 col3\n0  NaN  0.009  Abc\n1    a  3.543   23",
         ),
     ],
 )
