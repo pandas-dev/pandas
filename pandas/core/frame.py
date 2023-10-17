@@ -81,6 +81,7 @@ from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_2d_arraylike_from_scalar,
     find_common_type,
+    find_result_type,
     infer_dtype_from_scalar,
     invalidate_string_dtypes,
     maybe_box_native,
@@ -8870,7 +8871,15 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = expressions.where(mask, this, that)
+            col_dtype = self[col].dtype
+            update_result = expressions.where(mask, this, that)
+            # Preserve dtype if udpate_result is all compatible with dtype
+            if col_dtype != object and update_result.dtype == object:
+                if all(
+                    col_dtype == find_result_type(col_dtype, x) for x in update_result
+                ):
+                    update_result = update_result.astype(col_dtype)
+            self.loc[:, col] = update_result
 
     # ----------------------------------------------------------------------
     # Data reshaping
