@@ -2638,6 +2638,7 @@ def test_execute_sql(conn, request):
         with pandasSQL.run_transaction():
             iris_results = pandasSQL.execute("SELECT * FROM iris")
             row = iris_results.fetchone()
+            iris_results.close()
     tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
 
