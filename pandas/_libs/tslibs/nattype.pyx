@@ -1000,7 +1000,7 @@ timedelta}, default 'raise'
 
         A timestamp can be rounded using multiple frequency units:
 
-        >>> ts.round(freq='H') # hour
+        >>> ts.round(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
         >>> ts.round(freq='min') # minute
@@ -1017,9 +1017,9 @@ timedelta}, default 'raise'
         >>> ts.round(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.round(freq='1H30min')
+        >>> ts.round(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -1032,10 +1032,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.round("H", ambiguous=False)
+        >>> ts_tz.round("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.round("H", ambiguous=True)
+        >>> ts_tz.round("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )
@@ -1089,7 +1089,7 @@ timedelta}, default 'raise'
 
         A timestamp can be floored using multiple frequency units:
 
-        >>> ts.floor(freq='H') # hour
+        >>> ts.floor(freq='h') # hour
         Timestamp('2020-03-14 15:00:00')
 
         >>> ts.floor(freq='min') # minute
@@ -1106,9 +1106,9 @@ timedelta}, default 'raise'
         >>> ts.floor(freq='5min')
         Timestamp('2020-03-14 15:30:00')
 
-        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.floor(freq='1H30min')
+        >>> ts.floor(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -1121,10 +1121,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 03:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.floor("2H", ambiguous=False)
+        >>> ts_tz.floor("2h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.floor("2H", ambiguous=True)
+        >>> ts_tz.floor("2h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )
@@ -1178,7 +1178,7 @@ timedelta}, default 'raise'
 
         A timestamp can be ceiled using multiple frequency units:
 
-        >>> ts.ceil(freq='H') # hour
+        >>> ts.ceil(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
         >>> ts.ceil(freq='min') # minute
@@ -1195,9 +1195,9 @@ timedelta}, default 'raise'
         >>> ts.ceil(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30min' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.ceil(freq='1H30min')
+        >>> ts.ceil(freq='1h30min')
         Timestamp('2020-03-14 16:30:00')
 
         Analogous for ``pd.NaT``:
@@ -1210,10 +1210,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.ceil("H", ambiguous=False)
+        >>> ts_tz.ceil("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.ceil("H", ambiguous=True)
+        >>> ts_tz.ceil("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """,
     )

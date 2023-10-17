@@ -780,7 +780,7 @@ class TestSeriesInterpolateData:
 
         exp = ts.reindex(new_index).interpolate(method="time")
 
-        index = date_range("1/1/2012", periods=4, freq="12H")
+        index = date_range("1/1/2012", periods=4, freq="12h")
         ts = Series([0, 12, 24, 36], index)
         new_index = index.append(index + pd.DateOffset(hours=1)).sort_values()
         result = ts.reindex(new_index).interpolate(method="time")
@@ -831,7 +831,7 @@ class TestSeriesInterpolateData:
         method, kwargs = interp_methods_ind
 
         if method in {"cubic", "zero"}:
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=f"{method} interpolation is not supported for TimedeltaIndex"
                 )
