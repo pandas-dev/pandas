@@ -35,18 +35,22 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #  define checked_int64_sub(a, b, res) LongLongSub(a, b, res)
 #  define checked_int64_mul(a, b, res) LongLongMul(a, b, res)
 #else
-#  if defined(__has_builtin) && __has_builtin(__builtin_add_overflow)
-#    if _LP64 || __LP64__ || _ILP64 || __ILP64__
-#      define checked_int64_add(a, b, res) __builtin_saddl_overflow(a, b, res)
-#      define checked_int64_sub(a, b, res) __builtin_ssubl_overflow(a, b, res)
-#      define checked_int64_mul(a, b, res) __builtin_smull_overflow(a, b, res)
+#  if defined __has_builtin
+#    if __has_builtin(__builtin_add_overflow)
+#      if _LP64 || __LP64__ || _ILP64 || __ILP64__
+#        define checked_int64_add(a, b, res) __builtin_saddl_overflow(a, b, res)
+#        define checked_int64_sub(a, b, res) __builtin_ssubl_overflow(a, b, res)
+#        define checked_int64_mul(a, b, res) __builtin_smull_overflow(a, b, res)
+#      else
+#        define checked_int64_add(a, b, res) __builtin_saddll_overflow(a, b, res)
+#        define checked_int64_sub(a, b, res) __builtin_ssubll_overflow(a, b, res)
+#        define checked_int64_mul(a, b, res) __builtin_smulll_overflow(a, b, res)
+#      endif
 #    else
-#      define checked_int64_add(a, b, res) __builtin_saddll_overflow(a, b, res)
-#      define checked_int64_sub(a, b, res) __builtin_ssubll_overflow(a, b, res)
-#      define checked_int64_mul(a, b, res) __builtin_smulll_overflow(a, b, res)
+_Static_assert(0, "Overflow checking not detected; please try a newer compiler");
 #    endif
 #  else
-    _Static_assert(0, "Overflow checking not detected; please try a newer compiler");
+_Static_assert(0, "__has_builtin not detected; please try a newer compiler");
 #  endif
 #endif
 
