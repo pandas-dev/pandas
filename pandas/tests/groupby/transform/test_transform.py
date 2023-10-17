@@ -203,7 +203,7 @@ def test_transform_axis_1_reducer(request, reduction_func):
         "nth",
     ):
         marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
-        request.node.add_marker(marker)
+        request.applymarker(marker)
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     msg = "DataFrame.groupby with axis=1 is deprecated"
@@ -1455,7 +1455,7 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     # GH 17093
     if reduction_func == "corrwith":
         msg = "incorrectly raises"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        request.applymarker(pytest.mark.xfail(reason=msg))
 
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
     df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
