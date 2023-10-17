@@ -644,7 +644,6 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _constructor_from_mgr(self, mgr, axes):
         df = self._from_mgr(mgr, axes=axes)
-
         if type(self) is DataFrame:
             # fastpath avoiding constructor call
             return df
@@ -677,17 +676,29 @@ class DataFrame(NDFrame, OpsMixin):
         dtype: Dtype | None = None,
         copy: bool | None = None,
     ) -> None:
+        allow_mgr = False
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
             data = data._mgr
+            allow_mgr = True
             if not copy:
                 # if not copying data, ensure to still return a shallow copy
                 # to avoid the result sharing the same Manager
                 data = data.copy(deep=False)
 
         if isinstance(data, (BlockManager, ArrayManager)):
+            if not allow_mgr:
+                # GH#52419
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
+
             if using_copy_on_write():
                 data = data.copy(deep=False)
             # first check if a Manager is passed without any other arguments
@@ -2462,7 +2473,7 @@ class DataFrame(NDFrame, OpsMixin):
         manager = _get_option("mode.data_manager", silent=True)
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
-        return cls(mgr)
+        return cls._from_mgr(mgr, axes=mgr.axes)
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
@@ -2672,7 +2683,7 @@ class DataFrame(NDFrame, OpsMixin):
             verify_integrity=verify_integrity,
             typ=manager,
         )
-        return cls(mgr)
+        return cls._from_mgr(mgr, axes=mgr.axes)
 
     @doc(
         storage_options=_shared_docs["storage_options"],

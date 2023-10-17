@@ -35,6 +35,10 @@ from pandas.core.indexes.datetimes import date_range
 
 from pandas.io.parsers import read_csv
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 # GH#43650: Some expected failures with the pyarrow engine can occasionally
@@ -183,8 +187,11 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         "keep_date_col": keep_date_col,
         "names": ["X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8"],
     }
+    warn = FutureWarning
+    if parser.engine == "pyarrow":
+        warn = (FutureWarning, DeprecationWarning)
     result = parser.read_csv_check_warnings(
-        FutureWarning,
+        warn,
         "use 'date_format' instead",
         StringIO(data),
         **kwds,
@@ -502,7 +509,10 @@ def test_multiple_date_cols_int_cast(all_parsers):
         "date_parser": pd.to_datetime,
     }
     result = parser.read_csv_check_warnings(
-        FutureWarning, "use 'date_format' instead", StringIO(data), **kwds
+        (FutureWarning, DeprecationWarning),
+        "use 'date_format' instead",
+        StringIO(data),
+        **kwds,
     )
 
     expected = DataFrame(
@@ -549,8 +559,12 @@ def test_multiple_date_col_timestamp_parse(all_parsers):
     data = """05/31/2012,15:30:00.029,1306.25,1,E,0,,1306.25
 05/31/2012,15:30:00.029,1306.25,8,E,0,,1306.25"""
 
+    warn = FutureWarning
+    if parser.engine == "pyarrow":
+        warn = (FutureWarning, DeprecationWarning)
+
     result = parser.read_csv_check_warnings(
-        FutureWarning,
+        warn,
         "use 'date_format' instead",
         StringIO(data),
         parse_dates=[[0, 1]],
@@ -711,8 +725,12 @@ def test_date_parser_int_bug(all_parsers):
         "12345,1,-1,3,invoice_InvoiceResource,search\n"
     )
 
+    warn = FutureWarning
+    if parser.engine == "pyarrow":
+        warn = (FutureWarning, DeprecationWarning)
+
     result = parser.read_csv_check_warnings(
-        FutureWarning,
+        warn,
         "use 'date_format' instead",
         StringIO(data),
         index_col=0,
@@ -1270,7 +1288,14 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
     parser = all_parsers
     s = StringIO((f"{value},\n") * 50000)
 
-    parser.read_csv(
+    warn = None
+    msg = "Passing a BlockManager to DataFrame"
+    if parser.engine == "pyarrow":
+        warn = DeprecationWarning
+
+    parser.read_csv_check_warnings(
+        warn,
+        msg,
         s,
         header=None,
         names=["foo", "bar"],
@@ -1292,16 +1317,19 @@ def test_bad_date_parse_with_warning(all_parsers, cache_dates, value):
         # pandas doesn't try to guess the datetime format
         # TODO: parse dates directly in pyarrow, see
         # https://github.com/pandas-dev/pandas/issues/48017
-        warn = None
+        warn = DeprecationWarning
+        msg = "Passing a BlockManager to DataFrame"
     elif cache_dates:
         # Note: warning is not raised if 'cache_dates', because here there is only a
         # single unique date and hence no risk of inconsistent parsing.
         warn = None
+        msg = None
     else:
         warn = UserWarning
+        msg = "Could not infer format"
     parser.read_csv_check_warnings(
         warn,
-        "Could not infer format",
+        msg,
         s,
         header=None,
         names=["foo", "bar"],
@@ -1331,8 +1359,12 @@ def test_parse_dates_infer_datetime_format_warning(all_parsers, reader):
     parser = all_parsers
     data = "Date,test\n2012-01-01,1\n,2"
 
+    warn = FutureWarning
+    if parser.engine == "pyarrow":
+        warn = (FutureWarning, DeprecationWarning)
+
     getattr(parser, reader)(
-        FutureWarning,
+        warn,
         "The argument 'infer_datetime_format' is deprecated",
         StringIO(data),
         parse_dates=["Date"],
@@ -1502,8 +1534,13 @@ date,time,a,b
 )
 def test_parse_date_time(all_parsers, data, kwargs, expected):
     parser = all_parsers
+
+    warn = FutureWarning
+    if parser.engine == "pyarrow":
+        warn = (FutureWarning, DeprecationWarning)
+
     result = parser.read_csv_check_warnings(
-        FutureWarning,
+        warn,
         "use 'date_format' instead",
         StringIO(data),
         date_parser=pd.to_datetime,
@@ -1519,9 +1556,14 @@ def test_parse_date_time(all_parsers, data, kwargs, expected):
 
 def test_parse_date_fields(all_parsers):
     parser = all_parsers
+
+    warn = FutureWarning
+    if parser.engine == "pyarrow":
+        warn = (FutureWarning, DeprecationWarning)
+
     data = "year,month,day,a\n2001,01,10,10.\n2001,02,1,11."
     result = parser.read_csv_check_warnings(
-        FutureWarning,
+        warn,
         "use 'date_format' instead",
         StringIO(data),
         header=0,
@@ -1554,9 +1596,17 @@ year,month,day,hour,minute,second,a,b
 2001,01,05,10,00,0,0.0,10.
 2001,01,5,10,0,00,1.,11.
 """
+    msg = "use 'date_format' instead"
+    if parser.engine == "pyarrow":
+        if warn is None:
+            msg = "Passing a BlockManager to DataFrame is deprecated"
+            warn = DeprecationWarning
+        else:
+            warn = (warn, DeprecationWarning)
+
     result = parser.read_csv_check_warnings(
         warn,
-        "use 'date_format' instead",
+        msg,
         StringIO(data),
         header=0,
         parse_dates={"ymdHMS": [0, 1, 2, 3, 4, 5]},
@@ -1590,9 +1640,17 @@ year,month,day,hour,minute,second,a,b
 2001,01,05,10,00,0.123456,0.0,10.
 2001,01,5,10,0,0.500000,1.,11.
 """
+    msg = "use 'date_format' instead"
+    if parser.engine == "pyarrow":
+        if warn is None:
+            msg = "Passing a BlockManager to DataFrame is deprecated"
+            warn = DeprecationWarning
+        else:
+            warn = (warn, DeprecationWarning)
+
     result = parser.read_csv_check_warnings(
         warn,
-        "use 'date_format' instead",
+        msg,
         StringIO(data),
         header=0,
         parse_dates={"ymdHMS": [0, 1, 2, 3, 4, 5]},
@@ -1615,8 +1673,12 @@ def test_generic(all_parsers):
     def parse_function(yy, mm):
         return [date(year=int(y), month=int(m), day=1) for y, m in zip(yy, mm)]
 
+    warn = FutureWarning
+    if parser.engine == "pyarrow":
+        warn = (FutureWarning, DeprecationWarning)
+
     result = parser.read_csv_check_warnings(
-        FutureWarning,
+        warn,
         "use 'date_format' instead",
         StringIO(data),
         header=0,
@@ -2143,7 +2205,8 @@ def test_parse_dot_separated_dates(all_parsers):
             dtype="object",
             name="a",
         )
-        warn = None
+        warn = DeprecationWarning
+        msg = "Passing a BlockManager to DataFrame"
     else:
         expected_index = DatetimeIndex(
             ["2003-03-27 14:55:00", "2003-08-03 15:20:00"],
@@ -2151,7 +2214,7 @@ def test_parse_dot_separated_dates(all_parsers):
             name="a",
         )
         warn = UserWarning
-    msg = r"when dayfirst=False \(the default\) was specified"
+        msg = r"when dayfirst=False \(the default\) was specified"
     result = parser.read_csv_check_warnings(
         warn, msg, StringIO(data), parse_dates=True, index_col=0
     )
