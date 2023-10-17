@@ -829,7 +829,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not using_copy_on_write() and copy is not False:
                 new_mgr = new_mgr.copy(deep=True)
 
-            return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
+            out = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+            return out.__finalize__(self, method="swapaxes")
 
         return self._constructor(
             new_values,
