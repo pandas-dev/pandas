@@ -357,7 +357,7 @@ class TestDataFrameBlockInternals:
             else:
                 assert pd.isna(Y["g"]["c"])
 
-    @pytest.mark.filterwarnings("ignore:Setting value on view:FutureWarning")
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_strange_column_corruption_issue(self, using_copy_on_write):
         # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])

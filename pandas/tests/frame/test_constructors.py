@@ -307,14 +307,15 @@ class TestDataFrameConstructors:
                 should_be_view[0][0] = 99
             assert df.values[0, 0] == 99
 
-    @pytest.mark.filterwarnings("ignore:Setting value on view:FutureWarning")
     def test_constructor_dtype_nocast_view_2d_array(
-        self, using_array_manager, using_copy_on_write
+        self, using_array_manager, using_copy_on_write, warn_copy_on_write
     ):
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
         if not using_array_manager and not using_copy_on_write:
             should_be_view = DataFrame(df.values, dtype=df[0].dtype)
-            should_be_view[0][0] = 97
+            warn = FutureWarning if warn_copy_on_write else None
+            with tm.assert_produces_warning(warn):
+                should_be_view[0][0] = 97
             assert df.values[0, 0] == 97
         else:
             # INFO(ArrayManager) DataFrame(ndarray) doesn't necessarily preserve

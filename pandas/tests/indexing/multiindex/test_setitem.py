@@ -280,13 +280,13 @@ class TestMultiIndexSetItem:
         s = ymd["A"]
 
         warn = FutureWarning if warn_copy_on_write else None
-        with tm.assert_produces_warning(warn, match="Setting value on view"):
+        with tm.assert_produces_warning(warn, match="Setting a value on a view"):
             s[2000, 3] = np.nan
         assert isna(s.values[42:65]).all()
         assert notna(s.values[:42]).all()
         assert notna(s.values[65:]).all()
 
-        with tm.assert_produces_warning(warn, match="Setting value on view"):
+        with tm.assert_produces_warning(warn, match="Setting a value on a view"):
             s[2000, 3, 10] = np.nan
         assert isna(s.iloc[49])
 
