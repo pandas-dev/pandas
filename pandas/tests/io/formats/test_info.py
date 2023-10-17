@@ -1,6 +1,6 @@
 from io import StringIO
 import re
-from string import ascii_uppercase as uppercase
+from string import ascii_uppercase
 import sys
 import textwrap
 
@@ -452,9 +452,9 @@ def test_info_memory_usage_bug_on_multiindex():
         return f.memory_usage(deep=True).sum()
 
     N = 100
-    M = len(uppercase)
+    M = len(ascii_uppercase)
     index = MultiIndex.from_product(
-        [list(uppercase), date_range("20160101", periods=N)],
+        [list(ascii_uppercase), date_range("20160101", periods=N)],
         names=["id", "date"],
     )
     df = DataFrame(

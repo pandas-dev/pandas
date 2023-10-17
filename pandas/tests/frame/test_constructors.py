@@ -692,12 +692,12 @@ class TestDataFrameConstructors:
         arr = np.array([[4, 5, 6]])
         msg = r"Shape of passed values is \(1, 3\), indices imply \(1, 4\)"
         with pytest.raises(ValueError, match=msg):
-            DataFrame(index=[0], columns=range(0, 4), data=arr)
+            DataFrame(index=[0], columns=range(4), data=arr)
 
         arr = np.array([4, 5, 6])
         msg = r"Shape of passed values is \(3, 1\), indices imply \(1, 4\)"
         with pytest.raises(ValueError, match=msg):
-            DataFrame(index=[0], columns=range(0, 4), data=arr)
+            DataFrame(index=[0], columns=range(4), data=arr)
 
         # higher dim raise exception
         with pytest.raises(ValueError, match="Must pass 2-d input"):
@@ -1823,7 +1823,7 @@ class TestDataFrameConstructors:
             DataFrame("a", [1, 2], ["a", "c"], float)
 
     def test_constructor_with_datetimes(self):
-        intname = np.dtype(np.int_).name
+        intname = np.dtype(int).name
         floatname = np.dtype(np.float64).name
         objectname = np.dtype(np.object_).name
 
@@ -2391,7 +2391,7 @@ class TestDataFrameConstructors:
 
     def test_constructor_series_nonexact_categoricalindex(self):
         # GH 42424
-        ser = Series(range(0, 100))
+        ser = Series(range(100))
         ser1 = cut(ser, 10).value_counts().head(5)
         ser2 = cut(ser, 10).value_counts().tail(5)
         result = DataFrame({"1": ser1, "2": ser2})
@@ -2471,8 +2471,8 @@ class TestDataFrameConstructors:
         [
             ([1, 2]),
             (["1", "2"]),
-            (list(date_range("1/1/2011", periods=2, freq="H"))),
-            (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
+            (list(date_range("1/1/2011", periods=2, freq="h"))),
+            (list(date_range("1/1/2011", periods=2, freq="h", tz="US/Eastern"))),
             ([Interval(left=0, right=5)]),
         ],
     )
@@ -2742,6 +2742,13 @@ class TestDataFrameConstructors:
         with pd.option_context("future.infer_string", True):
             df = DataFrame(np.array([["a", "c"], ["b", "d"]]), columns=["a", "b"])
         tm.assert_frame_equal(df, expected)
+
+    def test_frame_string_inference_block_dim(self):
+        # GH#55363
+        pytest.importorskip("pyarrow")
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
+        assert df._mgr.blocks[0].ndim == 2
 
 
 class TestDataFrameConstructorIndexInference:
@@ -3164,7 +3171,7 @@ class TestFromScalar:
                 "non-nano, but DatetimeArray._from_sequence has not",
                 strict=True,
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         scalar = datetime(9999, 1, 1)
         exp_dtype = "M8[us]"  # pydatetime objects default to this reso
@@ -3200,7 +3207,7 @@ class TestFromScalar:
                 "to non-nano, but TimedeltaArray._from_sequence has not",
                 strict=True,
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
         exp_dtype = "m8[us]"  # smallest reso that fits

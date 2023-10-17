@@ -33,7 +33,7 @@ Bug fixes
 - Fix some cases for subclasses that define their ``_constructor`` properties as general callables (:issue:`46018`)
 - Fixed "longtable" formatting in :meth:`.Styler.to_latex` when ``column_format`` is given in extended format (:issue:`46037`)
 - Fixed incorrect rendering in :meth:`.Styler.format` with ``hyperlinks="html"`` when the url contains a colon or other special characters (:issue:`46389`)
-- Improved error message in :class:`~pandas.core.window.Rolling` when ``window`` is a frequency and ``NaT`` is in the rolling axis (:issue:`46087`)
+- Improved error message in :class:`.Rolling` when ``window`` is a frequency and ``NaT`` is in the rolling axis (:issue:`46087`)
 
 .. ---------------------------------------------------------------------------
 

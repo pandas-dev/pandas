@@ -16,7 +16,6 @@ from pandas import (
     Timestamp,
 )
 import pandas._testing as tm
-from pandas.api.types import CategoricalDtype as CDT
 
 
 @pytest.fixture
@@ -25,7 +24,9 @@ def df():
         {
             "A": np.arange(6, dtype="int64"),
         },
-        index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cab")), name="B"),
+        index=CategoricalIndex(
+            list("aabbca"), dtype=CategoricalDtype(list("cab")), name="B"
+        ),
     )
 
 
@@ -35,13 +36,15 @@ def df2():
         {
             "A": np.arange(6, dtype="int64"),
         },
-        index=CategoricalIndex(list("aabbca"), dtype=CDT(list("cabe")), name="B"),
+        index=CategoricalIndex(
+            list("aabbca"), dtype=CategoricalDtype(list("cabe")), name="B"
+        ),
     )
 
 
 class TestCategoricalIndex:
     def test_loc_scalar(self, df):
-        dtype = CDT(list("cab"))
+        dtype = CategoricalDtype(list("cab"))
         result = df.loc["a"]
         bidx = Series(list("aaa"), name="B").astype(dtype)
         assert bidx.dtype == dtype

@@ -798,7 +798,7 @@ class TestStata:
         expected_values.insert(0, ".")
         for t in types:
             offset = valid_range[t][1]
-            for i in range(0, 27):
+            for i in range(27):
                 val = StataMissingValue(offset + 1 + i)
                 assert val.string == expected_values[i]
 

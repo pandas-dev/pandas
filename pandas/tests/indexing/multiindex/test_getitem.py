@@ -148,7 +148,7 @@ def test_frame_getitem_simple_key_error(
 def test_tuple_string_column_names():
     # GH#50372
     mi = MultiIndex.from_tuples([("a", "aa"), ("a", "ab"), ("b", "ba"), ("b", "bb")])
-    df = DataFrame([range(0, 4), range(1, 5), range(2, 6)], columns=mi)
+    df = DataFrame([range(4), range(1, 5), range(2, 6)], columns=mi)
     df["single_index"] = 0
 
     df_flat = df.copy()

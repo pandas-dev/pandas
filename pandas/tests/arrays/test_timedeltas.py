@@ -196,7 +196,7 @@ class TestNonNano:
 class TestTimedeltaArray:
     @pytest.mark.parametrize("dtype", [int, np.int32, np.int64, "uint32", "uint64"])
     def test_astype_int(self, dtype):
-        arr = TimedeltaArray._from_sequence([Timedelta("1H"), Timedelta("2H")])
+        arr = TimedeltaArray._from_sequence([Timedelta("1h"), Timedelta("2h")])
 
         if np.dtype(dtype) != np.int64:
             with pytest.raises(TypeError, match=r"Do obj.astype\('int64'\)"):
@@ -208,8 +208,8 @@ class TestTimedeltaArray:
         tm.assert_numpy_array_equal(result, expected)
 
     def test_setitem_clears_freq(self):
-        a = TimedeltaArray(pd.timedelta_range("1H", periods=2, freq="H"))
-        a[0] = Timedelta("1H")
+        a = TimedeltaArray(pd.timedelta_range("1h", periods=2, freq="h"))
+        a[0] = Timedelta("1h")
         assert a.freq is None
 
     @pytest.mark.parametrize(
@@ -222,7 +222,7 @@ class TestTimedeltaArray:
     )
     def test_setitem_objects(self, obj):
         # make sure we accept timedelta64 and timedelta in addition to Timedelta
-        tdi = pd.timedelta_range("2 Days", periods=4, freq="H")
+        tdi = pd.timedelta_range("2 Days", periods=4, freq="h")
         arr = TimedeltaArray(tdi, freq=tdi.freq)
 
         arr[0] = obj
@@ -299,7 +299,7 @@ class TestUnaryOps:
         tm.assert_timedelta_array_equal(result2, expected)
 
     def test_neg_freq(self):
-        tdi = pd.timedelta_range("2 Days", periods=4, freq="H")
+        tdi = pd.timedelta_range("2 Days", periods=4, freq="h")
         arr = TimedeltaArray(tdi, freq=tdi.freq)
 
         expected = TimedeltaArray(-tdi._data, freq=-tdi.freq)

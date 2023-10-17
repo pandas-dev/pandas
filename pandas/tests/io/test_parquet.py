@@ -8,10 +8,8 @@ import pathlib
 import numpy as np
 import pytest
 
-from pandas._config import (
-    get_option,
-    using_copy_on_write,
-)
+from pandas._config import using_copy_on_write
+from pandas._config.config import _get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
@@ -61,7 +59,8 @@ pytestmark = pytest.mark.filterwarnings(
         pytest.param(
             "fastparquet",
             marks=pytest.mark.skipif(
-                not _HAVE_FASTPARQUET or get_option("mode.data_manager") == "array",
+                not _HAVE_FASTPARQUET
+                or _get_option("mode.data_manager", silent=True) == "array",
                 reason="fastparquet is not installed or ArrayManager is used",
             ),
         ),
@@ -88,7 +87,7 @@ def pa():
 def fp():
     if not _HAVE_FASTPARQUET:
         pytest.skip("fastparquet is not installed")
-    elif get_option("mode.data_manager") == "array":
+    elif _get_option("mode.data_manager", silent=True) == "array":
         pytest.skip("ArrayManager is not supported with fastparquet")
     return "fastparquet"
 
@@ -454,7 +453,7 @@ class TestBasic(Base):
     def test_write_index(self, engine, using_copy_on_write, request):
         check_names = engine != "fastparquet"
         if using_copy_on_write and engine == "fastparquet":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="fastparquet write into index")
             )
 
@@ -627,7 +626,7 @@ class TestBasic(Base):
             mark = pytest.mark.xfail(
                 reason="Fastparquet nullable dtype support is disabled"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         table = pyarrow.table(
             {
@@ -989,7 +988,7 @@ class TestParquetPyArrow(Base):
             not pa_version_under7p0
             and timezone_aware_date_list.tzinfo != datetime.timezone.utc
         ):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="temporary skip this test until it is properly resolved: "
                     "https://github.com/pandas-dev/pandas/issues/37286"
@@ -1012,7 +1011,7 @@ class TestParquetPyArrow(Base):
     def test_filter_row_groups(self, pa):
         # https://github.com/pandas-dev/pandas/issues/26551
         pytest.importorskip("pyarrow")
-        df = pd.DataFrame({"a": list(range(0, 3))})
+        df = pd.DataFrame({"a": list(range(3))})
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine=pa)
             result = read_parquet(
@@ -1219,7 +1218,7 @@ class TestParquetFastParquet(Base):
         check_round_trip(df, fp)
 
     def test_filter_row_groups(self, fp):
-        d = {"a": list(range(0, 3))}
+        d = {"a": list(range(3))}
         df = pd.DataFrame(d)
         with tm.ensure_clean() as path:
             df.to_parquet(path, engine=fp, compression=None, row_group_offsets=1)
