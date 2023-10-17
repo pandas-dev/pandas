@@ -24,7 +24,7 @@ class TestDatetimeIndexOps:
             ("Q", "day"),
             ("ME", "day"),
             ("D", "day"),
-            ("H", "hour"),
+            ("h", "hour"),
             ("min", "minute"),
             ("s", "second"),
             ("ms", "millisecond"),
@@ -34,7 +34,7 @@ class TestDatetimeIndexOps:
     def test_resolution(self, request, tz_naive_fixture, freq, expected):
         tz = tz_naive_fixture
         if freq == "Y" and not IS64 and isinstance(tz, tzlocal):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
             )
 

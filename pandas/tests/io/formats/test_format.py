@@ -212,7 +212,7 @@ class TestDataFrameFormatting:
             r = repr(df)
             r = r[r.find("\n") + 1 :]
 
-            adj = fmt.get_adjustment()
+            adj = printing.get_adjustment()
 
             for line, value in zip(r.split("\n"), df["B"]):
                 if adj.len(value) + 1 > max_len:
@@ -2166,7 +2166,7 @@ c  10  11  12  13  14\
                 "B": [
                     pd.Period("2011-01", freq="M"),
                     pd.Period("2011-02-01", freq="D"),
-                    pd.Period("2011-03-01 09:00", freq="H"),
+                    pd.Period("2011-03-01 09:00", freq="h"),
                     pd.Period("2011-04", freq="M"),
                 ],
                 "C": list("abcd"),
@@ -2703,7 +2703,7 @@ class TestSeriesFormatting:
             [
                 pd.Period("2011-01", freq="M"),
                 pd.Period("2011-02-01", freq="D"),
-                pd.Period("2011-03-01 09:00", freq="H"),
+                pd.Period("2011-03-01 09:00", freq="h"),
             ]
         )
         exp = (
@@ -3187,49 +3187,49 @@ class TestRepr_timedelta64:
 class TestTimedelta64Formatter:
     def test_days(self):
         x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
-        result = fmt._Timedelta64Formatter(x, box=True).get_result()
-        assert result[0].strip() == "'0 days'"
-        assert result[1].strip() == "'1 days'"
-
-        result = fmt._Timedelta64Formatter(x[1:2], box=True).get_result()
-        assert result[0].strip() == "'1 days'"
-
-        result = fmt._Timedelta64Formatter(x, box=False).get_result()
+        result = fmt._Timedelta64Formatter(x).get_result()
         assert result[0].strip() == "0 days"
         assert result[1].strip() == "1 days"
 
-        result = fmt._Timedelta64Formatter(x[1:2], box=False).get_result()
+        result = fmt._Timedelta64Formatter(x[1:2]).get_result()
+        assert result[0].strip() == "1 days"
+
+        result = fmt._Timedelta64Formatter(x).get_result()
+        assert result[0].strip() == "0 days"
+        assert result[1].strip() == "1 days"
+
+        result = fmt._Timedelta64Formatter(x[1:2]).get_result()
         assert result[0].strip() == "1 days"
 
     def test_days_neg(self):
         x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
-        result = fmt._Timedelta64Formatter(-x, box=True).get_result()
-        assert result[0].strip() == "'0 days'"
-        assert result[1].strip() == "'-1 days'"
+        result = fmt._Timedelta64Formatter(-x).get_result()
+        assert result[0].strip() == "0 days"
+        assert result[1].strip() == "-1 days"
 
     def test_subdays(self):
         y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
-        result = fmt._Timedelta64Formatter(y, box=True).get_result()
-        assert result[0].strip() == "'0 days 00:00:00'"
-        assert result[1].strip() == "'0 days 00:00:01'"
+        result = fmt._Timedelta64Formatter(y).get_result()
+        assert result[0].strip() == "0 days 00:00:00"
+        assert result[1].strip() == "0 days 00:00:01"
 
     def test_subdays_neg(self):
         y = pd.to_timedelta(list(range(5)) + [NaT], unit="s")._values
-        result = fmt._Timedelta64Formatter(-y, box=True).get_result()
-        assert result[0].strip() == "'0 days 00:00:00'"
-        assert result[1].strip() == "'-1 days +23:59:59'"
+        result = fmt._Timedelta64Formatter(-y).get_result()
+        assert result[0].strip() == "0 days 00:00:00"
+        assert result[1].strip() == "-1 days +23:59:59"
 
     def test_zero(self):
         x = pd.to_timedelta(list(range(1)) + [NaT], unit="D")._values
-        result = fmt._Timedelta64Formatter(x, box=True).get_result()
-        assert result[0].strip() == "'0 days'"
+        result = fmt._Timedelta64Formatter(x).get_result()
+        assert result[0].strip() == "0 days"
 
         x = pd.to_timedelta(list(range(1)), unit="D")._values
-        result = fmt._Timedelta64Formatter(x, box=True).get_result()
-        assert result[0].strip() == "'0 days'"
+        result = fmt._Timedelta64Formatter(x).get_result()
+        assert result[0].strip() == "0 days"
 
 
-class Test_Datetime64Formatter:
+class TestDatetime64Formatter:
     def test_mixed(self):
         x = Series([datetime(2013, 1, 1), datetime(2013, 1, 1, 12), NaT])._values
         result = fmt._Datetime64Formatter(x).get_result()
@@ -3330,10 +3330,12 @@ class TestNaTFormatting:
 
 class TestPeriodIndexFormat:
     def test_period_format_and_strftime_default(self):
-        per = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq="H")
+        per = pd.PeriodIndex([datetime(2003, 1, 1, 12), None], freq="h")
 
         # Default formatting
-        formatted = per.format()
+        msg = "PeriodIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = per.format()
         assert formatted[0] == "2003-01-01 12:00"  # default: minutes not shown
         assert formatted[1] == "NaT"
         # format is equivalent to strftime(None)...
@@ -3342,49 +3344,56 @@ class TestPeriodIndexFormat:
 
         # Same test with nanoseconds freq
         per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
-        formatted = per.format()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = per.format()
         assert (formatted == per.strftime(None)).all()
         assert formatted[0] == "2003-01-01 12:01:01.123456789"
         assert formatted[1] == "2003-01-01 12:01:01.123456790"
 
     def test_period_custom(self):
         # GH#46252 custom formatting directives %l (ms) and %u (us)
+        msg = "PeriodIndex.format is deprecated"
 
         # 3 digits
         per = pd.period_range("2003-01-01 12:01:01.123", periods=2, freq="ms")
-        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123000 ns=123000000)"
         assert formatted[1] == "03 12:01:01 (ms=124 us=124000 ns=124000000)"
 
         # 6 digits
         per = pd.period_range("2003-01-01 12:01:01.123456", periods=2, freq="us")
-        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456000)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123457 ns=123457000)"
 
         # 9 digits
         per = pd.period_range("2003-01-01 12:01:01.123456789", periods=2, freq="ns")
-        formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = per.format(date_format="%y %I:%M:%S (ms=%l us=%u ns=%n)")
         assert formatted[0] == "03 12:01:01 (ms=123 us=123456 ns=123456789)"
         assert formatted[1] == "03 12:01:01 (ms=123 us=123456 ns=123456790)"
 
     def test_period_tz(self):
         # Formatting periods created from a datetime with timezone.
-
+        msg = r"PeriodIndex\.format is deprecated"
         # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
         dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
 
         # Converting to a period looses the timezone information
         # Since tz is currently set as utc, we'll see 2012
         with tm.assert_produces_warning(UserWarning, match="will drop timezone"):
-            per = dt.to_period(freq="H")
-        assert per.format()[0] == "2012-12-31 23:00"
+            per = dt.to_period(freq="h")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert per.format()[0] == "2012-12-31 23:00"
 
         # If tz is currently set as paris before conversion, we'll see 2013
         dt = dt.tz_convert("Europe/Paris")
         with tm.assert_produces_warning(UserWarning, match="will drop timezone"):
-            per = dt.to_period(freq="H")
-        assert per.format()[0] == "2013-01-01 00:00"
+            per = dt.to_period(freq="h")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert per.format()[0] == "2013-01-01 00:00"
 
     @pytest.mark.parametrize(
         "locale_str",
@@ -3406,12 +3415,14 @@ class TestPeriodIndexFormat:
         # Change locale temporarily for this test.
         with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
             # Scalar
-            per = pd.Period("2018-03-11 13:00", freq="H")
+            per = pd.Period("2018-03-11 13:00", freq="h")
             assert per.strftime("%y é") == "18 é"
 
             # Index
             per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
-            formatted = per.format(date_format="%y é")
+            msg = "PeriodIndex.format is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                formatted = per.format(date_format="%y é")
             assert formatted[0] == "03 é"
             assert formatted[1] == "03 é"
 
@@ -3438,38 +3449,50 @@ class TestPeriodIndexFormat:
             am_local, pm_local = get_local_am_pm()
 
             # Scalar
-            per = pd.Period("2018-03-11 13:00", freq="H")
+            per = pd.Period("2018-03-11 13:00", freq="h")
             assert per.strftime("%p") == pm_local
 
             # Index
             per = pd.period_range("2003-01-01 01:00:00", periods=2, freq="12h")
-            formatted = per.format(date_format="%y %I:%M:%S%p")
+            msg = "PeriodIndex.format is deprecated"
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                formatted = per.format(date_format="%y %I:%M:%S%p")
             assert formatted[0] == f"03 01:00:00{am_local}"
             assert formatted[1] == f"03 01:00:00{pm_local}"
 
 
 class TestDatetimeIndexFormat:
     def test_datetime(self):
-        formatted = pd.to_datetime([datetime(2003, 1, 1, 12), NaT]).format()
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = pd.to_datetime([datetime(2003, 1, 1, 12), NaT]).format()
         assert formatted[0] == "2003-01-01 12:00:00"
         assert formatted[1] == "NaT"
 
     def test_date(self):
-        formatted = pd.to_datetime([datetime(2003, 1, 1), NaT]).format()
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = pd.to_datetime([datetime(2003, 1, 1), NaT]).format()
         assert formatted[0] == "2003-01-01"
         assert formatted[1] == "NaT"
 
     def test_date_tz(self):
-        formatted = pd.to_datetime([datetime(2013, 1, 1)], utc=True).format()
+        dti = pd.to_datetime([datetime(2013, 1, 1)], utc=True)
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = dti.format()
         assert formatted[0] == "2013-01-01 00:00:00+00:00"
 
-        formatted = pd.to_datetime([datetime(2013, 1, 1), NaT], utc=True).format()
+        dti = pd.to_datetime([datetime(2013, 1, 1), NaT], utc=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = dti.format()
         assert formatted[0] == "2013-01-01 00:00:00+00:00"
 
     def test_date_explicit_date_format(self):
-        formatted = pd.to_datetime([datetime(2003, 2, 1), NaT]).format(
-            date_format="%m-%d-%Y", na_rep="UT"
-        )
+        dti = pd.to_datetime([datetime(2003, 2, 1), NaT])
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = dti.format(date_format="%m-%d-%Y", na_rep="UT")
         assert formatted[0] == "02-01-2003"
         assert formatted[1] == "UT"
 

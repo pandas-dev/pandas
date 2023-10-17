@@ -88,7 +88,7 @@ def get_indexer_indexer(
     # error: Incompatible types in assignment (expression has type
     # "Union[ExtensionArray, ndarray[Any, Any], Index, Series]", variable has
     # type "Index")
-    target = ensure_key_mapped(target, key, levels=level)  # type:ignore[assignment]
+    target = ensure_key_mapped(target, key, levels=level)  # type: ignore[assignment]
     target = target._sort_levels_monotonic()
 
     if level is not None:

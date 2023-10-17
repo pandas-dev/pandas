@@ -56,14 +56,14 @@ class TestToPeriod:
         prng = rng.to_period()
         assert prng.freq == "Q-DEC"
 
-    @pytest.mark.parametrize("off", ["BA", "AS", "BAS"])
+    @pytest.mark.parametrize("off", ["BY", "YS", "BYS"])
     def test_to_period_annualish(self, off):
         rng = date_range("01-Jan-2012", periods=8, freq=off)
         prng = rng.to_period()
         assert prng.freq == "Y-DEC"
 
     def test_to_period_monthish(self):
-        offsets = ["MS", "BM"]
+        offsets = ["MS", "BME"]
         for off in offsets:
             rng = date_range("01-Jan-2012", periods=8, freq=off)
             prng = rng.to_period()
@@ -112,7 +112,7 @@ class TestToPeriod:
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
         dti = date_range("1/1/2000", "1/7/2002", freq="B")
-        pi = dti.to_period(freq="H")
+        pi = dti.to_period(freq="h")
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
     def test_to_period_millisecond(self):

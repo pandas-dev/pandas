@@ -78,8 +78,8 @@ class TestFreqConversion:
             ival_A_to_B_end = Period(freq="B", year=2007, month=12, day=31)
         ival_A_to_D_start = Period(freq="D", year=2007, month=1, day=1)
         ival_A_to_D_end = Period(freq="D", year=2007, month=12, day=31)
-        ival_A_to_H_start = Period(freq="H", year=2007, month=1, day=1, hour=0)
-        ival_A_to_H_end = Period(freq="H", year=2007, month=12, day=31, hour=23)
+        ival_A_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_A_to_H_end = Period(freq="h", year=2007, month=12, day=31, hour=23)
         ival_A_to_T_start = Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
@@ -111,8 +111,10 @@ class TestFreqConversion:
             assert ival_A.asfreq("B", "E") == ival_A_to_B_end
         assert ival_A.asfreq("D", "s") == ival_A_to_D_start
         assert ival_A.asfreq("D", "E") == ival_A_to_D_end
-        assert ival_A.asfreq("H", "s") == ival_A_to_H_start
-        assert ival_A.asfreq("H", "E") == ival_A_to_H_end
+        msg = "'H' is deprecated and will be removed in a future version."
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert ival_A.asfreq("H", "s") == ival_A_to_H_start
+            assert ival_A.asfreq("H", "E") == ival_A_to_H_end
         assert ival_A.asfreq("min", "s") == ival_A_to_T_start
         assert ival_A.asfreq("min", "E") == ival_A_to_T_end
         msg = "'T' is deprecated and will be removed in a future version."
@@ -154,8 +156,8 @@ class TestFreqConversion:
             ival_Q_to_B_end = Period(freq="B", year=2007, month=3, day=30)
         ival_Q_to_D_start = Period(freq="D", year=2007, month=1, day=1)
         ival_Q_to_D_end = Period(freq="D", year=2007, month=3, day=31)
-        ival_Q_to_H_start = Period(freq="H", year=2007, month=1, day=1, hour=0)
-        ival_Q_to_H_end = Period(freq="H", year=2007, month=3, day=31, hour=23)
+        ival_Q_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_Q_to_H_end = Period(freq="h", year=2007, month=3, day=31, hour=23)
         ival_Q_to_T_start = Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
@@ -187,8 +189,8 @@ class TestFreqConversion:
             assert ival_Q.asfreq("B", "E") == ival_Q_to_B_end
         assert ival_Q.asfreq("D", "s") == ival_Q_to_D_start
         assert ival_Q.asfreq("D", "E") == ival_Q_to_D_end
-        assert ival_Q.asfreq("H", "s") == ival_Q_to_H_start
-        assert ival_Q.asfreq("H", "E") == ival_Q_to_H_end
+        assert ival_Q.asfreq("h", "s") == ival_Q_to_H_start
+        assert ival_Q.asfreq("h", "E") == ival_Q_to_H_end
         assert ival_Q.asfreq("Min", "s") == ival_Q_to_T_start
         assert ival_Q.asfreq("Min", "E") == ival_Q_to_T_end
         assert ival_Q.asfreq("s", "s") == ival_Q_to_S_start
@@ -216,8 +218,8 @@ class TestFreqConversion:
             ival_M_to_B_end = Period(freq="B", year=2007, month=1, day=31)
         ival_M_to_D_start = Period(freq="D", year=2007, month=1, day=1)
         ival_M_to_D_end = Period(freq="D", year=2007, month=1, day=31)
-        ival_M_to_H_start = Period(freq="H", year=2007, month=1, day=1, hour=0)
-        ival_M_to_H_end = Period(freq="H", year=2007, month=1, day=31, hour=23)
+        ival_M_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_M_to_H_end = Period(freq="h", year=2007, month=1, day=31, hour=23)
         ival_M_to_T_start = Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
@@ -243,8 +245,8 @@ class TestFreqConversion:
             assert ival_M.asfreq("B", "E") == ival_M_to_B_end
         assert ival_M.asfreq("D", "s") == ival_M_to_D_start
         assert ival_M.asfreq("D", "E") == ival_M_to_D_end
-        assert ival_M.asfreq("H", "s") == ival_M_to_H_start
-        assert ival_M.asfreq("H", "E") == ival_M_to_H_end
+        assert ival_M.asfreq("h", "s") == ival_M_to_H_start
+        assert ival_M.asfreq("h", "E") == ival_M_to_H_end
         assert ival_M.asfreq("Min", "s") == ival_M_to_T_start
         assert ival_M.asfreq("Min", "E") == ival_M_to_T_end
         assert ival_M.asfreq("s", "s") == ival_M_to_S_start
@@ -306,8 +308,8 @@ class TestFreqConversion:
             ival_W_to_B_end = Period(freq="B", year=2007, month=1, day=5)
         ival_W_to_D_start = Period(freq="D", year=2007, month=1, day=1)
         ival_W_to_D_end = Period(freq="D", year=2007, month=1, day=7)
-        ival_W_to_H_start = Period(freq="H", year=2007, month=1, day=1, hour=0)
-        ival_W_to_H_end = Period(freq="H", year=2007, month=1, day=7, hour=23)
+        ival_W_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_W_to_H_end = Period(freq="h", year=2007, month=1, day=7, hour=23)
         ival_W_to_T_start = Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
@@ -352,8 +354,8 @@ class TestFreqConversion:
         assert ival_WMON.asfreq("D", "s") == ival_WMON_to_D_start
         assert ival_WMON.asfreq("D", "E") == ival_WMON_to_D_end
 
-        assert ival_W.asfreq("H", "s") == ival_W_to_H_start
-        assert ival_W.asfreq("H", "E") == ival_W_to_H_end
+        assert ival_W.asfreq("h", "s") == ival_W_to_H_start
+        assert ival_W.asfreq("h", "E") == ival_W_to_H_end
         assert ival_W.asfreq("Min", "s") == ival_W_to_T_start
         assert ival_W.asfreq("Min", "E") == ival_W_to_T_end
         assert ival_W.asfreq("s", "s") == ival_W_to_S_start
@@ -399,8 +401,8 @@ class TestFreqConversion:
         ival_B_to_M = Period(freq="M", year=2007, month=1)
         ival_B_to_W = Period(freq="W", year=2007, month=1, day=7)
         ival_B_to_D = Period(freq="D", year=2007, month=1, day=1)
-        ival_B_to_H_start = Period(freq="H", year=2007, month=1, day=1, hour=0)
-        ival_B_to_H_end = Period(freq="H", year=2007, month=1, day=1, hour=23)
+        ival_B_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_B_to_H_end = Period(freq="h", year=2007, month=1, day=1, hour=23)
         ival_B_to_T_start = Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
@@ -425,8 +427,8 @@ class TestFreqConversion:
 
         assert ival_B.asfreq("D") == ival_B_to_D
 
-        assert ival_B.asfreq("H", "s") == ival_B_to_H_start
-        assert ival_B.asfreq("H", "E") == ival_B_to_H_end
+        assert ival_B.asfreq("h", "s") == ival_B_to_H_start
+        assert ival_B.asfreq("h", "E") == ival_B_to_H_end
         assert ival_B.asfreq("Min", "s") == ival_B_to_T_start
         assert ival_B.asfreq("Min", "E") == ival_B_to_T_end
         assert ival_B.asfreq("s", "s") == ival_B_to_S_start
@@ -465,8 +467,8 @@ class TestFreqConversion:
         ival_D_to_M = Period(freq="M", year=2007, month=1)
         ival_D_to_W = Period(freq="W", year=2007, month=1, day=7)
 
-        ival_D_to_H_start = Period(freq="H", year=2007, month=1, day=1, hour=0)
-        ival_D_to_H_end = Period(freq="H", year=2007, month=1, day=1, hour=23)
+        ival_D_to_H_start = Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_D_to_H_end = Period(freq="h", year=2007, month=1, day=1, hour=23)
         ival_D_to_T_start = Period(
             freq="Min", year=2007, month=1, day=1, hour=0, minute=0
         )
@@ -503,8 +505,8 @@ class TestFreqConversion:
             assert ival_D_sunday.asfreq("B", "s") == ival_B_friday
             assert ival_D_sunday.asfreq("B", "E") == ival_B_monday
 
-        assert ival_D.asfreq("H", "s") == ival_D_to_H_start
-        assert ival_D.asfreq("H", "E") == ival_D_to_H_end
+        assert ival_D.asfreq("h", "s") == ival_D_to_H_start
+        assert ival_D.asfreq("h", "E") == ival_D_to_H_end
         assert ival_D.asfreq("Min", "s") == ival_D_to_T_start
         assert ival_D.asfreq("Min", "E") == ival_D_to_T_end
         assert ival_D.asfreq("s", "s") == ival_D_to_S_start
@@ -515,13 +517,13 @@ class TestFreqConversion:
     def test_conv_hourly(self):
         # frequency conversion tests: from Hourly Frequency"
 
-        ival_H = Period(freq="H", year=2007, month=1, day=1, hour=0)
-        ival_H_end_of_year = Period(freq="H", year=2007, month=12, day=31, hour=23)
-        ival_H_end_of_quarter = Period(freq="H", year=2007, month=3, day=31, hour=23)
-        ival_H_end_of_month = Period(freq="H", year=2007, month=1, day=31, hour=23)
-        ival_H_end_of_week = Period(freq="H", year=2007, month=1, day=7, hour=23)
-        ival_H_end_of_day = Period(freq="H", year=2007, month=1, day=1, hour=23)
-        ival_H_end_of_bus = Period(freq="H", year=2007, month=1, day=1, hour=23)
+        ival_H = Period(freq="h", year=2007, month=1, day=1, hour=0)
+        ival_H_end_of_year = Period(freq="h", year=2007, month=12, day=31, hour=23)
+        ival_H_end_of_quarter = Period(freq="h", year=2007, month=3, day=31, hour=23)
+        ival_H_end_of_month = Period(freq="h", year=2007, month=1, day=31, hour=23)
+        ival_H_end_of_week = Period(freq="h", year=2007, month=1, day=7, hour=23)
+        ival_H_end_of_day = Period(freq="h", year=2007, month=1, day=1, hour=23)
+        ival_H_end_of_bus = Period(freq="h", year=2007, month=1, day=1, hour=23)
 
         ival_H_to_A = Period(freq="Y", year=2007)
         ival_H_to_Q = Period(freq="Q", year=2007, quarter=1)
@@ -563,7 +565,7 @@ class TestFreqConversion:
         assert ival_H.asfreq("s", "s") == ival_H_to_S_start
         assert ival_H.asfreq("s", "E") == ival_H_to_S_end
 
-        assert ival_H.asfreq("H") == ival_H
+        assert ival_H.asfreq("h") == ival_H
 
     def test_conv_minutely(self):
         # frequency conversion tests: from Minutely Frequency"
@@ -598,7 +600,7 @@ class TestFreqConversion:
         ival_T_to_D = Period(freq="D", year=2007, month=1, day=1)
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             ival_T_to_B = Period(freq="B", year=2007, month=1, day=1)
-        ival_T_to_H = Period(freq="H", year=2007, month=1, day=1, hour=0)
+        ival_T_to_H = Period(freq="h", year=2007, month=1, day=1, hour=0)
 
         ival_T_to_S_start = Period(
             freq="s", year=2007, month=1, day=1, hour=0, minute=0, second=0
@@ -620,8 +622,8 @@ class TestFreqConversion:
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             assert ival_T.asfreq("B") == ival_T_to_B
             assert ival_T_end_of_bus.asfreq("B") == ival_T_to_B
-        assert ival_T.asfreq("H") == ival_T_to_H
-        assert ival_T_end_of_hour.asfreq("H") == ival_T_to_H
+        assert ival_T.asfreq("h") == ival_T_to_H
+        assert ival_T_end_of_hour.asfreq("h") == ival_T_to_H
 
         assert ival_T.asfreq("s", "s") == ival_T_to_S_start
         assert ival_T.asfreq("s", "E") == ival_T_to_S_end
@@ -664,7 +666,7 @@ class TestFreqConversion:
         ival_S_to_D = Period(freq="D", year=2007, month=1, day=1)
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             ival_S_to_B = Period(freq="B", year=2007, month=1, day=1)
-        ival_S_to_H = Period(freq="H", year=2007, month=1, day=1, hour=0)
+        ival_S_to_H = Period(freq="h", year=2007, month=1, day=1, hour=0)
         ival_S_to_T = Period(freq="Min", year=2007, month=1, day=1, hour=0, minute=0)
 
         assert ival_S.asfreq("Y") == ival_S_to_A
@@ -680,8 +682,8 @@ class TestFreqConversion:
         with tm.assert_produces_warning(FutureWarning, match=bday_msg):
             assert ival_S.asfreq("B") == ival_S_to_B
             assert ival_S_end_of_bus.asfreq("B") == ival_S_to_B
-        assert ival_S.asfreq("H") == ival_S_to_H
-        assert ival_S_end_of_hour.asfreq("H") == ival_S_to_H
+        assert ival_S.asfreq("h") == ival_S_to_H
+        assert ival_S_end_of_hour.asfreq("h") == ival_S_to_H
         assert ival_S.asfreq("Min") == ival_S_to_T
         assert ival_S_end_of_minute.asfreq("Min") == ival_S_to_T
 
@@ -778,24 +780,24 @@ class TestFreqConversion:
 
     def test_asfreq_combined(self):
         # normal freq to combined freq
-        p = Period("2007", freq="H")
+        p = Period("2007", freq="h")
 
         # ordinal will not change
-        expected = Period("2007", freq="25H")
-        for freq, how in zip(["1D1H", "1H1D"], ["E", "S"]):
+        expected = Period("2007", freq="25h")
+        for freq, how in zip(["1D1h", "1h1D"], ["E", "S"]):
             result = p.asfreq(freq, how=how)
             assert result == expected
             assert result.ordinal == expected.ordinal
             assert result.freq == expected.freq
 
         # combined freq to normal freq
-        p1 = Period(freq="1D1H", year=2007)
-        p2 = Period(freq="1H1D", year=2007)
+        p1 = Period(freq="1D1h", year=2007)
+        p2 = Period(freq="1h1D", year=2007)
 
         # ordinal will change because how=E is the default
-        result1 = p1.asfreq("H")
-        result2 = p2.asfreq("H")
-        expected = Period("2007-01-02", freq="H")
+        result1 = p1.asfreq("h")
+        result2 = p2.asfreq("h")
+        expected = Period("2007-01-02", freq="h")
         assert result1 == expected
         assert result1.ordinal == expected.ordinal
         assert result1.freq == expected.freq
@@ -804,9 +806,9 @@ class TestFreqConversion:
         assert result2.freq == expected.freq
 
         # ordinal will not change
-        result1 = p1.asfreq("H", how="S")
-        result2 = p2.asfreq("H", how="S")
-        expected = Period("2007-01-01", freq="H")
+        result1 = p1.asfreq("h", how="S")
+        result2 = p2.asfreq("h", how="S")
+        expected = Period("2007-01-01", freq="h")
         assert result1 == expected
         assert result1.ordinal == expected.ordinal
         assert result1.freq == expected.freq

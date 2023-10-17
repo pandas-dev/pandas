@@ -32,16 +32,16 @@ class TestAsFreq:
                     datetime(2009, 11, 30),
                     datetime(2009, 12, 31),
                 ],
-                freq="BM",
+                freq="BME",
             ),
         )
 
         daily_ts = ts.asfreq("B")
-        monthly_ts = daily_ts.asfreq("BM")
+        monthly_ts = daily_ts.asfreq("BME")
         tm.assert_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq("B", method="pad")
-        monthly_ts = daily_ts.asfreq("BM")
+        monthly_ts = daily_ts.asfreq("BME")
         tm.assert_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq(offsets.BDay())
@@ -63,8 +63,8 @@ class TestAsFreq:
     def test_asfreq_datetimeindex_empty(self, frame_or_series):
         # GH#14320
         index = DatetimeIndex(["2016-09-29 11:00"])
-        expected = frame_or_series(index=index, dtype=object).asfreq("H")
-        result = frame_or_series([3], index=index.copy()).asfreq("H")
+        expected = frame_or_series(index=index, dtype=object).asfreq("h")
+        result = frame_or_series([3], index=index.copy()).asfreq("h")
         tm.assert_index_equal(expected.index, result.index)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
@@ -140,12 +140,12 @@ class TestAsFreq:
     def test_asfreq_empty(self, datetime_frame):
         # test does not blow up on length-0 DataFrame
         zero_length = datetime_frame.reindex([])
-        result = zero_length.asfreq("BM")
+        result = zero_length.asfreq("BME")
         assert result is not zero_length
 
     def test_asfreq(self, datetime_frame):
         offset_monthly = datetime_frame.asfreq(offsets.BMonthEnd())
-        rule_monthly = datetime_frame.asfreq("BM")
+        rule_monthly = datetime_frame.asfreq("BME")
 
         tm.assert_frame_equal(offset_monthly, rule_monthly)
 
@@ -194,8 +194,8 @@ class TestAsFreq:
         ts2 = ts.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts2.asfreq("4H", method="ffill")
-        expected = ts.asfreq("4H", method="ffill")
+        result = ts2.asfreq("4h", method="ffill")
+        expected = ts.asfreq("4h", method="ffill")
         tm.assert_equal(result, expected)
 
     def test_asfreq_with_unsorted_index(self, frame_or_series):

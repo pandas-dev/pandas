@@ -335,8 +335,8 @@ class TestSeriesConstructors:
         [
             ([1, 2]),
             (["1", "2"]),
-            (list(date_range("1/1/2011", periods=2, freq="H"))),
-            (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
+            (list(date_range("1/1/2011", periods=2, freq="h"))),
+            (list(date_range("1/1/2011", periods=2, freq="h", tz="US/Eastern"))),
             ([Interval(left=0, right=5)]),
         ],
     )
@@ -1364,7 +1364,7 @@ class TestSeriesConstructors:
                 reason="Construction from dict goes through "
                 "maybe_convert_objects which casts to nano"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         d = {"a": ea_scalar}
         result = Series(d, index=["a"])
         expected = Series(ea_scalar, index=["a"], dtype=ea_dtype)
@@ -1690,7 +1690,7 @@ class TestSeriesConstructors:
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         with pytest.raises(ValueError, match=msg):
             Series([], dtype=dtype)
@@ -2160,7 +2160,7 @@ class TestSeriesConstructorInternals:
 
     @td.skip_array_manager_invalid_test
     def test_from_array(self):
-        result = Series(pd.array(["1H", "2H"], dtype="timedelta64[ns]"))
+        result = Series(pd.array(["1h", "2h"], dtype="timedelta64[ns]"))
         assert result._mgr.blocks[0].is_extension is False
 
         result = Series(pd.array(["2015"], dtype="datetime64[ns]"))
@@ -2168,7 +2168,7 @@ class TestSeriesConstructorInternals:
 
     @td.skip_array_manager_invalid_test
     def test_from_list_dtype(self):
-        result = Series(["1H", "2H"], dtype="timedelta64[ns]")
+        result = Series(["1h", "2h"], dtype="timedelta64[ns]")
         assert result._mgr.blocks[0].is_extension is False
 
         result = Series(["2015"], dtype="datetime64[ns]")

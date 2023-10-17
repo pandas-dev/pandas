@@ -229,7 +229,7 @@ def async_mark():
 
 def mark_array_manager_not_yet_implemented(request) -> None:
     mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
-    request.node.add_marker(mark)
+    request.applymarker(mark)
 
 
 skip_array_manager_not_yet_implemented = pytest.mark.xfail(
