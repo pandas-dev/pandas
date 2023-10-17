@@ -30,7 +30,7 @@ Fixed regressions
 - Fixed regression where :func:`pandas.merge_asof` would raise a ``UnboundLocalError`` when ``left_index``, ``right_index`` and ``tolerance`` were set (:issue:`35558`)
 - Fixed regression in ``.groupby(..).rolling(..)`` where a custom ``BaseIndexer`` would be ignored (:issue:`35557`)
 - Fixed regression in :meth:`DataFrame.replace` and :meth:`Series.replace` where compiled regular expressions would be ignored during replacement (:issue:`35680`)
-- Fixed regression in :meth:`~pandas.core.groupby.DataFrameGroupBy.aggregate` where a list of functions would produce the wrong results if at least one of the functions did not aggregate (:issue:`35490`)
+- Fixed regression in :meth:`.DataFrameGroupBy.aggregate` where a list of functions would produce the wrong results if at least one of the functions did not aggregate (:issue:`35490`)
 - Fixed memory usage issue when instantiating large :class:`pandas.arrays.StringArray` (:issue:`35499`)
 
 .. ---------------------------------------------------------------------------

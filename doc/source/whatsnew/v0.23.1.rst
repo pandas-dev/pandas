@@ -100,8 +100,8 @@ Bug fixes
 **Groupby/resample/rolling**
 
 - Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
-- Bug in :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` where the fill within a grouping would not always be applied as intended due to the implementations' use of a non-stable sort (:issue:`21207`)
-- Bug in :func:`pandas.core.groupby.GroupBy.rank` where results did not scale to 100% when specifying ``method='dense'`` and ``pct=True``
+- Bug in :func:`.GroupBy.ffill` and :func:`.GroupBy.bfill` where the fill within a grouping would not always be applied as intended due to the implementations' use of a non-stable sort (:issue:`21207`)
+- Bug in :func:`.GroupBy.rank` where results did not scale to 100% when specifying ``method='dense'`` and ``pct=True``
 - Bug in :func:`pandas.DataFrame.rolling` and :func:`pandas.Series.rolling` which incorrectly accepted a 0 window size rather than raising (:issue:`21286`)
 
 **Data-type specific**

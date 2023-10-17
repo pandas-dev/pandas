@@ -31,8 +31,8 @@ IO
 GroupBy/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-- Bug incorrectly raising an ``IndexError`` when passing a list of quantiles to :meth:`pandas.core.groupby.DataFrameGroupBy.quantile` (:issue:`28113`).
-- Bug in :meth:`pandas.core.groupby.GroupBy.shift`, :meth:`pandas.core.groupby.GroupBy.bfill` and :meth:`pandas.core.groupby.GroupBy.ffill` where timezone information would be dropped (:issue:`19995`, :issue:`27992`)
+- Bug incorrectly raising an ``IndexError`` when passing a list of quantiles to :meth:`.DataFrameGroupBy.quantile` (:issue:`28113`).
+- Bug in :meth:`.GroupBy.shift`, :meth:`.GroupBy.bfill` and :meth:`.GroupBy.ffill` where timezone information would be dropped (:issue:`19995`, :issue:`27992`)
 
 Other
 ^^^^^

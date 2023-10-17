@@ -19,8 +19,8 @@ Fixed regressions
 
 - Fixed regression in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg` which were failing on frames with :class:`MultiIndex` columns and a custom function (:issue:`31777`)
 - Fixed regression in ``groupby(..).rolling(..).apply()`` (``RollingGroupby``) where the ``raw`` parameter was ignored (:issue:`31754`)
-- Fixed regression in :meth:`rolling(..).corr() <pandas.core.window.rolling.Rolling.corr>` when using a time offset (:issue:`31789`)
-- Fixed regression in :meth:`groupby(..).nunique() <pandas.core.groupby.DataFrameGroupBy.nunique>` which was modifying the original values if ``NaN`` values were present (:issue:`31950`)
+- Fixed regression in :meth:`rolling(..).corr() <.Rolling.corr>` when using a time offset (:issue:`31789`)
+- Fixed regression in :meth:`groupby(..).nunique() <.DataFrameGroupBy.nunique>` which was modifying the original values if ``NaN`` values were present (:issue:`31950`)
 - Fixed regression in ``DataFrame.groupby`` raising a ``ValueError`` from an internal operation (:issue:`31802`)
 - Fixed regression in :meth:`.DataFrameGroupBy.agg` and :meth:`.SeriesGroupBy.agg` calling a user-provided function an extra time on an empty input (:issue:`31760`)
 
