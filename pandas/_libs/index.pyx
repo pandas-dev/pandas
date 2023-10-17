@@ -247,6 +247,10 @@ cdef class IndexEngine:
 
     @property
     def is_unique(self) -> bool:
+        # for why we check is_monotonic_increasing here, see
+        # https://github.com/pandas-dev/pandas/pull/55342#discussion_r1361405781
+        if self.need_monotonic_check:
+            self.is_monotonic_increasing
         if self.need_unique_check:
             self._do_unique_check()
 
@@ -922,6 +926,10 @@ cdef class SharedEngine:
 
     @property
     def is_unique(self) -> bool:
+        # for why we check is_monotonic_increasing here, see
+        # https://github.com/pandas-dev/pandas/pull/55342#discussion_r1361405781
+        if self.need_monotonic_check:
+            self.is_monotonic_increasing
         if self.need_unique_check:
             arr = self.values.unique()
             self.unique = len(arr) == len(self.values)
