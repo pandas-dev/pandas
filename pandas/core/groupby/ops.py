@@ -424,7 +424,6 @@ class WrappedCythonOp:
                     mask=mask,
                     result_mask=result_mask,
                     is_datetimelike=is_datetimelike,
-                    **kwargs,
                 )
             elif self.how in ["sem", "std", "var", "ohlc", "prod", "median"]:
                 if self.how in ["std", "sem"]:

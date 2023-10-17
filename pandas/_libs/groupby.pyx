@@ -1816,7 +1816,7 @@ def group_idxmin_idxmax(
 
     Parameters
     ----------
-    out : np.ndarray[int64_t, ndim=2]
+    out : np.ndarray[intp, ndim=2]
         Array to store result in.
     counts : np.ndarray[int64]
         Input as a zeroed array, populated by group sizes during algorithm

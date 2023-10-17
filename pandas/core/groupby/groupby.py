@@ -5842,7 +5842,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
         return result
 
-    def _wrap_idxmax_idxmin(self, res):
+    def _wrap_idxmax_idxmin(self, res: NDFrameT) -> NDFrameT:
         index = self.obj._get_axis(self.axis)
         if res.size == 0:
             result = res.astype(index.dtype)
@@ -5850,20 +5850,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             if isinstance(index, MultiIndex):
                 index = index.to_flat_index()
             values = res._values
+            assert isinstance(values, np.ndarray)
             na_value = na_value_for_dtype(index.dtype, compat=False)
             if isinstance(res, Series):
-                result = res._constructor(
+                # mypy: expression has type "Series", variable has type "NDFrameT"
+                result = res._constructor(  # type: ignore[assignment]
                     index.array.take(values, allow_fill=True, fill_value=na_value),
                     index=res.index,
                     name=res.name,
                 )
             else:
-                buf = {}
+                data = {}
                 for k, column_values in enumerate(values.T):
-                    buf[k] = index.array.take(
+                    data[k] = index.array.take(
                         column_values, allow_fill=True, fill_value=na_value
                     )
-                result = self.obj._constructor(buf, index=res.index)
+                result = self.obj._constructor(data, index=res.index)
                 result.columns = res.columns
         return result
 
