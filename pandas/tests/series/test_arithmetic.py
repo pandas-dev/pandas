@@ -957,6 +957,7 @@ def test_rmod_consistent_large_series():
 
 
 def test_arrow_floordiv():
+    # GH 55561
     a = Series([-7], dtype="int64[pyarrow]")
     b = Series([4], dtype="int64[pyarrow]")
     expected = Series([-2], dtype="int64[pyarrow]")
