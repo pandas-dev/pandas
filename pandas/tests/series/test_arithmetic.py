@@ -954,3 +954,11 @@ def test_rmod_consistent_large_series():
     expected = Series([1] * 10001)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_arrow_floordiv():
+    a = Series([-7], dtype="int64[pyarrow]")
+    b = Series([4], dtype="int64[pyarrow]")
+    expected = Series([-2], dtype="int64[pyarrow]")
+    result = a // b
+    tm.assert_series_equal(result, expected)
