@@ -369,7 +369,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "MS", "bs": "BMS", "ce": "ME", "be": "BM"}.get(pos_check)
+            return {"cs": "MS", "bs": "BMS", "ce": "ME", "be": "BME"}.get(pos_check)
 
     def _is_business_daily(self) -> bool:
         # quick check: cannot be business daily

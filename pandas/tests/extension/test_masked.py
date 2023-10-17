@@ -234,7 +234,7 @@ class TestMaskedArrays(base.ExtensionTests):
                 "floordiv but not for divmod. This matches what we do for "
                 "non-masked bool dtype."
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         super().test_divmod_series_array(data, data_for_twos)
 
     def test_combine_le(self, data_repeated):

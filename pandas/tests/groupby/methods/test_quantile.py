@@ -45,7 +45,7 @@ def test_quantile(interpolation, a_vals, b_vals, q, request):
         and isinstance(b_vals, list)
         and b_vals == [4, 3, 2, 1]
     ):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Unclear numpy expectation for nearest "
                 "result with equidistant data"

@@ -2101,7 +2101,7 @@ class TimeGrouper(Grouper):
         else:
             freq = to_offset(freq)
 
-        end_types = {"ME", "Y", "Q", "BM", "BY", "BQ", "W"}
+        end_types = {"ME", "Y", "Q", "BME", "BY", "BQ", "W"}
         rule = freq.rule_code
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
             if closed is None:
@@ -2297,7 +2297,7 @@ class TimeGrouper(Grouper):
     ) -> tuple[DatetimeIndex, npt.NDArray[np.int64]]:
         # Some hacks for > daily data, see #1471, #1458, #1483
 
-        if self.freq.name in ("BM", "ME", "W") or self.freq.name.split("-")[0] in (
+        if self.freq.name in ("BME", "ME", "W") or self.freq.name.split("-")[0] in (
             "BQ",
             "BY",
             "Q",
