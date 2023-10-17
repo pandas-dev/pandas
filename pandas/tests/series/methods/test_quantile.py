@@ -43,7 +43,7 @@ class TestSeriesQuantile:
             with pytest.raises(ValueError, match=msg):
                 datetime_series.quantile(invalid)
 
-        s = Series(np.random.randn(100))
+        s = Series(np.random.default_rng(2).standard_normal(100))
         percentile_array = [-0.5, 0.25, 1.5]
         with pytest.raises(ValueError, match=msg):
             s.quantile(percentile_array)

@@ -20,10 +20,7 @@ from pandas import (
     option_context,
 )
 import pandas._testing as tm
-from pandas.core.internals import (
-    NumericBlock,
-    ObjectBlock,
-)
+from pandas.core.internals.blocks import NumpyBlock
 
 # Segregated collection of methods that require the BlockManager internal data
 # structure
@@ -79,8 +76,6 @@ class TestDataFrameBlockInternals:
         assert len(float_frame._mgr.blocks) == 1
 
     def test_consolidate_inplace(self, float_frame):
-        frame = float_frame.copy()  # noqa
-
         # triggers in-place consolidation
         for letter in range(ord("A"), ord("Z")):
             float_frame[chr(letter)] = chr(letter)
@@ -136,22 +131,22 @@ class TestDataFrameBlockInternals:
 
         df = DataFrame({"A": [None, 1]})
         result = df["A"]
-        expected = Series(np.asarray([np.nan, 1], np.float_), name="A")
+        expected = Series(np.asarray([np.nan, 1], np.float64), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0, 2]})
         result = df["A"]
-        expected = Series(np.asarray([1.0, 2], np.float_), name="A")
+        expected = Series(np.asarray([1.0, 2], np.float64), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, 3]})
         result = df["A"]
-        expected = Series(np.asarray([1.0 + 2.0j, 3], np.complex_), name="A")
+        expected = Series(np.asarray([1.0 + 2.0j, 3], np.complex128), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, 3.0]})
         result = df["A"]
-        expected = Series(np.asarray([1.0 + 2.0j, 3.0], np.complex_), name="A")
+        expected = Series(np.asarray([1.0 + 2.0j, 3.0], np.complex128), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, True]})
@@ -161,12 +156,12 @@ class TestDataFrameBlockInternals:
 
         df = DataFrame({"A": [1.0, None]})
         result = df["A"]
-        expected = Series(np.asarray([1.0, np.nan], np.float_), name="A")
+        expected = Series(np.asarray([1.0, np.nan], np.float64), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [1.0 + 2.0j, None]})
         result = df["A"]
-        expected = Series(np.asarray([1.0 + 2.0j, np.nan], np.complex_), name="A")
+        expected = Series(np.asarray([1.0 + 2.0j, np.nan], np.complex128), name="A")
         tm.assert_series_equal(result, expected)
 
         df = DataFrame({"A": [2.0, 1, True, None]})
@@ -193,20 +188,20 @@ class TestDataFrameBlockInternals:
 
         # check dtypes
         result = df.dtypes
-        expected = Series({"datetime64[ns]": 3})
+        expected = Series({"datetime64[us]": 3})
 
         # mixed-type frames
         float_string_frame["datetime"] = datetime.now()
         float_string_frame["timedelta"] = timedelta(days=1, seconds=1)
-        assert float_string_frame["datetime"].dtype == "M8[ns]"
-        assert float_string_frame["timedelta"].dtype == "m8[ns]"
+        assert float_string_frame["datetime"].dtype == "M8[us]"
+        assert float_string_frame["timedelta"].dtype == "m8[us]"
         result = float_string_frame.dtypes
         expected = Series(
             [np.dtype("float64")] * 4
             + [
                 np.dtype("object"),
-                np.dtype("datetime64[ns]"),
-                np.dtype("timedelta64[ns]"),
+                np.dtype("datetime64[us]"),
+                np.dtype("timedelta64[us]"),
             ],
             index=list("ABCD") + ["foo", "datetime", "timedelta"],
         )
@@ -228,10 +223,11 @@ class TestDataFrameBlockInternals:
                 "dt1": Timestamp("20130101"),
                 "dt2": date_range("20130101", periods=3).astype("M8[s]"),
                 # 'dt3' : date_range('20130101 00:00:01',periods=3,freq='s'),
+                # FIXME: don't leave commented-out
             },
             index=range(3),
         )
-        assert expected.dtypes["dt1"] == "M8[ns]"
+        assert expected.dtypes["dt1"] == "M8[s]"
         assert expected.dtypes["dt2"] == "M8[s]"
 
         df = DataFrame(index=range(3))
@@ -242,6 +238,7 @@ class TestDataFrameBlockInternals:
 
         # df['dt3'] = np.array(['2013-01-01 00:00:01','2013-01-01
         # 00:00:02','2013-01-01 00:00:03'],dtype='datetime64[s]')
+        # FIXME: don't leave commented-out
 
         tm.assert_frame_equal(df, expected)
 
@@ -338,7 +335,7 @@ class TestDataFrameBlockInternals:
         # this is chained, but ok
         with option_context("chained_assignment", None):
             Y = DataFrame(
-                np.random.random((4, 4)),
+                np.random.default_rng(2).random((4, 4)),
                 index=("a", "b", "c", "d"),
                 columns=("e", "f", "g", "h"),
             )
@@ -346,12 +343,12 @@ class TestDataFrameBlockInternals:
             Y["e"] = Y["e"].astype("object")
             if using_copy_on_write:
                 with tm.raises_chained_assignment_error():
-                    Y["g"]["c"] = np.NaN
+                    Y["g"]["c"] = np.nan
             else:
-                Y["g"]["c"] = np.NaN
+                Y["g"]["c"] = np.nan
             repr(Y)
-            result = Y.sum()  # noqa
-            exp = Y["g"].sum()  # noqa
+            Y.sum()
+            Y["g"].sum()
             if using_copy_on_write:
                 assert not pd.isna(Y["g"]["c"])
             else:
@@ -381,27 +378,32 @@ class TestDataFrameBlockInternals:
         assert first == second == 0
 
     def test_constructor_no_pandas_array(self):
-        # Ensure that PandasArray isn't allowed inside Series
+        # Ensure that NumpyExtensionArray isn't allowed inside Series
         # See https://github.com/pandas-dev/pandas/issues/23995 for more.
         arr = Series([1, 2, 3]).array
         result = DataFrame({"A": arr})
         expected = DataFrame({"A": [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
-        assert isinstance(result._mgr.blocks[0], NumericBlock)
+        assert isinstance(result._mgr.blocks[0], NumpyBlock)
+        assert result._mgr.blocks[0].is_numeric
 
     def test_add_column_with_pandas_array(self):
         # GH 26390
         df = DataFrame({"a": [1, 2, 3, 4], "b": ["a", "b", "c", "d"]})
-        df["c"] = pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object))
+        df["c"] = pd.arrays.NumpyExtensionArray(np.array([1, 2, None, 3], dtype=object))
         df2 = DataFrame(
             {
                 "a": [1, 2, 3, 4],
                 "b": ["a", "b", "c", "d"],
-                "c": pd.arrays.PandasArray(np.array([1, 2, None, 3], dtype=object)),
+                "c": pd.arrays.NumpyExtensionArray(
+                    np.array([1, 2, None, 3], dtype=object)
+                ),
             }
         )
-        assert type(df["c"]._mgr.blocks[0]) == ObjectBlock
-        assert type(df2["c"]._mgr.blocks[0]) == ObjectBlock
+        assert type(df["c"]._mgr.blocks[0]) == NumpyBlock
+        assert df["c"]._mgr.blocks[0].is_object
+        assert type(df2["c"]._mgr.blocks[0]) == NumpyBlock
+        assert df2["c"]._mgr.blocks[0].is_object
         tm.assert_frame_equal(df, df2)
 
 
@@ -410,7 +412,11 @@ def test_update_inplace_sets_valid_block_values(using_copy_on_write):
     df = DataFrame({"a": Series([1, 2, None], dtype="category")})
 
     # inplace update of a single column
-    df["a"].fillna(1, inplace=True)
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            df["a"].fillna(1, inplace=True)
+    else:
+        df["a"].fillna(1, inplace=True)
 
     # check we haven't put a Series into any block.values
     assert isinstance(df._mgr.blocks[0].values, Categorical)

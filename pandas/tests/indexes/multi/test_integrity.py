@@ -3,6 +3,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas._libs import index as libindex
+
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas as pd
@@ -186,12 +188,11 @@ def test_large_multiindex_error():
         df_above_1000000.loc[(3, 0), "dest"]
 
 
-def test_million_record_attribute_error():
+def test_mi_hashtable_populated_attribute_error(monkeypatch):
     # GH 18165
-    r = list(range(1000000))
-    df = pd.DataFrame(
-        {"a": r, "b": r}, index=MultiIndex.from_tuples([(x, x) for x in r])
-    )
+    monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 50)
+    r = range(50)
+    df = pd.DataFrame({"a": r, "b": r}, index=MultiIndex.from_arrays([r, r]))
 
     msg = "'Series' object has no attribute 'foo'"
     with pytest.raises(AttributeError, match=msg):
@@ -234,7 +235,10 @@ def test_rangeindex_fallback_coercion_bug():
     # GH 12893
     df1 = pd.DataFrame(np.arange(100).reshape((10, 10)))
     df2 = pd.DataFrame(np.arange(100).reshape((10, 10)))
-    df = pd.concat({"df1": df1.stack(), "df2": df2.stack()}, axis=1)
+    df = pd.concat(
+        {"df1": df1.stack(future_stack=True), "df2": df2.stack(future_stack=True)},
+        axis=1,
+    )
     df.index.names = ["fizz", "buzz"]
 
     str(df)

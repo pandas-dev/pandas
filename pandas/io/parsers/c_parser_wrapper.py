@@ -1,12 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-    Mapping,
-    Sequence,
-)
+from typing import TYPE_CHECKING
 import warnings
 
 import numpy as np
@@ -39,6 +34,12 @@ from pandas.io.parsers.base_parser import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         DtypeArg,
@@ -245,9 +246,7 @@ class CParserWrapper(ParserBase):
                 )
                 index, columns, col_dict = self._get_empty_meta(
                     names,
-                    self.index_col,
-                    self.index_names,
-                    dtype=self.kwds.get("dtype"),
+                    dtype=self.dtype,
                 )
                 columns = self._maybe_make_multi_index_columns(columns, self.col_names)
 
@@ -343,17 +342,6 @@ class CParserWrapper(ParserBase):
                 name for i, name in enumerate(names) if i in usecols or name in usecols
             ]
         return names
-
-    def _get_index_names(self):
-        names = list(self._reader.header[0])
-        idx_names = None
-
-        if self._reader.leading_cols == 0 and self.index_col is not None:
-            (idx_names, names, self.index_col) = self._clean_index_names(
-                names, self.index_col
-            )
-
-        return names, idx_names
 
     def _maybe_parse_dates(self, values, index: int, try_parse_dates: bool = True):
         if try_parse_dates and self._should_parse_dates(index):

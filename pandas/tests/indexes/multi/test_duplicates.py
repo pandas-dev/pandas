@@ -3,7 +3,10 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas._libs import hashtable
+from pandas._libs import (
+    hashtable,
+    index as libindex,
+)
 
 from pandas import (
     NA,
@@ -232,41 +235,43 @@ def test_duplicated(idx_dup, keep, expected):
 
 
 @pytest.mark.arm_slow
-def test_duplicated_large(keep):
+def test_duplicated_hashtable_impl(keep, monkeypatch):
     # GH 9125
-    n, k = 200, 5000
+    n, k = 6, 10
     levels = [np.arange(n), tm.makeStringIndex(n), 1000 + np.arange(n)]
-    codes = [np.random.choice(n, k * n) for lev in levels]
-    mi = MultiIndex(levels=levels, codes=codes)
+    codes = [np.random.default_rng(2).choice(n, k * n) for _ in levels]
+    with monkeypatch.context() as m:
+        m.setattr(libindex, "_SIZE_CUTOFF", 50)
+        mi = MultiIndex(levels=levels, codes=codes)
 
-    result = mi.duplicated(keep=keep)
-    expected = hashtable.duplicated(mi.values, keep=keep)
+        result = mi.duplicated(keep=keep)
+        expected = hashtable.duplicated(mi.values, keep=keep)
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_duplicated2():
-    # TODO: more informative test name
+@pytest.mark.parametrize("val", [101, 102])
+def test_duplicated_with_nan(val):
     # GH5873
-    for a in [101, 102]:
-        mi = MultiIndex.from_arrays([[101, a], [3.5, np.nan]])
-        assert not mi.has_duplicates
+    mi = MultiIndex.from_arrays([[101, val], [3.5, np.nan]])
+    assert not mi.has_duplicates
 
-        tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(2, dtype="bool"))
+    tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(2, dtype="bool"))
 
-    for n in range(1, 6):  # 1st level shape
-        for m in range(1, 5):  # 2nd level shape
-            # all possible unique combinations, including nan
-            codes = product(range(-1, n), range(-1, m))
-            mi = MultiIndex(
-                levels=[list("abcde")[:n], list("WXYZ")[:m]],
-                codes=np.random.permutation(list(codes)).T,
-            )
-            assert len(mi) == (n + 1) * (m + 1)
-            assert not mi.has_duplicates
 
-            tm.assert_numpy_array_equal(
-                mi.duplicated(), np.zeros(len(mi), dtype="bool")
-            )
+@pytest.mark.parametrize("n", range(1, 6))
+@pytest.mark.parametrize("m", range(1, 5))
+def test_duplicated_with_nan_multi_shape(n, m):
+    # GH5873
+    # all possible unique combinations, including nan
+    codes = product(range(-1, n), range(-1, m))
+    mi = MultiIndex(
+        levels=[list("abcde")[:n], list("WXYZ")[:m]],
+        codes=np.random.default_rng(2).permutation(list(codes)).T,
+    )
+    assert len(mi) == (n + 1) * (m + 1)
+    assert not mi.has_duplicates
+
+    tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(len(mi), dtype="bool"))
 
 
 def test_duplicated_drop_duplicates():

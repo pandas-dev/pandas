@@ -12,7 +12,10 @@ from pandas.core.arrays.string_ import (
     StringArray,
     StringDtype,
 )
-from pandas.core.arrays.string_arrow import ArrowStringArray
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringArrayNumpySemantics,
+)
 
 skip_if_no_pyarrow = pytest.mark.skipif(
     pa_version_under7p0,
@@ -49,10 +52,10 @@ def test_config_bad_storage_raises():
 @skip_if_no_pyarrow
 @pytest.mark.parametrize("chunked", [True, False])
 @pytest.mark.parametrize("array", ["numpy", "pyarrow"])
-def test_constructor_not_string_type_raises(array, chunked):
+def test_constructor_not_string_type_raises(array, chunked, arrow_string_storage):
     import pyarrow as pa
 
-    array = pa if array == "pyarrow" else np
+    array = pa if array in arrow_string_storage else np
 
     arr = array.array([1, 2, 3])
     if chunked:
@@ -67,6 +70,41 @@ def test_constructor_not_string_type_raises(array, chunked):
         )
     with pytest.raises(ValueError, match=msg):
         ArrowStringArray(arr)
+
+
+@pytest.mark.parametrize("chunked", [True, False])
+def test_constructor_not_string_type_value_dictionary_raises(chunked):
+    pa = pytest.importorskip("pyarrow")
+
+    arr = pa.array([1, 2, 3], pa.dictionary(pa.int32(), pa.int32()))
+    if chunked:
+        arr = pa.chunked_array(arr)
+
+    msg = re.escape(
+        "ArrowStringArray requires a PyArrow (chunked) array of string type"
+    )
+    with pytest.raises(ValueError, match=msg):
+        ArrowStringArray(arr)
+
+
+@pytest.mark.parametrize("chunked", [True, False])
+def test_constructor_valid_string_type_value_dictionary(chunked):
+    pa = pytest.importorskip("pyarrow")
+
+    arr = pa.array(["1", "2", "3"], pa.dictionary(pa.int32(), pa.utf8()))
+    if chunked:
+        arr = pa.chunked_array(arr)
+
+    arr = ArrowStringArray(arr)
+    assert pa.types.is_string(arr._pa_array.type.value_type)
+
+
+def test_constructor_from_list():
+    # GH#27673
+    pytest.importorskip("pyarrow", minversion="1.0.0")
+    result = pd.Series(["E"], dtype=StringDtype(storage="pyarrow"))
+    assert isinstance(result.dtype, StringDtype)
+    assert result.dtype.storage == "pyarrow"
 
 
 @skip_if_no_pyarrow
@@ -130,6 +168,9 @@ def test_pyarrow_not_installed_raises():
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray([])
+
+    with pytest.raises(ImportError, match=msg):
+        ArrowStringArrayNumpySemantics([])
 
     with pytest.raises(ImportError, match=msg):
         ArrowStringArray._from_sequence(["a", None, "b"])
@@ -200,9 +241,10 @@ def test_setitem_invalid_indexer_raises():
 
 
 @skip_if_no_pyarrow
-def test_pickle_roundtrip():
+@pytest.mark.parametrize("dtype", ["string[pyarrow]", "string[pyarrow_numpy]"])
+def test_pickle_roundtrip(dtype):
     # GH 42600
-    expected = pd.Series(range(10), dtype="string[pyarrow]")
+    expected = pd.Series(range(10), dtype=dtype)
     expected_sliced = expected.head(2)
     full_pickled = pickle.dumps(expected)
     sliced_pickled = pickle.dumps(expected_sliced)
@@ -214,3 +256,11 @@ def test_pickle_roundtrip():
 
     result_sliced = pickle.loads(sliced_pickled)
     tm.assert_series_equal(result_sliced, expected_sliced)
+
+
+@skip_if_no_pyarrow
+def test_string_dtype_error_message():
+    # GH#55051
+    msg = "Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'."
+    with pytest.raises(ValueError, match=msg):
+        StringDtype("bla")

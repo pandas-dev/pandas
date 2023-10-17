@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     overload,
 )
+import warnings
 
 import numpy as np
 
@@ -25,9 +26,6 @@ from pandas.core.dtypes.common import (
     DT64NS_DTYPE,
     TD64NS_DTYPE,
     ensure_object,
-    is_dtype_equal,
-    is_extension_array_dtype,
-    is_object_dtype,
     is_scalar,
     is_string_or_object_np_dtype,
 )
@@ -48,6 +46,8 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.inference import is_list_like
 
 if TYPE_CHECKING:
+    from re import Pattern
+
     from pandas._typing import (
         ArrayLike,
         DtypeObj,
@@ -57,6 +57,7 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas import Series
     from pandas.core.indexes.base import Index
 
 
@@ -70,7 +71,7 @@ _dtype_str = np.dtype(str)
 
 
 @overload
-def isna(obj: Scalar) -> bool:
+def isna(obj: Scalar | Pattern) -> bool:
     ...
 
 
@@ -284,6 +285,9 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
             # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
             # type "ndarray[Any, dtype[bool_]]")
             result = values.isna()  # type: ignore[assignment]
+    elif isinstance(values, np.rec.recarray):
+        # GH 48526
+        result = _isna_recarray_dtype(values, inf_as_na=inf_as_na)
     elif is_string_or_object_np_dtype(values.dtype):
         result = _isna_string_dtype(values, inf_as_na=inf_as_na)
     elif dtype.kind in "mM":
@@ -311,6 +315,36 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
             # 0-D, reached via e.g. mask_missing
             result = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
             result = result.reshape(values.shape)
+
+    return result
+
+
+def _has_record_inf_value(record_as_array: np.ndarray) -> np.bool_:
+    is_inf_in_record = np.zeros(len(record_as_array), dtype=bool)
+    for i, value in enumerate(record_as_array):
+        is_element_inf = False
+        try:
+            is_element_inf = np.isinf(value)
+        except TypeError:
+            is_element_inf = False
+        is_inf_in_record[i] = is_element_inf
+
+    return np.any(is_inf_in_record)
+
+
+def _isna_recarray_dtype(
+    values: np.rec.recarray, inf_as_na: bool
+) -> npt.NDArray[np.bool_]:
+    result = np.zeros(values.shape, dtype=bool)
+    for i, record in enumerate(values):
+        record_as_array = np.array(record.tolist())
+        does_record_contain_nan = isna_all(record_as_array)
+        does_record_contain_inf = False
+        if inf_as_na:
+            does_record_contain_inf = bool(_has_record_inf_value(record_as_array))
+        result[i] = np.any(
+            np.logical_or(does_record_contain_nan, does_record_contain_inf)
+        )
 
     return result
 
@@ -544,17 +578,20 @@ def _array_equivalent_object(left: np.ndarray, right: np.ndarray, strict_nan: bo
             if not isinstance(right_value, float) or not np.isnan(right_value):
                 return False
         else:
-            try:
-                if np.any(np.asarray(left_value != right_value)):
+            with warnings.catch_warnings():
+                # suppress numpy's "elementwise comparison failed"
+                warnings.simplefilter("ignore", DeprecationWarning)
+                try:
+                    if np.any(np.asarray(left_value != right_value)):
+                        return False
+                except TypeError as err:
+                    if "boolean value of NA is ambiguous" in str(err):
+                        return False
+                    raise
+                except ValueError:
+                    # numpy can raise a ValueError if left and right cannot be
+                    # compared (e.g. nested arrays)
                     return False
-            except TypeError as err:
-                if "boolean value of NA is ambiguous" in str(err):
-                    return False
-                raise
-            except ValueError:
-                # numpy can raise a ValueError if left and right cannot be
-                # compared (e.g. nested arrays)
-                return False
     return True
 
 
@@ -562,7 +599,7 @@ def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
     """
     ExtensionArray-compatible implementation of array_equivalent.
     """
-    if not is_dtype_equal(left.dtype, right.dtype):
+    if left.dtype != right.dtype:
         return False
     elif isinstance(left, ABCExtensionArray):
         return left.equals(right)
@@ -581,12 +618,15 @@ def infer_fill_value(val):
     val = np.array(val, copy=False)
     if val.dtype.kind in "mM":
         return np.array("NaT", dtype=val.dtype)
-    elif is_object_dtype(val.dtype):
+    elif val.dtype == object:
         dtype = lib.infer_dtype(ensure_object(val), skipna=False)
         if dtype in ["datetime", "datetime64"]:
             return np.array("NaT", dtype=DT64NS_DTYPE)
         elif dtype in ["timedelta", "timedelta64"]:
             return np.array("NaT", dtype=TD64NS_DTYPE)
+        return np.array(np.nan, dtype=object)
+    elif val.dtype.kind == "U":
+        return np.array(np.nan, dtype=val.dtype)
     return np.nan
 
 
@@ -643,11 +683,11 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True):
     return np.nan
 
 
-def remove_na_arraylike(arr):
+def remove_na_arraylike(arr: Series | Index | np.ndarray):
     """
     Return array-like containing only true/non-NaN values, possibly empty.
     """
-    if is_extension_array_dtype(arr):
+    if isinstance(arr.dtype, ExtensionDtype):
         return arr[notna(arr)]
     else:
         return arr[notna(np.asarray(arr))]
@@ -716,10 +756,10 @@ def isna_all(arr: ArrayLike) -> bool:
     chunk_len = max(total_len // 40, 1000)
 
     dtype = arr.dtype
-    if dtype.kind == "f" and isinstance(dtype, np.dtype):
+    if lib.is_np_dtype(dtype, "f"):
         checker = nan_checker
 
-    elif (isinstance(dtype, np.dtype) and dtype.kind in "mM") or isinstance(
+    elif (lib.is_np_dtype(dtype, "mM")) or isinstance(
         dtype, (DatetimeTZDtype, PeriodDtype)
     ):
         # error: Incompatible types in assignment (expression has type

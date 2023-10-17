@@ -1,5 +1,5 @@
 """
-Tests that work on both the Python and C engines but do not have a
+Tests that work on the Python, C and PyArrow engines but do not have a
 specific classification into the other test modules.
 """
 import codecs
@@ -7,7 +7,6 @@ import csv
 from io import StringIO
 import os
 from pathlib import Path
-import warnings
 
 import numpy as np
 import pytest
@@ -16,12 +15,14 @@ from pandas.compat import PY311
 from pandas.errors import (
     EmptyDataError,
     ParserError,
+    ParserWarning,
 )
 
 from pandas import DataFrame
 import pandas._testing as tm
 
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
+skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_empty_decimal_marker(all_parsers):
@@ -33,10 +34,17 @@ def test_empty_decimal_marker(all_parsers):
     msg = "Only length-1 decimal markers supported"
     parser = all_parsers
 
+    if parser.engine == "pyarrow":
+        msg = (
+            "only single character unicode strings can be "
+            "converted to Py_UCS4, got length 0"
+        )
+
     with pytest.raises(ValueError, match=msg):
         parser.read_csv(StringIO(data), decimal="")
 
 
+@skip_pyarrow
 def test_bad_stream_exception(all_parsers, csv_dir_path):
     # see gh-13652
     #
@@ -57,6 +65,7 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
             parser.read_csv(stream)
 
 
+@skip_pyarrow
 def test_malformed(all_parsers):
     # see gh-6607
     parser = all_parsers
@@ -71,6 +80,7 @@ A,B,C
         parser.read_csv(StringIO(data), header=1, comment="#")
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("nrows", [5, 3, None])
 def test_malformed_chunks(all_parsers, nrows):
     data = """ignore
@@ -90,6 +100,7 @@ skip
             reader.read(nrows)
 
 
+@skip_pyarrow
 def test_catch_too_many_names(all_parsers):
     # see gh-5156
     data = """\
@@ -109,6 +120,7 @@ def test_catch_too_many_names(all_parsers):
         parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
 
 
+@skip_pyarrow
 @pytest.mark.parametrize("nrows", [0, 1, 2, 3, 4, 5])
 def test_raise_on_no_columns(all_parsers, nrows):
     parser = all_parsers
@@ -130,17 +142,15 @@ def test_unexpected_keyword_parameter_exception(all_parsers):
         parser.read_table("foo.tsv", foo=1)
 
 
-def test_suppress_error_output(all_parsers, capsys):
+def test_suppress_error_output(all_parsers):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = DataFrame({"a": [1, 4]})
 
-    result = parser.read_csv(StringIO(data), on_bad_lines="skip")
+    with tm.assert_produces_warning(None):
+        result = parser.read_csv(StringIO(data), on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
-
-    captured = capsys.readouterr()
-    assert captured.err == ""
 
 
 def test_error_bad_lines(all_parsers):
@@ -149,22 +159,29 @@ def test_error_bad_lines(all_parsers):
     data = "a\n1\n1,2,3\n4\n5,6,7"
 
     msg = "Expected 1 fields in line 3, saw 3"
+
+    if parser.engine == "pyarrow":
+        msg = "CSV parse error: Expected 1 columns, got 3: 1,2,3"
+
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), on_bad_lines="error")
 
 
-def test_warn_bad_lines(all_parsers, capsys):
+def test_warn_bad_lines(all_parsers):
     # see gh-15925
     parser = all_parsers
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = DataFrame({"a": [1, 4]})
+    match_msg = "Skipping line"
 
-    result = parser.read_csv(StringIO(data), on_bad_lines="warn")
+    if parser.engine == "pyarrow":
+        match_msg = "Expected 1 columns, but found 3: 1,2,3"
+
+    with tm.assert_produces_warning(
+        ParserWarning, match=match_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
-
-    captured = capsys.readouterr()
-    assert "Skipping line 3" in captured.err
-    assert "Skipping line 5" in captured.err
 
 
 def test_read_csv_wrong_num_columns(all_parsers):
@@ -177,10 +194,14 @@ def test_read_csv_wrong_num_columns(all_parsers):
     parser = all_parsers
     msg = "Expected 6 fields in line 3, saw 7"
 
+    if parser.engine == "pyarrow":
+        msg = "Expected 6 columns, got 7: 6,7,8,9,10,11,12"
+
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data))
 
 
+@skip_pyarrow
 def test_null_byte_char(request, all_parsers):
     # see gh-2741
     data = "\x00,foo"
@@ -189,7 +210,7 @@ def test_null_byte_char(request, all_parsers):
 
     if parser.engine == "c" or (parser.engine == "python" and PY311):
         if parser.engine == "python" and PY311:
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="In Python 3.11, this is read as an empty character not null"
                 )
@@ -203,11 +224,13 @@ def test_null_byte_char(request, all_parsers):
             parser.read_csv(StringIO(data), names=names)
 
 
+@skip_pyarrow
+@pytest.mark.filterwarnings("always::ResourceWarning")
 def test_open_file(request, all_parsers):
     # GH 39024
     parser = all_parsers
     if parser.engine == "c":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=f"{parser.engine} engine does not support sep=None "
                 f"with delim_whitespace=False"
@@ -218,12 +241,10 @@ def test_open_file(request, all_parsers):
         file = Path(path)
         file.write_bytes(b"\xe4\na\n1")
 
-        with warnings.catch_warnings(record=True) as record:
+        with tm.assert_produces_warning(None):
             # should not trigger a ResourceWarning
-            warnings.simplefilter("always", category=ResourceWarning)
             with pytest.raises(csv.Error, match="Could not determine delimiter"):
                 parser.read_csv(file, sep=None, encoding_errors="replace")
-            assert len(record) == 0, record[0].message
 
 
 def test_invalid_on_bad_line(all_parsers):
@@ -242,12 +263,14 @@ def test_bad_header_uniform_error(all_parsers):
             "Could not construct index. Requested to use 1 "
             "number of columns, but 3 left to parse."
         )
+    elif parser.engine == "pyarrow":
+        msg = "CSV parse error: Expected 1 columns, got 4: col1,col2,col3,col4"
 
     with pytest.raises(ParserError, match=msg):
         parser.read_csv(StringIO(data), index_col=0, on_bad_lines="error")
 
 
-def test_on_bad_lines_warn_correct_formatting(all_parsers, capsys):
+def test_on_bad_lines_warn_correct_formatting(all_parsers):
     # see gh-15925
     parser = all_parsers
     data = """1,2
@@ -257,18 +280,13 @@ a,b,d
 a,b
 """
     expected = DataFrame({"1": "a", "2": ["b"] * 2})
+    match_msg = "Skipping line"
 
-    result = parser.read_csv(StringIO(data), on_bad_lines="warn")
+    if parser.engine == "pyarrow":
+        match_msg = "Expected 2 columns, but found 3: a,b,c"
+
+    with tm.assert_produces_warning(
+        ParserWarning, match=match_msg, check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
-
-    captured = capsys.readouterr()
-    if parser.engine == "c":
-        warn = """Skipping line 3: expected 2 fields, saw 3
-Skipping line 4: expected 2 fields, saw 3
-
-"""
-    else:
-        warn = """Skipping line 3: Expected 2 fields in line 3, saw 3
-Skipping line 4: Expected 2 fields in line 4, saw 3
-"""
-    assert captured.err == warn

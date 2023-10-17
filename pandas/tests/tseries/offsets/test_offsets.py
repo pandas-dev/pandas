@@ -7,11 +7,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import (
-    Dict,
-    List,
-    Tuple,
-)
 
 import numpy as np
 import pytest
@@ -32,6 +27,7 @@ from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 from pandas.errors import PerformanceWarning
 
 from pandas import (
+    DataFrame,
     DatetimeIndex,
     Series,
     date_range,
@@ -42,7 +38,6 @@ from pandas.tests.tseries.offsets.common import WeekDay
 from pandas.tseries import offsets
 from pandas.tseries.offsets import (
     FY5253,
-    BaseOffset,
     BDay,
     BMonthEnd,
     BusinessHour,
@@ -60,8 +55,6 @@ from pandas.tseries.offsets import (
     Week,
     WeekOfMonth,
 )
-
-_ApplyCases = List[Tuple[BaseOffset, Dict[datetime, datetime]]]
 
 _ARITHMETIC_DATE_OFFSET = [
     "years",
@@ -609,7 +602,7 @@ class TestDateOffset:
     @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
     def test_constructor(self, kwd, request):
         if kwd == "millisecond":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
                     reason="Constructing DateOffset object with `millisecond` is not "
@@ -764,7 +757,7 @@ class TestOffsetNames:
     def test_get_offset_name(self):
         assert BDay().freqstr == "B"
         assert BDay(2).freqstr == "2B"
-        assert BMonthEnd().freqstr == "BM"
+        assert BMonthEnd().freqstr == "BME"
         assert Week(weekday=0).freqstr == "W-MON"
         assert Week(weekday=1).freqstr == "W-TUE"
         assert Week(weekday=2).freqstr == "W-WED"
@@ -783,8 +776,8 @@ def test_get_offset():
     pairs = [
         ("B", BDay()),
         ("b", BDay()),
-        ("bm", BMonthEnd()),
-        ("Bm", BMonthEnd()),
+        ("bme", BMonthEnd()),
+        ("Bme", BMonthEnd()),
         ("W-MON", Week(weekday=0)),
         ("W-TUE", Week(weekday=1)),
         ("W-WED", Week(weekday=2)),
@@ -818,7 +811,7 @@ class TestOffsetAliases:
             assert k == v.copy()
 
     def test_rule_code(self):
-        lst = ["M", "MS", "BM", "BMS", "D", "B", "H", "T", "S", "L", "U"]
+        lst = ["ME", "MS", "BME", "BMS", "D", "B", "h", "min", "s", "ms", "us"]
         for k in lst:
             assert k == _get_offset(k).rule_code
             # should be cached - this is kind of an internals test...
@@ -846,7 +839,7 @@ class TestOffsetAliases:
             "NOV",
             "DEC",
         ]
-        base_lst = ["A", "AS", "BA", "BAS", "Q", "QS", "BQ", "BQS"]
+        base_lst = ["Y", "YS", "BY", "BYS", "Q", "QS", "BQ", "BQS"]
         for base in base_lst:
             for v in suffix_lst:
                 alias = "-".join([base, v])
@@ -865,7 +858,7 @@ def test_freq_offsets():
 class TestReprNames:
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
-        month_prefixes = ["A", "AS", "BA", "BAS", "Q", "BQ", "BQS", "QS"]
+        month_prefixes = ["Y", "YS", "BY", "BYS", "Q", "BQ", "BQS", "QS"]
         names = [
             prefix + "-" + month
             for prefix in month_prefixes
@@ -923,7 +916,7 @@ def test_month_offset_name(month_classes):
 @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
 def test_valid_relativedelta_kwargs(kwd, request):
     if kwd == "millisecond":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 raises=NotImplementedError,
                 reason="Constructing DateOffset object with `millisecond` is not "
@@ -1075,3 +1068,51 @@ def test_dateoffset_add_sub_timestamp_series_with_nano(offset, expected):
     assert testseries[0] == teststamp
     testseries = offset + testseries
     assert testseries[0] == expected
+
+
+@pytest.mark.parametrize(
+    "n_months, scaling_factor, start_timestamp, expected_timestamp",
+    [
+        (1, 2, "2020-01-30", "2020-03-30"),
+        (2, 1, "2020-01-30", "2020-03-30"),
+        (1, 0, "2020-01-30", "2020-01-30"),
+        (2, 0, "2020-01-30", "2020-01-30"),
+        (1, -1, "2020-01-30", "2019-12-30"),
+        (2, -1, "2020-01-30", "2019-11-30"),
+    ],
+)
+def test_offset_multiplication(
+    n_months, scaling_factor, start_timestamp, expected_timestamp
+):
+    # GH 47953
+    mo1 = DateOffset(months=n_months)
+
+    startscalar = Timestamp(start_timestamp)
+    startarray = Series([startscalar])
+
+    resultscalar = startscalar + (mo1 * scaling_factor)
+    resultarray = startarray + (mo1 * scaling_factor)
+
+    expectedscalar = Timestamp(expected_timestamp)
+    expectedarray = Series([expectedscalar])
+    assert resultscalar == expectedscalar
+
+    tm.assert_series_equal(resultarray, expectedarray)
+
+
+def test_dateoffset_operations_on_dataframes():
+    # GH 47953
+    df = DataFrame({"T": [Timestamp("2019-04-30")], "D": [DateOffset(months=1)]})
+    frameresult1 = df["T"] + 26 * df["D"]
+    df2 = DataFrame(
+        {
+            "T": [Timestamp("2019-04-30"), Timestamp("2019-04-30")],
+            "D": [DateOffset(months=1), DateOffset(months=1)],
+        }
+    )
+    expecteddate = Timestamp("2021-06-30")
+    with tm.assert_produces_warning(PerformanceWarning):
+        frameresult2 = df2["T"] + 26 * df2["D"]
+
+    assert frameresult1[0] == expecteddate
+    assert frameresult2[0] == expecteddate

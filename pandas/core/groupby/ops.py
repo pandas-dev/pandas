@@ -13,9 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Generic,
-    Hashable,
-    Iterator,
-    Sequence,
     final,
 )
 
@@ -26,7 +23,6 @@ from pandas._libs import (
     lib,
 )
 import pandas._libs.groupby as libgroupby
-import pandas._libs.reduction as libreduction
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -72,7 +68,38 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sequence,
+    )
+
     from pandas.core.generic import NDFrame
+
+
+def check_result_array(obj, dtype) -> None:
+    # Our operation is supposed to be an aggregation/reduction. If
+    #  it returns an ndarray, this likely means an invalid operation has
+    #  been passed. See test_apply_without_aggregation, test_agg_must_agg
+    if isinstance(obj, np.ndarray):
+        if dtype != object:
+            # If it is object dtype, the function can be a reduction/aggregation
+            #  and still return an ndarray e.g. test_agg_over_numpy_arrays
+            raise ValueError("Must produce aggregated value")
+
+
+def extract_result(res):
+    """
+    Extract the result object, it might be a 0-dim ndarray
+    or a len-1 0-dim, or a scalar
+    """
+    if hasattr(res, "_values"):
+        # Preserve EA
+        res = res._values
+        if res.ndim == 1 and len(res) == 1:
+            # see test_agg_lambda_with_timezone, test_resampler_grouper.py::test_apply
+            res = res[0]
+    return res
 
 
 class WrappedCythonOp:
@@ -138,7 +165,7 @@ class WrappedCythonOp:
     # Note: we make this a classmethod and pass kind+how so that caching
     #  works at the class level and not the instance level
     @classmethod
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def _get_cython_function(
         cls, kind: str, how: str, dtype: np.dtype, is_numeric: bool
     ):
@@ -673,8 +700,14 @@ class BaseGrouper:
         if len(self.groupings) == 1:
             return self.groupings[0].groups
         else:
-            to_groupby = zip(*(ping.grouping_vector for ping in self.groupings))
-            index = Index(to_groupby)
+            to_groupby = []
+            for ping in self.groupings:
+                gv = ping.grouping_vector
+                if not isinstance(gv, BaseGrouper):
+                    to_groupby.append(gv)
+                else:
+                    to_groupby.append(gv.groupings[0].grouping_vector)
+            index = MultiIndex.from_arrays(to_groupby)
             return self.axis.groupby(index)
 
     @final
@@ -836,11 +869,11 @@ class BaseGrouper:
 
         for i, group in enumerate(splitter):
             res = func(group)
-            res = libreduction.extract_result(res)
+            res = extract_result(res)
 
             if not initialized:
                 # We only do this validation on the first iteration
-                libreduction.check_result_array(res, group.dtype)
+                check_result_array(res, group.dtype)
                 initialized = True
 
             result[i] = res
@@ -948,7 +981,7 @@ class BinGrouper(BaseGrouper):
         self.indexer = indexer
 
         # These lengths must match, otherwise we could call agg_series
-        #  with empty self.bins, which would raise in libreduction.
+        #  with empty self.bins, which would raise later.
         assert len(self.binlabels) == len(self.bins)
 
     @cache_readonly
@@ -962,9 +995,6 @@ class BinGrouper(BaseGrouper):
             if key is not NaT
         }
         return result
-
-    def __iter__(self) -> Iterator[Hashable]:
-        return iter(self.groupings[0].grouping_vector)
 
     @property
     def nkeys(self) -> int:
@@ -1127,7 +1157,8 @@ class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
-        ser = sdata._constructor(mgr, name=sdata.name, fastpath=True)
+        ser = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
+        ser._name = sdata.name
         return ser.__finalize__(sdata, method="groupby")
 
 
@@ -1139,7 +1170,7 @@ class FrameSplitter(DataSplitter):
         # else:
         #     return sdata.iloc[:, slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
-        df = sdata._constructor(mgr)
+        df = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(sdata, method="groupby")
 
 

@@ -360,6 +360,8 @@ cdef class IndexEngine:
         values = self.values
         stargets = set(targets)
 
+        na_in_stargets = any(checknull(t) for t in stargets)
+
         n = len(values)
         n_t = len(targets)
         if n > 10_000:
@@ -373,8 +375,8 @@ cdef class IndexEngine:
         # map each starget to its position in the index
         if (
                 stargets and
-                len(stargets) < 5 and
-                not any([checknull(t) for t in stargets]) and
+                len(stargets) < (n / (2 * n.bit_length())) and
+                not na_in_stargets and
                 self.is_monotonic_increasing
         ):
             # if there are few enough stargets and the index is monotonically
@@ -396,7 +398,7 @@ cdef class IndexEngine:
             # otherwise, map by iterating through all items in the index
 
             # short-circuit na check
-            if values.dtype == object:
+            if na_in_stargets:
                 check_na_values = True
                 # keep track of nas in values
                 found_nas = set()
@@ -718,14 +720,15 @@ cdef class BaseMultiIndexCodesEngine:
         int_keys : 1-dimensional array of dtype uint64 or object
             Integers representing one combination each
         """
-        zt = [target._get_level_values(i) for i in range(target.nlevels)]
-        level_codes = []
-        for i, (lev, codes) in enumerate(zip(self.levels, zt)):
-            result = lev.get_indexer_for(codes) + 1
-            result[result > 0] += 1
-            if self.level_has_nans[i] and codes.hasnans:
-                result[codes.isna()] += 1
-            level_codes.append(result)
+        level_codes = list(target._recode_for_new_levels(self.levels))
+        for i, codes in enumerate(level_codes):
+            if self.levels[i].hasnans:
+                na_index = self.levels[i].isna().nonzero()[0][0]
+                codes[target.codes[i] == -1] = na_index
+            codes += 1
+            codes[codes > 0] += 1
+            if self.level_has_nans[i]:
+                codes[target.codes[i] == -1] += 1
         return self._codes_to_ints(np.array(level_codes, dtype="uint64").T)
 
     def get_indexer(self, target: np.ndarray) -> np.ndarray:

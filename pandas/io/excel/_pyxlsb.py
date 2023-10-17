@@ -11,6 +11,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.excel._base import BaseExcelReader
 
 if TYPE_CHECKING:
+    from pyxlsb import Workbook
+
     from pandas._typing import (
         FilePath,
         ReadBuffer,
@@ -19,12 +21,13 @@ if TYPE_CHECKING:
     )
 
 
-class PyxlsbReader(BaseExcelReader):
+class PyxlsbReader(BaseExcelReader["Workbook"]):
     @doc(storage_options=_shared_docs["storage_options"])
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
+        engine_kwargs: dict | None = None,
     ) -> None:
         """
         Reader using pyxlsb engine.
@@ -34,26 +37,34 @@ class PyxlsbReader(BaseExcelReader):
         filepath_or_buffer : str, path object, or Workbook
             Object to be parsed.
         {storage_options}
+        engine_kwargs : dict, optional
+            Arbitrary keyword arguments passed to excel engine.
         """
         import_optional_dependency("pyxlsb")
         # This will call load_workbook on the filepath or buffer
         # And set the result to the book-attribute
-        super().__init__(filepath_or_buffer, storage_options=storage_options)
+        super().__init__(
+            filepath_or_buffer,
+            storage_options=storage_options,
+            engine_kwargs=engine_kwargs,
+        )
 
     @property
-    def _workbook_class(self):
+    def _workbook_class(self) -> type[Workbook]:
         from pyxlsb import Workbook
 
         return Workbook
 
-    def load_workbook(self, filepath_or_buffer: FilePath | ReadBuffer[bytes]):
+    def load_workbook(
+        self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
+    ) -> Workbook:
         from pyxlsb import open_workbook
 
         # TODO: hack in buffer capability
         # This might need some modifications to the Pyxlsb library
         # Actual work for opening it is in xlsbpackage.py, line 20-ish
 
-        return open_workbook(filepath_or_buffer)
+        return open_workbook(filepath_or_buffer, **engine_kwargs)
 
     @property
     def sheet_names(self) -> list[str]:

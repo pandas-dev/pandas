@@ -14,15 +14,25 @@ from pandas._libs.tslibs import (
     strptime,
 )
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
+from pandas.compat import (
+    ISMUSL,
+    is_platform_windows,
+)
 import pandas.util._test_decorators as td
 
 import pandas._testing as tm
 
 
-@td.skip_if_windows
+@pytest.mark.skipif(
+    is_platform_windows() or ISMUSL,
+    reason="TZ setting incorrect on Windows and MUSL Linux",
+)
 def test_parsing_tzlocal_deprecated():
     # GH#50791
-    msg = "Pass the 'tz' keyword or call tz_localize after construction instead"
+    msg = (
+        "Parsing 'EST' as tzlocal.*"
+        "Pass the 'tz' keyword or call tz_localize after construction instead"
+    )
     dtstr = "Jan 15 2004 03:00 EST"
 
     with tm.set_timezone("US/Eastern"):
@@ -128,8 +138,8 @@ def test_parsers_quarterly_with_freq_error(date_str, kwargs, msg):
     "date_str,freq,expected",
     [
         ("2013Q2", None, datetime(2013, 4, 1)),
-        ("2013Q2", "A-APR", datetime(2012, 8, 1)),
-        ("2013-Q2", "A-DEC", datetime(2013, 4, 1)),
+        ("2013Q2", "Y-APR", datetime(2012, 8, 1)),
+        ("2013-Q2", "Y-DEC", datetime(2013, 4, 1)),
     ],
 )
 def test_parsers_quarterly_with_freq(date_str, freq, expected):
@@ -138,7 +148,7 @@ def test_parsers_quarterly_with_freq(date_str, freq, expected):
 
 
 @pytest.mark.parametrize(
-    "date_str", ["2Q 2005", "2Q-200A", "2Q-200", "22Q2005", "2Q200.", "6Q-20"]
+    "date_str", ["2Q 2005", "2Q-200Y", "2Q-200", "22Q2005", "2Q200.", "6Q-20"]
 )
 def test_parsers_quarter_invalid(date_str):
     if date_str == "6Q-20":
@@ -158,7 +168,7 @@ def test_parsers_quarter_invalid(date_str):
     [("201101", datetime(2011, 1, 1, 0, 0)), ("200005", datetime(2000, 5, 1, 0, 0))],
 )
 def test_parsers_month_freq(date_str, expected):
-    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq="M")
+    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq="ME")
     assert result == expected
 
 
@@ -201,8 +211,10 @@ def test_parsers_month_freq(date_str, expected):
         ("2011-12-30T00:00:00.000000+9:0", "%Y-%m-%dT%H:%M:%S.%f%z"),
         ("2011-12-30T00:00:00.000000+09:", None),
         ("2011-12-30 00:00:00.000000", "%Y-%m-%d %H:%M:%S.%f"),
-        ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %H:%M:%S %p"),
-        ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %H:%M:%S %p"),
+        ("Tue 24 Aug 2021 01:30:48", "%a %d %b %Y %H:%M:%S"),
+        ("Tuesday 24 Aug 2021 01:30:48", "%A %d %b %Y %H:%M:%S"),
+        ("Tue 24 Aug 2021 01:30:48 AM", "%a %d %b %Y %I:%M:%S %p"),
+        ("Tuesday 24 Aug 2021 01:30:48 AM", "%A %d %b %Y %I:%M:%S %p"),
         ("27.03.2003 14:55:00.000", "%d.%m.%Y %H:%M:%S.%f"),  # GH50317
     ],
 )

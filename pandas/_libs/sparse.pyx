@@ -3,6 +3,10 @@ cimport cython
 import numpy as np
 
 cimport numpy as cnp
+from libc.math cimport (
+    INFINITY as INF,
+    NAN as NaN,
+)
 from numpy cimport (
     float64_t,
     int8_t,
@@ -10,10 +14,6 @@ from numpy cimport (
     int64_t,
     ndarray,
     uint8_t,
-)
-from numpy.math cimport (
-    INFINITY as INF,
-    NAN as NaN,
 )
 
 cnp.import_array()
@@ -726,7 +726,7 @@ def make_mask_object_ndarray(ndarray[object, ndim=1] arr, object fill_value):
 
     for i in range(new_length):
         value = arr[i]
-        if value == fill_value and type(value) == type(fill_value):
+        if value == fill_value and type(value) is type(fill_value):
             mask[i] = 0
 
     return mask.view(dtype=bool)

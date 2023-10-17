@@ -22,7 +22,14 @@ from pandas._libs import (
     lib,
     ops as libops,
 )
-from pandas._libs.tslibs import BaseOffset
+from pandas._libs.tslibs import (
+    BaseOffset,
+    get_supported_reso,
+    get_unit_from_dtype,
+    is_supported_unit,
+    is_unitless,
+    npy_unit_to_abbrev,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -32,7 +39,6 @@ from pandas.core.dtypes.cast import (
 from pandas.core.dtypes.common import (
     ensure_object,
     is_bool_dtype,
-    is_integer_dtype,
     is_list_like,
     is_numeric_v_string_like,
     is_object_dtype,
@@ -213,7 +219,9 @@ def _na_arithmetic_op(left: np.ndarray, right, op, is_cmp: bool = False):
     try:
         result = func(left, right)
     except TypeError:
-        if not is_cmp and (is_object_dtype(left.dtype) or is_object_dtype(right)):
+        if not is_cmp and (
+            left.dtype == object or getattr(right, "dtype", None) == object
+        ):
             # For object dtype, fallback to a masked operation (only operating
             #  on the non-missing values)
             # Don't do this for comparisons, as that will handle complex numbers
@@ -268,7 +276,9 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     else:
         # TODO we should handle EAs consistently and move this check before the if/else
         # (https://github.com/pandas-dev/pandas/issues/41165)
-        _bool_arith_check(op, left, right)
+        # error: Argument 2 to "_bool_arith_check" has incompatible type
+        # "Union[ExtensionArray, ndarray[Any, Any]]"; expected "ndarray[Any, Any]"
+        _bool_arith_check(op, left, right)  # type: ignore[arg-type]
 
         # error: Argument 1 to "_na_arithmetic_op" has incompatible type
         # "Union[ExtensionArray, ndarray[Any, Any]]"; expected "ndarray[Any, Any]"
@@ -316,7 +326,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
     if should_extension_dispatch(lvalues, rvalues) or (
         (isinstance(rvalues, (Timedelta, BaseOffset, Timestamp)) or right is NaT)
-        and not is_object_dtype(lvalues.dtype)
+        and lvalues.dtype != object
     ):
         # Call the method on lvalues
         res_values = op(lvalues, rvalues)
@@ -332,7 +342,7 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         # GH#36377 going through the numexpr path would incorrectly raise
         return invalid_comparison(lvalues, rvalues, op)
 
-    elif is_object_dtype(lvalues.dtype) or isinstance(rvalues, str):
+    elif lvalues.dtype == object or isinstance(rvalues, str):
         res_values = comp_method_OBJECT_ARRAY(op, lvalues, rvalues)
 
     else:
@@ -355,7 +365,7 @@ def na_logical_op(x: np.ndarray, y, op):
     except TypeError:
         if isinstance(y, np.ndarray):
             # bool-bool dtype operations should be OK, should not get here
-            assert not (is_bool_dtype(x.dtype) and is_bool_dtype(y.dtype))
+            assert not (x.dtype.kind == "b" and y.dtype.kind == "b")
             x = ensure_object(x)
             y = ensure_object(y)
             result = libops.vec_binop(x.ravel(), y.ravel(), op)
@@ -408,7 +418,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
                 x = x.astype(object)
                 x[mask] = False
 
-        if left is None or is_bool_dtype(left.dtype):
+        if left is None or left.dtype.kind == "b":
             x = x.astype(bool)
         return x
 
@@ -435,7 +445,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
     else:
         if isinstance(rvalues, np.ndarray):
-            is_other_int_dtype = is_integer_dtype(rvalues.dtype)
+            is_other_int_dtype = rvalues.dtype.kind in "iu"
             if not is_other_int_dtype:
                 rvalues = fill_bool(rvalues, lvalues)
 
@@ -447,7 +457,7 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
 
         # For int vs int `^`, `|`, `&` are bitwise operators and return
         #   integer dtypes.  Otherwise these are boolean ops
-        if not (is_integer_dtype(left.dtype) and is_other_int_dtype):
+        if not (left.dtype.kind in "iu" and is_other_int_dtype):
             res_values = fill_bool(res_values)
 
     return res_values
@@ -530,7 +540,13 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             from pandas.core.arrays import DatetimeArray
 
             # Avoid possible ambiguities with pd.NaT
-            obj = obj.astype("datetime64[ns]")
+            # GH 52295
+            if is_unitless(obj.dtype):
+                obj = obj.astype("datetime64[ns]")
+            elif not is_supported_unit(get_unit_from_dtype(obj.dtype)):
+                unit = get_unit_from_dtype(obj.dtype)
+                closest_unit = npy_unit_to_abbrev(get_supported_reso(unit))
+                obj = obj.astype(f"datetime64[{closest_unit}]")
             right = np.broadcast_to(obj, shape)
             return DatetimeArray(right)
 
@@ -543,7 +559,13 @@ def maybe_prepare_scalar_for_op(obj, shape: Shape):
             # wrapping timedelta64("NaT") in Timedelta returns NaT,
             #  which would incorrectly be treated as a datetime-NaT, so
             #  we broadcast and wrap in a TimedeltaArray
-            obj = obj.astype("timedelta64[ns]")
+            # GH 52295
+            if is_unitless(obj.dtype):
+                obj = obj.astype("timedelta64[ns]")
+            elif not is_supported_unit(get_unit_from_dtype(obj.dtype)):
+                unit = get_unit_from_dtype(obj.dtype)
+                closest_unit = npy_unit_to_abbrev(get_supported_reso(unit))
+                obj = obj.astype(f"timedelta64[{closest_unit}]")
             right = np.broadcast_to(obj, shape)
             return TimedeltaArray(right)
 
@@ -565,15 +587,13 @@ _BOOL_OP_NOT_ALLOWED = {
 }
 
 
-def _bool_arith_check(op, a, b):
+def _bool_arith_check(op, a: np.ndarray, b):
     """
     In contrast to numpy, pandas raises an error for certain operations
     with booleans.
     """
     if op in _BOOL_OP_NOT_ALLOWED:
-        if is_bool_dtype(a.dtype) and (
-            is_bool_dtype(b) or isinstance(b, (bool, np.bool_))
-        ):
+        if a.dtype.kind == "b" and (is_bool_dtype(b) or lib.is_bool(b)):
             op_name = op.__name__.strip("_").lstrip("r")
             raise NotImplementedError(
                 f"operator '{op_name}' not implemented for bool dtypes"

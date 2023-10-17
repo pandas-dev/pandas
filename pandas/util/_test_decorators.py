@@ -38,6 +38,9 @@ from pandas._config import get_option
 
 if TYPE_CHECKING:
     from pandas._typing import F
+
+from pandas._config.config import _get_option
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -69,13 +72,6 @@ def safe_import(mod_name: str, min_version: str | None = None):
         mod = __import__(mod_name)
     except ImportError:
         return False
-    except SystemError:
-        # TODO: numba is incompatible with numpy 1.24+.
-        # Once that's fixed, this block should be removed.
-        if mod_name == "numba":
-            return False
-        else:
-            raise
 
     if not min_version:
         return mod
@@ -87,15 +83,6 @@ def safe_import(mod_name: str, min_version: str | None = None):
             return mod
 
     return False
-
-
-def _skip_if_no_mpl() -> bool:
-    mod = safe_import("matplotlib")
-    if mod:
-        mod.use("Agg")
-        return False
-    else:
-        return True
 
 
 def _skip_if_not_us_locale() -> bool:
@@ -114,9 +101,7 @@ def _skip_if_no_scipy() -> bool:
     )
 
 
-# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
-# https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_installed(package: str):
+def skip_if_installed(package: str) -> pytest.MarkDecorator:
     """
     Skip a test if a package is installed.
 
@@ -124,15 +109,19 @@ def skip_if_installed(package: str):
     ----------
     package : str
         The name of the package.
+
+    Returns
+    -------
+    pytest.MarkDecorator
+        a pytest.mark.skipif to use as either a test decorator or a
+        parametrization mark.
     """
     return pytest.mark.skipif(
         safe_import(package), reason=f"Skipping because {package} is installed."
     )
 
 
-# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
-# https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_no(package: str, min_version: str | None = None):
+def skip_if_no(package: str, min_version: str | None = None) -> pytest.MarkDecorator:
     """
     Generic function to help skip tests when required packages are not
     present on the testing system.
@@ -141,9 +130,10 @@ def skip_if_no(package: str, min_version: str | None = None):
     evaluated during test collection. An attempt will be made to import the
     specified ``package`` and optionally ensure it meets the ``min_version``
 
-    The mark can be used as either a decorator for a test function or to be
+    The mark can be used as either a decorator for a test class or to be
     applied to parameters in pytest.mark.parametrize calls or parametrized
-    fixtures.
+    fixtures. Use pytest.importorskip if an imported moduled is later needed
+    or for test functions.
 
     If the import and version check are unsuccessful, then the test function
     (or test case when used in conjunction with parametrization) will be
@@ -158,7 +148,7 @@ def skip_if_no(package: str, min_version: str | None = None):
 
     Returns
     -------
-    _pytest.mark.structures.MarkDecorator
+    pytest.MarkDecorator
         a pytest.mark.skipif to use as either a test decorator or a
         parametrization mark.
     """
@@ -170,10 +160,9 @@ def skip_if_no(package: str, min_version: str | None = None):
     )
 
 
-skip_if_no_mpl = pytest.mark.skipif(
-    _skip_if_no_mpl(), reason="Missing matplotlib dependency"
+skip_if_mpl = pytest.mark.skipif(
+    bool(safe_import("matplotlib")), reason="matplotlib is present"
 )
-skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(), reason="matplotlib is present")
 skip_if_32bit = pytest.mark.skipif(not IS64, reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(), reason="Running on Windows")
 skip_if_not_us_locale = pytest.mark.skipif(
@@ -189,9 +178,9 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-# TODO(pytest#7469): return type, _pytest.mark.structures.MarkDecorator is not public
-# https://github.com/pytest-dev/pytest/issues/7469
-def skip_if_np_lt(ver_str: str, *args, reason: str | None = None):
+def skip_if_np_lt(
+    ver_str: str, *args, reason: str | None = None
+) -> pytest.MarkDecorator:
     if reason is None:
         reason = f"NumPy {ver_str} or greater required"
     return pytest.mark.skipif(
@@ -240,16 +229,16 @@ def async_mark():
 
 def mark_array_manager_not_yet_implemented(request) -> None:
     mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
-    request.node.add_marker(mark)
+    request.applymarker(mark)
 
 
 skip_array_manager_not_yet_implemented = pytest.mark.xfail(
-    get_option("mode.data_manager") == "array",
+    _get_option("mode.data_manager", silent=True) == "array",
     reason="Not yet implemented for ArrayManager",
 )
 
 skip_array_manager_invalid_test = pytest.mark.skipif(
-    get_option("mode.data_manager") == "array",
+    _get_option("mode.data_manager", silent=True) == "array",
     reason="Test that relies on BlockManager internals or specific behaviour",
 )
 

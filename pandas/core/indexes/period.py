@@ -4,10 +4,7 @@ from datetime import (
     datetime,
     timedelta,
 )
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -19,6 +16,7 @@ from pandas._libs.tslibs import (
     Resolution,
     Tick,
 )
+from pandas._libs.tslibs.dtypes import OFFSET_TO_PERIOD_FREQSTR
 from pandas.util._decorators import (
     cache_readonly,
     doc,
@@ -46,6 +44,8 @@ from pandas.core.indexes.datetimes import (
 from pandas.core.indexes.extension import inherit_names
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import (
         Dtype,
         DtypeObj,
@@ -80,7 +80,7 @@ def _new_PeriodIndex(cls, **d):
     PeriodArray,
     wrap=True,
 )
-@inherit_names(["is_leap_year", "_format_native_types"], PeriodArray)
+@inherit_names(["is_leap_year"], PeriodArray)
 class PeriodIndex(DatetimeIndexOpsMixin):
     """
     Immutable ndarray holding ordinal values indicating regular periods in time.
@@ -213,7 +213,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         freq=None,
         dtype: Dtype | None = None,
         copy: bool = False,
-        name: Hashable = None,
+        name: Hashable | None = None,
         **fields,
     ) -> Self:
         valid_field_set = {
@@ -231,7 +231,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             refs = data._references
 
         if not set(fields).issubset(valid_field_set):
-            argument = list(set(fields) - valid_field_set)[0]
+            argument = next(iter(set(fields) - valid_field_set))
             raise TypeError(f"__new__() got an unexpected keyword argument {argument}")
 
         name = maybe_extract_name(name, data, cls)
@@ -454,7 +454,8 @@ class PeriodIndex(DatetimeIndexOpsMixin):
         return super()._maybe_cast_slice_bound(label, side)
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
-        iv = Period(parsed, freq=reso.attr_abbrev)
+        freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
+        iv = Period(parsed, freq=freq)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     @doc(DatetimeIndexOpsMixin.shift)
@@ -467,7 +468,11 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
 
 def period_range(
-    start=None, end=None, periods: int | None = None, freq=None, name: Hashable = None
+    start=None,
+    end=None,
+    periods: int | None = None,
+    freq=None,
+    name: Hashable | None = None,
 ) -> PeriodIndex:
     """
     Return a fixed frequency PeriodIndex.
@@ -476,9 +481,9 @@ def period_range(
 
     Parameters
     ----------
-    start : str or period-like, default None
+    start : str, datetime, date, pandas.Timestamp, or period-like, default None
         Left bound for generating periods.
-    end : str or period-like, default None
+    end : str, datetime, date, pandas.Timestamp, or period-like, default None
         Right bound for generating periods.
     periods : int, default None
         Number of periods to generate.

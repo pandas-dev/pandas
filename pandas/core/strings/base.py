@@ -10,6 +10,7 @@ from typing import (
 import numpy as np
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     import re
 
     from pandas._typing import Scalar
@@ -79,7 +80,7 @@ class BaseStringArrayMethods(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def _str_repeat(self, repeats):
+    def _str_repeat(self, repeats: int | Sequence[int]):
         pass
 
     @abc.abstractmethod

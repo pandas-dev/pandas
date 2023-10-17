@@ -5,12 +5,14 @@ from pandas._libs.tslibs import IncompatibleFrequency
 
 from pandas import (
     DatetimeIndex,
+    PeriodIndex,
     Series,
     Timestamp,
     date_range,
     isna,
     notna,
     offsets,
+    period_range,
 )
 import pandas._testing as tm
 
@@ -19,7 +21,7 @@ class TestSeriesAsof:
     def test_asof_nanosecond_index_access(self):
         ts = Timestamp("20130101").as_unit("ns")._value
         dti = DatetimeIndex([ts + 50 + i for i in range(100)])
-        ser = Series(np.random.randn(100), index=dti)
+        ser = Series(np.random.default_rng(2).standard_normal(100), index=dti)
 
         first_value = ser.asof(ser.index[0])
 
@@ -37,7 +39,7 @@ class TestSeriesAsof:
         # array or list or dates
         N = 50
         rng = date_range("1/1/1990", periods=N, freq="53s")
-        ts = Series(np.random.randn(N), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
         ts.iloc[15:30] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="25s")
 
@@ -63,22 +65,22 @@ class TestSeriesAsof:
         rng = date_range("1/1/1990", periods=N, freq="53s")
         # Explicit cast to float avoid implicit cast when setting nan
         ts = Series(np.arange(N), index=rng, dtype="float")
-        ts.iloc[5:10] = np.NaN
-        ts.iloc[15:20] = np.NaN
+        ts.iloc[5:10] = np.nan
+        ts.iloc[15:20] = np.nan
 
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        assert val1 == ts[4]
-        assert val2 == ts[14]
+        assert val1 == ts.iloc[4]
+        assert val2 == ts.iloc[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        assert val1 == ts[4]
+        assert val1 == ts.iloc[4]
 
         # in there
         result = ts.asof(ts.index[3])
-        assert result == ts[3]
+        assert result == ts.iloc[3]
 
         # no as of value
         d = ts.index[0] - offsets.BDay()
@@ -114,15 +116,10 @@ class TestSeriesAsof:
         tm.assert_series_equal(result, expected)
 
     def test_periodindex(self):
-        from pandas import (
-            PeriodIndex,
-            period_range,
-        )
-
         # array or list or dates
         N = 50
-        rng = period_range("1/1/1990", periods=N, freq="H")
-        ts = Series(np.random.randn(N), index=rng)
+        rng = period_range("1/1/1990", periods=N, freq="h")
+        ts = Series(np.random.default_rng(2).standard_normal(N), index=rng)
         ts.iloc[15:30] = np.nan
         dates = date_range("1/1/1990", periods=N * 3, freq="37min")
 
@@ -136,7 +133,7 @@ class TestSeriesAsof:
         lb = ts.index[14]
         ub = ts.index[30]
 
-        pix = PeriodIndex(result.index.values, freq="H")
+        pix = PeriodIndex(result.index.values, freq="h")
         mask = (pix >= lb) & (pix < ub)
         rs = result[mask]
         assert (rs == ts[lb]).all()
@@ -147,15 +144,15 @@ class TestSeriesAsof:
         val1 = ts.asof(ts.index[7])
         val2 = ts.asof(ts.index[19])
 
-        assert val1 == ts[4]
-        assert val2 == ts[14]
+        assert val1 == ts.iloc[4]
+        assert val2 == ts.iloc[14]
 
         # accepts strings
         val1 = ts.asof(str(ts.index[7]))
-        assert val1 == ts[4]
+        assert val1 == ts.iloc[4]
 
         # in there
-        assert ts.asof(ts.index[3]) == ts[3]
+        assert ts.asof(ts.index[3]) == ts.iloc[3]
 
         # no as of value
         d = ts.index[0].to_timestamp() - offsets.BDay()
@@ -180,7 +177,7 @@ class TestSeriesAsof:
         # subset with Series
         N = 10
         rng = date_range("1/1/1990", periods=N, freq="53s")
-        s = Series(np.random.randn(N), index=rng)
+        s = Series(np.random.default_rng(2).standard_normal(N), index=rng)
         with pytest.raises(ValueError, match="not valid for Series"):
             s.asof(s.index[0], subset="foo")
 

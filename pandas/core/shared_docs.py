@@ -34,8 +34,6 @@ scalar, Series or DataFrame
     * scalar : when Series.agg is called with single function
     * Series : when DataFrame.agg is called with a single function
     * DataFrame : when DataFrame.agg is called with several functions
-
-    Return scalar, Series or DataFrame.
 {see_also}
 Notes
 -----
@@ -59,8 +57,6 @@ _shared_docs[
     "compare"
 ] = """
 Compare to another {klass} and show the differences.
-
-.. versionadded:: 1.1.0
 
 Parameters
 ----------
@@ -115,6 +111,12 @@ by : mapping, function, label, pd.Grouper or list of such
 axis : {0 or 'index', 1 or 'columns'}, default 0
     Split along rows (0) or columns (1). For `Series` this parameter
     is unused and defaults to 0.
+
+    .. deprecated:: 2.1.0
+
+        Will be removed and behave like axis=0 in a future version.
+        For ``axis=1``, do ``frame.T.groupby(...)`` instead.
+
 level : int, level name, or sequence of such, default None
     If the axis is a MultiIndex (hierarchical), group by a particular
     level or levels. Do not specify both ``by`` and ``level``.
@@ -130,7 +132,8 @@ as_index : bool, default True
 sort : bool, default True
     Sort group keys. Get better performance by turning this off.
     Note this does not influence the order of observations within each
-    group. Groupby preserves the order of rows within each group.
+    group. Groupby preserves the order of rows within each group. If False,
+    the groups will appear in the same order as they did in the original DataFrame.
     This argument has no effect on filtrations (see the `filtrations in the user guide
     <https://pandas.pydata.org/docs/dev/user_guide/groupby.html#filtration>`_),
     such as ``head()``, ``tail()``, ``nth()`` and in transformations
@@ -174,11 +177,9 @@ dropna : bool, default True
     with row/column will be dropped.
     If False, NA values will also be treated as the key in groups.
 
-    .. versionadded:: 1.1.0
-
 Returns
 -------
-%(klass)sGroupBy
+pandas.api.typing.%(klass)sGroupBy
     Returns a groupby object that contains information about the groups.
 
 See Also
@@ -216,14 +217,12 @@ var_name : scalar
     Name to use for the 'variable' column. If None it uses
     ``frame.columns.name`` or 'variable'.
 value_name : scalar, default 'value'
-    Name to use for the 'value' column.
+    Name to use for the 'value' column, can't be an existing column label.
 col_level : int or str, optional
     If columns are a MultiIndex then use this level to melt.
 ignore_index : bool, default True
     If True, original index is ignored. If False, the original index is retained.
     Index labels will be repeated as necessary.
-
-    .. versionadded:: 1.1.0
 
 Returns
 -------
@@ -460,10 +459,10 @@ _shared_docs[
     (otherwise no compression).
     Set to ``None`` for no compression.
     Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
-    key-value pairs are forwarded to
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdCompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdCompressor``, ``lzma.LZMAFile`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for faster compression and to create
     a reproducible gzip archive:
@@ -482,10 +481,10 @@ _shared_docs[
     If using 'zip' or 'tar', the ZIP file must contain only one data file to be read in.
     Set to ``None`` for no decompression.
     Can also be a dict with key ``'method'`` set
-    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'tar'``} and other
-    key-value pairs are forwarded to
+    to one of {``'zip'``, ``'gzip'``, ``'bz2'``, ``'zstd'``, ``'xz'``, ``'tar'``} and
+    other key-value pairs are forwarded to
     ``zipfile.ZipFile``, ``gzip.GzipFile``,
-    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor`` or
+    ``bz2.BZ2File``, ``zstandard.ZstdDecompressor``, ``lzma.LZMAFile`` or
     ``tarfile.TarFile``, respectively.
     As an example, the following could be passed for Zstandard decompression using a
     custom compression dictionary:
@@ -567,6 +566,8 @@ _shared_docs[
     {inplace}
     limit : int, default None
         Maximum size gap to forward or backward fill.
+
+        .. deprecated:: 2.1.0
     regex : bool or same types as `to_replace`, default False
         Whether to interpret `to_replace` and/or `value` as regular
         expressions. If this is ``True`` then `to_replace` *must* be a
@@ -576,6 +577,8 @@ _shared_docs[
     method : {{'pad', 'ffill', 'bfill'}}
         The method to use when for replacement, when `to_replace` is a
         scalar, list or tuple and `value` is ``None``.
+
+        .. deprecated:: 2.1.0
 
     Returns
     -------
@@ -609,7 +612,7 @@ _shared_docs[
     DataFrame.fillna : Fill NA values.
     Series.where : Replace values based on boolean condition.
     DataFrame.where : Replace values based on boolean condition.
-    DataFrame.applymap: Apply a function to a Dataframe elementwise.
+    DataFrame.map: Apply a function to a Dataframe elementwise.
     Series.map: Map values of Series according to an input mapping or function.
     Series.str.replace : Simple string replacement.
 
@@ -770,6 +773,9 @@ _shared_docs[
     3     b
     4     b
     dtype: object
+
+        .. deprecated:: 2.1.0
+            The 'method' parameter and padding behavior are deprecated.
 
     On the other hand, if ``None`` is explicitly passed for ``value``, it will
     be respected:

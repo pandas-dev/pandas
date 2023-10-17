@@ -14,6 +14,10 @@ from dateutil.tz import (
     tzlocal,
     tzutc,
 )
+from hypothesis import (
+    given,
+    strategies as st,
+)
 import numpy as np
 import pytest
 import pytz
@@ -223,6 +227,39 @@ class TestTimestampProperties:
         assert dt.as_unit("ms").resolution == Timedelta(milliseconds=1)
         assert dt.as_unit("s").resolution == Timedelta(seconds=1)
 
+    @pytest.mark.parametrize(
+        "date_string, expected",
+        [
+            ("0000-2-29", 1),
+            ("0000-3-1", 2),
+            ("1582-10-14", 3),
+            ("-0040-1-1", 4),
+            ("2023-06-18", 6),
+        ],
+    )
+    def test_dow_historic(self, date_string, expected):
+        # GH 53738
+        ts = Timestamp(date_string)
+        dow = ts.weekday()
+        assert dow == expected
+
+    @given(
+        ts=st.datetimes(),
+        sign=st.sampled_from(["-", ""]),
+    )
+    def test_dow_parametric(self, ts, sign):
+        # GH 53738
+        ts = (
+            f"{sign}{str(ts.year).zfill(4)}"
+            f"-{str(ts.month).zfill(2)}"
+            f"-{str(ts.day).zfill(2)}"
+        )
+        result = Timestamp(ts).weekday()
+        expected = (
+            (np.datetime64(ts) - np.datetime64("1970-01-01")).astype("int64") - 4
+        ) % 7
+        assert result == expected
+
 
 class TestTimestamp:
     def test_default_to_stdlib_utc(self):
@@ -253,7 +290,6 @@ class TestTimestamp:
         assert get_timezone(Timestamp("2014-11-02 01:00Z").tzinfo) is timezone.utc
 
     def test_asm8(self):
-        np.random.seed(7_960_929)
         ns = [Timestamp.min._value, Timestamp.max._value, 1000]
 
         for n in ns:
@@ -269,7 +305,7 @@ class TestTimestamp:
 
         compare(Timestamp.now(), datetime.now())
         compare(Timestamp.now("UTC"), datetime.now(pytz.timezone("UTC")))
-        compare(Timestamp.utcnow(), datetime.utcnow())
+        compare(Timestamp.utcnow(), datetime.now(timezone.utc))
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
@@ -289,7 +325,7 @@ class TestTimestamp:
             datetime.fromtimestamp(current_time, utc),
         )
 
-        date_component = datetime.utcnow()
+        date_component = datetime.now(timezone.utc)
         time_component = (date_component + timedelta(minutes=10)).time()
         compare(
             Timestamp.combine(date_component, time_component),
@@ -308,7 +344,7 @@ class TestTimestamp:
 
         compare(Timestamp.now(), datetime.now())
         compare(Timestamp.now("UTC"), datetime.now(tzutc()))
-        compare(Timestamp.utcnow(), datetime.utcnow())
+        compare(Timestamp.utcnow(), datetime.now(timezone.utc))
         compare(Timestamp.today(), datetime.today())
         current_time = calendar.timegm(datetime.now().utctimetuple())
 
@@ -319,7 +355,7 @@ class TestTimestamp:
             Timestamp.fromtimestamp(current_time), datetime.fromtimestamp(current_time)
         )
 
-        date_component = datetime.utcnow()
+        date_component = datetime.now(timezone.utc)
         time_component = (date_component + timedelta(minutes=10)).time()
         compare(
             Timestamp.combine(date_component, time_component),
@@ -1124,9 +1160,27 @@ def test_negative_dates():
     # https://github.com/pandas-dev/pandas/issues/50787
     ts = Timestamp("-2000-01-01")
     msg = (
-        "^strftime not yet supported on Timestamps which are outside the range of "
+        " not yet supported on Timestamps which are outside the range of "
         "Python's standard library. For now, please call the components you need "
         r"\(such as `.year` and `.month`\) and construct your string from there.$"
     )
-    with pytest.raises(NotImplementedError, match=msg):
+    func = "^strftime"
+    with pytest.raises(NotImplementedError, match=func + msg):
         ts.strftime("%Y")
+
+    msg = (
+        " not yet supported on Timestamps which "
+        "are outside the range of Python's standard library. "
+    )
+    func = "^date"
+    with pytest.raises(NotImplementedError, match=func + msg):
+        ts.date()
+    func = "^isocalendar"
+    with pytest.raises(NotImplementedError, match=func + msg):
+        ts.isocalendar()
+    func = "^timetuple"
+    with pytest.raises(NotImplementedError, match=func + msg):
+        ts.timetuple()
+    func = "^toordinal"
+    with pytest.raises(NotImplementedError, match=func + msg):
+        ts.toordinal()

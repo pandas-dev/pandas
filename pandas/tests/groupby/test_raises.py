@@ -3,6 +3,7 @@
 # test file.
 
 import datetime
+import re
 
 import numpy as np
 import pytest
@@ -67,6 +68,19 @@ def df_with_datetime_col():
 
 
 @pytest.fixture
+def df_with_timedelta_col():
+    df = DataFrame(
+        {
+            "a": [1, 1, 1, 1, 1, 2, 2, 2, 2],
+            "b": [3, 3, 4, 4, 4, 4, 4, 3, 3],
+            "c": range(9),
+            "d": datetime.timedelta(days=1),
+        }
+    )
+    return df
+
+
+@pytest.fixture
 def df_with_cat_col():
     df = DataFrame(
         {
@@ -83,22 +97,24 @@ def df_with_cat_col():
     return df
 
 
-def _call_and_check(klass, msg, how, gb, groupby_func, args):
-    if klass is None:
-        if how == "method":
-            getattr(gb, groupby_func)(*args)
-        elif how == "agg":
-            gb.agg(groupby_func, *args)
-        else:
-            gb.transform(groupby_func, *args)
-    else:
-        with pytest.raises(klass, match=msg):
+def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
+    warn_klass = None if warn_msg == "" else FutureWarning
+    with tm.assert_produces_warning(warn_klass, match=warn_msg):
+        if klass is None:
             if how == "method":
                 getattr(gb, groupby_func)(*args)
             elif how == "agg":
                 gb.agg(groupby_func, *args)
             else:
                 gb.transform(groupby_func, *args)
+        else:
+            with pytest.raises(klass, match=msg):
+                if how == "method":
+                    getattr(gb, groupby_func)(*args)
+                elif how == "agg":
+                    gb.agg(groupby_func, *args)
+                else:
+                    gb.transform(groupby_func, *args)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -143,17 +159,26 @@ def test_groupby_raises_string(
         "ffill": (None, ""),
         "fillna": (None, ""),
         "first": (None, ""),
-        "idxmax": (TypeError, "'argmax' not allowed for this dtype"),
-        "idxmin": (TypeError, "'argmin' not allowed for this dtype"),
+        "idxmax": (None, ""),
+        "idxmin": (None, ""),
         "last": (None, ""),
         "max": (None, ""),
-        "mean": (TypeError, "Could not convert xy?z?w?t?y?u?i?o? to numeric"),
-        "median": (TypeError, "could not convert string to float"),
+        "mean": (
+            TypeError,
+            re.escape("agg function failed [how->mean,dtype->object]"),
+        ),
+        "median": (
+            TypeError,
+            re.escape("agg function failed [how->median,dtype->object]"),
+        ),
         "min": (None, ""),
         "ngroup": (None, ""),
         "nunique": (None, ""),
         "pct_change": (TypeError, "unsupported operand type"),
-        "prod": (TypeError, "can't multiply sequence by non-int of type 'str'"),
+        "prod": (
+            TypeError,
+            re.escape("agg function failed [how->prod,dtype->object]"),
+        ),
         "quantile": (TypeError, "cannot be performed against 'object' dtypes!"),
         "rank": (None, ""),
         "sem": (ValueError, "could not convert string to float"),
@@ -162,7 +187,10 @@ def test_groupby_raises_string(
         "skew": (ValueError, "could not convert string to float"),
         "std": (ValueError, "could not convert string to float"),
         "sum": (None, ""),
-        "var": (TypeError, "could not convert string to float"),
+        "var": (
+            TypeError,
+            re.escape("agg function failed [how->var,dtype->object]"),
+        ),
     }[groupby_func]
 
     _call_and_check(klass, msg, how, gb, groupby_func, args)
@@ -197,10 +225,17 @@ def test_groupby_raises_string_np(
 
     klass, msg = {
         np.sum: (None, ""),
-        np.mean: (TypeError, "Could not convert xy?z?w?t?y?u?i?o? to numeric"),
+        np.mean: (
+            TypeError,
+            re.escape("agg function failed [how->mean,dtype->object]"),
+        ),
     }[groupby_func_np]
 
-    _call_and_check(klass, msg, how, gb, groupby_func_np, tuple())
+    if groupby_series:
+        warn_msg = "using SeriesGroupBy.[sum|mean]"
+    else:
+        warn_msg = "using DataFrameGroupBy.[sum|mean]"
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -263,13 +298,11 @@ def test_groupby_raises_datetime(
         "var": (TypeError, "datetime64 type does not support var operations"),
     }[groupby_func]
 
-    warn = None
-    warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
     if groupby_func in ["any", "all"]:
-        warn = FutureWarning
-
-    with tm.assert_produces_warning(warn, match=warn_msg):
-        _call_and_check(klass, msg, how, gb, groupby_func, args)
+        warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
+    else:
+        warn_msg = ""
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=warn_msg)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
@@ -304,7 +337,26 @@ def test_groupby_raises_datetime_np(
         np.mean: (None, ""),
     }[groupby_func_np]
 
-    _call_and_check(klass, msg, how, gb, groupby_func_np, tuple())
+    if groupby_series:
+        warn_msg = "using SeriesGroupBy.[sum|mean]"
+    else:
+        warn_msg = "using DataFrameGroupBy.[sum|mean]"
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
+
+
+@pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
+def test_groupby_raises_timedelta(func, df_with_timedelta_col):
+    df = df_with_timedelta_col
+    gb = df.groupby(by="a")
+
+    _call_and_check(
+        TypeError,
+        "timedelta64 type does not support .* operations",
+        "method",
+        gb,
+        func,
+        [],
+    )
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -482,7 +534,11 @@ def test_groupby_raises_category_np(
         ),
     }[groupby_func_np]
 
-    _call_and_check(klass, msg, how, gb, groupby_func_np, tuple())
+    if groupby_series:
+        warn_msg = "using SeriesGroupBy.[sum|mean]"
+    else:
+        warn_msg = "using DataFrameGroupBy.[sum|mean]"
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -513,6 +569,16 @@ def test_groupby_raises_category_on_category(
             return
 
     empty_groups = any(group.empty for group in gb.groups.values())
+    if (
+        not observed
+        and how != "transform"
+        and isinstance(by, list)
+        and isinstance(by[0], str)
+        and by == ["a", "b"]
+    ):
+        assert not empty_groups
+        # TODO: empty_groups should be true due to unobserved categorical combinations
+        empty_groups = True
 
     klass, msg = {
         "all": (None, ""),
@@ -558,10 +624,10 @@ def test_groupby_raises_category_on_category(
         if not using_copy_on_write
         else (None, ""),  # no-op with CoW
         "first": (None, ""),
-        "idxmax": (ValueError, "attempt to get argmax of an empty sequence")
+        "idxmax": (ValueError, "empty group due to unobserved categories")
         if empty_groups
         else (None, ""),
-        "idxmin": (ValueError, "attempt to get argmin of an empty sequence")
+        "idxmin": (ValueError, "empty group due to unobserved categories")
         if empty_groups
         else (None, ""),
         "last": (None, ""),

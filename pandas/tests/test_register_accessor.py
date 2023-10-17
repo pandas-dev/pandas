@@ -1,5 +1,5 @@
+from collections.abc import Generator
 import contextlib
-from typing import Generator
 
 import pytest
 

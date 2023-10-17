@@ -17,8 +17,8 @@
         </div>
         <ul class="list-group list-group-flush">
             <li class="list-group-item gs-data-list">
-                <div data-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
-                    <span class="badge badge-dark">Air quality data</span>
+                <div data-bs-toggle="collapse" href="#collapsedata" role="button" aria-expanded="false" aria-controls="collapsedata">
+                    <span class="badge bg-secondary">Air quality data</span>
                 </div>
                 <div class="collapse" id="collapsedata">
                     <div class="card-body">
@@ -295,7 +295,7 @@ Aggregate the current hourly time series values to the monthly maximum value in 
 
 .. ipython:: python
 
-    monthly_max = no_2.resample("M").max()
+    monthly_max = no_2.resample("ME").max()
     monthly_max
 
 A very powerful method on time series data with a datetime index, is the

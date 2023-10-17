@@ -99,7 +99,9 @@ def test_series_from_series_with_reindex(using_copy_on_write):
 def test_series_from_array(using_copy_on_write, idx, dtype, fastpath, arr):
     if idx is None or dtype is not None:
         fastpath = False
-    ser = Series(arr, dtype=dtype, index=idx, fastpath=fastpath)
+    msg = "The 'fastpath' keyword in pd.Series is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        ser = Series(arr, dtype=dtype, index=idx, fastpath=fastpath)
     ser_orig = ser.copy()
     data = getattr(arr, "_data", arr)
     if using_copy_on_write:
@@ -157,7 +159,9 @@ def test_series_from_index_different_dtypes(using_copy_on_write):
 def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
     ser = Series([1, 2, 3], dtype="int64")
     ser_orig = ser.copy()
-    ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
+    msg = "The 'fastpath' keyword in pd.Series is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
     assert np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert not ser2._mgr._has_no_reference(0)
@@ -340,3 +344,15 @@ def test_dataframe_from_records_with_dataframe(using_copy_on_write):
         tm.assert_frame_equal(df, df_orig)
     else:
         tm.assert_frame_equal(df, df2)
+
+
+def test_frame_from_dict_of_index(using_copy_on_write):
+    idx = Index([1, 2, 3])
+    expected = idx.copy(deep=True)
+    df = DataFrame({"a": idx}, copy=False)
+    assert np.shares_memory(get_array(df, "a"), idx._values)
+    if using_copy_on_write:
+        assert not df._mgr._has_no_reference(0)
+
+        df.iloc[0, 0] = 100
+        tm.assert_index_equal(idx, expected)

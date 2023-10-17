@@ -231,7 +231,7 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
         ["A", "B", 1, 1, 1.0],
     ]
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d", "e"])
-    agg_dict = {"c": sum, "d": max, "e": "min"}
+    agg_dict = {"c": "sum", "d": "max", "e": "min"}
     grouped = df.groupby(["a", "b"], dropna=dropna).agg(agg_dict)
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
@@ -278,7 +278,7 @@ def test_groupby_dropna_datetime_like_data(
     else:
         indexes = [datetime1, datetime2, np.nan]
 
-    grouped = df.groupby("dt", dropna=dropna).agg({"values": sum})
+    grouped = df.groupby("dt", dropna=dropna).agg({"values": "sum"})
     expected = pd.DataFrame({"values": values}, index=pd.Index(indexes, name="dt"))
 
     tm.assert_frame_equal(grouped, expected)
@@ -324,7 +324,9 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
 
     df = pd.DataFrame(data)
     gb = df.groupby("groups", dropna=dropna)
-    result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
 
     mi_tuples = tuple(zip(data["groups"], selected_data["values"]))
     mi = pd.MultiIndex.from_tuples(mi_tuples, names=["groups", None])
@@ -501,20 +503,9 @@ def test_null_is_null_for_dtype(
 
 
 @pytest.mark.parametrize("index_kind", ["range", "single", "multi"])
-def test_categorical_reducers(
-    request, reduction_func, observed, sort, as_index, index_kind
-):
-    # GH#36327
-    if (
-        reduction_func in ("idxmin", "idxmax")
-        and not observed
-        and index_kind != "multi"
-    ):
-        msg = "GH#10694 - idxmin/max broken for categorical with observed=False"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
+def test_categorical_reducers(reduction_func, observed, sort, as_index, index_kind):
     # Ensure there is at least one null value by appending to the end
-    values = np.append(np.random.choice([1, 2, None], size=19), None)
+    values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(20)}
     )
@@ -541,6 +532,17 @@ def test_categorical_reducers(
         # Don't include the grouping columns so we can call reset_index
         args = (args[0].drop(columns=keys),)
         args_filled = (args_filled[0].drop(columns=keys),)
+
+    gb_keepna = df.groupby(
+        keys, dropna=False, observed=observed, sort=sort, as_index=as_index
+    )
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            getattr(gb_keepna, reduction_func)(*args)
+        return
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
     expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
@@ -571,10 +573,13 @@ def test_categorical_reducers(
         if as_index:
             expected = expected["size"].rename(None)
 
-    gb_keepna = df.groupby(
-        keys, dropna=False, observed=observed, sort=sort, as_index=as_index
-    )
-    result = getattr(gb_keepna, reduction_func)(*args)
+    if as_index or index_kind == "range" or reduction_func == "size":
+        warn = None
+    else:
+        warn = FutureWarning
+    msg = "A grouping .* was excluded from the result"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(gb_keepna, reduction_func)(*args)
 
     # size will return a Series, others are DataFrame
     tm.assert_equal(result, expected)
@@ -586,9 +591,9 @@ def test_categorical_transformers(
     # GH#36327
     if transformation_func == "fillna":
         msg = "GH#49651 fillna may incorrectly reorders results when dropna=False"
-        request.node.add_marker(pytest.mark.xfail(reason=msg, strict=False))
+        request.applymarker(pytest.mark.xfail(reason=msg, strict=False))
 
-    values = np.append(np.random.choice([1, 2, None], size=19), None)
+    values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(20)}
     )
@@ -616,10 +621,17 @@ def test_categorical_transformers(
         "x", dropna=False, observed=observed, sort=sort, as_index=as_index
     )
     gb_dropna = df.groupby("x", dropna=True, observed=observed, sort=sort)
-    result = getattr(gb_keepna, transformation_func)(*args)
+
+    msg = "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
+    if transformation_func == "pct_change":
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = getattr(gb_keepna, "pct_change")(*args)
+    else:
+        result = getattr(gb_keepna, transformation_func)(*args)
     expected = getattr(gb_dropna, transformation_func)(*args)
+
     for iloc, value in zip(
-        df[df["x"].isnull()].index.tolist(), null_group_result.values
+        df[df["x"].isnull()].index.tolist(), null_group_result.values.ravel()
     ):
         if expected.ndim == 1:
             expected.iloc[iloc] = value
@@ -636,7 +648,7 @@ def test_categorical_transformers(
 @pytest.mark.parametrize("method", ["head", "tail"])
 def test_categorical_head_tail(method, observed, sort, as_index):
     # GH#36327
-    values = np.random.choice([1, 2, None], 30)
+    values = np.random.default_rng(2).choice([1, 2, None], 30)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )
@@ -661,7 +673,7 @@ def test_categorical_head_tail(method, observed, sort, as_index):
 
 def test_categorical_agg():
     # GH#36327
-    values = np.random.choice([1, 2, None], 30)
+    values = np.random.default_rng(2).choice([1, 2, None], 30)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )
@@ -673,7 +685,7 @@ def test_categorical_agg():
 
 def test_categorical_transform():
     # GH#36327
-    values = np.random.choice([1, 2, None], 30)
+    values = np.random.default_rng(2).choice([1, 2, None], 30)
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )

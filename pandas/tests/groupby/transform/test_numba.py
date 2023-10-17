@@ -1,7 +1,7 @@
+import numpy as np
 import pytest
 
 from pandas.errors import NumbaUtilError
-import pandas.util._test_decorators as td
 
 from pandas import (
     DataFrame,
@@ -10,9 +10,12 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.single_cpu
 
-@td.skip_if_no("numba")
+
 def test_correct_function_signature():
+    pytest.importorskip("numba")
+
     def incorrect_function(x):
         return x + 1
 
@@ -27,8 +30,9 @@ def test_correct_function_signature():
         data.groupby("key")["data"].transform(incorrect_function, engine="numba")
 
 
-@td.skip_if_no("numba")
 def test_check_nopython_kwargs():
+    pytest.importorskip("numba")
+
     def incorrect_function(values, index):
         return values + 1
 
@@ -43,13 +47,14 @@ def test_check_nopython_kwargs():
         data.groupby("key")["data"].transform(incorrect_function, engine="numba", a=1)
 
 
-@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("pandas_obj", ["Series", "DataFrame"])
 @pytest.mark.parametrize("as_index", [True, False])
 def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython, as_index):
+    pytest.importorskip("numba")
+
     def func(values, index):
         return values + 1
 
@@ -73,13 +78,14 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython, as_index):
     tm.assert_equal(result, expected)
 
 
-@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 @pytest.mark.parametrize("jit", [True, False])
 @pytest.mark.parametrize("pandas_obj", ["Series", "DataFrame"])
 def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     # Test that the functions are cached correctly if we switch functions
+    pytest.importorskip("numba")
+
     def func_1(values, index):
         return values + 1
 
@@ -114,8 +120,9 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     tm.assert_equal(result, expected)
 
 
-@td.skip_if_no("numba")
 def test_use_global_config():
+    pytest.importorskip("numba")
+
     def func_1(values, index):
         return values + 1
 
@@ -129,25 +136,31 @@ def test_use_global_config():
     tm.assert_frame_equal(expected, result)
 
 
-@td.skip_if_no("numba")
+# TODO: Test more than just reductions (e.g. actually test transformations once we have
 @pytest.mark.parametrize(
     "agg_func", [["min", "max"], "min", {"B": ["min", "max"], "C": "sum"}]
 )
-def test_multifunc_notimplimented(agg_func):
+def test_string_cython_vs_numba(agg_func, numba_supported_reductions):
+    pytest.importorskip("numba")
+    agg_func, kwargs = numba_supported_reductions
     data = DataFrame(
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     grouped = data.groupby(0)
-    with pytest.raises(NotImplementedError, match="Numba engine can"):
-        grouped.transform(agg_func, engine="numba")
 
-    with pytest.raises(NotImplementedError, match="Numba engine can"):
-        grouped[1].transform(agg_func, engine="numba")
+    result = grouped.transform(agg_func, engine="numba", **kwargs)
+    expected = grouped.transform(agg_func, engine="cython", **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+    result = grouped[1].transform(agg_func, engine="numba", **kwargs)
+    expected = grouped[1].transform(agg_func, engine="cython", **kwargs)
+    tm.assert_series_equal(result, expected)
 
 
-@td.skip_if_no("numba")
 def test_args_not_cached():
     # GH 41647
+    pytest.importorskip("numba")
+
     def sum_last(values, index, n):
         return values[-n:].sum()
 
@@ -162,9 +175,10 @@ def test_args_not_cached():
     tm.assert_series_equal(result, expected)
 
 
-@td.skip_if_no("numba")
 def test_index_data_correctly_passed():
     # GH 43133
+    pytest.importorskip("numba")
+
     def f(values, index):
         return index - 1
 
@@ -174,10 +188,10 @@ def test_index_data_correctly_passed():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba")
 def test_engine_kwargs_not_cached():
     # If the user passes a different set of engine_kwargs don't return the same
     # jitted function
+    pytest.importorskip("numba")
     nogil = True
     parallel = False
     nopython = True
@@ -202,9 +216,10 @@ def test_engine_kwargs_not_cached():
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba")
 @pytest.mark.filterwarnings("ignore")
 def test_multiindex_one_key(nogil, parallel, nopython):
+    pytest.importorskip("numba")
+
     def numba_func(values, index):
         return 1
 
@@ -217,14 +232,53 @@ def test_multiindex_one_key(nogil, parallel, nopython):
     tm.assert_frame_equal(result, expected)
 
 
-@td.skip_if_no("numba")
 def test_multiindex_multi_key_not_supported(nogil, parallel, nopython):
+    pytest.importorskip("numba")
+
     def numba_func(values, index):
         return 1
 
     df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
     engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
-    with pytest.raises(NotImplementedError, match="More than 1 grouping labels"):
+    with pytest.raises(NotImplementedError, match="more than 1 grouping labels"):
         df.groupby(["A", "B"]).transform(
             numba_func, engine="numba", engine_kwargs=engine_kwargs
         )
+
+
+def test_multilabel_numba_vs_cython(numba_supported_reductions):
+    pytest.importorskip("numba")
+    reduction, kwargs = numba_supported_reductions
+    df = DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.random.default_rng(2).standard_normal(8),
+        }
+    )
+    gb = df.groupby(["A", "B"])
+    res_agg = gb.transform(reduction, engine="numba", **kwargs)
+    expected_agg = gb.transform(reduction, engine="cython", **kwargs)
+    tm.assert_frame_equal(res_agg, expected_agg)
+
+
+def test_multilabel_udf_numba_vs_cython():
+    pytest.importorskip("numba")
+    df = DataFrame(
+        {
+            "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
+            "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
+            "C": np.random.default_rng(2).standard_normal(8),
+            "D": np.random.default_rng(2).standard_normal(8),
+        }
+    )
+    gb = df.groupby(["A", "B"])
+    result = gb.transform(
+        lambda values, index: (values - values.min()) / (values.max() - values.min()),
+        engine="numba",
+    )
+    expected = gb.transform(
+        lambda x: (x - x.min()) / (x.max() - x.min()), engine="cython"
+    )
+    tm.assert_frame_equal(result, expected)

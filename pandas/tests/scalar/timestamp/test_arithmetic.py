@@ -40,17 +40,12 @@ class TestTimestampArithmetic:
 
         stamp = Timestamp("2017-01-13 00:00:00").as_unit("ns")
         offset_overflow = 20169940 * offsets.Day(1)
-        msg = (
-            "the add operation between "
-            r"\<-?\d+ \* Days\> and \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} "
-            "will overflow"
-        )
         lmsg2 = r"Cannot cast -?20169940 days \+?00:00:00 to unit='ns' without overflow"
 
         with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
             stamp + offset_overflow
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
             offset_overflow + stamp
 
         with pytest.raises(OutOfBoundsTimedelta, match=lmsg2):
@@ -68,7 +63,7 @@ class TestTimestampArithmetic:
         with pytest.raises(OutOfBoundsTimedelta, match=lmsg3):
             stamp + offset_overflow
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsTimedelta, match=lmsg3):
             offset_overflow + stamp
 
         with pytest.raises(OutOfBoundsTimedelta, match=lmsg3):
@@ -197,7 +192,7 @@ class TestTimestampArithmetic:
         ],
     )
     def test_timestamp_add_timedelta64_unit(self, other, expected_difference):
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         ts = Timestamp(now).as_unit("ns")
         result = ts + other
         valdiff = result._value - ts._value

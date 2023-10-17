@@ -31,7 +31,7 @@ from pandas.tests.apply.common import (
 @pytest.mark.parametrize("how", ["agg", "apply"])
 def test_apply_with_string_funcs(request, float_frame, func, args, kwds, how):
     if len(args) > 1 and how == "agg":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 raises=TypeError,
                 reason="agg/apply signature mismatch - agg passes 2nd "
@@ -135,7 +135,9 @@ def test_agg_cython_table_series(series, func, expected):
     # GH21224
     # test reducing functions in
     # pandas.core.base.SelectionMixin._cython_table
-    result = series.agg(func)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using Series.*"):
+        result = series.agg(func)
     if is_number(expected):
         assert np.isclose(result, expected, equal_nan=True)
     else:
@@ -168,7 +170,9 @@ def test_agg_cython_table_transform_series(series, func, expected):
     # GH21224
     # test transforming functions in
     # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
-    result = series.agg(func)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using Series.*"):
+        result = series.agg(func)
     tm.assert_series_equal(result, expected)
 
 
@@ -211,7 +215,10 @@ def test_agg_cython_table_frame(df, func, expected, axis):
     # GH 21224
     # test reducing functions in
     # pandas.core.base.SelectionMixin._cython_table
-    result = df.agg(func, axis=axis)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
+        # GH#53425
+        result = df.agg(func, axis=axis)
     tm.assert_series_equal(result, expected)
 
 
@@ -238,7 +245,10 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
         # operating blockwise doesn't let us preserve dtypes
         expected = expected.astype("float64")
 
-    result = df.agg(func, axis=axis)
+    warn = None if isinstance(func, str) else FutureWarning
+    with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
+        # GH#53425
+        result = df.agg(func, axis=axis)
     tm.assert_frame_equal(result, expected)
 
 
@@ -246,7 +256,7 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
 def test_transform_groupby_kernel_series(request, string_series, op):
     # GH 35964
     if op == "ngroup":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
     args = [0.0] if op == "fillna" else []
@@ -259,7 +269,7 @@ def test_transform_groupby_kernel_series(request, string_series, op):
 @pytest.mark.parametrize("op", frame_transform_kernels)
 def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     if op == "ngroup":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(raises=ValueError, reason="ngroup not valid for NDFrame")
         )
 

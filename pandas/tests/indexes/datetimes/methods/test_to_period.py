@@ -1,11 +1,10 @@
-import warnings
-
 import dateutil.tz
 from dateutil.tz import tzlocal
 import pytest
 import pytz
 
 from pandas._libs.tslibs.ccalendar import MONTHS
+from pandas._libs.tslibs.offsets import MonthEnd
 from pandas._libs.tslibs.period import INVALID_FREQ_ERR_MSG
 
 from pandas import (
@@ -21,7 +20,7 @@ import pandas._testing as tm
 
 class TestToPeriod:
     def test_dti_to_period(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
         pi1 = dti.to_period()
         pi2 = dti.to_period(freq="D")
         pi3 = dti.to_period(freq="3D")
@@ -57,25 +56,38 @@ class TestToPeriod:
         prng = rng.to_period()
         assert prng.freq == "Q-DEC"
 
-    @pytest.mark.parametrize("off", ["BA", "AS", "BAS"])
+    @pytest.mark.parametrize("off", ["BY", "YS", "BYS"])
     def test_to_period_annualish(self, off):
         rng = date_range("01-Jan-2012", periods=8, freq=off)
         prng = rng.to_period()
-        assert prng.freq == "A-DEC"
+        assert prng.freq == "Y-DEC"
 
     def test_to_period_monthish(self):
-        offsets = ["MS", "BM"]
+        offsets = ["MS", "BME"]
         for off in offsets:
             rng = date_range("01-Jan-2012", periods=8, freq=off)
             prng = rng.to_period()
-            assert prng.freq == "M"
+            assert prng.freqstr == "M"
 
-        rng = date_range("01-Jan-2012", periods=8, freq="M")
+        rng = date_range("01-Jan-2012", periods=8, freq="ME")
         prng = rng.to_period()
-        assert prng.freq == "M"
+        assert prng.freqstr == "M"
 
         with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             date_range("01-Jan-2012", periods=8, freq="EOM")
+
+    @pytest.mark.parametrize(
+        "freq_offset, freq_period",
+        [
+            ("2ME", "2M"),
+            (MonthEnd(2), MonthEnd(2)),
+        ],
+    )
+    def test_dti_to_period_2monthish(self, freq_offset, freq_period):
+        dti = date_range("2020-01-01", periods=3, freq=freq_offset)
+        pi = dti.to_period()
+
+        tm.assert_index_equal(pi, period_range("2020-01", "2020-05", freq=freq_period))
 
     def test_to_period_infer(self):
         # https://github.com/pandas-dev/pandas/issues/33358
@@ -85,27 +97,22 @@ class TestToPeriod:
             freq="5min",
         )
 
-        with tm.assert_produces_warning(None):
-            # Using simple filter because we are not checking for the warning here
-            warnings.simplefilter("ignore", UserWarning)
-
+        with tm.assert_produces_warning(UserWarning):
             pi1 = rng.to_period("5min")
 
-        with tm.assert_produces_warning(None):
-            # Using simple filter because we are not checking for the warning here
-            warnings.simplefilter("ignore", UserWarning)
-
+        with tm.assert_produces_warning(UserWarning):
             pi2 = rng.to_period()
 
         tm.assert_index_equal(pi1, pi2)
 
+    @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_period_dt64_round_trip(self):
         dti = date_range("1/1/2000", "1/7/2002", freq="B")
         pi = dti.to_period()
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
         dti = date_range("1/1/2000", "1/7/2002", freq="B")
-        pi = dti.to_period(freq="H")
+        pi = dti.to_period(freq="h")
         tm.assert_index_equal(pi.to_timestamp(), dti)
 
     def test_to_period_millisecond(self):
@@ -118,10 +125,10 @@ class TestToPeriod:
 
         with tm.assert_produces_warning(UserWarning):
             # warning that timezone info will be lost
-            period = index.to_period(freq="L")
+            period = index.to_period(freq="ms")
         assert 2 == len(period)
-        assert period[0] == Period("2007-01-01 10:11:12.123Z", "L")
-        assert period[1] == Period("2007-01-01 10:11:13.789Z", "L")
+        assert period[0] == Period("2007-01-01 10:11:12.123Z", "ms")
+        assert period[1] == Period("2007-01-01 10:11:13.789Z", "ms")
 
     def test_to_period_microsecond(self):
         index = DatetimeIndex(
@@ -133,10 +140,10 @@ class TestToPeriod:
 
         with tm.assert_produces_warning(UserWarning):
             # warning that timezone info will be lost
-            period = index.to_period(freq="U")
+            period = index.to_period(freq="us")
         assert 2 == len(period)
-        assert period[0] == Period("2007-01-01 10:11:12.123456Z", "U")
-        assert period[1] == Period("2007-01-01 10:11:13.789123Z", "U")
+        assert period[0] == Period("2007-01-01 10:11:12.123456Z", "us")
+        assert period[1] == Period("2007-01-01 10:11:13.789123Z", "us")
 
     @pytest.mark.parametrize(
         "tz",

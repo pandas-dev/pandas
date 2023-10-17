@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
 
-from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
-    is_timedelta64_dtype,
-)
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
@@ -19,7 +15,7 @@ import pandas._testing as tm
 from pandas.core.arrays import (
     DatetimeArray,
     IntervalArray,
-    PandasArray,
+    NumpyExtensionArray,
     PeriodArray,
     SparseArray,
     TimedeltaArray,
@@ -106,10 +102,10 @@ class TestToIterable:
         # test if items yields the correct boxed scalars
         # this only applies to series
         s = Series([1], dtype=dtype)
-        _, result = list(s.items())[0]
+        _, result = next(iter(s.items()))
         assert isinstance(result, rdtype)
 
-        _, result = list(s.items())[0]
+        _, result = next(iter(s.items()))
         assert isinstance(result, rdtype)
 
     @pytest.mark.parametrize(
@@ -180,7 +176,7 @@ class TestToIterable:
         assert s.dtype == "Period[M]"
         for res, exp in zip(s, vals):
             assert isinstance(res, pd.Period)
-            assert res.freq == "M"
+            assert res.freq == "ME"
             assert res == exp
 
 
@@ -196,9 +192,9 @@ class TestToIterable:
             "datetime64[ns, US/Central]",
         ),
         (
-            pd.PeriodIndex([2018, 2019], freq="A"),
+            pd.PeriodIndex([2018, 2019], freq="Y"),
             PeriodArray,
-            pd.core.dtypes.dtypes.PeriodDtype("A-DEC"),
+            pd.core.dtypes.dtypes.PeriodDtype("Y-DEC"),
         ),
         (pd.IntervalIndex.from_breaks([0, 1, 2]), IntervalArray, "interval"),
         (
@@ -226,19 +222,19 @@ def test_values_consistent(arr, expected_type, dtype):
 def test_numpy_array(arr):
     ser = Series(arr)
     result = ser.array
-    expected = PandasArray(arr)
+    expected = NumpyExtensionArray(arr)
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_numpy_array_all_dtypes(any_numpy_dtype):
     ser = Series(dtype=any_numpy_dtype)
     result = ser.array
-    if is_datetime64_dtype(any_numpy_dtype):
+    if np.dtype(any_numpy_dtype).kind == "M":
         assert isinstance(result, DatetimeArray)
-    elif is_timedelta64_dtype(any_numpy_dtype):
+    elif np.dtype(any_numpy_dtype).kind == "m":
         assert isinstance(result, TimedeltaArray)
     else:
-        assert isinstance(result, PandasArray)
+        assert isinstance(result, NumpyExtensionArray)
 
 
 @pytest.mark.parametrize(
@@ -318,7 +314,7 @@ def test_array_multiindex_raises():
         ),
         # Timedelta
         (
-            TimedeltaArray(np.array([0, 3600000000000], dtype="i8"), freq="H"),
+            TimedeltaArray(np.array([0, 3600000000000], dtype="i8"), freq="h"),
             np.array([0, 3600000000000], dtype="m8[ns]"),
         ),
         # GH#26406 tz is preserved in Categorical[dt64tz]
@@ -341,7 +337,7 @@ def test_to_numpy(arr, expected, index_or_series_or_array, request):
 
     if arr.dtype.name == "int64" and box is pd.array:
         mark = pytest.mark.xfail(reason="thing is Int64 and to_numpy() returns object")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     result = thing.to_numpy()
     tm.assert_numpy_array_equal(result, expected)

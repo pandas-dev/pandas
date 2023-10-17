@@ -38,9 +38,9 @@ class TestDataFrameValues:
             for j, value in enumerate(row):
                 col = frame_cols[j]
                 if np.isnan(value):
-                    assert np.isnan(frame[col][i])
+                    assert np.isnan(frame[col].iloc[i])
                 else:
-                    assert value == frame[col][i]
+                    assert value == frame[col].iloc[i]
 
         # mixed type
         arr = float_string_frame[["foo", "A"]].values
@@ -72,7 +72,9 @@ class TestDataFrameValues:
 
         expected = series.astype("object")
 
-        df = DataFrame({"a": series, "b": np.random.randn(len(series))})
+        df = DataFrame(
+            {"a": series, "b": np.random.default_rng(2).standard_normal(len(series))}
+        )
 
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()

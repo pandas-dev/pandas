@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 import pytest
 
@@ -12,6 +10,7 @@ from pandas import (
     date_range,
 )
 import pandas._testing as tm
+from pandas.util.version import Version
 
 
 class TestDataFrameSortValues:
@@ -96,7 +95,9 @@ class TestDataFrameSortValues:
 
     def test_sort_values_inplace(self):
         frame = DataFrame(
-            np.random.randn(4, 4), index=[1, 2, 3, 4], columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((4, 4)),
+            index=[1, 2, 3, 4],
+            columns=["A", "B", "C", "D"],
         )
 
         sorted_df = frame.copy()
@@ -128,9 +129,11 @@ class TestDataFrameSortValues:
     def test_sort_values_multicolumn(self):
         A = np.arange(5).repeat(20)
         B = np.tile(np.arange(5), 20)
-        random.shuffle(A)
-        random.shuffle(B)
-        frame = DataFrame({"A": A, "B": B, "C": np.random.randn(100)})
+        np.random.default_rng(2).shuffle(A)
+        np.random.default_rng(2).shuffle(B)
+        frame = DataFrame(
+            {"A": A, "B": B, "C": np.random.default_rng(2).standard_normal(100)}
+        )
 
         result = frame.sort_values(by=["A", "B"])
         indexer = np.lexsort((frame["B"], frame["A"]))
@@ -597,7 +600,9 @@ class TestDataFrameSortValues:
 
     def test_sort_values_item_cache(self, using_array_manager, using_copy_on_write):
         # previous behavior incorrect retained an invalid _item_cache entry
-        df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
+        )
         df["D"] = df["A"] * 2
         ser = df["A"]
         if not using_array_manager:
@@ -630,11 +635,20 @@ class TestDataFrameSortValues:
         tm.assert_frame_equal(df, expected)
         assert result is None
 
+    def test_sort_values_no_op_reset_index(self):
+        # GH#52553
+        df = DataFrame({"A": [10, 20], "B": [1, 5]}, index=[2, 3])
+        result = df.sort_values(by="A", ignore_index=True)
+        expected = DataFrame({"A": [10, 20], "B": [1, 5]})
+        tm.assert_frame_equal(result, expected)
+
 
 class TestDataFrameSortKey:  # test key sorting (issue 27237)
     def test_sort_values_inplace_key(self, sort_by_key):
         frame = DataFrame(
-            np.random.randn(4, 4), index=[1, 2, 3, 4], columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((4, 4)),
+            index=[1, 2, 3, 4],
+            columns=["A", "B", "C", "D"],
         )
 
         sorted_df = frame.copy()
@@ -842,9 +856,22 @@ def ascending(request):
 
 class TestSortValuesLevelAsStr:
     def test_sort_index_level_and_column_label(
-        self, df_none, df_idx, sort_names, ascending
+        self, df_none, df_idx, sort_names, ascending, request
     ):
         # GH#14353
+        if (
+            Version(np.__version__) >= Version("1.25")
+            and request.node.callspec.id == "df_idx0-inner-True"
+        ):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=(
+                        "pandas default unstable sorting of duplicates"
+                        "issue with numpy>=1.25 with AVX instructions"
+                    ),
+                    strict=False,
+                )
+            )
 
         # Get index levels from df_idx
         levels = df_idx.index.names
@@ -860,7 +887,7 @@ class TestSortValuesLevelAsStr:
         tm.assert_frame_equal(result, expected)
 
     def test_sort_column_level_and_index_label(
-        self, df_none, df_idx, sort_names, ascending
+        self, df_none, df_idx, sort_names, ascending, request
     ):
         # GH#14353
 
@@ -878,6 +905,17 @@ class TestSortValuesLevelAsStr:
 
         # Compute result by transposing and sorting on axis=1.
         result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
+
+        if Version(np.__version__) >= Version("1.25"):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=(
+                        "pandas default unstable sorting of duplicates"
+                        "issue with numpy>=1.25 with AVX instructions"
+                    ),
+                    strict=False,
+                )
+            )
 
         tm.assert_frame_equal(result, expected)
 

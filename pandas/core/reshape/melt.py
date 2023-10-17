@@ -1,19 +1,13 @@
 from __future__ import annotations
 
 import re
-from typing import (
-    TYPE_CHECKING,
-    Hashable,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas.util._decorators import Appender
 
-from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
-    is_list_like,
-)
+from pandas.core.dtypes.common import is_list_like
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
@@ -30,6 +24,8 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.core.tools.numeric import to_numeric
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from pandas._typing import AnyArrayLike
 
     from pandas import DataFrame
@@ -126,7 +122,8 @@ def melt(
     mdata: dict[Hashable, AnyArrayLike] = {}
     for col in id_vars:
         id_data = frame.pop(col)
-        if is_extension_array_dtype(id_data):
+        if not isinstance(id_data.dtype, np.dtype):
+            # i.e. ExtensionDtype
             if K > 0:
                 mdata[col] = concat([id_data] * K, ignore_index=True)
             else:
@@ -137,15 +134,16 @@ def melt(
 
     mcolumns = id_vars + var_name + [value_name]
 
-    if frame.shape[1] > 0:
+    if frame.shape[1] > 0 and not any(
+        not isinstance(dt, np.dtype) and dt._supports_2d for dt in frame.dtypes
+    ):
         mdata[value_name] = concat(
             [frame.iloc[:, i] for i in range(frame.shape[1])]
         ).values
     else:
         mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
-        # asanyarray will keep the columns as an Index
-        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
+        mdata[col] = frame.columns._get_level_values(i).repeat(N)
 
     result = frame._constructor(mdata, columns=mcolumns)
 

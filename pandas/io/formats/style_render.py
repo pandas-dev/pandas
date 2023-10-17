@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from functools import partial
 import re
 from typing import (
@@ -8,11 +9,7 @@ from typing import (
     Any,
     Callable,
     DefaultDict,
-    Dict,
-    List,
     Optional,
-    Sequence,
-    Tuple,
     TypedDict,
     Union,
 )
@@ -52,9 +49,9 @@ jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires ji
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
 BaseFormatter = Union[str, Callable]
-ExtFormatter = Union[BaseFormatter, Dict[Any, Optional[BaseFormatter]]]
-CSSPair = Tuple[str, Union[str, float]]
-CSSList = List[CSSPair]
+ExtFormatter = Union[BaseFormatter, dict[Any, Optional[BaseFormatter]]]
+CSSPair = tuple[str, Union[str, float]]
+CSSList = list[CSSPair]
 CSSProperties = Union[str, CSSList]
 
 
@@ -63,7 +60,7 @@ class CSSDict(TypedDict):
     props: CSSProperties
 
 
-CSSStyles = List[CSSDict]
+CSSStyles = list[CSSDict]
 Subset = Union[slice, Sequence, Index]
 
 
@@ -247,7 +244,7 @@ class StylerRenderer:
         Execute the style functions built up in `self._todo`.
 
         Relies on the conventions that all style functions go through
-        .apply or .applymap. The append styles to apply as tuples of
+        .apply or .map. The append styles to apply as tuples of
 
         (application method, *args, **kwargs)
         """
@@ -431,7 +428,9 @@ class StylerRenderer:
 
         return head
 
-    def _generate_col_header_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+    def _generate_col_header_row(
+        self, iter: Sequence, max_cols: int, col_lengths: dict
+    ):
         """
         Generate the row containing column headers:
 
@@ -524,7 +523,9 @@ class StylerRenderer:
 
         return index_blanks + column_name + column_headers
 
-    def _generate_index_names_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+    def _generate_index_names_row(
+        self, iter: Sequence, max_cols: int, col_lengths: dict
+    ):
         """
         Generate the row containing index names
 
@@ -1168,7 +1169,7 @@ class StylerRenderer:
         >>> df = pd.DataFrame({"A": [1, 0, -1]})
         >>> pseudo_css = "number-format: 0§[Red](0)§-§@;"
         >>> filename = "formatted_file.xlsx"
-        >>> df.style.applymap(lambda v: pseudo_css).to_excel(filename) # doctest: +SKIP
+        >>> df.style.map(lambda v: pseudo_css).to_excel(filename) # doctest: +SKIP
 
         .. figure:: ../../_static/style/format_excel_css.png
         """
@@ -1651,9 +1652,9 @@ def _get_level_lengths(
         Result is a dictionary of (level, initial_position): span
     """
     if isinstance(index, MultiIndex):
-        levels = index.format(sparsify=lib.no_default, adjoin=False)
+        levels = index._format_multi(sparsify=lib.no_default, include_names=False)
     else:
-        levels = index.format()
+        levels = index._format_flat(include_name=False)
 
     if hidden_elements is None:
         hidden_elements = []
@@ -1747,7 +1748,7 @@ def _default_formatter(x: Any, precision: int, thousands: bool = False) -> Any:
     if is_float(x) or is_complex(x):
         return f"{x:,.{precision}f}" if thousands else f"{x:.{precision}f}"
     elif is_integer(x):
-        return f"{x:,.0f}" if thousands else f"{x:.0f}"
+        return f"{x:,}" if thousands else str(x)
     return x
 
 
@@ -2356,7 +2357,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     return latex_styles
 
 
-def _escape_latex(s):
+def _escape_latex(s: str) -> str:
     r"""
     Replace the characters ``&``, ``%``, ``$``, ``#``, ``_``, ``{``, ``}``,
     ``~``, ``^``, and ``\`` in the string with LaTeX-safe sequences.
@@ -2391,7 +2392,7 @@ def _escape_latex(s):
     )
 
 
-def _math_mode_with_dollar(s):
+def _math_mode_with_dollar(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 
@@ -2424,7 +2425,7 @@ def _math_mode_with_dollar(s):
     return "".join(res).replace(r"rt8§=§7wz", r"\$")
 
 
-def _math_mode_with_parentheses(s):
+def _math_mode_with_parentheses(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 
@@ -2460,7 +2461,7 @@ def _math_mode_with_parentheses(s):
     return "".join(res)
 
 
-def _escape_latex_math(s):
+def _escape_latex_math(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 

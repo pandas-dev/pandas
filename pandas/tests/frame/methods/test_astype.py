@@ -113,17 +113,17 @@ class TestAstype:
     def test_astype_with_view_float(self, float_frame):
         # this is the only real reason to do it this way
         tf = np.round(float_frame).astype(np.int32)
-        casted = tf.astype(np.float32, copy=False)
+        tf.astype(np.float32, copy=False)
 
         # TODO(wesm): verification?
         tf = float_frame.astype(np.float64)
-        casted = tf.astype(np.int64, copy=False)  # noqa
+        tf.astype(np.int64, copy=False)
 
     def test_astype_with_view_mixed_float(self, mixed_float_frame):
         tf = mixed_float_frame.reindex(columns=["A", "B", "C"])
 
-        casted = tf.astype(np.int64)
-        casted = tf.astype(np.float32)  # noqa
+        tf.astype(np.int64)
+        tf.astype(np.float32)
 
     @pytest.mark.parametrize("dtype", [np.int32, np.int64])
     @pytest.mark.parametrize("val", [np.nan, np.inf])
@@ -152,9 +152,9 @@ class TestAstype:
 
         expected = DataFrame(
             {
-                "a": list(map(str, map(lambda x: Timestamp(x)._date_repr, a._values))),
+                "a": list(map(str, (Timestamp(x)._date_repr for x in a._values))),
                 "b": list(map(str, map(Timestamp, b._values))),
-                "c": list(map(lambda x: Timedelta(x)._repr_base(), c._values)),
+                "c": [Timedelta(x)._repr_base() for x in c._values],
                 "d": list(map(str, d._values)),
                 "e": list(map(str, e._values)),
             }
@@ -164,7 +164,7 @@ class TestAstype:
 
     def test_astype_str_float(self):
         # see GH#11302
-        result = DataFrame([np.NaN]).astype(str)
+        result = DataFrame([np.nan]).astype(str)
         expected = DataFrame(["nan"])
 
         tm.assert_frame_equal(result, expected)
@@ -264,7 +264,7 @@ class TestAstype:
 
     def test_astype_duplicate_col_series_arg(self):
         # GH#44417
-        vals = np.random.randn(3, 4)
+        vals = np.random.default_rng(2).standard_normal((3, 4))
         df = DataFrame(vals, columns=["A", "B", "C", "A"])
         dtypes = df.dtypes
         dtypes.iloc[0] = str

@@ -266,12 +266,12 @@ def test_max_sas_date(datapath):
     df = pd.read_sas(fname, encoding="iso-8859-1")
 
     # SAS likes to left pad strings with spaces - lstrip before comparing
-    df = df.applymap(lambda x: x.lstrip() if isinstance(x, str) else x)
+    df = df.map(lambda x: x.lstrip() if isinstance(x, str) else x)
     # GH 19732: Timestamps imported from sas will incur floating point errors
     try:
         df["dt_as_dt"] = df["dt_as_dt"].dt.round("us")
     except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime:
-        df = df.applymap(round_datetime_to_ms)
+        df = df.map(round_datetime_to_ms)
     except AttributeError:
         df["dt_as_dt"] = df["dt_as_dt"].apply(round_datetime_to_ms)
     # if there are any date/times > pandas.Timestamp.max then ALL in that chunk
@@ -302,12 +302,12 @@ def test_max_sas_date_iterator(datapath):
     results = []
     for df in pd.read_sas(fname, encoding="iso-8859-1", chunksize=1):
         # SAS likes to left pad strings with spaces - lstrip before comparing
-        df = df.applymap(lambda x: x.lstrip() if isinstance(x, str) else x)
+        df = df.map(lambda x: x.lstrip() if isinstance(x, str) else x)
         # GH 19732: Timestamps imported from sas will incur floating point errors
         try:
             df["dt_as_dt"] = df["dt_as_dt"].dt.round("us")
         except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime:
-            df = df.applymap(round_datetime_to_ms)
+            df = df.map(round_datetime_to_ms)
         except AttributeError:
             df["dt_as_dt"] = df["dt_as_dt"].apply(round_datetime_to_ms)
         df.reset_index(inplace=True, drop=True)

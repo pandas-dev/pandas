@@ -1,8 +1,12 @@
+import datetime as dt
 from datetime import date
+import re
 
 import dateutil
 import numpy as np
 import pytest
+
+from pandas.compat.numpy import np_long
 
 import pandas as pd
 from pandas import (
@@ -54,12 +58,12 @@ class TestDatetimeIndex:
         # (which has value 1e9) and since the max value for np.int32 is ~2e9,
         # and since those machines won't promote np.int32 to np.int64, we get
         # overflow.
-        periods = np.int_(1000)
+        periods = np_long(1000)
 
-        idx1 = date_range(start="2000", periods=periods, freq="S")
+        idx1 = date_range(start="2000", periods=periods, freq="s")
         assert len(idx1) == periods
 
-        idx2 = date_range(end="2000", periods=periods, freq="S")
+        idx2 = date_range(end="2000", periods=periods, freq="s")
         assert len(idx2) == periods
 
     def test_nat(self):
@@ -94,7 +98,7 @@ class TestDatetimeIndex:
 
     def test_iteration_preserves_tz(self):
         # see gh-8890
-        index = date_range("2012-01-01", periods=3, freq="H", tz="US/Eastern")
+        index = date_range("2012-01-01", periods=3, freq="h", tz="US/Eastern")
 
         for i, ts in enumerate(index):
             result = ts
@@ -102,7 +106,7 @@ class TestDatetimeIndex:
             assert result == expected
 
         index = date_range(
-            "2012-01-01", periods=3, freq="H", tz=dateutil.tz.tzoffset(None, -28800)
+            "2012-01-01", periods=3, freq="h", tz=dateutil.tz.tzoffset(None, -28800)
         )
 
         for i, ts in enumerate(index):
@@ -135,18 +139,21 @@ class TestDatetimeIndex:
     def test_misc_coverage(self):
         rng = date_range("1/1/2000", periods=5)
         result = rng.groupby(rng.day)
-        assert isinstance(list(result.values())[0][0], Timestamp)
+        assert isinstance(next(iter(result.values()))[0], Timestamp)
 
     def test_groupby_function_tuple_1677(self):
-        df = DataFrame(np.random.rand(100), index=date_range("1/1/2000", periods=100))
+        df = DataFrame(
+            np.random.default_rng(2).random(100),
+            index=date_range("1/1/2000", periods=100),
+        )
         monthly_group = df.groupby(lambda x: (x.year, x.month))
 
         result = monthly_group.mean()
         assert isinstance(result.index[0], tuple)
 
     def assert_index_parameters(self, index):
-        assert index.freq == "40960N"
-        assert index.inferred_freq == "40960N"
+        assert index.freq == "40960ns"
+        assert index.inferred_freq == "40960ns"
 
     def test_ns_index(self):
         nsamples = 400
@@ -196,3 +203,78 @@ class TestDatetimeIndex:
         result = np.asarray(idx, dtype=object)
 
         tm.assert_numpy_array_equal(result, expected)
+
+    def test_CBH_deprecated(self):
+        msg = "'CBH' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = date_range(
+                dt.datetime(2022, 12, 11), dt.datetime(2022, 12, 13), freq="CBH"
+            )
+        result = DatetimeIndex(
+            [
+                "2022-12-12 09:00:00",
+                "2022-12-12 10:00:00",
+                "2022-12-12 11:00:00",
+                "2022-12-12 12:00:00",
+                "2022-12-12 13:00:00",
+                "2022-12-12 14:00:00",
+                "2022-12-12 15:00:00",
+                "2022-12-12 16:00:00",
+            ],
+            dtype="datetime64[ns]",
+            freq="cbh",
+        )
+
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq_depr, expected_values, expected_freq",
+        [
+            (
+                "2BA",
+                ["2020-12-31", "2022-12-30"],
+                "2BY-DEC",
+            ),
+            (
+                "AS-AUG",
+                ["2021-08-01", "2022-08-01", "2023-08-01"],
+                "YS-AUG",
+            ),
+            (
+                "1BAS-MAY",
+                ["2021-05-03", "2022-05-02", "2023-05-01"],
+                "1BYS-MAY",
+            ),
+        ],
+    )
+    def test_AS_BA_BAS_deprecated(self, freq_depr, expected_values, expected_freq):
+        # GH#55479
+        freq_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
+        msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = date_range(
+                dt.datetime(2020, 12, 1), dt.datetime(2023, 12, 1), freq=freq_depr
+            )
+        result = DatetimeIndex(
+            expected_values,
+            dtype="datetime64[ns]",
+            freq=expected_freq,
+        )
+
+        tm.assert_index_equal(result, expected)
+
+    def test_BM_deprecated(self):
+        # GH#52064
+        msg = "'BM' is deprecated and will be removed in a future version."
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = date_range(start="2016-02-21", end="2016-08-21", freq="2BM")
+        result = DatetimeIndex(
+            ["2016-02-29", "2016-04-29", "2016-06-30"],
+            dtype="datetime64[ns]",
+            freq="2BME",
+        )
+
+        tm.assert_index_equal(result, expected)

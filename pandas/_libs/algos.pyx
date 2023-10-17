@@ -59,7 +59,7 @@ from pandas._libs.util cimport get_nat
 
 cdef:
     float64_t FP_ERR = 1e-13
-    float64_t NaN = <float64_t>np.NaN
+    float64_t NaN = <float64_t>np.nan
     int64_t NPY_NAT = get_nat()
 
 
@@ -259,7 +259,7 @@ def groupsort_indexer(const intp_t[:] index, Py_ssize_t ngroups):
     return indexer.base, counts.base
 
 
-cdef Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
+cdef Py_ssize_t swap(numeric_t *a, numeric_t *b) noexcept nogil:
     cdef:
         numeric_t t
 
@@ -270,7 +270,8 @@ cdef Py_ssize_t swap(numeric_t *a, numeric_t *b) nogil:
     return 0
 
 
-cdef numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil:
+cdef numeric_t kth_smallest_c(numeric_t* arr,
+                              Py_ssize_t k, Py_ssize_t n) noexcept nogil:
     """
     See kth_smallest.__doc__. The additional parameter n specifies the maximum
     number of elements considered in arr, needed for compatibility with usage
@@ -346,7 +347,7 @@ def kth_smallest(numeric_t[::1] arr, Py_ssize_t k) -> numeric_t:
 def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     cdef:
         Py_ssize_t i, xi, yi, N, K
-        bint minpv
+        int64_t minpv
         float64_t[:, ::1] result
         ndarray[uint8_t, ndim=2] mask
         int64_t nobs = 0
@@ -357,7 +358,7 @@ def nancorr(const float64_t[:, :] mat, bint cov=False, minp=None):
     if minp is None:
         minpv = 1
     else:
-        minpv = <int>minp
+        minpv = <int64_t>minp
 
     result = np.empty((K, K), dtype=np.float64)
     mask = np.isfinite(mat).view(np.uint8)
@@ -522,6 +523,42 @@ def validate_limit(nobs: int | None, limit=None) -> int:
         lim = limit
 
     return lim
+
+
+# TODO: overlap with libgroupby.group_fillna_indexer?
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_fill_indexer(const uint8_t[:] mask, limit=None):
+    """
+    Find an indexer to use for ffill to `take` on the array being filled.
+    """
+    cdef:
+        ndarray[intp_t, ndim=1] indexer
+        Py_ssize_t i, N = len(mask), last_valid
+        int lim
+
+        # fill_count is the number of consecutive NAs we have seen.
+        #  If it exceeds the given limit, we stop padding.
+        int fill_count = 0
+
+    lim = validate_limit(N, limit)
+    indexer = np.empty(N, dtype=np.intp)
+
+    last_valid = -1  # haven't yet seen anything non-NA
+
+    for i in range(N):
+        if not mask[i]:
+            indexer[i] = i
+            last_valid = i
+            fill_count = 0
+        else:
+            if fill_count < lim:
+                indexer[i] = last_valid
+            else:
+                indexer[i] = -1
+            fill_count += 1
+
+    return indexer
 
 
 @cython.boundscheck(False)
@@ -1062,7 +1099,7 @@ cdef void rank_sorted_1d(
     # https://github.com/cython/cython/issues/1630, only trailing arguments can
     # currently be omitted for cdef functions, which is why we keep this at the end
     const intp_t[:] labels=None,
-) nogil:
+) noexcept nogil:
     """
     See rank_1d.__doc__. Handles only actual ranking, so sorting and masking should
     be handled in the caller. Note that `out` and `grp_sizes` are modified inplace.

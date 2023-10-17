@@ -1,0 +1,93 @@
+name: Comment Commands
+on:
+  issue_comment:
+    types: created
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  issue_assign:
+    runs-on: ubuntu-22.04
+    if: (!github.event.issue.pull_request) && github.event.comment.body == 'take'
+    concurrency:
+      group: ${{ github.actor }}-issue-assign
+    steps:
+      - run: |
+          echo "Assigning issue ${{ github.event.issue.number }} to ${{ github.event.comment.user.login }}"
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"assignees": ["${{ github.event.comment.user.login }}"]}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/assignees
+  preview_docs:
+    runs-on: ubuntu-22.04
+    if: github.event.issue.pull_request && github.event.comment.body == '/preview'
+    concurrency:
+      group: ${{ github.actor }}-preview-docs
+    steps:
+      - run: |
+          if curl --output /dev/null --silent --head --fail "https://pandas.pydata.org/preview/${{ github.event.issue.number }}/"; then
+            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"body": "Website preview of this PR available at: https://pandas.pydata.org/preview/${{ github.event.issue.number }}/"}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments
+          else
+            curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"body": "No preview found for PR #${{ github.event.issue.number }}. Did the docs build complete?"}' https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments
+          fi
+  asv_run:
+    runs-on: ubuntu-22.04
+    # TODO: Support more benchmarking options later, against different branches, against self, etc
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '@github-actions benchmark')
+    defaults:
+      run:
+        shell: bash -el {0}
+    env:
+      ENV_FILE: environment.yml
+      COMMENT: ${{github.event.comment.body}}
+
+    concurrency:
+      # Set concurrency to prevent abuse(full runs are ~5.5 hours !!!)
+      # each user can only run one concurrent benchmark bot at a time
+      # We don't cancel in progress jobs, but if you want to benchmark multiple PRs, you're gonna have
+      # to wait
+      group: ${{ github.actor }}-asv
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+        # Although asv sets up its own env, deps are still needed
+        # during discovery process
+      - name: Set up Conda
+        uses: ./.github/actions/setup-conda
+
+      - name: Run benchmarks
+        id: bench
+        continue-on-error: true # asv will exit code 1 for regressions
+        run: |
+          # extracting the regex, see https://stackoverflow.com/a/36798723
+          REGEX=$(echo "$COMMENT" | sed -n "s/^.*-b\s*\(\S*\).*$/\1/p")
+          cd asv_bench
+          asv check -E existing
+          git remote add upstream https://github.com/pandas-dev/pandas.git
+          git fetch upstream
+          asv machine --yes
+          asv continuous -f 1.1 -b $REGEX upstream/main HEAD
+          echo 'BENCH_OUTPUT<<EOF' >> $GITHUB_ENV
+          asv compare -f 1.1 upstream/main HEAD >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+          echo "REGEX=$REGEX" >> $GITHUB_ENV
+
+      - uses: actions/github-script@v6
+        env:
+          BENCH_OUTPUT: ${{env.BENCH_OUTPUT}}
+          REGEX: ${{env.REGEX}}
+        with:
+          script: |
+            const ENV_VARS = process.env
+            const run_url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '\nBenchmarks completed. View runner logs here.' + run_url + '\nRegex used: '+ 'regex ' + ENV_VARS["REGEX"] + '\n' + ENV_VARS["BENCH_OUTPUT"]
+            })

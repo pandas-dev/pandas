@@ -11,15 +11,15 @@ import warnings
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
-    is_datetime64_dtype,
     is_integer_dtype,
     is_list_like,
-    is_timedelta64_dtype,
 )
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     DatetimeTZDtype,
     PeriodDtype,
@@ -36,7 +36,6 @@ from pandas.core.arrays import (
     TimedeltaArray,
 )
 from pandas.core.arrays.arrow.array import ArrowExtensionArray
-from pandas.core.arrays.arrow.dtype import ArrowDtype
 from pandas.core.base import (
     NoNewAttributesMixin,
     PandasObject,
@@ -70,13 +69,13 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
 
     def _get_values(self):
         data = self._parent
-        if is_datetime64_dtype(data.dtype):
+        if lib.is_np_dtype(data.dtype, "M"):
             return DatetimeIndex(data, copy=False, name=self.name)
 
         elif isinstance(data.dtype, DatetimeTZDtype):
             return DatetimeIndex(data, copy=False, name=self.name)
 
-        elif is_timedelta64_dtype(data.dtype):
+        elif lib.is_np_dtype(data.dtype, "m"):
             return TimedeltaIndex(data, copy=False, name=self.name)
 
         elif isinstance(data.dtype, PeriodDtype):
@@ -228,7 +227,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         )
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pydatetime()
 
-    def isocalendar(self):
+    def isocalendar(self) -> DataFrame:
         from pandas import DataFrame
 
         result = (
@@ -305,6 +304,12 @@ class DatetimeProperties(Properties):
         """
         Return the data as an array of :class:`datetime.datetime` objects.
 
+        .. deprecated:: 2.1.0
+
+            The current behavior of dt.to_pydatetime is deprecated.
+            In a future version this will return a Series containing python
+            datetime objects instead of a ndarray.
+
         Timezone information is retained if present.
 
         .. warning::
@@ -364,8 +369,6 @@ class DatetimeProperties(Properties):
         """
         Calculate year, week, and day according to the ISO 8601 standard.
 
-        .. versionadded:: 1.1.0
-
         Returns
         -------
         DataFrame
@@ -411,7 +414,7 @@ class TimedeltaProperties(Properties):
     Examples
     --------
     >>> seconds_series = pd.Series(
-    ...     pd.timedelta_range(start="1 second", periods=3, freq="S")
+    ...     pd.timedelta_range(start="1 second", periods=3, freq="s")
     ... )
     >>> seconds_series
     0   0 days 00:00:01
@@ -525,7 +528,7 @@ class PeriodProperties(Properties):
     1    2000-01-01 00:00:01
     2    2000-01-01 00:00:02
     3    2000-01-01 00:00:03
-    dtype: period[S]
+    dtype: period[s]
     >>> seconds_series.dt.second
     0    0
     1    1
@@ -541,7 +544,7 @@ class PeriodProperties(Properties):
     1    2000-01-01 01:00
     2    2000-01-01 02:00
     3    2000-01-01 03:00
-    dtype: period[H]
+    dtype: period[h]
     >>> hours_series.dt.hour
     0    0
     1    1
@@ -570,7 +573,7 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
-    def __new__(cls, data: Series):
+    def __new__(cls, data: Series):  # pyright: ignore[reportInconsistentConstructor]
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is
         # appropriate. Since we're checking the dtypes anyway, we'll just
@@ -593,11 +596,11 @@ class CombinedDatetimelikeProperties(
 
         if isinstance(data.dtype, ArrowDtype) and data.dtype.kind == "M":
             return ArrowTemporalProperties(data, orig)
-        if is_datetime64_dtype(data.dtype):
+        if lib.is_np_dtype(data.dtype, "M"):
             return DatetimeProperties(data, orig)
         elif isinstance(data.dtype, DatetimeTZDtype):
             return DatetimeProperties(data, orig)
-        elif is_timedelta64_dtype(data.dtype):
+        elif lib.is_np_dtype(data.dtype, "m"):
             return TimedeltaProperties(data, orig)
         elif isinstance(data.dtype, PeriodDtype):
             return PeriodProperties(data, orig)

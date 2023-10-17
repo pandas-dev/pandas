@@ -13,38 +13,38 @@ from pandas import (
 import pandas._testing as tm
 
 
-def test_format_native_types():
+def test_get_values_for_csv():
     index = pd.date_range(freq="1D", periods=3, start="2017-01-01")
 
     # First, with no arguments.
     expected = np.array(["2017-01-01", "2017-01-02", "2017-01-03"], dtype=object)
 
-    result = index._format_native_types()
+    result = index._get_values_for_csv()
     tm.assert_numpy_array_equal(result, expected)
 
     # No NaN values, so na_rep has no effect
-    result = index._format_native_types(na_rep="pandas")
+    result = index._get_values_for_csv(na_rep="pandas")
     tm.assert_numpy_array_equal(result, expected)
 
     # Make sure date formatting works
     expected = np.array(["01-2017-01", "01-2017-02", "01-2017-03"], dtype=object)
 
-    result = index._format_native_types(date_format="%m-%Y-%d")
+    result = index._get_values_for_csv(date_format="%m-%Y-%d")
     tm.assert_numpy_array_equal(result, expected)
 
     # NULL object handling should work
     index = DatetimeIndex(["2017-01-01", pd.NaT, "2017-01-03"])
     expected = np.array(["2017-01-01", "NaT", "2017-01-03"], dtype=object)
 
-    result = index._format_native_types()
+    result = index._get_values_for_csv(na_rep="NaT")
     tm.assert_numpy_array_equal(result, expected)
 
     expected = np.array(["2017-01-01", "pandas", "2017-01-03"], dtype=object)
 
-    result = index._format_native_types(na_rep="pandas")
+    result = index._get_values_for_csv(na_rep="pandas")
     tm.assert_numpy_array_equal(result, expected)
 
-    result = index._format_native_types(date_format="%Y-%m-%d %H:%M:%S.%f")
+    result = index._get_values_for_csv(na_rep="NaT", date_format="%Y-%m-%d %H:%M:%S.%f")
     expected = np.array(
         ["2017-01-01 00:00:00.000000", "NaT", "2017-01-03 00:00:00.000000"],
         dtype=object,
@@ -52,7 +52,7 @@ def test_format_native_types():
     tm.assert_numpy_array_equal(result, expected)
 
     # invalid format
-    result = index._format_native_types(date_format="foo")
+    result = index._get_values_for_csv(na_rep="NaT", date_format="foo")
     expected = np.array(["foo", "NaT", "foo"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -68,6 +68,36 @@ class TestDatetimeIndexRendering:
         dr = pd.date_range(start="1/1/2012", periods=3)
         repr(dr)
 
+    @pytest.mark.parametrize(
+        "dates, freq, expected_repr",
+        [
+            (
+                ["2012-01-01 00:00:00"],
+                "60min",
+                (
+                    "DatetimeIndex(['2012-01-01 00:00:00'], "
+                    "dtype='datetime64[ns]', freq='60min')"
+                ),
+            ),
+            (
+                ["2012-01-01 00:00:00", "2012-01-01 01:00:00"],
+                "60min",
+                "DatetimeIndex(['2012-01-01 00:00:00', '2012-01-01 01:00:00'], "
+                "dtype='datetime64[ns]', freq='60min')",
+            ),
+            (
+                ["2012-01-01"],
+                "24h",
+                "DatetimeIndex(['2012-01-01'], dtype='datetime64[ns]', freq='24h')",
+            ),
+        ],
+    )
+    def test_dti_repr_time_midnight(self, dates, freq, expected_repr):
+        # GH53634
+        dti = DatetimeIndex(dates, freq)
+        actual_repr = repr(dti)
+        assert actual_repr == expected_repr
+
     @pytest.mark.parametrize("method", ["__repr__", "__str__"])
     def test_dti_representation(self, method):
         idxs = []
@@ -78,7 +108,7 @@ class TestDatetimeIndexRendering:
         idxs.append(
             DatetimeIndex(
                 ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"],
-                freq="H",
+                freq="h",
                 tz="Asia/Tokyo",
             )
         )
@@ -105,7 +135,7 @@ class TestDatetimeIndexRendering:
         exp.append(
             "DatetimeIndex(['2011-01-01 09:00:00+09:00', "
             "'2011-01-01 10:00:00+09:00', '2011-01-01 11:00:00+09:00']"
-            ", dtype='datetime64[ns, Asia/Tokyo]', freq='H')"
+            ", dtype='datetime64[ns, Asia/Tokyo]', freq='h')"
         )
         exp.append(
             "DatetimeIndex(['2011-01-01 09:00:00-05:00', "
@@ -131,7 +161,7 @@ class TestDatetimeIndexRendering:
         idx4 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
         idx5 = DatetimeIndex(
             ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"],
-            freq="H",
+            freq="h",
             tz="Asia/Tokyo",
         )
         idx6 = DatetimeIndex(
@@ -188,7 +218,7 @@ class TestDatetimeIndexRendering:
         idx4 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], freq="D")
         idx5 = DatetimeIndex(
             ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"],
-            freq="H",
+            freq="h",
             tz="Asia/Tokyo",
         )
         idx6 = DatetimeIndex(
@@ -206,7 +236,7 @@ class TestDatetimeIndexRendering:
         exp5 = (
             "DatetimeIndex: 3 entries, 2011-01-01 09:00:00+09:00 "
             "to 2011-01-01 11:00:00+09:00\n"
-            "Freq: H"
+            "Freq: h"
         )
 
         exp6 = """DatetimeIndex: 3 entries, 2011-01-01 09:00:00-05:00 to NaT"""
@@ -255,13 +285,17 @@ class TestFormat:
         # bug I fixed 12/20/2011
         dates = pd.date_range("2011-01-01 04:00:00", periods=10, name="something")
 
-        formatted = dates.format(name=True)
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = dates.format(name=True)
         assert formatted[0] == "something"
 
     def test_format_datetime_with_time(self):
         dti = DatetimeIndex([datetime(2012, 2, 7), datetime(2012, 2, 7, 23)])
 
-        result = dti.format()
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = dti.format()
         expected = ["2012-02-07 00:00:00", "2012-02-07 23:00:00"]
         assert len(result) == 2
         assert result == expected

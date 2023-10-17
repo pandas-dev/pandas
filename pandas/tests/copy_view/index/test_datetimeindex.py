@@ -54,3 +54,12 @@ def test_datetimeindex_isocalendar(using_copy_on_write):
     ser.iloc[0] = Timestamp("2020-12-31")
     if using_copy_on_write:
         tm.assert_index_equal(df.index, expected)
+
+
+def test_index_values(using_copy_on_write):
+    idx = date_range("2019-12-31", periods=3, freq="D")
+    result = idx.values
+    if using_copy_on_write:
+        assert result.flags.writeable is False
+    else:
+        assert result.flags.writeable is True

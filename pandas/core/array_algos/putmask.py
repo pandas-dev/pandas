@@ -11,7 +11,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import lib
-from pandas.compat import np_version_under1p21
 
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import is_list_like
@@ -73,9 +72,6 @@ def putmask_without_repeat(
     mask : np.ndarray[bool]
     new : Any
     """
-    if np_version_under1p21:
-        new = setitem_datetimelike_compat(values, mask.sum(), new)
-
     if getattr(new, "ndim", 0) >= 1:
         new = new.astype(values.dtype, copy=False)
 
@@ -140,9 +136,9 @@ def setitem_datetimelike_compat(values: np.ndarray, num_set: int, other):
     other : Any
     """
     if values.dtype == object:
-        dtype, _ = infer_dtype_from(other, pandas_dtype=True)
+        dtype, _ = infer_dtype_from(other)
 
-        if isinstance(dtype, np.dtype) and dtype.kind in "mM":
+        if lib.is_np_dtype(dtype, "mM"):
             # https://github.com/numpy/numpy/issues/12550
             #  timedelta64 will incorrectly cast to int
             if not is_list_like(other):

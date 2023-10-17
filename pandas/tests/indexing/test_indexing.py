@@ -71,13 +71,17 @@ class TestFancy:
         with pytest.raises(ValueError, match=msg):
             df[2:5] = np.arange(1, 4) * 1j
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.__getitem__ treating keys as positions is deprecated:"
+        "FutureWarning"
+    )
     def test_getitem_ndarray_3d(
         self, index, frame_or_series, indexer_sli, using_array_manager
     ):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = indexer_sli(obj)
-        nd3 = np.random.randint(5, size=(2, 2, 2))
+        nd3 = np.random.default_rng(2).integers(5, size=(2, 2, 2))
 
         msgs = []
         if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
@@ -113,11 +117,15 @@ class TestFancy:
         with pytest.raises(potential_errors, match=msg):
             idxr[nd3]
 
+    @pytest.mark.filterwarnings(
+        "ignore:Series.__setitem__ treating keys as positions is deprecated:"
+        "FutureWarning"
+    )
     def test_setitem_ndarray_3d(self, index, frame_or_series, indexer_sli):
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = indexer_sli(obj)
-        nd3 = np.random.randint(5, size=(2, 2, 2))
+        nd3 = np.random.default_rng(2).integers(5, size=(2, 2, 2))
 
         if indexer_sli is tm.iloc:
             err = ValueError
@@ -176,7 +184,10 @@ class TestFancy:
         df["c"] = np.nan
         assert df["c"].dtype == np.float64
 
-        df.loc[0, "c"] = "foo"
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            df.loc[0, "c"] = "foo"
         expected = DataFrame(
             [{"a": 1, "b": np.nan, "c": "foo"}, {"a": 3, "b": 2, "c": np.nan}]
         )
@@ -192,7 +203,10 @@ class TestFancy:
         )
 
         left = df.copy()
-        left.loc["a", "bar"] = val
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            left.loc["a", "bar"] = val
         right = DataFrame(
             [[0, val, 2], [3, 4, 5]],
             index=list("ab"),
@@ -209,7 +223,10 @@ class TestFancy:
             index=list("ab"),
             columns=["foo", "bar", "baz"],
         )
-        left.loc["a", "bar"] = "wxyz"
+        with tm.assert_produces_warning(
+            FutureWarning, match="item of incompatible dtype"
+        ):
+            left.loc["a", "bar"] = "wxyz"
 
         right = DataFrame(
             [[0, "wxyz", 0.2], [0.3, 0.4, 0.5]],
@@ -271,7 +288,9 @@ class TestFancy:
 
     def test_dups_fancy_indexing_only_missing_label(self):
         # List containing only missing label
-        dfnu = DataFrame(np.random.randn(5, 3), index=list("AABCD"))
+        dfnu = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)), index=list("AABCD")
+        )
         with pytest.raises(
             KeyError,
             match=re.escape(
@@ -296,7 +315,10 @@ class TestFancy:
     def test_dups_fancy_indexing2(self):
         # GH 5835
         # dups on index and missing values
-        df = DataFrame(np.random.randn(5, 5), columns=["A", "B", "B", "B", "A"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 5)),
+            columns=["A", "B", "B", "B", "A"],
+        )
 
         with pytest.raises(KeyError, match="not in index"):
             df.loc[:, ["A", "B", "C"]]
@@ -304,7 +326,9 @@ class TestFancy:
     def test_dups_fancy_indexing3(self):
         # GH 6504, multi-axis indexing
         df = DataFrame(
-            np.random.randn(9, 2), index=[1, 1, 1, 2, 2, 2, 3, 3, 3], columns=["a", "b"]
+            np.random.default_rng(2).standard_normal((9, 2)),
+            index=[1, 1, 1, 2, 2, 2, 3, 3, 3],
+            columns=["a", "b"],
         )
 
         expected = df.iloc[0:6]
@@ -343,7 +367,9 @@ class TestFancy:
 
     def test_multitype_list_index_access(self):
         # GH 10610
-        df = DataFrame(np.random.random((10, 5)), columns=["a"] + [20, 21, 22, 23])
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 5)), columns=["a"] + [20, 21, 22, 23]
+        )
 
         with pytest.raises(KeyError, match=re.escape("'[26, -8] not in index'")):
             df[[22, 26, -8]]
@@ -429,6 +455,7 @@ class TestFancy:
 
     def test_multi_assign(self):
         # GH 3626, an assignment of a sub-df to a df
+        # set float64 to avoid upcast when setting nan
         df = DataFrame(
             {
                 "FC": ["a", "b", "a", "b", "a", "b"],
@@ -436,7 +463,7 @@ class TestFancy:
                 "col1": list(range(6)),
                 "col2": list(range(6, 12)),
             }
-        )
+        ).astype({"col2": "float64"})
         df.iloc[1, 0] = np.nan
         df2 = df.copy()
 
@@ -625,7 +652,12 @@ class TestFancy:
 
 class TestMisc:
     def test_float_index_to_mixed(self):
-        df = DataFrame({0.0: np.random.rand(10), 1.0: np.random.rand(10)})
+        df = DataFrame(
+            {
+                0.0: np.random.default_rng(2).random(10),
+                1.0: np.random.default_rng(2).random(10),
+            }
+        )
         df["a"] = 10
 
         expected = DataFrame({0.0: df[0.0], 1.0: df[1.0], "a": [10] * 10})
@@ -687,7 +719,8 @@ class TestMisc:
             frame["jolie"] = frame["jolie"].map(lambda x: f"@{x}")
         right_iloc["joe"] = [1.0, "@-28", "@-20", "@-12", 17.0]
         right_iloc["jolie"] = ["@2", -26.0, -18.0, -10.0, "@18"]
-        run_tests(df, rhs, right_loc, right_iloc)
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            run_tests(df, rhs, right_loc, right_iloc)
 
     @pytest.mark.parametrize(
         "idx", [_mklbl("A", 20), np.arange(20) + 100, np.linspace(100, 150, 20)]
@@ -780,20 +813,21 @@ class TestMisc:
 class TestDataframeNoneCoercion:
     EXPECTED_SINGLE_ROW_RESULTS = [
         # For numeric series, we should coerce to NaN.
-        ([1, 2, 3], [np.nan, 2, 3]),
-        ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0]),
+        ([1, 2, 3], [np.nan, 2, 3], FutureWarning),
+        ([1.0, 2.0, 3.0], [np.nan, 2.0, 3.0], None),
         # For datetime series, we should coerce to NaT.
         (
             [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)],
             [NaT, datetime(2000, 1, 2), datetime(2000, 1, 3)],
+            None,
         ),
         # For objects, we should preserve the None value.
-        (["foo", "bar", "baz"], [None, "bar", "baz"]),
+        (["foo", "bar", "baz"], [None, "bar", "baz"], None),
     ]
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
     def test_coercion_with_loc(self, expected):
-        start_data, expected_result = expected
+        start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
         start_dataframe.loc[0, ["foo"]] = None
@@ -803,7 +837,7 @@ class TestDataframeNoneCoercion:
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
     def test_coercion_with_setitem_and_dataframe(self, expected):
-        start_data, expected_result = expected
+        start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
         start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
@@ -813,7 +847,7 @@ class TestDataframeNoneCoercion:
 
     @pytest.mark.parametrize("expected", EXPECTED_SINGLE_ROW_RESULTS)
     def test_none_coercion_loc_and_dataframe(self, expected):
-        start_data, expected_result = expected
+        start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
         start_dataframe.loc[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
@@ -1090,3 +1124,19 @@ def test_scalar_setitem_series_with_nested_value_length1(value, indexer_sli):
         assert (ser.loc[0] == value).all()
     else:
         assert ser.loc[0] == value
+
+
+def test_object_dtype_series_set_series_element():
+    # GH 48933
+    s1 = Series(dtype="O", index=["a", "b"])
+
+    s1["a"] = Series()
+    s1.loc["b"] = Series()
+
+    tm.assert_series_equal(s1.loc["a"], Series())
+    tm.assert_series_equal(s1.loc["b"], Series())
+
+    s2 = Series(dtype="O", index=["a", "b"])
+
+    s2.iloc[1] = Series()
+    tm.assert_series_equal(s2.iloc[1], Series())

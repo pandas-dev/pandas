@@ -16,7 +16,6 @@ from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
 
 from pandas.core.dtypes.common import (
     is_bool,
-    is_extension_array_dtype,
     is_integer_dtype,
     is_number,
     is_numeric_dtype,
@@ -26,7 +25,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
 )
 from pandas.core.dtypes.missing import array_equivalent
 
@@ -86,12 +85,8 @@ def assert_almost_equal(
         equivalent when doing type checking.
     rtol : float, default 1e-5
         Relative tolerance.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance.
-
-        .. versionadded:: 1.1.0
     """
     if isinstance(left, Index):
         assert_index_equal(
@@ -218,12 +213,8 @@ def assert_index_equal(
         .. versionadded:: 1.2.0
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'Index'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -316,7 +307,7 @@ def assert_index_equal(
         if not left.equals(right):
             mismatch = left._values != right._values
 
-            if is_extension_array_dtype(mismatch):
+            if not isinstance(mismatch, np.ndarray):
                 mismatch = cast("ExtensionArray", mismatch).fillna(True)
 
             diff = np.sum(mismatch.astype(int)) * 100.0 / len(left)
@@ -340,7 +331,7 @@ def assert_index_equal(
     if check_names:
         assert_attr_equal("names", left, right, obj=obj)
     if isinstance(left, PeriodIndex) or isinstance(right, PeriodIndex):
-        assert_attr_equal("freq", left, right, obj=obj)
+        assert_attr_equal("dtype", left, right, obj=obj)
     if isinstance(left, IntervalIndex) or isinstance(right, IntervalIndex):
         assert_interval_array_equal(left._values, right._values)
 
@@ -425,7 +416,8 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes") -> None:
 
 
 def assert_is_valid_plot_return_object(objs) -> None:
-    import matplotlib.pyplot as plt
+    from matplotlib.artist import Artist
+    from matplotlib.axes import Axes
 
     if isinstance(objs, (Series, np.ndarray)):
         for el in objs.ravel():
@@ -433,14 +425,14 @@ def assert_is_valid_plot_return_object(objs) -> None:
                 "one of 'objs' is not a matplotlib Axes instance, "
                 f"type encountered {repr(type(el).__name__)}"
             )
-            assert isinstance(el, (plt.Axes, dict)), msg
+            assert isinstance(el, (Axes, dict)), msg
     else:
         msg = (
             "objs is neither an ndarray of Artist instances nor a single "
             "ArtistArtist instance, tuple, or dict, 'objs' is a "
             f"{repr(type(objs).__name__)}"
         )
-        assert isinstance(objs, (plt.Artist, tuple, dict)), msg
+        assert isinstance(objs, (Artist, tuple, dict)), msg
 
 
 def assert_is_sorted(seq) -> None:
@@ -448,7 +440,10 @@ def assert_is_sorted(seq) -> None:
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
-    assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    if isinstance(seq, np.ndarray):
+        assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    else:
+        assert_extension_array_equal(seq, seq[seq.argsort()])
 
 
 def assert_categorical_equal(
@@ -586,12 +581,12 @@ def raise_assert_detail(
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
-    elif isinstance(left, (CategoricalDtype, PandasDtype, StringDtype)):
+    elif isinstance(left, (CategoricalDtype, NumpyEADtype, StringDtype)):
         left = repr(left)
 
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
-    elif isinstance(right, (CategoricalDtype, PandasDtype, StringDtype)):
+    elif isinstance(right, (CategoricalDtype, NumpyEADtype, StringDtype)):
         right = repr(right)
 
     msg += f"""
@@ -712,12 +707,8 @@ def assert_extension_array_equal(
         Whether to compare number exactly.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'ExtensionArray'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -843,12 +834,8 @@ def assert_series_equal(
         Whether to compare internal Categorical exactly.
     check_category_order : bool, default True
         Whether to compare category order of internal Categoricals.
-
-        .. versionadded:: 1.0.2
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
-
-        .. versionadded:: 1.1.0
     check_flags : bool, default True
         Whether to check the `flags` attribute.
 
@@ -856,12 +843,8 @@ def assert_series_equal(
 
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'Series'
         Specify object name being compared, internally used to show appropriate
         assertion message.
@@ -1112,18 +1095,12 @@ def assert_frame_equal(
         (same as in columns) - same labels must be with the same data.
     check_freq : bool, default True
         Whether to check the `freq` attribute on a DatetimeIndex or TimedeltaIndex.
-
-        .. versionadded:: 1.1.0
     check_flags : bool, default True
         Whether to check the `flags` attribute.
     rtol : float, default 1e-5
         Relative tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance. Only used when check_exact is False.
-
-        .. versionadded:: 1.1.0
     obj : str, default 'DataFrame'
         Specify object name being compared, internally used to show appropriate
         assertion message.

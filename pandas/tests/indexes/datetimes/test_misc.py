@@ -50,8 +50,8 @@ class TestDatetime64:
             assert dti.dayofyear[0] == 1
             assert dti.dayofyear[120] == 121
 
-            assert dti.isocalendar().week[0] == 1
-            assert dti.isocalendar().week[120] == 18
+            assert dti.isocalendar().week.iloc[0] == 1
+            assert dti.isocalendar().week.iloc[120] == 18
 
             assert dti.quarter[0] == 1
             assert dti.quarter[120] == 2
@@ -140,13 +140,13 @@ class TestDatetime64:
         assert dti.is_month_start[0] == 1
 
     def test_datetimeindex_accessors5(self):
-        freq_m = to_offset("M")
-        bm = to_offset("BM")
+        freq_m = to_offset("ME")
+        bm = to_offset("BME")
         qfeb = to_offset("Q-FEB")
         qsfeb = to_offset("QS-FEB")
         bq = to_offset("BQ")
         bqs_apr = to_offset("BQS-APR")
-        as_nov = to_offset("AS-NOV")
+        as_nov = to_offset("YS-NOV")
 
         tests = [
             (freq_m.is_month_start(Timestamp("2013-06-01")), 1),
@@ -256,7 +256,7 @@ class TestDatetime64:
         assert np.isnan(ts.day_name(locale=time_locale))
 
         # GH#12805
-        dti = date_range(freq="M", start="2012", end="2013")
+        dti = date_range(freq="ME", start="2012", end="2013")
         result = dti.month_name(locale=time_locale)
         expected = Index([month.capitalize() for month in expected_months])
 

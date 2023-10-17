@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import numpy as np
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -165,6 +167,22 @@ class TestCategoricalConcat:
             ]
         )
         tm.assert_series_equal(result, expected)
+
+    def test_concat_categorical_datetime(self):
+        # GH-39443
+        df1 = DataFrame(
+            {"x": Series(datetime(2021, 1, 1), index=[0], dtype="category")}
+        )
+        df2 = DataFrame(
+            {"x": Series(datetime(2021, 1, 2), index=[1], dtype="category")}
+        )
+
+        result = pd.concat([df1, df2])
+        expected = DataFrame(
+            {"x": Series([datetime(2021, 1, 1), datetime(2021, 1, 2)])}
+        )
+
+        tm.assert_equal(result, expected)
 
     def test_concat_categorical_unchanged(self):
         # GH-12007

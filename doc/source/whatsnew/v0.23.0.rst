@@ -236,8 +236,7 @@ array are respected:
    dtype: bool
 
 For more, see the :ref:`extension types <extending.extension-types>`
-documentation. If you build an extension array, publicize it on our
-:ref:`ecosystem page <ecosystem.extensions>`.
+documentation. If you build an extension array, publicize it on `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_.
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest/
 

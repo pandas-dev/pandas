@@ -28,6 +28,17 @@ from typing import (
 
 import numpy as np
 
+from pandas._libs.byteswap import (
+    read_double_with_byteswap,
+    read_float_with_byteswap,
+    read_uint16_with_byteswap,
+    read_uint32_with_byteswap,
+    read_uint64_with_byteswap,
+)
+from pandas._libs.sas import (
+    Parser,
+    get_subheader_index,
+)
 from pandas.errors import (
     EmptyDataError,
     OutOfBoundsDatetime,
@@ -40,17 +51,6 @@ from pandas import (
 )
 
 from pandas.io.common import get_handle
-from pandas.io.sas._byteswap import (
-    read_double_with_byteswap,
-    read_float_with_byteswap,
-    read_uint16_with_byteswap,
-    read_uint32_with_byteswap,
-    read_uint64_with_byteswap,
-)
-from pandas.io.sas._sas import (
-    Parser,
-    get_subheader_index,
-)
 import pandas.io.sas.sas_constants as const
 from pandas.io.sas.sasreader import ReaderBase
 

@@ -4,7 +4,6 @@ from datetime import timedelta
 import operator
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     cast,
 )
 import warnings
@@ -30,7 +29,10 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
-from pandas._libs.tslibs.fields import get_timedelta_field
+from pandas._libs.tslibs.fields import (
+    get_timedelta_days,
+    get_timedelta_field,
+)
 from pandas._libs.tslibs.timedeltas import (
     array_to_timedelta64,
     floordiv_object_array,
@@ -43,16 +45,14 @@ from pandas.util._validators import validate_endpoints
 
 from pandas.core.dtypes.common import (
     TD64NS_DTYPE,
-    is_dtype_equal,
-    is_extension_array_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
     is_scalar,
     is_string_dtype,
-    is_timedelta64_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import isna
 
 from pandas.core import (
@@ -66,6 +66,8 @@ import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pandas._typing import (
         AxisInt,
         DateTimeErrorChoices,
@@ -77,11 +79,19 @@ if TYPE_CHECKING:
 
     from pandas import DataFrame
 
+import textwrap
+
 
 def _field_accessor(name: str, alias: str, docstring: str):
     def f(self) -> np.ndarray:
         values = self.asi8
-        result = get_timedelta_field(values, alias, reso=self._creso)
+        if alias == "days":
+            result = get_timedelta_days(values, reso=self._creso)
+        else:
+            # error: Incompatible types in assignment (
+            # expression has type "ndarray[Any, dtype[signedinteger[_32Bit]]]",
+            # variable has type "ndarray[Any, dtype[signedinteger[_64Bit]]]
+            result = get_timedelta_field(values, alias, reso=self._creso)  # type: ignore[assignment]  # noqa: E501
         if self._hasna:
             result = self._maybe_mask_results(
                 result, fill_value=None, convert="float64"
@@ -123,12 +133,19 @@ class TimedeltaArray(dtl.TimelikeOps):
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1h', '2h']))
+    <TimedeltaArray>
+    ['0 days 01:00:00', '0 days 02:00:00']
+    Length: 2, dtype: timedelta64[ns]
     """
 
     _typ = "timedeltaarray"
     _internal_fill_value = np.timedelta64("NaT", "ns")
     _recognized_scalars = (timedelta, np.timedelta64, Tick)
-    _is_recognized_dtype = is_timedelta64_dtype
+    _is_recognized_dtype = lambda x: lib.is_np_dtype(x, "m")
     _infer_matches = ("timedelta", "timedelta64")
 
     @property
@@ -201,7 +218,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         dtype: np.dtype[np.timedelta64] = TD64NS_DTYPE,
     ) -> Self:
         # Require td64 dtype, not unit-less, matching values.dtype
-        assert isinstance(dtype, np.dtype) and dtype.kind == "m"
+        assert lib.is_np_dtype(dtype, "m")
         assert not tslibs.is_unitless(dtype)
         assert isinstance(values, np.ndarray), type(values)
         assert dtype == values.dtype
@@ -347,7 +364,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         # DatetimeLikeArrayMixin super call handles other cases
         dtype = pandas_dtype(dtype)
 
-        if isinstance(dtype, np.dtype) and dtype.kind == "m":
+        if lib.is_np_dtype(dtype, "m"):
             if dtype == self.dtype:
                 if copy:
                     return self.copy()
@@ -454,7 +471,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         from pandas.io.formats.format import get_format_timedelta64
 
         # Relies on TimeDelta._repr_base
-        formatter = get_format_timedelta64(self._ndarray, na_rep)
+        formatter = get_format_timedelta64(self, na_rep)
         # equiv: np.array([formatter(x) for x in self._ndarray])
         #  but independent of dimension
         return np.frompyfunc(formatter, 1, 1)(self._ndarray)
@@ -484,7 +501,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         if not hasattr(other, "dtype"):
             # list, tuple
             other = np.array(other)
-        if len(other) != len(self) and not is_timedelta64_dtype(other.dtype):
+        if len(other) != len(self) and not lib.is_np_dtype(other.dtype, "m"):
             # Exclude timedelta64 here so we correctly raise TypeError
             #  for that instead of ValueError
             raise ValueError("Cannot multiply with unequal lengths")
@@ -585,7 +602,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         other = self._cast_divlike_op(other)
         if (
-            is_timedelta64_dtype(other.dtype)
+            lib.is_np_dtype(other.dtype, "m")
             or is_integer_dtype(other.dtype)
             or is_float_dtype(other.dtype)
         ):
@@ -613,7 +630,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             return self._scalar_divlike_op(other, op)
 
         other = self._cast_divlike_op(other)
-        if is_timedelta64_dtype(other.dtype):
+        if lib.is_np_dtype(other.dtype, "m"):
             return self._vector_divlike_op(other, op)
 
         elif is_object_dtype(other.dtype):
@@ -634,7 +651,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
         other = self._cast_divlike_op(other)
         if (
-            is_timedelta64_dtype(other.dtype)
+            lib.is_np_dtype(other.dtype, "m")
             or is_integer_dtype(other.dtype)
             or is_float_dtype(other.dtype)
         ):
@@ -662,7 +679,7 @@ class TimedeltaArray(dtl.TimelikeOps):
             return self._scalar_divlike_op(other, op)
 
         other = self._cast_divlike_op(other)
-        if is_timedelta64_dtype(other.dtype):
+        if lib.is_np_dtype(other.dtype, "m"):
             return self._vector_divlike_op(other, op)
 
         elif is_object_dtype(other.dtype):
@@ -787,24 +804,151 @@ class TimedeltaArray(dtl.TimelikeOps):
         Returns
         -------
         numpy.ndarray
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='D')
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days', '2 days', '3 days'],
+                        dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.to_pytimedelta()
+        array([datetime.timedelta(days=1), datetime.timedelta(days=2),
+               datetime.timedelta(days=3)], dtype=object)
         """
         return ints_to_pytimedelta(self._ndarray)
 
-    days = _field_accessor("days", "days", "Number of days for each element.")
+    days_docstring = textwrap.dedent(
+        """Number of days for each element.
+
+    Examples
+    --------
+    For Series:
+
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='d'))
+    >>> ser
+    0   1 days
+    1   2 days
+    2   3 days
+    dtype: timedelta64[ns]
+    >>> ser.dt.days
+    0    1
+    1    2
+    2    3
+    dtype: int64
+
+    For TimedeltaIndex:
+
+    >>> tdelta_idx = pd.to_timedelta(["0 days", "10 days", "20 days"])
+    >>> tdelta_idx
+    TimedeltaIndex(['0 days', '10 days', '20 days'],
+                    dtype='timedelta64[ns]', freq=None)
+    >>> tdelta_idx.days
+    Index([0, 10, 20], dtype='int64')"""
+    )
+    days = _field_accessor("days", "days", days_docstring)
+
+    seconds_docstring = textwrap.dedent(
+        """Number of seconds (>= 0 and less than 1 day) for each element.
+
+    Examples
+    --------
+    For Series:
+
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='s'))
+    >>> ser
+    0   0 days 00:00:01
+    1   0 days 00:00:02
+    2   0 days 00:00:03
+    dtype: timedelta64[ns]
+    >>> ser.dt.seconds
+    0    1
+    1    2
+    2    3
+    dtype: int32
+
+    For TimedeltaIndex:
+
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='s')
+    >>> tdelta_idx
+    TimedeltaIndex(['0 days 00:00:01', '0 days 00:00:02', '0 days 00:00:03'],
+                   dtype='timedelta64[ns]', freq=None)
+    >>> tdelta_idx.seconds
+    Index([1, 2, 3], dtype='int32')"""
+    )
     seconds = _field_accessor(
         "seconds",
         "seconds",
-        "Number of seconds (>= 0 and less than 1 day) for each element.",
+        seconds_docstring,
+    )
+
+    microseconds_docstring = textwrap.dedent(
+        """Number of microseconds (>= 0 and less than 1 second) for each element.
+
+    Examples
+    --------
+    For Series:
+
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='us'))
+    >>> ser
+    0   0 days 00:00:00.000001
+    1   0 days 00:00:00.000002
+    2   0 days 00:00:00.000003
+    dtype: timedelta64[ns]
+    >>> ser.dt.microseconds
+    0    1
+    1    2
+    2    3
+    dtype: int32
+
+    For TimedeltaIndex:
+
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='us')
+    >>> tdelta_idx
+    TimedeltaIndex(['0 days 00:00:00.000001', '0 days 00:00:00.000002',
+                    '0 days 00:00:00.000003'],
+                   dtype='timedelta64[ns]', freq=None)
+    >>> tdelta_idx.microseconds
+    Index([1, 2, 3], dtype='int32')"""
     )
     microseconds = _field_accessor(
         "microseconds",
         "microseconds",
-        "Number of microseconds (>= 0 and less than 1 second) for each element.",
+        microseconds_docstring,
+    )
+
+    nanoseconds_docstring = textwrap.dedent(
+        """Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.
+
+    Examples
+    --------
+    For Series:
+
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='ns'))
+    >>> ser
+    0   0 days 00:00:00.000000001
+    1   0 days 00:00:00.000000002
+    2   0 days 00:00:00.000000003
+    dtype: timedelta64[ns]
+    >>> ser.dt.nanoseconds
+    0    1
+    1    2
+    2    3
+    dtype: int32
+
+    For TimedeltaIndex:
+
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='ns')
+    >>> tdelta_idx
+    TimedeltaIndex(['0 days 00:00:00.000000001', '0 days 00:00:00.000000002',
+                    '0 days 00:00:00.000000003'],
+                   dtype='timedelta64[ns]', freq=None)
+    >>> tdelta_idx.nanoseconds
+    Index([1, 2, 3], dtype='int32')"""
     )
     nanoseconds = _field_accessor(
         "nanoseconds",
         "nanoseconds",
-        "Number of nanoseconds (>= 0 and less than 1 microsecond) for each element.",
+        nanoseconds_docstring,
     )
 
     @property
@@ -818,6 +962,16 @@ class TimedeltaArray(dtl.TimelikeOps):
         Returns
         -------
         DataFrame
+
+        Examples
+        --------
+        >>> tdelta_idx = pd.to_timedelta(['1 day 3 min 2 us 42 ns'])
+        >>> tdelta_idx
+        TimedeltaIndex(['1 days 00:03:00.000002042'],
+                       dtype='timedelta64[ns]', freq=None)
+        >>> tdelta_idx.components
+           days  hours  minutes  seconds  milliseconds  microseconds  nanoseconds
+        0     1      0        3        0             0             2           42
         """
         from pandas import DataFrame
 
@@ -903,7 +1057,7 @@ def sequence_to_td64ns(
         inferred_freq = data.freq
 
     # Convert whatever we have into timedelta64[ns] dtype
-    if is_object_dtype(data.dtype) or is_string_dtype(data.dtype):
+    if data.dtype == object or is_string_dtype(data.dtype):
         # no need to make a copy, need to convert if string-dtyped
         data = _objects_to_td64ns(data, unit=unit, errors=errors)
         copy = False
@@ -916,7 +1070,7 @@ def sequence_to_td64ns(
     elif is_float_dtype(data.dtype):
         # cast the unit, multiply base/frac separately
         # to avoid precision issues from float -> int
-        if is_extension_array_dtype(data):
+        if isinstance(data.dtype, ExtensionDtype):
             mask = data._mask
             data = data._data
         else:
@@ -940,7 +1094,7 @@ def sequence_to_td64ns(
         data[mask] = iNaT
         copy = False
 
-    elif is_timedelta64_dtype(data.dtype):
+    elif lib.is_np_dtype(data.dtype, "m"):
         data_unit = get_unit_from_dtype(data.dtype)
         if not is_supported_unit(data_unit):
             # cast to closest supported unit, i.e. s or ns
@@ -1040,7 +1194,7 @@ def _objects_to_td64ns(data, unit=None, errors: DateTimeErrorChoices = "raise"):
 
 def _validate_td64_dtype(dtype) -> DtypeObj:
     dtype = pandas_dtype(dtype)
-    if is_dtype_equal(dtype, np.dtype("timedelta64")):
+    if dtype == np.dtype("m8"):
         # no precision disallowed GH#24806
         msg = (
             "Passing in 'timedelta' dtype with no precision is not allowed. "

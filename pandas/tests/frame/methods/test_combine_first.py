@@ -510,7 +510,7 @@ def test_combine_first_duplicates_rows_for_nan_index_values():
             "y": [12.0, 13.0, np.nan, 14.0],
         },
         index=MultiIndex.from_arrays(
-            [[1, 2, 3, 4], [np.nan, 5.0, 6.0, 7.0]], names=["a", "b"]
+            [[1, 2, 3, 4], [np.nan, 5, 6, 7]], names=["a", "b"]
         ),
     )
     combined = df1.combine_first(df2)
@@ -537,4 +537,12 @@ def test_midx_losing_dtype():
         [[0, 0, 1, 1], [np.nan, np.nan, np.nan, np.nan]]
     )
     expected = DataFrame({"a": [np.nan, 4, 3, 3]}, index=expected_midx)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_combine_first_empty_columns():
+    left = DataFrame(columns=["a", "b"])
+    right = DataFrame(columns=["a", "c"])
+    result = left.combine_first(right)
+    expected = DataFrame(columns=["a", "b", "c"])
     tm.assert_frame_equal(result, expected)

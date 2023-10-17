@@ -11,7 +11,7 @@ always_yes: true
 #   The number seconds conda will wait for your client to establish a
 #   connection to a remote url resource.
 #
-remote_connect_timeout_secs: 30.0
+remote_connect_timeout_secs: 30
 
 # remote_max_retries (int)
 #   The maximum number of retries each HTTP connection should attempt.

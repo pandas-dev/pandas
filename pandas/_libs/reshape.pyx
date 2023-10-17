@@ -9,7 +9,7 @@ from numpy cimport (
 import numpy as np
 
 cimport numpy as cnp
-from numpy.math cimport NAN
+from libc.math cimport NAN
 
 cnp.import_array()
 

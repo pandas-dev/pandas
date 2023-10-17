@@ -16,15 +16,12 @@ from pandas import (
 from pandas.plotting._matplotlib.misc import unpack_single_str_list
 
 if TYPE_CHECKING:
-    from pandas._typing import (
-        Dict,
-        IndexLabel,
-    )
+    from pandas._typing import IndexLabel
 
 
 def create_iter_data_given_by(
     data: DataFrame, kind: str = "hist"
-) -> Dict[str, DataFrame | Series]:
+) -> dict[str, DataFrame | Series]:
     """
     Create data for iteration given `by` is assigned or not, and it is only
     used in both hist and boxplot.

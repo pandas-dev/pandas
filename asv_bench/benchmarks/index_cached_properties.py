@@ -25,14 +25,14 @@ class IndexCache:
         N = 10**5
         if index_type == "MultiIndex":
             self.idx = pd.MultiIndex.from_product(
-                [pd.date_range("1/1/2000", freq="T", periods=N // 2), ["a", "b"]]
+                [pd.date_range("1/1/2000", freq="min", periods=N // 2), ["a", "b"]]
             )
         elif index_type == "DatetimeIndex":
-            self.idx = pd.date_range("1/1/2000", freq="T", periods=N)
+            self.idx = pd.date_range("1/1/2000", freq="min", periods=N)
         elif index_type == "Int64Index":
             self.idx = pd.Index(range(N), dtype="int64")
         elif index_type == "PeriodIndex":
-            self.idx = pd.period_range("1/1/2000", freq="T", periods=N)
+            self.idx = pd.period_range("1/1/2000", freq="min", periods=N)
         elif index_type == "RangeIndex":
             self.idx = pd.RangeIndex(start=0, stop=N)
         elif index_type == "IntervalIndex":
