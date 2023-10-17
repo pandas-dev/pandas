@@ -2016,7 +2016,7 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
         """
         using_cow = using_copy_on_write()
         warn_cow = warn_copy_on_write()
-        if using_cow or warn_cow and not self._has_no_reference(0):
+        if (using_cow or warn_cow) and not self._has_no_reference(0):
             if using_cow:
                 self.blocks = (self._block.copy(),)
                 self._cache.clear()
