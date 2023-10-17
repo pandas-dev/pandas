@@ -390,12 +390,22 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             fastpath = False
 
+        allow_mgr = False
         if (
             isinstance(data, (SingleBlockManager, SingleArrayManager))
             and index is None
             and dtype is None
             and (copy is False or copy is None)
         ):
+            if not allow_mgr:
+                # GH#52419
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
             if using_copy_on_write():
                 data = data.copy(deep=False)
             # GH#33357 called with just the SingleBlockManager
@@ -423,8 +433,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     data = SingleBlockManager.from_array(data, index)
                 elif manager == "array":
                     data = SingleArrayManager.from_array(data, index)
+                allow_mgr = True
             elif using_copy_on_write() and not copy:
                 data = data.copy(deep=False)
+
+            if not allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
+
             if copy:
                 data = data.copy()
             # skips validation of the name
@@ -434,6 +455,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
         if isinstance(data, SingleBlockManager) and using_copy_on_write() and not copy:
             data = data.copy(deep=False)
+
+            if not allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         name = ibase.maybe_extract_name(name, data, type(self))
 
@@ -499,6 +529,16 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "`data` argument and a different "
                     "`index` argument. `copy` must be False."
                 )
+
+            if not allow_mgr:
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
+                allow_mgr = True
 
         elif isinstance(data, ExtensionArray):
             pass
@@ -612,22 +652,14 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         return DataFrame
 
     def _expanddim_from_mgr(self, mgr, axes) -> DataFrame:
-        # https://github.com/pandas-dev/pandas/pull/52132#issuecomment-1481491828
-        #  This is a short-term implementation that will be replaced
-        #  with self._constructor_expanddim._constructor_from_mgr(...)
-        #  once downstream packages (geopandas) have had a chance to implement
-        #  their own overrides.
-        # error: "Callable[..., DataFrame]" has no attribute "_from_mgr"  [attr-defined]
-        from pandas import DataFrame
+        from pandas.core.frame import DataFrame
 
         return DataFrame._from_mgr(mgr, axes=mgr.axes)
 
     def _constructor_expanddim_from_mgr(self, mgr, axes):
         df = self._expanddim_from_mgr(mgr, axes)
         if type(self) is Series:
-            # fastpath avoiding constructor
             return df
-        assert axes is mgr.axes
         return self._constructor_expanddim(df, copy=False)
 
     # types
