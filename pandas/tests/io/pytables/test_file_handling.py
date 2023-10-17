@@ -238,7 +238,7 @@ def test_complibs_default_settings_override(tmp_path, setup_path):
 )
 def test_complibs(tmp_path, lvl, lib, request):
     # GH14478
-    if not PY311 and is_platform_linux() and lib == "blosc2":
+    if PY311 and is_platform_linux() and lib == "blosc2":
         request.applymarker(
             pytest.mark.xfail(reason=f"Fails for {lib} on Linux and PY > 3.11")
         )
