@@ -92,7 +92,7 @@ def test_api_per_method(
 
     if reason is not None:
         mark = pytest.mark.xfail(raises=raises, reason=reason)
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     t = box(values, dtype=dtype)  # explicit dtype to avoid casting
     method = getattr(t.str, method_name)

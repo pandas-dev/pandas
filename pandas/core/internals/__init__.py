@@ -11,7 +11,6 @@ from pandas.core.internals.concat import concatenate_managers
 from pandas.core.internals.managers import (
     BlockManager,
     SingleBlockManager,
-    create_block_manager_from_blocks,
 )
 
 __all__ = [
@@ -26,8 +25,6 @@ __all__ = [
     "SingleBlockManager",
     "SingleArrayManager",
     "concatenate_managers",
-    # this is preserved here for downstream compatibility (GH-33892)
-    "create_block_manager_from_blocks",
 ]
 
 
@@ -36,6 +33,18 @@ def __getattr__(name: str):
     import warnings
 
     from pandas.util._exceptions import find_stack_level
+
+    if name == "create_block_manager_from_blocks":
+        # GH#33892
+        warnings.warn(
+            f"{name} is deprecated and will be removed in a future version. "
+            "Use public APIs instead.",
+            DeprecationWarning,
+            stacklevel=find_stack_level(),
+        )
+        from pandas.core.internals.managers import create_block_manager_from_blocks
+
+        return create_block_manager_from_blocks
 
     if name in [
         "NumericBlock",

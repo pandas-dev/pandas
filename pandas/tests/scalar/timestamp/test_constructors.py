@@ -353,7 +353,7 @@ class TestTimestampConstructors:
         if kwd != "nanosecond":
             # nanosecond is keyword-only as of 2.0, others are not
             mark = pytest.mark.xfail(reason="GH#45307")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         kwargs = {kwd: 4}
         ts = Timestamp(2020, 12, 31, tzinfo=timezone.utc, **kwargs)
