@@ -29,13 +29,13 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <numpy/ndarraytypes.h>
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
 
-#if defined(_MSVC_VER)
+#if defined(_WIN32)
   #include <intsafe.h>
   #define checked_int64_add(a, b, res) LongLongAdd(a, b, res)
   #define checked_int64_sub(a, b, res) LongLongSub(a, b, res)
   #define checked_int64_mul(a, b, res) LongLongMul(a, b, res)
 #else
-  #if !__has_builtin(__builtin_add_overflow)
+  #if !(__has_builtin(__builtin_add_overflow))
     _Static_assert(0, "Overflow checking not detected; please try a newer compiler");
   #endif
   #if _LP64 || __LP64__ || _ILP64 || __ILP64__
