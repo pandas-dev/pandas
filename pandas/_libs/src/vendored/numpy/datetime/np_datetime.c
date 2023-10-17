@@ -29,6 +29,29 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include <numpy/ndarraytypes.h>
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
 
+#if defined(_MSVC_VER)
+  #include <intsafe.h>
+  #define checked_int64_add(a, b, res) LongLongAdd(a, b, res)
+  #define checked_int64_sub(a, b, res) LongLongSub(a, b, res)
+  #define checked_int64_mul(a, b, res) LongLongMul(a, b, res)
+#else
+  #if !__has_builtin(__builtin_add_overflow)
+    _Static_assert(0, "Overflow checking not detected; please try a newer compiler");
+  #endif
+  #if _LP64 || __LP64__ || _ILP64 || __ILP64__
+    #define checked_int64_add(a, b, res) __builtin_saddl_overflow(a, b, res)
+    #define checked_int64_sub(a, b, res) __builtin_ssubl_overflow(a, b, res)
+    #define checked_int64_mul(a, b, res) __builtin_smull_overflow(a, b, res)
+  #else
+    #define checked_int64_add(a, b, res) __builtin_saddll_overflow(a, b, res)
+    #define checked_int64_sub(a, b, res) __builtin_ssubll_overflow(a, b, res)
+    #define checked_int64_mul(a, b, res) __builtin_smulll_overflow(a, b, res)
+  #endif
+#endif
+
+// CHECK_OVERFLOW can be used in functions which define a
+// OVERFLOW_OCCURRED goto label
+#define CHECK_OVERFLOW(FUNC) do { if ((FUNC) != 0) goto OVERFLOW_OCCURRED; } while (0)
 
 const int days_per_month_table[2][12] = {
     {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
@@ -302,64 +325,91 @@ PyObject *extract_utc_offset(PyObject *obj) {
 }
 
 
-static inline int64_t scaleYearToEpoch(int64_t year) { return year - 1970; }
+static inline int scaleYearToEpoch(int64_t year, int64_t* result) {
+  return checked_int64_sub(year, 1970, result);
+}
 
-static inline int64_t scaleYearsToMonths(int64_t years) { return years * 12; }
+static inline int scaleYearsToMonths(int64_t years, int64_t* result) {
+  return checked_int64_mul(years, 12, result);
+}
 
-static inline int64_t scaleDaysToWeeks(int64_t days) {
+static inline int scaleDaysToWeeks(int64_t days, int64_t* result) {
   if (days >= 0) {
-    return days / 7;
+    *result = days / 7;
+    return 0;
   } else {
-    return (days - 6) / 7;
+    int res;
+    int64_t checked_days;
+    if ((res = checked_int64_sub(days, 6, &checked_days))) {
+      return res;
+    }
+
+    *result = checked_days / 7;
+    return 0;
   }
 }
 
-static inline int64_t scaleDaysToHours(int64_t days) { return days * 24; }
-
-static inline int64_t scaleHoursToMinutes(int64_t hours) { return hours * 60; }
-
-static inline int64_t scaleMinutesToSeconds(int64_t minutes) {
-  return minutes * 60;
+static inline int scaleDaysToHours(int64_t days, int64_t* result) {
+  return checked_int64_mul(days, 24, result);
 }
 
-static inline int64_t scaleSecondsToMilliseconds(int64_t seconds) {
-  return seconds * 1000;
+static inline int scaleHoursToMinutes(int64_t hours, int64_t* result) {
+  return checked_int64_mul(hours, 60, result);
 }
 
-static inline int64_t scaleSecondsToMicroseconds(int64_t seconds) {
-  return seconds * 1000000;
+static inline int scaleMinutesToSeconds(int64_t minutes, int64_t* result) {
+  return checked_int64_mul(minutes, 60, result);
 }
 
-static inline int64_t scaleMicrosecondsToNanoseconds(int64_t microseconds) {
-  return microseconds * 1000;
+static inline int scaleSecondsToMilliseconds(int64_t seconds, int64_t* result) {
+  return checked_int64_mul(seconds, 1000, result);
 }
 
-static inline int64_t scaleMicrosecondsToPicoseconds(int64_t microseconds) {
-  return microseconds * 1000000;
+static inline int scaleSecondsToMicroseconds(int64_t seconds, int64_t* result) {
+  return checked_int64_mul(seconds, 1000000, result);
 }
 
-static inline int64_t scalePicosecondsToFemtoseconds(int64_t picoseconds) {
-  return picoseconds * 1000;
+static inline int scaleMicrosecondsToNanoseconds(int64_t microseconds,
+                                                 int64_t* result) {
+  return checked_int64_mul(microseconds, 1000, result);
 }
 
-static inline int64_t scalePicosecondsToAttoseconds(int64_t picoseconds) {
-  return picoseconds * 1000000;
+static inline int scaleMicrosecondsToPicoseconds(int64_t microseconds,
+                                                 int64_t* result) {
+  return checked_int64_mul(microseconds, 1000000, result);
+}
+
+static inline int64_t scalePicosecondsToFemtoseconds(int64_t picoseconds,
+                                                     int64_t* result) {
+  return checked_int64_mul(picoseconds, 1000, result);
+}
+
+static inline int64_t scalePicosecondsToAttoseconds(int64_t picoseconds,
+                                                    int64_t* result) {
+  return checked_int64_mul(picoseconds, 1000000, result);
 }
 
 /*
  * Converts a datetime from a datetimestruct to a datetime based
- * on a metadata unit. The date is assumed to be valid.
+ * on a metadata unit. Returns -1 on and sets PyErr on error.
  */
 npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
                                             const npy_datetimestruct *dts) {
     if ((base == NPY_FR_Y) || (base == NPY_FR_M)) {
-      const int64_t years = scaleYearToEpoch(dts->year);
+      int64_t years;
+      CHECK_OVERFLOW(scaleYearToEpoch(dts->year, &years));
+
       if (base == NPY_FR_Y) {
         return years;
       }
 
-      int64_t months = scaleYearsToMonths(years);
-      months += dts->month - 1;
+      int64_t months;
+      CHECK_OVERFLOW(scaleYearsToMonths(years, &months));
+
+      int64_t months_adder;
+      CHECK_OVERFLOW(checked_int64_sub(dts->month, 1, &months_adder));
+      CHECK_OVERFLOW(checked_int64_add(months, months_adder, &months));
+
       if (base == NPY_FR_M) {
         return months;
       }
@@ -371,67 +421,90 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
     }
 
     if (base == NPY_FR_W) {
-      return scaleDaysToWeeks(days);
+      int64_t weeks;
+      CHECK_OVERFLOW(scaleDaysToWeeks(days, &weeks));
+      return weeks;
     }
 
-    int64_t hours = scaleDaysToHours(days);
-    hours += dts->hour;
+    int64_t hours;
+    CHECK_OVERFLOW(scaleDaysToHours(days, &hours));
+    CHECK_OVERFLOW(checked_int64_add(hours, dts->hour, &hours));
+
     if (base == NPY_FR_h) {
       return hours;
     }
 
 
-    int64_t minutes = scaleHoursToMinutes(hours);
-    minutes += dts->min;
+    int64_t minutes;
+    CHECK_OVERFLOW(scaleHoursToMinutes(hours, &minutes));
+    CHECK_OVERFLOW(checked_int64_add(minutes, dts->min, &minutes));
+
     if (base == NPY_FR_m) {
       return minutes;
     }
 
-    int64_t seconds = scaleMinutesToSeconds(minutes);
-    seconds += dts->sec;
+    int64_t seconds;
+    CHECK_OVERFLOW(scaleMinutesToSeconds(minutes, &seconds));
+    CHECK_OVERFLOW(checked_int64_add(seconds, dts->sec, &seconds));
+
     if (base == NPY_FR_s) {
       return seconds;
     }
 
     if (base == NPY_FR_ms) {
-      int64_t milliseconds = scaleSecondsToMilliseconds(seconds);
-      milliseconds += dts->us / 1000;
+      int64_t milliseconds;
+      CHECK_OVERFLOW(scaleSecondsToMilliseconds(seconds, &milliseconds));
+      CHECK_OVERFLOW(checked_int64_add(milliseconds, dts->us / 1000, &milliseconds));
+
       return milliseconds;
     }
 
-    int64_t microseconds = scaleSecondsToMicroseconds(seconds);
-    microseconds += dts->us;
+    int64_t microseconds;
+    CHECK_OVERFLOW(scaleSecondsToMicroseconds(seconds, &microseconds));
+    CHECK_OVERFLOW(checked_int64_add(microseconds, dts->us, &microseconds));
+
     if (base == NPY_FR_us) {
       return microseconds;
     }
 
     if (base == NPY_FR_ns) {
-      int64_t nanoseconds = scaleMicrosecondsToNanoseconds(microseconds);
-      nanoseconds += dts->ps / 1000;
+      int64_t nanoseconds;
+      CHECK_OVERFLOW(scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
+      CHECK_OVERFLOW(checked_int64_add(nanoseconds, dts->ps / 1000, &nanoseconds));
+
       return nanoseconds;
     }
 
-    int64_t picoseconds = scaleMicrosecondsToPicoseconds(microseconds);
-    picoseconds += dts->ps;
+    int64_t picoseconds;
+    CHECK_OVERFLOW(scaleMicrosecondsToPicoseconds(microseconds, &picoseconds));
+    CHECK_OVERFLOW(checked_int64_add(picoseconds, dts->ps, &picoseconds));
+
     if (base == NPY_FR_ps) {
       return picoseconds;
     }
 
     if (base == NPY_FR_fs) {
-      int64_t femtoseconds = scalePicosecondsToFemtoseconds(picoseconds);
-      femtoseconds += dts->as / 1000;
+      int64_t femtoseconds;
+      CHECK_OVERFLOW(scalePicosecondsToFemtoseconds(picoseconds, &femtoseconds));
+      CHECK_OVERFLOW(checked_int64_add(femtoseconds, dts->as / 1000, &femtoseconds));
       return femtoseconds;
     }
 
     if (base == NPY_FR_as) {
-      int64_t attoseconds = scalePicosecondsToAttoseconds(picoseconds);
-      attoseconds += dts->as;
+      int64_t attoseconds;
+      CHECK_OVERFLOW(scalePicosecondsToAttoseconds(picoseconds, &attoseconds));
+      CHECK_OVERFLOW(checked_int64_add(attoseconds, dts->as, &attoseconds));
       return attoseconds;
     }
 
     /* Something got corrupted */
     PyErr_SetString(PyExc_ValueError,
                     "NumPy datetime metadata with corrupt unit value");
+    return -1;
+
+OVERFLOW_OCCURRED:
+    PyErr_SetString(PyExc_OverflowError,
+                    "Overflow occurred in npy_datetimestruct_to_datetime");
     return -1;
 }
 

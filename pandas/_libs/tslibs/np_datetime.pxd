@@ -65,7 +65,7 @@ cdef extern from "pandas/datetime/pd_datetime.h":
                                            npy_datetimestruct *result) nogil
 
     npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
-                                                npy_datetimestruct *d) nogil
+                                                npy_datetimestruct *d) nogil except? -1
 
     void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                              NPY_DATETIMEUNIT fr,
@@ -89,11 +89,11 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
 
 cdef int64_t pydatetime_to_dt64(
     datetime val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
-)
+) except? -1
 cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts) noexcept
 cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=?
-)
+) except? -1
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept
 
 cdef npy_datetime get_datetime64_value(object obj) noexcept nogil

@@ -488,7 +488,6 @@ cpdef array_to_datetime(
 
             elif PyDate_Check(val):
                 iresult[i] = pydate_to_dt64(val, &dts)
-                check_dts_bounds(&dts)
 
             elif is_datetime64_object(val):
                 iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)

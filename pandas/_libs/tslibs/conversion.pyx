@@ -764,5 +764,4 @@ cdef int64_t parse_pydatetime(
             result = val.as_unit("ns")._value
         else:
             result = pydatetime_to_dt64(val, dts)
-            check_dts_bounds(dts)
     return result

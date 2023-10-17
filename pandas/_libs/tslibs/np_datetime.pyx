@@ -262,7 +262,7 @@ cdef void pydatetime_to_dtstruct(datetime dt, npy_datetimestruct *dts) noexcept:
 
 cdef int64_t pydatetime_to_dt64(datetime val,
                                 npy_datetimestruct *dts,
-                                NPY_DATETIMEUNIT reso=NPY_FR_ns):
+                                NPY_DATETIMEUNIT reso=NPY_FR_ns) except? -1:
     """
     Note we are assuming that the datetime object is timezone-naive.
     """
@@ -280,7 +280,7 @@ cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept:
 
 cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=NPY_FR_ns
-):
+) except? -1:
     pydate_to_dtstruct(val, dts)
     return npy_datetimestruct_to_datetime(reso, dts)
 
