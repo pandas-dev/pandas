@@ -352,7 +352,10 @@ def main():
         help="fail if warnings are raised",
     )
     argparser.add_argument(
-        "--no-browser", help="Don't open browser", action="store_true"
+        "--no-browser",
+        help="Don't open browser",
+        default=False,
+        action="store_true",
     )
     args = argparser.parse_args()
 
