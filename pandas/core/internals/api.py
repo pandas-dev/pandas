@@ -105,3 +105,25 @@ def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int
         else:
             ndim = values.ndim
     return ndim
+
+
+def __getattr__(name: str):
+    import warnings
+
+    from pandas.util._exceptions import find_stack_level
+
+    if name == "create_block_manager_from_blocks":
+        # GH#33892
+        warnings.warn(
+            f"{name} is deprecated and will be removed in a future version. "
+            "Use public APIs instead.",
+            DeprecationWarning,
+            stacklevel=find_stack_level(),
+        )
+        from pandas.core.internals.managers import create_block_manager_from_blocks
+
+        return create_block_manager_from_blocks
+
+    raise AttributeError(
+        f"module 'pandas.core.internals.api' has no attribute '{name}'"
+    )
