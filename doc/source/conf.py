@@ -801,7 +801,8 @@ def setup(app):
     app.add_directive("autosummary", PandasAutosummary)
 
 
-####### This is an ignore list for broken links found in CI run checks for broken-linkcheck.yml
+####### This is an ignore list for broken links,
+####### found in CI run checks for broken-linkcheck.yml
 
 linkcheck_ignore = [
     '^http://$',
