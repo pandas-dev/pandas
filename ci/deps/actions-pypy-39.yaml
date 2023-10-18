@@ -26,3 +26,4 @@ dependencies:
   - pytz
   - pip:
     - tzdata>=2022.1
+    - pyarrow >= 7.0.0
