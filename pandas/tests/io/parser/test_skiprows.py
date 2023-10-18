@@ -17,7 +17,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# XFAIL ME PLS once hanging tests issues identified
+# TODO: XFAIL ME PLS once hanging tests issues identified
 pytestmark = pytest.mark.usefixtures("pyarrow_skip")
 
 
