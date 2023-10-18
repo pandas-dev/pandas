@@ -56,6 +56,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AxisInt,
         Dtype,
+        DtypeObj,
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
@@ -123,7 +124,8 @@ class StringDtype(StorageExtensionDtype):
                 storage = get_option("mode.string_storage")
         if storage not in {"python", "pyarrow", "pyarrow_numpy"}:
             raise ValueError(
-                f"Storage must be 'python' or 'pyarrow'. Got {storage} instead."
+                f"Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'. "
+                f"Got {storage} instead."
             )
         if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under7p0:
             raise ImportError(
@@ -251,6 +253,13 @@ class BaseStringArray(ExtensionArray):
         if self.ndim > 1:
             return [x.tolist() for x in self]
         return list(self.to_numpy())
+
+    @classmethod
+    def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
+        if lib.infer_dtype(scalars, skipna=True) != "string":
+            # TODO: require any NAs be valid-for-string
+            raise ValueError
+        return cls._from_sequence(scalars, dtype=dtype)
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is

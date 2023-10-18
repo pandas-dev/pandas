@@ -13,7 +13,6 @@ from collections.abc import (
 import csv
 from io import StringIO
 import re
-import sys
 from typing import (
     IO,
     TYPE_CHECKING,
@@ -21,6 +20,7 @@ from typing import (
     Literal,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -28,8 +28,10 @@ from pandas._libs import lib
 from pandas.errors import (
     EmptyDataError,
     ParserError,
+    ParserWarning,
 )
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -778,8 +780,11 @@ class PythonParser(ParserBase):
         if self.on_bad_lines == self.BadLineHandleMethod.ERROR:
             raise ParserError(msg)
         if self.on_bad_lines == self.BadLineHandleMethod.WARN:
-            base = f"Skipping line {row_num}: "
-            sys.stderr.write(base + msg + "\n")
+            warnings.warn(
+                f"Skipping line {row_num}: {msg}\n",
+                ParserWarning,
+                stacklevel=find_stack_level(),
+            )
 
     def _next_iter_line(self, row_num: int) -> list[Scalar] | None:
         """

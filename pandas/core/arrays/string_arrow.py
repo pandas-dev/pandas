@@ -15,7 +15,10 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas.compat import pa_version_under7p0
+from pandas.compat import (
+    pa_version_under7p0,
+    pa_version_under13p0,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -47,7 +50,10 @@ if not pa_version_under7p0:
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from pandas._typing import (
+        AxisInt,
         Dtype,
         Scalar,
         npt,
@@ -334,19 +340,13 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = pc.starts_with(self._pa_array, pattern=pat)
         if not isna(na):
             result = result.fill_null(na)
-        result = self._result_converter(result)
-        if not isna(na):
-            result[isna(result)] = bool(na)
-        return result
+        return self._result_converter(result)
 
     def _str_endswith(self, pat: str, na=None):
         result = pc.ends_with(self._pa_array, pattern=pat)
         if not isna(na):
             result = result.fill_null(na)
-        result = self._result_converter(result)
-        if not isna(na):
-            result[isna(result)] = bool(na)
-        return result
+        return self._result_converter(result)
 
     def _str_replace(
         self,
@@ -365,6 +365,12 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         result = func(self._pa_array, pattern=pat, replacement=repl, max_replacements=n)
         return type(self)(result)
 
+    def _str_repeat(self, repeats: int | Sequence[int]):
+        if not isinstance(repeats, int):
+            return super()._str_repeat(repeats)
+        else:
+            return type(self)(pc.binary_repeat(self._pa_array, repeats))
+
     def _str_match(
         self, pat: str, case: bool = True, flags: int = 0, na: Scalar | None = None
     ):
@@ -378,6 +384,19 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if not pat.endswith("$") or pat.endswith("//$"):
             pat = f"{pat}$"
         return self._str_match(pat, case, flags, na)
+
+    def _str_slice(
+        self, start: int | None = None, stop: int | None = None, step: int | None = None
+    ):
+        if stop is None:
+            return super()._str_slice(start, stop, step)
+        if start is None:
+            start = 0
+        if step is None:
+            step = 1
+        return type(self)(
+            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
+        )
 
     def _str_isalnum(self):
         result = pc.utf8_is_alnum(self._pa_array)
@@ -417,7 +436,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _str_len(self):
         result = pc.utf8_length(self._pa_array)
-        return Int64Dtype().__from_arrow__(result)
+        return self._convert_int_dtype(result)
 
     def _str_lower(self):
         return type(self)(pc.utf8_lower(self._pa_array))
@@ -446,9 +465,88 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
         return type(self)(result)
 
+    def _str_removeprefix(self, prefix: str):
+        if not pa_version_under13p0:
+            starts_with = pc.starts_with(self._pa_array, pattern=prefix)
+            removed = pc.utf8_slice_codeunits(self._pa_array, len(prefix))
+            result = pc.if_else(starts_with, removed, self._pa_array)
+            return type(self)(result)
+        return super()._str_removeprefix(prefix)
+
+    def _str_removesuffix(self, suffix: str):
+        ends_with = pc.ends_with(self._pa_array, pattern=suffix)
+        removed = pc.utf8_slice_codeunits(self._pa_array, 0, stop=-len(suffix))
+        result = pc.if_else(ends_with, removed, self._pa_array)
+        return type(self)(result)
+
+    def _str_count(self, pat: str, flags: int = 0):
+        if flags:
+            return super()._str_count(pat, flags)
+        result = pc.count_substring_regex(self._pa_array, pat)
+        return self._convert_int_dtype(result)
+
+    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
+        if start != 0 and end is not None:
+            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
+            result = pc.find_substring(slices, sub)
+            not_found = pc.equal(result, -1)
+            offset_result = pc.add(result, end - start)
+            result = pc.if_else(not_found, result, offset_result)
+        elif start == 0 and end is None:
+            slices = self._pa_array
+            result = pc.find_substring(slices, sub)
+        else:
+            return super()._str_find(sub, start, end)
+        return self._convert_int_dtype(result)
+
+    def _convert_int_dtype(self, result):
+        return Int64Dtype().__from_arrow__(result)
+
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if name in ("argmin", "argmax") and isinstance(result, pa.Array):
+            return self._convert_int_dtype(result)
+        elif isinstance(result, pa.Array):
+            return type(self)(result)
+        else:
+            return result
+
+    def _rank(
+        self,
+        *,
+        axis: AxisInt = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        return self._convert_int_dtype(
+            self._rank_calc(
+                axis=axis,
+                method=method,
+                na_option=na_option,
+                ascending=ascending,
+                pct=pct,
+            )
+        )
+
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _storage = "pyarrow_numpy"
+
+    def __init__(self, values) -> None:
+        _chk_pyarrow_available()
+
+        if isinstance(values, (pa.Array, pa.ChunkedArray)) and pa.types.is_large_string(
+            values.type
+        ):
+            values = pc.cast(values, pa.string())
+        super().__init__(values)
 
     @classmethod
     def _result_converter(cls, values, na=None):
@@ -459,7 +557,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
     def __getattribute__(self, item):
         # ArrowStringArray and we both inherit from ArrowExtensionArray, which
         # creates inheritance problems (Diamond inheritance)
-        if item in ArrowStringArrayMixin.__dict__ and item != "_pa_array":
+        if item in ArrowStringArrayMixin.__dict__ and item not in (
+            "_pa_array",
+            "__dict__",
+        ):
             return partial(getattr(ArrowStringArrayMixin, item), self)
         return super().__getattribute__(item)
 
@@ -517,33 +618,13 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
     def _convert_int_dtype(self, result):
+        if isinstance(result, pa.Array):
+            result = result.to_numpy(zero_copy_only=False)
+        else:
+            result = result.to_numpy()
         if result.dtype == np.int32:
             result = result.astype(np.int64)
         return result
-
-    def _str_count(self, pat: str, flags: int = 0):
-        if flags:
-            return super()._str_count(pat, flags)
-        result = pc.count_substring_regex(self._pa_array, pat).to_numpy()
-        return self._convert_int_dtype(result)
-
-    def _str_len(self):
-        result = pc.utf8_length(self._pa_array).to_numpy()
-        return self._convert_int_dtype(result)
-
-    def _str_find(self, sub: str, start: int = 0, end: int | None = None):
-        if start != 0 and end is not None:
-            slices = pc.utf8_slice_codeunits(self._pa_array, start, stop=end)
-            result = pc.find_substring(slices, sub)
-            not_found = pc.equal(result, -1)
-            offset_result = pc.add(result, end - start)
-            result = pc.if_else(not_found, result, offset_result)
-        elif start == 0 and end is None:
-            slices = self._pa_array
-            result = pc.find_substring(slices, sub)
-        else:
-            return super()._str_find(sub, start, end)
-        return self._convert_int_dtype(result.to_numpy())
 
     def _cmp_method(self, other, op):
         result = super()._cmp_method(other, op)
@@ -561,11 +642,18 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
         if name in ["any", "all"]:
-            arr = pc.and_kleene(
-                pc.invert(pc.is_null(self._pa_array)), pc.not_equal(self._pa_array, "")
-            )
+            if not skipna and name == "all":
+                nas = pc.invert(pc.is_null(self._pa_array))
+                arr = pc.and_kleene(nas, pc.not_equal(self._pa_array, ""))
+            else:
+                arr = pc.not_equal(self._pa_array, "")
             return ArrowExtensionArray(arr)._reduce(
                 name, skipna=skipna, keepdims=keepdims, **kwargs
             )
         else:
             return super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+
+    def insert(self, loc: int, item) -> ArrowStringArrayNumpySemantics:
+        if item is np.nan:
+            item = libmissing.NA
+        return super().insert(loc, item)  # type: ignore[return-value]

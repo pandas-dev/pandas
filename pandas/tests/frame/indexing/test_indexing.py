@@ -108,11 +108,11 @@ class TestDataFrameIndexing:
             data["A"] = newcolumndata
 
     def test_setitem_list2(self):
-        df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=np.int_)
+        df = DataFrame(0, index=range(3), columns=["tt1", "tt2"], dtype=int)
         df.loc[1, ["tt1", "tt2"]] = [1, 2]
 
         result = df.loc[df.index[1], ["tt1", "tt2"]]
-        expected = Series([1, 2], df.columns, dtype=np.int_, name=1)
+        expected = Series([1, 2], df.columns, dtype=int, name=1)
         tm.assert_series_equal(result, expected)
 
         df["tt1"] = df["tt2"] = "0"
@@ -1888,6 +1888,34 @@ class TestDeprecatedIndexers:
         )
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             df.loc[key] = 1
+
+
+def test_adding_new_conditional_column() -> None:
+    # https://github.com/pandas-dev/pandas/issues/55025
+    df = DataFrame({"x": [1]})
+    df.loc[df["x"] == 1, "y"] = "1"
+    expected = DataFrame({"x": [1], "y": ["1"]})
+    tm.assert_frame_equal(df, expected)
+
+    df = DataFrame({"x": [1]})
+    # try inserting something which numpy would store as 'object'
+    value = lambda x: x
+    df.loc[df["x"] == 1, "y"] = value
+    expected = DataFrame({"x": [1], "y": [value]})
+    tm.assert_frame_equal(df, expected)
+
+
+def test_add_new_column_infer_string():
+    # GH#55366
+    pytest.importorskip("pyarrow")
+    df = DataFrame({"x": [1]})
+    with pd.option_context("future.infer_string", True):
+        df.loc[df["x"] == 1, "y"] = "1"
+    expected = DataFrame(
+        {"x": [1], "y": Series(["1"], dtype="string[pyarrow_numpy]")},
+        columns=Index(["x", "y"], dtype="string[pyarrow_numpy]"),
+    )
+    tm.assert_frame_equal(df, expected)
 
 
 class TestSetitemValidation:

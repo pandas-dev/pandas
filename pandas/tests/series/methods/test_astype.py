@@ -170,7 +170,7 @@ class TestAstype:
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         msg = (
             rf"The '{dtype.__name__}' dtype has no unit\. "
@@ -403,12 +403,12 @@ class TestAstype:
             #  bytes with obj.decode() instead of str(obj)
             item = "野菜食べないとやばい"
             ser = Series([item.encode()])
-            result = ser.astype("unicode")
+            result = ser.astype(np.str_)
             expected = Series([item])
             tm.assert_series_equal(result, expected)
 
         for ser in test_series:
-            res = ser.astype("unicode")
+            res = ser.astype(np.str_)
             expec = ser.map(str)
             tm.assert_series_equal(res, expec)
 
@@ -485,7 +485,7 @@ class TestAstypeString:
             mark = pytest.mark.xfail(
                 reason="TODO StringArray.astype() with missing values #GH40566"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         # GH-40351
         ser = Series(data, dtype=dtype)
 

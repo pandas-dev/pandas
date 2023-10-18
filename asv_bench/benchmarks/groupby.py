@@ -841,6 +841,23 @@ class SumMultiLevel:
         self.df.groupby(level=[0, 1]).sum()
 
 
+class SumTimeDelta:
+    # GH 20660
+    def setup(self):
+        N = 10**4
+        self.df = DataFrame(
+            np.random.randint(1000, 100000, (N, 100)),
+            index=np.random.randint(200, size=(N,)),
+        ).astype("timedelta64[ns]")
+        self.df_int = self.df.copy().astype("int64")
+
+    def time_groupby_sum_timedelta(self):
+        self.df.groupby(lambda x: x).sum()
+
+    def time_groupby_sum_int(self):
+        self.df_int.groupby(lambda x: x).sum()
+
+
 class Transform:
     def setup(self):
         n1 = 400

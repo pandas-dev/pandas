@@ -10,6 +10,8 @@ import pytest
 
 import pandas._config.config as cf
 
+from pandas._libs.tslibs import to_offset
+
 from pandas import (
     Index,
     Period,
@@ -390,7 +392,7 @@ def test_quarterly_finder(year_span):
         pytest.skip("the quarterly finder is only invoked if the span is >= 45")
     nyears = span / 4
     (min_anndef, maj_anndef) = converter._get_default_annual_spacing(nyears)
-    result = converter._quarterly_finder(vmin, vmax, "Q")
+    result = converter._quarterly_finder(vmin, vmax, to_offset("Q"))
     quarters = PeriodIndex(
         arrays.PeriodArray(np.array([x[0] for x in result]), dtype="period[Q]")
     )
