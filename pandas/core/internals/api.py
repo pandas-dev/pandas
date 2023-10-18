@@ -117,14 +117,26 @@ def __getattr__(name: str):
 
     from pandas.util._exceptions import find_stack_level
 
-    if name in ["Block", "ExtensionBlock", "DatetimeTZBlock"]:
+    if name in [
+        "Block",
+        "ExtensionBlock",
+        "DatetimeTZBlock",
+        "create_block_manager_from_blocks",
+    ]:
+        # GH#33892
         warnings.warn(
             f"{name} is deprecated and will be removed in a future version. "
             "Use public APIs instead.",
             DeprecationWarning,
             stacklevel=find_stack_level(),
         )
-        if name == "Block":
+
+        if name == "create_block_manager_from_blocks":
+            from pandas.core.internals.managers import create_block_manager_from_blocks
+
+            return create_block_manager_from_blocks
+
+        elif name == "Block":
             from pandas.core.internals.blocks import Block
 
             return Block
@@ -139,4 +151,6 @@ def __getattr__(name: str):
 
             return ExtensionBlock
 
-    raise AttributeError(f"module 'pandas.core.internals' has no attribute '{name}'")
+    raise AttributeError(
+        f"module 'pandas.core.internals.api' has no attribute '{name}'"
+    )
