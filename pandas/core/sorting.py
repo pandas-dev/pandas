@@ -365,22 +365,15 @@ def lexsort_indexer(
         if codes_given:
             mask = k == -1
             codes = k.copy()
-            n = len(codes)
-            mask_n = n
-            # error: Item "ExtensionArray" of "Union[Any, ExtensionArray,
-            # ndarray[Any, Any]]" has no attribute "any"
-            if mask.any():  # type: ignore[union-attr]
-                n -= 1
+            # error: Item "ExtensionArray" of "Series | ExtensionArray |
+            # ndarray[Any, Any]" has no attribute "max"
+            n = codes.max() + 1 if len(codes) else 0  # type: ignore[union-attr]
 
         else:
             cat = Categorical(k, ordered=True)
             n = len(cat.categories)
             codes = cat.codes.copy()
             mask = cat.codes == -1
-            if mask.any():
-                mask_n = n + 1
-            else:
-                mask_n = n
 
         if order:  # ascending
             if na_position == "last":
@@ -391,12 +384,6 @@ def lexsort_indexer(
                 # complex, str, bytes, _NestedSequence[Union[bool, int, float,
                 # complex, str, bytes]]]"
                 codes = np.where(mask, n, codes)  # type: ignore[arg-type]
-            elif na_position == "first":
-                # error: Incompatible types in assignment (expression has type
-                # "Union[Any, int, ndarray[Any, dtype[signedinteger[Any]]]]",
-                # variable has type "Union[Series, ExtensionArray, ndarray[Any, Any]]")
-                # error: Unsupported operand types for + ("ExtensionArray" and "int")
-                codes += 1  # type: ignore[operator,assignment]
         else:  # not order means descending
             if na_position == "last":
                 # error: Unsupported operand types for - ("int" and "ExtensionArray")
@@ -406,9 +393,7 @@ def lexsort_indexer(
                 # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float,
                 # complex, str, bytes, _NestedSequence[Union[bool, int, float,
                 # complex, str, bytes]]]"
-                codes = np.where(
-                    mask, n, n - codes - 1  # type: ignore[operator,arg-type]
-                )
+                codes = np.where(mask, n, n - codes - 1)  # type: ignore[arg-type]
             elif na_position == "first":
                 # error: Unsupported operand types for - ("int" and "ExtensionArray")
                 # error: Argument 1 to "where" has incompatible type "Union[Any,
@@ -417,9 +402,9 @@ def lexsort_indexer(
                 # _NestedSequence[_SupportsArray[dtype[Any]]], bool, int, float,
                 # complex, str, bytes, _NestedSequence[Union[bool, int, float,
                 # complex, str, bytes]]]"
-                codes = np.where(mask, 0, n - codes)  # type: ignore[operator,arg-type]
+                codes = np.where(mask, -1, n - codes)  # type: ignore[arg-type]
 
-        shape.append(mask_n)
+        shape.append(n + 1)
         labels.append(codes)
 
     return indexer_from_factorized(labels, tuple(shape))

@@ -48,6 +48,7 @@ if not pa_version_under7p0:
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        AxisInt,
         Dtype,
         Scalar,
         npt,
@@ -444,6 +445,42 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.utf8_rtrim(self._pa_array, characters=to_strip)
         return type(self)(result)
 
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if name in ("argmin", "argmax") and isinstance(result, pa.Array):
+            return self._convert_int_dtype(result)
+        elif isinstance(result, pa.Array):
+            return type(self)(result)
+        else:
+            return result
+
+    def _convert_int_dtype(self, result):
+        return Int64Dtype().__from_arrow__(result)
+
+    def _rank(
+        self,
+        *,
+        axis: AxisInt = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        return self._convert_int_dtype(
+            self._rank_calc(
+                axis=axis,
+                method=method,
+                na_option=na_option,
+                ascending=ascending,
+                pct=pct,
+            )
+        )
+
 
 class ArrowStringArrayNumpySemantics(ArrowStringArray):
     _storage = "pyarrow_numpy"
@@ -527,6 +564,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
             return lib.map_infer_mask(arr, f, mask.view("uint8"))
 
     def _convert_int_dtype(self, result):
+        if isinstance(result, pa.Array):
+            result = result.to_numpy(zero_copy_only=False)
+        elif not isinstance(result, np.ndarray):
+            result = result.to_numpy()
         if result.dtype == np.int32:
             result = result.astype(np.int64)
         return result
