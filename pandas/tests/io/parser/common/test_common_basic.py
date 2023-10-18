@@ -121,8 +121,6 @@ def test_read_csv_local(all_parsers, csv1):
             name="index",
         ),
     )
-    if parser.engine == "pyarrow":
-        expected.index = expected.index.as_unit("s")
     tm.assert_frame_equal(result, expected)
 
 
@@ -214,8 +212,6 @@ def test_read_csv_dataframe(all_parsers, csv1):
             name="index",
         ),
     )
-    if parser.engine == "pyarrow":
-        expected.index = expected.index.as_unit("s")
     tm.assert_frame_equal(result, expected)
 
 

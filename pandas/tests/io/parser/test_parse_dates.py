@@ -1004,7 +1004,6 @@ def test_parse_tz_aware(all_parsers, request):
     )
     if parser.engine == "pyarrow":
         expected_tz = pytz.utc
-        expected.index = expected.index.as_unit("s")
     else:
         expected_tz = timezone.utc
     tm.assert_frame_equal(result, expected)
@@ -2321,8 +2320,6 @@ def test_parse_dates_arrow_engine(all_parsers):
             "b": 1,
         }
     )
-    if parser.engine == "pyarrow":
-        expected["a"] = expected["a"].astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
