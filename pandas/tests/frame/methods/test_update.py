@@ -191,6 +191,7 @@ class TestDataFrameUpdate:
             ("a", pandas_dtype("string")),
             (pd.to_timedelta("1 ms"), pandas_dtype("timedelta64[ns]")),
             (np.datetime64("2000-01-01T00:00:00"), pandas_dtype("datetime64[ns]")),
+            (pd.Timestamp("2000-01-01T00:00:00Z"), pandas_dtype("datetime64[ns, UTC]")),
         ],
     )
     def test_update_preserve_dtype(self, value, dtype):

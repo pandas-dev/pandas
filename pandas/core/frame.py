@@ -8886,11 +8886,18 @@ class DataFrame(NDFrame, OpsMixin):
             col_dtype = self[col].dtype
             update_result = expressions.where(mask, this, that)
             # Preserve dtype if udpate_result is all compatible with dtype
-            if col_dtype.kind in "?bBiufcSm" and is_object_dtype(update_result.dtype):
-                if all(
-                    col_dtype == find_result_type(col_dtype, x) for x in update_result
-                ):
-                    update_result = update_result.astype(col_dtype)
+            # This only happens for `bool` and `datetime64`
+            if col_dtype.kind in "bM" and is_object_dtype(update_result.dtype):
+                try:
+                    if all(
+                        col_dtype == find_result_type(col_dtype, x)
+                        for x in update_result
+                    ):
+                        update_result = update_result.astype(col_dtype)
+                except TypeError:
+                    # Do nothing if we cannot interpret `col_dtype` as a data type
+                    # e.g. `datetime64[ns, UTC]`
+                    pass
             self.loc[:, col] = update_result
 
     # ----------------------------------------------------------------------
