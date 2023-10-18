@@ -77,11 +77,11 @@ if TYPE_CHECKING:
         DtypeArg,
         DtypeBackend,
         FilePath,
-        HashableT,
         IndexLabel,
         ReadCsvBuffer,
         Self,
         StorageOptions,
+        UsecolsArgType,
     )
 _doc_read_csv_and_table = (
     r"""
@@ -142,7 +142,7 @@ index_col : Hashable, Sequence of Hashable or False, optional
   Note: ``index_col=False`` can be used to force pandas to *not* use the first
   column as the index, e.g., when you have a malformed file with delimiters at
   the end of each line.
-usecols : list of Hashable or Callable, optional
+usecols : Sequence of Hashable or Callable, optional
     Subset of columns to select, denoted either by column labels or column indices.
     If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
@@ -401,6 +401,13 @@ on_bad_lines : {{'error', 'warn', 'skip'}} or Callable, default 'error'
           expected, a ``ParserWarning`` will be emitted while dropping extra elements.
           Only supported when ``engine='python'``
 
+    .. versionchanged:: 2.2.0
+
+        - Callable, function with signature
+          as described in `pyarrow documentation
+          <https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html
+          #pyarrow.csv.ParseOptions.invalid_row_handler>_` when ``engine='pyarrow'``
+
 delim_whitespace : bool, default False
     Specifies whether or not whitespace (e.g. ``' '`` or ``'\\t'``) will be
     used as the ``sep`` delimiter. Equivalent to setting ``sep='\\s+'``. If this option
@@ -494,7 +501,6 @@ _pyarrow_unsupported = {
     "thousands",
     "memory_map",
     "dialect",
-    "on_bad_lines",
     "delim_whitespace",
     "quoting",
     "lineterminator",
@@ -639,10 +645,7 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT]
-    | tuple[HashableT]
-    | Callable[[Hashable], bool]
-    | None = ...,
+    usecols: UsecolsArgType = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -663,7 +666,7 @@ def read_csv(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: Literal[True],
@@ -701,10 +704,7 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT]
-    | tuple[HashableT]
-    | Callable[[Hashable], bool]
-    | None = ...,
+    usecols: UsecolsArgType = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -726,7 +726,7 @@ def read_csv(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: bool = ...,
@@ -764,10 +764,7 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT]
-    | tuple[HashableT]
-    | Callable[[Hashable], bool]
-    | None = ...,
+    usecols: UsecolsArgType = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -789,7 +786,7 @@ def read_csv(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: Literal[False] = ...,
@@ -827,10 +824,7 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT]
-    | tuple[HashableT]
-    | Callable[[Hashable], bool]
-    | None = ...,
+    usecols: UsecolsArgType = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -852,7 +846,7 @@ def read_csv(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: bool = ...,
@@ -901,10 +895,7 @@ def read_csv(
     header: int | Sequence[int] | None | Literal["infer"] = "infer",
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols: list[HashableT]
-    | tuple[HashableT]
-    | Callable[[Hashable], bool]
-    | None = None,
+    usecols: UsecolsArgType = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -929,7 +920,7 @@ def read_csv(
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
     date_parser: Callable | lib.NoDefault = lib.no_default,
-    date_format: str | None = None,
+    date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
     # Iteration
@@ -999,10 +990,7 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT]
-    | tuple[HashableT]
-    | Callable[[Hashable], bool]
-    | None = ...,
+    usecols: UsecolsArgType = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1021,7 +1009,7 @@ def read_table(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: Literal[True],
@@ -1059,10 +1047,7 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT]
-    | tuple[HashableT]
-    | Callable[[Hashable], bool]
-    | None = ...,
+    usecols: UsecolsArgType = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1081,7 +1066,7 @@ def read_table(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: bool = ...,
@@ -1119,10 +1104,7 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT]
-    | tuple[HashableT]
-    | Callable[[Hashable], bool]
-    | None = ...,
+    usecols: UsecolsArgType = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1141,7 +1123,7 @@ def read_table(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: Literal[False] = ...,
@@ -1179,10 +1161,7 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = ...,
     names: Sequence[Hashable] | None | lib.NoDefault = ...,
     index_col: IndexLabel | Literal[False] | None = ...,
-    usecols: list[HashableT]
-    | tuple[HashableT]
-    | Callable[[Hashable], bool]
-    | None = ...,
+    usecols: UsecolsArgType = ...,
     dtype: DtypeArg | None = ...,
     engine: CSVEngine | None = ...,
     converters: Mapping[Hashable, Callable] | None = ...,
@@ -1201,7 +1180,7 @@ def read_table(
     infer_datetime_format: bool | lib.NoDefault = ...,
     keep_date_col: bool = ...,
     date_parser: Callable | lib.NoDefault = ...,
-    date_format: str | None = ...,
+    date_format: str | dict[Hashable, str] | None = ...,
     dayfirst: bool = ...,
     cache_dates: bool = ...,
     iterator: bool = ...,
@@ -1252,10 +1231,7 @@ def read_table(
     header: int | Sequence[int] | None | Literal["infer"] = "infer",
     names: Sequence[Hashable] | None | lib.NoDefault = lib.no_default,
     index_col: IndexLabel | Literal[False] | None = None,
-    usecols: list[HashableT]
-    | tuple[HashableT]
-    | Callable[[Hashable], bool]
-    | None = None,
+    usecols: UsecolsArgType = None,
     # General Parsing Configuration
     dtype: DtypeArg | None = None,
     engine: CSVEngine | None = None,
@@ -1277,7 +1253,7 @@ def read_table(
     infer_datetime_format: bool | lib.NoDefault = lib.no_default,
     keep_date_col: bool = False,
     date_parser: Callable | lib.NoDefault = lib.no_default,
-    date_format: str | None = None,
+    date_format: str | dict[Hashable, str] | None = None,
     dayfirst: bool = False,
     cache_dates: bool = True,
     # Iteration
@@ -2142,9 +2118,10 @@ def _refine_defaults_read(
     elif on_bad_lines == "skip":
         kwds["on_bad_lines"] = ParserBase.BadLineHandleMethod.SKIP
     elif callable(on_bad_lines):
-        if engine != "python":
+        if engine not in ["python", "pyarrow"]:
             raise ValueError(
-                "on_bad_line can only be a callable function if engine='python'"
+                "on_bad_line can only be a callable function "
+                "if engine='python' or 'pyarrow'"
             )
         kwds["on_bad_lines"] = on_bad_lines
     else:
