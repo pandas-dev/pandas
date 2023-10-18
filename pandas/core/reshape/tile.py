@@ -125,6 +125,22 @@ def cut(
           Categorical for all other inputs. The values stored within
           are whatever the type in the sequence is.
 
+          Note that due to the .1% extension on the range x, the lower bound
+          shifts by 0.001 which makes the dtype of bin intervals to change from 
+          int64 to float64
+          
+          Examples
+          -------------------------
+          In:
+          pd.cut(np.array([0, 1, 7]), bins=[0, 3, 6, 8], include_lowest=True)
+
+          Out: 
+          [(-0.001, 3.0], (-0.001, 3.0], (6.0, 8.0]]
+          Categories (3, interval[float64]): [(-0.001, 3.0] < (3.0, 6.0] < (6.0, 8.0]]
+
+          The lowermost interval changes from 0 to -0.001 after .1% adjustment
+          which results in change of dtype from int64 to float64
+
         * False : returns an ndarray of integers.
 
     bins : numpy.ndarray or IntervalIndex.
