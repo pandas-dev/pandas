@@ -31,4 +31,3 @@ dependencies:
     - "numpy"
     - "scipy"
     - "tzdata>=2022.1"
-    - "pyarrow"
