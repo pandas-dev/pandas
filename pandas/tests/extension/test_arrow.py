@@ -3046,3 +3046,12 @@ def test_factorize_chunked_dictionary():
     exp_uniques = pd.Index(ArrowExtensionArray(pa_array.combine_chunks()))
     tm.assert_numpy_array_equal(res_indices, exp_indicies)
     tm.assert_index_equal(res_uniques, exp_uniques)
+
+
+def test_arrow_floordiv():
+    # GH 55561
+    a = pd.Series([-7], dtype="int64[pyarrow]")
+    b = pd.Series([4], dtype="int64[pyarrow]")
+    expected = pd.Series([-2], dtype="int64[pyarrow]")
+    result = a // b
+    tm.assert_series_equal(result, expected)
