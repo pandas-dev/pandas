@@ -48,9 +48,12 @@ except ImportError:
 
 # TODO(ArrayManager) fastparquet relies on BlockManager internals
 
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:DataFrame._data is deprecated:FutureWarning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings("ignore:DataFrame._data is deprecated:FutureWarning"),
+    pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+    ),
+]
 
 
 # setup engines & skips
@@ -453,7 +456,7 @@ class TestBasic(Base):
     def test_write_index(self, engine, using_copy_on_write, request):
         check_names = engine != "fastparquet"
         if using_copy_on_write and engine == "fastparquet":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="fastparquet write into index")
             )
 
@@ -626,7 +629,7 @@ class TestBasic(Base):
             mark = pytest.mark.xfail(
                 reason="Fastparquet nullable dtype support is disabled"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         table = pyarrow.table(
             {
@@ -988,7 +991,7 @@ class TestParquetPyArrow(Base):
             not pa_version_under7p0
             and timezone_aware_date_list.tzinfo != datetime.timezone.utc
         ):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="temporary skip this test until it is properly resolved: "
                     "https://github.com/pandas-dev/pandas/issues/37286"
