@@ -101,6 +101,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_object_dtype,
     is_scalar,
     is_sequence,
     needs_i8_conversion,
@@ -8874,7 +8875,7 @@ class DataFrame(NDFrame, OpsMixin):
             col_dtype = self[col].dtype
             update_result = expressions.where(mask, this, that)
             # Preserve dtype if udpate_result is all compatible with dtype
-            if col_dtype != object and update_result.dtype == object:
+            if col_dtype.kind in "?bBiufcSm" and is_object_dtype(update_result.dtype):
                 if all(
                     col_dtype == find_result_type(col_dtype, x) for x in update_result
                 ):

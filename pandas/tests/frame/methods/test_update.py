@@ -3,6 +3,8 @@ import pytest
 
 import pandas.util._test_decorators as td
 
+from pandas.core.dtypes.common import pandas_dtype
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -177,3 +179,46 @@ class TestDataFrameUpdate:
             {"A": [1.0, 3.0], "B": [pd.NaT, pd.to_datetime("2016-01-01")]}
         )
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "value ,dtype",
+        [
+            (True, pandas_dtype("bool")),
+            (1, pandas_dtype("int64")),
+            (np.uint64(2), pandas_dtype("uint64")),
+            (3.0, pandas_dtype("float")),
+            (4.0 + 1j, pandas_dtype("complex")),
+            ("a", pandas_dtype("string")),
+            (pd.to_timedelta("1 ms"), pandas_dtype("timedelta64[ns]")),
+            (np.datetime64("2000-01-01T00:00:00"), pandas_dtype("datetime64[ns]")),
+        ],
+    )
+    def test_update_preserve_dtype(self, value, dtype):
+        # GH#55509
+        df1 = (
+            DataFrame(
+                {
+                    "idx": [1, 2],
+                    "val": [value] * 2,
+                }
+            )
+            .set_index("idx")
+            .astype(dtype)
+        )
+        df2 = (
+            DataFrame(
+                {
+                    "idx": [1],
+                    "val": [value],
+                }
+            )
+            .set_index("idx")
+            .astype(dtype)
+        )
+
+        assert df1.dtypes["val"] == dtype
+        assert df2.dtypes["val"] == dtype
+
+        df1.update(df2)
+
+        assert df1.dtypes["val"] == dtype
