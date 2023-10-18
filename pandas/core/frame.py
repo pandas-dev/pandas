@@ -646,7 +646,6 @@ class DataFrame(NDFrame, OpsMixin):
 
     def _constructor_from_mgr(self, mgr, axes):
         df = self._from_mgr(mgr, axes=axes)
-
         if type(self) is DataFrame:
             # fastpath avoiding constructor call
             return df
@@ -679,17 +678,29 @@ class DataFrame(NDFrame, OpsMixin):
         dtype: Dtype | None = None,
         copy: bool | None = None,
     ) -> None:
+        allow_mgr = False
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
             data = data._mgr
+            allow_mgr = True
             if not copy:
                 # if not copying data, ensure to still return a shallow copy
                 # to avoid the result sharing the same Manager
                 data = data.copy(deep=False)
 
         if isinstance(data, (BlockManager, ArrayManager)):
+            if not allow_mgr:
+                # GH#52419
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
+
             if using_copy_on_write():
                 data = data.copy(deep=False)
             # first check if a Manager is passed without any other arguments
@@ -2464,7 +2475,7 @@ class DataFrame(NDFrame, OpsMixin):
         manager = _get_option("mode.data_manager", silent=True)
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
-        return cls(mgr)
+        return cls._from_mgr(mgr, axes=mgr.axes)
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
@@ -2674,7 +2685,7 @@ class DataFrame(NDFrame, OpsMixin):
             verify_integrity=verify_integrity,
             typ=manager,
         )
-        return cls(mgr)
+        return cls._from_mgr(mgr, axes=mgr.axes)
 
     @doc(
         storage_options=_shared_docs["storage_options"],
@@ -9509,39 +9520,26 @@ class DataFrame(NDFrame, OpsMixin):
         dog  weight  kg    3.0
              height  m     4.0
         dtype: float64
-
-        **Dropping missing values**
-
-        >>> df_multi_level_cols3 = pd.DataFrame([[None, 1.0], [2.0, 3.0]],
-        ...                                     index=['cat', 'dog'],
-        ...                                     columns=multicol2)
-
-        Note that rows where all values are missing are dropped by
-        default but this behaviour can be controlled via the dropna
-        keyword parameter:
-
-        >>> df_multi_level_cols3
-            weight height
-                kg      m
-        cat    NaN    1.0
-        dog    2.0    3.0
-        >>> df_multi_level_cols3.stack(dropna=False)
-                weight  height
-        cat kg     NaN     NaN
-            m      NaN     1.0
-        dog kg     2.0     NaN
-            m      NaN     3.0
-        >>> df_multi_level_cols3.stack(dropna=True)
-                weight  height
-        cat m      NaN     1.0
-        dog kg     2.0     NaN
-            m      NaN     3.0
         """
         if not future_stack:
             from pandas.core.reshape.reshape import (
                 stack,
                 stack_multiple,
             )
+
+            if (
+                dropna is not lib.no_default
+                or sort is not lib.no_default
+                or self.columns.nlevels > 1
+            ):
+                warnings.warn(
+                    "The previous implementation of stack is deprecated and will be "
+                    "removed in a future version of pandas. See the What's New notes "
+                    "for pandas 2.1.0 for details. Specify future_stack=True to adopt "
+                    "the new implementation and silence this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
             if dropna is lib.no_default:
                 dropna = True
