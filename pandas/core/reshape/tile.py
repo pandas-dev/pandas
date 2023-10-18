@@ -102,7 +102,7 @@ def cut(
     precision : int, default 3
         The precision at which to store and display the bins labels.
     include_lowest : bool, default False
-        Whether the first interval should be left-inclusive or not.
+        Whether the first interval should be left-inclusive or not.        
     duplicates : {default 'raise', 'drop'}, optional
         If bin edges are not unique, raise ValueError or drop non-uniques.
     ordered : bool, default True
@@ -110,6 +110,24 @@ def cut(
         Categorical and Series (with Categorical dtype). If True,
         the resulting categorical will be ordered. If False, the resulting
         categorical will be unordered (labels must be provided).
+
+    Notes
+    -------
+    Using include_lowest shifts the lower bound of x by -0.001, 
+    due to the .1% extension on the range x, which makes the 
+    dtype of bin intervals to change from int64 to float64
+    
+    Examples
+    --------
+    In:
+    >>> pd.cut(np.array([0, 1, 7]), bins=[0, 3, 6, 8], include_lowest=True)
+    ... # doctest: +ELLIPSIS
+    Out: 
+    [(-0.001, 3.0], (-0.001, 3.0], (6.0, 8.0]]
+    Categories (3, interval[float64]): [(-0.001, 3.0] < (3.0, 6.0] < (6.0, 8.0]]
+    
+    The lowermost interval changes from 0 to -0.001 after .1% adjustment
+    which results in change of dtype from int64 to float64
 
     Returns
     -------
@@ -124,22 +142,6 @@ def cut(
         * sequence of scalars : returns a Series for Series `x` or a
           Categorical for all other inputs. The values stored within
           are whatever the type in the sequence is.
-
-          Note that due to the .1% extension on the range x, the lower bound
-          shifts by 0.001 which makes the dtype of bin intervals to change from 
-          int64 to float64
-          
-          Examples
-          -------------------------
-          In:
-          pd.cut(np.array([0, 1, 7]), bins=[0, 3, 6, 8], include_lowest=True)
-
-          Out: 
-          [(-0.001, 3.0], (-0.001, 3.0], (6.0, 8.0]]
-          Categories (3, interval[float64]): [(-0.001, 3.0] < (3.0, 6.0] < (6.0, 8.0]]
-
-          The lowermost interval changes from 0 to -0.001 after .1% adjustment
-          which results in change of dtype from int64 to float64
 
         * False : returns an ndarray of integers.
 
