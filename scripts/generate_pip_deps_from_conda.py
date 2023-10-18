@@ -33,7 +33,8 @@ RENAME = {
     "sqlalchemy": "SQLAlchemy",
 }
 ADD_ENV_MARKERS = {
-    # pytables has no wheels available for macOS arm, and installing from source generally fails 
+    # pytables has no wheels available for macOS arm,
+    # and installing from source generally fails
     # -> exclude from dev dependencies in this case
     "pytables": " ; sys_platform != 'darwin' and platform_machine != 'arm64'",
 }
@@ -127,8 +128,10 @@ def generate_pip_from_conda(
             raise ValueError(f"Unexpected dependency {dep}")
 
     header = (
-        f"# This file is auto-generated from {conda_path.name}, do not modify.\n"
-        "# See that file for comments about the need/usage of each dependency.\n\n"
+        f"# This file is auto-generated from {conda_path.name}, do not modify.\
+        \n"
+        "# See that file for comments about the need/usage of each dependency.\
+        \n\n"
     )
     pip_content = header + "\n".join(pip_deps) + "\n"
 
