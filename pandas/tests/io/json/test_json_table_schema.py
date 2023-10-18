@@ -865,9 +865,7 @@ class TestTableOrientReader:
         # GH#9586
         df = DataFrame(
             vals,
-            index=pd.Index(
-                (pd.Period("2022-01"), pd.Period("2022-04")), name=index_nm
-            ),
+            index=pd.Index((pd.Period("2022-01"), pd.Period("2022-04")), name=index_nm),
         )
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")

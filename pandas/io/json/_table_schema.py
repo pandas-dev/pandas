@@ -209,7 +209,7 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
             return f"datetime64[ns, {field['tz']}]"
         elif field.get("freq"):
             # GH#9586 rename frequency M to ME for offsets
-            field['freq'] = freq_to_period_freqstr(1, field['freq'])
+            field["freq"] = freq_to_period_freqstr(1, field["freq"])
             # GH#47747 using datetime over period to minimize the change surface
             return f"period[{field['freq']}]"
         else:
