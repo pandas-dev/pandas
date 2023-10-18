@@ -2,6 +2,7 @@ from datetime import datetime
 import re
 
 import numpy as np
+import pyarrow as pa
 import pytest
 
 from pandas import (
@@ -11,6 +12,7 @@ from pandas import (
     Series,
     _testing as tm,
 )
+from pandas.core.dtypes.dtypes import ArrowDtype
 
 
 def test_extract_expand_kwarg_wrong_type_raises(any_string_dtype):
@@ -706,3 +708,18 @@ def test_extractall_same_as_extract_subject_index(any_string_dtype):
     has_match_index = s.str.extractall(pattern_one_noname)
     no_match_index = has_match_index.xs(0, level="match")
     tm.assert_frame_equal(extract_one_noname, no_match_index)
+
+
+@pytest.mark.parametrize(
+    "data, expected_dtype",
+    [
+        (Series(["abc", "ab"], dtype=ArrowDtype(pa.string())), "string[pyarrow]"),
+        (Series(["abc", "ab"], dtype="string"), "string[python]"),
+        (Series(["abc", "ab"]), "object"),
+    ]
+)
+def test_extractall_preserves_dtype(data, expected_dtype):
+    # Ensure that when extractall is called on a series with specific dtypes set, that
+    # the dtype is preserved in the resulting DataFrame's column.
+    result = data.str.extractall("(ab)")
+    assert result.dtypes[0] == expected_dtype
