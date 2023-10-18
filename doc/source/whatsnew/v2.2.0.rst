@@ -317,7 +317,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` causing rounding errors for large integers (:issue:`52505`)
-- Fixed bug in :meth:`Series.pow` not filling missing values correctly (:issue:`55512`)
+- Bug in :meth:`Series.pow` not filling missing values correctly (:issue:`55512`)
 -
 
 Conversion
