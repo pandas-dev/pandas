@@ -129,9 +129,9 @@ def generate_pip_from_conda(
 
     header = (
         f"# This file is auto-generated from {conda_path.name}, do not modify.\
-        \n"
+\n"
         "# See that file for comments about the need/usage of each dependency.\
-        \n\n"
+\n\n"
     )
     pip_content = header + "\n".join(pip_deps) + "\n"
 
