@@ -148,7 +148,7 @@ class TestCategorical(base.ExtensionTests):
         # frame & scalar
         op_name = all_arithmetic_operators
         if op_name == "__rmod__":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="rmod never called when string is first argument"
                 )
@@ -158,7 +158,7 @@ class TestCategorical(base.ExtensionTests):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         op_name = all_arithmetic_operators
         if op_name == "__rmod__":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="rmod never called when string is first argument"
                 )
