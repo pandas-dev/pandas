@@ -2010,13 +2010,22 @@ def test_resample_empty_series_with_tz():
     tm.assert_series_equal(result, expected)
 
 
-def test_resample_M_deprecated():
-    depr_msg = "'M' will be deprecated, please use 'ME' instead."
+@pytest.mark.parametrize(
+    "freq, freq_depr",
+    [
+        ("2ME", "2M"),
+        ("2QE", "2Q"),
+        ("2QE-SEP", "2Q-SEP"),
+    ],
+)
+def test_resample_M_Q_deprecated(freq, freq_depr):
+    # GH#9586
+    depr_msg = f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
 
     s = Series(range(10), index=date_range("20130101", freq="d", periods=10))
-    expected = s.resample("2ME").mean()
+    expected = s.resample(freq).mean()
     with tm.assert_produces_warning(UserWarning, match=depr_msg):
-        result = s.resample("2M").mean()
+        result = s.resample(freq_depr).mean()
     tm.assert_series_equal(result, expected)
 
 

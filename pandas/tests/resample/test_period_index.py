@@ -104,7 +104,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("meth", ["ffill", "bfill"])
     @pytest.mark.parametrize("conv", ["start", "end"])
     @pytest.mark.parametrize(
-        ("offset", "period"), [("D", "D"), ("B", "B"), ("ME", "M")]
+        ("offset", "period"), [("D", "D"), ("B", "B"), ("ME", "M"), ("QE", "Q")]
     )
     def test_annual_upsample_cases(
         self, offset, period, conv, meth, month, simple_period_range_series
@@ -931,9 +931,11 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
 
-def test_resample_frequency_ME_error_message(series_and_frame):
-    msg = "Invalid frequency: 2ME"
+@pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2QE-FEB"])
+def test_resample_frequency_ME_QE_error_message(series_and_frame, freq_depr):
+    # GH#9586
+    msg = f"Invalid frequency: {freq_depr}"
 
     obj = series_and_frame
     with pytest.raises(ValueError, match=msg):
-        obj.resample("2ME")
+        obj.resample(freq_depr)

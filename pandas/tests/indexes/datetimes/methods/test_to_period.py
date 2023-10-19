@@ -89,6 +89,23 @@ class TestToPeriod:
 
         tm.assert_index_equal(pi, period_range("2020-01", "2020-05", freq=freq_period))
 
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2ME", "2M"),
+            ("2QE", "2Q"),
+            ("2QE-SEP", "2Q-SEP"),
+        ],
+    )
+    def test_to_period_freq_deprecated(self, freq, freq_depr):
+        # GH#9586
+        msg = f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
+
+        rng = date_range("01-Jan-2012", periods=8, freq=freq)
+        prng = rng.to_period()
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            assert prng.freq == freq_depr
+
     def test_to_period_infer(self):
         # https://github.com/pandas-dev/pandas/issues/33358
         rng = date_range(
