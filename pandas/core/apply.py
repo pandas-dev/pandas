@@ -38,7 +38,9 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_dict_like,
+    is_extension_array_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_sequence,
 )
 from pandas.core.dtypes.dtypes import (
@@ -824,6 +826,20 @@ class FrameApply(NDFrameApply):
     def apply_with_numba(self):
         pass
 
+    def validate_values_for_numba(self):
+        # Validate column dtyps all OK
+        for colname, dtype in self.obj.dtypes.items():
+            if not is_numeric_dtype(dtype):
+                raise ValueError(
+                    f"Column {colname} must have a numeric dtype."
+                    f"Found '{dtype}' instead"
+                )
+            if is_extension_array_dtype(dtype):
+                raise ValueError(
+                    f"Column {colname} is backed by an extension array,"
+                    f"which is not supported by the numba engine."
+                )
+
     @abc.abstractmethod
     def wrap_results_for_axis(
         self, results: ResType, res_index: Index
@@ -1078,6 +1094,7 @@ class FrameApply(NDFrameApply):
             raise NotImplementedError(
                 "The index/columns must be unique when raw=False and engine='numba'"
             )
+        self.validate_values_for_numba()
         results = self.apply_with_numba()
         return results, self.result_index
 
