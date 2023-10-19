@@ -1415,8 +1415,9 @@ class TestDatetime64DateOffsetArithmetic:
     )
     @pytest.mark.parametrize("normalize", [True, False])
     @pytest.mark.parametrize("n", [0, 5])
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_dt64arr_add_sub_DateOffsets(
-        self, box_with_array, n, normalize, cls_and_kwargs
+        self, box_with_array, n, normalize, cls_and_kwargs, unit
     ):
         # GH#10699
         # assert vectorized operation matches pointwise operations
@@ -1449,7 +1450,7 @@ class TestDatetime64DateOffsetArithmetic:
                 Timestamp("2000-05-15"),
                 Timestamp("2001-06-15"),
             ]
-        )
+        ).as_unit(unit)
         vec = tm.box_expected(vec, box_with_array)
         vec_items = vec.iloc[0] if box_with_array is pd.DataFrame else vec
 
@@ -1461,15 +1462,16 @@ class TestDatetime64DateOffsetArithmetic:
 
         offset = offset_cls(n, normalize=normalize, **kwargs)
 
-        expected = DatetimeIndex([x + offset for x in vec_items])
+        # TODO(GH#55564): as_unit will be unnecessary
+        expected = DatetimeIndex([x + offset for x in vec_items]).as_unit(unit)
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(expected, vec + offset)
 
-        expected = DatetimeIndex([x - offset for x in vec_items])
+        expected = DatetimeIndex([x - offset for x in vec_items]).as_unit(unit)
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(expected, vec - offset)
 
-        expected = DatetimeIndex([offset + x for x in vec_items])
+        expected = DatetimeIndex([offset + x for x in vec_items]).as_unit(unit)
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(expected, offset + vec)
         msg = "(bad|unsupported) operand type for unary"
@@ -2392,7 +2394,8 @@ class TestDatetimeIndexArithmetic:
 
 @pytest.mark.parametrize("years", [-1, 0, 1])
 @pytest.mark.parametrize("months", [-2, 0, 2])
-def test_shift_months(years, months):
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_shift_months(years, months, unit):
     dti = DatetimeIndex(
         [
             Timestamp("2000-01-05 00:15:00"),
@@ -2401,11 +2404,13 @@ def test_shift_months(years, months):
             Timestamp("2000-02-29"),
             Timestamp("2000-12-31"),
         ]
-    )
-    actual = DatetimeIndex(shift_months(dti.asi8, years * 12 + months))
+    ).as_unit(unit)
+    shifted = shift_months(dti.asi8, years * 12 + months, reso=dti._data._creso)
+    shifted_dt64 = shifted.view(f"M8[{dti.unit}]")
+    actual = DatetimeIndex(shifted_dt64)
 
     raw = [x + pd.offsets.DateOffset(years=years, months=months) for x in dti]
-    expected = DatetimeIndex(raw)
+    expected = DatetimeIndex(raw).as_unit(dti.unit)
     tm.assert_index_equal(actual, expected)
 
 

@@ -3272,7 +3272,8 @@ cdef class Week(SingleConstructorOffset):
     def _apply_array(self, dtarr):
         if self.weekday is None:
             td = timedelta(days=7 * self.n)
-            td64 = np.timedelta64(td, "ns")
+            unit = np.datetime_data(dtarr.dtype)[0]
+            td64 = np.timedelta64(td, unit)
             return dtarr + td64
         else:
             reso = get_unit_from_dtype(dtarr.dtype)
