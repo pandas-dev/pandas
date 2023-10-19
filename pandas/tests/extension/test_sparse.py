@@ -349,10 +349,6 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         with pytest.raises(ValueError, match=msg):
             data.map(lambda x: np.nan, na_action=na_action)
 
-    @pytest.mark.xfail(reason="SparseArray.round not implemented.")
-    def test_round(self, data):
-        super().test_round(data)
-
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
     @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")

@@ -1647,6 +1647,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         if not skipna and self._hasna:
             raise NotImplementedError
         return self._argmin_argmax("argmin")
+    
+    def round(self, decimals: int = 0, *args, **kwargs) -> Self:
+        new_values = np.array([round(element) if not isna(element) else element for element in self.sp_values])
+        return self._simple_new(new_values, self._sparse_index, self.dtype)
 
     # ------------------------------------------------------------------------
     # Ufuncs
