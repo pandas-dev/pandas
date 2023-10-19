@@ -5,7 +5,10 @@ import pyarrow as pa
 
 import pandas as pd
 
-from .pandas_vb_common import tm
+from .pandas_vb_common import (
+    CowDecorator,
+    tm,
+)
 
 for imp in ["pandas.util", "pandas.tools.hashing"]:
     try:
@@ -15,6 +18,7 @@ for imp in ["pandas.util", "pandas.tools.hashing"]:
         pass
 
 
+@CowDecorator()
 class Factorize:
     params = [
         [True, False],

@@ -14,7 +14,10 @@ from pandas import (
     timedelta_range,
 )
 
-from .pandas_vb_common import tm
+from .pandas_vb_common import (
+    CowDecorator,
+    tm,
+)
 
 
 class AsType:
@@ -111,6 +114,7 @@ class Reindex:
         self.df2.reindex(np.random.permutation(range(1200)))
 
 
+@CowDecorator()
 class Rename:
     def setup(self):
         N = 10**3

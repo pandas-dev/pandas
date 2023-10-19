@@ -78,3 +78,41 @@ class BaseIO:
 
     def teardown(self, *args, **kwargs):
         self.remove(self.fname)
+
+
+def cow_wrapper(func):
+    def new_func(*args):
+        # ASV will pass us our arguments positionally
+        # In the decorator, we will insert the cow parameter at the end
+        # so the last arg will tell us whether CoW is set or not on the benchmark
+        with pd.option_context("mode.copy_on_write", args[-1]):
+            func(*args[:-1])
+
+    return new_func
+
+
+class CowDecorator:
+    """
+    Decorator that adds Copy on Write as a parameter to the benchmark
+    """
+
+    def __call__(self, bench_cls):
+        def make_setup_wrapper(setup_f):
+            def setup_wrapper(*args):
+                # CoW not needed for setup, so just pass through the other parameters
+                setup_f(*args[:-1])
+
+            return setup_wrapper
+
+        # Add CoW to the parameters
+        params = getattr(bench_cls, "params", [])
+        params.append([True, False])
+        bench_cls.params = params
+        if hasattr(bench_cls, "param_names"):
+            bench_cls.param_names.append("copy_on_write")
+        bench_cls.setup = make_setup_wrapper(bench_cls.setup)
+        for meth in dir(bench_cls):
+            if meth.startswith(("time_", "peakmem_")):
+                wrapped_f = cow_wrapper(getattr(bench_cls, meth))
+                setattr(bench_cls, meth, wrapped_f)
+        return bench_cls
