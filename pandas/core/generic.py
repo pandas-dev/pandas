@@ -5763,6 +5763,199 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             raise TypeError("Must pass either `items`, `like`, or `regex`")
 
+    def filter_columns(
+        self,
+        colnames = None,
+        like: str | None = None,
+        regex: str | None = None,
+    ) -> Self:
+        """
+        Subset the dataframe columns. 
+
+        Note that this routine does not filter a dataframe on its
+        contents. The filter is applied to the labels of the index.
+
+        Parameters
+        ----------
+        colnames : list-like
+            Keep labels from columns which are in colnames.
+        like : str
+            Keep labels from columns for which "like in label == True".
+        regex : str (regular expression)
+            Keep labels from columns for which re.search(regex, label) == True.
+        
+        Returns
+        -------
+        same type as input object
+
+        See Also
+        --------
+        DataFrame.loc : Access a group of rows and columns
+            by label(s) or a boolean array.
+
+        Notes
+        -----
+        The ``colnames``, ``like``, and ``regex`` parameters are
+        enforced to be mutually exclusive.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.array(([1, 2, 3], [4, 5, 6])),
+        ...                   index=['mouse', 'rabbit'],
+        ...                   columns=['one', 'two', 'three'])
+        >>> df
+                one  two  three
+        mouse     1    2      3
+        rabbit    4    5      6
+
+        >>> # select columns by name
+        >>> df.filter_columns(colnames=['one', 'two'])
+                one  two
+        mouse     1    2         
+        rabbit    4    5
+
+        >>> # select columns by regular expression
+        >>> df.filter_columns(regex='e$')
+                one  three
+        mouse     1      3
+        rabbit    4      6
+
+        >>> # select columns containing 'bbi'
+        >>> df.filter_columns(like='t')
+                two  three
+        mouse     2      3
+        rabbit    5      6
+        """
+        nkw = common.count_not_none(colnames, like, regex)
+        if nkw > 1:
+            raise TypeError(
+                "Keyword arguments `columns`, `like` or `regex` "
+                "are mutually exclusive"
+            )
+
+        axis = 1  # Represents columns in relevant functions
+        labels = self.columns
+
+        if colnames is not None:
+            colnames = Index(colnames).intersection(labels)
+            if len(colnames) == 0:
+                # Keep the dtype of labels when we are empty
+                colnames = colnames.astype(labels.dtype)
+            return self.reindex(**{'columns': colnames})  # type: ignore[misc]
+        elif like:
+
+            def f(x) -> bool_t:
+                assert like is not None  # needed for mypy
+                return like in ensure_str(x)
+
+            values = labels.map(f)
+            return self.loc(axis)[values]
+        elif regex:
+
+            def f(x) -> bool_t:
+                return matcher.search(ensure_str(x)) is not None
+
+            matcher = re.compile(regex)
+            values = labels.map(f)
+            return self.loc(axis)[values]
+        else:
+            raise TypeError("Must pass either `colnames`, `like` or `regex`")
+
+    def filter_rows(
+        self,
+        rownames = None,
+        like: str | None = None,
+        regex: str | None = None,
+    ) -> Self:
+        """
+        Subset the dataframe rows. 
+
+        Note that this routine does not filter a dataframe on its
+        contents. The filter is applied to the labels of the index.
+
+        Parameters
+        ----------
+        rownames : list-like
+            Keep labels from rows which are in rownames.
+        like : str
+            Keep labels from rows for which "like in label == True".
+        regex : str (regular expression)
+            Keep labels from rows for which re.search(regex, label) == True.
+        
+        Returns
+        -------
+        same type as input object
+
+        See Also
+        --------
+        DataFrame.loc : Access a group of rows and columns
+            by label(s) or a boolean array.
+
+        Notes
+        -----
+        The ``rownames``, ``like``, and ``regex`` parameters are
+        enforced to be mutually exclusive.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(np.array(([1, 2, 3], [4, 5, 6])),
+        ...                   index=['mouse', 'rabbit'],
+        ...                   columns=['one', 'two', 'three'])
+        >>> df
+                one  two  three
+        mouse     1    2      3
+        rabbit    4    5      6
+
+        >>> # select rows by name
+        >>> df.filter_rows(rownames=['rabbit'])
+                 one  three
+        rabbit    4      6
+
+        >>> # select rows by regular expression
+        >>> df.filter_rows(regex='se$')
+                 one  three
+        mouse     1      3
+
+        >>> # select rows containing 'bbi'
+        >>> df.filter_rows(like='bbi')
+                 one  two  three
+        rabbit    4    5      6
+        """
+        nkw = common.count_not_none(rownames, like, regex)
+        if nkw > 1:
+            raise TypeError(
+                "Keyword arguments `rows`, `like` or `regex` "
+                "are mutually exclusive"
+            )
+
+        axis = 0  # Represents rows in relevant functions
+        labels = self.index
+
+        if rownames is not None:
+            rownames = Index(rownames).intersection(labels)
+            if len(rownames) == 0:
+                # Keep the dtype of labels when we are empty
+                rownames = rownames.astype(labels.dtype)
+            return self.reindex(**{'index': rownames})  # type: ignore[misc]
+        elif like:
+
+            def f(x) -> bool_t:
+                assert like is not None  # needed for mypy
+                return like in ensure_str(x)
+
+            values = labels.map(f)
+            return self.loc(axis)[values]
+        elif regex:
+
+            def f(x) -> bool_t:
+                return matcher.search(ensure_str(x)) is not None
+
+            matcher = re.compile(regex)
+            values = labels.map(f)
+            return self.loc(axis)[values]
+        else:
+            raise TypeError("Must pass either `rownames`, `like` or `regex`")
+
     @final
     def head(self, n: int = 5) -> Self:
         """
