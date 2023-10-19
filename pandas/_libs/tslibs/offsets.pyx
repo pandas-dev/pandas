@@ -1368,10 +1368,10 @@ cdef class RelativeDeltaOffset(BaseOffset):
         else:
             return other + timedelta(self.n)
 
-    @apply_array_wraps
-    def _apply_array(self, dtarr):
-        reso = get_unit_from_dtype(dtarr.dtype)
-        dt64other = np.asarray(dtarr)
+    @cache_readonly
+    def _pd_timedelta(self) -> Timedelta:
+        # components of _offset that can be cast to pd.Timedelta
+
         kwds = self.kwds
         relativedelta_fast = {
             "years",
@@ -1385,28 +1385,26 @@ cdef class RelativeDeltaOffset(BaseOffset):
         }
         # relativedelta/_offset path only valid for base DateOffset
         if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
-
-            months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self.n
-            if months:
-                shifted = shift_months(dt64other.view("i8"), months, reso=reso)
-                dt64other = shifted.view(dtarr.dtype)
-
-            weeks = kwds.get("weeks", 0) * self.n
-            if weeks:
-                delta = Timedelta(days=7 * weeks)
-                td = (<_Timedelta>delta)._as_creso(reso)
-                dt64other = dt64other + td
-
-            timedelta_kwds = {
-                k: v
-                for k, v in kwds.items()
-                if k in ["days", "hours", "minutes", "seconds", "microseconds"]
+            td_kwds = {
+                key: val
+                for key, val in kwds.items()
+                if key in ["days", "hours", "minutes", "seconds", "microseconds"]
             }
-            if timedelta_kwds:
-                delta = Timedelta(**timedelta_kwds)
-                td = (<_Timedelta>delta)._as_creso(reso)
-                dt64other = dt64other + (self.n * td)
-            return dt64other
+            if "weeks" in kwds:
+                days = td_kwds.get("days", 0)
+                td_kwds["days"] = days + 7 * kwds["weeks"]
+
+            if td_kwds:
+                delta = Timedelta(**td_kwds)
+                if "microseconds" in kwds:
+                    delta = delta.as_unit("us")
+                else:
+                    delta = delta.as_unit("s")
+            else:
+                delta = Timedelta(0).as_unit("s")
+
+            return delta * self.n
+
         elif not self._use_relativedelta and hasattr(self, "_offset"):
             # timedelta
             num_nano = getattr(self, "nanoseconds", 0)
@@ -1415,8 +1413,12 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta((self._offset + rem_nano) * self.n)
             else:
                 delta = Timedelta(self._offset * self.n)
-            td = (<_Timedelta>delta)._as_creso(reso)
-            return dt64other + td
+                if "microseconds" in kwds:
+                    delta = delta.as_unit("us")
+                else:
+                    delta = delta.as_unit("s")
+            return delta
+
         else:
             # relativedelta with other keywords
             kwd = set(kwds) - relativedelta_fast
@@ -1425,6 +1427,20 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 f"keyword(s) {kwd} not able to be "
                 "applied vectorized"
             )
+
+    @apply_array_wraps
+    def _apply_array(self, dtarr):
+        reso = get_unit_from_dtype(dtarr.dtype)
+        dt64other = np.asarray(dtarr)
+
+        delta = self._pd_timedelta  # may raise NotImplementedError
+
+        kwds = self.kwds
+        months = (kwds.get("years", 0) * 12 + kwds.get("months", 0)) * self.n
+        if months:
+            shifted = shift_months(dt64other.view("i8"), months, reso=reso)
+            dt64other = shifted.view(dtarr.dtype)
+        return dt64other + delta
 
     def is_on_offset(self, dt: datetime) -> bool:
         if self.normalize and not _is_normalized(dt):

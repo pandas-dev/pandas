@@ -799,7 +799,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             values = self
 
         try:
-            result = offset._apply_array(values).view(values.dtype)
+            result = offset._apply_array(values)
+            if result.dtype.kind == "i":
+                result = result.view(values.dtype)
         except NotImplementedError:
             warnings.warn(
                 "Non-vectorized DateOffset being applied to Series or DatetimeIndex.",
@@ -807,6 +809,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                 stacklevel=find_stack_level(),
             )
             result = self.astype("O") + offset
+            # TODO(GH#55564): as_unit will be unnecessary
             result = type(self)._from_sequence(result).as_unit(self.unit)
             if not len(self):
                 # GH#30336 _from_sequence won't be able to infer self.tz
