@@ -33,6 +33,17 @@ from pandas.core.arrays import (
 )
 
 
+class TestNaTFormatting:
+    def test_repr(self):
+        assert repr(NaT) == "NaT"
+
+    def test_str(self):
+        assert str(NaT) == "NaT"
+
+    def test_isoformat(self):
+        assert NaT.isoformat() == "NaT"
+
+
 @pytest.mark.parametrize(
     "nat,idx",
     [
