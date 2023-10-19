@@ -242,7 +242,7 @@ class TestAsFreq:
             ("2QE-SEP", "2Q-SEP"),
         ],
     )
-    def test_asfreq_frequency_M_Q_deprecated(sel, freq, freq_depr):
+    def test_asfreq_frequency_M_Q_deprecated(self, freq, freq_depr):
         # GH#9586
         depr_msg = (
             f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
@@ -253,4 +253,4 @@ class TestAsFreq:
         expected = df.asfreq(freq=freq)
         with tm.assert_produces_warning(UserWarning, match=depr_msg):
             result = df.asfreq(freq=freq_depr)
-            tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
