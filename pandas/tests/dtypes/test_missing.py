@@ -51,7 +51,7 @@ fix_utcnow = pd.Timestamp("2021-01-01", tz="UTC")
 def test_notna_notnull(notna_f):
     assert notna_f(1.0)
     assert not notna_f(None)
-    assert not notna_f(np.NaN)
+    assert not notna_f(np.nan)
 
     msg = "use_inf_as_na option is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -112,7 +112,7 @@ class TestIsNA:
     def test_isna_isnull(self, isna_f):
         assert not isna_f(1.0)
         assert isna_f(None)
-        assert isna_f(np.NaN)
+        assert isna_f(np.nan)
         assert float("nan")
         assert not isna_f(np.inf)
         assert not isna_f(-np.inf)
@@ -156,7 +156,7 @@ class TestIsNA:
         tm.assert_numpy_array_equal(result, exp)
 
         # GH20675
-        result = isna([np.NaN, "world"])
+        result = isna([np.nan, "world"])
         exp = np.array([True, False])
         tm.assert_numpy_array_equal(result, exp)
 
@@ -805,7 +805,7 @@ inf_vals = [
     complex("inf"),
     complex("-inf"),
     np.inf,
-    np.NINF,
+    -np.inf,
 ]
 
 int_na_vals = [

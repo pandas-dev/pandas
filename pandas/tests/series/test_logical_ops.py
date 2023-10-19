@@ -15,6 +15,7 @@ from pandas.core import ops
 
 
 class TestSeriesLogicalOps:
+    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize("bool_op", [operator.and_, operator.or_, operator.xor])
     def test_bool_operators_with_nas(self, bool_op):
         # boolean &, |, ^ should work with object arrays and propagate NAs
@@ -93,7 +94,7 @@ class TestSeriesLogicalOps:
 
         msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         with pytest.raises(TypeError, match=msg):
-            s_0123 & np.NaN
+            s_0123 & np.nan
         with pytest.raises(TypeError, match=msg):
             s_0123 & 3.14
         msg = "unsupported operand type.+for &:"
@@ -149,11 +150,11 @@ class TestSeriesLogicalOps:
         # GH#9016: support bitwise op for integer types
         s_0123 = Series(range(4), dtype="int64")
 
-        result = s_0123 & Series([False, np.NaN, False, False])
+        result = s_0123 & Series([False, np.nan, False, False])
         expected = Series([False] * 4)
         tm.assert_series_equal(result, expected)
 
-        s_abNd = Series(["a", "b", np.NaN, "d"])
+        s_abNd = Series(["a", "b", np.nan, "d"])
         with pytest.raises(TypeError, match="unsupported.* 'int' and 'str'"):
             s_0123 & s_abNd
 
@@ -304,9 +305,7 @@ class TestSeriesLogicalOps:
     def test_reversed_xor_with_index_returns_series(self):
         # GH#22092, GH#19792 pre-2.0 these were aliased to setops
         ser = Series([True, True, False, False])
-        idx1 = Index(
-            [True, False, True, False], dtype=object
-        )  # TODO: raises if bool-dtype
+        idx1 = Index([True, False, True, False], dtype=bool)
         idx2 = Index([1, 0, 1, 0])
 
         expected = Series([False, True, True, False])

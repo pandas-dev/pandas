@@ -428,7 +428,9 @@ class StylerRenderer:
 
         return head
 
-    def _generate_col_header_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+    def _generate_col_header_row(
+        self, iter: Sequence, max_cols: int, col_lengths: dict
+    ):
         """
         Generate the row containing column headers:
 
@@ -521,7 +523,9 @@ class StylerRenderer:
 
         return index_blanks + column_name + column_headers
 
-    def _generate_index_names_row(self, iter: tuple, max_cols: int, col_lengths: dict):
+    def _generate_index_names_row(
+        self, iter: Sequence, max_cols: int, col_lengths: dict
+    ):
         """
         Generate the row containing index names
 
@@ -1648,9 +1652,9 @@ def _get_level_lengths(
         Result is a dictionary of (level, initial_position): span
     """
     if isinstance(index, MultiIndex):
-        levels = index.format(sparsify=lib.no_default, adjoin=False)
+        levels = index._format_multi(sparsify=lib.no_default, include_names=False)
     else:
-        levels = index.format()
+        levels = index._format_flat(include_name=False)
 
     if hidden_elements is None:
         hidden_elements = []
@@ -2353,7 +2357,7 @@ def _parse_latex_css_conversion(styles: CSSList) -> CSSList:
     return latex_styles
 
 
-def _escape_latex(s):
+def _escape_latex(s: str) -> str:
     r"""
     Replace the characters ``&``, ``%``, ``$``, ``#``, ``_``, ``{``, ``}``,
     ``~``, ``^``, and ``\`` in the string with LaTeX-safe sequences.
@@ -2388,7 +2392,7 @@ def _escape_latex(s):
     )
 
 
-def _math_mode_with_dollar(s):
+def _math_mode_with_dollar(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 
@@ -2421,7 +2425,7 @@ def _math_mode_with_dollar(s):
     return "".join(res).replace(r"rt8§=§7wz", r"\$")
 
 
-def _math_mode_with_parentheses(s):
+def _math_mode_with_parentheses(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 
@@ -2457,7 +2461,7 @@ def _math_mode_with_parentheses(s):
     return "".join(res)
 
 
-def _escape_latex_math(s):
+def _escape_latex_math(s: str) -> str:
     r"""
     All characters in LaTeX math mode are preserved.
 

@@ -22,7 +22,9 @@ class TestBetweenTime:
     def test_between_time_formats(self, frame_or_series):
         # GH#11818
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
+        )
         ts = tm.get_obj(ts, frame_or_series)
 
         strings = [
@@ -44,8 +46,8 @@ class TestBetweenTime:
     def test_localized_between_time(self, tzstr, frame_or_series):
         tz = timezones.maybe_get_tz(tzstr)
 
-        rng = date_range("4/16/2012", "5/1/2012", freq="H")
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        rng = date_range("4/16/2012", "5/1/2012", freq="h")
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
         if frame_or_series is DataFrame:
             ts = ts.to_frame()
 
@@ -69,7 +71,9 @@ class TestBetweenTime:
 
     def test_between_time(self, inclusive_endpoints_fixture, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
+        )
         ts = tm.get_obj(ts, frame_or_series)
 
         stime = time(0, 0)
@@ -103,7 +107,9 @@ class TestBetweenTime:
 
         # across midnight
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
+        )
         ts = tm.get_obj(ts, frame_or_series)
         stime = time(22, 0)
         etime = time(9, 0)
@@ -140,7 +146,7 @@ class TestBetweenTime:
     def test_between_time_axis(self, frame_or_series):
         # GH#8839
         rng = date_range("1/1/2000", periods=100, freq="10min")
-        ts = Series(np.random.randn(len(rng)), index=rng)
+        ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
         if frame_or_series is DataFrame:
             ts = ts.to_frame()
 
@@ -156,7 +162,7 @@ class TestBetweenTime:
     def test_between_time_axis_aliases(self, axis):
         # GH#8839
         rng = date_range("1/1/2000", periods=100, freq="10min")
-        ts = DataFrame(np.random.randn(len(rng), len(rng)))
+        ts = DataFrame(np.random.default_rng(2).standard_normal((len(rng), len(rng))))
         stime, etime = ("08:00:00", "09:00:00")
         exp_len = 7
 
@@ -174,7 +180,7 @@ class TestBetweenTime:
         # issue 8839
         rng = date_range("1/1/2000", periods=100, freq="10min")
         mask = np.arange(0, len(rng))
-        rand_data = np.random.randn(len(rng), len(rng))
+        rand_data = np.random.default_rng(2).standard_normal((len(rng), len(rng)))
         ts = DataFrame(rand_data, index=rng, columns=rng)
         stime, etime = ("08:00:00", "09:00:00")
 
@@ -193,7 +199,9 @@ class TestBetweenTime:
 
     def test_between_time_datetimeindex(self):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
-        df = DataFrame(np.random.randn(len(index), 5), index=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(index), 5)), index=index
+        )
         bkey = slice(time(13, 0, 0), time(14, 0, 0))
         binds = [26, 27, 28, 74, 75, 76, 122, 123, 124, 170, 171, 172]
 
@@ -207,7 +215,9 @@ class TestBetweenTime:
     def test_between_time_incorrect_arg_inclusive(self):
         # GH40245
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
+        )
 
         stime = time(0, 0)
         etime = time(1, 0)

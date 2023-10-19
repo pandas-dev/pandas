@@ -44,6 +44,9 @@ reading.
 Issue triage
 ------------
 
+Triage is an important first step in addressing issues reported by the community, and even
+partial contributions are a great way to help maintain pandas. Only remove the "Needs Triage"
+tag once all of the steps below have been completed.
 
 Here's a typical workflow for triaging a newly opened issue.
 
@@ -67,9 +70,9 @@ Here's a typical workflow for triaging a newly opened issue.
 3. **Is this a duplicate issue?**
 
    We have many open issues. If a new issue is clearly a duplicate, label the
-   new issue as "Duplicate" assign the milestone "No Action", and close the issue
-   with a link to the original issue. Make sure to still thank the reporter, and
-   encourage them to chime in on the original issue, and perhaps try to fix it.
+   new issue as "Duplicate" and close the issue with a link to the original issue.
+   Make sure to still thank the reporter, and encourage them to chime in on the
+   original issue, and perhaps try to fix it.
 
    If the new issue provides relevant information, such as a better or slightly
    different example, add it to the original issue as a comment or an edit to
@@ -90,6 +93,10 @@ Here's a typical workflow for triaging a newly opened issue.
    If a reproducible example is provided, but you see a simplification,
    edit the original post with your simpler reproducible example.
 
+   Ensure the issue exists on the main branch and that it has the "Needs Triage" tag
+   until all steps have been completed. Add a comment to the issue once you have
+   verified it exists on the main branch, so others know it has been confirmed.
+
 5. **Is this a clearly defined feature request?**
 
    Generally, pandas prefers to discuss and design new features in issues, before
@@ -97,8 +104,9 @@ Here's a typical workflow for triaging a newly opened issue.
    for the new feature. Having them write a full docstring is a good way to
    pin down specifics.
 
-   We'll need a discussion from several pandas maintainers before deciding whether
-   the proposal is in scope for pandas.
+   Tag new feature requests with "Needs Discussion", as we'll need a discussion
+   from several pandas maintainers before deciding whether the proposal is in
+   scope for pandas.
 
 6. **Is this a usage question?**
 
@@ -117,9 +125,7 @@ Here's a typical workflow for triaging a newly opened issue.
    If the issue is clearly defined and the fix seems relatively straightforward,
    label the issue as "Good first issue".
 
-   Typically, new issues will be assigned the "Contributions welcome" milestone,
-   unless it's know that this issue should be addressed in a specific release (say
-   because it's a large regression).
+   Once you have completed the above, make sure to remove the "needs triage" label.
 
 .. _maintaining.regressions:
 
@@ -296,8 +302,11 @@ Merging pull requests
 
 Only core team members can merge pull requests. We have a few guidelines.
 
-1. You should typically not self-merge your own pull requests. Exceptions include
-   things like small changes to fix CI (e.g. pinning a package version).
+1. You should typically not self-merge your own pull requests without approval.
+   Exceptions include things like small changes to fix CI
+   (e.g. pinning a package version). Self-merging with approval from other
+   core team members is fine if the change is something you're very confident
+   about.
 2. You should not merge pull requests that have an active discussion, or pull
    requests that has any ``-1`` votes from a core maintainer. pandas operates
    by consensus.

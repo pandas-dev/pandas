@@ -59,4 +59,5 @@ cdef int64_t parse_pydatetime(
     datetime val,
     npy_datetimestruct *dts,
     bint utc_convert,
+    NPY_DATETIMEUNIT creso,
 ) except? -1

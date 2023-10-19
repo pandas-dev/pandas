@@ -57,9 +57,9 @@ def df():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -86,9 +86,9 @@ class TestCrosstab:
     @pytest.mark.parametrize("box", [np.array, list, tuple])
     def test_crosstab_ndarray(self, box):
         # GH 44076
-        a = box(np.random.randint(0, 5, size=100))
-        b = box(np.random.randint(0, 3, size=100))
-        c = box(np.random.randint(0, 10, size=100))
+        a = box(np.random.default_rng(2).integers(0, 5, size=100))
+        b = box(np.random.default_rng(2).integers(0, 3, size=100))
+        c = box(np.random.default_rng(2).integers(0, 10, size=100))
 
         df = DataFrame({"a": a, "b": b, "c": c})
 
@@ -126,9 +126,9 @@ class TestCrosstab:
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_margins(self):
-        a = np.random.randint(0, 7, size=100)
-        b = np.random.randint(0, 3, size=100)
-        c = np.random.randint(0, 5, size=100)
+        a = np.random.default_rng(2).integers(0, 7, size=100)
+        b = np.random.default_rng(2).integers(0, 3, size=100)
+        c = np.random.default_rng(2).integers(0, 5, size=100)
 
         df = DataFrame({"a": a, "b": b, "c": c})
 
@@ -157,9 +157,9 @@ class TestCrosstab:
 
     def test_crosstab_margins_set_margin_name(self):
         # GH 15972
-        a = np.random.randint(0, 7, size=100)
-        b = np.random.randint(0, 3, size=100)
-        c = np.random.randint(0, 5, size=100)
+        a = np.random.default_rng(2).integers(0, 7, size=100)
+        b = np.random.default_rng(2).integers(0, 3, size=100)
+        c = np.random.default_rng(2).integers(0, 5, size=100)
 
         df = DataFrame({"a": a, "b": b, "c": c})
 
@@ -206,10 +206,10 @@ class TestCrosstab:
                 )
 
     def test_crosstab_pass_values(self):
-        a = np.random.randint(0, 7, size=100)
-        b = np.random.randint(0, 3, size=100)
-        c = np.random.randint(0, 5, size=100)
-        values = np.random.randn(100)
+        a = np.random.default_rng(2).integers(0, 7, size=100)
+        b = np.random.default_rng(2).integers(0, 3, size=100)
+        c = np.random.default_rng(2).integers(0, 5, size=100)
+        values = np.random.default_rng(2).standard_normal(100)
 
         table = crosstab(
             [a, b], c, values, aggfunc="sum", rownames=["foo", "bar"], colnames=["baz"]
@@ -546,8 +546,8 @@ class TestCrosstab:
                 "A": ["one", "one", "two", "three"] * 6,
                 "B": ["A", "B", "C"] * 8,
                 "C": ["foo", "foo", "foo", "bar", "bar", "bar"] * 4,
-                "D": np.random.randn(24),
-                "E": np.random.randn(24),
+                "D": np.random.default_rng(2).standard_normal(24),
+                "E": np.random.default_rng(2).standard_normal(24),
             }
         )
         result = crosstab(
@@ -867,13 +867,13 @@ class TestCrosstab:
 @pytest.mark.parametrize("b_dtype", ["category", "int64"])
 def test_categoricals(a_dtype, b_dtype):
     # https://github.com/pandas-dev/pandas/issues/37465
-    g = np.random.RandomState(25982704)
-    a = Series(g.randint(0, 3, size=100)).astype(a_dtype)
-    b = Series(g.randint(0, 2, size=100)).astype(b_dtype)
+    g = np.random.default_rng(2)
+    a = Series(g.integers(0, 3, size=100)).astype(a_dtype)
+    b = Series(g.integers(0, 2, size=100)).astype(b_dtype)
     result = crosstab(a, b, margins=True, dropna=False)
     columns = Index([0, 1, "All"], dtype="object", name="col_0")
     index = Index([0, 1, 2, "All"], dtype="object", name="row_0")
-    values = [[18, 16, 34], [18, 16, 34], [16, 16, 32], [52, 48, 100]]
+    values = [[10, 18, 28], [23, 16, 39], [17, 16, 33], [50, 50, 100]]
     expected = DataFrame(values, index, columns)
     tm.assert_frame_equal(result, expected)
 
@@ -882,7 +882,7 @@ def test_categoricals(a_dtype, b_dtype):
     a_is_cat = isinstance(a.dtype, CategoricalDtype)
     assert not a_is_cat or a.value_counts().loc[1] == 0
     result = crosstab(a, b, margins=True, dropna=False)
-    values = [[18, 16, 34], [0, 0, 0], [34, 32, 66], [52, 48, 100]]
+    values = [[10, 18, 28], [0, 0, 0], [40, 32, 72], [50, 50, 100]]
     expected = DataFrame(values, index, columns)
     if not a_is_cat:
         expected = expected.loc[[0, 2, "All"]]

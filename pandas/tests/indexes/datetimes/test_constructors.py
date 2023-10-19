@@ -185,7 +185,7 @@ class TestDatetimeIndex:
     )
     def test_construction_with_alt(self, kwargs, tz_aware_fixture):
         tz = tz_aware_fixture
-        i = date_range("20130101", periods=5, freq="H", tz=tz)
+        i = date_range("20130101", periods=5, freq="h", tz=tz)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
         result = DatetimeIndex(i, **kwargs)
         tm.assert_index_equal(i, result)
@@ -196,7 +196,7 @@ class TestDatetimeIndex:
     )
     def test_construction_with_alt_tz_localize(self, kwargs, tz_aware_fixture):
         tz = tz_aware_fixture
-        i = date_range("20130101", periods=5, freq="H", tz=tz)
+        i = date_range("20130101", periods=5, freq="h", tz=tz)
         i = i._with_freq(None)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
@@ -648,7 +648,7 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             date_range(periods=10, freq="D")
 
-    @pytest.mark.parametrize("freq", ["AS", "W-SUN"])
+    @pytest.mark.parametrize("freq", ["YS", "W-SUN"])
     def test_constructor_datetime64_tzformat(self, freq):
         # see GH#6572: ISO 8601 format results in stdlib timezone object
         idx = date_range(
@@ -753,7 +753,7 @@ class TestDatetimeIndex:
             DatetimeIndex([1, 2], dtype=dtype)
 
     def test_constructor_name(self):
-        idx = date_range(start="2000-01-01", periods=1, freq="A", name="TEST")
+        idx = date_range(start="2000-01-01", periods=1, freq="Y", name="TEST")
         assert idx.name == "TEST"
 
     def test_000constructor_resolution(self):
@@ -902,7 +902,7 @@ class TestDatetimeIndex:
         start = Timestamp("2015-03-29 02:30:00").tz_localize(
             timezone, nonexistent="shift_forward"
         )
-        result = date_range(start=start, periods=2, freq="H")
+        result = date_range(start=start, periods=2, freq="h")
         expected = DatetimeIndex(
             [
                 Timestamp("2015-03-29 03:00:00+02:00", tz=timezone),
@@ -916,7 +916,7 @@ class TestDatetimeIndex:
         end = Timestamp("2015-03-29 02:30:00").tz_localize(
             timezone, nonexistent="shift_forward"
         )
-        result = date_range(end=end, periods=2, freq="H")
+        result = date_range(end=end, periods=2, freq="h")
         expected = DatetimeIndex(
             [
                 Timestamp("2015-03-29 01:00:00+01:00", tz=timezone),
@@ -972,17 +972,17 @@ class TestTimeSeries:
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH 6961
-        rng1 = date_range("2014", "2015", freq="M", tz=tz)
-        expected1 = date_range("2014-01-31", "2014-12-31", freq="M", tz=tz)
+        rng1 = date_range("2014", "2015", freq="ME", tz=tz)
+        expected1 = date_range("2014-01-31", "2014-12-31", freq="ME", tz=tz)
 
         rng2 = date_range("2014", "2015", freq="MS", tz=tz)
         expected2 = date_range("2014-01-01", "2015-01-01", freq="MS", tz=tz)
 
-        rng3 = date_range("2014", "2020", freq="A", tz=tz)
-        expected3 = date_range("2014-12-31", "2019-12-31", freq="A", tz=tz)
+        rng3 = date_range("2014", "2020", freq="Y", tz=tz)
+        expected3 = date_range("2014-12-31", "2019-12-31", freq="Y", tz=tz)
 
-        rng4 = date_range("2014", "2020", freq="AS", tz=tz)
-        expected4 = date_range("2014-01-01", "2020-01-01", freq="AS", tz=tz)
+        rng4 = date_range("2014", "2020", freq="YS", tz=tz)
+        expected4 = date_range("2014-01-01", "2020-01-01", freq="YS", tz=tz)
 
         for rng, expected in [
             (rng1, expected1),
@@ -1010,7 +1010,7 @@ class TestTimeSeries:
         assert rng[0].second == 1
 
     def test_is_(self):
-        dti = date_range(start="1/1/2005", end="12/1/2005", freq="M")
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
         assert dti.is_(dti)
         assert dti.is_(dti.view())
         assert not dti.is_(dti.copy())
@@ -1036,7 +1036,7 @@ class TestTimeSeries:
         assert (index.asi8[50:100] != -1).all()
 
     @pytest.mark.parametrize(
-        "freq", ["M", "Q", "A", "D", "B", "BH", "T", "S", "L", "U", "H", "N", "C"]
+        "freq", ["ME", "Q", "Y", "D", "B", "bh", "min", "s", "ms", "us", "h", "ns", "C"]
     )
     def test_from_freq_recreate_from_data(self, freq):
         org = date_range(start="2001/02/01 09:00", freq=freq, periods=1)

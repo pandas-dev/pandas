@@ -81,7 +81,7 @@ class TestFancy:
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = indexer_sli(obj)
-        nd3 = np.random.randint(5, size=(2, 2, 2))
+        nd3 = np.random.default_rng(2).integers(5, size=(2, 2, 2))
 
         msgs = []
         if frame_or_series is Series and indexer_sli in [tm.setitem, tm.iloc]:
@@ -125,7 +125,7 @@ class TestFancy:
         # GH 25567
         obj = gen_obj(frame_or_series, index)
         idxr = indexer_sli(obj)
-        nd3 = np.random.randint(5, size=(2, 2, 2))
+        nd3 = np.random.default_rng(2).integers(5, size=(2, 2, 2))
 
         if indexer_sli is tm.iloc:
             err = ValueError
@@ -288,7 +288,9 @@ class TestFancy:
 
     def test_dups_fancy_indexing_only_missing_label(self):
         # List containing only missing label
-        dfnu = DataFrame(np.random.randn(5, 3), index=list("AABCD"))
+        dfnu = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 3)), index=list("AABCD")
+        )
         with pytest.raises(
             KeyError,
             match=re.escape(
@@ -313,7 +315,10 @@ class TestFancy:
     def test_dups_fancy_indexing2(self):
         # GH 5835
         # dups on index and missing values
-        df = DataFrame(np.random.randn(5, 5), columns=["A", "B", "B", "B", "A"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 5)),
+            columns=["A", "B", "B", "B", "A"],
+        )
 
         with pytest.raises(KeyError, match="not in index"):
             df.loc[:, ["A", "B", "C"]]
@@ -321,7 +326,9 @@ class TestFancy:
     def test_dups_fancy_indexing3(self):
         # GH 6504, multi-axis indexing
         df = DataFrame(
-            np.random.randn(9, 2), index=[1, 1, 1, 2, 2, 2, 3, 3, 3], columns=["a", "b"]
+            np.random.default_rng(2).standard_normal((9, 2)),
+            index=[1, 1, 1, 2, 2, 2, 3, 3, 3],
+            columns=["a", "b"],
         )
 
         expected = df.iloc[0:6]
@@ -360,7 +367,9 @@ class TestFancy:
 
     def test_multitype_list_index_access(self):
         # GH 10610
-        df = DataFrame(np.random.random((10, 5)), columns=["a"] + [20, 21, 22, 23])
+        df = DataFrame(
+            np.random.default_rng(2).random((10, 5)), columns=["a"] + [20, 21, 22, 23]
+        )
 
         with pytest.raises(KeyError, match=re.escape("'[26, -8] not in index'")):
             df[[22, 26, -8]]
@@ -643,7 +652,12 @@ class TestFancy:
 
 class TestMisc:
     def test_float_index_to_mixed(self):
-        df = DataFrame({0.0: np.random.rand(10), 1.0: np.random.rand(10)})
+        df = DataFrame(
+            {
+                0.0: np.random.default_rng(2).random(10),
+                1.0: np.random.default_rng(2).random(10),
+            }
+        )
         df["a"] = 10
 
         expected = DataFrame({0.0: df[0.0], 1.0: df[1.0], "a": [10] * 10})
@@ -816,8 +830,7 @@ class TestDataframeNoneCoercion:
         start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        with tm.assert_produces_warning(warn, match="incompatible dtype"):
-            start_dataframe.loc[0, ["foo"]] = None
+        start_dataframe.loc[0, ["foo"]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
         tm.assert_frame_equal(start_dataframe, expected_dataframe)
@@ -827,8 +840,7 @@ class TestDataframeNoneCoercion:
         start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        with tm.assert_produces_warning(warn, match="incompatible dtype"):
-            start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
+        start_dataframe[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
         tm.assert_frame_equal(start_dataframe, expected_dataframe)
@@ -838,10 +850,7 @@ class TestDataframeNoneCoercion:
         start_data, expected_result, warn = expected
 
         start_dataframe = DataFrame({"foo": start_data})
-        with tm.assert_produces_warning(warn, match="incompatible dtype"):
-            start_dataframe.loc[
-                start_dataframe["foo"] == start_dataframe["foo"][0]
-            ] = None
+        start_dataframe.loc[start_dataframe["foo"] == start_dataframe["foo"][0]] = None
 
         expected_dataframe = DataFrame({"foo": expected_result})
         tm.assert_frame_equal(start_dataframe, expected_dataframe)
@@ -855,10 +864,7 @@ class TestDataframeNoneCoercion:
                 "d": ["a", "b", "c"],
             }
         )
-        with tm.assert_produces_warning(
-            FutureWarning, match="item of incompatible dtype"
-        ):
-            start_dataframe.iloc[0] = None
+        start_dataframe.iloc[0] = None
 
         exp = DataFrame(
             {
@@ -1118,3 +1124,19 @@ def test_scalar_setitem_series_with_nested_value_length1(value, indexer_sli):
         assert (ser.loc[0] == value).all()
     else:
         assert ser.loc[0] == value
+
+
+def test_object_dtype_series_set_series_element():
+    # GH 48933
+    s1 = Series(dtype="O", index=["a", "b"])
+
+    s1["a"] = Series()
+    s1.loc["b"] = Series()
+
+    tm.assert_series_equal(s1.loc["a"], Series())
+    tm.assert_series_equal(s1.loc["b"], Series())
+
+    s2 = Series(dtype="O", index=["a", "b"])
+
+    s2.iloc[1] = Series()
+    tm.assert_series_equal(s2.iloc[1], Series())

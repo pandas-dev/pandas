@@ -1,37 +1,39 @@
 import pytest
 
 import pandas as pd
-from pandas.tests.extension.base.base import BaseExtensionTests
+import pandas._testing as tm
 
 
-class BaseAccumulateTests(BaseExtensionTests):
+class BaseAccumulateTests:
     """
     Accumulation specific tests. Generally these only
     make sense for numeric/boolean operations.
     """
 
-    def check_accumulate(self, s, op_name, skipna):
-        result = getattr(s, op_name)(skipna=skipna)
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        # Do we expect this accumulation to be supported for this dtype?
+        # We default to assuming "no"; subclass authors should override here.
+        return False
 
-        if result.dtype == pd.Float32Dtype() and op_name == "cumprod" and skipna:
-            pytest.skip(
-                f"Float32 precision lead to large differences with op {op_name} "
-                f"and skipna={skipna}"
-            )
+    def check_accumulate(self, ser: pd.Series, op_name: str, skipna: bool):
+        try:
+            alt = ser.astype("float64")
+        except TypeError:
+            # e.g. Period can't be cast to float64
+            alt = ser.astype(object)
 
-        expected = getattr(s.astype("float64"), op_name)(skipna=skipna)
-        self.assert_series_equal(result, expected, check_dtype=False)
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series_raises(self, data, all_numeric_accumulations, skipna):
-        op_name = all_numeric_accumulations
-        ser = pd.Series(data)
-
-        with pytest.raises(NotImplementedError):
-            getattr(ser, op_name)(skipna=skipna)
+        result = getattr(ser, op_name)(skipna=skipna)
+        expected = getattr(alt, op_name)(skipna=skipna)
+        tm.assert_series_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
         op_name = all_numeric_accumulations
         ser = pd.Series(data)
-        self.check_accumulate(ser, op_name, skipna)
+
+        if self._supports_accumulation(ser, op_name):
+            self.check_accumulate(ser, op_name, skipna)
+        else:
+            with pytest.raises((NotImplementedError, TypeError)):
+                # TODO: require TypeError for things that will _never_ work?
+                getattr(ser, op_name)(skipna=skipna)

@@ -67,7 +67,9 @@ class TestSetIndex:
 
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([("foo", 1), ("foo", 2), ("bar", 1)])
-        df = DataFrame(np.random.randn(3, 3), columns=columns)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((3, 3)), columns=columns
+        )
 
         result = df.set_index(df.columns[0])
 
@@ -89,7 +91,7 @@ class TestSetIndex:
         df = DataFrame(
             {
                 "A": [datetime(2000, 1, 1) + timedelta(i) for i in range(1000)],
-                "B": np.random.randn(1000),
+                "B": np.random.default_rng(2).standard_normal(1000),
             }
         )
 
@@ -97,7 +99,7 @@ class TestSetIndex:
         assert isinstance(idf.index, DatetimeIndex)
 
     def test_set_index_dst(self):
-        di = date_range("2006-10-29 00:00:00", periods=3, freq="H", tz="US/Pacific")
+        di = date_range("2006-10-29 00:00:00", periods=3, freq="h", tz="US/Pacific")
 
         df = DataFrame(data={"a": [0, 1, 2], "b": [3, 4, 5]}, index=di).reset_index()
         # single level
@@ -372,12 +374,14 @@ class TestSetIndex:
         ci.name = "B"
 
         # with Categorical
-        df = DataFrame({"A": np.random.randn(10), "B": ci.values})
+        df = DataFrame(
+            {"A": np.random.default_rng(2).standard_normal(10), "B": ci.values}
+        )
         idf = df.set_index("B")
         tm.assert_index_equal(idf.index, ci)
 
         # from a CategoricalIndex
-        df = DataFrame({"A": np.random.randn(10), "B": ci})
+        df = DataFrame({"A": np.random.default_rng(2).standard_normal(10), "B": ci})
         idf = df.set_index("B")
         tm.assert_index_equal(idf.index, ci)
 
@@ -435,7 +439,7 @@ class TestSetIndex:
         tm.assert_index_equal(df.index.levels[1], expected)
         assert df.index.names == ["label", "datetime"]
 
-        df = DataFrame(np.random.random(6))
+        df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = DatetimeIndex(
             [
                 "2011-07-19 07:00:00",
@@ -484,19 +488,19 @@ class TestSetIndex:
 
     def test_set_index_period(self):
         # GH#6631
-        df = DataFrame(np.random.random(6))
+        df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = period_range("2011-01-01", periods=3, freq="M")
         idx1 = idx1.append(idx1)
-        idx2 = period_range("2013-01-01 09:00", periods=2, freq="H")
+        idx2 = period_range("2013-01-01 09:00", periods=2, freq="h")
         idx2 = idx2.append(idx2).append(idx2)
-        idx3 = period_range("2005", periods=6, freq="A")
+        idx3 = period_range("2005", periods=6, freq="Y")
 
         df = df.set_index(idx1)
         df = df.set_index(idx2, append=True)
         df = df.set_index(idx3, append=True)
 
         expected1 = period_range("2011-01-01", periods=3, freq="M")
-        expected2 = period_range("2013-01-01 09:00", periods=2, freq="H")
+        expected2 = period_range("2013-01-01 09:00", periods=2, freq="h")
 
         tm.assert_index_equal(df.index.levels[0], expected1)
         tm.assert_index_equal(df.index.levels[1], expected2)
@@ -569,7 +573,7 @@ class TestSetIndexInvalid:
         # GH 24984
         df = frame_of_index_cols  # has length 5
 
-        values = np.random.randint(0, 10, (length,))
+        values = np.random.default_rng(2).integers(0, 10, (length,))
 
         msg = "Length mismatch: Expected 5 rows, received array of length.*"
 
@@ -688,9 +692,9 @@ class TestSetIndexCustomLabelType:
 
     def test_set_index_periodindex(self):
         # GH#6631
-        df = DataFrame(np.random.random(6))
+        df = DataFrame(np.random.default_rng(2).random(6))
         idx1 = period_range("2011/01/01", periods=6, freq="M")
-        idx2 = period_range("2013", periods=6, freq="A")
+        idx2 = period_range("2013", periods=6, freq="Y")
 
         df = df.set_index(idx1)
         tm.assert_index_equal(df.index, idx1)

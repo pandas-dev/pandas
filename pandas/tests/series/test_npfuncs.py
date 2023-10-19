@@ -13,7 +13,7 @@ class TestPtp:
     def test_ptp(self):
         # GH#21614
         N = 1000
-        arr = np.random.randn(N)
+        arr = np.random.default_rng(2).standard_normal(N)
         ser = Series(arr)
         assert np.ptp(ser) == np.ptp(arr)
 

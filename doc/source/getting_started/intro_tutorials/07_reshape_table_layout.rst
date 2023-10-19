@@ -273,8 +273,6 @@ For more information about :meth:`~DataFrame.pivot_table`, see the user guide se
     <div class="d-flex flex-row gs-torefguide">
         <span class="badge badge-info">To user guide</span>
 
-Have a look at :meth:`~DataFrame.groupby` in combination with :meth:`~DataFrame.unstack` at the user guide section on :ref:`combining stats and groupby <reshaping.combine_with_groupby>`.
-
 .. raw:: html
 
    </div>

@@ -93,6 +93,7 @@ if TYPE_CHECKING:
         Dtype,
         DtypeObj,
         IntervalClosedType,
+        Self,
         npt,
     )
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -124,7 +125,7 @@ def _get_next_label(label):
     elif is_integer_dtype(dtype):
         return label + 1
     elif is_float_dtype(dtype):
-        return np.nextafter(label, np.infty)
+        return np.nextafter(label, np.inf)
     else:
         raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
@@ -141,7 +142,7 @@ def _get_prev_label(label):
     elif is_integer_dtype(dtype):
         return label - 1
     elif is_float_dtype(dtype):
-        return np.nextafter(label, -np.infty)
+        return np.nextafter(label, -np.inf)
     else:
         raise TypeError(f"cannot determine next label for type {repr(type(label))}")
 
@@ -225,7 +226,7 @@ class IntervalIndex(ExtensionIndex):
         copy: bool = False,
         name: Hashable | None = None,
         verify_integrity: bool = True,
-    ) -> IntervalIndex:
+    ) -> Self:
         name = maybe_extract_name(name, data, cls)
 
         with rewrite_exception("IntervalArray", cls.__name__):
@@ -842,25 +843,6 @@ class IntervalIndex(ExtensionIndex):
         return Index(self._data.length, copy=False)
 
     # --------------------------------------------------------------------
-    # Rendering Methods
-    # __repr__ associated methods are based on MultiIndex
-
-    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
-        # matches base class except for whitespace padding
-        return header + list(self._format_native_types(na_rep=na_rep))
-
-    def _format_native_types(
-        self, *, na_rep: str = "NaN", quoting=None, **kwargs
-    ) -> npt.NDArray[np.object_]:
-        # GH 28210: use base method but with different default na_rep
-        return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
-
-    def _format_data(self, name=None) -> str:
-        # TODO: integrate with categorical and make generic
-        # name argument is unused here; just for compat with base / categorical
-        return f"{self._data._format_data()},{self._format_space()}"
-
-    # --------------------------------------------------------------------
     # Set Operations
 
     def _intersection(self, other, sort):
@@ -1038,8 +1020,9 @@ def interval_range(
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
     ...                   end=pd.Timestamp('2017-01-04'))
-    IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
-                   (2017-01-03, 2017-01-04]],
+    IntervalIndex([(2017-01-01 00:00:00, 2017-01-02 00:00:00],
+                   (2017-01-02 00:00:00, 2017-01-03 00:00:00],
+                   (2017-01-03 00:00:00, 2017-01-04 00:00:00]],
                   dtype='interval[datetime64[ns], right]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
@@ -1055,8 +1038,9 @@ def interval_range(
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
     ...                   periods=3, freq='MS')
-    IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
-                   (2017-03-01, 2017-04-01]],
+    IntervalIndex([(2017-01-01 00:00:00, 2017-02-01 00:00:00],
+                   (2017-02-01 00:00:00, 2017-03-01 00:00:00],
+                   (2017-03-01 00:00:00, 2017-04-01 00:00:00]],
                   dtype='interval[datetime64[ns], right]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated
@@ -1121,19 +1105,19 @@ def interval_range(
     breaks: np.ndarray | TimedeltaIndex | DatetimeIndex
 
     if is_number(endpoint):
-        # force consistency between start/end/freq (lower end if freq skips it)
         if com.all_not_none(start, end, freq):
-            end -= (end - start) % freq
+            # 0.1 ensures we capture end
+            breaks = np.arange(start, end + (freq * 0.1), freq)
+        else:
+            # compute the period/start/end if unspecified (at most one)
+            if periods is None:
+                periods = int((end - start) // freq) + 1
+            elif start is None:
+                start = end - (periods - 1) * freq
+            elif end is None:
+                end = start + (periods - 1) * freq
 
-        # compute the period/start/end if unspecified (at most one)
-        if periods is None:
-            periods = int((end - start) // freq) + 1
-        elif start is None:
-            start = end - (periods - 1) * freq
-        elif end is None:
-            end = start + (periods - 1) * freq
-
-        breaks = np.linspace(start, end, periods)
+            breaks = np.linspace(start, end, periods)
         if all(is_integer(x) for x in com.not_none(start, end, freq)):
             # np.linspace always produces float output
 

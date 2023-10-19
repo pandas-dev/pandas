@@ -58,7 +58,7 @@ class TestIntervalRange:
 
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     @pytest.mark.parametrize(
-        "freq, periods", [("D", 364), ("2D", 182), ("22D18H", 16), ("M", 11)]
+        "freq, periods", [("D", 364), ("2D", 182), ("22D18h", 16), ("ME", 11)]
     )
     def test_constructor_timestamp(self, closed, name, freq, periods, tz):
         start, end = Timestamp("20180101", tz=tz), Timestamp("20181231", tz=tz)
@@ -93,7 +93,7 @@ class TestIntervalRange:
             tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "freq, periods", [("D", 100), ("2D12H", 40), ("5D", 20), ("25D", 4)]
+        "freq, periods", [("D", 100), ("2D12h", 40), ("5D", 20), ("25D", 4)]
     )
     def test_constructor_timedelta(self, closed, name, freq, periods):
         start, end = Timedelta("0 days"), Timedelta("100 days")
@@ -130,7 +130,7 @@ class TestIntervalRange:
             (0, 10, 3, 9),
             (0, 10, 1.5, 9),
             (0.5, 10, 3, 9.5),
-            (Timedelta("0D"), Timedelta("10D"), "2D4H", Timedelta("8D16H")),
+            (Timedelta("0D"), Timedelta("10D"), "2D4h", Timedelta("8D16h")),
             (
                 Timestamp("2018-01-01"),
                 Timestamp("2018-02-09"),
@@ -140,7 +140,7 @@ class TestIntervalRange:
             (
                 Timestamp("2018-01-01", tz="US/Eastern"),
                 Timestamp("2018-01-20", tz="US/Eastern"),
-                "5D12H",
+                "5D12h",
                 Timestamp("2018-01-17 12:00:00", tz="US/Eastern"),
             ),
         ],
@@ -353,3 +353,13 @@ class TestIntervalRange:
         msg = "Start and end cannot both be tz-aware with different timezones"
         with pytest.raises(TypeError, match=msg):
             interval_range(start=start, end=end)
+
+    def test_float_freq(self):
+        # GH 54477
+        result = interval_range(0, 1, freq=0.1)
+        expected = IntervalIndex.from_breaks([0 + 0.1 * n for n in range(11)])
+        tm.assert_index_equal(result, expected)
+
+        result = interval_range(0, 1, freq=0.6)
+        expected = IntervalIndex.from_breaks([0, 0.6])
+        tm.assert_index_equal(result, expected)

@@ -60,8 +60,8 @@ class TestSeriesConcat:
 
     def test_concat_series_axis1_preserves_series_names(self):
         # preserve series names, #2489
-        s = Series(np.random.randn(5), name="A")
-        s2 = Series(np.random.randn(5), name="B")
+        s = Series(np.random.default_rng(2).standard_normal(5), name="A")
+        s2 = Series(np.random.default_rng(2).standard_normal(5), name="B")
 
         result = concat([s, s2], axis=1)
         expected = DataFrame({"A": s, "B": s2})
@@ -73,8 +73,14 @@ class TestSeriesConcat:
 
     def test_concat_series_axis1_with_reindex(self, sort):
         # must reindex, #2603
-        s = Series(np.random.randn(3), index=["c", "a", "b"], name="A")
-        s2 = Series(np.random.randn(4), index=["d", "a", "b", "c"], name="B")
+        s = Series(
+            np.random.default_rng(2).standard_normal(3), index=["c", "a", "b"], name="A"
+        )
+        s2 = Series(
+            np.random.default_rng(2).standard_normal(4),
+            index=["d", "a", "b", "c"],
+            name="B",
+        )
         result = concat([s, s2], axis=1, sort=sort)
         expected = DataFrame({"A": s, "B": s2}, index=["c", "a", "b", "d"])
         if sort:
@@ -100,8 +106,16 @@ class TestSeriesConcat:
 
     def test_concat_series_axis1_same_names_ignore_index(self):
         dates = date_range("01-Jan-2013", "01-Jan-2014", freq="MS")[0:-1]
-        s1 = Series(np.random.randn(len(dates)), index=dates, name="value")
-        s2 = Series(np.random.randn(len(dates)), index=dates, name="value")
+        s1 = Series(
+            np.random.default_rng(2).standard_normal(len(dates)),
+            index=dates,
+            name="value",
+        )
+        s2 = Series(
+            np.random.default_rng(2).standard_normal(len(dates)),
+            index=dates,
+            name="value",
+        )
 
         result = concat([s1, s2], axis=1, ignore_index=True)
         expected = Index(range(2))

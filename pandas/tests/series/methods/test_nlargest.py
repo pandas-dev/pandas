@@ -219,9 +219,9 @@ class TestSeriesNLargestNSmallest:
         dtype = any_numeric_ea_dtype
         if dtype.startswith("UInt"):
             # Can't cast from negative float to uint on some platforms
-            arr = np.random.randint(1, 10, 10)
+            arr = np.random.default_rng(2).integers(1, 10, 10)
         else:
-            arr = np.random.randn(10)
+            arr = np.random.default_rng(2).standard_normal(10)
         arr = arr.astype(dtype.lower(), copy=False)
 
         ser = Series(arr.copy(), dtype=dtype)

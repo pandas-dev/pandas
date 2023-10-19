@@ -345,6 +345,29 @@ which pandas excels.
 
 ## IO
 
+### [NTV-pandas](https://github.com/loco-philippe/ntv-pandas)
+
+NTV-pandas provides a JSON converter with more data types than the ones supported by pandas directly.
+
+It supports the following data types:
+
+- pandas data types
+- data types defined in the [NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
+- data types defined in [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats)
+
+The interface is always reversible (conversion round trip) with two formats (JSON-NTV and JSON-TableSchema).
+
+Example:
+
+```python
+import ntv_pandas as npd
+
+jsn = df.npd.to_json(table=False)  # save df as a JSON-value (format Table Schema if table is True else format NTV )
+df  = npd.read_json(jsn)  # load a JSON-value as a `DataFrame`
+
+df.equals(npd.read_json(df.npd.to_json(df)))  # `True` in any case, whether `table=True` or not
+```
+
 ### [BCPandas](https://github.com/yehoshuadimarsky/bcpandas)
 
 BCPandas provides high performance writes from pandas to Microsoft SQL Server,
@@ -511,8 +534,15 @@ assumptions about your datasets and check that they're *actually* true.
 
 Pandas provides an interface for defining
 [extension types](https://pandas.pydata.org/docs/development/extending.html#extension-types) to extend NumPy's type system.
-The following librariesimplement that interface to provide types not found in NumPy or pandas,
+The following libraries implement that interface to provide types not found in NumPy or pandas,
 which work well with pandas' data containers.
+
+### [awkward-pandas](https://awkward-pandas.readthedocs.io/)
+
+Awkward-pandas provides an extension type for storing [Awkward
+Arrays](https://awkward-array.org/) inside pandas' Series and
+DataFrame. It also provides an accessor for using awkward functions
+on Series that are of awkward type.
 
 ### [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)
 
@@ -553,6 +583,7 @@ authors to coordinate on the namespace.
 
   | Library                                                              | Accessor   | Classes               |
   | -------------------------------------------------------------------- | ---------- | --------------------- |
+  | [awkward-pandas](https://awkward-pandas.readthedocs.io/en/latest/)   | `ak`       | `Series`              |
   | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)          | `ip`       | `Series`              |
   | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |

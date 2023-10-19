@@ -849,8 +849,8 @@ column names:
    with open("tmp.csv", "w") as fh:
        fh.write(data)
 
-    df = pd.read_csv("tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]])
-    df
+   df = pd.read_csv("tmp.csv", header=None, parse_dates=[[1, 2], [1, 3]])
+   df
 
 By default the parser removes the component date columns, but you can choose
 to retain them via the ``keep_date_col`` keyword:
@@ -1103,10 +1103,10 @@ By default, numbers with a thousands separator will be parsed as strings:
    with open("tmp.csv", "w") as fh:
        fh.write(data)
 
-    df = pd.read_csv("tmp.csv", sep="|")
-    df
+   df = pd.read_csv("tmp.csv", sep="|")
+   df
 
-    df.level.dtype
+   df.level.dtype
 
 The ``thousands`` keyword allows integers to be parsed correctly:
 
@@ -1212,81 +1212,55 @@ too many fields will raise an error by default:
 
 You can elect to skip bad lines:
 
-.. code-block:: ipython
+.. ipython:: python
 
-    In [29]: pd.read_csv(StringIO(data), on_bad_lines="warn")
-    Skipping line 3: expected 3 fields, saw 4
+    data = "a,b,c\n1,2,3\n4,5,6,7\n8,9,10"
+    pd.read_csv(StringIO(data), on_bad_lines="skip")
 
-    Out[29]:
-       a  b   c
-    0  1  2   3
-    1  8  9  10
+.. versionadded:: 1.4.0
 
 Or pass a callable function to handle the bad line if ``engine="python"``.
 The bad line will be a list of strings that was split by the ``sep``:
 
-.. code-block:: ipython
+.. ipython:: python
 
-    In [29]: external_list = []
+    external_list = []
+    def bad_lines_func(line):
+        external_list.append(line)
+        return line[-3:]
+    pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
+    external_list
 
-    In [30]: def bad_lines_func(line):
-        ...:     external_list.append(line)
-        ...:     return line[-3:]
+.. note::
 
-    In [31]: pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
-    Out[31]:
-       a  b   c
-    0  1  2   3
-    1  5  6   7
-    2  8  9  10
+   The callable function will handle only a line with too many fields.
+   Bad lines caused by other errors will be silently skipped.
 
-    In [32]: external_list
-    Out[32]: [4, 5, 6, 7]
+   .. ipython:: python
 
-    .. versionadded:: 1.4.0
+      bad_lines_func = lambda line: print(line)
 
-Note that the callable function will handle only a line with too many fields.
-Bad lines caused by other errors will be silently skipped.
+      data = 'name,type\nname a,a is of type a\nname b,"b\" is of type b"'
+      data
+      pd.read_csv(StringIO(data), on_bad_lines=bad_lines_func, engine="python")
 
-For example:
-
-.. code-block:: ipython
-
-   def bad_lines_func(line):
-      print(line)
-
-   data = 'name,type\nname a,a is of type a\nname b,"b\" is of type b"'
-   data
-   pd.read_csv(data, on_bad_lines=bad_lines_func, engine="python")
-
-The line was not processed in this case, as a "bad line" here is caused by an escape character.
+   The line was not processed in this case, as a "bad line" here is caused by an escape character.
 
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
 
-.. code-block:: ipython
+.. ipython:: python
+   :okexcept:
 
-   In [33]: pd.read_csv(StringIO(data), usecols=[0, 1, 2])
-
-    Out[33]:
-       a  b   c
-    0  1  2   3
-    1  4  5   6
-    2  8  9  10
+   pd.read_csv(StringIO(data), usecols=[0, 1, 2])
 
 In case you want to keep all data including the lines with too many fields, you can
 specify a sufficient number of ``names``. This ensures that lines with not enough
 fields are filled with ``NaN``.
 
-.. code-block:: ipython
+.. ipython:: python
 
-   In [34]: pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
-
-   Out[34]:
-       a  b   c  d
-    0  1  2   3  NaN
-    1  4  5   6  7
-    2  8  9  10  NaN
+   pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
 
 .. _io.dialect:
 
@@ -1712,9 +1686,21 @@ at `fsimpl1`_ for implementations built into ``fsspec`` and `fsimpl2`_
 for those not included in the main ``fsspec``
 distribution.
 
-You can also pass parameters directly to the backend driver. For example,
-if you do *not* have S3 credentials, you can still access public data by
-specifying an anonymous connection, such as
+You can also pass parameters directly to the backend driver. Since ``fsspec`` does not
+utilize the ``AWS_S3_HOST`` environment variable, we can directly define a
+dictionary containing the endpoint_url and pass the object into the storage
+option parameter:
+
+.. code-block:: python
+
+   storage_options = {"client_kwargs": {"endpoint_url": "http://127.0.0.1:5555"}}}
+   df = pd.read_json("s3://pandas-test/test-1", storage_options=storage_options)
+
+More sample configurations and documentation can be found at `S3Fs documentation
+<https://s3fs.readthedocs.io/en/latest/index.html?highlight=host#s3-compatible-storage>`__.
+
+If you do *not* have S3 credentials, you can still access public
+data by specifying an anonymous connection, such as
 
 .. versionadded:: 1.2.0
 
@@ -1825,8 +1811,8 @@ Writing JSON
 A ``Series`` or ``DataFrame`` can be converted to a valid JSON string. Use ``to_json``
 with optional parameters:
 
-* ``path_or_buf`` : the pathname or buffer to write the output
-  This can be ``None`` in which case a JSON string is returned
+* ``path_or_buf`` : the pathname or buffer to write the output.
+  This can be ``None`` in which case a JSON string is returned.
 * ``orient`` :
 
   ``Series``:
@@ -2261,6 +2247,7 @@ For line-delimited json files, pandas can also return an iterator which reads in
 Line-limited json can also be read using the pyarrow reader by specifying ``engine="pyarrow"``.
 
 .. ipython:: python
+   :okwarning:
 
    from io import BytesIO
    df = pd.read_json(BytesIO(jsonl.encode()), lines=True, engine="pyarrow")
@@ -2346,7 +2333,7 @@ A few notes on the generated table schema:
 
   .. ipython:: python
 
-     s_per = pd.Series(1, index=pd.period_range("2016", freq="A-DEC", periods=4))
+     s_per = pd.Series(1, index=pd.period_range("2016", freq="Y-DEC", periods=4))
      build_table_schema(s_per)
 
 * Categoricals use the ``any`` type and an ``enum`` constraint listing
@@ -2462,7 +2449,7 @@ Read a URL with no options:
 
 .. code-block:: ipython
 
-   In [320]: "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
+   In [320]: url = "https://www.fdic.gov/resources/resolutions/bank-failures/failed-bank-list"
    In [321]: pd.read_html(url)
    Out[321]:
    [                         Bank NameBank           CityCity StateSt  ...              Acquiring InstitutionAI Closing DateClosing FundFund
@@ -2633,7 +2620,7 @@ columns to strings.
 
 .. code-block:: python
 
-   url_mcc = "https://en.wikipedia.org/wiki/Mobile_country_code"
+   url_mcc = "https://en.wikipedia.org/wiki/Mobile_country_code?oldid=899173761"
    dfs = pd.read_html(
        url_mcc,
        match="Telekom Albania",
@@ -2715,7 +2702,7 @@ in the method ``to_string`` described above.
 .. note::
 
    Not all of the possible options for ``DataFrame.to_html`` are shown here for
-   brevity's sake. See :func:`~pandas.core.frame.DataFrame.to_html` for the
+   brevity's sake. See :func:`.DataFrame.to_html` for the
    full set of options.
 
 .. note::
@@ -3467,7 +3454,8 @@ Excel files
 The :func:`~pandas.read_excel` method can read Excel 2007+ (``.xlsx``) files
 using the ``openpyxl`` Python module. Excel 2003 (``.xls``) files
 can be read using ``xlrd``. Binary Excel (``.xlsb``)
-files can be read using ``pyxlsb``.
+files can be read using ``pyxlsb``. All formats can be read
+using :ref:`calamine<io.calamine>` engine.
 The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
 similar to working with :ref:`csv<io.read_csv_table>` data.
@@ -3507,6 +3495,9 @@ using internally.
 * For the engine pyxlsb, pandas is using :func:`pyxlsb.open_workbook` to read in (``.xlsb``) files.
 
 * For the engine odf, pandas is using :func:`odf.opendocument.load` to read in (``.ods``) files.
+
+* For the engine calamine, pandas is using :func:`python_calamine.load_workbook`
+  to read in (``.xlsx``), (``.xlsm``), (``.xls``), (``.xlsb``), (``.ods``) files.
 
 .. code-block:: python
 
@@ -3949,7 +3940,8 @@ The :func:`~pandas.read_excel` method can also read binary Excel files
 using the ``pyxlsb`` module. The semantics and features for reading
 binary Excel files mostly match what can be done for `Excel files`_ using
 ``engine='pyxlsb'``. ``pyxlsb`` does not recognize datetime types
-in files and will return floats instead.
+in files and will return floats instead (you can use :ref:`calamine<io.calamine>`
+if you need recognize datetime types).
 
 .. code-block:: python
 
@@ -3961,6 +3953,20 @@ in files and will return floats instead.
    Currently pandas only supports *reading* binary Excel files. Writing
    is not implemented.
 
+.. _io.calamine:
+
+Calamine (Excel and ODS files)
+------------------------------
+
+The :func:`~pandas.read_excel` method can read Excel file (``.xlsx``, ``.xlsm``, ``.xls``, ``.xlsb``)
+and OpenDocument spreadsheets (``.ods``) using the ``python-calamine`` module.
+This module is a binding for Rust library `calamine <https://crates.io/crates/calamine>`__
+and is faster than other engines in most cases. The optional dependency 'python-calamine' needs to be installed.
+
+.. code-block:: python
+
+   # Returns a DataFrame
+   pd.read_excel("path_to_file.xlsb", engine="calamine")
 
 .. _io.clipboard:
 
@@ -4234,7 +4240,7 @@ similar to how ``read_csv`` and ``to_csv`` work.
 .. ipython:: python
 
    df_tl = pd.DataFrame({"A": list(range(5)), "B": list(range(5))})
-   df_tl.to_hdf("store_tl.h5", "table", append=True)
+   df_tl.to_hdf("store_tl.h5", key="table", append=True)
    pd.read_hdf("store_tl.h5", "table", where=["index>2"])
 
 .. ipython:: python
@@ -4257,12 +4263,12 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
    )
    df_with_missing
 
-   df_with_missing.to_hdf("file.h5", "df_with_missing", format="table", mode="w")
+   df_with_missing.to_hdf("file.h5", key="df_with_missing", format="table", mode="w")
 
    pd.read_hdf("file.h5", "df_with_missing")
 
    df_with_missing.to_hdf(
-       "file.h5", "df_with_missing", format="table", mode="w", dropna=True
+       "file.h5", key="df_with_missing", format="table", mode="w", dropna=True
    )
    pd.read_hdf("file.h5", "df_with_missing")
 
@@ -4289,12 +4295,16 @@ This format is specified by default when using ``put`` or ``to_hdf`` or by ``for
 
    A ``fixed`` format will raise a ``TypeError`` if you try to retrieve using a ``where``:
 
-   .. code-block:: python
+   .. ipython:: python
+      :okexcept:
 
-       >>> pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", "df")
-       >>> pd.read_hdf("test_fixed.h5", "df", where="index>5")
-       TypeError: cannot pass a where specification when reading a fixed format.
-                  this store must be selected in its entirety
+      pd.DataFrame(np.random.randn(10, 2)).to_hdf("test_fixed.h5", key="df")
+      pd.read_hdf("test_fixed.h5", "df", where="index>5")
+
+   .. ipython:: python
+      :suppress:
+
+      os.remove("test_fixed.h5")
 
 
 .. _io.hdf5-table:
@@ -4385,16 +4395,15 @@ will yield a tuple for each group key along with the relative keys of its conten
 
     Hierarchical keys cannot be retrieved as dotted (attribute) access as described above for items stored under the root node.
 
-    .. code-block:: ipython
+    .. ipython:: python
+       :okexcept:
 
-       In [8]: store.foo.bar.bah
-       AttributeError: 'HDFStore' object has no attribute 'foo'
+       store.foo.bar.bah
+
+    .. ipython:: python
 
        # you can directly access the actual PyTables node but using the root node
-       In [9]: store.root.foo.bar.bah
-       Out[9]:
-       /foo/bar/bah (Group) ''
-         children := ['block0_items' (Array), 'block0_values' (Array), 'axis0' (Array), 'axis1' (Array)]
+       store.root.foo.bar.bah
 
     Instead, use explicit string based keys:
 
@@ -4454,19 +4463,19 @@ storing/selecting from homogeneous index ``DataFrames``.
 
 .. ipython:: python
 
-        index = pd.MultiIndex(
-            levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
-            codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
-            names=["foo", "bar"],
-        )
-        df_mi = pd.DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
-        df_mi
+   index = pd.MultiIndex(
+      levels=[["foo", "bar", "baz", "qux"], ["one", "two", "three"]],
+      codes=[[0, 0, 0, 1, 1, 2, 2, 3, 3, 3], [0, 1, 2, 0, 1, 1, 2, 0, 1, 2]],
+      names=["foo", "bar"],
+   )
+   df_mi = pd.DataFrame(np.random.randn(10, 3), index=index, columns=["A", "B", "C"])
+   df_mi
 
-        store.append("df_mi", df_mi)
-        store.select("df_mi")
+   store.append("df_mi", df_mi)
+   store.select("df_mi")
 
-        # the levels are automatically included as data columns
-        store.select("df_mi", "foo=bar")
+   # the levels are automatically included as data columns
+   store.select("df_mi", "foo=bar")
 
 .. note::
    The ``index`` keyword is reserved and cannot be use as a level name.
@@ -4547,7 +4556,7 @@ The right-hand side of the sub-expression (after a comparison operator) can be:
 
    instead of this
 
-   .. code-block:: ipython
+   .. code-block:: python
 
       string = "HolyMoly'"
       store.select('df', f'index == {string}')
@@ -4892,7 +4901,7 @@ unspecified columns of the given DataFrame. The argument ``selector``
 defines which table is the selector table (which you can make queries from).
 The argument ``dropna`` will drop rows from the input ``DataFrame`` to ensure
 tables are synchronized.  This means that if a row for one of the tables
-being written to is entirely ``np.NaN``, that row will be dropped from all tables.
+being written to is entirely ``np.nan``, that row will be dropped from all tables.
 
 If ``dropna`` is False, **THE USER IS RESPONSIBLE FOR SYNCHRONIZING THE TABLES**.
 Remember that entirely ``np.Nan`` rows are not written to the HDFStore, so if
@@ -5546,6 +5555,7 @@ Read from an orc file.
 Read only certain columns of an orc file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_orc(
        "example_pa.orc",
@@ -5662,7 +5672,7 @@ the database using :func:`~pandas.DataFrame.to_sql`.
    data = pd.DataFrame(d, columns=c)
 
    data
-   data.to_sql("data", engine)
+   data.to_sql("data", con=engine)
 
 With some databases, writing large DataFrames can result in errors due to
 packet size limitations being exceeded. This can be avoided by setting the
@@ -5671,7 +5681,7 @@ writes ``data`` to the database in batches of 1000 rows at a time:
 
 .. ipython:: python
 
-    data.to_sql("data_chunked", engine, chunksize=1000)
+    data.to_sql("data_chunked", con=engine, chunksize=1000)
 
 SQL data types
 ++++++++++++++
@@ -5691,7 +5701,7 @@ default ``Text`` type for string columns:
 
     from sqlalchemy.types import String
 
-    data.to_sql("data_dtype", engine, dtype={"Col_1": String})
+    data.to_sql("data_dtype", con=engine, dtype={"Col_1": String})
 
 .. note::
 
@@ -5860,7 +5870,7 @@ have schema's). For example:
 
 .. code-block:: python
 
-   df.to_sql("table", engine, schema="other_schema")
+   df.to_sql(name="table", con=engine, schema="other_schema")
    pd.read_sql_table("table", engine, schema="other_schema")
 
 Querying
@@ -5887,7 +5897,7 @@ Specifying this will return an iterator through chunks of the query result:
 .. ipython:: python
 
     df = pd.DataFrame(np.random.randn(20, 3), columns=list("abc"))
-    df.to_sql("data_chunks", engine, index=False)
+    df.to_sql(name="data_chunks", con=engine, index=False)
 
 .. ipython:: python
 
@@ -6012,7 +6022,7 @@ Stata format
 Writing to stata format
 '''''''''''''''''''''''
 
-The method :func:`~pandas.core.frame.DataFrame.to_stata` will write a DataFrame
+The method :func:`.DataFrame.to_stata` will write a DataFrame
 into a .dta file. The format version of this file is always 115 (Stata 12).
 
 .. ipython:: python
@@ -6052,7 +6062,7 @@ outside of this range, the variable is cast to ``int16``.
 .. warning::
 
   :class:`~pandas.io.stata.StataWriter` and
-  :func:`~pandas.core.frame.DataFrame.to_stata` only support fixed width
+  :func:`.DataFrame.to_stata` only support fixed width
   strings containing up to 244 characters, a limitation imposed by the version
   115 dta file format. Attempting to write *Stata* dta files with strings
   longer than 244 characters raises a ``ValueError``.
@@ -6332,7 +6342,7 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_fixed_write(df):
-       df.to_hdf("test_fixed.hdf", "test", mode="w")
+       df.to_hdf("test_fixed.hdf", key="test", mode="w")
 
 
    def test_hdf_fixed_read():
@@ -6340,7 +6350,7 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_fixed_write_compress(df):
-       df.to_hdf("test_fixed_compress.hdf", "test", mode="w", complib="blosc")
+       df.to_hdf("test_fixed_compress.hdf", key="test", mode="w", complib="blosc")
 
 
    def test_hdf_fixed_read_compress():
@@ -6348,7 +6358,7 @@ The following test functions will be used below to compare the performance of se
 
 
    def test_hdf_table_write(df):
-       df.to_hdf("test_table.hdf", "test", mode="w", format="table")
+       df.to_hdf("test_table.hdf", key="test", mode="w", format="table")
 
 
    def test_hdf_table_read():
@@ -6357,7 +6367,7 @@ The following test functions will be used below to compare the performance of se
 
    def test_hdf_table_write_compress(df):
        df.to_hdf(
-           "test_table_compress.hdf", "test", mode="w", complib="blosc", format="table"
+           "test_table_compress.hdf", key="test", mode="w", complib="blosc", format="table"
        )
 
 

@@ -19,6 +19,8 @@ This file implements string parsing and creation for NumPy datetime.
 
 */
 
+// LICENSES/NUMPY_LICENSE
+
 #define PY_SSIZE_T_CLEAN
 #define NO_IMPORT
 

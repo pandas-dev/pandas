@@ -23,6 +23,7 @@ from pandas.errors import (
     AbstractMethodError,
     EmptyDataError,
 )
+from pandas.util._decorators import doc
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -32,6 +33,7 @@ from pandas import isna
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.multi import MultiIndex
 from pandas.core.series import Series
+from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import (
     file_exists,
@@ -55,6 +57,7 @@ if TYPE_CHECKING:
         BaseBuffer,
         DtypeBackend,
         FilePath,
+        HTMLFlavors,
         ReadBuffer,
         StorageOptions,
     )
@@ -363,13 +366,13 @@ class _HtmlFrameParser:
         """
         raise AbstractMethodError(self)
 
-    def _parse_tables(self, doc, match, attrs):
+    def _parse_tables(self, document, match, attrs):
         """
         Return all tables from the parsed DOM.
 
         Parameters
         ----------
-        doc : the DOM from which to parse the table element.
+        document : the DOM from which to parse the table element.
 
         match : str or regular expression
             The text to search for in the DOM tree.
@@ -594,9 +597,9 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
         self._strainer = SoupStrainer("table")
 
-    def _parse_tables(self, doc, match, attrs):
+    def _parse_tables(self, document, match, attrs):
         element_name = self._strainer.name
-        tables = doc.find_all(element_name, attrs=attrs)
+        tables = document.find_all(element_name, attrs=attrs)
         if not tables:
             raise ValueError("No tables found")
 
@@ -726,7 +729,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         # <thead> or <tfoot> (see _parse_thead_tr).
         return row.xpath("./td|./th")
 
-    def _parse_tables(self, doc, match, kwargs):
+    def _parse_tables(self, document, match, kwargs):
         pattern = match.pattern
 
         # 1. check all descendants for the given pattern and only search tables
@@ -738,7 +741,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         if kwargs:
             xpath_expr += _build_xpath_expr(kwargs)
 
-        tables = doc.xpath(xpath_expr, namespaces=_re_namespace)
+        tables = document.xpath(xpath_expr, namespaces=_re_namespace)
 
         tables = self._handle_hidden_tables(tables, "attrib")
         if self.displayed_only:
@@ -887,13 +890,13 @@ _valid_parsers = {
 }
 
 
-def _parser_dispatch(flavor: str | None) -> type[_HtmlFrameParser]:
+def _parser_dispatch(flavor: HTMLFlavors | None) -> type[_HtmlFrameParser]:
     """
     Choose the parser based on the input flavor.
 
     Parameters
     ----------
-    flavor : str
+    flavor : {{"lxml", "html5lib", "bs4"}} or None
         The type of parser to use. This must be a valid backend.
 
     Returns
@@ -1026,11 +1029,12 @@ def _parse(
     return ret
 
 
+@doc(storage_options=_shared_docs["storage_options"])
 def read_html(
     io: FilePath | ReadBuffer[str],
     *,
     match: str | Pattern = ".+",
-    flavor: str | None = None,
+    flavor: HTMLFlavors | Sequence[HTMLFlavors] | None = None,
     header: int | Sequence[int] | None = None,
     index_col: int | Sequence[int] | None = None,
     skiprows: int | Sequence[int] | slice | None = None,
@@ -1071,11 +1075,11 @@ def read_html(
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : str, optional
-        The parsing engine to use. 'bs4' and 'html5lib' are synonymous with
-        each other, they are both there for backwards compatibility. The
-        default of ``None`` tries to use ``lxml`` to parse and if that fails it
-        falls back on ``bs4`` + ``html5lib``.
+    flavor : {{"lxml", "html5lib", "bs4"}} or list-like, optional
+        The parsing engine (or list of parsing engines) to use. 'bs4' and
+        'html5lib' are synonymous with each other, they are both there for
+        backwards compatibility. The default of ``None`` tries to use ``lxml``
+        to parse and if that fails it falls back on ``bs4`` + ``html5lib``.
 
     header : int or list-like, optional
         The row (or list of rows for a :class:`~pandas.MultiIndex`) to use to
@@ -1096,13 +1100,13 @@ def read_html(
         passed to lxml or Beautiful Soup. However, these attributes must be
         valid HTML table attributes to work correctly. For example, ::
 
-            attrs = {'id': 'table'}
+            attrs = {{'id': 'table'}}
 
         is a valid attribute dictionary because the 'id' HTML tag attribute is
         a valid HTML attribute for *any* HTML tag as per `this document
         <https://html.spec.whatwg.org/multipage/dom.html#global-attributes>`__. ::
 
-            attrs = {'asdf': 'table'}
+            attrs = {{'asdf': 'table'}}
 
         is *not* a valid attribute dictionary because 'asdf' is not a valid
         HTML attribute even if it is a valid XML attribute.  Valid HTML 4.01
@@ -1144,13 +1148,13 @@ def read_html(
     displayed_only : bool, default True
         Whether elements with "display: none" should be parsed.
 
-    extract_links : {None, "all", "header", "body", "footer"}
+    extract_links : {{None, "all", "header", "body", "footer"}}
         Table elements in the specified section(s) with <a> tags will have their
         href extracted.
 
         .. versionadded:: 1.5.0
 
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). Behaviour is as follows:
 
@@ -1160,6 +1164,10 @@ def read_html(
           DataFrame.
 
         .. versionadded:: 2.0
+
+    {storage_options}
+
+        .. versionadded:: 2.1.0
 
     Returns
     -------

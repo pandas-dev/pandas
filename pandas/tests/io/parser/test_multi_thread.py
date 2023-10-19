@@ -125,11 +125,11 @@ def test_multi_thread_path_multipart_read_csv(all_parsers):
     file_name = "__thread_pool_reader__.csv"
     df = DataFrame(
         {
-            "a": np.random.rand(num_rows),
-            "b": np.random.rand(num_rows),
-            "c": np.random.rand(num_rows),
-            "d": np.random.rand(num_rows),
-            "e": np.random.rand(num_rows),
+            "a": np.random.default_rng(2).random(num_rows),
+            "b": np.random.default_rng(2).random(num_rows),
+            "c": np.random.default_rng(2).random(num_rows),
+            "d": np.random.default_rng(2).random(num_rows),
+            "e": np.random.default_rng(2).random(num_rows),
             "foo": ["foo"] * num_rows,
             "bar": ["bar"] * num_rows,
             "baz": ["baz"] * num_rows,

@@ -14,7 +14,9 @@ import pandas._testing as tm
 
 class TestEmptyConcat:
     def test_handle_empty_objects(self, sort):
-        df = DataFrame(np.random.randn(10, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 4)), columns=list("abcd")
+        )
 
         dfcopy = df[:5].copy()
         dfcopy["foo"] = "bar"
@@ -135,7 +137,7 @@ class TestEmptyConcat:
     def test_concat_empty_series_dtypes_roundtrips(self, dtype, dtype2):
         # round-tripping with self & like self
         if dtype == dtype2:
-            return
+            pytest.skip("same dtype is not applicable for test")
 
         def int_result_type(dtype, dtype2):
             typs = {dtype.kind, dtype2.kind}

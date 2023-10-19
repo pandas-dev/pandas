@@ -22,7 +22,7 @@ from pandas.core import ops
 
 class TestObjectComparisons:
     def test_comparison_object_numeric_nas(self, comparison_op):
-        ser = Series(np.random.randn(10), dtype=object)
+        ser = Series(np.random.default_rng(2).standard_normal(10), dtype=object)
         shifted = ser.shift(2)
 
         func = comparison_op

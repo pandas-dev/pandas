@@ -576,7 +576,7 @@ cdef datetime _parse_dateabbr_string(str date_string, datetime default,
             # e.g. if "Q" is not in date_string and .index raised
             pass
 
-    if date_len == 6 and freq == "M":
+    if date_len == 6 and freq == "ME":
         year = int(date_string[:4])
         month = int(date_string[4:6])
         try:
@@ -716,7 +716,7 @@ cdef datetime dateutil_parse(
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
 
-            # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
+            # dateutil can return a datetime with a tzoffset outside of (-24h, 24h)
             #  bounds, which is invalid (can be constructed, but raises if we call
             #  str(ret)).  Check that and raise here if necessary.
             try:
@@ -796,7 +796,7 @@ def try_parse_year_month_day(
 # is not practical. In fact, using this class issues warnings (xref gh-21322).
 # Thus, we port the class over so that both issues are resolved.
 #
-# Copyright (c) 2017 - dateutil contributors
+# Licence at LICENSES/DATEUTIL_LICENSE
 class _timelex:
     def __init__(self, instream):
         if getattr(instream, "decode", None) is not None:

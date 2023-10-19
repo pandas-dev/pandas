@@ -293,7 +293,7 @@ def test_assert_almost_equal_null():
     _assert_almost_equal_both(None, None)
 
 
-@pytest.mark.parametrize("a,b", [(None, np.NaN), (None, 0), (np.NaN, 0)])
+@pytest.mark.parametrize("a,b", [(None, np.nan), (None, 0), (np.nan, 0)])
 def test_assert_not_almost_equal_null(a, b):
     _assert_not_almost_equal(a, b)
 

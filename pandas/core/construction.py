@@ -19,6 +19,8 @@ import warnings
 import numpy as np
 from numpy import ma
 
+from pandas._config import using_pyarrow_string_dtype
+
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     Period,
@@ -201,7 +203,7 @@ def array(
     ['2015-01-01 00:00:00', '2016-01-01 00:00:00']
     Length: 2, dtype: datetime64[ns]
 
-    >>> pd.array(["1H", "2H"], dtype='timedelta64[ns]')
+    >>> pd.array(["1h", "2h"], dtype='timedelta64[ns]')
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
@@ -350,7 +352,8 @@ def array(
 
         elif inferred_dtype == "integer":
             return IntegerArray._from_sequence(data, copy=copy)
-
+        elif inferred_dtype == "empty" and not hasattr(data, "dtype") and not len(data):
+            return FloatingArray._from_sequence(data, copy=copy)
         elif (
             inferred_dtype in ("floating", "mixed-integer-float")
             and getattr(data, "dtype", None) != np.float16
@@ -559,7 +562,12 @@ def sanitize_array(
     if not is_list_like(data):
         if index is None:
             raise ValueError("index must be specified when data is not list-like")
+        if isinstance(data, str) and using_pyarrow_string_dtype():
+            from pandas.core.arrays.string_ import StringDtype
+
+            dtype = StringDtype("pyarrow_numpy")
         data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
+
         return data
 
     elif isinstance(data, ABCExtensionArray):
@@ -588,6 +596,11 @@ def sanitize_array(
             subarr = data
             if data.dtype == object:
                 subarr = maybe_infer_to_datetimelike(data)
+            elif data.dtype.kind == "U" and using_pyarrow_string_dtype():
+                from pandas.core.arrays.string_ import StringDtype
+
+                dtype = StringDtype(storage="pyarrow_numpy")
+                subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
 
             if subarr is data and copy:
                 subarr = subarr.copy()

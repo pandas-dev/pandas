@@ -24,7 +24,7 @@ def dti():
 
 @pytest.fixture
 def _test_series(dti):
-    return Series(np.random.rand(len(dti)), dti)
+    return Series(np.random.default_rng(2).random(len(dti)), dti)
 
 
 @pytest.fixture
@@ -33,13 +33,13 @@ def test_frame(dti, _test_series):
 
 
 def test_str(_test_series):
-    r = _test_series.resample("H")
+    r = _test_series.resample("h")
     assert (
         "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
         "label=left, convention=start, origin=start_day]" in str(r)
     )
 
-    r = _test_series.resample("H", origin="2000-01-01")
+    r = _test_series.resample("h", origin="2000-01-01")
     assert (
         "DatetimeIndexResampler [freq=<Hour>, axis=0, closed=left, "
         "label=left, convention=start, origin=2000-01-01 00:00:00]" in str(r)
@@ -47,12 +47,12 @@ def test_str(_test_series):
 
 
 def test_api(_test_series):
-    r = _test_series.resample("H")
+    r = _test_series.resample("h")
     result = r.mean()
     assert isinstance(result, Series)
     assert len(result) == 217
 
-    r = _test_series.to_frame().resample("H")
+    r = _test_series.to_frame().resample("h")
     result = r.mean()
     assert isinstance(result, DataFrame)
     assert len(result) == 217
@@ -77,7 +77,9 @@ def test_groupby_resample_api():
     )
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
     expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
-    result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
     tm.assert_frame_equal(result, expected)
 
 
@@ -89,7 +91,7 @@ def test_groupby_resample_on_api():
         {
             "key": ["A", "B"] * 5,
             "dates": date_range("2016-01-01", periods=10),
-            "values": np.random.randn(10),
+            "values": np.random.default_rng(2).standard_normal(10),
         }
     )
 
@@ -125,36 +127,36 @@ def test_pipe(test_frame, _test_series):
     # GH17905
 
     # series
-    r = _test_series.resample("H")
+    r = _test_series.resample("h")
     expected = r.max() - r.mean()
     result = r.pipe(lambda x: x.max() - x.mean())
     tm.assert_series_equal(result, expected)
 
     # dataframe
-    r = test_frame.resample("H")
+    r = test_frame.resample("h")
     expected = r.max() - r.mean()
     result = r.pipe(lambda x: x.max() - x.mean())
     tm.assert_frame_equal(result, expected)
 
 
 def test_getitem(test_frame):
-    r = test_frame.resample("H")
+    r = test_frame.resample("h")
     tm.assert_index_equal(r._selected_obj.columns, test_frame.columns)
 
-    r = test_frame.resample("H")["B"]
+    r = test_frame.resample("h")["B"]
     assert r._selected_obj.name == test_frame.columns[1]
 
     # technically this is allowed
-    r = test_frame.resample("H")["A", "B"]
+    r = test_frame.resample("h")["A", "B"]
     tm.assert_index_equal(r._selected_obj.columns, test_frame.columns[[0, 1]])
 
-    r = test_frame.resample("H")["A", "B"]
+    r = test_frame.resample("h")["A", "B"]
     tm.assert_index_equal(r._selected_obj.columns, test_frame.columns[[0, 1]])
 
 
 @pytest.mark.parametrize("key", [["D"], ["A", "D"]])
 def test_select_bad_cols(key, test_frame):
-    g = test_frame.resample("H")
+    g = test_frame.resample("h")
     # 'A' should not be referenced as a bad column...
     # will have to rethink regex if you change message!
     msg = r"^\"Columns not found: 'D'\"$"
@@ -163,7 +165,7 @@ def test_select_bad_cols(key, test_frame):
 
 
 def test_attribute_access(test_frame):
-    r = test_frame.resample("H")
+    r = test_frame.resample("h")
     tm.assert_series_equal(r.A.sum(), r["A"].sum())
 
 
@@ -171,7 +173,7 @@ def test_attribute_access(test_frame):
 def test_api_compat_before_use(attr):
     # make sure that we are setting the binner
     # on these attributes
-    rng = date_range("1/1/2012", periods=100, freq="S")
+    rng = date_range("1/1/2012", periods=100, freq="s")
     ts = Series(np.arange(len(rng)), index=rng)
     rs = ts.resample("30s")
 
@@ -186,7 +188,7 @@ def test_api_compat_before_use(attr):
 def tests_raises_on_nuisance(test_frame):
     df = test_frame
     df["D"] = "foo"
-    r = df.resample("H")
+    r = df.resample("h")
     result = r[["A", "B"]].mean()
     expected = pd.concat([r.A.mean(), r.B.mean()], axis=1)
     tm.assert_frame_equal(result, expected)
@@ -201,7 +203,7 @@ def tests_raises_on_nuisance(test_frame):
 
 def test_downsample_but_actually_upsampling():
     # this is reindex / asfreq
-    rng = date_range("1/1/2012", periods=100, freq="S")
+    rng = date_range("1/1/2012", periods=100, freq="s")
     ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
     result = ts.resample("20s").asfreq()
     expected = Series(
@@ -216,7 +218,7 @@ def test_combined_up_downsampling_of_irregular():
     # ts2.resample('2s').mean().ffill()
     # preserve these semantics
 
-    rng = date_range("1/1/2012", periods=100, freq="S")
+    rng = date_range("1/1/2012", periods=100, freq="s")
     ts = Series(np.arange(len(rng)), index=rng)
     ts2 = ts.iloc[[0, 1, 2, 3, 5, 7, 11, 15, 16, 25, 30]]
 
@@ -260,7 +262,7 @@ def test_combined_up_downsampling_of_irregular():
                 "2012-01-01 00:00:30",
             ],
             dtype="datetime64[ns]",
-            freq="2S",
+            freq="2s",
         ),
     )
     tm.assert_series_equal(result, expected)
@@ -278,7 +280,9 @@ def test_transform_frame(on):
     # GH#47079
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     expected = df.groupby(pd.Grouper(freq="20min")).transform("mean")
     if on == "date":
         # Move date to being a column; result will then have a RangeIndex
@@ -292,7 +296,7 @@ def test_transform_frame(on):
 
 def test_fillna():
     # need to upsample here
-    rng = date_range("1/1/2012", periods=10, freq="2S")
+    rng = date_range("1/1/2012", periods=10, freq="2s")
     ts = Series(np.arange(len(rng), dtype="int64"), index=rng)
     r = ts.resample("s")
 
@@ -341,12 +345,12 @@ def test_agg_consistency():
     # make sure that we are consistent across
     # similar aggregations with and w/o selection list
     df = DataFrame(
-        np.random.randn(1000, 3),
-        index=date_range("1/1/2012", freq="S", periods=1000),
+        np.random.default_rng(2).standard_normal((1000, 3)),
+        index=date_range("1/1/2012", freq="s", periods=1000),
         columns=["A", "B", "C"],
     )
 
-    r = df.resample("3T")
+    r = df.resample("3min")
 
     msg = r"Column\(s\) \['r1', 'r2'\] do not exist"
     with pytest.raises(KeyError, match=msg):
@@ -356,12 +360,12 @@ def test_agg_consistency():
 def test_agg_consistency_int_str_column_mix():
     # GH#39025
     df = DataFrame(
-        np.random.randn(1000, 2),
-        index=date_range("1/1/2012", freq="S", periods=1000),
+        np.random.default_rng(2).standard_normal((1000, 2)),
+        index=date_range("1/1/2012", freq="s", periods=1000),
         columns=[1, "a"],
     )
 
-    r = df.resample("3T")
+    r = df.resample("3min")
 
     msg = r"Column\(s\) \[2, 'b'\] do not exist"
     with pytest.raises(KeyError, match=msg):
@@ -375,10 +379,11 @@ def test_agg_consistency_int_str_column_mix():
 def test_agg():
     # test with all three Resampler apis and TimeGrouper
 
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     df_col = df.reset_index()
     df_mult = df_col.copy()
     df_mult.index = pd.MultiIndex.from_arrays(
@@ -488,10 +493,11 @@ def test_agg():
 def test_agg_misc():
     # test with all three Resampler apis and TimeGrouper
 
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     df_col = df.reset_index()
     df_mult = df_col.copy()
     df_mult.index = pd.MultiIndex.from_arrays(
@@ -585,13 +591,15 @@ def test_agg_misc():
 )
 def test_multi_agg_axis_1_raises(func):
     # GH#46904
-    np.random.seed(1234)
+
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    ).T
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        res = df.resample("M", axis=1)
+        res = df.resample("ME", axis=1)
         with pytest.raises(
             NotImplementedError, match="axis other than 0 is not supported"
         ):
@@ -599,10 +607,11 @@ def test_multi_agg_axis_1_raises(func):
 
 
 def test_agg_nested_dicts():
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index)
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    )
     df_col = df.reset_index()
     df_mult = df_col.copy()
     df_mult.index = pd.MultiIndex.from_arrays(
@@ -643,7 +652,7 @@ def test_try_aggregate_non_existing_column():
     # Error as we don't have 'z' column
     msg = r"Column\(s\) \['z'\] do not exist"
     with pytest.raises(KeyError, match=msg):
-        df.resample("30T").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
+        df.resample("30min").agg({"x": ["mean"], "y": ["median"], "z": ["sum"]})
 
 
 def test_agg_list_like_func_with_args():
@@ -1005,15 +1014,16 @@ def test_args_kwargs_depr(method, raises):
 
 
 def test_df_axis_param_depr():
-    np.random.seed(1234)
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
-    df = DataFrame(np.random.rand(10, 2), columns=list("AB"), index=index).T
+    df = DataFrame(
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+    ).T
 
     # Deprecation error when axis=1 is explicitly passed
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        df.resample("M", axis=1)
+        df.resample("ME", axis=1)
 
     # Deprecation error when axis=0 is explicitly passed
     df = df.T
@@ -1022,7 +1032,7 @@ def test_df_axis_param_depr():
         "will be removed in a future version."
     )
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        df.resample("M", axis=0)
+        df.resample("ME", axis=0)
 
 
 def test_series_axis_param_depr(_test_series):
@@ -1031,7 +1041,7 @@ def test_series_axis_param_depr(_test_series):
         "deprecated and will be removed in a future version."
     )
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
-        _test_series.resample("H", axis=0)
+        _test_series.resample("h", axis=0)
 
 
 def test_resample_empty():
@@ -1051,5 +1061,5 @@ def test_resample_empty():
             ]
         )
     )
-    result = df.resample("8H").mean()
+    result = df.resample("8h").mean()
     tm.assert_frame_equal(result, expected)

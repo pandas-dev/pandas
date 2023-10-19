@@ -6,7 +6,7 @@ dependencies:
 
   # build dependencies
   - versioneer[toml]
-  - meson[ninja]=1.0.1
+  - meson[ninja]=1.2.1
   - cython>=0.29.33
   - meson-python=0.13.1
 
@@ -19,7 +19,7 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy
+  - numpy<2
   - pytz
   - pip
 

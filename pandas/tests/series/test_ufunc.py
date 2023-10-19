@@ -28,8 +28,8 @@ def arrays_for_binary_ufunc():
     """
     A pair of random, length-100 integer-dtype arrays, that are mostly 0.
     """
-    a1 = np.random.randint(0, 10, 100, dtype="int64")
-    a2 = np.random.randint(0, 10, 100, dtype="int64")
+    a1 = np.random.default_rng(2).integers(0, 10, 100, dtype="int64")
+    a2 = np.random.default_rng(2).integers(0, 10, 100, dtype="int64")
     a1[::3] = 0
     a2[::4] = 0
     return a1, a2
@@ -38,7 +38,7 @@ def arrays_for_binary_ufunc():
 @pytest.mark.parametrize("ufunc", [np.positive, np.floor, np.exp])
 def test_unary_ufunc(ufunc, sparse):
     # Test that ufunc(pd.Series) == pd.Series(ufunc)
-    arr = np.random.randint(0, 10, 10, dtype="int64")
+    arr = np.random.default_rng(2).integers(0, 10, 10, dtype="int64")
     arr[::2] = 0
     if sparse:
         arr = SparseArray(arr, dtype=pd.SparseDtype("int64", 0))
@@ -120,7 +120,7 @@ def test_binary_ufunc_with_series(
     series = pd.Series(a1, name=name)
     other = pd.Series(a2, name=name)
 
-    idx = np.random.permutation(len(a1))
+    idx = np.random.default_rng(2).permutation(len(a1))
 
     if shuffle:
         other = other.take(idx)
@@ -274,7 +274,7 @@ class TestNumpyReductions:
 
         if isinstance(values, pd.core.arrays.SparseArray):
             mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         if values.dtype.kind in "iuf":
             result = np.multiply.reduce(obj)

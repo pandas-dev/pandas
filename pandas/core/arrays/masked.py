@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Literal,
     overload,
 )
@@ -23,6 +24,7 @@ from pandas._typing import (
     AstypeArg,
     AxisInt,
     DtypeObj,
+    FillnaOptions,
     NpDtype,
     PositionalIndexer,
     Scalar,
@@ -160,6 +162,10 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             )
         return result
 
+    def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
+        # NEP 51: https://github.com/numpy/numpy/pull/22449
+        return str
+
     @property
     def dtype(self) -> BaseMaskedDtype:
         raise AbstractMethodError(self)
@@ -183,6 +189,31 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             return self._data[item]
 
         return self._simple_new(self._data[item], newmask)
+
+    def _pad_or_backfill(
+        self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
+    ) -> Self:
+        mask = self._mask
+
+        if mask.any():
+            func = missing.get_fill_func(method, ndim=self.ndim)
+
+            npvalues = self._data.T
+            new_mask = mask.T
+            if copy:
+                npvalues = npvalues.copy()
+                new_mask = new_mask.copy()
+            func(npvalues, limit=limit, mask=new_mask)
+            if copy:
+                return self._simple_new(npvalues.T, new_mask.T)
+            else:
+                return self
+        else:
+            if copy:
+                new_values = self.copy()
+            else:
+                new_values = self
+        return new_values
 
     @doc(ExtensionArray.fillna)
     def fillna(
@@ -921,6 +952,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = self._mask.copy()
         return self._simple_new(data, mask)
 
+    @doc(ExtensionArray.duplicated)
+    def duplicated(
+        self, keep: Literal["first", "last", False] = "first"
+    ) -> npt.NDArray[np.bool_]:
+        values = self._data
+        mask = self._mask
+        return algos.duplicated(values, keep=keep, mask=mask)
+
     def unique(self) -> Self:
         """
         Compute the BaseMaskedArray of unique values.
@@ -1013,28 +1052,22 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         from pandas.arrays import IntegerArray
 
-        keys, value_counts = algos.value_counts_arraylike(
-            self._data, dropna=True, mask=self._mask
+        keys, value_counts, na_counter = algos.value_counts_arraylike(
+            self._data, dropna=dropna, mask=self._mask
         )
+        mask_index = np.zeros((len(value_counts),), dtype=np.bool_)
+        mask = mask_index.copy()
 
-        if dropna:
-            res = Series(value_counts, index=keys, name="count", copy=False)
-            res.index = res.index.astype(self.dtype)
-            res = res.astype("Int64")
-            return res
+        if na_counter > 0:
+            mask_index[-1] = True
 
-        # if we want nans, count the mask
-        counts = np.empty(len(value_counts) + 1, dtype="int64")
-        counts[:-1] = value_counts
-        counts[-1] = self._mask.sum()
-
-        index = Index(keys, dtype=self.dtype).insert(len(keys), self.dtype.na_value)
-        index = index.astype(self.dtype)
-
-        mask = np.zeros(len(counts), dtype="bool")
-        counts_array = IntegerArray(counts, mask)
-
-        return Series(counts_array, index=index, name="count", copy=False)
+        arr = IntegerArray(value_counts, mask)
+        index = Index(
+            self.dtype.construct_array_type()(
+                keys, mask_index  # type: ignore[arg-type]
+            )
+        )
+        return Series(arr, index=index, name="count", copy=False)
 
     @doc(ExtensionArray.equals)
     def equals(self, other) -> bool:
@@ -1455,6 +1488,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             result_mask = mask.copy()
         else:
             result_mask = np.zeros(ngroups, dtype=bool)
+
+        if how == "rank" and kwargs.get("na_option") in ["top", "bottom"]:
+            result_mask[:] = False
 
         res_values = op._cython_op_ndim_compat(
             self._data,

@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 2.0.x
+      - 2.1.x
   pull_request:
     branches:
       - main
-      - 2.0.x
+      - 2.1.x
 
 env:
   ENV_FILE: environment.yml
@@ -17,28 +17,8 @@ env:
 permissions:
   contents: read
 
+# pre-commit run by https://pre-commit.ci/
 jobs:
-  pre_commit:
-    name: pre-commit
-    runs-on: ubuntu-22.04
-    concurrency:
-      # https://github.community/t/concurrecy-not-work-for-push/183068/7
-      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-pre-commit
-      cancel-in-progress: true
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-
-    - name: Install Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-
-    - name: Run pre-commit
-      uses: pre-commit/action@v3.0.0
-      with:
-        extra_args: --verbose --all-files
-
   docstring_typing_manual_hooks:
     name: Docstring validation, typing, and other manual pre-commit hooks
     runs-on: ubuntu-22.04
@@ -53,7 +33,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -129,7 +109,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -144,7 +124,7 @@ jobs:
       run: |
         cd asv_bench
         asv machine --yes
-        asv run --quick --dry-run --strict --durations=30 --python=same
+        asv run --quick --dry-run --durations=30 --python=same --show-stderr
 
   build_docker_dev_environment:
     name: Build Docker Dev Environment
@@ -163,7 +143,7 @@ jobs:
         run: docker image prune -f
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -184,7 +164,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 

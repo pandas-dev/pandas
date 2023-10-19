@@ -1,7 +1,5 @@
 import pytest
 
-import pandas.util._test_decorators as td
-
 from pandas import (
     DataFrame,
     Series,
@@ -10,8 +8,9 @@ import pandas._testing as tm
 
 pytestmark = pytest.mark.single_cpu
 
+pytest.importorskip("numba")
 
-@td.skip_if_no("numba")
+
 @pytest.mark.filterwarnings("ignore")
 # Filter warnings when parallel=True and the function can't be parallelized by Numba
 class TestEngine:

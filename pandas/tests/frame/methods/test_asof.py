@@ -178,8 +178,8 @@ class TestFrameAsof:
 
     def test_asof_periodindex_mismatched_freq(self):
         N = 50
-        rng = period_range("1/1/1990", periods=N, freq="H")
-        df = DataFrame(np.random.randn(N), index=rng)
+        rng = period_range("1/1/1990", periods=N, freq="h")
+        df = DataFrame(np.random.default_rng(2).standard_normal(N), index=rng)
 
         # Mismatched freq
         msg = "Input has different freq"

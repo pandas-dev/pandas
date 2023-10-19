@@ -38,6 +38,11 @@ from libc.time cimport (
     tm,
 )
 
+from pandas._libs.tslibs.dtypes cimport (
+    c_OFFSET_TO_PERIOD_FREQSTR,
+    freq_to_period_freqstr,
+)
+
 # import datetime C API
 import_datetime()
 
@@ -91,6 +96,9 @@ from pandas._libs.tslibs.dtypes cimport (
     attrname_to_abbrevs,
     freq_group_code_to_npy_unit,
 )
+
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
+
 from pandas._libs.tslibs.parsing cimport quarter_to_myear
 
 from pandas._libs.tslibs.parsing import parse_datetime_string_with_reso
@@ -1507,7 +1515,7 @@ def from_ordinals(const int64_t[:] values, freq):
         int64_t[::1] result = np.empty(len(values), dtype="i8")
         int64_t val
 
-    freq = to_offset(freq)
+    freq = to_offset(freq, is_period=True)
     if not isinstance(freq, BaseOffset):
         raise ValueError("freq not specified and cannot be inferred")
 
@@ -1539,7 +1547,7 @@ def extract_ordinals(ndarray values, freq) -> np.ndarray:
         # if we don't raise here, we'll segfault later!
         raise TypeError("extract_ordinals values must be object-dtype")
 
-    freqstr = Period._maybe_convert_freq(freq).freqstr
+    freqstr = freq_to_period_freqstr(freq.n, freq.name)
 
     for i in range(n):
         # Analogous to: p = values[i]
@@ -1712,10 +1720,12 @@ cdef class PeriodMixin:
             condition = self.freq != other_freq
 
         if condition:
+            freqstr = freq_to_period_freqstr(self.freq.n, self.freq.name)
+            other_freqstr = freq_to_period_freqstr(other_freq.n, other_freq.name)
             msg = DIFFERENT_FREQ.format(
                 cls=type(self).__name__,
-                own_freq=self.freqstr,
-                other_freq=other_freq.freqstr,
+                own_freq=freqstr,
+                other_freq=other_freqstr,
             )
             raise IncompatibleFrequency(msg)
 
@@ -1759,7 +1769,7 @@ cdef class _Period(PeriodMixin):
         elif isinstance(freq, PeriodDtypeBase):
             freq = freq._freqstr
 
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period=True)
 
         if freq.n <= 0:
             raise ValueError("Frequency must be positive, because it "
@@ -1804,14 +1814,14 @@ cdef class _Period(PeriodMixin):
 
     def _add_timedeltalike_scalar(self, other) -> "Period":
         cdef:
-            int64_t inc
+            int64_t inc, ordinal
 
         if not self._dtype._is_tick_like():
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
 
         if (
-            util.is_timedelta64_object(other) and
+            cnp.is_timedelta64_object(other) and
             get_timedelta64_value(other) == NPY_NAT
         ):
             # i.e. np.timedelta64("nat")
@@ -1822,8 +1832,8 @@ cdef class _Period(PeriodMixin):
         except ValueError as err:
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})") from err
-        # TODO: overflow-check here
-        ordinal = self.ordinal + inc
+        with cython.overflowcheck(True):
+            ordinal = self.ordinal + inc
         return Period(ordinal=ordinal, freq=self.freq)
 
     def _add_offset(self, other) -> "Period":
@@ -1836,6 +1846,7 @@ cdef class _Period(PeriodMixin):
         ordinal = self.ordinal + other.n
         return Period(ordinal=ordinal, freq=self.freq)
 
+    @cython.overflowcheck(True)
     def __add__(self, other):
         if not is_period_object(self):
             # cython semantics; this is analogous to a call to __radd__
@@ -1932,8 +1943,8 @@ cdef class _Period(PeriodMixin):
         Examples
         --------
         >>> period = pd.Period('2023-1-1', freq='D')
-        >>> period.asfreq('H')
-        Period('2023-01-01 23:00', 'H')
+        >>> period.asfreq('h')
+        Period('2023-01-01 23:00', 'h')
         """
         freq = self._maybe_convert_freq(freq)
         how = validate_end_alias(how)
@@ -2044,7 +2055,7 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> p = pd.Period("2018-03-11", freq='H')
+        >>> p = pd.Period("2018-03-11", freq='h')
         >>> p.day
         11
         """
@@ -2145,7 +2156,7 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> p = pd.Period("2018-03-11", "H")
+        >>> p = pd.Period("2018-03-11", "h")
         >>> p.weekofyear
         10
 
@@ -2176,7 +2187,7 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> p = pd.Period("2018-03-11", "H")
+        >>> p = pd.Period("2018-03-11", "h")
         >>> p.week
         10
 
@@ -2216,14 +2227,14 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> per = pd.Period('2017-12-31 22:00', 'H')
+        >>> per = pd.Period('2017-12-31 22:00', 'h')
         >>> per.day_of_week
         6
 
         For periods that span over multiple days, the day at the beginning of
         the period is returned.
 
-        >>> per = pd.Period('2017-12-31 22:00', '4H')
+        >>> per = pd.Period('2017-12-31 22:00', '4h')
         >>> per.day_of_week
         6
         >>> per.start_time.day_of_week
@@ -2267,14 +2278,14 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> per = pd.Period('2017-12-31 22:00', 'H')
+        >>> per = pd.Period('2017-12-31 22:00', 'h')
         >>> per.dayofweek
         6
 
         For periods that span over multiple days, the day at the beginning of
         the period is returned.
 
-        >>> per = pd.Period('2017-12-31 22:00', '4H')
+        >>> per = pd.Period('2017-12-31 22:00', '4h')
         >>> per.dayofweek
         6
         >>> per.start_time.dayofweek
@@ -2316,7 +2327,7 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> period = pd.Period("2015-10-23", freq='H')
+        >>> period = pd.Period("2015-10-23", freq='h')
         >>> period.day_of_year
         296
         >>> period = pd.Period("2012-12-31", freq='D')
@@ -2437,7 +2448,7 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> p = pd.Period("2018-03-11", freq='H')
+        >>> p = pd.Period("2018-03-11", freq='h')
         >>> p.daysinmonth
         31
         """
@@ -2472,8 +2483,8 @@ cdef class _Period(PeriodMixin):
 
         Examples
         --------
-        >>> pd.Period.now('H')  # doctest: +SKIP
-        Period('2023-06-12 11:00', 'H')
+        >>> pd.Period.now('h')  # doctest: +SKIP
+        Period('2023-06-12 11:00', 'h')
         """
         return Period(datetime.now(), freq=freq)
 
@@ -2487,7 +2498,8 @@ cdef class _Period(PeriodMixin):
         >>> pd.Period('2020-01', 'D').freqstr
         'D'
         """
-        return self._dtype._freqstr
+        freqstr = freq_to_period_freqstr(self.freq.n, self.freq.name)
+        return freqstr
 
     def __repr__(self) -> str:
         base = self._dtype._dtype_code
@@ -2511,11 +2523,12 @@ cdef class _Period(PeriodMixin):
         object_state = None, self.freq, self.ordinal
         return (Period, object_state)
 
-    def strftime(self, fmt: str) -> str:
+    def strftime(self, fmt: str | None) -> str:
         r"""
         Returns a formatted string representation of the :class:`Period`.
 
-        ``fmt`` must be a string containing one or several directives.
+        ``fmt`` must be ``None`` or a string containing one or several directives.
+        When ``None``, the format will be determined from the frequency of the Period.
         The method recognizes the same directives as the :func:`time.strftime`
         function of the standard Python distribution, as well as the specific
         additional directives ``%f``, ``%F``, ``%q``, ``%l``, ``%u``, ``%n``.
@@ -2788,7 +2801,8 @@ class Period(_Period):
                 if freq is None and ordinal != NPY_NAT:
                     # Skip NaT, since it doesn't have a resolution
                     freq = attrname_to_abbrevs[reso]
-                    freq = to_offset(freq)
+                    freq = c_OFFSET_TO_PERIOD_FREQSTR.get(freq, freq)
+                    freq = to_offset(freq, is_period=True)
 
         elif PyDateTime_Check(value):
             dt = value
@@ -2796,7 +2810,7 @@ class Period(_Period):
                 raise ValueError("Must supply freq for datetime value")
             if isinstance(dt, Timestamp):
                 nanosecond = dt.nanosecond
-        elif util.is_datetime64_object(value):
+        elif cnp.is_datetime64_object(value):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError("Must supply freq for datetime value")
@@ -2881,7 +2895,7 @@ cdef _parse_weekly_str(value, BaseOffset freq):
     if freq is None:
         day_name = end.day_name()[:3].upper()
         freqstr = f"W-{day_name}"
-        freq = to_offset(freqstr)
+        freq = to_offset(freqstr, is_period=True)
         # We _should_ have freq.is_on_offset(end)
 
     return end, freq

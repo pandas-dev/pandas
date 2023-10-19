@@ -402,7 +402,7 @@ def is_period_dtype(arr_or_dtype) -> bool:
     False
     >>> is_period_dtype(pd.Period("2017-01-01"))
     False
-    >>> is_period_dtype(pd.PeriodIndex([], freq="A"))
+    >>> is_period_dtype(pd.PeriodIndex([], freq="Y"))
     True
     """
     warnings.warn(
@@ -498,7 +498,7 @@ def is_categorical_dtype(arr_or_dtype) -> bool:
     # GH#52527
     warnings.warn(
         "is_categorical_dtype is deprecated and will be removed in a future "
-        "version. Use isinstance(dtype, CategoricalDtype) instead",
+        "version. Use isinstance(dtype, pd.CategoricalDtype) instead",
         FutureWarning,
         stacklevel=find_stack_level(),
     )
@@ -1256,13 +1256,7 @@ def is_1d_only_ea_dtype(dtype: DtypeObj | None) -> bool:
     """
     Analogue to is_extension_array_dtype but excluding DatetimeTZDtype.
     """
-    # Note: if other EA dtypes are ever held in HybridBlock, exclude those
-    #  here too.
-    # NB: need to check DatetimeTZDtype and not is_datetime64tz_dtype
-    #  to exclude ArrowTimestampUSDtype
-    return isinstance(dtype, ExtensionDtype) and not isinstance(
-        dtype, (DatetimeTZDtype, PeriodDtype)
-    )
+    return isinstance(dtype, ExtensionDtype) and not dtype._supports_2d
 
 
 def is_extension_array_dtype(arr_or_dtype) -> bool:
@@ -1351,7 +1345,7 @@ def is_complex_dtype(arr_or_dtype) -> bool:
     False
     >>> is_complex_dtype(int)
     False
-    >>> is_complex_dtype(np.complex_)
+    >>> is_complex_dtype(np.complex128)
     True
     >>> is_complex_dtype(np.array(['a', 'b']))
     False
@@ -1614,6 +1608,15 @@ def pandas_dtype(dtype) -> DtypeObj:
     # registered extension types
     result = registry.find(dtype)
     if result is not None:
+        if isinstance(result, type):
+            # GH 31356, GH 54592
+            warnings.warn(
+                f"Instantiating {result.__name__} without any arguments."
+                f"Pass a {result.__name__} instance to silence this warning.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+            result = result()
         return result
 
     # try a numpy dtype
@@ -1634,7 +1637,13 @@ def pandas_dtype(dtype) -> DtypeObj:
     # also catch some valid dtypes such as object, np.object_ and 'object'
     # which we safeguard against by catching them earlier and returning
     # np.dtype(valid_dtype) before this condition is evaluated.
-    if is_hashable(dtype) and dtype in [object, np.object_, "object", "O"]:
+    if is_hashable(dtype) and dtype in [
+        object,
+        np.object_,
+        "object",
+        "O",
+        "object_",
+    ]:
         # check hashability to avoid errors/DeprecationWarning when we get
         # here and `dtype` is an array
         return npdtype
@@ -1655,9 +1664,12 @@ def is_all_strings(value: ArrayLike) -> bool:
     dtype = value.dtype
 
     if isinstance(dtype, np.dtype):
-        return dtype == np.dtype("object") and lib.is_string_array(
-            np.asarray(value), skipna=False
-        )
+        if len(value) == 0:
+            return dtype == np.dtype("object")
+        else:
+            return dtype == np.dtype("object") and lib.is_string_array(
+                np.asarray(value), skipna=False
+            )
     elif isinstance(dtype, CategoricalDtype):
         return dtype.categories.inferred_type == "string"
     return dtype == "string"
