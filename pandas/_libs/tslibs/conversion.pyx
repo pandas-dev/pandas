@@ -765,5 +765,8 @@ cdef int64_t parse_pydatetime(
         if isinstance(val, _Timestamp):
             result = (<_Timestamp>val)._as_creso(creso, round_ok=False)._value
         else:
-            result = pydatetime_to_dt64(val, dts, reso=creso)
+            try:
+                result = pydatetime_to_dt64(val, dts, reso=creso)
+            except OverflowError as e:
+                raise OutOfBoundsDatetime from e
     return result
