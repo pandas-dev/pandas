@@ -217,7 +217,7 @@ class TestRoundTrip:
                     reason="Column index name cannot be serialized unless "
                     "it's a MultiIndex"
                 )
-                request.node.add_marker(mark)
+                request.applymarker(mark)
 
             # Empty name case current read in as
             # unnamed levels, not Nones.
@@ -809,7 +809,7 @@ class TestExcelWriter:
                 reader, sheet_name="test1", header=header, index_col=[0, 1]
             )
         if not merge_cells:
-            fm = frame.columns.format(sparsify=False, adjoin=False, names=False)
+            fm = frame.columns._format_multi(sparsify=False, include_names=False)
             frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
         tm.assert_frame_equal(frame, df)
 

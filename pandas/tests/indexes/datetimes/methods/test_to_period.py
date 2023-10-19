@@ -63,7 +63,7 @@ class TestToPeriod:
         assert prng.freq == "Y-DEC"
 
     def test_to_period_monthish(self):
-        offsets = ["MS", "BM"]
+        offsets = ["MS", "BME"]
         for off in offsets:
             rng = date_range("01-Jan-2012", periods=8, freq=off)
             prng = rng.to_period()
