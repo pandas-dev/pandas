@@ -2151,7 +2151,7 @@ class ExtensionArray:
                 f"Cannot round {type(self)} dtype as it is non-numeric or boolean"
             )
         return self._from_sequence(
-            [round(element) if not isna(element) else element for element in self.data],
+            [round(element) if not isna(element) else element for element in self],
             dtype=self.dtype,
         )
 
