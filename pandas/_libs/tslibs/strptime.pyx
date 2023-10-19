@@ -156,6 +156,26 @@ cdef dict _parse_code_table = {"y": 0,
                                "u": 22}
 
 
+cdef class ParseState:
+    def __cinit__(self):
+        self.found_tz = False
+        self.found_naive = False
+
+    cdef tzinfo process_datetime(self, datetime dt, tzinfo tz, bint utc_convert):
+        if dt.tzinfo is not None:
+            self.found_tz = True
+        else:
+            self.found_naive = True
+        tz = convert_timezone(
+            dt.tzinfo,
+            tz,
+            self.found_naive,
+            self.found_tz,
+            utc_convert,
+        )
+        return tz
+
+
 def array_strptime(
     ndarray[object] values,
     str fmt,
@@ -187,13 +207,12 @@ def array_strptime(
         bint is_raise = errors=="raise"
         bint is_ignore = errors=="ignore"
         bint is_coerce = errors=="coerce"
-        bint found_naive = False
-        bint found_tz = False
         tzinfo tz_out = None
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT out_bestunit
         int out_local = 0, out_tzoffset = 0
         bint string_to_dts_succeeded = 0
+        ParseState state = ParseState()
 
     assert is_raise or is_ignore or is_coerce
 
@@ -280,17 +299,7 @@ def array_strptime(
                 iresult[i] = NPY_NAT
                 continue
             elif PyDateTime_Check(val):
-                if val.tzinfo is not None:
-                    found_tz = True
-                else:
-                    found_naive = True
-                tz_out = convert_timezone(
-                    val.tzinfo,
-                    tz_out,
-                    found_naive,
-                    found_tz,
-                    utc,
-                )
+                tz_out = state.process_datetime(val, tz_out, utc)
                 if isinstance(val, _Timestamp):
                     iresult[i] = val.tz_localize(None).as_unit("ns")._value
                 else:
