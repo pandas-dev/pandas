@@ -696,7 +696,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
 
             if using_copy_on_write():

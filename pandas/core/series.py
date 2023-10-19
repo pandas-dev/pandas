@@ -404,7 +404,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
             if using_copy_on_write():
                 data = data.copy(deep=False)
@@ -443,7 +443,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
 
             if copy:
@@ -462,7 +462,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
 
         name = ibase.maybe_extract_name(name, data, type(self))
@@ -536,7 +536,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
                 allow_mgr = True
 
