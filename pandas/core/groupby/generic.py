@@ -236,9 +236,11 @@ class SeriesGroupBy(GroupBy[Series]):
             kwargs = {}
 
         if isinstance(func, str):
-            if maybe_use_numba(engine):
+            if maybe_use_numba(engine) and engine is not None:
                 # Not all agg functions support numba, only propagate numba kwargs
-                # if user asks for numba
+                # if user asks for numba, and engine is not None
+                # (if engine is None, the called function will handle the case where
+                # numba is requested via the global option)
                 kwargs["engine"] = engine
                 kwargs["engine_kwargs"] = engine_kwargs
             return getattr(self, func)(*args, **kwargs)
