@@ -525,7 +525,7 @@ See the :ref:`Grouping section <groupby>`.
    df
 
 Grouping by a column label, selecting column labels, and then applying the
-:meth:`~pandas.core.groupby.DataFrameGroupBy.sum` function to the resulting
+:meth:`.DataFrameGroupBy.sum` function to the resulting
 groups:
 
 .. ipython:: python
@@ -763,12 +763,14 @@ Parquet
 Writing to a Parquet file:
 
 .. ipython:: python
+   :okwarning:
 
    df.to_parquet("foo.parquet")
 
 Reading from a Parquet file Store using :func:`read_parquet`:
 
 .. ipython:: python
+   :okwarning:
 
    pd.read_parquet("foo.parquet")
 

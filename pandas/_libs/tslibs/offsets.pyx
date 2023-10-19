@@ -961,7 +961,12 @@ cdef class Tick(SingleConstructorOffset):
 
     @property
     def delta(self):
-        return self.n * Timedelta(self._nanos_inc)
+        try:
+            return self.n * Timedelta(self._nanos_inc)
+        except OverflowError as err:
+            # GH#55503 as_unit will raise a more useful OutOfBoundsTimedelta
+            Timedelta(self).as_unit("ns")
+            raise AssertionError("This should not be reached.")
 
     @property
     def nanos(self) -> int64_t:
@@ -2930,7 +2935,7 @@ cdef class BusinessMonthEnd(MonthOffset):
     >>> pd.offsets.BMonthEnd().rollforward(ts)
     Timestamp('2022-11-30 00:00:00')
     """
-    _prefix = "BM"
+    _prefix = "BME"
     _day_opt = "business_end"
 
 
@@ -4460,10 +4465,10 @@ cdef class CustomBusinessMonthEnd(_CustomBusinessMonth):
     >>> freq = pd.offsets.CustomBusinessMonthEnd(calendar=bdc)
     >>> pd.date_range(dt.datetime(2022, 7, 10), dt.datetime(2022, 11, 10), freq=freq)
     DatetimeIndex(['2022-07-29', '2022-08-31', '2022-09-29', '2022-10-28'],
-                   dtype='datetime64[ns]', freq='CBM')
+                   dtype='datetime64[ns]', freq='CBME')
     """
 
-    _prefix = "CBM"
+    _prefix = "CBME"
 
 
 cdef class CustomBusinessMonthBegin(_CustomBusinessMonth):
@@ -4546,12 +4551,12 @@ prefix_mapping = {
         BYearEnd,  # 'BY'
         BusinessDay,  # 'B'
         BusinessMonthBegin,  # 'BMS'
-        BusinessMonthEnd,  # 'BM'
+        BusinessMonthEnd,  # 'BME'
         BQuarterEnd,  # 'BQ'
         BQuarterBegin,  # 'BQS'
         BusinessHour,  # 'bh'
         CustomBusinessDay,  # 'C'
-        CustomBusinessMonthEnd,  # 'CBM'
+        CustomBusinessMonthEnd,  # 'CBME'
         CustomBusinessMonthBegin,  # 'CBMS'
         CustomBusinessHour,  # 'cbh'
         MonthEnd,  # 'ME'

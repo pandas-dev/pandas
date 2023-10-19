@@ -313,8 +313,14 @@ class SeriesFormatter:
         if len(series) == 0:
             return f"{type(self.series).__name__}([], {footer})"
 
-        have_header = _has_names(series.index)
-        fmt_index = self.tr_series.index.format(name=True)
+        index = series.index
+        have_header = _has_names(index)
+        if isinstance(index, MultiIndex):
+            fmt_index = index._format_multi(include_names=True, sparsify=None)
+            adj = printing.get_adjustment()
+            fmt_index = adj.adjoin(2, *fmt_index).split("\n")
+        else:
+            fmt_index = index._format_flat(include_name=True)
         fmt_values = self._get_formatted_values()
 
         if self.is_truncated_vertically:
@@ -777,7 +783,7 @@ class DataFrameFormatter:
         columns = frame.columns
 
         if isinstance(columns, MultiIndex):
-            fmt_columns = columns.format(sparsify=False, adjoin=False)
+            fmt_columns = columns._format_multi(sparsify=False, include_names=False)
             fmt_columns = list(zip(*fmt_columns))
             dtypes = self.frame.dtypes._values
 
@@ -802,7 +808,7 @@ class DataFrameFormatter:
 
             str_columns = [list(x) for x in zip(*str_columns)]
         else:
-            fmt_columns = columns.format()
+            fmt_columns = columns._format_flat(include_name=False)
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
@@ -821,14 +827,15 @@ class DataFrameFormatter:
         fmt = self._get_formatter("__index__")
 
         if isinstance(index, MultiIndex):
-            fmt_index = index.format(
+            fmt_index = index._format_multi(
                 sparsify=self.sparsify,
-                adjoin=False,
-                names=self.show_row_idx_names,
+                include_names=self.show_row_idx_names,
                 formatter=fmt,
             )
         else:
-            fmt_index = [index.format(name=self.show_row_idx_names, formatter=fmt)]
+            fmt_index = [
+                index._format_flat(include_name=self.show_row_idx_names, formatter=fmt)
+            ]
 
         fmt_index = [
             tuple(
@@ -1105,7 +1112,7 @@ def format_array(
         the leading space to pad between columns.
 
         When formatting an Index subclass
-        (e.g. IntervalIndex._format_native_types), we don't want the
+        (e.g. IntervalIndex._get_values_for_csv), we don't want the
         leading space since it should be left-aligned.
     fallback_formatter
 
