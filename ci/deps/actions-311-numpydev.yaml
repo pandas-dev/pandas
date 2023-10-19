@@ -8,7 +8,7 @@ dependencies:
   - versioneer[toml]
   - meson[ninja]=1.2.1
   - meson-python=0.13.1
-  - cython>=0.29.33, <3.0.3
+  - cython>=0.29.33
 
   # test dependencies
   - pytest>=7.3.2
@@ -29,5 +29,4 @@ dependencies:
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
     - "--pre"
     - "numpy"
-    - "scipy"
     - "tzdata>=2022.7"
