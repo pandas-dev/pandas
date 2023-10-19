@@ -30,6 +30,9 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
 
 #if defined(_WIN32)
+#  ifndef ENABLE_INTSAFE_SIGNED_FUNCTIONS
+#    define ENABLE_INTSAFE_SIGNED_FUNCTIONS
+#  endif
 #  include <intsafe.h>
 #  define checked_int64_add(a, b, res) LongLongAdd(a, b, res)
 #  define checked_int64_sub(a, b, res) LongLongSub(a, b, res)
@@ -66,9 +69,11 @@ _Static_assert(0, "__has_builtin not detected; please try a newer compiler");
 #  endif
 #endif
 
-// CHECK_OVERFLOW can be used in functions which define a
-// OVERFLOW_OCCURRED goto label
-#define CHECK_OVERFLOW(FUNC) do { if ((FUNC) != 0) goto OVERFLOW_OCCURRED; } while (0)
+#define PD_CHECK_OVERFLOW(FUNC) do { if ((FUNC) != 0) {                     \
+    PyErr_SetString(PyExc_OverflowError,                                    \
+                    "Overflow occurred in npy_datetimestruct_to_datetime"); \
+    return -1;                                                              \
+}} while (0)
 
 const int days_per_month_table[2][12] = {
     {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
@@ -414,18 +419,18 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
                                             const npy_datetimestruct *dts) {
     if ((base == NPY_FR_Y) || (base == NPY_FR_M)) {
       int64_t years;
-      CHECK_OVERFLOW(scaleYearToEpoch(dts->year, &years));
+      PD_CHECK_OVERFLOW(scaleYearToEpoch(dts->year, &years));
 
       if (base == NPY_FR_Y) {
         return years;
       }
 
       int64_t months;
-      CHECK_OVERFLOW(scaleYearsToMonths(years, &months));
+      PD_CHECK_OVERFLOW(scaleYearsToMonths(years, &months));
 
       int64_t months_adder;
-      CHECK_OVERFLOW(checked_int64_sub(dts->month, 1, &months_adder));
-      CHECK_OVERFLOW(checked_int64_add(months, months_adder, &months));
+      PD_CHECK_OVERFLOW(checked_int64_sub(dts->month, 1, &months_adder));
+      PD_CHECK_OVERFLOW(checked_int64_add(months, months_adder, &months));
 
       if (base == NPY_FR_M) {
         return months;
@@ -439,13 +444,13 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
     if (base == NPY_FR_W) {
       int64_t weeks;
-      CHECK_OVERFLOW(scaleDaysToWeeks(days, &weeks));
+      PD_CHECK_OVERFLOW(scaleDaysToWeeks(days, &weeks));
       return weeks;
     }
 
     int64_t hours;
-    CHECK_OVERFLOW(scaleDaysToHours(days, &hours));
-    CHECK_OVERFLOW(checked_int64_add(hours, dts->hour, &hours));
+    PD_CHECK_OVERFLOW(scaleDaysToHours(days, &hours));
+    PD_CHECK_OVERFLOW(checked_int64_add(hours, dts->hour, &hours));
 
     if (base == NPY_FR_h) {
       return hours;
@@ -453,16 +458,16 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
 
     int64_t minutes;
-    CHECK_OVERFLOW(scaleHoursToMinutes(hours, &minutes));
-    CHECK_OVERFLOW(checked_int64_add(minutes, dts->min, &minutes));
+    PD_CHECK_OVERFLOW(scaleHoursToMinutes(hours, &minutes));
+    PD_CHECK_OVERFLOW(checked_int64_add(minutes, dts->min, &minutes));
 
     if (base == NPY_FR_m) {
       return minutes;
     }
 
     int64_t seconds;
-    CHECK_OVERFLOW(scaleMinutesToSeconds(minutes, &seconds));
-    CHECK_OVERFLOW(checked_int64_add(seconds, dts->sec, &seconds));
+    PD_CHECK_OVERFLOW(scaleMinutesToSeconds(minutes, &seconds));
+    PD_CHECK_OVERFLOW(checked_int64_add(seconds, dts->sec, &seconds));
 
     if (base == NPY_FR_s) {
       return seconds;
@@ -470,15 +475,15 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
     if (base == NPY_FR_ms) {
       int64_t milliseconds;
-      CHECK_OVERFLOW(scaleSecondsToMilliseconds(seconds, &milliseconds));
-      CHECK_OVERFLOW(checked_int64_add(milliseconds, dts->us / 1000, &milliseconds));
+      PD_CHECK_OVERFLOW(scaleSecondsToMilliseconds(seconds, &milliseconds));
+      PD_CHECK_OVERFLOW(checked_int64_add(milliseconds, dts->us / 1000, &milliseconds));
 
       return milliseconds;
     }
 
     int64_t microseconds;
-    CHECK_OVERFLOW(scaleSecondsToMicroseconds(seconds, &microseconds));
-    CHECK_OVERFLOW(checked_int64_add(microseconds, dts->us, &microseconds));
+    PD_CHECK_OVERFLOW(scaleSecondsToMicroseconds(seconds, &microseconds));
+    PD_CHECK_OVERFLOW(checked_int64_add(microseconds, dts->us, &microseconds));
 
     if (base == NPY_FR_us) {
       return microseconds;
@@ -486,15 +491,15 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
     if (base == NPY_FR_ns) {
       int64_t nanoseconds;
-      CHECK_OVERFLOW(scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
-      CHECK_OVERFLOW(checked_int64_add(nanoseconds, dts->ps / 1000, &nanoseconds));
+      PD_CHECK_OVERFLOW(scaleMicrosecondsToNanoseconds(microseconds, &nanoseconds));
+      PD_CHECK_OVERFLOW(checked_int64_add(nanoseconds, dts->ps / 1000, &nanoseconds));
 
       return nanoseconds;
     }
 
     int64_t picoseconds;
-    CHECK_OVERFLOW(scaleMicrosecondsToPicoseconds(microseconds, &picoseconds));
-    CHECK_OVERFLOW(checked_int64_add(picoseconds, dts->ps, &picoseconds));
+    PD_CHECK_OVERFLOW(scaleMicrosecondsToPicoseconds(microseconds, &picoseconds));
+    PD_CHECK_OVERFLOW(checked_int64_add(picoseconds, dts->ps, &picoseconds));
 
     if (base == NPY_FR_ps) {
       return picoseconds;
@@ -502,26 +507,21 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
 
     if (base == NPY_FR_fs) {
       int64_t femtoseconds;
-      CHECK_OVERFLOW(scalePicosecondsToFemtoseconds(picoseconds, &femtoseconds));
-      CHECK_OVERFLOW(checked_int64_add(femtoseconds, dts->as / 1000, &femtoseconds));
+      PD_CHECK_OVERFLOW(scalePicosecondsToFemtoseconds(picoseconds, &femtoseconds));
+      PD_CHECK_OVERFLOW(checked_int64_add(femtoseconds, dts->as / 1000, &femtoseconds));
       return femtoseconds;
     }
 
     if (base == NPY_FR_as) {
       int64_t attoseconds;
-      CHECK_OVERFLOW(scalePicosecondsToAttoseconds(picoseconds, &attoseconds));
-      CHECK_OVERFLOW(checked_int64_add(attoseconds, dts->as, &attoseconds));
+      PD_CHECK_OVERFLOW(scalePicosecondsToAttoseconds(picoseconds, &attoseconds));
+      PD_CHECK_OVERFLOW(checked_int64_add(attoseconds, dts->as, &attoseconds));
       return attoseconds;
     }
 
     /* Something got corrupted */
     PyErr_SetString(PyExc_ValueError,
                     "NumPy datetime metadata with corrupt unit value");
-    return -1;
-
-OVERFLOW_OCCURRED:
-    PyErr_SetString(PyExc_OverflowError,
-                    "Overflow occurred in npy_datetimestruct_to_datetime");
     return -1;
 }
 
