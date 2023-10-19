@@ -266,7 +266,7 @@ For more information about :meth:`~DataFrame.pivot_table`, see the user guide se
 
     ::
 
-        air_quality.groupby(["parameter", "location"]).mean()
+        air_quality.groupby(["parameter", "location"])[["value"]].mean()
 
 .. raw:: html
 
