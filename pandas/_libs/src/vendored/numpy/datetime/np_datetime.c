@@ -36,7 +36,7 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #  include <intsafe.h>
 #  define checked_int64_add(a, b, res) LongLongAdd(a, b, res)
 #  define checked_int64_sub(a, b, res) LongLongSub(a, b, res)
-#  define checked_int64_mul(a, b, res) LongLongMul(a, b, res)
+#  define checked_int64_mul(a, b, res) LongLongMult(a, b, res)
 #else
 #  if defined __has_builtin
 #    if __has_builtin(__builtin_add_overflow)
