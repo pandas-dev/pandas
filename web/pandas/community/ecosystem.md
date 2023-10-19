@@ -522,7 +522,7 @@ matrices of genome sequencing data.
 
 It is often easiest to use pandas to manipulate the summary statistics or
 other small aggregates produced by Hail. For this reason, Hail provides
-native import to and export from Pandas DataFrames:
+native import to and export from pandas DataFrames:
 
 - [`Table.from_pandas`](https://hail.is/docs/0.2/hail.Table.html#hail.Table.from_pandas)
 - [`Table.to_pandas`](https://hail.is/docs/0.2/hail.Table.html#hail.Table.to_pandas)
