@@ -520,7 +520,7 @@ in-memory data formats, an expression compiler, a query planner, and a
 distributed sort algorithm all designed to accelerate queries on large
 matrices of genome sequencing data.
 
-It is often easiest to use Pandas to manipulate the summary statistics or
+It is often easiest to use pandas to manipulate the summary statistics or
 other small aggregates produced by Hail. For this reason, Hail provides
 native import to and export from Pandas DataFrames:
 
