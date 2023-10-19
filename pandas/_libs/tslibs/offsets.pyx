@@ -25,6 +25,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    is_datetime64_object,
     ndarray,
 )
 
@@ -36,7 +37,6 @@ from pandas._libs.properties import cache_readonly
 
 from pandas._libs.tslibs cimport util
 from pandas._libs.tslibs.util cimport (
-    is_datetime64_object,
     is_float_object,
     is_integer_object,
 )
@@ -155,7 +155,7 @@ def apply_wraps(func):
         elif (
             isinstance(other, BaseOffset)
             or PyDelta_Check(other)
-            or util.is_timedelta64_object(other)
+            or cnp.is_timedelta64_object(other)
         ):
             # timedelta path
             return func(self, other)
@@ -762,7 +762,7 @@ cdef class BaseOffset:
         TypeError if `int(n)` raises
         ValueError if n != int(n)
         """
-        if util.is_timedelta64_object(n):
+        if cnp.is_timedelta64_object(n):
             raise TypeError(f"`n` argument must be an integer, got {type(n)}")
         try:
             nint = int(n)
@@ -1091,7 +1091,7 @@ cdef class Tick(SingleConstructorOffset):
             # PyDate_Check includes date, datetime
             return Timestamp(other) + self
 
-        if util.is_timedelta64_object(other) or PyDelta_Check(other):
+        if cnp.is_timedelta64_object(other) or PyDelta_Check(other):
             return other + self.delta
 
         raise ApplyTypeError(f"Unhandled type: {type(other).__name__}")
@@ -3288,7 +3288,8 @@ cdef class Week(SingleConstructorOffset):
     def _apply_array(self, dtarr):
         if self.weekday is None:
             td = timedelta(days=7 * self.n)
-            td64 = np.timedelta64(td, "ns")
+            unit = np.datetime_data(dtarr.dtype)[0]
+            td64 = np.timedelta64(td, unit)
             return dtarr + td64
         else:
             reso = get_unit_from_dtype(dtarr.dtype)
