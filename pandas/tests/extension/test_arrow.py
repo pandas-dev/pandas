@@ -3017,6 +3017,14 @@ def test_arrowextensiondtype_dataframe_repr():
     assert result == expected
 
 
+def test_pow_missing_operand():
+    # GH 55512
+    k = pd.Series([2, None], dtype="int64[pyarrow]")
+    result = k.pow(None, fill_value=3)
+    expected = pd.Series([8, None], dtype="int64[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize("pa_type", tm.TIMEDELTA_PYARROW_DTYPES)
 def test_duration_fillna_numpy(pa_type):
     # GH 54707
