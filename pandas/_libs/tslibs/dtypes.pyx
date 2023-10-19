@@ -188,7 +188,7 @@ cdef dict _abbrev_to_attrnames = {v: k for k, v in attrname_to_abbrevs.items()}
 OFFSET_TO_PERIOD_FREQSTR: dict = {
     "WEEKDAY": "D",
     "EOM": "M",
-    "BM": "M",
+    "BME": "M",
     "BQS": "Q",
     "QS": "Q",
     "BQ": "Q",
@@ -280,6 +280,8 @@ DEPR_ABBREVS: dict[str, str]= {
     "BAS-SEP": "BYS-SEP",
     "BAS-OCT": "BYS-OCT",
     "BAS-NOV": "BYS-NOV",
+    "BM": "BME",
+    "CBM": "CBME",
     "H": "h",
     "BH": "bh",
     "CBH": "cbh",
