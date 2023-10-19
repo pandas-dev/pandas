@@ -303,6 +303,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
 - Bug in :meth:`Tick.delta` with very large ticks raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
 - Bug in adding or subtracting a :class:`Week` offset to a ``datetime64`` :class:`Series`, :class:`Index`, or :class:`DataFrame` column with non-nanosecond resolution returning incorrect results (:issue:`55583`)
+- Bug in addition or subtraction of :class:`DateOffset` objects with microsecond components to ``datetime64`` :class:`Index`, :class:`Series`, or :class:`DataFrame` columns with non-nanosecond resolution (:issue:`55595`)
 - Bug in addition or subtraction of very large :class:`Tick` objects with :class:`Timestamp` or :class:`Timedelta` objects raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
 -
 
