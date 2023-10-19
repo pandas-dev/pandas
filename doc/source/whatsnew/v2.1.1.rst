@@ -1,6 +1,6 @@
 .. _whatsnew_211:
 
-What's new in 2.1.1 (September XX, 2023)
+What's new in 2.1.1 (September 20, 2023)
 ----------------------------------------
 
 These are the changes in pandas 2.1.1. See :ref:`release` for a full changelog
@@ -26,6 +26,7 @@ Fixed regressions
 - Fixed regression in :meth:`Series.drop_duplicates` for PyArrow strings (:issue:`54904`)
 - Fixed regression in :meth:`Series.interpolate` raising when ``fill_value`` was given (:issue:`54920`)
 - Fixed regression in :meth:`Series.value_counts` raising for numeric data if ``bins`` was specified (:issue:`54857`)
+- Fixed regression in comparison operations for PyArrow backed columns not propagating exceptions correctly (:issue:`54944`)
 - Fixed regression when comparing a :class:`Series` with ``datetime64`` dtype with ``None`` (:issue:`54870`)
 
 .. ---------------------------------------------------------------------------
@@ -43,10 +44,12 @@ Bug fixes
 
 Other
 ~~~~~
--
+- Reverted the deprecation that disallowed :meth:`Series.apply` returning a :class:`DataFrame` when the passed-in callable returns a :class:`Series` object (:issue:`52116`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_211.contributors:
 
 Contributors
 ~~~~~~~~~~~~
+
+.. contributors:: v2.1.0..v2.1.1|HEAD

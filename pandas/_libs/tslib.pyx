@@ -23,6 +23,7 @@ import_datetime()
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    is_datetime64_object,
     ndarray,
 )
 
@@ -47,7 +48,6 @@ import_pandas_datetime()
 
 from pandas._libs.tslibs.strptime cimport parse_today_now
 from pandas._libs.util cimport (
-    is_datetime64_object,
     is_float_object,
     is_integer_object,
 )
@@ -455,18 +455,19 @@ cpdef array_to_datetime(
         set out_tzoffset_vals = set()
         tzinfo tz_out = None
         bint found_tz = False, found_naive = False
-        cnp.broadcast mi
+        cnp.flatiter it = cnp.PyArray_IterNew(values)
+        NPY_DATETIMEUNIT creso = NPY_FR_ns
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
     result = np.empty((<object>values).shape, dtype="M8[ns]")
-    mi = cnp.PyArray_MultiIterNew2(result, values)
     iresult = result.view("i8").ravel()
 
     for i in range(n):
         # Analogous to `val = values[i]`
-        val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+        val = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
+        cnp.PyArray_ITER_NEXT(it)
 
         try:
             if checknull_with_nat_and_na(val):
@@ -484,7 +485,7 @@ cpdef array_to_datetime(
                     found_tz,
                     utc_convert,
                 )
-                iresult[i] = parse_pydatetime(val, &dts, utc_convert)
+                iresult[i] = parse_pydatetime(val, &dts, utc_convert, creso=creso)
 
             elif PyDate_Check(val):
                 iresult[i] = pydate_to_dt64(val, &dts)
@@ -510,7 +511,6 @@ cpdef array_to_datetime(
                 if parse_today_now(val, &iresult[i], utc):
                     # We can't _quite_ dispatch this to convert_str_to_tsobject
                     #  bc there isn't a nice way to pass "utc"
-                    cnp.PyArray_MultiIter_NEXT(mi)
                     continue
 
                 _ts = convert_str_to_tsobject(
@@ -539,13 +539,10 @@ cpdef array_to_datetime(
             else:
                 raise TypeError(f"{type(val)} is not convertible to datetime")
 
-            cnp.PyArray_MultiIter_NEXT(mi)
-
         except (TypeError, OverflowError, ValueError) as ex:
             ex.args = (f"{ex}, at position {i}",)
             if is_coerce:
                 iresult[i] = NPY_NAT
-                cnp.PyArray_MultiIter_NEXT(mi)
                 continue
             elif is_raise:
                 raise

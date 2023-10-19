@@ -586,15 +586,26 @@ class TestHelpFunctions:
         expected = (np.arange(N) + N).astype(dtype)
         values = np.repeat(expected, 5)
         values.flags.writeable = writable
-        keys, counts = ht.value_count(values, False)
+        keys, counts, _ = ht.value_count(values, False)
         tm.assert_numpy_array_equal(np.sort(keys), expected)
         assert np.all(counts == 5)
+
+    def test_value_count_mask(self, dtype):
+        if dtype == np.object_:
+            pytest.skip("mask not implemented for object dtype")
+        values = np.array([1] * 5, dtype=dtype)
+        mask = np.zeros((5,), dtype=np.bool_)
+        mask[1] = True
+        mask[4] = True
+        keys, counts, na_counter = ht.value_count(values, False, mask=mask)
+        assert len(keys) == 2
+        assert na_counter == 2
 
     def test_value_count_stable(self, dtype, writable):
         # GH12679
         values = np.array([2, 1, 5, 22, 3, -1, 8]).astype(dtype)
         values.flags.writeable = writable
-        keys, counts = ht.value_count(values, False)
+        keys, counts, _ = ht.value_count(values, False)
         tm.assert_numpy_array_equal(keys, values)
         assert np.all(counts == 1)
 
@@ -685,9 +696,9 @@ def test_unique_label_indices():
 class TestHelpFunctionsWithNans:
     def test_value_count(self, dtype):
         values = np.array([np.nan, np.nan, np.nan], dtype=dtype)
-        keys, counts = ht.value_count(values, True)
+        keys, counts, _ = ht.value_count(values, True)
         assert len(keys) == 0
-        keys, counts = ht.value_count(values, False)
+        keys, counts, _ = ht.value_count(values, False)
         assert len(keys) == 1 and np.all(np.isnan(keys))
         assert counts[0] == 3
 
