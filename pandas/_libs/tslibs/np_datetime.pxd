@@ -65,7 +65,7 @@ cdef extern from "pandas/datetime/pd_datetime.h":
                                            npy_datetimestruct *result) nogil
 
     npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT fr,
-                                                npy_datetimestruct *d) nogil except? -1
+                                                npy_datetimestruct *d) except? -1 nogil
 
     void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                              NPY_DATETIMEUNIT fr,
