@@ -831,12 +831,12 @@ class FrameApply(NDFrameApply):
         for colname, dtype in self.obj.dtypes.items():
             if not is_numeric_dtype(dtype):
                 raise ValueError(
-                    f"Column {colname} must have a numeric dtype."
+                    f"Column {colname} must have a numeric dtype. "
                     f"Found '{dtype}' instead"
                 )
             if is_extension_array_dtype(dtype):
                 raise ValueError(
-                    f"Column {colname} is backed by an extension array,"
+                    f"Column {colname} is backed by an extension array, "
                     f"which is not supported by the numba engine."
                 )
 
