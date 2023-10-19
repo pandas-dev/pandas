@@ -1649,7 +1649,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     if seen_val is False and skipna:
         return "empty"
 
-    if util.is_datetime64_object(val):
+    if cnp.is_datetime64_object(val):
         if is_datetime64_array(values, skipna=skipna):
             return "datetime64"
 
@@ -1733,7 +1733,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
 
 cdef bint is_timedelta(object o):
-    return PyDelta_Check(o) or util.is_timedelta64_object(o)
+    return PyDelta_Check(o) or cnp.is_timedelta64_object(o)
 
 
 @cython.internal
@@ -2020,7 +2020,7 @@ cpdef bint is_datetime_array(ndarray values, bint skipna=True):
 @cython.internal
 cdef class Datetime64Validator(DatetimeValidator):
     cdef bint is_value_typed(self, object value) except -1:
-        return util.is_datetime64_object(value)
+        return cnp.is_datetime64_object(value)
 
 
 # Note: only python-exposed for tests
@@ -2034,7 +2034,7 @@ cpdef bint is_datetime64_array(ndarray values, bint skipna=True):
 @cython.internal
 cdef class AnyDatetimeValidator(DatetimeValidator):
     cdef bint is_value_typed(self, object value) except -1:
-        return util.is_datetime64_object(value) or (
+        return cnp.is_datetime64_object(value) or (
             PyDateTime_Check(value) and value.tzinfo is None
         )
 
@@ -2617,7 +2617,7 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.complex_ = True
             if not convert_numeric:
                 break
-        elif PyDateTime_Check(val) or util.is_datetime64_object(val):
+        elif PyDateTime_Check(val) or cnp.is_datetime64_object(val):
 
             # if we have an tz's attached then return the objects
             if convert_non_numeric:

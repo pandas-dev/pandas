@@ -16,6 +16,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    is_datetime64_object,
     ndarray,
     uint8_t,
 )
@@ -65,7 +66,6 @@ from pandas._libs.tslibs.dtypes cimport (
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
-    is_datetime64_object,
     is_integer_object,
 )
 

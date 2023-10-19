@@ -23,6 +23,7 @@ import_datetime()
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    is_datetime64_object,
     ndarray,
 )
 
@@ -47,7 +48,6 @@ import_pandas_datetime()
 
 from pandas._libs.tslibs.strptime cimport parse_today_now
 from pandas._libs.util cimport (
-    is_datetime64_object,
     is_float_object,
     is_integer_object,
 )

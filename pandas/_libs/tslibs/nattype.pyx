@@ -67,7 +67,7 @@ def _make_error_func(func_name: str, cls):
 
 
 cdef _nat_divide_op(self, other):
-    if PyDelta_Check(other) or util.is_timedelta64_object(other) or other is c_NaT:
+    if PyDelta_Check(other) or cnp.is_timedelta64_object(other) or other is c_NaT:
         return np.nan
     if util.is_integer_object(other) or util.is_float_object(other):
         return c_NaT
@@ -95,11 +95,11 @@ cdef class _NaT(datetime):
     __array_priority__ = 100
 
     def __richcmp__(_NaT self, object other, int op):
-        if util.is_datetime64_object(other) or PyDateTime_Check(other):
+        if cnp.is_datetime64_object(other) or PyDateTime_Check(other):
             # We treat NaT as datetime-like for this comparison
             return op == Py_NE
 
-        elif util.is_timedelta64_object(other) or PyDelta_Check(other):
+        elif cnp.is_timedelta64_object(other) or PyDelta_Check(other):
             # We treat NaT as timedelta-like for this comparison
             return op == Py_NE
 
@@ -137,7 +137,7 @@ cdef class _NaT(datetime):
             return c_NaT
         elif PyDelta_Check(other):
             return c_NaT
-        elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
+        elif cnp.is_datetime64_object(other) or cnp.is_timedelta64_object(other):
             return c_NaT
 
         elif util.is_integer_object(other):
@@ -175,7 +175,7 @@ cdef class _NaT(datetime):
             return c_NaT
         elif PyDelta_Check(other):
             return c_NaT
-        elif util.is_datetime64_object(other) or util.is_timedelta64_object(other):
+        elif cnp.is_datetime64_object(other) or cnp.is_timedelta64_object(other):
             return c_NaT
 
         elif util.is_integer_object(other):
@@ -1438,7 +1438,7 @@ cdef bint is_dt64nat(object val):
     """
     Is this a np.datetime64 object np.datetime64("NaT").
     """
-    if util.is_datetime64_object(val):
+    if cnp.is_datetime64_object(val):
         return get_datetime64_value(val) == NPY_NAT
     return False
 
@@ -1447,6 +1447,6 @@ cdef bint is_td64nat(object val):
     """
     Is this a np.timedelta64 object np.timedelta64("NaT").
     """
-    if util.is_timedelta64_object(val):
+    if cnp.is_timedelta64_object(val):
         return get_timedelta64_value(val) == NPY_NAT
     return False

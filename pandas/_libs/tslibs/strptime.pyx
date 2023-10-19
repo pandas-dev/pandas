@@ -25,6 +25,7 @@ from cpython.datetime cimport (
     timedelta,
     tzinfo,
 )
+
 from _strptime import (
     TimeRE as _TimeRE,
     _getlang,
@@ -42,6 +43,7 @@ import pytz
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    is_datetime64_object,
     ndarray,
 )
 
@@ -69,9 +71,9 @@ from pandas._libs.tslibs.np_datetime cimport (
 import_pandas_datetime()
 
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.util cimport (
-    is_datetime64_object,
     is_float_object,
     is_integer_object,
 )
