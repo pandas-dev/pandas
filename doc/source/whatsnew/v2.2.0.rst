@@ -325,8 +325,8 @@ Numeric
 
 Conversion
 ^^^^^^^^^^
-- Bug in :meth:`Series.convert_dtypes` not converting all NA column to ``null[pyarrow]`` (:issue:`55346`)
 - Bug in :func:`astype` when called with ``str`` on unpickled array - the array might change in-place (:issue:`54654`)
+- Bug in :meth:`Series.convert_dtypes` not converting all NA column to ``null[pyarrow]`` (:issue:`55346`)
 -
 
 Strings
