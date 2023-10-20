@@ -1,15 +1,11 @@
 """
 Tests for DatetimeIndex methods behaving like their Timestamp counterparts
 """
-from datetime import datetime
 
 import pytest
 
-from pandas._libs.tslibs import OutOfBoundsDatetime
-
 import pandas as pd
 from pandas import (
-    DatetimeIndex,
     Timestamp,
     date_range,
 )
@@ -28,16 +24,6 @@ class TestDatetimeIndexOps:
         result = pd.Index(rng).date
         expected = [t.date() for t in rng]
         assert (result == expected).all()
-
-    @pytest.mark.parametrize("data", [["1400-01-01"], [datetime(1400, 1, 1)]])
-    def test_dti_date_out_of_range(self, data):
-        # GH#1475
-        msg = (
-            "^Out of bounds nanosecond timestamp: "
-            "1400-01-01( 00:00:00)?, at position 0$"
-        )
-        with pytest.raises(OutOfBoundsDatetime, match=msg):
-            DatetimeIndex(data)
 
     @pytest.mark.parametrize(
         "field",
