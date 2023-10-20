@@ -232,6 +232,28 @@ For example:
 
     pd.date_range('2020-01-01', periods=3, freq='ME')
 
+Deprecate alias ``Q`` in favour of ``QE`` for offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The alias ``Q`` is deprecated in favour of ``QE`` for offsets, please use ``QE`` for "quarter end" instead of ``Q`` (:issue:`9586`)
+
+For example:
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [8]: pd.date_range('2020-01-01', periods=3, freq='Q-NOV')
+    Out[8]:
+    DatetimeIndex(['2020-02-29', '2020-05-31', '2020-08-31'],
+                  dtype='datetime64[ns]', freq='Q-NOV')
+
+*Future behavior*:
+
+.. ipython:: python
+
+    pd.date_range('2020-01-01', periods=3, freq='QE-NOV')
+
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
 - Changed :meth:`Timedelta.resolution_string` to return ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns`` instead of ``H``, ``T``, ``S``, ``L``, ``U``, and ``N``, for compatibility with respective deprecations in frequency aliases (:issue:`52536`)
