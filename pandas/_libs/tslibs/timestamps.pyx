@@ -581,7 +581,12 @@ cdef class _Timestamp(ABCTimestamp):
 
         if own_tz is not None and not is_utc(own_tz):
             pydatetime_to_dtstruct(self, &dts)
-            val = npy_datetimestruct_to_datetime(self._creso, &dts) + self.nanosecond
+            try:
+                # TODO: can + self.nanosecond also overflow here?
+                val = npy_datetimestruct_to_datetime(
+                    self._creso, &dts) + self.nanosecond
+            except OverflowError as e:
+                raise OutOfBoundsDatetime from e
         else:
             val = self._value
         return val
@@ -2495,7 +2500,10 @@ default 'raise'
             #  to datetimes outside of pydatetime range.
             ts = _TSObject()
             check_dts_bounds(&dts, self._creso)
-            ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
+            try:
+                ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
+            except OverflowError as e:
+                raise OutOfBoundsDatetime from e
             ts.dts = dts
             ts.creso = self._creso
             ts.fold = fold

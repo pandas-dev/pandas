@@ -207,7 +207,10 @@ cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
     if unit != reso:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
         check_dts_bounds(&dts, reso)
-        ival = npy_datetimestruct_to_datetime(reso, &dts)
+        try:
+            ival = npy_datetimestruct_to_datetime(reso, &dts)
+        except OverflowError as e:
+            raise OutOfBoundsDatetime
 
     return ival
 
@@ -398,7 +401,10 @@ cdef _TSObject convert_datetime_to_tsobject(
     if nanos:
         obj.dts.ps = nanos * 1000
 
-    obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
+    try:
+        obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
+    except OverflowError as e:
+        raise OutOfBoundsDatetime from e
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
         offset = get_utcoffset(obj.tzinfo, ts)
@@ -435,7 +441,10 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
         datetime dt
         Py_ssize_t pos
 
-    value = npy_datetimestruct_to_datetime(reso, &dts)
+    try:
+        value = npy_datetimestruct_to_datetime(reso, &dts)
+    except OverflowError as e:
+        raise OutOfBoundsDatetime from e
     obj.dts = dts
     obj.tzinfo = timezone(timedelta(minutes=tzoffset))
     obj.value = tz_localize_to_utc_single(
@@ -531,7 +540,10 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
                     dts, out_tzoffset, tz, reso
                 )
             else:
-                ival = npy_datetimestruct_to_datetime(reso, &dts)
+                try:
+                    ival = npy_datetimestruct_to_datetime(reso, &dts)
+                except OverflowError as e:
+                    raise OutOfBoundsDatetime from e
                 if tz is not None:
                     # shift for _localize_tso
                     ival = tz_localize_to_utc_single(

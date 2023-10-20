@@ -327,7 +327,10 @@ def array_strptime(
             if string_to_dts_succeeded:
                 # No error reported by string_to_dts, pick back up
                 # where we left off
-                value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
+                try:
+                    value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
+                except OverflowError as e:
+                    raise OutOfBoundsDatetime from e
                 if out_local == 1:
                     # Store the out_tzoffset in seconds
                     # since we store the total_seconds of
@@ -337,7 +340,6 @@ def array_strptime(
                     out_local = 0
                     out_tzoffset = 0
                 iresult[i] = value
-                check_dts_bounds(&dts)
                 continue
 
             if parse_today_now(val, &iresult[i], utc):
@@ -515,8 +517,10 @@ def array_strptime(
             dts.us = us
             dts.ps = ns * 1000
 
-            iresult[i] = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
-            check_dts_bounds(&dts)
+            try:
+                iresult[i] = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
+            except OverflowError as e:
+                raise OutOfBoundsDatetime from e
 
             result_timezone[i] = tz
 

@@ -43,6 +43,8 @@ from pandas._libs.tslibs.dtypes cimport (
     freq_to_period_freqstr,
 )
 
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
+
 # import datetime C API
 import_datetime()
 
@@ -352,7 +354,7 @@ cdef int64_t transform_via_day(int64_t ordinal,
 # --------------------------------------------------------------------
 # Conversion _to_ Daily Freq
 
-cdef int64_t asfreq_AtoDT(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_AtoDT(int64_t ordinal, asfreq_info *af_info):
     cdef:
         int64_t unix_date
         npy_datetimestruct dts
@@ -368,7 +370,7 @@ cdef int64_t asfreq_AtoDT(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
     return upsample_daytime(unix_date, af_info)
 
 
-cdef int64_t asfreq_QtoDT(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_QtoDT(int64_t ordinal, asfreq_info *af_info):
     cdef:
         int64_t unix_date
         npy_datetimestruct dts
@@ -384,7 +386,7 @@ cdef int64_t asfreq_QtoDT(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
     return upsample_daytime(unix_date, af_info)
 
 
-cdef int64_t asfreq_MtoDT(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_MtoDT(int64_t ordinal, asfreq_info *af_info):
     cdef:
         int64_t unix_date
         int year, month
@@ -408,7 +410,7 @@ cdef int64_t asfreq_WtoDT(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
 # --------------------------------------------------------------------
 # Conversion _to_ BusinessDay Freq
 
-cdef int64_t asfreq_AtoB(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_AtoB(int64_t ordinal, asfreq_info *af_info):
     cdef:
         int roll_back
         npy_datetimestruct dts
@@ -419,7 +421,7 @@ cdef int64_t asfreq_AtoB(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
     return DtoB(&dts, roll_back, unix_date)
 
 
-cdef int64_t asfreq_QtoB(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_QtoB(int64_t ordinal, asfreq_info *af_info):
     cdef:
         int roll_back
         npy_datetimestruct dts
@@ -430,7 +432,7 @@ cdef int64_t asfreq_QtoB(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
     return DtoB(&dts, roll_back, unix_date)
 
 
-cdef int64_t asfreq_MtoB(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_MtoB(int64_t ordinal, asfreq_info *af_info):
     cdef:
         int roll_back
         npy_datetimestruct dts
@@ -467,7 +469,7 @@ cdef int64_t asfreq_DTtoB(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
 # ----------------------------------------------------------------------
 # Conversion _from_ Daily Freq
 
-cdef int64_t asfreq_DTtoA(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_DTtoA(int64_t ordinal, asfreq_info *af_info):
     cdef:
         npy_datetimestruct dts
 
@@ -723,7 +725,7 @@ cdef void adjust_dts_for_qtr(npy_datetimestruct* dts, int to_end) noexcept nogil
 # Find the unix_date (days elapsed since datetime(1970, 1, 1)
 # for the given year/month/day.
 # Assumes GREGORIAN_CALENDAR */
-cdef int64_t unix_date_from_ymd(int year, int month, int day) noexcept nogil:
+cdef int64_t unix_date_from_ymd(int year, int month, int day):
     # Calculate the absolute date
     cdef:
         npy_datetimestruct dts
@@ -733,7 +735,11 @@ cdef int64_t unix_date_from_ymd(int year, int month, int day) noexcept nogil:
     dts.year = year
     dts.month = month
     dts.day = day
-    unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, &dts)
+    try:
+        unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, &dts)
+    except OverflowError as e:
+        raise OutOfBoundsDatetime from e
+
     return unix_date
 
 
@@ -742,11 +748,15 @@ cdef int64_t dts_to_month_ordinal(npy_datetimestruct* dts) noexcept nogil:
     return <int64_t>((dts.year - 1970) * 12 + dts.month - 1)
 
 
-cdef int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) noexcept nogil:
+cdef int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end):
     cdef:
         int64_t result
 
-    result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_Y, dts)
+    try:
+        result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_Y, dts)
+    except OverflowError as e:
+        raise OutOfBoundsDatetime from e
+
     if dts.month > to_end:
         return result + 1
     else:
@@ -774,7 +784,7 @@ cdef int get_anchor_month(int freq, int freq_group) noexcept nogil:
 # specifically _dont_ use cdvision or else ordinals near -1 are assigned to
 # incorrect dates GH#19643
 @cython.cdivision(False)
-cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) noexcept nogil:
+cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq):
     """
     Generate an ordinal in period space
 
@@ -803,15 +813,26 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) noexcept nogi
         return dts_to_qtr_ordinal(dts, fmonth)
 
     elif freq_group == FR_WK:
-        unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
+        try:
+            unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
+        except OverflowError as e:
+            raise OutOfBoundsDatetime from e
         return unix_date_to_week(unix_date, freq - FR_WK)
 
     elif freq == FR_BUS:
-        unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
+        try:
+            unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
+        except OverflowError as e:
+            raise OutOfBoundsDatetime from e
         return DtoB(dts, 0, unix_date)
 
     unit = freq_group_code_to_npy_unit(freq)
-    return npy_datetimestruct_to_datetime(unit, dts)
+    try:
+        unix_date = npy_datetimestruct_to_datetime(unit, dts)
+    except OverflowError as e:
+        raise OutOfBoundsDatetime from e
+
+    return unix_date
 
 
 cdef void get_date_info(int64_t ordinal,
@@ -1157,6 +1178,7 @@ cpdef int64_t period_ordinal(int y, int m, int d, int h, int min,
 cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     cdef:
         npy_datetimestruct dts
+        int64_t result
 
     if ordinal == NPY_NAT:
         return NPY_NAT
@@ -1164,7 +1186,13 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     get_date_info(ordinal, freq, &dts)
 
     check_dts_bounds(&dts)
-    return npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
+
+    try:
+        result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
+    except OverflowError as e:
+        raise OutOfBoundsDatetime from e
+
+    return result
 
 
 cdef str period_format(int64_t value, int freq, object fmt=None):

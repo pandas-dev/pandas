@@ -266,8 +266,14 @@ cdef int64_t pydatetime_to_dt64(datetime val,
     """
     Note we are assuming that the datetime object is timezone-naive.
     """
+    cdef int64_t result
     pydatetime_to_dtstruct(val, dts)
-    return npy_datetimestruct_to_datetime(reso, dts)
+    try:
+        result = npy_datetimestruct_to_datetime(reso, dts)
+    except OverflowError as e:
+        raise OutOfBoundsDatetime from e
+
+    return result
 
 
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept:
@@ -281,8 +287,15 @@ cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept:
 cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=NPY_FR_ns
 ) except? -1:
+    cdef int64_t result
     pydate_to_dtstruct(val, dts)
-    return npy_datetimestruct_to_datetime(reso, dts)
+
+    try:
+        result = npy_datetimestruct_to_datetime(reso, dts)
+    except OverflowError as e:
+        raise OutOfBoundsDatetime from e
+
+    return result
 
 
 cdef int string_to_dts(
@@ -412,7 +425,10 @@ cpdef ndarray astype_overflowsafe(
                 else:
                     raise
             else:
-                new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
+                try:
+                    new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
+                except OverflowError as e:
+                    raise OutOfBoundsDatetime from e
 
         # Analogous to: iresult[i] = new_value
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
@@ -657,7 +673,14 @@ cdef int64_t _convert_reso_with_dtstruct(
 ) except? -1:
     cdef:
         npy_datetimestruct dts
+        int64_t result
 
     pandas_datetime_to_datetimestruct(value, from_unit, &dts)
     check_dts_bounds(&dts, to_unit)
-    return npy_datetimestruct_to_datetime(to_unit, &dts)
+
+    try:
+        result = npy_datetimestruct_to_datetime(to_unit, &dts)
+    except OverflowError as e:
+        raise OutOfBoundsDatetime from e
+
+    return result
