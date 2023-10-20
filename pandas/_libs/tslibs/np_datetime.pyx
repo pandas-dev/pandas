@@ -295,7 +295,7 @@ cdef int64_t pydate_to_dt64(
     try:
         result = npy_datetimestruct_to_datetime(reso, dts)
     except OverflowError as err:
-        raise OutOfBoundsDatetime from err
+        raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {val}") from err
 
     return result
 
