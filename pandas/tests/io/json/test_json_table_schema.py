@@ -846,27 +846,13 @@ class TestTableOrientReader:
         result = pd.read_json(StringIO(df_json), orient="table")
         tm.assert_frame_equal(expected, result)
 
-    @pytest.mark.parametrize(
-        "index_nm",
-        [None, "idx", pytest.param("index", marks=pytest.mark.xfail), "level_0"],
-    )
-    @pytest.mark.parametrize(
-        "vals",
-        [
-            {"ints": [1, 2]},
-            {"objects": ["a", "b"]},
-            {"objects": ["1", "2"]},
-            {"date_ranges": pd.date_range("2016-01-01", freq="d", periods=2)},
-            {"floats": [1.0, 2.0]},
-            {"bools": [True, False]},
-        ],
-    )
-    def test_read_json_table_orient_period_depr_freq(self, index_nm, vals, recwarn):
+    def test_read_json_table_orient_period_depr_freq(self, recwarn):
         # GH#9586
         df = DataFrame(
-            vals,
-            index=pd.Index((pd.Period("2022-01"), pd.Period("2022-04")), name=index_nm),
+            {"ints": [1, 2]},
+            index=pd.PeriodIndex(["2011-01", "2011-08"], freq="2M"),
         )
+        print(df.index)
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)

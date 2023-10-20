@@ -5,6 +5,7 @@ https://specs.frictionlessdata.io/table-schema/
 """
 from __future__ import annotations
 
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -209,9 +210,11 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
             return f"datetime64[ns, {field['tz']}]"
         elif field.get("freq"):
             # GH#9586 rename frequency M to ME for offsets
-            field["freq"] = freq_to_period_freqstr(1, field["freq"])
+            freq_name = re.split("[0-9]*", field["freq"], maxsplit=1)[1]
+            freq_n = field["freq"][: field["freq"].index(freq_name)]
+            freq = freq_to_period_freqstr(freq_n, freq_name)
             # GH#47747 using datetime over period to minimize the change surface
-            return f"period[{field['freq']}]"
+            return f"period[{freq}]"
         else:
             return "datetime64[ns]"
     elif typ == "any":
