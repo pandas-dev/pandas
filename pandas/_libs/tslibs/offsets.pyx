@@ -4901,8 +4901,8 @@ cdef ndarray shift_quarters(
 
             try:
                 res_val = npy_datetimestruct_to_datetime(reso, &dts)
-            except OverflowError as e:
-                raise OutOfBoundsDatetime from e
+            except OverflowError as err:
+                raise OutOfBoundsDatetime from err
 
         # Analogous to: out[i] = res_val
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
@@ -4961,8 +4961,8 @@ def shift_months(
                 dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
                 try:
                     res_val = npy_datetimestruct_to_datetime(reso, &dts)
-                except OverflowError as e:
-                    raise OutOfBoundsDatetime from e
+                except OverflowError as err:
+                    raise OutOfBoundsDatetime from err
 
             # Analogous to: out[i] = res_val
             (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
@@ -4989,8 +4989,8 @@ def shift_months(
 
                 try:
                     res_val = npy_datetimestruct_to_datetime(reso, &dts)
-                except OverflowError as e:
-                    raise OutOfBoundsDatetime from e
+                except OverflowError as err:
+                    raise OutOfBoundsDatetime from err
 
             # Analogous to: out[i] = res_val
             (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val

@@ -736,8 +736,8 @@ cdef int64_t unix_date_from_ymd(int year, int month, int day):
     dts.day = day
     try:
         unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, &dts)
-    except OverflowError as e:
-        raise OutOfBoundsDatetime from e
+    except OverflowError as err:
+        raise OutOfBoundsDatetime from err
 
     return unix_date
 
@@ -753,8 +753,8 @@ cdef int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end):
 
     try:
         result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_Y, dts)
-    except OverflowError as e:
-        raise OutOfBoundsDatetime from e
+    except OverflowError as err:
+        raise OutOfBoundsDatetime from err
 
     if dts.month > to_end:
         return result + 1
@@ -814,22 +814,22 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq):
     elif freq_group == FR_WK:
         try:
             unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
-        except OverflowError as e:
-            raise OutOfBoundsDatetime from e
+        except OverflowError as err:
+            raise OutOfBoundsDatetime from err
         return unix_date_to_week(unix_date, freq - FR_WK)
 
     elif freq == FR_BUS:
         try:
             unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
-        except OverflowError as e:
-            raise OutOfBoundsDatetime from e
+        except OverflowError as err:
+            raise OutOfBoundsDatetime from err
         return DtoB(dts, 0, unix_date)
 
     unit = freq_group_code_to_npy_unit(freq)
     try:
         unix_date = npy_datetimestruct_to_datetime(unit, dts)
-    except OverflowError as e:
-        raise OutOfBoundsDatetime from e
+    except OverflowError as err:
+        raise OutOfBoundsDatetime from err
 
     return unix_date
 
@@ -1186,8 +1186,8 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
 
     try:
         result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
-    except OverflowError as e:
-        raise OutOfBoundsDatetime("Out of bounds nanosecond timestamp") from e
+    except OverflowError as err:
+        raise OutOfBoundsDatetime("Out of bounds nanosecond timestamp") from err
 
     return result
 

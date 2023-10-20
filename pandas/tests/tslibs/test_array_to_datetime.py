@@ -13,6 +13,7 @@ from pandas._libs import (
     iNaT,
     tslib,
 )
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas import Timestamp
 import pandas._testing as tm
@@ -132,7 +133,7 @@ def test_coerce_outside_ns_bounds(invalid_date, errors):
     if errors == "raise":
         msg = "^Out of bounds nanosecond timestamp: .*, at position 0$"
 
-        with pytest.raises(OverflowError, match=msg):
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
             tslib.array_to_datetime(**kwargs)
     else:  # coerce.
         result, _ = tslib.array_to_datetime(**kwargs)

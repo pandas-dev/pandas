@@ -489,12 +489,7 @@ cpdef array_to_datetime(
                 iresult[i] = parse_pydatetime(val, &dts, utc_convert, creso=creso)
 
             elif PyDate_Check(val):
-                try:
-                    iresult[i] = pydate_to_dt64(val, &dts)
-                except OverflowError as e:
-                    raise OutOfBoundsDatetime(
-                        f"Out of bounds nanosecond timestamp: {val}"
-                    ) from e
+                iresult[i] = pydate_to_dt64(val, &dts)
 
             elif is_datetime64_object(val):
                 iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)

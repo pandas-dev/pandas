@@ -208,10 +208,10 @@ cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
         pandas_datetime_to_datetimestruct(ival, unit, &dts)
         try:
             ival = npy_datetimestruct_to_datetime(reso, &dts)
-        except OverflowError as e:
+        except OverflowError as err:
             raise OutOfBoundsDatetime(
                 "Out of bounds nanosecond timestamp: {val}"
-            ) from e
+            ) from err
 
     return ival
 
@@ -404,8 +404,8 @@ cdef _TSObject convert_datetime_to_tsobject(
 
     try:
         obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
-    except OverflowError as e:
-        raise OutOfBoundsDatetime("Out of bounds nanosecond timestamp") from e
+    except OverflowError as err:
+        raise OutOfBoundsDatetime("Out of bounds nanosecond timestamp") from err
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
         offset = get_utcoffset(obj.tzinfo, ts)
@@ -444,8 +444,8 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
 
     try:
         value = npy_datetimestruct_to_datetime(reso, &dts)
-    except OverflowError as e:
-        raise OutOfBoundsDatetime from e
+    except OverflowError as err:
+        raise OutOfBoundsDatetime from err
     obj.dts = dts
     obj.tzinfo = timezone(timedelta(minutes=tzoffset))
     obj.value = tz_localize_to_utc_single(
@@ -543,8 +543,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
             else:
                 try:
                     ival = npy_datetimestruct_to_datetime(reso, &dts)
-                except OverflowError as e:
-                    raise OutOfBoundsDatetime from e
+                except OverflowError as err:
+                    raise OutOfBoundsDatetime from err
                 if tz is not None:
                     # shift for _localize_tso
                     ival = tz_localize_to_utc_single(
@@ -778,8 +778,5 @@ cdef int64_t parse_pydatetime(
         if isinstance(val, _Timestamp):
             result = (<_Timestamp>val)._as_creso(creso, round_ok=False)._value
         else:
-            try:
-                result = pydatetime_to_dt64(val, dts, reso=creso)
-            except OverflowError as e:
-                raise OutOfBoundsDatetime from e
+            result = pydatetime_to_dt64(val, dts, reso=creso)
     return result

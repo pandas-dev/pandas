@@ -270,8 +270,10 @@ cdef int64_t pydatetime_to_dt64(datetime val,
     pydatetime_to_dtstruct(val, dts)
     try:
         result = npy_datetimestruct_to_datetime(reso, dts)
-    except OverflowError as e:
-        raise OutOfBoundsDatetime from e
+    except OverflowError as err:
+        raise OutOfBoundsDatetime(
+            f"Out of bounds nanosecond timestamp: {val}"
+        ) from err
 
     return result
 
@@ -292,8 +294,8 @@ cdef int64_t pydate_to_dt64(
 
     try:
         result = npy_datetimestruct_to_datetime(reso, dts)
-    except OverflowError as e:
-        raise OutOfBoundsDatetime from e
+    except OverflowError as err:
+        raise OutOfBoundsDatetime from err
 
     return result
 
@@ -427,8 +429,8 @@ cpdef ndarray astype_overflowsafe(
             else:
                 try:
                     new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
-                except OverflowError as e:
-                    raise OutOfBoundsDatetime from e
+                except OverflowError as err:
+                    raise OutOfBoundsDatetime from err
 
         # Analogous to: iresult[i] = new_value
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
@@ -678,7 +680,7 @@ cdef int64_t _convert_reso_with_dtstruct(
     pandas_datetime_to_datetimestruct(value, from_unit, &dts)
     try:
         result = npy_datetimestruct_to_datetime(to_unit, &dts)
-    except OverflowError as e:
-        raise OutOfBoundsDatetime from e
+    except OverflowError as err:
+        raise OutOfBoundsDatetime from err
 
     return result

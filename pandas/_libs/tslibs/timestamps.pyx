@@ -584,8 +584,8 @@ cdef class _Timestamp(ABCTimestamp):
                 # TODO: can + self.nanosecond also overflow here?
                 val = npy_datetimestruct_to_datetime(
                     self._creso, &dts) + self.nanosecond
-            except OverflowError as e:
-                raise OutOfBoundsDatetime from e
+            except OverflowError as err:
+                raise OutOfBoundsDatetime from err
         else:
             val = self._value
         return val
@@ -2500,8 +2500,8 @@ default 'raise'
             ts = _TSObject()
             try:
                 ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
-            except OverflowError as e:
-                raise OutOfBoundsDatetime from e
+            except OverflowError as err:
+                raise OutOfBoundsDatetime from err
             ts.dts = dts
             ts.creso = self._creso
             ts.fold = fold

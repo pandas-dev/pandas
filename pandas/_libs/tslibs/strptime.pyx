@@ -59,7 +59,6 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    check_dts_bounds,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -295,12 +294,10 @@ def array_strptime(
                     iresult[i] = val.tz_localize(None).as_unit("ns")._value
                 else:
                     iresult[i] = pydatetime_to_dt64(val.replace(tzinfo=None), &dts)
-                    check_dts_bounds(&dts)
                 result_timezone[i] = val.tzinfo
                 continue
             elif PyDate_Check(val):
                 iresult[i] = pydate_to_dt64(val, &dts)
-                check_dts_bounds(&dts)
                 continue
             elif is_datetime64_object(val):
                 iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
@@ -329,10 +326,10 @@ def array_strptime(
                 # where we left off
                 try:
                     value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
-                except OverflowError as e:
+                except OverflowError as err:
                     raise OutOfBoundsDatetime(
                         f"Out of bounds nanosecond timestamp: {val}"
-                    ) from e
+                    ) from err
                 if out_local == 1:
                     # Store the out_tzoffset in seconds
                     # since we store the total_seconds of
@@ -521,10 +518,10 @@ def array_strptime(
 
             try:
                 iresult[i] = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
-            except OverflowError as e:
+            except OverflowError as err:
                 raise OutOfBoundsDatetime(
                     f"Out of bounds nanosecond timestamp: {val}"
-                ) from e
+                ) from err
 
             result_timezone[i] = tz
 
