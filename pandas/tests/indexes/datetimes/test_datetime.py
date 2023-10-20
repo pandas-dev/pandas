@@ -70,6 +70,7 @@ class TestDatetimeIndex:
         result = rng.groupby(rng.day)
         assert isinstance(next(iter(result.values()))[0], Timestamp)
 
+    # TODO: belongs in frame groupby tests?
     def test_groupby_function_tuple_1677(self):
         df = DataFrame(
             np.random.default_rng(2).random(100),
