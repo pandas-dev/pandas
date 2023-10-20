@@ -96,7 +96,7 @@ def _test_parse_iso8601(ts: str):
     try:
         obj.value = npy_datetimestruct_to_datetime(NPY_FR_ns, &obj.dts)
     except OverflowError as e:
-        raise OutOfBoundsDatetime from e
+        raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {ts}") from e
     if out_local == 1:
         obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
         obj.value = tz_localize_to_utc_single(obj.value, obj.tzinfo)
@@ -492,7 +492,9 @@ cpdef array_to_datetime(
                 try:
                     iresult[i] = pydate_to_dt64(val, &dts)
                 except OverflowError as e:
-                    raise OutOfBoundsDatetime from e
+                    raise OutOfBoundsDatetime(
+                        f"Out of bounds nanosecond timestamp: {val}"
+                    ) from e
 
             elif is_datetime64_object(val):
                 iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)

@@ -330,7 +330,9 @@ def array_strptime(
                 try:
                     value = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
                 except OverflowError as e:
-                    raise OutOfBoundsDatetime from e
+                    raise OutOfBoundsDatetime(
+                        f"Out of bounds nanosecond timestamp: {val}"
+                    ) from e
                 if out_local == 1:
                     # Store the out_tzoffset in seconds
                     # since we store the total_seconds of
@@ -520,7 +522,9 @@ def array_strptime(
             try:
                 iresult[i] = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
             except OverflowError as e:
-                raise OutOfBoundsDatetime from e
+                raise OutOfBoundsDatetime(
+                    f"Out of bounds nanosecond timestamp: {val}"
+                ) from e
 
             result_timezone[i] = tz
 

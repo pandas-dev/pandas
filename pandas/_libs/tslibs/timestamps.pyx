@@ -83,7 +83,6 @@ from pandas._libs.tslibs.nattype cimport (
 from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_ns,
-    check_dts_bounds,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
@@ -2499,7 +2498,6 @@ default 'raise'
             # We can avoid going through pydatetime paths, which is robust
             #  to datetimes outside of pydatetime range.
             ts = _TSObject()
-            check_dts_bounds(&dts, self._creso)
             try:
                 ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
             except OverflowError as e:

@@ -54,7 +54,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     astype_overflowsafe,
-    check_dts_bounds,
     get_timedelta64_value,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -1185,12 +1184,10 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
 
     get_date_info(ordinal, freq, &dts)
 
-    check_dts_bounds(&dts)
-
     try:
         result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
     except OverflowError as e:
-        raise OutOfBoundsDatetime from e
+        raise OutOfBoundsDatetime("Out of bounds nanosecond timestamp") from e
 
     return result
 

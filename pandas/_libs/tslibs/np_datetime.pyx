@@ -676,8 +676,6 @@ cdef int64_t _convert_reso_with_dtstruct(
         int64_t result
 
     pandas_datetime_to_datetimestruct(value, from_unit, &dts)
-    check_dts_bounds(&dts, to_unit)
-
     try:
         result = npy_datetimestruct_to_datetime(to_unit, &dts)
     except OverflowError as e:
