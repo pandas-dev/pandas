@@ -1849,7 +1849,7 @@ cdef class BusinessDay(BusinessMixin):
         reso = get_unit_from_dtype(dtarr.dtype)
         res = self._shift_bdays(i8other, reso=reso)
         if self.offset:
-            res = res.view(dtarr.dtype) + Timedelta(self.offset)
+            res = res.view(dtarr.dtype) + Timedelta(self.offset).as_unit("s")
             res = res.view("i8")
         return res
 
