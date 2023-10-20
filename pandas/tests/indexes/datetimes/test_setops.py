@@ -556,9 +556,7 @@ class TestBusinessDatetimeIndex:
         tm.assert_index_equal(res, idx)
 
     def test_month_range_union_tz_pytz(self, sort):
-        from pytz import timezone
-
-        tz = timezone("US/Eastern")
+        tz = pytz.timezone("US/Eastern")
 
         early_start = datetime(2011, 1, 1)
         early_end = datetime(2011, 3, 1)
