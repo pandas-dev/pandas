@@ -346,7 +346,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _typ = "series"
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
-    _name: Hashable
+    _name: Hashable = None
     _metadata: list[str] = ["_name"]
     _internal_names_set = {"index", "name"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
@@ -633,7 +633,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _constructor_from_mgr(self, mgr, axes):
         ser = self._from_mgr(mgr, axes=axes)
-        ser._name = None  # caller is responsible for setting real name
         if type(self) is Series:
             # fastpath avoiding constructor call
             return ser
