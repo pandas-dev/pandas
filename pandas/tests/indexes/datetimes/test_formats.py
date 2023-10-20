@@ -296,6 +296,14 @@ class TestDatetimeIndexRendering:
 
 
 class TestFormat:
+    def test_format(self):
+        # GH#35439
+        idx = pd.date_range("20130101", periods=5)
+        expected = [f"{x:%Y-%m-%d}" for x in idx]
+        msg = r"DatetimeIndex\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert idx.format() == expected
+
     def test_format_with_name_time_info(self):
         # bug I fixed 12/20/2011
         dates = pd.date_range("2011-01-01 04:00:00", periods=10, name="something")
