@@ -8857,11 +8857,11 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        other = other.reindex(self.index)
+        indexes_intersection = self.index.intersection(other.index)
 
         for col in self.columns.intersection(other.columns):
-            this = self[col]._values
-            that = other[col]._values
+            this = self[col].loc[indexes_intersection]._values
+            that = other[col].loc[indexes_intersection]._values
 
             if filter_func is not None:
                 mask = ~filter_func(this) | isna(that)
@@ -8881,7 +8881,7 @@ class DataFrame(NDFrame, OpsMixin):
             if mask.all():
                 continue
 
-            self.loc[:, col] = expressions.where(mask, this, that)
+            self.loc[indexes_intersection, col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
     # Data reshaping

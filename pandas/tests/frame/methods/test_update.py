@@ -177,3 +177,12 @@ class TestDataFrameUpdate:
             {"A": [1.0, 3.0], "B": [pd.NaT, pd.to_datetime("2016-01-01")]}
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_update_preserve_column_dtype_bool(self):
+        # GH#55509
+        df = DataFrame({"A": [True, True]}, index=[1, 2])
+        other = DataFrame({"A": [False]}, index=[1])
+        expected = DataFrame({"A": [False, True]}, index=[1, 2])
+        df.update(other)
+
+        tm.assert_frame_equal(df, expected)
