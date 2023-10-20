@@ -568,10 +568,8 @@ class TestCommon:
         # check that the result with non-nano matches nano
         off = _create_offset(offset_types)
 
-        dti = date_range("2016-01-01", periods=35, freq="D")
-
-        arr = dti._data._ndarray.astype(f"M8[{unit}]")
-        dta = type(dti._data)._simple_new(arr, dtype=arr.dtype)
+        dti = date_range("2016-01-01", periods=35, freq="D", unit=unit)
+        dta = dti._data
 
         expected = dti._data + off
         result = dta + off

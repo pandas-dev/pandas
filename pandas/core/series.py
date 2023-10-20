@@ -6043,6 +6043,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result
         else:
             if fill_value is not None:
+                if isna(other):
+                    return op(self, fill_value)
                 self = self.fillna(fill_value)
 
             return op(self, other)
