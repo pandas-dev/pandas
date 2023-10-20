@@ -48,10 +48,7 @@ from numpy cimport (
 )
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.conversion cimport (
-    convert_timezone,
-    get_datetime64_nanos,
-)
+from pandas._libs.tslibs.conversion cimport get_datetime64_nanos
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_nat_strings as nat_strings,
@@ -73,6 +70,7 @@ import_pandas_datetime()
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 from pandas._libs.util cimport (
     is_float_object,
     is_integer_object,
@@ -166,13 +164,24 @@ cdef class ParseState:
             self.found_tz = True
         else:
             self.found_naive = True
-        tz = convert_timezone(
-            dt.tzinfo,
-            tz,
-            self.found_naive,
-            self.found_tz,
-            utc_convert,
-        )
+
+        if dt.tzinfo is not None:
+            if utc_convert:
+                pass
+            elif self.found_naive:
+                raise ValueError("Tz-aware datetime.datetime "
+                                 "cannot be converted to "
+                                 "datetime64 unless utc=True")
+            elif tz is not None and not tz_compare(tz, dt.tzinfo):
+                raise ValueError("Tz-aware datetime.datetime "
+                                 "cannot be converted to "
+                                 "datetime64 unless utc=True")
+            else:
+                tz = dt.tzinfo
+        else:
+            if self.found_tz and not utc_convert:
+                raise ValueError("Cannot mix tz-aware with "
+                                 "tz-naive values")
         return tz
 
 
