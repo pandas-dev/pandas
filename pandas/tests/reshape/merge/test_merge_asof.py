@@ -288,7 +288,8 @@ class TestAsOfMerge:
         expected.loc[expected.ticker == "MSFT", ["bid", "ask"]] = np.nan
         tm.assert_frame_equal(result, expected)
 
-    def test_multiby(self):
+    @pytest.mark.parametrize("dtype_backend", [None, "numpy_nullable", "pyarrow"])
+    def test_multiby(self, dtype_backend):
         # GH13936
         trades = pd.DataFrame(
             {
@@ -308,6 +309,8 @@ class TestAsOfMerge:
             },
             columns=["time", "ticker", "exch", "price", "quantity"],
         )
+        if dtype_backend is not None:
+            trades = trades.convert_dtypes(dtype_backend=dtype_backend)
 
         quotes = pd.DataFrame(
             {
@@ -328,6 +331,8 @@ class TestAsOfMerge:
             },
             columns=["time", "ticker", "exch", "bid", "ask"],
         )
+        if dtype_backend is not None:
+            quotes = quotes.convert_dtypes(dtype_backend=dtype_backend)
 
         expected = pd.DataFrame(
             {
@@ -349,6 +354,8 @@ class TestAsOfMerge:
             },
             columns=["time", "ticker", "exch", "price", "quantity", "bid", "ask"],
         )
+        if dtype_backend is not None:
+            expected = expected.convert_dtypes(dtype_backend=dtype_backend)
 
         result = merge_asof(trades, quotes, on="time", by=["ticker", "exch"])
         tm.assert_frame_equal(result, expected)
