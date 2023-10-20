@@ -986,6 +986,7 @@ class TestBusinessHour:
 
     @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
     def test_bday_ignores_timedeltas(self, unit):
+        # GH#55608
         idx = date_range("2010/02/01", "2010/02/10", freq="12h", unit=unit)
         off = BDay(offset=Timedelta(3, unit="h"))
         t1 = idx + off
