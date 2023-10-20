@@ -135,6 +135,7 @@ class TestDatetime64:
 
         assert dti.is_month_start[0] == 1
 
+    # TODO: belongs in offsets tests?
     def test_datetimeindex_accessors5(self):
         freq_m = to_offset("ME")
         bm = to_offset("BME")
