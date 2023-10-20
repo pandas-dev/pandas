@@ -133,7 +133,7 @@ ctypedef struct asfreq_info:
     int to_end
     int from_end
 
-ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*) noexcept nogil
+ctypedef int64_t (*freq_conv_func)(int64_t, asfreq_info*)
 
 
 cdef extern from *:
@@ -342,7 +342,7 @@ cdef int64_t downsample_daytime(int64_t ordinal, asfreq_info *af_info) noexcept 
 cdef int64_t transform_via_day(int64_t ordinal,
                                asfreq_info *af_info,
                                freq_conv_func first_func,
-                               freq_conv_func second_func) noexcept nogil:
+                               freq_conv_func second_func):
     cdef:
         int64_t result
 
@@ -522,30 +522,30 @@ cdef int64_t unix_date_to_week(int64_t unix_date, int to_end) noexcept nogil:
 # --------------------------------------------------------------------
 # Conversion _from_ BusinessDay Freq
 
-cdef int64_t asfreq_BtoDT(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_BtoDT(int64_t ordinal, asfreq_info *af_info):
     ordinal = ((ordinal + 3) // 5) * 7 + (ordinal + 3) % 5 - 3
     return upsample_daytime(ordinal, af_info)
 
 
-cdef int64_t asfreq_BtoA(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_BtoA(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_BtoDT,
                              <freq_conv_func>asfreq_DTtoA)
 
 
-cdef int64_t asfreq_BtoQ(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_BtoQ(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_BtoDT,
                              <freq_conv_func>asfreq_DTtoQ)
 
 
-cdef int64_t asfreq_BtoM(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_BtoM(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_BtoDT,
                              <freq_conv_func>asfreq_DTtoM)
 
 
-cdef int64_t asfreq_BtoW(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_BtoW(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_BtoDT,
                              <freq_conv_func>asfreq_DTtoW)
@@ -554,25 +554,25 @@ cdef int64_t asfreq_BtoW(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
 # ----------------------------------------------------------------------
 # Conversion _from_ Annual Freq
 
-cdef int64_t asfreq_AtoA(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_AtoA(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_AtoDT,
                              <freq_conv_func>asfreq_DTtoA)
 
 
-cdef int64_t asfreq_AtoQ(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_AtoQ(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_AtoDT,
                              <freq_conv_func>asfreq_DTtoQ)
 
 
-cdef int64_t asfreq_AtoM(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_AtoM(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_AtoDT,
                              <freq_conv_func>asfreq_DTtoM)
 
 
-cdef int64_t asfreq_AtoW(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_AtoW(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_AtoDT,
                              <freq_conv_func>asfreq_DTtoW)
@@ -581,25 +581,25 @@ cdef int64_t asfreq_AtoW(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
 # ----------------------------------------------------------------------
 # Conversion _from_ Quarterly Freq
 
-cdef int64_t asfreq_QtoQ(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_QtoQ(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_QtoDT,
                              <freq_conv_func>asfreq_DTtoQ)
 
 
-cdef int64_t asfreq_QtoA(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_QtoA(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_QtoDT,
                              <freq_conv_func>asfreq_DTtoA)
 
 
-cdef int64_t asfreq_QtoM(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_QtoM(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_QtoDT,
                              <freq_conv_func>asfreq_DTtoM)
 
 
-cdef int64_t asfreq_QtoW(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_QtoW(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_QtoDT,
                              <freq_conv_func>asfreq_DTtoW)
@@ -608,19 +608,19 @@ cdef int64_t asfreq_QtoW(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
 # ----------------------------------------------------------------------
 # Conversion _from_ Monthly Freq
 
-cdef int64_t asfreq_MtoA(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_MtoA(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_MtoDT,
                              <freq_conv_func>asfreq_DTtoA)
 
 
-cdef int64_t asfreq_MtoQ(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_MtoQ(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_MtoDT,
                              <freq_conv_func>asfreq_DTtoQ)
 
 
-cdef int64_t asfreq_MtoW(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_MtoW(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_MtoDT,
                              <freq_conv_func>asfreq_DTtoW)
@@ -629,25 +629,25 @@ cdef int64_t asfreq_MtoW(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
 # ----------------------------------------------------------------------
 # Conversion _from_ Weekly Freq
 
-cdef int64_t asfreq_WtoA(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_WtoA(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_WtoDT,
                              <freq_conv_func>asfreq_DTtoA)
 
 
-cdef int64_t asfreq_WtoQ(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_WtoQ(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_WtoDT,
                              <freq_conv_func>asfreq_DTtoQ)
 
 
-cdef int64_t asfreq_WtoM(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_WtoM(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_WtoDT,
                              <freq_conv_func>asfreq_DTtoM)
 
 
-cdef int64_t asfreq_WtoW(int64_t ordinal, asfreq_info *af_info) noexcept nogil:
+cdef int64_t asfreq_WtoW(int64_t ordinal, asfreq_info *af_info):
     return transform_via_day(ordinal, af_info,
                              <freq_conv_func>asfreq_WtoDT,
                              <freq_conv_func>asfreq_DTtoW)
@@ -836,7 +836,7 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq):
 
 
 cdef void get_date_info(int64_t ordinal,
-                        int freq, npy_datetimestruct *dts) noexcept nogil:
+                        int freq, npy_datetimestruct *dts):
     cdef:
         int64_t unix_date, nanos
         npy_datetimestruct dts2
@@ -854,7 +854,7 @@ cdef void get_date_info(int64_t ordinal,
     dts.ps = dts2.ps
 
 
-cdef int64_t get_unix_date(int64_t period_ordinal, int freq) noexcept nogil:
+cdef int64_t get_unix_date(int64_t period_ordinal, int freq):
     """
     Returns the proleptic Gregorian ordinal of the date, as an integer.
     This corresponds to the number of days since Jan., 1st, 1970 AD.
