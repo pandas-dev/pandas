@@ -540,6 +540,8 @@ def test_to_numpy_alias():
             marks=pytest.mark.xfail(
                 not np_version_gte1p24p3,
                 reason="td64 doesn't return NotImplemented, see numpy#17017",
+                # When this xfail is fixed, test_nat_comparisons_numpy
+                #  can be removed.
             ),
         ),
         Timestamp(0),
