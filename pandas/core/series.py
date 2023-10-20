@@ -172,6 +172,7 @@ if TYPE_CHECKING:
         IndexKeyFunc,
         IndexLabel,
         Level,
+        Manager,
         MutableMappingT,
         NaPosition,
         NumpySorter,
@@ -346,7 +347,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     _typ = "series"
     _HANDLED_TYPES = (Index, ExtensionArray, np.ndarray)
 
-    _name: Hashable = None
+    _name: Hashable
     _metadata: list[str] = ["_name"]
     _internal_names_set = {"index", "name"} | NDFrame._internal_names_set
     _accessors = {"dt", "cat", "str", "sparse"}
@@ -573,6 +574,27 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         NDFrame.__init__(self, data)
         self.name = name
         self._set_axis(0, index)
+
+    @classmethod
+    def _from_mgr(cls, mgr: Manager, axes: list[Index]) -> Self:
+        """
+        Construct a new Series from a Manager object and axes.
+
+        Parameters
+        ----------
+        mgr : Manager
+            Must have the same ndim as cls.
+        axes : list[Index]
+
+        Notes
+        -----
+        The axes must match mgr.axes, but are required for future-proofing
+        in the event that axes are refactored out of the Manager objects.
+        """
+        obj = cls.__new__(cls)
+        NDFrame.__init__(obj, mgr)
+        object.__setattr__(obj, "_name", None)
+        return obj
 
     def _init_dict(
         self, data, index: Index | None = None, dtype: DtypeObj | None = None
