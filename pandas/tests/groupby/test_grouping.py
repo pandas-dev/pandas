@@ -245,6 +245,7 @@ class TestGrouping:
         expected = expected.loc[:, ["A", "B"]]
         tm.assert_frame_equal(result, expected)
 
+    def test_grouper_creation_bug2(self):
         # GH14334
         # Grouper(key=...) may be passed in a list
         df = DataFrame(
@@ -275,15 +276,16 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
+    def test_grouper_creation_bug3(self):
         # GH8866
-        s = Series(
+        ser = Series(
             np.arange(8, dtype="int64"),
             index=MultiIndex.from_product(
                 [list("ab"), range(2), date_range("20130101", periods=2)],
                 names=["one", "two", "three"],
             ),
         )
-        result = s.groupby(Grouper(level="three", freq="ME")).sum()
+        result = ser.groupby(Grouper(level="three", freq="ME")).sum()
         expected = Series(
             [28],
             index=pd.DatetimeIndex([Timestamp("2013-01-31")], freq="ME", name="three"),
@@ -291,8 +293,8 @@ class TestGrouping:
         tm.assert_series_equal(result, expected)
 
         # just specifying a level breaks
-        result = s.groupby(Grouper(level="one")).sum()
-        expected = s.groupby(level="one").sum()
+        result = ser.groupby(Grouper(level="one")).sum()
+        expected = ser.groupby(level="one").sum()
         tm.assert_series_equal(result, expected)
 
     def test_grouper_column_and_index(self):

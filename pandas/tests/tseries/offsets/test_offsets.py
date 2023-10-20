@@ -560,27 +560,27 @@ class TestCommon:
         off = _create_offset(offset_types)
         assert hash(off) is not None
 
+    # TODO: belongs in arithmetic tests?
     @pytest.mark.filterwarnings(
         "ignore:Non-vectorized DateOffset being applied to Series or DatetimeIndex"
     )
     @pytest.mark.parametrize("unit", ["s", "ms", "us"])
-    def test_add_dt64_ndarray_non_nano(self, offset_types, unit, request):
+    def test_add_dt64_ndarray_non_nano(self, offset_types, unit):
         # check that the result with non-nano matches nano
         off = _create_offset(offset_types)
 
         dti = date_range("2016-01-01", periods=35, freq="D", unit=unit)
-        dta = dti._data
 
-        expected = dti._data + off
-        result = dta + off
+        result = (dti + off)._with_freq(None)
 
         exp_unit = unit
-        if isinstance(off, Tick) and off._creso > dta._creso:
+        if isinstance(off, Tick) and off._creso > dti._data._creso:
             # cast to higher reso like we would with Timedelta scalar
             exp_unit = Timedelta(off).unit
-        expected = expected.as_unit(exp_unit)
+        # TODO(GH#55564): as_unit will be unnecessary
+        expected = DatetimeIndex([x + off for x in dti]).as_unit(exp_unit)
 
-        tm.assert_numpy_array_equal(result._ndarray, expected._ndarray)
+        tm.assert_index_equal(result, expected)
 
 
 class TestDateOffset:

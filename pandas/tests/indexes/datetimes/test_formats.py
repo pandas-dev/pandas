@@ -8,6 +8,7 @@ import pytz
 import pandas as pd
 from pandas import (
     DatetimeIndex,
+    NaT,
     Series,
 )
 import pandas._testing as tm
@@ -33,7 +34,7 @@ def test_get_values_for_csv():
     tm.assert_numpy_array_equal(result, expected)
 
     # NULL object handling should work
-    index = DatetimeIndex(["2017-01-01", pd.NaT, "2017-01-03"])
+    index = DatetimeIndex(["2017-01-01", NaT, "2017-01-03"])
     expected = np.array(["2017-01-01", "NaT", "2017-01-03"], dtype=object)
 
     result = index._get_values_for_csv(na_rep="NaT")
@@ -58,6 +59,20 @@ def test_get_values_for_csv():
 
 
 class TestDatetimeIndexRendering:
+    def test_dti_repr_dates(self):
+        text = str(pd.to_datetime([datetime(2013, 1, 1), datetime(2014, 1, 1)]))
+        assert "['2013-01-01'," in text
+        assert ", '2014-01-01']" in text
+
+    def test_dti_repr_mixed(self):
+        text = str(
+            pd.to_datetime(
+                [datetime(2013, 1, 1), datetime(2014, 1, 1, 12), datetime(2014, 1, 1)]
+            )
+        )
+        assert "'2013-01-01 00:00:00'," in text
+        assert "'2014-01-01 00:00:00']" in text
+
     def test_dti_repr_short(self):
         dr = pd.date_range(start="1/1/2012", periods=1)
         repr(dr)
@@ -114,11 +129,11 @@ class TestDatetimeIndexRendering:
         )
         idxs.append(
             DatetimeIndex(
-                ["2011-01-01 09:00", "2011-01-01 10:00", pd.NaT], tz="US/Eastern"
+                ["2011-01-01 09:00", "2011-01-01 10:00", NaT], tz="US/Eastern"
             )
         )
         idxs.append(
-            DatetimeIndex(["2011-01-01 09:00", "2011-01-01 10:00", pd.NaT], tz="UTC")
+            DatetimeIndex(["2011-01-01 09:00", "2011-01-01 10:00", NaT], tz="UTC")
         )
 
         exp = []
@@ -165,7 +180,7 @@ class TestDatetimeIndexRendering:
             tz="Asia/Tokyo",
         )
         idx6 = DatetimeIndex(
-            ["2011-01-01 09:00", "2011-01-01 10:00", pd.NaT], tz="US/Eastern"
+            ["2011-01-01 09:00", "2011-01-01 10:00", NaT], tz="US/Eastern"
         )
         idx7 = DatetimeIndex(["2011-01-01 09:00", "2011-01-02 10:15"])
 
@@ -222,7 +237,7 @@ class TestDatetimeIndexRendering:
             tz="Asia/Tokyo",
         )
         idx6 = DatetimeIndex(
-            ["2011-01-01 09:00", "2011-01-01 10:00", pd.NaT], tz="US/Eastern"
+            ["2011-01-01 09:00", "2011-01-01 10:00", NaT], tz="US/Eastern"
         )
 
         exp1 = "DatetimeIndex: 0 entries\nFreq: D"
@@ -281,6 +296,14 @@ class TestDatetimeIndexRendering:
 
 
 class TestFormat:
+    def test_format(self):
+        # GH#35439
+        idx = pd.date_range("20130101", periods=5)
+        expected = [f"{x:%Y-%m-%d}" for x in idx]
+        msg = r"DatetimeIndex\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert idx.format() == expected
+
     def test_format_with_name_time_info(self):
         # bug I fixed 12/20/2011
         dates = pd.date_range("2011-01-01 04:00:00", periods=10, name="something")
@@ -299,3 +322,37 @@ class TestFormat:
         expected = ["2012-02-07 00:00:00", "2012-02-07 23:00:00"]
         assert len(result) == 2
         assert result == expected
+
+    def test_format_datetime(self):
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = pd.to_datetime([datetime(2003, 1, 1, 12), NaT]).format()
+        assert formatted[0] == "2003-01-01 12:00:00"
+        assert formatted[1] == "NaT"
+
+    def test_format_date(self):
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = pd.to_datetime([datetime(2003, 1, 1), NaT]).format()
+        assert formatted[0] == "2003-01-01"
+        assert formatted[1] == "NaT"
+
+    def test_format_date_tz(self):
+        dti = pd.to_datetime([datetime(2013, 1, 1)], utc=True)
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = dti.format()
+        assert formatted[0] == "2013-01-01 00:00:00+00:00"
+
+        dti = pd.to_datetime([datetime(2013, 1, 1), NaT], utc=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = dti.format()
+        assert formatted[0] == "2013-01-01 00:00:00+00:00"
+
+    def test_format_date_explicit_date_format(self):
+        dti = pd.to_datetime([datetime(2003, 2, 1), NaT])
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = dti.format(date_format="%m-%d-%Y", na_rep="UT")
+        assert formatted[0] == "02-01-2003"
+        assert formatted[1] == "UT"
