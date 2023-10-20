@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
@@ -50,6 +50,20 @@ import pandas.core.common as com
 
 
 class TestFactorize:
+    def test_factorize_complex(self):
+        # GH#17927
+        array = [1, 2, 2 + 1j]
+        msg = "factorize with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            labels, uniques = algos.factorize(array)
+
+        expected_labels = np.array([0, 1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(labels, expected_labels)
+
+        # Should return a complex dtype in the future
+        expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=object)
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
+
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
@@ -1182,7 +1196,7 @@ class TestValueCounts:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = algos.value_counts(factor)
         breaks = [-1.606, -1.018, -0.431, 0.155, 0.741]
-        index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
+        index = IntervalIndex.from_breaks(breaks).astype(CategoricalDtype(ordered=True))
         expected = Series([1, 0, 2, 1], index=index, name="count")
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
@@ -1410,6 +1424,19 @@ class TestValueCounts:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = algos.value_counts(arr)
 
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_series(self):
+        # GH#54857
+        values = np.array([3, 1, 2, 3, 4, np.nan])
+        result = Series(values).value_counts(bins=3)
+        expected = Series(
+            [2, 2, 1],
+            index=IntervalIndex.from_tuples(
+                [(0.996, 2.0), (2.0, 3.0), (3.0, 4.0)], dtype="interval[float64, right]"
+            ),
+            name="count",
+        )
         tm.assert_series_equal(result, expected)
 
 

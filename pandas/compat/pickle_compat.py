@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
 
-def load_reduce(self):
+def load_reduce(self) -> None:
     stack = self.stack
     args = stack.pop()
     func = stack[-1]

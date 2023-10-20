@@ -70,6 +70,9 @@ class BaseMethodsTests:
         ):
             # TODO: avoid special-casing
             expected = expected.astype("double[pyarrow]")
+        elif getattr(data.dtype, "storage", "") == "pyarrow_numpy":
+            # TODO: avoid special-casing
+            expected = expected.astype("float64")
         elif na_value_for_dtype(data.dtype) is pd.NA:
             # TODO(GH#44692): avoid special-casing
             expected = expected.astype("Float64")
@@ -118,7 +121,7 @@ class BaseMethodsTests:
         expected = pd.Series(np.array([1, -1, 0], dtype=np.intp))
         tm.assert_series_equal(result, expected)
 
-    def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting, na_value):
+    def test_argmin_argmax(self, data_for_sorting, data_missing_for_sorting):
         # GH 24382
         is_bool = data_for_sorting.dtype._is_boolean
 
@@ -151,9 +154,10 @@ class BaseMethodsTests:
             getattr(data[:0], method)()
 
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
-    def test_argmin_argmax_all_na(self, method, data, na_value):
+    def test_argmin_argmax_all_na(self, method, data):
         # all missing with skipna=True is the same as empty
         err_msg = "attempt to get"
+        na_value = data.dtype.na_value
         data_na = type(data)._from_sequence([na_value, na_value], dtype=data.dtype)
         with pytest.raises(ValueError, match=err_msg):
             getattr(data_na, method)()
@@ -243,6 +247,18 @@ class BaseMethodsTests:
             {"A": [1, 1, 2], "B": data_for_sorting.take([2, 0, 1])}, index=[2, 0, 1]
         )
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("keep", ["first", "last", False])
+    def test_duplicated(self, data, keep):
+        arr = data.take([0, 1, 0, 1])
+        result = arr.duplicated(keep=keep)
+        if keep == "first":
+            expected = np.array([False, False, True, True])
+        elif keep == "last":
+            expected = np.array([True, True, False, False])
+        else:
+            expected = np.array([True, True, True, True])
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("box", [pd.Series, lambda x: x])
     @pytest.mark.parametrize("method", [lambda x: x.unique(), pd.unique])
@@ -540,7 +556,8 @@ class BaseMethodsTests:
         sorter = np.array([1, 0])
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
-    def test_where_series(self, data, na_value, as_frame):
+    def test_where_series(self, data, as_frame):
+        na_value = data.dtype.na_value
         assert data[0] != data[1]
         cls = type(data)
         a, b = data[:2]
@@ -667,7 +684,8 @@ class BaseMethodsTests:
             data.insert(1.5, data[0])
 
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
-    def test_equals(self, data, na_value, as_series, box):
+    def test_equals(self, data, as_series, box):
+        na_value = data.dtype.na_value
         data2 = type(data)._from_sequence([data[0]] * len(data), dtype=data.dtype)
         data_na = type(data)._from_sequence([na_value] * len(data), dtype=data.dtype)
 

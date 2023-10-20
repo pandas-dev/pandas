@@ -530,6 +530,22 @@ def has_infs(floating[:] arr) -> bool:
     return ret
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def has_only_ints_or_nan(floating[:] arr) -> bool:
+    cdef:
+        floating val
+        intp_t i
+
+    for i in range(len(arr)):
+        val = arr[i]
+        if (val != val) or (val == <int64_t>val):
+            continue
+        else:
+            return False
+    return True
+
+
 def maybe_indices_to_slice(ndarray[intp_t, ndim=1] indices, int max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
@@ -760,6 +776,7 @@ cpdef ndarray[object] ensure_string_array(
     cdef:
         Py_ssize_t i = 0, n = len(arr)
         bint already_copied = True
+        ndarray[object] newarr
 
     if hasattr(arr, "to_numpy"):
 
@@ -785,8 +802,30 @@ cpdef ndarray[object] ensure_string_array(
         # short-circuit, all elements are str
         return result
 
+    if arr.dtype.kind == "f":  # non-optimized path
+        for i in range(n):
+            val = arr[i]
+
+            if not already_copied:
+                result = result.copy()
+                already_copied = True
+
+            if not checknull(val):
+                # f"{val}" is not always equivalent to str(val) for floats
+                result[i] = str(val)
+            else:
+                if convert_na_value:
+                    val = na_value
+                if skipna:
+                    result[i] = val
+                else:
+                    result[i] = f"{val}"
+
+        return result
+
+    newarr = np.asarray(arr, dtype=object)
     for i in range(n):
-        val = arr[i]
+        val = newarr[i]
 
         if isinstance(val, str):
             continue
@@ -1611,7 +1650,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
     if seen_val is False and skipna:
         return "empty"
 
-    if util.is_datetime64_object(val):
+    if cnp.is_datetime64_object(val):
         if is_datetime64_array(values, skipna=skipna):
             return "datetime64"
 
@@ -1695,7 +1734,7 @@ def infer_dtype(value: object, skipna: bool = True) -> str:
 
 
 cdef bint is_timedelta(object o):
-    return PyDelta_Check(o) or util.is_timedelta64_object(o)
+    return PyDelta_Check(o) or cnp.is_timedelta64_object(o)
 
 
 @cython.internal
@@ -1982,7 +2021,7 @@ cpdef bint is_datetime_array(ndarray values, bint skipna=True):
 @cython.internal
 cdef class Datetime64Validator(DatetimeValidator):
     cdef bint is_value_typed(self, object value) except -1:
-        return util.is_datetime64_object(value)
+        return cnp.is_datetime64_object(value)
 
 
 # Note: only python-exposed for tests
@@ -1996,7 +2035,7 @@ cpdef bint is_datetime64_array(ndarray values, bint skipna=True):
 @cython.internal
 cdef class AnyDatetimeValidator(DatetimeValidator):
     cdef bint is_value_typed(self, object value) except -1:
-        return util.is_datetime64_object(value) or (
+        return cnp.is_datetime64_object(value) or (
             PyDateTime_Check(value) and value.tzinfo is None
         )
 
@@ -2579,7 +2618,7 @@ def maybe_convert_objects(ndarray[object] objects,
             seen.complex_ = True
             if not convert_numeric:
                 break
-        elif PyDateTime_Check(val) or util.is_datetime64_object(val):
+        elif PyDateTime_Check(val) or cnp.is_datetime64_object(val):
 
             # if we have an tz's attached then return the objects
             if convert_non_numeric:
@@ -2683,11 +2722,9 @@ def maybe_convert_objects(ndarray[object] objects,
 
     elif seen.str_:
         if using_pyarrow_string_dtype() and is_string_array(objects, skipna=True):
-            import pyarrow as pa
+            from pandas.core.arrays.string_ import StringDtype
 
-            from pandas.core.dtypes.dtypes import ArrowDtype
-
-            dtype = ArrowDtype(pa.string())
+            dtype = StringDtype(storage="pyarrow_numpy")
             return dtype.construct_array_type()._from_sequence(objects, dtype=dtype)
 
         seen.object_ = True
@@ -2818,9 +2855,14 @@ NoDefault = Literal[_NoDefault.no_default]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def map_infer_mask(ndarray arr, object f, const uint8_t[:] mask, bint convert=True,
-                   object na_value=no_default, cnp.dtype dtype=np.dtype(object)
-                   ) -> np.ndarray:
+def map_infer_mask(
+        ndarray[object] arr,
+        object f,
+        const uint8_t[:] mask,
+        bint convert=True,
+        object na_value=no_default,
+        cnp.dtype dtype=np.dtype(object)
+) -> np.ndarray:
     """
     Substitute for np.vectorize with pandas-friendly dtype inference.
 

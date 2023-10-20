@@ -2,6 +2,8 @@ import operator
 
 import pytest
 
+from pandas._config.config import _get_option
+
 from pandas import (
     Series,
     options,
@@ -117,12 +119,6 @@ def na_cmp():
 
 
 @pytest.fixture
-def na_value(dtype):
-    """The scalar missing value for this type. Default dtype.na_value"""
-    return dtype.na_value
-
-
-@pytest.fixture
 def data_for_grouping():
     """
     Data for factorization, grouping, and unique tests.
@@ -218,4 +214,7 @@ def using_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
     """
-    return options.mode.copy_on_write and options.mode.data_manager == "block"
+    return (
+        options.mode.copy_on_write
+        and _get_option("mode.data_manager", silent=True) == "block"
+    )

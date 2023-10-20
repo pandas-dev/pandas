@@ -53,6 +53,7 @@ from pandas.core.dtypes.common import (
     ensure_object,
     is_bool,
     is_bool_dtype,
+    is_extension_array_dtype,
     is_float_dtype,
     is_integer,
     is_integer_dtype,
@@ -104,6 +105,7 @@ if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core import groupby
     from pandas.core.arrays import DatetimeArray
+    from pandas.core.indexes.frozen import FrozenList
 
 _factorizers = {
     np.int64: libhashtable.Int64Factorizer,
@@ -136,9 +138,9 @@ def merge(
     left: DataFrame | Series,
     right: DataFrame | Series,
     how: MergeHow = "inner",
-    on: IndexLabel | None = None,
-    left_on: IndexLabel | None = None,
-    right_on: IndexLabel | None = None,
+    on: IndexLabel | AnyArrayLike | None = None,
+    left_on: IndexLabel | AnyArrayLike | None = None,
+    right_on: IndexLabel | AnyArrayLike | None = None,
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
@@ -185,9 +187,9 @@ def merge(
 def _cross_merge(
     left: DataFrame,
     right: DataFrame,
-    on: IndexLabel | None = None,
-    left_on: IndexLabel | None = None,
-    right_on: IndexLabel | None = None,
+    on: IndexLabel | AnyArrayLike | None = None,
+    left_on: IndexLabel | AnyArrayLike | None = None,
+    right_on: IndexLabel | AnyArrayLike | None = None,
     left_index: bool = False,
     right_index: bool = False,
     sort: bool = False,
@@ -237,7 +239,9 @@ def _cross_merge(
     return res
 
 
-def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
+def _groupby_and_merge(
+    by, left: DataFrame | Series, right: DataFrame | Series, merge_pieces
+):
     """
     groupby & merge; we are always performing a left-by type operation
 
@@ -253,7 +257,7 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
         by = [by]
 
     lby = left.groupby(by, sort=False)
-    rby: groupby.DataFrameGroupBy | None = None
+    rby: groupby.DataFrameGroupBy | groupby.SeriesGroupBy | None = None
 
     # if we can groupby the rhs
     # then we can get vastly better perf
@@ -293,8 +297,8 @@ def _groupby_and_merge(by, left: DataFrame, right: DataFrame, merge_pieces):
 
 
 def merge_ordered(
-    left: DataFrame,
-    right: DataFrame,
+    left: DataFrame | Series,
+    right: DataFrame | Series,
     on: IndexLabel | None = None,
     left_on: IndexLabel | None = None,
     right_on: IndexLabel | None = None,
@@ -735,9 +739,9 @@ class _MergeOperation:
         left: DataFrame | Series,
         right: DataFrame | Series,
         how: MergeHow | Literal["asof"] = "inner",
-        on: IndexLabel | None = None,
-        left_on: IndexLabel | None = None,
-        right_on: IndexLabel | None = None,
+        on: IndexLabel | AnyArrayLike | None = None,
+        left_on: IndexLabel | AnyArrayLike | None = None,
+        right_on: IndexLabel | AnyArrayLike | None = None,
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = True,
@@ -1270,12 +1274,7 @@ class _MergeOperation:
                             # work-around for merge_asof(right_index=True)
                             right_keys.append(right.index._values)
                         if lk is not None and lk == rk:  # FIXME: what about other NAs?
-                            # avoid key upcast in corner case (length-0)
-                            lk = cast(Hashable, lk)
-                            if len(left) > 0:
-                                right_drop.append(rk)
-                            else:
-                                left_drop.append(lk)
+                            right_drop.append(rk)
                     else:
                         rk = cast(ArrayLike, rk)
                         right_keys.append(rk)
@@ -1384,6 +1383,21 @@ class _MergeOperation:
             if is_numeric_dtype(lk.dtype) and is_numeric_dtype(rk.dtype):
                 if lk.dtype.kind == rk.dtype.kind:
                     continue
+
+                if is_extension_array_dtype(lk.dtype) and not is_extension_array_dtype(
+                    rk.dtype
+                ):
+                    ct = find_common_type([lk.dtype, rk.dtype])
+                    if is_extension_array_dtype(ct):
+                        rk = ct.construct_array_type()._from_sequence(rk)  # type: ignore[union-attr]  # noqa: E501
+                    else:
+                        rk = rk.astype(ct)  # type: ignore[arg-type]
+                elif is_extension_array_dtype(rk.dtype):
+                    ct = find_common_type([lk.dtype, rk.dtype])
+                    if is_extension_array_dtype(ct):
+                        lk = ct.construct_array_type()._from_sequence(lk)  # type: ignore[union-attr]  # noqa: E501
+                    else:
+                        lk = lk.astype(ct)  # type: ignore[arg-type]
 
                 # check whether ints and floats
                 if is_integer_dtype(rk.dtype) and is_float_dtype(lk.dtype):
@@ -1722,7 +1736,7 @@ def restore_dropped_levels_multijoin(
     join_index: Index,
     lindexer: npt.NDArray[np.intp],
     rindexer: npt.NDArray[np.intp],
-) -> tuple[list[Index], npt.NDArray[np.intp], list[Hashable]]:
+) -> tuple[FrozenList, FrozenList, FrozenList]:
     """
     *this is an internal non-public method*
 
@@ -1798,7 +1812,7 @@ def restore_dropped_levels_multijoin(
 
         # error: Cannot determine type of "__add__"
         join_levels = join_levels + [restore_levels]  # type: ignore[has-type]
-        join_codes = join_codes + [restore_codes]
+        join_codes = join_codes + [restore_codes]  # type: ignore[has-type]
         join_names = join_names + [dropped_level_name]
 
     return join_levels, join_codes, join_names
@@ -2404,7 +2418,8 @@ def _factorize_keys(
 
     elif isinstance(lk, ExtensionArray) and lk.dtype == rk.dtype:
         if (isinstance(lk.dtype, ArrowDtype) and is_string_dtype(lk.dtype)) or (
-            isinstance(lk.dtype, StringDtype) and lk.dtype.storage == "pyarrow"
+            isinstance(lk.dtype, StringDtype)
+            and lk.dtype.storage in ["pyarrow", "pyarrow_numpy"]
         ):
             import pyarrow as pa
             import pyarrow.compute as pc
@@ -2420,10 +2435,16 @@ def _factorize_keys(
             length = len(dc.dictionary)
 
             llab, rlab, count = (
-                pc.fill_null(dc.indices[slice(len_lk)], length).to_numpy(),
-                pc.fill_null(dc.indices[slice(len_lk, None)], length).to_numpy(),
+                pc.fill_null(dc.indices[slice(len_lk)], length)
+                .to_numpy()
+                .astype(np.intp, copy=False),
+                pc.fill_null(dc.indices[slice(len_lk, None)], length)
+                .to_numpy()
+                .astype(np.intp, copy=False),
                 len(dc.dictionary),
             )
+            if dc.null_count > 0:
+                count += 1
             if how == "right":
                 return rlab, llab, count
             return llab, rlab, count

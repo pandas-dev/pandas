@@ -36,11 +36,11 @@ from pandas._libs.tslibs import (
     Timedelta,
     Timestamp,
     astype_overflowsafe,
-    delta_to_nanoseconds,
     get_unit_from_dtype,
     iNaT,
     ints_to_pydatetime,
     ints_to_pytimedelta,
+    periods_per_day,
     to_offset,
 )
 from pandas._libs.tslibs.fields import (
@@ -48,6 +48,7 @@ from pandas._libs.tslibs.fields import (
     round_nsint64,
 )
 from pandas._libs.tslibs.np_datetime import compare_mismatched_resolutions
+from pandas._libs.tslibs.timedeltas import get_unit_for_round
 from pandas._libs.tslibs.timestamps import integer_op_not_supported
 from pandas._typing import (
     ArrayLike,
@@ -107,6 +108,7 @@ from pandas.core import (
     algorithms,
     missing,
     nanops,
+    ops,
 )
 from pandas.core.algorithms import (
     checked_add_with_arr,
@@ -625,15 +627,19 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         -------
         str
         """
+        if hasattr(value, "dtype") and getattr(value, "ndim", 0) > 0:
+            msg_got = f"{value.dtype} array"
+        else:
+            msg_got = f"'{type(value).__name__}'"
         if allow_listlike:
             msg = (
                 f"value should be a '{self._scalar_type.__name__}', 'NaT', "
-                f"or array of those. Got '{type(value).__name__}' instead."
+                f"or array of those. Got {msg_got} instead."
             )
         else:
             msg = (
                 f"value should be a '{self._scalar_type.__name__}' or 'NaT'. "
-                f"Got '{type(value).__name__}' instead."
+                f"Got {msg_got} instead."
             )
         return msg
 
@@ -943,8 +949,12 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         dtype = getattr(other, "dtype", None)
         if is_object_dtype(dtype):
-            return op(np.asarray(self, dtype=object), other)
-
+            # We have to use comp_method_OBJECT_ARRAY instead of numpy
+            #  comparison otherwise it would raise when comparing to None
+            result = ops.comp_method_OBJECT_ARRAY(
+                op, np.asarray(self.astype(object)), other
+            )
+            return result
         if other is NaT:
             if op is operator.ne:
                 result = np.ones(self.shape, dtype=bool)
@@ -1813,17 +1823,17 @@ _round_doc = """
     >>> rng
     DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
                    '2018-01-01 12:01:00'],
-                  dtype='datetime64[ns]', freq='T')
+                  dtype='datetime64[ns]', freq='min')
     """
 
-_round_example = """>>> rng.round('H')
+_round_example = """>>> rng.round('h')
     DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                    '2018-01-01 12:00:00'],
                   dtype='datetime64[ns]', freq=None)
 
     **Series**
 
-    >>> pd.Series(rng).dt.round("H")
+    >>> pd.Series(rng).dt.round("h")
     0   2018-01-01 12:00:00
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
@@ -1834,23 +1844,23 @@ _round_example = """>>> rng.round('H')
 
     >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
 
-    >>> rng_tz.floor("2H", ambiguous=False)
+    >>> rng_tz.floor("2h", ambiguous=False)
     DatetimeIndex(['2021-10-31 02:00:00+01:00'],
                   dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
 
-    >>> rng_tz.floor("2H", ambiguous=True)
+    >>> rng_tz.floor("2h", ambiguous=True)
     DatetimeIndex(['2021-10-31 02:00:00+02:00'],
                   dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
-_floor_example = """>>> rng.floor('H')
+_floor_example = """>>> rng.floor('h')
     DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
                    '2018-01-01 12:00:00'],
                   dtype='datetime64[ns]', freq=None)
 
     **Series**
 
-    >>> pd.Series(rng).dt.floor("H")
+    >>> pd.Series(rng).dt.floor("h")
     0   2018-01-01 11:00:00
     1   2018-01-01 12:00:00
     2   2018-01-01 12:00:00
@@ -1861,23 +1871,23 @@ _floor_example = """>>> rng.floor('H')
 
     >>> rng_tz = pd.DatetimeIndex(["2021-10-31 03:30:00"], tz="Europe/Amsterdam")
 
-    >>> rng_tz.floor("2H", ambiguous=False)
+    >>> rng_tz.floor("2h", ambiguous=False)
     DatetimeIndex(['2021-10-31 02:00:00+01:00'],
                  dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
 
-    >>> rng_tz.floor("2H", ambiguous=True)
+    >>> rng_tz.floor("2h", ambiguous=True)
     DatetimeIndex(['2021-10-31 02:00:00+02:00'],
                   dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
 
-_ceil_example = """>>> rng.ceil('H')
+_ceil_example = """>>> rng.ceil('h')
     DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                    '2018-01-01 13:00:00'],
                   dtype='datetime64[ns]', freq=None)
 
     **Series**
 
-    >>> pd.Series(rng).dt.ceil("H")
+    >>> pd.Series(rng).dt.ceil("h")
     0   2018-01-01 12:00:00
     1   2018-01-01 12:00:00
     2   2018-01-01 13:00:00
@@ -1888,11 +1898,11 @@ _ceil_example = """>>> rng.ceil('H')
 
     >>> rng_tz = pd.DatetimeIndex(["2021-10-31 01:30:00"], tz="Europe/Amsterdam")
 
-    >>> rng_tz.ceil("H", ambiguous=False)
+    >>> rng_tz.ceil("h", ambiguous=False)
     DatetimeIndex(['2021-10-31 02:00:00+01:00'],
                   dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
 
-    >>> rng_tz.ceil("H", ambiguous=True)
+    >>> rng_tz.ceil("h", ambiguous=True)
     DatetimeIndex(['2021-10-31 02:00:00+02:00'],
                   dtype='datetime64[ns, Europe/Amsterdam]', freq=None)
     """
@@ -2119,9 +2129,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         values = self.view("i8")
         values = cast(np.ndarray, values)
-        offset = to_offset(freq)
-        offset.nanos  # raises on non-fixed frequencies
-        nanos = delta_to_nanoseconds(offset, self._creso)
+        nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             # GH 52761
             return self.copy()
@@ -2302,6 +2310,30 @@ class TimelikeOps(DatetimeLikeArrayMixin):
         if not copy:
             return self
         return type(self)._simple_new(out_data, dtype=self.dtype)
+
+    # --------------------------------------------------------------
+    # Unsorted
+
+    @property
+    def _is_dates_only(self) -> bool:
+        """
+        Check if we are round times at midnight (and no timezone), which will
+        be given a more compact __repr__ than other cases. For TimedeltaArray
+        we are checking for multiples of 24H.
+        """
+        if not lib.is_np_dtype(self.dtype):
+            # i.e. we have a timezone
+            return False
+
+        values_int = self.asi8
+        consider_values = values_int != iNaT
+        reso = get_unit_from_dtype(self.dtype)
+        ppd = periods_per_day(reso)
+
+        # TODO: can we reuse is_date_array_normalized?  would need a skipna kwd
+        #  (first attempt at this was less performant than this implementation)
+        even_days = np.logical_and(consider_values, values_int % ppd != 0).sum() == 0
+        return even_days
 
 
 # -------------------------------------------------------------------

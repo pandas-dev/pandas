@@ -393,16 +393,21 @@ def test_where_datetimelike_coerce(dtype):
     expected = Series([10, 10])
     mask = np.array([False, False])
 
-    rs = ser.where(mask, [10, 10])
+    msg = "Downcasting behavior in Series and DataFrame methods 'where'"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = ser.where(mask, [10, 10])
     tm.assert_series_equal(rs, expected)
 
-    rs = ser.where(mask, 10)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = ser.where(mask, 10)
     tm.assert_series_equal(rs, expected)
 
-    rs = ser.where(mask, 10.0)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = ser.where(mask, 10.0)
     tm.assert_series_equal(rs, expected)
 
-    rs = ser.where(mask, [10.0, 10.0])
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        rs = ser.where(mask, [10.0, 10.0])
     tm.assert_series_equal(rs, expected)
 
     rs = ser.where(mask, [10.0, np.nan])

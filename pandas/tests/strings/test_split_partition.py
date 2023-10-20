@@ -12,7 +12,10 @@ from pandas import (
     Series,
     _testing as tm,
 )
-from pandas.tests.strings import _convert_na_value
+from pandas.tests.strings import (
+    _convert_na_value,
+    object_pyarrow_numpy,
+)
 
 
 @pytest.mark.parametrize("method", ["split", "rsplit"])
@@ -113,8 +116,8 @@ def test_split_object_mixed(expand, method):
 def test_split_n(any_string_dtype, method, n):
     s = Series(["a b", pd.NA, "b c"], dtype=any_string_dtype)
     expected = Series([["a", "b"], pd.NA, ["b", "c"]])
-
     result = getattr(s.str, method)(" ", n=n)
+    expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
 
@@ -381,7 +384,7 @@ def test_split_nan_expand(any_string_dtype):
     # check that these are actually np.nan/pd.NA and not None
     # TODO see GH 18463
     # tm.assert_frame_equal does not differentiate
-    if any_string_dtype == "object":
+    if any_string_dtype in object_pyarrow_numpy:
         assert all(np.isnan(x) for x in result.iloc[1])
     else:
         assert all(x is pd.NA for x in result.iloc[1])

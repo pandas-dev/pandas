@@ -145,7 +145,9 @@ def _map_and_wrap(name: str | None, docstring: str | None):
     @forbid_nonstring_types(["bytes"], name=name)
     def wrapper(self):
         result = getattr(self._data.array, f"_str_{name}")()
-        return self._wrap_result(result)
+        return self._wrap_result(
+            result, returns_string=name not in ("isnumeric", "isdecimal")
+        )
 
     wrapper.__doc__ = docstring
     return wrapper
@@ -370,7 +372,7 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                out = MultiIndex.from_tuples(result, names=name)
+                out: Index = MultiIndex.from_tuples(result, names=name)
                 if out.nlevels == 1:
                     # We had all tuples of length-one, which are
                     # better represented as a regular Index.
@@ -3447,10 +3449,9 @@ def _result_dtype(arr):
     # when the list of values is empty.
     from pandas.core.arrays.string_ import StringDtype
 
-    if isinstance(arr.dtype, StringDtype):
+    if isinstance(arr.dtype, (ArrowDtype, StringDtype)):
         return arr.dtype
-    else:
-        return object
+    return object
 
 
 def _get_single_group_name(regex: re.Pattern) -> Hashable:

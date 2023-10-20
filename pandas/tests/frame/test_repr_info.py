@@ -313,7 +313,7 @@ NaT   4"""
 
     def test_repr_categorical_dates_periods(self):
         # normal DataFrame
-        dt = date_range("2011-01-01 09:00", freq="H", periods=5, tz="US/Eastern")
+        dt = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
         p = period_range("2011-01", freq="M", periods=5)
         df = DataFrame({"dt": dt, "p": p})
         exp = """                         dt        p
@@ -339,7 +339,7 @@ NaT   4"""
         assert result == expected
 
     def test_frame_datetime64_pre1900_repr(self):
-        df = DataFrame({"year": date_range("1/1/1700", periods=50, freq="A-DEC")})
+        df = DataFrame({"year": date_range("1/1/1700", periods=50, freq="Y-DEC")})
         # it works!
         repr(df)
 
@@ -411,7 +411,7 @@ NaT   4"""
     def test_to_records_with_inf_as_na_record(self):
         # GH 48526
         expected = """   NaN  inf         record
-0  NaN    b    [0, inf, b]
+0  inf    b    [0, inf, b]
 1  NaN  NaN  [1, nan, nan]
 2    e    f      [2, e, f]"""
         msg = "use_inf_as_na option is deprecated"
@@ -455,3 +455,14 @@ NaT   4"""
 0  0.12  1.00
 1  1.12  2.00"""
         assert result == expected
+
+    def test_repr_ea_columns(self, any_string_dtype):
+        # GH#54797
+        pytest.importorskip("pyarrow")
+        df = DataFrame({"long_column_name": [1, 2, 3], "col2": [4, 5, 6]})
+        df.columns = df.columns.astype(any_string_dtype)
+        expected = """   long_column_name  col2
+0                 1     4
+1                 2     5
+2                 3     6"""
+        assert repr(df) == expected

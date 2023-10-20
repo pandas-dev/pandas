@@ -242,7 +242,7 @@ class TestPandasContainer:
     ):
         # TODO: create a better frame to test with and improve coverage
         if orient in ("index", "columns"):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=f"Can't have duplicate index values for orient '{orient}')"
                 )
@@ -521,7 +521,7 @@ class TestPandasContainer:
         tm.assert_frame_equal(df_iso, df_unser_iso)
 
     def test_blocks_compat_GH9037(self):
-        index = pd.date_range("20000101", periods=10, freq="H")
+        index = pd.date_range("20000101", periods=10, freq="h")
         # freq doesn't round-trip
         index = DatetimeIndex(list(index), freq=None)
 
@@ -604,7 +604,7 @@ class TestPandasContainer:
         )
 
         # JSON deserialisation always creates unicode strings
-        df_mixed.columns = df_mixed.columns.astype("unicode")
+        df_mixed.columns = df_mixed.columns.astype(np.str_)
         data = StringIO(df_mixed.to_json(orient="split"))
         df_roundtrip = read_json(data, orient="split")
         tm.assert_frame_equal(
@@ -1893,7 +1893,7 @@ class TestPandasContainer:
         # GH 31615
         if isinstance(nulls_fixture, Decimal):
             mark = pytest.mark.xfail(reason="not implemented")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         result = DataFrame([[nulls_fixture]]).to_json()
         assert result == '{"0":{"0":null}}'
@@ -2044,7 +2044,7 @@ class TestPandasContainer:
             )
 
         if orient == "values":
-            expected.columns = list(range(0, 8))
+            expected.columns = list(range(8))
 
         tm.assert_frame_equal(result, expected)
 
@@ -2095,7 +2095,7 @@ def test_pyarrow_engine_lines_false():
 
 
 def test_json_roundtrip_string_inference(orient):
-    pa = pytest.importorskip("pyarrow")
+    pytest.importorskip("pyarrow")
     df = DataFrame(
         [["a", "b"], ["c", "d"]], index=["row 1", "row 2"], columns=["col 1", "col 2"]
     )
@@ -2104,9 +2104,9 @@ def test_json_roundtrip_string_inference(orient):
         result = read_json(StringIO(out))
     expected = DataFrame(
         [["a", "b"], ["c", "d"]],
-        dtype=pd.ArrowDtype(pa.string()),
-        index=pd.Index(["row 1", "row 2"], dtype=pd.ArrowDtype(pa.string())),
-        columns=pd.Index(["col 1", "col 2"], dtype=pd.ArrowDtype(pa.string())),
+        dtype="string[pyarrow_numpy]",
+        index=pd.Index(["row 1", "row 2"], dtype="string[pyarrow_numpy]"),
+        columns=pd.Index(["col 1", "col 2"], dtype="string[pyarrow_numpy]"),
     )
     tm.assert_frame_equal(result, expected)
 

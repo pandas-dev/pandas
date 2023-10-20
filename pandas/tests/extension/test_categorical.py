@@ -148,7 +148,7 @@ class TestCategorical(base.ExtensionTests):
         # frame & scalar
         op_name = all_arithmetic_operators
         if op_name == "__rmod__":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="rmod never called when string is first argument"
                 )
@@ -158,21 +158,21 @@ class TestCategorical(base.ExtensionTests):
     def test_arith_series_with_scalar(self, data, all_arithmetic_operators, request):
         op_name = all_arithmetic_operators
         if op_name == "__rmod__":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="rmod never called when string is first argument"
                 )
             )
         super().test_arith_series_with_scalar(data, op_name)
 
-    def _compare_other(self, s, data, op, other):
+    def _compare_other(self, ser: pd.Series, data, op, other):
         op_name = f"__{op.__name__}__"
         if op_name not in ["__eq__", "__ne__"]:
             msg = "Unordered Categoricals can only compare equality or not"
             with pytest.raises(TypeError, match=msg):
                 op(data, other)
         else:
-            return super()._compare_other(s, data, op, other)
+            return super()._compare_other(ser, data, op, other)
 
     @pytest.mark.xfail(reason="Categorical overrides __repr__")
     @pytest.mark.parametrize("size", ["big", "small"])

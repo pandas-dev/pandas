@@ -14,7 +14,7 @@ import pandas._testing as tm
 class TestPeriodIndex:
     def test_getitem_periodindex_duplicates_string_slice(self, using_copy_on_write):
         # monotonic
-        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="Y-JUN")
         ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
         original = ts.copy()
 
@@ -28,7 +28,7 @@ class TestPeriodIndex:
             assert (ts[1:3] == 1).all()
 
         # not monotonic
-        idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="A-JUN")
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="Y-JUN")
         ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
 
         result = ts["2007"]
@@ -84,7 +84,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("make_range", [date_range, period_range])
     def test_range_slice_seconds(self, make_range):
         # GH#6716
-        idx = make_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
+        idx = make_range(start="2013/01/01 09:00:00", freq="s", periods=4000)
         msg = "slice indices must be integers or None or have an __index__ method"
 
         # slices against index should raise IndexError

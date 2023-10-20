@@ -195,6 +195,7 @@ def array_equivalent_object(
     right: npt.NDArray[np.object_],
 ) -> bool: ...
 def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
+def has_only_ints_or_nan(arr: np.ndarray) -> bool: ...  # const floating[:]
 def get_reverse_indexer(
     indexer: np.ndarray,  # const intp_t[:]
     length: int,

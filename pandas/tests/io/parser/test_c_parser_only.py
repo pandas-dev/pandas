@@ -19,7 +19,10 @@ import pytest
 
 from pandas.compat import is_ci_environment
 from pandas.compat.numpy import np_version_gte1p24
-from pandas.errors import ParserError
+from pandas.errors import (
+    ParserError,
+    ParserWarning,
+)
 import pandas.util._test_decorators as td
 
 from pandas import (
@@ -461,7 +464,7 @@ def test_data_after_quote(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
-def test_comment_whitespace_delimited(c_parser_only, capsys):
+def test_comment_whitespace_delimited(c_parser_only):
     parser = c_parser_only
     test_input = """\
 1 2
@@ -474,18 +477,17 @@ def test_comment_whitespace_delimited(c_parser_only, capsys):
 8# 1 field, NaN
 9 2 3 # skipped line
 # comment"""
-    df = parser.read_csv(
-        StringIO(test_input),
-        comment="#",
-        header=None,
-        delimiter="\\s+",
-        skiprows=0,
-        on_bad_lines="warn",
-    )
-    captured = capsys.readouterr()
-    # skipped lines 2, 3, 4, 9
-    for line_num in (2, 3, 4, 9):
-        assert f"Skipping line {line_num}" in captured.err
+    with tm.assert_produces_warning(
+        ParserWarning, match="Skipping line", check_stacklevel=False
+    ):
+        df = parser.read_csv(
+            StringIO(test_input),
+            comment="#",
+            header=None,
+            delimiter="\\s+",
+            skiprows=0,
+            on_bad_lines="warn",
+        )
     expected = DataFrame([[1, 2], [5, 2], [6, 2], [7, np.nan], [8, np.nan]])
     tm.assert_frame_equal(df, expected)
 

@@ -15,6 +15,7 @@ try:
     pa_version_under11p0 = _palv < Version("11.0.0")
     pa_version_under12p0 = _palv < Version("12.0.0")
     pa_version_under13p0 = _palv < Version("13.0.0")
+    pa_version_under14p0 = _palv < Version("14.0.0")
 except ImportError:
     pa_version_under7p0 = True
     pa_version_under8p0 = True
@@ -23,3 +24,4 @@ except ImportError:
     pa_version_under11p0 = True
     pa_version_under12p0 = True
     pa_version_under13p0 = True
+    pa_version_under14p0 = True

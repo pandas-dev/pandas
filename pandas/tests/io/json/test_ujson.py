@@ -814,9 +814,18 @@ class TestNumpyJSONTests:
 
     def test_0d_array(self):
         # gh-18878
-        msg = re.escape("array(1) (0d array) is not JSON serializable at the moment")
+        msg = re.escape(
+            "array(1) (numpy-scalar) is not JSON serializable at the moment"
+        )
         with pytest.raises(TypeError, match=msg):
             ujson.ujson_dumps(np.array(1))
+
+    def test_array_long_double(self):
+        msg = re.compile(
+            "1234.5.* \\(numpy-scalar\\) is not JSON serializable at the moment"
+        )
+        with pytest.raises(TypeError, match=msg):
+            ujson.ujson_dumps(np.longdouble(1234.5))
 
 
 class TestPandasJSONTests:
@@ -1033,7 +1042,7 @@ class TestPandasJSONTests:
     def test_encode_big_set(self):
         s = set()
 
-        for x in range(0, 100000):
+        for x in range(100000):
             s.add(x)
 
         # Make sure no Exception is raised.

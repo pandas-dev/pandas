@@ -36,6 +36,8 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 * Copyright (c) 1994 Sun Microsystems, Inc.
 */
 
+// Licence at LICENSES/ULTRAJSON_LICENSE
+
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <math.h>
@@ -1608,9 +1610,9 @@ void Object_beginTypeContext(JSOBJ _obj, JSONTypeContext *tc) {
                                   PyArray_DescrFromType(NPY_DOUBLE));
         tc->type = JT_DOUBLE;
         return;
-    } else if (PyArray_Check(obj) && PyArray_CheckScalar(obj)) {
+    } else if (PyArray_CheckScalar(obj)) {
         PyErr_Format(PyExc_TypeError,
-                     "%R (0d array) is not JSON serializable at the moment",
+                     "%R (numpy-scalar) is not JSON serializable at the moment",
                      obj);
         goto INVALID;
     } else if (object_is_na_type(obj)) {

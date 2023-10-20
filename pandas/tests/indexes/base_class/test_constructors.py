@@ -46,8 +46,8 @@ class TestIndexConstructor:
 
     def test_index_string_inference(self):
         # GH#54430
-        pa = pytest.importorskip("pyarrow")
-        dtype = pd.ArrowDtype(pa.string())
+        pytest.importorskip("pyarrow")
+        dtype = "string[pyarrow_numpy]"
         expected = Index(["a", "b"], dtype=dtype)
         with pd.option_context("future.infer_string", True):
             ser = Index(["a", "b"])
