@@ -29,13 +29,20 @@ class BaseParser:
         return read_csv(*args, **kwargs)
 
     def read_csv_check_warnings(
-        self, warn_type: type[Warning], warn_msg: str, *args, **kwargs
+        self,
+        warn_type: type[Warning],
+        warn_msg: str,
+        *args,
+        raise_on_extra_warnings=True,
+        **kwargs,
     ):
         # We need to check the stacklevel here instead of in the tests
         # since this is where read_csv is called and where the warning
         # should point to.
         kwargs = self.update_kwargs(kwargs)
-        with tm.assert_produces_warning(warn_type, match=warn_msg):
+        with tm.assert_produces_warning(
+            warn_type, match=warn_msg, raise_on_extra_warnings=raise_on_extra_warnings
+        ):
             return read_csv(*args, **kwargs)
 
     def read_table(self, *args, **kwargs):
@@ -43,13 +50,20 @@ class BaseParser:
         return read_table(*args, **kwargs)
 
     def read_table_check_warnings(
-        self, warn_type: type[Warning], warn_msg: str, *args, **kwargs
+        self,
+        warn_type: type[Warning],
+        warn_msg: str,
+        *args,
+        raise_on_extra_warnings=True,
+        **kwargs,
     ):
         # We need to check the stacklevel here instead of in the tests
         # since this is where read_table is called and where the warning
         # should point to.
         kwargs = self.update_kwargs(kwargs)
-        with tm.assert_produces_warning(warn_type, match=warn_msg):
+        with tm.assert_produces_warning(
+            warn_type, match=warn_msg, raise_on_extra_warnings=raise_on_extra_warnings
+        ):
             return read_table(*args, **kwargs)
 
 

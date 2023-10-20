@@ -16,6 +16,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 _msg_validate_usecols_arg = (
     "'usecols' must either be list-like "
     "of all strings, all unicode, all "
@@ -168,14 +172,9 @@ def test_usecols_index_col_conflict2(all_parsers):
     expected = DataFrame({"b": ["a", "b"], "c": [1, 2], "d": ("one", "two")})
     expected = expected.set_index(["b", "c"])
 
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(
-            StringIO(data), usecols=["b", "c", "d"], index_col=["b", "c"]
-        )
+    result = parser.read_csv(
+        StringIO(data), usecols=["b", "c", "d"], index_col=["b", "c"]
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -196,12 +195,7 @@ def test_usecols_index_col_middle(all_parsers):
     data = """a,b,c,d
 1,2,3,4
 """
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), usecols=["b", "c", "d"], index_col="c")
+    result = parser.read_csv(StringIO(data), usecols=["b", "c", "d"], index_col="c")
     expected = DataFrame({"b": [2], "d": [4]}, index=Index([3], name="c"))
     tm.assert_frame_equal(result, expected)
 
@@ -212,12 +206,7 @@ def test_usecols_index_col_end(all_parsers):
     data = """a,b,c,d
 1,2,3,4
 """
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), usecols=["b", "c", "d"], index_col="d")
+    result = parser.read_csv(StringIO(data), usecols=["b", "c", "d"], index_col="d")
     expected = DataFrame({"b": [2], "c": [3]}, index=Index([4], name="d"))
     tm.assert_frame_equal(result, expected)
 
@@ -283,12 +272,7 @@ def test_np_array_usecols(all_parsers):
     usecols = np.array(["a", "b"])
 
     expected = DataFrame([[1, 2]], columns=usecols)
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), usecols=usecols)
+    result = parser.read_csv(StringIO(data), usecols=usecols)
     tm.assert_frame_equal(result, expected)
 
 
@@ -480,16 +464,11 @@ col1,col2,col3
 a,1,x
 b,2,y
 """
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(
-            StringIO(data),
-            usecols=["col1", "col2"],
-            dtype={"col1": "string", "col2": "uint8", "col3": "string"},
-        )
+    result = parser.read_csv(
+        StringIO(data),
+        usecols=["col1", "col2"],
+        dtype={"col1": "string", "col2": "uint8", "col3": "string"},
+    )
     expected = DataFrame(
         {"col1": array(["a", "b"]), "col2": np.array([1, 2], dtype="uint8")}
     )
