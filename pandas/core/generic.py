@@ -8786,7 +8786,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         4      5     -4
 
         Clips using specific lower and upper thresholds per column:
-        
+
         >>> df.clip([-2, -1], [4,5])
             col_0  col_1
         0      4     -1
