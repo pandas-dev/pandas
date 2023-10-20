@@ -746,14 +746,6 @@ class TestDatetimeArray:
         assert str(left) == str(right2)
         assert left.utcoffset() == right2.utcoffset()
 
-    def test_date_range_frequency_M_deprecated(self):
-        depr_msg = "'M' will be deprecated, please use 'ME' instead."
-
-        expected = pd.date_range("1/1/2000", periods=4, freq="2ME")
-        with tm.assert_produces_warning(UserWarning, match=depr_msg):
-            result = pd.date_range("1/1/2000", periods=4, freq="2M")
-        tm.assert_index_equal(result, expected)
-
 
 def test_factorize_sort_without_freq():
     dta = DatetimeArray._from_sequence([0, 2, 1])
