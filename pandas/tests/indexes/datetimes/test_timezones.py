@@ -2,9 +2,7 @@
 Tests for DatetimeIndex timezone-related methods
 """
 from datetime import (
-    date,
     datetime,
-    time,
     timedelta,
     timezone,
     tzinfo,
@@ -23,7 +21,6 @@ from pandas._libs.tslibs import (
 import pandas as pd
 from pandas import (
     DatetimeIndex,
-    Index,
     Timestamp,
     bdate_range,
     date_range,
@@ -56,43 +53,6 @@ fixed_off_no_name = FixedOffset(-330, None)
 class TestDatetimeIndexTimezones:
     # -------------------------------------------------------------
     # Unsorted
-
-    @pytest.mark.parametrize(
-        "dtype",
-        [None, "datetime64[ns, CET]", "datetime64[ns, EST]", "datetime64[ns, UTC]"],
-    )
-    def test_date_accessor(self, dtype):
-        # Regression test for GH#21230
-        expected = np.array([date(2018, 6, 4), pd.NaT])
-
-        index = DatetimeIndex(["2018-06-04 10:00:00", pd.NaT], dtype=dtype)
-        result = index.date
-
-        tm.assert_numpy_array_equal(result, expected)
-
-    @pytest.mark.parametrize(
-        "dtype",
-        [None, "datetime64[ns, CET]", "datetime64[ns, EST]", "datetime64[ns, UTC]"],
-    )
-    def test_time_accessor(self, dtype):
-        # Regression test for GH#21267
-        expected = np.array([time(10, 20, 30), pd.NaT])
-
-        index = DatetimeIndex(["2018-06-04 10:20:30", pd.NaT], dtype=dtype)
-        result = index.time
-
-        tm.assert_numpy_array_equal(result, expected)
-
-    def test_timetz_accessor(self, tz_naive_fixture):
-        # GH21358
-        tz = timezones.maybe_get_tz(tz_naive_fixture)
-
-        expected = np.array([time(10, 20, 30, tzinfo=tz), pd.NaT])
-
-        index = DatetimeIndex(["2018-06-04 10:20:30", pd.NaT], tz=tz)
-        result = index.timetz
-
-        tm.assert_numpy_array_equal(result, expected)
 
     def test_dti_drop_dont_lose_tz(self):
         # GH#2621
@@ -213,15 +173,6 @@ class TestDatetimeIndexTimezones:
         assert idx[0].tzinfo is not None
 
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
-    def test_dti_with_timezone_repr(self, tzstr):
-        rng = date_range("4/13/2010", "5/6/2010")
-
-        rng_eastern = rng.tz_localize(tzstr)
-
-        rng_repr = repr(rng_eastern)
-        assert "2010-04-13 00:00:00" in rng_repr
-
-    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
     def test_utc_box_timestamp_and_localize(self, tzstr):
         tz = timezones.maybe_get_tz(tzstr)
 
@@ -273,20 +224,6 @@ class TestDatetimeIndexTimezones:
         msg = "Start and end cannot both be tz-aware with different timezones"
         with pytest.raises(Exception, match=msg):
             bdate_range(datetime(2005, 1, 1, tzinfo=pytz.utc), "1/1/2009", tz=tz)
-
-    @pytest.mark.parametrize("prefix", ["", "dateutil/"])
-    def test_field_access_localize(self, prefix):
-        strdates = ["1/1/2012", "3/1/2012", "4/1/2012"]
-        rng = DatetimeIndex(strdates, tz=prefix + "US/Eastern")
-        assert (rng.hour == 0).all()
-
-        # a more unusual time zone, #1946
-        dr = date_range(
-            "2011-10-02 00:00", freq="h", periods=10, tz=prefix + "America/Atikokan"
-        )
-
-        expected = Index(np.arange(10, dtype=np.int32))
-        tm.assert_index_equal(dr.hour, expected)
 
     @pytest.mark.parametrize("tz", [pytz.timezone("US/Eastern"), gettz("US/Eastern")])
     def test_dti_convert_tz_aware_datetime_datetime(self, tz):
