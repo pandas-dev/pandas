@@ -10,7 +10,6 @@ import pandas as pd
 from pandas import (
     DatetimeIndex,
     Index,
-    Timedelta,
     Timestamp,
     date_range,
     offsets,
@@ -31,92 +30,89 @@ class TestDatetime64:
         with pytest.raises(AttributeError, match=msg):
             DatetimeIndex([]).millisecond
 
-    def test_datetimeindex_accessors(self):
-        dti_naive = date_range(freq="D", start=datetime(1998, 1, 1), periods=365)
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_datetimeindex_accessors(self, tz):
         # GH#13303
-        dti_tz = date_range(
-            freq="D", start=datetime(1998, 1, 1), periods=365, tz="US/Eastern"
-        )
-        for dti in [dti_naive, dti_tz]:
-            assert dti.year[0] == 1998
-            assert dti.month[0] == 1
-            assert dti.day[0] == 1
-            assert dti.hour[0] == 0
-            assert dti.minute[0] == 0
-            assert dti.second[0] == 0
-            assert dti.microsecond[0] == 0
-            assert dti.dayofweek[0] == 3
+        dti = date_range(freq="D", start=datetime(1998, 1, 1), periods=365, tz=tz)
+        assert dti.year[0] == 1998
+        assert dti.month[0] == 1
+        assert dti.day[0] == 1
+        assert dti.hour[0] == 0
+        assert dti.minute[0] == 0
+        assert dti.second[0] == 0
+        assert dti.microsecond[0] == 0
+        assert dti.dayofweek[0] == 3
 
-            assert dti.dayofyear[0] == 1
-            assert dti.dayofyear[120] == 121
+        assert dti.dayofyear[0] == 1
+        assert dti.dayofyear[120] == 121
 
-            assert dti.isocalendar().week.iloc[0] == 1
-            assert dti.isocalendar().week.iloc[120] == 18
+        assert dti.isocalendar().week.iloc[0] == 1
+        assert dti.isocalendar().week.iloc[120] == 18
 
-            assert dti.quarter[0] == 1
-            assert dti.quarter[120] == 2
+        assert dti.quarter[0] == 1
+        assert dti.quarter[120] == 2
 
-            assert dti.days_in_month[0] == 31
-            assert dti.days_in_month[90] == 30
+        assert dti.days_in_month[0] == 31
+        assert dti.days_in_month[90] == 30
 
-            assert dti.is_month_start[0]
-            assert not dti.is_month_start[1]
-            assert dti.is_month_start[31]
-            assert dti.is_quarter_start[0]
-            assert dti.is_quarter_start[90]
-            assert dti.is_year_start[0]
-            assert not dti.is_year_start[364]
-            assert not dti.is_month_end[0]
-            assert dti.is_month_end[30]
-            assert not dti.is_month_end[31]
-            assert dti.is_month_end[364]
-            assert not dti.is_quarter_end[0]
-            assert not dti.is_quarter_end[30]
-            assert dti.is_quarter_end[89]
-            assert dti.is_quarter_end[364]
-            assert not dti.is_year_end[0]
-            assert dti.is_year_end[364]
+        assert dti.is_month_start[0]
+        assert not dti.is_month_start[1]
+        assert dti.is_month_start[31]
+        assert dti.is_quarter_start[0]
+        assert dti.is_quarter_start[90]
+        assert dti.is_year_start[0]
+        assert not dti.is_year_start[364]
+        assert not dti.is_month_end[0]
+        assert dti.is_month_end[30]
+        assert not dti.is_month_end[31]
+        assert dti.is_month_end[364]
+        assert not dti.is_quarter_end[0]
+        assert not dti.is_quarter_end[30]
+        assert dti.is_quarter_end[89]
+        assert dti.is_quarter_end[364]
+        assert not dti.is_year_end[0]
+        assert dti.is_year_end[364]
 
-            assert len(dti.year) == 365
-            assert len(dti.month) == 365
-            assert len(dti.day) == 365
-            assert len(dti.hour) == 365
-            assert len(dti.minute) == 365
-            assert len(dti.second) == 365
-            assert len(dti.microsecond) == 365
-            assert len(dti.dayofweek) == 365
-            assert len(dti.dayofyear) == 365
-            assert len(dti.isocalendar()) == 365
-            assert len(dti.quarter) == 365
-            assert len(dti.is_month_start) == 365
-            assert len(dti.is_month_end) == 365
-            assert len(dti.is_quarter_start) == 365
-            assert len(dti.is_quarter_end) == 365
-            assert len(dti.is_year_start) == 365
-            assert len(dti.is_year_end) == 365
+        assert len(dti.year) == 365
+        assert len(dti.month) == 365
+        assert len(dti.day) == 365
+        assert len(dti.hour) == 365
+        assert len(dti.minute) == 365
+        assert len(dti.second) == 365
+        assert len(dti.microsecond) == 365
+        assert len(dti.dayofweek) == 365
+        assert len(dti.dayofyear) == 365
+        assert len(dti.isocalendar()) == 365
+        assert len(dti.quarter) == 365
+        assert len(dti.is_month_start) == 365
+        assert len(dti.is_month_end) == 365
+        assert len(dti.is_quarter_start) == 365
+        assert len(dti.is_quarter_end) == 365
+        assert len(dti.is_year_start) == 365
+        assert len(dti.is_year_end) == 365
 
-            dti.name = "name"
+        dti.name = "name"
 
-            # non boolean accessors -> return Index
-            for accessor in DatetimeArray._field_ops:
-                res = getattr(dti, accessor)
-                assert len(res) == 365
-                assert isinstance(res, Index)
-                assert res.name == "name"
+        # non boolean accessors -> return Index
+        for accessor in DatetimeArray._field_ops:
+            res = getattr(dti, accessor)
+            assert len(res) == 365
+            assert isinstance(res, Index)
+            assert res.name == "name"
 
-            # boolean accessors -> return array
-            for accessor in DatetimeArray._bool_ops:
-                res = getattr(dti, accessor)
-                assert len(res) == 365
-                assert isinstance(res, np.ndarray)
+        # boolean accessors -> return array
+        for accessor in DatetimeArray._bool_ops:
+            res = getattr(dti, accessor)
+            assert len(res) == 365
+            assert isinstance(res, np.ndarray)
 
-            # test boolean indexing
-            res = dti[dti.is_quarter_start]
-            exp = dti[[0, 90, 181, 273]]
-            tm.assert_index_equal(res, exp)
-            res = dti[dti.is_leap_year]
-            exp = DatetimeIndex([], freq="D", tz=dti.tz, name="name")
-            tm.assert_index_equal(res, exp)
+        # test boolean indexing
+        res = dti[dti.is_quarter_start]
+        exp = dti[[0, 90, 181, 273]]
+        tm.assert_index_equal(res, exp)
+        res = dti[dti.is_leap_year]
+        exp = DatetimeIndex([], freq="D", tz=dti.tz, name="name")
+        tm.assert_index_equal(res, exp)
 
     def test_datetimeindex_accessors2(self):
         dti = date_range(freq="BQ-FEB", start=datetime(1998, 1, 1), periods=4)
@@ -283,23 +279,3 @@ class TestDatetime64:
         expected = Index(np.arange(10, dtype=np.int32))
 
         tm.assert_index_equal(dti.nanosecond, expected)
-
-
-def test_iter_readonly():
-    # GH#28055 ints_to_pydatetime with readonly array
-    arr = np.array([np.datetime64("2012-02-15T12:00:00.000000000")])
-    arr.setflags(write=False)
-    dti = pd.to_datetime(arr)
-    list(dti)
-
-
-def test_add_timedelta_preserves_freq():
-    # GH#37295 should hold for any DTI with freq=None or Tick freq
-    tz = "Canada/Eastern"
-    dti = date_range(
-        start=Timestamp("2019-03-26 00:00:00-0400", tz=tz),
-        end=Timestamp("2020-10-17 00:00:00-0400", tz=tz),
-        freq="D",
-    )
-    result = dti + Timedelta(days=1)
-    assert result.freq == dti.freq

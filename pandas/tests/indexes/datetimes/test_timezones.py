@@ -741,14 +741,3 @@ class TestDatetimeIndexTimezones:
         ex_vals = np.array([Timestamp(x).as_unit("ns")._value for x in dates_aware])
         tm.assert_numpy_array_equal(converted.asi8, ex_vals)
         assert converted.tz is timezone.utc
-
-    @pytest.mark.parametrize(
-        "tz", [None, "UTC", "US/Central", dateutil.tz.tzoffset(None, -28800)]
-    )
-    def test_iteration_preserves_nanoseconds(self, tz):
-        # GH 19603
-        index = DatetimeIndex(
-            ["2018-02-08 15:00:00.168456358", "2018-02-08 15:00:00.168456359"], tz=tz
-        )
-        for i, ts in enumerate(index):
-            assert ts == index[i]  # pylint: disable=unnecessary-list-index-lookup
