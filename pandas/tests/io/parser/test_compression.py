@@ -13,6 +13,10 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
@@ -105,7 +109,7 @@ def test_compression(
     filename = filename if filename is None else filename.format(ext=ext)
 
     if filename and buffer:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Cannot deduce compression from buffer of compressed data."
             )

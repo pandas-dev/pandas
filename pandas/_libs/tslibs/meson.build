@@ -19,11 +19,20 @@ tslibs_sources = {
     'vectorized': {'sources': ['vectorized.pyx']},
 }
 
+cython_args = [
+    '--include-dir',
+    meson.current_build_dir(),
+    '-X always_allow_keywords=true'
+]
+if get_option('buildtype') == 'debug'
+    cython_args += ['--gdb']
+endif
+
 foreach ext_name, ext_dict : tslibs_sources
     py.extension_module(
         ext_name,
         ext_dict.get('sources'),
-        cython_args: ['--include-dir', meson.current_build_dir(), '-X always_allow_keywords=true'],
+        cython_args: cython_args,
         include_directories: [inc_np, inc_pd],
         dependencies: ext_dict.get('deps', ''),
         subdir: 'pandas/_libs/tslibs',
@@ -31,6 +40,28 @@ foreach ext_name, ext_dict : tslibs_sources
     )
 endforeach
 
-py.install_sources('__init__.py',
-                    pure: false,
-                    subdir: 'pandas/_libs/tslibs')
+sources_to_install = [
+    '__init__.py',
+    'ccalendar.pyi',
+    'conversion.pyi',
+    'dtypes.pyi',
+    'fields.pyi',
+    'nattype.pyi',
+    'np_datetime.pyi',
+    'offsets.pyi',
+    'parsing.pyi',
+    'period.pyi',
+    'strptime.pyi',
+    'timedeltas.pyi',
+    'timestamps.pyi',
+    'timezones.pyi',
+    'tzconversion.pyi',
+    'vectorized.pyi'
+]
+
+foreach source: sources_to_install
+    py.install_sources(
+        source,
+        subdir: 'pandas/_libs/tslibs'
+    )
+endforeach

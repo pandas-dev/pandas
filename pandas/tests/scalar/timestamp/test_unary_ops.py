@@ -45,7 +45,7 @@ class TestTimestampUnaryOps:
             ("20130201 12:00:00", "D", "20130202"),
             ("20130104 12:00:00", "D", "20130105"),
             ("2000-01-05 05:09:15.13", "D", "2000-01-05 00:00:00"),
-            ("2000-01-05 05:09:15.13", "H", "2000-01-05 05:00:00"),
+            ("2000-01-05 05:09:15.13", "h", "2000-01-05 05:00:00"),
             ("2000-01-05 05:09:15.13", "s", "2000-01-05 05:09:15"),
         ],
     )
@@ -141,7 +141,7 @@ class TestTimestampUnaryOps:
             ("2018-01-01 00:04:00", "4min", "2018-01-01 00:04:00"),
             ("2018-01-01 00:15:00", "15min", "2018-01-01 00:15:00"),
             ("2018-01-01 00:20:00", "20min", "2018-01-01 00:20:00"),
-            ("2018-01-01 03:00:00", "3H", "2018-01-01 03:00:00"),
+            ("2018-01-01 03:00:00", "3h", "2018-01-01 03:00:00"),
         ],
     )
     @pytest.mark.parametrize("rounder", ["ceil", "floor", "round"])
@@ -181,30 +181,30 @@ class TestTimestampUnaryOps:
         ts = Timestamp("2017-10-29 00:00:00", tz="UTC").tz_convert("Europe/Madrid")
         ts = ts.as_unit(unit)
         #
-        result = getattr(ts, method)("H", ambiguous=True)
+        result = getattr(ts, method)("h", ambiguous=True)
         assert result == ts
         assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
-        result = getattr(ts, method)("H", ambiguous=False)
+        result = getattr(ts, method)("h", ambiguous=False)
         expected = Timestamp("2017-10-29 01:00:00", tz="UTC").tz_convert(
             "Europe/Madrid"
         )
         assert result == expected
         assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
-        result = getattr(ts, method)("H", ambiguous="NaT")
+        result = getattr(ts, method)("h", ambiguous="NaT")
         assert result is NaT
 
         msg = "Cannot infer dst time"
         with pytest.raises(pytz.AmbiguousTimeError, match=msg):
-            getattr(ts, method)("H", ambiguous="raise")
+            getattr(ts, method)("h", ambiguous="raise")
 
     @pytest.mark.parametrize(
         "method, ts_str, freq",
         [
             ["ceil", "2018-03-11 01:59:00-0600", "5min"],
             ["round", "2018-03-11 01:59:00-0600", "5min"],
-            ["floor", "2018-03-11 03:01:00-0500", "2H"],
+            ["floor", "2018-03-11 03:01:00-0500", "2h"],
         ],
     )
     @pytest.mark.parametrize(
