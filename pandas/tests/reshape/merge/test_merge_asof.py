@@ -1670,3 +1670,41 @@ def test_merge_asof_read_only_ndarray():
     result = merge_asof(left, right, left_index=True, right_index=True)
     expected = pd.DataFrame({"left": [2], "right": [1]}, index=[2])
     tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_multiby_with_categorical():
+    # GH 43541
+    left = pd.DataFrame(
+        {
+            "c1": pd.Categorical(["a", "a", "b", "b"], categories=["a", "b"]),
+            "c2": ["x"] * 4,
+            "t": [1] * 4,
+            "v": range(4),
+        }
+    )
+    right = pd.DataFrame(
+        {
+            "c1": pd.Categorical(["b", "b"], categories=["b", "a"]),
+            "c2": ["x"] * 2,
+            "t": [1, 2],
+            "v": range(2),
+        }
+    )
+    result = merge_asof(
+        left,
+        right,
+        by=["c1", "c2"],
+        on="t",
+        direction="forward",
+        suffixes=["_left", "_right"],
+    )
+    expected = pd.DataFrame(
+        {
+            "c1": pd.Categorical(["a", "a", "b", "b"], categories=["a", "b"]),
+            "c2": ["x"] * 4,
+            "t": [1] * 4,
+            "v_left": range(4),
+            "v_right": [np.nan, np.nan, 0.0, 0.0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
