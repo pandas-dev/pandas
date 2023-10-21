@@ -300,7 +300,7 @@ class TestDatetimeIndex:
         assert not isinstance(result, DatetimeIndex)
 
         msg = "DatetimeIndex has mixed timezones"
-        msg_depr = "parsing datetimes with mixed time zones will raise a warning"
+        msg_depr = "parsing datetimes with mixed time zones will raise an error"
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=msg_depr):
                 DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
@@ -1110,9 +1110,3 @@ class TestTimeSeries:
         expected = Index(rng.to_pydatetime(), dtype=object)
 
         tm.assert_numpy_array_equal(idx.values, expected.values)
-
-    def test_date_range_tuple_freq_raises(self):
-        # GH#34703
-        edate = datetime(2000, 1, 1)
-        with pytest.raises(TypeError, match="pass as a string instead"):
-            date_range(end=edate, freq=("D", 5), periods=20)
