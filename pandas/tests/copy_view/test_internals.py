@@ -122,6 +122,7 @@ def test_iset_splits_blocks_inplace(using_copy_on_write, locs, arr, dtype):
 
 
 def test_exponential_backoff():
+    # GH#55518
     df = DataFrame({"a": [1, 2, 3]})
     for i in range(490):
         df.copy(deep=False)
