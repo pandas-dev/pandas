@@ -189,7 +189,7 @@ def test_groupby_raises_string(
         "sum": (None, ""),
         "var": (
             TypeError,
-            re.escape("agg function failed [how->var,dtype->object]"),
+            re.escape("agg function failed [how->var,dtype->"),
         ),
     }[groupby_func]
 

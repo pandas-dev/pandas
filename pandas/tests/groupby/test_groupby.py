@@ -2008,7 +2008,9 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(columns, keys, values, method, op, using_array_manager, dropna):
+def test_empty_groupby(
+    columns, keys, values, method, op, using_array_manager, dropna, using_infer_string
+):
     # GH8093 & GH26411
     override_dtype = None
 
@@ -2049,7 +2051,11 @@ def test_empty_groupby(columns, keys, values, method, op, using_array_manager, d
             # Categorical is special without 'observed=True'
             idx = Index(lev, name=keys[0])
 
-        expected = DataFrame([], columns=[], index=idx)
+        if using_infer_string:
+            columns = Index([], dtype="string[pyarrow_numpy]")
+        else:
+            columns = []
+        expected = DataFrame([], columns=columns, index=idx)
         return expected
 
     is_per = isinstance(df.dtypes.iloc[0], pd.PeriodDtype)
