@@ -242,6 +242,7 @@ class TestNumericOnly:
                 [
                     "category type does not support sum operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
+                    re.escape(f"agg function failed [how->{method},dtype->string]"),
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -258,6 +259,7 @@ class TestNumericOnly:
                     "function is not implemented for this dtype",
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
+                    re.escape(f"agg function failed [how->{method},dtype->string]"),
                 ]
             )
             with pytest.raises(exception, match=msg):
@@ -413,7 +415,7 @@ def test_groupby_non_arithmetic_agg_int_like_precision(i):
 
 
 @pytest.mark.parametrize("numeric_only", [True, False, None])
-def test_axis1_numeric_only(request, groupby_func, numeric_only):
+def test_axis1_numeric_only(request, groupby_func, numeric_only, using_infer_string):
     if groupby_func in ("idxmax", "idxmin"):
         pytest.skip("idxmax and idx_min tested in test_idxmin_idxmax_axis1")
     if groupby_func in ("corrwith", "skew"):
@@ -475,8 +477,15 @@ def test_axis1_numeric_only(request, groupby_func, numeric_only):
             "can't multiply sequence by non-int of type 'float'",
             # cumsum, diff, pct_change
             "unsupported operand type",
+            "has no kernel",
         )
-        with pytest.raises(TypeError, match=f"({'|'.join(msgs)})"):
+        if using_infer_string:
+            import pyarrow as pa
+
+            errs = (TypeError, pa.lib.ArrowNotImplementedError)
+        else:
+            errs = TypeError
+        with pytest.raises(errs, match=f"({'|'.join(msgs)})"):
             with tm.assert_produces_warning(FutureWarning, match=warn_msg):
                 method(*args, **kwargs)
     else:
@@ -790,7 +799,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         {"percentiles": [0.10, 0.20, 0.30], "include": ["int"], "exclude": None},
     ],
 )
-def test_groupby_empty_dataset(dtype, kwargs):
+def test_groupby_empty_dataset(dtype, kwargs, using_infer_string):
     # GH#41575
     df = DataFrame([[1, 2, 3]], columns=["A", "B", "C"], dtype=dtype)
     df["B"] = df["B"].astype(int)
@@ -802,7 +811,8 @@ def test_groupby_empty_dataset(dtype, kwargs):
 
     result = df.iloc[:0].groupby("A").B.describe(**kwargs)
     expected = df.groupby("A").B.describe(**kwargs).reset_index(drop=True).iloc[:0]
-    expected.index = Index([])
+    dtype = "string[pyarrow_numpy]" if using_infer_string else None
+    expected.index = Index([], dtype=dtype)
     tm.assert_frame_equal(result, expected)
 
 
