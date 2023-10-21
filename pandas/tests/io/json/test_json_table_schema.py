@@ -852,7 +852,6 @@ class TestTableOrientReader:
             {"ints": [1, 2]},
             index=pd.PeriodIndex(["2011-01", "2011-08"], freq="2M"),
         )
-        print(df.index)
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
