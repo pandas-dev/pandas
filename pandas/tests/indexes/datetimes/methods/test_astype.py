@@ -19,7 +19,7 @@ import pandas._testing as tm
 
 class TestDatetimeIndex:
     @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
-    def test_dti_astype_asobject_tzinfos(self, tzstr):
+    def test_dti_astype_asobject_around_dst_transition(self, tzstr):
         # GH#1345
 
         # dates around a dst transition
