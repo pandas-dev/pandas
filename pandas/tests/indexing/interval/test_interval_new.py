@@ -140,7 +140,7 @@ class TestIntervalIndex:
         # interval
         expected = 0
         result = indexer_sl(ser)[Interval(1, 5)]
-        result == expected
+        assert expected == result
 
         expected = ser
         result = indexer_sl(ser)[[Interval(1, 5), Interval(3, 7)]]
