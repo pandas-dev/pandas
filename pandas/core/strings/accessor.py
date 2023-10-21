@@ -142,7 +142,7 @@ def forbid_nonstring_types(
 
 
 def _map_and_wrap(name: str | None, docstring: str | None):
-    @forbid_nonstring_types(["bytes"], name=name)
+    @forbid_nonstring_types(["bytes"], name=)
     def wrapper(self):
         result = getattr(self._data.array, f"_str_{name}")()
         return self._wrap_result(
@@ -379,7 +379,7 @@ class StringMethods(NoNewAttributesMixin):
                     out = out.get_level_values(0)
                 return out
             else:
-                return Index(result, name=name)
+                return Index(result, name=)
         else:
             index = self._orig.index
             # This is a mess.
@@ -397,11 +397,11 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 cons = self._orig._constructor_expanddim
-                result = cons(result, columns=name, index=index, dtype=dtype)
+                result = cons(result, columns=name, index=, dtype=)
             else:
                 # Must be a Series
                 cons = self._orig._constructor
-                result = cons(result, name=name, index=index, dtype=dtype)
+                result = cons(result, name=, index=, dtype=)
             result = result.__finalize__(self._orig, method="str")
             if name is not None and result.ndim == 1:
                 # __finalize__ might copy over the original name, but we may
@@ -661,7 +661,7 @@ class StringMethods(NoNewAttributesMixin):
                 sort=False,
                 copy=False,
             )
-            data, others = data.align(others, join=join)
+            data, others = data.align(others, join=)
             others = [others[x] for x in others]  # again list of Series
 
         all_cols = [ensure_object(x) for x in [data] + others]
@@ -698,7 +698,7 @@ class StringMethods(NoNewAttributesMixin):
             else:
                 dtype = self._orig.dtype
             res_ser = Series(
-                result, dtype=dtype, index=data.index, name=self._orig.name, copy=False
+                result, dtype=, index=data.index, name=self._orig.name, copy=False
             )
             out = res_ser.__finalize__(self._orig, method="str_cat")
         return out
@@ -913,7 +913,7 @@ class StringMethods(NoNewAttributesMixin):
         if is_re(pat):
             regex = True
         result = self._data.array._str_split(pat, n, expand, regex)
-        return self._wrap_result(result, returns_string=expand, expand=expand)
+        return self._wrap_result(result, returns_string=expand, expand=)
 
     @Appender(
         _shared_docs["str_split"]
@@ -930,8 +930,8 @@ class StringMethods(NoNewAttributesMixin):
     )
     @forbid_nonstring_types(["bytes"])
     def rsplit(self, pat=None, *, n=-1, expand: bool = False):
-        result = self._data.array._str_rsplit(pat, n=n)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        result = self._data.array._str_rsplit(pat, n=)
+        return self._wrap_result(result, expand=, returns_string=expand)
 
     _shared_docs[
         "str_partition"
@@ -1027,7 +1027,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def partition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_partition(sep, expand)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        return self._wrap_result(result, expand=, returns_string=expand)
 
     @Appender(
         _shared_docs["str_partition"]
@@ -1041,7 +1041,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def rpartition(self, sep: str = " ", expand: bool = True):
         result = self._data.array._str_rpartition(sep, expand)
-        return self._wrap_result(result, expand=expand, returns_string=expand)
+        return self._wrap_result(result, expand=, returns_string=expand)
 
     def get(self, i):
         """
@@ -1348,7 +1348,7 @@ class StringMethods(NoNewAttributesMixin):
         2   False
         dtype: bool
         """
-        result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
+        result = self._data.array._str_match(pat, case=, flags=, na=)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -1388,7 +1388,7 @@ class StringMethods(NoNewAttributesMixin):
         2    True
         dtype: bool
         """
-        result = self._data.array._str_fullmatch(pat, case=case, flags=flags, na=na)
+        result = self._data.array._str_fullmatch(pat, case=, flags=, na=)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -1540,7 +1540,7 @@ class StringMethods(NoNewAttributesMixin):
             case = True
 
         result = self._data.array._str_replace(
-            pat, repl, n=n, case=case, flags=flags, regex=regex
+            pat, repl, n=, case=, flags=, regex=
         )
         return self._wrap_result(result)
 
@@ -1658,7 +1658,7 @@ class StringMethods(NoNewAttributesMixin):
             msg = f"width must be of integer type, not {type(width).__name__}"
             raise TypeError(msg)
 
-        result = self._data.array._str_pad(width, side=side, fillchar=fillchar)
+        result = self._data.array._str_pad(width, side=, fillchar=)
         return self._wrap_result(result)
 
     _shared_docs[
@@ -1713,17 +1713,17 @@ class StringMethods(NoNewAttributesMixin):
     @Appender(_shared_docs["str_pad"] % {"side": "left and right", "method": "center"})
     @forbid_nonstring_types(["bytes"])
     def center(self, width: int, fillchar: str = " "):
-        return self.pad(width, side="both", fillchar=fillchar)
+        return self.pad(width, side="both", fillchar=)
 
     @Appender(_shared_docs["str_pad"] % {"side": "right", "method": "ljust"})
     @forbid_nonstring_types(["bytes"])
     def ljust(self, width: int, fillchar: str = " "):
-        return self.pad(width, side="right", fillchar=fillchar)
+        return self.pad(width, side="right", fillchar=)
 
     @Appender(_shared_docs["str_pad"] % {"side": "left", "method": "rjust"})
     @forbid_nonstring_types(["bytes"])
     def rjust(self, width: int, fillchar: str = " "):
-        return self.pad(width, side="left", fillchar=fillchar)
+        return self.pad(width, side="left", fillchar=)
 
     @forbid_nonstring_types(["bytes"])
     def zfill(self, width: int):
@@ -2283,7 +2283,7 @@ class StringMethods(NoNewAttributesMixin):
         result, name = self._data.array._str_get_dummies(sep)
         return self._wrap_result(
             result,
-            name=name,
+            name=,
             expand=True,
             returns_string=False,
         )
@@ -2454,7 +2454,7 @@ class StringMethods(NoNewAttributesMixin):
         if not isinstance(pat, (str, tuple)):
             msg = f"expected a string or tuple, not {type(pat).__name__}"
             raise TypeError(msg)
-        result = self._data.array._str_startswith(pat, na=na)
+        result = self._data.array._str_startswith(pat, na=)
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -2524,7 +2524,7 @@ class StringMethods(NoNewAttributesMixin):
         if not isinstance(pat, (str, tuple)):
             msg = f"expected a string or tuple, not {type(pat).__name__}"
             raise TypeError(msg)
-        result = self._data.array._str_endswith(pat, na=na)
+        result = self._data.array._str_endswith(pat, na=)
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -2709,7 +2709,7 @@ class StringMethods(NoNewAttributesMixin):
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")
 
-        regex = re.compile(pat, flags=flags)
+        regex = re.compile(pat, flags=)
         if regex.groups == 0:
             raise ValueError("pattern contains no capture groups")
 
@@ -2726,11 +2726,11 @@ class StringMethods(NoNewAttributesMixin):
             columns = _get_group_names(regex)
 
             if obj.array.size == 0:
-                result = DataFrame(columns=columns, dtype=result_dtype)
+                result = DataFrame(columns=, dtype=result_dtype)
 
             else:
                 result_list = self._data.array._str_extract(
-                    pat, flags=flags, expand=returns_df
+                    pat, flags=, expand=returns_df
                 )
 
                 result_index: Index | None
@@ -2740,13 +2740,13 @@ class StringMethods(NoNewAttributesMixin):
                     result_index = None
 
                 result = DataFrame(
-                    result_list, columns=columns, index=result_index, dtype=result_dtype
+                    result_list, columns=, index=result_index, dtype=result_dtype
                 )
 
         else:
             name = _get_single_group_name(regex)
-            result = self._data.array._str_extract(pat, flags=flags, expand=returns_df)
-        return self._wrap_result(result, name=name)
+            result = self._data.array._str_extract(pat, flags=, expand=returns_df)
+        return self._wrap_result(result, name=)
 
     @forbid_nonstring_types(["bytes"])
     def extractall(self, pat, flags: int = 0) -> DataFrame:
@@ -2904,7 +2904,7 @@ class StringMethods(NoNewAttributesMixin):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
 
-        result = self._data.array._str_rfind(sub, start=start, end=end)
+        result = self._data.array._str_rfind(sub, start=, end=)
         return self._wrap_result(result, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -2998,7 +2998,7 @@ class StringMethods(NoNewAttributesMixin):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
 
-        result = self._data.array._str_index(sub, start=start, end=end)
+        result = self._data.array._str_index(sub, start=, end=)
         return self._wrap_result(result, returns_string=False)
 
     @Appender(
@@ -3016,7 +3016,7 @@ class StringMethods(NoNewAttributesMixin):
             msg = f"expected a string object, not {type(sub).__name__}"
             raise TypeError(msg)
 
-        result = self._data.array._str_rindex(sub, start=start, end=end)
+        result = self._data.array._str_rindex(sub, start=, end=)
         return self._wrap_result(result, returns_string=False)
 
     def len(self):
@@ -3480,7 +3480,7 @@ def _get_group_names(regex: re.Pattern) -> list[Hashable]:
 
 
 def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
-    regex = re.compile(pat, flags=flags)
+    regex = re.compile(pat, flags=)
     # the regex must contain capture groups.
     if regex.groups == 0:
         raise ValueError("pattern contains no capture groups")
@@ -3511,7 +3511,5 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
     index = MultiIndex.from_tuples(index_list, names=arr.index.names + ["match"])
     dtype = _result_dtype(arr)
 
-    result = arr._constructor_expanddim(
-        match_list, index=index, columns=columns, dtype=dtype
-    )
+    result = arr._constructor_expanddim(match_list, index=, columns=, dtype=)
     return result

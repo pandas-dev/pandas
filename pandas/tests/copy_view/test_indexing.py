@@ -147,7 +147,7 @@ def test_subset_column_slice(backend, using_copy_on_write, using_array_manager, 
         dtype == "int64" and dtype_backend == "numpy"
     ) and not using_array_manager
     df = DataFrame(
-        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=)}
     )
     df_orig = df.copy()
 
@@ -167,7 +167,7 @@ def test_subset_column_slice(backend, using_copy_on_write, using_array_manager, 
             with tm.assert_produces_warning(warn):
                 subset.iloc[0, 0] = 0
 
-    expected = DataFrame({"b": [0, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)})
+    expected = DataFrame({"b": [0, 5, 6], "c": np.array([7, 8, 9], dtype=)})
     tm.assert_frame_equal(subset, expected)
     # original parent dataframe is not modified (also not for BlockManager case,
     # except for single block)
@@ -207,7 +207,7 @@ def test_subset_loc_rows_columns(
     # affect the parent dataframe)
     dtype_backend, DataFrame, _ = backend
     df = DataFrame(
-        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=)}
     )
     df_orig = df.copy()
 
@@ -217,7 +217,7 @@ def test_subset_loc_rows_columns(
     subset.iloc[0, 0] = 0
 
     expected = DataFrame(
-        {"b": [0, 6], "c": np.array([8, 9], dtype=dtype)}, index=range(1, 3)
+        {"b": [0, 6], "c": np.array([8, 9], dtype=)}, index=range(1, 3)
     )
     tm.assert_frame_equal(subset, expected)
     # a few corner cases _do_ actually modify the parent (with both row and column
@@ -267,7 +267,7 @@ def test_subset_iloc_rows_columns(
     # affect the parent dataframe)
     dtype_backend, DataFrame, _ = backend
     df = DataFrame(
-        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=)}
     )
     df_orig = df.copy()
 
@@ -277,7 +277,7 @@ def test_subset_iloc_rows_columns(
     subset.iloc[0, 0] = 0
 
     expected = DataFrame(
-        {"b": [0, 6], "c": np.array([8, 9], dtype=dtype)}, index=range(1, 3)
+        {"b": [0, 6], "c": np.array([8, 9], dtype=)}, index=range(1, 3)
     )
     tm.assert_frame_equal(subset, expected)
     # a few corner cases _do_ actually modify the parent (with both row and column
@@ -407,7 +407,7 @@ def test_subset_set_column_with_loc(
     # -> subset.loc[:, col] = value
     _, DataFrame, _ = backend
     df = DataFrame(
-        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=)}
     )
     df_orig = df.copy()
     subset = df[1:3]
@@ -424,7 +424,7 @@ def test_subset_set_column_with_loc(
 
     subset._mgr._verify_integrity()
     expected = DataFrame(
-        {"a": [10, 11], "b": [5, 6], "c": np.array([8, 9], dtype=dtype)},
+        {"a": [10, 11], "b": [5, 6], "c": np.array([8, 9], dtype=)},
         index=range(1, 3),
     )
     tm.assert_frame_equal(subset, expected)
@@ -477,7 +477,7 @@ def test_subset_set_columns(backend, using_copy_on_write, dtype):
     # -> subset[[col1, col2]] = value
     dtype_backend, DataFrame, _ = backend
     df = DataFrame(
-        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=)}
     )
     df_orig = df.copy()
     subset = df[1:3]
@@ -567,7 +567,7 @@ def test_subset_chained_getitem(
     # still needs to guarantee proper CoW behaviour
     _, DataFrame, _ = backend
     df = DataFrame(
-        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=)}
     )
     df_orig = df.copy()
 
@@ -612,7 +612,7 @@ def test_subset_chained_getitem_column(backend, dtype, using_copy_on_write):
     # still needs to guarantee proper CoW behaviour
     _, DataFrame, Series = backend
     df = DataFrame(
-        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=)}
     )
     df_orig = df.copy()
 

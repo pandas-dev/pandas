@@ -461,7 +461,7 @@ class TestMerge:
         left = DataFrame([], index=index[:0])
         right = left.copy()
 
-        result = left.join(right, how=how)
+        result = left.join(right, how=)
         tm.assert_frame_equal(result, left)
 
     @pytest.mark.parametrize(
@@ -651,7 +651,7 @@ class TestMerge:
         # GH#35382
         df = DataFrame({"a": [1, 0, 1]})
 
-        result = df.merge(df, on="a", how=how, sort=sort)
+        result = df.merge(df, on="a", how=, sort=)
         expected = DataFrame(values, columns=["a"])
         tm.assert_frame_equal(result, expected)
 
@@ -792,7 +792,7 @@ class TestMerge:
         result = df1.merge(df2, left_on="entity_id", right_index=True)
 
         exp = DataFrame(
-            {"entity_id": [101, 102], "days": np.array(["nat", "nat"], dtype=dtype)},
+            {"entity_id": [101, 102], "days": np.array(["nat", "nat"], dtype=)},
             columns=["entity_id", "days"],
         )
         tm.assert_frame_equal(result, exp)
@@ -933,7 +933,7 @@ class TestMerge:
     def test_merge_non_unique_period_index(self):
         # GH #16871
         index = pd.period_range("2016-01-01", periods=16, freq="M")
-        df = DataFrame(list(range(len(index))), index=index, columns=["pnum"])
+        df = DataFrame(list(range(len(index))), index=, columns=["pnum"])
         df2 = concat([df, df])
         result = df.merge(df2, left_index=True, right_index=True, how="inner")
         expected = DataFrame(
@@ -1378,9 +1378,9 @@ class TestMerge:
         # GH 24212
         # pd.merge gets [0, 1, 2, -1, -1, -1] as left_indexer, ensure that
         # -1 is interpreted as a missing value instead of the last element
-        df1 = DataFrame({"a": [0, 1, 2], "key": [0, 1, 2]}, index=index)
+        df1 = DataFrame({"a": [0, 1, 2], "key": [0, 1, 2]}, index=)
         df2 = DataFrame({"b": [0, 1, 2, 3, 4, 5]})
-        result = df1.merge(df2, left_on="key", right_index=True, how=how)
+        result = df1.merge(df2, left_on="key", right_index=True, how=)
         expected = DataFrame(
             [
                 [0, 0, 0],
@@ -1415,7 +1415,7 @@ class TestMerge:
         # GH 27453
         left_df = DataFrame({"animal": ["dog", "pig"], "max_speed": [40, 11]})
         right_df = DataFrame({"animal": ["quetzal", "pig"], "max_speed": [80, 11]})
-        result = left_df.merge(right_df, on=["animal", "max_speed"], how=how)
+        result = left_df.merge(right_df, on=["animal", "max_speed"], how=)
         if how == "right":
             expected = DataFrame({"animal": ["quetzal", "pig"], "max_speed": [80, 11]})
         else:
@@ -1462,9 +1462,9 @@ class TestMerge:
 def _check_merge(x, y):
     for how in ["inner", "left", "outer"]:
         for sort in [True, False]:
-            result = x.join(y, how=how, sort=sort)
+            result = x.join(y, how=, sort=)
 
-            expected = merge(x.reset_index(), y.reset_index(), how=how, sort=sort)
+            expected = merge(x.reset_index(), y.reset_index(), how=, sort=)
             expected = expected.set_index("index")
 
             # TODO check_names on merge?
@@ -1511,7 +1511,7 @@ class TestMergeDtypes:
         )
 
         index = MultiIndex.from_tuples([(2, "bar"), (1, "foo")])
-        right = DataFrame({"v2": np.array([5, 7], dtype=dtype2)}, index=index)
+        right = DataFrame({"v2": np.array([5, 7], dtype=dtype2)}, index=)
 
         result = left.join(right, on=["k1", "k2"])
 
@@ -1720,7 +1720,7 @@ class TestMergeDtypes:
         # GH#40073
         d1 = DataFrame([(1,)], columns=["id"], dtype=any_numeric_ea_dtype)
         d2 = DataFrame([(2,)], columns=["id"], dtype=any_numeric_ea_dtype)
-        result = merge(d1, d2, how=how)
+        result = merge(d1, d2, how=)
         exp_index = RangeIndex(len(expected_data))
         expected = DataFrame(
             expected_data, index=exp_index, columns=["id"], dtype=any_numeric_ea_dtype
@@ -1740,7 +1740,7 @@ class TestMergeDtypes:
         # GH#40073
         d1 = DataFrame([("a",)], columns=["id"], dtype=any_string_dtype)
         d2 = DataFrame([("b",)], columns=["id"], dtype=any_string_dtype)
-        result = merge(d1, d2, how=how)
+        result = merge(d1, d2, how=)
         exp_idx = RangeIndex(len(expected_data))
         expected = DataFrame(
             expected_data, index=exp_idx, columns=["id"], dtype=any_string_dtype
@@ -1760,7 +1760,7 @@ class TestMergeDtypes:
         # GH#40073
         df1 = DataFrame({"A": [True, False], "B": [1, 5]})
         df2 = DataFrame({"A": [False, True], "C": [3, 4]})
-        result = merge(df1, df2, how=how)
+        result = merge(df1, df2, how=)
         expected = DataFrame(expected_data, columns=["A", "B", "C"])
         tm.assert_frame_equal(result, expected)
 
@@ -1821,7 +1821,7 @@ class TestMergeDtypes:
         else:
             right = right.head(0)
 
-        result = left.merge(right, how=how)
+        result = left.merge(right, how=)
 
         if exp == "left":
             expected = DataFrame({"A": [2, 1], "B": [3, 4], "C": [np.nan, np.nan]})
@@ -1954,7 +1954,7 @@ class TestMergeCategorical:
     @pytest.mark.parametrize("ordered", [True, False])
     def test_multiindex_merge_with_unordered_categoricalindex(self, ordered):
         # GH 36973
-        pcat = CategoricalDtype(categories=["P2", "P1"], ordered=ordered)
+        pcat = CategoricalDtype(categories=["P2", "P1"], ordered=)
         df1 = DataFrame(
             {
                 "id": ["C", "C", "D"],
@@ -2013,7 +2013,7 @@ class TestMergeCategorical:
         # so we must be object as a result
 
         X = change(right.X.astype("object"))
-        right = right.assign(X=X)
+        right = right.assign(X=)
         assert isinstance(left.X.values.dtype, CategoricalDtype)
         # assert not left.X.values._categories_match_up_to_permutation(right.X.values)
 
@@ -2112,12 +2112,12 @@ class TestMergeCategorical:
         # GH 17187
         # merging with a boolean/int categorical column
         df1 = DataFrame({"id": [1, 2, 3, 4], "cat": category_column})
-        df1["cat"] = df1["cat"].astype(CategoricalDtype(categories, ordered=ordered))
+        df1["cat"] = df1["cat"].astype(CategoricalDtype(categories, ordered=))
         df2 = DataFrame({"id": [2, 4], "num": [1, 9]})
         result = df1.merge(df2)
         expected = DataFrame({"id": [2, 4], "cat": expected_categories, "num": [1, 9]})
         expected["cat"] = expected["cat"].astype(
-            CategoricalDtype(categories, ordered=ordered)
+            CategoricalDtype(categories, ordered=)
         )
         tm.assert_frame_equal(expected, result)
 
@@ -2191,7 +2191,7 @@ class TestMergeOnIndexes:
     )
     def test_merge_on_indexes(self, left_df, right_df, how, sort, expected):
         result = merge(
-            left_df, right_df, left_index=True, right_index=True, how=how, sort=sort
+            left_df, right_df, left_index=True, right_index=True, how=, sort=
         )
         tm.assert_frame_equal(result, expected)
 
@@ -2209,12 +2209,12 @@ class TestMergeOnIndexes:
 def test_merge_index_types(index):
     # gh-20777
     # assert key access is consistent across index types
-    left = DataFrame({"left_data": [1, 2]}, index=index)
-    right = DataFrame({"right_data": [1.0, 2.0]}, index=index)
+    left = DataFrame({"left_data": [1, 2]}, index=)
+    right = DataFrame({"right_data": [1.0, 2.0]}, index=)
 
     result = left.merge(right, on=["index_col"])
 
-    expected = DataFrame({"left_data": [1, 2], "right_data": [1.0, 2.0]}, index=index)
+    expected = DataFrame({"left_data": [1, 2], "right_data": [1.0, 2.0]}, index=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2250,11 +2250,11 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
         result = merge(
             a,
             b,
-            on=on,
-            left_on=left_on,
-            right_on=right_on,
-            left_index=left_index,
-            right_index=right_index,
+            on=,
+            left_on=,
+            right_on=,
+            left_index=,
+            right_index=,
         )
         tm.assert_frame_equal(result, expected)
     else:
@@ -2263,11 +2263,11 @@ def test_merge_series(on, left_on, right_on, left_index, right_index, nm):
             result = merge(
                 a,
                 b,
-                on=on,
-                left_on=left_on,
-                right_on=right_on,
-                left_index=left_index,
-                right_index=right_index,
+                on=,
+                left_on=,
+                right_on=,
+                left_index=,
+                right_index=,
             )
 
 
@@ -2345,7 +2345,7 @@ def test_merge_suffix(col1, col2, kwargs, expected_cols):
 def test_merge_duplicate_suffix(how, expected):
     left_df = DataFrame({"A": [100, 200, 1], "B": [60, 70, 80]})
     right_df = DataFrame({"A": [100, 200, 300], "B": [600, 700, 800]})
-    result = merge(left_df, right_df, on="A", how=how, suffixes=("_x", "_x"))
+    result = merge(left_df, right_df, on="A", how=, suffixes=("_x", "_x"))
     expected.columns = ["A", "B_x", "B_x"]
 
     tm.assert_frame_equal(result, expected)
@@ -2363,7 +2363,7 @@ def test_merge_suffix_error(col1, col2, suffixes):
     # TODO: might reconsider current raise behaviour, see issue 24782
     msg = "columns overlap but no suffix specified"
     with pytest.raises(ValueError, match=msg):
-        merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+        merge(a, b, left_index=True, right_index=True, suffixes=)
 
 
 @pytest.mark.parametrize("suffixes", [{"left", "right"}, {"left": 0, "right": 0}])
@@ -2372,7 +2372,7 @@ def test_merge_suffix_raises(suffixes):
     b = DataFrame({"b": [3, 4, 5]})
 
     with pytest.raises(TypeError, match="Passing 'suffixes' as a"):
-        merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+        merge(a, b, left_index=True, right_index=True, suffixes=)
 
 
 @pytest.mark.parametrize(
@@ -2387,7 +2387,7 @@ def test_merge_suffix_length_error(col1, col2, suffixes, msg):
     b = DataFrame({col2: [3, 4, 5]})
 
     with pytest.raises(ValueError, match=msg):
-        merge(a, b, left_index=True, right_index=True, suffixes=suffixes)
+        merge(a, b, left_index=True, right_index=True, suffixes=)
 
 
 @pytest.mark.parametrize("cat_dtype", ["one", "two"])
@@ -2736,8 +2736,8 @@ def test_merge_on_left_categoricalindex():
 @pytest.mark.parametrize("dtype", [None, "Int64"])
 def test_merge_outer_with_NaN(dtype):
     # GH#43550
-    left = DataFrame({"key": [1, 2], "col1": [1, 2]}, dtype=dtype)
-    right = DataFrame({"key": [np.nan, np.nan], "col2": [3, 4]}, dtype=dtype)
+    left = DataFrame({"key": [1, 2], "col1": [1, 2]}, dtype=)
+    right = DataFrame({"key": [np.nan, np.nan], "col2": [3, 4]}, dtype=)
     result = merge(left, right, on="key", how="outer")
     expected = DataFrame(
         {
@@ -2745,7 +2745,7 @@ def test_merge_outer_with_NaN(dtype):
             "col1": [1, 2, np.nan, np.nan],
             "col2": [np.nan, np.nan, 3, 4],
         },
-        dtype=dtype,
+        dtype=,
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2757,7 +2757,7 @@ def test_merge_outer_with_NaN(dtype):
             "col2": [np.nan, np.nan, 3, 4],
             "col1": [1, 2, np.nan, np.nan],
         },
-        dtype=dtype,
+        dtype=,
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2799,7 +2799,7 @@ def test_merge_ea_and_non_ea(any_numeric_ea_dtype, join_type):
 def test_merge_arrow_and_numpy_dtypes(dtype):
     # GH#52406
     pytest.importorskip("pyarrow")
-    df = DataFrame({"a": [1, 2]}, dtype=dtype)
+    df = DataFrame({"a": [1, 2]}, dtype=)
     df2 = DataFrame({"a": [1, 2]}, dtype="int64[pyarrow]")
     result = df.merge(df2)
     expected = df.copy()
@@ -2815,9 +2815,9 @@ def test_merge_arrow_and_numpy_dtypes(dtype):
 def test_merge_datetime_different_resolution(tz, how):
     # https://github.com/pandas-dev/pandas/issues/53200
     vals = [
-        pd.Timestamp(2023, 5, 12, tz=tz),
-        pd.Timestamp(2023, 5, 13, tz=tz),
-        pd.Timestamp(2023, 5, 14, tz=tz),
+        pd.Timestamp(2023, 5, 12, tz=),
+        pd.Timestamp(2023, 5, 13, tz=),
+        pd.Timestamp(2023, 5, 14, tz=),
     ]
     df1 = DataFrame({"t": vals[:2], "a": [1.0, 2.0]})
     df1["t"] = df1["t"].dt.as_unit("ns")
@@ -2833,7 +2833,7 @@ def test_merge_datetime_different_resolution(tz, how):
     elif how == "right":
         expected = expected.iloc[[1, 2]].reset_index(drop=True)
 
-    result = df1.merge(df2, on="t", how=how)
+    result = df1.merge(df2, on="t", how=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2883,7 +2883,7 @@ def test_merge_combinations(
     else:
         on_kwargs = {"on": "key"}
 
-    result = merge(left, right, how=how, sort=sort, **on_kwargs)
+    result = merge(left, right, how=, sort=, **on_kwargs)
 
     if on_index:
         left = left.reset_index()

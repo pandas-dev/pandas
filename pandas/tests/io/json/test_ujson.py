@@ -119,7 +119,7 @@ class TestUltraJSONTests:
 
         def helper(expected_output, **encode_kwargs):
             output = ujson.ujson_dumps(
-                string_input, ensure_ascii=ensure_ascii, **encode_kwargs
+                string_input, ensure_ascii=, **encode_kwargs
             )
 
             assert output == expected_output
@@ -213,7 +213,7 @@ class TestUltraJSONTests:
         assert double_input == ujson.ujson_loads(output)
 
         for double_precision in (3, 9):
-            output = ujson.ujson_dumps(double_input, double_precision=double_precision)
+            output = ujson.ujson_dumps(double_input, double_precision=)
             rounded_input = round(double_input, double_precision)
 
             assert rounded_input == json.loads(output)
@@ -806,10 +806,10 @@ class TestNumpyJSONTests:
     def test_array_float(self):
         dtype = np.float32
 
-        arr = np.arange(100.202, 200.202, 1, dtype=dtype)
+        arr = np.arange(100.202, 200.202, 1, dtype=)
         arr = arr.reshape((5, 5, 4))
 
-        arr_out = np.array(ujson.ujson_loads(ujson.ujson_dumps(arr)), dtype=dtype)
+        arr_out = np.array(ujson.ujson_loads(ujson.ujson_dumps(arr)), dtype=)
         tm.assert_almost_equal(arr, arr_out)
 
     def test_0d_array(self):
@@ -836,7 +836,7 @@ class TestPandasJSONTests:
             [[1, 2, 3], [4, 5, 6]],
             index=["a", "b"],
             columns=["x", "y", "z"],
-            dtype=dtype,
+            dtype=,
         )
         encode_kwargs = {} if orient is None else {"orient": orient}
         assert (df.dtypes == dtype).all()
@@ -883,7 +883,7 @@ class TestPandasJSONTests:
             [10, 20, 30, 40, 50, 60],
             name="series",
             index=[6, 7, 8, 9, 10, 15],
-            dtype=dtype,
+            dtype=,
         ).sort_values()
         assert s.dtype == dtype
 
@@ -958,13 +958,13 @@ class TestPandasJSONTests:
 
         # freq doesn't round-trip
         rng = DatetimeIndex(list(date_range("1/1/2000", periods=20)), freq=None)
-        encoded = ujson.ujson_dumps(rng, date_unit=date_unit)
+        encoded = ujson.ujson_dumps(rng, date_unit=)
 
         decoded = DatetimeIndex(np.array(ujson.ujson_loads(encoded)))
         tm.assert_index_equal(rng, decoded)
 
         ts = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
-        decoded = Series(ujson.ujson_loads(ujson.ujson_dumps(ts, date_unit=date_unit)))
+        decoded = Series(ujson.ujson_loads(ujson.ujson_dumps(ts, date_unit=)))
 
         idx_values = decoded.index.values.astype(np.int64)
         decoded.index = DatetimeIndex(idx_values)

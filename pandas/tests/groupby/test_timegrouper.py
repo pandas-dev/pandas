@@ -388,11 +388,11 @@ class TestGroupBy:
         expected.name = "whole_cost"
 
         result1 = (
-            df.sort_index().groupby([Grouper(freq=freq), "user_id"])["whole_cost"].sum()
+            df.sort_index().groupby([Grouper(freq=), "user_id"])["whole_cost"].sum()
         )
         tm.assert_series_equal(result1, expected)
 
-        result2 = df.groupby([Grouper(freq=freq), "user_id"])["whole_cost"].sum()
+        result2 = df.groupby([Grouper(freq=), "user_id"])["whole_cost"].sum()
         tm.assert_series_equal(result2, expected)
 
     def test_timegrouper_get_group(self):
@@ -505,7 +505,7 @@ class TestGroupBy:
     def test_groupby_groups_datetimeindex(self):
         # GH#1430
         periods = 1000
-        ind = date_range(start="2012/1/1", freq="5min", periods=periods)
+        ind = date_range(start="2012/1/1", freq="5min", periods=)
         df = DataFrame(
             {"high": np.arange(periods), "low": np.arange(periods)}, index=ind
         )
@@ -517,7 +517,7 @@ class TestGroupBy:
 
         # GH#11442
         index = date_range("2015/01/01", periods=5, name="date")
-        df = DataFrame({"A": [5, 6, 7, 8, 9], "B": [1, 2, 3, 4, 5]}, index=index)
+        df = DataFrame({"A": [5, 6, 7, 8, 9], "B": [1, 2, 3, 4, 5]}, index=)
         result = df.groupby(level="date").groups
         dates = ["2015-01-05", "2015-01-04", "2015-01-03", "2015-01-02", "2015-01-01"]
         expected = {
@@ -845,9 +845,9 @@ class TestGroupBy:
         # GH 32108
         periods = 2
         index = pd.period_range(
-            start="2018-01", periods=periods, freq="M", name="Month"
+            start="2018-01", periods=, freq="M", name="Month"
         )
-        period_series = Series(range(periods), index=index)
+        period_series = Series(range(periods), index=)
         result = period_series.groupby(period_series.index.month).sum()
 
         expected = Series(

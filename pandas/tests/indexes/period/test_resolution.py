@@ -19,5 +19,5 @@ class TestResolution:
         ],
     )
     def test_resolution(self, freq, expected):
-        idx = pd.period_range(start="2013-04-01", periods=30, freq=freq)
+        idx = pd.period_range(start="2013-04-01", periods=30, freq=)
         assert idx.resolution == expected

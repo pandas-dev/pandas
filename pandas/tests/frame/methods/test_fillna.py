@@ -345,7 +345,7 @@ class TestFillNA:
     @pytest.mark.parametrize("columns", [["A", "A", "B"], ["A", "A"]])
     def test_fillna_dictlike_value_duplicate_colnames(self, columns):
         # GH#43476
-        df = DataFrame(np.nan, index=[0, 1], columns=columns)
+        df = DataFrame(np.nan, index=[0, 1], columns=)
         with tm.assert_produces_warning(None):
             result = df.fillna({"A": 0})
 
@@ -444,7 +444,7 @@ class TestFillNA:
 
     def test_frame_pad_backfill_limit(self):
         index = np.arange(10)
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)), index=)
 
         result = df[:2].reindex(index, method="pad", limit=5)
 
@@ -463,7 +463,7 @@ class TestFillNA:
 
     def test_frame_fillna_limit(self):
         index = np.arange(10)
-        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)), index=)
 
         result = df[:2].reindex(index)
         msg = "DataFrame.fillna with 'method' is deprecated"
@@ -638,7 +638,7 @@ class TestFillNA:
     def test_fillna_col_reordering(self):
         cols = ["COL." + str(i) for i in range(5, 0, -1)]
         data = np.random.default_rng(2).random((20, 5))
-        df = DataFrame(index=range(20), columns=cols, data=data)
+        df = DataFrame(index=range(20), columns=cols, data=)
         msg = "DataFrame.fillna with 'method' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             filled = df.fillna(method="ffill")

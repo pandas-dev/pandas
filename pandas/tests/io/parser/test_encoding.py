@@ -32,7 +32,7 @@ def test_bytes_io_input(all_parsers):
     parser = all_parsers
 
     data = BytesIO("שלום:1234\n562:123".encode(encoding))
-    result = parser.read_csv(data, sep=":", encoding=encoding)
+    result = parser.read_csv(data, sep=":", encoding=)
 
     expected = DataFrame([[562, 123]], columns=["שלום", "1234"])
     tm.assert_frame_equal(result, expected)
@@ -72,7 +72,7 @@ A,B,C
             f.write(bytes_data)
 
         with TextIOWrapper(BytesIO(data.encode(utf8)), encoding=utf8) as bytes_buffer:
-            result = parser.read_csv(path, encoding=encoding, **kwargs)
+            result = parser.read_csv(path, encoding=, **kwargs)
             expected = parser.read_csv(bytes_buffer, encoding=utf8, **kwargs)
         tm.assert_frame_equal(result, expected)
 
@@ -145,7 +145,7 @@ def test_read_csv_utf_aliases(all_parsers, utf_value, encoding_fmt):
     encoding = encoding_fmt.format(utf_value)
     data = "mb_num,multibyte\n4.8,test".encode(encoding)
 
-    result = parser.read_csv(BytesIO(data), encoding=encoding)
+    result = parser.read_csv(BytesIO(data), encoding=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -163,20 +163,20 @@ def test_binary_mode_file_buffers(all_parsers, file_path, encoding, datapath):
     parser = all_parsers
 
     fpath = datapath(*file_path)
-    expected = parser.read_csv(fpath, encoding=encoding)
+    expected = parser.read_csv(fpath, encoding=)
 
-    with open(fpath, encoding=encoding) as fa:
+    with open(fpath, encoding=) as fa:
         result = parser.read_csv(fa)
         assert not fa.closed
     tm.assert_frame_equal(expected, result)
 
     with open(fpath, mode="rb") as fb:
-        result = parser.read_csv(fb, encoding=encoding)
+        result = parser.read_csv(fb, encoding=)
         assert not fb.closed
     tm.assert_frame_equal(expected, result)
 
     with open(fpath, mode="rb", buffering=0) as fb:
-        result = parser.read_csv(fb, encoding=encoding)
+        result = parser.read_csv(fb, encoding=)
         assert not fb.closed
     tm.assert_frame_equal(expected, result)
 
@@ -190,7 +190,7 @@ def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding)
 
     expected = DataFrame({"foo": ["bar"]})
 
-    with tm.ensure_clean(mode="w+", encoding=encoding, return_filelike=True) as f:
+    with tm.ensure_clean(mode="w+", encoding=, return_filelike=True) as f:
         f.write("foo\nbar")
         f.seek(0)
 
@@ -214,7 +214,7 @@ def test_encoding_named_temp_file(all_parsers):
 
         f.seek(0)
 
-        result = parser.read_csv(f, encoding=encoding)
+        result = parser.read_csv(f, encoding=)
         tm.assert_frame_equal(result, expected)
         assert not f.closed
 
@@ -227,7 +227,7 @@ def test_parse_encoded_special_characters(encoding):
     # Data contains a Unicode 'FULLWIDTH COLON' (U+FF1A) at position (0,"a")
     data = "a\tb\n：foo\t0\nbar\t1\nbaz\t2"  # noqa: RUF001
     encoded_data = BytesIO(data.encode(encoding))
-    result = read_csv(encoded_data, delimiter="\t", encoding=encoding)
+    result = read_csv(encoded_data, delimiter="\t", encoding=)
 
     expected = DataFrame(
         data=[["：foo", 0], ["bar", 1], ["baz", 2]],  # noqa: RUF001
@@ -249,8 +249,8 @@ def test_encoding_memory_map(all_parsers, encoding):
         }
     )
     with tm.ensure_clean() as file:
-        expected.to_csv(file, index=False, encoding=encoding)
-        df = parser.read_csv(file, encoding=encoding, memory_map=True)
+        expected.to_csv(file, index=False, encoding=)
+        df = parser.read_csv(file, encoding=, memory_map=True)
     tm.assert_frame_equal(df, expected)
 
 
@@ -312,7 +312,7 @@ def test_not_readable(all_parsers, mode):
     content = b"abcd"
     if "t" in mode:
         content = "abcd"
-    with tempfile.SpooledTemporaryFile(mode=mode, encoding="utf-8") as handle:
+    with tempfile.SpooledTemporaryFile(mode=, encoding="utf-8") as handle:
         handle.write(content)
         handle.seek(0)
         df = parser.read_csv(handle)

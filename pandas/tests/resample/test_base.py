@@ -52,7 +52,7 @@ def test_asfreq(series_and_frame, freq, create_index):
     obj = series_and_frame
 
     result = obj.resample(freq).asfreq()
-    new_index = create_index(obj.index[0], obj.index[-1], freq=freq)
+    new_index = create_index(obj.index[0], obj.index[-1], freq=)
     expected = obj.reindex(new_index)
     tm.assert_almost_equal(result, expected)
 
@@ -147,7 +147,7 @@ def test_resample_nat_index_series(freq, series, resample_method):
     # GH39227
 
     ser = series.copy()
-    ser.index = PeriodIndex([NaT] * len(ser), freq=freq)
+    ser.index = PeriodIndex([NaT] * len(ser), freq=)
     rs = ser.resample(freq)
     result = getattr(rs, resample_method)()
 
@@ -186,7 +186,7 @@ def test_resample_count_empty_series(freq, empty_series_dti, resample_method):
 
     index = _asfreq_compat(ser.index, freq)
 
-    expected = Series([], dtype="int64", index=index, name=ser.name)
+    expected = Series([], dtype="int64", index=, name=ser.name)
 
     tm.assert_series_equal(result, expected)
 
@@ -255,7 +255,7 @@ def test_resample_count_empty_dataframe(freq, empty_frame_dti):
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
 
-    expected = DataFrame({"a": []}, dtype="int64", index=index)
+    expected = DataFrame({"a": []}, dtype="int64", index=)
 
     tm.assert_frame_equal(result, expected)
 
@@ -282,7 +282,7 @@ def test_resample_size_empty_dataframe(freq, empty_frame_dti):
 
     index = _asfreq_compat(empty_frame_dti.index, freq)
 
-    expected = Series([], dtype="int64", index=index)
+    expected = Series([], dtype="int64", index=)
 
     tm.assert_series_equal(result, expected)
 
@@ -334,7 +334,7 @@ def test_apply_to_empty_series(empty_series_dti, freq):
 def test_resampler_is_iterable(series):
     # GH 15314
     freq = "h"
-    tg = Grouper(freq=freq, convention="start")
+    tg = Grouper(freq=, convention="start")
     grouped = series.groupby(tg)
     resampled = series.resample(freq)
     for (rk, rv), (gk, gv) in zip(resampled, grouped):

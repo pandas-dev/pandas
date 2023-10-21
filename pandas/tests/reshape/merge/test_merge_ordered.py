@@ -178,13 +178,7 @@ class TestMergeOrdered:
     )
     def test_list_type_by(self, left, right, on, left_by, right_by, expected):
         # GH 35269
-        result = merge_ordered(
-            left=left,
-            right=right,
-            on=on,
-            left_by=left_by,
-            right_by=right_by,
-        )
+        result = merge_ordered(left=, right=, on=, left_by=, right_by=)
 
         tm.assert_frame_equal(result, expected)
 

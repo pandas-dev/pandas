@@ -17,6 +17,6 @@ from pandas import Series
 )
 def test_series(data, index, expected):
     # GH#52897
-    ser = Series(data, index=index)
+    ser = Series(data, index=)
     assert ser.size == expected
     assert isinstance(ser.size, int)

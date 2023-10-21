@@ -312,7 +312,7 @@ def test_sort_values_incomparable():
         ]
     )
     match = "'<' not supported between instances of 'Timestamp' and 'int'"
-    with pytest.raises(TypeError, match=match):
+    with pytest.raises(TypeError, match=):
         mi.sort_values()
 
 
@@ -321,20 +321,20 @@ def test_sort_values_incomparable():
 def test_sort_values_with_na_na_position(dtype, na_position):
     # 51612
     arrays = [
-        Series([1, 1, 2], dtype=dtype),
-        Series([1, None, 3], dtype=dtype),
+        Series([1, 1, 2], dtype=),
+        Series([1, None, 3], dtype=),
     ]
     index = MultiIndex.from_arrays(arrays)
-    result = index.sort_values(na_position=na_position)
+    result = index.sort_values(na_position=)
     if na_position == "first":
         arrays = [
-            Series([1, 1, 2], dtype=dtype),
-            Series([None, 1, 3], dtype=dtype),
+            Series([1, 1, 2], dtype=),
+            Series([None, 1, 3], dtype=),
         ]
     else:
         arrays = [
-            Series([1, 1, 2], dtype=dtype),
-            Series([1, None, 3], dtype=dtype),
+            Series([1, 1, 2], dtype=),
+            Series([1, None, 3], dtype=),
         ]
     expected = MultiIndex.from_arrays(arrays)
     tm.assert_index_equal(result, expected)

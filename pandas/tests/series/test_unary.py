@@ -29,14 +29,14 @@ class TestSeriesUnaryOps:
     ):
         # GH38794
         dtype = any_numeric_ea_dtype
-        ser = Series(source, dtype=dtype)
+        ser = Series(source, dtype=)
         neg_result, pos_result, abs_result = -ser, +ser, abs(ser)
         if dtype.startswith("U"):
-            neg_target = -Series(source, dtype=dtype)
+            neg_target = -Series(source, dtype=)
         else:
-            neg_target = Series(neg_target, dtype=dtype)
+            neg_target = Series(neg_target, dtype=)
 
-        abs_target = Series(abs_target, dtype=dtype)
+        abs_target = Series(abs_target, dtype=)
 
         tm.assert_series_equal(neg_result, neg_target)
         tm.assert_series_equal(pos_result, ser)
@@ -45,7 +45,7 @@ class TestSeriesUnaryOps:
     @pytest.mark.parametrize("op", ["__neg__", "__abs__"])
     def test_unary_float_op_mask(self, float_ea_dtype, op):
         dtype = float_ea_dtype
-        ser = Series([1.1, 2.2, 3.3], dtype=dtype)
+        ser = Series([1.1, 2.2, 3.3], dtype=)
         result = getattr(ser, op)()
         target = result.copy(deep=True)
         ser[0] = None

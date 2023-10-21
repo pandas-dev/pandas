@@ -140,9 +140,7 @@ def _read(
         or hasattr(obj, "read")
         or (isinstance(obj, str) and file_exists(obj))
     ):
-        with get_handle(
-            obj, "r", encoding=encoding, storage_options=storage_options
-        ) as handles:
+        with get_handle(obj, "r", encoding=, storage_options=) as handles:
             text = handles.handle.read()
     elif isinstance(obj, (str, bytes)):
         text = obj
@@ -599,7 +597,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
     def _parse_tables(self, document, match, attrs):
         element_name = self._strainer.name
-        tables = document.find_all(element_name, attrs=attrs)
+        tables = document.find_all(element_name, attrs=)
         if not tables:
             raise ValueError("No tables found")
 
@@ -664,7 +662,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
             udoc = bdoc
             from_encoding = self.encoding
 
-        soup = BeautifulSoup(udoc, features="html5lib", from_encoding=from_encoding)
+        soup = BeautifulSoup(udoc, features="html5lib", from_encoding=)
 
         for br in soup.find_all("br"):
             br.replace_with("\n" + br.text)
@@ -791,10 +789,10 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 with get_handle(
                     self.io, "r", storage_options=self.storage_options
                 ) as f:
-                    r = parse(f.handle, parser=parser)
+                    r = parse(f.handle, parser=)
             else:
                 # try to parse the input in the simplest way
-                r = parse(self.io, parser=parser)
+                r = parse(self.io, parser=)
             try:
                 r = r.getroot()
             except AttributeError:
@@ -802,7 +800,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         except (UnicodeDecodeError, OSError) as e:
             # if the input is a blob of html goop
             if not is_url(self.io):
-                r = fromstring(self.io, parser=parser)
+                r = fromstring(self.io, parser=)
 
                 try:
                     r = r.getroot()
@@ -878,7 +876,7 @@ def _data_to_frame(**kwargs):
 
     # fill out elements of body that are "ragged"
     _expand_elements(body)
-    with TextParser(body, header=header, **kwargs) as tp:
+    with TextParser(body, header=, **kwargs) as tp:
         return tp.read()
 
 
@@ -1244,22 +1242,22 @@ def read_html(
         )
 
     return _parse(
-        flavor=flavor,
-        io=io,
-        match=match,
-        header=header,
-        index_col=index_col,
-        skiprows=skiprows,
-        parse_dates=parse_dates,
-        thousands=thousands,
-        attrs=attrs,
-        encoding=encoding,
-        decimal=decimal,
-        converters=converters,
-        na_values=na_values,
-        keep_default_na=keep_default_na,
-        displayed_only=displayed_only,
-        extract_links=extract_links,
-        dtype_backend=dtype_backend,
-        storage_options=storage_options,
+        flavor=,
+        io=,
+        match=,
+        header=,
+        index_col=,
+        skiprows=,
+        parse_dates=,
+        thousands=,
+        attrs=,
+        encoding=,
+        decimal=,
+        converters=,
+        na_values=,
+        keep_default_na=,
+        displayed_only=,
+        extract_links=,
+        dtype_backend=,
+        storage_options=,
     )

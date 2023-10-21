@@ -48,9 +48,9 @@ ExtensionArray values are different \\(50\\.0 %\\)
 \\[right\\]: \\[0\\.5, 0\\.123457\\]"""
 
         with pytest.raises(AssertionError, match=msg):
-            tm.assert_extension_array_equal(arr1, arr2, rtol=rtol)
+            tm.assert_extension_array_equal(arr1, arr2, rtol=)
     else:
-        tm.assert_extension_array_equal(arr1, arr2, rtol=rtol)
+        tm.assert_extension_array_equal(arr1, arr2, rtol=)
 
 
 def test_assert_extension_array_equal_dtype_mismatch(check_dtype):

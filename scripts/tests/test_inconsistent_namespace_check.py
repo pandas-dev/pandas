@@ -49,7 +49,7 @@ def test_inconsistent_usage(content, expected, capsys):
 @pytest.mark.parametrize("replace", [True, False])
 def test_consistent_usage(content, replace):
     # should not raise
-    check_for_inconsistent_pandas_namespace(content, PATH, replace=replace)
+    check_for_inconsistent_pandas_namespace(content, PATH, replace=)
 
 
 @pytest.mark.parametrize("content", [BAD_FILE_0, BAD_FILE_1, BAD_FILE_2])

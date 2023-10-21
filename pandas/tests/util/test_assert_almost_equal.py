@@ -153,9 +153,9 @@ def test_assert_not_almost_equal_numbers_rtol(a, b):
     ],
 )
 def test_assert_almost_equal_complex_numbers(a, b, rtol):
-    _assert_almost_equal_both(a, b, rtol=rtol)
-    _assert_almost_equal_both(np.complex64(a), np.complex64(b), rtol=rtol)
-    _assert_almost_equal_both(np.complex128(a), np.complex128(b), rtol=rtol)
+    _assert_almost_equal_both(a, b, rtol=)
+    _assert_almost_equal_both(np.complex64(a), np.complex64(b), rtol=)
+    _assert_almost_equal_both(np.complex128(a), np.complex128(b), rtol=)
 
 
 @pytest.mark.parametrize(
@@ -169,9 +169,9 @@ def test_assert_almost_equal_complex_numbers(a, b, rtol):
     ],
 )
 def test_assert_not_almost_equal_complex_numbers(a, b, rtol):
-    _assert_not_almost_equal_both(a, b, rtol=rtol)
-    _assert_not_almost_equal_both(np.complex64(a), np.complex64(b), rtol=rtol)
-    _assert_not_almost_equal_both(np.complex128(a), np.complex128(b), rtol=rtol)
+    _assert_not_almost_equal_both(a, b, rtol=)
+    _assert_not_almost_equal_both(np.complex64(a), np.complex64(b), rtol=)
+    _assert_not_almost_equal_both(np.complex128(a), np.complex128(b), rtol=)
 
 
 @pytest.mark.parametrize("a,b", [(0, 0), (0, 0.0), (0, np.float64(0)), (0.00000001, 0)])

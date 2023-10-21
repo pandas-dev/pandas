@@ -31,7 +31,7 @@ def test_api_per_dtype(index_or_series, dtype, any_skipna_inferred_dtype):
     box = index_or_series
     inferred_dtype, values = any_skipna_inferred_dtype
 
-    t = box(values, dtype=dtype)  # explicit dtype to avoid casting
+    t = box(values, dtype=)  # explicit dtype to avoid casting
 
     types_passing_constructor = [
         "string",
@@ -91,10 +91,10 @@ def test_api_per_method(
         reason = "Need to fortify get_dummies corner cases"
 
     if reason is not None:
-        mark = pytest.mark.xfail(raises=raises, reason=reason)
+        mark = pytest.mark.xfail(raises=, reason=)
         request.applymarker(mark)
 
-    t = box(values, dtype=dtype)  # explicit dtype to avoid casting
+    t = box(values, dtype=)  # explicit dtype to avoid casting
     method = getattr(t.str, method_name)
 
     bytes_allowed = method_name in ["decode", "get", "len", "slice"]

@@ -111,7 +111,7 @@ def test_thorough_mangle_names(all_parsers, data, names, expected):
     parser = all_parsers
 
     with pytest.raises(ValueError, match="Duplicate names"):
-        parser.read_csv(StringIO(data), names=names)
+        parser.read_csv(StringIO(data), names=)
 
 
 @skip_pyarrow
@@ -173,4 +173,4 @@ def test_mangle_cols_names(all_parsers, usecol, engine):
     data = "1,2,3"
     names = ["A", "A", "B"]
     with pytest.raises(ValueError, match="Duplicate names"):
-        parser.read_csv(StringIO(data), names=names, usecols=usecol, engine=engine)
+        parser.read_csv(StringIO(data), names=, usecols=usecol, engine=)

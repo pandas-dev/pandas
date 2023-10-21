@@ -72,7 +72,7 @@ class TestRename:
 
         # index with name
         index = Index(["foo", "bar"], name="name")
-        renamer = DataFrame(data, index=index)
+        renamer = DataFrame(data, index=)
         renamed = renamer.rename(index={"foo": "bar", "bar": "foo"})
         tm.assert_index_equal(renamed.index, Index(["bar", "foo"], name="name"))
         assert renamed.index.name == renamer.index.name
@@ -100,7 +100,7 @@ class TestRename:
         tuples_columns = [("fizz1", "buzz1"), ("fizz2", "buzz2")]
         index = MultiIndex.from_tuples(tuples_index, names=["foo", "bar"])
         columns = MultiIndex.from_tuples(tuples_columns, names=["fizz", "buzz"])
-        df = DataFrame([(0, 0), (1, 1)], index=index, columns=columns)
+        df = DataFrame([(0, 0), (1, 1)], index=, columns=)
 
         #
         # without specifying level -> across all levels
@@ -237,7 +237,7 @@ class TestRename:
         # GH 13473
         # rename now works with errors parameter
         df = DataFrame(columns=["A", "B", "C", "D"])
-        result = df.rename(columns=mapper, errors=errors)
+        result = df.rename(columns=mapper, errors=)
         expected = DataFrame(columns=expected_columns)
         tm.assert_frame_equal(result, expected)
 

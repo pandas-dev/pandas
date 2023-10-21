@@ -327,13 +327,13 @@ def eval(
         # get our (possibly passed-in) scope
         env = ensure_scope(
             level + 1,
-            global_dict=global_dict,
-            local_dict=local_dict,
-            resolvers=resolvers,
-            target=target,
+            global_dict=,
+            local_dict=,
+            resolvers=,
+            target=,
         )
 
-        parsed_expr = Expr(expr, engine=engine, parser=parser, env=env)
+        parsed_expr = Expr(expr, engine=, parser=, env=)
 
         if engine == "numexpr" and (
             is_extension_array_dtype(parsed_expr.terms.return_type)

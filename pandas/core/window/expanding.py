@@ -129,13 +129,7 @@ class Expanding(RollingAndExpandingMixin):
         method: str = "single",
         selection=None,
     ) -> None:
-        super().__init__(
-            obj=obj,
-            min_periods=min_periods,
-            axis=axis,
-            method=method,
-            selection=selection,
-        )
+        super().__init__(obj=, min_periods=, axis=, method=, selection=)
 
     def _get_window_indexer(self) -> BaseIndexer:
         """
@@ -202,7 +196,7 @@ class Expanding(RollingAndExpandingMixin):
         agg_method="count",
     )
     def count(self, numeric_only: bool = False):
-        return super().count(numeric_only=numeric_only)
+        return super().count(numeric_only=)
 
     @doc(
         template_header,
@@ -239,11 +233,11 @@ class Expanding(RollingAndExpandingMixin):
     ):
         return super().apply(
             func,
-            raw=raw,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-            args=args,
-            kwargs=kwargs,
+            raw=,
+            engine=,
+            engine_kwargs=,
+            args=,
+            kwargs=,
         )
 
     @doc(
@@ -279,11 +273,7 @@ class Expanding(RollingAndExpandingMixin):
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        return super().sum(
-            numeric_only=numeric_only,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-        )
+        return super().sum(numeric_only=, engine=, engine_kwargs=)
 
     @doc(
         template_header,
@@ -318,11 +308,7 @@ class Expanding(RollingAndExpandingMixin):
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        return super().max(
-            numeric_only=numeric_only,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-        )
+        return super().max(numeric_only=, engine=, engine_kwargs=)
 
     @doc(
         template_header,
@@ -357,11 +343,7 @@ class Expanding(RollingAndExpandingMixin):
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        return super().min(
-            numeric_only=numeric_only,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-        )
+        return super().min(numeric_only=, engine=, engine_kwargs=)
 
     @doc(
         template_header,
@@ -396,11 +378,7 @@ class Expanding(RollingAndExpandingMixin):
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        return super().mean(
-            numeric_only=numeric_only,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-        )
+        return super().mean(numeric_only=, engine=, engine_kwargs=)
 
     @doc(
         template_header,
@@ -435,11 +413,7 @@ class Expanding(RollingAndExpandingMixin):
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        return super().median(
-            numeric_only=numeric_only,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-        )
+        return super().median(numeric_only=, engine=, engine_kwargs=)
 
     @doc(
         template_header,
@@ -494,12 +468,7 @@ class Expanding(RollingAndExpandingMixin):
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        return super().std(
-            ddof=ddof,
-            numeric_only=numeric_only,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-        )
+        return super().std(ddof=, numeric_only=, engine=, engine_kwargs=)
 
     @doc(
         template_header,
@@ -554,12 +523,7 @@ class Expanding(RollingAndExpandingMixin):
         engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
-        return super().var(
-            ddof=ddof,
-            numeric_only=numeric_only,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-        )
+        return super().var(ddof=, numeric_only=, engine=, engine_kwargs=)
 
     @doc(
         template_header,
@@ -596,7 +560,7 @@ class Expanding(RollingAndExpandingMixin):
         agg_method="sem",
     )
     def sem(self, ddof: int = 1, numeric_only: bool = False):
-        return super().sem(ddof=ddof, numeric_only=numeric_only)
+        return super().sem(ddof=, numeric_only=)
 
     @doc(
         template_header,
@@ -627,7 +591,7 @@ class Expanding(RollingAndExpandingMixin):
         agg_method="skew",
     )
     def skew(self, numeric_only: bool = False):
-        return super().skew(numeric_only=numeric_only)
+        return super().skew(numeric_only=)
 
     @doc(
         template_header,
@@ -667,7 +631,7 @@ class Expanding(RollingAndExpandingMixin):
         agg_method="kurt",
     )
     def kurt(self, numeric_only: bool = False):
-        return super().kurt(numeric_only=numeric_only)
+        return super().kurt(numeric_only=)
 
     @doc(
         template_header,
@@ -721,11 +685,7 @@ class Expanding(RollingAndExpandingMixin):
         interpolation: QuantileInterpolation = "linear",
         numeric_only: bool = False,
     ):
-        return super().quantile(
-            q=q,
-            interpolation=interpolation,
-            numeric_only=numeric_only,
-        )
+        return super().quantile(q=, interpolation=, numeric_only=)
 
     @doc(
         template_header,
@@ -795,12 +755,7 @@ class Expanding(RollingAndExpandingMixin):
         pct: bool = False,
         numeric_only: bool = False,
     ):
-        return super().rank(
-            method=method,
-            ascending=ascending,
-            pct=pct,
-            numeric_only=numeric_only,
-        )
+        return super().rank(method=, ascending=, pct=, numeric_only=)
 
     @doc(
         template_header,
@@ -851,12 +806,7 @@ class Expanding(RollingAndExpandingMixin):
         ddof: int = 1,
         numeric_only: bool = False,
     ):
-        return super().cov(
-            other=other,
-            pairwise=pairwise,
-            ddof=ddof,
-            numeric_only=numeric_only,
-        )
+        return super().cov(other=, pairwise=, ddof=, numeric_only=)
 
     @doc(
         template_header,
@@ -934,12 +884,7 @@ class Expanding(RollingAndExpandingMixin):
         ddof: int = 1,
         numeric_only: bool = False,
     ):
-        return super().corr(
-            other=other,
-            pairwise=pairwise,
-            ddof=ddof,
-            numeric_only=numeric_only,
-        )
+        return super().corr(other=, pairwise=, ddof=, numeric_only=)
 
 
 class ExpandingGroupby(BaseWindowGroupby, Expanding):

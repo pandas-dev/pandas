@@ -83,7 +83,7 @@ def ravel_compat(meth: F) -> F:
         flat = self.ravel("K")
         result = meth(flat, *args, **kwargs)
         order = "F" if flags.f_contiguous else "C"
-        return result.reshape(self.shape, order=order)
+        return result.reshape(self.shape, order=)
 
     return cast(F, method)
 
@@ -130,21 +130,21 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
 
         if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
             cls = dtype.construct_array_type()
-            return cls(arr.view("i8"), dtype=dtype)
+            return cls(arr.view("i8"), dtype=)
         elif dtype == "M8[ns]":
             from pandas.core.arrays import DatetimeArray
 
-            return DatetimeArray(arr.view("i8"), dtype=dtype)
+            return DatetimeArray(arr.view("i8"), dtype=)
         elif dtype == "m8[ns]":
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray(arr.view("i8"), dtype=dtype)
+            return TimedeltaArray(arr.view("i8"), dtype=)
 
         # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
         # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
         # type, _SupportsDType, str, Union[Tuple[Any, int], Tuple[Any, Union[int,
         # Sequence[int]]], List[Any], _DTypeDict, Tuple[Any, Any]]]"
-        return arr.view(dtype=dtype)  # type: ignore[arg-type]
+        return arr.view(dtype=)  # type: ignore[arg-type]
 
     def take(
         self,
@@ -160,9 +160,9 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         new_data = take(
             self._ndarray,
             indices,
-            allow_fill=allow_fill,
-            fill_value=fill_value,
-            axis=axis,
+            allow_fill=,
+            fill_value=,
+            axis=,
         )
         return self._from_backing_data(new_data)
 
@@ -192,9 +192,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         from pandas.core.util.hashing import hash_array
 
         values = self._ndarray
-        return hash_array(
-            values, encoding=encoding, hash_key=hash_key, categorize=categorize
-        )
+        return hash_array(values, encoding=, hash_key=, categorize=)
 
     # Signature of "argmin" incompatible with supertype "ExtensionArray"
     def argmin(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
@@ -202,7 +200,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
-        return nargminmax(self, "argmin", axis=axis)
+        return nargminmax(self, "argmin", axis=)
 
     # Signature of "argmax" incompatible with supertype "ExtensionArray"
     def argmax(self, axis: AxisInt = 0, skipna: bool = True):  # type: ignore[override]
@@ -210,7 +208,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         validate_bool_kwarg(skipna, "skipna")
         if not skipna and self._hasna:
             raise NotImplementedError
-        return nargminmax(self, "argmax", axis=axis)
+        return nargminmax(self, "argmax", axis=)
 
     def unique(self) -> Self:
         new_data = unique(self._ndarray)
@@ -227,7 +225,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             dtypes = {str(x.dtype) for x in to_concat}
             raise ValueError("to_concat must have the same dtype", dtypes)
 
-        return super()._concat_same_type(to_concat, axis=axis)
+        return super()._concat_same_type(to_concat, axis=)
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(
@@ -237,7 +235,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
         npvalue = self._validate_setitem_value(value)
-        return self._ndarray.searchsorted(npvalue, side=side, sorter=sorter)
+        return self._ndarray.searchsorted(npvalue, side=, sorter=)
 
     @doc(ExtensionArray.shift)
     def shift(self, periods: int = 1, fill_value=None):
@@ -294,7 +292,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     ) -> None:
         # (for now) when self.ndim == 2, we assume axis=0
         func = missing.get_fill_func(method, ndim=self.ndim)
-        func(self._ndarray.T, limit=limit, mask=mask.T)
+        func(self._ndarray.T, limit=, mask=mask.T)
 
     def _pad_or_backfill(
         self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
@@ -307,7 +305,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             npvalues = self._ndarray.T
             if copy:
                 npvalues = npvalues.copy()
-            func(npvalues, limit=limit, mask=mask.T)
+            func(npvalues, limit=, mask=mask.T)
             npvalues = npvalues.T
 
             if copy:
@@ -344,7 +342,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
                 npvalues = self._ndarray.T
                 if copy:
                     npvalues = npvalues.copy()
-                func(npvalues, limit=limit, mask=mask.T)
+                func(npvalues, limit=, mask=mask.T)
                 npvalues = npvalues.T
 
                 # TODO: NumpyExtensionArray didn't used to copy, need tests
@@ -478,11 +476,11 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         else:
             values = self._ndarray
 
-        result = value_counts(values, sort=False, dropna=dropna)
+        result = value_counts(values, sort=False, dropna=)
 
         index_arr = self._from_backing_data(np.asarray(result.index._data))
         index = Index(index_arr, name=result.index.name)
-        return Series(result._values, index=index, name=result.name, copy=False)
+        return Series(result._values, index=, name=result.name, copy=False)
 
     def _quantile(
         self,
@@ -523,6 +521,6 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         """
         # The base implementation uses a naive approach to find the dtype
         #  for the backing ndarray
-        arr = cls._from_sequence([], dtype=dtype)
+        arr = cls._from_sequence([], dtype=)
         backing = np.empty(shape, dtype=arr._ndarray.dtype)
         return arr._from_backing_data(backing)

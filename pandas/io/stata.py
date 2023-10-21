@@ -300,7 +300,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
             return to_datetime(100 * year + month, format="%Y%m")
         else:
             index = getattr(year, "index", None)
-            return Series([datetime(y, m, 1) for y, m in zip(year, month)], index=index)
+            return Series([datetime(y, m, 1) for y, m in zip(year, month)], index=)
 
     def convert_year_days_safe(year, days) -> Series:
         """
@@ -314,7 +314,7 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
             value = [
                 datetime(y, 1, 1) + timedelta(days=int(d)) for y, d in zip(year, days)
             ]
-            return Series(value, index=index)
+            return Series(value, index=)
 
     def convert_delta_safe(base, deltas, unit) -> Series:
         """
@@ -326,17 +326,17 @@ def _stata_elapsed_date_to_datetime_vec(dates, fmt) -> Series:
         if unit == "d":
             if deltas.max() > MAX_DAY_DELTA or deltas.min() < MIN_DAY_DELTA:
                 values = [base + timedelta(days=int(d)) for d in deltas]
-                return Series(values, index=index)
+                return Series(values, index=)
         elif unit == "ms":
             if deltas.max() > MAX_MS_DELTA or deltas.min() < MIN_MS_DELTA:
                 values = [
                     base + timedelta(microseconds=(int(d) * 1000)) for d in deltas
                 ]
-                return Series(values, index=index)
+                return Series(values, index=)
         else:
             raise ValueError("format not understood")
         base = to_datetime(base)
-        deltas = to_timedelta(deltas, unit=unit)
+        deltas = to_timedelta(deltas, unit=)
         return base + deltas
 
     # TODO(non-nano): If/when pandas supports more than datetime64[ns], this
@@ -460,7 +460,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
                 "datetime64, datetime or null values."
             )
 
-        return DataFrame(d, index=index)
+        return DataFrame(d, index=)
 
     bad_loc = isna(dates)
     index = dates.index
@@ -505,7 +505,7 @@ def _datetime_to_stata_elapsed_vec(dates: Series, fmt: str) -> Series:
     missing_value = struct.unpack("<d", b"\x00\x00\x00\x00\x00\x00\xe0\x7f")[0]
     conv_dates[bad_loc] = missing_value
 
-    return Series(conv_dates, index=index)
+    return Series(conv_dates, index=)
 
 
 excessive_string_length_error: Final = """
@@ -1740,7 +1740,7 @@ the string values returned are correct."""
         self._path_or_buf.seek(self._data_location + offset)
         read_lines = min(nrows, self._nobs - self._lines_read)
         raw_data = np.frombuffer(
-            self._path_or_buf.read(read_len), dtype=dtype, count=read_lines
+            self._path_or_buf.read(read_len), dtype=, count=read_lines
         )
 
         self._lines_read += read_lines
@@ -1855,7 +1855,7 @@ the string values returned are correct."""
                 dtype = series.dtype
                 if dtype not in (np.float32, np.float64):
                     dtype = np.float64
-                replacement = Series(series, dtype=dtype)
+                replacement = Series(series, dtype=)
                 if not replacement._values.flags["WRITEABLE"]:
                     # only relevant for ArrayManager; construction
                     #  path for BlockManager ensures writeability
@@ -2093,16 +2093,16 @@ def read_stata(
 ) -> DataFrame | StataReader:
     reader = StataReader(
         filepath_or_buffer,
-        convert_dates=convert_dates,
-        convert_categoricals=convert_categoricals,
-        index_col=index_col,
-        convert_missing=convert_missing,
-        preserve_dtypes=preserve_dtypes,
-        columns=columns,
-        order_categoricals=order_categoricals,
-        chunksize=chunksize,
-        storage_options=storage_options,
-        compression=compression,
+        convert_dates=,
+        convert_categoricals=,
+        index_col=,
+        convert_missing=,
+        preserve_dtypes=,
+        columns=,
+        order_categoricals=,
+        chunksize=,
+        storage_options=,
+        compression=,
     )
 
     if iterator or chunksize:
@@ -2454,7 +2454,7 @@ class StataWriter(StataParser):
                         dtype = np.dtype(np.int32)
                     else:
                         dtype = np.dtype(np.float64)
-                    values = np.array(values, dtype=dtype)
+                    values = np.array(values, dtype=)
 
                 # Replace missing values with Stata missing value for type
                 values[values == -1] = get_base_missing_value(dtype)
@@ -3321,13 +3321,13 @@ class StataWriter117(StataWriter):
             data,
             convert_dates,
             write_index,
-            byteorder=byteorder,
-            time_stamp=time_stamp,
-            data_label=data_label,
-            variable_labels=variable_labels,
-            value_labels=value_labels,
-            compression=compression,
-            storage_options=storage_options,
+            byteorder=,
+            time_stamp=,
+            data_label=,
+            variable_labels=,
+            value_labels=,
+            compression=,
+            storage_options=,
         )
         self._map: dict[str, int] = {}
         self._strl_blob = b""
@@ -3579,7 +3579,7 @@ class StataWriter117(StataWriter):
                 dtype,
                 self.data[col],
                 dta_version=self._dta_version,
-                force_strl=force_strl,
+                force_strl=,
             )
             self.fmtlist.append(fmt)
             self.typlist.append(
@@ -3716,16 +3716,16 @@ class StataWriterUTF8(StataWriter117):
         super().__init__(
             fname,
             data,
-            convert_dates=convert_dates,
-            write_index=write_index,
-            byteorder=byteorder,
-            time_stamp=time_stamp,
-            data_label=data_label,
-            variable_labels=variable_labels,
-            value_labels=value_labels,
-            convert_strl=convert_strl,
-            compression=compression,
-            storage_options=storage_options,
+            convert_dates=,
+            write_index=,
+            byteorder=,
+            time_stamp=,
+            data_label=,
+            variable_labels=,
+            value_labels=,
+            convert_strl=,
+            compression=,
+            storage_options=,
         )
         # Override version set in StataWriter117 init
         self._dta_version = version

@@ -141,7 +141,7 @@ class TestContains:
         # GH#22085
         dtype = any_real_numpy_dtype
         data = [0, 1, 2, 3] if not is_float_dtype(dtype) else [0.1, 1.1, 2.2, 3.3]
-        index = Index(data, dtype=dtype)
+        index = Index(data, dtype=)
 
         if not is_float_dtype(index.dtype):
             assert 1.1 not in index

@@ -289,7 +289,7 @@ def test_multi_chunk_pyarrow() -> None:
     pa = pytest.importorskip("pyarrow", "11.0.0")
     n_legs = pa.chunked_array([[2, 2, 4], [4, 5, 100]])
     names = ["n_legs"]
-    table = pa.table([n_legs], names=names)
+    table = pa.table([n_legs], names=)
     with pytest.raises(
         RuntimeError,
         match="To join chunks a copy is required which is "

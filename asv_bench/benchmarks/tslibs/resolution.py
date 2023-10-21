@@ -44,7 +44,7 @@ class TimeResolution:
             # tzlocal is cumbersomely slow, so skip to keep runtime in check
             raise NotImplementedError
 
-        arr = np.random.randint(0, 10, size=size, dtype="i8")
+        arr = np.random.randint(0, 10, size=, dtype="i8")
         arr = arr.view(f"M8[{unit}]").astype("M8[ns]").view("i8")
         self.i8data = arr
 

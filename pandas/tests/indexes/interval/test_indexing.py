@@ -28,7 +28,7 @@ import pandas._testing as tm
 class TestGetLoc:
     @pytest.mark.parametrize("side", ["right", "left", "both", "neither"])
     def test_get_loc_interval(self, closed, side):
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=)
 
         for bound in [[0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2.5, 3], [-1, 4]]:
             # if get_loc is supplied an interval, it should only search
@@ -57,7 +57,7 @@ class TestGetLoc:
             "neither": {0.5: 0, 2.5: 1},
         }
 
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=closed)
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=)
 
         # if get_loc is supplied a scalar, it should return the index of
         # the interval which contains the scalar, or KeyError.
@@ -70,7 +70,7 @@ class TestGetLoc:
     @pytest.mark.parametrize("scalar", [-1, 0, 0.5, 3, 4.5, 5, 6])
     def test_get_loc_length_one_scalar(self, scalar, closed):
         # GH 20921
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        index = IntervalIndex.from_tuples([(0, 5)], closed=)
         if scalar in index[0]:
             result = index.get_loc(scalar)
             assert result == 0
@@ -82,7 +82,7 @@ class TestGetLoc:
     @pytest.mark.parametrize("left, right", [(0, 5), (-1, 4), (-1, 6), (6, 7)])
     def test_get_loc_length_one_interval(self, left, right, closed, other_closed):
         # GH 20921
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        index = IntervalIndex.from_tuples([(0, 5)], closed=)
         interval = Interval(left, right, closed=other_closed)
         if interval == index[0]:
             result = index.get_loc(interval)
@@ -246,7 +246,7 @@ class TestGetIndexer:
     @pytest.mark.parametrize("item", [[3], np.arange(0.5, 5, 0.5)])
     def test_get_indexer_length_one(self, item, closed):
         # GH 17284
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        index = IntervalIndex.from_tuples([(0, 5)], closed=)
         result = index.get_indexer(item)
         expected = np.array([0] * len(item), dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
@@ -254,7 +254,7 @@ class TestGetIndexer:
     @pytest.mark.parametrize("size", [1, 5])
     def test_get_indexer_length_one_interval(self, size, closed):
         # GH 17284
-        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        index = IntervalIndex.from_tuples([(0, 5)], closed=)
         result = index.get_indexer([Interval(0, 5, closed)] * size)
         expected = np.array([0] * size, dtype="intp")
         tm.assert_numpy_array_equal(result, expected)
@@ -272,7 +272,7 @@ class TestGetIndexer:
     def test_get_indexer_categorical(self, target, ordered):
         # GH 30063: categorical and non-categorical results should be consistent
         index = IntervalIndex.from_tuples([(0, 1), (1, 2), (3, 4)])
-        categorical_target = CategoricalIndex(target, ordered=ordered)
+        categorical_target = CategoricalIndex(target, ordered=)
 
         result = index.get_indexer(categorical_target)
         expected = index.get_indexer(target)
@@ -323,7 +323,7 @@ class TestGetIndexer:
     )
     def test_get_indexer_errors(self, tuples, closed):
         # IntervalIndex needs non-overlapping for uniqueness when querying
-        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        index = IntervalIndex.from_tuples(tuples, closed=)
 
         msg = (
             "cannot handle overlapping indices; use "
@@ -563,7 +563,7 @@ class TestPutmask:
     @pytest.mark.parametrize("tz", ["US/Pacific", None])
     def test_putmask_dt64(self, tz):
         # GH#37968
-        dti = date_range("2016-01-01", periods=9, tz=tz)
+        dti = date_range("2016-01-01", periods=9, tz=)
         idx = IntervalIndex.from_breaks(dti)
         mask = np.zeros(idx.shape, dtype=bool)
         mask[0:3] = True

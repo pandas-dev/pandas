@@ -49,7 +49,7 @@ def test_zip(parser_and_data, compression):
             with open(path, "rb") as f:
                 result = parser.read_csv(f, compression="zip")
         else:
-            result = parser.read_csv(path, compression=compression)
+            result = parser.read_csv(path, compression=)
 
         tm.assert_frame_equal(result, expected)
 
@@ -67,7 +67,7 @@ def test_zip_error_multiple_files(parser_and_data, compression):
                 tmp.writestr(file_name, data)
 
         with pytest.raises(ValueError, match="Multiple files"):
-            parser.read_csv(path, compression=compression)
+            parser.read_csv(path, compression=)
 
 
 @skip_pyarrow
@@ -106,7 +106,7 @@ def test_compression(
     compress_type = compression_only
 
     ext = compression_to_extension[compress_type]
-    filename = filename if filename is None else filename.format(ext=ext)
+    filename = filename if filename is None else filename.format(ext=)
 
     if filename and buffer:
         request.applymarker(
@@ -115,15 +115,15 @@ def test_compression(
             )
         )
 
-    with tm.ensure_clean(filename=filename) as path:
+    with tm.ensure_clean(filename=) as path:
         tm.write_to_compressed(compress_type, path, data)
         compression = "infer" if filename else compress_type
 
         if buffer:
             with open(path, "rb") as f:
-                result = parser.read_csv(f, compression=compression)
+                result = parser.read_csv(f, compression=)
         else:
-            result = parser.read_csv(path, compression=compression)
+            result = parser.read_csv(path, compression=)
 
         tm.assert_frame_equal(result, expected)
 
@@ -155,7 +155,7 @@ def test_compression_utf_encoding(all_parsers, csv_dir_path, utf_value, encoding
     encoding = encoding_fmt.format(utf_value)
     path = os.path.join(csv_dir_path, f"utf{utf_value}_ex_small.zip")
 
-    result = parser.read_csv(path, encoding=encoding, compression="zip", sep="\t")
+    result = parser.read_csv(path, encoding=, compression="zip", sep="\t")
     expected = DataFrame(
         {
             "Country": ["Venezuela", "Venezuela"],

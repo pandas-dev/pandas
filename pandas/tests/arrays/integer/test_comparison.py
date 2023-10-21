@@ -16,7 +16,7 @@ class TestComparisonOps(NumericOps, ComparisonOps):
     def test_compare_to_int(self, dtype, comparison_op):
         # GH 28930
         op_name = f"__{comparison_op.__name__}__"
-        s1 = pd.Series([1, None, 3], dtype=dtype)
+        s1 = pd.Series([1, None, 3], dtype=)
         s2 = pd.Series([1, None, 3], dtype="float")
 
         method = getattr(s1, op_name)

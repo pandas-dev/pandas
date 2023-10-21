@@ -222,7 +222,7 @@ class TestSeriesValueCounts:
     )
     def test_value_counts_bool_with_nan(self, ser, dropna, exp):
         # GH32146
-        out = ser.value_counts(dropna=dropna)
+        out = ser.value_counts(dropna=)
         tm.assert_series_equal(out, exp)
 
     @pytest.mark.parametrize(
@@ -254,18 +254,18 @@ class TestSeriesValueCounts:
     def test_value_counts_masked(self):
         # GH#54984
         dtype = "Int64"
-        ser = Series([1, 2, None, 2, None, 3], dtype=dtype)
+        ser = Series([1, 2, None, 2, None, 3], dtype=)
         result = ser.value_counts(dropna=False)
         expected = Series(
             [2, 2, 1, 1],
-            index=Index([2, None, 1, 3], dtype=dtype),
-            dtype=dtype,
+            index=Index([2, None, 1, 3], dtype=),
+            dtype=,
             name="count",
         )
         tm.assert_series_equal(result, expected)
 
         result = ser.value_counts(dropna=True)
         expected = Series(
-            [2, 1, 1], index=Index([2, 1, 3], dtype=dtype), dtype=dtype, name="count"
+            [2, 1, 1], index=Index([2, 1, 3], dtype=), dtype=, name="count"
         )
         tm.assert_series_equal(result, expected)

@@ -210,7 +210,7 @@ class TestSeriesSortValues:
         ser = Series([23, 7, 21])
         expected = np.sort(ser.values)
 
-        sorted_ser = ser.sort_values(ascending=ascending)
+        sorted_ser = ser.sort_values(ascending=)
         if not ascending:
             expected = expected[::-1]
 

@@ -216,7 +216,7 @@ def load(fh, encoding: str | None = None, is_verbose: bool = False):
     try:
         fh.seek(0)
         if encoding is not None:
-            up = Unpickler(fh, encoding=encoding)
+            up = Unpickler(fh, encoding=)
         else:
             up = Unpickler(fh)
         # "Unpickler" has no attribute "is_verbose"  [attr-defined]
@@ -238,9 +238,7 @@ def loads(
     Analogous to pickle._loads.
     """
     fd = io.BytesIO(bytes_object)
-    return Unpickler(
-        fd, fix_imports=fix_imports, encoding=encoding, errors=errors
-    ).load()
+    return Unpickler(fd, fix_imports=, encoding=, errors=).load()
 
 
 @contextlib.contextmanager

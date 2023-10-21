@@ -150,7 +150,7 @@ def arrays_to_mgr(
 
     if typ == "block":
         return create_block_manager_from_column_arrays(
-            arrays, axes, consolidate=consolidate, refs=refs
+            arrays, axes, consolidate=, refs=
         )
     elif typ == "array":
         return ArrayManager(arrays, [index, columns])
@@ -186,7 +186,7 @@ def rec_array_to_mgr(
     if columns is None:
         columns = arr_columns
 
-    mgr = arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ)
+    mgr = arrays_to_mgr(arrays, columns, index, dtype=, typ=)
 
     if copy:
         mgr = mgr.copy()
@@ -279,7 +279,7 @@ def ndarray_to_mgr(
         else:
             columns = ensure_index(columns)
 
-        return arrays_to_mgr(values, columns, index, dtype=dtype, typ=typ)
+        return arrays_to_mgr(values, columns, index, dtype=, typ=)
 
     elif isinstance(vdtype, ExtensionDtype):
         # i.e. Datetime64TZ, PeriodDtype; cases with is_1d_only_ea_dtype(vdtype)
@@ -323,14 +323,14 @@ def ndarray_to_mgr(
         values = sanitize_array(
             values,
             None,
-            dtype=dtype,
+            dtype=,
             copy=copy_on_sanitize,
             allow_2d=True,
         )
 
     # _prep_ndarraylike ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
-        values.shape[0], values.shape[1], index=index, columns=columns
+        values.shape[0], values.shape[1], index=, columns=
     )
 
     _check_values_indices_shape_match(values, index, columns)
@@ -373,7 +373,7 @@ def ndarray_to_mgr(
             ]
         else:
             bp = BlockPlacement(slice(len(columns)))
-            nb = new_block_2d(values, placement=bp, refs=refs)
+            nb = new_block_2d(values, placement=bp, refs=)
             block_values = [nb]
     elif dtype is None and values.dtype.kind == "U" and using_pyarrow_string_dtype():
         dtype = StringDtype(storage="pyarrow_numpy")
@@ -381,7 +381,7 @@ def ndarray_to_mgr(
         obj_columns = list(values)
         block_values = [
             new_block(
-                dtype.construct_array_type()._from_sequence(data, dtype=dtype),
+                dtype.construct_array_type()._from_sequence(data, dtype=),
                 BlockPlacement(slice(i, i + 1)),
                 ndim=2,
             )
@@ -390,7 +390,7 @@ def ndarray_to_mgr(
 
     else:
         bp = BlockPlacement(slice(len(columns)))
-        nb = new_block_2d(values, placement=bp, refs=refs)
+        nb = new_block_2d(values, placement=bp, refs=)
         block_values = [nb]
 
     if len(columns) == 0:
@@ -458,7 +458,7 @@ def dict_to_mgr(
                 #  NA dtypes
                 midxs = missing.values.nonzero()[0]
                 for i in midxs:
-                    arr = sanitize_array(arrays.iat[i], index, dtype=dtype)
+                    arr = sanitize_array(arrays.iat[i], index, dtype=)
                     arrays.iat[i] = arr
             else:
                 # GH#1783
@@ -500,7 +500,7 @@ def dict_to_mgr(
             # dtype check to exclude e.g. range objects, scalars
             arrays = [x.copy() if hasattr(x, "dtype") else x for x in arrays]
 
-    return arrays_to_mgr(arrays, columns, index, dtype=dtype, typ=typ, consolidate=copy)
+    return arrays_to_mgr(arrays, columns, index, dtype=, typ=, consolidate=copy)
 
 
 def nested_data_to_arrays(
@@ -517,7 +517,7 @@ def nested_data_to_arrays(
     if is_named_tuple(data[0]) and columns is None:
         columns = ensure_index(data[0]._fields)
 
-    arrays, columns = to_arrays(data, columns, dtype=dtype)
+    arrays, columns = to_arrays(data, columns, dtype=)
     columns = ensure_index(columns)
 
     if index is None:
@@ -626,7 +626,7 @@ def _homogenize(
                     val = dict(val)
                 val = lib.fast_multiget(val, oindex._values, default=np.nan)
 
-            val = sanitize_array(val, index, dtype=dtype, copy=False)
+            val = sanitize_array(val, index, dtype=, copy=False)
             com.require_length_match(val, index)
             refs.append(None)
 
@@ -914,7 +914,7 @@ def _list_of_dict_to_arrays(
     if columns is None:
         gen = (list(x.keys()) for x in data)
         sort = not any(isinstance(d, dict) for d in data)
-        pre_cols = lib.fast_unique_multiple_list_gen(gen, sort=sort)
+        pre_cols = lib.fast_unique_multiple_list_gen(gen, sort=)
         columns = ensure_index(pre_cols)
 
     # assure that they are of the base dict class and not of derived
@@ -942,7 +942,7 @@ def _finalize_columns_and_data(
         raise ValueError(err) from err
 
     if len(contents) and contents[0].dtype == np.object_:
-        contents = convert_object_array(contents, dtype=dtype)
+        contents = convert_object_array(contents, dtype=)
 
     return contents, columns
 
@@ -1054,7 +1054,7 @@ def convert_object_array(
                 # TODO: try to de-duplicate this convert function with
                 #  core.construction functions
                 cls = dtype.construct_array_type()
-                arr = cls._from_sequence(arr, dtype=dtype, copy=False)
+                arr = cls._from_sequence(arr, dtype=, copy=False)
             elif dtype.kind in "mM":
                 # This restriction is harmless bc these are the only cases
                 #  where maybe_cast_to_datetime is not a no-op.

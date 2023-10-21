@@ -178,9 +178,9 @@ def delegate_names(
             delegate,
             accessors,
             typ,
-            overwrite=overwrite,
-            accessor_mapping=accessor_mapping,
-            raise_on_missing=raise_on_missing,
+            overwrite=,
+            accessor_mapping=,
+            raise_on_missing=,
         )
         return cls
 

@@ -144,33 +144,18 @@ class TestDateRanges:
         td = Timedelta(f"1{freq}")
         ts = Timestamp("1970-01-01")
 
-        idx = date_range(
-            start=ts + td,
-            end=ts + 4 * td,
-            freq=freq,
-        )
-        exp = DatetimeIndex(
-            [ts + n * td for n in range(1, 5)],
-            freq=freq,
-        )
+        idx = date_range(start=ts + td, end=ts + 4 * td, freq=)
+        exp = DatetimeIndex([ts + n * td for n in range(1, 5)], freq=)
         tm.assert_index_equal(idx, exp)
 
         # start after end
-        idx = date_range(
-            start=ts + 4 * td,
-            end=ts + td,
-            freq=freq,
-        )
-        exp = DatetimeIndex([], freq=freq)
+        idx = date_range(start=ts + 4 * td, end=ts + td, freq=)
+        exp = DatetimeIndex([], freq=)
         tm.assert_index_equal(idx, exp)
 
         # start matches end
-        idx = date_range(
-            start=ts + td,
-            end=ts + td,
-            freq=freq,
-        )
-        exp = DatetimeIndex([ts + td], freq=freq)
+        idx = date_range(start=ts + td, end=ts + td, freq=)
+        exp = DatetimeIndex([ts + td], freq=)
         tm.assert_index_equal(idx, exp)
 
     def test_date_range_near_implementation_bound(self):
@@ -178,7 +163,7 @@ class TestDateRanges:
         freq = Timedelta(1)
 
         with pytest.raises(OutOfBoundsDatetime, match="Cannot generate range with"):
-            date_range(end=Timestamp.min, periods=2, freq=freq)
+            date_range(end=Timestamp.min, periods=2, freq=)
 
     def test_date_range_nat(self):
         # GH#11587
@@ -238,11 +223,11 @@ class TestDateRanges:
         start = Timestamp(s_ts)
         end = Timestamp(e_ts)
 
-        expected = date_range(start=start, end=end, freq="-1h")
+        expected = date_range(start=, end=, freq="-1h")
         assert expected[0] == start
         assert expected[-1] == end
 
-        dti = date_range(end=end, periods=len(expected), freq="-1h")
+        dti = date_range(end=, periods=len(expected), freq="-1h")
         tm.assert_index_equal(dti, expected)
 
     def test_date_range_out_of_bounds(self):
@@ -520,7 +505,7 @@ class TestDateRanges:
     @pytest.mark.parametrize("periods", (1, 2))
     def test_wom_len(self, periods):
         # https://github.com/pandas-dev/pandas/issues/20517
-        res = date_range(start="20110101", periods=periods, freq="WOM-1MON")
+        res = date_range(start="20110101", periods=, freq="WOM-1MON")
         assert len(res) == periods
 
     def test_construct_over_dst(self):
@@ -575,17 +560,17 @@ class TestDateRanges:
         start = tz.localize(datetime(2011, 1, 1))
         end = tz.localize(datetime(2011, 1, 3))
 
-        dr = date_range(start=start, periods=3)
+        dr = date_range(start=, periods=3)
         assert dr.tz.zone == tz.zone
         assert dr[0] == start
         assert dr[2] == end
 
-        dr = date_range(end=end, periods=3)
+        dr = date_range(end=, periods=3)
         assert dr.tz.zone == tz.zone
         assert dr[0] == start
         assert dr[2] == end
 
-        dr = date_range(start=start, end=end)
+        dr = date_range(start=, end=)
         assert dr.tz.zone == tz.zone
         assert dr[0] == start
         assert dr[2] == end
@@ -635,17 +620,17 @@ class TestDateRanges:
         start = datetime(2011, 1, 1, tzinfo=tz("US/Eastern"))
         end = datetime(2011, 1, 3, tzinfo=tz("US/Eastern"))
 
-        dr = date_range(start=start, periods=3)
+        dr = date_range(start=, periods=3)
         assert dr.tz == tz("US/Eastern")
         assert dr[0] == start
         assert dr[2] == end
 
-        dr = date_range(end=end, periods=3)
+        dr = date_range(end=, periods=3)
         assert dr.tz == tz("US/Eastern")
         assert dr[0] == start
         assert dr[2] == end
 
-        dr = date_range(start=start, end=end)
+        dr = date_range(start=, end=)
         assert dr.tz == tz("US/Eastern")
         assert dr[0] == start
         assert dr[2] == end
@@ -656,9 +641,9 @@ class TestDateRanges:
         end = datetime(2014, 1, 1)
 
         result_range = date_range(
-            begin, end, inclusive=inclusive_endpoints_fixture, freq=freq
+            begin, end, inclusive=inclusive_endpoints_fixture, freq=
         )
-        both_range = date_range(begin, end, inclusive="both", freq=freq)
+        both_range = date_range(begin, end, inclusive="both", freq=)
         expected_range = _get_expected_range(
             begin, end, both_range, inclusive_endpoints_fixture
         )
@@ -674,9 +659,9 @@ class TestDateRanges:
         end = Timestamp("2014/1/1", tz="US/Eastern")
 
         result_range = date_range(
-            begin, end, inclusive=inclusive_endpoints_fixture, freq=freq
+            begin, end, inclusive=inclusive_endpoints_fixture, freq=
         )
-        both_range = date_range(begin, end, inclusive="both", freq=freq)
+        both_range = date_range(begin, end, inclusive="both", freq=)
         expected_range = _get_expected_range(
             begin,
             end,
@@ -699,11 +684,11 @@ class TestDateRanges:
             begin,
             end,
             inclusive=inclusive_endpoints_fixture,
-            freq=freq,
+            freq=,
             tz="US/Eastern",
         )
         both_range = date_range(
-            begin, end, inclusive="both", freq=freq, tz="US/Eastern"
+            begin, end, inclusive="both", freq=, tz="US/Eastern"
         )
         expected_range = _get_expected_range(
             begintz,
@@ -805,8 +790,8 @@ class TestDateRanges:
     def test_negative_non_tick_frequency_descending_dates(self, tz_aware_fixture):
         # GH 23270
         tz = tz_aware_fixture
-        result = date_range(start="2011-06-01", end="2011-01-01", freq="-1MS", tz=tz)
-        expected = date_range(end="2011-06-01", start="2011-01-01", freq="1MS", tz=tz)[
+        result = date_range(start="2011-06-01", end="2011-01-01", freq="-1MS", tz=)
+        expected = date_range(end="2011-06-01", start="2011-01-01", freq="1MS", tz=)[
             ::-1
         ]
         tm.assert_index_equal(result, expected)
@@ -816,10 +801,10 @@ class TestDateRanges:
         start = "2021-09-02"
         end = "2021-09-02"
         result = date_range(
-            start=start, end=end, freq="D", inclusive=inclusive_endpoints_fixture
+            start=, end=, freq="D", inclusive=inclusive_endpoints_fixture
         )
 
-        both_range = date_range(start=start, end=end, freq="D", inclusive="both")
+        both_range = date_range(start=, end=, freq="D", inclusive="both")
         if inclusive_endpoints_fixture == "neither":
             expected = both_range[1:-1]
         elif inclusive_endpoints_fixture in ("left", "right", "both"):
@@ -830,7 +815,7 @@ class TestDateRanges:
     def test_freq_dateoffset_with_relateivedelta_nanos(self):
         # GH 46877
         freq = DateOffset(hours=10, days=57, nanoseconds=3)
-        result = date_range(end="1970-01-01 00:00:00", periods=10, freq=freq, name="a")
+        result = date_range(end="1970-01-01 00:00:00", periods=10, freq=, name="a")
         expected = DatetimeIndex(
             [
                 "1968-08-02T05:59:59.999999973",
@@ -866,7 +851,7 @@ class TestDateRanges:
         freq_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
         msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
 
-        expected = date_range("1/1/2000", periods=2, freq=freq)
+        expected = date_range("1/1/2000", periods=2, freq=)
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = date_range("1/1/2000", periods=2, freq=freq_depr)
         tm.assert_index_equal(result, expected)
@@ -900,7 +885,7 @@ class TestDateRangeTZ:
     def test_date_range_timezone_str_argument(self, tzstr):
         tz = timezones.maybe_get_tz(tzstr)
         result = date_range("1/1/2000", periods=10, tz=tzstr)
-        expected = date_range("1/1/2000", periods=10, tz=tz)
+        expected = date_range("1/1/2000", periods=10, tz=)
 
         tm.assert_index_equal(result, expected)
 
@@ -910,7 +895,7 @@ class TestDateRangeTZ:
         off = fixed_off_no_name
         start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)
         end = datetime(2012, 6, 11, 5, 0, 0, tzinfo=off)
-        rng = date_range(start=start, end=end)
+        rng = date_range(start=, end=)
         assert off == rng.tz
 
         idx = pd.Index([start, end])
@@ -936,10 +921,10 @@ class TestDateRangeTZ:
             )
 
         times = date_range(
-            "2013-10-26 23:00", "2013-10-27 01:00", freq="h", tz=tz, ambiguous="infer"
+            "2013-10-26 23:00", "2013-10-27 01:00", freq="h", tz=, ambiguous="infer"
         )
-        assert times[0] == Timestamp("2013-10-26 23:00", tz=tz)
-        assert times[-1] == Timestamp("2013-10-27 01:00:00+0000", tz=tz)
+        assert times[0] == Timestamp("2013-10-26 23:00", tz=)
+        assert times[-1] == Timestamp("2013-10-27 01:00:00+0000", tz=)
 
     @pytest.mark.parametrize(
         "tz, option, expected",
@@ -960,9 +945,9 @@ class TestDateRangeTZ:
             )
 
         times = date_range(
-            "2019-03-10 00:00", "2019-03-10 02:00", freq="h", tz=tz, nonexistent=option
+            "2019-03-10 00:00", "2019-03-10 02:00", freq="h", tz=, nonexistent=option
         )
-        assert times[-1] == Timestamp(expected, tz=tz)
+        assert times[-1] == Timestamp(expected, tz=)
 
 
 class TestGenRangeGeneration:
@@ -1090,7 +1075,7 @@ class TestBusinessDateRange:
 
     def test_misc(self):
         end = datetime(2009, 5, 13)
-        dr = bdate_range(end=end, periods=20)
+        dr = bdate_range(end=, periods=20)
         firstDate = end - 19 * BDay()
 
         assert len(dr) == 20
@@ -1127,7 +1112,7 @@ class TestBusinessDateRange:
         # GH 6673
         start = "2018-07-21"  # Saturday
         end = "2018-07-29"  # Sunday
-        result = date_range(start, end, freq="B", inclusive=inclusive)
+        result = date_range(start, end, freq="B", inclusive=)
 
         bday_start = "2018-07-23"  # Monday
         bday_end = "2018-07-27"  # Friday
@@ -1165,7 +1150,7 @@ class TestCustomDateRange:
 
     def test_misc(self):
         end = datetime(2009, 5, 13)
-        dr = bdate_range(end=end, periods=20, freq="C")
+        dr = bdate_range(end=, periods=20, freq="C")
         firstDate = end - 19 * CDay()
 
         assert len(dr) == 20
@@ -1254,7 +1239,7 @@ class TestCustomDateRange:
     def test_all_custom_freq(self, freq):
         # should not raise
         bdate_range(
-            START, END, freq=freq, weekmask="Mon Wed Fri", holidays=["2009-03-14"]
+            START, END, freq=, weekmask="Mon Wed Fri", holidays=["2009-03-14"]
         )
 
         bad_freq = freq + "FOO"
@@ -1273,7 +1258,7 @@ class TestCustomDateRange:
     def test_range_with_millisecond_resolution(self, start_end):
         # https://github.com/pandas-dev/pandas/issues/24110
         start, end = start_end
-        result = date_range(start=start, end=end, periods=2, inclusive="left")
+        result = date_range(start=, end=, periods=2, inclusive="left")
         expected = DatetimeIndex([start])
         tm.assert_index_equal(result, expected)
 
@@ -1291,7 +1276,7 @@ class TestCustomDateRange:
     )
     def test_range_with_timezone_and_custombusinessday(self, start, period, expected):
         # GH49441
-        result = date_range(start=start, periods=period, freq="C")
+        result = date_range(start=, periods=period, freq="C")
         expected = DatetimeIndex(expected)
         tm.assert_index_equal(result, expected)
 
@@ -1299,7 +1284,7 @@ class TestCustomDateRange:
 def test_date_range_with_custom_holidays():
     # GH 30593
     freq = offsets.CustomBusinessHour(start="15:00", holidays=["2020-11-26"])
-    result = date_range(start="2020-11-25 15:00", periods=4, freq=freq)
+    result = date_range(start="2020-11-25 15:00", periods=4, freq=)
     expected = DatetimeIndex(
         [
             "2020-11-25 15:00:00",
@@ -1307,7 +1292,7 @@ def test_date_range_with_custom_holidays():
             "2020-11-27 15:00:00",
             "2020-11-27 16:00:00",
         ],
-        freq=freq,
+        freq=,
     )
     tm.assert_index_equal(result, expected)
 

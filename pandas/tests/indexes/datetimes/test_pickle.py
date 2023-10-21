@@ -40,6 +40,6 @@ class TestPickle:
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_pickle_unpickle(self, freq):
-        rng = date_range("2009-01-01", "2010-01-01", freq=freq)
+        rng = date_range("2009-01-01", "2010-01-01", freq=)
         unpickled = tm.round_trip_pickle(rng)
         assert unpickled.freq == freq

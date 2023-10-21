@@ -557,11 +557,11 @@ class TestRollingTS:
         # GH 21096
         index = date_range(start="2018-1-1 01:00:00", freq=f"1{freq}", periods=10)
         # Explicit cast to float to avoid implicit cast when setting nan
-        s = Series(data=0, index=index, dtype="float")
+        s = Series(data=0, index=, dtype="float")
         s.iloc[1] = np.nan
         s.iloc[-1] = 2
         result = getattr(s.rolling(window=f"10{freq}"), op)()
-        expected = Series(data=result_data, index=index)
+        expected = Series(data=result_data, index=)
 
         tm.assert_series_equal(result, expected)
 
@@ -652,9 +652,9 @@ class TestRollingTS:
             Timestamp("20190101 09:00:10"),
         ]
 
-        df = DataFrame({"column": [3, 4, 4, 5, 6]}, index=index)
+        df = DataFrame({"column": [3, 4, 4, 5, 6]}, index=)
         result = df.rolling("5s").min()
-        expected = DataFrame({"column": [3.0, 3.0, 4.0, 4.0, 6.0]}, index=index)
+        expected = DataFrame({"column": [3.0, 3.0, 4.0, 4.0, 6.0]}, index=)
         tm.assert_frame_equal(result, expected)
 
     def test_rolling_on_empty(self):
@@ -689,4 +689,4 @@ def test_nat_axis_error(msg, axis):
         warn_msg = "Support for axis=1 in DataFrame.rolling is deprecated"
     with pytest.raises(ValueError, match=f"{msg} values must not have NaT"):
         with tm.assert_produces_warning(FutureWarning, match=warn_msg):
-            df.rolling("D", axis=axis).mean()
+            df.rolling("D", axis=).mean()

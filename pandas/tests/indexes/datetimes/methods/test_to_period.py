@@ -45,7 +45,7 @@ class TestToPeriod:
     def test_to_period_quarterly(self, month):
         # make sure we can make the round trip
         freq = f"Q-{month}"
-        rng = period_range("1989Q3", "1991Q3", freq=freq)
+        rng = period_range("1989Q3", "1991Q3", freq=)
         stamps = rng.to_timestamp()
         result = stamps.to_period(freq)
         tm.assert_index_equal(rng, result)
@@ -150,7 +150,7 @@ class TestToPeriod:
         ["US/Eastern", pytz.utc, tzlocal(), "dateutil/US/Eastern", dateutil.tz.tzutc()],
     )
     def test_to_period_tz(self, tz):
-        ts = date_range("1/1/2000", "2/1/2000", tz=tz)
+        ts = date_range("1/1/2000", "2/1/2000", tz=)
 
         with tm.assert_produces_warning(UserWarning):
             # GH#21333 warning that timezone info will be lost

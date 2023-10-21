@@ -31,14 +31,14 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    data = DatetimeArray(pd.date_range("2000", periods=100, tz=dtype.tz), dtype=dtype)
+    data = DatetimeArray(pd.date_range("2000", periods=100, tz=dtype.tz), dtype=)
     return data
 
 
 @pytest.fixture
 def data_missing(dtype):
     return DatetimeArray(
-        np.array(["NaT", "2000-01-01"], dtype="datetime64[ns]"), dtype=dtype
+        np.array(["NaT", "2000-01-01"], dtype="datetime64[ns]"), dtype=
     )
 
 
@@ -47,14 +47,14 @@ def data_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
     c = pd.Timestamp("2000-01-03")
-    return DatetimeArray(np.array([b, c, a], dtype="datetime64[ns]"), dtype=dtype)
+    return DatetimeArray(np.array([b, c, a], dtype="datetime64[ns]"), dtype=)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
     a = pd.Timestamp("2000-01-01")
     b = pd.Timestamp("2000-01-02")
-    return DatetimeArray(np.array([b, "NaT", a], dtype="datetime64[ns]"), dtype=dtype)
+    return DatetimeArray(np.array([b, "NaT", a], dtype="datetime64[ns]"), dtype=)
 
 
 @pytest.fixture
@@ -69,7 +69,7 @@ def data_for_grouping(dtype):
     c = pd.Timestamp("2000-01-03")
     na = "NaT"
     return DatetimeArray(
-        np.array([b, b, na, na, a, a, b, c], dtype="datetime64[ns]"), dtype=dtype
+        np.array([b, b, na, na, a, a, b, c], dtype="datetime64[ns]"), dtype=
     )
 
 
@@ -110,7 +110,7 @@ class TestDatetimeArray(base.ExtensionTests):
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
-        result = data.map(lambda x: x, na_action=na_action)
+        result = data.map(lambda x: x, na_action=)
         tm.assert_extension_array_equal(result, data)
 
     @pytest.mark.parametrize("engine", ["c", "python"])
@@ -125,13 +125,13 @@ class TestDatetimeArray(base.ExtensionTests):
 
             res_op = getattr(ser, op_name)
             exp_op = getattr(alt, op_name)
-            result = res_op(skipna=skipna)
-            expected = exp_op(skipna=skipna)
+            result = res_op(skipna=)
+            expected = exp_op(skipna=)
             if op_name in ["mean", "median"]:
                 # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype"
                 # has no attribute "tz"
                 tz = ser.dtype.tz  # type: ignore[union-attr]
-                expected = pd.Timestamp(expected, tz=tz)
+                expected = pd.Timestamp(expected, tz=)
             else:
                 expected = pd.Timedelta(expected)
             tm.assert_almost_equal(result, expected)

@@ -343,7 +343,7 @@ def test_read_csv_file_handle(all_parsers, io_class, encoding):
     content = "a,b\n1,2"
     handle = io_class(content.encode("utf-8") if io_class == BytesIO else content)
 
-    tm.assert_frame_equal(parser.read_csv(handle, encoding=encoding), expected)
+    tm.assert_frame_equal(parser.read_csv(handle, encoding=), expected)
     assert not handle.closed
 
 
@@ -357,10 +357,10 @@ def test_memory_map_compression(all_parsers, compression):
     expected = DataFrame({"a": [1], "b": [2]})
 
     with tm.ensure_clean() as path:
-        expected.to_csv(path, index=False, compression=compression)
+        expected.to_csv(path, index=False, compression=)
 
         tm.assert_frame_equal(
-            parser.read_csv(path, memory_map=True, compression=compression),
+            parser.read_csv(path, memory_map=True, compression=),
             expected,
         )
 

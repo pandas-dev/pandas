@@ -96,7 +96,7 @@ class TestSeriesGetitemScalars:
         dtype = any_int_numpy_dtype
         ser = Series(
             np.random.default_rng(2).standard_normal(6),
-            index=Index([0, 0, 1, 1, 2, 2], dtype=dtype),
+            index=Index([0, 0, 1, 1, 2, 2], dtype=),
         )
 
         with pytest.raises(KeyError, match=r"^5$"):
@@ -139,7 +139,7 @@ class TestSeriesGetitemScalars:
         index = date_range(
             start="2012-12-24 16:00", end="2012-12-24 18:00", freq="h", tz=tzstr
         )
-        ts = Series(index=index, data=index.hour)
+        ts = Series(index=, data=index.hour)
         time_pandas = Timestamp("2012-12-24 17:00", tz=tzstr)
 
         dt = datetime(2012, 12, 24, 17, 0)
@@ -148,7 +148,7 @@ class TestSeriesGetitemScalars:
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_string_index_alias_tz_aware(self, tz):
-        rng = date_range("1/1/2000", periods=10, tz=tz)
+        rng = date_range("1/1/2000", periods=10, tz=)
         ser = Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
         result = ser["1/3/2000"]
@@ -289,7 +289,7 @@ class TestSeriesGetitemSlices:
 
     def test_getitem_median_slice_bug(self):
         index = date_range("20090415", "20090519", freq="2B")
-        ser = Series(np.random.default_rng(2).standard_normal(13), index=index)
+        ser = Series(np.random.default_rng(2).standard_normal(13), index=)
 
         indexer = [slice(6, 7, None)]
         msg = "Indexing with a single-item list"

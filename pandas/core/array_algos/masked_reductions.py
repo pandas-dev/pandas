@@ -55,14 +55,14 @@ def _reductions(
         if mask.any() or check_below_min_count(values.shape, None, min_count):
             return libmissing.NA
         else:
-            return func(values, axis=axis, **kwargs)
+            return func(values, axis=, **kwargs)
     else:
         if check_below_min_count(values.shape, mask, min_count) and (
             axis is None or values.ndim == 1
         ):
             return libmissing.NA
 
-        return func(values, where=~mask, axis=axis, **kwargs)
+        return func(values, where=~mask, axis=, **kwargs)
 
 
 def sum(
@@ -73,9 +73,7 @@ def sum(
     min_count: int = 0,
     axis: AxisInt | None = None,
 ):
-    return _reductions(
-        np.sum, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
-    )
+    return _reductions(np.sum, values=, mask=, skipna=, min_count=, axis=)
 
 
 def prod(
@@ -86,9 +84,7 @@ def prod(
     min_count: int = 0,
     axis: AxisInt | None = None,
 ):
-    return _reductions(
-        np.prod, values=values, mask=mask, skipna=skipna, min_count=min_count, axis=axis
-    )
+    return _reductions(np.prod, values=, mask=, skipna=, min_count=, axis=)
 
 
 def _minmax(
@@ -119,11 +115,11 @@ def _minmax(
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
         else:
-            return func(values, axis=axis)
+            return func(values, axis=)
     else:
         subset = values[~mask]
         if subset.size:
-            return func(subset, axis=axis)
+            return func(subset, axis=)
         else:
             # min/max with empty array raise in numpy, pandas returns NA
             return libmissing.NA
@@ -136,7 +132,7 @@ def min(
     skipna: bool = True,
     axis: AxisInt | None = None,
 ):
-    return _minmax(np.min, values=values, mask=mask, skipna=skipna, axis=axis)
+    return _minmax(np.min, values=, mask=, skipna=, axis=)
 
 
 def max(
@@ -146,7 +142,7 @@ def max(
     skipna: bool = True,
     axis: AxisInt | None = None,
 ):
-    return _minmax(np.max, values=values, mask=mask, skipna=skipna, axis=axis)
+    return _minmax(np.max, values=, mask=, skipna=, axis=)
 
 
 def mean(
@@ -158,7 +154,7 @@ def mean(
 ):
     if not values.size or mask.all():
         return libmissing.NA
-    return _reductions(np.mean, values=values, mask=mask, skipna=skipna, axis=axis)
+    return _reductions(np.mean, values=, mask=, skipna=, axis=)
 
 
 def var(
@@ -174,9 +170,7 @@ def var(
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
-        return _reductions(
-            np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
-        )
+        return _reductions(np.var, values=, mask=, skipna=, axis=, ddof=)
 
 
 def std(
@@ -192,6 +186,4 @@ def std(
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
-        return _reductions(
-            np.std, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
-        )
+        return _reductions(np.std, values=, mask=, skipna=, axis=, ddof=)

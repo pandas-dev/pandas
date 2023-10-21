@@ -266,7 +266,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
             if maybe_use_numba(engine):
                 return self._aggregate_with_numba(
-                    func, *args, engine_kwargs=engine_kwargs, **kwargs
+                    func, *args, engine_kwargs=, **kwargs
                 )
 
             if self.ngroups == 0:
@@ -412,7 +412,7 @@ class SeriesGroupBy(GroupBy[Series]):
         if isinstance(values[0], dict):
             # GH #823 #24880
             index = self.grouper.result_index
-            res_df = self.obj._constructor_expanddim(values, index=index)
+            res_df = self.obj._constructor_expanddim(values, index=)
             res_df = self._reindex_output(res_df)
             # if self.observed is False,
             # keep all-NaN rows created while re-indexing
@@ -422,8 +422,8 @@ class SeriesGroupBy(GroupBy[Series]):
         elif isinstance(values[0], (Series, DataFrame)):
             result = self._concat_objects(
                 values,
-                not_indexed_same=not_indexed_same,
-                is_transform=is_transform,
+                not_indexed_same=,
+                is_transform=,
             )
             if isinstance(result, Series):
                 result.name = self.obj.name
@@ -510,9 +510,7 @@ class SeriesGroupBy(GroupBy[Series]):
     @Substitution(klass="Series", example=__examples_series_doc)
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
-        return self._transform(
-            func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-        )
+        return self._transform(func, *args, engine=, engine_kwargs=, **kwargs)
 
     def _cython_transform(
         self, how: str, numeric_only: bool = False, axis: AxisInt = 0, **kwargs
@@ -539,7 +537,7 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         if maybe_use_numba(engine):
             return self._transform_with_numba(
-                func, *args, engine_kwargs=engine_kwargs, **kwargs
+                func, *args, engine_kwargs=, **kwargs
             )
         assert callable(func)
         klass = type(self.obj)
@@ -722,9 +720,7 @@ class SeriesGroupBy(GroupBy[Series]):
 
     @doc(Series.describe)
     def describe(self, percentiles=None, include=None, exclude=None) -> Series:
-        return super().describe(
-            percentiles=percentiles, include=include, exclude=exclude
-        )
+        return super().describe(percentiles=, include=, exclude=)
 
     def value_counts(
         self,
@@ -737,9 +733,7 @@ class SeriesGroupBy(GroupBy[Series]):
         name = "proportion" if normalize else "count"
 
         if bins is None:
-            result = self._value_counts(
-                normalize=normalize, sort=sort, ascending=ascending, dropna=dropna
-            )
+            result = self._value_counts(normalize=, sort=, ascending=, dropna=)
             result.name = name
             return result
 
@@ -759,10 +753,10 @@ class SeriesGroupBy(GroupBy[Series]):
             # GH38672 relates to categorical dtype
             ser = self.apply(
                 Series.value_counts,
-                normalize=normalize,
-                sort=sort,
-                ascending=ascending,
-                bins=bins,
+                normalize=,
+                sort=,
+                ascending=,
+                bins=,
             )
             ser.name = name
             ser.index.names = index_names
@@ -876,12 +870,12 @@ class SeriesGroupBy(GroupBy[Series]):
             codes.append(left[-1])
 
         mi = MultiIndex(
-            levels=levels, codes=codes, names=index_names, verify_integrity=False
+            levels=, codes=, names=index_names, verify_integrity=False
         )
 
         if is_integer_dtype(out.dtype):
             out = ensure_int64(out)
-        result = self.obj._constructor(out, index=mi, name=name)
+        result = self.obj._constructor(out, index=mi, name=)
         if not self.as_index:
             result = result.reset_index()
         return result
@@ -972,12 +966,12 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         result = self._op_via_apply(
             "fillna",
-            value=value,
-            method=method,
-            axis=axis,
-            inplace=inplace,
-            limit=limit,
-            downcast=downcast,
+            value=,
+            method=,
+            axis=,
+            inplace=,
+            limit=,
+            downcast=,
         )
         return result
 
@@ -1065,7 +1059,7 @@ class SeriesGroupBy(GroupBy[Series]):
            1    monkey
         Name: name, dtype: object
         """
-        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
+        result = self._op_via_apply("take", indices=, axis=, **kwargs)
         return result
 
     def skew(
@@ -1137,9 +1131,9 @@ class SeriesGroupBy(GroupBy[Series]):
         if axis != 0:
             result = self._op_via_apply(
                 "skew",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only,
+                axis=,
+                skipna=,
+                numeric_only=,
                 **kwargs,
             )
             return result
@@ -1150,7 +1144,7 @@ class SeriesGroupBy(GroupBy[Series]):
             raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
 
         return self._cython_agg_general(
-            "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
+            "skew", alt=, skipna=, numeric_only=, **kwargs
         )
 
     @property
@@ -1163,7 +1157,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def nlargest(
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
-        f = partial(Series.nlargest, n=n, keep=keep)
+        f = partial(Series.nlargest, n=, keep=)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
@@ -1174,7 +1168,7 @@ class SeriesGroupBy(GroupBy[Series]):
     def nsmallest(
         self, n: int = 5, keep: Literal["first", "last", "all"] = "first"
     ) -> Series:
-        f = partial(Series.nsmallest, n=n, keep=keep)
+        f = partial(Series.nsmallest, n=, keep=)
         data = self._obj_with_exclusions
         # Don't change behavior if result index happens to be the same, i.e.
         # already ordered and n >= all group sizes.
@@ -1185,13 +1179,13 @@ class SeriesGroupBy(GroupBy[Series]):
     def idxmin(
         self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
-        return self._idxmax_idxmin("idxmin", axis=axis, skipna=skipna)
+        return self._idxmax_idxmin("idxmin", axis=, skipna=)
 
     @doc(Series.idxmax.__doc__)
     def idxmax(
         self, axis: Axis | lib.NoDefault = lib.no_default, skipna: bool = True
     ) -> Series:
-        return self._idxmax_idxmin("idxmax", axis=axis, skipna=skipna)
+        return self._idxmax_idxmin("idxmax", axis=, skipna=)
 
     @doc(Series.corr.__doc__)
     def corr(
@@ -1200,18 +1194,14 @@ class SeriesGroupBy(GroupBy[Series]):
         method: CorrelationMethod = "pearson",
         min_periods: int | None = None,
     ) -> Series:
-        result = self._op_via_apply(
-            "corr", other=other, method=method, min_periods=min_periods
-        )
+        result = self._op_via_apply("corr", other=, method=, min_periods=)
         return result
 
     @doc(Series.cov.__doc__)
     def cov(
         self, other: Series, min_periods: int | None = None, ddof: int | None = 1
     ) -> Series:
-        result = self._op_via_apply(
-            "cov", other=other, min_periods=min_periods, ddof=ddof
-        )
+        result = self._op_via_apply("cov", other=, min_periods=, ddof=)
         return result
 
     @property
@@ -1270,17 +1260,17 @@ class SeriesGroupBy(GroupBy[Series]):
     ):
         result = self._op_via_apply(
             "hist",
-            by=by,
-            ax=ax,
-            grid=grid,
-            xlabelsize=xlabelsize,
-            xrot=xrot,
-            ylabelsize=ylabelsize,
-            yrot=yrot,
-            figsize=figsize,
-            bins=bins,
-            backend=backend,
-            legend=legend,
+            by=,
+            ax=,
+            grid=,
+            xlabelsize=,
+            xrot=,
+            ylabelsize=,
+            yrot=,
+            figsize=,
+            bins=,
+            backend=,
+            legend=,
             **kwargs,
         )
         return result
@@ -1439,7 +1429,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             kwargs["engine"] = engine
             kwargs["engine_kwargs"] = engine_kwargs
 
-        op = GroupByApply(self, func, args=args, kwargs=kwargs)
+        op = GroupByApply(self, func, args=, kwargs=)
         result = op.agg()
         if not is_dict_like(func) and result is not None:
             # GH #52849
@@ -1469,7 +1459,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # or a known callable(e.g. sum)
             if maybe_use_numba(engine):
                 return self._aggregate_with_numba(
-                    func, *args, engine_kwargs=engine_kwargs, **kwargs
+                    func, *args, engine_kwargs=, **kwargs
                 )
             # grouper specific aggregations
             if self.grouper.nkeys > 1:
@@ -1594,8 +1584,8 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         elif isinstance(first_not_none, DataFrame):
             return self._concat_objects(
                 values,
-                not_indexed_same=not_indexed_same,
-                is_transform=is_transform,
+                not_indexed_same=,
+                is_transform=,
             )
 
         key_index = self.grouper.result_index if self.as_index else None
@@ -1614,7 +1604,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # (expression has type "Hashable", variable
                 # has type "Tuple[Any, ...]")
                 name = self._selection  # type: ignore[assignment]
-            return self.obj._constructor_sliced(values, index=key_index, name=name)
+            return self.obj._constructor_sliced(values, index=key_index, name=)
         elif not isinstance(first_not_none, Series):
             # values are not series or array-like but scalars
             # self._selection not passed through to Series as the
@@ -1655,7 +1645,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             return self._concat_objects(
                 values,
                 not_indexed_same=True,
-                is_transform=is_transform,
+                is_transform=,
             )
 
         # Combine values
@@ -1678,7 +1668,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if stacked_values.dtype == object:
             # We'll have the DataFrame constructor do inference
             stacked_values = stacked_values.tolist()
-        result = self.obj._constructor(stacked_values, index=index, columns=columns)
+        result = self.obj._constructor(stacked_values, index=, columns=)
 
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
@@ -1699,9 +1689,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         #  test_transform_numeric_ret
         # With self.axis == 1, _get_data_to_aggregate does a transpose
         #  so we always have a single block.
-        mgr: Manager2D = self._get_data_to_aggregate(
-            numeric_only=numeric_only, name=how
-        )
+        mgr: Manager2D = self._get_data_to_aggregate(numeric_only=, name=how)
 
         def arr_func(bvalues: ArrayLike) -> ArrayLike:
             return self.grouper._cython_operation(
@@ -1720,7 +1708,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     def _transform_general(self, func, engine, engine_kwargs, *args, **kwargs):
         if maybe_use_numba(engine):
             return self._transform_with_numba(
-                func, *args, engine_kwargs=engine_kwargs, **kwargs
+                func, *args, engine_kwargs=, **kwargs
             )
         from pandas.core.reshape.concat import concat
 
@@ -1823,9 +1811,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     @Substitution(klass="DataFrame", example=__examples_dataframe_doc)
     @Appender(_transform_template)
     def transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
-        return self._transform(
-            func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
-        )
+        return self._transform(func, *args, engine=, engine_kwargs=, **kwargs)
 
     def _define_paths(self, func, *args, **kwargs):
         if isinstance(func, str):
@@ -2045,7 +2031,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         if not len(results):
             # concat would raise
-            res_df = DataFrame([], columns=columns, index=self.grouper.result_index)
+            res_df = DataFrame([], columns=, index=self.grouper.result_index)
         else:
             res_df = concat(results, keys=columns, axis=1)
 
@@ -2185,9 +2171,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef              co2_emissions
         dtype: object
         """
-        return self._idxmax_idxmin(
-            "idxmax", axis=axis, numeric_only=numeric_only, skipna=skipna
-        )
+        return self._idxmax_idxmin("idxmax", axis=, numeric_only=, skipna=)
 
     def idxmin(
         self,
@@ -2267,9 +2251,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Beef                consumption
         dtype: object
         """
-        return self._idxmax_idxmin(
-            "idxmin", axis=axis, numeric_only=numeric_only, skipna=skipna
-        )
+        return self._idxmax_idxmin("idxmin", axis=, numeric_only=, skipna=)
 
     boxplot = boxplot_frame_groupby
 
@@ -2524,12 +2506,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
 
         result = self._op_via_apply(
             "fillna",
-            value=value,
-            method=method,
-            axis=axis,
-            inplace=inplace,
-            limit=limit,
-            downcast=downcast,
+            value=,
+            method=,
+            axis=,
+            inplace=,
+            limit=,
+            downcast=,
         )
         return result
 
@@ -2631,7 +2613,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         2 0  rabbit  mammal       15.0
           1  monkey  mammal        NaN
         """
-        result = self._op_via_apply("take", indices=indices, axis=axis, **kwargs)
+        result = self._op_via_apply("take", indices=, axis=, **kwargs)
         return result
 
     def skew(
@@ -2714,9 +2696,9 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         if axis != 0:
             result = self._op_via_apply(
                 "skew",
-                axis=axis,
-                skipna=skipna,
-                numeric_only=numeric_only,
+                axis=,
+                skipna=,
+                numeric_only=,
                 **kwargs,
             )
             return result
@@ -2727,7 +2709,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
 
         return self._cython_agg_general(
-            "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
+            "skew", alt=, skipna=, numeric_only=, **kwargs
         )
 
     @property
@@ -2744,7 +2726,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         numeric_only: bool = False,
     ) -> DataFrame:
         result = self._op_via_apply(
-            "corr", method=method, min_periods=min_periods, numeric_only=numeric_only
+            "corr", method=, min_periods=, numeric_only=
         )
         return result
 
@@ -2755,9 +2737,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         ddof: int | None = 1,
         numeric_only: bool = False,
     ) -> DataFrame:
-        result = self._op_via_apply(
-            "cov", min_periods=min_periods, ddof=ddof, numeric_only=numeric_only
-        )
+        result = self._op_via_apply("cov", min_periods=, ddof=, numeric_only=)
         return result
 
     @doc(DataFrame.hist.__doc__)
@@ -2782,21 +2762,21 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ):
         result = self._op_via_apply(
             "hist",
-            column=column,
-            by=by,
-            grid=grid,
-            xlabelsize=xlabelsize,
-            xrot=xrot,
-            ylabelsize=ylabelsize,
-            yrot=yrot,
-            ax=ax,
-            sharex=sharex,
-            sharey=sharey,
-            figsize=figsize,
-            layout=layout,
-            bins=bins,
-            backend=backend,
-            legend=legend,
+            column=,
+            by=,
+            grid=,
+            xlabelsize=,
+            xrot=,
+            ylabelsize=,
+            yrot=,
+            ax=,
+            sharex=,
+            sharey=,
+            figsize=,
+            layout=,
+            bins=,
+            backend=,
+            legend=,
             **kwargs,
         )
         return result
@@ -2828,11 +2808,11 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
     ) -> DataFrame:
         result = self._op_via_apply(
             "corrwith",
-            other=other,
-            axis=axis,
-            drop=drop,
-            method=method,
-            numeric_only=numeric_only,
+            other=,
+            axis=,
+            drop=,
+            method=,
+            numeric_only=,
         )
         return result
 

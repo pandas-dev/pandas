@@ -703,7 +703,7 @@ class BaseExprVisitor(ast.NodeVisitor):
                     kwargs[key.arg] = self.visit(key.value)(self.env)
 
             name = self.env.add_tmp(res(*new_args, **kwargs))
-            return self.term_type(name=name, env=self.env)
+            return self.term_type(name=, env=self.env)
 
     def translate_In(self, op):
         return op
@@ -715,7 +715,7 @@ class BaseExprVisitor(ast.NodeVisitor):
         # base case: we have something like a CMP b
         if len(comps) == 1:
             op = self.translate_In(ops[0])
-            binop = ast.BinOp(op=op, left=node.left, right=comps[0])
+            binop = ast.BinOp(op=, left=node.left, right=comps[0])
             return self.visit(binop)
 
         # recursive case: we have a chained comparison, a CMP b CMP c, etc.
@@ -723,11 +723,11 @@ class BaseExprVisitor(ast.NodeVisitor):
         values = []
         for op, comp in zip(ops, comps):
             new_node = self.visit(
-                ast.Compare(comparators=[comp], left=left, ops=[self.translate_In(op)])
+                ast.Compare(comparators=[comp], left=, ops=[self.translate_In(op)])
             )
             left = comp
             values.append(new_node)
-        return self.visit(ast.BoolOp(op=ast.And(), values=values))
+        return self.visit(ast.BoolOp(op=ast.And(), values=))
 
     def _try_visit_binop(self, bop):
         if isinstance(bop, (Op, Term)):
@@ -773,7 +773,7 @@ class PythonExprVisitor(BaseExprVisitor):
     def __init__(
         self, env, engine, parser, preparser=lambda source, f=None: source
     ) -> None:
-        super().__init__(env, engine, parser, preparser=preparser)
+        super().__init__(env, engine, parser, preparser=)
 
 
 class Expr:

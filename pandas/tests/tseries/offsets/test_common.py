@@ -49,7 +49,7 @@ def _get_offset(klass, value=1, normalize=False):
             startingMonth=1,
             weekday=1,
             variation="last",
-            normalize=normalize,
+            normalize=,
         )
     elif klass is FY5253Quarter:
         klass = klass(
@@ -58,18 +58,18 @@ def _get_offset(klass, value=1, normalize=False):
             weekday=1,
             qtr_with_extra_week=1,
             variation="last",
-            normalize=normalize,
+            normalize=,
         )
     elif klass is LastWeekOfMonth:
-        klass = klass(n=value, weekday=5, normalize=normalize)
+        klass = klass(n=value, weekday=5, normalize=)
     elif klass is WeekOfMonth:
-        klass = klass(n=value, week=1, weekday=5, normalize=normalize)
+        klass = klass(n=value, week=1, weekday=5, normalize=)
     elif klass is Week:
-        klass = klass(n=value, weekday=5, normalize=normalize)
+        klass = klass(n=value, weekday=5, normalize=)
     elif klass is DateOffset:
-        klass = klass(days=value, normalize=normalize)
+        klass = klass(days=value, normalize=)
     else:
-        klass = klass(value, normalize=normalize)
+        klass = klass(value, normalize=)
     return klass
 
 
@@ -133,7 +133,7 @@ def test_apply_out_of_range(request, tz_naive_fixture, _offset):
         assert result.tzinfo is None
 
         # Check tz is preserved
-        t = Timestamp("20080101", tz=tz)
+        t = Timestamp("20080101", tz=)
         result = t + offset
         assert isinstance(result, datetime)
         if tz is not None:

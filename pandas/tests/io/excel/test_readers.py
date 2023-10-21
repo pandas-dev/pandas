@@ -123,7 +123,7 @@ class TestReaders:
         """
         Change directory and set engine for read_excel calls.
         """
-        func = partial(pd.read_excel, engine=engine)
+        func = partial(pd.read_excel, engine=)
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "read_excel", func)
 
@@ -287,7 +287,7 @@ class TestReaders:
 
         expected = df_ref[["A", "C"]]
         result = pd.read_excel(
-            "test1" + read_ext, sheet_name="Sheet1", index_col=0, usecols=usecols
+            "test1" + read_ext, sheet_name="Sheet1", index_col=0, usecols=
         )
         tm.assert_frame_equal(result, expected, check_names=False)
 
@@ -296,7 +296,7 @@ class TestReaders:
         expected = df_ref[["B", "D"]]
         expected.index = range(len(expected))
 
-        result = pd.read_excel("test1" + read_ext, sheet_name="Sheet1", usecols=usecols)
+        result = pd.read_excel("test1" + read_ext, sheet_name="Sheet1", usecols=)
         tm.assert_frame_equal(result, expected, check_names=False)
 
     def test_read_excel_without_slicing(self, request, engine, read_ext, df_ref):
@@ -365,7 +365,7 @@ class TestReaders:
     def test_index_col_with_unnamed(self, read_ext, index_col):
         # see gh-18792
         result = pd.read_excel(
-            "test1" + read_ext, sheet_name="Sheet4", index_col=index_col
+            "test1" + read_ext, sheet_name="Sheet4", index_col=
         )
         expected = DataFrame(
             [["i1", "a", "x"], ["i2", "b", "y"]], columns=["Unnamed: 0", "col1", "col2"]
@@ -511,7 +511,7 @@ class TestReaders:
         # should read in correctly and set types of single cells (not array
         # dtypes)
         actual = pd.read_excel(
-            basename + read_ext, sheet_name="Sheet1", converters=converters
+            basename + read_ext, sheet_name="Sheet1", converters=
         )
         tm.assert_frame_equal(actual, expected)
 
@@ -575,7 +575,7 @@ class TestReaders:
         # see gh-20377
         basename = "testdtype"
 
-        actual = pd.read_excel(basename + read_ext, dtype=dtype)
+        actual = pd.read_excel(basename + read_ext, dtype=)
         tm.assert_frame_equal(actual, expected)
 
     def test_dtype_backend(self, read_ext, dtype_backend):
@@ -600,7 +600,7 @@ class TestReaders:
         with tm.ensure_clean(read_ext) as file_path:
             df.to_excel(file_path, sheet_name="test", index=False)
             result = pd.read_excel(
-                file_path, sheet_name="test", dtype_backend=dtype_backend
+                file_path, sheet_name="test", dtype_backend=
             )
         if dtype_backend == "pyarrow":
             import pyarrow as pa
@@ -818,9 +818,9 @@ class TestReaders:
         sheet_name = "Sheet1"
 
         df1 = pd.read_excel(
-            filename + read_ext, sheet_name=sheet_name, index_col=0
+            filename + read_ext, sheet_name=, index_col=0
         )  # doc
-        df2 = pd.read_excel(filename + read_ext, index_col=0, sheet_name=sheet_name)
+        df2 = pd.read_excel(filename + read_ext, index_col=0, sheet_name=)
 
         tm.assert_frame_equal(df1, df_ref, check_names=False)
         tm.assert_frame_equal(df2, df_ref, check_names=False)
@@ -845,7 +845,7 @@ class TestReaders:
         # GH 39250
         msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
         with pytest.raises(ValueError, match=msg):
-            pd.read_excel("blank" + read_ext, sheet_name=sheet_name)
+            pd.read_excel("blank" + read_ext, sheet_name=)
 
     def test_missing_file_raises(self, read_ext):
         bad_file = f"foo{read_ext}"
@@ -857,7 +857,7 @@ class TestReaders:
                 "File o directory non esistente)",
             ]
         )
-        with pytest.raises(FileNotFoundError, match=match):
+        with pytest.raises(FileNotFoundError, match=):
             pd.read_excel(bad_file)
 
     def test_corrupt_bytes_raises(self, engine):
@@ -1139,7 +1139,7 @@ class TestReaders:
         )
         result = pd.read_excel(
             mi_file,
-            sheet_name=sheet_name,
+            sheet_name=,
             index_col=[0, 1],
             header=[0, 1],
         )
@@ -1187,7 +1187,7 @@ class TestReaders:
             ["R0", "R_l0_g0", "R_l0_g1", "R_l0_g2", "R_l0_g3", "R_l0_g4"], name=None
         )
 
-        expected = DataFrame(data, index=si, columns=columns)
+        expected = DataFrame(data, index=si, columns=)
 
         actual = pd.read_excel(filename, sheet_name="single_names", index_col=0)
         tm.assert_frame_equal(actual, expected)
@@ -1219,7 +1219,7 @@ class TestReaders:
         )
         si = Index(["R_l0_g0", "R_l0_g1", "R_l0_g2", "R_l0_g3", "R_l0_g4"], name=None)
 
-        expected = DataFrame(data, index=si, columns=columns)
+        expected = DataFrame(data, index=si, columns=)
 
         actual = pd.read_excel(filename, sheet_name="single_no_names", index_col=0)
         tm.assert_frame_equal(actual, expected)
@@ -1359,17 +1359,17 @@ class TestReaders:
         # GH 46894
         expected = pd.read_excel(
             filename + read_ext,
-            sheet_name=sheet_name,
-            header=header,
-            index_col=index_col,
-            skiprows=skiprows,
+            sheet_name=,
+            header=,
+            index_col=,
+            skiprows=,
         ).iloc[:3]
         actual = pd.read_excel(
             filename + read_ext,
-            sheet_name=sheet_name,
-            header=header,
-            index_col=index_col,
-            skiprows=skiprows,
+            sheet_name=,
+            header=,
+            index_col=,
+            skiprows=,
             nrows=3,
         )
         tm.assert_frame_equal(actual, expected)
@@ -1404,7 +1404,7 @@ class TestReaders:
         file_name = "testmultiindex" + read_ext
         columns = MultiIndex.from_tuples([("a", "A"), ("b", "B")])
         data = [[np.nan, np.nan], [np.nan, np.nan], [1, 3], [2, 4]]
-        expected = DataFrame(data, columns=columns)
+        expected = DataFrame(data, columns=)
         result = pd.read_excel(
             file_name, sheet_name="mi_column_empty_rows", header=[0, 1]
         )
@@ -1472,14 +1472,14 @@ class TestExcelFileRead:
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             with open("test1" + read_ext, "rb") as f:
-                pd.read_excel(f.read(), engine=engine)
+                pd.read_excel(f.read(), engine=)
 
     @pytest.fixture(autouse=True)
     def cd_and_set_engine(self, engine, datapath, monkeypatch):
         """
         Change directory and set engine for ExcelFile objects.
         """
-        func = partial(pd.ExcelFile, engine=engine)
+        func = partial(pd.ExcelFile, engine=)
         monkeypatch.chdir(datapath("io", "data", "excel"))
         monkeypatch.setattr(pd, "ExcelFile", func)
 
@@ -1605,10 +1605,10 @@ class TestExcelFileRead:
         sheet_name = "Sheet1"
 
         with pd.ExcelFile(filename + read_ext) as excel:
-            df1_parse = excel.parse(sheet_name=sheet_name, index_col=0)  # doc
+            df1_parse = excel.parse(sheet_name=, index_col=0)  # doc
 
         with pd.ExcelFile(filename + read_ext) as excel:
-            df2_parse = excel.parse(index_col=0, sheet_name=sheet_name)
+            df2_parse = excel.parse(index_col=0, sheet_name=)
 
         tm.assert_frame_equal(df1_parse, df_ref, check_names=False)
         tm.assert_frame_equal(df2_parse, df_ref, check_names=False)
@@ -1622,11 +1622,11 @@ class TestExcelFileRead:
         msg = "Worksheet index 3 is invalid|Worksheet named 'Sheet4' not found"
         with pytest.raises(ValueError, match=msg):
             with pd.ExcelFile("blank" + read_ext) as excel:
-                excel.parse(sheet_name=sheet_name)
+                excel.parse(sheet_name=)
 
     def test_excel_read_buffer(self, engine, read_ext):
         pth = "test1" + read_ext
-        expected = pd.read_excel(pth, sheet_name="Sheet1", index_col=0, engine=engine)
+        expected = pd.read_excel(pth, sheet_name="Sheet1", index_col=0, engine=)
 
         with open(pth, "rb") as f:
             with pd.ExcelFile(f) as xls:
@@ -1638,7 +1638,7 @@ class TestExcelFileRead:
         with open("test1" + read_ext, "rb") as f:
             with pd.ExcelFile(f) as xlsx:
                 # parses okay
-                pd.read_excel(xlsx, sheet_name="Sheet1", index_col=0, engine=engine)
+                pd.read_excel(xlsx, sheet_name="Sheet1", index_col=0, engine=)
 
         assert f.closed
 
@@ -1652,19 +1652,19 @@ class TestExcelFileRead:
 
     def test_excel_read_binary(self, engine, read_ext):
         # GH 15914
-        expected = pd.read_excel("test1" + read_ext, engine=engine)
+        expected = pd.read_excel("test1" + read_ext, engine=)
 
         with open("test1" + read_ext, "rb") as f:
             data = f.read()
 
-        actual = pd.read_excel(BytesIO(data), engine=engine)
+        actual = pd.read_excel(BytesIO(data), engine=)
         tm.assert_frame_equal(expected, actual)
 
     def test_excel_read_binary_via_read_excel(self, read_ext, engine):
         # GH 38424
         with open("test1" + read_ext, "rb") as f:
-            result = pd.read_excel(f, engine=engine)
-        expected = pd.read_excel("test1" + read_ext, engine=engine)
+            result = pd.read_excel(f, engine=)
+        expected = pd.read_excel("test1" + read_ext, engine=)
         tm.assert_frame_equal(result, expected)
 
     def test_read_excel_header_index_out_of_range(self, engine):
@@ -1695,7 +1695,7 @@ class TestExcelFileRead:
 
         f = "test_datetime_mi" + read_ext
         with pd.ExcelFile(f) as excel:
-            actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
+            actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=)
         expected_column_index = MultiIndex.from_tuples(
             [(pd.to_datetime("02/29/2020"), pd.to_datetime("03/01/2020"))],
             names=[
@@ -1744,6 +1744,6 @@ class TestExcelFileRead:
             Path(file).write_text("corrupt", encoding="utf-8")
             with tm.assert_produces_warning(False):
                 try:
-                    pd.ExcelFile(file, engine=engine)
+                    pd.ExcelFile(file, engine=)
                 except errors:
                     pass

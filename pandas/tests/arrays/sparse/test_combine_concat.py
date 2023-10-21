@@ -9,8 +9,8 @@ from pandas.core.arrays.sparse import SparseArray
 class TestSparseArrayConcat:
     @pytest.mark.parametrize("kind", ["integer", "block"])
     def test_basic(self, kind):
-        a = SparseArray([1, 0, 0, 2], kind=kind)
-        b = SparseArray([1, 0, 2, 2], kind=kind)
+        a = SparseArray([1, 0, 0, 2], kind=)
+        b = SparseArray([1, 0, 2, 2], kind=)
 
         result = SparseArray._concat_same_type([a, b])
         # Can't make any assertions about the sparse index itself
@@ -23,7 +23,7 @@ class TestSparseArrayConcat:
     @pytest.mark.parametrize("kind", ["integer", "block"])
     def test_uses_first_kind(self, kind):
         other = "integer" if kind == "block" else "block"
-        a = SparseArray([1, 0, 0, 2], kind=kind)
+        a = SparseArray([1, 0, 0, 2], kind=)
         b = SparseArray([1, 0, 2, 2], kind=other)
 
         result = SparseArray._concat_same_type([a, b])

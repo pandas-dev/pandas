@@ -362,7 +362,7 @@ def test_css_excel_cell_precedence(styles, expected):
         col=0,
         val="",
         style=None,
-        css_styles=css_styles,
+        css_styles=,
         css_row=0,
         css_col=0,
         css_converter=converter,
@@ -417,9 +417,9 @@ def test_css_excel_cell_cache(styles, cache_hits, cache_misses):
             col=0,
             val="",
             style=None,
-            css_styles=css_styles,
-            css_row=css_row,
-            css_col=css_col,
+            css_styles=,
+            css_row=,
+            css_col=,
             css_converter=converter,
         )
     cache_info = converter._call_cached.cache_info()

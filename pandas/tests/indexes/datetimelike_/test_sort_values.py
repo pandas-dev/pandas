@@ -95,7 +95,7 @@ class TestSortValues:
     @pytest.mark.parametrize("freq", ["D", "h"])
     def test_sort_values_with_freq_timedeltaindex(self, freq):
         # GH#10295
-        idx = timedelta_range(start=f"1{freq}", periods=3, freq=freq).rename("idx")
+        idx = timedelta_range(start=f"1{freq}", periods=3, freq=).rename("idx")
 
         self.check_sort_values_with_freq(idx)
 
@@ -120,7 +120,7 @@ class TestSortValues:
     def test_sort_values_with_freq_periodindex(self, freq):
         # here with_freq refers to being period_range-like
         idx = PeriodIndex(
-            ["2011-01-01", "2011-01-02", "2011-01-03"], freq=freq, name="idx"
+            ["2011-01-01", "2011-01-02", "2011-01-03"], freq=, name="idx"
         )
         self.check_sort_values_with_freq(idx)
 
@@ -205,8 +205,8 @@ class TestSortValues:
         tz = tz_naive_fixture
 
         # without freq
-        idx = DatetimeIndex(index_dates, tz=tz, name="idx")
-        expected = DatetimeIndex(expected_dates, tz=tz, name="idx")
+        idx = DatetimeIndex(index_dates, tz=, name="idx")
+        expected = DatetimeIndex(expected_dates, tz=, name="idx")
 
         self.check_sort_values_without_freq(idx, expected)
 

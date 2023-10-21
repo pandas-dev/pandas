@@ -32,10 +32,10 @@ class TestAppend:
         tm.assert_almost_equal(appended["A"], float_frame["A"])
 
         del end_frame["A"]
-        partial_appended = begin_frame._append(end_frame, sort=sort)
+        partial_appended = begin_frame._append(end_frame, sort=)
         assert "A" in partial_appended
 
-        partial_appended = end_frame._append(begin_frame, sort=sort)
+        partial_appended = end_frame._append(begin_frame, sort=)
         assert "A" in partial_appended
 
         # mixed type handling
@@ -43,8 +43,8 @@ class TestAppend:
         tm.assert_frame_equal(appended, mixed_frame)
 
         # what to test here
-        mixed_appended = mixed_frame[:5]._append(float_frame[5:], sort=sort)
-        mixed_appended2 = float_frame[:5]._append(mixed_frame[5:], sort=sort)
+        mixed_appended = mixed_frame[:5]._append(float_frame[5:], sort=)
+        mixed_appended2 = float_frame[:5]._append(mixed_frame[5:], sort=)
 
         # all equal except 'foo' column
         tm.assert_frame_equal(
@@ -85,7 +85,7 @@ class TestAppend:
     def test_append_length0_frame(self, sort):
         df = DataFrame(columns=["A", "B", "C"])
         df3 = DataFrame(index=[0, 1], columns=["A", "B"])
-        df5 = df._append(df3, sort=sort)
+        df5 = df._append(df3, sort=)
 
         expected = DataFrame(index=[0, 1], columns=["A", "B", "C"])
         tm.assert_frame_equal(df5, expected)
@@ -109,7 +109,7 @@ class TestAppend:
         df1 = DataFrame({"a": [1, 2], "b": [1, 2]}, columns=["b", "a"])
         df2 = DataFrame({"a": [1, 2], "c": [3, 4]}, index=[2, 3])
 
-        result = df1._append(df2, sort=sort)
+        result = df1._append(df2, sort=)
 
         # for None / True
         expected = DataFrame(
@@ -133,7 +133,7 @@ class TestAppend:
         a = df[:5].loc[:, ["bools", "ints", "floats"]]
         b = df[5:].loc[:, ["strings", "ints", "floats"]]
 
-        appended = a._append(b, sort=sort)
+        appended = a._append(b, sort=)
         assert isna(appended["strings"][0:4]).all()
         assert isna(appended["bools"][5:]).all()
 
@@ -150,7 +150,7 @@ class TestAppend:
 
         chunks[-1] = chunks[-1].copy()
         chunks[-1]["foo"] = "bar"
-        result = chunks[0]._append(chunks[1:], sort=sort)
+        result = chunks[0]._append(chunks[1:], sort=)
         tm.assert_frame_equal(result.loc[:, float_frame.columns], float_frame)
         assert (result["foo"][15:] == "bar").all()
         assert result["foo"][:15].isna().all()
@@ -285,9 +285,9 @@ class TestAppend:
                 ),
             ],
             axis=1,
-            sort=sort,
+            sort=,
         )
-        result = df1._append(df2, ignore_index=True, sort=sort)
+        result = df1._append(df2, ignore_index=True, sort=)
         if sort:
             expected = expected[["end_time", "start_time"]]
         else:
@@ -299,7 +299,7 @@ class TestAppend:
         df1 = DataFrame({"A": np.array([1, 2, 3, 4], dtype="i8")})
         df2 = DataFrame({"B": np.array([True, False, True, False], dtype=bool)})
 
-        appended = df1._append(df2, ignore_index=True, sort=sort)
+        appended = df1._append(df2, ignore_index=True, sort=)
         assert appended["A"].dtype == "f8"
         assert appended["B"].dtype == "O"
 

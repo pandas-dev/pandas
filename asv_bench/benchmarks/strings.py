@@ -19,7 +19,7 @@ class Dtypes:
 
     def setup(self, dtype):
         try:
-            self.s = Series(tm.makeStringIndex(10**5), dtype=dtype)
+            self.s = Series(tm.makeStringIndex(10**5), dtype=)
         except ImportError:
             raise NotImplementedError
 
@@ -46,10 +46,10 @@ class Construction:
             self.arr = Categorical(series_arr)
 
     def time_construction(self, pd_type, dtype):
-        self.pd_mapping[pd_type](self.arr, dtype=dtype)
+        self.pd_mapping[pd_type](self.arr, dtype=)
 
     def peakmem_construction(self, pd_type, dtype):
-        self.pd_mapping[pd_type](self.arr, dtype=dtype)
+        self.pd_mapping[pd_type](self.arr, dtype=)
 
 
 class Methods(Dtypes):
@@ -201,7 +201,7 @@ class Cat:
         # expected fraction of rows containing any NaN is:
         # reduce(lambda t, _: t + (1 - t) * na_frac, range(other_cols + 1), 0)
         # for other_cols=3 and na_frac=0.15, this works out to ~48%
-        self.s.str.cat(others=self.others, sep=sep, na_rep=na_rep)
+        self.s.str.cat(others=self.others, sep=, na_rep=)
 
 
 class Contains(Dtypes):
@@ -212,7 +212,7 @@ class Contains(Dtypes):
         super().setup(dtype)
 
     def time_contains(self, dtype, regex):
-        self.s.str.contains("A", regex=regex)
+        self.s.str.contains("A", regex=)
 
 
 class Split(Dtypes):
@@ -224,10 +224,10 @@ class Split(Dtypes):
         self.s = self.s.str.join("--")
 
     def time_split(self, dtype, expand):
-        self.s.str.split("--", expand=expand)
+        self.s.str.split("--", expand=)
 
     def time_rsplit(self, dtype, expand):
-        self.s.str.rsplit("--", expand=expand)
+        self.s.str.rsplit("--", expand=)
 
 
 class Extract(Dtypes):
@@ -239,7 +239,7 @@ class Extract(Dtypes):
 
     def time_extract_single_group(self, dtype, expand):
         with warnings.catch_warnings(record=True):
-            self.s.str.extract("(\\w*)A", expand=expand)
+            self.s.str.extract("(\\w*)A", expand=)
 
 
 class Dummies(Dtypes):

@@ -46,7 +46,7 @@ def _assert_not_series_equal(a, b, **kwargs):
         tm.assert_series_equal(a, b, **kwargs)
         msg = "The two Series were equal when they shouldn't have been"
 
-        pytest.fail(msg=msg)
+        pytest.fail(msg=)
     except AssertionError:
         pass
 
@@ -110,15 +110,15 @@ def test_series_not_equal_metadata_mismatch(kwargs):
 @pytest.mark.parametrize("decimals", [0, 1, 2, 3, 5, 10])
 def test_less_precise(data1, data2, dtype, decimals):
     rtol = 10**-decimals
-    s1 = Series([data1], dtype=dtype)
-    s2 = Series([data2], dtype=dtype)
+    s1 = Series([data1], dtype=)
+    s2 = Series([data2], dtype=)
 
     if decimals in (5, 10) or (decimals >= 3 and abs(data1 - data2) >= 0.0005):
         msg = "Series values are different"
         with pytest.raises(AssertionError, match=msg):
-            tm.assert_series_equal(s1, s2, rtol=rtol)
+            tm.assert_series_equal(s1, s2, rtol=)
     else:
-        _assert_series_equal_both(s1, s2, rtol=rtol)
+        _assert_series_equal_both(s1, s2, rtol=)
 
 
 @pytest.mark.parametrize(
@@ -159,9 +159,9 @@ def test_series_equal_order_mismatch(check_like):
 
     if not check_like:  # Do not ignore index ordering.
         with pytest.raises(AssertionError, match="Series.index are different"):
-            tm.assert_series_equal(s1, s2, check_like=check_like)
+            tm.assert_series_equal(s1, s2, check_like=)
     else:
-        _assert_series_equal_both(s1, s2, check_like=check_like)
+        _assert_series_equal_both(s1, s2, check_like=)
 
 
 @pytest.mark.parametrize("check_index", [True, False])
@@ -171,9 +171,9 @@ def test_series_equal_index_mismatch(check_index):
 
     if check_index:  # Do not ignore index.
         with pytest.raises(AssertionError, match="Series.index are different"):
-            tm.assert_series_equal(s1, s2, check_index=check_index)
+            tm.assert_series_equal(s1, s2, check_index=)
     else:
-        _assert_series_equal_both(s1, s2, check_index=check_index)
+        _assert_series_equal_both(s1, s2, check_index=)
 
 
 def test_series_invalid_param_combination():
@@ -196,7 +196,7 @@ Series length are different
     s2 = Series([1, 2, 3, 4])
 
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_series_equal(s1, s2, rtol=rtol)
+        tm.assert_series_equal(s1, s2, rtol=)
 
 
 def test_series_equal_numeric_values_mismatch(rtol):
@@ -211,7 +211,7 @@ Series values are different \\(33\\.33333 %\\)
     s2 = Series([1, 2, 4])
 
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_series_equal(s1, s2, rtol=rtol)
+        tm.assert_series_equal(s1, s2, rtol=)
 
 
 def test_series_equal_categorical_values_mismatch(rtol):
@@ -228,7 +228,7 @@ Categories \\(3, object\\): \\['a', 'b', 'c'\\]"""
     s2 = Series(Categorical(["a", "c", "b"]))
 
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_series_equal(s1, s2, rtol=rtol)
+        tm.assert_series_equal(s1, s2, rtol=)
 
 
 def test_series_equal_datetime_values_mismatch(rtol):
@@ -243,7 +243,7 @@ Series values are different \\(100.0 %\\)
     s2 = Series(pd.date_range("2019-02-02", periods=3, freq="D"))
 
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_series_equal(s1, s2, rtol=rtol)
+        tm.assert_series_equal(s1, s2, rtol=)
 
 
 def test_series_equal_categorical_mismatch(check_categorical):
@@ -260,9 +260,9 @@ ordered=False, categories_dtype=object\\)"""
 
     if check_categorical:
         with pytest.raises(AssertionError, match=msg):
-            tm.assert_series_equal(s1, s2, check_categorical=check_categorical)
+            tm.assert_series_equal(s1, s2, check_categorical=)
     else:
-        _assert_series_equal_both(s1, s2, check_categorical=check_categorical)
+        _assert_series_equal_both(s1, s2, check_categorical=)
 
 
 def test_assert_series_equal_extension_dtype_mismatch():

@@ -131,7 +131,7 @@ class ArrowExtensionArray:
         else:
             raise NotImplementedError
 
-        arr = pd.array(data, dtype=dtype)
+        arr = pd.array(data, dtype=)
         if hasna:
             arr[::2] = pd.NA
         self.arr = arr

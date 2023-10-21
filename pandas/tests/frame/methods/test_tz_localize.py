@@ -57,7 +57,7 @@ class TestTZLocalize:
             np.arange(0, 5), index=date_range("20131027", periods=5, freq="1h", tz=None)
         )
         orig = obj.copy()
-        result = obj.tz_localize("UTC", copy=copy)
+        result = obj.tz_localize("UTC", copy=)
         expected = frame_or_series(
             np.arange(0, 5),
             index=date_range("20131027", periods=5, freq="1h", tz="UTC"),

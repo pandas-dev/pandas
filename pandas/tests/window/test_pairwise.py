@@ -112,7 +112,7 @@ def test_rolling_corr_with_zero_variance(window):
     s = Series(np.zeros(20))
     other = Series(np.arange(20))
 
-    assert s.rolling(window=window).corr(other=other).isna().all()
+    assert s.rolling(window=window).corr(other=).isna().all()
 
 
 def test_corr_sanity():
@@ -401,7 +401,7 @@ class TestPairwise:
 
         columns = MultiIndex.from_product([list("ab"), list("xy"), list("AB")])
         index = range(3)
-        df = DataFrame(np.arange(24).reshape(3, 8), index=index, columns=columns)
+        df = DataFrame(np.arange(24).reshape(3, 8), index=, columns=)
 
         result = df.ewm(alpha=0.1).cov()
 
@@ -415,8 +415,8 @@ class TestPairwise:
                     np.full((8, 8), 63.881919),
                 )
             ),
-            index=index,
-            columns=columns,
+            index=,
+            columns=,
         )
 
         tm.assert_frame_equal(result, expected)
@@ -424,7 +424,7 @@ class TestPairwise:
     def test_multindex_columns_pairwise_func(self):
         # GH 21157
         columns = MultiIndex.from_arrays([["M", "N"], ["P", "Q"]], names=["a", "b"])
-        df = DataFrame(np.ones((5, 2)), columns=columns)
+        df = DataFrame(np.ones((5, 2)), columns=)
         result = df.rolling(3).corr()
         expected = DataFrame(
             np.nan,
@@ -436,6 +436,6 @@ class TestPairwise:
                 ],
                 names=[None, "a", "b"],
             ),
-            columns=columns,
+            columns=,
         )
         tm.assert_frame_equal(result, expected)

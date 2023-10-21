@@ -223,12 +223,12 @@ def test_null_byte_char(request, all_parsers):
                 )
             )
         expected = DataFrame([[np.nan, "foo"]], columns=names)
-        out = parser.read_csv(StringIO(data), names=names)
+        out = parser.read_csv(StringIO(data), names=)
         tm.assert_frame_equal(out, expected)
     else:
         msg = "NULL byte detected"
         with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), names=names)
+            parser.read_csv(StringIO(data), names=)
 
 
 @skip_pyarrow

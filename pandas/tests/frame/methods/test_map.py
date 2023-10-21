@@ -43,7 +43,7 @@ def test_map_keeps_dtype(na_action):
     def func(x):
         return str.upper(x) if not pd.isna(x) else x
 
-    result = df.map(func, na_action=na_action)
+    result = df.map(func, na_action=)
 
     expected_sparse = pd.array(["A", np.nan, "B"], dtype=pd.SparseDtype(object))
     expected_arr = expected_sparse.astype(object)
@@ -51,7 +51,7 @@ def test_map_keeps_dtype(na_action):
 
     tm.assert_frame_equal(result, expected)
 
-    result_empty = df.iloc[:0, :].map(func, na_action=na_action)
+    result_empty = df.iloc[:0, :].map(func, na_action=)
     expected_empty = expected.iloc[:0, :]
     tm.assert_frame_equal(result_empty, expected_empty)
 

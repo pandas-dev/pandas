@@ -258,12 +258,12 @@ def cut(
     fac, bins = _bins_to_cuts(
         x_idx,
         bins,
-        right=right,
-        labels=labels,
-        precision=precision,
-        include_lowest=include_lowest,
-        duplicates=duplicates,
-        ordered=ordered,
+        right=,
+        labels=,
+        precision=,
+        include_lowest=,
+        duplicates=,
+        ordered=,
     )
 
     return _postprocess_for_cut(fac, bins, retbins, original)
@@ -341,10 +341,10 @@ def qcut(
     fac, bins = _bins_to_cuts(
         x_idx,
         Index(bins),
-        labels=labels,
-        precision=precision,
+        labels=,
+        precision=,
         include_lowest=True,
-        duplicates=duplicates,
+        duplicates=,
     )
 
     return _postprocess_for_cut(fac, bins, retbins, original)
@@ -447,7 +447,7 @@ def _bins_to_cuts(
     side: Literal["left", "right"] = "left" if right else "right"
 
     try:
-        ids = bins.searchsorted(x_idx, side=side)
+        ids = bins.searchsorted(x_idx, side=)
     except TypeError as err:
         # e.g. test_datetime_nan_error if bins are DatetimeArray and x_idx
         #  is integers
@@ -478,9 +478,7 @@ def _bins_to_cuts(
             )
 
         if labels is None:
-            labels = _format_labels(
-                bins, precision, right=right, include_lowest=include_lowest
-            )
+            labels = _format_labels(bins, precision, right=, include_lowest=)
         elif ordered and len(set(labels)) != len(labels):
             raise ValueError(
                 "labels must be unique if ordered=True; pass ordered=False "
@@ -496,7 +494,7 @@ def _bins_to_cuts(
             labels = Categorical(
                 labels,
                 categories=labels if len(set(labels)) == len(labels) else None,
-                ordered=ordered,
+                ordered=,
             )
         # TODO: handle mismatch between categorical label order and pandas.cut order.
         np.putmask(ids, na_mask, 0)
@@ -571,7 +569,7 @@ def _format_labels(
         # adjust lhs of first interval by precision to account for being right closed
         breaks[0] = adjust(breaks[0])
 
-    return IntervalIndex.from_breaks(breaks, closed=closed)
+    return IntervalIndex.from_breaks(breaks, closed=)
 
 
 def _preprocess_for_cut(x) -> Index:

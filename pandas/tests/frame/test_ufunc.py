@@ -19,7 +19,7 @@ dtypes = [
 def test_unary_unary(dtype):
     # unary input, unary output
     values = np.array([[-1, -1], [1, 1]], dtype="int64")
-    df = pd.DataFrame(values, columns=["A", "B"], index=["a", "b"]).astype(dtype=dtype)
+    df = pd.DataFrame(values, columns=["A", "B"], index=["a", "b"]).astype(dtype=)
     result = np.positive(df)
     expected = pd.DataFrame(
         np.positive(values), index=df.index, columns=df.columns
@@ -38,7 +38,7 @@ def test_unary_binary(request, dtype):
         )
 
     values = np.array([[-1, -1], [1, 1]], dtype="int64")
-    df = pd.DataFrame(values, columns=["A", "B"], index=["a", "b"]).astype(dtype=dtype)
+    df = pd.DataFrame(values, columns=["A", "B"], index=["a", "b"]).astype(dtype=)
     result_pandas = np.modf(df)
     assert isinstance(result_pandas, tuple)
     assert len(result_pandas) == 2
@@ -53,7 +53,7 @@ def test_unary_binary(request, dtype):
 def test_binary_input_dispatch_binop(dtype):
     # binop ufuncs are dispatched to our dunder methods.
     values = np.array([[-1, -1], [1, 1]], dtype="int64")
-    df = pd.DataFrame(values, columns=["A", "B"], index=["a", "b"]).astype(dtype=dtype)
+    df = pd.DataFrame(values, columns=["A", "B"], index=["a", "b"]).astype(dtype=)
     result = np.add(df, df)
     expected = pd.DataFrame(
         np.add(values, values), index=df.index, columns=df.columns

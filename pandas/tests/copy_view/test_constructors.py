@@ -27,7 +27,7 @@ def test_series_from_series(dtype, using_copy_on_write):
     ser = Series([1, 2, 3], name="name")
 
     # default is copy=False -> new Series is a shallow copy / view of original
-    result = Series(ser, dtype=dtype)
+    result = Series(ser, dtype=)
 
     # the shallow copy still shares memory
     assert np.shares_memory(get_array(ser), get_array(result))
@@ -49,7 +49,7 @@ def test_series_from_series(dtype, using_copy_on_write):
         assert np.shares_memory(get_array(ser), get_array(result))
 
     # the same when modifying the parent
-    result = Series(ser, dtype=dtype)
+    result = Series(ser, dtype=)
 
     if using_copy_on_write:
         # mutating original doesn't mutate new series
@@ -74,7 +74,7 @@ def test_series_from_series_with_reindex(using_copy_on_write):
         list(ser.index),
         ser.index.rename("idx"),
     ]:
-        result = Series(ser, index=index)
+        result = Series(ser, index=)
         assert np.shares_memory(ser.values, result.values)
         result.iloc[0] = 0
         if using_copy_on_write:
@@ -101,7 +101,7 @@ def test_series_from_array(using_copy_on_write, idx, dtype, fastpath, arr):
         fastpath = False
     msg = "The 'fastpath' keyword in pd.Series is deprecated"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        ser = Series(arr, dtype=dtype, index=idx, fastpath=fastpath)
+        ser = Series(arr, dtype=, index=idx, fastpath=)
     ser_orig = ser.copy()
     data = getattr(arr, "_data", arr)
     if using_copy_on_write:
@@ -120,7 +120,7 @@ def test_series_from_array(using_copy_on_write, idx, dtype, fastpath, arr):
 @pytest.mark.parametrize("copy", [True, False, None])
 def test_series_from_array_different_dtype(using_copy_on_write, copy):
     arr = np.array([1, 2, 3], dtype="int64")
-    ser = Series(arr, dtype="int32", copy=copy)
+    ser = Series(arr, dtype="int32", copy=)
     assert not np.shares_memory(get_array(ser), arr)
 
 
@@ -161,7 +161,7 @@ def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
     ser_orig = ser.copy()
     msg = "The 'fastpath' keyword in pd.Series is deprecated"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
+        ser2 = Series(ser._mgr, dtype=, fastpath=, index=idx)
     assert np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert not ser2._mgr._has_no_reference(0)
@@ -224,11 +224,11 @@ def test_dataframe_from_dict_of_series(
     s2 = Series([4, 5, 6])
     s1_orig = s1.copy()
     expected = DataFrame(
-        {"a": [1, 2, 3], "b": [4, 5, 6]}, index=index, columns=columns, dtype=dtype
+        {"a": [1, 2, 3], "b": [4, 5, 6]}, index=, columns=, dtype=
     )
 
     result = DataFrame(
-        {"a": s1, "b": s2}, index=index, columns=columns, dtype=dtype, copy=False
+        {"a": s1, "b": s2}, index=, columns=, dtype=, copy=False
     )
 
     # the shallow copy still shares memory
@@ -246,7 +246,7 @@ def test_dataframe_from_dict_of_series(
     s1 = Series([1, 2, 3])
     s2 = Series([4, 5, 6])
     result = DataFrame(
-        {"a": s1, "b": s2}, index=index, columns=columns, dtype=dtype, copy=False
+        {"a": s1, "b": s2}, index=, columns=, dtype=, copy=False
     )
     s1.iloc[0] = 10
     if using_copy_on_write:
@@ -264,7 +264,7 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
     # a copy on write
     s1 = Series([1, 2, 3])
     s2 = Series([4, 5, 6])
-    df = DataFrame({"a": s1, "b": s2}, index=[1, 2, 3], dtype=dtype, copy=False)
+    df = DataFrame({"a": s1, "b": s2}, index=[1, 2, 3], dtype=, copy=False)
 
     # df should own its memory, so mutating shouldn't trigger a copy
     arr_before = get_array(df, "a")
@@ -279,9 +279,9 @@ def test_dataframe_from_dict_of_series_with_reindex(dtype):
     "data, dtype", [([1, 2], None), ([1, 2], "int64"), (["a", "b"], None)]
 )
 def test_dataframe_from_series_or_index(using_copy_on_write, data, dtype, cons):
-    obj = cons(data, dtype=dtype)
+    obj = cons(data, dtype=)
     obj_orig = obj.copy()
-    df = DataFrame(obj, dtype=dtype)
+    df = DataFrame(obj, dtype=)
     assert np.shares_memory(get_array(obj), get_array(df, 0))
     if using_copy_on_write:
         assert not df._mgr._has_no_reference(0)
@@ -315,7 +315,7 @@ def test_dataframe_from_dict_of_series_with_dtype(index):
     # trigger a copy on write
     s1 = Series([1.0, 2.0, 3.0])
     s2 = Series([4, 5, 6])
-    df = DataFrame({"a": s1, "b": s2}, index=index, dtype="int64", copy=False)
+    df = DataFrame({"a": s1, "b": s2}, index=, dtype="int64", copy=False)
 
     # df should own its memory, so mutating shouldn't trigger a copy
     arr_before = get_array(df, "a")
@@ -328,7 +328,7 @@ def test_dataframe_from_dict_of_series_with_dtype(index):
 @pytest.mark.parametrize("copy", [False, None, True])
 def test_frame_from_numpy_array(using_copy_on_write, copy, using_array_manager):
     arr = np.array([[1, 2], [3, 4]])
-    df = DataFrame(arr, copy=copy)
+    df = DataFrame(arr, copy=)
 
     if (
         using_copy_on_write

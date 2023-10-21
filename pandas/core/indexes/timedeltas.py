@@ -182,7 +182,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         ):
             if copy:
                 data = data.copy()
-            return cls._simple_new(data, name=name)
+            return cls._simple_new(data, name=)
 
         if (
             isinstance(data, TimedeltaIndex)
@@ -198,13 +198,13 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         # - Cases checked above all return/raise before reaching here - #
 
         tdarr = TimedeltaArray._from_sequence_not_strict(
-            data, freq=freq, unit=unit, dtype=dtype, copy=copy
+            data, freq=, unit=, dtype=, copy=
         )
         refs = None
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
 
-        return cls._simple_new(tdarr, name=name, refs=refs)
+        return cls._simple_new(tdarr, name=, refs=)
 
     # -------------------------------------------------------------------
 
@@ -340,6 +340,6 @@ def timedelta_range(
 
     freq, _ = dtl.maybe_infer_freq(freq)
     tdarr = TimedeltaArray._generate_range(
-        start, end, periods, freq, closed=closed, unit=unit
+        start, end, periods, freq, closed=, unit=
     )
-    return TimedeltaIndex._simple_new(tdarr, name=name)
+    return TimedeltaIndex._simple_new(tdarr, name=)

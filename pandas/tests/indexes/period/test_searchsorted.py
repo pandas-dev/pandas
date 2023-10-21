@@ -16,13 +16,13 @@ class TestSearchsorted:
     def test_searchsorted(self, freq):
         pidx = PeriodIndex(
             ["2014-01-01", "2014-01-02", "2014-01-03", "2014-01-04", "2014-01-05"],
-            freq=freq,
+            freq=,
         )
 
-        p1 = Period("2014-01-01", freq=freq)
+        p1 = Period("2014-01-01", freq=)
         assert pidx.searchsorted(p1) == 0
 
-        p2 = Period("2014-01-04", freq=freq)
+        p2 = Period("2014-01-04", freq=)
         assert pidx.searchsorted(p2) == 3
 
         assert pidx.searchsorted(NaT) == 5

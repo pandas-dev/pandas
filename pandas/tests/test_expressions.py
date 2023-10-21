@@ -419,9 +419,9 @@ class TestExpressions:
             op_func = getattr(df, arith)
 
             with option_context("compute.use_numexpr", False):
-                expected = op_func(other, axis=axis)
+                expected = op_func(other, axis=)
 
-            result = op_func(other, axis=axis)
+            result = op_func(other, axis=)
             tm.assert_frame_equal(expected, result)
 
     @pytest.mark.parametrize(

@@ -88,7 +88,7 @@ def _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks):
 
         if not start:
             return parser.read_csv(
-                path, index_col=0, header=0, nrows=nrows, parse_dates=["date"]
+                path, index_col=0, header=0, nrows=, parse_dates=["date"]
             )
 
         return parser.read_csv(
@@ -96,7 +96,7 @@ def _generate_multi_thread_dataframe(parser, path, num_rows, num_tasks):
             index_col=0,
             header=None,
             skiprows=int(start) + 1,
-            nrows=nrows,
+            nrows=,
             parse_dates=[9],
         )
 

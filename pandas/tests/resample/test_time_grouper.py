@@ -98,7 +98,7 @@ def test_fails_on_no_datetime_index(func):
     n = 2
     index = func(n)
     name = type(index).__name__
-    df = DataFrame({"a": np.random.default_rng(2).standard_normal(n)}, index=index)
+    df = DataFrame({"a": np.random.default_rng(2).standard_normal(n)}, index=)
 
     msg = (
         "Only valid with DatetimeIndex, TimedeltaIndex "
@@ -311,7 +311,7 @@ def test_upsample_sum(method, method_args, expected_values):
         freq="30min",
     )
     result = methodcaller(method, **method_args)(resampled)
-    expected = Series(expected_values, index=index)
+    expected = Series(expected_values, index=)
     tm.assert_series_equal(result, expected)
 
 

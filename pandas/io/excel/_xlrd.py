@@ -43,11 +43,7 @@ class XlrdReader(BaseExcelReader["Book"]):
         """
         err_msg = "Install xlrd >= 2.0.1 for xls Excel support"
         import_optional_dependency("xlrd", extra=err_msg)
-        super().__init__(
-            filepath_or_buffer,
-            storage_options=storage_options,
-            engine_kwargs=engine_kwargs,
-        )
+        super().__init__(filepath_or_buffer, storage_options=, engine_kwargs=)
 
     @property
     def _workbook_class(self) -> type[Book]:

@@ -18,7 +18,7 @@ class TestReductions:
     def arr1d(self, tz_naive_fixture):
         """Fixture returning DatetimeArray with parametrized timezones"""
         tz = tz_naive_fixture
-        dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
+        dtype = DatetimeTZDtype(tz=) if tz is not None else np.dtype("M8[ns]")
         arr = DatetimeArray._from_sequence(
             [
                 "2000-01-03",
@@ -28,7 +28,7 @@ class TestReductions:
                 "2000-01-05",
                 "2000-01-04",
             ],
-            dtype=dtype,
+            dtype=,
         )
         return arr
 
@@ -38,12 +38,12 @@ class TestReductions:
         tz = arr.tz
 
         result = arr.min()
-        expected = pd.Timestamp("2000-01-02", tz=tz).as_unit(unit)
+        expected = pd.Timestamp("2000-01-02", tz=).as_unit(unit)
         assert result == expected
         assert result.unit == expected.unit
 
         result = arr.max()
-        expected = pd.Timestamp("2000-01-05", tz=tz).as_unit(unit)
+        expected = pd.Timestamp("2000-01-05", tz=).as_unit(unit)
         assert result == expected
         assert result.unit == expected.unit
 
@@ -56,28 +56,28 @@ class TestReductions:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     @pytest.mark.parametrize("skipna", [True, False])
     def test_min_max_empty(self, skipna, tz):
-        dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
-        arr = DatetimeArray._from_sequence([], dtype=dtype)
-        result = arr.min(skipna=skipna)
+        dtype = DatetimeTZDtype(tz=) if tz is not None else np.dtype("M8[ns]")
+        arr = DatetimeArray._from_sequence([], dtype=)
+        result = arr.min(skipna=)
         assert result is NaT
 
-        result = arr.max(skipna=skipna)
+        result = arr.max(skipna=)
         assert result is NaT
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     @pytest.mark.parametrize("skipna", [True, False])
     def test_median_empty(self, skipna, tz):
-        dtype = DatetimeTZDtype(tz=tz) if tz is not None else np.dtype("M8[ns]")
-        arr = DatetimeArray._from_sequence([], dtype=dtype)
-        result = arr.median(skipna=skipna)
+        dtype = DatetimeTZDtype(tz=) if tz is not None else np.dtype("M8[ns]")
+        arr = DatetimeArray._from_sequence([], dtype=)
+        result = arr.median(skipna=)
         assert result is NaT
 
         arr = arr.reshape(0, 3)
-        result = arr.median(axis=0, skipna=skipna)
+        result = arr.median(axis=0, skipna=)
         expected = type(arr)._from_sequence([NaT, NaT, NaT], dtype=arr.dtype)
         tm.assert_equal(result, expected)
 
-        result = arr.median(axis=1, skipna=skipna)
+        result = arr.median(axis=1, skipna=)
         expected = type(arr)._from_sequence([], dtype=arr.dtype)
         tm.assert_equal(result, expected)
 
@@ -168,16 +168,16 @@ class TestReductions:
     def test_mean_empty(self, arr1d, skipna):
         arr = arr1d[:0]
 
-        assert arr.mean(skipna=skipna) is NaT
+        assert arr.mean(skipna=) is NaT
 
         arr2d = arr.reshape(0, 3)
-        result = arr2d.mean(axis=0, skipna=skipna)
+        result = arr2d.mean(axis=0, skipna=)
         expected = DatetimeArray._from_sequence([NaT, NaT, NaT], dtype=arr.dtype)
         tm.assert_datetime_array_equal(result, expected)
 
-        result = arr2d.mean(axis=1, skipna=skipna)
+        result = arr2d.mean(axis=1, skipna=)
         expected = arr  # i.e. 1D, empty
         tm.assert_datetime_array_equal(result, expected)
 
-        result = arr2d.mean(axis=None, skipna=skipna)
+        result = arr2d.mean(axis=None, skipna=)
         assert result is NaT

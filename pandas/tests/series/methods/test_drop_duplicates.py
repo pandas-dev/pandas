@@ -23,10 +23,10 @@ def test_drop_duplicates(any_numpy_dtype, keep, expected):
     if tc.dtype == "bool":
         pytest.skip("tested separately in test_drop_duplicates_bool")
 
-    tm.assert_series_equal(tc.duplicated(keep=keep), expected)
-    tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
+    tm.assert_series_equal(tc.duplicated(keep=), expected)
+    tm.assert_series_equal(tc.drop_duplicates(keep=), tc[~expected])
     sc = tc.copy()
-    return_value = sc.drop_duplicates(keep=keep, inplace=True)
+    return_value = sc.drop_duplicates(keep=, inplace=True)
     assert return_value is None
     tm.assert_series_equal(sc, tc[~expected])
 
@@ -42,10 +42,10 @@ def test_drop_duplicates(any_numpy_dtype, keep, expected):
 def test_drop_duplicates_bool(keep, expected):
     tc = Series([True, False, True, False])
 
-    tm.assert_series_equal(tc.duplicated(keep=keep), expected)
-    tm.assert_series_equal(tc.drop_duplicates(keep=keep), tc[~expected])
+    tm.assert_series_equal(tc.duplicated(keep=), expected)
+    tm.assert_series_equal(tc.drop_duplicates(keep=), tc[~expected])
     sc = tc.copy()
-    return_value = sc.drop_duplicates(keep=keep, inplace=True)
+    return_value = sc.drop_duplicates(keep=, inplace=True)
     tm.assert_series_equal(sc, tc[~expected])
     assert return_value is None
 
@@ -61,9 +61,9 @@ def test_drop_duplicates_no_duplicates(any_numpy_dtype, keep, values):
         tc = tc[:2]
         expected = expected[:2]
 
-    tm.assert_series_equal(tc.duplicated(keep=keep), expected)
+    tm.assert_series_equal(tc.duplicated(keep=), expected)
 
-    result_dropped = tc.drop_duplicates(keep=keep)
+    result_dropped = tc.drop_duplicates(keep=)
     tm.assert_series_equal(result_dropped, tc)
 
     # validate shallow copy
@@ -83,7 +83,7 @@ class TestSeriesDropDuplicates:
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
         input1 = np.array([1, 2, 3, 3], dtype=np.dtype(dtype))
-        cat = Categorical(input1, categories=cat_array, ordered=ordered)
+        cat = Categorical(input1, categories=cat_array, ordered=)
         tc1 = Series(cat)
         return tc1
 
@@ -145,7 +145,7 @@ class TestSeriesDropDuplicates:
         cat_array = np.array([1, 2, 3, 4, 5], dtype=np.dtype(dtype))
 
         input2 = np.array([1, 2, 3, 5, 3, 2, 4], dtype=np.dtype(dtype))
-        cat = Categorical(input2, categories=cat_array, ordered=ordered)
+        cat = Categorical(input2, categories=cat_array, ordered=)
         tc2 = Series(cat)
         return tc2
 
@@ -200,7 +200,7 @@ class TestSeriesDropDuplicates:
     def test_drop_duplicates_categorical_bool(self, ordered):
         tc = Series(
             Categorical(
-                [True, False, True, False], categories=[True, False], ordered=ordered
+                [True, False, True, False], categories=[True, False], ordered=
             )
         )
 

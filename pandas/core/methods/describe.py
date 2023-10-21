@@ -90,11 +90,11 @@ def describe_ndframe(
     else:
         describer = DataFrameDescriber(
             obj=cast("DataFrame", obj),
-            include=include,
-            exclude=exclude,
+            include=,
+            exclude=,
         )
 
-    result = describer.describe(percentiles=percentiles)
+    result = describer.describe(percentiles=)
     return cast(NDFrameT, result)
 
 
@@ -250,7 +250,7 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
         dtype = np.dtype("float")
     else:
         dtype = None
-    return Series(d, index=stat_index, name=series.name, dtype=dtype)
+    return Series(d, index=stat_index, name=series.name, dtype=)
 
 
 def describe_categorical_1d(
@@ -282,7 +282,7 @@ def describe_categorical_1d(
 
     from pandas import Series
 
-    return Series(result, index=names, name=data.name, dtype=dtype)
+    return Series(result, index=names, name=data.name, dtype=)
 
 
 def describe_timestamp_as_categorical_1d(
@@ -317,8 +317,8 @@ def describe_timestamp_as_categorical_1d(
         result += [
             top,
             freq,
-            Timestamp(asint.min(), tz=tz),
-            Timestamp(asint.max(), tz=tz),
+            Timestamp(asint.min(), tz=),
+            Timestamp(asint.max(), tz=),
         ]
 
     # If the DataFrame is empty, set 'top' and 'freq' to None
@@ -330,7 +330,7 @@ def describe_timestamp_as_categorical_1d(
 
     from pandas import Series
 
-    return Series(result, index=names, name=data.name, dtype=dtype)
+    return Series(result, index=names, name=data.name, dtype=)
 
 
 def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:

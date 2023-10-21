@@ -15,10 +15,10 @@ class TestReductions:
         tdi = pd.TimedeltaIndex([])
         arr = tdi.array
 
-        result = getattr(tdi, name)(skipna=skipna)
+        result = getattr(tdi, name)(skipna=)
         assert result is pd.NaT
 
-        result = getattr(arr, name)(skipna=skipna)
+        result = getattr(arr, name)(skipna=)
         assert result is pd.NaT
 
     @pytest.mark.parametrize("skipna", [True, False])
@@ -26,11 +26,11 @@ class TestReductions:
         tdi = pd.TimedeltaIndex([])
         arr = tdi.array
 
-        result = tdi.sum(skipna=skipna)
+        result = tdi.sum(skipna=)
         assert isinstance(result, Timedelta)
         assert result == Timedelta(0)
 
-        result = arr.sum(skipna=skipna)
+        result = arr.sum(skipna=)
         assert isinstance(result, Timedelta)
         assert result == Timedelta(0)
 

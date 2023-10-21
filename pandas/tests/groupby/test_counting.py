@@ -190,7 +190,7 @@ class TestCounting:
 
     def test_ngroup_respects_groupby_order(self, sort):
         df = DataFrame({"a": np.random.default_rng(2).choice(list("abcdef"), 100)})
-        g = df.groupby("a", sort=sort)
+        g = df.groupby("a", sort=)
         df["group_id"] = -1
         df["group_index"] = -1
 

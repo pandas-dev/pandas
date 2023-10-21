@@ -35,8 +35,8 @@ class TestSeriesLogicalOps:
         # GH#9016: support bitwise op for integer types
         index = list("bca")
 
-        s_tft = Series([True, False, True], index=index)
-        s_fff = Series([False, False, False], index=index)
+        s_tft = Series([True, False, True], index=)
+        s_fff = Series([False, False, False], index=)
         s_empty = Series([], dtype=object)
 
         res = s_tft & s_empty
@@ -161,8 +161,8 @@ class TestSeriesLogicalOps:
     def test_logical_operators_bool_dtype_with_int(self):
         index = list("bca")
 
-        s_tft = Series([True, False, True], index=index)
-        s_fff = Series([False, False, False], index=index)
+        s_tft = Series([True, False, True], index=)
+        s_fff = Series([False, False, False], index=)
 
         res = s_tft & 0
         expected = s_fff
@@ -220,9 +220,9 @@ class TestSeriesLogicalOps:
 
         index = list("bca")
 
-        s_tft = Series([True, False, True], index=index)
-        s_tft = Series([True, False, True], index=index)
-        s_tff = Series([True, False, False], index=index)
+        s_tft = Series([True, False, True], index=)
+        s_tft = Series([True, False, True], index=)
+        s_tff = Series([True, False, False], index=)
 
         s_0123 = Series(range(4), dtype="int64")
 
@@ -430,8 +430,8 @@ class TestSeriesLogicalOps:
         t = Series([True, False, True])
 
         for v in [True, 1, 2]:
-            result = Series([True, False, True], index=index) | v
-            expected = Series([True, True, True], index=index)
+            result = Series([True, False, True], index=) | v
+            expected = Series([True, True, True], index=)
             tm.assert_series_equal(result, expected)
 
         msg = "Cannot perform.+with a dtyped.+array and scalar of type"
@@ -440,18 +440,18 @@ class TestSeriesLogicalOps:
                 t | v
 
         for v in [False, 0]:
-            result = Series([True, False, True], index=index) | v
-            expected = Series([True, False, True], index=index)
+            result = Series([True, False, True], index=) | v
+            expected = Series([True, False, True], index=)
             tm.assert_series_equal(result, expected)
 
         for v in [True, 1]:
-            result = Series([True, False, True], index=index) & v
-            expected = Series([True, False, True], index=index)
+            result = Series([True, False, True], index=) & v
+            expected = Series([True, False, True], index=)
             tm.assert_series_equal(result, expected)
 
         for v in [False, 0]:
-            result = Series([True, False, True], index=index) & v
-            expected = Series([False, False, False], index=index)
+            result = Series([True, False, True], index=) & v
+            expected = Series([False, False, False], index=)
             tm.assert_series_equal(result, expected)
         msg = "Cannot perform.+with a dtyped.+array and scalar of type"
         for v in [np.nan]:

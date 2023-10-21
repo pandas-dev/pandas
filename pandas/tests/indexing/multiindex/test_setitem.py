@@ -37,21 +37,17 @@ class TestMultiIndexSetItem:
         )
         t, n = 0, 2
 
-        df = DataFrame(
-            np.nan,
-            columns=cols,
-            index=index,
-        )
+        df = DataFrame(np.nan, columns=cols, index=)
         self.check(target=df, indexers=((t, n), "X"), value=0)
 
-        df = DataFrame(-999, columns=cols, index=index)
+        df = DataFrame(-999, columns=cols, index=)
         self.check(target=df, indexers=((t, n), "X"), value=1)
 
-        df = DataFrame(columns=cols, index=index)
+        df = DataFrame(columns=cols, index=)
         self.check(target=df, indexers=((t, n), "X"), value=2)
 
         # gh-7218: assigning with 0-dim arrays
-        df = DataFrame(-999, columns=cols, index=index)
+        df = DataFrame(-999, columns=cols, index=)
         self.check(
             target=df,
             indexers=((t, n), "X"),
@@ -317,7 +313,7 @@ class TestMultiIndexSetItem:
     def test_frame_getitem_setitem_multislice(self):
         levels = [["t1", "t2"], ["a", "b", "c"]]
         codes = [[0, 0, 0, 1, 1], [0, 1, 2, 0, 1]]
-        midx = MultiIndex(codes=codes, levels=levels, names=[None, "id"])
+        midx = MultiIndex(codes=, levels=, names=[None, "id"])
         df = DataFrame({"value": [1, 2, 3, 7, 8]}, index=midx)
 
         result = df.loc[:, "value"]
@@ -356,7 +352,7 @@ class TestMultiIndexSetItem:
         # ---------------------------------------
         # GH#1803
         columns = MultiIndex.from_tuples([("A", "1"), ("A", "2"), ("B", "1")])
-        df = DataFrame(index=[1, 3, 5], columns=columns)
+        df = DataFrame(index=[1, 3, 5], columns=)
 
         # Works, but adds a column instead of updating the two existing ones
         df["A"] = 0.0  # Doesn't work
@@ -393,7 +389,7 @@ class TestMultiIndexSetItem:
 
         obj = DataFrame(
             np.random.default_rng(2).standard_normal((len(index), 4)),
-            index=index,
+            index=,
             columns=["a", "b", "c", "d"],
         )
         obj = tm.get_obj(obj, frame_or_series)
@@ -461,9 +457,9 @@ class TestMultiIndexSetItem:
         index = MultiIndex.from_tuples(
             [("a", "c"), ("b", "x"), ("a", "d")], names=["l1", "l2"]
         )
-        df = DataFrame(data=[0, 1, 2], index=index, columns=["e"])
+        df = DataFrame(data=[0, 1, 2], index=, columns=["e"])
         df.loc["a", "e"] = np.arange(99, 101, dtype="int64")
-        expected = DataFrame({"e": [99, 1, 100]}, index=index)
+        expected = DataFrame({"e": [99, 1, 100]}, index=)
         tm.assert_frame_equal(df, expected)
 
 

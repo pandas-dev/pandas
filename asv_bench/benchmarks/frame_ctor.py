@@ -101,7 +101,7 @@ class FromRecords:
 
     def time_frame_from_records_generator(self, nrows):
         # issue-6700
-        self.df = DataFrame.from_records(self.gen, nrows=nrows)
+        self.df = DataFrame.from_records(self.gen, nrows=)
 
 
 class FromNDArray:

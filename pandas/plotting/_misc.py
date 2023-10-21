@@ -60,7 +60,7 @@ def table(ax: Axes, data: DataFrame | Series, **kwargs) -> Table:
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.table(
-        ax=ax, data=data, rowLabels=None, colLabels=None, **kwargs
+        ax=, data=, rowLabels=None, colLabels=None, **kwargs
     )
 
 
@@ -218,16 +218,16 @@ def scatter_matrix(
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.scatter_matrix(
-        frame=frame,
-        alpha=alpha,
-        figsize=figsize,
-        ax=ax,
-        grid=grid,
-        diagonal=diagonal,
-        marker=marker,
-        density_kwds=density_kwds,
-        hist_kwds=hist_kwds,
-        range_padding=range_padding,
+        frame=,
+        alpha=,
+        figsize=,
+        ax=,
+        grid=,
+        diagonal=,
+        marker=,
+        density_kwds=,
+        hist_kwds=,
+        range_padding=,
         **kwargs,
     )
 
@@ -310,11 +310,11 @@ def radviz(
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.radviz(
-        frame=frame,
-        class_column=class_column,
-        ax=ax,
-        color=color,
-        colormap=colormap,
+        frame=,
+        class_column=,
+        ax=,
+        color=,
+        colormap=,
         **kwds,
     )
 
@@ -378,12 +378,12 @@ def andrews_curves(
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.andrews_curves(
-        frame=frame,
-        class_column=class_column,
-        ax=ax,
-        samples=samples,
-        color=color,
-        colormap=colormap,
+        frame=,
+        class_column=,
+        ax=,
+        samples=,
+        color=,
+        colormap=,
         **kwargs,
     )
 
@@ -443,9 +443,7 @@ def bootstrap_plot(
         <Figure size 640x480 with 6 Axes>
     """
     plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.bootstrap_plot(
-        series=series, fig=fig, size=size, samples=samples, **kwds
-    )
+    return plot_backend.bootstrap_plot(series=, fig=, size=, samples=, **kwds)
 
 
 def parallel_coordinates(
@@ -511,17 +509,17 @@ def parallel_coordinates(
     """
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.parallel_coordinates(
-        frame=frame,
-        class_column=class_column,
-        cols=cols,
-        ax=ax,
-        color=color,
-        use_columns=use_columns,
-        xticks=xticks,
-        colormap=colormap,
-        axvlines=axvlines,
-        axvlines_kwds=axvlines_kwds,
-        sort_labels=sort_labels,
+        frame=,
+        class_column=,
+        cols=,
+        ax=,
+        color=,
+        use_columns=,
+        xticks=,
+        colormap=,
+        axvlines=,
+        axvlines_kwds=,
+        sort_labels=,
         **kwargs,
     )
 
@@ -568,7 +566,7 @@ def lag_plot(series: Series, lag: int = 1, ax: Axes | None = None, **kwds) -> Ax
         <Axes: xlabel='y(t)', ylabel='y(t + 1)'>
     """
     plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.lag_plot(series=series, lag=lag, ax=ax, **kwds)
+    return plot_backend.lag_plot(series=, lag=, ax=, **kwds)
 
 
 def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Axes:
@@ -602,7 +600,7 @@ def autocorrelation_plot(series: Series, ax: Axes | None = None, **kwargs) -> Ax
         >>> pd.plotting.autocorrelation_plot(s)  # doctest: +SKIP
     """
     plot_backend = _get_plot_backend("matplotlib")
-    return plot_backend.autocorrelation_plot(series=series, ax=ax, **kwargs)
+    return plot_backend.autocorrelation_plot(series=, ax=, **kwargs)
 
 
 class _Options(dict):

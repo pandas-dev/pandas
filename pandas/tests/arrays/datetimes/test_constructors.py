@@ -81,7 +81,7 @@ class TestDatetimeArrayConstructor:
         dtype = DatetimeTZDtype(tz="US/Eastern")
         msg = r"dtype=datetime64\[ns.*\] does not match data dtype datetime64\[ns.*\]"
         with pytest.raises(TypeError, match=msg):
-            DatetimeArray(arr, dtype=dtype)
+            DatetimeArray(arr, dtype=)
 
         # also with mismatched tzawareness
         with pytest.raises(TypeError, match=msg):
@@ -149,8 +149,8 @@ class TestSequenceToDT64NS:
 
     def test_tz_dtype_matches(self):
         dtype = DatetimeTZDtype(tz="US/Central")
-        arr = DatetimeArray._from_sequence(["2000"], dtype=dtype)
-        result = DatetimeArray._from_sequence_not_strict(arr, dtype=dtype)
+        arr = DatetimeArray._from_sequence(["2000"], dtype=)
+        result = DatetimeArray._from_sequence_not_strict(arr, dtype=)
         tm.assert_equal(arr, result)
 
     @pytest.mark.parametrize("order", ["F", "C"])
@@ -206,7 +206,7 @@ def test_from_arrowtest_from_arrow_with_different_units_and_timezones_with_(
     result = dtype.__from_arrow__(arr)
     expected = DatetimeArray(
         np.array(data, dtype=f"datetime64[{pa_unit}]").astype(f"datetime64[{pd_unit}]"),
-        dtype=dtype,
+        dtype=,
     )
     tm.assert_extension_array_equal(result, expected)
 
@@ -229,11 +229,11 @@ def test_from_arrow_from_empty(unit, tz):
 
     data = []
     arr = pa.array(data)
-    dtype = DatetimeTZDtype(unit=unit, tz=tz)
+    dtype = DatetimeTZDtype(unit=, tz=)
 
     result = dtype.__from_arrow__(arr)
     expected = DatetimeArray(np.array(data, dtype=f"datetime64[{unit}]"))
-    expected = expected.tz_localize(tz=tz)
+    expected = expected.tz_localize(tz=)
     tm.assert_extension_array_equal(result, expected)
 
     result = dtype.__from_arrow__(pa.chunked_array([arr]))

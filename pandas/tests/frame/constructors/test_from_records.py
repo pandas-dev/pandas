@@ -98,20 +98,20 @@ class TestFromRecords:
         lists = [list(x) for x in tuples]
 
         # tuples (lose the dtype info)
-        result = DataFrame.from_records(tuples, columns=columns).reindex(
+        result = DataFrame.from_records(tuples, columns=).reindex(
             columns=df.columns
         )
 
         # created recarray and with to_records recarray (have dtype info)
-        result2 = DataFrame.from_records(recarray, columns=columns).reindex(
+        result2 = DataFrame.from_records(recarray, columns=).reindex(
             columns=df.columns
         )
-        result3 = DataFrame.from_records(recarray2, columns=columns).reindex(
+        result3 = DataFrame.from_records(recarray2, columns=).reindex(
             columns=df.columns
         )
 
         # list of tupels (no dtype info)
-        result4 = DataFrame.from_records(lists, columns=columns).reindex(
+        result4 = DataFrame.from_records(lists, columns=).reindex(
             columns=df.columns
         )
 
@@ -129,7 +129,7 @@ class TestFromRecords:
         columns_to_test = [columns.index("C"), columns.index("E1")]
 
         exclude = list(set(range(8)) - set(columns_to_test))
-        result = DataFrame.from_records(tuples, exclude=exclude)
+        result = DataFrame.from_records(tuples, exclude=)
         result.columns = [columns[i] for i in sorted(columns_to_test)]
         tm.assert_series_equal(result["C"], df["C"])
         tm.assert_series_equal(result["E1"], df["E1"])
@@ -181,10 +181,10 @@ class TestFromRecords:
         results = []
         results.append(DataFrame.from_records(asdict).reindex(columns=df.columns))
         results.append(
-            DataFrame.from_records(asdict, columns=columns).reindex(columns=df.columns)
+            DataFrame.from_records(asdict, columns=).reindex(columns=df.columns)
         )
         results.append(
-            DataFrame.from_records(asdict2, columns=columns).reindex(columns=df.columns)
+            DataFrame.from_records(asdict2, columns=).reindex(columns=df.columns)
         )
 
         for r in results:
@@ -266,10 +266,10 @@ class TestFromRecords:
         index = CategoricalIndex(
             [Interval(-20, -10), Interval(-10, 0), Interval(0, 10)]
         )
-        series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=index)
-        frame = DataFrame.from_records(series_of_dicts, index=index)
+        series_of_dicts = Series([{"a": 1}, {"a": 2}, {"b": 3}], index=)
+        frame = DataFrame.from_records(series_of_dicts, index=)
         expected = DataFrame(
-            {"a": [1, 2, np.nan], "b": [np.nan, np.nan, 3]}, index=index
+            {"a": [1, 2, np.nan], "b": [np.nan, np.nan, 3]}, index=
         )
         tm.assert_frame_equal(frame, expected)
 
@@ -287,7 +287,7 @@ class TestFromRecords:
         DataFrame.from_records(arr)
 
         index = Index(np.arange(len(arr))[::-1])
-        indexed_frame = DataFrame.from_records(arr, index=index)
+        indexed_frame = DataFrame.from_records(arr, index=)
         tm.assert_index_equal(indexed_frame.index, index)
 
         # without names, it should go to last ditch
@@ -385,7 +385,7 @@ class TestFromRecords:
         columns = ["a", "b", "c"]
         original_columns = list(columns)
 
-        DataFrame.from_records(tuples, columns=columns, index="a")
+        DataFrame.from_records(tuples, columns=, index="a")
 
         assert columns == original_columns
 
@@ -489,7 +489,7 @@ class TestFromRecords:
         # GH#42456
         dtype = [("prop", int)]
         shape = (0, len(dtype))
-        arr = np.empty(shape, dtype=dtype)
+        arr = np.empty(shape, dtype=)
 
         result = DataFrame.from_records(arr)
         expected = DataFrame({"prop": np.array([], dtype=int)})

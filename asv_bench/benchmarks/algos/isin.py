@@ -60,7 +60,7 @@ class IsIn:
 
         elif dtype in ["str", "string[python]", "string[pyarrow]"]:
             try:
-                self.series = Series(tm.makeStringIndex(N), dtype=dtype)
+                self.series = Series(tm.makeStringIndex(N), dtype=)
             except ImportError:
                 raise NotImplementedError
             self.values = list(self.series[:2])
@@ -191,7 +191,7 @@ class IsInFloat64:
     def setup(self, dtype, title):
         N_many = 10**5
         N_few = 10**6
-        self.series = Series([1, 2], dtype=dtype)
+        self.series = Series([1, 2], dtype=)
 
         if title == "many_different_values":
             # runtime is dominated by creation of the lookup-table

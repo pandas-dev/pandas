@@ -92,16 +92,16 @@ def test_str_cat_categorical(index_or_series, dtype_caller, dtype_target, sep):
     expected = expected if box == Index else Series(expected, index=s)
 
     # Series/Index with unaligned Index -> t.values
-    result = s.str.cat(t.values, sep=sep)
+    result = s.str.cat(t.values, sep=)
     tm.assert_equal(result, expected)
 
     # Series/Index with Series having matching Index
     t = Series(t.values, index=s)
-    result = s.str.cat(t, sep=sep)
+    result = s.str.cat(t, sep=)
     tm.assert_equal(result, expected)
 
     # Series/Index with Series.values
-    result = s.str.cat(t.values, sep=sep)
+    result = s.str.cat(t.values, sep=)
     tm.assert_equal(result, expected)
 
     # Series/Index with Series having different Index
@@ -109,7 +109,7 @@ def test_str_cat_categorical(index_or_series, dtype_caller, dtype_target, sep):
     expected = Index(["aa", "aa", "bb", "bb", "aa"])
     expected = expected if box == Index else Series(expected, index=expected.str[:1])
 
-    result = s.str.cat(t, sep=sep)
+    result = s.str.cat(t, sep=)
     tm.assert_equal(result, expected)
 
 
@@ -244,7 +244,7 @@ def test_str_cat_align_indexed(index_or_series, join):
 
     s = Series(["a", "b", "c", "d"], index=["a", "b", "c", "d"])
     t = Series(["D", "A", "E", "B"], index=["d", "a", "e", "b"])
-    sa, ta = s.align(t, join=join)
+    sa, ta = s.align(t, join=)
     # result after manual alignment of inputs
     expected = sa.str.cat(ta, na_rep="-")
 
@@ -253,7 +253,7 @@ def test_str_cat_align_indexed(index_or_series, join):
         sa = Index(sa)
         expected = Index(expected)
 
-    result = s.str.cat(t, join=join, na_rep="-")
+    result = s.str.cat(t, join=, na_rep="-")
     tm.assert_equal(result, expected)
 
 
@@ -267,11 +267,11 @@ def test_str_cat_align_mixed_inputs(join):
     expected = expected_outer.loc[s.index.join(t.index, how=join)]
 
     # list of Series
-    result = s.str.cat([t, t], join=join, na_rep="-")
+    result = s.str.cat([t, t], join=, na_rep="-")
     tm.assert_series_equal(result, expected)
 
     # DataFrame
-    result = s.str.cat(d, join=join, na_rep="-")
+    result = s.str.cat(d, join=, na_rep="-")
     tm.assert_series_equal(result, expected)
 
     # mixed list of indexed/unindexed
@@ -287,12 +287,12 @@ def test_str_cat_align_mixed_inputs(join):
     )
 
     expected = expected_outer.loc[s.index.join(rhs_idx, how=join)]
-    result = s.str.cat([t, u], join=join, na_rep="-")
+    result = s.str.cat([t, u], join=, na_rep="-")
     tm.assert_series_equal(result, expected)
 
     with pytest.raises(TypeError, match="others must be Series,.*"):
         # nested lists are forbidden
-        s.str.cat([t, list(u)], join=join)
+        s.str.cat([t, list(u)], join=)
 
     # errors for incorrect lengths
     rgx = r"If `others` contains arrays or lists \(or other list-likes.*"
@@ -300,11 +300,11 @@ def test_str_cat_align_mixed_inputs(join):
 
     # unindexed object of wrong length
     with pytest.raises(ValueError, match=rgx):
-        s.str.cat(z, join=join)
+        s.str.cat(z, join=)
 
     # unindexed object of wrong length in list
     with pytest.raises(ValueError, match=rgx):
-        s.str.cat([t, z], join=join)
+        s.str.cat([t, z], join=)
 
 
 def test_str_cat_all_na(index_or_series, index_or_series2):

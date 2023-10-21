@@ -67,12 +67,12 @@ def test_orc_reader_empty(dirpath):
     ]
     expected = pd.DataFrame(index=pd.RangeIndex(0))
     for colname, dtype in zip(columns, dtypes):
-        expected[colname] = pd.Series(dtype=dtype)
+        expected[colname] = pd.Series(dtype=)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.emptyFile.orc")
     msg = "Passing a BlockManager to DataFrame is deprecated"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        got = read_orc(inputfile, columns=columns)
+        got = read_orc(inputfile, columns=)
 
     tm.assert_equal(expected, got)
 
@@ -422,7 +422,7 @@ def test_orc_uri_path():
     ],
 )
 def test_to_orc_non_default_index(index):
-    df = pd.DataFrame({"a": [1, 2, 3]}, index=index)
+    df = pd.DataFrame({"a": [1, 2, 3]}, index=)
     msg = (
         "orc does not support serializing a non-default index|"
         "orc does not serialize index meta-data"

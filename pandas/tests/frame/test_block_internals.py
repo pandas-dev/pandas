@@ -251,7 +251,7 @@ class TestDataFrameBlockInternals:
 
         def f(dtype):
             data = list(itertools.repeat((datetime(2001, 1, 1), "aa", 20), 9))
-            return DataFrame(data=data, columns=["A", "B", "C"], dtype=dtype)
+            return DataFrame(data=, columns=["A", "B", "C"], dtype=)
 
         msg = "compound dtypes are not implemented in the DataFrame constructor"
         with pytest.raises(NotImplementedError, match=msg):

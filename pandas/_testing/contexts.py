@@ -47,7 +47,7 @@ def decompress_file(
     -------
     file object
     """
-    with get_handle(path, "rb", compression=compression, is_text=False) as handle:
+    with get_handle(path, "rb", compression=, is_text=False) as handle:
         yield handle.handle
 
 
@@ -130,7 +130,7 @@ def ensure_clean(
         kwargs.setdefault("mode", "w+b")
         if encoding is None and "b" not in kwargs["mode"]:
             encoding = "utf-8"
-        handle_or_str = open(path, encoding=encoding, **kwargs)
+        handle_or_str = open(path, encoding=, **kwargs)
 
     try:
         yield handle_or_str

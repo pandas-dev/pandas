@@ -56,12 +56,12 @@ def _cum_func(
 
 
 def cumsum(values: np.ndarray, *, skipna: bool = True) -> np.ndarray:
-    return _cum_func(np.cumsum, values, skipna=skipna)
+    return _cum_func(np.cumsum, values, skipna=)
 
 
 def cummin(values: np.ndarray, *, skipna: bool = True):
-    return _cum_func(np.minimum.accumulate, values, skipna=skipna)
+    return _cum_func(np.minimum.accumulate, values, skipna=)
 
 
 def cummax(values: np.ndarray, *, skipna: bool = True):
-    return _cum_func(np.maximum.accumulate, values, skipna=skipna)
+    return _cum_func(np.maximum.accumulate, values, skipna=)

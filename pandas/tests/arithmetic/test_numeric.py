@@ -75,8 +75,8 @@ def compare_op(series, other, op):
 #  See GH#29725
 _ldtypes = ["i1", "i2", "i4", "i8", "u1", "u2", "u4", "u8", "f2", "f4", "f8"]
 lefts: list[Index | Series] = [RangeIndex(10, 40, 10)]
-lefts.extend([Series([10, 20, 30], dtype=dtype) for dtype in _ldtypes])
-lefts.extend([Index([10, 20, 30], dtype=dtype) for dtype in _ldtypes if dtype != "f2"])
+lefts.extend([Series([10, 20, 30], dtype=) for dtype in _ldtypes])
+lefts.extend([Index([10, 20, 30], dtype=) for dtype in _ldtypes if dtype != "f2"])
 
 # ------------------------------------------------------------------
 # Comparisons
@@ -988,9 +988,9 @@ class TestAdditionSubtraction:
     def test_frame_operators_empty_like(self, dtype):
         # Test for issue #10181
         frames = [
-            pd.DataFrame(dtype=dtype),
-            pd.DataFrame(columns=["A"], dtype=dtype),
-            pd.DataFrame(index=[0], dtype=dtype),
+            pd.DataFrame(dtype=),
+            pd.DataFrame(columns=["A"], dtype=),
+            pd.DataFrame(index=[0], dtype=),
         ]
         for df in frames:
             assert (df + df).equals(df)
@@ -1075,16 +1075,16 @@ class TestUFuncCompat:
                 pytest.skip(f"dtype {dtype} not relevant for RangeIndex")
             idx = RangeIndex(0, 5, name="foo")
         else:
-            idx = holder(np.arange(5, dtype=dtype), name="foo")
+            idx = holder(np.arange(5, dtype=), name="foo")
         result = np.sin(idx)
-        expected = box(np.sin(np.arange(5, dtype=dtype)), name="foo")
+        expected = box(np.sin(np.arange(5, dtype=)), name="foo")
         tm.assert_equal(result, expected)
 
     # TODO: add more dtypes
     @pytest.mark.parametrize("holder", [Index, Series])
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_ufunc_coercions(self, holder, dtype):
-        idx = holder([1, 2, 3, 4, 5], dtype=dtype, name="x")
+        idx = holder([1, 2, 3, 4, 5], dtype=, name="x")
         box = Series if holder is Series else Index
 
         result = np.sqrt(idx)
@@ -1128,7 +1128,7 @@ class TestUFuncCompat:
     @pytest.mark.parametrize("holder", [Index, Series])
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_ufunc_multiple_return_values(self, holder, dtype):
-        obj = holder([1, 2, 3], dtype=dtype, name="x")
+        obj = holder([1, 2, 3], dtype=, name="x")
         box = Series if holder is Series else Index
 
         result = np.modf(obj)
@@ -1151,8 +1151,8 @@ class TestObjectDtypeEquivalence:
     @pytest.mark.parametrize("dtype", [None, object])
     def test_numarr_with_dtype_add_nan(self, dtype, box_with_array):
         box = box_with_array
-        ser = Series([1, 2, 3], dtype=dtype)
-        expected = Series([np.nan, np.nan, np.nan], dtype=dtype)
+        ser = Series([1, 2, 3], dtype=)
+        expected = Series([np.nan, np.nan, np.nan], dtype=)
 
         ser = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, box)
@@ -1166,8 +1166,8 @@ class TestObjectDtypeEquivalence:
     @pytest.mark.parametrize("dtype", [None, object])
     def test_numarr_with_dtype_add_int(self, dtype, box_with_array):
         box = box_with_array
-        ser = Series([1, 2, 3], dtype=dtype)
-        expected = Series([2, 3, 4], dtype=dtype)
+        ser = Series([1, 2, 3], dtype=)
+        expected = Series([2, 3, 4], dtype=)
 
         ser = tm.box_expected(ser, box)
         expected = tm.box_expected(expected, box)
@@ -1379,14 +1379,14 @@ class TestNumericArithmeticUnsorted:
     def test_addsub_arithmetic(self, dtype, delta):
         # GH#8142
         delta = dtype(delta)
-        index = Index([10, 11, 12], dtype=dtype)
+        index = Index([10, 11, 12], dtype=)
         result = index + delta
-        expected = Index(index.values + delta, dtype=dtype)
+        expected = Index(index.values + delta, dtype=)
         tm.assert_index_equal(result, expected)
 
         # this subtraction used to fail
         result = index - delta
-        expected = Index(index.values - delta, dtype=dtype)
+        expected = Index(index.values - delta, dtype=)
         tm.assert_index_equal(result, expected)
 
         tm.assert_index_equal(index + index, 2 * index)

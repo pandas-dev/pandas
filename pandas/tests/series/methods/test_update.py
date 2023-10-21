@@ -66,7 +66,7 @@ class TestUpdate:
         ],
     )
     def test_update_dtypes(self, other, dtype, expected, warn):
-        ser = Series([10, 11, 12], dtype=dtype)
+        ser = Series([10, 11, 12], dtype=)
         other = Series(other, index=[1, 3])
         with tm.assert_produces_warning(warn, match="item of incompatible dtype"):
             ser.update(other)
@@ -119,9 +119,9 @@ class TestUpdate:
         ],
     )
     def test_update_extension_array_series(self, data, other, expected, dtype):
-        result = Series(data, dtype=dtype)
-        other = Series(other, dtype=dtype)
-        expected = Series(expected, dtype=dtype)
+        result = Series(data, dtype=)
+        other = Series(other, dtype=)
+        expected = Series(expected, dtype=)
 
         result.update(other)
         tm.assert_series_equal(result, expected)
@@ -129,9 +129,9 @@ class TestUpdate:
     def test_update_with_categorical_type(self):
         # GH 25744
         dtype = CategoricalDtype(["a", "b", "c", "d"])
-        s1 = Series(["a", "b", "c"], index=[1, 2, 3], dtype=dtype)
-        s2 = Series(["b", "a"], index=[1, 2], dtype=dtype)
+        s1 = Series(["a", "b", "c"], index=[1, 2, 3], dtype=)
+        s2 = Series(["b", "a"], index=[1, 2], dtype=)
         s1.update(s2)
         result = s1
-        expected = Series(["b", "a", "c"], index=[1, 2, 3], dtype=dtype)
+        expected = Series(["b", "a", "c"], index=[1, 2, 3], dtype=)
         tm.assert_series_equal(result, expected)

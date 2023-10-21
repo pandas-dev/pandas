@@ -110,7 +110,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         from pandas import Series
         from pandas.core.arrays.sparse.scipy_sparse import coo_to_sparse_series
 
-        result = coo_to_sparse_series(A, dense_index=dense_index)
+        result = coo_to_sparse_series(A, dense_index=)
         result = Series(result.array, index=result.index, copy=False)
 
         return result
@@ -193,7 +193,7 @@ class SparseAccessor(BaseAccessor, PandasDelegate):
         from pandas.core.arrays.sparse.scipy_sparse import sparse_series_to_coo
 
         A, rows, columns = sparse_series_to_coo(
-            self._parent, row_levels, column_levels, sort_labels=sort_labels
+            self._parent, row_levels, column_levels, sort_labels=
         )
         return A, rows, columns
 
@@ -300,7 +300,7 @@ class SparseFrameAccessor(BaseAccessor, PandasDelegate):
             arr = SparseArray._simple_new(array_data[sl], idx, dtype)
             arrays.append(arr)
         return DataFrame._from_arrays(
-            arrays, columns=columns, index=index, verify_integrity=False
+            arrays, columns=, index=, verify_integrity=False
         )
 
     def to_dense(self) -> DataFrame:

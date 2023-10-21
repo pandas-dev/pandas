@@ -76,7 +76,7 @@ def test_groupby_resample_api():
         + date_range("2016-01-17", periods=8).tolist()
     )
     index = pd.MultiIndex.from_arrays([[1] * 8 + [2] * 8, i], names=["group", "date"])
-    expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=index)
+    expected = DataFrame({"val": [5] * 7 + [6] + [7] * 7 + [8]}, index=)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("group").apply(lambda x: x.resample("1D").ffill())[["val"]]
@@ -281,7 +281,7 @@ def test_transform_frame(on):
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
     df = DataFrame(
-        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=
     )
     expected = df.groupby(pd.Grouper(freq="20min")).transform("mean")
     if on == "date":
@@ -289,7 +289,7 @@ def test_transform_frame(on):
         expected = expected.reset_index(drop=True)
         df = df.reset_index()
 
-    r = df.resample("20min", on=on)
+    r = df.resample("20min", on=)
     result = r.transform("mean")
     tm.assert_frame_equal(result, expected)
 
@@ -382,7 +382,7 @@ def test_agg():
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
     df = DataFrame(
-        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=
     )
     df_col = df.reset_index()
     df_mult = df_col.copy()
@@ -496,7 +496,7 @@ def test_agg_misc():
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
     df = DataFrame(
-        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=
     )
     df_col = df.reset_index()
     df_mult = df_col.copy()
@@ -595,7 +595,7 @@ def test_multi_agg_axis_1_raises(func):
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
     df = DataFrame(
-        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=
     ).T
     warning_msg = "DataFrame.resample with axis=1 is deprecated."
     with tm.assert_produces_warning(FutureWarning, match=warning_msg):
@@ -610,7 +610,7 @@ def test_agg_nested_dicts():
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
     df = DataFrame(
-        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=
     )
     df_col = df.reset_index()
     df_mult = df_col.copy()
@@ -689,7 +689,7 @@ def test_selection_api_validation():
         {"date": index, "a": rng},
         index=pd.MultiIndex.from_arrays([rng, index], names=["v", "d"]),
     )
-    df_exp = DataFrame({"a": rng}, index=index)
+    df_exp = DataFrame({"a": rng}, index=)
 
     # non DatetimeIndex
     msg = (
@@ -764,7 +764,7 @@ def test_resample_agg_readonly():
     arr = np.zeros_like(index)
     arr.setflags(write=False)
 
-    ser = Series(arr, index=index)
+    ser = Series(arr, index=)
     rs = ser.resample("1D")
 
     expected = Series([pd.Timestamp(0), pd.Timestamp(0)], index=index[::24])
@@ -847,10 +847,10 @@ def test_end_and_end_day_origin(
     exp_end,
     exp_periods,
 ):
-    rng = date_range(start, end, freq=freq)
+    rng = date_range(start, end, freq=)
     ts = Series(data, index=rng)
 
-    res = ts.resample(resample_freq, origin=origin, closed=closed).sum()
+    res = ts.resample(resample_freq, origin=, closed=).sum()
     expected = Series(
         exp_data,
         index=date_range(end=exp_end, freq=resample_freq, periods=exp_periods),
@@ -903,7 +903,7 @@ def test_frame_downsample_method(method, numeric_only, expected_data):
 
     index = date_range("2018-01-01", periods=2, freq="D")
     expected_index = date_range("2018-12-31", periods=1, freq="Y")
-    df = DataFrame({"cat": ["cat_1", "cat_2"], "num": [5, 20]}, index=index)
+    df = DataFrame({"cat": ["cat_1", "cat_2"], "num": [5, 20]}, index=)
     resampled = df.resample("Y")
     if numeric_only is lib.no_default:
         kwargs = {}
@@ -954,7 +954,7 @@ def test_series_downsample_method(method, numeric_only, expected_data):
 
     index = date_range("2018-01-01", periods=2, freq="D")
     expected_index = date_range("2018-12-31", periods=1, freq="Y")
-    df = Series(["cat_1", "cat_2"], index=index)
+    df = Series(["cat_1", "cat_2"], index=)
     resampled = df.resample("Y")
     kwargs = {} if numeric_only is lib.no_default else {"numeric_only": numeric_only}
 
@@ -993,7 +993,7 @@ def test_series_downsample_method(method, numeric_only, expected_data):
 )
 def test_args_kwargs_depr(method, raises):
     index = date_range("20180101", periods=3, freq="h")
-    df = Series([2, 4, 6], index=index)
+    df = Series([2, 4, 6], index=)
     resampled = df.resample("30min")
     args = ()
 
@@ -1017,7 +1017,7 @@ def test_df_axis_param_depr():
     index = date_range(datetime(2005, 1, 1), datetime(2005, 1, 10), freq="D")
     index.name = "date"
     df = DataFrame(
-        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=index
+        np.random.default_rng(2).random((10, 2)), columns=list("AB"), index=
     ).T
 
     # Deprecation error when axis=1 is explicitly passed

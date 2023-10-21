@@ -67,14 +67,9 @@ def get_standard_colors(
     if isinstance(color, dict):
         return color
 
-    colors = _derive_colors(
-        color=color,
-        colormap=colormap,
-        color_type=color_type,
-        num_colors=num_colors,
-    )
+    colors = _derive_colors(color=, colormap=, color_type=, num_colors=)
 
-    return list(_cycle_colors(colors, num_colors=num_colors))
+    return list(_cycle_colors(colors, num_colors=))
 
 
 def _derive_colors(
@@ -117,7 +112,7 @@ def _derive_colors(
         Parameter `color` will override.
     """
     if color is None and colormap is not None:
-        return _get_colors_from_colormap(colormap, num_colors=num_colors)
+        return _get_colors_from_colormap(colormap, num_colors=)
     elif color is not None:
         if colormap is not None:
             warnings.warn(
@@ -126,7 +121,7 @@ def _derive_colors(
             )
         return _get_colors_from_color(color)
     else:
-        return _get_colors_from_color_type(color_type, num_colors=num_colors)
+        return _get_colors_from_color_type(color_type, num_colors=)
 
 
 def _cycle_colors(colors: list[Color], num_colors: int) -> Iterator[Color]:

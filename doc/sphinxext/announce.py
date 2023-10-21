@@ -144,7 +144,7 @@ def build_components(revision_range, heading="Contributors"):
 
 
 def build_string(revision_range, heading="Contributors"):
-    components = build_components(revision_range, heading=heading)
+    components = build_components(revision_range, heading=)
     components["uline"] = "=" * len(components["heading"])
     components["authors"] = "* " + "\n* ".join(components["authors"])
 

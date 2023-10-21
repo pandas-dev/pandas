@@ -53,7 +53,7 @@ class TestTruncate:
         before = pd.Timestamp("2020-08-02")
         after = pd.Timestamp("2020-08-04")
 
-        result = series.truncate(before=before, after=after)
+        result = series.truncate(before=, after=)
 
         # the input Series and the expected Series are the same
         tm.assert_series_equal(result, series)

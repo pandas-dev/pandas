@@ -96,9 +96,9 @@ class TestDataFrameReplace:
         df = DataFrame({"a": list("ab.."), "b": list("efgh"), "c": list("helo")})
 
         if use_value_regex_args:
-            result = df.replace(value=values, regex=to_replace, inplace=inplace)
+            result = df.replace(value=values, regex=to_replace, inplace=)
         else:
-            result = df.replace(to_replace, values, regex=True, inplace=inplace)
+            result = df.replace(to_replace, values, regex=True, inplace=)
 
         if inplace:
             assert result is None
@@ -281,8 +281,8 @@ class TestDataFrameReplace:
     def test_regex_replace_dict_nested_non_first_character(self, any_string_dtype):
         # GH 25259
         dtype = any_string_dtype
-        df = DataFrame({"first": ["abc", "bca", "cab"]}, dtype=dtype)
-        expected = DataFrame({"first": [".bc", "bc.", "c.b"]}, dtype=dtype)
+        df = DataFrame({"first": ["abc", "bca", "cab"]}, dtype=)
+        expected = DataFrame({"first": [".bc", "bc.", "c.b"]}, dtype=)
         result = df.replace({"a": "."}, regex=True)
         tm.assert_frame_equal(result, expected)
 
@@ -419,9 +419,9 @@ class TestDataFrameReplace:
     ):
         # GH-41333, GH-35977
         dtype = any_string_dtype
-        obj = frame_or_series(data, dtype=dtype)
+        obj = frame_or_series(data, dtype=)
         result = obj.replace(to_replace, regex=True)
-        expected = frame_or_series(expected, dtype=dtype)
+        expected = frame_or_series(expected, dtype=)
 
         tm.assert_equal(result, expected)
 
@@ -637,7 +637,7 @@ class TestDataFrameReplace:
     @pytest.mark.parametrize("dtype", ["boolean", "Int64", "Float64"])
     def test_replace_with_nullable_column(self, dtype):
         # GH-44499
-        nullable_ser = Series([1, 0, 1], dtype=dtype)
+        nullable_ser = Series([1, 0, 1], dtype=)
         df = DataFrame({"A": ["A", "B", "x"], "B": nullable_ser})
         result = df.replace("x", "X")
         expected = DataFrame({"A": ["A", "B", "X"], "B": nullable_ser})
@@ -1259,7 +1259,7 @@ class TestDataFrameReplace:
 
         msg = "The 'method' keyword in DataFrame.replace is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.replace(to_replace=to_replace, value=None, method=method)
+            result = df.replace(to_replace=, value=None, method=)
         expected = DataFrame(expected)
         tm.assert_frame_equal(result, expected)
 
@@ -1364,8 +1364,8 @@ class TestDataFrameReplace:
     @pytest.mark.parametrize("value", [np.nan, pd.NA])
     def test_replace_no_replacement_dtypes(self, dtype, value):
         # https://github.com/pandas-dev/pandas/issues/32988
-        df = DataFrame(np.eye(2), dtype=dtype)
-        result = df.replace(to_replace=[None, -np.inf, np.inf], value=value)
+        df = DataFrame(np.eye(2), dtype=)
+        result = df.replace(to_replace=[None, -np.inf, np.inf], value=)
         tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize("replacement", [np.nan, 5])
@@ -1568,7 +1568,7 @@ class TestDataFrameReplaceRegex:
         else:
             regex = True
 
-        result = df.replace(to_replace, value, inplace=inplace, regex=regex)
+        result = df.replace(to_replace, value, inplace=, regex=)
 
         if inplace:
             assert result is None
@@ -1589,13 +1589,13 @@ class TestDataFrameReplaceRegex:
         expected_df1 = DataFrame({"A": [1], "B": [1]})
         msg = "Downcasting behavior in `replace`"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result_df1 = df1.replace(to_replace="0", value=1, regex=regex)
+            result_df1 = df1.replace(to_replace="0", value=1, regex=)
         tm.assert_frame_equal(result_df1, expected_df1)
 
         df2 = DataFrame({"A": ["0"], "B": ["1"]})
         expected_df2 = DataFrame({"A": [1], "B": ["1"]})
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result_df2 = df2.replace(to_replace="0", value=1, regex=regex)
+            result_df2 = df2.replace(to_replace="0", value=1, regex=)
         tm.assert_frame_equal(result_df2, expected_df2)
 
     def test_replace_with_value_also_being_replaced(self):

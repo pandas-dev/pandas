@@ -97,7 +97,7 @@ class TestSeriesPlots:
         ],
     )
     def test_plot_series_kinds(self, series, kind):
-        _check_plot_works(series[:5].plot, kind=kind)
+        _check_plot_works(series[:5].plot, kind=)
 
     def test_plot_series_barh(self, series):
         _check_plot_works(series[:10].plot.barh)
@@ -117,7 +117,7 @@ class TestSeriesPlots:
     def test_plot_figsize_and_title(self, series):
         # figsize and title
         _, ax = mpl.pyplot.subplots()
-        ax = series.plot(title="Test", figsize=(16, 8), ax=ax)
+        ax = series.plot(title="Test", figsize=(16, 8), ax=)
         _check_text_labels(ax.title, "Test")
         _check_axes_shape(ax, axes_num=1, layout=(1, 1), figsize=(16, 8))
 
@@ -126,13 +126,13 @@ class TestSeriesPlots:
         key = "axes.prop_cycle"
         colors = mpl.pyplot.rcParams[key]
         _, ax = mpl.pyplot.subplots()
-        Series([1, 2, 3]).plot(ax=ax)
+        Series([1, 2, 3]).plot(ax=)
         assert colors == mpl.pyplot.rcParams[key]
 
     @pytest.mark.parametrize("kwargs", [{}, {"secondary_y": True}])
     def test_ts_line_lim(self, ts, kwargs):
         _, ax = mpl.pyplot.subplots()
-        ax = ts.plot(ax=ax, **kwargs)
+        ax = ts.plot(ax=, **kwargs)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
         assert xmin <= lines[0].get_data(orig=False)[0][0]
@@ -140,7 +140,7 @@ class TestSeriesPlots:
 
     def test_ts_area_lim(self, ts):
         _, ax = mpl.pyplot.subplots()
-        ax = ts.plot.area(stacked=False, ax=ax)
+        ax = ts.plot.area(stacked=False, ax=)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
@@ -150,7 +150,7 @@ class TestSeriesPlots:
     def test_ts_area_lim_xcompat(self, ts):
         # GH 7471
         _, ax = mpl.pyplot.subplots()
-        ax = ts.plot.area(stacked=False, x_compat=True, ax=ax)
+        ax = ts.plot.area(stacked=False, x_compat=True, ax=)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
@@ -161,7 +161,7 @@ class TestSeriesPlots:
         tz_ts = ts.copy()
         tz_ts.index = tz_ts.tz_localize("GMT").tz_convert("CET")
         _, ax = mpl.pyplot.subplots()
-        ax = tz_ts.plot.area(stacked=False, x_compat=True, ax=ax)
+        ax = tz_ts.plot.area(stacked=False, x_compat=True, ax=)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
@@ -172,7 +172,7 @@ class TestSeriesPlots:
         tz_ts = ts.copy()
         tz_ts.index = tz_ts.tz_localize("GMT").tz_convert("CET")
         _, ax = mpl.pyplot.subplots()
-        ax = tz_ts.plot.area(stacked=False, secondary_y=True, ax=ax)
+        ax = tz_ts.plot.area(stacked=False, secondary_y=True, ax=)
         xmin, xmax = ax.get_xlim()
         line = ax.get_lines()[0].get_data(orig=False)[0]
         assert xmin <= line[0]
@@ -193,21 +193,21 @@ class TestSeriesPlots:
     def test_label(self):
         s = Series([1, 2])
         _, ax = mpl.pyplot.subplots()
-        ax = s.plot(label="LABEL", legend=True, ax=ax)
+        ax = s.plot(label="LABEL", legend=True, ax=)
         _check_legend_labels(ax, labels=["LABEL"])
         mpl.pyplot.close("all")
 
     def test_label_none(self):
         s = Series([1, 2])
         _, ax = mpl.pyplot.subplots()
-        ax = s.plot(legend=True, ax=ax)
+        ax = s.plot(legend=True, ax=)
         _check_legend_labels(ax, labels=[""])
         mpl.pyplot.close("all")
 
     def test_label_ser_name(self):
         s = Series([1, 2], name="NAME")
         _, ax = mpl.pyplot.subplots()
-        ax = s.plot(legend=True, ax=ax)
+        ax = s.plot(legend=True, ax=)
         _check_legend_labels(ax, labels=["NAME"])
         mpl.pyplot.close("all")
 
@@ -215,7 +215,7 @@ class TestSeriesPlots:
         s = Series([1, 2], name="NAME")
         # override the default
         _, ax = mpl.pyplot.subplots()
-        ax = s.plot(legend=True, label="LABEL", ax=ax)
+        ax = s.plot(legend=True, label="LABEL", ax=)
         _check_legend_labels(ax, labels=["LABEL"])
         mpl.pyplot.close("all")
 
@@ -223,7 +223,7 @@ class TestSeriesPlots:
         s = Series([1, 2], name="NAME")
         # Add lebel info, but don't draw
         _, ax = mpl.pyplot.subplots()
-        ax = s.plot(legend=False, label="LABEL", ax=ax)
+        ax = s.plot(legend=False, label="LABEL", ax=)
         assert ax.get_legend() is None  # Hasn't been drawn
         ax.legend()  # draw it
         _check_legend_labels(ax, labels=["LABEL"])
@@ -241,7 +241,7 @@ class TestSeriesPlots:
     @pytest.mark.parametrize("index", [None, tm.makeDateIndex(k=4)])
     def test_line_area_nan_series(self, index):
         values = [1, 2, np.nan, 3]
-        d = Series(values, index=index)
+        d = Series(values, index=)
         ax = _check_plot_works(d.plot)
         masked = ax.lines[0].get_ydata()
         # remove nan for comparison purpose
@@ -261,7 +261,7 @@ class TestSeriesPlots:
         s = Series([1, 2, 3], index=["a", "b", "c"])
         s.index.name = "The Index"
         _, ax = mpl.pyplot.subplots()
-        ax = s.plot(use_index=False, ax=ax)
+        ax = s.plot(use_index=False, ax=)
         label = ax.get_xlabel()
         assert label == ""
 
@@ -269,7 +269,7 @@ class TestSeriesPlots:
         s = Series([1, 2, 3], index=["a", "b", "c"])
         s.index.name = "The Index"
         _, ax = mpl.pyplot.subplots()
-        ax2 = s.plot.bar(use_index=False, ax=ax)
+        ax2 = s.plot.bar(use_index=False, ax=)
         label2 = ax2.get_xlabel()
         assert label2 == ""
 
@@ -283,7 +283,7 @@ class TestSeriesPlots:
         expected = np.array([1e-1, 1e0, 1e1, 1e2, 1e3, 1e4])
 
         _, ax = mpl.pyplot.subplots()
-        ax = getattr(Series([200, 500]).plot, meth)(log=True, ax=ax)
+        ax = getattr(Series([200, 500]).plot, meth)(log=True, ax=)
         tm.assert_numpy_array_equal(getattr(ax, axis).get_ticklocs(), expected)
 
     @pytest.mark.xfail(
@@ -300,7 +300,7 @@ class TestSeriesPlots:
         expected = np.array([1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1e0, 1e1])
 
         _, ax = mpl.pyplot.subplots()
-        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind=kind, ax=ax)
+        ax = Series([0.1, 0.01, 0.001]).plot(log=True, kind=, ax=)
         ymin = 0.0007943282347242822
         ymax = 0.12589254117941673
         res = getattr(ax, res_meth)()
@@ -311,7 +311,7 @@ class TestSeriesPlots:
     def test_bar_ignore_index(self):
         df = Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
         _, ax = mpl.pyplot.subplots()
-        ax = df.plot.bar(use_index=False, ax=ax)
+        ax = df.plot.bar(use_index=False, ax=)
         _check_text_labels(ax.get_xticklabels(), ["0", "1", "2", "3"])
 
     def test_bar_user_colors(self):
@@ -330,13 +330,13 @@ class TestSeriesPlots:
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         # Default rot 0
         _, ax = mpl.pyplot.subplots()
-        axes = df.plot(ax=ax)
+        axes = df.plot(ax=)
         _check_ticks_props(axes, xrot=0)
 
     def test_rotation_30(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
         _, ax = mpl.pyplot.subplots()
-        axes = df.plot(rot=30, ax=ax)
+        axes = df.plot(rot=30, ax=)
         _check_ticks_props(axes, xrot=30)
 
     def test_irregular_datetime(self):
@@ -346,7 +346,7 @@ class TestSeriesPlots:
         rng = rng[[0, 1, 2, 3, 5, 9, 10, 11, 12]]
         ser = Series(np.random.default_rng(2).standard_normal(len(rng)), rng)
         _, ax = mpl.pyplot.subplots()
-        ax = ser.plot(ax=ax)
+        ax = ser.plot(ax=)
         xp = DatetimeConverter.convert(datetime(1999, 1, 1), "", ax)
         ax.set_xlim("1/1/1999", "1/1/2001")
         assert xp == ax.get_xlim()[0]
@@ -358,7 +358,7 @@ class TestSeriesPlots:
             index=[1.0, 0.0, 3.0, 2.0, np.nan, 3.0, 2.0],
         )
         _, ax = mpl.pyplot.subplots()
-        ax = ser.plot(ax=ax)
+        ax = ser.plot(ax=)
         xmin, xmax = ax.get_xlim()
         lines = ax.get_lines()
         assert xmin <= np.nanmin(lines[0].get_data(orig=False)[0])
@@ -406,7 +406,7 @@ class TestSeriesPlots:
         # with labels and colors
         labels = ["A", "B", "C", "D", "E"]
         color_args = ["r", "g", "b", "c", "m"]
-        ax = _check_plot_works(series.plot.pie, labels=labels, colors=color_args)
+        ax = _check_plot_works(series.plot.pie, labels=, colors=color_args)
         _check_text_labels(ax.texts, labels)
         _check_colors(ax.patches, facecolors=color_args)
 
@@ -441,7 +441,7 @@ class TestSeriesPlots:
     def test_pie_nan(self):
         s = Series([1, np.nan, 1, 1])
         _, ax = mpl.pyplot.subplots()
-        ax = s.plot.pie(legend=True, ax=ax)
+        ax = s.plot.pie(legend=True, ax=)
         expected = ["0", "", "2", "3"]
         result = [x.get_text() for x in ax.texts]
         assert result == expected
@@ -455,8 +455,8 @@ class TestSeriesPlots:
 
         # primary -> secondary (without passing ax)
         _, ax = mpl.pyplot.subplots()
-        ax = df.plot(ax=ax)
-        s.plot(legend=True, secondary_y=True, ax=ax)
+        ax = df.plot(ax=)
+        s.plot(legend=True, secondary_y=True, ax=)
         # both legends are drawn on left ax
         # left and right axis must be visible
         _check_legend_labels(ax, labels=["a", "b", "c", "x (right)"])
@@ -471,8 +471,8 @@ class TestSeriesPlots:
         s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # primary -> secondary (with passing ax)
         _, ax = mpl.pyplot.subplots()
-        ax = df.plot(ax=ax)
-        s.plot(ax=ax, legend=True, secondary_y=True)
+        ax = df.plot(ax=)
+        s.plot(ax=, legend=True, secondary_y=True)
         # both legends are drawn on left ax
         # left and right axis must be visible
         _check_legend_labels(ax, labels=["a", "b", "c", "x (right)"])
@@ -487,8 +487,8 @@ class TestSeriesPlots:
         s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # secondary -> secondary (without passing ax)
         _, ax = mpl.pyplot.subplots()
-        ax = df.plot(secondary_y=True, ax=ax)
-        s.plot(legend=True, secondary_y=True, ax=ax)
+        ax = df.plot(secondary_y=True, ax=)
+        s.plot(legend=True, secondary_y=True, ax=)
         # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a (right)", "b (right)", "c (right)", "x (right)"]
@@ -504,8 +504,8 @@ class TestSeriesPlots:
         s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # secondary -> secondary (with passing ax)
         _, ax = mpl.pyplot.subplots()
-        ax = df.plot(secondary_y=True, ax=ax)
-        s.plot(ax=ax, legend=True, secondary_y=True)
+        ax = df.plot(secondary_y=True, ax=)
+        s.plot(ax=, legend=True, secondary_y=True)
         # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a (right)", "b (right)", "c (right)", "x (right)"]
@@ -521,8 +521,8 @@ class TestSeriesPlots:
         s = Series(np.random.default_rng(2).standard_normal(30), name="x")
         # secondary -> secondary (with passing ax)
         _, ax = mpl.pyplot.subplots()
-        ax = df.plot(secondary_y=True, mark_right=False, ax=ax)
-        s.plot(ax=ax, legend=True, secondary_y=True)
+        ax = df.plot(secondary_y=True, mark_right=False, ax=)
+        s.plot(ax=, legend=True, secondary_y=True)
         # both legends are drawn on left ax
         # left axis must be invisible and right axis must be visible
         expected = ["a", "b", "c", "x (right)"]
@@ -554,7 +554,7 @@ class TestSeriesPlots:
             "symbol"
         )
         with pytest.raises(ValueError, match=msg):
-            x.plot(style="k--", color="k", ax=ax)
+            x.plot(style="k--", color="k", ax=)
 
     @pytest.mark.parametrize(
         "bw_method, ind",
@@ -567,7 +567,7 @@ class TestSeriesPlots:
     )
     def test_kde_kwargs(self, ts, bw_method, ind):
         pytest.importorskip("scipy")
-        _check_plot_works(ts.plot.kde, bw_method=bw_method, ind=ind)
+        _check_plot_works(ts.plot.kde, bw_method=, ind=)
 
     def test_density_kwargs(self, ts):
         pytest.importorskip("scipy")
@@ -578,7 +578,7 @@ class TestSeriesPlots:
         pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
         sample_points = np.linspace(-100, 100, 20)
-        ax = ts.plot.kde(logy=True, bw_method=0.5, ind=sample_points, ax=ax)
+        ax = ts.plot.kde(logy=True, bw_method=0.5, ind=sample_points, ax=)
         _check_ax_scales(ax, yaxis="log")
         _check_text_labels(ax.yaxis.get_label(), "Density")
 
@@ -594,7 +594,7 @@ class TestSeriesPlots:
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_boxplot_series(self, ts):
         _, ax = mpl.pyplot.subplots()
-        ax = ts.plot.box(logy=True, ax=ax)
+        ax = ts.plot.box(logy=True, ax=)
         _check_ax_scales(ax, yaxis="log")
         xlabels = ax.get_xticklabels()
         _check_text_labels(xlabels, [ts.name])
@@ -609,7 +609,7 @@ class TestSeriesPlots:
         pytest.importorskip("scipy")
         s = Series(range(3))
         _, ax = mpl.pyplot.subplots()
-        s.plot(kind=kind, ax=ax)
+        s.plot(kind=, ax=)
         mpl.pyplot.close()
 
     @pytest.mark.parametrize(
@@ -629,13 +629,13 @@ class TestSeriesPlots:
         _, ax = mpl.pyplot.subplots()
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
-            s.plot(kind=kind, ax=ax)
+            s.plot(kind=, ax=)
 
     @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
     def test_valid_object_plot(self, kind):
         pytest.importorskip("scipy")
         s = Series(range(10), dtype=object)
-        _check_plot_works(s.plot, kind=kind)
+        _check_plot_works(s.plot, kind=)
 
     @pytest.mark.parametrize("kind", plotting.PlotAccessor._common_kinds)
     def test_partially_invalid_plot_data(self, kind):
@@ -643,7 +643,7 @@ class TestSeriesPlots:
         _, ax = mpl.pyplot.subplots()
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
-            s.plot(kind=kind, ax=ax)
+            s.plot(kind=, ax=)
 
     def test_invalid_kind(self):
         s = Series([1, 2])
@@ -655,7 +655,7 @@ class TestSeriesPlots:
         dr2 = date_range("1/2/2009", periods=4)
         index = dr1.append(dr2)
         values = np.random.default_rng(2).standard_normal(index.size)
-        s = Series(values, index=index)
+        s = Series(values, index=)
         _check_plot_works(s.plot)
 
     def test_errorbar_asymmetrical(self):
@@ -692,7 +692,7 @@ class TestSeriesPlots:
     )
     def test_errorbar_plot(self, kind, yerr):
         s = Series(np.arange(10), name="x")
-        ax = _check_plot_works(s.plot, yerr=yerr, kind=kind)
+        ax = _check_plot_works(s.plot, yerr=, kind=)
         _check_has_errorbars(ax, xerr=0, yerr=1)
 
     @pytest.mark.slow
@@ -719,7 +719,7 @@ class TestSeriesPlots:
         ts = Series(np.arange(12), index=ix, name="x")
         yerr.index = ix
 
-        ax = _check_plot_works(ts.plot, yerr=yerr)
+        ax = _check_plot_works(ts.plot, yerr=)
         _check_has_errorbars(ax, xerr=0, yerr=1)
 
     @pytest.mark.slow
@@ -805,14 +805,14 @@ class TestSeriesPlots:
     def test_series_plot_color_kwargs(self):
         # GH1890
         _, ax = mpl.pyplot.subplots()
-        ax = Series(np.arange(12) + 1).plot(color="green", ax=ax)
+        ax = Series(np.arange(12) + 1).plot(color="green", ax=)
         _check_colors(ax.get_lines(), linecolors=["green"])
 
     def test_time_series_plot_color_kwargs(self):
         # #1890
         _, ax = mpl.pyplot.subplots()
         ax = Series(np.arange(12) + 1, index=date_range("1/1/2000", periods=12)).plot(
-            color="green", ax=ax
+            color="green", ax=
         )
         _check_colors(ax.get_lines(), linecolors=["green"])
 
@@ -821,20 +821,20 @@ class TestSeriesPlots:
 
         def_colors = _unpack_cycler(mpl.rcParams)
         index = date_range("1/1/2000", periods=12)
-        s = Series(np.arange(1, 13), index=index)
+        s = Series(np.arange(1, 13), index=)
 
         ncolors = 3
 
         _, ax = mpl.pyplot.subplots()
         for i in range(ncolors):
-            ax = s.plot(ax=ax)
+            ax = s.plot(ax=)
         _check_colors(ax.get_lines(), linecolors=def_colors[:ncolors])
 
     def test_xticklabels(self):
         # GH11529
         s = Series(np.arange(10), index=[f"P{i:02d}" for i in range(10)])
         _, ax = mpl.pyplot.subplots()
-        ax = s.plot(xticks=[0, 3, 5, 9], ax=ax)
+        ax = s.plot(xticks=[0, 3, 5, 9], ax=)
         exp = [f"P{i:02d}" for i in [0, 3, 5, 9]]
         _check_text_labels(ax.get_xticklabels(), exp)
 
@@ -868,7 +868,7 @@ class TestSeriesPlots:
     def test_plot_accessor_updates_on_inplace(self):
         ser = Series([1, 2, 3, 4])
         _, ax = mpl.pyplot.subplots()
-        ax = ser.plot(ax=ax)
+        ax = ser.plot(ax=)
         before = ax.xaxis.get_ticklocs()
 
         ser.drop([0, 1], inplace=True)
@@ -882,7 +882,7 @@ class TestSeriesPlots:
         # GH 27686
         s = Series([2, 3])
         _, ax = mpl.pyplot.subplots()
-        s.plot(kind=kind, ax=ax)
+        s.plot(kind=, ax=)
         xlims = ax.get_xlim()
 
         assert xlims[0] < 0
@@ -912,7 +912,7 @@ class TestSeriesPlots:
     )
     def test_plot_order(self, data, index):
         # GH38865 Verify plot order of a Series
-        ser = Series(data=data, index=index)
+        ser = Series(data=, index=)
         ax = ser.plot(kind="bar")
 
         expected = ser.tolist()
@@ -938,7 +938,7 @@ class TestSeriesPlots:
         ser.index.name = index_name
 
         # default is the ylabel is not shown and xlabel is index name (reverse for barh)
-        ax = ser.plot(kind=kind)
+        ax = ser.plot(kind=)
         if kind == "barh":
             assert ax.get_xlabel() == ""
             assert ax.get_ylabel() == old_label
@@ -950,7 +950,7 @@ class TestSeriesPlots:
             assert ax.get_xlabel() == old_label
 
         # old xlabel will be overridden and assigned ylabel will be used as ylabel
-        ax = ser.plot(kind=kind, ylabel=new_label, xlabel=new_label)
+        ax = ser.plot(kind=, ylabel=new_label, xlabel=new_label)
         assert ax.get_ylabel() == new_label
         assert ax.get_xlabel() == new_label
 
@@ -964,7 +964,7 @@ class TestSeriesPlots:
     def test_timedelta_index(self, index):
         # GH37454
         xlims = (3, 1)
-        ax = Series([1, 2], index=index).plot(xlim=(xlims))
+        ax = Series([1, 2], index=).plot(xlim=(xlims))
         assert ax.get_xlim() == (3, 1)
 
     def test_series_none_color(self):

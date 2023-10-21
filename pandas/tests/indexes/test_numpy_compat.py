@@ -22,13 +22,13 @@ def test_numpy_ufuncs_out(index):
     result = index == index
 
     out = np.empty(index.shape, dtype=bool)
-    np.equal(index, index, out=out)
+    np.equal(index, index, out=)
     tm.assert_numpy_array_equal(out, result)
 
     if not index._is_multi:
         # same thing on the ExtensionArray
         out = np.empty(index.shape, dtype=bool)
-        np.equal(index.array, index.array, out=out)
+        np.equal(index.array, index.array, out=)
         tm.assert_numpy_array_equal(out, result)
 
 
@@ -114,7 +114,7 @@ def test_numpy_ufuncs_other(index, func):
             assert isinstance(result, np.ndarray)
 
             out = np.empty(index.shape, dtype=bool)
-            func(index, out=out)
+            func(index, out=)
             tm.assert_numpy_array_equal(out, result)
         else:
             with tm.external_error_raised(TypeError):
@@ -136,7 +136,7 @@ def test_numpy_ufuncs_other(index, func):
             assert isinstance(result, np.ndarray)
 
         out = np.empty(index.shape, dtype=bool)
-        func(index, out=out)
+        func(index, out=)
 
         if not isinstance(index.dtype, np.dtype):
             tm.assert_numpy_array_equal(out, result._data)

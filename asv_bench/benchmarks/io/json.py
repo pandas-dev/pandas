@@ -33,10 +33,10 @@ class ReadJSON(BaseIO):
             columns=[f"float_{i}" for i in range(5)],
             index=indexes[index],
         )
-        df.to_json(self.fname, orient=orient)
+        df.to_json(self.fname, orient=)
 
     def time_read_json(self, orient, index):
-        read_json(self.fname, orient=orient)
+        read_json(self.fname, orient=)
 
 
 class ReadJSONLines(BaseIO):
@@ -116,7 +116,7 @@ class ToJSON(BaseIO):
         floats = np.random.randn(N)
         strings = tm.makeStringIndex(N)
         self.df = DataFrame(np.random.randn(N, ncols), index=np.arange(N))
-        self.df_date_idx = DataFrame(np.random.randn(N, ncols), index=index)
+        self.df_date_idx = DataFrame(np.random.randn(N, ncols), index=)
         self.df_td_int_ts = DataFrame(
             {
                 "td_1": timedeltas,
@@ -126,7 +126,7 @@ class ToJSON(BaseIO):
                 "ts_1": datetimes,
                 "ts_2": datetimes,
             },
-            index=index,
+            index=,
         )
         self.df_int_floats = DataFrame(
             {
@@ -137,7 +137,7 @@ class ToJSON(BaseIO):
                 "float_2": floats,
                 "float_3": floats,
             },
-            index=index,
+            index=,
         )
         self.df_int_float_str = DataFrame(
             {
@@ -148,7 +148,7 @@ class ToJSON(BaseIO):
                 "str_1": strings,
                 "str_2": strings,
             },
-            index=index,
+            index=,
         )
 
         self.df_longint_float_str = DataFrame(
@@ -160,14 +160,14 @@ class ToJSON(BaseIO):
                 "str_1": strings,
                 "str_2": strings,
             },
-            index=index,
+            index=,
         )
 
     def time_to_json(self, orient, frame):
-        getattr(self, frame).to_json(self.fname, orient=orient)
+        getattr(self, frame).to_json(self.fname, orient=)
 
     def peakmem_to_json(self, orient, frame):
-        getattr(self, frame).to_json(self.fname, orient=orient)
+        getattr(self, frame).to_json(self.fname, orient=)
 
 
 class ToJSONWide(ToJSON):
@@ -178,10 +178,10 @@ class ToJSONWide(ToJSON):
         self.df_wide = df_wide
 
     def time_to_json_wide(self, orient, frame):
-        self.df_wide.to_json(self.fname, orient=orient)
+        self.df_wide.to_json(self.fname, orient=)
 
     def peakmem_to_json_wide(self, orient, frame):
-        self.df_wide.to_json(self.fname, orient=orient)
+        self.df_wide.to_json(self.fname, orient=)
 
 
 class ToJSONISO(BaseIO):
@@ -201,11 +201,11 @@ class ToJSONISO(BaseIO):
                 "ts_1": datetimes,
                 "ts_2": datetimes,
             },
-            index=index,
+            index=,
         )
 
     def time_iso_format(self, orient):
-        self.df.to_json(orient=orient, date_format="iso")
+        self.df.to_json(orient=, date_format="iso")
 
 
 class ToJSONLines(BaseIO):
@@ -222,7 +222,7 @@ class ToJSONLines(BaseIO):
         floats = np.random.randn(N)
         strings = tm.makeStringIndex(N)
         self.df = DataFrame(np.random.randn(N, ncols), index=np.arange(N))
-        self.df_date_idx = DataFrame(np.random.randn(N, ncols), index=index)
+        self.df_date_idx = DataFrame(np.random.randn(N, ncols), index=)
         self.df_td_int_ts = DataFrame(
             {
                 "td_1": timedeltas,
@@ -232,7 +232,7 @@ class ToJSONLines(BaseIO):
                 "ts_1": datetimes,
                 "ts_2": datetimes,
             },
-            index=index,
+            index=,
         )
         self.df_int_floats = DataFrame(
             {
@@ -243,7 +243,7 @@ class ToJSONLines(BaseIO):
                 "float_2": floats,
                 "float_3": floats,
             },
-            index=index,
+            index=,
         )
         self.df_int_float_str = DataFrame(
             {
@@ -254,7 +254,7 @@ class ToJSONLines(BaseIO):
                 "str_1": strings,
                 "str_2": strings,
             },
-            index=index,
+            index=,
         )
         self.df_longint_float_str = DataFrame(
             {
@@ -265,7 +265,7 @@ class ToJSONLines(BaseIO):
                 "str_1": strings,
                 "str_2": strings,
             },
-            index=index,
+            index=,
         )
 
     def time_floats_with_int_idex_lines(self):

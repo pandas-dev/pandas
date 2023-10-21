@@ -353,7 +353,7 @@ class TestDataFrameInterpolate:
             "column to a numeric dtype."
         )
         with pytest.raises(TypeError, match=msg):
-            df.astype("object").interpolate(axis=axis)
+            df.astype("object").interpolate(axis=)
 
     def test_interp_raise_on_all_object_dtype(self):
         # GH 22985
@@ -440,10 +440,10 @@ class TestDataFrameInterpolate:
     def test_interp_time_inplace_axis(self):
         # GH 9687
         periods = 5
-        idx = date_range(start="2014-01-01", periods=periods)
+        idx = date_range(start="2014-01-01", periods=)
         data = np.random.default_rng(2).random((periods, periods))
         data[data < 0.5] = np.nan
-        expected = DataFrame(index=idx, columns=idx, data=data)
+        expected = DataFrame(index=idx, columns=idx, data=)
 
         result = expected.interpolate(axis=0, method="time")
         return_value = expected.interpolate(axis=0, method="time", inplace=True)
@@ -484,10 +484,10 @@ class TestDataFrameInterpolate:
             df["E"] = 1.0
 
         method2 = method if method != "pad" else "ffill"
-        expected = getattr(df, method2)(axis=axis)
+        expected = getattr(df, method2)(axis=)
         msg = f"DataFrame.interpolate with method={method} is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.interpolate(method=method, axis=axis)
+            result = df.interpolate(method=, axis=)
         tm.assert_frame_equal(result, expected)
 
     def test_interpolate_empty_df(self):

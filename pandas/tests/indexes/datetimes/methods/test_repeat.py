@@ -18,23 +18,23 @@ class TestRepeat:
         assert result.freq is None
         assert len(result) == 5 * len(rng)
 
-        index = date_range("2001-01-01", periods=2, freq="D", tz=tz)
+        index = date_range("2001-01-01", periods=2, freq="D", tz=)
         exp = DatetimeIndex(
-            ["2001-01-01", "2001-01-01", "2001-01-02", "2001-01-02"], tz=tz
+            ["2001-01-01", "2001-01-01", "2001-01-02", "2001-01-02"], tz=
         )
         for res in [index.repeat(2), np.repeat(index, 2)]:
             tm.assert_index_equal(res, exp)
             assert res.freq is None
 
-        index = date_range("2001-01-01", periods=2, freq="2D", tz=tz)
+        index = date_range("2001-01-01", periods=2, freq="2D", tz=)
         exp = DatetimeIndex(
-            ["2001-01-01", "2001-01-01", "2001-01-03", "2001-01-03"], tz=tz
+            ["2001-01-01", "2001-01-01", "2001-01-03", "2001-01-03"], tz=
         )
         for res in [index.repeat(2), np.repeat(index, 2)]:
             tm.assert_index_equal(res, exp)
             assert res.freq is None
 
-        index = DatetimeIndex(["2001-01-01", "NaT", "2003-01-01"], tz=tz)
+        index = DatetimeIndex(["2001-01-01", "NaT", "2003-01-01"], tz=)
         exp = DatetimeIndex(
             [
                 "2001-01-01",
@@ -47,7 +47,7 @@ class TestRepeat:
                 "2003-01-01",
                 "2003-01-01",
             ],
-            tz=tz,
+            tz=,
         )
         for res in [index.repeat(3), np.repeat(index, 3)]:
             tm.assert_index_equal(res, exp)
@@ -58,14 +58,14 @@ class TestRepeat:
         reps = 2
         msg = "the 'axis' parameter is not supported"
 
-        rng = date_range(start="2016-01-01", periods=2, freq="30Min", tz=tz)
+        rng = date_range(start="2016-01-01", periods=2, freq="30Min", tz=)
 
         expected_rng = DatetimeIndex(
             [
-                Timestamp("2016-01-01 00:00:00", tz=tz),
-                Timestamp("2016-01-01 00:00:00", tz=tz),
-                Timestamp("2016-01-01 00:30:00", tz=tz),
-                Timestamp("2016-01-01 00:30:00", tz=tz),
+                Timestamp("2016-01-01 00:00:00", tz=),
+                Timestamp("2016-01-01 00:00:00", tz=),
+                Timestamp("2016-01-01 00:30:00", tz=),
+                Timestamp("2016-01-01 00:30:00", tz=),
             ]
         )
 

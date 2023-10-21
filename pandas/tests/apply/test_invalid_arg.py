@@ -33,7 +33,7 @@ def test_result_type_error(result_type, int_frame_const_col):
         "{None, 'reduce', 'broadcast', 'expand'}"
     )
     with pytest.raises(ValueError, match=msg):
-        df.apply(lambda x: [1, 2, 3], axis=1, result_type=result_type)
+        df.apply(lambda x: [1, 2, 3], axis=1, result_type=)
 
 
 def test_apply_invalid_axis_value():
@@ -75,7 +75,7 @@ def test_nested_renamer(frame_or_series, method, func):
     # GH 35964
     obj = frame_or_series({"A": [1]})
     match = "nested renamer is not supported"
-    with pytest.raises(SpecificationError, match=match):
+    with pytest.raises(SpecificationError, match=):
         getattr(obj, method)(func)
 
 
@@ -117,7 +117,7 @@ def test_missing_column(method, func):
     # GH 40004
     obj = DataFrame({"A": [1]})
     match = re.escape("Column(s) ['B'] do not exist")
-    with pytest.raises(KeyError, match=match):
+    with pytest.raises(KeyError, match=):
         getattr(obj, method)(func)
 
 
@@ -137,7 +137,7 @@ def test_apply_str_axis_1_raises(how, args):
     df = DataFrame({"a": [1, 2], "b": [3, 4]})
     msg = f"Operation {how} does not support axis=1"
     with pytest.raises(ValueError, match=msg):
-        df.apply(how, axis=1, args=args)
+        df.apply(how, axis=1, args=)
 
 
 def test_transform_axis_1_raises():
@@ -224,7 +224,7 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis):
     warn = None if isinstance(func, str) else FutureWarning
     with pytest.raises(expected, match=msg):
         with tm.assert_produces_warning(warn, match="using DataFrame.cumprod"):
-            df.agg(func, axis=axis)
+            df.agg(func, axis=)
 
 
 @pytest.mark.parametrize(
@@ -294,7 +294,7 @@ def test_transform_and_agg_err_agg(axis, float_frame):
     msg = "cannot combine transform and aggregation operations"
     with pytest.raises(ValueError, match=msg):
         with np.errstate(all="ignore"):
-            float_frame.agg(["max", "sqrt"], axis=axis)
+            float_frame.agg(["max", "sqrt"], axis=)
 
 
 @pytest.mark.filterwarnings("ignore::FutureWarning")  # GH53325
@@ -321,7 +321,7 @@ def test_transform_wont_agg_frame(axis, float_frame, func):
     # cannot both transform and agg
     msg = "Function did not transform"
     with pytest.raises(ValueError, match=msg):
-        float_frame.transform(func, axis=axis)
+        float_frame.transform(func, axis=)
 
 
 @pytest.mark.parametrize("func", [["min", "max"], ["sqrt", "max"]])

@@ -24,7 +24,7 @@ class TestSetOps:
     @pytest.mark.parametrize("dtype", ["f8", "u8", "i8"])
     def test_union_non_numeric(self, dtype):
         # corner case, non-numeric
-        index = Index(np.arange(5, dtype=dtype), dtype=dtype)
+        index = Index(np.arange(5, dtype=dtype), dtype=)
         assert index.dtype == dtype
 
         other = Index([datetime.now() + timedelta(i) for i in range(4)], dtype=object)
@@ -54,7 +54,7 @@ class TestSetOps:
     def test_int_float_union_dtype(self, dtype):
         # https://github.com/pandas-dev/pandas/issues/26778
         # [u]int | float -> float
-        index = Index([0, 2, 3], dtype=dtype)
+        index = Index([0, 2, 3], dtype=)
         other = Index([0.5, 1.5], dtype=np.float64)
         expected = Index([0.0, 0.5, 1.5, 2.0, 3.0], dtype=np.float64)
         result = index.union(other)
@@ -122,7 +122,7 @@ class TestSetOps:
         if keeps_name:
             expected.name = "index"
 
-        result = index1.intersection(index2, sort=sort)
+        result = index1.intersection(index2, sort=)
         if sort is None:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
@@ -131,7 +131,7 @@ class TestSetOps:
         # smoke
         index1 = Index([5, 2, 3, 4], name="index1")
         index2 = Index([2, 3, 4, 1])
-        result = index1.symmetric_difference(index2, sort=sort)
+        result = index1.symmetric_difference(index2, sort=)
         expected = Index([5, 1])
         assert tm.equalContents(result, expected)
         assert result.name is None

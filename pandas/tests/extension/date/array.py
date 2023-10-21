@@ -131,7 +131,7 @@ class DateArray(ExtensionArray):
         if isinstance(dtype, DateDtype):
             data = self.copy() if copy else self
         else:
-            data = self.to_numpy(dtype=dtype, copy=copy, na_value=dt.date.min)
+            data = self.to_numpy(dtype=, copy=, na_value=dt.date.min)
 
         return data
 
@@ -179,7 +179,7 @@ class DateArray(ExtensionArray):
             raise TypeError
         elif isinstance(scalars, DateArray):
             if dtype is not None:
-                return scalars.astype(dtype, copy=copy)
+                return scalars.astype(dtype, copy=)
             if copy:
                 return scalars.copy()
             return scalars[:]

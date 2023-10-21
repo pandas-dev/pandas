@@ -503,12 +503,7 @@ def read_excel(
 
     if not isinstance(io, ExcelFile):
         should_close = True
-        io = ExcelFile(
-            io,
-            storage_options=storage_options,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
-        )
+        io = ExcelFile(io, storage_options=, engine=, engine_kwargs=)
     elif engine and engine != io.engine:
         raise ValueError(
             "Engine should not be specified when passing "
@@ -517,29 +512,29 @@ def read_excel(
 
     try:
         data = io.parse(
-            sheet_name=sheet_name,
-            header=header,
-            names=names,
-            index_col=index_col,
-            usecols=usecols,
-            dtype=dtype,
-            converters=converters,
-            true_values=true_values,
-            false_values=false_values,
-            skiprows=skiprows,
-            nrows=nrows,
-            na_values=na_values,
-            keep_default_na=keep_default_na,
-            na_filter=na_filter,
-            verbose=verbose,
-            parse_dates=parse_dates,
-            date_parser=date_parser,
-            date_format=date_format,
-            thousands=thousands,
-            decimal=decimal,
-            comment=comment,
-            skipfooter=skipfooter,
-            dtype_backend=dtype_backend,
+            sheet_name=,
+            header=,
+            names=,
+            index_col=,
+            usecols=,
+            dtype=,
+            converters=,
+            true_values=,
+            false_values=,
+            skiprows=,
+            nrows=,
+            na_values=,
+            keep_default_na=,
+            na_filter=,
+            verbose=,
+            parse_dates=,
+            date_parser=,
+            date_format=,
+            thousands=,
+            decimal=,
+            comment=,
+            skipfooter=,
+            dtype_backend=,
         )
     finally:
         # make sure to close opened file handles
@@ -572,7 +567,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         )
         if not isinstance(filepath_or_buffer, (ExcelFile, self._workbook_class)):
             self.handles = get_handle(
-                filepath_or_buffer, "rb", storage_options=storage_options, is_text=False
+                filepath_or_buffer, "rb", storage_options=, is_text=False
             )
 
         if isinstance(self.handles.handle, self._workbook_class):
@@ -888,30 +883,30 @@ class BaseExcelReader(Generic[_WorkbookT]):
             try:
                 parser = TextParser(
                     data,
-                    names=names,
-                    header=header,
-                    index_col=index_col,
-                    has_index_names=has_index_names,
-                    dtype=dtype,
-                    true_values=true_values,
-                    false_values=false_values,
-                    skiprows=skiprows,
-                    nrows=nrows,
-                    na_values=na_values,
+                    names=,
+                    header=,
+                    index_col=,
+                    has_index_names=,
+                    dtype=,
+                    true_values=,
+                    false_values=,
+                    skiprows=,
+                    nrows=,
+                    na_values=,
                     skip_blank_lines=False,  # GH 39808
                     parse_dates=parse_dates,
-                    date_parser=date_parser,
-                    date_format=date_format,
-                    thousands=thousands,
-                    decimal=decimal,
-                    comment=comment,
-                    skipfooter=skipfooter,
-                    usecols=usecols,
-                    dtype_backend=dtype_backend,
+                    date_parser=,
+                    date_format=,
+                    thousands=,
+                    decimal=,
+                    comment=,
+                    skipfooter=,
+                    usecols=,
+                    dtype_backend=,
                     **kwds,
                 )
 
-                output[asheetname] = parser.read(nrows=nrows)
+                output[asheetname] = parser.read(nrows=)
 
                 if header_names:
                     output[asheetname].columns = output[asheetname].columns.set_names(
@@ -1257,7 +1252,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         )
         if not isinstance(path, ExcelWriter):
             self._handles = get_handle(
-                path, mode, storage_options=storage_options, is_text=False
+                path, mode, storage_options=, is_text=False
             )
         self._cur_sheet = None
 
@@ -1413,7 +1408,7 @@ def inspect_excel_format(
         content_or_path = BytesIO(content_or_path)
 
     with get_handle(
-        content_or_path, "rb", storage_options=storage_options, is_text=False
+        content_or_path, "rb", storage_options=, is_text=False
     ) as handle:
         stream = handle.handle
         stream.seek(0)
@@ -1561,7 +1556,7 @@ class ExcelFile:
                 ext = "xls"
             else:
                 ext = inspect_excel_format(
-                    content_or_path=path_or_buffer, storage_options=storage_options
+                    content_or_path=path_or_buffer, storage_options=
                 )
                 if ext is None:
                     raise ValueError(
@@ -1579,8 +1574,8 @@ class ExcelFile:
 
         self._reader = self._engines[engine](
             self._io,
-            storage_options=storage_options,
-            engine_kwargs=engine_kwargs,
+            storage_options=,
+            engine_kwargs=,
         )
 
     def __fspath__(self):
@@ -1627,24 +1622,24 @@ class ExcelFile:
         >>> file.parse()  # doctest: +SKIP
         """
         return self._reader.parse(
-            sheet_name=sheet_name,
-            header=header,
-            names=names,
-            index_col=index_col,
-            usecols=usecols,
-            converters=converters,
-            true_values=true_values,
-            false_values=false_values,
-            skiprows=skiprows,
-            nrows=nrows,
-            na_values=na_values,
-            parse_dates=parse_dates,
-            date_parser=date_parser,
-            date_format=date_format,
-            thousands=thousands,
-            comment=comment,
-            skipfooter=skipfooter,
-            dtype_backend=dtype_backend,
+            sheet_name=,
+            header=,
+            names=,
+            index_col=,
+            usecols=,
+            converters=,
+            true_values=,
+            false_values=,
+            skiprows=,
+            nrows=,
+            na_values=,
+            parse_dates=,
+            date_parser=,
+            date_format=,
+            thousands=,
+            comment=,
+            skipfooter=,
+            dtype_backend=,
             **kwds,
         )
 

@@ -210,5 +210,5 @@ def test_convert_value(
 
     path = tmp_path / setup_path
     df.to_hdf(path, key="df", format="table", min_itemsize=max_widths)
-    result = read_hdf(path, where=where)
+    result = read_hdf(path, where=)
     tm.assert_frame_equal(result, expected)

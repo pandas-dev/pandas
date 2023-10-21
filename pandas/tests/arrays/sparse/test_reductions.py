@@ -110,7 +110,7 @@ class TestReductions:
 
         msg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
-            np.any(SparseArray(data), out=out)
+            np.any(SparseArray(data), out=)
 
     def test_sum(self):
         data = np.arange(10).astype(float)
@@ -132,8 +132,8 @@ class TestReductions:
     @pytest.mark.parametrize("min_count, expected", [(3, 2), (4, np.nan)])
     def test_sum_min_count(self, arr, fill_value, min_count, expected):
         # GH#25777
-        sparray = SparseArray(arr, fill_value=fill_value)
-        result = sparray.sum(min_count=min_count)
+        sparray = SparseArray(arr, fill_value=)
+        result = sparray.sum(min_count=)
         if np.isnan(expected):
             assert np.isnan(result)
         else:
@@ -164,7 +164,7 @@ class TestReductions:
 
         msg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
-            np.sum(SparseArray(data), out=out)
+            np.sum(SparseArray(data), out=)
 
     def test_mean(self):
         data = np.arange(10).astype(float)
@@ -190,7 +190,7 @@ class TestReductions:
 
         msg = "the 'out' parameter is not supported"
         with pytest.raises(ValueError, match=msg):
-            np.mean(SparseArray(data), out=out)
+            np.mean(SparseArray(data), out=)
 
 
 class TestMinMax:
@@ -259,7 +259,7 @@ class TestMinMax:
         ],
     )
     def test_na_value_if_no_valid_values(self, func, data, dtype, expected):
-        arr = SparseArray(data, dtype=dtype)
+        arr = SparseArray(data, dtype=)
         result = getattr(arr, func)()
         if expected is NaT:
             # TODO: pin down whether we wrap datetime64("NaT")

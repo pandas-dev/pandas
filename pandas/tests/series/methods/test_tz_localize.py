@@ -101,7 +101,7 @@ class TestTZLocalize:
 
         else:
             result = ser.tz_localize(tz, nonexistent=method)
-            expected = Series(1, index=DatetimeIndex([exp] * n, tz=tz))
+            expected = Series(1, index=DatetimeIndex([exp] * n, tz=))
             tm.assert_series_equal(result, expected)
 
             result = df.tz_localize(tz, nonexistent=method)

@@ -36,7 +36,7 @@ def test_class_that_inherits_an_exception_and_is_not_in_the_testing_rst_is_flagg
     capsys, error_type
 ):
     content = TEST_CODE.format(
-        custom_name=CUSTOM_EXCEPTION_NOT_IN_TESTING_RST, error_type=error_type
+        custom_name=CUSTOM_EXCEPTION_NOT_IN_TESTING_RST, error_type=
     )
     expected_msg = ERROR_MESSAGE.format(errors=CUSTOM_EXCEPTION_NOT_IN_TESTING_RST)
     with pytest.raises(SystemExit, match=None):
@@ -49,7 +49,7 @@ def test_class_that_inherits_an_exception_but_is_in_the_testing_rst_is_not_flagg
     capsys, error_type
 ):
     content = TEST_CODE.format(
-        custom_name=CUSTOM_EXCEPTION__IN_TESTING_RST, error_type=error_type
+        custom_name=CUSTOM_EXCEPTION__IN_TESTING_RST, error_type=
     )
     validate_exception_and_warning_placement(PATH, content, ERRORS_IN_TESTING_RST)
 

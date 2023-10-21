@@ -392,7 +392,7 @@ class BaseGetitemTests:
         arr = data_missing._from_sequence(
             [na, fill_value, na], dtype=data_missing.dtype
         )
-        result = arr.take([-1, 1], fill_value=fill_value, allow_fill=True)
+        result = arr.take([-1, 1], fill_value=, allow_fill=True)
         expected = arr.take([1, 1])
         tm.assert_extension_array_equal(result, expected)
 
@@ -406,7 +406,7 @@ class BaseGetitemTests:
         arr = data[:3]
 
         with pytest.raises(IndexError, match="out of bounds|out-of-bounds"):
-            arr.take(np.asarray([0, 3]), allow_fill=allow_fill)
+            arr.take(np.asarray([0, 3]), allow_fill=)
 
     def test_take_series(self, data):
         s = pd.Series(data)

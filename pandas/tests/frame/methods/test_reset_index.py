@@ -71,7 +71,7 @@ class TestResetIndex:
         # GH 3950
         # reset_index with single level
         tz = tz_aware_fixture
-        idx = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx")
+        idx = date_range("1/1/2011", periods=5, freq="D", tz=, name="idx")
         df = DataFrame({"a": range(5), "b": ["A", "B", "C", "D", "E"]}, index=idx)
 
         expected = DataFrame(
@@ -88,12 +88,12 @@ class TestResetIndex:
             },
             columns=["idx", "a", "b"],
         )
-        expected["idx"] = expected["idx"].apply(lambda d: Timestamp(d, tz=tz))
+        expected["idx"] = expected["idx"].apply(lambda d: Timestamp(d, tz=))
         tm.assert_frame_equal(df.reset_index(), expected)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_frame_reset_index_tzaware_index(self, tz):
-        dr = date_range("2012-06-02", periods=10, tz=tz)
+        dr = date_range("2012-06-02", periods=10, tz=)
         df = DataFrame(np.random.default_rng(2).standard_normal(len(dr)), dr)
         roundtripped = df.reset_index().set_index("index")
         xp = df.index.tz
@@ -372,10 +372,7 @@ class TestResetIndex:
         else:
             assert columns.dtype == object
 
-        expected = DataFrame(
-            [["A", 1, 2], ["B", 3, 4]],
-            columns=columns,
-        )
+        expected = DataFrame([["A", 1, 2], ["B", 3, 4]], columns=)
         tm.assert_frame_equal(result, expected)
 
     def test_reset_index_range(self):
@@ -450,7 +447,7 @@ class TestResetIndex:
         df = df.set_flags(allows_duplicate_labels=flag)
 
         if flag and allow_duplicates:
-            result = df.reset_index(allow_duplicates=allow_duplicates)
+            result = df.reset_index(allow_duplicates=)
             levels = [["A", ""], ["A", ""], ["B", "b"]]
             expected = DataFrame(
                 [[0, 0, 2], [1, 1, 3]], columns=MultiIndex.from_tuples(levels)
@@ -465,7 +462,7 @@ class TestResetIndex:
             else:
                 msg = r"cannot insert \('A', ''\), already exists"
             with pytest.raises(ValueError, match=msg):
-                df.reset_index(allow_duplicates=allow_duplicates)
+                df.reset_index(allow_duplicates=)
 
     @pytest.mark.parametrize("flag", [False, True])
     def test_reset_index_duplicate_columns_default(self, multiindex_df, flag):
@@ -479,12 +476,12 @@ class TestResetIndex:
     @pytest.mark.parametrize("allow_duplicates", ["bad value"])
     def test_reset_index_allow_duplicates_check(self, multiindex_df, allow_duplicates):
         with pytest.raises(ValueError, match="expected type bool"):
-            multiindex_df.reset_index(allow_duplicates=allow_duplicates)
+            multiindex_df.reset_index(allow_duplicates=)
 
     def test_reset_index_datetime(self, tz_naive_fixture):
         # GH#3950
         tz = tz_naive_fixture
-        idx1 = date_range("1/1/2011", periods=5, freq="D", tz=tz, name="idx1")
+        idx1 = date_range("1/1/2011", periods=5, freq="D", tz=, name="idx1")
         idx2 = Index(range(5), name="idx2", dtype="int64")
         idx = MultiIndex.from_arrays([idx1, idx2])
         df = DataFrame(
@@ -507,7 +504,7 @@ class TestResetIndex:
             },
             columns=["idx1", "idx2", "a", "b"],
         )
-        expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=tz))
+        expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=))
 
         tm.assert_frame_equal(df.reset_index(), expected)
 
@@ -542,7 +539,7 @@ class TestResetIndex:
             },
             columns=["idx1", "idx2", "idx3", "a", "b"],
         )
-        expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=tz))
+        expected["idx1"] = expected["idx1"].apply(lambda d: Timestamp(d, tz=))
         expected["idx3"] = expected["idx3"].apply(
             lambda d: Timestamp(d, tz="Europe/Paris")
         )
@@ -550,7 +547,7 @@ class TestResetIndex:
 
         # GH#7793
         idx = MultiIndex.from_product(
-            [["a", "b"], date_range("20130101", periods=3, tz=tz)]
+            [["a", "b"], date_range("20130101", periods=3, tz=)]
         )
         df = DataFrame(
             np.arange(6, dtype="int64").reshape(6, 1), columns=["a"], index=idx
@@ -569,7 +566,7 @@ class TestResetIndex:
             },
             columns=["level_0", "level_1", "a"],
         )
-        expected["level_1"] = expected["level_1"].apply(lambda d: Timestamp(d, tz=tz))
+        expected["level_1"] = expected["level_1"].apply(lambda d: Timestamp(d, tz=))
         result = df.reset_index()
         tm.assert_frame_equal(result, expected)
 
@@ -604,7 +601,7 @@ class TestResetIndex:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((8, 3)),
             columns=["A", "B", "C"],
-            index=index,
+            index=,
         )
         deleveled = df.reset_index()
         assert is_integer_dtype(deleveled["prm1"])
@@ -655,7 +652,7 @@ class TestResetIndex:
             [CategoricalIndex(["A", "B"]), CategoricalIndex(["a", "b"])], codes
         )
         data = {"col": range(len(index))}
-        df = DataFrame(data=data, index=index)
+        df = DataFrame(data=, index=)
 
         expected = DataFrame(
             {

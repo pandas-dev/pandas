@@ -16,6 +16,6 @@ from pandas import DataFrame
 )
 def test_size(data, index, expected):
     # GH#52897
-    df = DataFrame(data, index=index)
+    df = DataFrame(data, index=)
     assert df.size == expected
     assert isinstance(df.size, int)

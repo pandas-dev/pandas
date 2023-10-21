@@ -257,7 +257,7 @@ class TestDataFrameMissingData:
         # GH#41965
         df = DataFrame([[1, 2], [3, 4]], columns=pd.RangeIndex(0, 2))
         expected = df.copy()
-        result = df.dropna(axis=axis)
+        result = df.dropna(axis=)
         tm.assert_frame_equal(result, expected, check_index_type=True)
 
     def test_how_thresh_param_incompatible(self):

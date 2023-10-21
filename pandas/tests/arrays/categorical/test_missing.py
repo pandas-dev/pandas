@@ -213,4 +213,4 @@ class TestCategoricalMissing:
     def test_categorical_only_missing_values_no_cast(self, na_value, dtype):
         # GH#44900
         result = Categorical([na_value, na_value])
-        tm.assert_index_equal(result.categories, Index([], dtype=dtype))
+        tm.assert_index_equal(result.categories, Index([], dtype=))

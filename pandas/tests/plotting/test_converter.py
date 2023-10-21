@@ -216,15 +216,15 @@ class TestDateTimeConverter:
 
         rs = dtc.convert(Timestamp("2012-1-1 01:02:03", tz="UTC"), None, None)
         xp = converter.mdates.date2num(Timestamp("2012-1-1 01:02:03", tz="UTC"))
-        tm.assert_almost_equal(rs, xp, rtol=rtol)
+        tm.assert_almost_equal(rs, xp, rtol=)
 
         rs = dtc.convert(
             Timestamp("2012-1-1 09:02:03", tz="Asia/Hong_Kong"), None, None
         )
-        tm.assert_almost_equal(rs, xp, rtol=rtol)
+        tm.assert_almost_equal(rs, xp, rtol=)
 
         rs = dtc.convert(datetime(2012, 1, 1, 1, 2, 3), None, None)
-        tm.assert_almost_equal(rs, xp, rtol=rtol)
+        tm.assert_almost_equal(rs, xp, rtol=)
 
     @pytest.mark.parametrize(
         "values",
@@ -260,10 +260,10 @@ class TestDateTimeConverter:
     @pytest.mark.parametrize("freq", ("B", "ms", "s"))
     def test_dateindex_conversion(self, freq, dtc):
         rtol = 10**-9
-        dateindex = tm.makeDateIndex(k=10, freq=freq)
+        dateindex = tm.makeDateIndex(k=10, freq=)
         rs = dtc.convert(dateindex, None, None)
         xp = converter.mdates.date2num(dateindex._mpl_repr())
-        tm.assert_almost_equal(rs, xp, rtol=rtol)
+        tm.assert_almost_equal(rs, xp, rtol=)
 
     @pytest.mark.parametrize("offset", [Second(), Milli(), Micro(50)])
     def test_resolution(self, offset, dtc):

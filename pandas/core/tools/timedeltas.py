@@ -187,10 +187,10 @@ def to_timedelta(
     if arg is None:
         return arg
     elif isinstance(arg, ABCSeries):
-        values = _convert_listlike(arg._values, unit=unit, errors=errors)
+        values = _convert_listlike(arg._values, unit=, errors=)
         return arg._constructor(values, index=arg.index, name=arg.name)
     elif isinstance(arg, ABCIndex):
-        return _convert_listlike(arg, unit=unit, errors=errors, name=arg.name)
+        return _convert_listlike(arg, unit=, errors=, name=arg.name)
     elif isinstance(arg, np.ndarray) and arg.ndim == 0:
         # extract array scalar and process below
         # error: Incompatible types in assignment (expression has type "object",
@@ -199,7 +199,7 @@ def to_timedelta(
         # Series]]")  [assignment]
         arg = lib.item_from_zerodim(arg)  # type: ignore[assignment]
     elif is_list_like(arg) and getattr(arg, "ndim", 1) == 1:
-        return _convert_listlike(arg, unit=unit, errors=errors)
+        return _convert_listlike(arg, unit=, errors=)
     elif getattr(arg, "ndim", 1) > 1:
         raise TypeError(
             "arg must be a string, timedelta, list, tuple, 1-d array, or Series"
@@ -209,7 +209,7 @@ def to_timedelta(
         raise ValueError("unit must not be specified if the input is/contains a str")
 
     # ...so it must be a scalar value. Return scalar.
-    return _coerce_scalar_to_timedelta_type(arg, unit=unit, errors=errors)
+    return _coerce_scalar_to_timedelta_type(arg, unit=, errors=)
 
 
 def _coerce_scalar_to_timedelta_type(
@@ -252,7 +252,7 @@ def _convert_listlike(
         return arg
 
     try:
-        td64arr = sequence_to_td64ns(arg, unit=unit, errors=errors, copy=False)[0]
+        td64arr = sequence_to_td64ns(arg, unit=, errors=, copy=False)[0]
     except ValueError:
         if errors == "ignore":
             return arg
@@ -268,5 +268,5 @@ def _convert_listlike(
 
     from pandas import TimedeltaIndex
 
-    value = TimedeltaIndex(td64arr, unit="ns", name=name)
+    value = TimedeltaIndex(td64arr, unit="ns", name=)
     return value

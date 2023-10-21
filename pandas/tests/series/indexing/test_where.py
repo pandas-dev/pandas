@@ -50,7 +50,7 @@ def test_where_unsafe_float(float_numpy_dtype):
 )
 def test_where_unsafe_upcast(dtype, expected_dtype):
     # see gh-9743
-    s = Series(np.arange(10), dtype=dtype)
+    s = Series(np.arange(10), dtype=)
     values = [2.5, 3.5, 4.5, 5.5, 6.5]
     mask = s < 5
     expected = Series(values + list(range(5, 10)), dtype=expected_dtype)
@@ -389,7 +389,7 @@ def test_where_numeric_with_string():
 
 @pytest.mark.parametrize("dtype", ["timedelta64[ns]", "datetime64[ns]"])
 def test_where_datetimelike_coerce(dtype):
-    ser = Series([1, 2], dtype=dtype)
+    ser = Series([1, 2], dtype=)
     expected = Series([10, 10])
     mask = np.array([False, False])
 
@@ -454,7 +454,7 @@ def test_where_datetimelike_categorical(tz_naive_fixture):
     # GH#37682
     tz = tz_naive_fixture
 
-    dr = date_range("2001-01-01", periods=3, tz=tz)._with_freq(None)
+    dr = date_range("2001-01-01", periods=3, tz=)._with_freq(None)
     lvals = pd.DatetimeIndex([dr[0], dr[1], pd.NaT])
     rvals = pd.Categorical([dr[0], pd.NaT, dr[2]])
 

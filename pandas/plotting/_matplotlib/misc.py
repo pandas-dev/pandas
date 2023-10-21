@@ -47,7 +47,7 @@ def scatter_matrix(
     df = frame._get_numeric_data()
     n = df.columns.size
     naxes = n * n
-    fig, axes = create_subplots(naxes=naxes, figsize=figsize, ax=ax, squeeze=False)
+    fig, axes = create_subplots(naxes=, figsize=, ax=, squeeze=False)
 
     # no gaps between subplots
     maybe_adjust_figure(fig, wspace=0, hspace=0)
@@ -94,7 +94,7 @@ def scatter_matrix(
                 common = (mask[a] & mask[b]).values
 
                 ax.scatter(
-                    df[b][common], df[a][common], marker=marker, alpha=alpha, **kwds
+                    df[b][common], df[a][common], marker=, alpha=, **kwds
                 )
 
                 ax.set_xlim(boundaries_list[j])
@@ -161,7 +161,7 @@ def radviz(
 
     to_plot: dict[Hashable, list[list]] = {}
     colors = get_standard_colors(
-        num_colors=len(classes), colormap=colormap, color_type="random", color=color
+        num_colors=len(classes), colormap=, color_type="random", color=
     )
 
     for kls in classes:
@@ -265,7 +265,7 @@ def andrews_curves(
     used_legends: set[str] = set()
 
     color_values = get_standard_colors(
-        num_colors=len(classes), colormap=colormap, color_type="random", color=color
+        num_colors=len(classes), colormap=, color_type="random", color=
     )
     colors = dict(zip(classes, color_values))
     if ax is None:
@@ -279,7 +279,7 @@ def andrews_curves(
         label = pprint_thing(kls)
         if label not in used_legends:
             used_legends.add(label)
-            ax.plot(t, y, color=colors[kls], label=label, **kwds)
+            ax.plot(t, y, color=colors[kls], label=, **kwds)
         else:
             ax.plot(t, y, color=colors[kls], **kwds)
 
@@ -394,7 +394,7 @@ def parallel_coordinates(
         ax = plt.gca()
 
     color_values = get_standard_colors(
-        num_colors=len(classes), colormap=colormap, color_type="random", color=color
+        num_colors=len(classes), colormap=, color_type="random", color=
     )
 
     if sort_labels:
@@ -408,7 +408,7 @@ def parallel_coordinates(
         label = pprint_thing(kls)
         if label not in used_legends:
             used_legends.add(label)
-            ax.plot(x, y, color=colors[kls], label=label, **kwds)
+            ax.plot(x, y, color=colors[kls], label=, **kwds)
         else:
             ax.plot(x, y, color=colors[kls], **kwds)
 

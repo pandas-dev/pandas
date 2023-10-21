@@ -115,7 +115,7 @@ def test_drop_duplicates():
     df = concat([df, DataFrame([[1] + [0] * 8])], ignore_index=True)
 
     for keep in ["first", "last", False]:
-        assert df.duplicated(keep=keep).sum() == 0
+        assert df.duplicated(keep=).sum() == 0
 
 
 def test_drop_duplicates_with_duplicate_column_names():
@@ -426,9 +426,9 @@ def test_drop_duplicates_ignore_index(
 
     if inplace:
         result_df = df.copy()
-        result_df.drop_duplicates(ignore_index=ignore_index, inplace=inplace)
+        result_df.drop_duplicates(ignore_index=, inplace=)
     else:
-        result_df = df.drop_duplicates(ignore_index=ignore_index, inplace=inplace)
+        result_df = df.drop_duplicates(ignore_index=, inplace=)
 
     tm.assert_frame_equal(result_df, expected)
     tm.assert_frame_equal(df, DataFrame(origin_dict))
@@ -459,8 +459,8 @@ def test_drop_duplicates_series_vs_dataframe(keep):
         }
     )
     for column in df.columns:
-        dropped_frame = df[[column]].drop_duplicates(keep=keep)
-        dropped_series = df[column].drop_duplicates(keep=keep)
+        dropped_frame = df[[column]].drop_duplicates(keep=)
+        dropped_series = df[column].drop_duplicates(keep=)
         tm.assert_frame_equal(dropped_frame, dropped_series.to_frame())
 
 

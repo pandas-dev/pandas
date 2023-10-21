@@ -64,7 +64,7 @@ freqs = (
 def test_infer_freq_range(periods, freq):
     freq = freq.upper()
 
-    gen = date_range("1/1/2000", periods=periods, freq=freq)
+    gen = date_range("1/1/2000", periods=, freq=)
     index = DatetimeIndex(gen.values)
 
     if not freq.startswith("Q-"):
@@ -205,7 +205,7 @@ def test_infer_freq_custom(base_delta_code_pair, constructor):
     "freq,expected", [("Q", "Q-DEC"), ("Q-NOV", "Q-NOV"), ("Q-OCT", "Q-OCT")]
 )
 def test_infer_freq_index(freq, expected):
-    rng = period_range("1959Q2", "2009Q3", freq=freq)
+    rng = period_range("1959Q2", "2009Q3", freq=)
     rng = Index(rng.to_timestamp("D", how="e").astype(object))
 
     assert rng.inferred_freq == expected
@@ -232,14 +232,14 @@ def test_infer_freq_index(freq, expected):
 def test_infer_freq_tz(tz_naive_fixture, expected, dates):
     # see gh-7310
     tz = tz_naive_fixture
-    idx = DatetimeIndex(dates, tz=tz)
+    idx = DatetimeIndex(dates, tz=)
     assert idx.inferred_freq == expected
 
 
 def test_infer_freq_tz_series(tz_naive_fixture):
     # infer_freq should work with both tz-naive and tz-aware series. See gh-52456
     tz = tz_naive_fixture
-    idx = date_range("2021-01-01", "2021-01-04", tz=tz)
+    idx = date_range("2021-01-01", "2021-01-04", tz=)
     series = idx.to_series().reset_index(drop=True)
     inferred_freq = frequencies.infer_freq(series)
     assert inferred_freq == "D"
@@ -260,7 +260,7 @@ def test_infer_freq_tz_series(tz_naive_fixture):
 def test_infer_freq_tz_transition(tz_naive_fixture, date_pair, freq):
     # see gh-8772
     tz = tz_naive_fixture
-    idx = date_range(date_pair[0], date_pair[1], freq=freq, tz=tz)
+    idx = date_range(date_pair[0], date_pair[1], freq=, tz=)
     assert idx.inferred_freq == freq
 
 
@@ -444,7 +444,7 @@ def test_series_period_index(freq):
     #
     # Cannot infer on PeriodIndex
     msg = "cannot infer freq from a non-convertible dtype on a Series"
-    s = Series(period_range("2013", periods=10, freq=freq))
+    s = Series(period_range("2013", periods=10, freq=))
 
     with pytest.raises(TypeError, match=msg):
         frequencies.infer_freq(s)
@@ -452,7 +452,7 @@ def test_series_period_index(freq):
 
 @pytest.mark.parametrize("freq", ["ME", "ms", "s"])
 def test_series_datetime_index(freq):
-    s = Series(date_range("20130101", periods=10, freq=freq))
+    s = Series(date_range("20130101", periods=10, freq=))
     inferred = frequencies.infer_freq(s)
     assert inferred == freq
 
@@ -461,7 +461,7 @@ def test_series_datetime_index(freq):
     "offset_func",
     [
         _get_offset,
-        lambda freq: date_range("2011-01-01", periods=5, freq=freq),
+        lambda freq: date_range("2011-01-01", periods=5, freq=),
     ],
 )
 @pytest.mark.parametrize(
@@ -542,7 +542,7 @@ def test_infer_freq_non_nano():
 def test_infer_freq_non_nano_tzaware(tz_aware_fixture):
     tz = tz_aware_fixture
 
-    dti = date_range("2016-01-01", periods=365, freq="B", tz=tz)
+    dti = date_range("2016-01-01", periods=365, freq="B", tz=)
     dta = dti._data.as_unit("s")
 
     res = frequencies.infer_freq(dta)

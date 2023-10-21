@@ -571,7 +571,7 @@ def multiindex_dataframe_random_data(
     index = lexsorted_two_level_string_multiindex
     return DataFrame(
         np.random.default_rng(2).standard_normal((10, 3)),
-        index=index,
+        index=,
         columns=Index(["A", "B", "C"], name="exp"),
     )
 
@@ -756,7 +756,7 @@ def _create_series(index):
     """Helper for the _series dict"""
     size = len(index)
     data = np.random.default_rng(2).standard_normal(size)
-    return Series(data, index=index, name="a", copy=False)
+    return Series(data, index=, name="a", copy=False)
 
 
 _series = {
@@ -785,13 +785,13 @@ def series_with_multilevel_index() -> Series:
     tuples = zip(*arrays)
     index = MultiIndex.from_tuples(tuples)
     data = np.random.default_rng(2).standard_normal(8)
-    ser = Series(data, index=index)
+    ser = Series(data, index=)
     ser.iloc[3] = np.nan
     return ser
 
 
 _narrow_series = {
-    f"{dtype.__name__}-series": tm.make_rand_series(name="a", dtype=dtype)
+    f"{dtype.__name__}-series": tm.make_rand_series(name="a", dtype=)
     for dtype in tm.NARROW_NP_DTYPES
 }
 
@@ -1789,7 +1789,7 @@ _any_skipna_inferred_dtype = [
 ids, _ = zip(*_any_skipna_inferred_dtype)  # use inferred type as fixture-id
 
 
-@pytest.fixture(params=_any_skipna_inferred_dtype, ids=ids)
+@pytest.fixture(params=_any_skipna_inferred_dtype, ids=)
 def any_skipna_inferred_dtype(request):
     """
     Fixture for all inferred dtypes from _libs.lib.infer_dtype

@@ -77,7 +77,7 @@ def table(
     cellText = data.values
 
     return matplotlib.table.table(
-        ax, cellText=cellText, rowLabels=rowLabels, colLabels=colLabels, **kwargs
+        ax, cellText=, rowLabels=, colLabels=, **kwargs
     )
 
 
@@ -265,7 +265,7 @@ def create_subplots(
             )
             fig.clear()
 
-    nrows, ncols = _get_layout(naxes, layout=layout, layout_type=layout_type)
+    nrows, ncols = _get_layout(naxes, layout=, layout_type=)
     nplots = nrows * ncols
 
     # Create empty object array to hold all axes.  It's easiest to make it 1-d

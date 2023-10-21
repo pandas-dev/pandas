@@ -167,7 +167,7 @@ def test_interval_dtype(left, right):
 
 @pytest.mark.parametrize("dtype", interval_dtypes)
 def test_interval_dtype_with_categorical(dtype):
-    obj = Index([], dtype=dtype)
+    obj = Index([], dtype=)
 
     cat = Categorical([], categories=obj)
 

@@ -90,12 +90,12 @@ class TestPeriodIndex:
         pi = PeriodIndex(["2001-01", "2001-02", "NaT", "2001-03"], freq="2M")
 
         result = pi.asfreq(freq)
-        exp = PeriodIndex(["2001-02-28", "2001-03-31", "NaT", "2001-04-30"], freq=freq)
+        exp = PeriodIndex(["2001-02-28", "2001-03-31", "NaT", "2001-04-30"], freq=)
         tm.assert_index_equal(result, exp)
         assert result.freq == exp.freq
 
         result = pi.asfreq(freq, how="S")
-        exp = PeriodIndex(["2001-01-01", "2001-02-01", "NaT", "2001-03-01"], freq=freq)
+        exp = PeriodIndex(["2001-01-01", "2001-02-01", "NaT", "2001-03-01"], freq=)
         tm.assert_index_equal(result, exp)
         assert result.freq == exp.freq
 
@@ -103,18 +103,18 @@ class TestPeriodIndex:
         pi = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq="h")
         exp = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq="25h")
         for freq, how in zip(["1D1h", "1h1D"], ["S", "E"]):
-            result = pi.asfreq(freq, how=how)
+            result = pi.asfreq(freq, how=)
             tm.assert_index_equal(result, exp)
             assert result.freq == exp.freq
 
         for freq in ["1D1h", "1h1D"]:
-            pi = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq=freq)
+            pi = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq=)
             result = pi.asfreq("h")
             exp = PeriodIndex(["2001-01-02 00:00", "2001-01-03 02:00", "NaT"], freq="h")
             tm.assert_index_equal(result, exp)
             assert result.freq == exp.freq
 
-            pi = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq=freq)
+            pi = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq=)
             result = pi.asfreq("h", how="S")
             exp = PeriodIndex(["2001-01-01 00:00", "2001-01-02 02:00", "NaT"], freq="h")
             tm.assert_index_equal(result, exp)

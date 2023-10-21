@@ -266,7 +266,7 @@ class TestnanopsDataFrame:
             res = np.split(res, [targ.shape[0]], axis=0)[0]
 
         try:
-            tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
+            tm.assert_almost_equal(targ, res, check_dtype=)
         except AssertionError:
             # handle timedelta dtypes
             if hasattr(targ, "dtype") and targ.dtype == "m8[ns]":
@@ -290,8 +290,8 @@ class TestnanopsDataFrame:
             # but nanops doesn't, so make that an exception
             elif targ.dtype.kind == "O":
                 raise
-            tm.assert_almost_equal(np.real(targ), np.real(res), check_dtype=check_dtype)
-            tm.assert_almost_equal(np.imag(targ), np.imag(res), check_dtype=check_dtype)
+            tm.assert_almost_equal(np.real(targ), np.real(res), check_dtype=)
+            tm.assert_almost_equal(np.imag(targ), np.imag(res), check_dtype=)
 
     def check_fun_data(
         self,
@@ -307,9 +307,9 @@ class TestnanopsDataFrame:
         for axis in list(range(targarval.ndim)) + [None]:
             targartempval = targarval if skipna else testarval
             if skipna and empty_targfunc and isna(targartempval).all():
-                targ = empty_targfunc(targartempval, axis=axis, **kwargs)
+                targ = empty_targfunc(targartempval, axis=, **kwargs)
             else:
-                targ = targfunc(targartempval, axis=axis, **kwargs)
+                targ = targfunc(targartempval, axis=, **kwargs)
 
             if targartempval.dtype == object and (
                 targfunc is np.any or targfunc is np.all
@@ -320,7 +320,7 @@ class TestnanopsDataFrame:
                 else:
                     targ = bool(targ)
 
-            res = testfunc(testarval, axis=axis, skipna=skipna, **kwargs)
+            res = testfunc(testarval, axis=, skipna=, **kwargs)
 
             if (
                 isinstance(targ, np.complex128)
@@ -331,16 +331,16 @@ class TestnanopsDataFrame:
                 # GH#18463
                 targ = res
 
-            self.check_results(targ, res, axis, check_dtype=check_dtype)
+            self.check_results(targ, res, axis, check_dtype=)
             if skipna:
-                res = testfunc(testarval, axis=axis, **kwargs)
-                self.check_results(targ, res, axis, check_dtype=check_dtype)
+                res = testfunc(testarval, axis=, **kwargs)
+                self.check_results(targ, res, axis, check_dtype=)
             if axis is None:
-                res = testfunc(testarval, skipna=skipna, **kwargs)
-                self.check_results(targ, res, axis, check_dtype=check_dtype)
+                res = testfunc(testarval, skipna=, **kwargs)
+                self.check_results(targ, res, axis, check_dtype=)
             if skipna and axis is None:
                 res = testfunc(testarval, **kwargs)
-                self.check_results(targ, res, axis, check_dtype=check_dtype)
+                self.check_results(targ, res, axis, check_dtype=)
 
         if testarval.ndim <= 1:
             return
@@ -353,9 +353,9 @@ class TestnanopsDataFrame:
             targfunc,
             testarval2,
             targarval2,
-            skipna=skipna,
-            check_dtype=check_dtype,
-            empty_targfunc=empty_targfunc,
+            skipna=,
+            check_dtype=,
+            empty_targfunc=,
             **kwargs,
         )
 
@@ -373,8 +373,8 @@ class TestnanopsDataFrame:
             targfunc,
             testarval,
             targarval,
-            skipna=skipna,
-            empty_targfunc=empty_targfunc,
+            skipna=,
+            empty_targfunc=,
             **kwargs,
         )
 
@@ -431,7 +431,7 @@ class TestnanopsDataFrame:
             # else
             if allow_obj == "convert":
                 targfunc = partial(
-                    self._badobj_wrap, func=targfunc, allow_complex=allow_complex
+                    self._badobj_wrap, func=targfunc, allow_complex=
                 )
             self.check_fun(testfunc, targfunc, "arr_obj", skipna, **kwargs)
 
@@ -484,7 +484,7 @@ class TestnanopsDataFrame:
             allow_complex=False,
             allow_date=False,
             allow_obj="convert",
-            ddof=ddof,
+            ddof=,
         )
 
     @pytest.mark.parametrize("ddof", range(3))
@@ -496,7 +496,7 @@ class TestnanopsDataFrame:
             allow_complex=False,
             allow_date=False,
             allow_obj="convert",
-            ddof=ddof,
+            ddof=,
         )
 
     @pytest.mark.parametrize("ddof", range(3))
@@ -512,7 +512,7 @@ class TestnanopsDataFrame:
                 allow_date=False,
                 allow_tdelta=False,
                 allow_obj="convert",
-                ddof=ddof,
+                ddof=,
             )
 
     @pytest.mark.filterwarnings("ignore::RuntimeWarning")
@@ -550,10 +550,10 @@ class TestnanopsDataFrame:
     def _skew_kurt_wrap(self, values, axis=None, func=None):
         if not isinstance(values.dtype.type, np.floating):
             values = values.astype("f8")
-        result = func(values, axis=axis, bias=False)
+        result = func(values, axis=, bias=False)
         # fix for handling cases where all elements in an axis are the same
         if isinstance(result, np.ndarray):
-            result[np.max(values, axis=axis) == np.min(values, axis=axis)] = 0
+            result[np.max(values, axis=) == np.min(values, axis=)] = 0
             return result
         elif np.max(values) == np.min(values):
             return 0.0
@@ -978,12 +978,12 @@ class TestNanvarFixedValues:
         )
 
         # Test nanvar.
-        var = nanops.nanvar(samples, skipna=True, axis=axis, ddof=ddof)
+        var = nanops.nanvar(samples, skipna=True, axis=, ddof=)
         tm.assert_almost_equal(var[:3], variance[axis, ddof])
         assert np.isnan(var[3])
 
         # Test nanstd.
-        std = nanops.nanstd(samples, skipna=True, axis=axis, ddof=ddof)
+        std = nanops.nanstd(samples, skipna=True, axis=, ddof=)
         tm.assert_almost_equal(std[:3], variance[axis, ddof] ** 0.5)
         assert np.isnan(std[3])
 
@@ -992,7 +992,7 @@ class TestNanvarFixedValues:
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
         # that variance is stable.
         data = Series(766897346 * np.ones(10))
-        result = data.std(ddof=ddof)
+        result = data.std(ddof=)
         assert result == 0.0
 
     @property
@@ -1198,7 +1198,7 @@ def test_nanops_independent_of_mask_param(operation):
     ser = Series([1, 2, np.nan, 3, np.nan, 4])
     mask = ser.isna()
     median_expected = operation(ser._values)
-    median_result = operation(ser._values, mask=mask)
+    median_result = operation(ser._values, mask=)
     assert median_expected == median_result
 
 
@@ -1227,7 +1227,7 @@ def test_check_below_min_count_positive_min_count(mask, min_count, expected_resu
 def test_check_below_min_count_large_shape(min_count, expected_result):
     # GH35227 large shape used to show that the issue is fixed
     shape = (2244367, 1253)
-    result = nanops.check_below_min_count(shape, mask=None, min_count=min_count)
+    result = nanops.check_below_min_count(shape, mask=None, min_count=)
     assert result == expected_result
 
 
@@ -1267,7 +1267,7 @@ def test_returned_dtype(disable_bottleneck, dtype, method):
     if dtype is None:
         pytest.skip("np.float128 not available")
 
-    ser = Series(range(10), dtype=dtype)
+    ser = Series(range(10), dtype=)
     result = getattr(ser, method)()
     if is_integer_dtype(dtype) and method not in ["min", "max"]:
         assert result.dtype == np.float64

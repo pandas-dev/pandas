@@ -229,7 +229,7 @@ class TestCategoricalIndexing:
             dtype = key.dtype
 
         # Test for flat index and CategoricalIndex with same/different cats:
-        idx = Index(idx_values, dtype=dtype)
+        idx = Index(idx_values, dtype=)
         expected, exp_miss = idx.get_indexer_non_unique(key_values)
         result, res_miss = idx.get_indexer_non_unique(key)
 

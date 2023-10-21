@@ -344,14 +344,14 @@ class ExponentialMovingWindow(BaseWindow):
         selection=None,
     ) -> None:
         super().__init__(
-            obj=obj,
+            obj=,
             min_periods=1 if min_periods is None else max(int(min_periods), 1),
             on=None,
             center=False,
             closed=None,
-            method=method,
-            axis=axis,
-            selection=selection,
+            method=,
+            axis=,
+            selection=,
         )
         self.com = com
         self.span = span
@@ -452,8 +452,8 @@ class ExponentialMovingWindow(BaseWindow):
             ignore_na=self.ignore_na,
             axis=self.axis,
             times=self.times,
-            engine=engine,
-            engine_kwargs=engine_kwargs,
+            engine=,
+            engine_kwargs=,
             selection=self._selection,
         )
 
@@ -549,10 +549,10 @@ class ExponentialMovingWindow(BaseWindow):
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=deltas,
+                deltas=,
                 normalize=True,
             )
-            return self._apply(window_func, name="mean", numeric_only=numeric_only)
+            return self._apply(window_func, name="mean", numeric_only=)
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
@@ -615,10 +615,10 @@ class ExponentialMovingWindow(BaseWindow):
                 com=self._com,
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
-                deltas=deltas,
+                deltas=,
                 normalize=False,
             )
-            return self._apply(window_func, name="sum", numeric_only=numeric_only)
+            return self._apply(window_func, name="sum", numeric_only=)
         else:
             raise ValueError("engine must be either 'numba' or 'cython'")
 
@@ -662,7 +662,7 @@ class ExponentialMovingWindow(BaseWindow):
             raise NotImplementedError(
                 f"{type(self).__name__}.std does not implement numeric_only"
             )
-        return zsqrt(self.var(bias=bias, numeric_only=numeric_only))
+        return zsqrt(self.var(bias=, numeric_only=))
 
     @doc(
         template_header,
@@ -701,13 +701,13 @@ class ExponentialMovingWindow(BaseWindow):
             com=self._com,
             adjust=self.adjust,
             ignore_na=self.ignore_na,
-            bias=bias,
+            bias=,
         )
 
         def var_func(values, begin, end, min_periods):
             return wfunc(values, begin, end, min_periods, values)
 
-        return self._apply(var_func, name="var", numeric_only=numeric_only)
+        return self._apply(var_func, name="var", numeric_only=)
 
     @doc(
         template_header,
@@ -772,7 +772,7 @@ class ExponentialMovingWindow(BaseWindow):
             )
             start, end = window_indexer.get_window_bounds(
                 num_values=len(x_array),
-                min_periods=min_periods,
+                min_periods=,
                 center=self.center,
                 closed=self.closed,
                 step=self.step,
@@ -856,7 +856,7 @@ class ExponentialMovingWindow(BaseWindow):
             )
             start, end = window_indexer.get_window_bounds(
                 num_values=len(x_array),
-                min_periods=min_periods,
+                min_periods=,
                 center=self.center,
                 closed=self.closed,
                 step=self.step,
@@ -895,7 +895,7 @@ class ExponentialMovingWindowGroupby(BaseWindowGroupby, ExponentialMovingWindow)
     _attributes = ExponentialMovingWindow._attributes + BaseWindowGroupby._attributes
 
     def __init__(self, obj, *args, _grouper=None, **kwargs) -> None:
-        super().__init__(obj, *args, _grouper=_grouper, **kwargs)
+        super().__init__(obj, *args, _grouper=, **kwargs)
 
         if not obj.empty and self.times is not None:
             # sort the times and recalculate the deltas according to the groups
@@ -943,17 +943,17 @@ class OnlineExponentialMovingWindow(ExponentialMovingWindow):
                 "times is not implemented with online operations."
             )
         super().__init__(
-            obj=obj,
-            com=com,
-            span=span,
-            halflife=halflife,
-            alpha=alpha,
-            min_periods=min_periods,
-            adjust=adjust,
-            ignore_na=ignore_na,
-            axis=axis,
-            times=times,
-            selection=selection,
+            obj=,
+            com=,
+            span=,
+            halflife=,
+            alpha=,
+            min_periods=,
+            adjust=,
+            ignore_na=,
+            axis=,
+            times=,
+            selection=,
         )
         self._mean = EWMMeanState(
             self._com, self.adjust, self.ignore_na, self.axis, obj.shape

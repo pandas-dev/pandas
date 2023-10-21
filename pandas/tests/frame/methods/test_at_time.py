@@ -109,7 +109,7 @@ class TestAtTime:
         elif axis in ["columns", 1]:
             expected = ts.loc[:, indices]
 
-        result = ts.at_time("9:30", axis=axis)
+        result = ts.at_time("9:30", axis=)
 
         # Without clearing freq, result has freq 1440T and expected 5T
         result.index = result.index._with_freq(None)
@@ -119,7 +119,7 @@ class TestAtTime:
     def test_at_time_datetimeindex(self):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((len(index), 5)), index=index
+            np.random.default_rng(2).standard_normal((len(index), 5)), index=
         )
         akey = time(12, 0, 0)
         ainds = [24, 72, 120, 168]

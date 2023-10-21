@@ -15,9 +15,9 @@ class TestAstype:
         index = IntervalIndex.from_breaks(range(5))
         arr = index._data
 
-        dtype = CategoricalDtype(None, ordered=ordered)
+        dtype = CategoricalDtype(None, ordered=)
 
-        expected = Categorical(list(arr), ordered=ordered)
+        expected = Categorical(list(arr), ordered=)
         result = arr.astype(dtype)
         assert result.ordered is ordered
         tm.assert_categorical_equal(result, expected)

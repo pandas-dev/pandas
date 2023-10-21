@@ -162,13 +162,13 @@ class Groups:
     def setup_cache(self):
         size = 10**6
         data = {
-            "int64_small": Series(np.random.randint(0, 100, size=size)),
-            "int64_large": Series(np.random.randint(0, 10000, size=size)),
+            "int64_small": Series(np.random.randint(0, 100, size=)),
+            "int64_large": Series(np.random.randint(0, 10000, size=)),
             "object_small": Series(
-                tm.makeStringIndex(100).take(np.random.randint(0, 100, size=size))
+                tm.makeStringIndex(100).take(np.random.randint(0, 100, size=))
             ),
             "object_large": Series(
-                tm.makeStringIndex(10000).take(np.random.randint(0, 10000, size=size))
+                tm.makeStringIndex(10000).take(np.random.randint(0, 10000, size=))
             ),
         }
         return data
@@ -524,12 +524,12 @@ class GroupByMethods:
         size = ngroups * 2
         rng = np.arange(ngroups).reshape(-1, 1)
         rng = np.broadcast_to(rng, (len(rng), ncols))
-        taker = np.random.randint(0, ngroups, size=size)
+        taker = np.random.randint(0, ngroups, size=)
         values = rng.take(taker, axis=0)
         if dtype == "int":
-            key = np.random.randint(0, size, size=size)
+            key = np.random.randint(0, size, size=)
         elif dtype in ("int16", "uint"):
-            key = np.random.randint(0, size, size=size, dtype=dtype)
+            key = np.random.randint(0, size, size=, dtype=)
         elif dtype == "float":
             key = np.concatenate(
                 [np.random.random(ngroups) * 0.1, np.random.random(ngroups) * 10.0]
@@ -654,7 +654,7 @@ class GroupByCythonAggEaDtypes:
         df = DataFrame(
             np.random.randint(0, high=100, size=(N, 10)),
             columns=list("abcdefghij"),
-            dtype=dtype,
+            dtype=,
         )
         df.loc[list(range(1, N, 5)), list("abcdefghij")] = NA
         df["key"] = np.random.randint(0, 100, size=N)
@@ -684,7 +684,7 @@ class Cumulative:
             null_vals = vals.astype(float, copy=True)
             null_vals[::2, :] = np.nan
             null_vals[::3, :] = np.nan
-            df = DataFrame(null_vals, columns=list("abcde"), dtype=dtype)
+            df = DataFrame(null_vals, columns=list("abcde"), dtype=)
             df["key"] = keys
             self.df = df
         else:
@@ -707,9 +707,9 @@ class RankWithTies:
     def setup(self, dtype, tie_method):
         N = 10**4
         if dtype == "datetime64":
-            data = np.array([Timestamp("2011/01/01")] * N, dtype=dtype)
+            data = np.array([Timestamp("2011/01/01")] * N, dtype=)
         else:
-            data = np.array([1] * N, dtype=dtype)
+            data = np.array([1] * N, dtype=)
         self.df = DataFrame({"values": data, "key": ["foo"] * N})
 
     def time_rank_ties(self, dtype, tie_method):
@@ -750,7 +750,7 @@ class String:
         self.df = DataFrame(
             np.random.randint(0, 100, size=(10_000, len(cols))),
             columns=cols,
-            dtype=dtype,
+            dtype=,
         )
 
     def time_str_func(self, dtype, method):
@@ -780,22 +780,22 @@ class Categories:
         self.df_extra_cat = DataFrame(data)
 
     def time_groupby_sort(self, observed):
-        self.df.groupby("a", observed=observed)["b"].count()
+        self.df.groupby("a", observed=)["b"].count()
 
     def time_groupby_nosort(self, observed):
-        self.df.groupby("a", observed=observed, sort=False)["b"].count()
+        self.df.groupby("a", observed=, sort=False)["b"].count()
 
     def time_groupby_ordered_sort(self, observed):
-        self.df_ordered.groupby("a", observed=observed)["b"].count()
+        self.df_ordered.groupby("a", observed=)["b"].count()
 
     def time_groupby_ordered_nosort(self, observed):
-        self.df_ordered.groupby("a", observed=observed, sort=False)["b"].count()
+        self.df_ordered.groupby("a", observed=, sort=False)["b"].count()
 
     def time_groupby_extra_cat_sort(self, observed):
-        self.df_extra_cat.groupby("a", observed=observed)["b"].count()
+        self.df_extra_cat.groupby("a", observed=)["b"].count()
 
     def time_groupby_extra_cat_nosort(self, observed):
-        self.df_extra_cat.groupby("a", observed=observed, sort=False)["b"].count()
+        self.df_extra_cat.groupby("a", observed=, sort=False)["b"].count()
 
 
 class Datelike:
@@ -871,7 +871,7 @@ class Transform:
         arr[::10000, 0] = np.nan
         arr[1::10000, 1] = np.nan
         arr[2::10000, 2] = np.nan
-        data = DataFrame(arr, index=index, columns=["col1", "col20", "col3"])
+        data = DataFrame(arr, index=, columns=["col1", "col20", "col3"])
         self.df = data
 
         n = 1000
@@ -1086,8 +1086,8 @@ class Resample:
         )
         data = np.random.randint(0, 1000, size=(len(index)))
 
-        self.df = DataFrame(data, index=index).reset_index("timedeltas")
-        self.df_multiindex = DataFrame(data, index=index)
+        self.df = DataFrame(data, index=).reset_index("timedeltas")
+        self.df_multiindex = DataFrame(data, index=)
 
     def time_resample(self):
         self.df.groupby(level="groups").resample("10s", on="timedeltas").mean()

@@ -303,7 +303,7 @@ def maybe_downcast_to_dtype(result: ArrayLike, dtype: str | np.dtype) -> ArrayLi
 
     elif dtype == np.dtype("M8[ns]") and result.dtype == _dtype_obj:
         result = cast(np.ndarray, result)
-        return np.asarray(maybe_cast_to_datetime(result, dtype=dtype))
+        return np.asarray(maybe_cast_to_datetime(result, dtype=))
 
     return result
 
@@ -400,7 +400,7 @@ def maybe_downcast_numeric(
 
         # Check downcast float values are still equal within 7 digits when
         # converting from float64 to float32
-        if np.allclose(new_result, result, equal_nan=True, rtol=0.0, atol=atol):
+        if np.allclose(new_result, result, equal_nan=True, rtol=0.0, atol=):
             return new_result
 
     elif dtype.kind == result.dtype.kind == "c":
@@ -466,7 +466,7 @@ def maybe_cast_pointwise_result(
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
         if same_dtype:
-            result = _maybe_cast_to_extension_array(cls, result, dtype=dtype)
+            result = _maybe_cast_to_extension_array(cls, result, dtype=)
         else:
             result = _maybe_cast_to_extension_array(cls, result)
 
@@ -497,13 +497,13 @@ def _maybe_cast_to_extension_array(
 
     if dtype is not None:
         try:
-            result = cls._from_scalars(obj, dtype=dtype)
+            result = cls._from_scalars(obj, dtype=)
         except (TypeError, ValueError):
             return obj
         return result
 
     try:
-        result = cls._from_sequence(obj, dtype=dtype)
+        result = cls._from_sequence(obj, dtype=)
     except Exception:
         # We can't predict what downstream EA constructors may raise
         result = obj
@@ -837,7 +837,7 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
             dtype = np.dtype(np.int64)
 
         try:
-            np.array(val, dtype=dtype)
+            np.array(val, dtype=)
         except OverflowError:
             dtype = np.array(val).dtype
 
@@ -854,7 +854,7 @@ def infer_dtype_from_scalar(val) -> tuple[DtypeObj, Any]:
         dtype = PeriodDtype(freq=val.freq)
     elif lib.is_interval(val):
         subtype = infer_dtype_from_scalar(val.left)[0]
-        dtype = IntervalDtype(subtype=subtype, closed=val.closed)
+        dtype = IntervalDtype(subtype=, closed=val.closed)
 
     return dtype, val
 
@@ -1217,11 +1217,11 @@ def maybe_cast_to_datetime(
     _ensure_nanosecond_dtype(dtype)
 
     if lib.is_np_dtype(dtype, "m"):
-        res = TimedeltaArray._from_sequence(value, dtype=dtype)
+        res = TimedeltaArray._from_sequence(value, dtype=)
         return res
     else:
         try:
-            dta = DatetimeArray._from_sequence(value, dtype=dtype)
+            dta = DatetimeArray._from_sequence(value, dtype=)
         except ValueError as err:
             # We can give a Series-specific exception message.
             if "cannot supply both a tz and a timezone-naive dtype" in str(err):
@@ -1476,7 +1476,7 @@ def construct_2d_arraylike_from_scalar(
 
     # Attempt to coerce to a numpy array
     try:
-        arr = np.array(value, dtype=dtype, copy=copy)
+        arr = np.array(value, dtype=, copy=)
     except (ValueError, TypeError) as err:
         raise TypeError(
             f"DataFrame constructor called with incompatible data and dtype: {err}"
@@ -1516,7 +1516,7 @@ def construct_1d_arraylike_from_scalar(
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
         seq = [] if length == 0 else [value]
-        subarr = cls._from_sequence(seq, dtype=dtype).repeat(length)
+        subarr = cls._from_sequence(seq, dtype=).repeat(length)
 
     else:
         if length and dtype.kind in "iu" and isna(value):
@@ -1531,7 +1531,7 @@ def construct_1d_arraylike_from_scalar(
         elif dtype.kind in "mM":
             value = _maybe_box_and_unbox_datetimelike(value, dtype)
 
-        subarr = np.empty(length, dtype=dtype)
+        subarr = np.empty(length, dtype=)
         if length:
             # GH 47391: numpy > 1.24 will raise filling np.nan into int dtypes
             subarr.fill(value)
@@ -1624,7 +1624,7 @@ def maybe_cast_to_integer_array(arr: list | np.ndarray, dtype: np.dtype) -> np.n
                     "NumPy will stop allowing conversion of out-of-bound Python int",
                     DeprecationWarning,
                 )
-                casted = np.array(arr, dtype=dtype, copy=False)
+                casted = np.array(arr, dtype=, copy=False)
         else:
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", category=RuntimeWarning)

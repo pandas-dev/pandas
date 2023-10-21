@@ -54,10 +54,10 @@ class ODSWriter(ExcelWriter):
 
         super().__init__(
             path,
-            mode=mode,
-            storage_options=storage_options,
-            if_sheet_exists=if_sheet_exists,
-            engine_kwargs=engine_kwargs,
+            mode=,
+            storage_options=,
+            if_sheet_exists=,
+            engine_kwargs=,
         )
 
         self._style_dict: dict[str, str] = {}
@@ -197,7 +197,7 @@ class ODSWriter(ExcelWriter):
                 TableCell(
                     valuetype="boolean",
                     booleanvalue=value,
-                    attributes=attributes,
+                    attributes=,
                 ),
             )
         elif isinstance(val, datetime.datetime):
@@ -207,7 +207,7 @@ class ODSWriter(ExcelWriter):
             pvalue = val.strftime("%c")
             return (
                 pvalue,
-                TableCell(valuetype="date", datevalue=value, attributes=attributes),
+                TableCell(valuetype="date", datevalue=value, attributes=),
             )
         elif isinstance(val, datetime.date):
             # Fast formatting
@@ -216,25 +216,17 @@ class ODSWriter(ExcelWriter):
             pvalue = val.strftime("%x")
             return (
                 pvalue,
-                TableCell(valuetype="date", datevalue=value, attributes=attributes),
+                TableCell(valuetype="date", datevalue=value, attributes=),
             )
         elif isinstance(val, str):
             return (
                 pvalue,
-                TableCell(
-                    valuetype="string",
-                    stringvalue=value,
-                    attributes=attributes,
-                ),
+                TableCell(valuetype="string", stringvalue=value, attributes=),
             )
         else:
             return (
                 pvalue,
-                TableCell(
-                    valuetype="float",
-                    value=value,
-                    attributes=attributes,
-                ),
+                TableCell(valuetype="float", value=, attributes=),
             )
 
     @overload
@@ -272,7 +264,7 @@ class ODSWriter(ExcelWriter):
             return self._style_dict[style_key]
         name = f"pd{len(self._style_dict)+1}"
         self._style_dict[style_key] = name
-        odf_style = Style(name=name, family="table-cell")
+        odf_style = Style(name=, family="table-cell")
         if "font" in style:
             font = style["font"]
             if font.get("bold", False):

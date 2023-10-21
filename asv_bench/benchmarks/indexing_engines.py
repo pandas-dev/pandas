@@ -69,24 +69,24 @@ class NumericEngineIndexing:
 
         if index_type == "monotonic_incr":
             if unique:
-                arr = np.arange(N * 3, dtype=dtype)
+                arr = np.arange(N * 3, dtype=)
             else:
                 values = list([1] * N + [2] * N + [3] * N)
-                arr = np.array(values, dtype=dtype)
+                arr = np.array(values, dtype=)
         elif index_type == "monotonic_decr":
             if unique:
-                arr = np.arange(N * 3, dtype=dtype)[::-1]
+                arr = np.arange(N * 3, dtype=)[::-1]
             else:
                 values = list([1] * N + [2] * N + [3] * N)
-                arr = np.array(values, dtype=dtype)[::-1]
+                arr = np.array(values, dtype=)[::-1]
         else:
             assert index_type == "non_monotonic"
             if unique:
-                arr = np.empty(N * 3, dtype=dtype)
-                arr[:N] = np.arange(N * 2, N * 3, dtype=dtype)
-                arr[N:] = np.arange(N * 2, dtype=dtype)
+                arr = np.empty(N * 3, dtype=)
+                arr[:N] = np.arange(N * 2, N * 3, dtype=)
+                arr[N:] = np.arange(N * 2, dtype=)
             else:
-                arr = np.array([1, 2, 3] * N, dtype=dtype)
+                arr = np.array([1, 2, 3] * N, dtype=)
 
         self.data = engine(arr)
         # code belows avoids populating the mapping etc. while timing.

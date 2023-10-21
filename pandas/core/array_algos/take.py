@@ -107,11 +107,9 @@ def take_nd(
         if not is_1d_only_ea_dtype(arr.dtype):
             # i.e. DatetimeArray, TimedeltaArray
             arr = cast("NDArrayBackedExtensionArray", arr)
-            return arr.take(
-                indexer, fill_value=fill_value, allow_fill=allow_fill, axis=axis
-            )
+            return arr.take(indexer, fill_value=, allow_fill=, axis=)
 
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+        return arr.take(indexer, fill_value=, allow_fill=)
 
     arr = np.asarray(arr)
     return _take_nd_ndarray(arr, indexer, axis, fill_value, allow_fill)
@@ -152,12 +150,12 @@ def _take_nd_ndarray(
         # for dataframes initialized directly from 2-d ndarrays
         # (s.t. df.values is c-contiguous and df._mgr.blocks[0] is its
         # f-contiguous transpose)
-        out = np.empty(out_shape, dtype=dtype, order="F")
+        out = np.empty(out_shape, dtype=, order="F")
     else:
-        out = np.empty(out_shape, dtype=dtype)
+        out = np.empty(out_shape, dtype=)
 
     func = _get_take_nd_function(
-        arr.ndim, arr.dtype, out.dtype, axis=axis, mask_info=mask_info
+        arr.ndim, arr.dtype, out.dtype, axis=, mask_info=
     )
     func(arr, indexer, out, fill_value)
 
@@ -203,7 +201,7 @@ def take_1d(
     """
     if not isinstance(arr, np.ndarray):
         # ExtensionArray -> dispatch to their method
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+        return arr.take(indexer, fill_value=, allow_fill=)
 
     if not allow_fill:
         return arr.take(indexer)
@@ -214,10 +212,10 @@ def take_1d(
 
     # at this point, it's guaranteed that dtype can hold both the arr values
     # and the fill_value
-    out = np.empty(indexer.shape, dtype=dtype)
+    out = np.empty(indexer.shape, dtype=)
 
     func = _get_take_nd_function(
-        arr.ndim, arr.dtype, out.dtype, axis=0, mask_info=mask_info
+        arr.ndim, arr.dtype, out.dtype, axis=0, mask_info=
     )
     func(arr, indexer, out, fill_value)
 
@@ -265,7 +263,7 @@ def take_2d_multi(
     # at this point, it's guaranteed that dtype can hold both the arr values
     # and the fill_value
     out_shape = len(row_idx), len(col_idx)
-    out = np.empty(out_shape, dtype=dtype)
+    out = np.empty(out_shape, dtype=)
 
     func = _take_2d_multi_dict.get((arr.dtype.name, out.dtype.name), None)
     if func is None and arr.dtype != out.dtype:
@@ -274,12 +272,10 @@ def take_2d_multi(
             func = _convert_wrapper(func, out.dtype)
 
     if func is not None:
-        func(arr, indexer, out=out, fill_value=fill_value)
+        func(arr, indexer, out=, fill_value=)
     else:
         # test_reindex_multi
-        _take_2d_multi_object(
-            arr, indexer, out, fill_value=fill_value, mask_info=mask_info
-        )
+        _take_2d_multi_object(arr, indexer, out, fill_value=, mask_info=)
 
     return out
 
@@ -342,9 +338,7 @@ def _get_take_nd_function(
 
         def func(arr, indexer, out, fill_value=np.nan) -> None:
             indexer = ensure_platform_int(indexer)
-            _take_nd_object(
-                arr, indexer, out, axis=axis, fill_value=fill_value, mask_info=mask_info
-            )
+            _take_nd_object(arr, indexer, out, axis=, fill_value=, mask_info=)
 
     return func
 
@@ -366,7 +360,7 @@ def _view_wrapper(f, arr_dtype=None, out_dtype=None, fill_wrap=None):
                 fill_value = fill_value.astype("M8[ns]")
             fill_value = fill_wrap(fill_value)
 
-        f(arr, indexer, out, fill_value=fill_value)
+        f(arr, indexer, out, fill_value=)
 
     return wrapper
 
@@ -379,7 +373,7 @@ def _convert_wrapper(f, conv_dtype):
             # GH#39755 avoid casting dt64/td64 to integers
             arr = ensure_wrapped_if_datetimelike(arr)
         arr = arr.astype(conv_dtype)
-        f(arr, indexer, out, fill_value=fill_value)
+        f(arr, indexer, out, fill_value=)
 
     return wrapper
 
@@ -525,7 +519,7 @@ def _take_nd_object(
     if arr.dtype != out.dtype:
         arr = arr.astype(out.dtype)
     if arr.shape[axis] > 0:
-        arr.take(indexer, axis=axis, out=out)
+        arr.take(indexer, axis=, out=)
     if needs_masking:
         outindexer = [slice(None)] * arr.ndim
         outindexer[axis] = mask

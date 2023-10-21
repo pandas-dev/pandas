@@ -60,9 +60,9 @@ class TestToIterable:
         typ = index_or_series
         if dtype == "float16" and issubclass(typ, pd.Index):
             with pytest.raises(NotImplementedError, match="float16 indexes are not "):
-                typ([1], dtype=dtype)
+                typ([1], dtype=)
             return
-        s = typ([1], dtype=dtype)
+        s = typ([1], dtype=)
         result = method(s)[0]
         assert isinstance(result, rdtype)
 
@@ -92,7 +92,7 @@ class TestToIterable:
         # gh-13258
         # coerce iteration to underlying python / pandas types
         typ = index_or_series
-        s = typ([obj], dtype=dtype)
+        s = typ([obj], dtype=)
         result = method(s)[0]
         assert isinstance(result, rdtype)
 
@@ -101,7 +101,7 @@ class TestToIterable:
         # gh-13258
         # test if items yields the correct boxed scalars
         # this only applies to series
-        s = Series([1], dtype=dtype)
+        s = Series([1], dtype=)
         _, result = next(iter(s.items()))
         assert isinstance(result, rdtype)
 
@@ -117,9 +117,9 @@ class TestToIterable:
         typ = index_or_series
         if dtype == "float16" and issubclass(typ, pd.Index):
             with pytest.raises(NotImplementedError, match="float16 indexes are not "):
-                typ([1], dtype=dtype)
+                typ([1], dtype=)
             return
-        s = typ([1], dtype=dtype)
+        s = typ([1], dtype=)
         result = s.map(type)[0]
         if not isinstance(rdtype, tuple):
             rdtype = (rdtype,)
@@ -370,14 +370,14 @@ def test_to_numpy_copy(arr, as_series):
 @pytest.mark.parametrize("as_series", [True, False])
 def test_to_numpy_dtype(as_series):
     tz = "US/Eastern"
-    obj = pd.DatetimeIndex(["2000", "2001"], tz=tz)
+    obj = pd.DatetimeIndex(["2000", "2001"], tz=)
     if as_series:
         obj = Series(obj)
 
     # preserve tz by default
     result = obj.to_numpy()
     expected = np.array(
-        [Timestamp("2000", tz=tz), Timestamp("2001", tz=tz)], dtype=object
+        [Timestamp("2000", tz=tz), Timestamp("2001", tz=)], dtype=object
     )
     tm.assert_numpy_array_equal(result, expected)
 
@@ -405,7 +405,7 @@ def test_to_numpy_na_value_numpy_dtype(
     index_or_series, values, dtype, na_value, expected
 ):
     obj = index_or_series(values)
-    result = obj.to_numpy(dtype=dtype, na_value=na_value)
+    result = obj.to_numpy(dtype=, na_value=)
     expected = np.array(expected)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -447,8 +447,8 @@ def test_to_numpy_multiindex_series_na_value(
     data, multiindex, dtype, na_value, expected
 ):
     index = pd.MultiIndex.from_tuples(multiindex)
-    series = Series(data, index=index)
-    result = series.to_numpy(dtype=dtype, na_value=na_value)
+    series = Series(data, index=)
+    result = series.to_numpy(dtype=, na_value=)
     expected = np.array(expected)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -478,8 +478,8 @@ def test_to_numpy_kwargs_raises():
 def test_to_numpy_dataframe_na_value(data, dtype, na_value):
     # https://github.com/pandas-dev/pandas/issues/33820
     df = pd.DataFrame(data)
-    result = df.to_numpy(dtype=dtype, na_value=na_value)
-    expected = np.array([[1, 1], [2, 2], [3, na_value]], dtype=dtype)
+    result = df.to_numpy(dtype=, na_value=)
+    expected = np.array([[1, 1], [2, 2], [3, na_value]], dtype=)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -514,14 +514,14 @@ def test_to_numpy_dataframe_single_block_no_mutate():
 class TestAsArray:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_asarray_object_dt64(self, tz):
-        ser = Series(date_range("2000", periods=2, tz=tz))
+        ser = Series(date_range("2000", periods=2, tz=))
 
         with tm.assert_produces_warning(None):
             # Future behavior (for tzaware case) with no warning
             result = np.asarray(ser, dtype=object)
 
         expected = np.array(
-            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)]
+            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=)]
         )
         tm.assert_numpy_array_equal(result, expected)
 
@@ -535,7 +535,7 @@ class TestAsArray:
 
     def test_asarray_tz_aware(self):
         tz = "US/Central"
-        ser = Series(date_range("2000", periods=2, tz=tz))
+        ser = Series(date_range("2000", periods=2, tz=))
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
         result = np.asarray(ser, dtype="datetime64[ns]")
 

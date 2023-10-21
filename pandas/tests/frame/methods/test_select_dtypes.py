@@ -121,13 +121,13 @@ class TestSelectDtypes:
         )
         exclude = (np.datetime64,)
         include = np.bool_, "integer"
-        r = df.select_dtypes(include=include, exclude=exclude)
+        r = df.select_dtypes(include=, exclude=)
         e = df[["b", "c", "e"]]
         tm.assert_frame_equal(r, e)
 
         exclude = ("datetime",)
         include = "bool", "int64", "int32"
-        r = df.select_dtypes(include=include, exclude=exclude)
+        r = df.select_dtypes(include=, exclude=)
         e = df[["b", "e"]]
         tm.assert_frame_equal(r, e)
 
@@ -147,7 +147,7 @@ class TestSelectDtypes:
             }
         )
         exclude = (np.datetime64,)
-        result = df.select_dtypes(include=include, exclude=exclude)
+        result = df.select_dtypes(include=, exclude=)
         expected = df[["b", "c", "e"]]
         tm.assert_frame_equal(result, expected)
 

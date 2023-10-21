@@ -28,7 +28,7 @@ from pandas.core.arrays import (
     ],
 )
 def test_period_array_ok(data, freq, expected):
-    result = period_array(data, freq=freq).asi8
+    result = period_array(data, freq=).asi8
     expected = np.asarray(expected, dtype=np.int64)
     tm.assert_numpy_array_equal(result, expected)
 
@@ -63,7 +63,7 @@ def test_from_datetime64_freq_2M(freq):
         ["2020-01-01T00:00:00", "2020-01-02T00:00:00"], dtype="datetime64[ns]"
     )
     result = PeriodArray._from_datetime64(arr, freq)
-    expected = period_array(["2020-01", "2020-01"], freq=freq)
+    expected = period_array(["2020-01", "2020-01"], freq=)
     tm.assert_period_array_equal(result, expected)
 
 
@@ -96,7 +96,7 @@ def test_period_array_freq_mismatch():
 
     dtype = pd.PeriodDtype(pd.tseries.offsets.MonthEnd())
     with pytest.raises(IncompatibleFrequency, match="freq"):
-        PeriodArray(arr, dtype=dtype)
+        PeriodArray(arr, dtype=)
 
 
 def test_from_sequence_disallows_i8():
@@ -121,18 +121,18 @@ def test_from_td64nat_sequence_raises():
 
     msg = "Value must be Period, string, integer, or datetime"
     with pytest.raises(ValueError, match=msg):
-        PeriodArray._from_sequence(arr, dtype=dtype)
+        PeriodArray._from_sequence(arr, dtype=)
 
     with pytest.raises(ValueError, match=msg):
-        pd.PeriodIndex(arr, dtype=dtype)
+        pd.PeriodIndex(arr, dtype=)
     with pytest.raises(ValueError, match=msg):
-        pd.Index(arr, dtype=dtype)
+        pd.Index(arr, dtype=)
     with pytest.raises(ValueError, match=msg):
-        pd.array(arr, dtype=dtype)
+        pd.array(arr, dtype=)
     with pytest.raises(ValueError, match=msg):
-        pd.Series(arr, dtype=dtype)
+        pd.Series(arr, dtype=)
     with pytest.raises(ValueError, match=msg):
-        pd.DataFrame(arr, dtype=dtype)
+        pd.DataFrame(arr, dtype=)
 
 
 def test_freq_deprecated():

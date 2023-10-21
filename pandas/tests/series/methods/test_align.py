@@ -74,7 +74,7 @@ def test_align_fill_method(
         "are deprecated"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        aa, ab = a.align(b, join=join_type, method=method, limit=limit)
+        aa, ab = a.align(b, join=join_type, method=, limit=)
 
     join_index = a.index.join(b.index, how=join_type)
     ea = a.reindex(join_index)
@@ -82,8 +82,8 @@ def test_align_fill_method(
 
     msg2 = "Series.fillna with 'method' is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg2):
-        ea = ea.fillna(method=method, limit=limit)
-        eb = eb.fillna(method=method, limit=limit)
+        ea = ea.fillna(method=, limit=)
+        eb = eb.fillna(method=, limit=)
 
     tm.assert_series_equal(aa, ea)
     tm.assert_series_equal(ab, eb)
@@ -187,7 +187,7 @@ def test_align_with_dataframe_method(method):
         "are deprecated"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result_ser, result_df = ser.align(df, method=method)
+        result_ser, result_df = ser.align(df, method=)
     tm.assert_series_equal(result_ser, ser)
     tm.assert_frame_equal(result_df, df)
 

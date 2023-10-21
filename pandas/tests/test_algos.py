@@ -67,7 +67,7 @@ class TestFactorize:
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
-        result_codes, result_uniques = obj.factorize(sort=sort)
+        result_codes, result_uniques = obj.factorize(sort=)
 
         constructor = Index
         if isinstance(obj, MultiIndex):
@@ -219,7 +219,7 @@ class TestFactorize:
         key = np.array([1, 2, 1, np.nan], dtype="O")
         rizer = ht.ObjectFactorizer(len(key))
         for na_sentinel in (-1, 20):
-            ids = rizer.factorize(key, na_sentinel=na_sentinel)
+            ids = rizer.factorize(key, na_sentinel=)
             expected = np.array([0, 1, 0, na_sentinel], dtype=np.intp)
             assert len(set(key)) == len(set(expected))
             tm.assert_numpy_array_equal(pd.isna(key), expected == na_sentinel)
@@ -230,7 +230,7 @@ class TestFactorize:
         data = np.array([1, 2, 3, 1, 1, 0], dtype="int64")
         mask = np.array([False, False, False, False, False, True])
         rizer = ht.Int64Factorizer(len(data))
-        result = rizer.factorize(data, mask=mask)
+        result = rizer.factorize(data, mask=)
         expected = np.array([0, 1, 2, 0, 0, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
         expected_uniques = np.array([1, 2, 3], dtype="int64")
@@ -284,9 +284,9 @@ class TestFactorize:
     def test_numeric_dtype_factorize(self, any_real_numpy_dtype):
         # GH41132
         dtype = any_real_numpy_dtype
-        data = np.array([1, 2, 2, 1], dtype=dtype)
+        data = np.array([1, 2, 2, 1], dtype=)
         expected_codes = np.array([0, 1, 1, 0], dtype=np.intp)
-        expected_uniques = np.array([1, 2], dtype=dtype)
+        expected_uniques = np.array([1, 2], dtype=)
 
         codes, uniques = algos.factorize(data)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -361,11 +361,11 @@ class TestFactorize:
         ri = pd.RangeIndex.from_range(range(10))
         expected = np.arange(10, dtype=np.intp), ri
 
-        result = algos.factorize(ri, sort=sort)
+        result = algos.factorize(ri, sort=)
         tm.assert_numpy_array_equal(result[0], expected[0])
         tm.assert_index_equal(result[1], expected[1], exact=True)
 
-        result = ri.factorize(sort=sort)
+        result = ri.factorize(sort=)
         tm.assert_numpy_array_equal(result[0], expected[0])
         tm.assert_index_equal(result[1], expected[1], exact=True)
 
@@ -380,11 +380,11 @@ class TestFactorize:
         if sort:
             expected = expected[0][::-1], expected[1][::-1]
 
-        result = algos.factorize(ri2, sort=sort)
+        result = algos.factorize(ri2, sort=)
         tm.assert_numpy_array_equal(result[0], expected[0])
         tm.assert_index_equal(result[1], expected[1], exact=True)
 
-        result = ri2.factorize(sort=sort)
+        result = ri2.factorize(sort=)
         tm.assert_numpy_array_equal(result[0], expected[0])
         tm.assert_index_equal(result[1], expected[1], exact=True)
 
@@ -426,7 +426,7 @@ class TestFactorize:
         ],
     )
     def test_parametrized_factorize_na_value(self, data, na_value):
-        codes, uniques = algos.factorize_array(data, na_value=na_value)
+        codes, uniques = algos.factorize_array(data, na_value=)
         expected_uniques = data[[1, 3]]
         expected_codes = np.array([-1, 0, -1, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(codes, expected_codes)
@@ -448,7 +448,7 @@ class TestFactorize:
         ids=["numpy_array", "extension_array"],
     )
     def test_factorize_use_na_sentinel(self, sort, data, uniques):
-        codes, uniques = algos.factorize(data, sort=sort, use_na_sentinel=True)
+        codes, uniques = algos.factorize(data, sort=, use_na_sentinel=True)
         if sort:
             expected_codes = np.array([1, 0, -1, 1], dtype=np.intp)
             expected_uniques = algos.safe_sort(uniques)
@@ -1197,7 +1197,7 @@ class TestValueCounts:
             result = algos.value_counts(factor)
         breaks = [-1.606, -1.018, -0.431, 0.155, 0.741]
         index = IntervalIndex.from_breaks(breaks).astype(CategoricalDtype(ordered=True))
-        expected = Series([1, 0, 2, 1], index=index, name="count")
+        expected = Series([1, 0, 2, 1], index=, name="count")
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
@@ -1399,14 +1399,14 @@ class TestValueCounts:
         result = s_typed.value_counts(normalize=True, dropna=False)
         expected = Series(
             [0.5, 0.3, 0.2],
-            index=Series([np.nan, 2.0, 1.0], dtype=dtype),
+            index=Series([np.nan, 2.0, 1.0], dtype=),
             name="proportion",
         )
         tm.assert_series_equal(result, expected)
 
         result = s_typed.value_counts(normalize=True, dropna=True)
         expected = Series(
-            [0.6, 0.4], index=Series([2.0, 1.0], dtype=dtype), name="proportion"
+            [0.6, 0.4], index=Series([2.0, 1.0], dtype=), name="proportion"
         )
         tm.assert_series_equal(result, expected)
 
@@ -1781,7 +1781,7 @@ class TestRank:
     def test_basic(self, writable, dtype):
         exp = np.array([1, 2], dtype=np.float64)
 
-        data = np.array([1, 100], dtype=dtype)
+        data = np.array([1, 100], dtype=)
         data.setflags(write=writable)
         ser = Series(data)
         result = algos.rank(ser)
@@ -1791,7 +1791,7 @@ class TestRank:
     def test_uint64_overflow(self, dtype):
         exp = np.array([1, 2], dtype=np.float64)
 
-        s = Series([1, 2**63], dtype=dtype)
+        s = Series([1, 2**63], dtype=)
         tm.assert_numpy_array_equal(algos.rank(s), exp)
 
     def test_too_many_ndims(self):
@@ -2203,7 +2203,7 @@ class TestDiff:
 
     @pytest.mark.parametrize("dtype", ["int8", "int16"])
     def test_diff_low_precision_int(self, dtype):
-        arr = np.array([0, 1, 1, 0, 0], dtype=dtype)
+        arr = np.array([0, 1, 1, 0, 0], dtype=)
         result = algos.diff(arr, 1)
         expected = np.array([np.nan, 1, 0, -1, 0], dtype="float32")
         tm.assert_numpy_array_equal(result, expected)

@@ -469,12 +469,12 @@ class TestMMapWrapper:
         df = tm.makeDataFrame()
         with tm.ensure_clean() as path:
             with tm.assert_produces_warning(UnicodeWarning):
-                df.to_csv(path, compression=compression_, encoding=encoding)
+                df.to_csv(path, compression=compression_, encoding=)
 
             # reading should fail (otherwise we wouldn't need the warning)
             msg = r"UTF-\d+ stream does not start with BOM"
             with pytest.raises(UnicodeError, match=msg):
-                pd.read_csv(path, compression=compression_, encoding=encoding)
+                pd.read_csv(path, compression=compression_, encoding=)
 
 
 def test_is_fsspec_url():
@@ -498,9 +498,9 @@ def test_codecs_encoding(encoding, format):
     # GH39247
     expected = tm.makeDataFrame()
     with tm.ensure_clean() as path:
-        with codecs.open(path, mode="w", encoding=encoding) as handle:
+        with codecs.open(path, mode="w", encoding=) as handle:
             getattr(expected, f"to_{format}")(handle)
-        with codecs.open(path, mode="r", encoding=encoding) as handle:
+        with codecs.open(path, mode="r", encoding=) as handle:
             if format == "csv":
                 df = pd.read_csv(handle, index_col=0)
             else:
@@ -565,9 +565,9 @@ def test_encoding_errors(encoding_errors, format):
 
         if encoding_errors != "replace":
             with pytest.raises(UnicodeDecodeError, match=msg):
-                reader(path, encoding_errors=encoding_errors)
+                reader(path, encoding_errors=)
         else:
-            df = reader(path, encoding_errors=encoding_errors)
+            df = reader(path, encoding_errors=)
             decoded = bad_encoding.decode(errors=encoding_errors)
             expected = pd.DataFrame({decoded: [decoded]}, index=[decoded * 2])
             tm.assert_frame_equal(df, expected)

@@ -48,7 +48,7 @@ def test_bad_quoting(all_parsers, quoting, msg):
     parser = all_parsers
 
     with pytest.raises(TypeError, match=msg):
-        parser.read_csv(StringIO(data), quoting=quoting)
+        parser.read_csv(StringIO(data), quoting=)
 
 
 def test_quote_char_basic(all_parsers):
@@ -118,7 +118,7 @@ def test_quoting_various(all_parsers, kwargs, exp_data):
     columns = ["a", "b", "c"]
 
     result = parser.read_csv(StringIO(data), names=columns, **kwargs)
-    expected = DataFrame(exp_data, columns=columns)
+    expected = DataFrame(exp_data, columns=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -129,7 +129,7 @@ def test_double_quote(all_parsers, doublequote, exp_data):
     parser = all_parsers
     data = 'a,b\n3,"4 "" 5"'
 
-    result = parser.read_csv(StringIO(data), quotechar='"', doublequote=doublequote)
+    result = parser.read_csv(StringIO(data), quotechar='"', doublequote=)
     expected = DataFrame(exp_data, columns=["a", "b"])
     tm.assert_frame_equal(result, expected)
 
@@ -141,7 +141,7 @@ def test_quotechar_unicode(all_parsers, quotechar):
     parser = all_parsers
     expected = DataFrame({"a": [1]})
 
-    result = parser.read_csv(StringIO(data), quotechar=quotechar)
+    result = parser.read_csv(StringIO(data), quotechar=)
     tm.assert_frame_equal(result, expected)
 
 

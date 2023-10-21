@@ -106,7 +106,7 @@ class ToCSVPeriod(BaseIO):
     param_names = ["nobs", "freq"]
 
     def setup(self, nobs, freq):
-        rng = period_range(start="2000-01-01", periods=nobs, freq=freq)
+        rng = period_range(start="2000-01-01", periods=nobs, freq=)
         self.data = DataFrame(rng)
         if freq == "D":
             self.default_fmt = "%Y-%m-%d"
@@ -134,7 +134,7 @@ class ToCSVPeriodIndex(BaseIO):
     param_names = ["nobs", "freq"]
 
     def setup(self, nobs, freq):
-        rng = period_range(start="2000-01-01", periods=nobs, freq=freq)
+        rng = period_range(start="2000-01-01", periods=nobs, freq=)
         self.data = DataFrame({"a": 1}, index=rng)
         if freq == "D":
             self.default_fmt = "%Y-%m-%d"
@@ -297,12 +297,12 @@ class ReadCSVSkipRows(BaseIO):
                 "bool1": [True] * N,
                 "int1": np.random.randint(0, N, size=N),
             },
-            index=index,
+            index=,
         )
         df.to_csv(self.fname)
 
     def time_skipprows(self, skiprows, engine):
-        read_csv(self.fname, skiprows=skiprows, engine=engine)
+        read_csv(self.fname, skiprows=, engine=)
 
 
 class ReadUint64Integers(StringIORewind):
@@ -340,10 +340,10 @@ class ReadCSVThousands(BaseIO):
             fmt = f":{thousands}"
             fmt = "{" + fmt + "}"
             df = df.map(lambda x: fmt.format(x))
-        df.to_csv(self.fname, sep=sep)
+        df.to_csv(self.fname, sep=)
 
     def time_thousands(self, sep, thousands, engine):
-        read_csv(self.fname, sep=sep, thousands=thousands, engine=engine)
+        read_csv(self.fname, sep=, thousands=, engine=)
 
 
 class ReadCSVComment(StringIORewind):
@@ -377,16 +377,16 @@ class ReadCSVFloatPrecision(StringIORewind):
     def time_read_csv(self, sep, decimal, float_precision):
         read_csv(
             self.data(self.StringIO_input),
-            sep=sep,
+            sep=,
             header=None,
             names=list("abc"),
-            float_precision=float_precision,
+            float_precision=,
         )
 
     def time_read_csv_python_engine(self, sep, decimal, float_precision):
         read_csv(
             self.data(self.StringIO_input),
-            sep=sep,
+            sep=,
             header=None,
             engine="python",
             float_precision=None,
@@ -405,10 +405,10 @@ class ReadCSVEngine(StringIORewind):
         self.BytesIO_input = BytesIO(self.StringIO_input.read().encode("utf-8"))
 
     def time_read_stringcsv(self, engine):
-        read_csv(self.data(self.StringIO_input), engine=engine)
+        read_csv(self.data(self.StringIO_input), engine=)
 
     def time_read_bytescsv(self, engine):
-        read_csv(self.data(self.BytesIO_input), engine=engine)
+        read_csv(self.data(self.BytesIO_input), engine=)
 
 
 class ReadCSVCategorical(BaseIO):
@@ -423,10 +423,10 @@ class ReadCSVCategorical(BaseIO):
         df.to_csv(self.fname, index=False)
 
     def time_convert_post(self, engine):
-        read_csv(self.fname, engine=engine).apply(Categorical)
+        read_csv(self.fname, engine=).apply(Categorical)
 
     def time_convert_direct(self, engine):
-        read_csv(self.fname, engine=engine, dtype="category")
+        read_csv(self.fname, engine=, dtype="category")
 
 
 class ReadCSVParseDates(StringIORewind):
@@ -447,7 +447,7 @@ class ReadCSVParseDates(StringIORewind):
     def time_multiple_date(self, engine):
         read_csv(
             self.data(self.StringIO_input),
-            engine=engine,
+            engine=,
             sep=",",
             header=None,
             names=list(string.digits[:9]),
@@ -457,7 +457,7 @@ class ReadCSVParseDates(StringIORewind):
     def time_baseline(self, engine):
         read_csv(
             self.data(self.StringIO_input),
-            engine=engine,
+            engine=,
             sep=",",
             header=None,
             parse_dates=[1],
@@ -477,7 +477,7 @@ class ReadCSVCachedParseDates(StringIORewind):
         try:
             read_csv(
                 self.data(self.StringIO_input),
-                engine=engine,
+                engine=,
                 header=None,
                 parse_dates=[0],
                 cache_dates=do_cache,
@@ -501,7 +501,7 @@ class ReadCSVMemoryGrowth(BaseIO):
 
     def mem_parser_chunks(self, engine):
         # see gh-24805.
-        result = read_csv(self.fname, chunksize=self.chunksize, engine=engine)
+        result = read_csv(self.fname, chunksize=self.chunksize, engine=)
 
         for _ in result:
             pass
@@ -524,7 +524,7 @@ class ReadCSVParseSpecialDate(StringIORewind):
     def time_read_special_date(self, value, engine):
         read_csv(
             self.data(self.StringIO_input),
-            engine=engine,
+            engine=,
             sep=",",
             header=None,
             names=["Date"],
@@ -576,7 +576,7 @@ class ParseDateComparison(StringIORewind):
                 header=None,
                 names=["Date"],
                 parse_dates=["Date"],
-                cache_dates=cache_dates,
+                cache_dates=,
                 dayfirst=True,
             )
         except TypeError:

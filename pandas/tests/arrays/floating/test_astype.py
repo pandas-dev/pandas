@@ -108,7 +108,7 @@ def test_astype_copy():
 
 
 def test_astype_object(dtype):
-    arr = pd.array([1.0, pd.NA], dtype=dtype)
+    arr = pd.array([1.0, pd.NA], dtype=)
 
     result = arr.astype(object)
     expected = np.array([1.0, pd.NA], dtype=object)

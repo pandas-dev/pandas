@@ -124,7 +124,7 @@ class SharedTests:
     @pytest.mark.parametrize("reverse", [True, False])
     @pytest.mark.parametrize("as_index", [True, False])
     def test_compare_categorical_dtype(self, arr1d, as_index, reverse, ordered):
-        other = pd.Categorical(arr1d, ordered=ordered)
+        other = pd.Categorical(arr1d, ordered=)
         if as_index:
             other = pd.CategoricalIndex(other)
 
@@ -182,7 +182,7 @@ class SharedTests:
     def test_take_fill_raises(self, fill_value, arr1d):
         msg = f"value should be a '{arr1d._scalar_type.__name__}' or 'NaT'. Got"
         with pytest.raises(TypeError, match=msg):
-            arr1d.take([0, 1], allow_fill=True, fill_value=fill_value)
+            arr1d.take([0, 1], allow_fill=True, fill_value=)
 
     def test_take_fill(self, arr1d):
         np.arange(10, dtype="i8") * 24 * 3600 * 10**9
@@ -260,7 +260,7 @@ class SharedTests:
 
         fill_value = arr[3] if method == "pad" else arr[5]
 
-        result = arr._pad_or_backfill(method=method)
+        result = arr._pad_or_backfill(method=)
         assert result[4] == fill_value
 
         # check that the original was not changed
@@ -614,7 +614,7 @@ class TestDatetimeArray(SharedTests):
         timezones
         """
         tz = tz_naive_fixture
-        dti = pd.date_range("2016-01-01 01:01:00", periods=5, freq=freqstr, tz=tz)
+        dti = pd.date_range("2016-01-01 01:01:00", periods=5, freq=freqstr, tz=)
         dta = dti._data
         return dta
 
@@ -670,7 +670,7 @@ class TestDatetimeArray(SharedTests):
 
         # other dtypes handled by numpy
         for dtype in ["float64", str]:
-            result = np.asarray(arr, dtype=dtype)
+            result = np.asarray(arr, dtype=)
             expected = np.asarray(arr).astype(dtype)
             tm.assert_numpy_array_equal(result, expected)
 
@@ -979,7 +979,7 @@ class TestTimedeltaArray(SharedTests):
 
         # other dtypes handled by numpy
         for dtype in ["float64", str]:
-            result = np.asarray(arr, dtype=dtype)
+            result = np.asarray(arr, dtype=)
             expected = np.asarray(arr).astype(dtype)
             tm.assert_numpy_array_equal(result, expected)
 
@@ -1060,8 +1060,8 @@ class TestPeriodArray(SharedTests):
         pi = self.index_cls(arr1d)
         arr = arr1d
 
-        expected = DatetimeArray(pi.to_timestamp(how=how))
-        result = arr.to_timestamp(how=how)
+        expected = DatetimeArray(pi.to_timestamp(how=))
+        result = arr.to_timestamp(how=)
         assert isinstance(result, DatetimeArray)
 
         tm.assert_equal(result, expected)
@@ -1301,7 +1301,7 @@ def test_period_index_construction_from_strings(klass):
 @pytest.mark.parametrize("dtype", ["M8[ns]", "m8[ns]"])
 def test_from_pandas_array(dtype):
     # GH#24615
-    data = np.array([1, 2, 3], dtype=dtype)
+    data = np.array([1, 2, 3], dtype=)
     arr = NumpyExtensionArray(data)
 
     cls = {"M8[ns]": DatetimeArray, "m8[ns]": TimedeltaArray}[dtype]

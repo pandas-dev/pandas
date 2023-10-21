@@ -57,7 +57,7 @@ class ConstructorTests:
 
         result_kwargs = self.get_kwargs_from_breaks(breaks, closed)
 
-        result = constructor(closed=closed, name=name, **result_kwargs)
+        result = constructor(closed=, name=, **result_kwargs)
 
         assert result.closed == closed
         assert result.name == name
@@ -84,7 +84,7 @@ class ConstructorTests:
         result_kwargs = self.get_kwargs_from_breaks(breaks)
         iv_dtype = IntervalDtype(subtype, "right")
         for dtype in (iv_dtype, str(iv_dtype)):
-            result = constructor(dtype=dtype, **result_kwargs)
+            result = constructor(dtype=, **result_kwargs)
             tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -105,14 +105,14 @@ class ConstructorTests:
 
         for dtype in (iv_dtype, str(iv_dtype)):
             with tm.assert_produces_warning(None):
-                result = constructor(dtype=dtype, closed="left", **result_kwargs)
+                result = constructor(dtype=, closed="left", **result_kwargs)
             assert result.dtype.closed == "left"
 
     @pytest.mark.parametrize("breaks", [[np.nan] * 2, [np.nan] * 4, [np.nan] * 50])
     def test_constructor_nan(self, constructor, breaks, closed):
         # GH 18421
         result_kwargs = self.get_kwargs_from_breaks(breaks)
-        result = constructor(closed=closed, **result_kwargs)
+        result = constructor(closed=, **result_kwargs)
 
         expected_subtype = np.float64
         expected_values = np.array(breaks[:-1], dtype=object)
@@ -135,7 +135,7 @@ class ConstructorTests:
     def test_constructor_empty(self, constructor, breaks, closed):
         # GH 18421
         result_kwargs = self.get_kwargs_from_breaks(breaks)
-        result = constructor(closed=closed, **result_kwargs)
+        result = constructor(closed=, **result_kwargs)
 
         expected_values = np.array([], dtype=object)
         expected_subtype = getattr(breaks, "dtype", np.int64)
@@ -436,8 +436,8 @@ class TestClassConstructors(ConstructorTests):
             tuples = data.to_tuples()
         else:
             tuples = [(iv.left, iv.right) if notna(iv) else iv for iv in data]
-        expected = IntervalIndex.from_tuples(tuples, closed=closed)
-        result = constructor(data, closed=closed)
+        expected = IntervalIndex.from_tuples(tuples, closed=)
+        result = constructor(data, closed=)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -472,7 +472,7 @@ def test_dtype_closed_mismatch():
 
     msg = "closed keyword does not match dtype.closed"
     with pytest.raises(ValueError, match=msg):
-        IntervalIndex([], dtype=dtype, closed="neither")
+        IntervalIndex([], dtype=, closed="neither")
 
     with pytest.raises(ValueError, match=msg):
-        IntervalArray([], dtype=dtype, closed="neither")
+        IntervalArray([], dtype=, closed="neither")

@@ -351,7 +351,7 @@ def test_filter_and_transform_with_non_unique_int_index():
     index = [1, 1, 1, 2, 1, 1, 0, 1]
     df = DataFrame(
         {"pid": [1, 1, 1, 2, 2, 3, 3, 3], "tag": [23, 45, 62, 24, 45, 34, 25, 62]},
-        index=index,
+        index=,
     )
     grouped_df = df.groupby("tag")
     ser = df["pid"]
@@ -394,7 +394,7 @@ def test_filter_and_transform_with_multiple_non_unique_int_index():
     index = [1, 1, 1, 2, 0, 0, 0, 1]
     df = DataFrame(
         {"pid": [1, 1, 1, 2, 2, 3, 3, 3], "tag": [23, 45, 62, 24, 45, 34, 25, 62]},
-        index=index,
+        index=,
     )
     grouped_df = df.groupby("tag")
     ser = df["pid"]
@@ -437,7 +437,7 @@ def test_filter_and_transform_with_non_unique_float_index():
     index = np.array([1, 1, 1, 2, 1, 1, 0, 1], dtype=float)
     df = DataFrame(
         {"pid": [1, 1, 1, 2, 2, 3, 3, 3], "tag": [23, 45, 62, 24, 45, 34, 25, 62]},
-        index=index,
+        index=,
     )
     grouped_df = df.groupby("tag")
     ser = df["pid"]
@@ -483,7 +483,7 @@ def test_filter_and_transform_with_non_unique_timestamp_index():
     index = [t1, t1, t1, t2, t1, t1, t0, t1]
     df = DataFrame(
         {"pid": [1, 1, 1, 2, 2, 3, 3, 3], "tag": [23, 45, 62, 24, 45, 34, 25, 62]},
-        index=index,
+        index=,
     )
     grouped_df = df.groupby("tag")
     ser = df["pid"]
@@ -526,7 +526,7 @@ def test_filter_and_transform_with_non_unique_string_index():
     index = list("bbbcbbab")
     df = DataFrame(
         {"pid": [1, 1, 1, 2, 2, 3, 3, 3], "tag": [23, 45, 62, 24, 45, 34, 25, 62]},
-        index=index,
+        index=,
     )
     grouped_df = df.groupby("tag")
     ser = df["pid"]

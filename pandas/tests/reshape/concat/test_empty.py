@@ -23,7 +23,7 @@ class TestEmptyConcat:
         empty = df[5:5]
 
         frames = [dfcopy, empty, empty, df[5:]]
-        concatted = concat(frames, axis=0, sort=sort)
+        concatted = concat(frames, axis=0, sort=)
 
         expected = df.reindex(columns=["a", "b", "c", "d", "foo"])
         expected["foo"] = expected["foo"].astype("O")
@@ -85,7 +85,7 @@ class TestEmptyConcat:
 
         first = Series([], dtype="M8[ns]").dt.tz_localize(tz)
         dtype = None if values else np.float64
-        second = Series(values, dtype=dtype)
+        second = Series(values, dtype=)
 
         expected = DataFrame(
             {
@@ -123,10 +123,10 @@ class TestEmptyConcat:
     def test_concat_empty_series_dtypes_match_roundtrips(self, dtype):
         dtype = np.dtype(dtype)
 
-        result = concat([Series(dtype=dtype)])
+        result = concat([Series(dtype=)])
         assert result.dtype == dtype
 
-        result = concat([Series(dtype=dtype), Series(dtype=dtype)])
+        result = concat([Series(dtype=dtype), Series(dtype=)])
         assert result.dtype == dtype
 
     @pytest.mark.parametrize("dtype", ["float64", "int8", "uint8", "m8[ns]", "M8[ns]"])
@@ -171,7 +171,7 @@ class TestEmptyConcat:
         dtype = np.dtype(dtype)
         dtype2 = np.dtype(dtype2)
         expected = get_result_type(dtype, dtype2)
-        result = concat([Series(dtype=dtype), Series(dtype=dtype2)]).dtype
+        result = concat([Series(dtype=), Series(dtype=dtype2)]).dtype
         assert result.kind == expected
 
     def test_concat_empty_series_dtypes_triple(self):

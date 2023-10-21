@@ -44,7 +44,7 @@ class Apply:
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 
     def time_rolling(self, constructor, window, dtype, function, raw):
-        self.roll.apply(function, raw=raw)
+        self.roll.apply(function, raw=)
 
 
 class NumbaEngineMethods:
@@ -171,7 +171,7 @@ class VariableWindowMethods(Methods):
         N = 10**5
         arr = (100 * np.random.random(N)).astype(dtype)
         index = pd.date_range("2017-01-01", periods=N, freq="5s")
-        self.window = getattr(pd, constructor)(arr, index=index).rolling(window)
+        self.window = getattr(pd, constructor)(arr, index=).rolling(window)
 
 
 class Pairwise:
@@ -195,10 +195,10 @@ class Pairwise:
         )(**kwargs)
 
     def time_pairwise(self, kwargs_window, method, pairwise):
-        getattr(self.window, method)(self.df, pairwise=pairwise)
+        getattr(self.window, method)(self.df, pairwise=)
 
     def time_groupby(self, kwargs_window, method, pairwise):
-        getattr(self.window_group, method)(self.df, pairwise=pairwise)
+        getattr(self.window_group, method)(self.df, pairwise=)
 
 
 class Quantile:
@@ -217,7 +217,7 @@ class Quantile:
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 
     def time_quantile(self, constructor, window, dtype, percentile, interpolation):
-        self.roll.quantile(percentile, interpolation=interpolation)
+        self.roll.quantile(percentile, interpolation=)
 
 
 class Rank:
@@ -244,7 +244,7 @@ class Rank:
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 
     def time_rank(self, constructor, window, dtype, percentile, ascending, method):
-        self.roll.rank(pct=percentile, ascending=ascending, method=method)
+        self.roll.rank(pct=percentile, ascending=, method=)
 
 
 class PeakMemFixedWindowMinMax:
@@ -272,7 +272,7 @@ class ForwardWindowMethods:
     def setup(self, constructor, window_size, dtype, method):
         N = 10**5
         arr = np.random.random(N).astype(dtype)
-        indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=window_size)
+        indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=)
         self.roll = getattr(pd, constructor)(arr).rolling(window=indexer)
 
     def time_rolling(self, constructor, window_size, dtype, method):
@@ -344,7 +344,7 @@ class GroupbyEWMEngine:
         self.gb_ewm = df.groupby("A").ewm(com=1.0)
 
     def time_groupby_mean(self, engine):
-        self.gb_ewm.mean(engine=engine)
+        self.gb_ewm.mean(engine=)
 
 
 def table_method_func(x):
@@ -359,12 +359,12 @@ class TableMethod:
         self.df = pd.DataFrame(np.random.randn(10, 1000))
 
     def time_apply(self, method):
-        self.df.rolling(2, method=method).apply(
+        self.df.rolling(2, method=).apply(
             table_method_func, raw=True, engine="numba"
         )
 
     def time_ewm_mean(self, method):
-        self.df.ewm(1, method=method).mean(engine="numba")
+        self.df.ewm(1, method=).mean(engine="numba")
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

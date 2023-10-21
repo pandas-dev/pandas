@@ -218,7 +218,7 @@ def test_agg_cython_table_frame(df, func, expected, axis):
     warn = None if isinstance(func, str) else FutureWarning
     with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
         # GH#53425
-        result = df.agg(func, axis=axis)
+        result = df.agg(func, axis=)
     tm.assert_series_equal(result, expected)
 
 
@@ -248,7 +248,7 @@ def test_agg_cython_table_transform_frame(df, func, expected, axis):
     warn = None if isinstance(func, str) else FutureWarning
     with tm.assert_produces_warning(warn, match="is currently using DataFrame.*"):
         # GH#53425
-        result = df.agg(func, axis=axis)
+        result = df.agg(func, axis=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -284,7 +284,7 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
         msg = "DataFrame.groupby with axis=1 is deprecated"
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb = float_frame.groupby(ones, axis=axis)
+        gb = float_frame.groupby(ones, axis=)
     expected = gb.transform(op, *args)
     result = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result, expected)
@@ -299,7 +299,7 @@ def test_transform_groupby_kernel_frame(request, axis, float_frame, op):
     else:
         ones = np.ones(float_frame.shape[1])
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        gb2 = float_frame.groupby(ones, axis=axis)
+        gb2 = float_frame.groupby(ones, axis=)
     expected2 = gb2.transform(op, *args)
     result2 = float_frame.transform(op, axis, *args)
     tm.assert_frame_equal(result2, expected2)

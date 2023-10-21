@@ -201,9 +201,9 @@ class TestJSONNormalize:
     def test_accepted_input(self, data, record_path, exception_type):
         if exception_type is not None:
             with pytest.raises(exception_type, match=tm.EMPTY_STRING_PATTERN):
-                json_normalize(data, record_path=record_path)
+                json_normalize(data, record_path=)
         else:
-            result = json_normalize(data, record_path=record_path)
+            result = json_normalize(data, record_path=)
             expected = DataFrame([0, 1], columns=["a"])
             tm.assert_frame_equal(result, expected)
 
@@ -514,7 +514,7 @@ class TestJSONNormalize:
             test_input,
             record_path=["Lookup"],
             meta=[["CreatedBy"], ["Image"]],
-            max_level=max_level,
+            max_level=,
         )
         expected_df = DataFrame(data=expected, columns=result.columns.values)
         tm.assert_equal(expected_df, result)
@@ -646,7 +646,7 @@ class TestNestedToRecord:
             [8449, "Spring St.", "Elizabethton", "TN", 37643, np.nan],
         ]
         columns = ["number", "street", "city", "state", "zip", "name"]
-        expected = DataFrame(ex_data, columns=columns)
+        expected = DataFrame(ex_data, columns=)
         tm.assert_frame_equal(result, expected)
 
     def test_missing_nested_meta(self):
@@ -661,7 +661,7 @@ class TestNestedToRecord:
         )
         ex_data = [[1, "foo", np.nan], [2, "foo", np.nan]]
         columns = ["rec", "meta", "nested_meta.leaf"]
-        expected = DataFrame(ex_data, columns=columns).astype(
+        expected = DataFrame(ex_data, columns=).astype(
             {"nested_meta.leaf": object}
         )
         tm.assert_frame_equal(result, expected)
@@ -707,7 +707,7 @@ class TestNestedToRecord:
             ["Barmingham", np.nan],
         ]
         columns = ["city_name", "name"]
-        expected = DataFrame(ex_data, columns=columns)
+        expected = DataFrame(ex_data, columns=)
         tm.assert_frame_equal(result, expected)
 
     def test_donot_drop_nonevalues(self):
@@ -845,7 +845,7 @@ class TestNestedToRecord:
     )
     def test_with_max_level(self, max_level, expected, max_level_test_input_data):
         # GH23843: Enhanced JSON normalize
-        output = nested_to_record(max_level_test_input_data, max_level=max_level)
+        output = nested_to_record(max_level_test_input_data, max_level=)
         assert output == expected
 
     def test_with_large_max_level(self):
@@ -882,7 +882,7 @@ class TestNestedToRecord:
                 "CreatedBy.user.family_tree.father.father.father.father.Name": "Father004",  # noqa: E501
             }
         ]
-        output = nested_to_record(input_data, max_level=max_level)
+        output = nested_to_record(input_data, max_level=)
         assert output == expected
 
     def test_series_non_zero_index(self):

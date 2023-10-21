@@ -71,7 +71,7 @@ def test_usecols_with_mixed_encoding_strings(all_parsers, usecols):
         "integers or a callable."
     )
     with pytest.raises(ValueError, match=_msg_validate_usecols_arg):
-        parser.read_csv(StringIO(data), usecols=usecols)
+        parser.read_csv(StringIO(data), usecols=)
 
 
 @pytest.mark.parametrize("usecols", [["あああ", "いい"], ["あああ", "いい"]])
@@ -92,5 +92,5 @@ def test_usecols_with_multi_byte_characters(all_parsers, usecols):
     }
     expected = DataFrame(exp_data)
 
-    result = parser.read_csv(StringIO(data), usecols=usecols)
+    result = parser.read_csv(StringIO(data), usecols=)
     tm.assert_frame_equal(result, expected)

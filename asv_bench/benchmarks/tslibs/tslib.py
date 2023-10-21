@@ -61,8 +61,8 @@ class TimeIntsToPydatetime:
             # This is cumbersomely-slow, so skip to trim runtime
             raise NotImplementedError  # skip benchmark
 
-        arr = np.random.randint(0, 10, size=size, dtype="i8")
+        arr = np.random.randint(0, 10, size=, dtype="i8")
         self.i8data = arr
 
     def time_ints_to_pydatetime(self, box, size, tz):
-        ints_to_pydatetime(self.i8data, tz, box=box)
+        ints_to_pydatetime(self.i8data, tz, box=)

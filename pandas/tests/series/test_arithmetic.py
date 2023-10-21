@@ -134,7 +134,7 @@ class TestSeriesFlexArithmetic:
                     else:
                         exp_values.append(op(a[i], b[i]))
 
-            result = meth(a, b, fill_value=fill_value)
+            result = meth(a, b, fill_value=)
             expected = Series(exp_values, exp_index)
             tm.assert_series_equal(result, expected)
 
@@ -202,7 +202,7 @@ class TestSeriesArithmetic:
     def test_series_integer_mod(self, index):
         # GH#24396
         s1 = Series(range(1, 10))
-        s2 = Series("foo", index=index)
+        s2 = Series("foo", index=)
 
         msg = "not all arguments converted during string formatting"
 
@@ -299,16 +299,16 @@ class TestSeriesArithmetic:
         # GH#8363
         # integer ops with a non-unique index
         index = [2, 2, 3, 3, 4]
-        ser = Series(np.arange(1, 6, dtype="int64"), index=index)
-        other = Series(np.arange(5, dtype="int64"), index=index)
+        ser = Series(np.arange(1, 6, dtype="int64"), index=)
+        other = Series(np.arange(5, dtype="int64"), index=)
         result = ser - other
         expected = Series(1, index=[2, 2, 3, 3, 4])
         tm.assert_series_equal(result, expected)
 
         # GH#8363
         # datetime ops with a non-unique index
-        ser = Series(date_range("20130101 09:00:00", periods=5), index=index)
-        other = Series(date_range("20130101", periods=5), index=index)
+        ser = Series(date_range("20130101 09:00:00", periods=5), index=)
+        other = Series(date_range("20130101", periods=5), index=)
         result = ser - other
         expected = Series(Timedelta("9 hours"), index=[2, 2, 3, 3, 4])
         tm.assert_series_equal(result, expected)
@@ -337,7 +337,7 @@ class TestSeriesArithmetic:
         # GH#22962
         ser = Series([1, None, 3], dtype="Int64")
         result = ser + [1, None, val]
-        expected = Series([2, None, 3 + val], dtype=dtype)
+        expected = Series([2, None, 3 + val], dtype=)
         tm.assert_series_equal(result, expected)
 
         result = [1, None, val] + ser
@@ -370,7 +370,7 @@ class TestSeriesFlexComparison:
     def test_comparison_flex_basic(self, axis, comparison_op):
         left = Series(np.random.default_rng(2).standard_normal(10))
         right = Series(np.random.default_rng(2).standard_normal(10))
-        result = getattr(left, comparison_op.__name__)(right, axis=axis)
+        result = getattr(left, comparison_op.__name__)(right, axis=)
         expected = comparison_op(left, right)
         tm.assert_series_equal(result, expected)
 
@@ -414,7 +414,7 @@ class TestSeriesFlexComparison:
     def test_comparison_flex_alignment_fill(self, values, op, fill_value):
         left = Series([1, 3, 2], index=list("abc"))
         right = Series([2, 2, 2], index=list("bcd"))
-        result = getattr(left, op)(right, fill_value=fill_value)
+        result = getattr(left, op)(right, fill_value=)
         expected = Series(values, index=list("abcd"))
         tm.assert_series_equal(result, expected)
 

@@ -48,7 +48,7 @@ class AsType:
         self.df = DataFrame(data, dtype=from_dtype)
 
     def time_astype(self, from_to_dtypes, copy):
-        self.df.astype(from_to_dtypes[1], copy=copy)
+        self.df.astype(from_to_dtypes[1], copy=)
 
 
 class Clip:
@@ -59,7 +59,7 @@ class Clip:
 
     def setup(self, dtype):
         data = np.random.randn(100_000, 10)
-        df = DataFrame(data, dtype=dtype)
+        df = DataFrame(data, dtype=)
         self.df = df
 
     def time_clip(self, dtype):
@@ -271,10 +271,10 @@ class ToDict:
         self.datetimelike_df = self.int_df.astype("timedelta64[ns]")
 
     def time_to_dict_ints(self, orient):
-        self.int_df.to_dict(orient=orient)
+        self.int_df.to_dict(orient=)
 
     def time_to_dict_datetimelike(self, orient):
-        self.datetimelike_df.to_dict(orient=orient)
+        self.datetimelike_df.to_dict(orient=)
 
 
 class ToNumpy:
@@ -452,17 +452,17 @@ class Fillna:
             values[::2] = np.nan
             if dtype == "Int64":
                 values = values.round()
-            self.df = DataFrame(values, dtype=dtype)
+            self.df = DataFrame(values, dtype=)
         self.fill_values = self.df.iloc[self.df.first_valid_index()].to_dict()
 
     def time_fillna(self, inplace, dtype):
-        self.df.fillna(value=self.fill_values, inplace=inplace)
+        self.df.fillna(value=self.fill_values, inplace=)
 
     def time_ffill(self, inplace, dtype):
-        self.df.ffill(inplace=inplace)
+        self.df.ffill(inplace=)
 
     def time_bfill(self, inplace, dtype):
-        self.df.bfill(inplace=inplace)
+        self.df.bfill(inplace=)
 
 
 class Dropna:
@@ -478,10 +478,10 @@ class Dropna:
         self.df_mixed["foo"] = "bar"
 
     def time_dropna(self, how, axis):
-        self.df.dropna(how=how, axis=axis)
+        self.df.dropna(how=, axis=)
 
     def time_dropna_axis_mixed_dtypes(self, how, axis):
-        self.df_mixed.dropna(how=how, axis=axis)
+        self.df_mixed.dropna(how=, axis=)
 
 
 class Isna:
@@ -494,7 +494,7 @@ class Isna:
         data[:, 600:800] = np.nan
         # partial-na columns
         data[800:1000, 4000:5000] = np.nan
-        self.df = DataFrame(data, dtype=dtype)
+        self.df = DataFrame(data, dtype=)
 
     def time_isna(self, dtype):
         self.df.isna()
@@ -513,10 +513,10 @@ class Count:
         self.df_mixed["foo"] = "bar"
 
     def time_count(self, axis):
-        self.df.count(axis=axis)
+        self.df.count(axis=)
 
     def time_count_mixed_dtypes(self, axis):
-        self.df_mixed.count(axis=axis)
+        self.df_mixed.count(axis=)
 
 
 class Apply:
@@ -627,7 +627,7 @@ class Shift:
         self.df = DataFrame(np.random.rand(10000, 500))
 
     def time_shift(self, axis):
-        self.df.shift(1, axis=axis)
+        self.df.shift(1, axis=)
 
 
 class Nunique:
@@ -679,7 +679,7 @@ class XS:
         self.df = DataFrame(np.random.randn(self.N, self.N))
 
     def time_frame_xs(self, axis):
-        self.df.xs(self.N / 2, axis=axis)
+        self.df.xs(self.N / 2, axis=)
 
 
 class SortValues:
@@ -690,7 +690,7 @@ class SortValues:
         self.df = DataFrame(np.random.randn(1000000, 2), columns=list("AB"))
 
     def time_frame_sort_values(self, ascending):
-        self.df.sort_values(by="A", ascending=ascending)
+        self.df.sort_values(by="A", ascending=)
 
 
 class SortMultiKey:
@@ -727,7 +727,7 @@ class Quantile:
         self.df = DataFrame(np.random.randn(1000, 3), columns=list("ABC"))
 
     def time_frame_quantile(self, axis):
-        self.df.quantile([0.1, 0.5], axis=axis)
+        self.df.quantile([0.1, 0.5], axis=)
 
 
 class Rank:
@@ -738,7 +738,7 @@ class Rank:
 
     def setup(self, dtype):
         self.df = DataFrame(
-            np.random.randn(10000, 10).astype(dtype), columns=range(10), dtype=dtype
+            np.random.randn(10000, 10).astype(dtype), columns=range(10), dtype=
         )
 
     def time_rank(self, dtype):
@@ -766,16 +766,16 @@ class NSort:
         self.df = DataFrame(np.random.randn(100000, 3), columns=list("ABC"))
 
     def time_nlargest_one_column(self, keep):
-        self.df.nlargest(100, "A", keep=keep)
+        self.df.nlargest(100, "A", keep=)
 
     def time_nlargest_two_columns(self, keep):
-        self.df.nlargest(100, ["A", "B"], keep=keep)
+        self.df.nlargest(100, ["A", "B"], keep=)
 
     def time_nsmallest_one_column(self, keep):
-        self.df.nsmallest(100, "A", keep=keep)
+        self.df.nsmallest(100, "A", keep=)
 
     def time_nsmallest_two_columns(self, keep):
-        self.df.nsmallest(100, ["A", "B"], keep=keep)
+        self.df.nsmallest(100, ["A", "B"], keep=)
 
 
 class Describe:
@@ -834,11 +834,11 @@ class Where:
     param_names = ["dtype"]
 
     def setup(self, inplace, dtype):
-        self.df = DataFrame(np.random.randn(100_000, 10), dtype=dtype)
+        self.df = DataFrame(np.random.randn(100_000, 10), dtype=)
         self.mask = self.df < 0
 
     def time_where(self, inplace, dtype):
-        self.df.where(self.mask, other=0.0, inplace=inplace)
+        self.df.where(self.mask, other=0.0, inplace=)
 
 
 class FindValidIndex:
@@ -848,11 +848,7 @@ class FindValidIndex:
     ]
 
     def setup(self, dtype):
-        df = DataFrame(
-            np.random.randn(100000, 2),
-            columns=list("AB"),
-            dtype=dtype,
-        )
+        df = DataFrame(np.random.randn(100000, 2), columns=list("AB"), dtype=)
         df.iloc[:100, 0] = None
         df.iloc[:200, 1] = None
         df.iloc[-100:, 0] = None

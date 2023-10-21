@@ -467,7 +467,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             return self._box_values(self.asi8.ravel()).reshape(self.shape)
 
         elif isinstance(dtype, ExtensionDtype):
-            return super().astype(dtype, copy=copy)
+            return super().astype(dtype, copy=)
         elif is_string_dtype(dtype):
             return self._format_native_types()
         elif dtype.kind in "iu":
@@ -489,7 +489,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             msg = f"Cannot cast {type(self).__name__} to dtype {dtype}"
             raise TypeError(msg)
         else:
-            return np.asarray(self, dtype=dtype)
+            return np.asarray(self, dtype=)
 
     @overload
     def view(self) -> Self:
@@ -725,7 +725,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
     def map(self, mapper, na_action=None):
         from pandas import Index
 
-        result = map_array(self, mapper, na_action=na_action)
+        result = map_array(self, mapper, na_action=)
         result = Index(result)
 
         if isinstance(result, ABCMultiIndex):
@@ -1076,7 +1076,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         dtype = tz_to_dtype(tz=other.tz, unit=self.unit)
         res_values = result.view(f"M8[{self.unit}]")
         new_freq = self._get_arithmetic_result_freq(other)
-        return DatetimeArray._simple_new(res_values, dtype=dtype, freq=new_freq)
+        return DatetimeArray._simple_new(res_values, dtype=, freq=new_freq)
 
     @final
     def _add_datetime_arraylike(self, other: DatetimeArray) -> DatetimeArray:
@@ -1152,7 +1152,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
 
         i8vals = np.broadcast_to(other.ordinal, self.shape)
         dtype = PeriodDtype(other.freq)
-        parr = PeriodArray(i8vals, dtype=dtype)
+        parr = PeriodArray(i8vals, dtype=)
         return parr + self
 
     def _add_offset(self, offset):
@@ -1326,7 +1326,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             raise TypeError(f"Accumulation {name} not supported for {type(self)}")
 
         op = getattr(datetimelike_accumulations, name)
-        result = op(self.copy(), skipna=skipna, **kwargs)
+        result = op(self.copy(), skipna=, **kwargs)
 
         return type(self)._simple_new(result, dtype=self.dtype)
 
@@ -1507,7 +1507,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         qs: npt.NDArray[np.float64],
         interpolation: str,
     ) -> Self:
-        return super()._quantile(qs=qs, interpolation=interpolation)
+        return super()._quantile(qs=, interpolation=)
 
     @_period_dispatch
     def min(self, *, axis: AxisInt | None = None, skipna: bool = True, **kwargs):
@@ -1524,7 +1524,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         nv.validate_min((), kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 
-        result = nanops.nanmin(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmin(self._ndarray, axis=, skipna=)
         return self._wrap_reduction_result(axis, result)
 
     @_period_dispatch
@@ -1542,7 +1542,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         nv.validate_max((), kwargs)
         nv.validate_minmax_axis(axis, self.ndim)
 
-        result = nanops.nanmax(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmax(self._ndarray, axis=, skipna=)
         return self._wrap_reduction_result(axis, result)
 
     def mean(self, *, skipna: bool = True, axis: AxisInt | None = 0):
@@ -1598,7 +1598,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
             )
 
         result = nanops.nanmean(
-            self._ndarray, axis=axis, skipna=skipna, mask=self.isna()
+            self._ndarray, axis=, skipna=, mask=self.isna()
         )
         return self._wrap_reduction_result(axis, result)
 
@@ -1609,7 +1609,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if axis is not None and abs(axis) >= self.ndim:
             raise ValueError("abs(axis) must be less than ndim")
 
-        result = nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmedian(self._ndarray, axis=, skipna=)
         return self._wrap_reduction_result(axis, result)
 
     def _mode(self, dropna: bool = True):
@@ -1617,7 +1617,7 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         if dropna:
             mask = self.isna()
 
-        i8modes = algorithms.mode(self.view("i8"), mask=mask)
+        i8modes = algorithms.mode(self.view("i8"), mask=)
         npmodes = i8modes.view(self._ndarray.dtype)
         npmodes = cast(np.ndarray, npmodes)
         return self._from_backing_data(npmodes)
@@ -1673,12 +1673,12 @@ class DatetimeLikeArrayMixin(  # type: ignore[misc]
         from pandas.core.groupby.ops import WrappedCythonOp
 
         kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=, kind=, has_dropped_na=)
 
         res_values = op._cython_op_ndim_compat(
             npvalues,
-            min_count=min_count,
-            ngroups=ngroups,
+            min_count=,
+            ngroups=,
             comp_ids=ids,
             mask=None,
             **kwargs,
@@ -1759,7 +1759,7 @@ class DatelikeOps(DatetimeLikeArrayMixin):
                'March 10, 2018, 09:00:02 AM'],
               dtype='object')
         """
-        result = self._format_native_types(date_format=date_format, na_rep=np.nan)
+        result = self._format_native_types(date_format=, na_rep=np.nan)
         return result.astype(object, copy=False)
 
 
@@ -1983,7 +1983,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             if values.dtype.kind == "m" and not isinstance(freq, Tick):
                 raise TypeError("TimedeltaArray/Index freq must be a Tick")
 
-        NDArrayBacked.__init__(self, values=values, dtype=dtype)
+        NDArrayBacked.__init__(self, values=, dtype=)
         self._freq = freq
 
         if inferred_freq is None and freq is not None:
@@ -2035,7 +2035,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 start=index[0],
                 end=None,
                 periods=len(index),
-                freq=freq,
+                freq=,
                 unit=index.unit,
                 **kwargs,
             )
@@ -2084,7 +2084,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             new_dtype = new_values.dtype
         else:
             tz = cast("DatetimeArray", self).tz
-            new_dtype = DatetimeTZDtype(tz=tz, unit=unit)
+            new_dtype = DatetimeTZDtype(tz=, unit=)
 
         # error: Unexpected keyword argument "freq" for "_simple_new" of
         # "NDArrayBacked"  [call-arg]
@@ -2123,9 +2123,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             self = cast("DatetimeArray", self)
             naive = self.tz_localize(None)
             result = naive._round(freq, mode, ambiguous, nonexistent)
-            return result.tz_localize(
-                self.tz, ambiguous=ambiguous, nonexistent=nonexistent
-            )
+            return result.tz_localize(self.tz, ambiguous=, nonexistent=)
 
         values = self.view("i8")
         values = cast(np.ndarray, values)
@@ -2170,12 +2168,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     def any(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
         # GH#34479 the nanops call will issue a FutureWarning for non-td64 dtype
-        return nanops.nanany(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
+        return nanops.nanany(self._ndarray, axis=, skipna=, mask=self.isna())
 
     def all(self, *, axis: AxisInt | None = None, skipna: bool = True) -> bool:
         # GH#34479 the nanops call will issue a FutureWarning for non-td64 dtype
 
-        return nanops.nanall(self._ndarray, axis=axis, skipna=skipna, mask=self.isna())
+        return nanops.nanall(self._ndarray, axis=, skipna=, mask=self.isna())
 
     # --------------------------------------------------------------
     # Frequency Methods
@@ -2243,7 +2241,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 "ignored unless arr.freq is not None. To factorize with sort, "
                 "call pd.factorize(obj, sort=True) instead."
             )
-        return super().factorize(use_na_sentinel=use_na_sentinel)
+        return super().factorize(use_na_sentinel=)
 
     @classmethod
     def _concat_same_type(
@@ -2269,7 +2267,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
     def copy(self, order: str = "C") -> Self:
         # error: Unexpected keyword argument "order" for "copy"
-        new_obj = super().copy(order=order)  # type: ignore[call-arg]
+        new_obj = super().copy(order=)  # type: ignore[call-arg]
         new_obj._freq = self.freq
         return new_obj
 
@@ -2299,12 +2297,12 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         missing.interpolate_2d_inplace(
             out_data,
-            method=method,
-            axis=axis,
-            index=index,
-            limit=limit,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
+            method=,
+            axis=,
+            index=,
+            limit=,
+            limit_direction=,
+            limit_area=,
             **kwargs,
         )
         if not copy:

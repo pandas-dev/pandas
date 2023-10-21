@@ -36,7 +36,7 @@ def test_info_empty():
     # GH #45494
     df = DataFrame()
     buf = StringIO()
-    df.info(buf=buf)
+    df.info(buf=)
     result = buf.getvalue()
     expected = textwrap.dedent(
         """\
@@ -57,11 +57,11 @@ def test_info_categorical_column_smoke_test():
     ).astype("category")
     df.isna()
     buf = StringIO()
-    df.info(buf=buf)
+    df.info(buf=)
 
     df2 = df[df["category"] == "d"]
     buf = StringIO()
-    df2.info(buf=buf)
+    df2.info(buf=)
 
 
 @pytest.mark.parametrize(
@@ -76,7 +76,7 @@ def test_info_categorical_column_smoke_test():
 def test_info_smoke_test(fixture_func_name, request):
     frame = request.getfixturevalue(fixture_func_name)
     buf = StringIO()
-    frame.info(buf=buf)
+    frame.info(buf=)
     result = buf.getvalue().splitlines()
     assert len(result) > 10
 
@@ -99,7 +99,7 @@ def test_info_default_verbose_selection(num_columns, max_info_columns, verbose):
         result = io_default.getvalue()
 
         io_explicit = StringIO()
-        frame.info(buf=io_explicit, verbose=verbose)
+        frame.info(buf=io_explicit, verbose=)
         expected = io_explicit.getvalue()
 
         assert result == expected
@@ -110,13 +110,13 @@ def test_info_verbose_check_header_separator_body():
     size = 1001
     start = 5
     frame = DataFrame(np.random.default_rng(2).standard_normal((3, size)))
-    frame.info(verbose=True, buf=buf)
+    frame.info(verbose=True, buf=)
 
     res = buf.getvalue()
     header = " #     Column  Dtype  \n---    ------  -----  "
     assert header in res
 
-    frame.info(verbose=True, buf=buf)
+    frame.info(verbose=True, buf=)
     buf.seek(0)
     lines = buf.readlines()
     assert len(lines) > 0
@@ -173,7 +173,7 @@ def test_info_verbose_with_counts_spacing(
     """Test header column, spacer, first line and last line in verbose mode."""
     frame = DataFrame(np.random.default_rng(2).standard_normal((3, size)))
     with StringIO() as buf:
-        frame.info(verbose=True, show_counts=True, buf=buf)
+        frame.info(verbose=True, show_counts=True, buf=)
         all_lines = buf.getvalue().splitlines()
     # Here table would contain only header, separator and table lines
     # dframe repr, index summary, memory usage and dtypes are excluded
@@ -189,7 +189,7 @@ def test_info_memory():
     # https://github.com/pandas-dev/pandas/issues/21056
     df = DataFrame({"a": Series([1, 2], dtype="i8")})
     buf = StringIO()
-    df.info(buf=buf)
+    df.info(buf=)
     result = buf.getvalue()
     bytes = float(df.memory_usage().sum())
     expected = textwrap.dedent(
@@ -251,7 +251,7 @@ def test_info_shows_column_dtypes():
         data[i] = np.random.default_rng(2).integers(2, size=n).astype(dtype)
     df = DataFrame(data)
     buf = StringIO()
-    df.info(buf=buf)
+    df.info(buf=)
     res = buf.getvalue()
     header = (
         " #   Column  Non-Null Count  Dtype          \n"
@@ -269,7 +269,7 @@ def test_info_max_cols():
         # For verbose always      ^ setting  ^ summarize ^ full output
         with option_context("max_info_columns", 4):
             buf = StringIO()
-            df.info(buf=buf, verbose=verbose)
+            df.info(buf=, verbose=)
             res = buf.getvalue()
             assert len(res.strip().split("\n")) == len_
 
@@ -277,7 +277,7 @@ def test_info_max_cols():
         # max_cols not exceeded
         with option_context("max_info_columns", 5):
             buf = StringIO()
-            df.info(buf=buf, verbose=verbose)
+            df.info(buf=, verbose=)
             res = buf.getvalue()
             assert len(res.strip().split("\n")) == len_
 
@@ -285,14 +285,14 @@ def test_info_max_cols():
         # setting truncates
         with option_context("max_info_columns", 4):
             buf = StringIO()
-            df.info(buf=buf, max_cols=max_cols)
+            df.info(buf=, max_cols=)
             res = buf.getvalue()
             assert len(res.strip().split("\n")) == len_
 
         # setting wouldn't truncate
         with option_context("max_info_columns", 5):
             buf = StringIO()
-            df.info(buf=buf, max_cols=max_cols)
+            df.info(buf=, max_cols=)
             res = buf.getvalue()
             assert len(res.strip().split("\n")) == len_
 
@@ -316,22 +316,22 @@ def test_info_memory_usage():
     buf = StringIO()
 
     # display memory usage case
-    df.info(buf=buf, memory_usage=True)
+    df.info(buf=, memory_usage=True)
     res = buf.getvalue().splitlines()
     assert "memory usage: " in res[-1]
 
     # do not display memory usage case
-    df.info(buf=buf, memory_usage=False)
+    df.info(buf=, memory_usage=False)
     res = buf.getvalue().splitlines()
     assert "memory usage: " not in res[-1]
 
-    df.info(buf=buf, memory_usage=True)
+    df.info(buf=, memory_usage=True)
     res = buf.getvalue().splitlines()
 
     # memory usage is a lower bound, so print it as XYZ+ MB
     assert re.match(r"memory usage: [^+]+\+", res[-1])
 
-    df.iloc[:, :5].info(buf=buf, memory_usage=True)
+    df.iloc[:, :5].info(buf=, memory_usage=True)
     res = buf.getvalue().splitlines()
 
     # excluded column with object dtype, so estimate is accurate
@@ -347,11 +347,11 @@ def test_info_memory_usage():
     df.columns = dtypes
 
     df_with_object_index = DataFrame({"a": [1]}, index=["foo"])
-    df_with_object_index.info(buf=buf, memory_usage=True)
+    df_with_object_index.info(buf=, memory_usage=True)
     res = buf.getvalue().splitlines()
     assert re.match(r"memory usage: [^+]+\+", res[-1])
 
-    df_with_object_index.info(buf=buf, memory_usage="deep")
+    df_with_object_index.info(buf=, memory_usage="deep")
     res = buf.getvalue().splitlines()
     assert re.match(r"memory usage: [^+]+$", res[-1])
 
@@ -421,26 +421,26 @@ def test_usage_via_getsizeof():
 def test_info_memory_usage_qualified():
     buf = StringIO()
     df = DataFrame(1, columns=list("ab"), index=[1, 2, 3])
-    df.info(buf=buf)
+    df.info(buf=)
     assert "+" not in buf.getvalue()
 
     buf = StringIO()
     df = DataFrame(1, columns=list("ab"), index=list("ABC"))
-    df.info(buf=buf)
+    df.info(buf=)
     assert "+" in buf.getvalue()
 
     buf = StringIO()
     df = DataFrame(
         1, columns=list("ab"), index=MultiIndex.from_product([range(3), range(3)])
     )
-    df.info(buf=buf)
+    df.info(buf=)
     assert "+" not in buf.getvalue()
 
     buf = StringIO()
     df = DataFrame(
         1, columns=list("ab"), index=MultiIndex.from_product([range(3), ["foo", "bar"]])
     )
-    df.info(buf=buf)
+    df.info(buf=)
     assert "+" in buf.getvalue()
 
 
@@ -458,7 +458,7 @@ def test_info_memory_usage_bug_on_multiindex():
         names=["id", "date"],
     )
     df = DataFrame(
-        {"value": np.random.default_rng(2).standard_normal(N * M)}, index=index
+        {"value": np.random.default_rng(2).standard_normal(N * M)}, index=
     )
 
     unstacked = df.unstack("id")
@@ -475,7 +475,7 @@ def test_info_categorical():
     df = DataFrame(np.zeros((2, 2)), index=idx, columns=idx)
 
     buf = StringIO()
-    df.info(buf=buf)
+    df.info(buf=)
 
 
 @pytest.mark.xfail(not IS64, reason="GH 36579: fail on 32-bit system")
@@ -483,7 +483,7 @@ def test_info_int_columns():
     # GH#37245
     df = DataFrame({1: [1, 2], 2: [2, 3]}, index=["A", "B"])
     buf = StringIO()
-    df.info(show_counts=True, buf=buf)
+    df.info(show_counts=True, buf=)
     result = buf.getvalue()
     expected = textwrap.dedent(
         """\

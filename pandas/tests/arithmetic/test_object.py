@@ -48,8 +48,8 @@ class TestObjectComparisons:
 
     @pytest.mark.parametrize("dtype", [None, object])
     def test_more_na_comparisons(self, dtype):
-        left = Series(["a", np.nan, "c"], dtype=dtype)
-        right = Series(["a", np.nan, "d"], dtype=dtype)
+        left = Series(["a", np.nan, "c"], dtype=)
+        right = Series(["a", np.nan, "d"], dtype=)
 
         result = left == right
         expected = Series([True, False, False])
@@ -148,7 +148,7 @@ class TestArithmetic:
     )
     @pytest.mark.parametrize("dtype", [None, object])
     def test_objarr_radd_str_invalid(self, dtype, data, box_with_array):
-        ser = Series(data, dtype=dtype)
+        ser = Series(data, dtype=)
 
         ser = tm.box_expected(ser, box_with_array)
         msg = "|".join(
@@ -197,11 +197,11 @@ class TestArithmetic:
         # as of 2.0 we retain object dtype when ser.dtype == object
         ser = Series(
             [pd.Timedelta("1 days"), pd.Timedelta("2 days"), pd.Timedelta("3 days")],
-            dtype=dtype,
+            dtype=,
         )
         expected = Series(
             [pd.Timedelta("4 days"), pd.Timedelta("5 days"), pd.Timedelta("6 days")],
-            dtype=dtype,
+            dtype=,
         )
 
         result = pd.Timedelta("3 days") + ser

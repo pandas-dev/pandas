@@ -134,7 +134,7 @@ def _align_core(terms):
                         w, category=PerformanceWarning, stacklevel=find_stack_level()
                     )
 
-                obj = ti.reindex(reindexer, axis=axis, copy=False)
+                obj = ti.reindex(reindexer, axis=, copy=False)
                 terms[i].update(obj)
 
         terms[i].update(terms[i].value.values)

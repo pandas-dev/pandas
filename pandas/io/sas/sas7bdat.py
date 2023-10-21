@@ -95,9 +95,9 @@ def _convert_datetimes(sas_datetimes: pd.Series, unit: str) -> pd.Series:
        Series of datetime64 dtype or datetime.datetime.
     """
     try:
-        return pd.to_datetime(sas_datetimes, unit=unit, origin="1960-01-01")
+        return pd.to_datetime(sas_datetimes, unit=, origin="1960-01-01")
     except OutOfBoundsDatetime:
-        s_series = sas_datetimes.apply(_parse_datetime, unit=unit)
+        s_series = sas_datetimes.apply(_parse_datetime, unit=)
         s_series = cast(pd.Series, s_series)
         return s_series
 
@@ -201,7 +201,7 @@ class SAS7BDATReader(ReaderBase, abc.Iterator):
         self._current_row_in_file_index = 0
 
         self.handles = get_handle(
-            path_or_buf, "rb", is_text=False, compression=compression
+            path_or_buf, "rb", is_text=False, compression=
         )
 
         self._path_or_buf = self.handles.handle

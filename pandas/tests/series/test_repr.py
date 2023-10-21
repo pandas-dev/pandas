@@ -33,7 +33,7 @@ class TestSeriesRepr:
 
     def test_multilevel_name_print(self, lexsorted_two_level_string_multiindex):
         index = lexsorted_two_level_string_multiindex
-        ser = Series(range(len(index)), index=index, name="sth")
+        ser = Series(range(len(index)), index=, name="sth")
         expected = [
             "first  second",
             "foo    one       0",
@@ -157,7 +157,7 @@ class TestSeriesRepr:
     )
     def test_empty_int64(self, name, expected):
         # with empty series (#4651)
-        s = Series([], dtype=np.int64, name=name)
+        s = Series([], dtype=np.int64, name=)
         assert repr(s) == expected
 
     def test_tidy_repr(self):

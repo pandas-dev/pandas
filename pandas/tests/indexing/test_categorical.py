@@ -327,7 +327,7 @@ class TestCategoricalIndex:
 
         # unique categories and codes
         index = CategoricalIndex(["a", "b", "c"])
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=index)
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=)
 
         # unique slice
         res = df.loc[["a", "b"]]
@@ -348,7 +348,7 @@ class TestCategoricalIndex:
     def test_loc_listlike_dtypes_duplicated_categories_and_codes(self):
         # duplicated categories and codes
         index = CategoricalIndex(["a", "b", "a"])
-        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=index)
+        df = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=)
 
         # unique slice
         res = df.loc[["a", "b"]]
@@ -371,7 +371,7 @@ class TestCategoricalIndex:
     def test_loc_listlike_dtypes_unused_category(self):
         # contains unused category
         index = CategoricalIndex(["a", "b", "a", "c"], categories=list("abcde"))
-        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=index)
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=)
 
         res = df.loc[["a", "b"]]
         exp = DataFrame(
@@ -394,7 +394,7 @@ class TestCategoricalIndex:
     def test_loc_getitem_listlike_unused_category_raises_keyerror(self):
         # key that is an *unused* category raises
         index = CategoricalIndex(["a", "b", "a", "c"], categories=list("abcde"))
-        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=index)
+        df = DataFrame({"A": [1, 2, 3, 4], "B": [5, 6, 7, 8]}, index=)
 
         with pytest.raises(KeyError, match="e"):
             # For comparison, check the scalar behavior
@@ -496,7 +496,7 @@ class TestCategoricalIndex:
             [1.5, 2.5, 3.5],
             [-1.5, -2.5, -3.5],
             # numpy int/uint
-            *(np.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_INT_NUMPY_DTYPES),
+            *(np.array([1, 2, 3], dtype=) for dtype in tm.ALL_INT_NUMPY_DTYPES),
             # numpy floats
             *(np.array([1.5, 2.5, 3.5], dtype=dtyp) for dtyp in tm.FLOAT_NUMPY_DTYPES),
             # numpy object
@@ -506,7 +506,7 @@ class TestCategoricalIndex:
             [Timestamp(2019, 1, 1), Timestamp(2019, 2, 1), Timestamp(2019, 3, 1)],
             [Timedelta(1, "d"), Timedelta(2, "d"), Timedelta(3, "D")],
             # pandas Integer arrays
-            *(pd.array([1, 2, 3], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES),
+            *(pd.array([1, 2, 3], dtype=) for dtype in tm.ALL_INT_EA_DTYPES),
             # other pandas arrays
             pd.IntervalIndex.from_breaks([1, 4, 6, 9]).array,
             pd.date_range("2019-01-01", periods=3).array,
@@ -515,7 +515,7 @@ class TestCategoricalIndex:
     )
     def test_loc_getitem_with_non_string_categories(self, idx_values, ordered):
         # GH-17569
-        cat_idx = CategoricalIndex(idx_values, ordered=ordered)
+        cat_idx = CategoricalIndex(idx_values, ordered=)
         df = DataFrame({"A": ["foo", "bar", "baz"]}, index=cat_idx)
         sl = slice(idx_values[0], idx_values[1])
 

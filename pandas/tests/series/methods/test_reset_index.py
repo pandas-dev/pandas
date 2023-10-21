@@ -56,7 +56,7 @@ class TestResetIndex:
             levels=[["bar"], ["one", "two", "three"], [0, 1]],
             codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
         )
-        s = Series(np.random.default_rng(2).standard_normal(6), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(6), index=)
         rs = s.reset_index(level=1)
         assert len(rs.columns) == 2
 
@@ -186,7 +186,7 @@ def test_reset_index_dtypes_on_empty_series_with_multiindex(array, dtype):
 @pytest.mark.parametrize("allow_duplicates", [False, True])
 def test_column_name_duplicates(names, expected_names, allow_duplicates):
     # GH#44755 reset_index with duplicate column labels
-    s = Series([1], index=MultiIndex.from_arrays([[1], [1]], names=names))
+    s = Series([1], index=MultiIndex.from_arrays([[1], [1]], names=))
     if allow_duplicates:
         result = s.reset_index(allow_duplicates=True)
         expected = DataFrame([[1, 1, 1]], columns=expected_names + [0])

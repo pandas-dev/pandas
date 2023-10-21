@@ -153,7 +153,7 @@ def data_for_twos(dtype):
     if dtype.kind == "O":
         pytest.skip("Not a numeric dtype")
     arr = np.ones(100) * 2
-    return NumpyExtensionArray._from_sequence(arr, dtype=dtype)
+    return NumpyExtensionArray._from_sequence(arr, dtype=)
 
 
 @pytest.fixture
@@ -319,8 +319,8 @@ class TestReduce(BaseNumPyTests, base.BaseReduceTests):
             result = res_op()
             expected = exp_op()
         else:
-            result = res_op(skipna=skipna)
-            expected = exp_op(skipna=skipna)
+            result = res_op(skipna=)
+            expected = exp_op(skipna=)
         tm.assert_almost_equal(result, expected)
 
     @pytest.mark.skip("tests not written yet")

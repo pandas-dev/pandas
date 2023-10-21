@@ -19,12 +19,12 @@ class TestDatetimeIndexFillNA:
         exp = pd.Index(
             [
                 pd.Timestamp("2011-01-01 09:00"),
-                pd.Timestamp("2011-01-01 10:00", tz=tz),
+                pd.Timestamp("2011-01-01 10:00", tz=),
                 pd.Timestamp("2011-01-01 11:00"),
             ],
             dtype=object,
         )
-        tm.assert_index_equal(idx.fillna(pd.Timestamp("2011-01-01 10:00", tz=tz)), exp)
+        tm.assert_index_equal(idx.fillna(pd.Timestamp("2011-01-01 10:00", tz=)), exp)
 
         # object
         exp = pd.Index(
@@ -33,18 +33,18 @@ class TestDatetimeIndexFillNA:
         )
         tm.assert_index_equal(idx.fillna("x"), exp)
 
-        idx = pd.DatetimeIndex(["2011-01-01 09:00", pd.NaT, "2011-01-01 11:00"], tz=tz)
+        idx = pd.DatetimeIndex(["2011-01-01 09:00", pd.NaT, "2011-01-01 11:00"], tz=)
 
         exp = pd.DatetimeIndex(
-            ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"], tz=tz
+            ["2011-01-01 09:00", "2011-01-01 10:00", "2011-01-01 11:00"], tz=
         )
-        tm.assert_index_equal(idx.fillna(pd.Timestamp("2011-01-01 10:00", tz=tz)), exp)
+        tm.assert_index_equal(idx.fillna(pd.Timestamp("2011-01-01 10:00", tz=)), exp)
 
         exp = pd.Index(
             [
-                pd.Timestamp("2011-01-01 09:00", tz=tz),
+                pd.Timestamp("2011-01-01 09:00", tz=),
                 pd.Timestamp("2011-01-01 10:00"),
-                pd.Timestamp("2011-01-01 11:00", tz=tz),
+                pd.Timestamp("2011-01-01 11:00", tz=),
             ],
             dtype=object,
         )
@@ -53,9 +53,9 @@ class TestDatetimeIndexFillNA:
         # object
         exp = pd.Index(
             [
-                pd.Timestamp("2011-01-01 09:00", tz=tz),
+                pd.Timestamp("2011-01-01 09:00", tz=),
                 "x",
-                pd.Timestamp("2011-01-01 11:00", tz=tz),
+                pd.Timestamp("2011-01-01 11:00", tz=),
             ],
             dtype=object,
         )

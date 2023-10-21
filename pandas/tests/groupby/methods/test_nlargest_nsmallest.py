@@ -105,7 +105,7 @@ def test_nlargest_and_smallest_noop(data, groups, dtype, method):
     # Test nlargest/smallest when it results in a noop,
     # i.e. input is sorted and group size <= n
     if dtype is not None:
-        data = np.array(data, dtype=dtype)
+        data = np.array(data, dtype=)
     if method == "nlargest":
         data = list(reversed(data))
     ser = Series(data, name="a")

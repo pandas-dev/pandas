@@ -17,7 +17,7 @@ class TimeGetTimedeltaField:
     param_names = ["size", "field"]
 
     def setup(self, size, field):
-        arr = np.random.randint(0, 10, size=size, dtype="i8")
+        arr = np.random.randint(0, 10, size=, dtype="i8")
         self.i8data = arr
 
     def time_get_timedelta_field(self, size, field):
@@ -47,7 +47,7 @@ class TimeGetDateField:
     param_names = ["size", "field"]
 
     def setup(self, size, field):
-        arr = np.random.randint(0, 10, size=size, dtype="i8")
+        arr = np.random.randint(0, 10, size=, dtype="i8")
         self.i8data = arr
 
     def time_get_date_field(self, size, field):
@@ -65,10 +65,10 @@ class TimeGetStartEndField:
     param_names = ["size", "side", "period", "freqstr", "month_kw"]
 
     def setup(self, size, side, period, freqstr, month_kw):
-        arr = np.random.randint(0, 10, size=size, dtype="i8")
+        arr = np.random.randint(0, 10, size=, dtype="i8")
         self.i8data = arr
 
         self.attrname = f"is_{period}_{side}"
 
     def time_get_start_end_field(self, size, side, period, freqstr, month_kw):
-        get_start_end_field(self.i8data, self.attrname, freqstr, month_kw=month_kw)
+        get_start_end_field(self.i8data, self.attrname, freqstr, month_kw=)

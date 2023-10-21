@@ -102,7 +102,7 @@ class TestInterval:
     @pytest.mark.parametrize("tz", (None, "UTC", "CET", "US/Eastern"))
     def test_length_timestamp(self, tz, left, right, expected):
         # GH 18789
-        iv = Interval(Timestamp(left, tz=tz), Timestamp(right, tz=tz))
+        iv = Interval(Timestamp(left, tz=tz), Timestamp(right, tz=))
         result = iv.length
         expected = Timedelta(expected)
         assert result == expected
@@ -148,8 +148,8 @@ class TestInterval:
             Interval(left, right)
 
     def test_math_add(self, closed):
-        interval = Interval(0, 1, closed=closed)
-        expected = Interval(1, 2, closed=closed)
+        interval = Interval(0, 1, closed=)
+        expected = Interval(1, 2, closed=)
 
         result = interval + 1
         assert result == expected
@@ -169,8 +169,8 @@ class TestInterval:
             interval + "foo"
 
     def test_math_sub(self, closed):
-        interval = Interval(0, 1, closed=closed)
-        expected = Interval(-1, 0, closed=closed)
+        interval = Interval(0, 1, closed=)
+        expected = Interval(-1, 0, closed=)
 
         result = interval - 1
         assert result == expected
@@ -187,8 +187,8 @@ class TestInterval:
             interval - "foo"
 
     def test_math_mult(self, closed):
-        interval = Interval(0, 1, closed=closed)
-        expected = Interval(0, 2, closed=closed)
+        interval = Interval(0, 1, closed=)
+        expected = Interval(0, 2, closed=)
 
         result = interval * 2
         assert result == expected
@@ -209,8 +209,8 @@ class TestInterval:
             interval * "foo"
 
     def test_math_div(self, closed):
-        interval = Interval(0, 1, closed=closed)
-        expected = Interval(0, 0.5, closed=closed)
+        interval = Interval(0, 1, closed=)
+        expected = Interval(0, 0.5, closed=)
 
         result = interval / 2.0
         assert result == expected
@@ -227,8 +227,8 @@ class TestInterval:
             interval / "foo"
 
     def test_math_floordiv(self, closed):
-        interval = Interval(1, 2, closed=closed)
-        expected = Interval(0, 1, closed=closed)
+        interval = Interval(1, 2, closed=)
+        expected = Interval(0, 1, closed=)
 
         result = interval // 2
         assert result == expected

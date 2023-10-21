@@ -362,10 +362,7 @@ def test_server_and_all_custom_headers(responder, read_method):
         "Auth": custom_auth_token,
     }
     read_method = wait_until_ready(read_method)
-    df_http = read_method(
-        f"http://localhost:{responder}",
-        storage_options=storage_options,
-    )
+    df_http = read_method(f"http://localhost:{responder}", storage_options=)
 
     df_http = df_http[df_http["0"].isin(storage_options.keys())]
     df_http = df_http.sort_values(["0"]).reset_index()
@@ -400,4 +397,4 @@ def test_to_parquet_to_disk_with_storage_options(engine):
         "storage_options passed with buffer, or non-supported URL"
     )
     with pytest.raises(ValueError, match=msg):
-        true_df.to_parquet("/tmp/junk.parquet", storage_options=headers, engine=engine)
+        true_df.to_parquet("/tmp/junk.parquet", storage_options=headers, engine=)

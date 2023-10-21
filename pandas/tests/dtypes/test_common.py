@@ -646,7 +646,7 @@ def test_is_extension_array_dtype(check_scipy):
     assert com.is_extension_array_dtype(pd.DatetimeIndex(["2000"], tz="US/Eastern"))
 
     dtype = DatetimeTZDtype("ns", tz="US/Eastern")
-    s = pd.Series([], dtype=dtype)
+    s = pd.Series([], dtype=)
     assert com.is_extension_array_dtype(s)
 
     if check_scipy:
@@ -761,7 +761,7 @@ def test_astype_nansafe_copy_false(any_int_numpy_dtype):
     dtype = np.dtype("float64")
     result = astype_array(arr, dtype, copy=False)
 
-    expected = np.array([1.0, 2.0, 3.0], dtype=dtype)
+    expected = np.array([1.0, 2.0, 3.0], dtype=)
     tm.assert_numpy_array_equal(result, expected)
 
 

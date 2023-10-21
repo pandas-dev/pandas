@@ -374,7 +374,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             self.validate_ordered(ordered)
 
         if categories is not None:
-            categories = self.validate_categories(categories, fastpath=fastpath)
+            categories = self.validate_categories(categories, fastpath=)
 
         self._categories = categories
         self._ordered = ordered
@@ -932,7 +932,7 @@ class DatetimeTZDtype(PandasExtensionDtype):
         if all(isinstance(t, DatetimeTZDtype) and t.tz == self.tz for t in dtypes):
             np_dtype = np.max([cast(DatetimeTZDtype, t).base for t in [self, *dtypes]])
             unit = np.datetime_data(np_dtype)[0]
-            return type(self)(unit=unit, tz=self.tz)
+            return type(self)(unit=, tz=self.tz)
         return super()._get_common_dtype(dtypes)
 
     @cache_readonly
@@ -1421,7 +1421,7 @@ class IntervalDtype(PandasExtensionDtype):
         common = find_common_type([cast("IntervalDtype", x).subtype for x in dtypes])
         if common == object:
             return np.dtype(object)
-        return IntervalDtype(common, closed=closed)
+        return IntervalDtype(common, closed=)
 
     @cache_readonly
     def index_class(self) -> type_t[IntervalIndex]:
@@ -1980,7 +1980,7 @@ class SparseDtype(ExtensionDtype):
             fvarr = astype_array(fv_asarray, dtype)
             # NB: not fv_0d.item(), as that casts dt64->int
             fill_value = fvarr[0]
-            dtype = cls(dtype, fill_value=fill_value)
+            dtype = cls(dtype, fill_value=)
 
         return dtype
 
@@ -2040,7 +2040,7 @@ class SparseDtype(ExtensionDtype):
             )
 
         np_dtypes = (x.subtype if isinstance(x, SparseDtype) else x for x in dtypes)
-        return SparseDtype(np_find_common_type(*np_dtypes), fill_value=fill_value)
+        return SparseDtype(np_find_common_type(*np_dtypes), fill_value=)
 
 
 @register_extension_dtype
@@ -2289,7 +2289,7 @@ class ArrowDtype(StorageExtensionDtype):
             if tz.startswith("tz="):
                 tz = tz[3:]
 
-            pa_type = pa.timestamp(unit, tz=tz)
+            pa_type = pa.timestamp(unit, tz=)
             dtype = cls(pa_type)
             return dtype
 

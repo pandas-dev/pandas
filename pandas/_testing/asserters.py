@@ -94,8 +94,8 @@ def assert_almost_equal(
             right,
             check_exact=False,
             exact=check_dtype,
-            rtol=rtol,
-            atol=atol,
+            rtol=,
+            atol=,
             **kwargs,
         )
 
@@ -104,9 +104,9 @@ def assert_almost_equal(
             left,
             right,
             check_exact=False,
-            check_dtype=check_dtype,
-            rtol=rtol,
-            atol=atol,
+            check_dtype=,
+            rtol=,
+            atol=,
             **kwargs,
         )
 
@@ -115,9 +115,9 @@ def assert_almost_equal(
             left,
             right,
             check_exact=False,
-            check_dtype=check_dtype,
-            rtol=rtol,
-            atol=atol,
+            check_dtype=,
+            rtol=,
+            atol=,
             **kwargs,
         )
 
@@ -135,11 +135,11 @@ def assert_almost_equal(
                     obj = "numpy array"
                 else:
                     obj = "Input"
-                assert_class_equal(left, right, obj=obj)
+                assert_class_equal(left, right, obj=)
 
         # if we have "equiv", this becomes True
         _testing.assert_almost_equal(
-            left, right, check_dtype=bool(check_dtype), rtol=rtol, atol=atol, **kwargs
+            left, right, check_dtype=bool(check_dtype), rtol=, atol=, **kwargs
         )
 
 
@@ -173,7 +173,7 @@ def _check_isinstance(left, right, cls):
 
 def assert_dict_equal(left, right, compare_keys: bool = True) -> None:
     _check_isinstance(left, right, dict)
-    _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
+    _testing.assert_dict_equal(left, right, compare_keys=)
 
 
 def assert_index_equal(
@@ -232,19 +232,19 @@ def assert_index_equal(
         if not exact:
             return
 
-        assert_class_equal(left, right, exact=exact, obj=obj)
-        assert_attr_equal("inferred_type", left, right, obj=obj)
+        assert_class_equal(left, right, exact=, obj=)
+        assert_attr_equal("inferred_type", left, right, obj=)
 
         # Skip exact dtype checking when `check_categorical` is False
         if isinstance(left.dtype, CategoricalDtype) and isinstance(
             right.dtype, CategoricalDtype
         ):
             if check_categorical:
-                assert_attr_equal("dtype", left, right, obj=obj)
-                assert_index_equal(left.categories, right.categories, exact=exact)
+                assert_attr_equal("dtype", left, right, obj=)
+                assert_index_equal(left.categories, right.categories, exact=)
             return
 
-        assert_attr_equal("dtype", left, right, obj=obj)
+        assert_attr_equal("dtype", left, right, obj=)
 
     def _get_ilevel_values(index, level):
         # accept level number only
@@ -257,7 +257,7 @@ def assert_index_equal(
     _check_isinstance(left, right, Index)
 
     # class / dtype comparison
-    _check_types(left, right, obj=obj)
+    _check_types(left, right, obj=)
 
     # level comparison
     if left.nlevels != right.nlevels:
@@ -291,16 +291,16 @@ def assert_index_equal(
             assert_index_equal(
                 llevel,
                 rlevel,
-                exact=exact,
-                check_names=check_names,
-                check_exact=check_exact,
-                check_categorical=check_categorical,
-                rtol=rtol,
-                atol=atol,
+                exact=,
+                check_names=,
+                check_exact=,
+                check_categorical=,
+                rtol=,
+                atol=,
                 obj=lobj,
             )
             # get_level_values may change dtype
-            _check_types(left.levels[level], right.levels[level], obj=obj)
+            _check_types(left.levels[level], right.levels[level], obj=)
 
     # skip exact index checking when `check_categorical` is False
     elif check_exact and check_categorical:
@@ -319,19 +319,19 @@ def assert_index_equal(
         _testing.assert_almost_equal(
             left.values,
             right.values,
-            rtol=rtol,
-            atol=atol,
+            rtol=,
+            atol=,
             check_dtype=exact_bool,
-            obj=obj,
+            obj=,
             lobj=left,
             robj=right,
         )
 
     # metadata comparison
     if check_names:
-        assert_attr_equal("names", left, right, obj=obj)
+        assert_attr_equal("names", left, right, obj=)
     if isinstance(left, PeriodIndex) or isinstance(right, PeriodIndex):
-        assert_attr_equal("dtype", left, right, obj=obj)
+        assert_attr_equal("dtype", left, right, obj=)
     if isinstance(left, IntervalIndex) or isinstance(right, IntervalIndex):
         assert_interval_array_equal(left._values, right._values)
 
@@ -484,10 +484,10 @@ def assert_categorical_equal(
 
     if check_category_order:
         assert_index_equal(
-            left.categories, right.categories, obj=f"{obj}.categories", exact=exact
+            left.categories, right.categories, obj=f"{obj}.categories", exact=
         )
         assert_numpy_array_equal(
-            left.codes, right.codes, check_dtype=check_dtype, obj=f"{obj}.codes"
+            left.codes, right.codes, check_dtype=, obj=f"{obj}.codes"
         )
     else:
         try:
@@ -496,15 +496,15 @@ def assert_categorical_equal(
         except TypeError:
             # e.g. '<' not supported between instances of 'int' and 'str'
             lc, rc = left.categories, right.categories
-        assert_index_equal(lc, rc, obj=f"{obj}.categories", exact=exact)
+        assert_index_equal(lc, rc, obj=f"{obj}.categories", exact=)
         assert_index_equal(
             left.categories.take(left.codes),
             right.categories.take(right.codes),
             obj=f"{obj}.values",
-            exact=exact,
+            exact=,
         )
 
-    assert_attr_equal("ordered", left, right, obj=obj)
+    assert_attr_equal("ordered", left, right, obj=)
 
 
 def assert_interval_array_equal(
@@ -535,14 +535,14 @@ def assert_interval_array_equal(
     assert_equal(left._left, right._left, obj=f"{obj}.left", **kwargs)
     assert_equal(left._right, right._right, obj=f"{obj}.left", **kwargs)
 
-    assert_attr_equal("closed", left, right, obj=obj)
+    assert_attr_equal("closed", left, right, obj=)
 
 
 def assert_period_array_equal(left, right, obj: str = "PeriodArray") -> None:
     _check_isinstance(left, right, PeriodArray)
 
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
-    assert_attr_equal("dtype", left, right, obj=obj)
+    assert_attr_equal("dtype", left, right, obj=)
 
 
 def assert_datetime_array_equal(
@@ -553,8 +553,8 @@ def assert_datetime_array_equal(
 
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     if check_freq:
-        assert_attr_equal("freq", left, right, obj=obj)
-    assert_attr_equal("tz", left, right, obj=obj)
+        assert_attr_equal("freq", left, right, obj=)
+    assert_attr_equal("tz", left, right, obj=)
 
 
 def assert_timedelta_array_equal(
@@ -564,7 +564,7 @@ def assert_timedelta_array_equal(
     _check_isinstance(left, right, TimedeltaArray)
     assert_numpy_array_equal(left._ndarray, right._ndarray, obj=f"{obj}._ndarray")
     if check_freq:
-        assert_attr_equal("freq", left, right, obj=obj)
+        assert_attr_equal("freq", left, right, obj=)
 
 
 def raise_assert_detail(
@@ -637,7 +637,7 @@ def assert_numpy_array_equal(
 
     # instance validation
     # Show a detailed error message when classes are different
-    assert_class_equal(left, right, obj=obj)
+    assert_class_equal(left, right, obj=)
     # both classes must be an np.ndarray
     _check_isinstance(left, right, np.ndarray)
 
@@ -664,22 +664,22 @@ def assert_numpy_array_equal(
             diff = 0
             for left_arr, right_arr in zip(left, right):
                 # count up differences
-                if not array_equivalent(left_arr, right_arr, strict_nan=strict_nan):
+                if not array_equivalent(left_arr, right_arr, strict_nan=):
                     diff += 1
 
             diff = diff * 100.0 / left.size
             msg = f"{obj} values are different ({np.round(diff, 5)} %)"
-            raise_assert_detail(obj, msg, left, right, index_values=index_values)
+            raise_assert_detail(obj, msg, left, right, index_values=)
 
         raise AssertionError(err_msg)
 
     # compare shape and values
-    if not array_equivalent(left, right, strict_nan=strict_nan):
+    if not array_equivalent(left, right, strict_nan=):
         _raise(left, right, err_msg)
 
     if check_dtype:
         if isinstance(left, np.ndarray) and isinstance(right, np.ndarray):
-            assert_attr_equal("dtype", left, right, obj=obj)
+            assert_attr_equal("dtype", left, right, obj=)
 
 
 def assert_extension_array_equal(
@@ -760,32 +760,30 @@ def assert_extension_array_equal(
         assert_numpy_array_equal(
             np.asarray(left.asi8),
             np.asarray(right.asi8),
-            index_values=index_values,
-            obj=obj,
+            index_values=,
+            obj=,
         )
         return
 
     left_na = np.asarray(left.isna())
     right_na = np.asarray(right.isna())
     assert_numpy_array_equal(
-        left_na, right_na, obj=f"{obj} NA mask", index_values=index_values
+        left_na, right_na, obj=f"{obj} NA mask", index_values=
     )
 
     left_valid = left[~left_na].to_numpy(dtype=object)
     right_valid = right[~right_na].to_numpy(dtype=object)
     if check_exact:
-        assert_numpy_array_equal(
-            left_valid, right_valid, obj=obj, index_values=index_values
-        )
+        assert_numpy_array_equal(left_valid, right_valid, obj=, index_values=)
     else:
         _testing.assert_almost_equal(
             left_valid,
             right_valid,
             check_dtype=bool(check_dtype),
-            rtol=rtol,
-            atol=atol,
-            obj=obj,
-            index_values=index_values,
+            rtol=,
+            atol=,
+            obj=,
+            index_values=,
         )
 
 
@@ -874,7 +872,7 @@ def assert_series_equal(
     _check_isinstance(left, right, Series)
 
     if check_series_type:
-        assert_class_equal(left, right, obj=obj)
+        assert_class_equal(left, right, obj=)
 
     # length comparison
     if len(left) != len(right):
@@ -891,12 +889,12 @@ def assert_series_equal(
             left.index,
             right.index,
             exact=check_index_type,
-            check_names=check_names,
-            check_exact=check_exact,
-            check_categorical=check_categorical,
+            check_names=,
+            check_exact=,
+            check_categorical=,
             check_order=not check_like,
-            rtol=rtol,
-            atol=atol,
+            rtol=,
+            atol=,
             obj=f"{obj}.index",
         )
 
@@ -931,7 +929,7 @@ def assert_series_equal(
             assert_extension_array_equal(
                 left_values,
                 right_values,
-                check_dtype=check_dtype,
+                check_dtype=,
                 index_values=np.asarray(left.index),
                 obj=str(obj),
             )
@@ -939,7 +937,7 @@ def assert_series_equal(
             assert_numpy_array_equal(
                 left_values,
                 right_values,
-                check_dtype=check_dtype,
+                check_dtype=,
                 obj=str(obj),
                 index_values=np.asarray(left.index),
             )
@@ -968,8 +966,8 @@ def assert_series_equal(
         _testing.assert_almost_equal(
             left._values,
             right._values,
-            rtol=rtol,
-            atol=atol,
+            rtol=,
+            atol=,
             check_dtype=bool(check_dtype),
             obj=str(obj),
             index_values=np.asarray(left.index),
@@ -980,9 +978,9 @@ def assert_series_equal(
         assert_extension_array_equal(
             left._values,
             right._values,
-            rtol=rtol,
-            atol=atol,
-            check_dtype=check_dtype,
+            rtol=,
+            atol=,
+            check_dtype=,
             index_values=np.asarray(left.index),
             obj=str(obj),
         )
@@ -992,7 +990,7 @@ def assert_series_equal(
         assert_extension_array_equal(
             left._values,
             right._values,
-            check_dtype=check_dtype,
+            check_dtype=,
             index_values=np.asarray(left.index),
             obj=str(obj),
         )
@@ -1001,7 +999,7 @@ def assert_series_equal(
         assert_extension_array_equal(
             left._values,
             right._values,
-            check_dtype=check_dtype,
+            check_dtype=,
             index_values=np.asarray(left.index),
             obj=str(obj),
         )
@@ -1009,8 +1007,8 @@ def assert_series_equal(
         _testing.assert_almost_equal(
             left._values,
             right._values,
-            rtol=rtol,
-            atol=atol,
+            rtol=,
+            atol=,
             check_dtype=bool(check_dtype),
             obj=str(obj),
             index_values=np.asarray(left.index),
@@ -1018,7 +1016,7 @@ def assert_series_equal(
 
     # metadata comparison
     if check_names:
-        assert_attr_equal("name", left, right, obj=obj)
+        assert_attr_equal("name", left, right, obj=)
 
     if check_categorical:
         if isinstance(left.dtype, CategoricalDtype) or isinstance(
@@ -1028,7 +1026,7 @@ def assert_series_equal(
                 left._values,
                 right._values,
                 obj=f"{obj} category",
-                check_category_order=check_category_order,
+                check_category_order=,
             )
 
 
@@ -1161,12 +1159,12 @@ def assert_frame_equal(
         left.index,
         right.index,
         exact=check_index_type,
-        check_names=check_names,
-        check_exact=check_exact,
-        check_categorical=check_categorical,
+        check_names=,
+        check_exact=,
+        check_categorical=,
         check_order=not check_like,
-        rtol=rtol,
-        atol=atol,
+        rtol=,
+        atol=,
         obj=f"{obj}.index",
     )
 
@@ -1175,12 +1173,12 @@ def assert_frame_equal(
         left.columns,
         right.columns,
         exact=check_column_type,
-        check_names=check_names,
-        check_exact=check_exact,
-        check_categorical=check_categorical,
+        check_names=,
+        check_exact=,
+        check_categorical=,
         check_order=not check_like,
-        rtol=rtol,
-        atol=atol,
+        rtol=,
+        atol=,
         obj=f"{obj}.columns",
     )
 
@@ -1195,7 +1193,7 @@ def assert_frame_equal(
             assert dtype in lblocks
             assert dtype in rblocks
             assert_frame_equal(
-                lblocks[dtype], rblocks[dtype], check_dtype=check_dtype, obj=obj
+                lblocks[dtype], rblocks[dtype], check_dtype=, obj=
             )
 
     # compare by columns
@@ -1213,16 +1211,16 @@ def assert_frame_equal(
             assert_series_equal(
                 lcol,
                 rcol,
-                check_dtype=check_dtype,
-                check_index_type=check_index_type,
-                check_exact=check_exact,
-                check_names=check_names,
-                check_datetimelike_compat=check_datetimelike_compat,
-                check_categorical=check_categorical,
-                check_freq=check_freq,
+                check_dtype=,
+                check_index_type=,
+                check_exact=,
+                check_names=,
+                check_datetimelike_compat=,
+                check_categorical=,
+                check_freq=,
                 obj=f'{obj}.iloc[:, {i}] (column name="{col}")',
-                rtol=rtol,
-                atol=atol,
+                rtol=,
+                atol=,
                 check_index=False,
                 check_flags=False,
             )

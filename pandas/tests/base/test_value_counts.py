@@ -314,7 +314,7 @@ def test_value_counts_with_nan(dropna, index_or_series):
     klass = index_or_series
     values = [True, pd.NA, np.nan]
     obj = klass(values)
-    res = obj.value_counts(dropna=dropna)
+    res = obj.value_counts(dropna=)
     if dropna is True:
         expected = Series([1], index=Index([True], dtype=obj.dtype), name="count")
     else:

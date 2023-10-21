@@ -104,7 +104,7 @@ class TestSeriesDatetimeValues:
         # test .dt namespace accessor
 
         # datetimeindex
-        dti = date_range("20130101", periods=5, freq=freq)
+        dti = date_range("20130101", periods=5, freq=)
         ser = Series(dti, name="xxx")
 
         for prop in ok_for_dt:
@@ -231,19 +231,19 @@ class TestSeriesDatetimeValues:
         # both
         index = date_range("20130101", periods=3, freq="D")
         dti = date_range("20140204", periods=3, freq="s")
-        ser = Series(dti, index=index, name="xxx")
+        ser = Series(dti, index=, name="xxx")
         exp = Series(
-            np.array([2014, 2014, 2014], dtype="int32"), index=index, name="xxx"
+            np.array([2014, 2014, 2014], dtype="int32"), index=, name="xxx"
         )
         tm.assert_series_equal(ser.dt.year, exp)
 
-        exp = Series(np.array([2, 2, 2], dtype="int32"), index=index, name="xxx")
+        exp = Series(np.array([2, 2, 2], dtype="int32"), index=, name="xxx")
         tm.assert_series_equal(ser.dt.month, exp)
 
-        exp = Series(np.array([0, 1, 2], dtype="int32"), index=index, name="xxx")
+        exp = Series(np.array([0, 1, 2], dtype="int32"), index=, name="xxx")
         tm.assert_series_equal(ser.dt.second, exp)
 
-        exp = Series([ser.iloc[0]] * 3, index=index, name="xxx")
+        exp = Series([ser.iloc[0]] * 3, index=, name="xxx")
         tm.assert_series_equal(ser.dt.normalize(), exp)
 
     def test_dt_accessor_limited_display_api(self):
@@ -726,7 +726,7 @@ class TestSeriesDatetimeValues:
         tz = maybe_get_tz(tz_naive_fixture)
 
         dtindex = DatetimeIndex(
-            ["2014-04-04 23:56", "2014-07-18 21:24", "2015-11-22 22:14"], tz=tz
+            ["2014-04-04 23:56", "2014-07-18 21:24", "2015-11-22 22:14"], tz=
         )
         ser = Series(dtindex)
         expected = Series(

@@ -392,8 +392,8 @@ def _get_filepath_or_buffer(
             reader = BytesIO(req.read())
         return IOArgs(
             filepath_or_buffer=reader,
-            encoding=encoding,
-            compression=compression,
+            encoding=,
+            compression=,
             should_close=True,
             mode=fsspec_mode,
         )
@@ -447,8 +447,8 @@ def _get_filepath_or_buffer(
 
         return IOArgs(
             filepath_or_buffer=file_obj,
-            encoding=encoding,
-            compression=compression,
+            encoding=,
+            compression=,
             should_close=True,
             mode=fsspec_mode,
         )
@@ -460,10 +460,10 @@ def _get_filepath_or_buffer(
     if isinstance(filepath_or_buffer, (str, bytes, mmap.mmap)):
         return IOArgs(
             filepath_or_buffer=_expand_user(filepath_or_buffer),
-            encoding=encoding,
-            compression=compression,
+            encoding=,
+            compression=,
             should_close=False,
-            mode=mode,
+            mode=,
         )
 
     # is_file_like requires (read | write) & __iter__ but __iter__ is only
@@ -475,11 +475,11 @@ def _get_filepath_or_buffer(
         raise ValueError(msg)
 
     return IOArgs(
-        filepath_or_buffer=filepath_or_buffer,
-        encoding=encoding,
-        compression=compression,
+        filepath_or_buffer=,
+        encoding=,
+        compression=,
         should_close=False,
-        mode=mode,
+        mode=,
     )
 
 
@@ -732,10 +732,10 @@ def get_handle(
     # open URLs
     ioargs = _get_filepath_or_buffer(
         path_or_buf,
-        encoding=encoding,
-        compression=compression,
-        mode=mode,
-        storage_options=storage_options,
+        encoding=,
+        compression=,
+        mode=,
+        storage_options=,
     )
 
     handle = ioargs.filepath_or_buffer
@@ -879,7 +879,7 @@ def get_handle(
                 handle,
                 ioargs.mode,
                 encoding=ioargs.encoding,
-                errors=errors,
+                errors=,
                 newline="",
             )
         else:
@@ -909,7 +909,7 @@ def get_handle(
         handle = TextIOWrapper(
             handle,  # type: ignore[arg-type]
             encoding=ioargs.encoding,
-            errors=errors,
+            errors=,
             newline="",
         )
         handles.append(handle)
@@ -987,7 +987,7 @@ class _BytesTarFile(_BufferedWriter):
         self.buffer: tarfile.TarFile = tarfile.TarFile.open(  # type: ignore[assignment]
             name=name,
             mode=self.extend_mode(mode),
-            fileobj=fileobj,
+            fileobj=,
             **kwargs,
         )
 

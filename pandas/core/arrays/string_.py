@@ -259,7 +259,7 @@ class BaseStringArray(ExtensionArray):
         if lib.infer_dtype(scalars, skipna=True) != "string":
             # TODO: require any NAs be valid-for-string
             raise ValueError
-        return cls._from_sequence(scalars, dtype=dtype)
+        return cls._from_sequence(scalars, dtype=)
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
@@ -351,7 +351,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     def __init__(self, values, copy: bool = False) -> None:
         values = extract_array(values)
 
-        super().__init__(values, copy=copy)
+        super().__init__(values, copy=)
         if not isinstance(values, type(self)):
             self._validate()
         NDArrayBacked.__init__(self, self._ndarray, StringDtype(storage="python"))
@@ -384,7 +384,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             # avoid costly conversion to object dtype
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            result = lib.ensure_string_array(result, copy=, convert_na_value=False)
             result[na_values] = libmissing.NA
 
         else:
@@ -394,7 +394,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 #  zero_copy_only to True which caused problems see GH#52076
                 scalars = np.array(scalars)
             # convert non-na-likes to str, and nan-likes to StringDtype().na_value
-            result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=copy)
+            result = lib.ensure_string_array(scalars, na_value=libmissing.NA, copy=)
 
         # Manually creating new array avoids the validation step in the __init__, so is
         # faster. Refactor need for validation?
@@ -407,7 +407,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ):
-        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+        return cls._from_sequence(strings, dtype=, copy=)
 
     @classmethod
     def _empty(cls, shape, dtype) -> StringArray:
@@ -426,7 +426,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
 
         values = self._ndarray.copy()
         values[self.isna()] = None
-        return pa.array(values, type=type, from_pandas=True)
+        return pa.array(values, type=, from_pandas=True)
 
     def _values_for_factorize(self):
         arr = self._ndarray.copy()
@@ -510,28 +510,28 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         self, name: str, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs
     ):
         if name in ["min", "max"]:
-            return getattr(self, name)(skipna=skipna, axis=axis)
+            return getattr(self, name)(skipna=, axis=)
 
         raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
 
     def min(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_min((), kwargs)
         result = masked_reductions.min(
-            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+            values=self.to_numpy(), mask=self.isna(), skipna=
         )
         return self._wrap_reduction_result(axis, result)
 
     def max(self, axis=None, skipna: bool = True, **kwargs) -> Scalar:
         nv.validate_max((), kwargs)
         result = masked_reductions.max(
-            values=self.to_numpy(), mask=self.isna(), skipna=skipna
+            values=self.to_numpy(), mask=self.isna(), skipna=
         )
         return self._wrap_reduction_result(axis, result)
 
     def value_counts(self, dropna: bool = True) -> Series:
         from pandas.core.algorithms import value_counts_internal as value_counts
 
-        result = value_counts(self._ndarray, dropna=dropna).astype("Int64")
+        result = value_counts(self._ndarray, dropna=).astype("Int64")
         result.index = result.index.astype(self.dtype)
         return result
 
@@ -553,7 +553,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."
             )
-        return super().searchsorted(value=value, side=side, sorter=sorter)
+        return super().searchsorted(value=, side=, sorter=)
 
     def _cmp_method(self, other, op):
         from pandas.arrays import BooleanArray
@@ -621,7 +621,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 f,
                 mask.view("uint8"),
                 convert=False,
-                na_value=na_value,
+                na_value=,
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
@@ -636,7 +636,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype
             result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+                arr, f, mask.view("uint8"), convert=False, na_value=
             )
             return StringArray(result)
         else:

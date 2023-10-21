@@ -240,7 +240,7 @@ class TestIndex:
                 result = DatetimeIndex(arg).astype(dtype)
                 tm.assert_index_equal(result, index)
         else:
-            result = klass(arg, dtype=dtype)
+            result = klass(arg, dtype=)
             tm.assert_index_equal(result, index)
 
         if attr == "asi8":
@@ -261,7 +261,7 @@ class TestIndex:
                 result = DatetimeIndex(list(arg)).astype(dtype)
                 tm.assert_index_equal(result, index)
         else:
-            result = klass(list(arg), dtype=dtype)
+            result = klass(list(arg), dtype=)
             tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ["values", "asi8"])
@@ -273,10 +273,10 @@ class TestIndex:
 
         values = getattr(index, attr)
 
-        result = klass(values, dtype=dtype)
+        result = klass(values, dtype=)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(values), dtype=dtype)
+        result = klass(list(values), dtype=)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("value", [[], iter([]), (_ for _ in [])])
@@ -459,7 +459,7 @@ class TestIndex:
     )
     @pytest.mark.parametrize("dtype", [int, np.bool_])
     def test_empty_fancy(self, index, dtype):
-        empty_arr = np.array([], dtype=dtype)
+        empty_arr = np.array([], dtype=)
         empty_index = type(index)([], dtype=index.dtype)
 
         assert index[[]].identical(empty_index)
@@ -610,7 +610,7 @@ class TestIndex:
     @pytest.mark.parametrize("name,expected", [("foo", "foo"), ("bar", None)])
     def test_append_empty_preserve_name(self, name, expected):
         left = Index([], name="foo")
-        right = Index([1, 2, 3], name=name)
+        right = Index([1, 2, 3], name=)
 
         msg = "The behavior of array concatenation with empty entries is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -866,13 +866,13 @@ class TestIndex:
                 f"not {repr(type(nulls_fixture).__name__)}"
             )
             with pytest.raises(TypeError, match=msg):
-                Index([1.0, nulls_fixture], dtype=dtype)
+                Index([1.0, nulls_fixture], dtype=)
 
-            idx = Index([1.0, np.nan], dtype=dtype)
+            idx = Index([1.0, np.nan], dtype=)
             assert not idx.isin([nulls_fixture]).any()
             return
 
-        idx = Index([1.0, nulls_fixture], dtype=dtype)
+        idx = Index([1.0, nulls_fixture], dtype=)
         res = idx.isin([np.nan])
         tm.assert_numpy_array_equal(res, np.array([False, True]))
 
@@ -892,7 +892,7 @@ class TestIndex:
         values = index.tolist()[-2:] + ["nonexisting"]
 
         expected = np.array([False, False, True, True])
-        tm.assert_numpy_array_equal(expected, index.isin(values, level=level))
+        tm.assert_numpy_array_equal(expected, index.isin(values, level=))
 
         index.name = "foobar"
         tm.assert_numpy_array_equal(expected, index.isin(values, level="foobar"))
@@ -900,7 +900,7 @@ class TestIndex:
     def test_isin_level_kwarg_bad_level_raises(self, index):
         for level in [10, index.nlevels, -(index.nlevels + 1)]:
             with pytest.raises(IndexError, match="Too many levels"):
-                index.isin([], level=level)
+                index.isin([], level=)
 
     @pytest.mark.parametrize("label", [1.0, "foobar", "xyzzy", np.nan])
     def test_isin_level_kwarg_bad_label_raises(self, label, index):
@@ -1009,7 +1009,7 @@ class TestIndex:
     def test_str_split(self, expand, expected):
         index = Index(["a b c", "d e", "f"])
         if expand is not None:
-            result = index.str.split(expand=expand)
+            result = index.str.split(expand=)
         else:
             result = index.str.split()
 
@@ -1026,7 +1026,7 @@ class TestIndex:
 
     def test_str_bool_series_indexing(self):
         index = Index(["a1", "a2", "b1", "b2"])
-        s = Series(range(4), index=index)
+        s = Series(range(4), index=)
 
         result = s[s.index.str.startswith("a")]
         expected = Series(range(2), index=["a1", "a2"])
@@ -1138,7 +1138,7 @@ class TestIndex:
         # GH7774
         dtype = any_real_numpy_dtype
         index = Index(list("abc"))
-        labels = Index([], dtype=dtype)
+        labels = Index([], dtype=)
         assert index.reindex(labels)[0].dtype == dtype
 
     def test_reindex_no_type_preserve_target_empty_mi(self):
@@ -1391,9 +1391,9 @@ class TestMixedIntIndex:
     )
     def test_dropna(self, how, dtype, vals, expected):
         # GH 6194
-        index = Index(vals, dtype=dtype)
-        result = index.dropna(how=how)
-        expected = Index(expected, dtype=dtype)
+        index = Index(vals, dtype=)
+        result = index.dropna(how=)
+        expected = Index(expected, dtype=)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("how", ["any", "all"])
@@ -1427,7 +1427,7 @@ class TestMixedIntIndex:
         ],
     )
     def test_dropna_dt_like(self, how, index, expected):
-        result = index.dropna(how=how)
+        result = index.dropna(how=)
         tm.assert_index_equal(result, expected)
 
     def test_dropna_invalid_how_raises(self):
@@ -1456,7 +1456,7 @@ class TestMixedIntIndex:
 
     def test_int_name_format(self, frame_or_series):
         index = Index(["a", "b", "c"], name=0)
-        result = frame_or_series(list(range(3)), index=index)
+        result = frame_or_series(list(range(3)), index=)
         assert "0" in repr(result)
 
     def test_str_to_bytes_raises(self):
@@ -1601,16 +1601,16 @@ def test_validate_1d_input(dtype):
 
     arr = np.arange(8).reshape(2, 2, 2)
     with pytest.raises(ValueError, match=msg):
-        Index(arr, dtype=dtype)
+        Index(arr, dtype=)
 
     df = DataFrame(arr.reshape(4, 2))
     with pytest.raises(ValueError, match=msg):
-        Index(df, dtype=dtype)
+        Index(df, dtype=)
 
     # GH#13601 trying to assign a multi-dimensional array to an index is not allowed
     ser = Series(0, range(4))
     with pytest.raises(ValueError, match=msg):
-        ser.index = np.array([[2, 3]] * 4, dtype=dtype)
+        ser.index = np.array([[2, 3]] * 4, dtype=)
 
 
 @pytest.mark.parametrize(

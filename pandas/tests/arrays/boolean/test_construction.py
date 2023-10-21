@@ -155,12 +155,12 @@ def test_coerce_to_array():
     # TODO this is currently not public API
     values = np.array([True, False, True, False], dtype="bool")
     mask = np.array([False, False, False, True], dtype="bool")
-    result = BooleanArray(*coerce_to_array(values, mask=mask))
+    result = BooleanArray(*coerce_to_array(values, mask=))
     expected = BooleanArray(values, mask)
     tm.assert_extension_array_equal(result, expected)
     assert result._data is values
     assert result._mask is mask
-    result = BooleanArray(*coerce_to_array(values, mask=mask, copy=True))
+    result = BooleanArray(*coerce_to_array(values, mask=, copy=True))
     expected = BooleanArray(values, mask)
     tm.assert_extension_array_equal(result, expected)
     assert result._data is not values
@@ -169,12 +169,12 @@ def test_coerce_to_array():
     # mixed missing from values and mask
     values = [True, False, None, False]
     mask = np.array([False, False, False, True], dtype="bool")
-    result = BooleanArray(*coerce_to_array(values, mask=mask))
+    result = BooleanArray(*coerce_to_array(values, mask=))
     expected = BooleanArray(
         np.array([True, False, True, True]), np.array([False, False, True, True])
     )
     tm.assert_extension_array_equal(result, expected)
-    result = BooleanArray(*coerce_to_array(np.array(values, dtype=object), mask=mask))
+    result = BooleanArray(*coerce_to_array(np.array(values, dtype=object), mask=))
     tm.assert_extension_array_equal(result, expected)
     result = BooleanArray(*coerce_to_array(values, mask=mask.tolist()))
     tm.assert_extension_array_equal(result, expected)
@@ -187,7 +187,7 @@ def test_coerce_to_array():
     coerce_to_array(values.reshape(1, -1))
 
     with pytest.raises(ValueError, match="values.shape and mask.shape must match"):
-        coerce_to_array(values.reshape(1, -1), mask=mask)
+        coerce_to_array(values.reshape(1, -1), mask=)
 
     with pytest.raises(ValueError, match="values.shape and mask.shape must match"):
         coerce_to_array(values, mask=mask.reshape(1, -1))
@@ -210,7 +210,7 @@ def test_coerce_to_array_from_boolean_array():
     assert result._mask is not arr._mask
 
     with pytest.raises(ValueError, match="cannot pass mask for BooleanArray input"):
-        coerce_to_array(arr, mask=mask)
+        coerce_to_array(arr, mask=)
 
 
 def test_coerce_to_numpy_array():

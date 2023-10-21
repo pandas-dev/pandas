@@ -79,23 +79,23 @@ def test_copy_shallow(using_copy_on_write):
 @pytest.mark.parametrize(
     "method",
     [
-        lambda df, copy: df.rename(columns=str.lower, copy=copy),
-        lambda df, copy: df.reindex(columns=["a", "c"], copy=copy),
-        lambda df, copy: df.reindex_like(df, copy=copy),
-        lambda df, copy: df.align(df, copy=copy)[0],
-        lambda df, copy: df.set_axis(["a", "b", "c"], axis="index", copy=copy),
-        lambda df, copy: df.rename_axis(index="test", copy=copy),
-        lambda df, copy: df.rename_axis(columns="test", copy=copy),
-        lambda df, copy: df.astype({"b": "int64"}, copy=copy),
+        lambda df, copy: df.rename(columns=str.lower, copy=),
+        lambda df, copy: df.reindex(columns=["a", "c"], copy=),
+        lambda df, copy: df.reindex_like(df, copy=),
+        lambda df, copy: df.align(df, copy=)[0],
+        lambda df, copy: df.set_axis(["a", "b", "c"], axis="index", copy=),
+        lambda df, copy: df.rename_axis(index="test", copy=),
+        lambda df, copy: df.rename_axis(columns="test", copy=),
+        lambda df, copy: df.astype({"b": "int64"}, copy=),
         # lambda df, copy: df.swaplevel(0, 0, copy=copy),
-        lambda df, copy: df.swapaxes(0, 0, copy=copy),
-        lambda df, copy: df.truncate(0, 5, copy=copy),
-        lambda df, copy: df.infer_objects(copy=copy),
-        lambda df, copy: df.to_timestamp(copy=copy),
-        lambda df, copy: df.to_period(freq="D", copy=copy),
-        lambda df, copy: df.tz_localize("US/Central", copy=copy),
-        lambda df, copy: df.tz_convert("US/Central", copy=copy),
-        lambda df, copy: df.set_flags(allows_duplicate_labels=False, copy=copy),
+        lambda df, copy: df.swapaxes(0, 0, copy=),
+        lambda df, copy: df.truncate(0, 5, copy=),
+        lambda df, copy: df.infer_objects(copy=),
+        lambda df, copy: df.to_timestamp(copy=),
+        lambda df, copy: df.to_period(freq="D", copy=),
+        lambda df, copy: df.tz_localize("US/Central", copy=),
+        lambda df, copy: df.tz_convert("US/Central", copy=),
+        lambda df, copy: df.set_flags(allows_duplicate_labels=False, copy=),
     ],
     ids=[
         "rename",
@@ -130,14 +130,14 @@ def test_methods_copy_keyword(
     elif "tz_convert" in request.node.callspec.id:
         index = date_range("2012-01-01", freq="D", periods=3, tz="Europe/Brussels")
 
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=index)
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [0.1, 0.2, 0.3]}, index=)
 
     if "swapaxes" in request.node.callspec.id:
         msg = "'DataFrame.swapaxes' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            df2 = method(df, copy=copy)
+            df2 = method(df, copy=)
     else:
-        df2 = method(df, copy=copy)
+        df2 = method(df, copy=)
 
     share_memory = using_copy_on_write or copy is False
 
@@ -156,23 +156,23 @@ def test_methods_copy_keyword(
 @pytest.mark.parametrize(
     "method",
     [
-        lambda ser, copy: ser.rename(index={0: 100}, copy=copy),
-        lambda ser, copy: ser.rename(None, copy=copy),
-        lambda ser, copy: ser.reindex(index=ser.index, copy=copy),
-        lambda ser, copy: ser.reindex_like(ser, copy=copy),
-        lambda ser, copy: ser.align(ser, copy=copy)[0],
-        lambda ser, copy: ser.set_axis(["a", "b", "c"], axis="index", copy=copy),
-        lambda ser, copy: ser.rename_axis(index="test", copy=copy),
-        lambda ser, copy: ser.astype("int64", copy=copy),
-        lambda ser, copy: ser.swaplevel(0, 1, copy=copy),
-        lambda ser, copy: ser.swapaxes(0, 0, copy=copy),
-        lambda ser, copy: ser.truncate(0, 5, copy=copy),
-        lambda ser, copy: ser.infer_objects(copy=copy),
-        lambda ser, copy: ser.to_timestamp(copy=copy),
-        lambda ser, copy: ser.to_period(freq="D", copy=copy),
-        lambda ser, copy: ser.tz_localize("US/Central", copy=copy),
-        lambda ser, copy: ser.tz_convert("US/Central", copy=copy),
-        lambda ser, copy: ser.set_flags(allows_duplicate_labels=False, copy=copy),
+        lambda ser, copy: ser.rename(index={0: 100}, copy=),
+        lambda ser, copy: ser.rename(None, copy=),
+        lambda ser, copy: ser.reindex(index=ser.index, copy=),
+        lambda ser, copy: ser.reindex_like(ser, copy=),
+        lambda ser, copy: ser.align(ser, copy=)[0],
+        lambda ser, copy: ser.set_axis(["a", "b", "c"], axis="index", copy=),
+        lambda ser, copy: ser.rename_axis(index="test", copy=),
+        lambda ser, copy: ser.astype("int64", copy=),
+        lambda ser, copy: ser.swaplevel(0, 1, copy=),
+        lambda ser, copy: ser.swapaxes(0, 0, copy=),
+        lambda ser, copy: ser.truncate(0, 5, copy=),
+        lambda ser, copy: ser.infer_objects(copy=),
+        lambda ser, copy: ser.to_timestamp(copy=),
+        lambda ser, copy: ser.to_period(freq="D", copy=),
+        lambda ser, copy: ser.tz_localize("US/Central", copy=),
+        lambda ser, copy: ser.tz_convert("US/Central", copy=),
+        lambda ser, copy: ser.set_flags(allows_duplicate_labels=False, copy=),
     ],
     ids=[
         "rename (dict)",
@@ -207,14 +207,14 @@ def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write)
     elif "swaplevel" in request.node.callspec.id:
         index = MultiIndex.from_arrays([[1, 2, 3], [4, 5, 6]])
 
-    ser = Series([1, 2, 3], index=index)
+    ser = Series([1, 2, 3], index=)
 
     if "swapaxes" in request.node.callspec.id:
         msg = "'Series.swapaxes' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            ser2 = method(ser, copy=copy)
+            ser2 = method(ser, copy=)
     else:
-        ser2 = method(ser, copy=copy)
+        ser2 = method(ser, copy=)
 
     share_memory = using_copy_on_write or copy is False
 
@@ -227,7 +227,7 @@ def test_methods_series_copy_keyword(request, method, copy, using_copy_on_write)
 @pytest.mark.parametrize("copy", [True, None, False])
 def test_transpose_copy_keyword(using_copy_on_write, copy, using_array_manager):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    result = df.transpose(copy=copy)
+    result = df.transpose(copy=)
     share_memory = using_copy_on_write or copy is False or copy is None
     share_memory = share_memory and not using_array_manager
 
@@ -265,7 +265,7 @@ def test_reset_index(using_copy_on_write):
 
 @pytest.mark.parametrize("index", [pd.RangeIndex(0, 2), Index([1, 2])])
 def test_reset_index_series_drop(using_copy_on_write, index):
-    ser = Series([1, 2], index=index)
+    ser = Series([1, 2], index=)
     ser_orig = ser.copy()
     ser2 = ser.reset_index(drop=True)
     if using_copy_on_write:
@@ -866,7 +866,7 @@ def test_add_suffix(using_copy_on_write):
 def test_dropna(using_copy_on_write, axis, val):
     df = DataFrame({"a": [1, 2, 3], "b": [4, val, 6], "c": "d"})
     df_orig = df.copy()
-    df2 = df.dropna(axis=axis)
+    df2 = df.dropna(axis=)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
@@ -1159,7 +1159,7 @@ def test_sort_values_inplace(using_copy_on_write, obj, kwargs, using_array_manag
 def test_round(using_copy_on_write, decimals):
     df = DataFrame({"a": [1, 2], "b": "c"})
     df_orig = df.copy()
-    df2 = df.round(decimals=decimals)
+    df2 = df.round(decimals=)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "b"), get_array(df, "b"))
@@ -1184,7 +1184,7 @@ def test_reorder_levels(using_copy_on_write):
     index = MultiIndex.from_tuples(
         [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]
     )
-    df = DataFrame({"a": [1, 2, 3, 4]}, index=index)
+    df = DataFrame({"a": [1, 2, 3, 4]}, index=)
     df_orig = df.copy()
     df2 = df.reorder_levels(order=["two", "one"])
 
@@ -1203,7 +1203,7 @@ def test_series_reorder_levels(using_copy_on_write):
     index = MultiIndex.from_tuples(
         [(1, 1), (1, 2), (2, 1), (2, 2)], names=["one", "two"]
     )
-    ser = Series([1, 2, 3, 4], index=index)
+    ser = Series([1, 2, 3, 4], index=)
     ser_orig = ser.copy()
     ser2 = ser.reorder_levels(order=["two", "one"])
 
@@ -1311,7 +1311,7 @@ def test_rename_axis(using_copy_on_write, kwargs):
 def test_tz_convert_localize(using_copy_on_write, func, tz):
     # GH 49473
     ser = Series(
-        [1, 2], index=date_range(start="2014-08-01 09:00", freq="h", periods=2, tz=tz)
+        [1, 2], index=date_range(start="2014-08-01 09:00", freq="h", periods=2, tz=)
     )
     ser_orig = ser.copy()
     ser2 = getattr(ser, func)("US/Central")
@@ -1330,7 +1330,7 @@ def test_tz_convert_localize(using_copy_on_write, func, tz):
 def test_droplevel(using_copy_on_write):
     # GH 49473
     index = MultiIndex.from_tuples([(1, 1), (1, 2), (2, 1)], names=["one", "two"])
-    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}, index=index)
+    df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]}, index=)
     df_orig = df.copy()
     df2 = df.droplevel(0)
 
@@ -1393,7 +1393,7 @@ def test_items(using_copy_on_write):
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 def test_putmask(using_copy_on_write, dtype):
-    df = DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=dtype)
+    df = DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=)
     view = df[:]
     df_orig = df.copy()
     df[df == df] = 5
@@ -1409,7 +1409,7 @@ def test_putmask(using_copy_on_write, dtype):
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 def test_putmask_no_reference(using_copy_on_write, dtype):
-    df = DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=dtype)
+    df = DataFrame({"a": [1, 2], "b": 1, "c": 2}, dtype=)
     arr_a = get_array(df, "a")
     df[df == df] = 5
 
@@ -1419,7 +1419,7 @@ def test_putmask_no_reference(using_copy_on_write, dtype):
 
 @pytest.mark.parametrize("dtype", ["float64", "Float64"])
 def test_putmask_aligns_rhs_no_reference(using_copy_on_write, dtype):
-    df = DataFrame({"a": [1.5, 2], "b": 1.5}, dtype=dtype)
+    df = DataFrame({"a": [1.5, 2], "b": 1.5}, dtype=)
     arr_a = get_array(df, "a")
     df[df == df] = DataFrame({"a": [5.5, 5]})
 
@@ -1464,7 +1464,7 @@ def test_putmask_dont_copy_some_blocks(using_copy_on_write, val, exp, warn):
     ],
 )
 def test_where_mask_noop(using_copy_on_write, dtype, func):
-    ser = Series([1, 2, 3], dtype=dtype)
+    ser = Series([1, 2, 3], dtype=)
     ser_orig = ser.copy()
 
     result = func(ser)
@@ -1489,7 +1489,7 @@ def test_where_mask_noop(using_copy_on_write, dtype, func):
     ],
 )
 def test_where_mask(using_copy_on_write, dtype, func):
-    ser = Series([1, 2, 3], dtype=dtype)
+    ser = Series([1, 2, 3], dtype=)
     ser_orig = ser.copy()
 
     result = func(ser)
@@ -1507,7 +1507,7 @@ def test_where_mask(using_copy_on_write, dtype, func):
     ],
 )
 def test_where_mask_noop_on_single_column(using_copy_on_write, dtype, val, func):
-    df = DataFrame({"a": [1, 2, 3], "b": [-4, -5, -6]}, dtype=dtype)
+    df = DataFrame({"a": [1, 2, 3], "b": [-4, -5, -6]}, dtype=)
     df_orig = df.copy()
 
     result = func(df, val)
@@ -1610,7 +1610,7 @@ def test_isetitem(using_copy_on_write):
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
 def test_isetitem_series(using_copy_on_write, dtype):
-    df = DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=dtype)})
+    df = DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=)})
     ser = Series([7, 8, 9])
     ser_orig = ser.copy()
     df.isetitem(0, ser)
@@ -1624,12 +1624,12 @@ def test_isetitem_series(using_copy_on_write, dtype):
     tm.assert_series_equal(ser, ser_orig)
 
     # mutating series doesn't update dataframe
-    df = DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=dtype)})
+    df = DataFrame({"a": [1, 2, 3], "b": np.array([4, 5, 6], dtype=)})
     ser = Series([7, 8, 9])
     df.isetitem(0, ser)
 
     ser.loc[0] = 0
-    expected = DataFrame({"a": [7, 8, 9], "b": np.array([4, 5, 6], dtype=dtype)})
+    expected = DataFrame({"a": [7, 8, 9], "b": np.array([4, 5, 6], dtype=)})
     tm.assert_frame_equal(df, expected)
 
 
@@ -1684,11 +1684,11 @@ def test_xs(using_copy_on_write, using_array_manager, axis, key, dtype):
     single_block = (dtype == "int64") and not using_array_manager
     is_view = single_block or (using_array_manager and axis == 1)
     df = DataFrame(
-        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
+        {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=)}
     )
     df_orig = df.copy()
 
-    result = df.xs(key, axis=axis)
+    result = df.xs(key, axis=)
 
     if axis == 1 or single_block:
         assert np.shares_memory(get_array(df, "a"), get_array(result))
@@ -1713,12 +1713,12 @@ def test_xs(using_copy_on_write, using_array_manager, axis, key, dtype):
 def test_xs_multiindex(using_copy_on_write, using_array_manager, key, level, axis):
     arr = np.arange(18).reshape(6, 3)
     index = MultiIndex.from_product([["l1", "l2"], [1, 2, 3]], names=["lev1", "lev2"])
-    df = DataFrame(arr, index=index, columns=list("abc"))
+    df = DataFrame(arr, index=, columns=list("abc"))
     if axis == 1:
         df = df.transpose().copy()
     df_orig = df.copy()
 
-    result = df.xs(key, level=level, axis=axis)
+    result = df.xs(key, level=, axis=)
 
     if level == 0:
         assert np.shares_memory(
@@ -1811,7 +1811,7 @@ def test_inplace_arithmetic_series_with_reference(using_copy_on_write):
 def test_transpose(using_copy_on_write, copy, using_array_manager):
     df = DataFrame({"a": [1, 2, 3], "b": 1})
     df_orig = df.copy()
-    result = df.transpose(copy=copy)
+    result = df.transpose(copy=)
 
     if not copy and not using_array_manager or using_copy_on_write:
         assert np.shares_memory(get_array(df, "a"), get_array(result, 0))

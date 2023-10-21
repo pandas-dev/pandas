@@ -74,10 +74,10 @@ def assert_filepath_or_buffer_equals(
 
     def _assert_filepath_or_buffer_equals(expected):
         if filepath_or_buffer_id == "string":
-            with open(filepath_or_buffer, encoding=encoding) as f:
+            with open(filepath_or_buffer, encoding=) as f:
                 result = f.read()
         elif filepath_or_buffer_id == "pathlike":
-            result = filepath_or_buffer.read_text(encoding=encoding)
+            result = filepath_or_buffer.read_text(encoding=)
         elif filepath_or_buffer_id == "buffer":
             result = filepath_or_buffer.getvalue()
         assert result == expected
@@ -180,7 +180,7 @@ class TestDataFrameFormatting:
             "display.max_info_rows", row, "display.max_info_columns", columns
         ):
             with StringIO() as buf:
-                df.info(buf=buf, show_counts=show_counts)
+                df.info(buf=, show_counts=)
                 assert ("non-null" in buf.getvalue()) is result
 
     def test_repr_truncation(self):
@@ -363,7 +363,7 @@ class TestDataFrameFormatting:
                 ("This is a loooooonger title with > 43 chars.", "dog"),
             ]
         )
-        df = DataFrame(1, index=index, columns=columns)
+        df = DataFrame(1, index=, columns=)
 
         result = repr(df)
 
@@ -515,7 +515,7 @@ class TestDataFrameFormatting:
         fac = 1.05  # Arbitrary large factor to exceed term width
         cols = range(int(term_width * fac))
         index = range(10)
-        df = DataFrame(index=index, columns=cols)
+        df = DataFrame(index=, columns=cols)
         with option_context("mode.sim_interactive", True):
             with option_context("display.max_rows", None):
                 with option_context("display.max_columns", None):
@@ -527,7 +527,7 @@ class TestDataFrameFormatting:
                     assert has_horizontally_truncated_repr(df)
 
             index = range(int(term_height * fac))
-            df = DataFrame(index=index, columns=cols)
+            df = DataFrame(index=, columns=cols)
             with option_context("display.max_rows", 0):
                 with option_context("display.max_columns", None):
                     # Wrap around with None
@@ -545,7 +545,7 @@ class TestDataFrameFormatting:
         unicode_values = ["\u03c3"] * 10
         unicode_values = np.array(unicode_values, dtype=object)
         df = DataFrame({"unicode": unicode_values})
-        df.to_string(col_space=10, buf=buf)
+        df.to_string(col_space=10, buf=)
 
         # it works!
         repr(df)
@@ -1138,7 +1138,7 @@ class TestDataFrameFormatting:
     def test_frame_info_encoding(self):
         index = ["'Til There Was You (1997)", "ldum klaka (Cold Fever) (1994)"]
         with option_context("display.max_rows", 1):
-            df = DataFrame(columns=["a", "b", "c"], index=index)
+            df = DataFrame(columns=["a", "b", "c"], index=)
             repr(df)
             repr(df.T)
 
@@ -1356,7 +1356,7 @@ class TestDataFrameFormatting:
         s = biggie.to_string()
 
         buf = StringIO()
-        retval = biggie.to_string(buf=buf)
+        retval = biggie.to_string(buf=)
         assert retval is None
         assert buf.getvalue() == s
 
@@ -1608,7 +1608,7 @@ class TestDataFrameFormatting:
 
     def test_to_string_float_index(self):
         index = Index([1.5, 2, 3, 4, 5])
-        df = DataFrame(np.arange(5), index=index)
+        df = DataFrame(np.arange(5), index=)
 
         result = df.to_string()
         expected = "     0\n1.5  0\n2.0  1\n3.0  2\n4.0  3\n5.0  4"
@@ -2191,8 +2191,8 @@ c  10  11  12  13  14\
         """
         formatter = fmt.DataFrameFormatter(
             DataFrame(np.random.default_rng(2).random((length, 3))),
-            max_rows=max_rows,
-            min_rows=min_rows,
+            max_rows=,
+            min_rows=,
         )
         result = formatter.max_rows_fitted
         assert result == expected
@@ -2233,7 +2233,7 @@ class TestSeriesFormatting:
 
         s = ts.to_string()
 
-        retval = ts.to_string(buf=buf)
+        retval = ts.to_string(buf=)
         assert retval is None
         assert buf.getvalue().strip() == s
 
@@ -2556,7 +2556,7 @@ class TestSeriesFormatting:
 
     def test_datetimeindex(self):
         index = date_range("20130102", periods=6)
-        s = Series(1, index=index)
+        s = Series(1, index=)
         result = s.to_string()
         assert "2013-01-02" in result
 
@@ -2661,7 +2661,7 @@ class TestSeriesFormatting:
     def test_period(self):
         # GH 12615
         index = pd.period_range("2013-01", periods=6, freq="M")
-        s = Series(np.arange(6, dtype="int64"), index=index)
+        s = Series(np.arange(6, dtype="int64"), index=)
         exp = (
             "2013-01    0\n"
             "2013-02    1\n"
@@ -2711,7 +2711,7 @@ class TestSeriesFormatting:
         ]
         tuples = list(zip(*arrays))
         index = MultiIndex.from_tuples(tuples, names=["first", "second"])
-        s = Series(np.random.default_rng(2).standard_normal(8), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(8), index=)
 
         with option_context("display.max_rows", 10):
             assert len(str(s).split("\n")) == 10
@@ -3393,13 +3393,13 @@ def test_filepath_or_buffer_arg(
         with pytest.raises(
             ValueError, match="buf is not a file name and encoding is specified."
         ):
-            getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+            getattr(df, method)(buf=filepath_or_buffer, encoding=)
     elif encoding == "foo":
         with pytest.raises(LookupError, match="unknown encoding"):
-            getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+            getattr(df, method)(buf=filepath_or_buffer, encoding=)
     else:
         expected = getattr(df, method)()
-        getattr(df, method)(buf=filepath_or_buffer, encoding=encoding)
+        getattr(df, method)(buf=filepath_or_buffer, encoding=)
         assert_filepath_or_buffer_equals(expected)
 
 

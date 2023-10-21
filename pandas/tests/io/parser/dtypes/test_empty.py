@@ -170,5 +170,5 @@ def test_empty_dtype(all_parsers, dtype, expected):
     parser = all_parsers
     data = "a,b"
 
-    result = parser.read_csv(StringIO(data), header=0, dtype=dtype)
+    result = parser.read_csv(StringIO(data), header=0, dtype=)
     tm.assert_frame_equal(result, expected)

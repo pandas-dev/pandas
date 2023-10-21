@@ -23,11 +23,11 @@ def test_info_categorical_column_just_works():
     s = Series(data).astype("category")
     s.isna()
     buf = StringIO()
-    s.info(buf=buf)
+    s.info(buf=)
 
     s2 = s[s == "d"]
     buf = StringIO()
-    s2.info(buf=buf)
+    s2.info(buf=)
 
 
 def test_info_categorical():
@@ -35,15 +35,15 @@ def test_info_categorical():
     idx = CategoricalIndex(["a", "b"])
     s = Series(np.zeros(2), index=idx)
     buf = StringIO()
-    s.info(buf=buf)
+    s.info(buf=)
 
 
 @pytest.mark.parametrize("verbose", [True, False])
 def test_info_series(lexsorted_two_level_string_multiindex, verbose):
     index = lexsorted_two_level_string_multiindex
-    ser = Series(range(len(index)), index=index, name="sth")
+    ser = Series(range(len(index)), index=, name="sth")
     buf = StringIO()
-    ser.info(verbose=verbose, buf=buf)
+    ser.info(verbose=, buf=)
     result = buf.getvalue()
 
     expected = textwrap.dedent(
@@ -73,7 +73,7 @@ def test_info_series(lexsorted_two_level_string_multiindex, verbose):
 def test_info_memory():
     s = Series([1, 2], dtype="i8")
     buf = StringIO()
-    s.info(buf=buf)
+    s.info(buf=)
     result = buf.getvalue()
     memory_bytes = float(s.memory_usage())
     expected = textwrap.dedent(
@@ -112,7 +112,7 @@ def test_info_shows_dtypes():
     for dtype in dtypes:
         s = Series(np.random.default_rng(2).integers(2, size=n).astype(dtype))
         buf = StringIO()
-        s.info(buf=buf)
+        s.info(buf=)
         res = buf.getvalue()
         name = f"{n:d} non-null     {dtype}"
         assert name in res
@@ -154,7 +154,7 @@ def test_info_memory_usage_deep_pypy():
 )
 def test_info_memory_usage_qualified(series, plus):
     buf = StringIO()
-    series.info(buf=buf)
+    series.info(buf=)
     if plus:
         assert "+" in buf.getvalue()
     else:
@@ -170,7 +170,7 @@ def test_info_memory_usage_bug_on_multiindex():
         [list(ascii_uppercase), date_range("20160101", periods=N)],
         names=["id", "date"],
     )
-    s = Series(np.random.default_rng(2).standard_normal(N * M), index=index)
+    s = Series(np.random.default_rng(2).standard_normal(N * M), index=)
 
     unstacked = s.unstack("id")
     assert s.values.nbytes == unstacked.values.nbytes

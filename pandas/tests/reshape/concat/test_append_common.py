@@ -286,11 +286,11 @@ class TestConcatAppendCommon:
     def test_concatlike_datetimetz(self, tz_aware_fixture):
         tz = tz_aware_fixture
         # GH 7795
-        dti1 = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], tz=tz)
-        dti2 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"], tz=tz)
+        dti1 = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], tz=)
+        dti2 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"], tz=)
 
         exp = pd.DatetimeIndex(
-            ["2011-01-01", "2011-01-02", "2012-01-01", "2012-01-02"], tz=tz
+            ["2011-01-01", "2011-01-02", "2012-01-01", "2012-01-02"], tz=
         )
 
         res = dti1.append(dti2)
@@ -307,14 +307,14 @@ class TestConcatAppendCommon:
     @pytest.mark.parametrize("tz", ["UTC", "US/Eastern", "Asia/Tokyo", "EST5EDT"])
     def test_concatlike_datetimetz_short(self, tz):
         # GH#7795
-        ix1 = pd.date_range(start="2014-07-15", end="2014-07-17", freq="D", tz=tz)
-        ix2 = pd.DatetimeIndex(["2014-07-11", "2014-07-21"], tz=tz)
+        ix1 = pd.date_range(start="2014-07-15", end="2014-07-17", freq="D", tz=)
+        ix2 = pd.DatetimeIndex(["2014-07-11", "2014-07-21"], tz=)
         df1 = DataFrame(0, index=ix1, columns=["A", "B"])
         df2 = DataFrame(0, index=ix2, columns=["A", "B"])
 
         exp_idx = pd.DatetimeIndex(
             ["2014-07-15", "2014-07-16", "2014-07-17", "2014-07-11", "2014-07-21"],
-            tz=tz,
+            tz=,
         )
         exp = DataFrame(0, index=exp_idx, columns=["A", "B"])
 
@@ -326,13 +326,13 @@ class TestConcatAppendCommon:
         # GH 13660
 
         # different tz coerces to object
-        dti1 = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], tz=tz)
+        dti1 = pd.DatetimeIndex(["2011-01-01", "2011-01-02"], tz=)
         dti2 = pd.DatetimeIndex(["2012-01-01", "2012-01-02"])
 
         exp = Index(
             [
-                pd.Timestamp("2011-01-01", tz=tz),
-                pd.Timestamp("2011-01-02", tz=tz),
+                pd.Timestamp("2011-01-01", tz=),
+                pd.Timestamp("2011-01-02", tz=),
                 pd.Timestamp("2012-01-01"),
                 pd.Timestamp("2012-01-02"),
             ],
@@ -355,8 +355,8 @@ class TestConcatAppendCommon:
 
         exp = Index(
             [
-                pd.Timestamp("2011-01-01", tz=tz),
-                pd.Timestamp("2011-01-02", tz=tz),
+                pd.Timestamp("2011-01-01", tz=),
+                pd.Timestamp("2011-01-02", tz=),
                 pd.Timestamp("2012-01-01", tz="US/Pacific"),
                 pd.Timestamp("2012-01-02", tz="US/Pacific"),
             ],

@@ -330,7 +330,7 @@ def test_no_prefix_string_cats_contains_get_dummies_NaN_column():
 )
 def test_no_prefix_string_cats_default_category(default_category, expected):
     dummies = DataFrame({"a": [1, 0, 0], "b": [0, 1, 0]})
-    result = from_dummies(dummies, default_category=default_category)
+    result = from_dummies(dummies, default_category=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -395,9 +395,7 @@ def test_with_prefix_contains_get_dummies_NaN_column():
 def test_with_prefix_default_category(
     dummies_with_unassigned, default_category, expected
 ):
-    result = from_dummies(
-        dummies_with_unassigned, sep="_", default_category=default_category
-    )
+    result = from_dummies(dummies_with_unassigned, sep="_", default_category=)
     tm.assert_frame_equal(result, expected)
 
 

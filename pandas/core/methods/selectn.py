@@ -104,7 +104,7 @@ class SelectNSeries(SelectN):
         # slow method
         if n >= len(self.obj):
             ascending = method == "nsmallest"
-            return self.obj.sort_values(ascending=ascending).head(n)
+            return self.obj.sort_values(ascending=).head(n)
 
         # fast method
         new_dtype = dropped.dtype
@@ -262,4 +262,4 @@ class SelectNFrame(SelectN):
 
         ascending = method == "nsmallest"
 
-        return frame.sort_values(columns, ascending=ascending, kind="mergesort")
+        return frame.sort_values(columns, ascending=, kind="mergesort")

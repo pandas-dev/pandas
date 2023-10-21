@@ -244,7 +244,7 @@ def test_setitem_invalid_indexer_raises():
 @pytest.mark.parametrize("dtype", ["string[pyarrow]", "string[pyarrow_numpy]"])
 def test_pickle_roundtrip(dtype):
     # GH 42600
-    expected = pd.Series(range(10), dtype=dtype)
+    expected = pd.Series(range(10), dtype=)
     expected_sliced = expected.head(2)
     full_pickled = pickle.dumps(expected)
     sliced_pickled = pickle.dumps(expected_sliced)

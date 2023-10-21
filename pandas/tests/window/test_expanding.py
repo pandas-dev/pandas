@@ -186,7 +186,7 @@ def test_expanding_count_with_min_periods_exceeding_series_length(frame_or_serie
 )
 def test_iter_expanding_dataframe(df, expected, min_periods):
     # GH 11704
-    expected = [DataFrame(values, index=index) for (values, index) in expected]
+    expected = [DataFrame(values, index=) for (values, index) in expected]
 
     for expected, actual in zip(expected, df.expanding(min_periods)):
         tm.assert_frame_equal(actual, expected)
@@ -205,7 +205,7 @@ def test_iter_expanding_dataframe(df, expected, min_periods):
 )
 def test_iter_expanding_series(ser, expected, min_periods):
     # GH 11704
-    expected = [Series(values, index=index) for (values, index) in expected]
+    expected = [Series(values, index=) for (values, index) in expected]
 
     for expected, actual in zip(expected, ser.expanding(min_periods)):
         tm.assert_series_equal(actual, expected)
@@ -257,9 +257,9 @@ def test_rank(window, method, pct, ascending, test_data):
         )
 
     expected = ser.expanding(window).apply(
-        lambda x: x.rank(method=method, pct=pct, ascending=ascending).iloc[-1]
+        lambda x: x.rank(method=, pct=, ascending=).iloc[-1]
     )
-    result = ser.expanding(window).rank(method=method, pct=pct, ascending=ascending)
+    result = ser.expanding(window).rank(method=, pct=, ascending=)
 
     tm.assert_series_equal(result, expected)
 
@@ -389,7 +389,7 @@ def test_expanding_apply(engine_and_raw, frame_or_series):
     engine, raw = engine_and_raw
     data = frame_or_series(np.array(list(range(10)) + [np.nan] * 10))
     result = data.expanding(min_periods=1).apply(
-        lambda x: x.mean(), raw=raw, engine=engine
+        lambda x: x.mean(), raw=, engine=
     )
     assert isinstance(result, frame_or_series)
 
@@ -406,36 +406,36 @@ def test_expanding_min_periods_apply(engine_and_raw):
     ser = Series(np.random.default_rng(2).standard_normal(50))
 
     result = ser.expanding(min_periods=30).apply(
-        lambda x: x.mean(), raw=raw, engine=engine
+        lambda x: x.mean(), raw=, engine=
     )
     assert result[:29].isna().all()
     tm.assert_almost_equal(result.iloc[-1], np.mean(ser[:50]))
 
     # min_periods is working correctly
     result = ser.expanding(min_periods=15).apply(
-        lambda x: x.mean(), raw=raw, engine=engine
+        lambda x: x.mean(), raw=, engine=
     )
     assert isna(result.iloc[13])
     assert notna(result.iloc[14])
 
     ser2 = Series(np.random.default_rng(2).standard_normal(20))
     result = ser2.expanding(min_periods=5).apply(
-        lambda x: x.mean(), raw=raw, engine=engine
+        lambda x: x.mean(), raw=, engine=
     )
     assert isna(result[3])
     assert notna(result[4])
 
     # min_periods=0
     result0 = ser.expanding(min_periods=0).apply(
-        lambda x: x.mean(), raw=raw, engine=engine
+        lambda x: x.mean(), raw=, engine=
     )
     result1 = ser.expanding(min_periods=1).apply(
-        lambda x: x.mean(), raw=raw, engine=engine
+        lambda x: x.mean(), raw=, engine=
     )
     tm.assert_almost_equal(result0, result1)
 
     result = ser.expanding(min_periods=1).apply(
-        lambda x: x.mean(), raw=raw, engine=engine
+        lambda x: x.mean(), raw=, engine=
     )
     tm.assert_almost_equal(result.iloc[-1], np.mean(ser[:50]))
 
@@ -510,7 +510,7 @@ def test_expanding_apply_empty_series(engine_and_raw):
     engine, raw = engine_and_raw
     ser = Series([], dtype=np.float64)
     tm.assert_series_equal(
-        ser, ser.expanding().apply(lambda x: x.mean(), raw=raw, engine=engine)
+        ser, ser.expanding().apply(lambda x: x.mean(), raw=, engine=)
     )
 
 
@@ -518,7 +518,7 @@ def test_expanding_apply_min_periods_0(engine_and_raw):
     # GH 8080
     engine, raw = engine_and_raw
     s = Series([None, None, None])
-    result = s.expanding(min_periods=0).apply(lambda x: len(x), raw=raw, engine=engine)
+    result = s.expanding(min_periods=0).apply(lambda x: len(x), raw=, engine=)
     expected = Series([1.0, 2.0, 3.0])
     tm.assert_series_equal(result, expected)
 
@@ -627,12 +627,12 @@ def test_expanding_apply_args_kwargs(engine_and_raw):
 
     df = DataFrame(np.random.default_rng(2).random((20, 3)))
 
-    expected = df.expanding().apply(np.mean, engine=engine, raw=raw) + 20.0
+    expected = df.expanding().apply(np.mean, engine=, raw=) + 20.0
 
-    result = df.expanding().apply(mean_w_arg, engine=engine, raw=raw, args=(20,))
+    result = df.expanding().apply(mean_w_arg, engine=, raw=, args=(20,))
     tm.assert_frame_equal(result, expected)
 
-    result = df.expanding().apply(mean_w_arg, raw=raw, kwargs={"const": 20})
+    result = df.expanding().apply(mean_w_arg, raw=, kwargs={"const": 20})
     tm.assert_frame_equal(result, expected)
 
 
@@ -644,7 +644,7 @@ def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
     expanding = df.expanding()
     op = getattr(expanding, kernel, None)
     if op is not None:
-        result = op(numeric_only=numeric_only)
+        result = op(numeric_only=)
 
         columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
         expected = df[columns].agg([kernel]).reset_index(drop=True).astype(float)
@@ -662,7 +662,7 @@ def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
     arg = (df,) if use_arg else ()
     expanding = df.expanding()
     op = getattr(expanding, kernel)
-    result = op(*arg, numeric_only=numeric_only)
+    result = op(*arg, numeric_only=)
 
     # Compare result to op using float dtypes, dropping c when numeric_only is True
     columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
@@ -670,7 +670,7 @@ def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
     arg2 = (df2,) if use_arg else ()
     expanding2 = df2.expanding()
     op2 = getattr(expanding2, kernel)
-    expected = op2(*arg2, numeric_only=numeric_only)
+    expected = op2(*arg2, numeric_only=)
 
     tm.assert_frame_equal(result, expected)
 
@@ -679,15 +679,15 @@ def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
 def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
     # GH#46560
     kernel = arithmetic_win_operators
-    ser = Series([1], dtype=dtype)
+    ser = Series([1], dtype=)
     expanding = ser.expanding()
     op = getattr(expanding, kernel)
     if numeric_only and dtype is object:
         msg = f"Expanding.{kernel} does not implement numeric_only"
         with pytest.raises(NotImplementedError, match=msg):
-            op(numeric_only=numeric_only)
+            op(numeric_only=)
     else:
-        result = op(numeric_only=numeric_only)
+        result = op(numeric_only=)
         expected = ser.agg([kernel]).reset_index(drop=True).astype(float)
         tm.assert_series_equal(result, expected)
 
@@ -697,22 +697,22 @@ def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
 @pytest.mark.parametrize("dtype", [int, object])
 def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
     # GH#46560
-    ser = Series([1, 2, 3], dtype=dtype)
+    ser = Series([1, 2, 3], dtype=)
     arg = (ser,) if use_arg else ()
     expanding = ser.expanding()
     op = getattr(expanding, kernel)
     if numeric_only and dtype is object:
         msg = f"Expanding.{kernel} does not implement numeric_only"
         with pytest.raises(NotImplementedError, match=msg):
-            op(*arg, numeric_only=numeric_only)
+            op(*arg, numeric_only=)
     else:
-        result = op(*arg, numeric_only=numeric_only)
+        result = op(*arg, numeric_only=)
 
         ser2 = ser.astype(float)
         arg2 = (ser2,) if use_arg else ()
         expanding2 = ser2.expanding()
         op2 = getattr(expanding2, kernel)
-        expected = op2(*arg2, numeric_only=numeric_only)
+        expected = op2(*arg2, numeric_only=)
         tm.assert_series_equal(result, expected)
 
 

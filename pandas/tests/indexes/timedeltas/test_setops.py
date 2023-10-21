@@ -112,13 +112,13 @@ class TestTimedeltaIndex:
         # for equal indices intersection should return the original index
         first = timedelta_range("1 day", periods=4, freq="h")
         second = timedelta_range("1 day", periods=4, freq="h")
-        intersect = first.intersection(second, sort=sort)
+        intersect = first.intersection(second, sort=)
         if sort is None:
             tm.assert_index_equal(intersect, second.sort_values())
         assert tm.equalContents(intersect, second)
 
         # Corner cases
-        inter = first.intersection(first, sort=sort)
+        inter = first.intersection(first, sort=)
         assert inter is first
 
     @pytest.mark.parametrize("period_1, period_2", [(0, 4), (4, 0)])
@@ -127,14 +127,14 @@ class TestTimedeltaIndex:
         index_1 = timedelta_range("1 day", periods=period_1, freq="h")
         index_2 = timedelta_range("1 day", periods=period_2, freq="h")
         expected = timedelta_range("1 day", periods=0, freq="h")
-        result = index_1.intersection(index_2, sort=sort)
+        result = index_1.intersection(index_2, sort=)
         tm.assert_index_equal(result, expected)
 
     def test_zero_length_input_index(self, sort):
         # GH 24966 test for 0-len intersections are copied
         index_1 = timedelta_range("1 day", periods=0, freq="h")
         index_2 = timedelta_range("1 day", periods=3, freq="h")
-        result = index_1.intersection(index_2, sort=sort)
+        result = index_1.intersection(index_2, sort=)
         assert index_1 is not result
         assert index_2 is not result
         tm.assert_copy(result, index_1)
@@ -162,7 +162,7 @@ class TestTimedeltaIndex:
     def test_intersection(self, rng, expected, sort):
         # GH 4690 (with tz)
         base = timedelta_range("1 day", periods=4, freq="h", name="idx")
-        result = base.intersection(rng, sort=sort)
+        result = base.intersection(rng, sort=)
         if sort is None:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
@@ -194,7 +194,7 @@ class TestTimedeltaIndex:
     def test_intersection_non_monotonic(self, rng, expected, sort):
         # 24471 non-monotonic
         base = TimedeltaIndex(["1 hour", "2 hour", "4 hour", "3 hour"], name="idx")
-        result = base.intersection(rng, sort=sort)
+        result = base.intersection(rng, sort=)
         if sort is None:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)

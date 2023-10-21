@@ -215,11 +215,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             # GH#38944 include None here, which pre-2.0 subbed in []
             cls._raise_scalar_data_error(data)
 
-        data = Categorical(
-            data, categories=categories, ordered=ordered, dtype=dtype, copy=copy
-        )
+        data = Categorical(data, categories=, ordered=, dtype=, copy=)
 
-        return cls._simple_new(data, name=name)
+        return cls._simple_new(data, name=)
 
     # --------------------------------------------------------------------
 
@@ -495,7 +493,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
-        mapped = self._values.map(mapper, na_action=na_action)
+        mapped = self._values.map(mapper, na_action=)
         return Index(mapped, name=self.name)
 
     def _concat(self, to_concat: list[Index], name: Hashable) -> Index:
@@ -508,6 +506,6 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
             # not all to_concat elements are among our categories (or NA)
 
             res = concat_compat([x._values for x in to_concat])
-            return Index(res, name=name)
+            return Index(res, name=)
         else:
-            return type(self)._simple_new(cat, name=name)
+            return type(self)._simple_new(cat, name=)

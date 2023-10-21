@@ -493,7 +493,7 @@ class DataFrameInfo(_BaseInfo):
     @property
     def memory_usage_bytes(self) -> int:
         deep = self.memory_usage == "deep"
-        return self.data.memory_usage(index=True, deep=deep).sum()
+        return self.data.memory_usage(index=True, deep=).sum()
 
     def render(
         self,
@@ -505,9 +505,9 @@ class DataFrameInfo(_BaseInfo):
     ) -> None:
         printer = _DataFrameInfoPrinter(
             info=self,
-            max_cols=max_cols,
-            verbose=verbose,
-            show_counts=show_counts,
+            max_cols=,
+            verbose=,
+            show_counts=,
         )
         printer.to_buffer(buf)
 
@@ -538,11 +538,7 @@ class SeriesInfo(_BaseInfo):
                 "Argument `max_cols` can only be passed "
                 "in DataFrame.info, not Series.info"
             )
-        printer = _SeriesInfoPrinter(
-            info=self,
-            verbose=verbose,
-            show_counts=show_counts,
-        )
+        printer = _SeriesInfoPrinter(info=self, verbose=, show_counts=)
         printer.to_buffer(buf)
 
     @property
@@ -569,7 +565,7 @@ class SeriesInfo(_BaseInfo):
             Object's total memory usage in bytes.
         """
         deep = self.memory_usage == "deep"
-        return self.data.memory_usage(index=True, deep=deep)
+        return self.data.memory_usage(index=True, deep=)
 
 
 class _InfoPrinterAbstract:

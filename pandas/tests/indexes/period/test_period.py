@@ -19,7 +19,7 @@ import pandas._testing as tm
 class TestPeriodIndex:
     def test_make_time_series(self):
         index = period_range(freq="Y", start="1/1/2001", end="12/1/2009")
-        series = Series(1, index=index)
+        series = Series(1, index=)
         assert isinstance(series, Series)
 
     def test_view_asi8(self):
@@ -79,7 +79,7 @@ class TestPeriodIndex:
         msg = "Period with BDay freq is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             start = Period("02-Apr-2005", "B")
-            i1 = period_range(start=start, periods=20)
+            i1 = period_range(start=, periods=20)
         assert len(i1) == 20
         assert i1.freq == start.freq
         assert i1[0] == start
@@ -100,19 +100,19 @@ class TestPeriodIndex:
         msg2 = "Period with BDay freq is deprecated"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=msg2):
-                period_range(start=start, end=end_intv)
+                period_range(start=, end=end_intv)
 
         with tm.assert_produces_warning(FutureWarning, match=msg2):
             end_intv = Period("2005-05-01", "B")
         with tm.assert_produces_warning(FutureWarning, match=msg2):
-            i1 = period_range(start=start, end=end_intv)
+            i1 = period_range(start=, end=end_intv)
 
         msg = (
             "Of the three parameters: start, end, and periods, exactly two "
             "must be specified"
         )
         with pytest.raises(ValueError, match=msg):
-            period_range(start=start)
+            period_range(start=)
 
         # infer freq from first element
         with tm.assert_produces_warning(FutureWarning, match=msg2):
@@ -293,7 +293,7 @@ class TestPeriodIndex:
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             index = period_range(freq="2H", start="1/1/2001", end="12/1/2009")
-        series = Series(1, index=index)
+        series = Series(1, index=)
         assert isinstance(series, Series)
 
     @pytest.mark.parametrize("freq", ["2A", "A-DEC", "200A-AUG"])
@@ -303,8 +303,8 @@ class TestPeriodIndex:
         msg = f"'{freq_msg}' is deprecated and will be removed in a future version."
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            index = period_range(freq=freq, start="1/1/2001", end="12/1/2009")
-        series = Series(1, index=index)
+            index = period_range(freq=, start="1/1/2001", end="12/1/2009")
+        series = Series(1, index=)
         assert isinstance(series, Series)
 
 
@@ -335,15 +335,15 @@ def test_dunder_array(array):
 
     expected = obj.asi8
     for dtype in ["i8", "int64", np.int64]:
-        result = np.array(obj, dtype=dtype)
+        result = np.array(obj, dtype=)
         tm.assert_numpy_array_equal(result, expected)
 
-        result = np.asarray(obj, dtype=dtype)
+        result = np.asarray(obj, dtype=)
         tm.assert_numpy_array_equal(result, expected)
 
     for dtype in ["float64", "int32", "uint64"]:
         msg = "argument must be"
         with pytest.raises(TypeError, match=msg):
-            np.array(obj, dtype=dtype)
+            np.array(obj, dtype=)
         with pytest.raises(TypeError, match=msg):
             np.array(obj, dtype=getattr(np, dtype))

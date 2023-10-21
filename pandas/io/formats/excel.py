@@ -103,7 +103,7 @@ class CssExcelCell(ExcelCell):
             unique_declarations = frozenset(declaration_dict.items())
             style = css_converter(unique_declarations)
 
-        super().__init__(row=row, col=col, val=val, style=style, **kwargs)
+        super().__init__(row=, col=, val=, style=, **kwargs)
 
 
 class CSSToExcelConverter:
@@ -660,8 +660,8 @@ class ExcelFormatter:
                         css_row=lnum,
                         css_col=i,
                         css_converter=self.style_converter,
-                        mergestart=mergestart,
-                        mergeend=mergeend,
+                        mergestart=,
+                        mergeend=,
                     )
         else:
             # Format in legacy format with dots to indicate levels.
@@ -841,8 +841,8 @@ class ExcelFormatter:
                             css_row=i,
                             css_col=gcolidx,
                             css_converter=self.style_converter,
-                            mergestart=mergestart,
-                            mergeend=mergeend,
+                            mergestart=,
+                            mergeend=,
                         )
                     gcolidx += 1
 
@@ -877,7 +877,7 @@ class ExcelFormatter:
                 yield CssExcelCell(
                     row=self.rowcounter + i,
                     col=colidx + coloffset,
-                    val=val,
+                    val=,
                     style=None,
                     css_styles=getattr(self.styler, "ctx", None),
                     css_row=i,
@@ -943,9 +943,9 @@ class ExcelFormatter:
         else:
             writer = ExcelWriter(
                 writer,
-                engine=engine,
-                storage_options=storage_options,
-                engine_kwargs=engine_kwargs,
+                engine=,
+                storage_options=,
+                engine_kwargs=,
             )
             need_save = True
 
@@ -953,9 +953,9 @@ class ExcelFormatter:
             writer._write_cells(
                 formatted_cells,
                 sheet_name,
-                startrow=startrow,
-                startcol=startcol,
-                freeze_panes=freeze_panes,
+                startrow=,
+                startcol=,
+                freeze_panes=,
             )
         finally:
             # make sure to close opened file handles

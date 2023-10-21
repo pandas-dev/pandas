@@ -313,7 +313,7 @@ class BooleanArray(BaseMaskedArray):
                 "the 'pd.array' function instead"
             )
         self._dtype = BooleanDtype()
-        super().__init__(values, mask, copy=copy)
+        super().__init__(values, mask, copy=)
 
     @property
     def dtype(self) -> BooleanDtype:
@@ -343,7 +343,7 @@ class BooleanArray(BaseMaskedArray):
         scalars = np.array(strings, dtype=object)
         mask = isna(scalars)
         scalars[~mask] = list(map(map_string, scalars[~mask]))
-        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
+        return cls._from_sequence(scalars, dtype=, copy=)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number, bool, np.bool_)
 
@@ -353,7 +353,7 @@ class BooleanArray(BaseMaskedArray):
     ) -> tuple[np.ndarray, np.ndarray]:
         if dtype:
             assert dtype == "boolean"
-        return coerce_to_array(value, copy=copy)
+        return coerce_to_array(value, copy=)
 
     def _logical_method(self, other, op):
         assert op.__name__ in {"or_", "ror_", "and_", "rand_", "xor", "rxor"}
@@ -397,11 +397,11 @@ class BooleanArray(BaseMaskedArray):
         mask = self._mask
         if name in ("cummin", "cummax"):
             op = getattr(masked_accumulations, name)
-            data, mask = op(data, mask, skipna=skipna, **kwargs)
+            data, mask = op(data, mask, skipna=, **kwargs)
             return self._simple_new(data, mask)
         else:
             from pandas.core.arrays import IntegerArray
 
             return IntegerArray(data.astype(int), mask)._accumulate(
-                name, skipna=skipna, **kwargs
+                name, skipna=, **kwargs
             )

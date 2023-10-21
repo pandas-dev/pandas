@@ -180,7 +180,7 @@ def test_format_escape_html(escape, exp):
     assert expected in s.to_html()
 
     # only the value should be escaped before passing to the formatter
-    s = Styler(df, uuid_len=0).format("&{0}&", escape=escape)
+    s = Styler(df, uuid_len=0).format("&{0}&", escape=)
     expected = f'<td id="T__row0_col0" class="data row0 col0" >&{exp}&</td>'
     assert expected in s.to_html()
 
@@ -188,7 +188,7 @@ def test_format_escape_html(escape, exp):
     styler = Styler(DataFrame(columns=[chars]), uuid_len=0)
     styler.format_index("&{0}&", escape=None, axis=1)
     assert styler._translate(True, True)["head"][0][1]["display_value"] == f"&{chars}&"
-    styler.format_index("&{0}&", escape=escape, axis=1)
+    styler.format_index("&{0}&", escape=, axis=1)
     assert styler._translate(True, True)["head"][0][1]["display_value"] == f"&{exp}&"
 
 
@@ -287,8 +287,8 @@ def test_format_with_precision(precision, expected):
     # Issue #13257
     df = DataFrame([[1.0, 2.0090, 3.2121, 4.566]], columns=[1.0, 2.0090, 3.2121, 4.566])
     styler = Styler(df)
-    styler.format(precision=precision)
-    styler.format_index(precision=precision, axis=1)
+    styler.format(precision=)
+    styler.format_index(precision=, axis=1)
 
     ctx = styler._translate(True, True)
     for col, exp in enumerate(expected):
@@ -318,7 +318,7 @@ def test_format_index_level(axis, level, expected):
     else:
         df.columns = midx
 
-    styler = df.style.format_index(lambda v: "X", level=level, axis=axis)
+    styler = df.style.format_index(lambda v: "X", level=, axis=)
     ctx = styler._translate(True, True)
 
     if axis == 0:  # compare index
@@ -370,19 +370,19 @@ def test_format_subset():
 def test_format_thousands(formatter, decimal, precision, func, col):
     styler = DataFrame([[1000000.123456789]], index=[1000000.123456789]).style
     result = getattr(styler, func)(  # testing float
-        thousands="_", formatter=formatter, decimal=decimal, precision=precision
+        thousands="_", formatter=, decimal=, precision=
     )._translate(True, True)
     assert "1_000_000" in result["body"][0][col]["display_value"]
 
     styler = DataFrame([[1000000]], index=[1000000]).style
     result = getattr(styler, func)(  # testing int
-        thousands="_", formatter=formatter, decimal=decimal, precision=precision
+        thousands="_", formatter=, decimal=, precision=
     )._translate(True, True)
     assert "1_000_000" in result["body"][0][col]["display_value"]
 
     styler = DataFrame([[1 + 1000000.123456789j]], index=[1 + 1000000.123456789j]).style
     result = getattr(styler, func)(  # testing complex
-        thousands="_", formatter=formatter, decimal=decimal, precision=precision
+        thousands="_", formatter=, decimal=, precision=
     )._translate(True, True)
     assert "1_000_000" in result["body"][0][col]["display_value"]
 
@@ -394,13 +394,13 @@ def test_format_thousands(formatter, decimal, precision, func, col):
 def test_format_decimal(formatter, thousands, precision, func, col):
     styler = DataFrame([[1000000.123456789]], index=[1000000.123456789]).style
     result = getattr(styler, func)(  # testing float
-        decimal="_", formatter=formatter, thousands=thousands, precision=precision
+        decimal="_", formatter=, thousands=, precision=
     )._translate(True, True)
     assert "000_123" in result["body"][0][col]["display_value"]
 
     styler = DataFrame([[1 + 1000000.123456789j]], index=[1 + 1000000.123456789j]).style
     result = getattr(styler, func)(  # testing complex
-        decimal="_", formatter=formatter, thousands=thousands, precision=precision
+        decimal="_", formatter=, thousands=, precision=
     )._translate(True, True)
     assert "000_123" in result["body"][0][col]["display_value"]
 
@@ -530,13 +530,13 @@ def test_relabel_raise_length(styler_multi, hide, labels):
     if hide:
         styler_multi.hide(axis=0, subset=[("X", "x"), ("Y", "y")])
     with pytest.raises(ValueError, match="``labels`` must be of length equal"):
-        styler_multi.relabel_index(labels=labels)
+        styler_multi.relabel_index(labels=)
 
 
 def test_relabel_index(styler_multi):
     labels = [(1, 2), (3, 4)]
     styler_multi.hide(axis=0, subset=[("X", "x"), ("Y", "y")])
-    styler_multi.relabel_index(labels=labels)
+    styler_multi.relabel_index(labels=)
     ctx = styler_multi._translate(True, True)
     assert {"value": "X", "display_value": 1}.items() <= ctx["body"][0][0].items()
     assert {"value": "y", "display_value": 2}.items() <= ctx["body"][0][1].items()
@@ -547,7 +547,7 @@ def test_relabel_index(styler_multi):
 def test_relabel_columns(styler_multi):
     labels = [(1, 2), (3, 4)]
     styler_multi.hide(axis=1, subset=[("A", "a"), ("B", "b")])
-    styler_multi.relabel_index(axis=1, labels=labels)
+    styler_multi.relabel_index(axis=1, labels=)
     ctx = styler_multi._translate(True, True)
     assert {"value": "A", "display_value": 1}.items() <= ctx["head"][0][3].items()
     assert {"value": "B", "display_value": 3}.items() <= ctx["head"][0][4].items()

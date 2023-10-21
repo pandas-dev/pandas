@@ -31,9 +31,9 @@ def test_drop_raise_exception_if_labels_not_in_level(msg, labels, level):
     df = DataFrame([10, 20, 30], index=mi)
 
     with pytest.raises(KeyError, match=msg):
-        s.drop(labels, level=level)
+        s.drop(labels, level=)
     with pytest.raises(KeyError, match=msg):
-        df.drop(labels, level=level)
+        df.drop(labels, level=)
 
 
 @pytest.mark.parametrize("labels,level", [(4, "a"), (7, "b")])
@@ -43,10 +43,10 @@ def test_drop_errors_ignore(labels, level):
     s = Series([10, 20, 30], index=mi)
     df = DataFrame([10, 20, 30], index=mi)
 
-    expected_s = s.drop(labels, level=level, errors="ignore")
+    expected_s = s.drop(labels, level=, errors="ignore")
     tm.assert_series_equal(s, expected_s)
 
-    expected_df = df.drop(labels, level=level, errors="ignore")
+    expected_df = df.drop(labels, level=, errors="ignore")
     tm.assert_frame_equal(df, expected_df)
 
 
@@ -237,10 +237,10 @@ class TestDataFrameDrop:
     @pytest.mark.parametrize(
         "actual",
         [
-            DataFrame(data=data, index=["a", "a"]),
-            DataFrame(data=data, index=["a", "b"]),
-            DataFrame(data=data, index=["a", "b"]).set_index([0, 1]),
-            DataFrame(data=data, index=["a", "a"]).set_index([0, 1]),
+            DataFrame(data=, index=["a", "a"]),
+            DataFrame(data=, index=["a", "b"]),
+            DataFrame(data=, index=["a", "b"]).set_index([0, 1]),
+            DataFrame(data=, index=["a", "a"]).set_index([0, 1]),
         ],
     )
     def test_raise_on_drop_duplicate_index(self, actual):
@@ -248,12 +248,12 @@ class TestDataFrameDrop:
         level = 0 if isinstance(actual.index, MultiIndex) else None
         msg = re.escape("\"['c'] not found in axis\"")
         with pytest.raises(KeyError, match=msg):
-            actual.drop("c", level=level, axis=0)
+            actual.drop("c", level=, axis=0)
         with pytest.raises(KeyError, match=msg):
-            actual.T.drop("c", level=level, axis=1)
-        expected_no_err = actual.drop("c", axis=0, level=level, errors="ignore")
+            actual.T.drop("c", level=, axis=1)
+        expected_no_err = actual.drop("c", axis=0, level=, errors="ignore")
         tm.assert_frame_equal(expected_no_err, actual)
-        expected_no_err = actual.T.drop("c", axis=1, level=level, errors="ignore")
+        expected_no_err = actual.T.drop("c", axis=1, level=, errors="ignore")
         tm.assert_frame_equal(expected_no_err.T, actual)
 
     @pytest.mark.parametrize("index", [[1, 2, 3], [1, 1, 2]])
@@ -261,7 +261,7 @@ class TestDataFrameDrop:
     def test_drop_empty_list(self, index, drop_labels):
         # GH#21494
         expected_index = [i for i in index if i not in drop_labels]
-        frame = DataFrame(index=index).drop(drop_labels)
+        frame = DataFrame(index=).drop(drop_labels)
         tm.assert_frame_equal(frame, DataFrame(index=expected_index))
 
     @pytest.mark.parametrize("index", [[1, 2, 3], [1, 2, 2]])
@@ -269,7 +269,7 @@ class TestDataFrameDrop:
     def test_drop_non_empty_list(self, index, drop_labels):
         # GH# 21494
         with pytest.raises(KeyError, match="not found in axis"):
-            DataFrame(index=index).drop(drop_labels)
+            DataFrame(index=).drop(drop_labels)
 
     @pytest.mark.parametrize(
         "empty_listlike",
@@ -286,7 +286,7 @@ class TestDataFrameDrop:
         # GH#27994
         data = {"column_a": [5, 10], "column_b": ["one", "two"]}
         index = [Timestamp("2021-01-01"), Timestamp("2021-01-01")]
-        df = DataFrame(data, index=index)
+        df = DataFrame(data, index=)
 
         # Passing empty list-like should return the same DataFrame.
         expected = df.copy()
@@ -425,7 +425,7 @@ class TestDataFrameDrop:
         start = Timestamp("2017-10-29", tz="Europe/Berlin")
         end = Timestamp("2017-10-29 04:00:00", tz="Europe/Berlin")
         index = pd.date_range(start, end, freq="15min")
-        data = frame_or_series(data=[1] * len(index), index=index)
+        data = frame_or_series(data=[1] * len(index), index=)
         result = data.drop(start)
         expected_start = Timestamp("2017-10-29 00:15:00", tz="Europe/Berlin")
         expected_idx = pd.date_range(expected_start, end, freq="15min")
@@ -437,7 +437,7 @@ class TestDataFrameDrop:
             [[0, 0, 0, 1, 1, 1], [1, 2, 3, 1, 2, 3]], names=["one", "two"]
         )
 
-        df = DataFrame(np.random.default_rng(2).standard_normal((6, 3)), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((6, 3)), index=)
 
         result = df.drop([(0, 2)])
         assert result.index.names == ("one", "two")
@@ -455,9 +455,9 @@ class TestDataFrameDrop:
 
         with tm.assert_produces_warning(None):
             if inplace:
-                df.drop("y", axis=1, inplace=inplace)
+                df.drop("y", axis=1, inplace=)
             else:
-                df = df.drop("y", axis=1, inplace=inplace)
+                df = df.drop("y", axis=1, inplace=)
 
             # Perform operation and check result
             getattr(y, operation)(1)
@@ -529,7 +529,7 @@ class TestDataFrameDrop:
         df = DataFrame(
             {"a": [1, 2, 2, pd.NA], "b": 100}, dtype=any_numeric_ea_dtype
         ).set_index(idx)
-        result = df.drop(Index([2, pd.NA]), level=level)
+        result = df.drop(Index([2, pd.NA]), level=)
         expected = DataFrame(
             {"a": [1], "b": 100}, dtype=any_numeric_ea_dtype
         ).set_index(idx)

@@ -41,7 +41,7 @@ class TestIntervalIndex:
         if direction == "decreasing":
             tpls = tpls[::-1]
 
-        idx = IntervalIndex.from_tuples(tpls, closed=closed)
+        idx = IntervalIndex.from_tuples(tpls, closed=)
         ser = Series(list("abc"), idx)
 
         for key, expected in zip(idx.left, ser):
@@ -125,7 +125,7 @@ class TestIntervalIndex:
         index = IntervalIndex([np.nan, np.nan])
         key = index[:-1]
 
-        obj = frame_or_series(range(2), index=index)
+        obj = frame_or_series(range(2), index=)
         if frame_or_series is DataFrame and indexer_sl is tm.setitem:
             obj = obj.T
 

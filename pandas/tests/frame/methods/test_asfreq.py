@@ -63,13 +63,13 @@ class TestAsFreq:
     def test_asfreq_datetimeindex_empty(self, frame_or_series):
         # GH#14320
         index = DatetimeIndex(["2016-09-29 11:00"])
-        expected = frame_or_series(index=index, dtype=object).asfreq("h")
+        expected = frame_or_series(index=, dtype=object).asfreq("h")
         result = frame_or_series([3], index=index.copy()).asfreq("h")
         tm.assert_index_equal(expected.index, result.index)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_tz_aware_asfreq_smoke(self, tz, frame_or_series):
-        dr = date_range("2011-12-01", "2012-07-20", freq="D", tz=tz)
+        dr = date_range("2011-12-01", "2012-07-20", freq="D", tz=)
 
         obj = frame_or_series(
             np.random.default_rng(2).standard_normal(len(dr)), index=dr
@@ -97,7 +97,7 @@ class TestAsFreq:
         # GH#9854
         index_name = "bar"
         index = date_range("20130101", periods=20, name=index_name)
-        obj = DataFrame(list(range(20)), columns=["foo"], index=index)
+        obj = DataFrame(list(range(20)), columns=["foo"], index=)
         obj = tm.get_obj(obj, frame_or_series)
 
         assert index_name == obj.index.name
@@ -106,7 +106,7 @@ class TestAsFreq:
     def test_asfreq_ts(self, frame_or_series):
         index = period_range(freq="Y", start="1/1/2001", end="12/31/2010")
         obj = DataFrame(
-            np.random.default_rng(2).standard_normal((len(index), 3)), index=index
+            np.random.default_rng(2).standard_normal((len(index), 3)), index=
         )
         obj = tm.get_obj(obj, frame_or_series)
 
@@ -202,7 +202,7 @@ class TestAsFreq:
         # GH#39805
         # Test that rows are not dropped when the datetime index is out of order
         index = to_datetime(["2021-01-04", "2021-01-02", "2021-01-03", "2021-01-01"])
-        result = frame_or_series(range(4), index=index)
+        result = frame_or_series(range(4), index=)
 
         expected = result.reindex(sorted(index))
         expected.index = expected.index._with_freq("infer")
@@ -227,18 +227,18 @@ class TestAsFreq:
     )
     def test_asfreq_2ME(self, freq, freq_half):
         index = date_range("1/1/2000", periods=6, freq=freq_half)
-        df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], index=index)})
-        expected = df.asfreq(freq=freq)
+        df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], index=)})
+        expected = df.asfreq(freq=)
 
-        index = date_range("1/1/2000", periods=3, freq=freq)
-        result = DataFrame({"s": Series([0.0, 2.0, 4.0], index=index)})
+        index = date_range("1/1/2000", periods=3, freq=)
+        result = DataFrame({"s": Series([0.0, 2.0, 4.0], index=)})
         tm.assert_frame_equal(result, expected)
 
     def test_asfreq_frequency_M_deprecated(self):
         depr_msg = "'M' will be deprecated, please use 'ME' instead."
 
         index = date_range("1/1/2000", periods=4, freq="ME")
-        df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
+        df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=)})
         expected = df.asfreq(freq="5ME")
         with tm.assert_produces_warning(UserWarning, match=depr_msg):
             result = df.asfreq(freq="5M")

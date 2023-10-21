@@ -265,8 +265,8 @@ class BaseReshapingTests:
     def test_stack(self, data, columns, future_stack):
         df = pd.DataFrame({"A": data[:5], "B": data[:5]})
         df.columns = columns
-        result = df.stack(future_stack=future_stack)
-        expected = df.astype(object).stack(future_stack=future_stack)
+        result = df.stack(future_stack=)
+        expected = df.astype(object).stack(future_stack=)
         # we need a second astype(object), in case the constructor inferred
         # object -> specialized, as is done for period.
         expected = expected.astype(object)
@@ -303,9 +303,9 @@ class BaseReshapingTests:
     def test_unstack(self, data, index, obj):
         data = data[: len(index)]
         if obj == "series":
-            ser = pd.Series(data, index=index)
+            ser = pd.Series(data, index=)
         else:
-            ser = pd.DataFrame({"A": data, "B": data}, index=index)
+            ser = pd.DataFrame({"A": data, "B": data}, index=)
 
         n = index.nlevels
         levels = list(range(n))
@@ -316,7 +316,7 @@ class BaseReshapingTests:
         )
 
         for level in combinations:
-            result = ser.unstack(level=level)
+            result = ser.unstack(level=)
             assert all(
                 isinstance(result[col].array, type(data)) for col in result.columns
             )
@@ -325,12 +325,12 @@ class BaseReshapingTests:
                 # We should get the same result with to_frame+unstack+droplevel
                 df = ser.to_frame()
 
-                alt = df.unstack(level=level).droplevel(0, axis=1)
+                alt = df.unstack(level=).droplevel(0, axis=1)
                 tm.assert_frame_equal(result, alt)
 
             obj_ser = ser.astype(object)
 
-            expected = obj_ser.unstack(level=level, fill_value=data.dtype.na_value)
+            expected = obj_ser.unstack(level=, fill_value=data.dtype.na_value)
             if obj == "series":
                 assert (expected.dtypes == object).all()
 

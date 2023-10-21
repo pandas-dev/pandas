@@ -107,7 +107,7 @@ def tz_to_dtype(
     if tz is None:
         return np.dtype(f"M8[{unit}]")
     else:
-        return DatetimeTZDtype(tz=tz, unit=unit)
+        return DatetimeTZDtype(tz=, unit=)
 
 
 def _field_accessor(name: str, field: str, docstring: str | None = None):
@@ -273,7 +273,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             # TODO: require any NAs be valid-for-DTA
             # TODO: if dtype is passed, check for tzawareness compat?
             raise ValueError
-        return cls._from_sequence(scalars, dtype=dtype)
+        return cls._from_sequence(scalars, dtype=)
 
     @classmethod
     def _validate_dtype(cls, values, dtype):
@@ -306,7 +306,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
     @classmethod
     def _from_sequence(cls, scalars, *, dtype=None, copy: bool = False):
-        return cls._from_sequence_not_strict(scalars, dtype=dtype, copy=copy)
+        return cls._from_sequence_not_strict(scalars, dtype=, copy=)
 
     @classmethod
     def _from_sequence_not_strict(
@@ -350,11 +350,11 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         subarr, tz, inferred_freq = _sequence_to_dt64ns(
             data,
-            copy=copy,
-            tz=tz,
-            dayfirst=dayfirst,
-            yearfirst=yearfirst,
-            ambiguous=ambiguous,
+            copy=,
+            tz=,
+            dayfirst=,
+            yearfirst=,
+            ambiguous=,
             out_unit=unit,
         )
         # We have to call this again after possibly inferring a tz above
@@ -371,14 +371,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         data_unit = np.datetime_data(subarr.dtype)[0]
         data_dtype = tz_to_dtype(tz, data_unit)
-        result = cls._simple_new(subarr, freq=freq, dtype=data_dtype)
+        result = cls._simple_new(subarr, freq=, dtype=data_dtype)
         if unit is not None and unit != result.unit:
             # If unit was specified in user-passed dtype, cast to it here
             result = result.as_unit(unit)
 
         if inferred_freq is None and freq is not None:
             # this condition precludes `freq_infer`
-            cls._validate_frequency(result, freq, ambiguous=ambiguous)
+            cls._validate_frequency(result, freq, ambiguous=)
 
         elif freq_infer:
             # Set _freq directly to bypass duplicative _validate_frequency
@@ -461,10 +461,10 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                     end = end.tz_localize(None)
 
             if isinstance(freq, Tick):
-                i8values = generate_regular_range(start, end, periods, freq, unit=unit)
+                i8values = generate_regular_range(start, end, periods, freq, unit=)
             else:
                 xdr = _generate_range(
-                    start=start, end=end, periods=periods, offset=freq, unit=unit
+                    start=, end=, periods=, offset=freq, unit=
                 )
                 i8values = np.array([x._value for x in xdr], dtype=np.int64)
 
@@ -478,9 +478,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                     i8values = tzconversion.tz_localize_to_utc(
                         i8values,
                         tz,
-                        ambiguous=ambiguous,
-                        nonexistent=nonexistent,
-                        creso=creso,
+                        ambiguous=,
+                        nonexistent=,
+                        creso=,
                     )
 
                 # i8values is localized datetime64 array -> have to convert
@@ -516,8 +516,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                     i8values = i8values[:-1]
 
         dt64_values = i8values.view(f"datetime64[{unit}]")
-        dtype = tz_to_dtype(tz, unit=unit)
-        return cls._simple_new(dt64_values, freq=freq, dtype=dtype)
+        dtype = tz_to_dtype(tz, unit=)
+        return cls._simple_new(dt64_values, freq=, dtype=)
 
     # -----------------------------------------------------------------
     # DatetimeLike Interface
@@ -640,7 +640,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             # The default for tz-aware is object, to preserve tz info
             dtype = object
 
-        return super().__array__(dtype=dtype)
+        return super().__array__(dtype=)
 
     def __iter__(self) -> Iterator:
         """
@@ -686,7 +686,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         elif isinstance(dtype, ExtensionDtype):
             if not isinstance(dtype, DatetimeTZDtype):
                 # e.g. Sparse[datetime64[ns]]
-                return super().astype(dtype, copy=copy)
+                return super().astype(dtype, copy=)
             elif self.tz is None:
                 # pre-2.0 this did self.tz_localize(dtype.tz), which did not match
                 #  the Series behavior which did
@@ -699,8 +699,8 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             else:
                 # tzaware unit conversion e.g. datetime64[s, UTC]
                 np_dtype = np.dtype(dtype.str)
-                res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=copy)
-                return type(self)._simple_new(res_values, dtype=dtype, freq=self.freq)
+                res_values = astype_overflowsafe(self._ndarray, np_dtype, copy=)
+                return type(self)._simple_new(res_values, dtype=, freq=self.freq)
 
         elif (
             self.tz is None
@@ -749,7 +749,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             date_format = "%Y-%m-%d"
 
         return tslib.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=date_format, na_rep=na_rep, reso=self._creso
+            self.asi8, tz=self.tz, format=date_format, na_rep=, reso=self._creso
         )
 
     # -----------------------------------------------------------------
@@ -911,7 +911,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
 
         # No conversion since timestamps are all UTC to begin with
         dtype = tz_to_dtype(tz, unit=self.unit)
-        return self._simple_new(self._ndarray, dtype=dtype, freq=self.freq)
+        return self._simple_new(self._ndarray, dtype=, freq=self.freq)
 
     @dtl.ravel_compat
     def tz_localize(
@@ -1081,8 +1081,8 @@ default 'raise'
             new_dates = tzconversion.tz_localize_to_utc(
                 self.asi8,
                 tz,
-                ambiguous=ambiguous,
-                nonexistent=nonexistent,
+                ambiguous=,
+                nonexistent=,
                 creso=self._creso,
             )
         new_dates_dt64 = new_dates.view(f"M8[{self.unit}]")
@@ -1096,7 +1096,7 @@ default 'raise'
         elif tz is None and self.tz is None:
             # no-op
             freq = self.freq
-        return self._simple_new(new_dates_dt64, dtype=dtype, freq=freq)
+        return self._simple_new(new_dates_dt64, dtype=, freq=)
 
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timestamp methods
@@ -1294,7 +1294,7 @@ default 'raise'
         values = self._local_timestamps()
 
         result = fields.get_date_name_field(
-            values, "month_name", locale=locale, reso=self._creso
+            values, "month_name", locale=, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
         return result
@@ -1351,7 +1351,7 @@ default 'raise'
         values = self._local_timestamps()
 
         result = fields.get_date_name_field(
-            values, "day_name", locale=locale, reso=self._creso
+            values, "day_name", locale=, reso=self._creso
         )
         result = self._maybe_mask_results(result, fill_value=None)
         return result
@@ -2163,9 +2163,9 @@ default 'raise'
         dtype_str = self._ndarray.dtype.name.replace("datetime64", "timedelta64")
         dtype = np.dtype(dtype_str)
 
-        tda = TimedeltaArray._simple_new(self._ndarray.view(dtype), dtype=dtype)
+        tda = TimedeltaArray._simple_new(self._ndarray.view(dtype), dtype=)
 
-        return tda.std(axis=axis, out=out, ddof=ddof, keepdims=keepdims, skipna=skipna)
+        return tda.std(axis=, out=, ddof=, keepdims=, skipna=)
 
 
 # -------------------------------------------------------------------
@@ -2218,7 +2218,7 @@ def _sequence_to_dt64ns(
         inferred_freq = data.freq
 
     # By this point we are assured to have either a numpy array or Index
-    data, copy = maybe_convert_dtype(data, copy, tz=tz)
+    data, copy = maybe_convert_dtype(data, copy, tz=)
     data_dtype = getattr(data, "dtype", None)
 
     out_dtype = DT64NS_DTYPE
@@ -2241,8 +2241,8 @@ def _sequence_to_dt64ns(
             #  or M8[ns] to denote wall times
             data, inferred_tz = objects_to_datetime64ns(
                 data,
-                dayfirst=dayfirst,
-                yearfirst=yearfirst,
+                dayfirst=,
+                yearfirst=,
                 allow_object=False,
             )
             if tz and inferred_tz:
@@ -2294,7 +2294,7 @@ def _sequence_to_dt64ns(
                 data = data.ravel()
 
             data = tzconversion.tz_localize_to_utc(
-                data.view("i8"), tz, ambiguous=ambiguous, creso=data_unit
+                data.view("i8"), tz, ambiguous=, creso=data_unit
             )
             data = data.view(new_dtype)
             data = data.reshape(shape)
@@ -2361,10 +2361,10 @@ def objects_to_datetime64ns(
 
     result, tz_parsed = tslib.array_to_datetime(
         data,
-        errors=errors,
-        utc=utc,
-        dayfirst=dayfirst,
-        yearfirst=yearfirst,
+        errors=,
+        utc=,
+        dayfirst=,
+        yearfirst=,
     )
 
     if tz_parsed is not None:

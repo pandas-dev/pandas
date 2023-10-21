@@ -887,7 +887,7 @@ class PythonParser(ParserBase):
             return lines
 
         return self._search_replace_num_columns(
-            lines=lines, search=self.thousands, replace=""
+            lines=, search=self.thousands, replace=""
         )
 
     def _search_replace_num_columns(
@@ -914,7 +914,7 @@ class PythonParser(ParserBase):
             return lines
 
         return self._search_replace_num_columns(
-            lines=lines, search=self.decimal, replace="."
+            lines=, search=self.decimal, replace="."
         )
 
     def _clear_buffer(self) -> None:
@@ -1217,9 +1217,7 @@ class FixedWidthReader(abc.Iterator):
         self.delimiter = "\r\n" + delimiter if delimiter else "\n\r\t "
         self.comment = comment
         if colspecs == "infer":
-            self.colspecs = self.detect_colspecs(
-                infer_nrows=infer_nrows, skiprows=skiprows
-            )
+            self.colspecs = self.detect_colspecs(infer_nrows=, skiprows=)
         else:
             self.colspecs = colspecs
 

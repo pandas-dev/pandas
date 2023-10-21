@@ -58,7 +58,7 @@ def test_indexer_constructor_arg():
                     end[i] = i + self.window_size
             return start, end
 
-    indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+    indexer = CustomIndexer(window_size=1, use_expanding=)
     result = df.rolling(indexer).sum()
     expected = DataFrame({"values": [0.0, 1.0, 3.0, 3.0, 10.0]})
     tm.assert_frame_equal(result, expected)
@@ -157,16 +157,16 @@ def test_rolling_forward_window(
     indexer = FixedForwardWindowIndexer(window_size=3)
 
     match = "Forward-looking windows can't have center=True"
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         rolling = frame_or_series(values).rolling(window=indexer, center=True)
         getattr(rolling, func)()
 
     match = "Forward-looking windows don't support setting the closed argument"
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         rolling = frame_or_series(values).rolling(window=indexer, closed="right")
         getattr(rolling, func)()
 
-    rolling = frame_or_series(values).rolling(window=indexer, min_periods=2, step=step)
+    rolling = frame_or_series(values).rolling(window=indexer, min_periods=2, step=)
     result = getattr(rolling, func)()
 
     # Check that the function output matches the explicitly provided array
@@ -183,7 +183,7 @@ def test_rolling_forward_window(
     # GH 39604: After count-min_periods deprecation, apply(lambda x: len(x))
     # is equivalent to count after setting min_periods=0
     min_periods = 0 if func == "count" else None
-    rolling3 = frame_or_series(values).rolling(window=indexer, min_periods=min_periods)
+    rolling3 = frame_or_series(values).rolling(window=indexer, min_periods=)
     result3 = getattr(rolling3, func)()
     expected3 = frame_or_series(rolling3.apply(lambda x: np_func(x, **np_kwargs)))
     tm.assert_equal(result3, expected3)
@@ -194,7 +194,7 @@ def test_rolling_forward_skewness(frame_or_series, step):
     values[5] = 100.0
 
     indexer = FixedForwardWindowIndexer(window_size=5)
-    rolling = frame_or_series(values).rolling(window=indexer, min_periods=3, step=step)
+    rolling = frame_or_series(values).rolling(window=indexer, min_periods=3, step=)
     result = rolling.skew()
 
     expected = frame_or_series(
@@ -260,11 +260,11 @@ def test_rolling_forward_cov_corr(func, expected):
 )
 def test_non_fixed_variable_window_indexer(closed, expected_data):
     index = date_range("2020", periods=10)
-    df = DataFrame(range(10), index=index)
+    df = DataFrame(range(10), index=)
     offset = BusinessDay(1)
-    indexer = VariableOffsetWindowIndexer(index=index, offset=offset)
-    result = df.rolling(indexer, closed=closed).sum()
-    expected = DataFrame(expected_data, index=index)
+    indexer = VariableOffsetWindowIndexer(index=, offset=)
+    result = df.rolling(indexer, closed=).sum()
+    expected = DataFrame(expected_data, index=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -285,7 +285,7 @@ def test_fixed_forward_indexer_count(step):
     # GH: 35579
     df = DataFrame({"b": [None, None, None, 7]})
     indexer = FixedForwardWindowIndexer(window_size=2)
-    result = df.rolling(window=indexer, min_periods=0, step=step).count()
+    result = df.rolling(window=indexer, min_periods=0, step=).count()
     expected = DataFrame({"b": [0.0, 0.0, 1.0, 1.0]})[::step]
     tm.assert_frame_equal(result, expected)
 
@@ -312,7 +312,7 @@ def test_indexer_quantile_sum(end_value, values, func, args):
     use_expanding = [True, False, True, False, True]
     df = DataFrame({"values": range(5)})
 
-    indexer = CustomIndexer(window_size=1, use_expanding=use_expanding)
+    indexer = CustomIndexer(window_size=1, use_expanding=)
     result = getattr(df.rolling(indexer), func)(*args)
     expected = DataFrame({"values": values})
     tm.assert_frame_equal(result, expected)
@@ -336,7 +336,7 @@ def test_indexers_are_reusable_after_groupby_rolling(
     # GH 43267
     df = DataFrame(df_data)
     num_trials = 3
-    indexer = indexer_class(window_size=window_size)
+    indexer = indexer_class(window_size=)
     original_window_size = indexer.window_size
     for i in range(num_trials):
         df.groupby("a")["b"].rolling(window=indexer, min_periods=1).mean()
@@ -361,8 +361,8 @@ def test_fixed_forward_indexer_bounds(
     window_size, num_values, expected_start, expected_end, step
 ):
     # GH 43267
-    indexer = FixedForwardWindowIndexer(window_size=window_size)
-    start, end = indexer.get_window_bounds(num_values=num_values, step=step)
+    indexer = FixedForwardWindowIndexer(window_size=)
+    start, end = indexer.get_window_bounds(num_values=, step=)
 
     tm.assert_numpy_array_equal(
         start, np.array(expected_start[::step]), check_dtype=False
@@ -425,7 +425,7 @@ def test_fixed_forward_indexer_bounds(
 )
 def test_rolling_groupby_with_fixed_forward_specific(df, window_size, expected):
     # GH 43267
-    indexer = FixedForwardWindowIndexer(window_size=window_size)
+    indexer = FixedForwardWindowIndexer(window_size=)
     result = df.groupby("a")["b"].rolling(window=indexer, min_periods=1).mean()
     tm.assert_series_equal(result, expected)
 
@@ -455,7 +455,7 @@ def test_rolling_groupby_with_fixed_forward_many(group_keys, window_size):
         }
     )
 
-    indexer = FixedForwardWindowIndexer(window_size=window_size)
+    indexer = FixedForwardWindowIndexer(window_size=)
     result = df.groupby("a")["b"].rolling(window=indexer, min_periods=1).sum()
     result.index.names = ["a", "c"]
 
@@ -484,16 +484,16 @@ def test_unequal_start_end_bounds():
     indexer = CustomIndexer()
     roll = Series(1).rolling(indexer)
     match = "start"
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         roll.mean()
 
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         next(iter(roll))
 
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         roll.corr(pairwise=True)
 
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         roll.cov(pairwise=True)
 
 
@@ -506,14 +506,14 @@ def test_unequal_bounds_to_object():
     indexer = CustomIndexer()
     roll = Series([1, 1]).rolling(indexer)
     match = "start and end"
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         roll.mean()
 
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         next(iter(roll))
 
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         roll.corr(pairwise=True)
 
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         roll.cov(pairwise=True)

@@ -20,7 +20,7 @@ class Melt:
 
     def setup(self, dtype):
         self.df = DataFrame(
-            np.random.randn(100_000, 3), columns=["A", "B", "C"], dtype=dtype
+            np.random.randn(100_000, 3), columns=["A", "B", "C"], dtype=
         )
         self.df["id1"] = pd.Series(np.random.randint(0, 10, 10000))
         self.df["id2"] = pd.Series(np.random.randint(100, 1000, 10000))
@@ -48,7 +48,7 @@ class SimpleReshape:
     def setup(self):
         arrays = [np.arange(100).repeat(100), np.roll(np.tile(np.arange(100), 100), 25)]
         index = MultiIndex.from_arrays(arrays)
-        self.df = DataFrame(np.random.randn(10000, 4), index=index)
+        self.df = DataFrame(np.random.randn(10000, 4), index=)
         self.udf = self.df.unstack(1)
 
     def time_stack(self):
@@ -104,7 +104,7 @@ class ReshapeMaskedArrayDtype(ReshapeExtensionDtype):
 
         values = np.random.randn(10_000).astype(int)
 
-        ser = pd.Series(values, dtype=dtype, index=mi)
+        ser = pd.Series(values, dtype=, index=mi)
         df = ser.unstack("bar")
         # roundtrips -> df.stack().equals(ser)
 
@@ -175,7 +175,7 @@ class WideToLong:
             for letter, num in product(self.letters, range(1, nyrs + 1))
         ]
         columns = [str(i) for i in range(nidvars)] + yrvars
-        self.df = DataFrame(np.random.randn(N, nidvars + len(yrvars)), columns=columns)
+        self.df = DataFrame(np.random.randn(N, nidvars + len(yrvars)), columns=)
         self.df["id"] = self.df.index
 
     def time_wide_to_long_big(self):

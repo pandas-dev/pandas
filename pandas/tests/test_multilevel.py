@@ -170,7 +170,7 @@ class TestMultiLevel:
             [("foo", "one"), ("foo", "two"), ("bar", "one"), ("bar", "two")]
         )
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((4, 4)), index=index, columns=index
+            np.random.default_rng(2).standard_normal((4, 4)), index=, columns=index
         )
         df["Totals", ""] = df.sum(1)
         df = df._consolidate()
@@ -181,8 +181,8 @@ class TestMultiLevel:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        series = Series(np.random.default_rng(2).standard_normal(6), index=index)
-        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
+        series = Series(np.random.default_rng(2).standard_normal(6), index=)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=)
 
         result = series[("foo", "bar", 0)]
         result2 = series.loc[("foo", "bar", 0)]
@@ -206,8 +206,8 @@ class TestMultiLevel:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        series = Series(np.random.default_rng(2).standard_normal(6), index=index)
-        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
+        series = Series(np.random.default_rng(2).standard_normal(6), index=)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=)
 
         result = series[("foo", "bar")]
         result2 = series.loc[("foo", "bar")]
@@ -298,7 +298,7 @@ class TestMultiLevel:
                 datetime.date(2018, 3, 4),
             ],
         ]
-        expected = DataFrame(data=data, index=index)
+        expected = DataFrame(data=, index=)
 
         tm.assert_frame_equal(result, expected)
 

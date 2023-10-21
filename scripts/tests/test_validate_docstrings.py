@@ -194,7 +194,7 @@ class TestValidator:
     )
     def test_bad_docstrings(self, capsys, klass, func, msgs):
         result = validate_docstrings.pandas_validate(
-            self._import_path(klass=klass, func=func)
+            self._import_path(klass=, func=)
         )
         for msg in msgs:
             assert msg in " ".join([err[1] for err in result["errors"]])

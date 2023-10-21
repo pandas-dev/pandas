@@ -43,7 +43,7 @@ def test_dtype_all_columns(all_parsers, dtype, check_orig):
     with tm.ensure_clean("__passing_str_as_dtype__.csv") as path:
         df.to_csv(path)
 
-        result = parser.read_csv(path, dtype=dtype, index_col=0)
+        result = parser.read_csv(path, dtype=, index_col=0)
 
         if check_orig:
             expected = df.copy()
@@ -131,9 +131,9 @@ def test_dtype_with_converters(all_parsers):
 def test_numeric_dtype(all_parsers, dtype):
     data = "0\n1"
     parser = all_parsers
-    expected = DataFrame([0, 1], dtype=dtype)
+    expected = DataFrame([0, 1], dtype=)
 
-    result = parser.read_csv(StringIO(data), header=None, dtype=dtype)
+    result = parser.read_csv(StringIO(data), header=None, dtype=)
     tm.assert_frame_equal(expected, result)
 
 
@@ -243,9 +243,9 @@ def decimal_number_check(request, parser, numeric_decimal, thousands, float_prec
         )
     df = parser.read_csv(
         StringIO(value),
-        float_precision=float_precision,
+        float_precision=,
         sep="|",
-        thousands=thousands,
+        thousands=,
         decimal=",",
         header=None,
     )
@@ -263,7 +263,7 @@ def test_skip_whitespace(c_parser_only, float_precision):
 """
     df = c_parser_only.read_csv(
         StringIO(DATA),
-        float_precision=float_precision,
+        float_precision=,
         sep="\t",
         header=0,
         dtype={1: np.float64},
@@ -357,12 +357,12 @@ def test_nullable_int_dtype(all_parsers, any_int_ea_dtype):
 2,4,"""
     expected = DataFrame(
         {
-            "a": pd.array([pd.NA, 1, 2], dtype=dtype),
-            "b": pd.array([3, pd.NA, 4], dtype=dtype),
-            "c": pd.array([5, 6, pd.NA], dtype=dtype),
+            "a": pd.array([pd.NA, 1, 2], dtype=),
+            "b": pd.array([3, pd.NA, 4], dtype=),
+            "c": pd.array([5, 6, pd.NA], dtype=),
         }
     )
-    actual = parser.read_csv(StringIO(data), dtype=dtype)
+    actual = parser.read_csv(StringIO(data), dtype=)
     tm.assert_frame_equal(actual, expected)
 
 
@@ -375,7 +375,7 @@ def test_dtypes_defaultdict(all_parsers, default):
 """
     dtype = defaultdict(lambda: default, a="int64")
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=)
     expected = DataFrame({"a": [1], "b": 2.0})
     tm.assert_frame_equal(result, expected)
 
@@ -389,7 +389,7 @@ def test_dtypes_defaultdict_mangle_dup_cols(all_parsers):
     dtype = defaultdict(lambda: "float64", a="int64")
     dtype["b.1"] = "int64"
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=)
     expected = DataFrame({"a": [1], "b": [2.0], "a.1": [3], "b.2": [4.0], "b.1": [5]})
     tm.assert_frame_equal(result, expected)
 
@@ -403,7 +403,7 @@ def test_dtypes_defaultdict_invalid(all_parsers):
     dtype = defaultdict(lambda: "invalid_dtype", a="int64")
     parser = all_parsers
     with pytest.raises(TypeError, match="not understood"):
-        parser.read_csv(StringIO(data), dtype=dtype)
+        parser.read_csv(StringIO(data), dtype=)
 
 
 def test_dtype_backend(all_parsers):
@@ -558,8 +558,8 @@ y,2
         result = parser.read_csv(StringIO(data))
 
     expected = DataFrame(
-        {"a": pd.Series(["x", "y", None], dtype=dtype), "b": [1, 2, 3]},
-        columns=pd.Index(["a", "b"], dtype=dtype),
+        {"a": pd.Series(["x", "y", None], dtype=), "b": [1, 2, 3]},
+        columns=pd.Index(["a", "b"], dtype=),
     )
     tm.assert_frame_equal(result, expected)
 

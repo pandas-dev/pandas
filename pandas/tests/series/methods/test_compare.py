@@ -11,13 +11,13 @@ def test_compare_axis(align_axis):
     s1 = pd.Series(["a", "b", "c"])
     s2 = pd.Series(["x", "b", "z"])
 
-    result = s1.compare(s2, align_axis=align_axis)
+    result = s1.compare(s2, align_axis=)
 
     if align_axis in (1, "columns"):
         indices = pd.Index([0, 2])
         columns = pd.Index(["self", "other"])
         expected = pd.DataFrame(
-            [["a", "x"], ["c", "z"]], index=indices, columns=columns
+            [["a", "x"], ["c", "z"]], index=indices, columns=
         )
         tm.assert_frame_equal(result, expected)
     else:
@@ -39,26 +39,26 @@ def test_compare_various_formats(keep_shape, keep_equal):
     s1 = pd.Series(["a", "b", "c"])
     s2 = pd.Series(["x", "b", "z"])
 
-    result = s1.compare(s2, keep_shape=keep_shape, keep_equal=keep_equal)
+    result = s1.compare(s2, keep_shape=, keep_equal=)
 
     if keep_shape:
         indices = pd.Index([0, 1, 2])
         columns = pd.Index(["self", "other"])
         if keep_equal:
             expected = pd.DataFrame(
-                [["a", "x"], ["b", "b"], ["c", "z"]], index=indices, columns=columns
+                [["a", "x"], ["b", "b"], ["c", "z"]], index=indices, columns=
             )
         else:
             expected = pd.DataFrame(
                 [["a", "x"], [np.nan, np.nan], ["c", "z"]],
                 index=indices,
-                columns=columns,
+                columns=,
             )
     else:
         indices = pd.Index([0, 2])
         columns = pd.Index(["self", "other"])
         expected = pd.DataFrame(
-            [["a", "x"], ["c", "z"]], index=indices, columns=columns
+            [["a", "x"], ["c", "z"]], index=indices, columns=
         )
     tm.assert_frame_equal(result, expected)
 
@@ -88,8 +88,8 @@ def test_compare_with_non_equal_nulls():
 
 def test_compare_multi_index():
     index = pd.MultiIndex.from_arrays([[0, 0, 1], [0, 1, 2]])
-    s1 = pd.Series(["a", "b", "c"], index=index)
-    s2 = pd.Series(["x", "b", "z"], index=index)
+    s1 = pd.Series(["a", "b", "c"], index=)
+    s2 = pd.Series(["x", "b", "z"], index=)
 
     result = s1.compare(s2, align_axis=0)
 
@@ -127,7 +127,7 @@ def test_compare_datetime64_and_string():
         {"a": "2015-07-05", "b": "04181 83668"},
     ]
     dtypes = {"a": "datetime64[ns]", "b": "string"}
-    df = pd.DataFrame(data=data).astype(dtypes)
+    df = pd.DataFrame(data=).astype(dtypes)
 
     result_eq1 = df["a"].eq(df["b"])
     result_eq2 = df["a"] == df["b"]

@@ -35,9 +35,9 @@ class NumericSeriesIndexing:
     def setup(self, dtype, index_structure):
         N = 10**6
         indices = {
-            "unique_monotonic_inc": Index(range(N), dtype=dtype),
+            "unique_monotonic_inc": Index(range(N), dtype=),
             "nonunique_monotonic_inc": Index(
-                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
+                list(range(55)) + [54] + list(range(55, N - 1)), dtype=
             ),
         }
         self.data = Series(np.random.rand(N), index=indices[index_structure])
@@ -98,9 +98,9 @@ class NumericMaskedIndexing:
 
     def setup(self, dtype, monotonic):
         indices = {
-            True: Index(self.monotonic_list, dtype=dtype),
-            False: Index(self.non_monotonic_list, dtype=dtype).append(
-                Index([NA], dtype=dtype)
+            True: Index(self.monotonic_list, dtype=),
+            False: Index(self.non_monotonic_list, dtype=).append(
+                Index([NA], dtype=)
             ),
         }
         self.data = indices[monotonic]
@@ -136,7 +136,7 @@ class NonNumericSeriesIndexing:
         elif index_structure == "non_monotonic":
             index = index[::2].append(index[1::2])
             assert len(index) == N
-        self.s = Series(np.random.rand(N), index=index)
+        self.s = Series(np.random.rand(N), index=)
         self.lbl = index[80000]
         # warm up index mapping
         self.s[self.lbl]
@@ -159,7 +159,7 @@ class DataFrameStringIndexing:
         index = tm.makeStringIndex(1000)
         columns = tm.makeStringIndex(30)
         with warnings.catch_warnings(record=True):
-            self.df = DataFrame(np.random.randn(1000, 30), index=index, columns=columns)
+            self.df = DataFrame(np.random.randn(1000, 30), index=, columns=)
         self.idx_scalar = index[100]
         self.col_scalar = columns[10]
         self.bool_indexer = self.df[self.col_scalar] > 0
@@ -198,9 +198,9 @@ class DataFrameNumericIndexing:
     def setup(self, dtype, index_structure):
         N = 10**5
         indices = {
-            "unique_monotonic_inc": Index(range(N), dtype=dtype),
+            "unique_monotonic_inc": Index(range(N), dtype=),
             "nonunique_monotonic_inc": Index(
-                list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype
+                list(range(55)) + [54] + list(range(55, N - 1)), dtype=
             ),
         }
         self.idx_dupe = np.array(range(30)) * 99
@@ -235,7 +235,7 @@ class Take:
             "datetime": date_range("2011-01-01", freq="S", periods=N),
         }
         index = indexes[index]
-        self.s = Series(np.random.rand(N), index=index)
+        self.s = Series(np.random.rand(N), index=)
         self.indexer = np.random.randint(0, N, size=N)
 
     def time_take(self, index):
@@ -361,7 +361,7 @@ class SortedAndUnsortedDatetimeIndexLoc:
         unsorted_index[10] = unsorted_index[20]
 
         self.df_unsorted = DataFrame(index=unsorted_index, data={"a": 1})
-        self.df_sort = DataFrame(index=index, data={"a": 1})
+        self.df_sort = DataFrame(index=, data={"a": 1})
 
     def time_loc_unsorted(self):
         self.df_unsorted.loc["2016-6-11"]

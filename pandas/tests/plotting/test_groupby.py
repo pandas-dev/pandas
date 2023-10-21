@@ -65,13 +65,13 @@ class TestDataFrameGroupByPlots:
         # GH10214
         bins = np.arange(80, 100 + 2, 1)
         df = DataFrame({"Name": ["AAA", "BBB"], "ByCol": [1, 2], "Mark": [85, 89]})
-        df["Mark"].hist(by=df["ByCol"], bins=bins)
+        df["Mark"].hist(by=df["ByCol"], bins=)
 
     def test_hist_single_row_single_bycol(self):
         # GH10214
         bins = np.arange(80, 100 + 2, 1)
         df = DataFrame({"Name": ["AAA"], "ByCol": [1], "Mark": [85]})
-        df["Mark"].hist(by=df["ByCol"], bins=bins)
+        df["Mark"].hist(by=df["ByCol"], bins=)
 
     def test_plot_submethod_works(self):
         df = DataFrame({"x": [1, 2, 3, 4, 5], "y": [1, 2, 3, 2, 1], "z": list("ababa")})
@@ -103,12 +103,12 @@ class TestDataFrameGroupByPlots:
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((30, 2)),
-            index=index,
+            index=,
             columns=["a", "b"],
         )
         g = df.groupby("c")
 
-        for axes in g.hist(legend=True, column=column):
+        for axes in g.hist(legend=True, column=):
             _check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
             for ax, expected_label in zip(axes[0], expected_labels):
                 _check_legend_labels(ax, expected_label)
@@ -119,20 +119,20 @@ class TestDataFrameGroupByPlots:
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((30, 2)),
-            index=index,
+            index=,
             columns=["a", "b"],
         )
         g = df.groupby("c")
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
-            g.hist(legend=True, column=column, label="d")
+            g.hist(legend=True, column=, label="d")
 
     def test_groupby_hist_series_with_legend(self):
         # GH 6279 - SeriesGroupBy histogram can have a legend
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((30, 2)),
-            index=index,
+            index=,
             columns=["a", "b"],
         )
         g = df.groupby("c")
@@ -146,7 +146,7 @@ class TestDataFrameGroupByPlots:
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((30, 2)),
-            index=index,
+            index=,
             columns=["a", "b"],
         )
         g = df.groupby("c")

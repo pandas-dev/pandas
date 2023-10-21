@@ -77,7 +77,7 @@ def assert_block_equal(left, right):
 def get_numeric_mat(shape):
     arr = np.arange(shape[0])
     return np.lib.stride_tricks.as_strided(
-        x=arr, shape=shape, strides=(arr.itemsize,) + (0,) * (len(shape) - 1)
+        x=arr, shape=, strides=(arr.itemsize,) + (0,) * (len(shape) - 1)
     ).copy()
 
 
@@ -142,7 +142,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
         assert m is not None, f"incompatible typestr -> {typestr}"
         tz = m.groups()[0]
         assert num_items == 1, "must have only 1 num items for a tz-aware"
-        values = DatetimeIndex(np.arange(N) * 10**9, tz=tz)._data
+        values = DatetimeIndex(np.arange(N) * 10**9, tz=)._data
         values = ensure_block_shape(values, ndim=len(shape))
     elif typestr in ("timedelta", "td", "m8[ns]"):
         values = (mat * 1).astype("m8[ns]")
@@ -162,7 +162,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
             fill_value = 0.0
         values = SparseArray(
             [fill_value, fill_value, 1, 2, 3, fill_value, 4, 5, fill_value, 6],
-            fill_value=fill_value,
+            fill_value=,
         )
         arr = values.sp_values.view()
         arr += num_offset - 1
@@ -170,7 +170,7 @@ def create_block(typestr, placement, item_shape=None, num_offset=0, maker=new_bl
         raise ValueError(f'Unsupported typestr: "{typestr}"')
 
     values = maybe_coerce_values(values)
-    return maker(values, placement=placement, ndim=len(shape))
+    return maker(values, placement=, ndim=len(shape))
 
 
 def create_single_mgr(typestr, num_rows=None):
@@ -233,9 +233,7 @@ def create_mgr(descr, item_shape=None):
     for blockstr, placement in block_placements.items():
         typestr = blockstr.split("-")[0]
         blocks.append(
-            create_block(
-                typestr, placement, item_shape=item_shape, num_offset=num_offset
-            )
+            create_block(typestr, placement, item_shape=, num_offset=)
         )
         num_offset += len(placement)
 
@@ -959,7 +957,7 @@ class TestIndexing:
                     )
 
             if isinstance(slobj, slice):
-                sliced = mgr.get_slice(slobj, axis=axis)
+                sliced = mgr.get_slice(slobj, axis=)
             elif (
                 mgr.ndim == 1
                 and axis == 0
@@ -1030,9 +1028,9 @@ class TestIndexing:
             mat = _as_array(mgr)
             indexer = mgr.axes[axis].get_indexer_for(new_labels)
 
-            reindexed = mgr.reindex_axis(new_labels, axis, fill_value=fill_value)
+            reindexed = mgr.reindex_axis(new_labels, axis, fill_value=)
             tm.assert_numpy_array_equal(
-                algos.take_nd(mat, indexer, axis, fill_value=fill_value),
+                algos.take_nd(mat, indexer, axis, fill_value=),
                 _as_array(reindexed),
                 check_dtype=False,
             )
@@ -1059,9 +1057,9 @@ class TestIndexing:
     def test_reindex_indexer(self, fill_value, mgr):
         def assert_reindex_indexer_is_ok(mgr, axis, new_labels, indexer, fill_value):
             mat = _as_array(mgr)
-            reindexed_mat = algos.take_nd(mat, indexer, axis, fill_value=fill_value)
+            reindexed_mat = algos.take_nd(mat, indexer, axis, fill_value=)
             reindexed = mgr.reindex_indexer(
-                new_labels, indexer, axis, fill_value=fill_value
+                new_labels, indexer, axis, fill_value=
             )
             tm.assert_numpy_array_equal(
                 reindexed_mat, _as_array(reindexed), check_dtype=False
@@ -1309,7 +1307,7 @@ class TestCanHoldElement:
 
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_interval_can_hold_element_emptylist(self, dtype, element):
-        arr = np.array([1, 3, 4], dtype=dtype)
+        arr = np.array([1, 3, 4], dtype=)
         ii = IntervalIndex.from_breaks(arr)
         blk = new_block(ii._data, BlockPlacement([1]), ndim=2)
 
@@ -1318,7 +1316,7 @@ class TestCanHoldElement:
 
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64, np.float64])
     def test_interval_can_hold_element(self, dtype, element):
-        arr = np.array([1, 3, 4, 9], dtype=dtype)
+        arr = np.array([1, 3, 4, 9], dtype=)
         ii = IntervalIndex.from_breaks(arr)
         blk = new_block(ii._data, BlockPlacement([1]), ndim=2)
 

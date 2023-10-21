@@ -305,7 +305,7 @@ class TestCategoricalAPI:
     def test_set_categories_many(self, values, categories, new_categories, ordered):
         c = Categorical(values, categories)
         expected = Categorical(values, new_categories, ordered)
-        result = c.set_categories(new_categories, ordered=ordered)
+        result = c.set_categories(new_categories, ordered=)
         tm.assert_categorical_equal(result, expected)
 
     def test_set_categories_rename_less(self):

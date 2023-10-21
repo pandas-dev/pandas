@@ -45,7 +45,7 @@ def test_astype_single_dtype(using_copy_on_write):
 def test_astype_avoids_copy(using_copy_on_write, dtype, new_dtype):
     if new_dtype == "int64[pyarrow]" and pa_version_under7p0:
         pytest.skip("pyarrow not installed")
-    df = DataFrame({"a": [1, 2, 3]}, dtype=dtype)
+    df = DataFrame({"a": [1, 2, 3]}, dtype=)
     df_orig = df.copy()
     df2 = df.astype(new_dtype)
 
@@ -99,7 +99,7 @@ def test_astype_numpy_to_ea():
     "dtype, new_dtype", [("object", "string"), ("string", "object")]
 )
 def test_astype_string_and_object(using_copy_on_write, dtype, new_dtype):
-    df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
+    df = DataFrame({"a": ["a", "b", "c"]}, dtype=)
     df_orig = df.copy()
     df2 = df.astype(new_dtype)
 
@@ -118,7 +118,7 @@ def test_astype_string_and_object(using_copy_on_write, dtype, new_dtype):
 def test_astype_string_and_object_update_original(
     using_copy_on_write, dtype, new_dtype
 ):
-    df = DataFrame({"a": ["a", "b", "c"]}, dtype=dtype)
+    df = DataFrame({"a": ["a", "b", "c"]}, dtype=)
     df2 = df.astype(new_dtype)
     df_orig = df2.copy()
 

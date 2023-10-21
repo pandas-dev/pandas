@@ -346,7 +346,7 @@ class CSSResolver:
                 CSSWarning,
                 stacklevel=find_stack_level(),
             )
-            return self.size_to_pt("1!!default", conversions=conversions)
+            return self.size_to_pt("1!!default", conversions=)
 
         match = re.match(r"^(\S*?)([a-zA-Z%!].*)", in_val)
         if match is None:

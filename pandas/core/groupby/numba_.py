@@ -98,7 +98,7 @@ def generate_numba_agg_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nopython=, nogil=, parallel=)
     def group_agg(
         values: np.ndarray,
         index: np.ndarray,
@@ -158,7 +158,7 @@ def generate_numba_transform_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nopython=, nogil=, parallel=)
     def group_transform(
         values: np.ndarray,
         index: np.ndarray,

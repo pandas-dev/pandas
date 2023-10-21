@@ -210,10 +210,10 @@ def get_dummies(
                 col[1],
                 prefix=pre,
                 prefix_sep=sep,
-                dummy_na=dummy_na,
-                sparse=sparse,
-                drop_first=drop_first,
-                dtype=dtype,
+                dummy_na=,
+                sparse=,
+                drop_first=,
+                dtype=,
             )
             with_dummies.append(dummy)
         result = concat(with_dummies, axis=1)
@@ -223,9 +223,9 @@ def get_dummies(
             prefix,
             prefix_sep,
             dummy_na,
-            sparse=sparse,
-            drop_first=drop_first,
-            dtype=dtype,
+            sparse=,
+            drop_first=,
+            dtype=,
         )
     return result
 
@@ -257,7 +257,7 @@ def _get_dummies_1d(
             index = data.index
         else:
             index = default_index(len(data))
-        return DataFrame(index=index)
+        return DataFrame(index=)
 
     # if all NaN
     if not dummy_na and len(levels) == 0:
@@ -311,12 +311,12 @@ def _get_dummies_1d(
             dummy_cols = dummy_cols[1:]
         for col, ixs in zip(dummy_cols, sp_indices):
             sarr = SparseArray(
-                np.ones(len(ixs), dtype=dtype),
+                np.ones(len(ixs), dtype=),
                 sparse_index=IntIndex(N, ixs),
-                fill_value=fill_value,
-                dtype=dtype,
+                fill_value=,
+                dtype=,
             )
-            sparse_series.append(Series(data=sarr, index=index, name=col, copy=False))
+            sparse_series.append(Series(data=sarr, index=, name=col, copy=False))
 
         return concat(sparse_series, axis=1, copy=False)
 
@@ -337,7 +337,7 @@ def _get_dummies_1d(
             # remove first GH12042
             dummy_mat = dummy_mat[:, 1:]
             dummy_cols = dummy_cols[1:]
-        return DataFrame(dummy_mat, index=index, columns=dummy_cols, dtype=_dtype)
+        return DataFrame(dummy_mat, index=, columns=dummy_cols, dtype=_dtype)
 
 
 def from_dummies(

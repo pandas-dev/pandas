@@ -571,14 +571,14 @@ for name, data in ext_data.items():
 
     obj = Extension(
         f"pandas.{name}",
-        sources=sources,
+        sources=,
         depends=data.get("depends", []),
         include_dirs=include,
         language=data.get("language", "c"),
         define_macros=data.get("macros", macros),
-        extra_compile_args=extra_compile_args,
-        extra_link_args=extra_link_args,
-        undef_macros=undef_macros,
+        extra_compile_args=,
+        extra_link_args=,
+        undef_macros=,
     )
 
     extensions.append(obj)
@@ -613,7 +613,7 @@ ujson_ext = Extension(
         numpy.get_include(),
     ],
     extra_compile_args=(extra_compile_args),
-    extra_link_args=extra_link_args,
+    extra_link_args=,
     define_macros=macros,
 )
 
@@ -640,7 +640,7 @@ pd_dt_ext = Extension(
         numpy.get_include(),
     ],
     extra_compile_args=(extra_compile_args),
-    extra_link_args=extra_link_args,
+    extra_link_args=,
     define_macros=macros,
 )
 
@@ -665,7 +665,7 @@ pd_parser_ext = Extension(
         "pandas/_libs/include",
     ],
     extra_compile_args=(extra_compile_args),
-    extra_link_args=extra_link_args,
+    extra_link_args=,
     define_macros=macros,
 )
 
@@ -682,5 +682,5 @@ if __name__ == "__main__":
     setup(
         version=versioneer.get_version(),
         ext_modules=maybe_cythonize(extensions, compiler_directives=directives),
-        cmdclass=cmdclass,
+        cmdclass=,
     )

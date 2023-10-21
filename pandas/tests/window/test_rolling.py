@@ -123,7 +123,7 @@ def test_constructor_with_timedelta_window(window):
     )
     expected_data = np.append([0.0, 1.0], np.arange(3.0, 27.0, 3))
 
-    result = df.rolling(window=window).sum()
+    result = df.rolling(window=).sum()
     expected = DataFrame(
         {"value": expected_data},
         index=date_range("2015-12-24", periods=n, freq="D"),
@@ -145,8 +145,8 @@ def test_constructor_timedelta_window_and_minperiods(window, raw):
         {"value": np.append([np.nan, 1.0], np.arange(3.0, 27.0, 3))},
         index=date_range("2017-08-08", periods=n, freq="D"),
     )
-    result_roll_sum = df.rolling(window=window, min_periods=2).sum()
-    result_roll_generic = df.rolling(window=window, min_periods=2).apply(sum, raw=raw)
+    result_roll_sum = df.rolling(window=, min_periods=2).sum()
+    result_roll_generic = df.rolling(window=, min_periods=2).apply(sum, raw=)
     tm.assert_frame_equal(result_roll_sum, expected)
     tm.assert_frame_equal(result_roll_generic, expected)
 
@@ -158,11 +158,11 @@ def test_closed_fixed(closed, arithmetic_win_operators):
     df_time = DataFrame({"A": [0, 1, 2, 3, 4]}, index=date_range("2020", periods=5))
 
     result = getattr(
-        df_fixed.rolling(2, closed=closed, min_periods=1),
+        df_fixed.rolling(2, closed=, min_periods=1),
         func_name,
     )()
     expected = getattr(
-        df_time.rolling("2D", closed=closed, min_periods=1),
+        df_time.rolling("2D", closed=, min_periods=1),
         func_name,
     )().reset_index(drop=True)
 
@@ -234,7 +234,7 @@ def test_datetimelike_centered_selections(
         kwargs = {}
 
     result = getattr(
-        df_time.rolling("2D", closed=closed, min_periods=1, center=True),
+        df_time.rolling("2D", closed=, min_periods=1, center=True),
         func_name,
     )(**kwargs)
 
@@ -264,10 +264,10 @@ def test_datetimelike_centered_offset_covers_all(
         Timestamp("20130101 09:00:02"),
         Timestamp("20130101 09:00:02"),
     ]
-    df = frame_or_series([1, 1, 1], index=index)
+    df = frame_or_series([1, 1, 1], index=)
 
-    result = df.rolling(window, closed=closed, center=True).sum()
-    expected = frame_or_series(expected, index=index)
+    result = df.rolling(window, closed=, center=True).sum()
+    expected = frame_or_series(expected, index=)
     tm.assert_equal(result, expected)
 
 
@@ -296,10 +296,10 @@ def test_datetimelike_nonunique_index_centering(
         ]
     )
 
-    df = frame_or_series([1] * 8, index=index, dtype=float)
-    expected = frame_or_series(expected, index=index, dtype=float)
+    df = frame_or_series([1] * 8, index=, dtype=float)
+    expected = frame_or_series(expected, index=, dtype=float)
 
-    result = df.rolling(window, center=True, closed=closed).sum()
+    result = df.rolling(window, center=True, closed=).sum()
 
     tm.assert_equal(result, expected)
 
@@ -330,10 +330,10 @@ def test_variable_window_nonunique(closed, expected, frame_or_series):
         ]
     )
 
-    df = frame_or_series(range(10), index=index, dtype=float)
-    expected = frame_or_series(expected, index=index, dtype=float)
+    df = frame_or_series(range(10), index=, dtype=float)
+    expected = frame_or_series(expected, index=, dtype=float)
 
-    result = df.rolling("2D", closed=closed).sum()
+    result = df.rolling("2D", closed=).sum()
 
     tm.assert_equal(result, expected)
 
@@ -364,12 +364,12 @@ def test_variable_offset_window_nonunique(closed, expected, frame_or_series):
         ]
     )
 
-    df = frame_or_series(range(10), index=index, dtype=float)
-    expected = frame_or_series(expected, index=index, dtype=float)
+    df = frame_or_series(range(10), index=, dtype=float)
+    expected = frame_or_series(expected, index=, dtype=float)
 
     offset = BusinessDay(2)
-    indexer = VariableOffsetWindowIndexer(index=index, offset=offset)
-    result = df.rolling(indexer, closed=closed, min_periods=1).sum()
+    indexer = VariableOffsetWindowIndexer(index=, offset=)
+    result = df.rolling(indexer, closed=, min_periods=1).sum()
 
     tm.assert_equal(result, expected)
 
@@ -408,7 +408,7 @@ def test_closed_fixed_binary_col(center, step):
     )[::step]
 
     rolling = df.rolling(
-        window=len(df), closed="left", min_periods=1, center=center, step=step
+        window=len(df), closed="left", min_periods=1, center=, step=
     )
     result = rolling.mean()
     tm.assert_frame_equal(result, expected)
@@ -419,7 +419,7 @@ def test_closed_empty(closed, arithmetic_win_operators):
     # GH 26005
     func_name = arithmetic_win_operators
     ser = Series(data=np.arange(5), index=date_range("2000", periods=5, freq="2D"))
-    roll = ser.rolling("1D", closed=closed)
+    roll = ser.rolling("1D", closed=)
 
     result = getattr(roll, func_name)()
     expected = Series([np.nan] * 5, index=ser.index)
@@ -470,7 +470,7 @@ def test_closed_min_max_datetime(input_dtype, func, closed, expected):
         index=date_range("2000", periods=10),
     )
 
-    result = getattr(ser.rolling("3D", closed=closed), func)()
+    result = getattr(ser.rolling("3D", closed=), func)()
     expected = Series(expected, index=ser.index)
     tm.assert_series_equal(result, expected)
 
@@ -505,7 +505,7 @@ def test_closed_min_max_minp(func, closed, expected):
     # Explicit cast to float to avoid implicit cast when setting nan
     ser = ser.astype("float")
     ser[ser.index[-3:]] = np.nan
-    result = getattr(ser.rolling("3D", min_periods=2, closed=closed), func)()
+    result = getattr(ser.rolling("3D", min_periods=2, closed=), func)()
     expected = Series(expected, index=ser.index)
     tm.assert_series_equal(result, expected)
 
@@ -522,7 +522,7 @@ def test_closed_min_max_minp(func, closed, expected):
 def test_closed_median_quantile(closed, expected):
     # GH 26005
     ser = Series(data=np.arange(10), index=date_range("2000", periods=10))
-    roll = ser.rolling("3D", closed=closed)
+    roll = ser.rolling("3D", closed=)
     expected = Series(expected, index=ser.index)
 
     result = roll.median()
@@ -643,7 +643,7 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
     # GH-28192
     tz = tz_naive_fixture
     df = DataFrame(
-        {i: [1] * 2 for i in date_range("2019-8-01", "2019-08-03", freq="D", tz=tz)}
+        {i: [1] * 2 for i in date_range("2019-8-01", "2019-08-03", freq="D", tz=)}
     )
 
     if axis_frame in [0, "index"]:
@@ -658,11 +658,11 @@ def test_rolling_datetime(axis_frame, tz_naive_fixture):
         {
             **{
                 i: [1.0] * 2
-                for i in date_range("2019-8-01", periods=1, freq="D", tz=tz)
+                for i in date_range("2019-8-01", periods=1, freq="D", tz=)
             },
             **{
                 i: [2.0] * 2
-                for i in date_range("2019-8-02", "2019-8-03", freq="D", tz=tz)
+                for i in date_range("2019-8-02", "2019-8-03", freq="D", tz=)
             },
         }
     )
@@ -679,7 +679,7 @@ def test_rolling_window_as_string(center):
     df = DataFrame({"DateCol": days, "metric": data})
 
     df.set_index("DateCol", inplace=True)
-    result = df.rolling(window="21D", min_periods=2, closed="left", center=center)[
+    result = df.rolling(window="21D", min_periods=2, closed="left", center=)[
         "metric"
     ].agg("max")
 
@@ -688,7 +688,7 @@ def test_rolling_window_as_string(center):
     expected_data = np.ones(len(days), dtype=np.float64)
     if not center:
         expected_data[:2] = np.nan
-    expected = Series(expected_data, index=index, name="metric")
+    expected = Series(expected_data, index=, name="metric")
     tm.assert_series_equal(result, expected)
 
 
@@ -788,9 +788,9 @@ def test_rolling_count_default_min_periods_with_null_values(frame_or_series):
 )
 def test_iter_rolling_dataframe(df, expected, window, min_periods):
     # GH 11704
-    expected = [DataFrame(values, index=index) for (values, index) in expected]
+    expected = [DataFrame(values, index=) for (values, index) in expected]
 
-    for expected, actual in zip(expected, df.rolling(window, min_periods=min_periods)):
+    for expected, actual in zip(expected, df.rolling(window, min_periods=)):
         tm.assert_frame_equal(actual, expected)
 
 
@@ -884,9 +884,9 @@ def test_iter_rolling_on_dataframe_unordered():
 )
 def test_iter_rolling_series(ser, expected, window, min_periods):
     # GH 11704
-    expected = [Series(values, index=index) for (values, index) in expected]
+    expected = [Series(values, index=) for (values, index) in expected]
 
-    for expected, actual in zip(expected, ser.rolling(window, min_periods=min_periods)):
+    for expected, actual in zip(expected, ser.rolling(window, min_periods=)):
         tm.assert_series_equal(actual, expected)
 
 
@@ -972,7 +972,7 @@ def test_rolling_positional_argument(grouping, _index, raw):
     # GH 40341
     if "by" in grouping:
         expected = expected.drop(columns="X", errors="ignore")
-    result = df.groupby(**grouping).rolling(1).apply(scaled_sum, raw=raw, args=(2,))
+    result = df.groupby(**grouping).rolling(1).apply(scaled_sum, raw=, args=(2,))
     tm.assert_frame_equal(result, expected)
 
 
@@ -1023,7 +1023,7 @@ def test_rolling_numerical_accuracy_jump():
     )
     data = np.random.default_rng(2).random(len(index))
 
-    df = DataFrame({"data": data}, index=index)
+    df = DataFrame({"data": data}, index=)
     result = df.rolling("60s").mean()
     tm.assert_frame_equal(result, df[["data"]])
 
@@ -1156,9 +1156,9 @@ def test_rolling_on_df_transposed():
 )
 def test_rolling_period_index(index, window, func, values):
     # GH: 34225
-    ds = Series([0, 1, 2, 3, 4, 5, 6, 7, 8], index=index)
+    ds = Series([0, 1, 2, 3, 4, 5, 6, 7, 8], index=)
     result = getattr(ds.rolling(window, closed="left"), func)()
-    expected = Series(values, index=index)
+    expected = Series(values, index=)
     tm.assert_series_equal(result, expected)
 
 
@@ -1293,14 +1293,14 @@ def test_rolling_decreasing_indices_centered(window, closed, expected, frame_or_
     #  GH 43927
 
     index = date_range("2020", periods=4, freq="1s")
-    df_inc = frame_or_series(range(4), index=index)
+    df_inc = frame_or_series(range(4), index=)
     df_dec = frame_or_series(range(4), index=index[::-1])
 
-    expected_inc = frame_or_series(expected, index=index)
+    expected_inc = frame_or_series(expected, index=)
     expected_dec = frame_or_series(expected, index=index[::-1])
 
-    result_inc = df_inc.rolling(window, closed=closed, center=True).sum()
-    result_dec = df_dec.rolling(window, closed=closed, center=True).sum()
+    result_inc = df_inc.rolling(window, closed=, center=True).sum()
+    result_dec = df_dec.rolling(window, closed=, center=True).sum()
 
     tm.assert_equal(result_inc, expected_inc)
     tm.assert_equal(result_dec, expected_dec)
@@ -1317,9 +1317,9 @@ def test_rolling_center_nanosecond_resolution(
     window, closed, expected, frame_or_series
 ):
     index = date_range("2020", periods=4, freq="1ns")
-    df = frame_or_series([1, 1, 1, 1], index=index, dtype=float)
-    expected = frame_or_series(expected, index=index, dtype=float)
-    result = df.rolling(window, closed=closed, center=True).sum()
+    df = frame_or_series([1, 1, 1, 1], index=, dtype=float)
+    expected = frame_or_series(expected, index=, dtype=float)
+    result = df.rolling(window, closed=, center=True).sum()
     tm.assert_equal(result, expected)
 
 
@@ -1401,7 +1401,7 @@ def test_rolling_non_monotonic(method, expected):
                     end[i] = i + self.window_size
             return start, end
 
-    indexer = CustomIndexer(window_size=4, use_expanding=use_expanding)
+    indexer = CustomIndexer(window_size=4, use_expanding=)
 
     result = getattr(df.rolling(indexer), method)()
     expected = DataFrame({"values": expected})
@@ -1417,11 +1417,11 @@ def test_rolling_non_monotonic(method, expected):
 )
 def test_rolling_corr_timedelta_index(index, window):
     # GH: 31286
-    x = Series([1, 2, 3, 4, 5], index=index)
+    x = Series([1, 2, 3, 4, 5], index=)
     y = x.copy()
     x.iloc[0:2] = 0.0
     result = x.rolling(window).corr(y)
-    expected = Series([np.nan, np.nan, 1, 1, 1], index=index)
+    expected = Series([np.nan, np.nan, 1, 1, 1], index=)
     tm.assert_almost_equal(result, expected)
 
 
@@ -1650,9 +1650,9 @@ def test_rank(window, method, pct, ascending, test_data):
         )
 
     expected = ser.rolling(window).apply(
-        lambda x: x.rank(method=method, pct=pct, ascending=ascending).iloc[-1]
+        lambda x: x.rank(method=, pct=, ascending=).iloc[-1]
     )
-    result = ser.rolling(window).rank(method=method, pct=pct, ascending=ascending)
+    result = ser.rolling(window).rank(method=, pct=, ascending=)
 
     tm.assert_series_equal(result, expected)
 
@@ -1832,7 +1832,7 @@ def test_rolling_var_same_value_count_logic(values, window, min_periods, expecte
 
     # With new algo implemented, result will be set to .0 in rolling var
     # if sufficient amount of consecutively same values are found.
-    result_var = sr.rolling(window, min_periods=min_periods).var()
+    result_var = sr.rolling(window, min_periods=).var()
 
     # use `assert_series_equal` twice to check for equality,
     # because `check_exact=True` will fail in 32-bit tests due to
@@ -1846,7 +1846,7 @@ def test_rolling_var_same_value_count_logic(values, window, min_periods, expecte
     tm.assert_series_equal(expected == 0, result_var == 0)
 
     # std should also pass as it's just a sqrt of var
-    result_std = sr.rolling(window, min_periods=min_periods).std()
+    result_std = sr.rolling(window, min_periods=).std()
     tm.assert_series_equal(result_std, np.sqrt(expected))
     tm.assert_series_equal(expected == 0, result_std == 0)
 
@@ -1880,7 +1880,7 @@ def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
     df["c"] = df["c"].astype(object)
     rolling = df.rolling(2, min_periods=1)
     op = getattr(rolling, kernel)
-    result = op(numeric_only=numeric_only)
+    result = op(numeric_only=)
 
     columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
     expected = df[columns].agg([kernel]).reset_index(drop=True).astype(float)
@@ -1898,7 +1898,7 @@ def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
     arg = (df,) if use_arg else ()
     rolling = df.rolling(2, min_periods=1)
     op = getattr(rolling, kernel)
-    result = op(*arg, numeric_only=numeric_only)
+    result = op(*arg, numeric_only=)
 
     # Compare result to op using float dtypes, dropping c when numeric_only is True
     columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
@@ -1906,7 +1906,7 @@ def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
     arg2 = (df2,) if use_arg else ()
     rolling2 = df2.rolling(2, min_periods=1)
     op2 = getattr(rolling2, kernel)
-    expected = op2(*arg2, numeric_only=numeric_only)
+    expected = op2(*arg2, numeric_only=)
 
     tm.assert_frame_equal(result, expected)
 
@@ -1915,15 +1915,15 @@ def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
 def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
     # GH#46560
     kernel = arithmetic_win_operators
-    ser = Series([1], dtype=dtype)
+    ser = Series([1], dtype=)
     rolling = ser.rolling(2, min_periods=1)
     op = getattr(rolling, kernel)
     if numeric_only and dtype is object:
         msg = f"Rolling.{kernel} does not implement numeric_only"
         with pytest.raises(NotImplementedError, match=msg):
-            op(numeric_only=numeric_only)
+            op(numeric_only=)
     else:
-        result = op(numeric_only=numeric_only)
+        result = op(numeric_only=)
         expected = ser.agg([kernel]).reset_index(drop=True).astype(float)
         tm.assert_series_equal(result, expected)
 
@@ -1933,20 +1933,20 @@ def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
 @pytest.mark.parametrize("dtype", [int, object])
 def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
     # GH#46560
-    ser = Series([1, 2, 3], dtype=dtype)
+    ser = Series([1, 2, 3], dtype=)
     arg = (ser,) if use_arg else ()
     rolling = ser.rolling(2, min_periods=1)
     op = getattr(rolling, kernel)
     if numeric_only and dtype is object:
         msg = f"Rolling.{kernel} does not implement numeric_only"
         with pytest.raises(NotImplementedError, match=msg):
-            op(*arg, numeric_only=numeric_only)
+            op(*arg, numeric_only=)
     else:
-        result = op(*arg, numeric_only=numeric_only)
+        result = op(*arg, numeric_only=)
 
         ser2 = ser.astype(float)
         arg2 = (ser2,) if use_arg else ()
         rolling2 = ser2.rolling(2, min_periods=1)
         op2 = getattr(rolling2, kernel)
-        expected = op2(*arg2, numeric_only=numeric_only)
+        expected = op2(*arg2, numeric_only=)
         tm.assert_series_equal(result, expected)

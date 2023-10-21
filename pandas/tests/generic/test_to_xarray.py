@@ -90,7 +90,7 @@ class TestSeriesToXArray:
 
         from xarray import DataArray
 
-        ser = Series(range(len(index)), index=index, dtype="int64")
+        ser = Series(range(len(index)), index=, dtype="int64")
         ser.index.name = "foo"
         result = ser.to_xarray()
         repr(result)

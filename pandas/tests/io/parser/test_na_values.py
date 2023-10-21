@@ -93,7 +93,7 @@ def test_non_string_na_values(all_parsers, data, na_values):
     parser = all_parsers
     expected = DataFrame([[np.nan, 1.2], [2.0, np.nan], [3.0, 4.5]], columns=["A", "B"])
 
-    result = parser.read_csv(StringIO(data), na_values=na_values)
+    result = parser.read_csv(StringIO(data), na_values=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -159,7 +159,7 @@ ignore,this,row
     expected = DataFrame(
         [[1.0, np.nan, 3], [np.nan, 5, np.nan], [7, 8, np.nan]], columns=["A", "B", "C"]
     )
-    result = parser.read_csv(StringIO(data), na_values=na_values, skiprows=[1])
+    result = parser.read_csv(StringIO(data), na_values=, skiprows=[1])
     tm.assert_frame_equal(result, expected)
 
 
@@ -232,7 +232,7 @@ a,b,c,d
 0,NA,1,5
 """
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), na_values=set(), index_col=index_col)
+    result = parser.read_csv(StringIO(data), na_values=set(), index_col=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -399,7 +399,7 @@ nan,B
 3,C
 """
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), na_values=["B"], na_filter=na_filter)
+    result = parser.read_csv(StringIO(data), na_values=["B"], na_filter=)
 
     expected = DataFrame(row_data, columns=["A", "B"])
     tm.assert_frame_equal(result, expected)
@@ -449,7 +449,7 @@ def test_na_values_scalar(all_parsers, na_values, row_data):
     names = ["a", "b"]
     data = "1,2\n2,1"
 
-    result = parser.read_csv(StringIO(data), names=names, na_values=na_values)
+    result = parser.read_csv(StringIO(data), names=, na_values=)
     expected = DataFrame(row_data, columns=names)
     tm.assert_frame_equal(result, expected)
 
@@ -464,7 +464,7 @@ def test_na_values_dict_aliasing(all_parsers):
     data = "1,2\n2,1"
 
     expected = DataFrame([[1.0, 2.0], [np.nan, np.nan]], columns=names)
-    result = parser.read_csv(StringIO(data), names=names, na_values=na_values)
+    result = parser.read_csv(StringIO(data), names=, na_values=)
 
     tm.assert_frame_equal(result, expected)
     tm.assert_dict_equal(na_values, na_values_copy)
@@ -477,7 +477,7 @@ def test_na_values_dict_col_index(all_parsers):
     parser = all_parsers
     na_values = {0: "foo"}
 
-    result = parser.read_csv(StringIO(data), na_values=na_values)
+    result = parser.read_csv(StringIO(data), na_values=)
     expected = DataFrame({"a": [np.nan, 1]})
     tm.assert_frame_equal(result, expected)
 
@@ -525,7 +525,7 @@ def test_no_na_filter_on_index(all_parsers, na_filter, index_data):
     data = "a,b,c\n1,,3\n4,5,6"
 
     expected = DataFrame({"a": [1, 4], "c": [3, 6]}, index=Index(index_data, name="b"))
-    result = parser.read_csv(StringIO(data), index_col=[1], na_filter=na_filter)
+    result = parser.read_csv(StringIO(data), index_col=[1], na_filter=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -554,7 +554,7 @@ def test_na_values_with_dtype_str_and_na_filter(all_parsers, na_filter):
     empty = np.nan if na_filter else ""
     expected = DataFrame({"a": ["1", "4"], "b": [empty, "5"], "c": ["3", "6"]})
 
-    result = parser.read_csv(StringIO(data), na_filter=na_filter, dtype=str)
+    result = parser.read_csv(StringIO(data), na_filter=, dtype=str)
     tm.assert_frame_equal(result, expected)
 
 
@@ -583,7 +583,7 @@ def test_cast_NA_to_bool_raises_error(all_parsers, data, na_values):
             header=None,
             names=["a", "b"],
             dtype={"a": "bool"},
-            na_values=na_values,
+            na_values=,
         )
 
 

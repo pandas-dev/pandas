@@ -59,7 +59,7 @@ class PyTablesScope(_scope.Scope):
         local_dict=None,
         queryables: dict[str, Any] | None = None,
     ) -> None:
-        super().__init__(level + 1, global_dict=global_dict, local_dict=local_dict)
+        super().__init__(level + 1, global_dict=, local_dict=)
         self.queryables = queryables or {}
 
 
@@ -74,7 +74,7 @@ class Term(ops.Term):
         return object.__new__(klass)
 
     def __init__(self, name, env: PyTablesScope, side=None, encoding=None) -> None:
-        super().__init__(name, env, side=side, encoding=encoding)
+        super().__init__(name, env, side=, encoding=)
 
     def _resolve_name(self):
         # must be a queryables
@@ -99,7 +99,7 @@ class Term(ops.Term):
 class Constant(Term):
     def __init__(self, name, env: PyTablesScope, side=None, encoding=None) -> None:
         assert isinstance(env, PyTablesScope), type(env)
-        super().__init__(name, env, side=side, encoding=encoding)
+        super().__init__(name, env, side=, encoding=)
 
     def _resolve_name(self):
         return self._name
@@ -596,16 +596,16 @@ class PyTablesExpr(expr.Expr):
             _where = where
 
         self.expr = _where
-        self.env = PyTablesScope(scope_level + 1, local_dict=local_dict)
+        self.env = PyTablesScope(scope_level + 1, local_dict=)
 
         if queryables is not None and isinstance(self.expr, str):
             self.env.queryables.update(queryables)
             self._visitor = PyTablesExprVisitor(
                 self.env,
-                queryables=queryables,
+                queryables=,
                 parser="pytables",
                 engine="pytables",
-                encoding=encoding,
+                encoding=,
             )
             self.terms = self.parse()
 

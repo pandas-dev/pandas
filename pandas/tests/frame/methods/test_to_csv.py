@@ -160,7 +160,7 @@ class TestDataFrameToCSV:
         cols = [cs[2], cs[0]]
 
         with tm.ensure_clean() as path:
-            df.to_csv(path, columns=cols, chunksize=chunksize)
+            df.to_csv(path, columns=cols, chunksize=)
             rs_c = read_csv(path, index_col=0)
 
         tm.assert_frame_equal(df[cols], rs_c, check_names=False)
@@ -174,7 +174,7 @@ class TestDataFrameToCSV:
         df = tm.makeCustomDataframe(N, 3)
         df.columns = ["a", "a", "b"]
         with tm.ensure_clean() as path:
-            df.to_csv(path, columns=cols, chunksize=chunksize)
+            df.to_csv(path, columns=cols, chunksize=)
             rs_c = read_csv(path, index_col=0)
 
             # we wrote them in a different order
@@ -220,7 +220,7 @@ class TestDataFrameToCSV:
 
         with tm.ensure_clean("1.csv") as pth:
             df = DataFrame({"a": s1, "b": s2})
-            df.to_csv(pth, chunksize=chunksize)
+            df.to_csv(pth, chunksize=)
 
             recons = self.read_csv(pth).apply(to_datetime)
             tm.assert_frame_equal(df, recons, check_names=False)
@@ -242,13 +242,13 @@ class TestDataFrameToCSV:
             kwargs["header"] = list(range(cnlvl))
 
             with tm.ensure_clean("__tmp_to_csv_moar__") as path:
-                df.to_csv(path, encoding="utf8", chunksize=chunksize)
+                df.to_csv(path, encoding="utf8", chunksize=)
                 recons = self.read_csv(path, **kwargs)
         else:
             kwargs["header"] = 0
 
             with tm.ensure_clean("__tmp_to_csv_moar__") as path:
-                df.to_csv(path, encoding="utf8", chunksize=chunksize)
+                df.to_csv(path, encoding="utf8", chunksize=)
                 recons = self.read_csv(path, **kwargs)
 
         def _to_uni(x):
@@ -349,9 +349,7 @@ class TestDataFrameToCSV:
     @pytest.mark.parametrize("ncols", [1, 2, 3, 4])
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_to_csv_idx_types(self, nrows, r_idx_type, c_idx_type, ncols):
-        df = tm.makeCustomDataframe(
-            nrows, ncols, r_idx_type=r_idx_type, c_idx_type=c_idx_type
-        )
+        df = tm.makeCustomDataframe(nrows, ncols, r_idx_type=, c_idx_type=)
         result, expected = self._return_result_expected(
             df,
             1000,
@@ -539,7 +537,7 @@ class TestDataFrameToCSV:
                 return DataFrame(
                     np.random.default_rng(2).integers(0, 10, size=(3, 3)),
                     columns=MultiIndex.from_tuples(
-                        [("bah", "foo"), ("bah", "bar"), ("ban", "baz")], names=names
+                        [("bah", "foo"), ("bah", "bar"), ("ban", "baz")], names=
                     ),
                     dtype="int64",
                 )
@@ -759,7 +757,7 @@ class TestDataFrameToCSV:
         aa["D"] = aa.A + 3.0
 
         with tm.ensure_clean() as filename:
-            aa.to_csv(filename, chunksize=chunksize)
+            aa.to_csv(filename, chunksize=)
             rs = read_csv(filename, index_col=0)
             tm.assert_frame_equal(rs, aa)
 
@@ -869,7 +867,7 @@ class TestDataFrameToCSV:
         # GH4328
         df = DataFrame({"A": ["hello", '{"hello"}']})
         buf = StringIO()
-        df.to_csv(buf, quoting=csv.QUOTE_NONE, encoding=encoding, index=False)
+        df.to_csv(buf, quoting=csv.QUOTE_NONE, encoding=, index=False)
 
         result = buf.getvalue()
         expected_rows = ["A", "hello", '{"hello"}']
@@ -982,24 +980,20 @@ class TestDataFrameToCSV:
     )
     def test_to_csv_compression(self, df, encoding, compression):
         with tm.ensure_clean() as filename:
-            df.to_csv(filename, compression=compression, encoding=encoding)
+            df.to_csv(filename, compression=, encoding=)
             # test the round trip - to_csv -> read_csv
-            result = read_csv(
-                filename, compression=compression, index_col=0, encoding=encoding
-            )
+            result = read_csv(filename, compression=, index_col=0, encoding=)
             tm.assert_frame_equal(df, result)
 
             # test the round trip using file handle - to_csv -> read_csv
-            with get_handle(
-                filename, "w", compression=compression, encoding=encoding
-            ) as handles:
-                df.to_csv(handles.handle, encoding=encoding)
+            with get_handle(filename, "w", compression=, encoding=) as handles:
+                df.to_csv(handles.handle, encoding=)
                 assert not handles.handle.closed
 
             result = read_csv(
                 filename,
-                compression=compression,
-                encoding=encoding,
+                compression=,
+                encoding=,
                 index_col=0,
             ).squeeze("columns")
             tm.assert_frame_equal(df, result)
@@ -1011,7 +1005,7 @@ class TestDataFrameToCSV:
                     assert col in text
 
             with tm.decompress_file(filename, compression) as fh:
-                tm.assert_frame_equal(df, read_csv(fh, index_col=0, encoding=encoding))
+                tm.assert_frame_equal(df, read_csv(fh, index_col=0, encoding=))
 
     def test_to_csv_date_format(self, datetime_frame):
         with tm.ensure_clean("__tmp_to_csv_date_format__") as path:
@@ -1222,7 +1216,7 @@ class TestDataFrameToCSV:
         dates = ["1990-01-01", "2000-01-01", "3005-01-01"]
         index = pd.PeriodIndex(dates, freq="D")
 
-        df = DataFrame([4, 5, 6], index=index)
+        df = DataFrame([4, 5, 6], index=)
         result = df.to_csv()
 
         expected_rows = [",0", "1990-01-01,4", "2000-01-01,5", "3005-01-01,6"]
@@ -1230,7 +1224,7 @@ class TestDataFrameToCSV:
         assert result == expected
 
         date_format = "%m-%d-%Y"
-        result = df.to_csv(date_format=date_format)
+        result = df.to_csv(date_format=)
 
         expected_rows = [",0", "01-01-1990,4", "01-01-2000,5", "01-01-3005,6"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
@@ -1240,7 +1234,7 @@ class TestDataFrameToCSV:
         dates = ["1990-01-01", NaT, "3005-01-01"]
         index = pd.PeriodIndex(dates, freq="D")
 
-        df = DataFrame([4, 5, 6], index=index)
+        df = DataFrame([4, 5, 6], index=)
         result = df.to_csv()
 
         expected_rows = [",0", "1990-01-01,4", ",5", "3005-01-01,6"]
@@ -1254,7 +1248,7 @@ class TestDataFrameToCSV:
         df.columns = columns
 
         header = ["a", "b", "c", "d"]
-        result = df.to_csv(header=header)
+        result = df.to_csv(header=)
 
         expected_rows = [",a,b,c,d", "0,1,2,3,4", "1,5,6,7,8"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)

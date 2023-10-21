@@ -94,8 +94,8 @@ def dtypes(request):
 def test_series_dtypes(
     method, data, expected_data, coerce_int, dtypes, min_periods, step
 ):
-    ser = Series(data, dtype=get_dtype(dtypes, coerce_int=coerce_int))
-    rolled = ser.rolling(2, min_periods=min_periods, step=step)
+    ser = Series(data, dtype=get_dtype(dtypes, coerce_int=))
+    rolled = ser.rolling(2, min_periods=, step=)
 
     if dtypes in ("m8[ns]", "M8[ns]", "datetime64[ns, UTC]") and method != "count":
         msg = "No numeric types to aggregate"
@@ -110,7 +110,7 @@ def test_series_dtypes(
 def test_series_nullable_int(any_signed_int_ea_dtype, step):
     # GH 43016
     ser = Series([0, 1, NA], dtype=any_signed_int_ea_dtype)
-    result = ser.rolling(2, step=step).mean()
+    result = ser.rolling(2, step=).mean()
     expected = Series([np.nan, 0.5, np.nan])[::step]
     tm.assert_series_equal(result, expected)
 
@@ -161,7 +161,7 @@ def test_series_nullable_int(any_signed_int_ea_dtype, step):
 )
 def test_dataframe_dtypes(method, expected_data, dtypes, min_periods, step):
     df = DataFrame(np.arange(10).reshape((5, 2)), dtype=get_dtype(dtypes))
-    rolled = df.rolling(2, min_periods=min_periods, step=step)
+    rolled = df.rolling(2, min_periods=, step=)
 
     if dtypes in ("m8[ns]", "M8[ns]", "datetime64[ns, UTC]") and method != "count":
         msg = "Cannot aggregate non-numeric type"

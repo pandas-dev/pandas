@@ -110,7 +110,7 @@ class TimestampOps:
     param_names = ["tz"]
 
     def setup(self, tz):
-        self.ts = Timestamp("2017-08-25 08:16:14", tz=tz)
+        self.ts = Timestamp("2017-08-25 08:16:14", tz=)
 
     def time_replace_tz(self, tz):
         self.ts.replace(tzinfo=pytz.timezone("US/Eastern"))

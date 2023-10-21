@@ -70,11 +70,11 @@ def test_numba_vs_cython(jit, pandas_obj, nogil, parallel, nopython, as_index):
         {0: ["a", "a", "b", "b", "a"], 1: [1.0, 2.0, 3.0, 4.0, 5.0]}, columns=[0, 1]
     )
     engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-    grouped = data.groupby(0, as_index=as_index)
+    grouped = data.groupby(0, as_index=)
     if pandas_obj == "Series":
         grouped = grouped[1]
 
-    result = grouped.agg(func_numba, engine="numba", engine_kwargs=engine_kwargs)
+    result = grouped.agg(func_numba, engine="numba", engine_kwargs=)
     expected = grouped.agg(lambda x: np.mean(x) * 2.7, engine="cython")
 
     tm.assert_equal(result, expected)
@@ -108,17 +108,17 @@ def test_cache(jit, pandas_obj, nogil, parallel, nopython):
     if pandas_obj == "Series":
         grouped = grouped[1]
 
-    result = grouped.agg(func_1, engine="numba", engine_kwargs=engine_kwargs)
+    result = grouped.agg(func_1, engine="numba", engine_kwargs=)
     expected = grouped.agg(lambda x: np.mean(x) - 3.4, engine="cython")
     tm.assert_equal(result, expected)
 
     # Add func_2 to the cache
-    result = grouped.agg(func_2, engine="numba", engine_kwargs=engine_kwargs)
+    result = grouped.agg(func_2, engine="numba", engine_kwargs=)
     expected = grouped.agg(lambda x: np.mean(x) * 2.7, engine="cython")
     tm.assert_equal(result, expected)
 
     # Retest func_1 which should use the cache
-    result = grouped.agg(func_1, engine="numba", engine_kwargs=engine_kwargs)
+    result = grouped.agg(func_1, engine="numba", engine_kwargs=)
     expected = grouped.agg(lambda x: np.mean(x) - 3.4, engine="cython")
     tm.assert_equal(result, expected)
 
@@ -311,7 +311,7 @@ def test_engine_kwargs_not_cached():
     engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
     df = DataFrame({"value": [0, 0, 0]})
     result = df.groupby(level=0).aggregate(
-        func_kwargs, engine="numba", engine_kwargs=engine_kwargs
+        func_kwargs, engine="numba", engine_kwargs=
     )
     expected = DataFrame({"value": [2.0, 2.0, 2.0]})
     tm.assert_frame_equal(result, expected)
@@ -319,7 +319,7 @@ def test_engine_kwargs_not_cached():
     nogil = False
     engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
     result = df.groupby(level=0).aggregate(
-        func_kwargs, engine="numba", engine_kwargs=engine_kwargs
+        func_kwargs, engine="numba", engine_kwargs=
     )
     expected = DataFrame({"value": [1.0, 1.0, 1.0]})
     tm.assert_frame_equal(result, expected)
@@ -334,9 +334,7 @@ def test_multiindex_one_key(nogil, parallel, nopython):
 
     df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
     engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
-    result = df.groupby("A").agg(
-        numba_func, engine="numba", engine_kwargs=engine_kwargs
-    )
+    result = df.groupby("A").agg(numba_func, engine="numba", engine_kwargs=)
     expected = DataFrame([1.0], index=Index([1], name="A"), columns=["C"])
     tm.assert_frame_equal(result, expected)
 
@@ -350,9 +348,7 @@ def test_multiindex_multi_key_not_supported(nogil, parallel, nopython):
     df = DataFrame([{"A": 1, "B": 2, "C": 3}]).set_index(["A", "B"])
     engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
     with pytest.raises(NotImplementedError, match="more than 1 grouping labels"):
-        df.groupby(["A", "B"]).agg(
-            numba_func, engine="numba", engine_kwargs=engine_kwargs
-        )
+        df.groupby(["A", "B"]).agg(numba_func, engine="numba", engine_kwargs=)
 
 
 def test_multilabel_numba_vs_cython(numba_supported_reductions):

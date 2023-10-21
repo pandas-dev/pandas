@@ -45,13 +45,13 @@ class TestEWM:
     def test_online_vs_non_online_mean(
         self, obj, nogil, parallel, nopython, adjust, ignore_na
     ):
-        expected = obj.ewm(0.5, adjust=adjust, ignore_na=ignore_na).mean()
+        expected = obj.ewm(0.5, adjust=, ignore_na=).mean()
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         online_ewm = (
             obj.head(2)
-            .ewm(0.5, adjust=adjust, ignore_na=ignore_na)
-            .online(engine_kwargs=engine_kwargs)
+            .ewm(0.5, adjust=, ignore_na=)
+            .online(engine_kwargs=)
         )
         # Test resetting once
         for _ in range(2):
@@ -78,9 +78,9 @@ class TestEWM:
         )
         expected = obj.ewm(
             0.5,
-            adjust=adjust,
-            ignore_na=ignore_na,
-            times=times,
+            adjust=,
+            ignore_na=,
+            times=,
             halflife=halflife_with_times,
         ).mean()
 
@@ -89,12 +89,12 @@ class TestEWM:
             obj.head(2)
             .ewm(
                 0.5,
-                adjust=adjust,
-                ignore_na=ignore_na,
+                adjust=,
+                ignore_na=,
                 times=times.head(2),
                 halflife=halflife_with_times,
             )
-            .online(engine_kwargs=engine_kwargs)
+            .online(engine_kwargs=)
         )
         # Test resetting once
         for _ in range(2):

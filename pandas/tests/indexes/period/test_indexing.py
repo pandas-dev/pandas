@@ -441,7 +441,7 @@ class TestGetIndexer:
 
         msg = re.escape(f"Cannot compare dtypes {pi.dtype} and {other.dtype}")
         with pytest.raises(TypeError, match=msg):
-            pi.get_indexer(other, method=method)
+            pi.get_indexer(other, method=)
 
         for dtype in ["object", "category"]:
             other2 = other.astype(dtype)
@@ -458,7 +458,7 @@ class TestGetIndexer:
                 ]
             )
             with pytest.raises(TypeError, match=msg):
-                pi.get_indexer(other2, method=method)
+                pi.get_indexer(other2, method=)
 
     def test_get_indexer_non_unique(self):
         # GH 17717

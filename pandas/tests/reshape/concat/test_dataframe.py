@@ -167,7 +167,7 @@ class TestDataFrameConcat:
         t2 = DataFrame({"value": Series([7, 8], index=Index(["a", "b"], name="id"))})
 
         # it works
-        result = concat([t1, t2], axis=1, keys=["t1", "t2"], sort=sort)
+        result = concat([t1, t2], axis=1, keys=["t1", "t2"], sort=)
         assert list(result.columns) == [("t1", "value"), ("t2", "value")]
 
     def test_concat_bool_with_int(self):
@@ -185,10 +185,10 @@ class TestDataFrameConcat:
         index = [1, 1, 3]
         data = [1, 2, 3]
 
-        df = DataFrame(data=data, index=index)
+        df = DataFrame(data=, index=)
         result = concat([df], keys=["A"], names=["ID", "date"])
         mi = pd.MultiIndex.from_product([["A"], index], names=["ID", "date"])
-        expected = DataFrame(data=data, index=mi)
+        expected = DataFrame(data=, index=mi)
         tm.assert_frame_equal(result, expected)
         tm.assert_index_equal(result.index.levels[1], Index([1, 3], name="date"))
 
@@ -197,9 +197,9 @@ class TestDataFrameConcat:
     @pytest.mark.parametrize("axis", [0, 1])
     def test_concat_copies(self, axis, order, ignore_index, using_copy_on_write):
         # based on asv ConcatDataFrames
-        df = DataFrame(np.zeros((10000, 200), dtype=np.float32, order=order))
+        df = DataFrame(np.zeros((10000, 200), dtype=np.float32, order=))
 
-        res = concat([df] * 5, axis=axis, ignore_index=ignore_index, copy=True)
+        res = concat([df] * 5, axis=, ignore_index=, copy=True)
 
         if not using_copy_on_write:
             for arr in res._iter_column_arrays():

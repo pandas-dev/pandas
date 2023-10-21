@@ -39,19 +39,19 @@ class Concat:
         self.mixed_ndims = [df, df.head(N // 2)]
 
     def time_concat_series(self, axis):
-        concat(self.series, axis=axis, sort=False)
+        concat(self.series, axis=, sort=False)
 
     def time_concat_small_frames(self, axis):
-        concat(self.small_frames, axis=axis)
+        concat(self.small_frames, axis=)
 
     def time_concat_empty_right(self, axis):
-        concat(self.empty_right, axis=axis)
+        concat(self.empty_right, axis=)
 
     def time_concat_empty_left(self, axis):
-        concat(self.empty_left, axis=axis)
+        concat(self.empty_left, axis=)
 
     def time_concat_mixed_ndims(self, axis):
-        concat(self.mixed_ndims, axis=axis)
+        concat(self.mixed_ndims, axis=)
 
 
 class ConcatDataFrames:
@@ -65,10 +65,10 @@ class ConcatDataFrames:
         self.frame_f = [frame_f] * 20
 
     def time_c_ordered(self, axis, ignore_index):
-        concat(self.frame_c, axis=axis, ignore_index=ignore_index)
+        concat(self.frame_c, axis=, ignore_index=)
 
     def time_f_ordered(self, axis, ignore_index):
-        concat(self.frame_f, axis=axis, ignore_index=ignore_index)
+        concat(self.frame_f, axis=, ignore_index=)
 
 
 class ConcatIndexDtype:
@@ -98,7 +98,7 @@ class ConcatIndexDtype:
         else:
             raise NotImplementedError
 
-        idx = Index(vals, dtype=dtype)
+        idx = Index(vals, dtype=)
 
         if structure == "monotonic":
             idx = idx.sort_values()
@@ -107,14 +107,14 @@ class ConcatIndexDtype:
         elif structure == "has_na":
             if not idx._can_hold_na:
                 raise NotImplementedError
-            idx = Index([None], dtype=dtype).append(idx)
+            idx = Index([None], dtype=).append(idx)
         else:
             raise NotImplementedError
 
         self.series = [Series(i, idx[:-i]) for i in range(1, 6)]
 
     def time_concat_series(self, dtype, structure, axis, sort):
-        concat(self.series, axis=axis, sort=sort)
+        concat(self.series, axis=, sort=)
 
 
 class Join:
@@ -154,19 +154,19 @@ class Join:
         self.df_shuf = self.df.reindex(self.df.index[shuf])
 
     def time_join_dataframe_index_multi(self, sort):
-        self.df.join(self.df_multi, on=["key1", "key2"], sort=sort)
+        self.df.join(self.df_multi, on=["key1", "key2"], sort=)
 
     def time_join_dataframe_index_single_key_bigger(self, sort):
-        self.df.join(self.df_key2, on="key2", sort=sort)
+        self.df.join(self.df_key2, on="key2", sort=)
 
     def time_join_dataframe_index_single_key_small(self, sort):
-        self.df.join(self.df_key1, on="key1", sort=sort)
+        self.df.join(self.df_key1, on="key1", sort=)
 
     def time_join_dataframe_index_shuffle_key_bigger_sort(self, sort):
-        self.df_shuf.join(self.df_key2, on="key2", sort=sort)
+        self.df_shuf.join(self.df_key2, on="key2", sort=)
 
     def time_join_dataframes_cross(self, sort):
-        self.df.loc[:2000].join(self.df_key1, how="cross", sort=sort)
+        self.df.loc[:2000].join(self.df_key1, how="cross", sort=)
 
 
 class JoinIndex:
@@ -257,22 +257,22 @@ class Merge:
         self.df3 = self.df[:5000]
 
     def time_merge_2intkey(self, sort):
-        merge(self.left, self.right, sort=sort)
+        merge(self.left, self.right, sort=)
 
     def time_merge_dataframe_integer_2key(self, sort):
-        merge(self.df, self.df3, sort=sort)
+        merge(self.df, self.df3, sort=)
 
     def time_merge_dataframe_integer_key(self, sort):
-        merge(self.df, self.df2, on="key1", sort=sort)
+        merge(self.df, self.df2, on="key1", sort=)
 
     def time_merge_dataframe_empty_right(self, sort):
-        merge(self.left, self.right.iloc[:0], sort=sort)
+        merge(self.left, self.right.iloc[:0], sort=)
 
     def time_merge_dataframe_empty_left(self, sort):
-        merge(self.left.iloc[:0], self.right, sort=sort)
+        merge(self.left.iloc[:0], self.right, sort=)
 
     def time_merge_dataframes_cross(self, sort):
-        merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=sort)
+        merge(self.left.loc[:2000], self.right.loc[:2000], how="cross", sort=)
 
 
 class MergeEA:
@@ -293,11 +293,11 @@ class MergeEA:
         indices = np.arange(1, N)
         key = np.tile(indices[:8000], 10)
         self.left = DataFrame(
-            {"key": Series(key, dtype=dtype), "value": np.random.randn(80000)}
+            {"key": Series(key, dtype=), "value": np.random.randn(80000)}
         )
         self.right = DataFrame(
             {
-                "key": Series(indices[2000:], dtype=dtype),
+                "key": Series(indices[2000:], dtype=),
                 "value2": np.random.randn(7999),
             }
         )
@@ -321,7 +321,7 @@ class I8Merge:
         self.right["right"] *= -1
 
     def time_i8merge(self, how):
-        merge(self.left, self.right, how=how)
+        merge(self.left, self.right, how=)
 
 
 class MergeDatetime:
@@ -338,7 +338,7 @@ class MergeDatetime:
     def setup(self, units, tz):
         unit_left, unit_right = units
         N = 10_000
-        keys = Series(date_range("2012-01-01", freq="min", periods=N, tz=tz))
+        keys = Series(date_range("2012-01-01", freq="min", periods=N, tz=))
         self.left = DataFrame(
             {
                 "key": keys.sample(N * 10, replace=True).dt.as_unit(unit_left),
@@ -464,19 +464,13 @@ class MergeAsof:
         self.df2f = df2[["timeu64", "value2"]]
 
     def time_on_int(self, direction, tolerance):
-        merge_asof(
-            self.df1a, self.df2a, on="time", direction=direction, tolerance=tolerance
-        )
+        merge_asof(self.df1a, self.df2a, on="time", direction=, tolerance=)
 
     def time_on_int32(self, direction, tolerance):
-        merge_asof(
-            self.df1d, self.df2d, on="time32", direction=direction, tolerance=tolerance
-        )
+        merge_asof(self.df1d, self.df2d, on="time32", direction=, tolerance=)
 
     def time_on_uint64(self, direction, tolerance):
-        merge_asof(
-            self.df1f, self.df2f, on="timeu64", direction=direction, tolerance=tolerance
-        )
+        merge_asof(self.df1f, self.df2f, on="timeu64", direction=, tolerance=)
 
     def time_by_object(self, direction, tolerance):
         merge_asof(
@@ -484,8 +478,8 @@ class MergeAsof:
             self.df2b,
             on="time",
             by="key",
-            direction=direction,
-            tolerance=tolerance,
+            direction=,
+            tolerance=,
         )
 
     def time_by_int(self, direction, tolerance):
@@ -494,8 +488,8 @@ class MergeAsof:
             self.df2c,
             on="time",
             by="key2",
-            direction=direction,
-            tolerance=tolerance,
+            direction=,
+            tolerance=,
         )
 
     def time_multiby(self, direction, tolerance):
@@ -504,8 +498,8 @@ class MergeAsof:
             self.df2e,
             on="time",
             by=["key", "key2"],
-            direction=direction,
-            tolerance=tolerance,
+            direction=,
+            tolerance=,
         )
 
 
@@ -542,7 +536,7 @@ class MergeMultiIndex:
         # copy to avoid MultiIndex._values caching
         df1 = self.df1.copy()
         df2 = self.df2.copy()
-        merge(df1, df2, how=how, left_index=True, right_index=True)
+        merge(df1, df2, how=, left_index=True, right_index=True)
 
 
 class Align:

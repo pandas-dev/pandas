@@ -46,8 +46,8 @@ class TestSeriesCov:
         np_array1 = np.random.default_rng(2).random(10)
         np_array2 = np.random.default_rng(2).random(10)
 
-        s1 = Series(np_array1, dtype=dtype)
-        s2 = Series(np_array2, dtype=dtype)
+        s1 = Series(np_array1, dtype=)
+        s2 = Series(np_array2, dtype=)
 
         result = s1.cov(s2, ddof=test_ddof)
         expected = np.cov(np_array1, np_array2, ddof=test_ddof)[0][1]

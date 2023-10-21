@@ -700,9 +700,9 @@ def get_data_from_filepath(
         with get_handle(
             filepath_or_buffer,
             "r",
-            encoding=encoding,
-            compression=compression,
-            storage_options=storage_options,
+            encoding=,
+            compression=,
+            storage_options=,
         ) as handle_obj:
             filepath_or_buffer = (
                 handle_obj.handle.read()
@@ -853,10 +853,10 @@ def _parse(
 
     return _data_to_frame(
         data=data_dicts,
-        dtype=dtype,
-        converters=converters,
-        parse_dates=parse_dates,
-        dtype_backend=dtype_backend,
+        dtype=,
+        converters=,
+        parse_dates=,
+        dtype_backend=,
         **kwargs,
     )
 
@@ -1130,20 +1130,20 @@ def read_xml(
     check_dtype_backend(dtype_backend)
 
     return _parse(
-        path_or_buffer=path_or_buffer,
-        xpath=xpath,
-        namespaces=namespaces,
-        elems_only=elems_only,
-        attrs_only=attrs_only,
-        names=names,
-        dtype=dtype,
-        converters=converters,
-        parse_dates=parse_dates,
-        encoding=encoding,
-        parser=parser,
-        stylesheet=stylesheet,
-        iterparse=iterparse,
-        compression=compression,
-        storage_options=storage_options,
-        dtype_backend=dtype_backend,
+        path_or_buffer=,
+        xpath=,
+        namespaces=,
+        elems_only=,
+        attrs_only=,
+        names=,
+        dtype=,
+        converters=,
+        parse_dates=,
+        encoding=,
+        parser=,
+        stylesheet=,
+        iterparse=,
+        compression=,
+        storage_options=,
+        dtype_backend=,
     )

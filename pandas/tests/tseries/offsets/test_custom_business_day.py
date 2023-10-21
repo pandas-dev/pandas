@@ -41,7 +41,7 @@ class TestCustomBusinessDay:
     def test_holidays(self):
         # Define a TradingDay offset
         holidays = ["2012-05-01", datetime(2013, 5, 1), np.datetime64("2014-05-01")]
-        tday = CDay(holidays=holidays)
+        tday = CDay(holidays=)
         for year in range(2012, 2015):
             dt = datetime(year, 4, 30)
             xp = datetime(year, 5, 2)
@@ -70,7 +70,7 @@ class TestCustomBusinessDay:
     def test_weekmask_and_holidays(self):
         weekmask_egypt = "Sun Mon Tue Wed Thu"  # Fri-Sat Weekend
         holidays = ["2012-05-01", datetime(2013, 5, 1), np.datetime64("2014-05-01")]
-        bday_egypt = CDay(holidays=holidays, weekmask=weekmask_egypt)
+        bday_egypt = CDay(holidays=, weekmask=weekmask_egypt)
         dt = datetime(2013, 4, 30)
         xp_egypt = datetime(2013, 5, 5)
         assert xp_egypt == dt + 2 * bday_egypt
@@ -79,7 +79,7 @@ class TestCustomBusinessDay:
     def test_calendar(self):
         calendar = USFederalHolidayCalendar()
         dt = datetime(2014, 1, 17)
-        assert_offset_equal(CDay(calendar=calendar), dt, datetime(2014, 1, 21))
+        assert_offset_equal(CDay(calendar=), dt, datetime(2014, 1, 21))
 
     def test_roundtrip_pickle(self, offset, offset2):
         def _check_roundtrip(obj):

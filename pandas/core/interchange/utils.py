@@ -136,7 +136,7 @@ def dtype_to_arrow_c_fmt(dtype: DtypeObj) -> str:
         # Selecting the first char of resolution string:
         # dtype.str -> '<M8[ns]' -> 'n'
         resolution = np.datetime_data(dtype)[0][0]
-        return ArrowCTypes.TIMESTAMP.format(resolution=resolution, tz="")
+        return ArrowCTypes.TIMESTAMP.format(resolution=, tz="")
 
     elif isinstance(dtype, DatetimeTZDtype):
         return ArrowCTypes.TIMESTAMP.format(resolution=dtype.unit[0], tz=dtype.tz)

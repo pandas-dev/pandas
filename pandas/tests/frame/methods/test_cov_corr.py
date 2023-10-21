@@ -91,11 +91,11 @@ class TestDataFrameCov:
         df = DataFrame({"a": [1, 0], "c": ["x", "y"]})
         expected = DataFrame(0.5, index=["a"], columns=["a"])
         if numeric_only:
-            result = df.cov(numeric_only=numeric_only)
+            result = df.cov(numeric_only=)
             tm.assert_frame_equal(result, expected)
         else:
             with pytest.raises(ValueError, match="could not convert string to float"):
-                df.cov(numeric_only=numeric_only)
+                df.cov(numeric_only=)
 
 
 class TestDataFrameCorr:
@@ -108,8 +108,8 @@ class TestDataFrameCorr:
         float_frame.loc[float_frame.index[5:10], "B"] = np.nan
         float_frame.loc[float_frame.index[:10], "A"] = float_frame["A"][10:20]
 
-        correls = float_frame.corr(method=method)
-        expected = float_frame["A"].corr(float_frame["C"], method=method)
+        correls = float_frame.corr(method=)
+        expected = float_frame["A"].corr(float_frame["C"], method=)
         tm.assert_almost_equal(correls["A"]["C"], expected)
 
     # ---------------------------------------------------------------------
@@ -201,7 +201,7 @@ class TestDataFrameCorr:
         # https://github.com/pandas-dev/pandas/issues/33803
         pytest.importorskip("scipy")
         data = DataFrame({"a": nullable_column, "b": other_column})
-        result = data.corr(method=method)
+        result = data.corr(method=)
         expected = DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
@@ -249,7 +249,7 @@ class TestDataFrameCorr:
     def test_corr_min_periods_greater_than_length(self, method):
         pytest.importorskip("scipy")
         df = DataFrame({"A": [1, 2], "B": [1, 2]})
-        result = df.corr(method=method, min_periods=3)
+        result = df.corr(method=, min_periods=3)
         expected = DataFrame(
             {"A": [np.nan, np.nan], "B": [np.nan, np.nan]}, index=["A", "B"]
         )
@@ -265,11 +265,11 @@ class TestDataFrameCorr:
         df = DataFrame({"a": [1, 0], "b": [1, 0], "c": ["x", "y"]})
         expected = DataFrame(np.ones((2, 2)), index=["a", "b"], columns=["a", "b"])
         if numeric_only:
-            result = df.corr(meth, numeric_only=numeric_only)
+            result = df.corr(meth, numeric_only=)
             tm.assert_frame_equal(result, expected)
         else:
             with pytest.raises(ValueError, match="could not convert string to float"):
-                df.corr(meth, numeric_only=numeric_only)
+                df.corr(meth, numeric_only=)
 
 
 class TestDataFrameCorrWith:
@@ -311,13 +311,13 @@ class TestDataFrameCorrWith:
         columns = ["one", "two", "three", "four"]
         df1 = DataFrame(
             np.random.default_rng(2).standard_normal((5, 4)),
-            index=index,
-            columns=columns,
+            index=,
+            columns=,
         )
         df2 = DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
             index=index[:4],
-            columns=columns,
+            columns=,
         )
         correls = df1.corrwith(df2, axis=1)
         for row in index[:4]:
@@ -366,7 +366,7 @@ class TestDataFrameCorrWith:
         )
         s = Series([0, 6, 7, 3])
         if numeric_only:
-            result = df.corrwith(s, numeric_only=numeric_only)
+            result = df.corrwith(s, numeric_only=)
             corrs = [df["a"].corr(s), df["b"].corr(s)]
             expected = Series(data=corrs, index=["a", "b"])
             tm.assert_series_equal(result, expected)
@@ -375,7 +375,7 @@ class TestDataFrameCorrWith:
                 ValueError,
                 match="could not convert string to float",
             ):
-                df.corrwith(s, numeric_only=numeric_only)
+                df.corrwith(s, numeric_only=)
 
     def test_corrwith_index_intersection(self):
         df1 = DataFrame(

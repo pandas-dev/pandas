@@ -19,8 +19,8 @@ def test_compression_roundtrip(compression):
     )
 
     with tm.ensure_clean() as path:
-        df.to_json(path, compression=compression)
-        tm.assert_frame_equal(df, pd.read_json(path, compression=compression))
+        df.to_json(path, compression=)
+        tm.assert_frame_equal(df, pd.read_json(path, compression=))
 
         # explicitly ensure file was compressed.
         with tm.decompress_file(path, compression) as fh:
@@ -46,13 +46,13 @@ def test_with_s3_url(compression, s3_public_bucket, s3so):
     df = pd.read_json(StringIO('{"a": [1, 2, 3], "b": [4, 5, 6]}'))
 
     with tm.ensure_clean() as path:
-        df.to_json(path, compression=compression)
+        df.to_json(path, compression=)
         with open(path, "rb") as f:
             s3_public_bucket.put_object(Key="test-1", Body=f)
 
     roundtripped_df = pd.read_json(
         f"s3://{s3_public_bucket.name}/test-1",
-        compression=compression,
+        compression=,
         storage_options=s3so,
     )
     tm.assert_frame_equal(df, roundtripped_df)
@@ -61,19 +61,17 @@ def test_with_s3_url(compression, s3_public_bucket, s3so):
 def test_lines_with_compression(compression):
     with tm.ensure_clean() as path:
         df = pd.read_json(StringIO('{"a": [1, 2, 3], "b": [4, 5, 6]}'))
-        df.to_json(path, orient="records", lines=True, compression=compression)
-        roundtripped_df = pd.read_json(path, lines=True, compression=compression)
+        df.to_json(path, orient="records", lines=True, compression=)
+        roundtripped_df = pd.read_json(path, lines=True, compression=)
         tm.assert_frame_equal(df, roundtripped_df)
 
 
 def test_chunksize_with_compression(compression):
     with tm.ensure_clean() as path:
         df = pd.read_json(StringIO('{"a": ["foo", "bar", "baz"], "b": [4, 5, 6]}'))
-        df.to_json(path, orient="records", lines=True, compression=compression)
+        df.to_json(path, orient="records", lines=True, compression=)
 
-        with pd.read_json(
-            path, lines=True, chunksize=1, compression=compression
-        ) as res:
+        with pd.read_json(path, lines=True, chunksize=1, compression=) as res:
             roundtripped_df = pd.concat(res)
         tm.assert_frame_equal(df, roundtripped_df)
 
@@ -121,6 +119,6 @@ def test_to_json_compression_mode(compression):
     expected = pd.DataFrame({"A": [1]})
 
     with BytesIO() as buffer:
-        expected.to_json(buffer, compression=compression)
+        expected.to_json(buffer, compression=)
         # df = pd.read_json(buffer, compression=compression)
         # tm.assert_frame_equal(expected, df)

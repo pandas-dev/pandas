@@ -141,7 +141,7 @@ def test_qcut_incorrect_labels(labels):
     values = range(5)
     msg = "Bin labels must either be False, None or passed in as a list-like argument"
     with pytest.raises(ValueError, match=msg):
-        qcut(values, 4, labels=labels)
+        qcut(values, 4, labels=)
 
 
 @pytest.mark.parametrize("labels", [["a", "b", "c"], list(range(3))])
@@ -150,7 +150,7 @@ def test_qcut_wrong_length_labels(labels):
     values = range(10)
     msg = "Bin labels must be one fewer than the number of bin edges"
     with pytest.raises(ValueError, match=msg):
-        qcut(values, 4, labels=labels)
+        qcut(values, 4, labels=)
 
 
 @pytest.mark.parametrize(
@@ -163,7 +163,7 @@ def test_qcut_wrong_length_labels(labels):
 def test_qcut_list_like_labels(labels, expected):
     # GH 13318
     values = range(3)
-    result = qcut(values, 3, labels=labels)
+    result = qcut(values, 3, labels=)
     tm.assert_categorical_equal(result, expected)
 
 
@@ -197,7 +197,7 @@ def test_qcut_duplicates_bin(kwargs, msg):
 def test_single_quantile(data, start, end, length, labels):
     # see gh-15431
     ser = Series([data] * length)
-    result = qcut(ser, 1, labels=labels)
+    result = qcut(ser, 1, labels=)
 
     if labels is None:
         intervals = IntervalIndex([Interval(start, end)] * length, closed="right")
@@ -231,23 +231,23 @@ def test_qcut_nat(ser):
 def test_datetime_tz_qcut(bins):
     # see gh-19872
     tz = "US/Eastern"
-    ser = Series(date_range("20130101", periods=3, tz=tz))
+    ser = Series(date_range("20130101", periods=3, tz=))
 
     result = qcut(ser, bins)
     expected = Series(
         IntervalIndex(
             [
                 Interval(
-                    Timestamp("2012-12-31 23:59:59.999999999", tz=tz),
-                    Timestamp("2013-01-01 16:00:00", tz=tz),
+                    Timestamp("2012-12-31 23:59:59.999999999", tz=),
+                    Timestamp("2013-01-01 16:00:00", tz=),
                 ),
                 Interval(
-                    Timestamp("2013-01-01 16:00:00", tz=tz),
-                    Timestamp("2013-01-02 08:00:00", tz=tz),
+                    Timestamp("2013-01-01 16:00:00", tz=),
+                    Timestamp("2013-01-02 08:00:00", tz=),
                 ),
                 Interval(
-                    Timestamp("2013-01-02 08:00:00", tz=tz),
-                    Timestamp("2013-01-03 00:00:00", tz=tz),
+                    Timestamp("2013-01-02 08:00:00", tz=),
+                    Timestamp("2013-01-03 00:00:00", tz=),
                 ),
             ]
         )

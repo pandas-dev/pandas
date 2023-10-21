@@ -34,7 +34,7 @@ def test_frame(raw, frame, sp_func, roll_func):
     assert isinstance(result, DataFrame)
     tm.assert_series_equal(
         result.iloc[-1, :],
-        frame.iloc[-50:, :].apply(compare_func, axis=0, raw=raw),
+        frame.iloc[-50:, :].apply(compare_func, axis=0, raw=),
         check_names=False,
     )
 
@@ -68,7 +68,7 @@ def test_time_rule_frame(raw, frame, sp_func, roll_func):
     trunc_frame = frame[::2].truncate(prev_date, last_date)
     tm.assert_series_equal(
         frame_result.xs(last_date),
-        trunc_frame.apply(compare_func, raw=raw),
+        trunc_frame.apply(compare_func, raw=),
         check_names=False,
     )
 
@@ -107,10 +107,10 @@ def test_nans(sp_func, roll_func):
 @pytest.mark.parametrize("roll_func", ["kurt", "skew"])
 def test_min_periods(series, minp, roll_func, step):
     result = getattr(
-        series.rolling(len(series) + 1, min_periods=minp, step=step), roll_func
+        series.rolling(len(series) + 1, min_periods=minp, step=), roll_func
     )()
     expected = getattr(
-        series.rolling(len(series), min_periods=minp, step=step), roll_func
+        series.rolling(len(series), min_periods=minp, step=), roll_func
     )()
     nan_mask = isna(result)
     tm.assert_series_equal(nan_mask, isna(expected))
@@ -173,20 +173,20 @@ def test_rolling_skew_edge_cases(step):
     expected = Series([np.nan] * 4 + [0.0])[::step]
     # yields all NaN (0 variance)
     d = Series([1] * 5)
-    x = d.rolling(window=5, step=step).skew()
+    x = d.rolling(window=5, step=).skew()
     # index 4 should be 0 as it contains 5 same obs
     tm.assert_series_equal(expected, x)
 
     expected = Series([np.nan] * 5)[::step]
     # yields all NaN (window too small)
     d = Series(np.random.default_rng(2).standard_normal(5))
-    x = d.rolling(window=2, step=step).skew()
+    x = d.rolling(window=2, step=).skew()
     tm.assert_series_equal(expected, x)
 
     # yields [NaN, NaN, NaN, 0.177994, 1.548824]
     d = Series([-1.50837035, -0.1297039, 0.19501095, 1.73508164, 0.41941401])
     expected = Series([np.nan, np.nan, np.nan, 0.177994, 1.548824])[::step]
-    x = d.rolling(window=4, step=step).skew()
+    x = d.rolling(window=4, step=).skew()
     tm.assert_series_equal(expected, x)
 
 
@@ -195,26 +195,26 @@ def test_rolling_kurt_edge_cases(step):
 
     # yields all NaN (0 variance)
     d = Series([1] * 5)
-    x = d.rolling(window=5, step=step).kurt()
+    x = d.rolling(window=5, step=).kurt()
     tm.assert_series_equal(expected, x)
 
     # yields all NaN (window too small)
     expected = Series([np.nan] * 5)[::step]
     d = Series(np.random.default_rng(2).standard_normal(5))
-    x = d.rolling(window=3, step=step).kurt()
+    x = d.rolling(window=3, step=).kurt()
     tm.assert_series_equal(expected, x)
 
     # yields [NaN, NaN, NaN, 1.224307, 2.671499]
     d = Series([-1.50837035, -0.1297039, 0.19501095, 1.73508164, 0.41941401])
     expected = Series([np.nan, np.nan, np.nan, 1.224307, 2.671499])[::step]
-    x = d.rolling(window=4, step=step).kurt()
+    x = d.rolling(window=4, step=).kurt()
     tm.assert_series_equal(expected, x)
 
 
 def test_rolling_skew_eq_value_fperr(step):
     # #18804 all rolling skew for all equal values should return Nan
     # #46717 update: all equal values should return 0 instead of NaN
-    a = Series([1.1] * 15).rolling(window=10, step=step).skew()
+    a = Series([1.1] * 15).rolling(window=10, step=).skew()
     assert (a[a.index >= 9] == 0).all()
     assert a[a.index < 9].isna().all()
 
@@ -222,6 +222,6 @@ def test_rolling_skew_eq_value_fperr(step):
 def test_rolling_kurt_eq_value_fperr(step):
     # #18804 all rolling kurt for all equal values should return Nan
     # #46717 update: all equal values should return -3 instead of NaN
-    a = Series([1.1] * 15).rolling(window=10, step=step).kurt()
+    a = Series([1.1] * 15).rolling(window=10, step=).kurt()
     assert (a[a.index >= 9] == -3).all()
     assert a[a.index < 9].isna().all()

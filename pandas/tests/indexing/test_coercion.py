@@ -214,7 +214,7 @@ class TestInsertIndexCoercion(CoercionBase):
         self, any_int_numpy_dtype, insert, coerced_val, coerced_dtype
     ):
         dtype = any_int_numpy_dtype
-        obj = pd.Index([1, 2, 3, 4], dtype=dtype)
+        obj = pd.Index([1, 2, 3, 4], dtype=)
         coerced_dtype = coerced_dtype if coerced_dtype is not None else dtype
 
         exp = pd.Index([1, coerced_val, 2, 3, 4], dtype=coerced_dtype)
@@ -233,7 +233,7 @@ class TestInsertIndexCoercion(CoercionBase):
         self, float_numpy_dtype, insert, coerced_val, coerced_dtype
     ):
         dtype = float_numpy_dtype
-        obj = pd.Index([1.0, 2.0, 3.0, 4.0], dtype=dtype)
+        obj = pd.Index([1.0, 2.0, 3.0, 4.0], dtype=)
         coerced_dtype = coerced_dtype if coerced_dtype is not None else dtype
 
         exp = pd.Index([1.0, coerced_val, 2.0, 3.0, 4.0], dtype=coerced_dtype)
@@ -643,10 +643,10 @@ class TestFillnaSeriesCoercion(CoercionBase):
 
         obj = klass(
             [
-                pd.Timestamp("2011-01-01", tz=tz),
+                pd.Timestamp("2011-01-01", tz=),
                 pd.NaT,
-                pd.Timestamp("2011-01-03", tz=tz),
-                pd.Timestamp("2011-01-04", tz=tz),
+                pd.Timestamp("2011-01-03", tz=),
+                pd.Timestamp("2011-01-04", tz=),
             ]
         )
         assert obj.dtype == "datetime64[ns, US/Eastern]"
@@ -657,10 +657,10 @@ class TestFillnaSeriesCoercion(CoercionBase):
             fv = fill_val.tz_convert(tz)
         exp = klass(
             [
-                pd.Timestamp("2011-01-01", tz=tz),
+                pd.Timestamp("2011-01-01", tz=),
                 fv,
-                pd.Timestamp("2011-01-03", tz=tz),
-                pd.Timestamp("2011-01-04", tz=tz),
+                pd.Timestamp("2011-01-03", tz=),
+                pd.Timestamp("2011-01-04", tz=),
             ]
         )
         self._assert_fillna_conversion(obj, fill_val, exp, fill_dtype)
@@ -758,8 +758,8 @@ class TestReplaceSeriesCoercion(CoercionBase):
         # to test tz => different tz replacement
         key = f"datetime64[ns, {tz}]"
         rep[key] = [
-            pd.Timestamp("2011-01-01", tz=tz),
-            pd.Timestamp("2011-01-03", tz=tz),
+            pd.Timestamp("2011-01-01", tz=),
+            pd.Timestamp("2011-01-03", tz=),
         ]
 
     rep["timedelta64[ns]"] = [pd.Timedelta("1 day"), pd.Timedelta("2 day")]
@@ -826,7 +826,7 @@ class TestReplaceSeriesCoercion(CoercionBase):
 
     def test_replace_series(self, how, to_key, from_key, replacer):
         index = pd.Index([3, 4], name="xxx")
-        obj = pd.Series(self.rep[from_key], index=index, name="yyy")
+        obj = pd.Series(self.rep[from_key], index=, name="yyy")
         assert obj.dtype == from_key
 
         if from_key.startswith("datetime") and to_key.startswith("datetime"):
@@ -843,10 +843,10 @@ class TestReplaceSeriesCoercion(CoercionBase):
                 pytest.skip(f"32-bit platform buggy: {from_key} -> {to_key}")
 
             # Expected: do not downcast by replacement
-            exp = pd.Series(self.rep[to_key], index=index, name="yyy", dtype=from_key)
+            exp = pd.Series(self.rep[to_key], index=, name="yyy", dtype=from_key)
 
         else:
-            exp = pd.Series(self.rep[to_key], index=index, name="yyy")
+            exp = pd.Series(self.rep[to_key], index=, name="yyy")
             assert exp.dtype == to_key
 
         msg = "Downcasting behavior in `replace`"
@@ -872,10 +872,10 @@ class TestReplaceSeriesCoercion(CoercionBase):
     )
     def test_replace_series_datetime_tz(self, how, to_key, from_key, replacer):
         index = pd.Index([3, 4], name="xyz")
-        obj = pd.Series(self.rep[from_key], index=index, name="yyy")
+        obj = pd.Series(self.rep[from_key], index=, name="yyy")
         assert obj.dtype == from_key
 
-        exp = pd.Series(self.rep[to_key], index=index, name="yyy")
+        exp = pd.Series(self.rep[to_key], index=, name="yyy")
         assert exp.dtype == to_key
 
         msg = "Downcasting behavior in `replace`"
@@ -897,10 +897,10 @@ class TestReplaceSeriesCoercion(CoercionBase):
     )
     def test_replace_series_datetime_datetime(self, how, to_key, from_key, replacer):
         index = pd.Index([3, 4], name="xyz")
-        obj = pd.Series(self.rep[from_key], index=index, name="yyy")
+        obj = pd.Series(self.rep[from_key], index=, name="yyy")
         assert obj.dtype == from_key
 
-        exp = pd.Series(self.rep[to_key], index=index, name="yyy")
+        exp = pd.Series(self.rep[to_key], index=, name="yyy")
         warn = FutureWarning
         if isinstance(obj.dtype, pd.DatetimeTZDtype) and isinstance(
             exp.dtype, pd.DatetimeTZDtype

@@ -105,12 +105,12 @@ def to_pickle(
     with get_handle(
         filepath_or_buffer,
         "wb",
-        compression=compression,
+        compression=,
         is_text=False,
-        storage_options=storage_options,
+        storage_options=,
     ) as handles:
         # letting pickle write directly to the buffer is more memory-efficient
-        pickle.dump(obj, handles.handle, protocol=protocol)
+        pickle.dump(obj, handles.handle, protocol=)
 
 
 @doc(
@@ -189,9 +189,9 @@ def read_pickle(
     with get_handle(
         filepath_or_buffer,
         "rb",
-        compression=compression,
+        compression=,
         is_text=False,
-        storage_options=storage_options,
+        storage_options=,
     ) as handles:
         # 1) try standard library Pickle
         # 2) try pickle_compat (older pandas version) to handle subclass changes

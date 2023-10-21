@@ -15,10 +15,10 @@ class FillNa:
         self.ts = pd.Series(data, index=rng)
 
     def time_fillna(self, inplace):
-        self.ts.fillna(0.0, inplace=inplace)
+        self.ts.fillna(0.0, inplace=)
 
     def time_replace(self, inplace):
-        self.ts.replace(np.nan, 0.0, inplace=inplace)
+        self.ts.replace(np.nan, 0.0, inplace=)
 
 
 class ReplaceDict:
@@ -32,7 +32,7 @@ class ReplaceDict:
         self.s = pd.Series(np.random.randint(N, size=10**3))
 
     def time_replace_series(self, inplace):
-        self.s.replace(self.to_rep, inplace=inplace)
+        self.s.replace(self.to_rep, inplace=)
 
 
 class ReplaceList:
@@ -45,11 +45,11 @@ class ReplaceList:
         self.df = pd.DataFrame({"A": 0, "B": 0}, index=range(10**7))
 
     def time_replace_list(self, inplace):
-        self.df.replace([np.inf, -np.inf], np.nan, inplace=inplace)
+        self.df.replace([np.inf, -np.inf], np.nan, inplace=)
 
     def time_replace_list_one_match(self, inplace):
         # the 1 can be held in self._df.blocks[0], while the inf and -inf can't
-        self.df.replace([np.inf, -np.inf, 1], np.nan, inplace=inplace)
+        self.df.replace([np.inf, -np.inf, 1], np.nan, inplace=)
 
 
 class Convert:

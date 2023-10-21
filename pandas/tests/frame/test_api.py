@@ -89,19 +89,19 @@ class TestDataFrameMisc:
         # display.max_dir_items increaes the number of columns that are in __dir__.
         columns = ["a" + str(i) for i in range(420)]
         values = [range(420), range(420)]
-        df = DataFrame(values, columns=columns)
+        df = DataFrame(values, columns=)
 
         # The default value for display.max_dir_items is 100
         assert "a99" in dir(df)
         assert "a100" not in dir(df)
 
         with option_context("display.max_dir_items", 300):
-            df = DataFrame(values, columns=columns)
+            df = DataFrame(values, columns=)
             assert "a299" in dir(df)
             assert "a300" not in dir(df)
 
         with option_context("display.max_dir_items", None):
-            df = DataFrame(values, columns=columns)
+            df = DataFrame(values, columns=)
             assert "a419" in dir(df)
 
     def test_not_hashable(self):
@@ -334,7 +334,7 @@ class TestDataFrameMisc:
             obj = obj["A"]
             key = 0
 
-        result = obj.set_flags(allows_duplicate_labels=allows_duplicate_labels)
+        result = obj.set_flags(allows_duplicate_labels=)
 
         if allows_duplicate_labels is None:
             # We don't update when it's not provided
@@ -363,9 +363,7 @@ class TestDataFrameMisc:
             result.iloc[key] = 1
 
         # Now we do copy.
-        result = obj.set_flags(
-            copy=True, allows_duplicate_labels=allows_duplicate_labels
-        )
+        result = obj.set_flags(copy=True, allows_duplicate_labels=)
         result.iloc[key] = 10
         assert obj.iloc[key] == 1
 

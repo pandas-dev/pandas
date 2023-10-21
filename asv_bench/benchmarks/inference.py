@@ -34,13 +34,13 @@ class ToNumeric:
         self.str = Series(tm.makeStringIndex(N))
 
     def time_from_float(self, errors):
-        to_numeric(self.float, errors=errors)
+        to_numeric(self.float, errors=)
 
     def time_from_numeric_str(self, errors):
-        to_numeric(self.numstr, errors=errors)
+        to_numeric(self.numstr, errors=)
 
     def time_from_str(self, errors):
-        to_numeric(self.str, errors=errors)
+        to_numeric(self.str, errors=)
 
 
 class ToNumericDowncast:
@@ -75,7 +75,7 @@ class ToNumericDowncast:
         self.data = self.data_dict[dtype]
 
     def time_downcast(self, dtype, downcast):
-        to_numeric(self.data, downcast=downcast)
+        to_numeric(self.data, downcast=)
 
 
 class MaybeConvertNumeric:
@@ -159,7 +159,7 @@ class ToDatetimeCacheSmallCount:
         self.unique_date_strings = rng.strftime("%Y-%m-%d").tolist()
 
     def time_unique_date_strings(self, cache, count):
-        to_datetime(self.unique_date_strings, cache=cache)
+        to_datetime(self.unique_date_strings, cache=)
 
 
 class ToDatetimeISO8601:
@@ -258,19 +258,19 @@ class ToDatetimeCache:
         self.dup_string_with_tz = ["2000-02-11 15:00:00-0800"] * N
 
     def time_unique_seconds_and_unit(self, cache):
-        to_datetime(self.unique_numeric_seconds, unit="s", cache=cache)
+        to_datetime(self.unique_numeric_seconds, unit="s", cache=)
 
     def time_dup_seconds_and_unit(self, cache):
-        to_datetime(self.dup_numeric_seconds, unit="s", cache=cache)
+        to_datetime(self.dup_numeric_seconds, unit="s", cache=)
 
     def time_dup_string_dates(self, cache):
-        to_datetime(self.dup_string_dates, cache=cache)
+        to_datetime(self.dup_string_dates, cache=)
 
     def time_dup_string_dates_and_format(self, cache):
-        to_datetime(self.dup_string_dates, format="%Y-%m-%d", cache=cache)
+        to_datetime(self.dup_string_dates, format="%Y-%m-%d", cache=)
 
     def time_dup_string_tzoffset_dates(self, cache):
-        to_datetime(self.dup_string_with_tz, cache=cache)
+        to_datetime(self.dup_string_with_tz, cache=)
 
 
 # GH 43901
@@ -312,7 +312,7 @@ class ToTimedeltaErrors:
         self.arr[-1] = "apple"
 
     def time_convert(self, errors):
-        to_timedelta(self.arr, errors=errors)
+        to_timedelta(self.arr, errors=)
 
 
 from .pandas_vb_common import setup  # noqa: F401 isort:skip

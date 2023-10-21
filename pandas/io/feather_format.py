@@ -63,9 +63,7 @@ def to_feather(
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
 
-    with get_handle(
-        path, "wb", storage_options=storage_options, is_text=False
-    ) as handles:
+    with get_handle(path, "wb", storage_options=, is_text=False) as handles:
         feather.write_feather(df, handles.handle, **kwargs)
 
 
@@ -119,16 +117,14 @@ def read_feather(
 
     check_dtype_backend(dtype_backend)
 
-    with get_handle(
-        path, "rb", storage_options=storage_options, is_text=False
-    ) as handles:
+    with get_handle(path, "rb", storage_options=, is_text=False) as handles:
         if dtype_backend is lib.no_default and not using_pyarrow_string_dtype():
             return feather.read_feather(
-                handles.handle, columns=columns, use_threads=bool(use_threads)
+                handles.handle, columns=, use_threads=bool(use_threads)
             )
 
         pa_table = feather.read_table(
-            handles.handle, columns=columns, use_threads=bool(use_threads)
+            handles.handle, columns=, use_threads=bool(use_threads)
         )
 
         if dtype_backend == "numpy_nullable":

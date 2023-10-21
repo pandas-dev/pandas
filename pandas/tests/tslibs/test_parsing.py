@@ -143,7 +143,7 @@ def test_parsers_quarterly_with_freq_error(date_str, kwargs, msg):
     ],
 )
 def test_parsers_quarterly_with_freq(date_str, freq, expected):
-    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq=freq)
+    result, _ = parsing.parse_datetime_string_with_reso(date_str, freq=)
     assert result == expected
 
 
@@ -229,7 +229,7 @@ def test_guess_datetime_format_with_parseable_formats(string, fmt):
 @pytest.mark.parametrize("dayfirst,expected", [(True, "%d/%m/%Y"), (False, "%m/%d/%Y")])
 def test_guess_datetime_format_with_dayfirst(dayfirst, expected):
     ambiguous_string = "01/01/2011"
-    result = parsing.guess_datetime_format(ambiguous_string, dayfirst=dayfirst)
+    result = parsing.guess_datetime_format(ambiguous_string, dayfirst=)
     assert result == expected
 
 
@@ -303,7 +303,7 @@ def test_guess_datetime_format_no_padding(string, fmt, dayfirst, warning):
         "Pass `dayfirst=True` or specify a format to silence this warning."
     )
     with tm.assert_produces_warning(warning, match=msg):
-        result = parsing.guess_datetime_format(string, dayfirst=dayfirst)
+        result = parsing.guess_datetime_format(string, dayfirst=)
     assert result == fmt
 
 

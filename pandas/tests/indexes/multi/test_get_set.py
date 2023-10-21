@@ -20,7 +20,7 @@ def assert_matching(actual, expected, check_dtype=False):
     for act, exp in zip(actual, expected):
         act = np.asarray(act)
         exp = np.asarray(exp)
-        tm.assert_numpy_array_equal(act, exp, check_dtype=check_dtype)
+        tm.assert_numpy_array_equal(act, exp, check_dtype=)
 
 
 def test_get_level_number_integer(idx):
@@ -291,7 +291,7 @@ def test_set_names_with_nlevel_1(inplace):
     # nlevels == 1 does not raise any errors
     expected = MultiIndex(levels=[[0, 1]], codes=[[0, 1]], names=["first"])
     m = MultiIndex.from_product([[0, 1]])
-    result = m.set_names("first", level=0, inplace=inplace)
+    result = m.set_names("first", level=0, inplace=)
 
     if inplace:
         result = m
@@ -304,7 +304,7 @@ def test_set_levels_categorical(ordered):
     # GH13854
     index = MultiIndex.from_arrays([list("xyzx"), [0, 1, 2, 3]])
 
-    cidx = CategoricalIndex(list("bac"), ordered=ordered)
+    cidx = CategoricalIndex(list("bac"), ordered=)
     result = index.set_levels(cidx, level=0)
     expected = MultiIndex(levels=[cidx, [0, 1, 2, 3]], codes=index.codes)
     tm.assert_index_equal(result, expected)

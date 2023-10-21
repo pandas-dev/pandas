@@ -77,7 +77,7 @@ def _astype_nansafe(
 
     # dispatch on extension dtype if needed
     if isinstance(dtype, ExtensionDtype):
-        return dtype.construct_array_type()._from_sequence(arr, dtype=dtype, copy=copy)
+        return dtype.construct_array_type()._from_sequence(arr, dtype=, copy=)
 
     elif not isinstance(dtype, np.dtype):  # pragma: no cover
         raise ValueError("dtype must be np.dtype or ExtensionDtype")
@@ -86,7 +86,7 @@ def _astype_nansafe(
         from pandas.core.construction import ensure_wrapped_if_datetimelike
 
         arr = ensure_wrapped_if_datetimelike(arr)
-        res = arr.astype(dtype, copy=copy)
+        res = arr.astype(dtype, copy=)
         return np.asarray(res)
 
     if issubclass(dtype.type, str):
@@ -94,7 +94,7 @@ def _astype_nansafe(
         if arr.ndim > 1:
             arr = arr.ravel()
         return lib.ensure_string_array(
-            arr, skipna=skipna, convert_na_value=False
+            arr, skipna=, convert_na_value=False
         ).reshape(shape)
 
     elif np.issubdtype(arr.dtype, np.floating) and dtype.kind in "iu":
@@ -133,7 +133,7 @@ def _astype_nansafe(
         # Explicit copy, or required since NumPy can't view from / to object.
         return arr.astype(dtype, copy=True)
 
-    return arr.astype(dtype, copy=copy)
+    return arr.astype(dtype, copy=)
 
 
 def _astype_float_to_int_nansafe(
@@ -152,7 +152,7 @@ def _astype_float_to_int_nansafe(
             raise ValueError(f"Cannot losslessly cast from {values.dtype} to {dtype}")
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=RuntimeWarning)
-        return values.astype(dtype, copy=copy)
+        return values.astype(dtype, copy=)
 
 
 def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> ArrayLike:
@@ -177,10 +177,10 @@ def astype_array(values: ArrayLike, dtype: DtypeObj, copy: bool = False) -> Arra
 
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
-        values = values.astype(dtype, copy=copy)
+        values = values.astype(dtype, copy=)
 
     else:
-        values = _astype_nansafe(values, dtype, copy=copy)
+        values = _astype_nansafe(values, dtype, copy=)
 
     # in pandas we don't store numpy str dtypes, so convert to object
     if isinstance(dtype, np.dtype) and issubclass(values.dtype.type, str):
@@ -235,7 +235,7 @@ def astype_array_safe(
         dtype = dtype.numpy_dtype
 
     try:
-        new_values = astype_array(values, dtype, copy=copy)
+        new_values = astype_array(values, dtype, copy=)
     except (ValueError, TypeError):
         # e.g. _astype_nansafe can fail on object-dtype of strings
         #  trying to convert to float

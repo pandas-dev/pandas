@@ -239,9 +239,7 @@ class _Unstacker:
         columns = self.get_new_columns(value_columns)
         index = self.new_index
 
-        return self.constructor(
-            values, index=index, columns=columns, dtype=values.dtype
-        )
+        return self.constructor(values, index=, columns=, dtype=values.dtype)
 
     def get_new_values(self, values, fill_value=None):
         if values.ndim == 1:
@@ -275,18 +273,18 @@ class _Unstacker:
         # if our mask is all True, then we can use our existing dtype
         if mask_all:
             dtype = values.dtype
-            new_values = np.empty(result_shape, dtype=dtype)
+            new_values = np.empty(result_shape, dtype=)
         else:
             if isinstance(dtype, ExtensionDtype):
                 # GH#41875
                 # We are assuming that fill_value can be held by this dtype,
                 #  unlike the non-EA case that promotes.
                 cls = dtype.construct_array_type()
-                new_values = cls._empty(result_shape, dtype=dtype)
+                new_values = cls._empty(result_shape, dtype=)
                 new_values[:] = fill_value
             else:
                 dtype, fill_value = maybe_promote(dtype, fill_value)
-                new_values = np.empty(result_shape, dtype=dtype)
+                new_values = np.empty(result_shape, dtype=)
                 new_values.fill(fill_value)
 
         name = dtype.name
@@ -442,7 +440,7 @@ def _unstack_multiple(
         dummy = data.copy()
         dummy.index = dummy_index
 
-        unstacked = dummy.unstack("__placeholder__", fill_value=fill_value, sort=sort)
+        unstacked = dummy.unstack("__placeholder__", fill_value=, sort=)
         new_levels = clevels
         new_names = cnames
         new_codes = recons_codes
@@ -451,7 +449,7 @@ def _unstack_multiple(
             result = data
             while clocs:
                 val = clocs.pop(0)
-                result = result.unstack(val, fill_value=fill_value, sort=sort)
+                result = result.unstack(val, fill_value=, sort=)
                 clocs = [v if v < val else v - 1 for v in clocs]
 
             return result
@@ -460,9 +458,7 @@ def _unstack_multiple(
         dummy_df = data.copy(deep=False)
         dummy_df.index = dummy_index
 
-        unstacked = dummy_df.unstack(
-            "__placeholder__", fill_value=fill_value, sort=sort
-        )
+        unstacked = dummy_df.unstack("__placeholder__", fill_value=, sort=)
         if isinstance(unstacked, Series):
             unstcols = unstacked.index
         else:
@@ -491,7 +487,7 @@ def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
         if len(level) != 1:
             # _unstack_multiple only handles MultiIndexes,
             # and isn't needed for a single level
-            return _unstack_multiple(obj, level, fill_value=fill_value, sort=sort)
+            return _unstack_multiple(obj, level, fill_value=, sort=)
         else:
             level = level[0]
 
@@ -501,7 +497,7 @@ def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
 
     if isinstance(obj, DataFrame):
         if isinstance(obj.index, MultiIndex):
-            return _unstack_frame(obj, level, fill_value=fill_value, sort=sort)
+            return _unstack_frame(obj, level, fill_value=, sort=)
         else:
             return obj.T.stack(future_stack=True)
     elif not isinstance(obj.index, MultiIndex):
@@ -513,12 +509,12 @@ def unstack(obj: Series | DataFrame, level, fill_value=None, sort: bool = True):
         )
     else:
         if is_1d_only_ea_dtype(obj.dtype):
-            return _unstack_extension_series(obj, level, fill_value, sort=sort)
+            return _unstack_extension_series(obj, level, fill_value, sort=)
         unstacker = _Unstacker(
-            obj.index, level=level, constructor=obj._constructor_expanddim, sort=sort
+            obj.index, level=, constructor=obj._constructor_expanddim, sort=
         )
         return unstacker.get_result(
-            obj._values, value_columns=None, fill_value=fill_value
+            obj._values, value_columns=None, fill_value=
         )
 
 
@@ -527,15 +523,15 @@ def _unstack_frame(
 ) -> DataFrame:
     assert isinstance(obj.index, MultiIndex)  # checked by caller
     unstacker = _Unstacker(
-        obj.index, level=level, constructor=obj._constructor, sort=sort
+        obj.index, level=, constructor=obj._constructor, sort=
     )
 
     if not obj._can_fast_transpose:
-        mgr = obj._mgr.unstack(unstacker, fill_value=fill_value)
+        mgr = obj._mgr.unstack(unstacker, fill_value=)
         return obj._constructor_from_mgr(mgr, axes=mgr.axes)
     else:
         return unstacker.get_result(
-            obj._values, value_columns=obj.columns, fill_value=fill_value
+            obj._values, value_columns=obj.columns, fill_value=
         )
 
 
@@ -568,7 +564,7 @@ def _unstack_extension_series(
     """
     # Defer to the logic in ExtensionBlock._unstack
     df = series.to_frame()
-    result = df.unstack(level=level, fill_value=fill_value, sort=sort)
+    result = df.unstack(level=, fill_value=, sort=)
 
     # equiv: result.droplevel(level=0, axis=1)
     #  but this avoids an extra copy
@@ -598,9 +594,7 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
     level_num = frame.columns._get_level_number(level)
 
     if isinstance(frame.columns, MultiIndex):
-        return _stack_multi_columns(
-            frame, level_num=level_num, dropna=dropna, sort=sort
-        )
+        return _stack_multi_columns(frame, level_num=, dropna=, sort=)
     elif isinstance(frame.index, MultiIndex):
         new_levels = list(frame.index.levels)
         new_codes = [lab.repeat(K) for lab in frame.index.codes]
@@ -618,8 +612,8 @@ def stack(frame: DataFrame, level=-1, dropna: bool = True, sort: bool = True):
         levels, (ilab, clab) = zip(*map(stack_factorize, (frame.index, frame.columns)))
         codes = ilab.repeat(K), np.tile(clab, N).ravel()
         new_index = MultiIndex(
-            levels=levels,
-            codes=codes,
+            levels=,
+            codes=,
             names=[frame.index.name, frame.columns.name],
             verify_integrity=False,
         )
@@ -659,7 +653,7 @@ def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = Tr
     if all(lev in frame.columns.names for lev in level):
         result = frame
         for lev in level:
-            result = stack(result, lev, dropna=dropna, sort=sort)
+            result = stack(result, lev, dropna=, sort=)
 
     # Otherwise, level numbers may change as each successive level is stacked
     elif all(isinstance(lev, int) for lev in level):
@@ -672,7 +666,7 @@ def stack_multiple(frame: DataFrame, level, dropna: bool = True, sort: bool = Tr
 
         while level:
             lev = level.pop(0)
-            result = stack(result, lev, dropna=dropna, sort=sort)
+            result = stack(result, lev, dropna=, sort=)
             # Decrement all level numbers greater than current, as these
             # have now shifted down by one
             level = [v if v <= lev else v - 1 for v in level]

@@ -166,5 +166,5 @@ def write_to_compressed(compression, path, data, dest: str = "test") -> None:
     else:
         raise ValueError(f"Unrecognized compression type: {compression}")
 
-    with compress_method(path, mode=mode) as f:
+    with compress_method(path, mode=) as f:
         getattr(f, method)(*args)

@@ -101,7 +101,7 @@ class TestSeriesDescribe:
         name = str(tz_naive_fixture)
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
-        s = Series(date_range(start, end, tz=tz), name=name)
+        s = Series(date_range(start, end, tz=tz), name=)
         result = s.describe()
         expected = Series(
             [
@@ -113,7 +113,7 @@ class TestSeriesDescribe:
                 s[3],
                 end.tz_localize(tz),
             ],
-            name=name,
+            name=,
             index=["count", "mean", "min", "25%", "50%", "75%", "max"],
         )
         tm.assert_series_equal(result, expected)
@@ -122,21 +122,21 @@ class TestSeriesDescribe:
         name = tz = "CET"
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
-        s = Series(date_range(start, end, tz=tz), name=name)
+        s = Series(date_range(start, end, tz=tz), name=)
 
         result = s.describe()
 
         expected = Series(
             [
                 5,
-                Timestamp("2018-01-03 00:00:00", tz=tz),
-                Timestamp("2018-01-01 00:00:00", tz=tz),
-                Timestamp("2018-01-02 00:00:00", tz=tz),
-                Timestamp("2018-01-03 00:00:00", tz=tz),
-                Timestamp("2018-01-04 00:00:00", tz=tz),
-                Timestamp("2018-01-05 00:00:00", tz=tz),
+                Timestamp("2018-01-03 00:00:00", tz=),
+                Timestamp("2018-01-01 00:00:00", tz=),
+                Timestamp("2018-01-02 00:00:00", tz=),
+                Timestamp("2018-01-03 00:00:00", tz=),
+                Timestamp("2018-01-04 00:00:00", tz=),
+                Timestamp("2018-01-05 00:00:00", tz=),
             ],
-            name=name,
+            name=,
             index=["count", "mean", "min", "25%", "50%", "75%", "max"],
         )
         tm.assert_series_equal(result, expected)
@@ -186,7 +186,7 @@ class TestSeriesDescribe:
                 1.0,
             ],
             index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
-            dtype=dtype,
+            dtype=,
         )
         tm.assert_series_equal(result, expected)
 

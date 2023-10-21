@@ -44,8 +44,8 @@ class BaseMethodsTests:
         else:
             other = all_data
 
-        result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
-        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+        result = pd.Series(all_data).value_counts(dropna=).sort_index()
+        expected = pd.Series(other).value_counts(dropna=).sort_index()
 
         tm.assert_series_equal(result, expected)
 
@@ -98,7 +98,7 @@ class BaseMethodsTests:
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data_missing, na_action):
-        result = data_missing.map(lambda x: x, na_action=na_action)
+        result = data_missing.map(lambda x: x, na_action=)
         expected = data_missing.to_numpy()
         tm.assert_numpy_array_equal(result, expected)
 
@@ -188,7 +188,7 @@ class BaseMethodsTests:
             msg = f"The behavior of Series.{op_name}"
         ser = pd.Series(data_missing_for_sorting)
         with tm.assert_produces_warning(warn, match=msg):
-            result = getattr(ser, op_name)(skipna=skipna)
+            result = getattr(ser, op_name)(skipna=)
         tm.assert_almost_equal(result, expected)
 
     def test_argmax_argmin_no_skipna_notimplemented(self, data_missing_for_sorting):
@@ -210,13 +210,13 @@ class BaseMethodsTests:
     )
     def test_nargsort(self, data_missing_for_sorting, na_position, expected):
         # GH 25439
-        result = nargsort(data_missing_for_sorting, na_position=na_position)
+        result = nargsort(data_missing_for_sorting, na_position=)
         tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending, sort_by_key):
         ser = pd.Series(data_for_sorting)
-        result = ser.sort_values(ascending=ascending, key=sort_by_key)
+        result = ser.sort_values(ascending=, key=sort_by_key)
         expected = ser.iloc[[2, 0, 1]]
         if not ascending:
             # GH 35922. Expect stable sort
@@ -232,7 +232,7 @@ class BaseMethodsTests:
         self, data_missing_for_sorting, ascending, sort_by_key
     ):
         ser = pd.Series(data_missing_for_sorting)
-        result = ser.sort_values(ascending=ascending, key=sort_by_key)
+        result = ser.sort_values(ascending=, key=sort_by_key)
         if ascending:
             expected = ser.iloc[[2, 0, 1]]
         else:
@@ -251,7 +251,7 @@ class BaseMethodsTests:
     @pytest.mark.parametrize("keep", ["first", "last", False])
     def test_duplicated(self, data, keep):
         arr = data.take([0, 1, 0, 1])
-        result = arr.duplicated(keep=keep)
+        result = arr.duplicated(keep=)
         if keep == "first":
             expected = np.array([False, False, True, True])
         elif keep == "last":
@@ -481,11 +481,11 @@ class BaseMethodsTests:
     def test_shift_fill_value(self, data):
         arr = data[:4]
         fill_value = data[0]
-        result = arr.shift(1, fill_value=fill_value)
+        result = arr.shift(1, fill_value=)
         expected = data.take([0, 0, 1, 2])
         tm.assert_extension_array_equal(result, expected)
 
-        result = arr.shift(-2, fill_value=fill_value)
+        result = arr.shift(-2, fill_value=)
         expected = data.take([2, 3, 0, 0])
         tm.assert_extension_array_equal(result, expected)
 
@@ -528,14 +528,14 @@ class BaseMethodsTests:
 
         # sorter
         sorter = np.array([1, 2, 0])
-        assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
+        assert data_for_sorting.searchsorted(a, sorter=) == 0
 
     def _test_searchsorted_bool_dtypes(self, data_for_sorting, as_series):
         # We call this from test_searchsorted in cases where we have a
         #  boolean-like dtype. The non-bool test assumes we have more than 2
         #  unique values.
         dtype = data_for_sorting.dtype
-        data_for_sorting = pd.array([True, False], dtype=dtype)
+        data_for_sorting = pd.array([True, False], dtype=)
         b, a = data_for_sorting
         arr = type(data_for_sorting)._from_sequence([a, b])
 
@@ -554,7 +554,7 @@ class BaseMethodsTests:
 
         # sorter
         sorter = np.array([1, 0])
-        assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
+        assert data_for_sorting.searchsorted(a, sorter=) == 0
 
     def test_where_series(self, data, as_frame):
         na_value = data.dtype.na_value

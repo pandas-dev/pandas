@@ -62,7 +62,7 @@ def test_copy_method(deep):
         codes=[[0, 0, 0, 1], [0, 0, 1, 1]],
         names=["first", "second"],
     )
-    idx_copy = idx.copy(deep=deep)
+    idx_copy = idx.copy(deep=)
     assert idx_copy.equals(idx)
 
 

@@ -21,7 +21,7 @@ class TestDataFrameToRecords:
         index = date_range("1/1/2000", periods=10)
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)),
-            index=index,
+            index=,
             columns=["a", "b", "c"],
         )
 
@@ -58,7 +58,7 @@ class TestDataFrameToRecords:
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         data = np.zeros((8, 4))
-        df = DataFrame(data, index=index)
+        df = DataFrame(data, index=)
         r = df.to_records(index=True)["level_0"]
         assert "bar" in r
         assert "one" not in r
@@ -512,7 +512,7 @@ class TestDataFrameToRecords:
     @pytest.mark.parametrize("tz", ["UTC", "GMT", "US/Eastern"])
     def test_to_records_datetimeindex_with_tz(self, tz):
         # GH#13937
-        dr = date_range("2016-01-01", periods=10, freq="s", tz=tz)
+        dr = date_range("2016-01-01", periods=10, freq="s", tz=)
 
         df = DataFrame({"datetime": dr}, index=dr)
 

@@ -39,8 +39,8 @@ def make_flex_doc(op_name: str, typ: str) -> str:
             )
         doc_no_examples = base_doc.format(
             desc=op_desc["desc"],
-            op_name=op_name,
-            equiv=equiv,
+            op_name=,
+            equiv=,
             series_returns=op_desc["series_returns"],
         )
         ser_example = op_desc["series_examples"]
@@ -51,16 +51,13 @@ def make_flex_doc(op_name: str, typ: str) -> str:
     elif typ == "dataframe":
         if op_name in ["eq", "ne", "le", "lt", "ge", "gt"]:
             base_doc = _flex_comp_doc_FRAME
-            doc = _flex_comp_doc_FRAME.format(
-                op_name=op_name,
-                desc=op_desc["desc"],
-            )
+            doc = _flex_comp_doc_FRAME.format(op_name=, desc=op_desc["desc"])
         else:
             base_doc = _flex_doc_FRAME
             doc = base_doc.format(
                 desc=op_desc["desc"],
-                op_name=op_name,
-                equiv=equiv,
+                op_name=,
+                equiv=,
                 reverse=op_desc["reverse"],
             )
     else:

@@ -25,7 +25,7 @@ def test_interpolate_no_op(using_copy_on_write, method):
         warn = FutureWarning
     msg = "DataFrame.interpolate with method=pad is deprecated"
     with tm.assert_produces_warning(warn, match=msg):
-        result = df.interpolate(method=method)
+        result = df.interpolate(method=)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
@@ -220,7 +220,7 @@ def test_fillna_inplace(using_copy_on_write, downcast):
 
     msg = "The 'downcast' keyword in fillna is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.fillna(5.5, inplace=True, downcast=downcast)
+        df.fillna(5.5, inplace=True, downcast=)
     assert np.shares_memory(get_array(df, "a"), arr_a)
     assert np.shares_memory(get_array(df, "b"), arr_b)
     if using_copy_on_write:

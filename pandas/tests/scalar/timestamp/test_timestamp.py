@@ -92,7 +92,7 @@ class TestTimestampProperties:
     def test_fields(self, attr, expected, tz):
         # GH 10050
         # GH 13303
-        ts = Timestamp("2014-12-31 23:59:00", tz=tz)
+        ts = Timestamp("2014-12-31 23:59:00", tz=)
         result = getattr(ts, attr)
         # that we are int like
         assert isinstance(result, int)
@@ -100,7 +100,7 @@ class TestTimestampProperties:
 
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_millisecond_raises(self, tz):
-        ts = Timestamp("2014-12-31 23:59:00", tz=tz)
+        ts = Timestamp("2014-12-31 23:59:00", tz=)
         msg = "'Timestamp' object has no attribute 'millisecond'"
         with pytest.raises(AttributeError, match=msg):
             ts.millisecond
@@ -110,13 +110,13 @@ class TestTimestampProperties:
     )
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_is_start(self, start, tz):
-        ts = Timestamp("2014-01-01 00:00:00", tz=tz)
+        ts = Timestamp("2014-01-01 00:00:00", tz=)
         assert getattr(ts, start)
 
     @pytest.mark.parametrize("end", ["is_month_end", "is_year_end", "is_quarter_end"])
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_is_end(self, end, tz):
-        ts = Timestamp("2014-12-31 23:59:59", tz=tz)
+        ts = Timestamp("2014-12-31 23:59:59", tz=)
         assert getattr(ts, end)
 
     # GH 12806
@@ -166,17 +166,17 @@ class TestTimestampProperties:
                 "tzlocal() on a 32 bit platform causes internal overflow errors"
             )
         # GH 13727
-        dt = Timestamp("2000-01-01 00:00:00", tz=tz)
+        dt = Timestamp("2000-01-01 00:00:00", tz=)
         assert dt.is_leap_year
         assert isinstance(dt.is_leap_year, bool)
 
-        dt = Timestamp("1999-01-01 00:00:00", tz=tz)
+        dt = Timestamp("1999-01-01 00:00:00", tz=)
         assert not dt.is_leap_year
 
-        dt = Timestamp("2004-01-01 00:00:00", tz=tz)
+        dt = Timestamp("2004-01-01 00:00:00", tz=)
         assert dt.is_leap_year
 
-        dt = Timestamp("2100-01-01 00:00:00", tz=tz)
+        dt = Timestamp("2100-01-01 00:00:00", tz=)
         assert not dt.is_leap_year
 
     def test_woy_boundary(self):
@@ -408,7 +408,7 @@ class TestTimestamp:
     )
     def test_unit(self, value, check_kwargs):
         def check(value, unit=None, h=1, s=1, us=0, ns=0):
-            stamp = Timestamp(value, unit=unit)
+            stamp = Timestamp(value, unit=)
             assert stamp.year == 2000
             assert stamp.month == 1
             assert stamp.day == 1
@@ -464,19 +464,19 @@ class TestTimestamp:
         # see gh-33931
         test_timezone = gettz(timezone)
         transition_1 = Timestamp(
-            year=year,
-            month=month,
-            day=day,
-            hour=hour,
+            year=,
+            month=,
+            day=,
+            hour=,
             minute=0,
             fold=0,
             tzinfo=test_timezone,
         )
         transition_2 = Timestamp(
-            year=year,
-            month=month,
-            day=day,
-            hour=hour,
+            year=,
+            month=,
+            day=,
+            hour=,
             minute=0,
             fold=1,
             tzinfo=test_timezone,

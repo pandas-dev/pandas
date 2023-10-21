@@ -511,7 +511,7 @@ class TestTimedelta64ArithmeticUnsorted:
     # more targeted tests
     @pytest.mark.parametrize("freq", ["D", "B"])
     def test_timedelta(self, freq):
-        index = pd.date_range("1/1/2000", periods=50, freq=freq)
+        index = pd.date_range("1/1/2000", periods=50, freq=)
 
         shifted = index + timedelta(1)
         back = shifted + timedelta(-1)
@@ -997,7 +997,7 @@ class TestTimedeltaArraylikeAddSubOps:
         # GH#11925, GH#29558, GH#23215
         tz = tz_naive_fixture
 
-        dt_scalar = Timestamp("2012-01-01", tz=tz)
+        dt_scalar = Timestamp("2012-01-01", tz=)
         if cls is datetime:
             ts = dt_scalar.to_pydatetime()
         elif cls is np.datetime64:
@@ -1008,7 +1008,7 @@ class TestTimedeltaArraylikeAddSubOps:
             ts = dt_scalar
 
         tdi = timedelta_range("1 day", periods=3)
-        expected = pd.date_range("2012-01-02", periods=3, tz=tz)
+        expected = pd.date_range("2012-01-02", periods=3, tz=)
 
         tdarr = tm.box_expected(tdi, box_with_array)
         expected = tm.box_expected(expected, box_with_array)
@@ -1016,7 +1016,7 @@ class TestTimedeltaArraylikeAddSubOps:
         tm.assert_equal(ts + tdarr, expected)
         tm.assert_equal(tdarr + ts, expected)
 
-        expected2 = pd.date_range("2011-12-31", periods=3, freq="-1D", tz=tz)
+        expected2 = pd.date_range("2011-12-31", periods=3, freq="-1D", tz=)
         expected2 = tm.box_expected(expected2, box_with_array)
 
         tm.assert_equal(ts - tdarr, expected2)

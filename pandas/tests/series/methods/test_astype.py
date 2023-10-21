@@ -131,7 +131,7 @@ class TestAstype:
             "M",
             "m",  # Generic timestamps raise a ValueError. Already tested.
         ):
-            init_empty = Series([], dtype=dtype)
+            init_empty = Series([], dtype=)
             as_type_empty = Series([]).astype(dtype)
             tm.assert_series_equal(init_empty, as_type_empty)
 
@@ -301,7 +301,7 @@ class TestAstype:
     @pytest.mark.parametrize("errors", ["raise", "ignore"])
     def test_astype_ignores_errors_for_extension_dtypes(self, data, dtype, errors):
         # https://github.com/pandas-dev/pandas/issues/35471
-        ser = Series(data, dtype=dtype)
+        ser = Series(data, dtype=)
         if errors == "ignore":
             expected = ser
             result = ser.astype(float, errors="ignore")
@@ -309,12 +309,12 @@ class TestAstype:
         else:
             msg = "(Cannot cast)|(could not convert)"
             with pytest.raises((ValueError, TypeError), match=msg):
-                ser.astype(float, errors=errors)
+                ser.astype(float, errors=)
 
     @pytest.mark.parametrize("dtype", [np.float16, np.float32, np.float64])
     def test_astype_from_float_to_str(self, dtype):
         # https://github.com/pandas-dev/pandas/issues/36451
-        ser = Series([0.1], dtype=dtype)
+        ser = Series([0.1], dtype=)
         result = ser.astype(str)
         expected = Series(["0.1"])
         tm.assert_series_equal(result, expected)
@@ -435,7 +435,7 @@ class TestAstype:
     )
     def test_astype_ea_to_datetimetzdtype(self, dtype):
         # GH37553
-        ser = Series([4, 0, 9], dtype=dtype)
+        ser = Series([4, 0, 9], dtype=)
         result = ser.astype(DatetimeTZDtype(tz="US/Pacific"))
 
         expected = Series(
@@ -487,7 +487,7 @@ class TestAstypeString:
             )
             request.applymarker(mark)
         # GH-40351
-        ser = Series(data, dtype=dtype)
+        ser = Series(data, dtype=)
 
         # Note: just passing .astype(dtype) fails for dtype="category"
         #  with bc ser.dtype.categories will be object dtype whereas
@@ -580,19 +580,19 @@ class TestAstypeCategorical:
         # GH#10696, GH#18593
         s_data = list("abcaacbab")
         s_dtype = CategoricalDtype(list("bac"), ordered=series_ordered)
-        ser = Series(s_data, dtype=s_dtype, name=name)
+        ser = Series(s_data, dtype=s_dtype, name=)
 
         # unspecified categories
         dtype = CategoricalDtype(ordered=dtype_ordered)
         result = ser.astype(dtype)
         exp_dtype = CategoricalDtype(s_dtype.categories, dtype_ordered)
-        expected = Series(s_data, name=name, dtype=exp_dtype)
+        expected = Series(s_data, name=, dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
 
         # different categories
         dtype = CategoricalDtype(list("adc"), dtype_ordered)
         result = ser.astype(dtype)
-        expected = Series(s_data, name=name, dtype=dtype)
+        expected = Series(s_data, name=, dtype=)
         tm.assert_series_equal(result, expected)
 
         if dtype_ordered is False:

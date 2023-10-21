@@ -158,7 +158,7 @@ def test_contains_na_kwarg_for_nullable_string_dtype(
     # https://github.com/pandas-dev/pandas/pull/41025#issuecomment-824062416
 
     values = Series(["a", "b", "c", "a", np.nan], dtype=nullable_string_dtype)
-    result = values.str.contains("a", na=na, regex=regex)
+    result = values.str.contains("a", na=, regex=)
     expected = Series([True, False, False, True, expected], dtype="boolean")
     tm.assert_series_equal(result, expected)
 
@@ -248,7 +248,7 @@ def test_startswith(pat, dtype, null_value, na):
     # add category dtype parametrizations for GH-36241
     values = Series(
         ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
-        dtype=dtype,
+        dtype=,
     )
 
     result = values.str.startswith(pat)
@@ -260,7 +260,7 @@ def test_startswith(pat, dtype, null_value, na):
         exp[exp.isna()] = None
     tm.assert_series_equal(result, exp)
 
-    result = values.str.startswith(pat, na=na)
+    result = values.str.startswith(pat, na=)
     exp = Series([False, na, True, False, False, na, True])
     tm.assert_series_equal(result, exp)
 
@@ -280,13 +280,13 @@ def test_startswith_nullable_string_dtype(nullable_string_dtype, na):
         ["om", None, "foo_nom", "nom", "bar_foo", None, "foo", "regex", "rege."],
         dtype=nullable_string_dtype,
     )
-    result = values.str.startswith("foo", na=na)
+    result = values.str.startswith("foo", na=)
     exp = Series(
         [False, na, True, False, False, na, True, False, False], dtype="boolean"
     )
     tm.assert_series_equal(result, exp)
 
-    result = values.str.startswith("rege.", na=na)
+    result = values.str.startswith("rege.", na=)
     exp = Series(
         [False, na, False, False, False, na, False, False, True], dtype="boolean"
     )
@@ -306,7 +306,7 @@ def test_endswith(pat, dtype, null_value, na):
     # add category dtype parametrizations for GH-36241
     values = Series(
         ["om", null_value, "foo_nom", "nom", "bar_foo", null_value, "foo"],
-        dtype=dtype,
+        dtype=,
     )
 
     result = values.str.endswith(pat)
@@ -318,7 +318,7 @@ def test_endswith(pat, dtype, null_value, na):
         exp[exp.isna()] = None
     tm.assert_series_equal(result, exp)
 
-    result = values.str.endswith(pat, na=na)
+    result = values.str.endswith(pat, na=)
     exp = Series([False, na, False, False, True, na, True])
     tm.assert_series_equal(result, exp)
 
@@ -338,13 +338,13 @@ def test_endswith_nullable_string_dtype(nullable_string_dtype, na):
         ["om", None, "foo_nom", "nom", "bar_foo", None, "foo", "regex", "rege."],
         dtype=nullable_string_dtype,
     )
-    result = values.str.endswith("foo", na=na)
+    result = values.str.endswith("foo", na=)
     exp = Series(
         [False, na, False, False, True, na, True, False, False], dtype="boolean"
     )
     tm.assert_series_equal(result, exp)
 
-    result = values.str.endswith("rege.", na=na)
+    result = values.str.endswith("rege.", na=)
     exp = Series(
         [False, na, False, False, False, na, False, False, True], dtype="boolean"
     )
@@ -517,7 +517,7 @@ def test_replace_literal(regex, expected, any_string_dtype):
     # GH16808 literal replace (regex=False vs regex=True)
     ser = Series(["f.o", "foo", np.nan], dtype=any_string_dtype)
     expected = Series(expected, dtype=any_string_dtype)
-    result = ser.str.replace("f.", "ba", regex=regex)
+    result = ser.str.replace("f.", "ba", regex=)
     tm.assert_series_equal(result, expected)
 
 
@@ -621,7 +621,7 @@ def test_replace_regex_single_character(regex, any_string_dtype):
     # GH 24804
     s = Series(["a.b", ".", "b", np.nan, ""], dtype=any_string_dtype)
 
-    result = s.str.replace(".", "a", regex=regex)
+    result = s.str.replace(".", "a", regex=)
     if regex:
         expected = Series(["aaa", "a", "a", np.nan, ""], dtype=any_string_dtype)
     else:

@@ -16,7 +16,7 @@ def create_mock_weights(obj, com, adjust, ignore_na):
         w = concat(
             [
                 create_mock_series_weights(
-                    obj.iloc[:, i], com=com, adjust=adjust, ignore_na=ignore_na
+                    obj.iloc[:, i], com=, adjust=, ignore_na=
                 )
                 for i in range(len(obj.columns))
             ],
@@ -61,10 +61,8 @@ def create_mock_series_weights(s, com, adjust, ignore_na):
 def test_ewm_consistency_mean(all_data, adjust, ignore_na, min_periods):
     com = 3.0
 
-    result = all_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).mean()
-    weights = create_mock_weights(all_data, com=com, adjust=adjust, ignore_na=ignore_na)
+    result = all_data.ewm(com=, min_periods=, adjust=, ignore_na=).mean()
+    weights = create_mock_weights(all_data, com=, adjust=, ignore_na=)
     expected = all_data.multiply(weights).cumsum().divide(weights.cumsum()).ffill()
     expected[
         all_data.expanding().count() < (max(min_periods, 1) if min_periods else 1)
@@ -77,11 +75,11 @@ def test_ewm_consistency_consistent(consistent_data, adjust, ignore_na, min_peri
 
     count_x = consistent_data.expanding().count()
     mean_x = consistent_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+        com=, min_periods=, adjust=, ignore_na=
     ).mean()
     # check that correlation of a series with itself is either 1 or NaN
     corr_x_x = consistent_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+        com=, min_periods=, adjust=, ignore_na=
     ).corr(consistent_data)
     exp = (
         consistent_data.max()
@@ -106,13 +104,13 @@ def test_ewm_consistency_var_debiasing_factors(
 
     # check variance debiasing factors
     var_unbiased_x = all_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+        com=, min_periods=, adjust=, ignore_na=
     ).var(bias=False)
     var_biased_x = all_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+        com=, min_periods=, adjust=, ignore_na=
     ).var(bias=True)
 
-    weights = create_mock_weights(all_data, com=com, adjust=adjust, ignore_na=ignore_na)
+    weights = create_mock_weights(all_data, com=, adjust=, ignore_na=)
     cum_sum = weights.cumsum().ffill()
     cum_sum_sq = (weights * weights).cumsum().ffill()
     numerator = cum_sum * cum_sum
@@ -127,19 +125,17 @@ def test_ewm_consistency_var_debiasing_factors(
 def test_moments_consistency_var(all_data, adjust, ignore_na, min_periods, bias):
     com = 3.0
 
-    mean_x = all_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).mean()
+    mean_x = all_data.ewm(com=, min_periods=, adjust=, ignore_na=).mean()
     var_x = all_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).var(bias=bias)
+        com=, min_periods=, adjust=, ignore_na=
+    ).var(bias=)
     assert not (var_x < 0).any().any()
 
     if bias:
         # check that biased var(x) == mean(x^2) - mean(x)^2
         mean_x2 = (
             (all_data * all_data)
-            .ewm(com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na)
+            .ewm(com=, min_periods=, adjust=, ignore_na=)
             .mean()
         )
         tm.assert_equal(var_x, mean_x2 - (mean_x * mean_x))
@@ -150,10 +146,10 @@ def test_moments_consistency_var_constant(
     consistent_data, adjust, ignore_na, min_periods, bias
 ):
     com = 3.0
-    count_x = consistent_data.expanding(min_periods=min_periods).count()
+    count_x = consistent_data.expanding(min_periods=).count()
     var_x = consistent_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).var(bias=bias)
+        com=, min_periods=, adjust=, ignore_na=
+    ).var(bias=)
 
     # check that variance of constant series is identically 0
     assert not (var_x > 0).any().any()
@@ -168,21 +164,21 @@ def test_moments_consistency_var_constant(
 def test_ewm_consistency_std(all_data, adjust, ignore_na, min_periods, bias):
     com = 3.0
     var_x = all_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).var(bias=bias)
+        com=, min_periods=, adjust=, ignore_na=
+    ).var(bias=)
     assert not (var_x < 0).any().any()
 
     std_x = all_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).std(bias=bias)
+        com=, min_periods=, adjust=, ignore_na=
+    ).std(bias=)
     assert not (std_x < 0).any().any()
 
     # check that var(x) == std(x)^2
     tm.assert_equal(var_x, std_x * std_x)
 
     cov_x_x = all_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).cov(all_data, bias=bias)
+        com=, min_periods=, adjust=, ignore_na=
+    ).cov(all_data, bias=)
     assert not (cov_x_x < 0).any().any()
 
     # check that var(x) == cov(x, x)
@@ -197,18 +193,18 @@ def test_ewm_consistency_series_cov_corr(
 
     var_x_plus_y = (
         (series_data + series_data)
-        .ewm(com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na)
-        .var(bias=bias)
+        .ewm(com=, min_periods=, adjust=, ignore_na=)
+        .var(bias=)
     )
     var_x = series_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).var(bias=bias)
+        com=, min_periods=, adjust=, ignore_na=
+    ).var(bias=)
     var_y = series_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).var(bias=bias)
+        com=, min_periods=, adjust=, ignore_na=
+    ).var(bias=)
     cov_x_y = series_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).cov(series_data, bias=bias)
+        com=, min_periods=, adjust=, ignore_na=
+    ).cov(series_data, bias=)
     # check that cov(x, y) == (var(x+y) - var(x) -
     # var(y)) / 2
     tm.assert_equal(cov_x_y, 0.5 * (var_x_plus_y - var_x - var_y))
@@ -216,28 +212,28 @@ def test_ewm_consistency_series_cov_corr(
     # check that corr(x, y) == cov(x, y) / (std(x) *
     # std(y))
     corr_x_y = series_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+        com=, min_periods=, adjust=, ignore_na=
     ).corr(series_data)
     std_x = series_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).std(bias=bias)
+        com=, min_periods=, adjust=, ignore_na=
+    ).std(bias=)
     std_y = series_data.ewm(
-        com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
-    ).std(bias=bias)
+        com=, min_periods=, adjust=, ignore_na=
+    ).std(bias=)
     tm.assert_equal(corr_x_y, cov_x_y / (std_x * std_y))
 
     if bias:
         # check that biased cov(x, y) == mean(x*y) -
         # mean(x)*mean(y)
         mean_x = series_data.ewm(
-            com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+            com=, min_periods=, adjust=, ignore_na=
         ).mean()
         mean_y = series_data.ewm(
-            com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na
+            com=, min_periods=, adjust=, ignore_na=
         ).mean()
         mean_x_times_y = (
             (series_data * series_data)
-            .ewm(com=com, min_periods=min_periods, adjust=adjust, ignore_na=ignore_na)
+            .ewm(com=, min_periods=, adjust=, ignore_na=)
             .mean()
         )
         tm.assert_equal(cov_x_y, mean_x_times_y - (mean_x * mean_y))

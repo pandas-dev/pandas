@@ -56,14 +56,14 @@ class DropDuplicates:
         # to check Index/Series compat
         idx = idx.append(idx[:5])
 
-        tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected)
+        tm.assert_numpy_array_equal(idx.duplicated(keep=), expected)
         expected = idx[~expected]
 
-        result = idx.drop_duplicates(keep=keep)
+        result = idx.drop_duplicates(keep=)
         tm.assert_index_equal(result, expected)
 
-        result = Series(idx).drop_duplicates(keep=keep)
-        expected = Series(expected, index=index)
+        result = Series(idx).drop_duplicates(keep=)
+        expected = Series(expected, index=)
         tm.assert_series_equal(result, expected)
 
 
@@ -74,7 +74,7 @@ class TestDropDuplicatesPeriodIndex(DropDuplicates):
 
     @pytest.fixture
     def idx(self, freq):
-        return period_range("2011-01-01", periods=10, freq=freq, name="idx")
+        return period_range("2011-01-01", periods=10, freq=, name="idx")
 
 
 class TestDropDuplicatesDatetimeIndex(DropDuplicates):

@@ -46,9 +46,9 @@ class AstypeTests:
 
         # non-default params
         categories = index.dropna().unique().values[:-1]
-        dtype = CategoricalDtype(categories=categories, ordered=True)
+        dtype = CategoricalDtype(categories=, ordered=True)
         result = index.astype(dtype)
-        expected = CategoricalIndex(index.values, categories=categories, ordered=True)
+        expected = CategoricalIndex(index.values, categories=, ordered=True)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(

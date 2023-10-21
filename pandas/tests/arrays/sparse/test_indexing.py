@@ -261,13 +261,13 @@ class TestTake:
 
     @pytest.mark.parametrize("kind", ["block", "integer"])
     def test_take_filling_all_nan(self, kind):
-        sparse = SparseArray([np.nan, np.nan, np.nan, np.nan, np.nan], kind=kind)
+        sparse = SparseArray([np.nan, np.nan, np.nan, np.nan, np.nan], kind=)
         result = sparse.take(np.array([1, 0, -1]))
-        expected = SparseArray([np.nan, np.nan, np.nan], kind=kind)
+        expected = SparseArray([np.nan, np.nan, np.nan], kind=)
         tm.assert_sp_array_equal(result, expected)
 
         result = sparse.take(np.array([1, 0, -1]), fill_value=True)
-        expected = SparseArray([np.nan, np.nan, np.nan], kind=kind)
+        expected = SparseArray([np.nan, np.nan, np.nan], kind=)
         tm.assert_sp_array_equal(result, expected)
 
         msg = "out of bounds value in 'indices'"

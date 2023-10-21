@@ -94,7 +94,7 @@ class TestNLargestNSmallest:
         else:
             ascending = nselect_method == "nsmallest"
             result = getattr(df, nselect_method)(n, order)
-            expected = df.sort_values(order, ascending=ascending).head(n)
+            expected = df.sort_values(order, ascending=).head(n)
             tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(

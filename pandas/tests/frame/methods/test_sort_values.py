@@ -18,7 +18,7 @@ class TestDataFrameSortValues:
     def test_sort_values_sparse_no_warning(self, dtype):
         # GH#45618
         ser = pd.Series(Categorical(["a", "b", "a"], categories=["a", "b", "c"]))
-        df = pd.get_dummies(ser, dtype=dtype, sparse=True)
+        df = pd.get_dummies(ser, dtype=, sparse=True)
 
         with tm.assert_produces_warning(None):
             # No warnings about constructing Index from SparseArray
@@ -281,9 +281,7 @@ class TestDataFrameSortValues:
             else expected_idx_non_na + [2, 11, 12]
         )
         expected = df.take(expected_idx)
-        sorted_df = df.sort_values(
-            ["A", "B"], ascending=ascending, na_position=na_position
-        )
+        sorted_df = df.sort_values(["A", "B"], ascending=, na_position=)
         tm.assert_frame_equal(sorted_df, expected)
 
     def test_sort_values_stable_categorial(self):
@@ -441,7 +439,7 @@ class TestDataFrameSortValues:
         df = DataFrame(
             {
                 column_name: Categorical(
-                    ["A", np.nan, "B", np.nan, "C"], categories=categories, ordered=True
+                    ["A", np.nan, "B", np.nan, "C"], categories=, ordered=True
                 )
             }
         )
@@ -452,7 +450,7 @@ class TestDataFrameSortValues:
         expected = DataFrame(
             {
                 column_name: Categorical(
-                    list_of_nans + categories, categories=categories, ordered=True
+                    list_of_nans + categories, categories=, ordered=True
                 )
             },
             index=na_indices + category_indices,
@@ -467,7 +465,7 @@ class TestDataFrameSortValues:
         expected = DataFrame(
             {
                 column_name: Categorical(
-                    categories + list_of_nans, categories=categories, ordered=True
+                    categories + list_of_nans, categories=, ordered=True
                 )
             },
             index=category_indices + na_indices,
@@ -483,7 +481,7 @@ class TestDataFrameSortValues:
             {
                 column_name: Categorical(
                     list_of_nans + reversed_categories,
-                    categories=categories,
+                    categories=,
                     ordered=True,
                 )
             },
@@ -500,7 +498,7 @@ class TestDataFrameSortValues:
             {
                 column_name: Categorical(
                     reversed_categories + list_of_nans,
-                    categories=categories,
+                    categories=,
                     ordered=True,
                 )
             },
@@ -729,19 +727,19 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
             else:
                 return col
 
-        result = df.sort_values(by="a", key=key)
+        result = df.sort_values(by="a", key=)
         expected = df.iloc[[1, 3, 4, 0, 2, 5]]
         tm.assert_frame_equal(result, expected)
 
-        result = df.sort_values(by=["a"], key=key)
+        result = df.sort_values(by=["a"], key=)
         expected = df.iloc[[1, 3, 4, 0, 2, 5]]
         tm.assert_frame_equal(result, expected)
 
-        result = df.sort_values(by="b", key=key)
+        result = df.sort_values(by="b", key=)
         expected = df.iloc[[0, 1, 4, 3, 2, 5]]
         tm.assert_frame_equal(result, expected)
 
-        result = df.sort_values(by=["a", "b"], key=key)
+        result = df.sort_values(by=["a", "b"], key=)
         expected = df.iloc[[1, 3, 4, 0, 2, 5]]
         tm.assert_frame_equal(result, expected)
 
@@ -803,7 +801,7 @@ class TestDataFrameSortKey:  # test key sorting (issue 27237)
         def sorter(key):
             if key.name == "y":
                 return pd.Series(
-                    Categorical(key, categories=categories, ordered=ordered)
+                    Categorical(key, categories=, ordered=)
                 )
             return key
 
@@ -878,11 +876,11 @@ class TestSortValuesLevelAsStr:
 
         # Compute expected by sorting on columns and the setting index
         expected = df_none.sort_values(
-            by=sort_names, ascending=ascending, axis=0
+            by=sort_names, ascending=, axis=0
         ).set_index(levels)
 
         # Compute result sorting on mix on columns and index levels
-        result = df_idx.sort_values(by=sort_names, ascending=ascending, axis=0)
+        result = df_idx.sort_values(by=sort_names, ascending=, axis=0)
 
         tm.assert_frame_equal(result, expected)
 
@@ -898,13 +896,13 @@ class TestSortValuesLevelAsStr:
         # transposing. For some cases this will result in a frame with
         # multiple column levels
         expected = (
-            df_none.sort_values(by=sort_names, ascending=ascending, axis=0)
+            df_none.sort_values(by=sort_names, ascending=, axis=0)
             .set_index(levels)
             .T
         )
 
         # Compute result by transposing and sorting on axis=1.
-        result = df_idx.T.sort_values(by=sort_names, ascending=ascending, axis=1)
+        result = df_idx.T.sort_values(by=sort_names, ascending=, axis=1)
 
         if Version(np.__version__) >= Version("1.25"):
             request.applymarker(
@@ -936,5 +934,5 @@ class TestSortValuesLevelAsStr:
             indexer = indexer[::-1]
 
         expected = df.loc[df.index[indexer]]
-        result = df.sort_values(by="D", ascending=ascending)
+        result = df.sort_values(by="D", ascending=)
         tm.assert_frame_equal(result, expected)

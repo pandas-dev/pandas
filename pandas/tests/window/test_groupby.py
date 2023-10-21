@@ -132,11 +132,11 @@ class TestRolling:
         g = roll_frame.groupby("A", group_keys=False)
         r = g.rolling(window=4)
 
-        result = r.quantile(0.4, interpolation=interpolation)
+        result = r.quantile(0.4, interpolation=)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             expected = g.apply(
-                lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
+                lambda x: x.rolling(4).quantile(0.4, interpolation=)
             )
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
@@ -244,10 +244,10 @@ class TestRolling:
         r = g.rolling(window=4)
 
         # reduction
-        result = r.apply(lambda x: x.sum(), raw=raw)
+        result = r.apply(lambda x: x.sum(), raw=)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
+            expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=))
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
@@ -402,7 +402,7 @@ class TestRolling:
         window_size = 5
         result = (
             df.groupby("group")
-            .rolling(window_size, center=True, min_periods=min_periods)
+            .rolling(window_size, center=True, min_periods=)
             .mean()
         )
         result = result.reset_index()[["group", "data"]]
@@ -702,8 +702,8 @@ class TestRolling:
         arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
         index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
 
-        s = Series([1, 2, 3], index=index)
-        result = s.groupby(["idx1", "idx2"], group_keys=group_keys).rolling(1).mean()
+        s = Series([1, 2, 3], index=)
+        result = s.groupby(["idx1", "idx2"], group_keys=).rolling(1).mean()
         expected = Series(
             [1.0, 2.0, 3.0],
             index=MultiIndex.from_tuples(
@@ -722,7 +722,7 @@ class TestRolling:
         arrays = [["val1", "val1", "val2"], ["val1", "val1", "val2"]]
         index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
 
-        df = DataFrame({"A": [1, 1, 2], "B": range(3)}, index=index)
+        df = DataFrame({"A": [1, 1, 2], "B": range(3)}, index=)
         result = df.groupby(["idx1", "A"]).rolling(1).mean()
         expected = DataFrame(
             {"B": [0.0, 1.0, 2.0]},
@@ -818,7 +818,7 @@ class TestRolling:
         df = DataFrame([1, 2, 3, 4, 5, 6, 7, 8])
         result = (
             df.groupby([1, 2, 1, 2, 1, 2, 1, 2])
-            .rolling(window=window, min_periods=min_periods, closed=closed)
+            .rolling(window=, min_periods=, closed=)
             .var(0)
         )
         expected_result = DataFrame(
@@ -835,7 +835,7 @@ class TestRolling:
     )
     def test_by_column_not_in_values(self, columns):
         # GH 32262
-        df = DataFrame([[1, 0]] * 20 + [[2, 0]] * 12 + [[3, 0]] * 8, columns=columns)
+        df = DataFrame([[1, 0]] * 20 + [[2, 0]] * 12 + [[3, 0]] * 8, columns=)
         g = df.groupby("A")
         original_obj = g.obj.copy(deep=True)
         r = g.rolling(4)
@@ -850,7 +850,7 @@ class TestRolling:
             ["Captive", "Wild", "Captive", "Wild"],
         ]
         index = MultiIndex.from_arrays(arrays, names=("Animal", "Type"))
-        df = DataFrame({"Max Speed": [390.0, 350.0, 30.0, 20.0]}, index=index)
+        df = DataFrame({"Max Speed": [390.0, 350.0, 30.0, 20.0]}, index=)
         result = df.groupby(level=0)["Max Speed"].rolling(2).sum()
         expected = Series(
             [np.nan, 740.0, np.nan, 50.0],
@@ -972,7 +972,7 @@ class TestRolling:
             ["Joe", "10/15/2015", 50],
         ]
 
-        df = DataFrame(data=data, columns=["name", "date", "amount"])
+        df = DataFrame(data=, columns=["name", "date", "amount"])
         df["date"] = to_datetime(df["date"])
         df = df.sort_values("date")
 
@@ -1070,11 +1070,11 @@ class TestExpanding:
         g = frame.groupby("A", group_keys=False)
         r = g.expanding()
 
-        result = r.quantile(0.4, interpolation=interpolation)
+        result = r.quantile(0.4, interpolation=)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             expected = g.apply(
-                lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
+                lambda x: x.expanding().quantile(0.4, interpolation=)
             )
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
@@ -1120,11 +1120,11 @@ class TestExpanding:
         r = g.expanding()
 
         # reduction
-        result = r.apply(lambda x: x.sum(), raw=raw)
+        result = r.apply(lambda x: x.sum(), raw=)
         msg = "DataFrameGroupBy.apply operated on the grouping columns"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             expected = g.apply(
-                lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw)
+                lambda x: x.expanding().apply(lambda y: y.sum(), raw=)
             )
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
@@ -1191,7 +1191,7 @@ class TestEWM:
         halflife = "23 days"
         # GH#42738
         times = times_frame.pop("C")
-        result = times_frame.groupby("A").ewm(halflife=halflife, times=times).mean()
+        result = times_frame.groupby("A").ewm(halflife=, times=).mean()
         expected = DataFrame(
             {
                 "B": [
@@ -1230,8 +1230,8 @@ class TestEWM:
         halflife = "23 days"
         times = times_frame.pop("C")
         gb = times_frame.groupby("A")
-        result = gb.ewm(halflife=halflife, times=times).mean()
-        expected = gb.ewm(halflife=halflife, times=times.values).mean()
+        result = gb.ewm(halflife=, times=).mean()
+        expected = gb.ewm(halflife=, times=times.values).mean()
         tm.assert_frame_equal(result, expected)
 
     def test_dont_mutate_obj_after_slicing(self):
@@ -1281,7 +1281,7 @@ def test_rolling_corr_with_single_integer_in_index():
     result = gb.rolling(2).corr(other=df)
     index = MultiIndex.from_tuples([((1,), 0), ((1,), 1), ((1,), 2)], names=["a", None])
     expected = DataFrame(
-        {"a": [np.nan, np.nan, np.nan], "b": [np.nan, 1.0, 1.0]}, index=index
+        {"a": [np.nan, np.nan, np.nan], "b": [np.nan, 1.0, 1.0]}, index=
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1313,6 +1313,6 @@ def test_rolling_corr_with_tuples_in_index():
         [((1, 2), 0), ((1, 2), 1), ((1, 2), 2)], names=["a", None]
     )
     expected = DataFrame(
-        {"a": [np.nan, np.nan, np.nan], "b": [np.nan, 1.0, 1.0]}, index=index
+        {"a": [np.nan, np.nan, np.nan], "b": [np.nan, 1.0, 1.0]}, index=
     )
     tm.assert_frame_equal(result, expected)

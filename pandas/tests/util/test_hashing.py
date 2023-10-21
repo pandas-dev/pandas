@@ -59,7 +59,7 @@ def test_hash_array(series):
 @pytest.mark.parametrize("dtype", ["U", object])
 def test_hash_array_mixed(dtype):
     result1 = hash_array(np.array(["3", "4", "All"]))
-    result2 = hash_array(np.array([3, 4, "All"], dtype=dtype))
+    result2 = hash_array(np.array([3, 4, "All"], dtype=))
 
     tm.assert_numpy_array_equal(result1, result2)
 
@@ -144,8 +144,8 @@ def test_multiindex_objects():
     ],
 )
 def test_hash_pandas_object(obj, index):
-    a = hash_pandas_object(obj, index=index)
-    b = hash_pandas_object(obj, index=index)
+    a = hash_pandas_object(obj, index=)
+    b = hash_pandas_object(obj, index=)
     tm.assert_series_equal(a, b)
 
 
@@ -189,14 +189,14 @@ def test_hash_pandas_object_diff_index_non_empty(obj):
     ],
 )
 def test_hash_pandas_index(obj, index):
-    a = hash_pandas_object(obj, index=index)
-    b = hash_pandas_object(obj, index=index)
+    a = hash_pandas_object(obj, index=)
+    b = hash_pandas_object(obj, index=)
     tm.assert_series_equal(a, b)
 
 
 def test_hash_pandas_series(series, index):
-    a = hash_pandas_object(series, index=index)
-    b = hash_pandas_object(series, index=index)
+    a = hash_pandas_object(series, index=)
+    b = hash_pandas_object(series, index=)
     tm.assert_series_equal(a, b)
 
 
@@ -212,8 +212,8 @@ def test_hash_pandas_series_diff_index(series):
 def test_hash_pandas_empty_object(obj, index):
     # These are by-definition the same with
     # or without the index as the data is empty.
-    a = hash_pandas_object(obj, index=index)
-    b = hash_pandas_object(obj, index=index)
+    a = hash_pandas_object(obj, index=)
+    b = hash_pandas_object(obj, index=)
     tm.assert_series_equal(a, b)
 
 
@@ -235,9 +235,9 @@ def test_categorical_consistency(s1, categorize):
     s3 = s2.cat.set_categories(list(reversed(s1)))
 
     # These should all hash identically.
-    h1 = hash_pandas_object(s1, categorize=categorize)
-    h2 = hash_pandas_object(s2, categorize=categorize)
-    h3 = hash_pandas_object(s3, categorize=categorize)
+    h1 = hash_pandas_object(s1, categorize=)
+    h2 = hash_pandas_object(s2, categorize=)
+    h3 = hash_pandas_object(s3, categorize=)
 
     tm.assert_series_equal(h1, h2)
     tm.assert_series_equal(h1, h3)
@@ -312,15 +312,15 @@ def test_invalid_key():
 def test_already_encoded(index):
     # If already encoded, then ok.
     obj = Series(list("abc")).str.encode("utf8")
-    a = hash_pandas_object(obj, index=index)
-    b = hash_pandas_object(obj, index=index)
+    a = hash_pandas_object(obj, index=)
+    b = hash_pandas_object(obj, index=)
     tm.assert_series_equal(a, b)
 
 
 def test_alternate_encoding(index):
     obj = Series(list("abc"))
-    a = hash_pandas_object(obj, index=index)
-    b = hash_pandas_object(obj, index=index)
+    a = hash_pandas_object(obj, index=)
+    b = hash_pandas_object(obj, index=)
     tm.assert_series_equal(a, b)
 
 

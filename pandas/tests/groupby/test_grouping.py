@@ -364,14 +364,14 @@ class TestGrouping:
         data = np.array(
             [[1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 1, 2], [1, 2, 1, 2]], int
         )
-        cat_columns = CategoricalIndex(columns, categories=categories, ordered=True)
-        df = DataFrame(data=data, columns=cat_columns)
+        cat_columns = CategoricalIndex(columns, categories=, ordered=True)
+        df = DataFrame(data=, columns=cat_columns)
         depr_msg = "DataFrame.groupby with axis=1 is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            result = df.groupby(axis=1, level=0, observed=observed).sum()
+            result = df.groupby(axis=1, level=0, observed=).sum()
         expected_data = np.array([[4, 2], [4, 2], [4, 2], [4, 2], [4, 2]], int)
         expected_columns = CategoricalIndex(
-            categories, categories=categories, ordered=True
+            categories, categories=, ordered=True
         )
         expected = DataFrame(data=expected_data, columns=expected_columns)
         tm.assert_frame_equal(result, expected)
@@ -380,7 +380,7 @@ class TestGrouping:
         df = DataFrame(data.T, index=cat_columns)
         msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = df.groupby(axis=0, level=0, observed=observed).sum()
+            result = df.groupby(axis=0, level=0, observed=).sum()
         expected = DataFrame(data=expected_data.T, index=expected_columns)
         tm.assert_frame_equal(result, expected)
 
@@ -450,8 +450,8 @@ class TestGrouping:
     )
     def test_groupby_series_named_with_tuple(self, frame_or_series, index):
         # GH 42731
-        obj = frame_or_series([1, 2, 3, 4], index=index)
-        groups = Series([1, 0, 1, 0], index=index, name=("a", "a"))
+        obj = frame_or_series([1, 2, 3, 4], index=)
+        groups = Series([1, 0, 1, 0], index=, name=("a", "a"))
         result = obj.groupby(groups).last()
         expected = frame_or_series([4, 3])
         expected.index.name = ("a", "a")
@@ -624,11 +624,11 @@ class TestGrouping:
         frame = mframe
         deleveled = frame.reset_index()
 
-        result0 = frame.groupby(level=0, sort=sort).sum()
-        result1 = frame.groupby(level=1, sort=sort).sum()
+        result0 = frame.groupby(level=0, sort=).sum()
+        result1 = frame.groupby(level=1, sort=).sum()
 
-        expected0 = frame.groupby(deleveled["first"].values, sort=sort).sum()
-        expected1 = frame.groupby(deleveled["second"].values, sort=sort).sum()
+        expected0 = frame.groupby(deleveled["first"].values, sort=).sum()
+        expected1 = frame.groupby(deleveled["second"].values, sort=).sum()
 
         expected0.index.name = "first"
         expected1.index.name = "second"
@@ -642,16 +642,16 @@ class TestGrouping:
         assert result1.index.name == frame.index.names[1]
 
         # groupby level name
-        result0 = frame.groupby(level="first", sort=sort).sum()
-        result1 = frame.groupby(level="second", sort=sort).sum()
+        result0 = frame.groupby(level="first", sort=).sum()
+        result1 = frame.groupby(level="second", sort=).sum()
         tm.assert_frame_equal(result0, expected0)
         tm.assert_frame_equal(result1, expected1)
 
         # axis=1
         msg = "DataFrame.groupby with axis=1 is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result0 = frame.T.groupby(level=0, axis=1, sort=sort).sum()
-            result1 = frame.T.groupby(level=1, axis=1, sort=sort).sum()
+            result0 = frame.T.groupby(level=0, axis=1, sort=).sum()
+            result1 = frame.T.groupby(level=1, axis=1, sort=).sum()
         tm.assert_frame_equal(result0, expected0.T)
         tm.assert_frame_equal(result1, expected1.T)
 
@@ -671,11 +671,11 @@ class TestGrouping:
         else:
             depr_msg = "The 'axis' keyword in DataFrame.groupby is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-            df.groupby(level="exp", axis=axis)
+            df.groupby(level="exp", axis=)
         msg = f"level name foo is not the name of the {df._get_axis_name(axis)}"
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=depr_msg):
-                df.groupby(level="foo", axis=axis)
+                df.groupby(level="foo", axis=)
 
     @pytest.mark.parametrize("sort", [True, False])
     def test_groupby_level_with_nas(self, sort):
@@ -686,8 +686,8 @@ class TestGrouping:
         )
 
         # factorizing doesn't confuse things
-        s = Series(np.arange(8.0), index=index)
-        result = s.groupby(level=0, sort=sort).sum()
+        s = Series(np.arange(8.0), index=)
+        result = s.groupby(level=0, sort=).sum()
         expected = Series([6.0, 22.0], index=[0, 1])
         tm.assert_series_equal(result, expected)
 
@@ -697,8 +697,8 @@ class TestGrouping:
         )
 
         # factorizing doesn't confuse things
-        s = Series(np.arange(8.0), index=index)
-        result = s.groupby(level=0, sort=sort).sum()
+        s = Series(np.arange(8.0), index=)
+        result = s.groupby(level=0, sort=).sum()
         expected = Series([6.0, 18.0], index=[0.0, 1.0])
         tm.assert_series_equal(result, expected)
 
@@ -723,7 +723,7 @@ class TestGrouping:
     )
     def test_level_preserve_order(self, sort, labels, mframe):
         # GH 17537
-        grouped = mframe.groupby(level=0, sort=sort)
+        grouped = mframe.groupby(level=0, sort=)
         exp_labels = np.array(labels, np.intp)
         tm.assert_almost_equal(grouped.grouper.codes[0], exp_labels)
 
@@ -892,7 +892,7 @@ class TestGetGroup:
     def test_get_group_empty_bins(self, observed):
         d = DataFrame([3, 1, 7, 6])
         bins = [0, 5, 10, 15]
-        g = d.groupby(pd.cut(d[0], bins), observed=observed)
+        g = d.groupby(pd.cut(d[0], bins), observed=)
 
         # TODO: should prob allow a str of Interval work as well
         # IOW '(0, 5]'

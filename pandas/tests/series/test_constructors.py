@@ -126,7 +126,7 @@ class TestSeriesConstructors:
         invalid_list = [Timestamp, "Timestamp", list]
         for dtype in invalid_list:
             with pytest.raises(TypeError, match=msg):
-                Series([], name="time", dtype=dtype)
+                Series([], name="time", dtype=)
 
     def test_invalid_compound_dtype(self):
         # GH#13296
@@ -245,7 +245,7 @@ class TestSeriesConstructors:
     @pytest.mark.parametrize("index", [None, Index([])])
     def test_constructor_dtype_only(self, dtype, index):
         # GH-20865
-        result = Series(dtype=dtype, index=index)
+        result = Series(dtype=, index=)
         assert result.dtype == dtype
         assert len(result) == 0
 
@@ -319,7 +319,7 @@ class TestSeriesConstructors:
         s1 = Series([1, 2, 3], index=[4, 5, 6])
 
         index = s1 == 2
-        result = Series([1, 3, 2], index=index)
+        result = Series([1, 3, 2], index=)
         expected = Series([1, 3, 2], index=[False, True, False])
         tm.assert_series_equal(result, expected)
 
@@ -327,7 +327,7 @@ class TestSeriesConstructors:
     def test_constructor_index_dtype(self, dtype):
         # GH 17088
 
-        s = Series(Index([0, 2, 4]), dtype=dtype)
+        s = Series(Index([0, 2, 4]), dtype=)
         assert s.dtype == dtype
 
     @pytest.mark.parametrize(
@@ -553,13 +553,13 @@ class TestSeriesConstructors:
         data[0] = 0.0
         data[2] = 2.0
         index = ["a", "b", "c"]
-        result = Series(data, index=index)
-        expected = Series([0.0, np.nan, 2.0], index=index)
+        result = Series(data, index=)
+        expected = Series([0.0, np.nan, 2.0], index=)
         tm.assert_series_equal(result, expected)
 
         data[1] = 1.0
-        result = Series(data, index=index)
-        expected = Series([0.0, 1.0, 2.0], index=index)
+        result = Series(data, index=)
+        expected = Series([0.0, 1.0, 2.0], index=)
         tm.assert_series_equal(result, expected)
 
         data = ma.masked_all((3,), dtype=int)
@@ -570,13 +570,13 @@ class TestSeriesConstructors:
         data[0] = 0
         data[2] = 2
         index = ["a", "b", "c"]
-        result = Series(data, index=index)
-        expected = Series([0, np.nan, 2], index=index, dtype=float)
+        result = Series(data, index=)
+        expected = Series([0, np.nan, 2], index=, dtype=float)
         tm.assert_series_equal(result, expected)
 
         data[1] = 1
-        result = Series(data, index=index)
-        expected = Series([0, 1, 2], index=index, dtype=int)
+        result = Series(data, index=)
+        expected = Series([0, 1, 2], index=, dtype=int)
         tm.assert_series_equal(result, expected)
 
         data = ma.masked_all((3,), dtype=bool)
@@ -587,13 +587,13 @@ class TestSeriesConstructors:
         data[0] = True
         data[2] = False
         index = ["a", "b", "c"]
-        result = Series(data, index=index)
-        expected = Series([True, np.nan, False], index=index, dtype=object)
+        result = Series(data, index=)
+        expected = Series([True, np.nan, False], index=, dtype=object)
         tm.assert_series_equal(result, expected)
 
         data[1] = True
-        result = Series(data, index=index)
-        expected = Series([True, True, False], index=index, dtype=bool)
+        result = Series(data, index=)
+        expected = Series([True, True, False], index=, dtype=bool)
         tm.assert_series_equal(result, expected)
 
         data = ma.masked_all((3,), dtype="M8[ns]")
@@ -604,19 +604,19 @@ class TestSeriesConstructors:
         data[0] = datetime(2001, 1, 1)
         data[2] = datetime(2001, 1, 3)
         index = ["a", "b", "c"]
-        result = Series(data, index=index)
+        result = Series(data, index=)
         expected = Series(
             [datetime(2001, 1, 1), iNaT, datetime(2001, 1, 3)],
-            index=index,
+            index=,
             dtype="M8[ns]",
         )
         tm.assert_series_equal(result, expected)
 
         data[1] = datetime(2001, 1, 2)
-        result = Series(data, index=index)
+        result = Series(data, index=)
         expected = Series(
             [datetime(2001, 1, 1), datetime(2001, 1, 2), datetime(2001, 1, 3)],
-            index=index,
+            index=,
             dtype="M8[ns]",
         )
         tm.assert_series_equal(result, expected)
@@ -1691,7 +1691,7 @@ class TestSeriesConstructors:
             request.applymarker(mark)
 
         with pytest.raises(ValueError, match=msg):
-            Series([], dtype=dtype)
+            Series([], dtype=)
 
     @pytest.mark.parametrize("unit", ["ps", "as", "fs", "Y", "M", "W", "D", "h", "m"])
     @pytest.mark.parametrize("kind", ["m", "M"])
@@ -1704,17 +1704,17 @@ class TestSeriesConstructors:
 
         msg = "dtype=.* is not supported. Supported resolutions are"
         with pytest.raises(TypeError, match=msg):
-            Series([], dtype=dtype)
+            Series([], dtype=)
 
         with pytest.raises(TypeError, match=msg):
             # pre-2.0 the DataFrame cast raised but the Series case did not
-            DataFrame([[0]], dtype=dtype)
+            DataFrame([[0]], dtype=)
 
     @pytest.mark.parametrize("dtype", [None, "uint8", "category"])
     def test_constructor_range_dtype(self, dtype):
         # GH 16804
         expected = Series([0, 1, 2, 3, 4], dtype=dtype or "int64")
-        result = Series(range(5), dtype=dtype)
+        result = Series(range(5), dtype=)
         tm.assert_series_equal(result, expected)
 
     def test_constructor_range_overflows(self):
@@ -1761,7 +1761,7 @@ class TestSeriesConstructors:
     def test_constructor_data_aware_dtype_naive(self, tz_aware_fixture, pydt):
         # GH#25843, GH#41555, GH#33401
         tz = tz_aware_fixture
-        ts = Timestamp("2019", tz=tz)
+        ts = Timestamp("2019", tz=)
         if pydt:
             ts = ts.to_pydatetime()
 
@@ -1807,8 +1807,8 @@ class TestSeriesConstructors:
     def test_constructor_sparse_datetime64(self, values):
         # https://github.com/pandas-dev/pandas/issues/35762
         dtype = pd.SparseDtype("datetime64[ns]")
-        result = Series(values, dtype=dtype)
-        arr = pd.arrays.SparseArray(values, dtype=dtype)
+        result = Series(values, dtype=)
+        arr = pd.arrays.SparseArray(values, dtype=)
         expected = Series(arr)
         tm.assert_series_equal(result, expected)
 
@@ -1909,10 +1909,10 @@ class TestSeriesConstructors:
         values = [188.5, 328.25]
         tzinfo = tzoffset(None, 7200)
         index = [
-            datetime(2012, 5, 11, 11, tzinfo=tzinfo),
-            datetime(2012, 5, 11, 12, tzinfo=tzinfo),
+            datetime(2012, 5, 11, 11, tzinfo=),
+            datetime(2012, 5, 11, 12, tzinfo=),
         ]
-        series = Series(data=values, index=index)
+        series = Series(data=values, index=)
 
         assert series.index.tz == tzinfo
 
@@ -1924,7 +1924,7 @@ class TestSeriesConstructors:
         vals = [(1,), (2,), (3,)]
         ser = Series(vals)
         dtype = ser.array.dtype  # NumpyEADtype
-        ser2 = Series(vals, dtype=dtype)
+        ser2 = Series(vals, dtype=)
         tm.assert_series_equal(ser, ser2)
 
     def test_constructor_int_dtype_missing_values(self):
@@ -2079,7 +2079,7 @@ class TestSeriesConstructors:
         # GH#54430
         pytest.importorskip("pyarrow")
         dtype = "string[pyarrow_numpy]"
-        expected = Series(["a", "b"], dtype=dtype)
+        expected = Series(["a", "b"], dtype=)
         with pd.option_context("future.infer_string", True):
             ser = Series(["a", "b"])
         tm.assert_series_equal(ser, expected)
@@ -2094,7 +2094,7 @@ class TestSeriesConstructors:
         # GH#54430
         pytest.importorskip("pyarrow")
         dtype = "string[pyarrow_numpy]"
-        expected = Series(["a", na_value], dtype=dtype)
+        expected = Series(["a", na_value], dtype=)
         with pd.option_context("future.infer_string", True):
             ser = Series(["a", na_value])
         tm.assert_series_equal(ser, expected)

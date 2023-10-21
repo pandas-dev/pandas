@@ -20,13 +20,13 @@ class TestInterval:
         return tm.makeIntervalIndex(10)
 
     def test_take(self, closed):
-        index = IntervalIndex.from_breaks(range(11), closed=closed)
+        index = IntervalIndex.from_breaks(range(11), closed=)
 
         result = index.take(range(10))
         tm.assert_index_equal(result, index)
 
         result = index.take([0, 0, 1])
-        expected = IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2], closed=closed)
+        expected = IntervalIndex.from_arrays([0, 0, 1], [1, 1, 2], closed=)
         tm.assert_index_equal(result, expected)
 
     def test_where(self, simple_index, listlike_box):

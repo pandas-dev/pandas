@@ -94,9 +94,9 @@ def get_indexer_indexer(
     if level is not None:
         _, indexer = target.sortlevel(
             level,
-            ascending=ascending,
-            sort_remaining=sort_remaining,
-            na_position=na_position,
+            ascending=,
+            sort_remaining=,
+            na_position=,
         )
     elif (ascending and target.is_monotonic_increasing) or (
         not ascending and target.is_monotonic_decreasing
@@ -106,15 +106,15 @@ def get_indexer_indexer(
     elif isinstance(target, ABCMultiIndex):
         codes = [lev.codes for lev in target._get_codes_for_sorting()]
         indexer = lexsort_indexer(
-            codes, orders=ascending, na_position=na_position, codes_given=True
+            codes, orders=ascending, na_position=, codes_given=True
         )
     else:
         # ascending can only be a Sequence for MultiIndex
         indexer = nargsort(
             target,
-            kind=kind,
+            kind=,
             ascending=cast(bool, ascending),
-            na_position=na_position,
+            na_position=,
         )
     return indexer
 
@@ -203,7 +203,7 @@ def get_group_index(
 
         # compress what has been done so far in order to avoid overflow
         # to retain lexical ranks, obs_ids should be sorted
-        comp_ids, obs_ids = compress_group_index(out, sort=sort)
+        comp_ids, obs_ids = compress_group_index(out, sort=)
 
         labels = [comp_ids] + labels[nlev:]
         lshape = [len(obs_ids)] + lshape[nlev:]
@@ -401,15 +401,15 @@ def nargsort(
         items = ensure_key_mapped(items, key)
         return nargsort(
             items,
-            kind=kind,
-            ascending=ascending,
-            na_position=na_position,
+            kind=,
+            ascending=,
+            na_position=,
             key=None,
-            mask=mask,
+            mask=,
         )
 
     if isinstance(items, ABCRangeIndex):
-        return items.argsort(ascending=ascending)
+        return items.argsort(ascending=)
     elif not isinstance(items, ABCMultiIndex):
         items = extract_array(items)
     else:
@@ -422,11 +422,7 @@ def nargsort(
 
     if not isinstance(items, np.ndarray):
         # i.e. ExtensionArray
-        return items.argsort(
-            ascending=ascending,
-            kind=kind,
-            na_position=na_position,
-        )
+        return items.argsort(ascending=, kind=, na_position=)
 
     idx = np.arange(len(items))
     non_nans = items[~mask]
@@ -436,7 +432,7 @@ def nargsort(
     if not ascending:
         non_nans = non_nans[::-1]
         non_nan_idx = non_nan_idx[::-1]
-    indexer = non_nan_idx[non_nans.argsort(kind=kind)]
+    indexer = non_nan_idx[non_nans.argsort(kind=)]
     if not ascending:
         indexer = indexer[::-1]
     # Finally, place the NaNs at the end or the beginning according to
@@ -478,7 +474,7 @@ def nargminmax(values: ExtensionArray, method: str, axis: AxisInt = 0):
             else:
                 zipped = zip(arr_values.T, mask.T)
             return np.array([_nanargminmax(v, m, func) for v, m in zipped])
-        return func(arr_values, axis=axis)
+        return func(arr_values, axis=)
 
     return _nanargminmax(arr_values, mask, func)
 

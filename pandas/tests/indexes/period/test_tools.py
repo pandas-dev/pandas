@@ -35,7 +35,7 @@ class TestPeriodRepresentation:
         "ignore:Period with BDay freq is deprecated:FutureWarning"
     )
     def test_freq(self, freq, base_date):
-        rng = period_range(start=base_date, periods=10, freq=freq)
+        rng = period_range(start=base_date, periods=10, freq=)
         exp = np.arange(10, dtype=np.int64)
 
         tm.assert_numpy_array_equal(rng.asi8, exp)

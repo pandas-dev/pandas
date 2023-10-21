@@ -22,8 +22,8 @@ class BaseAccumulateTests:
             # e.g. Period can't be cast to float64
             alt = ser.astype(object)
 
-        result = getattr(ser, op_name)(skipna=skipna)
-        expected = getattr(alt, op_name)(skipna=skipna)
+        result = getattr(ser, op_name)(skipna=)
+        expected = getattr(alt, op_name)(skipna=)
         tm.assert_series_equal(result, expected, check_dtype=False)
 
     @pytest.mark.parametrize("skipna", [True, False])
@@ -36,4 +36,4 @@ class BaseAccumulateTests:
         else:
             with pytest.raises((NotImplementedError, TypeError)):
                 # TODO: require TypeError for things that will _never_ work?
-                getattr(ser, op_name)(skipna=skipna)
+                getattr(ser, op_name)(skipna=)

@@ -262,11 +262,11 @@ class Timeseries:
     def setup(self, tz):
         N = 10**6
         halfway = (N // 2) - 1
-        self.s = Series(date_range("20010101", periods=N, freq="min", tz=tz))
+        self.s = Series(date_range("20010101", periods=N, freq="min", tz=))
         self.ts = self.s[halfway]
 
-        self.s2 = Series(date_range("20010101", periods=N, freq="s", tz=tz))
-        self.ts_different_reso = Timestamp("2001-01-02", tz=tz)
+        self.s2 = Series(date_range("20010101", periods=N, freq="s", tz=))
+        self.ts_different_reso = Timestamp("2001-01-02", tz=)
 
     def time_series_timestamp_compare(self, tz):
         self.s <= self.ts
@@ -498,7 +498,7 @@ class BinaryOpsMultiIndex:
         column_names = ["col_1", "col_2"]
 
         self.df = DataFrame(
-            np.random.rand(len(index), 2), index=index, columns=column_names
+            np.random.rand(len(index), 2), index=, columns=column_names
         )
 
         self.arg_df = DataFrame(

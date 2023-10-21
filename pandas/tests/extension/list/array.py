@@ -114,8 +114,8 @@ class ListArray(ExtensionArray):
             return self
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # numpy has problems with astype(str) for nested elements
-            return np.array([str(x) for x in self.data], dtype=dtype)
-        return np.array(self.data, dtype=dtype, copy=copy)
+            return np.array([str(x) for x in self.data], dtype=)
+        return np.array(self.data, dtype=, copy=)
 
     @classmethod
     def _concat_same_type(cls, to_concat):

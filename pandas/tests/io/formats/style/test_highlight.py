@@ -95,7 +95,7 @@ def test_highlight_minmax_nulls(f, axis):
     else:
         df = DataFrame({"a": [NA, -1, None], "b": [np.nan, -1, 1]})
 
-    result = getattr(df.style, f)(axis=axis)._compute().ctx
+    result = getattr(df.style, f)(axis=)._compute().ctx
     assert result == expected
 
 
@@ -164,7 +164,7 @@ def test_highlight_between_raises2(styler):
 )
 def test_highlight_between_inclusive(styler, inclusive, expected):
     kwargs = {"left": 0, "right": 1, "subset": IndexSlice[[0, 1], :]}
-    result = styler.highlight_between(**kwargs, inclusive=inclusive)._compute()
+    result = styler.highlight_between(**kwargs, inclusive=)._compute()
     assert result.ctx == expected
 
 

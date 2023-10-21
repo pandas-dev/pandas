@@ -738,13 +738,13 @@ class TestMisc:
         tm.assert_indexing_slices_equivalent(ser, SLC[idx[9] : idx[13] : -1], SLC[:0])
 
     def test_slice_with_zero_step_raises(self, index, indexer_sl, frame_or_series):
-        obj = frame_or_series(np.arange(len(index)), index=index)
+        obj = frame_or_series(np.arange(len(index)), index=)
         with pytest.raises(ValueError, match="slice step cannot be zero"):
             indexer_sl(obj)[::0]
 
     def test_loc_setitem_indexing_assignment_dict_already_exists(self):
         index = Index([-5, 0, 5], name="z")
-        df = DataFrame({"x": [1, 2, 6], "y": [2, 2, 8]}, index=index)
+        df = DataFrame({"x": [1, 2, 6], "y": [2, 2, 8]}, index=)
         expected = df.copy()
         rhs = {"x": 9, "y": 99}
         df.loc[5] = rhs
@@ -752,9 +752,9 @@ class TestMisc:
         tm.assert_frame_equal(df, expected)
 
         # GH#38335 same thing, mixed dtypes
-        df = DataFrame({"x": [1, 2, 6], "y": [2.0, 2.0, 8.0]}, index=index)
+        df = DataFrame({"x": [1, 2, 6], "y": [2.0, 2.0, 8.0]}, index=)
         df.loc[5] = rhs
-        expected = DataFrame({"x": [1, 2, 9], "y": [2.0, 2.0, 99.0]}, index=index)
+        expected = DataFrame({"x": [1, 2, 9], "y": [2.0, 2.0, 99.0]}, index=)
         tm.assert_frame_equal(df, expected)
 
     def test_iloc_getitem_indexing_dtypes_on_empty(self):
@@ -882,7 +882,7 @@ class TestDatetimelikeCoercion:
         # dispatching _can_hold_element to underlying DatetimeArray
         tz = tz_naive_fixture
 
-        dti = date_range("2016-01-01", periods=3, tz=tz)
+        dti = date_range("2016-01-01", periods=3, tz=)
         ser = Series(dti.copy(deep=True))
 
         values = ser._values
@@ -910,7 +910,7 @@ class TestDatetimelikeCoercion:
         if isinstance(key, slice) and indexer_sli is tm.loc:
             key = slice(0, 1)
 
-        dti = date_range("2016-01-01", periods=3, tz=tz)
+        dti = date_range("2016-01-01", periods=3, tz=)
         ser = Series(dti.copy(deep=True))
 
         values = ser._values

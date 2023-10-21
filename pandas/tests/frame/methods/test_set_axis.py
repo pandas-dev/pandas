@@ -101,7 +101,7 @@ class SharedSetAxisTests:
     def test_set_axis_invalid_axis_name(self, axis, obj):
         # wrong values for the "axis" parameter
         with pytest.raises(ValueError, match="No axis named"):
-            obj.set_axis(list("abc"), axis=axis)
+            obj.set_axis(list("abc"), axis=)
 
     def test_set_axis_setattr_index_not_collection(self, obj):
         # wrong type

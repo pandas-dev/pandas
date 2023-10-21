@@ -22,19 +22,19 @@ class Eval:
             expr.set_numexpr_threads(1)
 
     def time_add(self, engine, threads):
-        pd.eval("self.df + self.df2 + self.df3 + self.df4", engine=engine)
+        pd.eval("self.df + self.df2 + self.df3 + self.df4", engine=)
 
     def time_and(self, engine, threads):
         pd.eval(
             "(self.df > 0) & (self.df2 > 0) & (self.df3 > 0) & (self.df4 > 0)",
-            engine=engine,
+            engine=,
         )
 
     def time_chained_cmp(self, engine, threads):
-        pd.eval("self.df < self.df2 < self.df3 < self.df4", engine=engine)
+        pd.eval("self.df < self.df2 < self.df3 < self.df4", engine=)
 
     def time_mult(self, engine, threads):
-        pd.eval("self.df * self.df2 * self.df3 * self.df4", engine=engine)
+        pd.eval("self.df * self.df2 * self.df3 * self.df4", engine=)
 
     def teardown(self, engine, threads):
         expr.set_numexpr_threads()
@@ -47,7 +47,7 @@ class Query:
         index = pd.date_range("20010101", periods=N, freq="min")
         s = pd.Series(index)
         self.ts = s.iloc[halfway]
-        self.df = pd.DataFrame({"a": np.random.randn(N), "dates": index}, index=index)
+        self.df = pd.DataFrame({"a": np.random.randn(N), "dates": index}, index=)
         data = np.random.randn(N)
         self.min_val = data.min()
         self.max_val = data.max()

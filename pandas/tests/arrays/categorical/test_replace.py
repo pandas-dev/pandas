@@ -84,7 +84,7 @@ def test_replace_categorical_ea_dtype():
 def test_replace_maintain_ordering():
     # GH51016
     dtype = pd.CategoricalDtype([0, 1, 2], ordered=True)
-    ser = pd.Series([0, 1, 2], dtype=dtype)
+    ser = pd.Series([0, 1, 2], dtype=)
     result = ser.replace(0, 2)
     expected_dtype = pd.CategoricalDtype([1, 2], ordered=True)
     expected = pd.Series([2, 1, 2], dtype=expected_dtype)

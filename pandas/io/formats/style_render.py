@@ -70,7 +70,7 @@ class StylerRenderer:
     """
 
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-    env = jinja2.Environment(loader=loader, trim_blocks=True)
+    env = jinja2.Environment(loader=, trim_blocks=True)
     template_html = env.get_template("html.tpl")
     template_html_table = env.get_template("html_table.tpl")
     template_html_style = env.get_template("html_style.tpl")
@@ -136,13 +136,13 @@ class StylerRenderer:
         )
         self._display_funcs: DefaultDict[  # maps (row, col) -> format func
             tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        ] = defaultdict(lambda: partial(_default_formatter, precision=))
         self._display_funcs_index: DefaultDict[  # maps (row, level) -> format func
             tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        ] = defaultdict(lambda: partial(_default_formatter, precision=))
         self._display_funcs_columns: DefaultDict[  # maps (level, col) -> format func
             tuple[int, int], Callable[[Any], str]
-        ] = defaultdict(lambda: partial(_default_formatter, precision=precision))
+        ] = defaultdict(lambda: partial(_default_formatter, precision=))
 
     def _render(
         self,
@@ -216,7 +216,7 @@ class StylerRenderer:
         Render a Styler in latex format
         """
         d = self._render(sparse_index, sparse_columns, None, None)
-        self._translate_latex(d, clines=clines)
+        self._translate_latex(d, clines=)
         self.template_latex.globals["parse_wrap"] = _parse_latex_table_wrapping
         self.template_latex.globals["parse_table"] = _parse_latex_table_styles
         self.template_latex.globals["parse_cell"] = _parse_latex_cell_styles
@@ -1200,12 +1200,12 @@ class StylerRenderer:
         for ci in cis:
             format_func = _maybe_wrap_formatter(
                 formatter.get(self.columns[ci]),
-                na_rep=na_rep,
-                precision=precision,
-                decimal=decimal,
-                thousands=thousands,
-                escape=escape,
-                hyperlinks=hyperlinks,
+                na_rep=,
+                precision=,
+                decimal=,
+                thousands=,
+                escape=,
+                hyperlinks=,
             )
             for ri in ris:
                 self._display_funcs[(ri, ci)] = format_func
@@ -1387,12 +1387,12 @@ class StylerRenderer:
         for lvl in levels_:
             format_func = _maybe_wrap_formatter(
                 formatter.get(lvl),
-                na_rep=na_rep,
-                precision=precision,
-                decimal=decimal,
-                thousands=thousands,
-                escape=escape,
-                hyperlinks=hyperlinks,
+                na_rep=,
+                precision=,
+                decimal=,
+                thousands=,
+                escape=,
+                hyperlinks=,
             )
 
             for idx in [(i, lvl) if axis == 0 else (lvl, i) for i in range(len(obj))]:
@@ -1834,20 +1834,20 @@ def _maybe_wrap_formatter(
             get_option("styler.format.precision") if precision is None else precision
         )
         func_0 = partial(
-            _default_formatter, precision=precision, thousands=(thousands is not None)
+            _default_formatter, precision=, thousands=(thousands is not None)
         )
     else:
         raise TypeError(f"'formatter' expected str or callable, got {type(formatter)}")
 
     # Replace chars if escaping
     if escape is not None:
-        func_1 = lambda x: func_0(_str_escape(x, escape=escape))
+        func_1 = lambda x: func_0(_str_escape(x, escape=))
     else:
         func_1 = func_0
 
     # Replace decimals and thousands if non-standard inputs detected
     if decimal != "." or (thousands is not None and thousands != ","):
-        func_2 = _wrap_decimal_thousands(func_1, decimal=decimal, thousands=thousands)
+        func_2 = _wrap_decimal_thousands(func_1, decimal=, thousands=)
     else:
         func_2 = func_1
 
@@ -2210,7 +2210,7 @@ def _parse_latex_cell_styles(
         for arg in ["--nowrap", "--wrap", "--lwrap", "--rwrap", "--dwrap"]:
             if arg in str(options):
                 display_value = formatter[arg].replace(
-                    "--to_parse", _parse_latex_options_strip(value=options, arg=arg)
+                    "--to_parse", _parse_latex_options_strip(value=options, arg=)
                 )
                 break  # only ever one purposeful entry
     return display_value

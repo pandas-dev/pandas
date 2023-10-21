@@ -28,7 +28,7 @@ class Normalize:
     def setup(self, size, tz):
         # use an array that will have is_date_array_normalized give True,
         #  so we do not short-circuit early.
-        dti = pd.date_range("2016-01-01", periods=10, tz=tz).repeat(size // 10)
+        dti = pd.date_range("2016-01-01", periods=10, tz=).repeat(size // 10)
         self.i8data = dti.asi8
 
         if size == 10**6 and tz is tzlocal_obj:

@@ -67,7 +67,7 @@ A   B     C            D            E
 201162    502.953953   173.237159   12468.3
 """
     colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
-    result = read_fwf(StringIO(data), colspecs=colspecs)
+    result = read_fwf(StringIO(data), colspecs=)
 
     expected = DataFrame(
         [
@@ -122,7 +122,7 @@ A~~~~B~~~~C~~~~~~~~~~~~D~~~~~~~~~~~~E
 201162~~~~502.953953~~~173.237159~~~12468.3
 """
     colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
-    result = read_fwf(StringIO(data), colspecs=colspecs, delimiter="~")
+    result = read_fwf(StringIO(data), colspecs=, delimiter="~")
 
     expected = DataFrame(
         [
@@ -149,7 +149,7 @@ A   B     C            D            E
     colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
 
     with pytest.raises(ValueError, match="must specify only one of"):
-        read_fwf(StringIO(data), colspecs=colspecs, widths=[6, 10, 10, 7])
+        read_fwf(StringIO(data), colspecs=, widths=[6, 10, 10, 7])
 
 
 def test_under_specified():
@@ -185,7 +185,7 @@ A   B     C            D            E
 201162    502.953953   173.237159   12468.3
 """
     colspecs = [(0, 4), (4, 8), (8, 20), (21, 33), (34, 43)]
-    result = read_fwf(StringIO(fwf_data), colspecs=colspecs)
+    result = read_fwf(StringIO(fwf_data), colspecs=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -245,7 +245,7 @@ def test_fwf_colspecs_none(colspecs, exp_data):
 """
     expected = DataFrame(exp_data)
 
-    result = read_fwf(StringIO(data), colspecs=colspecs, header=None)
+    result = read_fwf(StringIO(data), colspecs=, header=None)
     tm.assert_frame_equal(result, expected)
 
 
@@ -266,7 +266,7 @@ def test_fwf_colspecs_infer_nrows(infer_nrows, exp_data):
 """
     expected = DataFrame(exp_data)
 
-    result = read_fwf(StringIO(data), infer_nrows=infer_nrows, header=None)
+    result = read_fwf(StringIO(data), infer_nrows=, header=None)
     tm.assert_frame_equal(result, expected)
 
 
@@ -290,8 +290,8 @@ def test_fwf_regression():
             StringIO(data),
             index_col=0,
             header=None,
-            names=names,
-            widths=widths,
+            names=,
+            widths=,
             parse_dates=True,
             date_parser=lambda s: datetime.strptime(s, "%Y%j%H%M%S"),
         )
@@ -319,8 +319,8 @@ def test_fwf_regression():
         StringIO(data),
         index_col=0,
         header=None,
-        names=names,
-        widths=widths,
+        names=,
+        widths=,
         parse_dates=True,
         date_format="%Y%j%H%M%S",
     )
@@ -364,7 +364,7 @@ def test_fwf_comment(comment):
     colspecs = [(0, 3), (4, 9), (9, 25)]
     expected = DataFrame([[1, 2.0, 4], [5, np.nan, 10.0]])
 
-    result = read_fwf(StringIO(data), colspecs=colspecs, header=None, comment=comment)
+    result = read_fwf(StringIO(data), colspecs=, header=None, comment=)
     tm.assert_almost_equal(result, expected)
 
 
@@ -424,9 +424,7 @@ def test_fwf_thousands(thousands):
     colspecs = [(0, 3), (3, 11), (12, 16)]
     expected = DataFrame([[1, 2334.0, 5], [10, 13, 10.0]])
 
-    result = read_fwf(
-        StringIO(data), header=None, colspecs=colspecs, thousands=thousands
-    )
+    result = read_fwf(StringIO(data), header=None, colspecs=, thousands=)
     tm.assert_almost_equal(result, expected)
 
 
@@ -442,7 +440,7 @@ MyColumn
 
     msg = "Passing a bool to header is invalid"
     with pytest.raises(TypeError, match=msg):
-        read_fwf(StringIO(data), header=header)
+        read_fwf(StringIO(data), header=)
 
 
 def test_full_file():
@@ -456,7 +454,7 @@ def test_full_file():
 2000-01-10T00:00:00  0.836648671666    2  baz
 2000-01-11T00:00:00  0.157160753327   34  foo"""
     colspecs = ((0, 19), (21, 35), (38, 40), (42, 45))
-    expected = read_fwf(StringIO(test), colspecs=colspecs)
+    expected = read_fwf(StringIO(test), colspecs=)
 
     result = read_fwf(StringIO(test))
     tm.assert_frame_equal(result, expected)
@@ -473,7 +471,7 @@ def test_full_file_with_missing():
 2000-01-10T00:00:00  0.836648671666    2  baz
                                       34"""
     colspecs = ((0, 19), (21, 35), (38, 40), (42, 45))
-    expected = read_fwf(StringIO(test), colspecs=colspecs)
+    expected = read_fwf(StringIO(test), colspecs=)
 
     result = read_fwf(StringIO(test))
     tm.assert_frame_equal(result, expected)
@@ -492,7 +490,7 @@ Account                 Name  Balance     CreditLimit   AccountCreated
         "\r\n"
     )
     colspecs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
-    expected = read_fwf(StringIO(test), colspecs=colspecs)
+    expected = read_fwf(StringIO(test), colspecs=)
 
     result = read_fwf(StringIO(test))
     tm.assert_frame_equal(result, expected)
@@ -511,7 +509,7 @@ Account               Name    Balance     CreditLimit   AccountCreated
         "\r\n"
     )
     colspecs = ((0, 7), (8, 28), (30, 38), (42, 53), (56, 70))
-    expected = read_fwf(StringIO(test), colspecs=colspecs)
+    expected = read_fwf(StringIO(test), colspecs=)
 
     result = read_fwf(StringIO(test))
     tm.assert_frame_equal(result, expected)
@@ -530,7 +528,7 @@ def test_messed_up_data():
         "\r\n"
     )
     colspecs = ((2, 10), (15, 33), (37, 45), (49, 61), (64, 79))
-    expected = read_fwf(StringIO(test), colspecs=colspecs)
+    expected = read_fwf(StringIO(test), colspecs=)
 
     result = read_fwf(StringIO(test))
     tm.assert_frame_equal(result, expected)
@@ -549,9 +547,9 @@ col1~~~~~col2  col3++++++++++++++++++col4
     )
     delimiter = " +~.\\"
     colspecs = ((0, 4), (7, 13), (15, 19), (21, 41))
-    expected = read_fwf(StringIO(test), colspecs=colspecs, delimiter=delimiter)
+    expected = read_fwf(StringIO(test), colspecs=, delimiter=)
 
-    result = read_fwf(StringIO(test), delimiter=delimiter)
+    result = read_fwf(StringIO(test), delimiter=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -580,7 +578,7 @@ def test_dtype(dtype):
 3    4    5.2
 """
     colspecs = [(0, 5), (5, 10), (10, None)]
-    result = read_fwf(StringIO(data), colspecs=colspecs, dtype=dtype)
+    result = read_fwf(StringIO(data), colspecs=, dtype=)
 
     expected = DataFrame(
         {"a": [1, 3], "b": [2, 4], "c": [3.2, 5.2]}, columns=["a", "b", "c"]
@@ -602,9 +600,9 @@ DataCol1   DataCol2
    101.6      956.1
 """.strip()
     skiprows = 2
-    expected = read_csv(StringIO(data), skiprows=skiprows, delim_whitespace=True)
+    expected = read_csv(StringIO(data), skiprows=, delim_whitespace=True)
 
-    result = read_fwf(StringIO(data), skiprows=skiprows)
+    result = read_fwf(StringIO(data), skiprows=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -617,9 +615,9 @@ Once more to be skipped
 456  78   9      456
 """.strip()
     skiprows = [0, 2]
-    expected = read_csv(StringIO(data), skiprows=skiprows, delim_whitespace=True)
+    expected = read_csv(StringIO(data), skiprows=, delim_whitespace=True)
 
-    result = read_fwf(StringIO(data), skiprows=skiprows)
+    result = read_fwf(StringIO(data), skiprows=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -646,9 +644,9 @@ def test_whitespace_preservation():
  a bbb
  ccdd """
     result = read_fwf(
-        StringIO(fwf_data), widths=[3, 3], header=header, skiprows=[0], delimiter="\n\t"
+        StringIO(fwf_data), widths=[3, 3], header=, skiprows=[0], delimiter="\n\t"
     )
-    expected = read_csv(StringIO(csv_data), header=header)
+    expected = read_csv(StringIO(csv_data), header=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -661,8 +659,8 @@ cc,dd"""
     fwf_data = """
 a \tbbb
 cc\tdd """
-    result = read_fwf(StringIO(fwf_data), widths=[3, 3], header=header, skiprows=[0])
-    expected = read_csv(StringIO(csv_data), header=header)
+    result = read_fwf(StringIO(fwf_data), widths=[3, 3], header=, skiprows=[0])
+    expected = read_csv(StringIO(csv_data), header=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -723,8 +721,8 @@ def test_encoding_mmap(memory_map):
             path,
             header=None,
             widths=[2, 2, 2, 2],
-            encoding=encoding,
-            memory_map=memory_map,
+            encoding=,
+            memory_map=,
         )
     df_reference = DataFrame([[1, "A", "Ä", 2]])
     tm.assert_frame_equal(df, df_reference)
@@ -777,13 +775,7 @@ def test_len_colspecs_len_names(colspecs, names, widths, index_col):
     bab   ba    2"""
     msg = "Length of colspecs must match length of names"
     with pytest.raises(ValueError, match=msg):
-        read_fwf(
-            StringIO(data),
-            colspecs=colspecs,
-            names=names,
-            widths=widths,
-            index_col=index_col,
-        )
+        read_fwf(StringIO(data), colspecs=, names=, widths=, index_col=)
 
 
 @pytest.mark.parametrize(
@@ -863,13 +855,7 @@ def test_len_colspecs_len_names_with_index_col(
     # GH#40830
     data = """col1  col2  col3  col4
     bab   ba    2"""
-    result = read_fwf(
-        StringIO(data),
-        colspecs=colspecs,
-        names=names,
-        widths=widths,
-        index_col=index_col,
-    )
+    result = read_fwf(StringIO(data), colspecs=, names=, widths=, index_col=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -974,7 +960,7 @@ def test_dtype_backend(string_storage, dtype_backend):
 1  2.5  True  a
 3  4.5  False b  True  6  7.5  a"""
     with pd.option_context("mode.string_storage", string_storage):
-        result = read_fwf(StringIO(data), dtype_backend=dtype_backend)
+        result = read_fwf(StringIO(data), dtype_backend=)
 
     expected = DataFrame(
         {

@@ -100,13 +100,13 @@ def frame_apply(
     return klass(
         obj,
         func,
-        raw=raw,
-        result_type=result_type,
-        by_row=by_row,
-        engine=engine,
-        engine_kwargs=engine_kwargs,
-        args=args,
-        kwargs=kwargs,
+        raw=,
+        result_type=,
+        by_row=,
+        engine=,
+        engine_kwargs=,
+        args=,
+        kwargs=,
     )
 
 
@@ -301,7 +301,7 @@ class Apply(metaclass=abc.ABCMeta):
 
         # Two possible ways to use a UDF - apply or call directly
         try:
-            return obj.apply(func, args=args, **kwargs)
+            return obj.apply(func, args=, **kwargs)
         except Exception:
             return func(obj, *args, **kwargs)
 
@@ -389,7 +389,7 @@ class Apply(metaclass=abc.ABCMeta):
         obj = self.obj
 
         try:
-            return concat(results, keys=keys, axis=1, sort=False)
+            return concat(results, keys=, axis=1, sort=False)
         except TypeError as err:
             # we are concatting non-NDFrame objects,
             # e.g. a list of scalars
@@ -520,7 +520,7 @@ class Apply(metaclass=abc.ABCMeta):
             axis: AxisInt = 0 if isinstance(obj, ABCSeries) else 1
             result = concat(
                 {k: results[k] for k in keys_to_use},
-                axis=axis,
+                axis=,
                 keys=keys_to_use,
             )
         elif any(is_ndframe):
@@ -541,7 +541,7 @@ class Apply(metaclass=abc.ABCMeta):
             else:
                 name = None
 
-            result = Series(result_data, index=result_index, name=name)
+            result = Series(result_data, index=result_index, name=)
 
         return result
 
@@ -770,9 +770,7 @@ class FrameApply(NDFrameApply):
             raise ValueError(f"by_row={by_row} not allowed")
         self.engine = engine
         self.engine_kwargs = engine_kwargs
-        super().__init__(
-            obj, func, raw, result_type, by_row=by_row, args=args, kwargs=kwargs
-        )
+        super().__init__(obj, func, raw, result_type, by_row=, args=, kwargs=)
 
     # ---------------------------------------------------------------
     # Abstract Methods
@@ -1218,9 +1216,9 @@ class SeriesApply(NDFrameApply):
             func,
             raw=False,
             result_type=None,
-            by_row=by_row,
-            args=args,
-            kwargs=kwargs,
+            by_row=,
+            args=,
+            kwargs=,
         )
 
     def apply(self) -> DataFrame | Series:
@@ -1353,8 +1351,8 @@ class GroupByApply(Apply):
             func,
             raw=False,
             result_type=None,
-            args=args,
-            kwargs=kwargs,
+            args=,
+            kwargs=,
         )
 
     def apply(self):
@@ -1446,8 +1444,8 @@ class ResamplerWindowApply(GroupByApply):
             func,
             raw=False,
             result_type=None,
-            args=args,
-            kwargs=kwargs,
+            args=,
+            kwargs=,
         )
 
     def apply(self):

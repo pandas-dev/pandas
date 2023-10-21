@@ -30,11 +30,7 @@ def shift(
         axis = new_values.ndim - axis - 1
 
     if new_values.size:
-        new_values = np.roll(
-            new_values,
-            np.intp(periods),
-            axis=axis,
-        )
+        new_values = np.roll(new_values, np.intp(periods), axis=)
 
     axis_indexer = [slice(None)] * values.ndim
     if periods > 0:

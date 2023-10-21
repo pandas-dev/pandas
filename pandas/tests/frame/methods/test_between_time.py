@@ -80,7 +80,7 @@ class TestBetweenTime:
         etime = time(1, 0)
         inclusive = inclusive_endpoints_fixture
 
-        filtered = ts.between_time(stime, etime, inclusive=inclusive)
+        filtered = ts.between_time(stime, etime, inclusive=)
         exp_len = 13 * 4 + 1
 
         if inclusive in ["right", "neither"]:
@@ -114,7 +114,7 @@ class TestBetweenTime:
         stime = time(22, 0)
         etime = time(9, 0)
 
-        filtered = ts.between_time(stime, etime, inclusive=inclusive)
+        filtered = ts.between_time(stime, etime, inclusive=)
         exp_len = (12 * 11 + 1) * 4 + 1
         if inclusive in ["right", "neither"]:
             exp_len -= 4
@@ -200,7 +200,7 @@ class TestBetweenTime:
     def test_between_time_datetimeindex(self):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((len(index), 5)), index=index
+            np.random.default_rng(2).standard_normal((len(index), 5)), index=
         )
         bkey = slice(time(13, 0, 0), time(14, 0, 0))
         binds = [26, 27, 28, 74, 75, 76, 122, 123, 124, 170, 171, 172]
@@ -224,4 +224,4 @@ class TestBetweenTime:
         inclusive = "bad_string"
         msg = "Inclusive has to be either 'both', 'neither', 'left' or 'right'"
         with pytest.raises(ValueError, match=msg):
-            ts.between_time(stime, etime, inclusive=inclusive)
+            ts.between_time(stime, etime, inclusive=)

@@ -51,7 +51,7 @@ def test_constructor_nonhashable_names():
     names = (["foo"], ["bar"])
     msg = r"MultiIndex\.name must be a hashable type"
     with pytest.raises(TypeError, match=msg):
-        MultiIndex(levels=levels, codes=codes, names=names)
+        MultiIndex(levels=, codes=, names=)
 
     # With .rename()
     mi = MultiIndex(
@@ -74,7 +74,7 @@ def test_constructor_mismatched_codes_levels(idx):
 
     msg = "Length of levels and codes must be the same"
     with pytest.raises(ValueError, match=msg):
-        MultiIndex(levels=levels, codes=codes)
+        MultiIndex(levels=, codes=)
 
     length_error = (
         r"On level 0, code max \(3\) >= length of level \(1\)\. "
@@ -285,8 +285,8 @@ def test_from_arrays_empty():
     for N in [2, 3]:
         arrays = [[]] * N
         names = list("ABC")[:N]
-        result = MultiIndex.from_arrays(arrays=arrays, names=names)
-        expected = MultiIndex(levels=[[]] * N, codes=[[]] * N, names=names)
+        result = MultiIndex.from_arrays(arrays=, names=)
+        expected = MultiIndex(levels=[[]] * N, codes=[[]] * N, names=)
         tm.assert_index_equal(result, expected)
 
 
@@ -435,8 +435,8 @@ def test_from_product_empty_one_level():
 )
 def test_from_product_empty_two_levels(first, second):
     names = ["A", "B"]
-    result = MultiIndex.from_product([first, second], names=names)
-    expected = MultiIndex(levels=[first, second], codes=[[], []], names=names)
+    result = MultiIndex.from_product([first, second], names=)
+    expected = MultiIndex(levels=[first, second], codes=[[], []], names=)
     tm.assert_index_equal(result, expected)
 
 
@@ -445,8 +445,8 @@ def test_from_product_empty_three_levels(N):
     # GH12258
     names = ["A", "B", "C"]
     lvl2 = list(range(N))
-    result = MultiIndex.from_product([[], lvl2, []], names=names)
-    expected = MultiIndex(levels=[[], lvl2, []], codes=[[], [], []], names=names)
+    result = MultiIndex.from_product([[], lvl2, []], names=)
+    expected = MultiIndex(levels=[[], lvl2, []], codes=[[], [], []], names=)
     tm.assert_index_equal(result, expected)
 
 
@@ -487,9 +487,9 @@ def test_from_product_index_series_categorical(ordered, f):
     # GH13743
     first = ["foo", "bar"]
 
-    idx = pd.CategoricalIndex(list("abcaab"), categories=list("bac"), ordered=ordered)
+    idx = pd.CategoricalIndex(list("abcaab"), categories=list("bac"), ordered=)
     expected = pd.CategoricalIndex(
-        list("abcaab") + list("abcaab"), categories=list("bac"), ordered=ordered
+        list("abcaab") + list("abcaab"), categories=list("bac"), ordered=
     )
 
     result = MultiIndex.from_product([first, f(idx)])
@@ -500,7 +500,7 @@ def test_from_product():
     first = ["foo", "bar", "buz"]
     second = ["a", "b", "c"]
     names = ["first", "second"]
-    result = MultiIndex.from_product([first, second], names=names)
+    result = MultiIndex.from_product([first, second], names=)
 
     tuples = [
         ("foo", "a"),
@@ -513,7 +513,7 @@ def test_from_product():
         ("buz", "b"),
         ("buz", "c"),
     ]
-    expected = MultiIndex.from_tuples(tuples, names=names)
+    expected = MultiIndex.from_tuples(tuples, names=)
 
     tm.assert_index_equal(result, expected)
 
@@ -534,10 +534,10 @@ def test_from_product_iterator():
         ("buz", "b"),
         ("buz", "c"),
     ]
-    expected = MultiIndex.from_tuples(tuples, names=names)
+    expected = MultiIndex.from_tuples(tuples, names=)
 
     # iterator as input
-    result = MultiIndex.from_product(iter([first, second]), names=names)
+    result = MultiIndex.from_product(iter([first, second]), names=)
     tm.assert_index_equal(result, expected)
 
     # Invalid non-iterable input
@@ -742,7 +742,7 @@ def test_from_frame_invalid_names(names, expected_error_msg):
         columns=MultiIndex.from_tuples([("L1", "x"), ("L2", "y")]),
     )
     with pytest.raises(ValueError, match=expected_error_msg):
-        MultiIndex.from_frame(df, names=names)
+        MultiIndex.from_frame(df, names=)
 
 
 def test_index_equal_empty_iterable():
@@ -760,17 +760,17 @@ def test_raise_invalid_sortorder():
 
     # Correct sortorder
     MultiIndex(
-        levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
+        levels=, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]], sortorder=2
     )
 
     with pytest.raises(ValueError, match=r".* sortorder 2 with lexsort_depth 1.*"):
         MultiIndex(
-            levels=levels, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=2
+            levels=, codes=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 2, 1]], sortorder=2
         )
 
     with pytest.raises(ValueError, match=r".* sortorder 1 with lexsort_depth 0.*"):
         MultiIndex(
-            levels=levels, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=1
+            levels=, codes=[[0, 0, 1, 0, 1, 1], [0, 1, 0, 2, 2, 1]], sortorder=1
         )
 
 

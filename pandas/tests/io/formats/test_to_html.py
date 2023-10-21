@@ -78,7 +78,7 @@ def test_to_html_with_col_space(col_space):
     df = DataFrame(np.random.default_rng(2).random(size=(1, 3)))
     # check that col_space affects HTML generation
     # and be very brittle about it.
-    result = df.to_html(col_space=col_space)
+    result = df.to_html(col_space=)
     hdrs = [x for x in result.split(r"\n") if re.search(r"<th[>\s]", x)]
     assert len(hdrs) > 0
     for h in hdrs:
@@ -203,7 +203,7 @@ def test_to_html_multiindex_index_false(index_is_named, datapath):
 )
 def test_to_html_multiindex_sparsify(multi_sparse, expected, datapath):
     index = MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]], names=["foo", None])
-    df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=index)
+    df = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], index=)
     if expected.endswith("2"):
         df.columns = index[::2]
     with option_context("display.multi_sparse", multi_sparse):
@@ -225,8 +225,8 @@ def test_to_html_multiindex_odd_even_truncate(max_rows, expected, datapath):
     index = MultiIndex.from_product(
         [[100, 200, 300], [10, 20, 30], [1, 2, 3, 4, 5, 6, 7]], names=["a", "b", "c"]
     )
-    df = DataFrame({"n": range(len(index))}, index=index)
-    result = df.to_html(max_rows=max_rows)
+    df = DataFrame({"n": range(len(index))}, index=)
+    result = df.to_html(max_rows=)
     expected = expected_html(datapath, expected)
     assert result == expected
 
@@ -278,7 +278,7 @@ def test_to_html_multiindex_odd_even_truncate(max_rows, expected, datapath):
 )
 def test_to_html_formatters(df, formatters, expected, datapath):
     expected = expected_html(datapath, expected)
-    result = df.to_html(formatters=formatters)
+    result = df.to_html(formatters=)
     assert result == expected
 
 
@@ -298,7 +298,7 @@ def test_to_html_regression_GH6098():
 
 def test_to_html_truncate(datapath):
     index = pd.date_range(start="20010101", freq="D", periods=20)
-    df = DataFrame(index=index, columns=range(20))
+    df = DataFrame(index=, columns=range(20))
     result = df.to_html(max_rows=8, max_cols=4)
     expected = expected_html(datapath, "truncate")
     assert result == expected
@@ -325,7 +325,7 @@ def test_to_html_truncate_formatter(datapath):
     df = DataFrame(data)
     fmt = lambda x: str(x) + "_mod"
     formatters = [fmt, fmt, None, None]
-    result = df.to_html(formatters=formatters, max_cols=3)
+    result = df.to_html(formatters=, max_cols=3)
     expected = expected_html(datapath, "truncate_formatter")
     assert result == expected
 
@@ -340,7 +340,7 @@ def test_to_html_truncate_multi_index(sparsify, expected, datapath):
         ["one", "two", "one", "two", "one", "two", "one", "two"],
     ]
     df = DataFrame(index=arrays, columns=arrays)
-    result = df.to_html(max_rows=7, max_cols=7, sparsify=sparsify)
+    result = df.to_html(max_rows=7, max_cols=7, sparsify=)
     expected = expected_html(datapath, expected)
     assert result == expected
 
@@ -372,7 +372,7 @@ def test_to_html(biggie_df_fixture):
     s = df.to_html()
 
     buf = StringIO()
-    retval = df.to_html(buf=buf)
+    retval = df.to_html(buf=)
     assert retval is None
     assert buf.getvalue() == s
 
@@ -431,8 +431,8 @@ def test_to_html_columns_arg(float_frame):
     ],
 )
 def test_to_html_multiindex(columns, justify, expected, datapath):
-    df = DataFrame([list("abcd"), list("efgh")], columns=columns)
-    result = df.to_html(justify=justify)
+    df = DataFrame([list("abcd"), list("efgh")], columns=)
+    result = df.to_html(justify=)
     expected = expected_html(datapath, expected)
     assert result == expected
 
@@ -442,8 +442,8 @@ def test_to_html_justify(justify, datapath):
         {"A": [6, 30000, 2], "B": [1, 2, 70000], "C": [223442, 0, 1]},
         columns=["A", "B", "C"],
     )
-    result = df.to_html(justify=justify)
-    expected = expected_html(datapath, "justify").format(justify=justify)
+    result = df.to_html(justify=)
+    expected = expected_html(datapath, "justify").format(justify=)
     assert result == expected
 
 
@@ -456,7 +456,7 @@ def test_to_html_invalid_justify(justify):
     msg = "Invalid value for justify parameter"
 
     with pytest.raises(ValueError, match=msg):
-        df.to_html(justify=justify)
+        df.to_html(justify=)
 
 
 class TestHTMLIndex:
@@ -466,7 +466,7 @@ class TestHTMLIndex:
         df = DataFrame(
             {"A": [1, 2, 3], "B": [1.2, 3.4, 5.6], "C": ["one", "two", np.nan]},
             columns=["A", "B", "C"],
-            index=index,
+            index=,
         )
         return df
 
@@ -518,7 +518,7 @@ class TestHTMLIndex:
 def test_to_html_with_classes(classes, datapath):
     df = DataFrame()
     expected = expected_html(datapath, "with_classes")
-    result = df.to_html(classes=classes)
+    result = df.to_html(classes=)
     assert result == expected
 
 
@@ -599,7 +599,7 @@ def test_to_html_basic_alignment(
 ):
     # GH 22747, GH 22579
     df = DataFrame(np.zeros((2, 2), dtype=int), index=row_index, columns=column_index)
-    result = df.to_html(index=index, header=header, index_names=index_names)
+    result = df.to_html(index=, header=, index_names=)
 
     if not index:
         row_type = "none"
@@ -658,9 +658,7 @@ def test_to_html_alignment_with_truncation(
 ):
     # GH 22747, GH 22579
     df = DataFrame(np.arange(64).reshape(8, 8), index=row_index, columns=column_index)
-    result = df.to_html(
-        max_rows=4, max_cols=4, index=index, header=header, index_names=index_names
-    )
+    result = df.to_html(max_rows=4, max_cols=4, index=, header=, index_names=)
 
     if not index:
         row_type = "none"
@@ -688,7 +686,7 @@ def test_to_html_truncation_index_false_max_rows(datapath, index):
         [-0.103219, 0.410599],
     ]
     df = DataFrame(data)
-    result = df.to_html(max_rows=4, index=index)
+    result = df.to_html(max_rows=4, index=)
     expected = expected_html(datapath, "gh15019_expected_output")
     assert result == expected
 
@@ -709,7 +707,7 @@ def test_to_html_truncation_index_false_max_cols(
     df = DataFrame(data)
     if col_index_named:
         df.columns.rename("columns.name", inplace=True)
-    result = df.to_html(max_cols=4, index=index)
+    result = df.to_html(max_cols=4, index=)
     expected = expected_html(datapath, expected_output)
     assert result == expected
 
@@ -717,7 +715,7 @@ def test_to_html_truncation_index_false_max_cols(
 @pytest.mark.parametrize("notebook", [True, False])
 def test_to_html_notebook_has_style(notebook):
     df = DataFrame({"A": [1, 2, 3]})
-    result = df.to_html(notebook=notebook)
+    result = df.to_html(notebook=)
 
     if notebook:
         assert "tbody tr th:only-of-type" in result
@@ -754,7 +752,7 @@ def test_to_html_float_format_no_fixed_width(value, float_format, expected, data
     # GH 21625, GH 22270
     df = DataFrame({"x": [value]})
     expected = expected_html(datapath, expected)
-    result = df.to_html(float_format=float_format)
+    result = df.to_html(float_format=)
     assert result == expected
 
 
@@ -770,7 +768,7 @@ def test_to_html_render_links(render_links, expected, datapath):
     ]
     df = DataFrame(data, columns=["foo", "bar", None])
 
-    result = df.to_html(render_links=render_links)
+    result = df.to_html(render_links=)
     expected = expected_html(datapath, expected)
     assert result == expected
 
@@ -799,7 +797,7 @@ def test_to_html_invalid_classes_type(classes):
     msg = "classes must be a string, list, or tuple"
 
     with pytest.raises(TypeError, match=msg):
-        df.to_html(classes=classes)
+        df.to_html(classes=)
 
 
 def test_to_html_round_column_headers():
@@ -883,9 +881,9 @@ def test_to_html_na_rep_and_float_format(na_rep, datapath):
         ],
         columns=["Group", "Data"],
     )
-    result = df.to_html(na_rep=na_rep, float_format="{:.2f}".format)
+    result = df.to_html(na_rep=, float_format="{:.2f}".format)
     expected = expected_html(datapath, "gh13828_expected_output")
-    expected = expected.format(na_rep=na_rep)
+    expected = expected.format(na_rep=)
     assert result == expected
 
 

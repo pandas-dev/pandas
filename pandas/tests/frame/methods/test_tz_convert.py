@@ -123,7 +123,7 @@ class TestTZConvert:
             index=date_range("20131027", periods=5, freq="h", tz="Europe/Berlin"),
         )
         orig = obj.copy()
-        result = obj.tz_convert("UTC", copy=copy)
+        result = obj.tz_convert("UTC", copy=)
         expected = frame_or_series(np.arange(0, 5), index=obj.index.tz_convert("UTC"))
         tm.assert_equal(result, expected)
         tm.assert_equal(obj, orig)

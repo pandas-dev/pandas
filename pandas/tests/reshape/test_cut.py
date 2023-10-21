@@ -215,10 +215,10 @@ def test_cut_out_of_range_more():
     # see gh-1511
     name = "x"
 
-    ser = Series([0, -1, 0, 1, -3], name=name)
+    ser = Series([0, -1, 0, 1, -3], name=)
     ind = cut(ser, [0, 1], labels=False)
 
-    exp = Series([np.nan, np.nan, np.nan, 0, np.nan], name=name)
+    exp = Series([np.nan, np.nan, np.nan, 0, np.nan], name=)
     tm.assert_series_equal(ind, exp)
 
 
@@ -232,14 +232,14 @@ def test_cut_out_of_range_more():
 def test_labels(right, breaks, closed):
     arr = np.tile(np.arange(0, 1.01, 0.1), 4)
 
-    result, bins = cut(arr, 4, retbins=True, right=right)
-    ex_levels = IntervalIndex.from_breaks(breaks, closed=closed)
+    result, bins = cut(arr, 4, retbins=True, right=)
+    ex_levels = IntervalIndex.from_breaks(breaks, closed=)
     tm.assert_index_equal(result.categories, ex_levels)
 
 
 def test_cut_pass_series_name_to_factor():
     name = "foo"
-    ser = Series(np.random.default_rng(2).standard_normal(100), name=name)
+    ser = Series(np.random.default_rng(2).standard_normal(100), name=)
 
     factor = cut(ser, 4)
     assert factor.name == name
@@ -258,7 +258,7 @@ def test_na_handling(labels):
     arr = np.arange(0, 0.75, 0.01)
     arr[::3] = np.nan
 
-    result = cut(arr, 4, labels=labels)
+    result = cut(arr, 4, labels=)
     result = np.asarray(result)
 
     expected = np.where(isna(arr), np.nan, result)
@@ -322,7 +322,7 @@ def test_cut_pass_labels_compat():
     arr = [50, 5, 10, 15, 20, 30, 70]
     labels = ["Good", "Medium", "Bad"]
 
-    result = cut(arr, 3, labels=labels)
+    result = cut(arr, 3, labels=)
     exp = cut(arr, 3, labels=Categorical(labels, categories=labels, ordered=True))
     tm.assert_categorical_equal(result, exp)
 
@@ -344,7 +344,7 @@ def test_round_frac_just_works(x):
 )
 def test_round_frac(val, precision, expected):
     # see gh-1979
-    result = tmod._round_frac(val, precision=precision)
+    result = tmod._round_frac(val, precision=)
     assert result == expected
 
 
@@ -448,7 +448,7 @@ def test_datetime_bin(conv):
     ).astype(CategoricalDtype(ordered=True))
 
     bins = [conv(v) for v in bin_data]
-    result = Series(cut(data, bins=bins))
+    result = Series(cut(data, bins=))
     tm.assert_series_equal(result, expected)
 
 
@@ -529,7 +529,7 @@ def test_datetime_tz_cut_mismatched_tzawareness(box):
 def test_datetime_tz_cut(bins, box):
     # see gh-19872
     tz = "US/Eastern"
-    s = Series(date_range("20130101", periods=3, tz=tz))
+    s = Series(date_range("20130101", periods=3, tz=))
 
     if not isinstance(bins, int):
         bins = box(bins)
@@ -539,16 +539,16 @@ def test_datetime_tz_cut(bins, box):
         IntervalIndex(
             [
                 Interval(
-                    Timestamp("2012-12-31 23:57:07.200000", tz=tz),
-                    Timestamp("2013-01-01 16:00:00", tz=tz),
+                    Timestamp("2012-12-31 23:57:07.200000", tz=),
+                    Timestamp("2013-01-01 16:00:00", tz=),
                 ),
                 Interval(
-                    Timestamp("2013-01-01 16:00:00", tz=tz),
-                    Timestamp("2013-01-02 08:00:00", tz=tz),
+                    Timestamp("2013-01-01 16:00:00", tz=),
+                    Timestamp("2013-01-02 08:00:00", tz=),
                 ),
                 Interval(
-                    Timestamp("2013-01-02 08:00:00", tz=tz),
-                    Timestamp("2013-01-03 00:00:00", tz=tz),
+                    Timestamp("2013-01-02 08:00:00", tz=),
+                    Timestamp("2013-01-03 00:00:00", tz=),
                 ),
             ]
         )
@@ -578,7 +578,7 @@ def test_datetime_nan_mask():
 @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
 def test_datetime_cut_roundtrip(tz):
     # see gh-19891
-    ser = Series(date_range("20180101", periods=3, tz=tz))
+    ser = Series(date_range("20180101", periods=3, tz=))
     result, result_bins = cut(ser, 2, retbins=True)
 
     expected = cut(ser, result_bins)
@@ -629,7 +629,7 @@ def test_cut_incorrect_labels(labels):
     values = range(5)
     msg = "Bin labels must either be False, None or passed in as a list-like argument"
     with pytest.raises(ValueError, match=msg):
-        cut(values, 4, labels=labels)
+        cut(values, 4, labels=)
 
 
 @pytest.mark.parametrize("bins", [3, [0, 5, 15]])
@@ -638,10 +638,8 @@ def test_cut_incorrect_labels(labels):
 def test_cut_nullable_integer(bins, right, include_lowest):
     a = np.random.default_rng(2).integers(0, 10, size=50).astype(float)
     a[::2] = np.nan
-    result = cut(
-        pd.array(a, dtype="Int64"), bins, right=right, include_lowest=include_lowest
-    )
-    expected = cut(a, bins, right=right, include_lowest=include_lowest)
+    result = cut(pd.array(a, dtype="Int64"), bins, right=, include_lowest=)
+    expected = cut(a, bins, right=, include_lowest=)
     tm.assert_categorical_equal(result, expected)
 
 
@@ -654,7 +652,7 @@ def test_cut_nullable_integer(bins, right, include_lowest):
 )
 def test_cut_non_unique_labels(data, bins, labels, expected_codes, expected_labels):
     # GH 33141
-    result = cut(data, bins=bins, labels=labels, ordered=False)
+    result = cut(data, bins=, labels=, ordered=False)
     expected = Categorical.from_codes(
         expected_codes, categories=expected_labels, ordered=False
     )
@@ -670,7 +668,7 @@ def test_cut_non_unique_labels(data, bins, labels, expected_codes, expected_labe
 )
 def test_cut_unordered_labels(data, bins, labels, expected_codes, expected_labels):
     # GH 33141
-    result = cut(data, bins=bins, labels=labels, ordered=False)
+    result = cut(data, bins=, labels=, ordered=False)
     expected = Categorical.from_codes(
         expected_codes, categories=expected_labels, ordered=False
     )
@@ -689,7 +687,7 @@ def test_cut_unordered_with_series_labels():
     s = Series([1, 2, 3, 4, 5])
     bins = Series([0, 2, 4, 6])
     labels = Series(["a", "b", "c"])
-    result = cut(s, bins=bins, labels=labels, ordered=False)
+    result = cut(s, bins=, labels=, ordered=False)
     expected = Series(["a", "a", "b", "b", "c"], dtype="category")
     tm.assert_series_equal(result, expected)
 
@@ -698,7 +696,7 @@ def test_cut_no_warnings():
     df = DataFrame({"value": np.random.default_rng(2).integers(0, 100, 20)})
     labels = [f"{i} - {i + 9}" for i in range(0, 100, 10)]
     with tm.assert_produces_warning(False):
-        df["group"] = cut(df.value, range(0, 105, 10), right=False, labels=labels)
+        df["group"] = cut(df.value, range(0, 105, 10), right=False, labels=)
 
 
 def test_cut_with_duplicated_index_lowest_included():
@@ -740,7 +738,7 @@ def test_cut_with_nonexact_categorical_indices():
     )
 
     expected = DataFrame(
-        {"1": [10] * 5 + [np.nan] * 5, "2": [np.nan] * 5 + [10] * 5}, index=index
+        {"1": [10] * 5 + [np.nan] * 5, "2": [np.nan] * 5 + [10] * 5}, index=
     )
 
     tm.assert_frame_equal(expected, result)
@@ -749,7 +747,7 @@ def test_cut_with_nonexact_categorical_indices():
 def test_cut_with_timestamp_tuple_labels():
     # GH 40661
     labels = [(Timestamp(10),), (Timestamp(20),), (Timestamp(30),)]
-    result = cut([2, 4, 6], bins=[1, 3, 5, 7], labels=labels)
+    result = cut([2, 4, 6], bins=[1, 3, 5, 7], labels=)
 
     expected = Categorical.from_codes([0, 1, 2], labels, ordered=True)
     tm.assert_categorical_equal(result, expected)
@@ -759,7 +757,7 @@ def test_cut_bins_datetime_intervalindex():
     # https://github.com/pandas-dev/pandas/issues/46218
     bins = interval_range(Timestamp("2022-02-25"), Timestamp("2022-02-27"), freq="1D")
     # passing Series instead of list is important to trigger bug
-    result = cut(Series([Timestamp("2022-02-26")]), bins=bins)
+    result = cut(Series([Timestamp("2022-02-26")]), bins=)
     expected = Categorical.from_codes([0], bins, ordered=True)
     tm.assert_categorical_equal(result.array, expected)
 
@@ -774,6 +772,6 @@ def test_cut_with_nullable_int64():
         Categorical.from_codes([-1, 0, 0, 1, 1, -1, 2, 3], intervals, ordered=True)
     )
 
-    result = cut(series, bins=bins)
+    result = cut(series, bins=)
 
     tm.assert_series_equal(result, expected)

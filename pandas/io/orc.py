@@ -122,9 +122,7 @@ def read_orc(
             except (TypeError, pa.ArrowInvalid):
                 pass
 
-        pa_table = orc.read_table(
-            source=source, columns=columns, filesystem=filesystem, **kwargs
-        )
+        pa_table = orc.read_table(source=, columns=, filesystem=, **kwargs)
     if dtype_backend is not lib.no_default:
         if dtype_backend == "pyarrow":
             df = pa_table.to_pandas(types_mapper=pd.ArrowDtype)
@@ -139,7 +137,7 @@ def read_orc(
             types_mapper = arrow_string_types_mapper()
         else:
             types_mapper = None
-        return pa_table.to_pandas(types_mapper=types_mapper)
+        return pa_table.to_pandas(types_mapper=)
 
 
 def to_orc(

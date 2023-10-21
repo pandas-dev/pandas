@@ -121,7 +121,7 @@ class TestRename:
         ]
 
         index = MultiIndex.from_arrays(arrays, names=["first", "second"])
-        ser = Series(np.ones(5), index=index)
+        ser = Series(np.ones(5), index=)
         result = ser.rename(index={"one": "yes"}, level="second", errors="raise")
 
         arrays_expected = [
@@ -159,7 +159,7 @@ class TestRename:
         # GH 46889
         ser = Series(["foo", "bar"])
         match = re.escape("[2] not found in axis")
-        with pytest.raises(KeyError, match=match):
+        with pytest.raises(KeyError, match=):
             ser.rename({2: 9}, errors="raise")
 
     def test_rename_copy_false(self, using_copy_on_write):

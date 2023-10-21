@@ -65,7 +65,7 @@ class TestDataFrameClip:
         ub = lb + 1
 
         original = df.copy()
-        clipped_df = df.clip(lb, ub, axis=0, inplace=inplace)
+        clipped_df = df.clip(lb, ub, axis=0, inplace=)
 
         if inplace:
             clipped_df = df
@@ -98,7 +98,7 @@ class TestDataFrameClip:
         # GH#15390
         original = simple_frame.copy(deep=True)
 
-        result = original.clip(lower=lower, upper=[5, 6, 7], axis=axis, inplace=inplace)
+        result = original.clip(lower=, upper=[5, 6, 7], axis=, inplace=)
 
         expected = DataFrame(res, columns=original.columns, index=original.index)
         if inplace:
@@ -111,7 +111,7 @@ class TestDataFrameClip:
         lb = DataFrame(np.random.default_rng(2).standard_normal((1000, 2)))
         ub = lb + 1
 
-        clipped_df = df.clip(lb, ub, axis=axis)
+        clipped_df = df.clip(lb, ub, axis=)
 
         lb_mask = df <= lb
         ub_mask = df >= ub

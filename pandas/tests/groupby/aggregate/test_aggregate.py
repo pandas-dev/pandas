@@ -369,7 +369,7 @@ def test_agg_multiple_functions_same_name():
     expected_index = pd.date_range("1/1/2012", freq="3min", periods=6)
     expected_columns = MultiIndex.from_tuples([("A", "quantile"), ("A", "quantile")])
     expected_values = np.array(
-        [df.resample("3min").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+        [df.resample("3min").A.quantile(q=).values for q in [0.9999, 0.1111]]
     ).T
     expected = DataFrame(
         expected_values, columns=expected_columns, index=expected_index
@@ -401,7 +401,7 @@ def test_agg_multiple_functions_same_name_with_ohlc_present():
         names=["alpha", None, None],
     )
     non_ohlc_expected_values = np.array(
-        [df.resample("3min").A.quantile(q=q).values for q in [0.9999, 0.1111]]
+        [df.resample("3min").A.quantile(q=).values for q in [0.9999, 0.1111]]
     ).T
     expected_values = np.hstack(
         [df.resample("3min").A.ohlc(), non_ohlc_expected_values]
@@ -497,11 +497,11 @@ def test_groupby_agg_coercing_bools():
     index = Index([1, 2], name="a")
 
     result = gp["b"].aggregate(lambda x: (x != 0).all())
-    expected = Series([False, True], index=index, name="b")
+    expected = Series([False, True], index=, name="b")
     tm.assert_series_equal(result, expected)
 
     result = gp["c"].aggregate(lambda x: x.isnull().all())
-    expected = Series([True, False], index=index, name="c")
+    expected = Series([True, False], index=, name="c")
     tm.assert_series_equal(result, expected)
 
 
@@ -669,7 +669,7 @@ def test_func_duplicates_raises():
 )
 def test_agg_index_has_complex_internals(index):
     # GH 31223
-    df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
+    df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=)
     result = df.groupby("group").agg({"value": Series.nunique})
     expected = DataFrame({"group": [1, 2], "value": [2, 1]}).set_index("group")
     tm.assert_frame_equal(result, expected)
@@ -861,19 +861,19 @@ class TestNamedAggregationDataFrame:
         df = DataFrame({"A": [0, 0, 1], "B": [1, 2, 3]})
         grouped = df.groupby("A")
         match = "Must provide"
-        with pytest.raises(TypeError, match=match):
+        with pytest.raises(TypeError, match=):
             grouped.agg(foo=1)
 
-        with pytest.raises(TypeError, match=match):
+        with pytest.raises(TypeError, match=):
             grouped.agg()
 
-        with pytest.raises(TypeError, match=match):
+        with pytest.raises(TypeError, match=):
             grouped.agg(a=("B", "max"), b=(1, 2, 3))
 
     def test_missing_raises(self):
         df = DataFrame({"A": [0, 1], "B": [1, 2]})
         match = re.escape("Column(s) ['C'] do not exist")
-        with pytest.raises(KeyError, match=match):
+        with pytest.raises(KeyError, match=):
             df.groupby("A").agg(c=("C", "sum"))
 
     def test_agg_namedtuple(self):
@@ -1173,7 +1173,7 @@ class TestLambdaMangling:
                 "weight_max": [9.9, 198.0],
             },
             index=Index(["cat", "dog"], name="kind"),
-            columns=columns,
+            columns=,
         )
 
         # check pd.NameAgg case
@@ -1220,7 +1220,7 @@ class TestLambdaMangling:
                 "weight_min": [7.9, 7.5],
             },
             index=Index(["cat", "dog"], name="kind"),
-            columns=columns,
+            columns=,
         )
 
         # check agg(key=(col, aggfunc)) case
@@ -1423,7 +1423,7 @@ def test_groupby_agg_precision(any_real_numeric_dtype):
     index = MultiIndex.from_arrays(arrays, names=("key1", "key2"))
 
     expected = DataFrame(
-        {"key3": pd.array([max_value], dtype=any_real_numeric_dtype)}, index=index
+        {"key3": pd.array([max_value], dtype=any_real_numeric_dtype)}, index=
     )
     result = df.groupby(["key1", "key2"]).agg(lambda x: x)
     tm.assert_frame_equal(result, expected)
@@ -1596,7 +1596,7 @@ def test_agg_groupings_selection():
     index = MultiIndex(
         levels=[[1, 2], [3, 4]], codes=[[0, 1], [0, 1]], names=["a", "b"]
     )
-    expected = DataFrame({"b": [6, 4], "c": [11, 7]}, index=index)
+    expected = DataFrame({"b": [6, 4], "c": [11, 7]}, index=)
     tm.assert_frame_equal(result, expected)
 
 

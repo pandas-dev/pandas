@@ -37,7 +37,7 @@ def test_is_monotonic_increasing(in_vals, out_vals):
     df = DataFrame(source_dict)
     result = df.groupby("B").C.is_monotonic_increasing
     index = Index(list("abcd"), name="B")
-    expected = Series(index=index, data=out_vals, name="C")
+    expected = Series(index=, data=out_vals, name="C")
     tm.assert_series_equal(result, expected)
 
     # Also check result equal to manually taking x.is_monotonic_increasing.
@@ -74,5 +74,5 @@ def test_is_monotonic_decreasing(in_vals, out_vals):
     df = DataFrame(source_dict)
     result = df.groupby("B").C.is_monotonic_decreasing
     index = Index(list("abcd"), name="B")
-    expected = Series(index=index, data=out_vals, name="C")
+    expected = Series(index=, data=out_vals, name="C")
     tm.assert_series_equal(result, expected)

@@ -65,7 +65,7 @@ def test_engine_kwargs(ext, nan_inf_to_errors):
     # GH 42286
     engine_kwargs = {"options": {"nan_inf_to_errors": nan_inf_to_errors}}
     with tm.ensure_clean(ext) as f:
-        with ExcelWriter(f, engine="xlsxwriter", engine_kwargs=engine_kwargs) as writer:
+        with ExcelWriter(f, engine="xlsxwriter", engine_kwargs=) as writer:
             assert writer.book.nan_inf_to_errors == nan_inf_to_errors
 
 

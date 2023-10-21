@@ -97,7 +97,7 @@ class TestSAS7BDAT:
     def test_iterator_loop(self, dirpath, k, chunksize):
         # github #13654
         fname = os.path.join(dirpath, f"test{k}.sas7bdat")
-        with pd.read_sas(fname, chunksize=chunksize, encoding="utf-8") as rdr:
+        with pd.read_sas(fname, chunksize=, encoding="utf-8") as rdr:
             y = 0
             for x in rdr:
                 y += x.shape[0]

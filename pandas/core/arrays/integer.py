@@ -50,9 +50,9 @@ class IntegerDtype(NumericDtype):
         has a floating dtype, each value must be an integer.
         """
         try:
-            return values.astype(dtype, casting="safe", copy=copy)
+            return values.astype(dtype, casting="safe", copy=)
         except TypeError as err:
-            casted = values.astype(dtype, copy=copy)
+            casted = values.astype(dtype, copy=)
             if (casted == values).all():
                 return casted
 

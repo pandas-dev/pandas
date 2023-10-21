@@ -79,7 +79,7 @@ class TestToPeriod:
 
     def test_to_period_raises(self, index, frame_or_series):
         # https://github.com/pandas-dev/pandas/issues/33327
-        obj = Series(index=index, dtype=object)
+        obj = Series(index=, dtype=object)
         if frame_or_series is DataFrame:
             obj = obj.to_frame()
 

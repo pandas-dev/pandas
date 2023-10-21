@@ -65,7 +65,7 @@ bar2,12,13,14,15
     msg = r"'chunksize' must be an integer >=1"
 
     with pytest.raises(ValueError, match=msg):
-        with parser.read_csv(StringIO(data), chunksize=chunksize) as _:
+        with parser.read_csv(StringIO(data), chunksize=) as _:
             pass
 
 
@@ -84,7 +84,7 @@ bar2,12,13,14,15
     kwargs = {"index_col": 0, "nrows": 5}
 
     expected = parser.read_csv(StringIO(data), **kwargs)
-    with parser.read_csv(StringIO(data), chunksize=chunksize, **kwargs) as reader:
+    with parser.read_csv(StringIO(data), chunksize=, **kwargs) as reader:
         tm.assert_frame_equal(concat(reader), expected)
 
 
@@ -220,7 +220,7 @@ def test_empty_with_nrows_chunksize(all_parsers, iterator):
         with parser.read_csv(data, chunksize=nrows) as reader:
             result = next(iter(reader))
     else:
-        result = parser.read_csv(data, nrows=nrows)
+        result = parser.read_csv(data, nrows=)
 
     tm.assert_frame_equal(result, expected)
 

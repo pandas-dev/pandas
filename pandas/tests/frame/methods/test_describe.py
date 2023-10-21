@@ -147,7 +147,7 @@ class TestDataFrameDescribe:
                 "int2": [10, 20, 30, 40, 50],
                 "obj": ["A", 0, None, "X", 1],
             },
-            columns=columns,
+            columns=,
         )
         result = df.describe()
 
@@ -255,7 +255,7 @@ class TestDataFrameDescribe:
         s1 = Series(range(5))
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
-        s2 = Series(date_range(start, end, tz=tz))
+        s2 = Series(date_range(start, end, tz=))
         df = DataFrame({"s1": s1, "s2": s2})
 
         expected = DataFrame(
@@ -303,7 +303,7 @@ class TestDataFrameDescribe:
         s1 = Series(range(5))
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
-        s2 = Series(date_range(start, end, tz=tz))
+        s2 = Series(date_range(start, end, tz=))
         df = DataFrame({"s1": s1, "s2": s2})
 
         s1_ = s1.describe()
@@ -371,7 +371,7 @@ class TestDataFrameDescribe:
         df = DataFrame({"x": [1], "y": [2], "z": [3]})
         msg = "exclude must be None when include is 'all'"
         with pytest.raises(ValueError, match=msg):
-            df.describe(include="all", exclude=exclude)
+            df.describe(include="all", exclude=)
 
     def test_describe_with_duplicate_columns(self):
         df = DataFrame(

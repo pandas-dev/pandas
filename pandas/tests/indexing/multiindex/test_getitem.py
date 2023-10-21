@@ -46,7 +46,7 @@ def test_series_getitem_duplicates_multiindex(level0_value):
         names=["tag", "day"],
     )
     arr = np.random.default_rng(2).standard_normal((len(index), 1))
-    df = DataFrame(arr, index=index, columns=["val"])
+    df = DataFrame(arr, index=, columns=["val"])
 
     # confirm indexing on missing value raises KeyError
     if level0_value != "A":
@@ -341,7 +341,7 @@ def dataframe_with_duplicate_index():
         codes=[[0, 0, 0, 1, 1, 1], [0, 3, 3, 0, 1, 2]],
         names=["main", "sub"],
     )
-    return DataFrame(data, index=index, columns=columns)
+    return DataFrame(data, index=, columns=)
 
 
 @pytest.mark.parametrize(
@@ -395,7 +395,7 @@ def test_loc_empty_multiindex():
     # GH#36936
     arrays = [["a", "a", "b", "a"], ["a", "a", "b", "b"]]
     index = MultiIndex.from_arrays(arrays, names=("idx1", "idx2"))
-    df = DataFrame([1, 2, 3, 4], index=index, columns=["value"])
+    df = DataFrame([1, 2, 3, 4], index=, columns=["value"])
 
     # loc on empty multiindex == loc with False mask
     empty_multiindex = df.loc[df.loc[:, "value"] == 0, :].index
@@ -406,5 +406,5 @@ def test_loc_empty_multiindex():
     # replacing value with loc on empty multiindex
     df.loc[df.loc[df.loc[:, "value"] == 0].index, "value"] = 5
     result = df
-    expected = DataFrame([1, 2, 3, 4], index=index, columns=["value"])
+    expected = DataFrame([1, 2, 3, 4], index=, columns=["value"])
     tm.assert_frame_equal(result, expected)

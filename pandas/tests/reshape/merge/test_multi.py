@@ -98,7 +98,7 @@ class TestMergeMulti:
             return f(df["1st"]) + f(df["3rd"]) * 1e2 + df["2nd"].fillna(0) * 1e4
 
         def run_asserts(left, right, sort):
-            res = left.join(right, on=icols, how="left", sort=sort)
+            res = left.join(right, on=icols, how="left", sort=)
 
             assert len(left) < len(res) + 1
             assert not res["4th"].isna().any()
@@ -112,7 +112,7 @@ class TestMergeMulti:
             if sort:
                 tm.assert_frame_equal(res, res.sort_values(icols, kind="mergesort"))
 
-            out = merge(left, right.reset_index(), on=icols, sort=sort, how="left")
+            out = merge(left, right.reset_index(), on=icols, sort=, how="left")
 
             res.index = RangeIndex(len(res))
             tm.assert_frame_equal(out, res)
@@ -155,11 +155,11 @@ class TestMergeMulti:
         # compare left vs right merge with multikey
         on_cols = ["key1", "key2"]
         merged_left_right = left.merge(
-            right, left_on=on_cols, right_index=True, how="left", sort=sort
+            right, left_on=on_cols, right_index=True, how="left", sort=
         )
 
         merge_right_left = right.merge(
-            left, right_on=on_cols, left_index=True, how="right", sort=sort
+            left, right_on=on_cols, left_index=True, how="right", sort=
         )
 
         # Reorder columns
@@ -222,7 +222,7 @@ class TestMergeMulti:
         )
 
         index = MultiIndex.from_tuples([(2, "bar"), (1, "foo")])
-        right = DataFrame({"v2": [5, 7]}, index=index)
+        right = DataFrame({"v2": [5, 7]}, index=)
 
         result = left.join(right, on=on_cols)
 
@@ -249,7 +249,7 @@ class TestMergeMulti:
         )
 
         index = MultiIndex.from_tuples([(2, "bar"), (1, "foo")])
-        right = DataFrame({"v2": [5, 7]}, index=index)
+        right = DataFrame({"v2": [5, 7]}, index=)
 
         result = left.join(right, on=on_cols)
 

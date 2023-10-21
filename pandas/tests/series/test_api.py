@@ -86,7 +86,7 @@ class TestSeriesMisc:
     )
     def test_index_tab_completion(self, index):
         # dir contains string-like values of the Index.
-        s = Series(index=index, dtype=object)
+        s = Series(index=, dtype=object)
         dir_s = dir(s)
         for i, x in enumerate(s.index.unique(level=0)):
             if i < 100:
@@ -148,13 +148,13 @@ class TestSeriesMisc:
 
     @pytest.mark.parametrize("dtype", ["int64", object])
     def test_empty_method_full_series(self, dtype):
-        full_series = Series(index=[1], dtype=dtype)
+        full_series = Series(index=[1], dtype=)
         assert not full_series.empty
 
     @pytest.mark.parametrize("dtype", [None, "Int64"])
     def test_integer_series_size(self, dtype):
         # GH 25580
-        s = Series(range(9), dtype=dtype)
+        s = Series(range(9), dtype=)
         assert s.size == 9
 
     def test_attrs(self):
@@ -248,7 +248,7 @@ class TestSeriesMisc:
     @pytest.mark.parametrize("dtype", [bool, int, float, object])
     def test_numeric_only(self, kernel, has_numeric_only, dtype):
         # GH#47500
-        ser = Series([0, 1, 1], dtype=dtype)
+        ser = Series([0, 1, 1], dtype=)
         if kernel == "corrwith":
             args = (ser,)
         elif kernel == "corr":

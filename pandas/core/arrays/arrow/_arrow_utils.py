@@ -44,7 +44,7 @@ def pyarrow_array_to_numpy_and_mask(
 
     if pyarrow.types.is_null(arr.type):
         # No initialization of data is needed since everything is null
-        data = np.empty(len(arr), dtype=dtype)
+        data = np.empty(len(arr), dtype=)
         mask = np.zeros(len(arr), dtype=bool)
         return data, mask
     buflist = arr.buffers()
@@ -54,7 +54,7 @@ def pyarrow_array_to_numpy_and_mask(
     offset = arr.offset * dtype.itemsize
     length = len(arr) * dtype.itemsize
     data_buf = buflist[1][offset : offset + length]
-    data = np.frombuffer(data_buf, dtype=dtype)
+    data = np.frombuffer(data_buf, dtype=)
     bitmask = buflist[0]
     if bitmask is not None:
         mask = pyarrow.BooleanArray.from_buffers(

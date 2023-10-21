@@ -127,7 +127,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         # None]"; expected "Union[dtype[Any], None, type, _SupportsDType, str,
         # Union[Tuple[Any, int], Tuple[Any, Union[int, Sequence[int]]], List[Any],
         # _DTypeDict, Tuple[Any, Any]]]"
-        result = np.asarray(scalars, dtype=dtype)  # type: ignore[arg-type]
+        result = np.asarray(scalars, dtype=)  # type: ignore[arg-type]
         if (
             result.ndim > 1
             and not hasattr(scalars, "dtype")
@@ -154,7 +154,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
     # NumPy Array Interface
 
     def __array__(self, dtype: NpDtype | None = None) -> np.ndarray:
-        return np.asarray(self._ndarray, dtype=dtype)
+        return np.asarray(self._ndarray, dtype=)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         # Lightly modified version of
@@ -221,7 +221,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
                 return self.copy()
             return self
 
-        result = astype_array(self._ndarray, dtype=dtype, copy=copy)
+        result = astype_array(self._ndarray, dtype=, copy=)
         return result
 
     def isna(self) -> np.ndarray:
@@ -264,8 +264,8 @@ class NumpyExtensionArray(  # type: ignore[misc]
             out_data.T,
             method=meth,
             axis=0,
-            limit=limit,
-            limit_area=limit_area,
+            limit=,
+            limit_area=,
         )
 
         if not copy:
@@ -296,12 +296,12 @@ class NumpyExtensionArray(  # type: ignore[misc]
         # TODO: assert we have floating dtype?
         missing.interpolate_2d_inplace(
             out_data,
-            method=method,
-            axis=axis,
-            index=index,
-            limit=limit,
-            limit_direction=limit_direction,
-            limit_area=limit_area,
+            method=,
+            axis=,
+            index=,
+            limit=,
+            limit_direction=,
+            limit_area=,
             **kwargs,
         )
         if not copy:
@@ -320,7 +320,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         skipna: bool = True,
     ):
         nv.validate_any((), {"out": out, "keepdims": keepdims})
-        result = nanops.nanany(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanany(self._ndarray, axis=, skipna=)
         return self._wrap_reduction_result(axis, result)
 
     def all(
@@ -332,7 +332,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         skipna: bool = True,
     ):
         nv.validate_all((), {"out": out, "keepdims": keepdims})
-        result = nanops.nanall(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanall(self._ndarray, axis=, skipna=)
         return self._wrap_reduction_result(axis, result)
 
     def min(
@@ -340,7 +340,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
     ) -> Scalar:
         nv.validate_min((), kwargs)
         result = nanops.nanmin(
-            values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
+            values=self._ndarray, axis=, mask=self.isna(), skipna=
         )
         return self._wrap_reduction_result(axis, result)
 
@@ -349,7 +349,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
     ) -> Scalar:
         nv.validate_max((), kwargs)
         result = nanops.nanmax(
-            values=self._ndarray, axis=axis, mask=self.isna(), skipna=skipna
+            values=self._ndarray, axis=, mask=self.isna(), skipna=
         )
         return self._wrap_reduction_result(axis, result)
 
@@ -362,9 +362,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         **kwargs,
     ) -> Scalar:
         nv.validate_sum((), kwargs)
-        result = nanops.nansum(
-            self._ndarray, axis=axis, skipna=skipna, min_count=min_count
-        )
+        result = nanops.nansum(self._ndarray, axis=, skipna=, min_count=)
         return self._wrap_reduction_result(axis, result)
 
     def prod(
@@ -376,9 +374,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         **kwargs,
     ) -> Scalar:
         nv.validate_prod((), kwargs)
-        result = nanops.nanprod(
-            self._ndarray, axis=axis, skipna=skipna, min_count=min_count
-        )
+        result = nanops.nanprod(self._ndarray, axis=, skipna=, min_count=)
         return self._wrap_reduction_result(axis, result)
 
     def mean(
@@ -391,7 +387,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         skipna: bool = True,
     ):
         nv.validate_mean((), {"dtype": dtype, "out": out, "keepdims": keepdims})
-        result = nanops.nanmean(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmean(self._ndarray, axis=, skipna=)
         return self._wrap_reduction_result(axis, result)
 
     def median(
@@ -406,7 +402,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         nv.validate_median(
             (), {"out": out, "overwrite_input": overwrite_input, "keepdims": keepdims}
         )
-        result = nanops.nanmedian(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanmedian(self._ndarray, axis=, skipna=)
         return self._wrap_reduction_result(axis, result)
 
     def std(
@@ -422,7 +418,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="std"
         )
-        result = nanops.nanstd(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        result = nanops.nanstd(self._ndarray, axis=, skipna=, ddof=)
         return self._wrap_reduction_result(axis, result)
 
     def var(
@@ -438,7 +434,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="var"
         )
-        result = nanops.nanvar(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        result = nanops.nanvar(self._ndarray, axis=, skipna=, ddof=)
         return self._wrap_reduction_result(axis, result)
 
     def sem(
@@ -454,7 +450,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="sem"
         )
-        result = nanops.nansem(self._ndarray, axis=axis, skipna=skipna, ddof=ddof)
+        result = nanops.nansem(self._ndarray, axis=, skipna=, ddof=)
         return self._wrap_reduction_result(axis, result)
 
     def kurt(
@@ -469,7 +465,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="kurt"
         )
-        result = nanops.nankurt(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nankurt(self._ndarray, axis=, skipna=)
         return self._wrap_reduction_result(axis, result)
 
     def skew(
@@ -484,7 +480,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         nv.validate_stat_ddof_func(
             (), {"dtype": dtype, "out": out, "keepdims": keepdims}, fname="skew"
         )
-        result = nanops.nanskew(self._ndarray, axis=axis, skipna=skipna)
+        result = nanops.nanskew(self._ndarray, axis=, skipna=)
         return self._wrap_reduction_result(axis, result)
 
     # ------------------------------------------------------------------------
@@ -503,7 +499,7 @@ class NumpyExtensionArray(  # type: ignore[misc]
         else:
             result = self._ndarray
 
-        result = np.asarray(result, dtype=dtype)
+        result = np.asarray(result, dtype=)
 
         if copy and result is self._ndarray:
             result = result.copy()

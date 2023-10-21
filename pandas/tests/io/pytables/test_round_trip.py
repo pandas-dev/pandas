@@ -29,7 +29,7 @@ def test_conv_read_write():
     with tm.ensure_clean() as path:
 
         def roundtrip(key, obj, **kwargs):
-            obj.to_hdf(path, key=key, **kwargs)
+            obj.to_hdf(path, key=, **kwargs)
             return read_hdf(path, key)
 
         o = tm.makeTimeSeries()
@@ -266,7 +266,7 @@ def test_series(setup_path):
 def test_float_index(setup_path):
     # GH #454
     index = np.random.default_rng(2).standard_normal(10)
-    s = Series(np.random.default_rng(2).standard_normal(10), index=index)
+    s = Series(np.random.default_rng(2).standard_normal(10), index=)
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
 
@@ -348,16 +348,12 @@ def test_frame(compression, setup_path):
     df.iloc[5, 3] = np.nan
 
     _check_roundtrip_table(
-        df, tm.assert_frame_equal, path=setup_path, compression=compression
+        df, tm.assert_frame_equal, path=setup_path, compression=
     )
-    _check_roundtrip(
-        df, tm.assert_frame_equal, path=setup_path, compression=compression
-    )
+    _check_roundtrip(df, tm.assert_frame_equal, path=setup_path, compression=)
 
     tdf = tm.makeTimeDataFrame()
-    _check_roundtrip(
-        tdf, tm.assert_frame_equal, path=setup_path, compression=compression
-    )
+    _check_roundtrip(tdf, tm.assert_frame_equal, path=setup_path, compression=)
 
     with ensure_clean_store(setup_path) as store:
         # not consolidated
@@ -386,7 +382,7 @@ def test_empty_series_frame(setup_path):
 
 @pytest.mark.parametrize("dtype", [np.int64, np.float64, object, "m8[ns]", "M8[ns]"])
 def test_empty_series(dtype, setup_path):
-    s = Series(dtype=dtype)
+    s = Series(dtype=)
     _check_roundtrip(s, tm.assert_series_equal, path=setup_path)
 
 
@@ -444,19 +440,19 @@ def test_store_mixed(compression, setup_path):
         df1["obj1"],
         tm.assert_series_equal,
         path=setup_path,
-        compression=compression,
+        compression=,
     )
     _check_roundtrip(
         df1["bool1"],
         tm.assert_series_equal,
         path=setup_path,
-        compression=compression,
+        compression=,
     )
     _check_roundtrip(
         df1["int1"],
         tm.assert_series_equal,
         path=setup_path,
-        compression=compression,
+        compression=,
     )
 
 

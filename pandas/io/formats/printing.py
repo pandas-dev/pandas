@@ -118,7 +118,7 @@ def _pprint_seq(
     s = iter(seq)
     # handle sets, no slicing
     r = [
-        pprint_thing(next(s), _nest_lvl + 1, max_seq_items=max_seq_items, **kwds)
+        pprint_thing(next(s), _nest_lvl + 1, max_seq_items=, **kwds)
         for i in range(min(nitems, len(seq)))
     ]
     body = ", ".join(r)
@@ -128,7 +128,7 @@ def _pprint_seq(
     elif isinstance(seq, tuple) and len(seq) == 1:
         body += ","
 
-    return fmt.format(body=body)
+    return fmt.format(body=)
 
 
 def _pprint_dict(
@@ -151,8 +151,8 @@ def _pprint_dict(
     for k, v in list(seq.items())[:nitems]:
         pairs.append(
             pfmt.format(
-                key=pprint_thing(k, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds),
-                val=pprint_thing(v, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds),
+                key=pprint_thing(k, _nest_lvl + 1, max_seq_items=, **kwds),
+                val=pprint_thing(v, _nest_lvl + 1, max_seq_items=, **kwds),
             )
         )
 
@@ -217,15 +217,15 @@ def pprint_thing(
         "display.pprint_nest_depth"
     ):
         result = _pprint_dict(
-            thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items
+            thing, _nest_lvl, quote_strings=True, max_seq_items=
         )
     elif is_sequence(thing) and _nest_lvl < get_option("display.pprint_nest_depth"):
         result = _pprint_seq(
             thing,
             _nest_lvl,
-            escape_chars=escape_chars,
-            quote_strings=quote_strings,
-            max_seq_items=max_seq_items,
+            escape_chars=,
+            quote_strings=,
+            max_seq_items=,
         )
     elif isinstance(thing, str) and quote_strings:
         result = f"'{as_escaped_string(thing)}'"
@@ -280,7 +280,7 @@ def default_pprint(thing: Any, max_seq_items: int | None = None) -> str:
         thing,
         escape_chars=("\t", "\r", "\n"),
         quote_strings=True,
-        max_seq_items=max_seq_items,
+        max_seq_items=,
     )
 
 

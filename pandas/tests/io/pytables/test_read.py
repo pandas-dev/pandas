@@ -357,7 +357,7 @@ def test_read_hdf_series_mode_r(tmp_path, format, setup_path):
     # still works if a mode='r' argument is supplied
     series = tm.makeFloatSeries()
     path = tmp_path / setup_path
-    series.to_hdf(path, key="data", format=format)
+    series.to_hdf(path, key="data", format=)
     result = read_hdf(path, key="data", mode="r")
     tm.assert_series_equal(result, series)
 

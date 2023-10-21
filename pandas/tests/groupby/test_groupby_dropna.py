@@ -40,7 +40,7 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_one_group(
         ["A", "B", 1, 1, 1.0],
     ]
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d", "e"])
-    grouped = df.groupby(["a", "b"], dropna=dropna).sum()
+    grouped = df.groupby(["a", "b"], dropna=).sum()
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
 
@@ -84,7 +84,7 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_two_groups(
         ["A", nulls_fixture2, 1, 1, 1.0],
     ]
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d", "e"])
-    grouped = df.groupby(["a", "b"], dropna=dropna).sum()
+    grouped = df.groupby(["a", "b"], dropna=).sum()
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
 
@@ -121,7 +121,7 @@ def test_groupby_dropna_normal_index_dataframe(dropna, idx, outputs):
         ["B", 1, 1, 1.0],
     ]
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d"])
-    grouped = df.groupby("a", dropna=dropna).sum()
+    grouped = df.groupby("a", dropna=).sum()
 
     expected = pd.DataFrame(outputs, index=pd.Index(idx, dtype="object", name="a"))
 
@@ -142,7 +142,7 @@ def test_groupby_dropna_normal_index_dataframe(dropna, idx, outputs):
 def test_groupby_dropna_series_level(dropna, idx, expected):
     ser = pd.Series([1, 2, 3, 3], index=idx)
 
-    result = ser.groupby(level=0, dropna=dropna).sum()
+    result = ser.groupby(level=0, dropna=).sum()
     tm.assert_series_equal(result, expected)
 
 
@@ -163,7 +163,7 @@ def test_groupby_dropna_series_by(dropna, expected):
         name="Max Speed",
     )
 
-    result = ser.groupby(["a", "b", "a", np.nan], dropna=dropna).mean()
+    result = ser.groupby(["a", "b", "a", np.nan], dropna=).mean()
     tm.assert_series_equal(result, expected)
 
 
@@ -171,7 +171,7 @@ def test_groupby_dropna_series_by(dropna, expected):
 def test_grouper_dropna_propagation(dropna):
     # GH 36604
     df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]})
-    gb = df.groupby("A", dropna=dropna)
+    gb = df.groupby("A", dropna=)
     assert gb.grouper.dropna == dropna
 
 
@@ -187,19 +187,19 @@ def test_groupby_dataframe_slice_then_transform(dropna, index):
     # GH35014 & GH35612
     expected_data = {"B": [2, 2, 1, np.nan if dropna else 1]}
 
-    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]}, index=index)
-    gb = df.groupby("A", dropna=dropna)
+    df = pd.DataFrame({"A": [0, 0, 1, None], "B": [1, 2, 3, None]}, index=)
+    gb = df.groupby("A", dropna=)
 
     result = gb.transform(len)
-    expected = pd.DataFrame(expected_data, index=index)
+    expected = pd.DataFrame(expected_data, index=)
     tm.assert_frame_equal(result, expected)
 
     result = gb[["B"]].transform(len)
-    expected = pd.DataFrame(expected_data, index=index)
+    expected = pd.DataFrame(expected_data, index=)
     tm.assert_frame_equal(result, expected)
 
     result = gb["B"].transform(len)
-    expected = pd.Series(expected_data["B"], index=index, name="B")
+    expected = pd.Series(expected_data["B"], index=, name="B")
     tm.assert_series_equal(result, expected)
 
 
@@ -232,7 +232,7 @@ def test_groupby_dropna_multi_index_dataframe_agg(dropna, tuples, outputs):
     ]
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d", "e"])
     agg_dict = {"c": "sum", "d": "max", "e": "min"}
-    grouped = df.groupby(["a", "b"], dropna=dropna).agg(agg_dict)
+    grouped = df.groupby(["a", "b"], dropna=).agg(agg_dict)
 
     mi = pd.MultiIndex.from_tuples(tuples, names=list("ab"))
 
@@ -278,7 +278,7 @@ def test_groupby_dropna_datetime_like_data(
     else:
         indexes = [datetime1, datetime2, np.nan]
 
-    grouped = df.groupby("dt", dropna=dropna).agg({"values": "sum"})
+    grouped = df.groupby("dt", dropna=).agg({"values": "sum"})
     expected = pd.DataFrame({"values": values}, index=pd.Index(indexes, name="dt"))
 
     tm.assert_frame_equal(grouped, expected)
@@ -323,7 +323,7 @@ def test_groupby_apply_with_dropna_for_multi_index(dropna, data, selected_data, 
     # GH 35889
 
     df = pd.DataFrame(data)
-    gb = df.groupby("groups", dropna=dropna)
+    gb = df.groupby("groups", dropna=)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = gb.apply(lambda grp: pd.DataFrame({"values": range(len(grp))}))
@@ -377,9 +377,9 @@ def test_groupby_nan_included():
     result = grouped.indices
     dtype = np.intp
     expected = {
-        "g1": np.array([0, 2], dtype=dtype),
-        "g2": np.array([3], dtype=dtype),
-        np.nan: np.array([1, 4], dtype=dtype),
+        "g1": np.array([0, 2], dtype=),
+        "g2": np.array([3], dtype=),
+        np.nan: np.array([1, 4], dtype=),
     }
     for result_values, expected_values in zip(result.values(), expected.values()):
         tm.assert_numpy_array_equal(result_values, expected_values)
@@ -446,11 +446,11 @@ def test_no_sort_keep_na(sequence_index, dtype, test_series, as_index):
 
     df = pd.DataFrame(
         {
-            "key": pd.Series([uniques[label] for label in sequence], dtype=dtype),
+            "key": pd.Series([uniques[label] for label in sequence], dtype=),
             "a": [0, 1, 2, 3],
         }
     )
-    gb = df.groupby("key", dropna=False, sort=False, as_index=as_index, observed=False)
+    gb = df.groupby("key", dropna=False, sort=False, as_index=, observed=False)
     if test_series:
         gb = gb["a"]
     result = gb.sum()
@@ -468,11 +468,11 @@ def test_no_sort_keep_na(sequence_index, dtype, test_series, as_index):
         )
     elif isinstance(dtype, str) and dtype.startswith("Sparse"):
         index = pd.Index(
-            pd.array([uniques[label] for label in summed], dtype=dtype), name="key"
+            pd.array([uniques[label] for label in summed], dtype=), name="key"
         )
     else:
-        index = pd.Index([uniques[label] for label in summed], dtype=dtype, name="key")
-    expected = pd.Series(summed.values(), index=index, name="a", dtype=None)
+        index = pd.Index([uniques[label] for label in summed], dtype=, name="key")
+    expected = pd.Series(summed.values(), index=, name="a", dtype=None)
     if not test_series:
         expected = expected.to_frame()
     if not as_index:
@@ -490,12 +490,12 @@ def test_null_is_null_for_dtype(
 ):
     # GH#48506 - groups should always result in using the null for the dtype
     df = pd.DataFrame({"a": [1, 2]})
-    groups = pd.Series([nulls_fixture, nulls_fixture2], dtype=dtype)
+    groups = pd.Series([nulls_fixture, nulls_fixture2], dtype=)
     obj = df["a"] if test_series else df
-    gb = obj.groupby(groups, dropna=False, sort=sort)
+    gb = obj.groupby(groups, dropna=False, sort=)
     result = gb.sum()
     index = pd.Index([na_value_for_dtype(groups.dtype)])
-    expected = pd.DataFrame({"a": [3]}, index=index)
+    expected = pd.DataFrame({"a": [3]}, index=)
     if test_series:
         tm.assert_series_equal(result, expected["a"])
     else:
@@ -533,9 +533,7 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
         args = (args[0].drop(columns=keys),)
         args_filled = (args_filled[0].drop(columns=keys),)
 
-    gb_keepna = df.groupby(
-        keys, dropna=False, observed=observed, sort=sort, as_index=as_index
-    )
+    gb_keepna = df.groupby(keys, dropna=False, observed=, sort=, as_index=)
 
     if not observed and reduction_func in ["idxmin", "idxmax"]:
         with pytest.raises(
@@ -544,7 +542,7 @@ def test_categorical_reducers(reduction_func, observed, sort, as_index, index_ki
             getattr(gb_keepna, reduction_func)(*args)
         return
 
-    gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
+    gb_filled = df_filled.groupby(keys, observed=, sort=, as_index=True)
     expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
     expected["x"] = expected["x"].replace(4, None)
     if index_kind == "multi":
@@ -617,10 +615,8 @@ def test_categorical_transformers(
         null_group_data = getattr(null_group_values, transformation_func)(*args)
     null_group_result = pd.DataFrame({"y": null_group_data})
 
-    gb_keepna = df.groupby(
-        "x", dropna=False, observed=observed, sort=sort, as_index=as_index
-    )
-    gb_dropna = df.groupby("x", dropna=True, observed=observed, sort=sort)
+    gb_keepna = df.groupby("x", dropna=False, observed=, sort=, as_index=)
+    gb_dropna = df.groupby("x", dropna=True, observed=, sort=)
 
     msg = "The default fill_method='ffill' in DataFrameGroupBy.pct_change is deprecated"
     if transformation_func == "pct_change":
@@ -652,7 +648,7 @@ def test_categorical_head_tail(method, observed, sort, as_index):
     df = pd.DataFrame(
         {"x": pd.Categorical(values, categories=[1, 2, 3]), "y": range(len(values))}
     )
-    gb = df.groupby("x", dropna=False, observed=observed, sort=sort, as_index=as_index)
+    gb = df.groupby("x", dropna=False, observed=, sort=, as_index=)
     result = getattr(gb, method)()
 
     if method == "tail":

@@ -186,13 +186,13 @@ def concatenate_managers(
 
             fastpath = blk.values.dtype == values.dtype
         else:
-            values = _concatenate_join_units(join_units, copy=copy)
+            values = _concatenate_join_units(join_units, copy=)
             fastpath = False
 
         if fastpath:
-            b = blk.make_block_same_class(values, placement=placement)
+            b = blk.make_block_same_class(values, placement=)
         else:
-            b = new_block_2d(values, placement=placement)
+            b = new_block_2d(values, placement=)
 
         blocks.append(b)
 
@@ -310,7 +310,7 @@ def _get_combined_plan(
         for k, mgr in enumerate(mgrs):
             blkno = blknos[k]
 
-            nb = _get_block_for_concat_plan(mgr, bp, blkno, max_len=max_len)
+            nb = _get_block_for_concat_plan(mgr, bp, blkno, max_len=)
             unit = JoinUnit(nb)
             units_for_bp.append(unit)
 
@@ -464,7 +464,7 @@ def _concatenate_join_units(join_units: list[JoinUnit], copy: bool) -> ArrayLike
     upcasted_na = _dtype_to_na_value(empty_dtype, has_none_blocks)
 
     to_concat = [
-        ju.get_reindexed_values(empty_dtype=empty_dtype, upcasted_na=upcasted_na)
+        ju.get_reindexed_values(empty_dtype=, upcasted_na=)
         for ju in join_units
     ]
 

@@ -112,7 +112,7 @@ def test_astype(all_data):
     # coerce to same other - ints
     s = pd.Series(ints)
     result = s.astype(dtype)
-    expected = pd.Series(ints, dtype=dtype)
+    expected = pd.Series(ints, dtype=)
     tm.assert_series_equal(result, expected)
 
     # coerce to same numpy_dtype - ints
@@ -130,7 +130,7 @@ def test_astype(all_data):
     # coerce to same other - mixed
     s = pd.Series(mixed)
     result = s.astype(dtype)
-    expected = pd.Series(mixed, dtype=dtype)
+    expected = pd.Series(mixed, dtype=)
     tm.assert_series_equal(result, expected)
 
     # coerce to same numpy_dtype - mixed
@@ -198,12 +198,12 @@ def test_astype_to_larger_numpy():
 def test_astype_specific_casting(dtype):
     s = pd.Series([1, 2, 3], dtype="Int64")
     result = s.astype(dtype)
-    expected = pd.Series([1, 2, 3], dtype=dtype)
+    expected = pd.Series([1, 2, 3], dtype=)
     tm.assert_series_equal(result, expected)
 
     s = pd.Series([1, 2, 3, None], dtype="Int64")
     result = s.astype(dtype)
-    expected = pd.Series([1, 2, 3, None], dtype=dtype)
+    expected = pd.Series([1, 2, 3, None], dtype=)
     tm.assert_series_equal(result, expected)
 
 
@@ -228,14 +228,14 @@ def test_construct_cast_invalid(dtype):
     msg = "cannot safely"
     arr = [1.2, 2.3, 3.7]
     with pytest.raises(TypeError, match=msg):
-        pd.array(arr, dtype=dtype)
+        pd.array(arr, dtype=)
 
     with pytest.raises(TypeError, match=msg):
         pd.Series(arr).astype(dtype)
 
     arr = [1.2, 2.3, 3.7, np.nan]
     with pytest.raises(TypeError, match=msg):
-        pd.array(arr, dtype=dtype)
+        pd.array(arr, dtype=)
 
     with pytest.raises(TypeError, match=msg):
         pd.Series(arr).astype(dtype)
@@ -267,8 +267,8 @@ def test_to_numpy_dtype(dtype, in_series):
     if in_series:
         a = pd.Series(a)
 
-    result = a.to_numpy(dtype=dtype)
-    expected = np.array([0, 1], dtype=dtype)
+    result = a.to_numpy(dtype=)
+    expected = np.array([0, 1], dtype=)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -276,7 +276,7 @@ def test_to_numpy_dtype(dtype, in_series):
 def test_to_numpy_na_raises(dtype):
     a = pd.array([0, 1, None], dtype="Int64")
     with pytest.raises(ValueError, match=dtype):
-        a.to_numpy(dtype=dtype)
+        a.to_numpy(dtype=)
 
 
 def test_astype_str():

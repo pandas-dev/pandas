@@ -490,7 +490,7 @@ def wide_to_long(
         newdf = melt(
             df,
             id_vars=i,
-            value_vars=value_vars,
+            value_vars=,
             value_name=stub.rstrip(sep),
             var_name=j,
         )

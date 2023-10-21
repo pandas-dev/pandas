@@ -14,7 +14,7 @@ def test_show_versions(tmpdir):
     # GH39701
     as_json = os.path.join(tmpdir, "test_output.json")
 
-    pd.show_versions(as_json=as_json)
+    pd.show_versions(as_json=)
 
     with open(as_json, encoding="utf-8") as fd:
         # check if file output is valid JSON, will raise an exception if not

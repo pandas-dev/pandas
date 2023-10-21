@@ -138,9 +138,9 @@ def hash_pandas_object(
                 hash_pandas_object(
                     obj.index,
                     index=False,
-                    encoding=encoding,
-                    hash_key=hash_key,
-                    categorize=categorize,
+                    encoding=,
+                    hash_key=,
+                    categorize=,
                 )._values
                 for _ in [None]
             )
@@ -160,9 +160,9 @@ def hash_pandas_object(
                 hash_pandas_object(
                     obj.index,
                     index=False,
-                    encoding=encoding,
-                    hash_key=hash_key,
-                    categorize=categorize,
+                    encoding=,
+                    hash_key=,
+                    categorize=,
                 )._values
                 for _ in [None]
             )
@@ -222,7 +222,7 @@ def hash_tuples(
 
     # hash the list-of-ndarrays
     hashes = (
-        cat._hash_pandas_object(encoding=encoding, hash_key=hash_key, categorize=False)
+        cat._hash_pandas_object(encoding=, hash_key=, categorize=False)
         for cat in cat_vals
     )
     h = combine_hash_arrays(hashes, len(cat_vals))
@@ -265,9 +265,7 @@ def hash_array(
         raise TypeError("must pass a ndarray-like")
 
     if isinstance(vals, ABCExtensionArray):
-        return vals._hash_pandas_object(
-            encoding=encoding, hash_key=hash_key, categorize=categorize
-        )
+        return vals._hash_pandas_object(encoding=, hash_key=, categorize=)
 
     if not isinstance(vals, np.ndarray):
         # GH#42003
@@ -319,7 +317,7 @@ def _hash_ndarray(
             dtype = CategoricalDtype(categories=Index(categories), ordered=False)
             cat = Categorical._simple_new(codes, dtype)
             return cat._hash_pandas_object(
-                encoding=encoding, hash_key=hash_key, categorize=False
+                encoding=, hash_key=, categorize=False
             )
 
         try:

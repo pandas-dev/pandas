@@ -42,13 +42,13 @@ class TestNonNano:
         if tz is None:
             return np.dtype(f"datetime64[{unit}]")
         else:
-            return DatetimeTZDtype(unit=unit, tz=tz)
+            return DatetimeTZDtype(unit=, tz=)
 
     @pytest.fixture
     def dta_dti(self, unit, dtype):
         tz = getattr(dtype, "tz", None)
 
-        dti = pd.date_range("2016-01-01", periods=55, freq="D", tz=tz)
+        dti = pd.date_range("2016-01-01", periods=55, freq="D", tz=)
         if tz is None:
             arr = np.asarray(dti).astype(f"M8[{unit}]")
         else:
@@ -56,7 +56,7 @@ class TestNonNano:
                 f"M8[{unit}]"
             )
 
-        dta = DatetimeArray._simple_new(arr, dtype=dtype)
+        dta = DatetimeArray._simple_new(arr, dtype=)
         return dta, dti
 
     @pytest.fixture
@@ -66,7 +66,7 @@ class TestNonNano:
 
     def test_non_nano(self, unit, dtype):
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
-        dta = DatetimeArray._simple_new(arr, dtype=dtype)
+        dta = DatetimeArray._simple_new(arr, dtype=)
 
         assert dta.dtype == dtype
         assert dta[0].unit == unit
@@ -104,7 +104,7 @@ class TestNonNano:
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
         dtype = DatetimeTZDtype(unit, "UTC")
 
-        dta = DatetimeArray._simple_new(arr, dtype=dtype)
+        dta = DatetimeArray._simple_new(arr, dtype=)
         assert dta.dtype == dtype
 
         wrong = DatetimeTZDtype("ns", "UTC")
@@ -356,7 +356,7 @@ class TestDatetimeArray:
     )
     def test_astype_copies(self, dtype, other):
         # https://github.com/pandas-dev/pandas/pull/32490
-        ser = pd.Series([1, 2], dtype=dtype)
+        ser = pd.Series([1, 2], dtype=)
         orig = ser.copy()
 
         err = False
@@ -411,8 +411,8 @@ class TestDatetimeArray:
         tz = tz_naive_fixture
 
         data = np.array([1, 2, 3], dtype="M8[ns]")
-        dtype = data.dtype if tz is None else DatetimeTZDtype(tz=tz)
-        arr = DatetimeArray(data, dtype=dtype)
+        dtype = data.dtype if tz is None else DatetimeTZDtype(tz=)
+        arr = DatetimeArray(data, dtype=)
         expected = arr.copy()
 
         ts = pd.Timestamp("2020-09-08 16:50").tz_localize(tz)
@@ -497,7 +497,7 @@ class TestDatetimeArray:
             dtype=DatetimeTZDtype(tz="US/Central"),
         )
 
-        result = arr._pad_or_backfill(method=method)
+        result = arr._pad_or_backfill(method=)
         tm.assert_extension_array_equal(result, expected)
 
         # assert that arr and dti were not modified in-place
@@ -547,13 +547,13 @@ class TestDatetimeArray:
 
     def test_array_interface_tz(self):
         tz = "US/Central"
-        data = DatetimeArray(pd.date_range("2017", periods=2, tz=tz))
+        data = DatetimeArray(pd.date_range("2017", periods=2, tz=))
         result = np.asarray(data)
 
         expected = np.array(
             [
-                pd.Timestamp("2017-01-01T00:00:00", tz=tz),
-                pd.Timestamp("2017-01-02T00:00:00", tz=tz),
+                pd.Timestamp("2017-01-01T00:00:00", tz=),
+                pd.Timestamp("2017-01-02T00:00:00", tz=),
             ],
             dtype=object,
         )
@@ -658,14 +658,14 @@ class TestDatetimeArray:
 
         fv = dta[-1]
         for fill_value in [fv, fv.to_pydatetime(), fv.to_datetime64()]:
-            result = dta.shift(1, fill_value=fill_value)
+            result = dta.shift(1, fill_value=)
             tm.assert_datetime_array_equal(result, expected)
 
         dta = dta.tz_localize("UTC")
         expected = expected.tz_localize("UTC")
         fv = dta[-1]
         for fill_value in [fv, fv.to_pydatetime()]:
-            result = dta.shift(1, fill_value=fill_value)
+            result = dta.shift(1, fill_value=)
             tm.assert_datetime_array_equal(result, expected)
 
     def test_shift_value_tzawareness_mismatch(self):
@@ -692,7 +692,7 @@ class TestDatetimeArray:
 
         fill_value = pd.Timestamp("2020-10-18 18:44", tz="US/Pacific")
 
-        result = dta.shift(1, fill_value=fill_value)
+        result = dta.shift(1, fill_value=)
         expected = dta.shift(1, fill_value=fill_value.tz_convert("UTC"))
         tm.assert_equal(result, expected)
 

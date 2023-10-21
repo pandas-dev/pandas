@@ -364,7 +364,7 @@ class TestDataFrameSortIndex:
             [[1, 1, 1], [2, 1, 2], [2, 1, 3]], names=list("ABC")
         )
         expected = DataFrame([[5, 6], [3, 4], [1, 2]], index=expected_mi)
-        result = df.sort_index(level=level)
+        result = df.sort_index(level=)
         tm.assert_frame_equal(result, expected)
 
         # sort_remaining=False
@@ -372,7 +372,7 @@ class TestDataFrameSortIndex:
             [[1, 1, 1], [2, 1, 3], [2, 1, 2]], names=list("ABC")
         )
         expected = DataFrame([[5, 6], [1, 2], [3, 4]], index=expected_mi)
-        result = df.sort_index(level=level, sort_remaining=False)
+        result = df.sort_index(level=, sort_remaining=False)
         tm.assert_frame_equal(result, expected)
 
     def test_sort_index_intervalindex(self):
@@ -430,9 +430,7 @@ class TestDataFrameSortIndex:
     def test_respect_ignore_index(self, inplace, ignore_index):
         # GH 43591
         df = DataFrame({"a": [1, 2, 3]}, index=RangeIndex(4, -1, -2))
-        result = df.sort_index(
-            ascending=False, ignore_index=ignore_index, inplace=inplace
-        )
+        result = df.sort_index(ascending=False, ignore_index=, inplace=)
 
         if inplace:
             result = df
@@ -618,7 +616,7 @@ class TestDataFrameSortIndex:
         # GH#2684 (int64)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4000).astype("int64"), index=index
+            np.random.default_rng(2).standard_normal(4000).astype("int64"), index=
         )
 
         # it works!
@@ -628,7 +626,7 @@ class TestDataFrameSortIndex:
         # GH#2684 (int32)
         index = MultiIndex.from_arrays([np.arange(4000)] * 3)
         df = DataFrame(
-            np.random.default_rng(2).standard_normal(4000).astype("int32"), index=index
+            np.random.default_rng(2).standard_normal(4000).astype("int32"), index=
         )
 
         # it works!
@@ -691,7 +689,7 @@ class TestDataFrameSortIndex:
         data = np.random.default_rng(2).standard_normal((3, 4))
 
         columns = MultiIndex.from_tuples([("red", i) for i in gen])
-        df = DataFrame(data, index=list("def"), columns=columns)
+        df = DataFrame(data, index=list("def"), columns=)
         df2 = pd.concat(
             [
                 df,
@@ -742,9 +740,7 @@ class TestDataFrameSortIndex:
         # GH#23452
         df = DataFrame(
             {"foo": range(len(categories))},
-            index=CategoricalIndex(
-                data=categories, categories=categories, ordered=True
-            ),
+            index=CategoricalIndex(data=categories, categories=, ordered=True),
         )
         df.index = df.index.reorder_categories(df.index.categories[::-1])
         result = df.sort_index()
@@ -770,8 +766,8 @@ class TestDataFrameSortIndex:
         length = len(df.index)
         df.index = [(i - length / 2) % length for i in range(length)]
         match = 'For argument "ascending" expected type bool'
-        with pytest.raises(ValueError, match=match):
-            df.sort_index(axis=0, ascending=ascending, na_position="first")
+        with pytest.raises(ValueError, match=):
+            df.sort_index(axis=0, ascending=, na_position="first")
 
     def test_sort_index_use_inf_as_na(self):
         # GH 29687
@@ -807,7 +803,7 @@ class TestDataFrameSortIndex:
         )
 
         # parameter `ascending`` is a tuple
-        result = df.sort_index(level=(0, 1), ascending=ascending)
+        result = df.sort_index(level=(0, 1), ascending=)
 
         expected = DataFrame(
             {
@@ -937,7 +933,7 @@ class TestDataFrameSortIndexKey:
             ),
         )
 
-        result = df.sort_index(level=1, sort_remaining=False, ascending=ascending)
+        result = df.sort_index(level=1, sort_remaining=False, ascending=)
 
         if ascending:
             expected = DataFrame(

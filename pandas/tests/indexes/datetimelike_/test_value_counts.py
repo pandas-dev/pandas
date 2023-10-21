@@ -18,7 +18,7 @@ class TestValueCounts:
 
     def test_value_counts_unique_datetimeindex(self, tz_naive_fixture):
         tz = tz_naive_fixture
-        orig = date_range("2011-01-01 09:00", freq="h", periods=10, tz=tz)
+        orig = date_range("2011-01-01 09:00", freq="h", periods=10, tz=)
         self._check_value_counts_with_repeats(orig)
 
     def test_value_counts_unique_timedeltaindex(self):
@@ -56,7 +56,7 @@ class TestValueCounts:
                 "2013-01-01 08:00",
                 NaT,
             ],
-            tz=tz,
+            tz=,
         )
         self._check_value_counts_dropna(idx)
 

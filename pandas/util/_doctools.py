@@ -73,7 +73,7 @@ class TablePlotter:
         else:
             # include margin for titles
             figsize = self.cell_width * hcells, self.cell_height * vcells
-        fig = plt.figure(figsize=figsize)
+        fig = plt.figure(figsize=)
 
         if vertical:
             gs = gridspec.GridSpec(len(left), hcells)
@@ -96,11 +96,11 @@ class TablePlotter:
             for df, _label in zip(left, labels):
                 sp = self._shape(df)
                 ax = fig.add_subplot(gs[0, i : i + sp[1]])
-                self._make_table(ax, df, title=_label, height=height)
+                self._make_table(ax, df, title=_label, height=)
                 i += sp[1]
             # right
             ax = plt.subplot(gs[0, i:])
-            self._make_table(ax, right, title="Result", height=height)
+            self._make_table(ax, right, title="Result", height=)
             fig.subplots_adjust(top=0.85, bottom=0.05, left=0.05, right=0.95)
 
         return fig

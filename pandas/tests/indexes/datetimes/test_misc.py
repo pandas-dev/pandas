@@ -297,8 +297,8 @@ def test_add_timedelta_preserves_freq():
     # GH#37295 should hold for any DTI with freq=None or Tick freq
     tz = "Canada/Eastern"
     dti = date_range(
-        start=Timestamp("2019-03-26 00:00:00-0400", tz=tz),
-        end=Timestamp("2020-10-17 00:00:00-0400", tz=tz),
+        start=Timestamp("2019-03-26 00:00:00-0400", tz=),
+        end=Timestamp("2020-10-17 00:00:00-0400", tz=),
         freq="D",
     )
     result = dti + Timedelta(days=1)

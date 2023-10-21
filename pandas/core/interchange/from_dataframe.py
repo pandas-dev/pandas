@@ -69,7 +69,7 @@ def from_dataframe(df, allow_copy: bool = True) -> pd.DataFrame:
         raise ValueError("`df` does not support __dataframe__")
 
     return _from_dataframe(
-        df.__dataframe__(allow_copy=allow_copy), allow_copy=allow_copy
+        df.__dataframe__(allow_copy=), allow_copy=
     )
 
 
@@ -229,7 +229,7 @@ def categorical_column_to_series(col: Column) -> tuple[pd.Series, Any]:
         values = codes
 
     cat = pd.Categorical(
-        values, categories=categories, ordered=categorical["is_ordered"]
+        values, categories=, ordered=categorical["is_ordered"]
     )
     data = pd.Series(cat)
 
@@ -447,7 +447,7 @@ def buffer_to_ndarray(
             pa.bool_(),
             length,
             [None, pa.foreign_buffer(buffer.ptr, length)],
-            offset=offset,
+            offset=,
         )
         return np.asarray(arr)
     else:

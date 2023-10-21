@@ -87,7 +87,7 @@ class TestCategoricalAnalytics:
     @pytest.mark.parametrize("aggregation", ["min", "max"])
     def test_min_max_ordered_empty(self, categories, expected, aggregation):
         # GH 30227
-        cat = Categorical([], categories=categories, ordered=True)
+        cat = Categorical([], categories=, ordered=True)
 
         agg_func = getattr(cat, aggregation)
         result = agg_func()
@@ -101,8 +101,8 @@ class TestCategoricalAnalytics:
     @pytest.mark.parametrize("function", ["min", "max"])
     def test_min_max_with_nan(self, values, categories, function, skipna):
         # GH 25303
-        cat = Categorical(values, categories=categories, ordered=True)
-        result = getattr(cat, function)(skipna=skipna)
+        cat = Categorical(values, categories=, ordered=True)
+        result = getattr(cat, function)(skipna=)
 
         if skipna is False:
             assert result is np.nan
@@ -115,7 +115,7 @@ class TestCategoricalAnalytics:
     def test_min_max_only_nan(self, function, skipna):
         # https://github.com/pandas-dev/pandas/issues/33450
         cat = Categorical([np.nan], categories=[1, 2], ordered=True)
-        result = getattr(cat, function)(skipna=skipna)
+        result = getattr(cat, function)(skipna=)
         assert result is np.nan
 
     @pytest.mark.parametrize("method", ["min", "max"])
@@ -172,9 +172,9 @@ class TestCategoricalAnalytics:
         ],
     )
     def test_mode(self, values, categories, exp_mode):
-        cat = Categorical(values, categories=categories, ordered=True)
+        cat = Categorical(values, categories=, ordered=True)
         res = Series(cat).mode()._values
-        exp = Categorical(exp_mode, categories=categories, ordered=True)
+        exp = Categorical(exp_mode, categories=, ordered=True)
         tm.assert_categorical_equal(res, exp)
 
     def test_searchsorted(self, ordered):
@@ -184,7 +184,7 @@ class TestCategoricalAnalytics:
         cat = Categorical(
             ["cheese", "milk", "apple", "bread", "bread"],
             categories=["cheese", "milk", "apple", "bread"],
-            ordered=ordered,
+            ordered=,
         )
         ser = Series(cat)
 
@@ -229,43 +229,43 @@ class TestCategoricalAnalytics:
 
     def test_unique(self, ordered):
         # GH38140
-        dtype = CategoricalDtype(["a", "b", "c"], ordered=ordered)
+        dtype = CategoricalDtype(["a", "b", "c"], ordered=)
 
         # categories are reordered based on value when ordered=False
-        cat = Categorical(["a", "b", "c"], dtype=dtype)
+        cat = Categorical(["a", "b", "c"], dtype=)
         res = cat.unique()
         tm.assert_categorical_equal(res, cat)
 
-        cat = Categorical(["a", "b", "a", "a"], dtype=dtype)
+        cat = Categorical(["a", "b", "a", "a"], dtype=)
         res = cat.unique()
-        tm.assert_categorical_equal(res, Categorical(["a", "b"], dtype=dtype))
+        tm.assert_categorical_equal(res, Categorical(["a", "b"], dtype=))
 
-        cat = Categorical(["c", "a", "b", "a", "a"], dtype=dtype)
+        cat = Categorical(["c", "a", "b", "a", "a"], dtype=)
         res = cat.unique()
-        exp_cat = Categorical(["c", "a", "b"], dtype=dtype)
+        exp_cat = Categorical(["c", "a", "b"], dtype=)
         tm.assert_categorical_equal(res, exp_cat)
 
         # nan must be removed
-        cat = Categorical(["b", np.nan, "b", np.nan, "a"], dtype=dtype)
+        cat = Categorical(["b", np.nan, "b", np.nan, "a"], dtype=)
         res = cat.unique()
-        exp_cat = Categorical(["b", np.nan, "a"], dtype=dtype)
+        exp_cat = Categorical(["b", np.nan, "a"], dtype=)
         tm.assert_categorical_equal(res, exp_cat)
 
     def test_unique_index_series(self, ordered):
         # GH38140
-        dtype = CategoricalDtype([3, 2, 1], ordered=ordered)
+        dtype = CategoricalDtype([3, 2, 1], ordered=)
 
-        c = Categorical([3, 1, 2, 2, 1], dtype=dtype)
+        c = Categorical([3, 1, 2, 2, 1], dtype=)
         # Categorical.unique sorts categories by appearance order
         # if ordered=False
-        exp = Categorical([3, 1, 2], dtype=dtype)
+        exp = Categorical([3, 1, 2], dtype=)
         tm.assert_categorical_equal(c.unique(), exp)
 
         tm.assert_index_equal(Index(c).unique(), Index(exp))
         tm.assert_categorical_equal(Series(c).unique(), exp)
 
-        c = Categorical([1, 1, 2, 2], dtype=dtype)
-        exp = Categorical([1, 2], dtype=dtype)
+        c = Categorical([1, 1, 2, 2], dtype=)
+        exp = Categorical([1, 2], dtype=)
         tm.assert_categorical_equal(c.unique(), exp)
         tm.assert_index_equal(Index(c).unique(), Index(exp))
         tm.assert_categorical_equal(Series(c).unique(), exp)

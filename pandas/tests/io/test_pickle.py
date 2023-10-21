@@ -279,10 +279,10 @@ class TestCompression:
             df = tm.makeDataFrame()
 
             # write to compressed file
-            df.to_pickle(p1, compression=compression)
+            df.to_pickle(p1, compression=)
 
             # decompress
-            with tm.decompress_file(p1, compression=compression) as f:
+            with tm.decompress_file(p1, compression=) as f:
                 with open(p2, "wb") as fh:
                     fh.write(f.read())
 
@@ -296,7 +296,7 @@ class TestCompression:
         with pytest.raises(ValueError, match="Unrecognized compression type"):
             with tm.ensure_clean(get_random_path) as path:
                 df = tm.makeDataFrame()
-                df.to_pickle(path, compression=compression)
+                df.to_pickle(path, compression=)
 
     def test_write_infer(self, compression_ext, get_random_path):
         base = get_random_path
@@ -311,7 +311,7 @@ class TestCompression:
             df.to_pickle(p1)
 
             # decompress
-            with tm.decompress_file(p1, compression=compression) as f:
+            with tm.decompress_file(p1, compression=) as f:
                 with open(p2, "wb") as fh:
                     fh.write(f.read())
 
@@ -332,10 +332,10 @@ class TestCompression:
             df.to_pickle(p1, compression=None)
 
             # compress
-            self.compress_file(p1, p2, compression=compression)
+            self.compress_file(p1, p2, compression=)
 
             # read compressed file
-            df2 = pd.read_pickle(p2, compression=compression)
+            df2 = pd.read_pickle(p2, compression=)
             tm.assert_frame_equal(df, df2)
 
     def test_read_infer(self, compression_ext, get_random_path):
@@ -351,7 +351,7 @@ class TestCompression:
             df.to_pickle(p1, compression=None)
 
             # compress
-            self.compress_file(p1, p2, compression=compression)
+            self.compress_file(p1, p2, compression=)
 
             # read compressed file by inferred compression method
             df2 = pd.read_pickle(p2)
@@ -368,7 +368,7 @@ class TestProtocol:
     def test_read(self, protocol, get_random_path):
         with tm.ensure_clean(get_random_path) as path:
             df = tm.makeDataFrame()
-            df.to_pickle(path, protocol=protocol)
+            df.to_pickle(path, protocol=)
             df2 = pd.read_pickle(path)
             tm.assert_frame_equal(df, df2)
 
@@ -487,19 +487,19 @@ def test_pickle_binary_object_compression(compression):
 
     # reference for compression
     with tm.ensure_clean() as path:
-        df.to_pickle(path, compression=compression)
+        df.to_pickle(path, compression=)
         reference = Path(path).read_bytes()
 
     # write
     buffer = io.BytesIO()
-    df.to_pickle(buffer, compression=compression)
+    df.to_pickle(buffer, compression=)
     buffer.seek(0)
 
     # gzip  and zip safe the filename: cannot compare the compressed content
     assert buffer.getvalue() == reference or compression in ("gzip", "zip", "tar")
 
     # read
-    read_df = pd.read_pickle(buffer, compression=compression)
+    read_df = pd.read_pickle(buffer, compression=)
     buffer.seek(0)
     tm.assert_frame_equal(df, read_df)
 
@@ -533,7 +533,7 @@ def test_pickle_timeseries_periodindex():
     "name", [777, 777.0, "name", datetime.datetime(2001, 11, 11), (1, 2)]
 )
 def test_pickle_preserve_name(name):
-    unpickled = tm.round_trip_pickle(tm.makeTimeSeries(name=name))
+    unpickled = tm.round_trip_pickle(tm.makeTimeSeries(name=))
     assert unpickled.name == name
 
 
@@ -565,8 +565,8 @@ def test_pickle_big_dataframe_compression(protocol, compression):
     # GH#39002
     df = pd.DataFrame(range(100000))
     result = tm.round_trip_pathlib(
-        partial(df.to_pickle, protocol=protocol, compression=compression),
-        partial(pd.read_pickle, compression=compression),
+        partial(df.to_pickle, protocol=, compression=),
+        partial(pd.read_pickle, compression=),
     )
     tm.assert_frame_equal(df, result)
 

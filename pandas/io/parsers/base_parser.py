@@ -1154,7 +1154,7 @@ def _make_date_converter(
                     ensure_object(strs),
                     format=date_fmt,
                     utc=False,
-                    dayfirst=dayfirst,
+                    dayfirst=,
                     errors="ignore",
                     cache=cache_dates,
                 )

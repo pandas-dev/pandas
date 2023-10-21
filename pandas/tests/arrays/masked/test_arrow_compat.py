@@ -8,8 +8,8 @@ pa = pytest.importorskip("pyarrow", minversion="1.0.1")
 
 from pandas.core.arrays.arrow._arrow_utils import pyarrow_array_to_numpy_and_mask
 
-arrays = [pd.array([1, 2, 3, None], dtype=dtype) for dtype in tm.ALL_INT_EA_DTYPES]
-arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=dtype) for dtype in tm.FLOAT_EA_DTYPES]
+arrays = [pd.array([1, 2, 3, None], dtype=) for dtype in tm.ALL_INT_EA_DTYPES]
+arrays += [pd.array([0.1, 0.2, 0.3, None], dtype=) for dtype in tm.FLOAT_EA_DTYPES]
 arrays += [pd.array([True, False, True, None], dtype="boolean")]
 
 
@@ -58,7 +58,7 @@ def test_dataframe_from_arrow_types_mapper():
     )
     msg = "Passing a BlockManager to DataFrame is deprecated"
     with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = record_batch.to_pandas(types_mapper=types_mapper)
+        result = record_batch.to_pandas(types_mapper=)
     bools = pd.Series([True, None, False], dtype="boolean")
     ints = pd.Series([1, None, 2], dtype="Int64")
     small_ints = pd.Series([-1, 0, 7], dtype="Int64")

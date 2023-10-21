@@ -25,7 +25,7 @@ class TestCategoricalConcat:
         cat_values = ["one", "one", "two", "one", "two", "two", "one"]
         df2["h"] = Series(Categorical(cat_values))
 
-        res = pd.concat((df1, df2), axis=0, ignore_index=True, sort=sort)
+        res = pd.concat((df1, df2), axis=0, ignore_index=True, sort=)
         exp = DataFrame(
             {
                 "a": [0, 3, 6, 9, 12, 15, 0, 2, 4, 6, 8, 10, 12],
@@ -60,28 +60,28 @@ class TestCategoricalConcat:
         df = pd.concat([Series(cat), obj, num], axis=1, keys=index)
 
         result = df.dtypes == "object"
-        expected = Series([False, True, False], index=index)
+        expected = Series([False, True, False], index=)
         tm.assert_series_equal(result, expected)
 
         result = df.dtypes == "int64"
-        expected = Series([False, False, True], index=index)
+        expected = Series([False, False, True], index=)
         tm.assert_series_equal(result, expected)
 
         result = df.dtypes == "category"
-        expected = Series([True, False, False], index=index)
+        expected = Series([True, False, False], index=)
         tm.assert_series_equal(result, expected)
 
     def test_concat_categoricalindex(self):
         # GH 16111, categories that aren't lexsorted
         categories = [9, 0, 1, 2, 3]
 
-        a = Series(1, index=pd.CategoricalIndex([9, 0], categories=categories))
-        b = Series(2, index=pd.CategoricalIndex([0, 1], categories=categories))
-        c = Series(3, index=pd.CategoricalIndex([1, 2], categories=categories))
+        a = Series(1, index=pd.CategoricalIndex([9, 0], categories=))
+        b = Series(2, index=pd.CategoricalIndex([0, 1], categories=))
+        c = Series(3, index=pd.CategoricalIndex([1, 2], categories=))
 
         result = pd.concat([a, b, c], axis=1)
 
-        exp_idx = pd.CategoricalIndex([9, 0, 1, 2], categories=categories)
+        exp_idx = pd.CategoricalIndex([9, 0, 1, 2], categories=)
         exp = DataFrame(
             {
                 0: [1, 1, np.nan, np.nan],
@@ -248,7 +248,7 @@ class TestCategoricalConcat:
         expected = DataFrame(
             {
                 "f1": [1, 2, 3, 2, 3, 1],
-                "f2": Categorical.from_codes([-1, -1, -1, 0, 0, 0], dtype=dtype),
+                "f2": Categorical.from_codes([-1, -1, -1, 0, 0, 0], dtype=),
             },
             index=[0, 1, 2, 0, 1, 2],
         )

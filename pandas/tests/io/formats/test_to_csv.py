@@ -585,7 +585,7 @@ z
 
         with tm.ensure_clean("out.zip") as path:
             with pytest.raises(ValueError, match=msg):
-                df.to_csv(path, compression=compression)
+                df.to_csv(path, compression=)
 
     @pytest.mark.parametrize("compression", ["zip", "infer"])
     @pytest.mark.parametrize("archive_name", ["test_to_csv.csv", "test_to_csv.zip"])
@@ -667,7 +667,7 @@ z
         data = ["\ud800foo"]
         ser = pd.Series(data, index=pd.Index(data))
         with tm.ensure_clean("test.csv") as path:
-            ser.to_csv(path, errors=errors)
+            ser.to_csv(path, errors=)
         # No use in reading back the data as it is not the same anymore
         # due to the error handling
 
@@ -682,7 +682,7 @@ z
         df = tm.makeDataFrame()
         with tm.ensure_clean() as path:
             with open(path, mode="w+b") as handle:
-                df.to_csv(handle, mode=mode)
+                df.to_csv(handle, mode=)
             tm.assert_frame_equal(df, pd.read_csv(path, index_col=0))
 
     @pytest.mark.parametrize("mode", ["wb", "w"])
@@ -698,14 +698,14 @@ z
         df = pd.read_csv(buffer, encoding="utf-8-sig")
 
         buffer = io.BytesIO()
-        df.to_csv(buffer, mode=mode, encoding="utf-8-sig", index=False)
+        df.to_csv(buffer, mode=, encoding="utf-8-sig", index=False)
         buffer.seek(0)  # tests whether file handle wasn't closed
         assert buffer.getvalue().startswith(content)
 
         # example from GH 13068
         with tm.ensure_clean() as path:
             with open(path, "w+b") as handle:
-                DataFrame().to_csv(handle, mode=mode, encoding="utf-8-sig")
+                DataFrame().to_csv(handle, mode=, encoding="utf-8-sig")
 
                 handle.seek(0)
                 assert handle.read().startswith(b'\xef\xbb\xbf""')
@@ -715,9 +715,9 @@ def test_to_csv_iterative_compression_name(compression):
     # GH 38714
     df = tm.makeDataFrame()
     with tm.ensure_clean() as path:
-        df.to_csv(path, compression=compression, chunksize=1)
+        df.to_csv(path, compression=, chunksize=1)
         tm.assert_frame_equal(
-            pd.read_csv(path, compression=compression, index_col=0), df
+            pd.read_csv(path, compression=, index_col=0), df
         )
 
 
@@ -725,10 +725,10 @@ def test_to_csv_iterative_compression_buffer(compression):
     # GH 38714
     df = tm.makeDataFrame()
     with io.BytesIO() as buffer:
-        df.to_csv(buffer, compression=compression, chunksize=1)
+        df.to_csv(buffer, compression=, chunksize=1)
         buffer.seek(0)
         tm.assert_frame_equal(
-            pd.read_csv(buffer, compression=compression, index_col=0), df
+            pd.read_csv(buffer, compression=, index_col=0), df
         )
         assert not buffer.closed
 

@@ -44,8 +44,8 @@ class Unique:
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        self.ser = pd.Series(([1, pd.NA, 2] + list(range(100_000))) * 3, dtype=dtype)
-        self.ser_unique = pd.Series(list(range(300_000)) + [pd.NA], dtype=dtype)
+        self.ser = pd.Series(([1, pd.NA, 2] + list(range(100_000))) * 3, dtype=)
+        self.ser_unique = pd.Series(list(range(300_000)) + [pd.NA], dtype=)
 
     def time_unique_with_duplicates(self, exponent):
         pd.unique(self.ser)
@@ -62,7 +62,7 @@ class NumericSeriesIndexing:
     param_names = ["dtype", "N"]
 
     def setup(self, dtype, N):
-        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype)
+        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)), dtype=)
         indices = pd.Index(vals)
         self.data = pd.Series(np.arange(N), index=indices)
 
@@ -79,7 +79,7 @@ class NumericSeriesIndexingShuffled:
     param_names = ["dtype", "N"]
 
     def setup(self, dtype, N):
-        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)), dtype=dtype)
+        vals = np.array(list(range(55)) + [54] + list(range(55, N - 1)), dtype=)
         np.random.shuffle(vals)
         indices = pd.Index(vals)
         self.data = pd.Series(np.arange(N), index=indices)

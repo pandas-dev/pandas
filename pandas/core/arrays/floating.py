@@ -50,7 +50,7 @@ class FloatingDtype(NumericDtype):
         """
         # This is really only here for compatibility with IntegerDtype
         # Here for compat with IntegerDtype
-        return values.astype(dtype, copy=copy)
+        return values.astype(dtype, copy=)
 
 
 class FloatingArray(NumericArray):

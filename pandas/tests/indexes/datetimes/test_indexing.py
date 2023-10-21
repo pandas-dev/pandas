@@ -77,9 +77,9 @@ class TestGetItem:
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_getitem(self, freq):
-        rng = bdate_range(START, END, freq=freq)
+        rng = bdate_range(START, END, freq=)
         smaller = rng[:5]
-        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq=freq)
+        exp = DatetimeIndex(rng.view(np.ndarray)[:5], freq=)
         tm.assert_index_equal(smaller, exp)
         assert smaller.freq == exp.freq
         assert smaller.freq == rng.freq
@@ -97,7 +97,7 @@ class TestGetItem:
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_dti_business_getitem_matplotlib_hackaround(self, freq):
-        rng = bdate_range(START, END, freq=freq)
+        rng = bdate_range(START, END, freq=)
         with pytest.raises(ValueError, match="Multi-dimensional indexing"):
             # GH#30588 multi-dimensional indexing deprecated
             rng[:, None]
@@ -190,7 +190,7 @@ class TestWhere:
 
     def test_where_mismatched_nat(self, tz_aware_fixture):
         tz = tz_aware_fixture
-        dti = date_range("2013-01-01", periods=3, tz=tz)
+        dti = date_range("2013-01-01", periods=3, tz=)
         cond = np.array([True, False, True])
 
         tdnat = np.timedelta64("NaT", "ns")
@@ -302,10 +302,10 @@ class TestTake:
             start="2010-01-01 09:00",
             end="2010-02-01 09:00",
             freq="h",
-            tz=tz,
+            tz=,
             name="idx",
         )
-        expected = DatetimeIndex(dates, freq=None, name="idx", tz=tz)
+        expected = DatetimeIndex(dates, freq=None, name="idx", tz=)
 
         taken1 = idx.take([5, 6, 8, 12])
         taken2 = idx[[5, 6, 8, 12]]
@@ -635,9 +635,9 @@ class TestGetSliceBounds:
         if tz is not None:
             with pytest.raises(TypeError, match="Cannot compare tz-naive"):
                 # GH#36148 we require tzawareness-compat as of 2.0
-                index.get_slice_bound(key, side=side)
+                index.get_slice_bound(key, side=)
         else:
-            result = index.get_slice_bound(key, side=side)
+            result = index.get_slice_bound(key, side=)
             assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])
@@ -649,14 +649,14 @@ class TestGetSliceBounds:
         # GH 35690
         tz = tz_aware_fixture
         index = bdate_range("2000-01-03", "2000-02-11").tz_localize(tz)
-        key = box(year=year, month=1, day=7)
+        key = box(year=, month=1, day=7)
 
         if tz is not None:
             with pytest.raises(TypeError, match="Cannot compare tz-naive"):
                 # GH#36148 we require tzawareness-compat as of 2.0
-                index.get_slice_bound(key, side=side)
+                index.get_slice_bound(key, side=)
         else:
-            result = index.get_slice_bound(key, side=side)
+            result = index.get_slice_bound(key, side=)
             assert result == expected
 
     @pytest.mark.parametrize("box", [datetime, Timestamp])

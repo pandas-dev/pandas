@@ -73,7 +73,7 @@ def make_block(
             # incompatible type "Union[ExtensionDtype, dtype[Any], None]";
             # expected "Union[dtype[datetime64], DatetimeTZDtype]"
             values,
-            dtype=dtype,  # type: ignore[arg-type]
+            dtype=,  # type: ignore[arg-type]
         )
 
     if not isinstance(placement, BlockPlacement):
@@ -88,7 +88,7 @@ def make_block(
 
     check_ndim(values, placement, ndim)
     values = maybe_coerce_values(values)
-    return klass(values, ndim=ndim, placement=placement)
+    return klass(values, ndim=, placement=)
 
 
 def maybe_infer_ndim(values, placement: BlockPlacement, ndim: int | None) -> int:

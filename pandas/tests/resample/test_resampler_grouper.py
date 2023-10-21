@@ -157,7 +157,7 @@ def test_groupby_with_origin():
 
     # proves that grouper without a fixed origin does not work
     # when dealing with unusual frequencies
-    simple_grouper = pd.Grouper(freq=freq)
+    simple_grouper = pd.Grouper(freq=)
     count_ts = ts.groupby(simple_grouper).agg("count")
     count_ts = count_ts[middle:end]
     count_ts2 = ts2.groupby(simple_grouper).agg("count")
@@ -166,7 +166,7 @@ def test_groupby_with_origin():
 
     # test origin on 1970-01-01 00:00:00
     origin = Timestamp(0)
-    adjusted_grouper = pd.Grouper(freq=freq, origin=origin)
+    adjusted_grouper = pd.Grouper(freq=, origin=)
     adjusted_count_ts = ts.groupby(adjusted_grouper).agg("count")
     adjusted_count_ts = adjusted_count_ts[middle:end]
     adjusted_count_ts2 = ts2.groupby(adjusted_grouper).agg("count")
@@ -174,7 +174,7 @@ def test_groupby_with_origin():
 
     # test origin on 2049-10-18 20:00:00
     origin_future = Timestamp(0) + pd.Timedelta("1399min") * 30_000
-    adjusted_grouper2 = pd.Grouper(freq=freq, origin=origin_future)
+    adjusted_grouper2 = pd.Grouper(freq=, origin=origin_future)
     adjusted2_count_ts = ts.groupby(adjusted_grouper2).agg("count")
     adjusted2_count_ts = adjusted2_count_ts[middle:end]
     adjusted2_count_ts2 = ts2.groupby(adjusted_grouper2).agg("count")
@@ -189,7 +189,7 @@ def test_nearest():
     # GH 17496
     # Resample nearest
     index = date_range("1/1/2000", periods=3, freq="min")
-    result = Series(range(3), index=index).resample("20s").nearest()
+    result = Series(range(3), index=).resample("20s").nearest()
 
     expected = Series(
         [0, 0, 1, 1, 1, 2, 2],
@@ -297,7 +297,7 @@ def test_apply_with_mutated_index():
     # GH 15169
     index = date_range("1-1-2015", "12-31-15", freq="D")
     df = DataFrame(
-        data={"col1": np.random.default_rng(2).random(len(index))}, index=index
+        data={"col1": np.random.default_rng(2).random(len(index))}, index=
     )
 
     def f(x):
@@ -343,7 +343,7 @@ def test_apply_non_naive_index():
     data = Series([1.0, 1, 1, 1, 1, 2, 2, 0], index=times)
     weights = Series([160.0, 91, 65, 43, 24, 10, 1, 0], index=times)
 
-    result = data.resample("D").apply(weighted_quantile, weights=weights, q=0.5)
+    result = data.resample("D").apply(weighted_quantile, weights=, q=0.5)
     ind = date_range(
         "2017-06-23 00:00:00+00:00", "2017-06-23 00:00:00+00:00", freq="D", tz="UTC"
     )
@@ -354,7 +354,7 @@ def test_apply_non_naive_index():
 def test_resample_groupby_with_label():
     # GH 13235
     index = date_range("2000-01-01", freq="2D", periods=5)
-    df = DataFrame(index=index, data={"col0": [0, 0, 1, 1, 2], "col1": [1, 1, 1, 1, 1]})
+    df = DataFrame(index=, data={"col0": [0, 0, 1, 1, 2], "col1": [1, 1, 1, 1, 1]})
     msg = "DataFrameGroupBy.resample operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("col0").resample("1W", label="left").sum()
@@ -714,7 +714,7 @@ def test_groupby_resample_kind(kind):
         }
     )
     df = df.set_index("datetime")
-    result = df.groupby("group")["value"].resample("D", kind=kind).last()
+    result = df.groupby("group")["value"].resample("D", kind=).last()
 
     dt_level = pd.DatetimeIndex(["2018-11-01", "2018-11-02"])
     if kind == "period":

@@ -127,7 +127,7 @@ def test_memory_usage_components_series(series_with_simple_index):
 
 @pytest.mark.parametrize("dtype", tm.NARROW_NP_DTYPES)
 def test_memory_usage_components_narrow_series(dtype):
-    series = tm.make_rand_series(name="a", dtype=dtype)
+    series = tm.make_rand_series(name="a", dtype=)
     total_usage = series.memory_usage(index=True)
     non_index_usage = series.memory_usage(index=False)
     index_usage = series.index.memory_usage()

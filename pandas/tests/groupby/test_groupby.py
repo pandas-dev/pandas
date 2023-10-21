@@ -69,7 +69,7 @@ def test_groupby_std_datetimelike():
 
 @pytest.mark.parametrize("dtype", ["int64", "int32", "float64", "float32"])
 def test_basic_aggregations(dtype):
-    data = Series(np.arange(9) // 3, index=np.arange(9), dtype=dtype)
+    data = Series(np.arange(9) // 3, index=np.arange(9), dtype=)
 
     index = np.arange(9)
     np.random.default_rng(2).shuffle(index)
@@ -232,7 +232,7 @@ def test_inconsistent_return_type():
 
 def test_pass_args_kwargs(ts, tsframe):
     def f(x, q=None, axis=0):
-        return np.percentile(x, q, axis=axis)
+        return np.percentile(x, q, axis=)
 
     g = lambda x: np.percentile(x, 80, axis=0)
 
@@ -258,7 +258,7 @@ def test_pass_args_kwargs(ts, tsframe):
 
     # DataFrame
     for as_index in [True, False]:
-        df_grouped = tsframe.groupby(lambda x: x.month, as_index=as_index)
+        df_grouped = tsframe.groupby(lambda x: x.month, as_index=)
         warn = None if as_index else FutureWarning
         msg = "A grouping .* was excluded from the result"
         with tm.assert_produces_warning(warn, match=msg):
@@ -287,7 +287,7 @@ def test_pass_args_kwargs(ts, tsframe):
 def test_pass_args_kwargs_duplicate_columns(tsframe, as_index):
     # go through _aggregate_frame with self.axis == 0 and duplicate columns
     tsframe.columns = ["A", "B", "A", "C"]
-    gb = tsframe.groupby(lambda x: x.month, as_index=as_index)
+    gb = tsframe.groupby(lambda x: x.month, as_index=)
 
     warn = None if as_index else FutureWarning
     msg = "A grouping .* was excluded from the result"
@@ -338,10 +338,10 @@ def test_basic_regression():
 )
 def test_with_na_groups(dtype):
     index = Index(np.arange(10))
-    values = Series(np.ones(10), index, dtype=dtype)
+    values = Series(np.ones(10), index, dtype=)
     labels = Series(
         [np.nan, "foo", "bar", "bar", np.nan, np.nan, "bar", "bar", np.nan, "foo"],
-        index=index,
+        index=,
     )
 
     # this SHOULD be an int
@@ -1019,16 +1019,16 @@ def test_omit_nuisance_agg(df, agg_function, numeric_only):
             klass = TypeError
             msg = re.escape(f"agg function failed [how->{agg_function},dtype->object]")
         with pytest.raises(klass, match=msg):
-            getattr(grouped, agg_function)(numeric_only=numeric_only)
+            getattr(grouped, agg_function)(numeric_only=)
     else:
-        result = getattr(grouped, agg_function)(numeric_only=numeric_only)
+        result = getattr(grouped, agg_function)(numeric_only=)
         if not numeric_only and agg_function == "sum":
             # sum is successful on column B
             columns = ["A", "B", "C", "D"]
         else:
             columns = ["A", "C", "D"]
         expected = getattr(df.loc[:, columns].groupby("A"), agg_function)(
-            numeric_only=numeric_only
+            numeric_only=
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1226,7 +1226,7 @@ def test_groupby_with_hier_columns():
         [("A", "cat"), ("B", "dog"), ("B", "cat"), ("A", "dog")]
     )
     df = DataFrame(
-        np.random.default_rng(2).standard_normal((8, 4)), index=index, columns=columns
+        np.random.default_rng(2).standard_normal((8, 4)), index=, columns=
     )
 
     result = df.groupby(level=0).mean()
@@ -1274,7 +1274,7 @@ def test_groupby_wrong_multi_labels():
             "spam": ["spam2", "spam3", "spam2", "spam1", "spam1"],
             "data": [20, 30, 40, 50, 60],
         },
-        index=index,
+        index=,
     )
 
     grouped = data.groupby(["foo", "bar", "baz", "spam"])
@@ -1327,7 +1327,7 @@ def test_consistency_name():
 def test_groupby_name_propagation(df):
     # GH 6124
     def summarize(df, name=None):
-        return Series({"count": 1, "mean": 2, "omissions": 3}, name=name)
+        return Series({"count": 1, "mean": 2, "omissions": 3}, name=)
 
     def summarize_random_name(df):
         # Provide a different name for each Series.  In this case, groupby
@@ -1462,10 +1462,10 @@ def test_groupby_keys_same_size_as_index():
     # GH 11185
     freq = "s"
     index = date_range(
-        start=Timestamp("2015-09-29T11:34:44-0700"), periods=2, freq=freq
+        start=Timestamp("2015-09-29T11:34:44-0700"), periods=2, freq=
     )
-    df = DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
-    result = df.groupby([Grouper(level=0, freq=freq), "metric"]).mean()
+    df = DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=)
+    result = df.groupby([Grouper(level=0, freq=), "metric"]).mean()
     expected = df.set_index([df.index, "metric"]).astype(float)
 
     tm.assert_frame_equal(result, expected)
@@ -1761,11 +1761,11 @@ def test_groupby_sort_multiindex_series():
         codes=[[0, 0, 0, 0, 1, 1], [1, 1, 0, 0, 0, 0]],
         names=["a", "b"],
     )
-    mseries = Series([0, 1, 2, 3, 4, 5], index=index)
+    mseries = Series([0, 1, 2, 3, 4, 5], index=)
     index = MultiIndex(
         levels=[[1, 2], [1, 2]], codes=[[0, 0, 1], [1, 0, 0]], names=["a", "b"]
     )
-    mseries_result = Series([0, 2, 4], index=index)
+    mseries_result = Series([0, 2, 4], index=)
 
     result = mseries.groupby(level=["a", "b"], sort=False).first()
     tm.assert_series_equal(result, mseries_result)
@@ -1775,7 +1775,7 @@ def test_groupby_sort_multiindex_series():
 
 def test_groupby_reindex_inside_function():
     periods = 1000
-    ind = date_range(start="2012/1/1", freq="5min", periods=periods)
+    ind = date_range(start="2012/1/1", freq="5min", periods=)
     df = DataFrame({"high": np.arange(periods), "low": np.arange(periods)}, index=ind)
 
     def agg_before(func, fix=False):
@@ -1855,7 +1855,7 @@ def test_groupby_multiindex_not_lexsorted():
 
     for level in [0, 1, [0, 1]]:
         for sort in [False, True]:
-            result = df.groupby(level=level, sort=sort, group_keys=False).apply(
+            result = df.groupby(level=, sort=, group_keys=False).apply(
                 DataFrame.drop_duplicates
             )
             expected = df
@@ -1863,7 +1863,7 @@ def test_groupby_multiindex_not_lexsorted():
 
             result = (
                 df.sort_index()
-                .groupby(level=level, sort=sort, group_keys=False)
+                .groupby(level=, sort=, group_keys=False)
                 .apply(DataFrame.drop_duplicates)
             )
             expected = df.sort_index()
@@ -2021,7 +2021,7 @@ def test_empty_groupby(columns, keys, values, method, op, using_array_manager, d
 
     df = df.iloc[:0]
 
-    gb = df.groupby(keys, group_keys=False, dropna=dropna, observed=False)[columns]
+    gb = df.groupby(keys, group_keys=False, dropna=, observed=False)[columns]
 
     def get_result(**kwargs):
         if method == "attr":
@@ -2258,7 +2258,7 @@ def test_groupby_axis_1(group_name):
 
     # test on MI column
     iterables = [["bar", "baz", "foo"], ["one", "two"]]
-    mi = MultiIndex.from_product(iterables=iterables, names=["x", "x1"])
+    mi = MultiIndex.from_product(iterables=, names=["x", "x1"])
     df = DataFrame(np.arange(18).reshape(3, 6), index=[0, 1, 0], columns=mi)
     with tm.assert_produces_warning(FutureWarning, match=depr_msg):
         gb = df.groupby(group_name, axis=1)
@@ -2523,7 +2523,7 @@ def test_subsetting_columns_axis_1():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         g = df.groupby([0, 0, 1], axis=1)
     match = "Cannot subset columns when using axis=1"
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         g[["A", "B"]].sum()
 
 
@@ -2637,15 +2637,15 @@ def test_groupby_all_nan_groups_drop():
 def test_groupby_empty_multi_column(as_index, numeric_only):
     # GH 15106 & GH 41998
     df = DataFrame(data=[], columns=["A", "B", "C"])
-    gb = df.groupby(["A", "B"], as_index=as_index)
-    result = gb.sum(numeric_only=numeric_only)
+    gb = df.groupby(["A", "B"], as_index=)
+    result = gb.sum(numeric_only=)
     if as_index:
         index = MultiIndex([[], []], [[], []], names=["A", "B"])
         columns = ["C"] if not numeric_only else []
     else:
         index = RangeIndex(0)
         columns = ["A", "B", "C"] if not numeric_only else ["A", "B"]
-    expected = DataFrame([], columns=columns, index=index)
+    expected = DataFrame([], columns=, index=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -2908,7 +2908,7 @@ def test_groupby_overflow(val, dtype):
 def test_groupby_cumsum_mask(any_numeric_ea_dtype, skipna, val):
     # GH#37493
     df = DataFrame({"a": 1, "b": [1, pd.NA, 2]}, dtype=any_numeric_ea_dtype)
-    result = df.groupby("a").cumsum(skipna=skipna)
+    result = df.groupby("a").cumsum(skipna=)
     expected = DataFrame(
         {"b": [1, pd.NA, val]},
         dtype=any_numeric_ea_dtype,
@@ -3035,7 +3035,7 @@ def test_groupby_numeric_only_std_no_result(numeric_only):
         with pytest.raises(
             ValueError, match="could not convert string to float: 'bar'"
         ):
-            dfgb.std(numeric_only=numeric_only)
+            dfgb.std(numeric_only=)
 
 
 def test_grouping_with_categorical_interval_columns():

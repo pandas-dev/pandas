@@ -25,7 +25,7 @@ def test_set_ops_error_cases(idx, case, sort, method):
     # non-iterable input
     msg = "Input must be Index or array-like"
     with pytest.raises(TypeError, match=msg):
-        getattr(idx, method)(case, sort=sort)
+        getattr(idx, method)(case, sort=)
 
 
 @pytest.mark.parametrize("klass", [MultiIndex, np.array, Series, list])
@@ -36,7 +36,7 @@ def test_intersection_base(idx, sort, klass):
     if klass is not MultiIndex:
         second = klass(second.values)
 
-    intersect = first.intersection(second, sort=sort)
+    intersect = first.intersection(second, sort=)
     if sort is None:
         expected = first.sort_values()
     else:
@@ -45,7 +45,7 @@ def test_intersection_base(idx, sort, klass):
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
-        first.intersection([1, 2, 3], sort=sort)
+        first.intersection([1, 2, 3], sort=)
 
 
 @pytest.mark.arm_slow
@@ -57,7 +57,7 @@ def test_union_base(idx, sort, klass):
     if klass is not MultiIndex:
         second = klass(second.values)
 
-    union = first.union(second, sort=sort)
+    union = first.union(second, sort=)
     if sort is None:
         expected = first.sort_values()
     else:
@@ -66,13 +66,13 @@ def test_union_base(idx, sort, klass):
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
-        first.union([1, 2, 3], sort=sort)
+        first.union([1, 2, 3], sort=)
 
 
 def test_difference_base(idx, sort):
     second = idx[4:]
     answer = idx[:4]
-    result = idx.difference(second, sort=sort)
+    result = idx.difference(second, sort=)
 
     if sort is None:
         answer = answer.sort_values()
@@ -83,19 +83,19 @@ def test_difference_base(idx, sort):
     # GH 10149
     cases = [klass(second.values) for klass in [np.array, Series, list]]
     for case in cases:
-        result = idx.difference(case, sort=sort)
+        result = idx.difference(case, sort=)
         tm.assert_index_equal(result, answer)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
-        idx.difference([1, 2, 3], sort=sort)
+        idx.difference([1, 2, 3], sort=)
 
 
 def test_symmetric_difference(idx, sort):
     first = idx[1:]
     second = idx[:-1]
     answer = idx[[-1, 0]]
-    result = first.symmetric_difference(second, sort=sort)
+    result = first.symmetric_difference(second, sort=)
 
     if sort is None:
         answer = answer.sort_values()
@@ -105,12 +105,12 @@ def test_symmetric_difference(idx, sort):
     # GH 10149
     cases = [klass(second.values) for klass in [np.array, Series, list]]
     for case in cases:
-        result = first.symmetric_difference(case, sort=sort)
+        result = first.symmetric_difference(case, sort=)
         tm.assert_index_equal(result, answer)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
-        first.symmetric_difference([1, 2, 3], sort=sort)
+        first.symmetric_difference([1, 2, 3], sort=)
 
 
 def test_multiindex_symmetric_difference():
@@ -132,7 +132,7 @@ def test_empty(idx):
 
 def test_difference(idx, sort):
     first = idx
-    result = first.difference(idx[-3:], sort=sort)
+    result = first.difference(idx[-3:], sort=)
     vals = idx[:-3].values
 
     if sort is None:
@@ -146,19 +146,19 @@ def test_difference(idx, sort):
     tm.assert_index_equal(result, expected)
 
     # empty difference: reflexive
-    result = idx.difference(idx, sort=sort)
+    result = idx.difference(idx, sort=)
     expected = idx[:0]
     assert result.equals(expected)
     assert result.names == idx.names
 
     # empty difference: superset
-    result = idx[-3:].difference(idx, sort=sort)
+    result = idx[-3:].difference(idx, sort=)
     expected = idx[:0]
     assert result.equals(expected)
     assert result.names == idx.names
 
     # empty difference: degenerate
-    result = idx[:0].difference(idx, sort=sort)
+    result = idx[:0].difference(idx, sort=)
     expected = idx[:0]
     assert result.equals(expected)
     assert result.names == idx.names
@@ -166,24 +166,24 @@ def test_difference(idx, sort):
     # names not the same
     chunklet = idx[-3:]
     chunklet.names = ["foo", "baz"]
-    result = first.difference(chunklet, sort=sort)
+    result = first.difference(chunklet, sort=)
     assert result.names == (None, None)
 
     # empty, but non-equal
-    result = idx.difference(idx.sortlevel(1)[0], sort=sort)
+    result = idx.difference(idx.sortlevel(1)[0], sort=)
     assert len(result) == 0
 
     # raise Exception called with non-MultiIndex
-    result = first.difference(first.values, sort=sort)
+    result = first.difference(first.values, sort=)
     assert result.equals(first[:0])
 
     # name from empty array
-    result = first.difference([], sort=sort)
+    result = first.difference([], sort=)
     assert first.equals(result)
     assert first.names == result.names
 
     # name from non-empty array
-    result = first.difference([("foo", "one")], sort=sort)
+    result = first.difference([("foo", "one")], sort=)
     expected = MultiIndex.from_tuples(
         [("bar", "one"), ("baz", "two"), ("foo", "two"), ("qux", "one"), ("qux", "two")]
     )
@@ -192,7 +192,7 @@ def test_difference(idx, sort):
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
-        first.difference([1, 2, 3, 4, 5], sort=sort)
+        first.difference([1, 2, 3, 4, 5], sort=)
 
 
 def test_difference_sort_special():
@@ -241,7 +241,7 @@ def test_union(idx, sort):
     piece1 = idx[:5][::-1]
     piece2 = idx[3:]
 
-    the_union = piece1.union(piece2, sort=sort)
+    the_union = piece1.union(piece2, sort=)
 
     if sort is None:
         tm.assert_index_equal(the_union, idx.sort_values())
@@ -249,14 +249,14 @@ def test_union(idx, sort):
     assert tm.equalContents(the_union, idx)
 
     # corner case, pass self or empty thing:
-    the_union = idx.union(idx, sort=sort)
+    the_union = idx.union(idx, sort=)
     tm.assert_index_equal(the_union, idx)
 
-    the_union = idx.union(idx[:0], sort=sort)
+    the_union = idx.union(idx[:0], sort=)
     tm.assert_index_equal(the_union, idx)
 
     tuples = idx.values
-    result = idx[:4].union(tuples[4:], sort=sort)
+    result = idx[:4].union(tuples[4:], sort=)
     if sort is None:
         tm.equalContents(result, idx)
     else:
@@ -282,18 +282,18 @@ def test_intersection(idx, sort):
     piece1 = idx[:5][::-1]
     piece2 = idx[3:]
 
-    the_int = piece1.intersection(piece2, sort=sort)
+    the_int = piece1.intersection(piece2, sort=)
 
     if sort is None:
         tm.assert_index_equal(the_int, idx[3:5])
     assert tm.equalContents(the_int, idx[3:5])
 
     # corner case, pass self
-    the_int = idx.intersection(idx, sort=sort)
+    the_int = idx.intersection(idx, sort=)
     tm.assert_index_equal(the_int, idx)
 
     # empty intersection: disjoint
-    empty = idx[:2].intersection(idx[2:], sort=sort)
+    empty = idx[:2].intersection(idx[2:], sort=)
     expected = idx[:0]
     assert empty.equals(expected)
 
@@ -309,31 +309,31 @@ def test_setop_with_categorical(idx, sort, method):
     other = idx.to_flat_index().astype("category")
     res_names = [None] * idx.nlevels
 
-    result = getattr(idx, method)(other, sort=sort)
-    expected = getattr(idx, method)(idx, sort=sort).rename(res_names)
+    result = getattr(idx, method)(other, sort=)
+    expected = getattr(idx, method)(idx, sort=).rename(res_names)
     tm.assert_index_equal(result, expected)
 
-    result = getattr(idx, method)(other[:5], sort=sort)
-    expected = getattr(idx, method)(idx[:5], sort=sort).rename(res_names)
+    result = getattr(idx, method)(other[:5], sort=)
+    expected = getattr(idx, method)(idx[:5], sort=).rename(res_names)
     tm.assert_index_equal(result, expected)
 
 
 def test_intersection_non_object(idx, sort):
     other = Index(range(3), name="foo")
 
-    result = idx.intersection(other, sort=sort)
+    result = idx.intersection(other, sort=)
     expected = MultiIndex(levels=idx.levels, codes=[[]] * idx.nlevels, names=None)
     tm.assert_index_equal(result, expected, exact=True)
 
     # if we pass a length-0 ndarray (i.e. no name, we retain our idx.name)
-    result = idx.intersection(np.asarray(other)[:0], sort=sort)
+    result = idx.intersection(np.asarray(other)[:0], sort=)
     expected = MultiIndex(levels=idx.levels, codes=[[]] * idx.nlevels, names=idx.names)
     tm.assert_index_equal(result, expected, exact=True)
 
     msg = "other must be a MultiIndex or a list of tuples"
     with pytest.raises(TypeError, match=msg):
         # With non-zero length non-index, we try and fail to convert to tuples
-        idx.intersection(np.asarray(other), sort=sort)
+        idx.intersection(np.asarray(other), sort=)
 
 
 def test_intersect_equal_sort():
@@ -517,7 +517,7 @@ def test_intersect_with_duplicates(tuples, exp_tuples):
 def test_maybe_match_names(data, names, expected):
     # GH#38323
     mi = MultiIndex.from_tuples([], names=["a", "b"])
-    mi2 = MultiIndex.from_tuples([data], names=names)
+    mi2 = MultiIndex.from_tuples([data], names=)
     result = mi._maybe_match_names(mi2)
     assert result == expected
 
@@ -562,12 +562,12 @@ def test_union_with_missing_values_on_both_sides(nulls_fixture):
 @pytest.mark.parametrize("sort", [None, False])
 def test_union_nan_got_duplicated(dtype, sort):
     # GH#38977, GH#49010
-    mi1 = MultiIndex.from_arrays([pd.array([1.0, np.nan], dtype=dtype), [2, 3]])
-    mi2 = MultiIndex.from_arrays([pd.array([1.0, np.nan, 3.0], dtype=dtype), [2, 3, 4]])
-    result = mi1.union(mi2, sort=sort)
+    mi1 = MultiIndex.from_arrays([pd.array([1.0, np.nan], dtype=), [2, 3]])
+    mi2 = MultiIndex.from_arrays([pd.array([1.0, np.nan, 3.0], dtype=), [2, 3, 4]])
+    result = mi1.union(mi2, sort=)
     if sort is None:
         expected = MultiIndex.from_arrays(
-            [pd.array([1.0, 3.0, np.nan], dtype=dtype), [2, 4, 3]]
+            [pd.array([1.0, 3.0, np.nan], dtype=), [2, 4, 3]]
         )
     else:
         expected = mi2
@@ -696,8 +696,8 @@ def test_union_keep_ea_dtype_with_na(any_numeric_ea_dtype):
 )
 def test_intersection_lexsort_depth(levels1, levels2, codes1, codes2, names):
     # GH#25169
-    mi1 = MultiIndex(levels=levels1, codes=codes1, names=names)
-    mi2 = MultiIndex(levels=levels2, codes=codes2, names=names)
+    mi1 = MultiIndex(levels=levels1, codes=codes1, names=)
+    mi2 = MultiIndex(levels=levels2, codes=codes2, names=)
     mi_int = mi1.intersection(mi2)
     assert mi_int._lexsort_depth == 2
 

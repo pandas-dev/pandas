@@ -39,7 +39,7 @@ class TestDataFramePlotsSubplots:
             index=list(string.ascii_letters[:10]),
         )
 
-        axes = df.plot(kind=kind, subplots=True, sharex=True, legend=True)
+        axes = df.plot(kind=, subplots=True, sharex=True, legend=True)
         _check_axes_shape(axes, axes_num=3, layout=(3, 1))
         assert axes.shape == (3,)
 
@@ -68,7 +68,7 @@ class TestDataFramePlotsSubplots:
             np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
-        axes = df.plot(kind=kind, subplots=True, sharex=False)
+        axes = df.plot(kind=, subplots=True, sharex=False)
         for ax in axes:
             _check_visible(ax.xaxis)
             _check_visible(ax.get_xticklabels())
@@ -83,7 +83,7 @@ class TestDataFramePlotsSubplots:
             np.random.default_rng(2).random((10, 3)),
             index=list(string.ascii_letters[:10]),
         )
-        axes = df.plot(kind=kind, subplots=True, legend=False)
+        axes = df.plot(kind=, subplots=True, legend=False)
         for ax in axes:
             assert ax.get_legend() is None
 
@@ -92,7 +92,7 @@ class TestDataFramePlotsSubplots:
         idx = date_range(start="2014-07-01", freq="ME", periods=10)
         df = DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
 
-        axes = df.plot(kind=kind, subplots=True, sharex=True)
+        axes = df.plot(kind=, subplots=True, sharex=True)
         _check_axes_shape(axes, axes_num=3, layout=(3, 1))
 
         for ax in axes[:-2]:
@@ -114,7 +114,7 @@ class TestDataFramePlotsSubplots:
     def test_subplots_timeseries_rot(self, kind):
         idx = date_range(start="2014-07-01", freq="ME", periods=10)
         df = DataFrame(np.random.default_rng(2).random((10, 3)), index=idx)
-        axes = df.plot(kind=kind, subplots=True, sharex=False, rot=45, fontsize=7)
+        axes = df.plot(kind=, subplots=True, sharex=False, rot=45, fontsize=7)
         for ax in axes:
             _check_visible(ax.xaxis)
             _check_visible(ax.get_xticklabels())
@@ -234,7 +234,7 @@ class TestDataFramePlotsSubplots:
             index=list(string.ascii_letters[:10]),
         )
 
-        axes = df.plot(subplots=True, layout=layout)
+        axes = df.plot(subplots=True, layout=)
         _check_axes_shape(axes, axes_num=3, layout=exp_layout)
         assert axes.shape == exp_layout
 
@@ -337,7 +337,7 @@ class TestDataFramePlotsSubplots:
         )
         with tm.assert_produces_warning(UserWarning):
             returned = df.plot(
-                subplots=True, ax=axes, layout=layout, sharex=False, sharey=False
+                subplots=True, ax=axes, layout=, sharex=False, sharey=False
             )
             _check_axes_shape(returned, axes_num=4, layout=exp_layout)
             assert returned.shape == (4,)
@@ -364,7 +364,7 @@ class TestDataFramePlotsSubplots:
             index=date_range(start="2014-07-01", freq="ME", periods=10),
         )
         for i, ax in enumerate(axes.ravel()):
-            df[i].plot(ax=ax, fontsize=5)
+            df[i].plot(ax=, fontsize=5)
 
         # Rows other than bottom should not be visible
         for ax in axes[0:-1].ravel():
@@ -576,12 +576,12 @@ class TestDataFramePlotsSubplots:
         df.index.name = index_name
 
         # default is the ylabel is not shown and xlabel is index name
-        axes = df.plot(kind=kind, subplots=True)
+        axes = df.plot(kind=, subplots=True)
         assert all(ax.get_ylabel() == "" for ax in axes)
         assert all(ax.get_xlabel() == old_label for ax in axes)
 
         # old xlabel will be overridden and assigned ylabel will be used as ylabel
-        axes = df.plot(kind=kind, ylabel=new_label, xlabel=new_label, subplots=True)
+        axes = df.plot(kind=, ylabel=new_label, xlabel=new_label, subplots=True)
         assert all(ax.get_ylabel() == str(new_label) for ax in axes)
         assert all(ax.get_xlabel() == str(new_label) for ax in axes)
 
@@ -678,7 +678,7 @@ class TestDataFramePlotsSubplots:
     def test_bar_barwidth_position_int_width_1(self, kind, kwargs):
         # GH 12979
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
-        self._check_bar_alignment(df, kind=kind, width=1, **kwargs)
+        self._check_bar_alignment(df, kind=, width=1, **kwargs)
 
     def _check_bar_alignment(
         self,
@@ -691,12 +691,12 @@ class TestDataFramePlotsSubplots:
         position=0.5,
     ):
         axes = df.plot(
-            kind=kind,
-            stacked=stacked,
-            subplots=subplots,
-            align=align,
-            width=width,
-            position=position,
+            kind=,
+            stacked=,
+            subplots=,
+            align=,
+            width=,
+            position=,
             grid=True,
         )
 

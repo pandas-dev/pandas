@@ -501,7 +501,7 @@ class MPLPlot(ABC):
                 self.nseries if isinstance(self.subplots, bool) else len(self.subplots)
             )
             fig, axes = create_subplots(
-                naxes=naxes,
+                naxes=,
                 sharex=self.sharex,
                 sharey=self.sharey,
                 figsize=self.figsize,
@@ -681,8 +681,8 @@ class MPLPlot(ABC):
                 axarr=all_axes,
                 nplots=len(all_axes),
                 naxes=nrows * ncols,
-                nrows=nrows,
-                ncols=ncols,
+                nrows=,
+                ncols=,
                 sharex=self.sharex,
                 sharey=self.sharey,
             )
@@ -810,7 +810,7 @@ class MPLPlot(ABC):
                     title = self.legend_title
 
             if len(handles) > 0:
-                ax.legend(handles, labels, loc="best", title=title)
+                ax.legend(handles, labels, loc="best", title=)
 
         elif self.subplots and self.legend:
             for ax in self.axes:
@@ -999,7 +999,7 @@ class MPLPlot(ABC):
             num_colors = self.nseries
 
         return get_standard_colors(
-            num_colors=num_colors,
+            num_colors=,
             colormap=self.colormap,
             color=self.kwds.get(color_kwds),
         )
@@ -1189,7 +1189,7 @@ class PlanePlot(MPLPlot, ABC):
         # use the last one which contains the latest information
         # about the ax
         img = ax.collections[-1]
-        return self.fig.colorbar(img, ax=ax, **kwds)
+        return self.fig.colorbar(img, ax=, **kwds)
 
 
 class ScatterPlot(PlanePlot):
@@ -1204,7 +1204,7 @@ class ScatterPlot(PlanePlot):
             s = 20
         elif is_hashable(s) and s in data.columns:
             s = data[s]
-        super().__init__(data, x, y, s=s, **kwargs)
+        super().__init__(data, x, y, s=, **kwargs)
         if is_integer(c) and not self.data.columns._holds_integer():
             c = self.data.columns[c]
         self.c = c
@@ -1267,9 +1267,9 @@ class ScatterPlot(PlanePlot):
             data[x].values,
             data[y].values,
             c=c_values,
-            label=label,
-            cmap=cmap,
-            norm=norm,
+            label=,
+            cmap=,
+            norm=,
             **self.kwds,
         )
         if cb:
@@ -1319,7 +1319,7 @@ class HexBinPlot(PlanePlot):
         else:
             c_values = data[C].values
 
-        ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap, **self.kwds)
+        ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=, **self.kwds)
         if cb:
             self._plot_colorbar(ax)
 
@@ -1364,7 +1364,7 @@ class LinePlot(MPLPlot):
 
             x = data.index  # dummy, not used
             plotf = self._ts_plot
-            it = self._iter_data(data=data, keep_index=True)
+            it = self._iter_data(data=, keep_index=True)
         else:
             x = self._get_xticks(convert_period=True)
             # error: Incompatible types in assignment (expression has type
@@ -1382,7 +1382,7 @@ class LinePlot(MPLPlot):
             kwds = self.kwds.copy()
             style, kwds = self._apply_style_colors(colors, kwds, i, label)
 
-            errors = self._get_errorbars(label=label, index=i)
+            errors = self._get_errorbars(label=, index=i)
             kwds = dict(kwds, **errors)
 
             label = pprint_thing(label)  # .encode('utf-8')
@@ -1393,10 +1393,10 @@ class LinePlot(MPLPlot):
                 ax,
                 x,
                 y,
-                style=style,
+                style=,
                 column_num=i,
-                stacking_id=stacking_id,
-                is_errorbar=is_errorbar,
+                stacking_id=,
+                is_errorbar=,
                 **kwds,
             )
             self._append_legend_handles_labels(newlines[0], label)
@@ -1418,7 +1418,7 @@ class LinePlot(MPLPlot):
         if column_num == 0:
             cls._initialize_stacker(ax, stacking_id, len(y))
         y_values = cls._get_stacked_values(ax, stacking_id, y, kwds["label"])
-        lines = MPLPlot._plot(ax, x, y_values, style=style, **kwds)
+        lines = MPLPlot._plot(ax, x, y_values, style=, **kwds)
         cls._update_stacker(ax, stacking_id, y)
         return lines
 
@@ -1437,7 +1437,7 @@ class LinePlot(MPLPlot):
             decorate_axes(ax.right_ax, freq, kwds)
         ax._plot_data.append((data, self._kind, kwds))
 
-        lines = self._plot(ax, data.index, data.values, style=style, **kwds)
+        lines = self._plot(ax, data.index, data.values, style=, **kwds)
         # set date formatter, locators and rescale limits
         format_dateaxis(ax, ax.freq, data.index)
         return lines
@@ -1574,7 +1574,7 @@ class AreaPlot(LinePlot):
         # need to remove label, because subplots uses mpl legend as it is
         line_kwds = kwds.copy()
         line_kwds.pop("label")
-        lines = MPLPlot._plot(ax, x, y_values, style=style, **line_kwds)
+        lines = MPLPlot._plot(ax, x, y_values, style=, **line_kwds)
 
         # get data from the line to get coordinates for fill_between
         xdata, y_values = lines[0].get_data(orig=False)
@@ -1674,7 +1674,7 @@ class BarPlot(MPLPlot):
         log: bool = False,
         **kwds,
     ):
-        return ax.bar(x, y, w, bottom=start, log=log, **kwds)
+        return ax.bar(x, y, w, bottom=start, log=, **kwds)
 
     @property
     def _start_base(self):
@@ -1697,7 +1697,7 @@ class BarPlot(MPLPlot):
             else:
                 kwds["color"] = colors[i % ncolors]
 
-            errors = self._get_errorbars(label=label, index=i)
+            errors = self._get_errorbars(label=, index=i)
             kwds = dict(kwds, **errors)
 
             label = pprint_thing(label)
@@ -1718,8 +1718,8 @@ class BarPlot(MPLPlot):
                     self.ax_pos + w,
                     y,
                     self.bar_width,
-                    start=start,
-                    label=label,
+                    start=,
+                    label=,
                     log=self.log,
                     **kwds,
                 )
@@ -1733,8 +1733,8 @@ class BarPlot(MPLPlot):
                     self.ax_pos + w,
                     y,
                     self.bar_width,
-                    start=start,
-                    label=label,
+                    start=,
+                    label=,
                     log=self.log,
                     **kwds,
                 )
@@ -1747,8 +1747,8 @@ class BarPlot(MPLPlot):
                     self.ax_pos + (i + 0.5) * w,
                     y,
                     w,
-                    start=start,
-                    label=label,
+                    start=,
+                    label=,
                     log=self.log,
                     **kwds,
                 )
@@ -1805,7 +1805,7 @@ class BarhPlot(BarPlot):
         log: bool = False,
         **kwds,
     ):
-        return ax.barh(x, y, w, left=start, log=log, **kwds)
+        return ax.barh(x, y, w, left=start, log=, **kwds)
 
     def _get_custom_index_name(self):
         return self.ylabel
@@ -1831,7 +1831,7 @@ class PiePlot(MPLPlot):
         data = data.fillna(value=0)
         if (data < 0).any().any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
-        MPLPlot.__init__(self, data, kind=kind, **kwargs)
+        MPLPlot.__init__(self, data, kind=, **kwargs)
 
     def _args_adjust(self) -> None:
         self.grid = False

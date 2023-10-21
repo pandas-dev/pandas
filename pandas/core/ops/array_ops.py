@@ -149,7 +149,7 @@ def _masked_arith_op(x: np.ndarray, y, op):
 
     if isinstance(y, np.ndarray):
         dtype = find_common_type([x.dtype, y.dtype])
-        result = np.empty(x.size, dtype=dtype)
+        result = np.empty(x.size, dtype=)
 
         if len(x) != len(y):
             raise ValueError(x.shape, y.shape)
@@ -488,9 +488,9 @@ def get_array_op(op):
         return op
 
     if op_name in {"eq", "ne", "lt", "le", "gt", "ge"}:
-        return partial(comparison_op, op=op)
+        return partial(comparison_op, op=)
     elif op_name in {"and", "or", "xor", "rand", "ror", "rxor"}:
-        return partial(logical_op, op=op)
+        return partial(logical_op, op=)
     elif op_name in {
         "add",
         "sub",
@@ -501,7 +501,7 @@ def get_array_op(op):
         "divmod",
         "pow",
     }:
-        return partial(arithmetic_op, op=op)
+        return partial(arithmetic_op, op=)
     else:
         raise NotImplementedError(op_name)
 

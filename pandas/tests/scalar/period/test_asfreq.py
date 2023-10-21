@@ -21,7 +21,7 @@ class TestFreqConversion:
     @pytest.mark.parametrize("freq", ["Y", "Q", "M", "W", "B", "D"])
     def test_asfreq_near_zero(self, freq):
         # GH#19643, GH#19650
-        per = Period("0001-01-01", freq=freq)
+        per = Period("0001-01-01", freq=)
         tup1 = (per.year, per.hour, per.day)
 
         prev = per - 1
@@ -785,7 +785,7 @@ class TestFreqConversion:
         # ordinal will not change
         expected = Period("2007", freq="25h")
         for freq, how in zip(["1D1h", "1h1D"], ["E", "S"]):
-            result = p.asfreq(freq, how=how)
+            result = p.asfreq(freq, how=)
             assert result == expected
             assert result.ordinal == expected.ordinal
             assert result.freq == expected.freq

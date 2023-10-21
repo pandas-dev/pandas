@@ -33,7 +33,7 @@ class TestDataFramePctChange:
             f"{type(obj).__name__}.pct_change are deprecated"
         )
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = obj.pct_change(periods=periods, fill_method=fill_method, limit=limit)
+            res = obj.pct_change(periods=, fill_method=, limit=)
         tm.assert_equal(res, frame_or_series(exp))
 
     def test_pct_change_numeric(self):
@@ -51,10 +51,10 @@ class TestDataFramePctChange:
         )
 
         for axis in range(2):
-            expected = pnl.ffill(axis=axis) / pnl.ffill(axis=axis).shift(axis=axis) - 1
+            expected = pnl.ffill(axis=) / pnl.ffill(axis=).shift(axis=) - 1
 
             with tm.assert_produces_warning(FutureWarning, match=msg):
-                result = pnl.pct_change(axis=axis, fill_method="pad")
+                result = pnl.pct_change(axis=, fill_method="pad")
             tm.assert_frame_equal(result, expected)
 
     def test_pct_change(self, datetime_frame):
@@ -116,24 +116,18 @@ class TestDataFramePctChange:
 
         # GH#7292
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs_freq = datetime_frame.pct_change(
-                freq=freq, fill_method=fill_method, limit=limit
-            )
+            rs_freq = datetime_frame.pct_change(freq=, fill_method=, limit=)
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rs_periods = datetime_frame.pct_change(
-                periods, fill_method=fill_method, limit=limit
+                periods, fill_method=, limit=
             )
         tm.assert_frame_equal(rs_freq, rs_periods)
 
         empty_ts = DataFrame(index=datetime_frame.index, columns=datetime_frame.columns)
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs_freq = empty_ts.pct_change(
-                freq=freq, fill_method=fill_method, limit=limit
-            )
+            rs_freq = empty_ts.pct_change(freq=, fill_method=, limit=)
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs_periods = empty_ts.pct_change(
-                periods, fill_method=fill_method, limit=limit
-            )
+            rs_periods = empty_ts.pct_change(periods, fill_method=, limit=)
         tm.assert_frame_equal(rs_freq, rs_periods)
 
 
@@ -149,7 +143,7 @@ def test_pct_change_with_duplicated_indices(fill_method):
         "DataFrame.pct_change are deprecated"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = data.pct_change(fill_method=fill_method)
+        result = data.pct_change(fill_method=)
 
     if fill_method is None:
         second_column = [np.nan, np.inf, np.nan, np.nan, 2.0, 1.0]

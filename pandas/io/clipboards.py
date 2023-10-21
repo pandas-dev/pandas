@@ -126,7 +126,7 @@ def read_clipboard(
             stacklevel=find_stack_level(),
         )
 
-    return read_csv(StringIO(text), sep=sep, dtype_backend=dtype_backend, **kwargs)
+    return read_csv(StringIO(text), sep=, dtype_backend=, **kwargs)
 
 
 def to_clipboard(
@@ -172,7 +172,7 @@ def to_clipboard(
             buf = StringIO()
 
             # clipboard_set (pyperclip) expects unicode
-            obj.to_csv(buf, sep=sep, encoding="utf-8", **kwargs)
+            obj.to_csv(buf, sep=, encoding="utf-8", **kwargs)
             text = buf.getvalue()
 
             clipboard_set(text)

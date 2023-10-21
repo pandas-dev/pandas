@@ -78,7 +78,7 @@ class TestDecimalArray(base.ExtensionTests):
         if op_name == "count":
             return super().check_reduce(ser, op_name, skipna)
         else:
-            result = getattr(ser, op_name)(skipna=skipna)
+            result = getattr(ser, op_name)(skipna=)
             expected = getattr(np.asarray(ser), op_name)()
             tm.assert_almost_equal(result, expected)
 
@@ -235,8 +235,8 @@ class TestDecimalArray(base.ExtensionTests):
         else:
             other = all_data
 
-        vcs = pd.Series(all_data).value_counts(dropna=dropna)
-        vcs_ex = pd.Series(other).value_counts(dropna=dropna)
+        vcs = pd.Series(all_data).value_counts(dropna=)
+        vcs_ex = pd.Series(other).value_counts(dropna=)
 
         with decimal.localcontext() as ctx:
             # avoid raising when comparing Decimal("NAN") < Decimal(2)
@@ -269,11 +269,11 @@ def test_take_na_value_other_decimal():
 
 def test_series_constructor_coerce_data_to_extension_dtype():
     dtype = DecimalDtype()
-    ser = pd.Series([0, 1, 2], dtype=dtype)
+    ser = pd.Series([0, 1, 2], dtype=)
 
     arr = DecimalArray(
         [decimal.Decimal(0), decimal.Decimal(1), decimal.Decimal(2)],
-        dtype=dtype,
+        dtype=,
     )
     exp = pd.Series(arr)
     tm.assert_series_equal(ser, exp)

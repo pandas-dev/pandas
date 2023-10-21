@@ -490,9 +490,9 @@ class TestTableOrient:
     def test_convert_pandas_type_to_json_field_categorical(self, kind, ordered):
         data = ["a", "b", "c"]
         if kind is pd.Categorical:
-            arr = pd.Series(kind(data, ordered=ordered), name="cats")
+            arr = pd.Series(kind(data, ordered=), name="cats")
         elif kind is pd.CategoricalIndex:
-            arr = kind(data, ordered=ordered, name="cats")
+            arr = kind(data, ordered=, name="cats")
 
         result = convert_pandas_type_to_json_field(arr)
         expected = {

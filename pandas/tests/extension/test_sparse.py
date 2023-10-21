@@ -242,7 +242,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
         expected = pd.DataFrame(
             {
-                "A": data_missing._from_sequence([fill_value, fill_value], dtype=dtype),
+                "A": data_missing._from_sequence([fill_value, fill_value], dtype=),
                 "B": [1, 2],
             }
         )
@@ -342,7 +342,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
     def test_map(self, func, na_action, expected):
         # GH52096
         data = SparseArray([1, np.nan])
-        result = data.map(func, na_action=na_action)
+        result = data.map(func, na_action=)
         tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
@@ -350,7 +350,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         # GH52096
         msg = "fill value in the sparse values not supported"
         with pytest.raises(ValueError, match=msg):
-            data.map(lambda x: np.nan, na_action=na_action)
+            data.map(lambda x: np.nan, na_action=)
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
@@ -416,7 +416,7 @@ class TestComparisonOps(BaseSparseTests):
 
             expected = SparseArray(
                 op(data_for_compare.to_dense(), np.asarray(other)),
-                fill_value=fill_value,
+                fill_value=,
                 dtype=np.bool_,
             )
         tm.assert_sp_array_equal(result, expected)

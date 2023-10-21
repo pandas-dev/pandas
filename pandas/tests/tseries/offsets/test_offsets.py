@@ -77,7 +77,7 @@ def _create_offset(klass, value=1, normalize=False):
             startingMonth=1,
             weekday=1,
             variation="last",
-            normalize=normalize,
+            normalize=,
         )
     elif klass is FY5253Quarter:
         klass = klass(
@@ -86,18 +86,18 @@ def _create_offset(klass, value=1, normalize=False):
             weekday=1,
             qtr_with_extra_week=1,
             variation="last",
-            normalize=normalize,
+            normalize=,
         )
     elif klass is LastWeekOfMonth:
-        klass = klass(n=value, weekday=5, normalize=normalize)
+        klass = klass(n=value, weekday=5, normalize=)
     elif klass is WeekOfMonth:
-        klass = klass(n=value, week=1, weekday=5, normalize=normalize)
+        klass = klass(n=value, week=1, weekday=5, normalize=)
     elif klass is Week:
-        klass = klass(n=value, weekday=5, normalize=normalize)
+        klass = klass(n=value, weekday=5, normalize=)
     elif klass is DateOffset:
-        klass = klass(days=value, normalize=normalize)
+        klass = klass(days=value, normalize=)
     else:
-        klass = klass(value, normalize=normalize)
+        klass = klass(value, normalize=)
     return klass
 
 
@@ -216,7 +216,7 @@ class TestCommon:
             # normalize=True disallowed for Tick subclasses GH#21427
             return
 
-        offset_s = _create_offset(offset, normalize=normalize)
+        offset_s = _create_offset(offset, normalize=)
         func = getattr(offset_s, funcname)
 
         result = func(dt)
@@ -268,13 +268,13 @@ class TestCommon:
             assert isinstance(result, Timestamp)
             assert result == expected_localize
 
-            result = func(Timestamp(dt, tz=tz))
+            result = func(Timestamp(dt, tz=))
             assert isinstance(result, Timestamp)
             assert result == expected_localize
 
             # see gh-14101
             exp_warning = None
-            ts = Timestamp(dt, tz=tz) + Nano(5)
+            ts = Timestamp(dt, tz=) + Nano(5)
 
             if (
                 type(offset_s).__name__ == "DateOffset"
@@ -469,7 +469,7 @@ class TestCommon:
             assert result == expected
 
         expected_localize = expected.tz_localize(tz)
-        result = Timestamp(dt, tz=tz) + offset_s
+        result = Timestamp(dt, tz=) + offset_s
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
@@ -486,7 +486,7 @@ class TestCommon:
             assert result == expected
 
         expected_localize = expected.tz_localize(tz)
-        result = Timestamp(dt, tz=tz) + offset_s
+        result = Timestamp(dt, tz=) + offset_s
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
@@ -518,18 +518,18 @@ class TestCommon:
         # stacklevel checking is slow, and we have ~800 of variants of this
         #  test, so let's only check the stacklevel in a subset of them
         check_stacklevel = tz_naive_fixture is None
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(warn, check_stacklevel=):
             result = dti + offset_s
         tm.assert_index_equal(result, dti)
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(warn, check_stacklevel=):
             result = offset_s + dti
         tm.assert_index_equal(result, dti)
 
         dta = dti._data
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(warn, check_stacklevel=):
             result = dta + offset_s
         tm.assert_equal(result, dta)
-        with tm.assert_produces_warning(warn, check_stacklevel=check_stacklevel):
+        with tm.assert_produces_warning(warn, check_stacklevel=):
             result = offset_s + dta
         tm.assert_equal(result, dta)
 
@@ -569,7 +569,7 @@ class TestCommon:
         # check that the result with non-nano matches nano
         off = _create_offset(offset_types)
 
-        dti = date_range("2016-01-01", periods=35, freq="D", unit=unit)
+        dti = date_range("2016-01-01", periods=35, freq="D", unit=)
 
         result = (dti + off)._with_freq(None)
 

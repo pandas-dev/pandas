@@ -52,7 +52,7 @@ def test_duplicated_implemented_no_recursion():
 def test_duplicated_keep(keep, expected):
     df = DataFrame({"A": [0, 1, 1, 2, 0], "B": ["a", "b", "b", "c", "a"]})
 
-    result = df.duplicated(keep=keep)
+    result = df.duplicated(keep=)
     tm.assert_series_equal(result, expected)
 
 
@@ -68,7 +68,7 @@ def test_duplicated_keep(keep, expected):
 def test_duplicated_nan_none(keep, expected):
     df = DataFrame({"C": [np.nan, 3, 3, None, np.nan], "x": 1}, dtype=object)
 
-    result = df.duplicated(keep=keep)
+    result = df.duplicated(keep=)
     tm.assert_series_equal(result, expected)
 
 
@@ -89,8 +89,8 @@ def test_duplicated_subset(subset, keep):
         # -> select columns with singleton list, not string
         subset = [subset]
 
-    expected = df[subset].duplicated(keep=keep)
-    result = df.duplicated(keep=keep, subset=subset)
+    expected = df[subset].duplicated(keep=)
+    result = df.duplicated(keep=, subset=)
     tm.assert_series_equal(result, expected)
 
 

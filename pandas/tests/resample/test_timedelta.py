@@ -36,7 +36,7 @@ def test_resample_with_nat():
 def test_resample_as_freq_with_subperiod():
     # GH 13022
     index = timedelta_range("00:00:00", "00:10:00", freq="5min")
-    df = DataFrame(data={"value": [1, 5, 10]}, index=index)
+    df = DataFrame(data={"value": [1, 5, 10]}, index=)
     result = df.resample("2min").asfreq()
     expected_data = {"value": [1, np.nan, np.nan, np.nan, np.nan, 10]}
     expected = DataFrame(
@@ -72,7 +72,7 @@ def test_resample_single_period_timedelta():
 def test_resample_timedelta_idempotency():
     # GH 12072
     index = timedelta_range("0", periods=9, freq="10ms")
-    series = Series(range(9), index=index)
+    series = Series(range(9), index=)
     result = series.resample("10ms").mean()
     expected = series.astype(float)
     tm.assert_series_equal(result, expected)
@@ -141,10 +141,10 @@ def test_resample_timedelta_values():
 def test_resample_timedelta_edge_case(start, end, freq, resample_freq):
     # GH 33498
     # check that the timedelta bins does not contains an extra bin
-    idx = timedelta_range(start=start, end=end, freq=freq)
+    idx = timedelta_range(start=, end=, freq=)
     s = Series(np.arange(len(idx)), index=idx)
     result = s.resample(resample_freq).min()
-    expected_index = timedelta_range(freq=resample_freq, start=start, end=end)
+    expected_index = timedelta_range(freq=resample_freq, start=, end=)
     tm.assert_index_equal(result.index, expected_index)
     assert result.index.freq == expected_index.freq
     assert not np.isnan(result.iloc[-1])

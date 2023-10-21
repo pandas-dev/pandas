@@ -60,10 +60,10 @@ class OpenpyxlWriter(ExcelWriter):
 
         super().__init__(
             path,
-            mode=mode,
-            storage_options=storage_options,
-            if_sheet_exists=if_sheet_exists,
-            engine_kwargs=engine_kwargs,
+            mode=,
+            storage_options=,
+            if_sheet_exists=,
+            engine_kwargs=,
         )
 
         # ExcelWriter replaced "a" by "r+" to allow us to first read the excel file from
@@ -525,7 +525,7 @@ class OpenpyxlWriter(ExcelWriter):
                             if row == first_row and col == first_col:
                                 # Ignore first cell. It is already handled.
                                 continue
-                            xcell = wks.cell(column=col, row=row)
+                            xcell = wks.cell(column=col, row=)
                             for k, v in style_kwargs.items():
                                 setattr(xcell, k, v)
 
@@ -550,11 +550,7 @@ class OpenpyxlReader(BaseExcelReader["Workbook"]):
             Arbitrary keyword arguments passed to excel engine.
         """
         import_optional_dependency("openpyxl")
-        super().__init__(
-            filepath_or_buffer,
-            storage_options=storage_options,
-            engine_kwargs=engine_kwargs,
-        )
+        super().__init__(filepath_or_buffer, storage_options=, engine_kwargs=)
 
     @property
     def _workbook_class(self) -> type[Workbook]:

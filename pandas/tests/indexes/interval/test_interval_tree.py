@@ -15,7 +15,7 @@ def skipif_32bit(param):
     here to skip leaf_size parameters related to GH 23440.
     """
     marks = pytest.mark.skipif(not IS64, reason="GH 23440: int type mismatch on 32bit")
-    return pytest.param(param, marks=marks)
+    return pytest.param(param, marks=)
 
 
 @pytest.fixture(params=["int64", "float64", "uint64"])
@@ -42,7 +42,7 @@ def leaf_size(request):
 )
 def tree(request, leaf_size):
     left = request.param
-    return IntervalTree(left, left + 2, leaf_size=leaf_size)
+    return IntervalTree(left, left + 2, leaf_size=)
 
 
 class TestIntervalTree:
@@ -61,7 +61,7 @@ class TestIntervalTree:
         [("int64", 2**63 + 1, "uint64"), ("uint64", -1, "int64")],
     )
     def test_get_indexer_overflow(self, dtype, target_value, target_dtype):
-        left, right = np.array([0, 1], dtype=dtype), np.array([1, 2], dtype=dtype)
+        left, right = np.array([0, 1], dtype=dtype), np.array([1, 2], dtype=)
         tree = IntervalTree(left, right)
 
         result = tree.get_indexer(np.array([target_value], dtype=target_dtype))
@@ -92,7 +92,7 @@ class TestIntervalTree:
         [("int64", 2**63 + 1, "uint64"), ("uint64", -1, "int64")],
     )
     def test_get_indexer_non_unique_overflow(self, dtype, target_value, target_dtype):
-        left, right = np.array([0, 2], dtype=dtype), np.array([1, 3], dtype=dtype)
+        left, right = np.array([0, 2], dtype=dtype), np.array([1, 3], dtype=)
         tree = IntervalTree(left, right)
         target = np.array([target_value], dtype=target_dtype)
 
@@ -104,7 +104,7 @@ class TestIntervalTree:
         tm.assert_numpy_array_equal(result_missing, expected_missing)
 
     def test_duplicates(self, dtype):
-        left = np.array([0, 0, 0], dtype=dtype)
+        left = np.array([0, 0, 0], dtype=)
         tree = IntervalTree(left, left + 1)
 
         with pytest.raises(
@@ -129,7 +129,7 @@ class TestIntervalTree:
         found = x.astype("intp")
         not_found = (-1 * np.ones(1000)).astype("intp")
 
-        tree = IntervalTree(x, x + 0.5, closed=closed, leaf_size=leaf_size)
+        tree = IntervalTree(x, x + 0.5, closed=, leaf_size=)
         tm.assert_numpy_array_equal(found, tree.get_indexer(x + 0.25))
 
         expected = found if tree.closed_left else not_found
@@ -151,7 +151,7 @@ class TestIntervalTree:
     @pytest.mark.parametrize("order", (list(x) for x in permutations(range(3))))
     def test_is_overlapping(self, closed, order, left, right, expected):
         # GH 23309
-        tree = IntervalTree(left[order], right[order], closed=closed)
+        tree = IntervalTree(left[order], right[order], closed=)
         result = tree.is_overlapping
         assert result is expected
 
@@ -160,7 +160,7 @@ class TestIntervalTree:
         """shared endpoints are marked as overlapping"""
         # GH 23309
         left, right = np.arange(3, dtype="int64"), np.arange(1, 4)
-        tree = IntervalTree(left[order], right[order], closed=closed)
+        tree = IntervalTree(left[order], right[order], closed=)
         result = tree.is_overlapping
         expected = closed == "both"
         assert result is expected
@@ -176,7 +176,7 @@ class TestIntervalTree:
     )
     def test_is_overlapping_trivial(self, closed, left, right):
         # GH 23309
-        tree = IntervalTree(left, right, closed=closed)
+        tree = IntervalTree(left, right, closed=)
         assert tree.is_overlapping is False
 
     @pytest.mark.skipif(not IS64, reason="GH 23440")

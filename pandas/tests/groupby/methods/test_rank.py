@@ -65,7 +65,7 @@ def test_rank_apply():
 @pytest.mark.parametrize(
     "vals",
     [
-        np.array([2, 2, 8, 2, 6], dtype=dtype)
+        np.array([2, 2, 8, 2, 6], dtype=)
         for dtype in ["i8", "i4", "i2", "i1", "u8", "u4", "u2", "u1", "f8", "f4", "f2"]
     ]
     + [
@@ -134,7 +134,7 @@ def test_rank_args(grps, vals, ties_method, ascending, pct, exp):
         vals = np.array(vals, dtype=orig_vals.dtype)
 
     df = DataFrame({"key": key, "val": vals})
-    result = df.groupby("key").rank(method=ties_method, ascending=ascending, pct=pct)
+    result = df.groupby("key").rank(method=ties_method, ascending=, pct=)
 
     exp_df = DataFrame(exp * len(grps), columns=["val"])
     tm.assert_frame_equal(result, exp_df)
@@ -184,9 +184,7 @@ def test_infs_n_nans(grps, vals, ties_method, ascending, na_option, exp):
     key = np.repeat(grps, len(vals))
     vals = vals * len(grps)
     df = DataFrame({"key": key, "val": vals})
-    result = df.groupby("key").rank(
-        method=ties_method, ascending=ascending, na_option=na_option
-    )
+    result = df.groupby("key").rank(method=ties_method, ascending=, na_option=)
     exp_df = DataFrame(exp * len(grps), columns=["val"])
     tm.assert_frame_equal(result, exp_df)
 
@@ -195,7 +193,7 @@ def test_infs_n_nans(grps, vals, ties_method, ascending, na_option, exp):
 @pytest.mark.parametrize(
     "vals",
     [
-        np.array([2, 2, np.nan, 8, 2, 6, np.nan, np.nan], dtype=dtype)
+        np.array([2, 2, np.nan, 8, 2, 6, np.nan, np.nan], dtype=)
         for dtype in ["f8", "f4", "f2"]
     ]
     + [
@@ -441,7 +439,7 @@ def test_rank_args_missing(grps, vals, ties_method, ascending, na_option, pct, e
 
     df = DataFrame({"key": key, "val": vals})
     result = df.groupby("key").rank(
-        method=ties_method, ascending=ascending, na_option=na_option, pct=pct
+        method=ties_method, ascending=, na_option=, pct=
     )
 
     exp_df = DataFrame(exp * len(grps), columns=["val"])
@@ -455,7 +453,7 @@ def test_rank_resets_each_group(pct, exp):
     df = DataFrame(
         {"key": ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"], "val": [1] * 10}
     )
-    result = df.groupby("key").rank(pct=pct)
+    result = df.groupby("key").rank(pct=)
     exp_df = DataFrame(exp * 2, columns=["val"])
     tm.assert_frame_equal(result, exp_df)
 
@@ -492,7 +490,7 @@ def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
     mask = df["val"].isna()
 
     gb = df.groupby("key")
-    res = gb.rank(method=ties_method, ascending=ascending, na_option=na_option, pct=pct)
+    res = gb.rank(method=ties_method, ascending=, na_option=, pct=)
 
     # construct our expected by using numeric values with the same ordering
     if mask.any():
@@ -501,9 +499,7 @@ def test_rank_object_dtype(ties_method, ascending, na_option, pct, vals):
         df2 = DataFrame({"key": ["foo"] * 5, "val": [0, 0, 2, 0, 1]})
 
     gb2 = df2.groupby("key")
-    alt = gb2.rank(
-        method=ties_method, ascending=ascending, na_option=na_option, pct=pct
-    )
+    alt = gb2.rank(method=ties_method, ascending=, na_option=, pct=)
 
     tm.assert_frame_equal(res, alt)
 
@@ -526,7 +522,7 @@ def test_rank_naoption_raises(ties_method, ascending, na_option, pct, vals):
 
     with pytest.raises(ValueError, match=msg):
         df.groupby("key").rank(
-            method=ties_method, ascending=ascending, na_option=na_option, pct=pct
+            method=ties_method, ascending=, na_option=, pct=
         )
 
 
@@ -716,6 +712,6 @@ def test_rank_categorical():
 def test_groupby_op_with_nullables(na_option):
     # GH 54206
     df = DataFrame({"x": [None]}, dtype="Float64")
-    result = df.groupby("x", dropna=False)["x"].rank(method="min", na_option=na_option)
+    result = df.groupby("x", dropna=False)["x"].rank(method="min", na_option=)
     expected = Series([1.0], dtype="Float64", name=result.name)
     tm.assert_series_equal(result, expected)

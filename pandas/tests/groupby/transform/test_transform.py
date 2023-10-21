@@ -628,7 +628,7 @@ def test_transform_mixed_type():
             "c": np.tile(["a", "b", "c"], 2),
             "v": np.arange(1.0, 7.0),
         },
-        index=index,
+        index=,
     )
 
     def f(group):
@@ -721,7 +721,7 @@ def test_cython_transform_series(op, args, targop):
 )
 def test_groupby_cum_skipna(op, skipna, input, exp):
     df = DataFrame(input)
-    result = df.groupby("key")["value"].transform(op, skipna=skipna)
+    result = df.groupby("key")["value"].transform(op, skipna=)
     if isinstance(exp, dict):
         expected = exp[(op, skipna)]
     else:
@@ -1008,11 +1008,11 @@ def test_group_fill_methods(
 
     df = DataFrame({"key": keys, "val": vals})
     if as_series:
-        result = getattr(df.groupby("key")["val"], fill_method)(limit=limit)
+        result = getattr(df.groupby("key")["val"], fill_method)(limit=)
         exp = Series(_exp_vals, name="val")
         tm.assert_series_equal(result, exp)
     else:
-        result = getattr(df.groupby("key"), fill_method)(limit=limit)
+        result = getattr(df.groupby("key"), fill_method)(limit=)
         exp = DataFrame({"val": _exp_vals})
         tm.assert_frame_equal(result, exp)
 
@@ -1058,7 +1058,7 @@ def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
 
     df_g = df
     if fill_method is not None:
-        df_g = getattr(df.groupby("key"), fill_method)(limit=limit)
+        df_g = getattr(df.groupby("key"), fill_method)(limit=)
     grp = df_g.groupby(df.key)
 
     expected = grp["vals"].obj / grp["vals"].shift(periods) - 1
@@ -1075,9 +1075,7 @@ def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
         f"{type(gb).__name__}.pct_change are deprecated"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = gb.pct_change(
-            periods=periods, fill_method=fill_method, limit=limit, freq=freq
-        )
+        result = gb.pct_change(periods=, fill_method=, limit=, freq=)
     tm.assert_equal(result, expected)
 
 
@@ -1111,7 +1109,7 @@ def test_ffill_bfill_non_unique_multilevel(func, expected_status):
     index = MultiIndex.from_tuples(
         tuples=list(zip(*[date, symbol])), names=["date", "symbol"]
     )
-    expected = Series(expected_status, index=index, name="status")
+    expected = Series(expected_status, index=, name="status")
 
     tm.assert_series_equal(result, expected)
 
@@ -1387,14 +1385,14 @@ def test_categorical_and_not_categorical_key(observed):
     )
 
     # DataFrame case
-    result = df_with_categorical.groupby(["A", "C"], observed=observed).transform("sum")
+    result = df_with_categorical.groupby(["A", "C"], observed=).transform("sum")
     expected = df_without_categorical.groupby(["A", "C"]).transform("sum")
     tm.assert_frame_equal(result, expected)
     expected_explicit = DataFrame({"B": [4, 2, 4]})
     tm.assert_frame_equal(result, expected_explicit)
 
     # Series case
-    result = df_with_categorical.groupby(["A", "C"], observed=observed)["B"].transform(
+    result = df_with_categorical.groupby(["A", "C"], observed=)["B"].transform(
         "sum"
     )
     expected = df_without_categorical.groupby(["A", "C"])["B"].transform("sum")
@@ -1433,9 +1431,9 @@ def test_null_group_lambda_self(sort, dropna, keys):
     # Whether a group contains a null value or not
     nulls_grouper = nulls1 if len(keys) == 1 else nulls1 | nulls2
 
-    a1 = np.random.default_rng(2).integers(0, 5, size=size).astype(float)
+    a1 = np.random.default_rng(2).integers(0, 5, size=).astype(float)
     a1[nulls1] = np.nan
-    a2 = np.random.default_rng(2).integers(0, 5, size=size).astype(float)
+    a2 = np.random.default_rng(2).integers(0, 5, size=).astype(float)
     a2[nulls2] = np.nan
     values = np.random.default_rng(2).integers(0, 5, size=a1.shape)
     df = DataFrame({"A1": a1, "A2": a2, "B": values})
@@ -1446,7 +1444,7 @@ def test_null_group_lambda_self(sort, dropna, keys):
         expected_values[nulls_grouper] = np.nan
     expected = DataFrame(expected_values, columns=["B"])
 
-    gb = df.groupby(keys, dropna=dropna, sort=sort)
+    gb = df.groupby(keys, dropna=, sort=)
     result = gb[["B"]].transform(lambda x: x)
     tm.assert_frame_equal(result, expected)
 
@@ -1458,23 +1456,23 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
         request.applymarker(pytest.mark.xfail(reason=msg))
 
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
-    df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
-    gb = df.groupby("A", dropna=dropna)
+    df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=)
+    gb = df.groupby("A", dropna=)
 
     args = get_groupby_method_args(reduction_func, df)
 
     # Manually handle reducers that don't fit the generic pattern
     # Set expected with dropna=False, then replace if necessary
     if reduction_func == "first":
-        expected = DataFrame({"B": [1, 1, 2, 2]}, index=index)
+        expected = DataFrame({"B": [1, 1, 2, 2]}, index=)
     elif reduction_func == "last":
-        expected = DataFrame({"B": [2, 2, 3, 3]}, index=index)
+        expected = DataFrame({"B": [2, 2, 3, 3]}, index=)
     elif reduction_func == "nth":
-        expected = DataFrame({"B": [1, 1, 2, 2]}, index=index)
+        expected = DataFrame({"B": [1, 1, 2, 2]}, index=)
     elif reduction_func == "size":
-        expected = Series([2, 2, 2, 2], index=index)
+        expected = Series([2, 2, 2, 2], index=)
     elif reduction_func == "corrwith":
-        expected = DataFrame({"B": [1.0, 1.0, 1.0, 1.0]}, index=index)
+        expected = DataFrame({"B": [1.0, 1.0, 1.0, 1.0]}, index=)
     else:
         expected_gb = df.groupby("A", dropna=False)
         buffer = []
@@ -1498,7 +1496,7 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
     # GH 17093
     df = DataFrame({"A": [1, 1, np.nan], "B": [1, 2, 2]}, index=[1, 2, 3])
     args = get_groupby_method_args(transformation_func, df)
-    gb = df.groupby("A", dropna=dropna)
+    gb = df.groupby("A", dropna=)
 
     buffer = []
     for k, (idx, group) in enumerate(gb):
@@ -1512,7 +1510,7 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
         buffer.append(res)
     if dropna:
         dtype = object if transformation_func in ("any", "all") else None
-        buffer.append(DataFrame([[np.nan]], index=[3], dtype=dtype, columns=["B"]))
+        buffer.append(DataFrame([[np.nan]], index=[3], dtype=, columns=["B"]))
     expected = concat(buffer)
 
     if transformation_func in ("cumcount", "ngroup"):
@@ -1532,8 +1530,8 @@ def test_null_group_str_transformer(request, dropna, transformation_func):
 def test_null_group_str_reducer_series(request, dropna, reduction_func):
     # GH 17093
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
-    ser = Series([1, 2, 2, 3], index=index)
-    gb = ser.groupby([1, 1, np.nan, np.nan], dropna=dropna)
+    ser = Series([1, 2, 2, 3], index=)
+    gb = ser.groupby([1, 1, np.nan, np.nan], dropna=)
 
     if reduction_func == "corrwith":
         # corrwith not implemented for SeriesGroupBy
@@ -1545,15 +1543,15 @@ def test_null_group_str_reducer_series(request, dropna, reduction_func):
     # Manually handle reducers that don't fit the generic pattern
     # Set expected with dropna=False, then replace if necessary
     if reduction_func == "first":
-        expected = Series([1, 1, 2, 2], index=index)
+        expected = Series([1, 1, 2, 2], index=)
     elif reduction_func == "last":
-        expected = Series([2, 2, 3, 3], index=index)
+        expected = Series([2, 2, 3, 3], index=)
     elif reduction_func == "nth":
-        expected = Series([1, 1, 2, 2], index=index)
+        expected = Series([1, 1, 2, 2], index=)
     elif reduction_func == "size":
-        expected = Series([2, 2, 2, 2], index=index)
+        expected = Series([2, 2, 2, 2], index=)
     elif reduction_func == "corrwith":
-        expected = Series([1, 1, 2, 2], index=index)
+        expected = Series([1, 1, 2, 2], index=)
     else:
         expected_gb = ser.groupby([1, 1, np.nan, np.nan], dropna=False)
         buffer = []
@@ -1574,7 +1572,7 @@ def test_null_group_str_transformer_series(dropna, transformation_func):
     # GH 17093
     ser = Series([1, 2, 2], index=[1, 2, 3])
     args = get_groupby_method_args(transformation_func, ser)
-    gb = ser.groupby([1, 1, np.nan], dropna=dropna)
+    gb = ser.groupby([1, 1, np.nan], dropna=)
 
     buffer = []
     for k, (idx, group) in enumerate(gb):
@@ -1588,7 +1586,7 @@ def test_null_group_str_transformer_series(dropna, transformation_func):
         buffer.append(res)
     if dropna:
         dtype = object if transformation_func in ("any", "all") else None
-        buffer.append(Series([np.nan], index=[3], dtype=dtype))
+        buffer.append(Series([np.nan], index=[3], dtype=))
     expected = concat(buffer)
 
     with tm.assert_produces_warning(None):
@@ -1651,5 +1649,5 @@ def test_idxmin_idxmax_transform_args(how, skipna, numeric_only):
     warn = None if skipna else FutureWarning
     msg = f"The behavior of DataFrame.{how} with .* any-NA and skipna=False"
     with tm.assert_produces_warning(warn, match=msg):
-        expected = gb.transform(how, skipna=skipna, numeric_only=numeric_only)
+        expected = gb.transform(how, skipna=, numeric_only=)
     tm.assert_frame_equal(result, expected)

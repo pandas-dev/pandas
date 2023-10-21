@@ -353,7 +353,7 @@ class TestGetIndexer:
             err = ValueError
             msg = "index must be monotonic increasing or decreasing"
         with pytest.raises(err, match=msg):
-            mi.get_indexer([(1, 1)], method=method)
+            mi.get_indexer([(1, 1)], method=)
 
     def test_get_indexer_three_or_more_levels(self):
         # https://github.com/pandas-dev/pandas/issues/29896
@@ -672,7 +672,7 @@ class TestGetLoc:
     def test_get_loc_cast_bool(self, dtype):
         # GH 19086 : int is casted to bool, but not vice-versa (for object dtype)
         #  With bool dtype, we don't cast in either direction.
-        levels = [Index([False, True], dtype=dtype), np.arange(2, dtype="int64")]
+        levels = [Index([False, True], dtype=), np.arange(2, dtype="int64")]
         idx = MultiIndex.from_product(levels)
 
         if dtype is bool:

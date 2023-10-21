@@ -75,7 +75,7 @@ def concat_compat(
         obj = to_concat[0]
         if isinstance(obj, np.ndarray):
             to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
-            return np.concatenate(to_concat_arrs, axis=axis)
+            return np.concatenate(to_concat_arrs, axis=)
 
         to_concat_eas = cast("Sequence[ExtensionArray]", to_concat)
         if ea_compat_axis:
@@ -91,7 +91,7 @@ def concat_compat(
                 # error: Unexpected keyword argument "axis" for "_concat_same_type"
                 # of "ExtensionArray"
                 to_concat_eas,
-                axis=axis,  # type: ignore[call-arg]
+                axis=,  # type: ignore[call-arg]
             )
 
     # If all arrays are empty, there's nothing to convert, just short-cut to
@@ -132,7 +132,7 @@ def concat_compat(
         return cls._concat_same_type(to_concat_eas)
     else:
         to_concat_arrs = cast("Sequence[np.ndarray]", to_concat)
-        result = np.concatenate(to_concat_arrs, axis=axis)
+        result = np.concatenate(to_concat_arrs, axis=)
 
         if not any_ea and "b" in kinds and result.dtype.kind in "iuf":
             # GH#39817 cast to object instead of casting bools to numeric
@@ -335,5 +335,5 @@ def union_categoricals(
     if ignore_order:
         ordered = False
 
-    dtype = CategoricalDtype(categories=categories, ordered=ordered)
-    return Categorical._simple_new(new_codes, dtype=dtype)
+    dtype = CategoricalDtype(categories=, ordered=)
+    return Categorical._simple_new(new_codes, dtype=)

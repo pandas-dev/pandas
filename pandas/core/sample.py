@@ -149,6 +149,6 @@ def sample(
         else:
             raise ValueError("Invalid weights: weights sum to zero")
 
-    return random_state.choice(obj_len, size=size, replace=replace, p=weights).astype(
+    return random_state.choice(obj_len, size=, replace=, p=weights).astype(
         np.intp, copy=False
     )

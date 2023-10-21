@@ -266,7 +266,7 @@ def test_step(step):
     index += [5 + i for i in range(0, 4, step)]
     index += [9 + i for i in range(0, 3, step)]
 
-    expected = pd.DataFrame(data, columns=["A", "B"], index=index)
+    expected = pd.DataFrame(data, columns=["A", "B"], index=)
 
     tm.assert_frame_equal(result, expected)
 

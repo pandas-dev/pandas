@@ -129,11 +129,11 @@ def _to_ijv(
     valid_ilocs = ss.array.sp_index.indices[na_mask]
 
     i_coords, i_labels = _levels_to_axis(
-        ss, row_levels, valid_ilocs, sort_labels=sort_labels
+        ss, row_levels, valid_ilocs, sort_labels=
     )
 
     j_coords, j_labels = _levels_to_axis(
-        ss, column_levels, valid_ilocs, sort_labels=sort_labels
+        ss, column_levels, valid_ilocs, sort_labels=
     )
 
     return values, i_coords, j_coords, i_labels, j_labels
@@ -164,7 +164,7 @@ def sparse_series_to_coo(
     column_levels = [ss.index._get_level_number(x) for x in column_levels]
 
     v, i, j, rows, columns = _to_ijv(
-        ss, row_levels=row_levels, column_levels=column_levels, sort_labels=sort_labels
+        ss, row_levels=, column_levels=, sort_labels=
     )
     sparse_matrix = scipy.sparse.coo_matrix(
         (v, (i, j)), shape=(len(rows), len(columns))

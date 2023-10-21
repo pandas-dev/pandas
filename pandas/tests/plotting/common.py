@@ -451,14 +451,14 @@ def _check_grid_settings(obj, kinds, kws={}):
         mpl.pyplot.subplot(1, 4 * len(kinds), spndx)
         spndx += 1
         mpl.rc("axes", grid=False)
-        obj.plot(kind=kind, **kws)
+        obj.plot(kind=, **kws)
         assert not is_grid_on()
         mpl.pyplot.clf()
 
         mpl.pyplot.subplot(1, 4 * len(kinds), spndx)
         spndx += 1
         mpl.rc("axes", grid=True)
-        obj.plot(kind=kind, grid=False, **kws)
+        obj.plot(kind=, grid=False, **kws)
         assert not is_grid_on()
         mpl.pyplot.clf()
 
@@ -466,14 +466,14 @@ def _check_grid_settings(obj, kinds, kws={}):
             mpl.pyplot.subplot(1, 4 * len(kinds), spndx)
             spndx += 1
             mpl.rc("axes", grid=True)
-            obj.plot(kind=kind, **kws)
+            obj.plot(kind=, **kws)
             assert is_grid_on()
             mpl.pyplot.clf()
 
             mpl.pyplot.subplot(1, 4 * len(kinds), spndx)
             spndx += 1
             mpl.rc("axes", grid=False)
-            obj.plot(kind=kind, grid=True, **kws)
+            obj.plot(kind=, grid=True, **kws)
             assert is_grid_on()
             mpl.pyplot.clf()
 

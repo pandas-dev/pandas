@@ -22,9 +22,9 @@ class TestDataFrameReindexLike:
     def test_reindex_like_methods(self, method, expected_values):
         df = DataFrame({"x": list(range(5))})
 
-        result = df.reindex_like(df, method=method, tolerance=0)
+        result = df.reindex_like(df, method=, tolerance=0)
         tm.assert_frame_equal(df, result)
-        result = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
+        result = df.reindex_like(df, method=, tolerance=[0, 0, 0, 0])
         tm.assert_frame_equal(df, result)
 
     def test_reindex_like_subclass(self):

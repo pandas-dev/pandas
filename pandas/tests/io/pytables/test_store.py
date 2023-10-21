@@ -71,7 +71,7 @@ def test_no_track_times(tmp_path, setup_path):
                 format="table",
                 data_columns=True,
                 index=None,
-                track_times=track_times,
+                track_times=,
             )
 
         return checksum(path)
@@ -234,8 +234,8 @@ def test_walk(where, expected):
         store._handle.create_table("/first_group", "tb1", obj=objs["tb1"])
         store._handle.create_table("/second_group", "tb2", obj=objs["tb2"])
 
-        assert len(list(store.walk(where=where))) == len(expected)
-        for path, groups, leaves in store.walk(where=where):
+        assert len(list(store.walk(where=))) == len(expected)
+        for path, groups, leaves in store.walk(where=):
             assert path in expected
             expected_groups, expected_frames = expected[path]
             assert expected_groups == set(groups)
@@ -340,7 +340,7 @@ def test_to_hdf_errors(tmp_path, format, setup_path):
     ser = Series(data, index=Index(data))
     path = tmp_path / setup_path
     # GH 20835
-    ser.to_hdf(path, key="table", format=format, errors="surrogatepass")
+    ser.to_hdf(path, key="table", format=, errors="surrogatepass")
 
     result = read_hdf(path, "table", errors="surrogatepass")
     tm.assert_series_equal(result, ser)
@@ -452,7 +452,7 @@ def test_calendar_roundtrip_issue(setup_path):
         np.datetime64("2014-05-01"),
     ]
     bday_egypt = pd.offsets.CustomBusinessDay(
-        holidays=holidays, weekmask=weekmask_egypt
+        holidays=, weekmask=weekmask_egypt
     )
     mydt = dt.datetime(2013, 4, 30)
     dts = date_range(mydt, periods=5, freq=bday_egypt)
@@ -644,11 +644,11 @@ def test_coordinates(setup_path):
         expected = df.iloc[where]
 
         # locations
-        result = store.select("df", where=where)
+        result = store.select("df", where=)
         tm.assert_frame_equal(result, expected)
 
         # boolean
-        result = store.select("df", where=where)
+        result = store.select("df", where=)
         tm.assert_frame_equal(result, expected)
 
         # invalid
@@ -684,7 +684,7 @@ def test_coordinates(setup_path):
         # boolean
         where = [True] * 10
         where[-2] = False
-        result = store.select("df2", where=where)
+        result = store.select("df2", where=)
         expected = df.loc[where]
         tm.assert_frame_equal(result, expected)
 
@@ -812,7 +812,7 @@ def test_contiguous_mixed_data_table(start, stop, setup_path):
     with ensure_clean_store(setup_path) as store:
         store.append("test_dataset", df)
 
-        result = store.select("test_dataset", start=start, stop=stop)
+        result = store.select("test_dataset", start=, stop=)
         tm.assert_frame_equal(df[start:stop], result)
 
 
@@ -864,7 +864,7 @@ def test_copy(propindexes):
         with tempfile.NamedTemporaryFile() as new_f:
             with HDFStore(path) as store:
                 with contextlib.closing(
-                    store.copy(new_f.name, keys=None, propindexes=propindexes)
+                    store.copy(new_f.name, keys=None, propindexes=)
                 ) as tstore:
                     # check keys
                     keys = store.keys()
@@ -928,7 +928,7 @@ def test_columns_multiindex_modified(tmp_path, setup_path):
         key="df",
         mode="a",
         append=True,
-        data_columns=data_columns,
+        data_columns=,
         index=False,
     )
     cols2load = list("BCD")

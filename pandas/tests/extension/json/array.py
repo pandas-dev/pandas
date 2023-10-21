@@ -150,7 +150,7 @@ class JSONArray(ExtensionArray):
         if dtype == object:
             # on py38 builds it looks like numpy is inferring to a non-1D array
             return construct_1d_object_array_from_listlike(list(self))
-        return np.asarray(self.data, dtype=dtype)
+        return np.asarray(self.data, dtype=)
 
     @property
     def nbytes(self) -> int:
@@ -208,7 +208,7 @@ class JSONArray(ExtensionArray):
             value = self.astype(str)  # numpy doesn't like nested dicts
             return dtype.construct_array_type()._from_sequence(value, copy=False)
 
-        return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
+        return np.array([dict(x) for x in self], dtype=, copy=)
 
     def unique(self):
         # Parent method doesn't work since np.array will try to infer

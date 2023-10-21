@@ -109,11 +109,11 @@ def check_for_inconsistent_pandas_namespace(
             key for key, val in visitor.pandas_namespace.items() if val == inconsistency
         )
         msg = ERROR_MESSAGE.format(
-            lineno=lineno,
-            col_offset=col_offset,
-            prefix=prefix,
+            lineno=,
+            col_offset=,
+            prefix=,
             name=inconsistency,
-            path=path,
+            path=,
         )
         sys.stdout.write(msg)
         sys.exit(1)

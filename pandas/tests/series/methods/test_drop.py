@@ -24,8 +24,8 @@ from pandas.api.types import is_bool_dtype
 def test_drop_unique_and_non_unique_index(
     data, index, axis, drop_labels, expected_data, expected_index
 ):
-    ser = Series(data=data, index=index)
-    result = ser.drop(drop_labels, axis=axis)
+    ser = Series(data=, index=)
+    result = ser.drop(drop_labels, axis=)
     expected = Series(data=expected_data, index=expected_index)
     tm.assert_series_equal(result, expected)
 
@@ -41,9 +41,9 @@ def test_drop_unique_and_non_unique_index(
     ],
 )
 def test_drop_exception_raised(data, index, drop_labels, axis, error_type, error_desc):
-    ser = Series(data, index=index)
+    ser = Series(data, index=)
     with pytest.raises(error_type, match=error_desc):
-        ser.drop(drop_labels, axis=axis)
+        ser.drop(drop_labels, axis=)
 
 
 def test_drop_with_ignore_errors():
@@ -69,7 +69,7 @@ def test_drop_with_ignore_errors():
 def test_drop_empty_list(index, drop_labels):
     # GH 21494
     expected_index = [i for i in index if i not in drop_labels]
-    series = Series(index=index, dtype=object).drop(drop_labels)
+    series = Series(index=, dtype=object).drop(drop_labels)
     expected = Series(index=expected_index, dtype=object)
     tm.assert_series_equal(series, expected)
 
@@ -85,7 +85,7 @@ def test_drop_empty_list(index, drop_labels):
 def test_drop_non_empty_list(data, index, drop_labels):
     # GH 21494 and GH 16877
     dtype = object if data is None else None
-    ser = Series(data=data, index=index, dtype=dtype)
+    ser = Series(data=, index=, dtype=)
     with pytest.raises(KeyError, match="not found in axis"):
         ser.drop(drop_labels)
 

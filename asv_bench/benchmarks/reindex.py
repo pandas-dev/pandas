@@ -26,7 +26,7 @@ class Reindex:
         level1 = tm.makeStringIndex(N).values.repeat(K)
         level2 = np.tile(tm.makeStringIndex(K).values, N)
         index = MultiIndex.from_arrays([level1, level2])
-        self.s = Series(np.random.randn(N * K), index=index)
+        self.s = Series(np.random.randn(N * K), index=)
         self.s_subset = self.s[::2]
         self.s_subset_no_cache = self.s[::2].copy()
 
@@ -63,7 +63,7 @@ class ReindexMethod:
         self.ts = Series(np.random.randn(N), index=self.idx)[::2]
 
     def time_reindex_method(self, method, constructor):
-        self.ts.reindex(self.idx, method=method)
+        self.ts.reindex(self.idx, method=)
 
 
 class LevelAlign:
@@ -111,22 +111,22 @@ class DropDuplicates:
         self.df_bool = DataFrame(np.random.randint(0, 2, size=(K, 10), dtype=bool))
 
     def time_frame_drop_dups(self, inplace):
-        self.df.drop_duplicates(["key1", "key2"], inplace=inplace)
+        self.df.drop_duplicates(["key1", "key2"], inplace=)
 
     def time_frame_drop_dups_na(self, inplace):
-        self.df_nan.drop_duplicates(["key1", "key2"], inplace=inplace)
+        self.df_nan.drop_duplicates(["key1", "key2"], inplace=)
 
     def time_series_drop_dups_int(self, inplace):
-        self.s.drop_duplicates(inplace=inplace)
+        self.s.drop_duplicates(inplace=)
 
     def time_series_drop_dups_string(self, inplace):
-        self.s_str.drop_duplicates(inplace=inplace)
+        self.s_str.drop_duplicates(inplace=)
 
     def time_frame_drop_dups_int(self, inplace):
-        self.df_int.drop_duplicates(inplace=inplace)
+        self.df_int.drop_duplicates(inplace=)
 
     def time_frame_drop_dups_bool(self, inplace):
-        self.df_bool.drop_duplicates(inplace=inplace)
+        self.df_bool.drop_duplicates(inplace=)
 
 
 class Align:

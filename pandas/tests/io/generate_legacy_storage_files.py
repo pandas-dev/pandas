@@ -332,7 +332,7 @@ def write_legacy_file():
     storage_type = str(sys.argv[2])
 
     if storage_type == "pickle":
-        write_legacy_pickles(output_dir=output_dir)
+        write_legacy_pickles(output_dir=)
     else:
         sys.exit("storage_type must be one of {'pickle'}")
 

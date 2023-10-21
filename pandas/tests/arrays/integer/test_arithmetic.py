@@ -18,11 +18,11 @@ from pandas.core.arrays import FloatingArray
     ids=["add", "mul"],
 )
 def test_add_mul(dtype, opname, exp):
-    a = pd.array([0, 1, None, 3, 4], dtype=dtype)
-    b = pd.array([1, 2, 3, None, 5], dtype=dtype)
+    a = pd.array([0, 1, None, 3, 4], dtype=)
+    b = pd.array([1, 2, 3, None, 5], dtype=)
 
     # array / array
-    expected = pd.array(exp, dtype=dtype)
+    expected = pd.array(exp, dtype=)
 
     op = getattr(operator, opname)
     result = op(a, b)
@@ -34,17 +34,17 @@ def test_add_mul(dtype, opname, exp):
 
 
 def test_sub(dtype):
-    a = pd.array([1, 2, 3, None, 5], dtype=dtype)
-    b = pd.array([0, 1, None, 3, 4], dtype=dtype)
+    a = pd.array([1, 2, 3, None, 5], dtype=)
+    b = pd.array([0, 1, None, 3, 4], dtype=)
 
     result = a - b
-    expected = pd.array([1, 1, None, None, 1], dtype=dtype)
+    expected = pd.array([1, 1, None, None, 1], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_div(dtype):
-    a = pd.array([1, 2, 3, None, 5], dtype=dtype)
-    b = pd.array([0, 1, None, 3, 4], dtype=dtype)
+    a = pd.array([1, 2, 3, None, 5], dtype=)
+    b = pd.array([0, 1, None, 3, 4], dtype=)
 
     result = a / b
     expected = pd.array([np.inf, 2, None, None, 1.25], dtype="Float64")
@@ -66,12 +66,12 @@ def test_divide_by_zero(zero, negative):
 
 
 def test_floordiv(dtype):
-    a = pd.array([1, 2, 3, None, 5], dtype=dtype)
-    b = pd.array([0, 1, None, 3, 4], dtype=dtype)
+    a = pd.array([1, 2, 3, None, 5], dtype=)
+    b = pd.array([0, 1, None, 3, 4], dtype=)
 
     result = a // b
     # Series op sets 1//0 to np.inf, which IntegerArray does not do (yet)
-    expected = pd.array([0, 2, None, None, 1], dtype=dtype)
+    expected = pd.array([0, 2, None, None, 1], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -91,11 +91,11 @@ def test_floordiv_by_int_zero_no_mask(any_int_ea_dtype):
 
 
 def test_mod(dtype):
-    a = pd.array([1, 2, 3, None, 5], dtype=dtype)
-    b = pd.array([0, 1, None, 3, 4], dtype=dtype)
+    a = pd.array([1, 2, 3, None, 5], dtype=)
+    b = pd.array([0, 1, None, 3, 4], dtype=)
 
     result = a % b
-    expected = pd.array([0, 0, None, None, 1], dtype=dtype)
+    expected = pd.array([0, 0, None, None, 1], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -322,10 +322,10 @@ def test_reduce_to_float(op):
 )
 def test_unary_int_operators(any_signed_int_ea_dtype, source, neg_target, abs_target):
     dtype = any_signed_int_ea_dtype
-    arr = pd.array(source, dtype=dtype)
+    arr = pd.array(source, dtype=)
     neg_result, pos_result, abs_result = -arr, +arr, abs(arr)
-    neg_target = pd.array(neg_target, dtype=dtype)
-    abs_target = pd.array(abs_target, dtype=dtype)
+    neg_target = pd.array(neg_target, dtype=)
+    abs_target = pd.array(abs_target, dtype=)
 
     tm.assert_extension_array_equal(neg_result, neg_target)
     tm.assert_extension_array_equal(pos_result, arr)
@@ -343,19 +343,19 @@ def test_values_multiplying_large_series_by_NA():
 
 
 def test_bitwise(dtype):
-    left = pd.array([1, None, 3, 4], dtype=dtype)
-    right = pd.array([None, 3, 5, 4], dtype=dtype)
+    left = pd.array([1, None, 3, 4], dtype=)
+    right = pd.array([None, 3, 5, 4], dtype=)
 
     result = left | right
-    expected = pd.array([None, None, 3 | 5, 4 | 4], dtype=dtype)
+    expected = pd.array([None, None, 3 | 5, 4 | 4], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
     result = left & right
-    expected = pd.array([None, None, 3 & 5, 4 & 4], dtype=dtype)
+    expected = pd.array([None, None, 3 & 5, 4 & 4], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
     result = left ^ right
-    expected = pd.array([None, None, 3 ^ 5, 4 ^ 4], dtype=dtype)
+    expected = pd.array([None, None, 3 ^ 5, 4 ^ 4], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
     # TODO: desired behavior when operating with boolean?  defer?

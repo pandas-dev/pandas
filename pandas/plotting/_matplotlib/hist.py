@@ -109,7 +109,7 @@ class HistPlot(LinePlot):
         base = np.zeros(len(bins) - 1)
         bottom = bottom + cls._get_stacked_values(ax, stacking_id, base, kwds["label"])
         # ignore style
-        n, bins, patches = ax.hist(y, bins=bins, bottom=bottom, **kwds)
+        n, bins, patches = ax.hist(y, bins=, bottom=, **kwds)
         cls._update_stacker(ax, stacking_id, n)
         return patches
 
@@ -124,7 +124,7 @@ class HistPlot(LinePlot):
             else self.data
         )
 
-        for i, (label, y) in enumerate(self._iter_data(data=data)):
+        for i, (label, y) in enumerate(self._iter_data(data=)):
             ax = self._get_ax(i)
 
             kwds = self.kwds.copy()
@@ -164,7 +164,7 @@ class HistPlot(LinePlot):
 
             y = reformat_hist_y_given_by(y, self.by)
 
-            artists = self._plot(ax, y, column_num=i, stacking_id=stacking_id, **kwds)
+            artists = self._plot(ax, y, column_num=i, stacking_id=, **kwds)
 
             # when by is applied, show title for subplots to know which group it is
             if self.by is not None:
@@ -248,10 +248,10 @@ class KdePlot(HistPlot):
         from scipy.stats import gaussian_kde
 
         y = remove_na_arraylike(y)
-        gkde = gaussian_kde(y, bw_method=bw_method)
+        gkde = gaussian_kde(y, bw_method=)
 
         y = gkde.evaluate(ind)
-        lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
+        lines = MPLPlot._plot(ax, ind, y, style=, **kwds)
         return lines
 
     def _make_plot_keywords(self, kwds, y):
@@ -292,7 +292,7 @@ def _grouped_plot(
 
     naxes = len(grouped)
     fig, axes = create_subplots(
-        naxes=naxes, figsize=figsize, sharex=sharex, sharey=sharey, ax=ax, layout=layout
+        naxes=, figsize=, sharex=, sharey=, ax=, layout=
     )
 
     _axes = flatten_axes(axes)
@@ -359,7 +359,7 @@ def _grouped_hist(
             kwargs["label"] = column
 
     def plot_group(group, ax) -> None:
-        ax.hist(group.dropna().values, bins=bins, **kwargs)
+        ax.hist(group.dropna().values, bins=, **kwargs)
         if legend:
             ax.legend()
 
@@ -369,19 +369,17 @@ def _grouped_hist(
     fig, axes = _grouped_plot(
         plot_group,
         data,
-        column=column,
-        by=by,
-        sharex=sharex,
-        sharey=sharey,
-        ax=ax,
-        figsize=figsize,
-        layout=layout,
-        rot=rot,
+        column=,
+        by=,
+        sharex=,
+        sharey=,
+        ax=,
+        figsize=,
+        layout=,
+        rot=,
     )
 
-    set_ticks_props(
-        axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
-    )
+    set_ticks_props(axes, xlabelsize=, xrot=, ylabelsize=, yrot=)
 
     maybe_adjust_figure(
         fig, bottom=0.15, top=0.9, left=0.1, right=0.9, hspace=0.5, wspace=0.3
@@ -413,7 +411,7 @@ def hist_series(
             raise ValueError("The 'layout' keyword is not supported when 'by' is None")
         # hack until the plotting interface is a bit more unified
         fig = kwds.pop(
-            "figure", plt.gcf() if plt.get_fignums() else plt.figure(figsize=figsize)
+            "figure", plt.gcf() if plt.get_fignums() else plt.figure(figsize=)
         )
         if figsize is not None and tuple(figsize) != tuple(fig.get_size_inches()):
             fig.set_size_inches(*figsize, forward=True)
@@ -424,15 +422,13 @@ def hist_series(
         values = self.dropna().values
         if legend:
             kwds["label"] = self.name
-        ax.hist(values, bins=bins, **kwds)
+        ax.hist(values, bins=, **kwds)
         if legend:
             ax.legend()
         ax.grid(grid)
         axes = np.array([ax])
 
-        set_ticks_props(
-            axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
-        )
+        set_ticks_props(axes, xlabelsize=, xrot=, ylabelsize=, yrot=)
 
     else:
         if "figure" in kwds:
@@ -442,16 +438,16 @@ def hist_series(
             )
         axes = _grouped_hist(
             self,
-            by=by,
-            ax=ax,
-            grid=grid,
-            figsize=figsize,
-            bins=bins,
-            xlabelsize=xlabelsize,
-            xrot=xrot,
-            ylabelsize=ylabelsize,
-            yrot=yrot,
-            legend=legend,
+            by=,
+            ax=,
+            grid=,
+            figsize=,
+            bins=,
+            xlabelsize=,
+            xrot=,
+            ylabelsize=,
+            yrot=,
+            legend=,
             **kwds,
         )
 
@@ -484,20 +480,20 @@ def hist_frame(
     if by is not None:
         axes = _grouped_hist(
             data,
-            column=column,
-            by=by,
-            ax=ax,
-            grid=grid,
-            figsize=figsize,
-            sharex=sharex,
-            sharey=sharey,
-            layout=layout,
-            bins=bins,
-            xlabelsize=xlabelsize,
-            xrot=xrot,
-            ylabelsize=ylabelsize,
-            yrot=yrot,
-            legend=legend,
+            column=,
+            by=,
+            ax=,
+            grid=,
+            figsize=,
+            sharex=,
+            sharey=,
+            layout=,
+            bins=,
+            xlabelsize=,
+            xrot=,
+            ylabelsize=,
+            yrot=,
+            legend=,
             **kwds,
         )
         return axes
@@ -518,13 +514,13 @@ def hist_frame(
         )
 
     fig, axes = create_subplots(
-        naxes=naxes,
-        ax=ax,
+        naxes=,
+        ax=,
         squeeze=False,
-        sharex=sharex,
-        sharey=sharey,
-        figsize=figsize,
-        layout=layout,
+        sharex=,
+        sharey=,
+        figsize=,
+        layout=,
     )
     _axes = flatten_axes(axes)
 
@@ -534,15 +530,13 @@ def hist_frame(
         ax = _axes[i]
         if legend and can_set_label:
             kwds["label"] = col
-        ax.hist(data[col].dropna().values, bins=bins, **kwds)
+        ax.hist(data[col].dropna().values, bins=, **kwds)
         ax.set_title(col)
         ax.grid(grid)
         if legend:
             ax.legend()
 
-    set_ticks_props(
-        axes, xlabelsize=xlabelsize, xrot=xrot, ylabelsize=ylabelsize, yrot=yrot
-    )
+    set_ticks_props(axes, xlabelsize=, xrot=, ylabelsize=, yrot=)
     maybe_adjust_figure(fig, wspace=0.3, hspace=0.3)
 
     return axes

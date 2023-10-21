@@ -165,20 +165,20 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             # numerical issues with Float32Dtype
             na_values = scalars._mask
             result = scalars._data
-            result = lib.ensure_string_array(result, copy=copy, convert_na_value=False)
+            result = lib.ensure_string_array(result, copy=, convert_na_value=False)
             return cls(pa.array(result, mask=na_values, type=pa.string()))
         elif isinstance(scalars, (pa.Array, pa.ChunkedArray)):
             return cls(pc.cast(scalars, pa.string()))
 
         # convert non-na-likes to str
-        result = lib.ensure_string_array(scalars, copy=copy)
+        result = lib.ensure_string_array(scalars, copy=)
         return cls(pa.array(result, type=pa.string(), from_pandas=True))
 
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, dtype: Dtype | None = None, copy: bool = False
     ):
-        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+        return cls._from_sequence(strings, dtype=, copy=)
 
     @property
     def dtype(self) -> StringDtype:  # type: ignore[override]
@@ -238,9 +238,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             data = self._pa_array.cast(pa.from_numpy_dtype(dtype.numpy_dtype))
             return dtype.__from_arrow__(data)
         elif isinstance(dtype, np.dtype) and np.issubdtype(dtype, np.floating):
-            return self.to_numpy(dtype=dtype, na_value=np.nan)
+            return self.to_numpy(dtype=, na_value=np.nan)
 
-        return super().astype(dtype, copy=copy)
+        return super().astype(dtype, copy=)
 
     @property
     def _data(self):
@@ -294,7 +294,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
                 f,
                 mask.view("uint8"),
                 convert=False,
-                na_value=na_value,
+                na_value=,
                 # error: Argument 1 to "dtype" has incompatible type
                 # "Union[ExtensionDtype, str, dtype[Any], Type[object]]"; expected
                 # "Type[object]"
@@ -309,9 +309,9 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype
             result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+                arr, f, mask.view("uint8"), convert=False, na_value=
             )
-            result = pa.array(result, mask=mask, type=pa.string(), from_pandas=True)
+            result = pa.array(result, mask=, type=pa.string(), from_pandas=True)
             return type(self)(result)
         else:
             # This is when the result type is object. We reach this when
@@ -331,7 +331,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result = pc.match_substring_regex(self._pa_array, pat, ignore_case=not case)
         else:
             result = pc.match_substring(self._pa_array, pat, ignore_case=not case)
-        result = self._result_converter(result, na=na)
+        result = self._result_converter(result, na=)
         if not isna(na):
             result[isna(result)] = bool(na)
         return result
@@ -395,7 +395,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if step is None:
             step = 1
         return type(self)(
-            pc.utf8_slice_codeunits(self._pa_array, start=start, stop=stop, step=step)
+            pc.utf8_slice_codeunits(self._pa_array, start=, stop=, step=)
         )
 
     def _str_isalnum(self):
@@ -505,7 +505,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
     ):
-        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        result = self._reduce_calc(name, skipna=, keepdims=, **kwargs)
         if name in ("argmin", "argmax") and isinstance(result, pa.Array):
             return self._convert_int_dtype(result)
         elif isinstance(result, pa.Array):
@@ -526,13 +526,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         See Series.rank.__doc__.
         """
         return self._convert_int_dtype(
-            self._rank_calc(
-                axis=axis,
-                method=method,
-                na_option=na_option,
-                ascending=ascending,
-                pct=pct,
-            )
+            self._rank_calc(axis=, method=, na_option=, ascending=, pct=)
         )
 
 
@@ -586,7 +580,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
                     f,
                     mask.view("uint8"),
                     convert=False,
-                    na_value=na_value,
+                    na_value=,
                     dtype=np.dtype(dtype),  # type: ignore[arg-type]
                 )
                 return result
@@ -597,7 +591,7 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
                     f,
                     mask.view("uint8"),
                     convert=False,
-                    na_value=na_value,
+                    na_value=,
                 )
                 if convert and result.dtype == object:
                     result = lib.maybe_convert_objects(result)
@@ -606,9 +600,9 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
         elif is_string_dtype(dtype) and not is_object_dtype(dtype):
             # i.e. StringDtype
             result = lib.map_infer_mask(
-                arr, f, mask.view("uint8"), convert=False, na_value=na_value
+                arr, f, mask.view("uint8"), convert=False, na_value=
             )
-            result = pa.array(result, mask=mask, type=pa.string(), from_pandas=True)
+            result = pa.array(result, mask=, type=pa.string(), from_pandas=True)
             return type(self)(result)
         else:
             # This is when the result type is object. We reach this when
@@ -648,10 +642,10 @@ class ArrowStringArrayNumpySemantics(ArrowStringArray):
             else:
                 arr = pc.not_equal(self._pa_array, "")
             return ArrowExtensionArray(arr)._reduce(
-                name, skipna=skipna, keepdims=keepdims, **kwargs
+                name, skipna=, keepdims=, **kwargs
             )
         else:
-            return super()._reduce(name, skipna=skipna, keepdims=keepdims, **kwargs)
+            return super()._reduce(name, skipna=, keepdims=, **kwargs)
 
     def insert(self, loc: int, item) -> ArrowStringArrayNumpySemantics:
         if item is np.nan:

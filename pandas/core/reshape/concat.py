@@ -379,15 +379,15 @@ def concat(
 
     op = _Concatenator(
         objs,
-        axis=axis,
-        ignore_index=ignore_index,
-        join=join,
-        keys=keys,
-        levels=levels,
-        names=names,
-        verify_integrity=verify_integrity,
-        copy=copy,
-        sort=sort,
+        axis=,
+        ignore_index=,
+        join=,
+        keys=,
+        levels=,
+        names=,
+        verify_integrity=,
+        copy=,
+        sort=,
     )
 
     return op.get_result()
@@ -533,7 +533,7 @@ class _Concatenator:
                 keys = type(keys).from_tuples(clean_keys, names=keys.names)
             else:
                 name = getattr(keys, "name", None)
-                keys = Index(clean_keys, name=name, dtype=getattr(keys, "dtype", None))
+                keys = Index(clean_keys, name=, dtype=getattr(keys, "dtype", None))
 
         if len(objs_list) == 0:
             raise ValueError("All objects passed were None")
@@ -653,7 +653,7 @@ class _Concatenator:
                 cons = sample._constructor_expanddim
 
                 index, columns = self.new_axes
-                df = cons(data, index=index, copy=self.copy)
+                df = cons(data, index=, copy=self.copy)
                 df.columns = columns
                 return df.__finalize__(self, method="concat")
 
@@ -846,7 +846,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
             names = list(names) + list(get_unanimous_names(*indexes))
 
         return MultiIndex(
-            levels=levels, codes=codes_list, names=names, verify_integrity=False
+            levels=, codes=codes_list, names=, verify_integrity=False
         )
 
     new_index = indexes[0]

@@ -42,9 +42,9 @@ def test_frame_equal_row_order_mismatch(check_like, obj_fixture):
     if not check_like:  # Do not ignore row-column orderings.
         msg = f"{obj_fixture}.index are different"
         with pytest.raises(AssertionError, match=msg):
-            tm.assert_frame_equal(df1, df2, check_like=check_like, obj=obj_fixture)
+            tm.assert_frame_equal(df1, df2, check_like=, obj=obj_fixture)
     else:
-        _assert_frame_equal_both(df1, df2, check_like=check_like, obj=obj_fixture)
+        _assert_frame_equal_both(df1, df2, check_like=, obj=obj_fixture)
 
 
 @pytest.mark.parametrize(
@@ -94,8 +94,8 @@ def test_frame_equal_index_dtype_mismatch(df1, df2, msg, check_index_type):
 
 def test_empty_dtypes(check_dtype):
     columns = ["col1", "col2"]
-    df1 = DataFrame(columns=columns)
-    df2 = DataFrame(columns=columns)
+    df1 = DataFrame(columns=)
+    df2 = DataFrame(columns=)
 
     kwargs = {"check_dtype": check_dtype}
     df1["col1"] = df1["col1"].astype("int64")
@@ -121,7 +121,7 @@ At positional index 2, first diff: c != d"""
     df2 = DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}, index=["a", "b", "d"])
 
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_frame_equal(df1, df2, check_like=check_like, obj=obj_fixture)
+        tm.assert_frame_equal(df1, df2, check_like=, obj=obj_fixture)
 
 
 @pytest.mark.parametrize("check_like", [True, False])
@@ -136,7 +136,7 @@ def test_frame_equal_columns_mismatch(check_like, obj_fixture):
     df2 = DataFrame({"A": [1, 2, 3], "b": [4, 5, 6]}, index=["a", "b", "c"])
 
     with pytest.raises(AssertionError, match=msg):
-        tm.assert_frame_equal(df1, df2, check_like=check_like, obj=obj_fixture)
+        tm.assert_frame_equal(df1, df2, check_like=, obj=obj_fixture)
 
 
 def test_frame_equal_block_mismatch(by_blocks_fixture, obj_fixture):
@@ -245,7 +245,7 @@ def test_assert_frame_equal_ignore_extension_dtype_mismatch(right_dtype):
     ],
 )
 def test_assert_frame_equal_datetime_like_dtype_mismatch(dtype):
-    df1 = DataFrame({"a": []}, dtype=dtype)
+    df1 = DataFrame({"a": []}, dtype=)
     df2 = DataFrame({"a": []})
     tm.assert_frame_equal(df1, df2, check_dtype=False)
 

@@ -384,7 +384,7 @@ class TestToLatexHeader:
         df = DataFrame({"a": [1, 2], "b": ["b1", "b2"]})
         msg = f"Writing 2 cols but got {num_aliases} aliases"
         with pytest.raises(ValueError, match=msg):
-            df.to_latex(header=header)
+            df.to_latex(header=)
 
     def test_to_latex_decimal(self):
         # GH 12031
@@ -556,7 +556,7 @@ class TestToLatexCaptionLabel:
 
     def test_to_latex_caption_and_shortcaption_list_is_ok(self, df_short):
         caption = ("Long-long-caption", "Short")
-        result_tuple = df_short.to_latex(caption=caption)
+        result_tuple = df_short.to_latex(caption=)
         result_list = df_short.to_latex(caption=list(caption))
         assert result_tuple == result_list
 
@@ -990,7 +990,7 @@ class TestToLatexFormatters:
             ],
             columns=["Group", "Data"],
         )
-        result = df.to_latex(na_rep=na_rep, float_format="{:.2f}".format)
+        result = df.to_latex(na_rep=, float_format="{:.2f}".format)
         expected = _dedent(
             rf"""
             \begin{{tabular}}{{llr}}

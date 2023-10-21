@@ -245,7 +245,7 @@ class TestSeriesRank:
     def test_rank_tie_methods(self, ser, results, dtype):
         method, exp = results
         ser = ser if dtype is None else ser.astype(dtype)
-        result = ser.rank(method=method)
+        result = ser.rank(method=)
         tm.assert_series_equal(result, Series(exp))
 
     @pytest.mark.parametrize("ascending", [True, False])
@@ -280,7 +280,7 @@ class TestSeriesRank:
 
         chunk = 3
         in_arr = [neg_inf] * chunk + [na_value] * chunk + [pos_inf] * chunk
-        iseries = Series(in_arr, dtype=dtype)
+        iseries = Series(in_arr, dtype=)
         exp_ranks = {
             "average": ([2, 2, 2], [5, 5, 5], [8, 8, 8]),
             "min": ([1, 1, 1], [4, 4, 4], [7, 7, 7]),
@@ -297,7 +297,7 @@ class TestSeriesRank:
             order = [ranks[0], [np.nan] * chunk, ranks[1]]
         expected = order if ascending else order[::-1]
         expected = list(chain.from_iterable(expected))
-        result = iseries.rank(method=method, na_option=na_option, ascending=ascending)
+        result = iseries.rank(method=, na_option=, ascending=)
         tm.assert_series_equal(result, Series(expected, dtype=exp_dtype))
 
     def test_rank_desc_mix_nans_infs(self):
@@ -326,10 +326,10 @@ class TestSeriesRank:
 
         index = [chr(ord("a") + i) for i in range(len(xs))]
         vals = op(xs, value)
-        ts = Series(vals, index=index)
-        result = ts.rank(method=method)
+        ts = Series(vals, index=)
+        result = ts.rank(method=)
         sprank = sp_stats.rankdata(vals, method if method != "first" else "ordinal")
-        expected = Series(sprank, index=index).astype("float64")
+        expected = Series(sprank, index=).astype("float64")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -362,15 +362,15 @@ class TestSeriesRank:
         expected = (s.max() - s).rank()
         tm.assert_series_equal(res, expected)
 
-        expected = (s.max() - s).rank(method=method)
-        res2 = s.rank(method=method, ascending=False)
+        expected = (s.max() - s).rank(method=)
+        res2 = s.rank(method=, ascending=False)
         tm.assert_series_equal(res2, expected)
 
     def test_rank_int(self, ser, results):
         method, exp = results
         s = ser.dropna().astype("i8")
 
-        result = s.rank(method=method)
+        result = s.rank(method=)
         expected = Series(exp).dropna()
         expected.index = result.index
         tm.assert_series_equal(result, expected)

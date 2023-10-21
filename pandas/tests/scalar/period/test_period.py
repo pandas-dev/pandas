@@ -377,23 +377,23 @@ class TestPeriodConstruction:
     def test_period_cons_quarterly(self, month):
         # bugs in scikits.timeseries
         freq = f"Q-{month}"
-        exp = Period("1989Q3", freq=freq)
+        exp = Period("1989Q3", freq=)
         assert "1989Q3" in str(exp)
         stamp = exp.to_timestamp("D", how="end")
-        p = Period(stamp, freq=freq)
+        p = Period(stamp, freq=)
         assert p == exp
 
         stamp = exp.to_timestamp("3D", how="end")
-        p = Period(stamp, freq=freq)
+        p = Period(stamp, freq=)
         assert p == exp
 
     @pytest.mark.parametrize("month", MONTHS)
     def test_period_cons_annual(self, month):
         # bugs in scikits.timeseries
         freq = f"Y-{month}"
-        exp = Period("1989", freq=freq)
+        exp = Period("1989", freq=)
         stamp = exp.to_timestamp("D", how="end") + timedelta(days=30)
-        p = Period(stamp, freq=freq)
+        p = Period(stamp, freq=)
 
         assert p == exp + 1
         assert isinstance(p, Period)
@@ -404,7 +404,7 @@ class TestPeriodConstruction:
         daystr = f"2011-02-{num}"
         freq = f"W-{day}"
 
-        result = Period(daystr, freq=freq)
+        result = Period(daystr, freq=)
         expected = Period(daystr, freq="D").asfreq(freq)
         assert result == expected
         assert isinstance(result, Period)
@@ -430,7 +430,7 @@ class TestPeriodConstruction:
 
     @pytest.mark.parametrize("freq", ["Y", "M", "D", "h"])
     def test_construct_from_nat_string_and_freq(self, freq):
-        per = Period("NaT", freq=freq)
+        per = Period("NaT", freq=)
         assert per is NaT
 
         per = Period("NaT", freq="2" + freq)
@@ -708,7 +708,7 @@ class TestPeriodMethods:
     @pytest.mark.parametrize("freq", [None, "us", "ns"])
     def test_to_timestamp_microsecond(self, ts, expected, freq):
         # GH 24444
-        result = Period(ts).to_timestamp(freq=freq).microsecond
+        result = Period(ts).to_timestamp(freq=).microsecond
         assert result == expected
 
     # --------------------------------------------------------------
@@ -744,7 +744,7 @@ class TestPeriodMethods:
         "ignore:Period with BDay freq is deprecated:FutureWarning"
     )
     def test_repr(self, str_ts, freq, str_res, str_freq):
-        p = Period(str_ts, freq=freq)
+        p = Period(str_ts, freq=)
         assert str(p) == str_res
         assert repr(p) == f"Period('{str_res}', '{str_freq}')"
 
@@ -766,17 +766,17 @@ class TestPeriodProperties:
     @pytest.mark.parametrize("freq", ["Y", "M", "D", "h"])
     def test_is_leap_year(self, freq):
         # GH 13727
-        p = Period("2000-01-01 00:00:00", freq=freq)
+        p = Period("2000-01-01 00:00:00", freq=)
         assert p.is_leap_year
         assert isinstance(p.is_leap_year, bool)
 
-        p = Period("1999-01-01 00:00:00", freq=freq)
+        p = Period("1999-01-01 00:00:00", freq=)
         assert not p.is_leap_year
 
-        p = Period("2004-01-01 00:00:00", freq=freq)
+        p = Period("2004-01-01 00:00:00", freq=)
         assert p.is_leap_year
 
-        p = Period("2100-01-01 00:00:00", freq=freq)
+        p = Period("2100-01-01 00:00:00", freq=)
         assert not p.is_leap_year
 
     def test_quarterly_negative_ordinals(self):
@@ -820,9 +820,9 @@ class TestPeriodProperties:
         for exp, freqs in cases.items():
             for freq in freqs:
                 with pytest.raises(ValueError, match=msg):
-                    Period("2016-03-01 09:00", freq=freq)
+                    Period("2016-03-01 09:00", freq=)
                 with pytest.raises(ValueError, match=msg):
-                    Period(ordinal=1, freq=freq)
+                    Period(ordinal=1, freq=)
 
             # check supported freq-aliases still works
             p1 = Period("2016-03-01 09:00", freq=exp)
@@ -1260,8 +1260,8 @@ class TestArithmetic:
     boxes = [lambda x: x, lambda x: pd.Series([x]), lambda x: pd.Index([x])]
     ids = ["identity", "Series", "Index"]
 
-    @pytest.mark.parametrize("lbox", boxes, ids=ids)
-    @pytest.mark.parametrize("rbox", boxes, ids=ids)
+    @pytest.mark.parametrize("lbox", boxes, ids=)
+    @pytest.mark.parametrize("rbox", boxes, ids=)
     def test_add_timestamp_raises(self, rbox, lbox):
         # GH#17983
         ts = Timestamp("2017")
@@ -1337,8 +1337,8 @@ class TestArithmetic:
     def test_add_offset(self):
         # freq is DateOffset
         for freq in ["Y", "2Y", "3Y"]:
-            p = Period("2011", freq=freq)
-            exp = Period("2013", freq=freq)
+            p = Period("2011", freq=)
+            exp = Period("2013", freq=)
             assert p + offsets.YearEnd(2) == exp
             assert offsets.YearEnd(2) + p == exp
 
@@ -1356,12 +1356,12 @@ class TestArithmetic:
                     o + p
 
         for freq in ["M", "2M", "3M"]:
-            p = Period("2011-03", freq=freq)
-            exp = Period("2011-05", freq=freq)
+            p = Period("2011-03", freq=)
+            exp = Period("2011-05", freq=)
             assert p + offsets.MonthEnd(2) == exp
             assert offsets.MonthEnd(2) + p == exp
 
-            exp = Period("2012-03", freq=freq)
+            exp = Period("2012-03", freq=)
             assert p + offsets.MonthEnd(12) == exp
             assert offsets.MonthEnd(12) + p == exp
 
@@ -1386,29 +1386,29 @@ class TestArithmetic:
 
         # freq is Tick
         for freq in ["D", "2D", "3D"]:
-            p = Period("2011-04-01", freq=freq)
+            p = Period("2011-04-01", freq=)
 
-            exp = Period("2011-04-06", freq=freq)
+            exp = Period("2011-04-06", freq=)
             assert p + offsets.Day(5) == exp
             assert offsets.Day(5) + p == exp
 
-            exp = Period("2011-04-02", freq=freq)
+            exp = Period("2011-04-02", freq=)
             assert p + offsets.Hour(24) == exp
             assert offsets.Hour(24) + p == exp
 
-            exp = Period("2011-04-03", freq=freq)
+            exp = Period("2011-04-03", freq=)
             assert p + np.timedelta64(2, "D") == exp
             assert np.timedelta64(2, "D") + p == exp
 
-            exp = Period("2011-04-02", freq=freq)
+            exp = Period("2011-04-02", freq=)
             assert p + np.timedelta64(3600 * 24, "s") == exp
             assert np.timedelta64(3600 * 24, "s") + p == exp
 
-            exp = Period("2011-03-30", freq=freq)
+            exp = Period("2011-03-30", freq=)
             assert p + timedelta(-2) == exp
             assert timedelta(-2) + p == exp
 
-            exp = Period("2011-04-03", freq=freq)
+            exp = Period("2011-04-03", freq=)
             assert p + timedelta(hours=48) == exp
             assert timedelta(hours=48) + p == exp
 
@@ -1432,30 +1432,30 @@ class TestArithmetic:
                     o + p
 
         for freq in ["h", "2h", "3h"]:
-            p = Period("2011-04-01 09:00", freq=freq)
+            p = Period("2011-04-01 09:00", freq=)
 
-            exp = Period("2011-04-03 09:00", freq=freq)
+            exp = Period("2011-04-03 09:00", freq=)
             assert p + offsets.Day(2) == exp
             assert offsets.Day(2) + p == exp
 
-            exp = Period("2011-04-01 12:00", freq=freq)
+            exp = Period("2011-04-01 12:00", freq=)
             assert p + offsets.Hour(3) == exp
             assert offsets.Hour(3) + p == exp
 
             msg = "cannot use operands with types"
-            exp = Period("2011-04-01 12:00", freq=freq)
+            exp = Period("2011-04-01 12:00", freq=)
             assert p + np.timedelta64(3, "h") == exp
             assert np.timedelta64(3, "h") + p == exp
 
-            exp = Period("2011-04-01 10:00", freq=freq)
+            exp = Period("2011-04-01 10:00", freq=)
             assert p + np.timedelta64(3600, "s") == exp
             assert np.timedelta64(3600, "s") + p == exp
 
-            exp = Period("2011-04-01 11:00", freq=freq)
+            exp = Period("2011-04-01 11:00", freq=)
             assert p + timedelta(minutes=120) == exp
             assert timedelta(minutes=120) + p == exp
 
-            exp = Period("2011-04-05 12:00", freq=freq)
+            exp = Period("2011-04-05 12:00", freq=)
             assert p + timedelta(days=4, minutes=180) == exp
             assert timedelta(days=4, minutes=180) + p == exp
 
@@ -1488,8 +1488,8 @@ class TestArithmetic:
         )
 
         for freq in ["Y", "2Y", "3Y"]:
-            p = Period("2011", freq=freq)
-            assert p - offsets.YearEnd(2) == Period("2009", freq=freq)
+            p = Period("2011", freq=)
+            assert p - offsets.YearEnd(2) == Period("2009", freq=)
 
             for o in [
                 offsets.YearBegin(2),
@@ -1502,9 +1502,9 @@ class TestArithmetic:
                     p - o
 
         for freq in ["M", "2M", "3M"]:
-            p = Period("2011-03", freq=freq)
-            assert p - offsets.MonthEnd(2) == Period("2011-01", freq=freq)
-            assert p - offsets.MonthEnd(12) == Period("2010-03", freq=freq)
+            p = Period("2011-03", freq=)
+            assert p - offsets.MonthEnd(2) == Period("2011-01", freq=)
+            assert p - offsets.MonthEnd(12) == Period("2010-03", freq=)
 
             for o in [
                 offsets.YearBegin(2),
@@ -1518,13 +1518,13 @@ class TestArithmetic:
 
         # freq is Tick
         for freq in ["D", "2D", "3D"]:
-            p = Period("2011-04-01", freq=freq)
-            assert p - offsets.Day(5) == Period("2011-03-27", freq=freq)
-            assert p - offsets.Hour(24) == Period("2011-03-31", freq=freq)
-            assert p - np.timedelta64(2, "D") == Period("2011-03-30", freq=freq)
-            assert p - np.timedelta64(3600 * 24, "s") == Period("2011-03-31", freq=freq)
-            assert p - timedelta(-2) == Period("2011-04-03", freq=freq)
-            assert p - timedelta(hours=48) == Period("2011-03-30", freq=freq)
+            p = Period("2011-04-01", freq=)
+            assert p - offsets.Day(5) == Period("2011-03-27", freq=)
+            assert p - offsets.Hour(24) == Period("2011-03-31", freq=)
+            assert p - np.timedelta64(2, "D") == Period("2011-03-30", freq=)
+            assert p - np.timedelta64(3600 * 24, "s") == Period("2011-03-31", freq=)
+            assert p - timedelta(-2) == Period("2011-04-03", freq=)
+            assert p - timedelta(hours=48) == Period("2011-03-30", freq=)
 
             for o in [
                 offsets.YearBegin(2),
@@ -1537,16 +1537,16 @@ class TestArithmetic:
                     p - o
 
         for freq in ["h", "2h", "3h"]:
-            p = Period("2011-04-01 09:00", freq=freq)
-            assert p - offsets.Day(2) == Period("2011-03-30 09:00", freq=freq)
-            assert p - offsets.Hour(3) == Period("2011-04-01 06:00", freq=freq)
-            assert p - np.timedelta64(3, "h") == Period("2011-04-01 06:00", freq=freq)
+            p = Period("2011-04-01 09:00", freq=)
+            assert p - offsets.Day(2) == Period("2011-03-30 09:00", freq=)
+            assert p - offsets.Hour(3) == Period("2011-04-01 06:00", freq=)
+            assert p - np.timedelta64(3, "h") == Period("2011-04-01 06:00", freq=)
             assert p - np.timedelta64(3600, "s") == Period(
-                "2011-04-01 08:00", freq=freq
+                "2011-04-01 08:00", freq=
             )
-            assert p - timedelta(minutes=120) == Period("2011-04-01 07:00", freq=freq)
+            assert p - timedelta(minutes=120) == Period("2011-04-01 07:00", freq=)
             assert p - timedelta(days=4, minutes=180) == Period(
-                "2011-03-28 06:00", freq=freq
+                "2011-03-28 06:00", freq=
             )
 
             for o in [
@@ -1561,7 +1561,7 @@ class TestArithmetic:
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_period_addsub_nat(self, freq):
-        per = Period("2011-01", freq=freq)
+        per = Period("2011-01", freq=)
 
         # For subtraction, NaT is treated as another Period object
         assert NaT - per is NaT
@@ -1616,7 +1616,7 @@ def test_negone_ordinals():
         repr(period.asfreq(freq))
 
     for freq in freqs:
-        period = Period(ordinal=-1, freq=freq)
+        period = Period(ordinal=-1, freq=)
         repr(period)
         assert period.year == 1969
 

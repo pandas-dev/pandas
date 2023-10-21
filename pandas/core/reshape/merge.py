@@ -155,33 +155,33 @@ def merge(
         return _cross_merge(
             left_df,
             right_df,
-            on=on,
-            left_on=left_on,
-            right_on=right_on,
-            left_index=left_index,
-            right_index=right_index,
-            sort=sort,
-            suffixes=suffixes,
-            indicator=indicator,
-            validate=validate,
-            copy=copy,
+            on=,
+            left_on=,
+            right_on=,
+            left_index=,
+            right_index=,
+            sort=,
+            suffixes=,
+            indicator=,
+            validate=,
+            copy=,
         )
     else:
         op = _MergeOperation(
             left_df,
             right_df,
-            how=how,
-            on=on,
-            left_on=left_on,
-            right_on=right_on,
-            left_index=left_index,
-            right_index=right_index,
-            sort=sort,
-            suffixes=suffixes,
-            indicator=indicator,
-            validate=validate,
+            how=,
+            on=,
+            left_on=,
+            right_on=,
+            left_index=,
+            right_index=,
+            sort=,
+            suffixes=,
+            indicator=,
+            validate=,
         )
-        return op.get_result(copy=copy)
+        return op.get_result(copy=)
 
 
 def _cross_merge(
@@ -224,16 +224,16 @@ def _cross_merge(
         left,
         right,
         how="inner",
-        on=on,
-        left_on=left_on,
-        right_on=right_on,
-        left_index=left_index,
-        right_index=right_index,
-        sort=sort,
-        suffixes=suffixes,
-        indicator=indicator,
-        validate=validate,
-        copy=copy,
+        on=,
+        left_on=,
+        right_on=,
+        left_index=,
+        right_index=,
+        sort=,
+        suffixes=,
+        indicator=,
+        validate=,
+        copy=,
     )
     del res[cross_col]
     return res
@@ -405,12 +405,12 @@ def merge_ordered(
         op = _OrderedMerge(
             x,
             y,
-            on=on,
-            left_on=left_on,
-            right_on=right_on,
-            suffixes=suffixes,
-            fill_method=fill_method,
-            how=how,
+            on=,
+            left_on=,
+            right_on=,
+            suffixes=,
+            fill_method=,
+            how=,
         )
         return op.get_result()
 
@@ -691,19 +691,19 @@ def merge_asof(
     op = _AsOfMerge(
         left,
         right,
-        on=on,
-        left_on=left_on,
-        right_on=right_on,
-        left_index=left_index,
-        right_index=right_index,
-        by=by,
-        left_by=left_by,
-        right_by=right_by,
-        suffixes=suffixes,
+        on=,
+        left_on=,
+        right_on=,
+        left_index=,
+        right_index=,
+        by=,
+        left_by=,
+        right_by=,
+        suffixes=,
         how="asof",
-        tolerance=tolerance,
-        allow_exact_matches=allow_exact_matches,
-        direction=direction,
+        tolerance=,
+        allow_exact_matches=,
+        direction=,
     )
     return op.get_result()
 
@@ -876,7 +876,7 @@ class _MergeOperation:
 
         left.columns = llabels
         right.columns = rlabels
-        result = concat([left, right], axis=1, copy=copy)
+        result = concat([left, right], axis=1, copy=)
         return result
 
     def get_result(self, copy: bool | None = True) -> DataFrame:
@@ -886,7 +886,7 @@ class _MergeOperation:
         join_index, left_indexer, right_indexer = self._get_join_info()
 
         result = self._reindex_and_concat(
-            join_index, left_indexer, right_indexer, copy=copy
+            join_index, left_indexer, right_indexer, copy=
         )
         result = result.__finalize__(self, method=self._merge_type)
 
@@ -1099,7 +1099,7 @@ class _MergeOperation:
 
                         result.set_index(idx_list, inplace=True)
                     else:
-                        result.index = Index(key_col, name=name)
+                        result.index = Index(key_col, name=)
                 else:
                     result.insert(i, name or f"key_{i}", key_col)
 
@@ -1698,7 +1698,7 @@ def get_join_indexers(
 
     # get left & right join labels and num. of levels at each location
     mapped = (
-        _factorize_keys(left_keys[n], right_keys[n], sort=sort, how=how)
+        _factorize_keys(left_keys[n], right_keys[n], sort=, how=)
         for n in range(len(left_keys))
     )
     zipped = zip(*mapped)
@@ -1711,7 +1711,7 @@ def get_join_indexers(
     # `count` is the num. of unique keys
     # set(lkey) | set(rkey) == range(count)
 
-    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort, how=how)
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=, how=)
     # preserve left frame order if how == 'left' and sort == False
     kwargs = {}
     if how in ("inner", "left", "right"):
@@ -1839,13 +1839,13 @@ class _OrderedMerge(_MergeOperation):
             self,
             left,
             right,
-            on=on,
-            left_on=left_on,
-            left_index=left_index,
-            right_index=right_index,
-            right_on=right_on,
-            how=how,
-            suffixes=suffixes,
+            on=,
+            left_on=,
+            left_index=,
+            right_index=,
+            right_on=,
+            how=,
+            suffixes=,
             sort=True,  # factorize sorts
         )
 
@@ -1867,7 +1867,7 @@ class _OrderedMerge(_MergeOperation):
             right_join_indexer = right_indexer
 
         result = self._reindex_and_concat(
-            join_index, left_join_indexer, right_join_indexer, copy=copy
+            join_index, left_join_indexer, right_join_indexer, copy=
         )
         self._maybe_add_join_keys(result, left_indexer, right_indexer)
 
@@ -1923,13 +1923,13 @@ class _AsOfMerge(_OrderedMerge):
             self,
             left,
             right,
-            on=on,
-            left_on=left_on,
-            right_on=right_on,
-            left_index=left_index,
-            right_index=right_index,
-            how=how,
-            suffixes=suffixes,
+            on=,
+            left_on=,
+            right_on=,
+            left_index=,
+            right_index=,
+            how=,
+            suffixes=,
             fill_method=None,
         )
 
@@ -2242,7 +2242,7 @@ def _get_multiindex_indexer(
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     # left & right join labels and num. of levels at each location
     mapped = (
-        _factorize_keys(index.levels[n]._values, join_keys[n], sort=sort)
+        _factorize_keys(index.levels[n]._values, join_keys[n], sort=)
         for n in range(index.nlevels)
     )
     zipped = zip(*mapped)
@@ -2311,7 +2311,7 @@ def _left_join_on_index(
     left_ax: Index, right_ax: Index, join_keys: list[ArrayLike], sort: bool = False
 ) -> tuple[Index, npt.NDArray[np.intp] | None, npt.NDArray[np.intp]]:
     if isinstance(right_ax, MultiIndex):
-        lkey, rkey = _get_multiindex_indexer(join_keys, right_ax, sort=sort)
+        lkey, rkey = _get_multiindex_indexer(join_keys, right_ax, sort=)
     else:
         # error: Incompatible types in assignment (expression has type
         # "Union[Union[ExtensionArray, ndarray[Any, Any]], Index, Series]",
@@ -2321,9 +2321,9 @@ def _left_join_on_index(
         # variable has type "ndarray[Any, dtype[signedinteger[Any]]]")
         rkey = right_ax._values  # type: ignore[assignment]
 
-    left_key, right_key, count = _factorize_keys(lkey, rkey, sort=sort)
+    left_key, right_key, count = _factorize_keys(lkey, rkey, sort=)
     left_indexer, right_indexer = libjoin.left_outer_join(
-        left_key, right_key, count, sort=sort
+        left_key, right_key, count, sort=
     )
 
     if sort or len(left_ax) != len(left_indexer):
@@ -2532,12 +2532,12 @@ def _convert_arrays_and_get_rizer_klass(
             if isinstance(dtype, ExtensionDtype):
                 cls = dtype.construct_array_type()
                 if not isinstance(lk, ExtensionArray):
-                    lk = cls._from_sequence(lk, dtype=dtype, copy=False)
+                    lk = cls._from_sequence(lk, dtype=, copy=False)
                 else:
                     lk = lk.astype(dtype)
 
                 if not isinstance(rk, ExtensionArray):
-                    rk = cls._from_sequence(rk, dtype=dtype, copy=False)
+                    rk = cls._from_sequence(rk, dtype=, copy=False)
                 else:
                     rk = rk.astype(dtype)
             else:
@@ -2599,7 +2599,7 @@ def _get_join_keys(
         return lkey, rkey
 
     # densify current keys to avoid overflow
-    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=sort)
+    lkey, rkey, count = _factorize_keys(lkey, rkey, sort=)
 
     llab = [lkey] + llab[nlev:]
     rlab = [rkey] + rlab[nlev:]

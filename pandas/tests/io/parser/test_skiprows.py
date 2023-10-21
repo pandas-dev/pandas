@@ -36,14 +36,14 @@ def test_skip_rows_bug(all_parsers, skiprows):
 1/3/2000,7,8,9
 """
     result = parser.read_csv(
-        StringIO(text), skiprows=skiprows, header=None, index_col=0, parse_dates=True
+        StringIO(text), skiprows=, header=None, index_col=0, parse_dates=True
     )
     index = Index(
         [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)], name=0
     )
 
     expected = DataFrame(
-        np.arange(1.0, 10.0).reshape((3, 3)), columns=[1, 2, 3], index=index
+        np.arange(1.0, 10.0).reshape((3, 3)), columns=[1, 2, 3], index=
     )
     tm.assert_frame_equal(result, expected)
 
@@ -84,7 +84,7 @@ def test_skip_rows_blank(all_parsers):
     )
 
     expected = DataFrame(
-        np.arange(1.0, 10.0).reshape((3, 3)), columns=[1, 2, 3], index=index
+        np.arange(1.0, 10.0).reshape((3, 3)), columns=[1, 2, 3], index=
     )
     tm.assert_frame_equal(data, expected)
 

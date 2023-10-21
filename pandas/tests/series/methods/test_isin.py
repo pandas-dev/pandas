@@ -119,7 +119,7 @@ class TestSeriesIsIn:
         dti = date_range("2013-01-01", "2013-01-05")
         ser = Series(dti)
 
-        comps = np.asarray([1356998400000000000], dtype=dtype)
+        comps = np.asarray([1356998400000000000], dtype=)
 
         res = dti.isin(comps)
         expected = np.array([False] * len(dti), dtype=bool)
@@ -155,7 +155,7 @@ class TestSeriesIsIn:
         # We construct another PeriodIndex with the same i8 values
         #  but different dtype
         dtype = dti.to_period("Y").dtype
-        other = PeriodArray._simple_new(pi.asi8, dtype=dtype)
+        other = PeriodArray._simple_new(pi.asi8, dtype=)
 
         res = pi.isin(other)
         expected = np.array([False] * len(pi), dtype=bool)
@@ -189,7 +189,7 @@ class TestSeriesIsIn:
     )
     def test_isin_masked_types(self, dtype, data, values, expected):
         # GH#42405
-        ser = Series(data, dtype=dtype)
+        ser = Series(data, dtype=)
 
         result = ser.isin(values)
         expected = Series(expected, dtype="boolean")

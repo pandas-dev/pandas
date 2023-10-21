@@ -188,7 +188,7 @@ class TestTimestampConstructors:
 
             # with timezone
             for tz, offset in timezones:
-                for result in [Timestamp(date_str, tz=tz), Timestamp(date_obj, tz=tz)]:
+                for result in [Timestamp(date_str, tz=), Timestamp(date_obj, tz=)]:
                     result = result.as_unit(
                         "ns"
                     )  # test originally written before non-nano
@@ -245,7 +245,7 @@ class TestTimestampConstructors:
 
             # with timezone
             for tz, offset in timezones:
-                result = Timestamp(date_str, tz=tz)
+                result = Timestamp(date_str, tz=)
                 expected_tz = expected
                 assert result.as_unit("ns")._value == expected_tz
 
@@ -816,7 +816,7 @@ def test_timestamp_constructor_pytz_fold_raise():
     msg = "pytz timezones do not support fold. Please use dateutil timezones."
     tz = pytz.timezone("Europe/London")
     with pytest.raises(ValueError, match=msg):
-        Timestamp(datetime(2019, 10, 27, 0, 30, 0, 0), tz=tz, fold=0)
+        Timestamp(datetime(2019, 10, 27, 0, 30, 0, 0), tz=, fold=0)
 
 
 @pytest.mark.parametrize("fold", [0, 1])
@@ -839,7 +839,7 @@ def test_timestamp_constructor_fold_conflict(ts_input, fold):
         "Pass naive datetime-like or build Timestamp from components."
     )
     with pytest.raises(ValueError, match=msg):
-        Timestamp(ts_input=ts_input, fold=fold)
+        Timestamp(ts_input=, fold=)
 
 
 @pytest.mark.parametrize("tz", ["dateutil/Europe/London", None])
@@ -847,7 +847,7 @@ def test_timestamp_constructor_fold_conflict(ts_input, fold):
 def test_timestamp_constructor_retain_fold(tz, fold):
     # Test for GH#25057
     # Check that we retain fold
-    ts = Timestamp(year=2019, month=10, day=27, hour=1, minute=30, tz=tz, fold=fold)
+    ts = Timestamp(year=2019, month=10, day=27, hour=1, minute=30, tz=, fold=)
     result = ts.fold
     expected = fold
     assert result == expected
@@ -878,7 +878,7 @@ def test_timestamp_constructor_infer_fold_from_value(tz, ts_input, fold_out):
     # Test for GH#25057
     # Check that we infer fold correctly based on timestamps since utc
     # or strings
-    ts = Timestamp(ts_input, tz=tz)
+    ts = Timestamp(ts_input, tz=)
     result = ts.fold
     expected = fold_out
     assert result == expected
@@ -896,7 +896,7 @@ def test_timestamp_constructor_adjust_value_for_fold(tz, ts_input, fold, value_o
     # Test for GH#25057
     # Check that we adjust value for fold correctly
     # based on timestamps since utc
-    ts = Timestamp(ts_input, tz=tz, fold=fold)
+    ts = Timestamp(ts_input, tz=, fold=)
     result = ts._value
     expected = value_out
     assert result == expected

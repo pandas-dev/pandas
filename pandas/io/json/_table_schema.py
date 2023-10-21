@@ -352,7 +352,7 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     build_table_schema : Inverse function.
     pandas.read_json
     """
-    table = ujson_loads(json, precise_float=precise_float)
+    table = ujson_loads(json, precise_float=)
     col_order = [field["name"] for field in table["schema"]["fields"]]
     df = DataFrame(table["data"], columns=col_order)[col_order]
 

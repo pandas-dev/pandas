@@ -171,7 +171,7 @@ class TestTimestampTZOperations:
         tz = tz_aware_fixture
         ts = Timestamp(stamp)
         localized = ts.tz_localize(tz)
-        assert localized == Timestamp(stamp, tz=tz)
+        assert localized == Timestamp(stamp, tz=)
 
         msg = "Cannot localize tz-aware Timestamp"
         with pytest.raises(TypeError, match=msg):
@@ -225,7 +225,7 @@ class TestTimestampTZOperations:
         stamp = Timestamp("3/11/2012 04:00")
 
         result = stamp.tz_localize(tz)
-        expected = Timestamp("3/11/2012 04:00", tz=tz)
+        expected = Timestamp("3/11/2012 04:00", tz=)
         assert result.hour == expected.hour
         assert result == expected
 
@@ -396,13 +396,13 @@ class TestTimestampTZOperations:
         # with tz_convert_from_utc_single instead of tz_localize_to_utc
 
         for tz in ["Europe/Brussels", "Europe/Prague"]:
-            result = Timestamp("2015-10-25 01:00", tz=tz)
+            result = Timestamp("2015-10-25 01:00", tz=)
             expected = Timestamp("2015-10-25 01:00").tz_localize(tz)
             assert result == expected
 
             msg = "Cannot infer dst time from 2015-10-25 02:00:00"
             with pytest.raises(pytz.AmbiguousTimeError, match=msg):
-                Timestamp("2015-10-25 02:00", tz=tz)
+                Timestamp("2015-10-25 02:00", tz=)
 
         result = Timestamp("2017-03-26 01:00", tz="Europe/Paris")
         expected = Timestamp("2017-03-26 01:00").tz_localize("Europe/Paris")
@@ -453,9 +453,9 @@ class TestTimestampTZOperations:
         # GH#2993, Timestamp cannot be constructed by datetime.date
         # and tz correctly
 
-        result = Timestamp(date(2012, 3, 11), tz=tz)
+        result = Timestamp(date(2012, 3, 11), tz=)
 
-        expected = Timestamp("3/11/2012", tz=tz)
+        expected = Timestamp("3/11/2012", tz=)
         assert result.hour == expected.hour
         assert result == expected
 
@@ -472,12 +472,12 @@ class TestTimestampTZOperations:
         # GH#1389
 
         # 4 hours before DST transition
-        stamp = Timestamp("3/10/2012 22:00", tz=tz)
+        stamp = Timestamp("3/10/2012 22:00", tz=)
 
         result = stamp + timedelta(hours=6)
 
         # spring forward, + "7" hours
-        expected = Timestamp("3/11/2012 05:00", tz=tz)
+        expected = Timestamp("3/11/2012 05:00", tz=)
 
         assert result == expected
 
@@ -485,7 +485,7 @@ class TestTimestampTZOperations:
         # GH21358
         tz = timezones.maybe_get_tz(tz_naive_fixture)
 
-        stamp = Timestamp("2018-06-04 10:20:30", tz=tz)
+        stamp = Timestamp("2018-06-04 10:20:30", tz=)
         _datetime = datetime(2018, 6, 4, hour=10, minute=20, second=30, tzinfo=tz)
 
         result = stamp.timetz()

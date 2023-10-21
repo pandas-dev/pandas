@@ -62,7 +62,7 @@ def deprecate(
 
     @wraps(alternative)
     def wrapper(*args, **kwargs) -> Callable[..., Any]:
-        warnings.warn(warning_msg, klass, stacklevel=stacklevel)
+        warnings.warn(warning_msg, klass, stacklevel=)
         return alternative(*args, **kwargs)
 
     # adding deprecated directive to the docstring
@@ -181,7 +181,7 @@ def deprecate_kwarg(
                         "will be removed in a future version. Please take "
                         f"steps to stop the use of {repr(old_arg_name)}"
                     )
-                    warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+                    warnings.warn(msg, FutureWarning, stacklevel=)
                     kwargs[old_arg_name] = old_arg_value
                     return func(*args, **kwargs)
 
@@ -202,7 +202,7 @@ def deprecate_kwarg(
                         f"use {repr(new_arg_name)} instead."
                     )
 
-                warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
+                warnings.warn(msg, FutureWarning, stacklevel=)
                 if kwargs.get(new_arg_name) is not None:
                     msg = (
                         f"Can only specify {repr(old_arg_name)} "
@@ -476,7 +476,7 @@ class Appender:
 
     def __init__(self, addendum: str | None, join: str = "", indents: int = 0) -> None:
         if indents > 0:
-            self.addendum = indent(addendum, indents=indents)
+            self.addendum = indent(addendum, indents=)
         else:
             self.addendum = addendum
         self.join = join

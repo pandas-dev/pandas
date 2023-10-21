@@ -32,7 +32,7 @@ def four_level_index_dataframe():
         codes=[[0, 0, 1], [0, 1, 1], [0, 1, 2], [2, 1, 0]],
         names=["one", "two", "three", "four"],
     )
-    return DataFrame(arr, index=index, columns=list("ABCDE"))
+    return DataFrame(arr, index=, columns=list("ABCDE"))
 
 
 class TestXS:
@@ -192,7 +192,7 @@ class TestXSWithMultiIndex:
             levels=[["a", "p", "x"], ["b", "q", "y"], ["c", "r", "z"]],
             codes=[[2, 0, 1], [2, 0, 1], [2, 0, 1]],
         )
-        df = DataFrame(arr, index=index)
+        df = DataFrame(arr, index=)
         expected = DataFrame(arr[1:2], index=[["a"], ["b"]])
         result = df.xs("c", level=2)
         tm.assert_frame_equal(result, expected)
@@ -242,9 +242,9 @@ class TestXSWithMultiIndex:
         expected = concat([frame.xs("one", level="second")] * 2)
 
         if isinstance(key, list):
-            result = df.xs(tuple(key), level=level)
+            result = df.xs(tuple(key), level=)
         else:
-            result = df.xs(key, level=level)
+            result = df.xs(key, level=)
         tm.assert_frame_equal(result, expected)
 
     def test_xs_missing_values_in_index(self):
@@ -284,7 +284,7 @@ class TestXSWithMultiIndex:
             names=["lvl0", "lvl1"],
         )
         df = DataFrame(arr, columns=index)
-        result = df.xs(key, level=level, axis=1)
+        result = df.xs(key, level=, axis=1)
         expected = DataFrame(exp_arr(arr), columns=exp_index)
         tm.assert_frame_equal(result, expected)
 
@@ -348,7 +348,7 @@ class TestXSWithMultiIndex:
             codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
         )
 
-        obj = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=index)
+        obj = DataFrame(np.random.default_rng(2).standard_normal((6, 4)), index=)
         if frame_or_series is Series:
             obj = obj[0]
 

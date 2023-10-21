@@ -82,7 +82,7 @@ class TestJoin:
         dti = date_range(start="1/1/2001", end="2/1/2001", freq="D")
         empty = Index([])
 
-        result = dti.union(empty, sort=sort)
+        result = dti.union(empty, sort=)
         expected = dti.astype("O")
         tm.assert_index_equal(result, expected)
 
@@ -100,7 +100,7 @@ class TestJoin:
     def test_outer_join(self, freq):
         # should just behave as union
         start, end = datetime(2009, 1, 1), datetime(2010, 1, 1)
-        rng = date_range(start=start, end=end, freq=freq)
+        rng = date_range(start=, end=, freq=)
 
         # overlapping
         left = rng[:10]
@@ -146,7 +146,7 @@ class TestJoin:
     @pytest.mark.parametrize("tz", [None, "US/Pacific"])
     def test_join_preserves_freq(self, tz):
         # GH#32157
-        dti = date_range("2016-01-01", periods=10, tz=tz)
+        dti = date_range("2016-01-01", periods=10, tz=)
         result = dti[:5].join(dti[5:], how="outer")
         assert result.freq == dti.freq
         tm.assert_index_equal(result, dti)

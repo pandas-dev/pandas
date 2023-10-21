@@ -6,7 +6,7 @@ from pandas.core.dtypes.cast import can_hold_element
 def test_can_hold_element_range(any_int_numpy_dtype):
     # GH#44261
     dtype = np.dtype(any_int_numpy_dtype)
-    arr = np.array([], dtype=dtype)
+    arr = np.array([], dtype=)
 
     rng = range(2, 127)
     assert can_hold_element(arr, rng)

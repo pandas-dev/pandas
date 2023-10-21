@@ -319,9 +319,9 @@ def test_reindex_fill_value_datetimelike_upcast(dtype, fill_value, using_array_m
         # use the scalar that is not compatible with the dtype for this test
         fill_value = Timestamp(0)
 
-    ser = Series([NaT], dtype=dtype)
+    ser = Series([NaT], dtype=)
 
-    result = ser.reindex([0, 1], fill_value=fill_value)
+    result = ser.reindex([0, 1], fill_value=)
     expected = Series([NaT, fill_value], index=[0, 1], dtype=object)
     tm.assert_series_equal(result, expected)
 

@@ -138,7 +138,7 @@ class TestiLocBaseIndependent:
     def test_is_scalar_access(self):
         # GH#32085 index with duplicates doesn't matter for _is_scalar_access
         index = Index([1, 2, 1])
-        ser = Series(range(3), index=index)
+        ser = Series(range(3), index=)
 
         assert ser.iloc._is_scalar_access((1,))
 
@@ -261,8 +261,8 @@ class TestiLocBaseIndependent:
         # GH 25753
         df = DataFrame(
             np.random.default_rng(2).standard_normal((len(index), len(columns))),
-            index=index,
-            columns=columns,
+            index=,
+            columns=,
         )
         msg = ".iloc requires numeric indexers, got"
         with pytest.raises(IndexError, match=msg):
@@ -638,7 +638,7 @@ class TestiLocBaseIndependent:
         arr = np.random.default_rng(2).standard_normal((6, 4))
         index = date_range("20130101", periods=6)
         columns = list("ABCD")
-        df = DataFrame(arr, index=index, columns=columns)
+        df = DataFrame(arr, index=, columns=)
 
         # defines ref_locs
         df.describe()
@@ -663,7 +663,7 @@ class TestiLocBaseIndependent:
         arr = np.random.default_rng(2).standard_normal((6, 4))
         index = list(range(0, 12, 2))
         columns = list(range(0, 8, 2))
-        df = DataFrame(arr, index=index, columns=columns)
+        df = DataFrame(arr, index=, columns=)
 
         if not using_array_manager:
             df._mgr.blocks[0].mgr_locs
@@ -965,10 +965,10 @@ class TestiLocBaseIndependent:
         # GH#27937
         dtype = CategoricalDtype(categories=[not_na])
         ser = Series(
-            [nulls_fixture, nulls_fixture, nulls_fixture, nulls_fixture], dtype=dtype
+            [nulls_fixture, nulls_fixture, nulls_fixture, nulls_fixture], dtype=
         )
         ser.iloc[:3] = [nulls_fixture, not_na, nulls_fixture]
-        exp = Series([nulls_fixture, not_na, nulls_fixture, nulls_fixture], dtype=dtype)
+        exp = Series([nulls_fixture, not_na, nulls_fixture, nulls_fixture], dtype=)
         tm.assert_series_equal(ser, exp)
 
     def test_iloc_setitem_empty_frame_raises_with_3d_ndarray(self):

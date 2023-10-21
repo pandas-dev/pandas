@@ -175,9 +175,9 @@ def test_numpy_array_equal_copy_flag(other_type, check_same):
 
     if msg is not None:
         with pytest.raises(AssertionError, match=msg):
-            tm.assert_numpy_array_equal(a, other, check_same=check_same)
+            tm.assert_numpy_array_equal(a, other, check_same=)
     else:
-        tm.assert_numpy_array_equal(a, other, check_same=check_same)
+        tm.assert_numpy_array_equal(a, other, check_same=)
 
 
 def test_numpy_array_equal_contains_na():

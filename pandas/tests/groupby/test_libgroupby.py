@@ -133,7 +133,7 @@ class TestGroupVarFloat32(GroupVarTestMixin):
 
 @pytest.mark.parametrize("dtype", ["float32", "float64"])
 def test_group_ohlc(dtype):
-    obj = np.array(np.random.default_rng(2).standard_normal(20), dtype=dtype)
+    obj = np.array(np.random.default_rng(2).standard_normal(20), dtype=)
 
     bins = np.array([6, 12, 20])
     out = np.zeros((3, 4), dtype)
@@ -174,7 +174,7 @@ def _check_cython_group_transform_cumulative(pd_op, np_op, dtype):
     """
     is_datetimelike = False
 
-    data = np.array([[1], [2], [3], [4]], dtype=dtype)
+    data = np.array([[1], [2], [3], [4]], dtype=)
     answer = np.zeros_like(data)
 
     labels = np.array([0, 0, 0, 0], dtype=np.intp)

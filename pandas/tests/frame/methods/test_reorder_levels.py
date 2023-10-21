@@ -15,7 +15,7 @@ class TestReorderLevels:
             codes=[[0, 0, 0, 0, 0, 0], [0, 1, 2, 0, 1, 2], [0, 1, 0, 1, 0, 1]],
             names=["L0", "L1", "L2"],
         )
-        df = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=index)
+        df = DataFrame({"A": np.arange(6), "B": np.arange(6)}, index=)
         obj = tm.get_obj(df, frame_or_series)
 
         # no change, position

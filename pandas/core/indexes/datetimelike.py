@@ -94,7 +94,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @doc(DatetimeLikeArrayMixin.mean)
     def mean(self, *, skipna: bool = True, axis: int | None = 0):
-        return self._data.mean(skipna=skipna, axis=axis)
+        return self._data.mean(skipna=, axis=)
 
     @property
     def freq(self) -> BaseOffset | None:
@@ -220,9 +220,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         if formatter is not None:
             return header + list(self.map(formatter))
 
-        return self._format_with_header(
-            header=header, na_rep=na_rep, date_format=date_format
-        )
+        return self._format_with_header(header=, na_rep=, date_format=)
 
     def _format_with_header(
         self, *, header: list[str], na_rep: str, date_format: str | None = None
@@ -230,7 +228,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
         # TODO: not reached in tests 2023-10-11
         # matches base class except for whitespace padding and date_format
         return header + list(
-            self._get_values_for_csv(na_rep=na_rep, date_format=date_format)
+            self._get_values_for_csv(na_rep=, date_format=)
         )
 
     @property
@@ -253,7 +251,7 @@ class DatetimeIndexOpsMixin(NDArrayBackedExtensionIndex, ABC):
 
     @Appender(Index._summary.__doc__)
     def _summary(self, name=None) -> str:
-        result = super()._summary(name=name)
+        result = super()._summary(name=)
         if self.freq:
             result += f"\nFreq: {self.freqstr}"
 
@@ -518,7 +516,7 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         #  appropriate timezone from `start` and `end`, so tz does not need
         #  to be passed explicitly.
         result = self._data._generate_range(
-            start=start, end=end, periods=None, freq=self.freq
+            start=, end=, periods=None, freq=self.freq
         )
         return type(self)._simple_new(result, name=self.name)
 
@@ -570,14 +568,14 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         # Dispatch to RangeIndex intersection logic.
         left = self._as_range_index
         right = other._as_range_index
-        res_i8 = left.intersection(right, sort=sort)
+        res_i8 = left.intersection(right, sort=)
         return self._wrap_range_setop(other, res_i8)
 
     def _range_union(self, other, sort) -> Self:
         # Dispatch to RangeIndex union logic.
         left = self._as_range_index
         right = other._as_range_index
-        res_i8 = left.union(right, sort=sort)
+        res_i8 = left.union(right, sort=)
         return self._wrap_range_setop(other, res_i8)
 
     def _intersection(self, other: Index, sort: bool = False) -> Index:
@@ -587,10 +585,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         other = cast("DatetimeTimedeltaMixin", other)
 
         if self._can_range_setop(other):
-            return self._range_intersect(other, sort=sort)
+            return self._range_intersect(other, sort=)
 
         if not self._can_fast_intersect(other):
-            result = Index._intersection(self, other, sort=sort)
+            result = Index._intersection(self, other, sort=)
             # We need to invalidate the freq because Index._intersection
             #  uses _shallow_copy on a view of self._data, which will preserve
             #  self.freq if we're not careful.
@@ -711,10 +709,10 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         assert self.dtype == other.dtype
 
         if self._can_range_setop(other):
-            return self._range_union(other, sort=sort)
+            return self._range_union(other, sort=)
 
         if self._can_fast_union(other):
-            result = self._fast_union(other, sort=sort)
+            result = self._fast_union(other, sort=)
             # in the case with sort=None, the _can_fast_union check ensures
             #  that result.freq == self.freq
             return result

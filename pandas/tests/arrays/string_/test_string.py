@@ -37,7 +37,7 @@ def cls(dtype):
 
 
 def test_repr(dtype):
-    df = pd.DataFrame({"A": pd.array(["a", pd.NA, "b"], dtype=dtype)})
+    df = pd.DataFrame({"A": pd.array(["a", pd.NA, "b"], dtype=)})
     if dtype.storage == "pyarrow_numpy":
         expected = "     A\n0    a\n1  NaN\n2    b"
     else:
@@ -89,21 +89,21 @@ def test_setitem_validates(cls):
 def test_setitem_with_scalar_string(dtype):
     # is_float_dtype considers some strings, like 'd', to be floats
     # which can cause issues.
-    arr = pd.array(["a", "c"], dtype=dtype)
+    arr = pd.array(["a", "c"], dtype=)
     arr[0] = "d"
-    expected = pd.array(["d", "c"], dtype=dtype)
+    expected = pd.array(["d", "c"], dtype=)
     tm.assert_extension_array_equal(arr, expected)
 
 
 def test_setitem_with_array_with_missing(dtype):
     # ensure that when setting with an array of values, we don't mutate the
     # array `value` in __setitem__(self, key, value)
-    arr = pd.array(["a", "b", "c"], dtype=dtype)
+    arr = pd.array(["a", "b", "c"], dtype=)
     value = np.array(["A", None])
     value_orig = value.copy()
     arr[[0, 1]] = value
 
-    expected = pd.array(["A", pd.NA, "c"], dtype=dtype)
+    expected = pd.array(["A", pd.NA, "c"], dtype=)
     tm.assert_extension_array_equal(arr, expected)
     tm.assert_numpy_array_equal(value, value_orig)
 
@@ -128,32 +128,32 @@ def test_astype_roundtrip(dtype):
 
 
 def test_add(dtype):
-    a = pd.Series(["a", "b", "c", None, None], dtype=dtype)
-    b = pd.Series(["x", "y", None, "z", None], dtype=dtype)
+    a = pd.Series(["a", "b", "c", None, None], dtype=)
+    b = pd.Series(["x", "y", None, "z", None], dtype=)
 
     result = a + b
-    expected = pd.Series(["ax", "by", None, None, None], dtype=dtype)
+    expected = pd.Series(["ax", "by", None, None, None], dtype=)
     tm.assert_series_equal(result, expected)
 
     result = a.add(b)
     tm.assert_series_equal(result, expected)
 
     result = a.radd(b)
-    expected = pd.Series(["xa", "yb", None, None, None], dtype=dtype)
+    expected = pd.Series(["xa", "yb", None, None, None], dtype=)
     tm.assert_series_equal(result, expected)
 
     result = a.add(b, fill_value="-")
-    expected = pd.Series(["ax", "by", "c-", "-z", None], dtype=dtype)
+    expected = pd.Series(["ax", "by", "c-", "-z", None], dtype=)
     tm.assert_series_equal(result, expected)
 
 
 def test_add_2d(dtype, request, arrow_string_storage):
     if dtype.storage in arrow_string_storage:
         reason = "Failed: DID NOT RAISE <class 'ValueError'>"
-        mark = pytest.mark.xfail(raises=None, reason=reason)
+        mark = pytest.mark.xfail(raises=None, reason=)
         request.applymarker(mark)
 
-    a = pd.array(["a", "b", "c"], dtype=dtype)
+    a = pd.array(["a", "b", "c"], dtype=)
     b = np.array([["a", "b", "c"]], dtype=object)
     with pytest.raises(ValueError, match="3 != 1"):
         a + b
@@ -164,27 +164,27 @@ def test_add_2d(dtype, request, arrow_string_storage):
 
 
 def test_add_sequence(dtype):
-    a = pd.array(["a", "b", None, None], dtype=dtype)
+    a = pd.array(["a", "b", None, None], dtype=)
     other = ["x", None, "y", None]
 
     result = a + other
-    expected = pd.array(["ax", None, None, None], dtype=dtype)
+    expected = pd.array(["ax", None, None, None], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
     result = other + a
-    expected = pd.array(["xa", None, None, None], dtype=dtype)
+    expected = pd.array(["xa", None, None, None], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_mul(dtype, request, arrow_string_storage):
     if dtype.storage in arrow_string_storage:
         reason = "unsupported operand type(s) for *: 'ArrowStringArray' and 'int'"
-        mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
+        mark = pytest.mark.xfail(raises=NotImplementedError, reason=)
         request.applymarker(mark)
 
-    a = pd.array(["a", "b", None], dtype=dtype)
+    a = pd.array(["a", "b", None], dtype=)
     result = a * 2
-    expected = pd.array(["aa", "bb", None], dtype=dtype)
+    expected = pd.array(["aa", "bb", None], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
     result = 2 * a
@@ -193,7 +193,7 @@ def test_mul(dtype, request, arrow_string_storage):
 
 @pytest.mark.xfail(reason="GH-28527")
 def test_add_strings(dtype):
-    arr = pd.array(["a", "b", "c", "d"], dtype=dtype)
+    arr = pd.array(["a", "b", "c", "d"], dtype=)
     df = pd.DataFrame([["t", "y", "v", "w"]])
     assert arr.__add__(df) is NotImplemented
 
@@ -208,7 +208,7 @@ def test_add_strings(dtype):
 
 @pytest.mark.xfail(reason="GH-28527")
 def test_add_frame(dtype):
-    arr = pd.array(["a", "b", np.nan, np.nan], dtype=dtype)
+    arr = pd.array(["a", "b", np.nan, np.nan], dtype=)
     df = pd.DataFrame([["x", np.nan, "y", np.nan]])
 
     assert arr.__add__(df) is NotImplemented
@@ -224,7 +224,7 @@ def test_add_frame(dtype):
 
 def test_comparison_methods_scalar(comparison_op, dtype):
     op_name = f"__{comparison_op.__name__}__"
-    a = pd.array(["a", None, "c"], dtype=dtype)
+    a = pd.array(["a", None, "c"], dtype=)
     other = "a"
     result = getattr(a, op_name)(other)
     if dtype.storage == "pyarrow_numpy":
@@ -240,7 +240,7 @@ def test_comparison_methods_scalar(comparison_op, dtype):
 
 def test_comparison_methods_scalar_pd_na(comparison_op, dtype):
     op_name = f"__{comparison_op.__name__}__"
-    a = pd.array(["a", None, "c"], dtype=dtype)
+    a = pd.array(["a", None, "c"], dtype=)
     result = getattr(a, op_name)(pd.NA)
 
     if dtype.storage == "pyarrow_numpy":
@@ -256,7 +256,7 @@ def test_comparison_methods_scalar_pd_na(comparison_op, dtype):
 def test_comparison_methods_scalar_not_string(comparison_op, dtype):
     op_name = f"__{comparison_op.__name__}__"
 
-    a = pd.array(["a", None, "c"], dtype=dtype)
+    a = pd.array(["a", None, "c"], dtype=)
     other = 42
 
     if op_name not in ["__eq__", "__ne__"]:
@@ -286,7 +286,7 @@ def test_comparison_methods_scalar_not_string(comparison_op, dtype):
 def test_comparison_methods_array(comparison_op, dtype):
     op_name = f"__{comparison_op.__name__}__"
 
-    a = pd.array(["a", None, "c"], dtype=dtype)
+    a = pd.array(["a", None, "c"], dtype=)
     other = [None, None, "c"]
     result = getattr(a, op_name)(other)
     if dtype.storage == "pyarrow_numpy":
@@ -357,7 +357,7 @@ def test_from_sequence_no_mutate(copy, cls, request):
     expected_input = nan_arr.copy()
     na_arr = np.array(["a", pd.NA], dtype=object)
 
-    result = cls._from_sequence(nan_arr, copy=copy)
+    result = cls._from_sequence(nan_arr, copy=)
 
     if cls in (ArrowStringArray, ArrowStringArrayNumpySemantics):
         import pyarrow as pa
@@ -371,12 +371,12 @@ def test_from_sequence_no_mutate(copy, cls, request):
 
 
 def test_astype_int(dtype):
-    arr = pd.array(["1", "2", "3"], dtype=dtype)
+    arr = pd.array(["1", "2", "3"], dtype=)
     result = arr.astype("int64")
     expected = np.array([1, 2, 3], dtype="int64")
     tm.assert_numpy_array_equal(result, expected)
 
-    arr = pd.array(["1", pd.NA, "3"], dtype=dtype)
+    arr = pd.array(["1", pd.NA, "3"], dtype=)
     if dtype.storage == "pyarrow_numpy":
         err = ValueError
         msg = "cannot convert float NaN to integer"
@@ -391,7 +391,7 @@ def test_astype_int(dtype):
 
 
 def test_astype_nullable_int(dtype):
-    arr = pd.array(["1", pd.NA, "3"], dtype=dtype)
+    arr = pd.array(["1", pd.NA, "3"], dtype=)
 
     result = arr.astype("Int64")
     expected = pd.array([1, pd.NA, 3], dtype="Int64")
@@ -400,7 +400,7 @@ def test_astype_nullable_int(dtype):
 
 def test_astype_float(dtype, any_float_dtype):
     # Don't compare arrays (37974)
-    ser = pd.Series(["1.1", pd.NA, "3.3"], dtype=dtype)
+    ser = pd.Series(["1.1", pd.NA, "3.3"], dtype=)
     result = ser.astype(any_float_dtype)
     expected = pd.Series([1.1, np.nan, 3.3], dtype=any_float_dtype)
     tm.assert_series_equal(result, expected)
@@ -409,16 +409,16 @@ def test_astype_float(dtype, any_float_dtype):
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce(skipna, dtype):
-    arr = pd.Series(["a", "b", "c"], dtype=dtype)
-    result = arr.sum(skipna=skipna)
+    arr = pd.Series(["a", "b", "c"], dtype=)
+    result = arr.sum(skipna=)
     assert result == "abc"
 
 
 @pytest.mark.parametrize("skipna", [True, False])
 @pytest.mark.xfail(reason="Not implemented StringArray.sum")
 def test_reduce_missing(skipna, dtype):
-    arr = pd.Series([None, "a", None, "b", "c", None], dtype=dtype)
-    result = arr.sum(skipna=skipna)
+    arr = pd.Series([None, "a", None, "b", "c", None], dtype=)
+    result = arr.sum(skipna=)
     if skipna:
         assert result == "abc"
     else:
@@ -428,8 +428,8 @@ def test_reduce_missing(skipna, dtype):
 @pytest.mark.parametrize("method", ["min", "max"])
 @pytest.mark.parametrize("skipna", [True, False])
 def test_min_max(method, skipna, dtype, request):
-    arr = pd.Series(["a", "b", "c", None], dtype=dtype)
-    result = getattr(arr, method)(skipna=skipna)
+    arr = pd.Series(["a", "b", "c", None], dtype=)
+    result = getattr(arr, method)(skipna=)
     if skipna:
         expected = "a" if method == "min" else "c"
         assert result == expected
@@ -445,10 +445,10 @@ def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
             reason = "'<=' not supported between instances of 'str' and 'NoneType'"
         else:
             reason = "'ArrowStringArray' object has no attribute 'max'"
-        mark = pytest.mark.xfail(raises=TypeError, reason=reason)
+        mark = pytest.mark.xfail(raises=TypeError, reason=)
         request.applymarker(mark)
 
-    arr = box(["a", "b", "c", None], dtype=dtype)
+    arr = box(["a", "b", "c", None], dtype=)
     result = getattr(np, method)(arr)
     expected = "a" if method == "min" else "c"
     assert result == expected
@@ -457,14 +457,14 @@ def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
 def test_fillna_args(dtype, request, arrow_string_storage):
     # GH 37987
 
-    arr = pd.array(["a", pd.NA], dtype=dtype)
+    arr = pd.array(["a", pd.NA], dtype=)
 
     res = arr.fillna(value="b")
-    expected = pd.array(["a", "b"], dtype=dtype)
+    expected = pd.array(["a", "b"], dtype=)
     tm.assert_extension_array_equal(res, expected)
 
     res = arr.fillna(value=np.str_("b"))
-    expected = pd.array(["a", "b"], dtype=dtype)
+    expected = pd.array(["a", "b"], dtype=)
     tm.assert_extension_array_equal(res, expected)
 
     if dtype.storage in arrow_string_storage:
@@ -479,7 +479,7 @@ def test_arrow_array(dtype):
     # protocol added in 0.15.0
     pa = pytest.importorskip("pyarrow")
 
-    data = pd.array(["a", "b", "c"], dtype=dtype)
+    data = pd.array(["a", "b", "c"], dtype=)
     arr = pa.array(data)
     expected = pa.array(list(data), type=pa.string(), from_pandas=True)
     if dtype.storage in ("pyarrow", "pyarrow_numpy") and pa_version_under12p0:
@@ -492,7 +492,7 @@ def test_arrow_roundtrip(dtype, string_storage2):
     # roundtrip possible from arrow 1.0.0
     pa = pytest.importorskip("pyarrow")
 
-    data = pd.array(["a", "b", None], dtype=dtype)
+    data = pd.array(["a", "b", None], dtype=)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
     assert table.field("a").type == "string"
@@ -511,7 +511,7 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage2):
     # GH-41040
     pa = pytest.importorskip("pyarrow")
 
-    data = pd.array([], dtype=dtype)
+    data = pd.array([], dtype=)
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
     assert table.field("a").type == "string"
@@ -533,7 +533,7 @@ def test_value_counts_na(dtype):
         exp_dtype = "int64"
     else:
         exp_dtype = "Int64"
-    arr = pd.array(["a", "b", "a", pd.NA], dtype=dtype)
+    arr = pd.array(["a", "b", "a", pd.NA], dtype=)
     result = arr.value_counts(dropna=False)
     expected = pd.Series([2, 1, 1], index=arr[[0, 1, 3]], dtype=exp_dtype, name="count")
     tm.assert_series_equal(result, expected)
@@ -550,7 +550,7 @@ def test_value_counts_with_normalize(dtype):
         exp_dtype = np.float64
     else:
         exp_dtype = "Float64"
-    ser = pd.Series(["a", "b", "a", pd.NA], dtype=dtype)
+    ser = pd.Series(["a", "b", "a", pd.NA], dtype=)
     result = ser.value_counts(normalize=True)
     expected = pd.Series([2, 1], index=ser[:2], dtype=exp_dtype, name="proportion") / 3
     tm.assert_series_equal(result, expected)
@@ -565,7 +565,7 @@ def test_value_counts_with_normalize(dtype):
 )
 def test_use_inf_as_na(values, expected, dtype):
     # https://github.com/pandas-dev/pandas/issues/33655
-    values = pd.array(values, dtype=dtype)
+    values = pd.array(values, dtype=)
     msg = "use_inf_as_na option is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         with pd.option_context("mode.use_inf_as_na", True):
@@ -587,7 +587,7 @@ def test_memory_usage(dtype, arrow_string_storage):
     if dtype.storage in arrow_string_storage:
         pytest.skip(f"not applicable for {dtype.storage}")
 
-    series = pd.Series(["a", "b", "c"], dtype=dtype)
+    series = pd.Series(["a", "b", "c"], dtype=)
 
     assert 0 < series.nbytes <= series.memory_usage() < series.memory_usage(deep=True)
 
@@ -597,12 +597,12 @@ def test_astype_from_float_dtype(float_dtype, dtype):
     # https://github.com/pandas-dev/pandas/issues/36451
     ser = pd.Series([0.1], dtype=float_dtype)
     result = ser.astype(dtype)
-    expected = pd.Series(["0.1"], dtype=dtype)
+    expected = pd.Series(["0.1"], dtype=)
     tm.assert_series_equal(result, expected)
 
 
 def test_to_numpy_returns_pdna_default(dtype):
-    arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
+    arr = pd.array(["a", pd.NA, "b"], dtype=)
     result = np.array(arr)
     expected = np.array(["a", na_val(dtype), "b"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
@@ -610,14 +610,14 @@ def test_to_numpy_returns_pdna_default(dtype):
 
 def test_to_numpy_na_value(dtype, nulls_fixture):
     na_value = nulls_fixture
-    arr = pd.array(["a", pd.NA, "b"], dtype=dtype)
-    result = arr.to_numpy(na_value=na_value)
+    arr = pd.array(["a", pd.NA, "b"], dtype=)
+    result = arr.to_numpy(na_value=)
     expected = np.array(["a", na_value, "b"], dtype=object)
     tm.assert_numpy_array_equal(result, expected)
 
 
 def test_isin(dtype, fixed_now_ts):
-    s = pd.Series(["a", "b", None], dtype=dtype)
+    s = pd.Series(["a", "b", None], dtype=)
 
     result = s.isin(["a", "c"])
     expected = pd.Series([True, False, False])
@@ -640,14 +640,14 @@ def test_setitem_scalar_with_mask_validation(dtype):
     # https://github.com/pandas-dev/pandas/issues/47628
     # setting None with a boolean mask (through _putmaks) should still result
     # in pd.NA values in the underlying array
-    ser = pd.Series(["a", "b", "c"], dtype=dtype)
+    ser = pd.Series(["a", "b", "c"], dtype=)
     mask = np.array([False, True, False])
 
     ser[mask] = None
     assert ser.array[1] is na_val(ser.dtype)
 
     # for other non-string we should also raise an error
-    ser = pd.Series(["a", "b", "c"], dtype=dtype)
+    ser = pd.Series(["a", "b", "c"], dtype=)
     if type(ser.array) is pd.arrays.StringArray:
         msg = "Cannot set non-string value"
     else:
@@ -659,14 +659,14 @@ def test_setitem_scalar_with_mask_validation(dtype):
 def test_from_numpy_str(dtype):
     vals = ["a", "b", "c"]
     arr = np.array(vals, dtype=np.str_)
-    result = pd.array(arr, dtype=dtype)
-    expected = pd.array(vals, dtype=dtype)
+    result = pd.array(arr, dtype=)
+    expected = pd.array(vals, dtype=)
     tm.assert_extension_array_equal(result, expected)
 
 
 def test_tolist(dtype):
     vals = ["a", "b", "c"]
-    arr = pd.array(vals, dtype=dtype)
+    arr = pd.array(vals, dtype=)
     result = arr.tolist()
     expected = vals
     tm.assert_equal(result, expected)

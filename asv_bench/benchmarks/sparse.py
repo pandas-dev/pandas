@@ -14,7 +14,7 @@ def make_array(size, dense_proportion, fill_value, dtype):
     dense_size = int(size * dense_proportion)
     arr = np.full(size, fill_value, dtype)
     indexer = np.random.choice(np.arange(size), dense_size, replace=False)
-    arr[indexer] = np.random.choice(np.arange(100, dtype=dtype), dense_size)
+    arr[indexer] = np.random.choice(np.arange(100, dtype=), dense_size)
     return arr
 
 
@@ -43,7 +43,7 @@ class SparseArrayConstructor:
         self.array = make_array(N, dense_proportion, fill_value, dtype)
 
     def time_sparse_array(self, dense_proportion, fill_value, dtype):
-        SparseArray(self.array, fill_value=fill_value, dtype=dtype)
+        SparseArray(self.array, fill_value=, dtype=)
 
 
 class SparseDataFrameConstructor:
@@ -83,11 +83,11 @@ class ToCoo:
 
     def time_sparse_series_to_coo(self, sort_labels):
         self.ss_mult_lvl.sparse.to_coo(
-            row_levels=[0, 1], column_levels=[2, 3], sort_labels=sort_labels
+            row_levels=[0, 1], column_levels=[2, 3], sort_labels=
         )
 
     def time_sparse_series_to_coo_single_level(self, sort_labels):
-        self.ss_two_lvl.sparse.to_coo(sort_labels=sort_labels)
+        self.ss_two_lvl.sparse.to_coo(sort_labels=)
 
 
 class ToCooFrame:
@@ -111,9 +111,9 @@ class Arithmetic:
     def setup(self, dense_proportion, fill_value):
         N = 10**6
         arr1 = make_array(N, dense_proportion, fill_value, np.int64)
-        self.array1 = SparseArray(arr1, fill_value=fill_value)
+        self.array1 = SparseArray(arr1, fill_value=)
         arr2 = make_array(N, dense_proportion, fill_value, np.int64)
-        self.array2 = SparseArray(arr2, fill_value=fill_value)
+        self.array2 = SparseArray(arr2, fill_value=)
 
     def time_make_union(self, dense_proportion, fill_value):
         self.array1.sp_index.make_union(self.array2.sp_index)
@@ -135,10 +135,10 @@ class ArithmeticBlock:
     def setup(self, fill_value):
         N = 10**6
         self.arr1 = self.make_block_array(
-            length=N, num_blocks=1000, block_size=10, fill_value=fill_value
+            length=N, num_blocks=1000, block_size=10, fill_value=
         )
         self.arr2 = self.make_block_array(
-            length=N, num_blocks=1000, block_size=10, fill_value=fill_value
+            length=N, num_blocks=1000, block_size=10, fill_value=
         )
 
     def make_block_array(self, length, num_blocks, block_size, fill_value):
@@ -148,7 +148,7 @@ class ArithmeticBlock:
         )
         for ind in indices:
             arr[ind : ind + block_size] = np.random.randint(0, 100, block_size)
-        return SparseArray(arr, fill_value=fill_value)
+        return SparseArray(arr, fill_value=)
 
     def time_make_union(self, fill_value):
         self.arr1.sp_index.make_union(self.arr2.sp_index)
@@ -170,7 +170,7 @@ class MinMax:
     def setup(self, func, fill_value):
         N = 1_000_000
         arr = make_array(N, 1e-5, fill_value, np.float64)
-        self.sp_arr = SparseArray(arr, fill_value=fill_value)
+        self.sp_arr = SparseArray(arr, fill_value=)
 
     def time_min_max(self, func, fill_value):
         getattr(self.sp_arr, func)()
@@ -184,10 +184,10 @@ class Take:
         N = 1_000_000
         fill_value = 0.0
         arr = make_array(N, 1e-5, fill_value, np.float64)
-        self.sp_arr = SparseArray(arr, fill_value=fill_value)
+        self.sp_arr = SparseArray(arr, fill_value=)
 
     def time_take(self, indices, allow_fill):
-        self.sp_arr.take(indices, allow_fill=allow_fill)
+        self.sp_arr.take(indices, allow_fill=)
 
 
 class GetItem:
@@ -213,12 +213,12 @@ class GetItemMask:
         d = 1e-5
         arr = make_array(N, d, np.nan, np.float64)
         self.sp_arr = SparseArray(arr)
-        b_arr = np.full(shape=N, fill_value=fill_value, dtype=np.bool_)
+        b_arr = np.full(shape=N, fill_value=, dtype=np.bool_)
         fv_inds = np.unique(
             np.random.randint(low=0, high=N - 1, size=int(N * d), dtype=np.int32)
         )
         b_arr[fv_inds] = True if pd.isna(fill_value) else not fill_value
-        self.sp_b_arr = SparseArray(b_arr, dtype=np.bool_, fill_value=fill_value)
+        self.sp_b_arr = SparseArray(b_arr, dtype=np.bool_, fill_value=)
 
     def time_mask(self, fill_value):
         self.sp_arr[self.sp_b_arr]

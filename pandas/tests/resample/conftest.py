@@ -51,7 +51,7 @@ def simple_date_range_series():
     """
 
     def _simple_date_range_series(start, end, freq="D"):
-        rng = date_range(start, end, freq=freq)
+        rng = date_range(start, end, freq=)
         return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     return _simple_date_range_series
@@ -72,7 +72,7 @@ def simple_period_range_series():
                 msg,
                 category=FutureWarning,
             )
-            rng = period_range(start, end, freq=freq)
+            rng = period_range(start, end, freq=)
         return Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
 
     return _simple_period_range_series
@@ -136,7 +136,7 @@ def series(index, _series_name, _static_values):
     Fixture for parametrization of Series with date_range, period_range and
     timedelta_range indexes
     """
-    return Series(_static_values, index=index, name=_series_name)
+    return Series(_static_values, index=, name=_series_name)
 
 
 @pytest.fixture
@@ -155,7 +155,7 @@ def frame(index, _series_name, _static_values):
     and timedelta_range indexes
     """
     # _series_name is intentionally unused
-    return DataFrame({"value": _static_values}, index=index)
+    return DataFrame({"value": _static_values}, index=)
 
 
 @pytest.fixture
@@ -165,7 +165,7 @@ def empty_frame_dti(series):
     period_range and timedelta_range indexes
     """
     index = series.index[:0]
-    return DataFrame(index=index)
+    return DataFrame(index=)
 
 
 @pytest.fixture

@@ -44,7 +44,7 @@ class SeriesPlotting:
             self.s = self.s.abs()
 
     def time_series_plot(self, kind):
-        self.s.plot(kind=kind)
+        self.s.plot(kind=)
 
 
 class FramePlotting:
@@ -69,7 +69,7 @@ class FramePlotting:
         self.df = DataFrame({"x": self.x, "y": self.y})
 
     def time_frame_plot(self, kind):
-        self.df.plot(x="x", y="y", kind=kind)
+        self.df.plot(x="x", y="y", kind=)
 
 
 class TimeseriesPlotting:

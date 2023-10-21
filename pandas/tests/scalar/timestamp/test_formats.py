@@ -79,4 +79,4 @@ ts_no_us = Timestamp(
     ],
 )
 def test_isoformat(ts, timespec, expected_iso):
-    assert ts.isoformat(timespec=timespec) == expected_iso
+    assert ts.isoformat(timespec=) == expected_iso

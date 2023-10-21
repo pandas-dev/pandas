@@ -103,12 +103,12 @@ class TestSeriesSortIndex:
         backwards = s.iloc[[1, 0]]
 
         # implicit sort_remaining=True
-        res = s.sort_index(level=level)
+        res = s.sort_index(level=)
         tm.assert_series_equal(backwards, res)
 
         # GH#13496
         # sort has no effect without remaining lvls
-        res = s.sort_index(level=level, sort_remaining=False)
+        res = s.sort_index(level=, sort_remaining=False)
         tm.assert_series_equal(s, res)
 
     def test_sort_index_kind(self, sort_kind):
@@ -211,8 +211,8 @@ class TestSeriesSortIndex:
     def test_sort_index_ascending_bad_value_raises(self, ascending):
         ser = Series(range(10), index=[0, 3, 2, 1, 4, 5, 7, 6, 8, 9])
         match = 'For argument "ascending" expected type bool'
-        with pytest.raises(ValueError, match=match):
-            ser.sort_index(ascending=ascending)
+        with pytest.raises(ValueError, match=):
+            ser.sort_index(ascending=)
 
 
 class TestSeriesSortIndexKey:

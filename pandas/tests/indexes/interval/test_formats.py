@@ -41,7 +41,7 @@ class TestIntervalIndexRendering:
     def test_repr_missing(self, constructor, expected):
         # GH 25984
         index = IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)])
-        obj = constructor(list("abc"), index=index)
+        obj = constructor(list("abc"), index=)
         result = repr(obj)
         assert result == expected
 
@@ -103,7 +103,7 @@ class TestIntervalIndexRendering:
     )
     def test_to_native_types(self, tuples, closed, expected_data):
         # GH 28210
-        index = IntervalIndex.from_tuples(tuples, closed=closed)
+        index = IntervalIndex.from_tuples(tuples, closed=)
         result = index._get_values_for_csv(na_rep="NaN")
         expected = np.array(expected_data)
         tm.assert_numpy_array_equal(result, expected)

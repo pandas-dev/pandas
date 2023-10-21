@@ -22,13 +22,13 @@ class TestEmpty:
 
         # case with int8 codes
         shape = (4,)
-        result = Categorical._empty(shape, dtype=dtype)
+        result = Categorical._empty(shape, dtype=)
         assert isinstance(result, Categorical)
         assert result.shape == shape
         assert result._ndarray.dtype == np.int8
 
         # case where repr would segfault if we didn't override base implementation
-        result = Categorical._empty((4096,), dtype=dtype)
+        result = Categorical._empty((4096,), dtype=)
         assert isinstance(result, Categorical)
         assert result.shape == (4096,)
         assert result._ndarray.dtype == np.int8
@@ -37,7 +37,7 @@ class TestEmpty:
         # case with int16 codes
         ci = CategoricalIndex(list(range(512)) * 4, ordered=False)
         dtype = ci.dtype
-        result = Categorical._empty(shape, dtype=dtype)
+        result = Categorical._empty(shape, dtype=)
         assert isinstance(result, Categorical)
         assert result.shape == shape
         assert result._ndarray.dtype == np.int16
@@ -47,7 +47,7 @@ class TestEmpty:
         dtype = dti.dtype
 
         shape = (0,)
-        result = DatetimeArray._empty(shape, dtype=dtype)
+        result = DatetimeArray._empty(shape, dtype=)
         assert result.dtype == dtype
         assert isinstance(result, DatetimeArray)
         assert result.shape == shape
@@ -69,7 +69,7 @@ class TestEmpty:
         dtype = arr.dtype
 
         shape = (3, 9)
-        result = NumpyExtensionArray._empty(shape, dtype=dtype)
+        result = NumpyExtensionArray._empty(shape, dtype=)
         assert isinstance(result, NumpyExtensionArray)
         assert result.dtype == dtype
         assert result.shape == shape

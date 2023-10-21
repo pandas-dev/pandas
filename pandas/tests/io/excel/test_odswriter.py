@@ -38,9 +38,9 @@ def test_engine_kwargs(ext, engine_kwargs):
                 TypeError,
                 match=error,
             ):
-                ExcelWriter(f, engine="odf", engine_kwargs=engine_kwargs)
+                ExcelWriter(f, engine="odf", engine_kwargs=)
         else:
-            with ExcelWriter(f, engine="odf", engine_kwargs=engine_kwargs) as _:
+            with ExcelWriter(f, engine="odf", engine_kwargs=) as _:
                 pass
 
 

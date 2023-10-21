@@ -84,7 +84,7 @@ class TestDataFrameToDict:
         # GH#32515
         df = DataFrame({"A": [0, 1]})
         with pytest.raises(ValueError, match="not understood"):
-            df.to_dict(orient=orient)
+            df.to_dict(orient=)
 
     @pytest.mark.parametrize("mapping", [dict, defaultdict(list), OrderedDict])
     def test_to_dict(self, mapping):
@@ -198,7 +198,7 @@ class TestDataFrameToDict:
         # GH#14216, GH#23753
         # make sure that we are boxing properly
         df = DataFrame({"a": [1, 2], "b": [0.1, 0.2]})
-        result = df.to_dict(orient=orient)
+        result = df.to_dict(orient=)
         assert isinstance(item_getter(result, "a", 0), int)
         assert isinstance(item_getter(result, "b", 0), float)
 
@@ -260,7 +260,7 @@ class TestDataFrameToDict:
 
         df = DataFrame({"int_col": [1, 2, 3], "float_col": [1.0, 2.0, 3.0]})
 
-        result = df.to_dict(orient="index", into=into)
+        result = df.to_dict(orient="index", into=)
         cols = ["int_col", "float_col"]
         result = DataFrame.from_dict(result, orient="index")[cols]
         expected = DataFrame.from_dict(expected, orient="index")[cols]
@@ -350,11 +350,7 @@ class TestDataFrameToDict:
         ],
     )
     def test_to_dict_orient_tight(self, index, columns):
-        df = DataFrame.from_records(
-            [[1, 3], [2, 4]],
-            columns=columns,
-            index=index,
-        )
+        df = DataFrame.from_records([[1, 3], [2, 4]], columns=, index=)
         roundtrip = DataFrame.from_dict(df.to_dict(orient="tight"), orient="tight")
 
         tm.assert_frame_equal(df, roundtrip)
@@ -452,7 +448,7 @@ class TestDataFrameToDict:
         df = DataFrame({"col1": [1, 2], "col2": [3, 4]}, index=["row1", "row2"])
         msg = "'index=False' is only valid when 'orient' is 'split' or 'tight'"
         with pytest.raises(ValueError, match=msg):
-            df.to_dict(orient=orient, index=False)
+            df.to_dict(orient=, index=False)
 
     @pytest.mark.parametrize(
         "orient, expected",
@@ -471,7 +467,7 @@ class TestDataFrameToDict:
     def test_to_dict_index_false(self, orient, expected):
         # GH#46398
         df = DataFrame({"col1": [1, 2], "col2": [3, 4]}, index=["row1", "row2"])
-        result = df.to_dict(orient=orient, index=False)
+        result = df.to_dict(orient=, index=False)
         tm.assert_dict_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -497,7 +493,7 @@ class TestDataFrameToDict:
     def test_to_dict_na_to_none(self, orient, expected):
         # GH#50795
         df = DataFrame({"a": [1, NA]}, dtype="Int64")
-        result = df.to_dict(orient=orient)
+        result = df.to_dict(orient=)
         assert result == expected
 
     def test_to_dict_masked_native_python(self):

@@ -115,13 +115,13 @@ def _handle_date_column(
         ):
             format = "s"
         if format in ["D", "d", "h", "m", "s", "ms", "us", "ns"]:
-            return to_datetime(col, errors="coerce", unit=format, utc=utc)
+            return to_datetime(col, errors="coerce", unit=format, utc=)
         elif isinstance(col.dtype, DatetimeTZDtype):
             # coerce to UTC timezone
             # GH11216
             return to_datetime(col, utc=True)
         else:
-            return to_datetime(col, errors="coerce", format=format, utc=utc)
+            return to_datetime(col, errors="coerce", format=, utc=)
 
 
 def _parse_date_columns(data_frame, parse_dates):
@@ -155,8 +155,8 @@ def _convert_arrays_to_dataframe(
     arrays = convert_object_array(
         list(content.T),
         dtype=None,
-        coerce_float=coerce_float,
-        dtype_backend=dtype_backend,
+        coerce_float=,
+        dtype_backend=,
     )
     if dtype_backend == "pyarrow":
         pa = import_optional_dependency("pyarrow")
@@ -168,7 +168,7 @@ def _convert_arrays_to_dataframe(
         df.columns = columns
         return df
     else:
-        return DataFrame(columns=columns)
+        return DataFrame(columns=)
 
 
 def _wrap_result(
@@ -341,18 +341,18 @@ def read_sql_table(
         dtype_backend = "numpy"  # type: ignore[assignment]
     assert dtype_backend is not lib.no_default
 
-    with pandasSQL_builder(con, schema=schema, need_transaction=True) as pandas_sql:
+    with pandasSQL_builder(con, schema=, need_transaction=True) as pandas_sql:
         if not pandas_sql.has_table(table_name):
             raise ValueError(f"Table {table_name} not found")
 
         table = pandas_sql.read_table(
             table_name,
-            index_col=index_col,
-            coerce_float=coerce_float,
-            parse_dates=parse_dates,
-            columns=columns,
-            chunksize=chunksize,
-            dtype_backend=dtype_backend,
+            index_col=,
+            coerce_float=,
+            parse_dates=,
+            columns=,
+            chunksize=,
+            dtype_backend=,
         )
 
     if table is not None:
@@ -485,13 +485,13 @@ def read_sql_query(
     with pandasSQL_builder(con) as pandas_sql:
         return pandas_sql.read_query(
             sql,
-            index_col=index_col,
-            params=params,
-            coerce_float=coerce_float,
-            parse_dates=parse_dates,
-            chunksize=chunksize,
-            dtype=dtype,
-            dtype_backend=dtype_backend,
+            index_col=,
+            params=,
+            coerce_float=,
+            parse_dates=,
+            chunksize=,
+            dtype=,
+            dtype_backend=,
         )
 
 
@@ -653,13 +653,13 @@ def read_sql(
         if isinstance(pandas_sql, SQLiteDatabase):
             return pandas_sql.read_query(
                 sql,
-                index_col=index_col,
-                params=params,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                chunksize=chunksize,
-                dtype_backend=dtype_backend,
-                dtype=dtype,
+                index_col=,
+                params=,
+                coerce_float=,
+                parse_dates=,
+                chunksize=,
+                dtype_backend=,
+                dtype=,
             )
 
         try:
@@ -671,23 +671,23 @@ def read_sql(
         if _is_table_name:
             return pandas_sql.read_table(
                 sql,
-                index_col=index_col,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                columns=columns,
-                chunksize=chunksize,
-                dtype_backend=dtype_backend,
+                index_col=,
+                coerce_float=,
+                parse_dates=,
+                columns=,
+                chunksize=,
+                dtype_backend=,
             )
         else:
             return pandas_sql.read_query(
                 sql,
-                index_col=index_col,
-                params=params,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                chunksize=chunksize,
-                dtype_backend=dtype_backend,
-                dtype=dtype,
+                index_col=,
+                params=,
+                coerce_float=,
+                parse_dates=,
+                chunksize=,
+                dtype_backend=,
+                dtype=,
             )
 
 
@@ -784,18 +784,18 @@ def to_sql(
             "'frame' argument should be either a Series or a DataFrame"
         )
 
-    with pandasSQL_builder(con, schema=schema, need_transaction=True) as pandas_sql:
+    with pandasSQL_builder(con, schema=, need_transaction=True) as pandas_sql:
         return pandas_sql.to_sql(
             frame,
             name,
-            if_exists=if_exists,
-            index=index,
-            index_label=index_label,
-            schema=schema,
-            chunksize=chunksize,
-            dtype=dtype,
-            method=method,
-            engine=engine,
+            if_exists=,
+            index=,
+            index_label=,
+            schema=,
+            chunksize=,
+            dtype=,
+            method=,
+            engine=,
             **engine_kwargs,
         )
 
@@ -820,7 +820,7 @@ def has_table(table_name: str, con, schema: str | None = None) -> bool:
     -------
     boolean
     """
-    with pandasSQL_builder(con, schema=schema) as pandas_sql:
+    with pandasSQL_builder(con, schema=) as pandas_sql:
         return pandas_sql.has_table(table_name)
 
 
@@ -1087,7 +1087,7 @@ class SQLTable(PandasObject):
                 if not data:
                     if not has_read_data:
                         yield DataFrame.from_records(
-                            [], columns=columns, coerce_float=coerce_float
+                            [], columns=, coerce_float=
                         )
                     break
 
@@ -1096,9 +1096,7 @@ class SQLTable(PandasObject):
                     data, columns, coerce_float, dtype_backend
                 )
 
-                self._harmonize_columns(
-                    parse_dates=parse_dates, dtype_backend=dtype_backend
-                )
+                self._harmonize_columns(parse_dates=, dtype_backend=)
 
                 if self.index is not None:
                     self.frame.set_index(self.index, inplace=True)
@@ -1133,9 +1131,9 @@ class SQLTable(PandasObject):
                 exit_stack,
                 chunksize,
                 column_names,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                dtype_backend=dtype_backend,
+                coerce_float=,
+                parse_dates=,
+                dtype_backend=,
             )
         else:
             data = result.fetchall()
@@ -1143,9 +1141,7 @@ class SQLTable(PandasObject):
                 data, column_names, coerce_float, dtype_backend
             )
 
-            self._harmonize_columns(
-                parse_dates=parse_dates, dtype_backend=dtype_backend
-            )
+            self._harmonize_columns(parse_dates=, dtype_backend=)
 
             if self.index is not None:
                 self.frame.set_index(self.index, inplace=True)
@@ -1226,7 +1222,7 @@ class SQLTable(PandasObject):
         # At this point, attach to new metadata, only attach to self.meta
         # once table is created.
         meta = MetaData()
-        return Table(self.name, meta, *columns, schema=schema)
+        return Table(self.name, meta, *columns, schema=)
 
     def _harmonize_columns(
         self,
@@ -1271,7 +1267,7 @@ class SQLTable(PandasObject):
                 ):
                     # Convert tz-aware Datetime SQL columns to UTC
                     utc = col_type is DatetimeTZDtype
-                    self.frame[col_name] = _handle_date_column(df_col, utc=utc)
+                    self.frame[col_name] = _handle_date_column(df_col, utc=)
                 elif dtype_backend == "numpy" and col_type is float:
                     # floats support NA, can always convert!
                     self.frame[col_name] = df_col.astype(col_type, copy=False)
@@ -1499,7 +1495,7 @@ class SQLAlchemyEngine(BaseEngine):
         from sqlalchemy import exc
 
         try:
-            return table.insert(chunksize=chunksize, method=method)
+            return table.insert(chunksize=, method=)
         except exc.StatementError as err:
             # GH34431
             # https://stackoverflow.com/a/67358288/6067848
@@ -1581,7 +1577,7 @@ class SQLDatabase(PandasSQL):
         if need_transaction and not con.in_transaction():
             self.exit_stack.enter_context(con.begin())
         self.con = con
-        self.meta = MetaData(schema=schema)
+        self.meta = MetaData(schema=)
         self.returns_generator = False
 
     def __exit__(self, *args) -> None:
@@ -1667,16 +1663,16 @@ class SQLDatabase(PandasSQL):
 
         """
         self.meta.reflect(bind=self.con, only=[table_name], views=True)
-        table = SQLTable(table_name, self, index=index_col, schema=schema)
+        table = SQLTable(table_name, self, index=index_col, schema=)
         if chunksize is not None:
             self.returns_generator = True
         return table.read(
             self.exit_stack,
-            coerce_float=coerce_float,
-            parse_dates=parse_dates,
-            columns=columns,
-            chunksize=chunksize,
-            dtype_backend=dtype_backend,
+            coerce_float=,
+            parse_dates=,
+            columns=,
+            chunksize=,
+            dtype_backend=,
         )
 
     @staticmethod
@@ -1701,11 +1697,11 @@ class SQLDatabase(PandasSQL):
                         yield _wrap_result(
                             [],
                             columns,
-                            index_col=index_col,
-                            coerce_float=coerce_float,
-                            parse_dates=parse_dates,
-                            dtype=dtype,
-                            dtype_backend=dtype_backend,
+                            index_col=,
+                            coerce_float=,
+                            parse_dates=,
+                            dtype=,
+                            dtype_backend=,
                         )
                     break
 
@@ -1713,11 +1709,11 @@ class SQLDatabase(PandasSQL):
                 yield _wrap_result(
                     data,
                     columns,
-                    index_col=index_col,
-                    coerce_float=coerce_float,
-                    parse_dates=parse_dates,
-                    dtype=dtype,
-                    dtype_backend=dtype_backend,
+                    index_col=,
+                    coerce_float=,
+                    parse_dates=,
+                    dtype=,
+                    dtype_backend=,
                 )
 
     def read_query(
@@ -1787,22 +1783,22 @@ class SQLDatabase(PandasSQL):
                 self.exit_stack,
                 chunksize,
                 columns,
-                index_col=index_col,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                dtype=dtype,
-                dtype_backend=dtype_backend,
+                index_col=,
+                coerce_float=,
+                parse_dates=,
+                dtype=,
+                dtype_backend=,
             )
         else:
             data = result.fetchall()
             frame = _wrap_result(
                 data,
                 columns,
-                index_col=index_col,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                dtype=dtype,
-                dtype_backend=dtype_backend,
+                index_col=,
+                coerce_float=,
+                parse_dates=,
+                dtype=,
+                dtype_backend=,
             )
             return frame
 
@@ -1846,12 +1842,12 @@ class SQLDatabase(PandasSQL):
         table = SQLTable(
             name,
             self,
-            frame=frame,
-            index=index,
-            if_exists=if_exists,
-            index_label=index_label,
-            schema=schema,
-            dtype=dtype,
+            frame=,
+            index=,
+            if_exists=,
+            index_label=,
+            schema=,
+            dtype=,
         )
         table.create()
         return table
@@ -1950,28 +1946,28 @@ class SQLDatabase(PandasSQL):
         sql_engine = get_engine(engine)
 
         table = self.prep_table(
-            frame=frame,
-            name=name,
-            if_exists=if_exists,
-            index=index,
-            index_label=index_label,
-            schema=schema,
-            dtype=dtype,
+            frame=,
+            name=,
+            if_exists=,
+            index=,
+            index_label=,
+            schema=,
+            dtype=,
         )
 
         total_inserted = sql_engine.insert_records(
-            table=table,
+            table=,
             con=self.con,
-            frame=frame,
-            name=name,
-            index=index,
-            schema=schema,
-            chunksize=chunksize,
-            method=method,
+            frame=,
+            name=,
+            index=,
+            schema=,
+            chunksize=,
+            method=,
             **engine_kwargs,
         )
 
-        self.check_case_sensitive(name=name, schema=schema)
+        self.check_case_sensitive(name=, schema=)
         return total_inserted
 
     @property
@@ -1991,7 +1987,7 @@ class SQLDatabase(PandasSQL):
         )
 
         schema = schema or self.meta.schema
-        tbl = Table(table_name, self.meta, autoload_with=self.con, schema=schema)
+        tbl = Table(table_name, self.meta, autoload_with=self.con, schema=)
         for column in tbl.columns:
             if isinstance(column.type, Numeric):
                 column.type.asdecimal = False
@@ -2001,7 +1997,7 @@ class SQLDatabase(PandasSQL):
         schema = schema or self.meta.schema
         if self.has_table(table_name, schema):
             self.meta.reflect(
-                bind=self.con, only=[table_name], schema=schema, views=True
+                bind=self.con, only=[table_name], schema=, views=True
             )
             with self.run_transaction():
                 self.get_table(table_name, schema).drop(bind=self.con)
@@ -2018,11 +2014,11 @@ class SQLDatabase(PandasSQL):
         table = SQLTable(
             table_name,
             self,
-            frame=frame,
+            frame=,
             index=False,
-            keys=keys,
-            dtype=dtype,
-            schema=schema,
+            keys=,
+            dtype=,
+            schema=,
         )
         return str(table.sql_schema())
 
@@ -2300,7 +2296,7 @@ class SQLiteDatabase(PandasSQL):
                 cursor.close()
                 if not has_read_data:
                     result = DataFrame.from_records(
-                        [], columns=columns, coerce_float=coerce_float
+                        [], columns=, coerce_float=
                     )
                     if dtype:
                         result = result.astype(dtype)
@@ -2311,11 +2307,11 @@ class SQLiteDatabase(PandasSQL):
             yield _wrap_result(
                 data,
                 columns,
-                index_col=index_col,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                dtype=dtype,
-                dtype_backend=dtype_backend,
+                index_col=,
+                coerce_float=,
+                parse_dates=,
+                dtype=,
+                dtype_backend=,
             )
 
     def read_query(
@@ -2337,11 +2333,11 @@ class SQLiteDatabase(PandasSQL):
                 cursor,
                 chunksize,
                 columns,
-                index_col=index_col,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                dtype=dtype,
-                dtype_backend=dtype_backend,
+                index_col=,
+                coerce_float=,
+                parse_dates=,
+                dtype=,
+                dtype_backend=,
             )
         else:
             data = self._fetchall_as_list(cursor)
@@ -2350,11 +2346,11 @@ class SQLiteDatabase(PandasSQL):
             frame = _wrap_result(
                 data,
                 columns,
-                index_col=index_col,
-                coerce_float=coerce_float,
-                parse_dates=parse_dates,
-                dtype=dtype,
-                dtype_backend=dtype_backend,
+                index_col=,
+                coerce_float=,
+                parse_dates=,
+                dtype=,
+                dtype_backend=,
             )
             return frame
 
@@ -2435,11 +2431,11 @@ class SQLiteDatabase(PandasSQL):
         table = SQLiteTable(
             name,
             self,
-            frame=frame,
-            index=index,
-            if_exists=if_exists,
-            index_label=index_label,
-            dtype=dtype,
+            frame=,
+            index=,
+            if_exists=,
+            index_label=,
+            dtype=,
         )
         table.create()
         return table.insert(chunksize, method)
@@ -2476,11 +2472,11 @@ class SQLiteDatabase(PandasSQL):
         table = SQLiteTable(
             table_name,
             self,
-            frame=frame,
+            frame=,
             index=False,
-            keys=keys,
-            dtype=dtype,
-            schema=schema,
+            keys=,
+            dtype=,
+            schema=,
         )
         return str(table.sql_schema())
 
@@ -2515,7 +2511,7 @@ def get_schema(
 
         .. versionadded:: 1.2.0
     """
-    with pandasSQL_builder(con=con) as pandas_sql:
+    with pandasSQL_builder(con=) as pandas_sql:
         return pandas_sql._create_sql_schema(
-            frame, name, keys=keys, dtype=dtype, schema=schema
+            frame, name, keys=, dtype=, schema=
         )

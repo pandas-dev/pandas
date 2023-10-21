@@ -255,7 +255,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 raise raise_on_incompatible(values, dtype.freq)
             values, dtype = values._ndarray, values.dtype
 
-        values = np.array(values, dtype="int64", copy=copy)
+        values = np.array(values, dtype="int64", copy=)
         if dtype is None:
             raise ValueError("dtype is not specified and cannot be inferred")
         dtype = cast(PeriodDtype, dtype)
@@ -271,7 +271,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         # alias for PeriodArray.__init__
         assertion_msg = "Should be numpy array of type i8"
         assert isinstance(values, np.ndarray) and values.dtype == "i8", assertion_msg
-        return cls(values, dtype=dtype)
+        return cls(values, dtype=)
 
     @classmethod
     def _from_sequence(
@@ -299,13 +299,13 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         freq = freq or libperiod.extract_freq(periods)
         ordinals = libperiod.extract_ordinals(periods, freq)
         dtype = PeriodDtype(freq)
-        return cls(ordinals, dtype=dtype)
+        return cls(ordinals, dtype=)
 
     @classmethod
     def _from_sequence_of_strings(
         cls, strings, *, dtype: Dtype | None = None, copy: bool = False
     ) -> Self:
-        return cls._from_sequence(strings, dtype=dtype, copy=copy)
+        return cls._from_sequence(strings, dtype=, copy=)
 
     @classmethod
     def _from_datetime64(cls, data, freq, tz=None) -> Self:
@@ -326,7 +326,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             freq = freq_to_period_freqstr(freq.n, freq.name)
         data, freq = dt64arr_to_periodarr(data, freq, tz)
         dtype = PeriodDtype(freq)
-        return cls(data, dtype=dtype)
+        return cls(data, dtype=)
 
     @classmethod
     def _generate_range(cls, start, end, periods, freq, fields):
@@ -343,7 +343,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
                 )
             subarr, freq = _get_ordinal_range(start, end, periods, freq)
         elif field_count > 0:
-            subarr, freq = _range_from_fields(freq=freq, **fields)
+            subarr, freq = _range_from_fields(freq=, **fields)
         else:
             raise ValueError("Not enough parameters to construct Period range")
 
@@ -414,7 +414,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
 
         if type is not None:
             if pyarrow.types.is_integer(type):
-                return pyarrow.array(self._ndarray, mask=self.isna(), type=type)
+                return pyarrow.array(self._ndarray, mask=self.isna(), type=)
             elif isinstance(type, ArrowPeriodType):
                 # ensure we have the same freq
                 if self.freqstr != type.freq:
@@ -654,7 +654,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             freq = Period._maybe_convert_freq(freq)
             base = freq._period_dtype_code
 
-        new_parr = self.asfreq(freq, how=how)
+        new_parr = self.asfreq(freq, how=)
 
         new_data = libperiod.periodarr_to_dt64arr(new_parr.asi8, base)
         dta = DatetimeArray(new_data)
@@ -747,7 +747,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             new_data[self._isnan] = iNaT
 
         dtype = PeriodDtype(freq)
-        return type(self)(new_data, dtype=dtype)
+        return type(self)(new_data, dtype=)
 
     # ------------------------------------------------------------------
     # Rendering Methods
@@ -786,7 +786,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             tz = getattr(dtype, "tz", None)
             return self.to_timestamp().tz_localize(tz)
 
-        return super().astype(dtype, copy=copy)
+        return super().astype(dtype, copy=)
 
     def searchsorted(
         self,
@@ -799,7 +799,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         # Cast to M8 to get datetime-like NaT placement,
         #  similar to dtl._period_dispatch
         m8arr = self._ndarray.view("M8[ns]")
-        return m8arr.searchsorted(npvalue, side=side, sorter=sorter)
+        return m8arr.searchsorted(npvalue, side=, sorter=)
 
     def _pad_or_backfill(
         self, *, method: FillnaOptions, limit: int | None = None, copy: bool = True
@@ -807,7 +807,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         # view as dt64 so we get treated as timelike in core.missing,
         #  similar to dtl._period_dispatch
         dta = self.view("M8[ns]")
-        result = dta._pad_or_backfill(method=method, limit=limit, copy=copy)
+        result = dta._pad_or_backfill(method=, limit=, copy=)
         if copy:
             return cast("Self", result.view(self.dtype))
         else:
@@ -820,11 +820,11 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             # view as dt64 so we get treated as timelike in core.missing,
             #  similar to dtl._period_dispatch
             dta = self.view("M8[ns]")
-            result = dta.fillna(value=value, method=method, limit=limit, copy=copy)
+            result = dta.fillna(value=, method=, limit=, copy=)
             # error: Incompatible return value type (got "Union[ExtensionArray,
             # ndarray[Any, Any]]", expected "PeriodArray")
             return result.view(self.dtype)  # type: ignore[return-value]
-        return super().fillna(value=value, method=method, limit=limit, copy=copy)
+        return super().fillna(value=, method=, limit=, copy=)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -902,7 +902,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         #  more specific exception message if necessary.
         try:
             delta = astype_overflowsafe(
-                np.asarray(other), dtype=dtype, copy=False, round_ok=False
+                np.asarray(other), dtype=, copy=False, round_ok=False
             )
         except ValueError as err:
             # e.g. if we have minutes freq and try to add 30s
@@ -915,7 +915,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
         b_mask = np.isnat(delta)
 
         res_values = algos.checked_add_with_arr(
-            self.asi8, delta.view("i8"), arr_mask=self._isnan, b_mask=b_mask
+            self.asi8, delta.view("i8"), arr_mask=self._isnan, b_mask=
         )
         np.putmask(res_values, self._isnan | b_mask, iNaT)
         return type(self)(res_values, dtype=self.dtype)
@@ -950,7 +950,7 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):  # type: ignore[misc]
             td = np.asarray(other)
 
         try:
-            delta = astype_overflowsafe(td, dtype=dtype, copy=False, round_ok=False)
+            delta = astype_overflowsafe(td, dtype=, copy=False, round_ok=False)
         except ValueError as err:
             raise raise_on_incompatible(self, other) from err
 
@@ -985,7 +985,7 @@ def raise_on_incompatible(left, right) -> IncompatibleFrequency:
 
     own_freq = freq_to_period_freqstr(left.freq.n, left.freq.name)
     msg = DIFFERENT_FREQ.format(
-        cls=type(left).__name__, own_freq=own_freq, other_freq=other_freq
+        cls=type(left).__name__, own_freq=, other_freq=
     )
     return IncompatibleFrequency(msg)
 
@@ -1084,11 +1084,11 @@ def period_array(
         # error: Argument 2 to "from_ordinals" has incompatible type "Union[str,
         # Tick, None]"; expected "Union[timedelta, BaseOffset, str]"
         ordinals = libperiod.from_ordinals(arr, freq)  # type: ignore[arg-type]
-        return PeriodArray(ordinals, dtype=dtype)
+        return PeriodArray(ordinals, dtype=)
 
     data = ensure_object(arrdata)
 
-    return PeriodArray._from_sequence(data, dtype=dtype)
+    return PeriodArray._from_sequence(data, dtype=)
 
 
 @overload
@@ -1175,7 +1175,7 @@ def dt64arr_to_periodarr(
     reso = get_unit_from_dtype(data.dtype)
     freq = Period._maybe_convert_freq(freq)
     base = freq._period_dtype_code
-    return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=reso), freq
+    return c_dt64arr_to_periodarr(data.view("i8"), base, tz, reso=), freq
 
 
 def _get_ordinal_range(start, end, periods, freq, mult: int = 1):

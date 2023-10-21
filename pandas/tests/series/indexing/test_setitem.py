@@ -71,7 +71,7 @@ class TestSetitemDT64Values:
         # GH#20441
         arr = date_range("2017", periods=4, tz="US/Eastern")
         index = [(0, 1), (0, 2), (0, 3), (0, 4)]
-        result = Series(arr, index=index)
+        result = Series(arr, index=)
         expected = result.copy()
         result[(0, 1)] = np.nan
         expected.iloc[0] = np.nan
@@ -79,34 +79,34 @@ class TestSetitemDT64Values:
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "UTC", "Asia/Tokyo"])
     def test_setitem_with_tz(self, tz, indexer_sli):
-        orig = Series(date_range("2016-01-01", freq="h", periods=3, tz=tz))
+        orig = Series(date_range("2016-01-01", freq="h", periods=3, tz=))
         assert orig.dtype == f"datetime64[ns, {tz}]"
 
         exp = Series(
             [
-                Timestamp("2016-01-01 00:00", tz=tz),
-                Timestamp("2011-01-01 00:00", tz=tz),
-                Timestamp("2016-01-01 02:00", tz=tz),
+                Timestamp("2016-01-01 00:00", tz=),
+                Timestamp("2011-01-01 00:00", tz=),
+                Timestamp("2016-01-01 02:00", tz=),
             ]
         )
 
         # scalar
         ser = orig.copy()
-        indexer_sli(ser)[1] = Timestamp("2011-01-01", tz=tz)
+        indexer_sli(ser)[1] = Timestamp("2011-01-01", tz=)
         tm.assert_series_equal(ser, exp)
 
         # vector
         vals = Series(
-            [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
+            [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=)],
             index=[1, 2],
         )
         assert vals.dtype == f"datetime64[ns, {tz}]"
 
         exp = Series(
             [
-                Timestamp("2016-01-01 00:00", tz=tz),
-                Timestamp("2011-01-01 00:00", tz=tz),
-                Timestamp("2012-01-01 00:00", tz=tz),
+                Timestamp("2016-01-01 00:00", tz=),
+                Timestamp("2011-01-01 00:00", tz=),
+                Timestamp("2012-01-01 00:00", tz=),
             ]
         )
 
@@ -117,34 +117,34 @@ class TestSetitemDT64Values:
     def test_setitem_with_tz_dst(self, indexer_sli):
         # GH#14146 trouble setting values near DST boundary
         tz = "US/Eastern"
-        orig = Series(date_range("2016-11-06", freq="h", periods=3, tz=tz))
+        orig = Series(date_range("2016-11-06", freq="h", periods=3, tz=))
         assert orig.dtype == f"datetime64[ns, {tz}]"
 
         exp = Series(
             [
-                Timestamp("2016-11-06 00:00-04:00", tz=tz),
-                Timestamp("2011-01-01 00:00-05:00", tz=tz),
-                Timestamp("2016-11-06 01:00-05:00", tz=tz),
+                Timestamp("2016-11-06 00:00-04:00", tz=),
+                Timestamp("2011-01-01 00:00-05:00", tz=),
+                Timestamp("2016-11-06 01:00-05:00", tz=),
             ]
         )
 
         # scalar
         ser = orig.copy()
-        indexer_sli(ser)[1] = Timestamp("2011-01-01", tz=tz)
+        indexer_sli(ser)[1] = Timestamp("2011-01-01", tz=)
         tm.assert_series_equal(ser, exp)
 
         # vector
         vals = Series(
-            [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=tz)],
+            [Timestamp("2011-01-01", tz=tz), Timestamp("2012-01-01", tz=)],
             index=[1, 2],
         )
         assert vals.dtype == f"datetime64[ns, {tz}]"
 
         exp = Series(
             [
-                Timestamp("2016-11-06 00:00", tz=tz),
-                Timestamp("2011-01-01 00:00", tz=tz),
-                Timestamp("2012-01-01 00:00", tz=tz),
+                Timestamp("2016-11-06 00:00", tz=),
+                Timestamp("2011-01-01 00:00", tz=),
+                Timestamp("2012-01-01 00:00", tz=),
             ]
         )
 
@@ -588,7 +588,7 @@ class TestSetitemWithExpansion:
         self, na, target_na, dtype, target_dtype, indexer, warn
     ):
         # GH#32346
-        ser = Series([1, 2], dtype=dtype)
+        ser = Series([1, 2], dtype=)
         with tm.assert_produces_warning(warn, match="incompatible dtype"):
             ser[indexer] = na
         expected_values = [1, target_na] if indexer == 1 else [1, 2, target_na]
@@ -1057,7 +1057,7 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
     @pytest.fixture
     def obj(self, dtype):
         i8vals = date_range("2016-01-01", periods=3).asi8
-        idx = Index(i8vals, dtype=dtype)
+        idx = Index(i8vals, dtype=)
         assert idx.dtype == dtype
         return Series(idx)
 
@@ -1083,7 +1083,7 @@ class TestSetitemNADatetimeLikeDtype(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, obj, val, is_inplace):
         dtype = obj.dtype if is_inplace else object
-        expected = Series([val] + list(obj[1:]), dtype=dtype)
+        expected = Series([val] + list(obj[1:]), dtype=)
         return expected
 
     @pytest.fixture
@@ -1199,7 +1199,7 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
     @pytest.fixture
     def obj(self, any_int_numpy_dtype):
         dtype = np.dtype(any_int_numpy_dtype)
-        ser = Series(range(5), dtype=dtype)
+        ser = Series(range(5), dtype=)
         return ser
 
     @pytest.fixture
@@ -1213,7 +1213,7 @@ class TestSetitemRangeIntoIntegerSeries(SetitemCastingEquivalents):
     @pytest.fixture
     def expected(self, any_int_numpy_dtype):
         dtype = np.dtype(any_int_numpy_dtype)
-        exp = Series([2, 3, 2, 3, 4], dtype=dtype)
+        exp = Series([2, 3, 2, 3, 4], dtype=)
         return exp
 
     @pytest.fixture
@@ -1248,7 +1248,7 @@ class TestSetitemFloatNDarrayIntoIntegerSeries(SetitemCastingEquivalents):
             dtype = np.int64
         else:
             dtype = np.float64
-        res_values = np.array(range(5), dtype=dtype)
+        res_values = np.array(range(5), dtype=)
         res_values[:2] = val
         return Series(res_values)
 
@@ -1289,7 +1289,7 @@ class TestSmallIntegerSetitemUpcast(SetitemCastingEquivalents):
             dtype = "f8"
         else:
             dtype = "i8"
-        return Series([val, 2, 3], dtype=dtype)
+        return Series([val, 2, 3], dtype=)
 
     @pytest.fixture
     def warn(self):
@@ -1473,7 +1473,7 @@ class TestCoercionDatetime64TZ(CoercionTest):
     @pytest.fixture
     def obj(self):
         tz = "US/Eastern"
-        return Series(date_range("2011-01-01", freq="D", periods=4, tz=tz))
+        return Series(date_range("2011-01-01", freq="D", periods=4, tz=))
 
     @pytest.fixture
     def warn(self):
@@ -1664,7 +1664,7 @@ def test_setitem_bool_int_float_consistency(indexer_sli):
     #  int-with-float and float-with-int are both non-casting so long
     #  as the setitem can be done losslessly
     for dtype in [np.float64, np.int64]:
-        ser = Series(0, index=range(3), dtype=dtype)
+        ser = Series(0, index=range(3), dtype=)
         with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
             indexer_sli(ser)[0] = True
         assert ser.dtype == object

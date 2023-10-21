@@ -57,11 +57,7 @@ class CalamineReader(BaseExcelReader["CalamineWorkbook"]):
             Arbitrary keyword arguments passed to excel engine.
         """
         import_optional_dependency("python_calamine")
-        super().__init__(
-            filepath_or_buffer,
-            storage_options=storage_options,
-            engine_kwargs=engine_kwargs,
-        )
+        super().__init__(filepath_or_buffer, storage_options=, engine_kwargs=)
 
     @property
     def _workbook_class(self) -> type[CalamineWorkbook]:

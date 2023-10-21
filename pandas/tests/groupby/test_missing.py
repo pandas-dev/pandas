@@ -52,7 +52,7 @@ def test_fillna_with_string_dtype(method, expected):
     grp = df.groupby("b")
     msg = "DataFrameGroupBy.fillna with 'method' is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = grp.fillna(method=method)
+        result = grp.fillna(method=)
     expected = DataFrame({"a": pd.array(expected, dtype="string")})
     tm.assert_frame_equal(result, expected)
 
@@ -120,7 +120,7 @@ def test_ffill_handles_nan_groups(dropna, method, has_nan_group):
     group_b = np.nan if has_nan_group else "b"
     df["group_col"] = pd.Series(["a"] * 3 + [group_b] * 3)
 
-    grouped = df.groupby(by="group_col", dropna=dropna)
+    grouped = df.groupby(by="group_col", dropna=)
     result = getattr(grouped, method)(limit=None)
 
     expected_rows = {
@@ -147,7 +147,7 @@ def test_ffill_handles_nan_groups(dropna, method, has_nan_group):
 def test_min_count(func, min_count, value):
     # GH#37821
     df = DataFrame({"a": [1] * 3, "b": [1, np.nan, np.nan], "c": [np.nan] * 3})
-    result = getattr(df.groupby("a"), func)(min_count=min_count)
+    result = getattr(df.groupby("a"), func)(min_count=)
     expected = DataFrame({"b": [value], "c": [np.nan]}, index=Index([1], name="a"))
     tm.assert_frame_equal(result, expected)
 

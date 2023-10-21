@@ -83,7 +83,7 @@ class TestConstructors:
     @pytest.mark.parametrize("dtype", [SparseDtype(int, 0), int])
     def test_constructor_na_dtype(self, dtype):
         with pytest.raises(ValueError, match="Cannot convert"):
-            SparseArray([0, 1, np.nan], dtype=dtype)
+            SparseArray([0, 1, np.nan], dtype=)
 
     def test_constructor_warns_when_losing_timezone(self):
         # GH#32501 warn when losing timezone information
@@ -146,7 +146,7 @@ class TestConstructors:
         # scalar input
         msg = "Constructing SparseArray with scalar data is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            arr = SparseArray(data=1, sparse_index=sparse_index, dtype=None)
+            arr = SparseArray(data=1, sparse_index=, dtype=None)
         exp = SparseArray([1], dtype=None)
         tm.assert_sp_array_equal(arr, exp)
         assert arr.dtype == SparseDtype(np.int64)
@@ -190,7 +190,7 @@ class TestConstructors:
     def test_from_spmatrix(self, size, format):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        mat = sp_sparse.random(size, 1, density=0.5, format=format)
+        mat = sp_sparse.random(size, 1, density=0.5, format=)
         result = SparseArray.from_spmatrix(mat)
 
         result = np.asarray(result)
@@ -201,7 +201,7 @@ class TestConstructors:
     def test_from_spmatrix_including_explicit_zero(self, format):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        mat = sp_sparse.random(10, 1, density=0.5, format=format)
+        mat = sp_sparse.random(10, 1, density=0.5, format=)
         mat.data[0] = 0
         result = SparseArray.from_spmatrix(mat)
 

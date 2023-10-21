@@ -424,7 +424,7 @@ def main(
     os.makedirs(target_path, exist_ok=True)
 
     sys.stderr.write("Generating context...\n")
-    context = get_context(config_fname, target_path=target_path)
+    context = get_context(config_fname, target_path=)
     sys.stderr.write("Context generated\n")
 
     templates_path = os.path.join(source_path, context["main"]["templates_path"])

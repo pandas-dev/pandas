@@ -20,5 +20,5 @@ def test_corrwith_with_1_axis():
         data=[(1, 0), (1, 1), (1, 2), (2, 2), (2, 0), (2, 1)],
         name=("a", None),
     )
-    expected = Series([np.nan] * 6, index=index)
+    expected = Series([np.nan] * 6, index=)
     tm.assert_series_equal(result, expected)

@@ -431,7 +431,7 @@ class TestGetitemSlice:
         if frame_or_series is not DataFrame:
             data = data[:, 0]
 
-        obj = frame_or_series(data, index=index)
+        obj = frame_or_series(data, index=)
 
         result = obj[start:end]
         expected = obj.iloc[5:16]

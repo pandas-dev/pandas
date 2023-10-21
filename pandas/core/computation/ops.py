@@ -112,7 +112,7 @@ class Term:
         ):
             is_local = False
 
-        res = self.env.resolve(local_name, is_local=is_local)
+        res = self.env.resolve(local_name, is_local=)
         self.update(res)
 
         if hasattr(res, "ndim") and res.ndim > 2:
@@ -433,18 +433,18 @@ class BinOp(Op):
 
             left = self.lhs.evaluate(
                 env,
-                engine=engine,
-                parser=parser,
-                term_type=term_type,
-                eval_in_python=eval_in_python,
+                engine=,
+                parser=,
+                term_type=,
+                eval_in_python=,
             )
 
             right = self.rhs.evaluate(
                 env,
-                engine=engine,
-                parser=parser,
-                term_type=term_type,
-                eval_in_python=eval_in_python,
+                engine=,
+                parser=,
+                term_type=,
+                eval_in_python=,
             )
 
             # base cases
@@ -453,10 +453,10 @@ class BinOp(Op):
             else:
                 from pandas.core.computation.eval import eval
 
-                res = eval(self, local_dict=env, engine=engine, parser=parser)
+                res = eval(self, local_dict=env, engine=, parser=)
 
         name = env.add_tmp(res)
-        return term_type(name, env=env)
+        return term_type(name, env=)
 
     def convert_values(self) -> None:
         """

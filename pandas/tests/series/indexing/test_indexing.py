@@ -57,17 +57,17 @@ def test_basic_indexing():
 def test_getitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
     # GH51053
     dtype = any_numeric_dtype
-    idx = Index([1, 0, 1], dtype=dtype)
+    idx = Index([1, 0, 1], dtype=)
     ser = Series(range(3), index=idx)
     result = ser[1]
-    expected = Series([0, 2], index=Index([1, 1], dtype=dtype))
+    expected = Series([0, 2], index=Index([1, 1], dtype=))
     tm.assert_series_equal(result, expected, check_exact=True)
 
 
 def test_setitem_numeric_should_not_fallback_to_positional(any_numeric_dtype):
     # GH51053
     dtype = any_numeric_dtype
-    idx = Index([1, 0, 1], dtype=dtype)
+    idx = Index([1, 0, 1], dtype=)
     ser = Series(range(3), index=idx)
     ser[1] = 10
     expected = Series([10, 1, 10], index=idx)
@@ -312,7 +312,7 @@ def test_preserve_refs(datetime_series):
 def test_multilevel_preserve_name(lexsorted_two_level_string_multiindex, indexer_sl):
     index = lexsorted_two_level_string_multiindex
     ser = Series(
-        np.random.default_rng(2).standard_normal(len(index)), index=index, name="sth"
+        np.random.default_rng(2).standard_normal(len(index)), index=, name="sth"
     )
 
     result = indexer_sl(ser)["foo"]

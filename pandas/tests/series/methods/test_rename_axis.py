@@ -39,7 +39,7 @@ class TestSeriesRenameAxis:
     def test_rename_axis_none(self, kwargs):
         # GH 25034
         index = Index(list("abc"), name="foo")
-        ser = Series([1, 2, 3], index=index)
+        ser = Series([1, 2, 3], index=)
 
         result = ser.rename_axis(**kwargs)
         expected_index = index.rename(None) if kwargs else index

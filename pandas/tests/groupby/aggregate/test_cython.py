@@ -217,10 +217,10 @@ def test_cython_agg_empty_buckets(op, targop, observed):
 
     # calling _cython_agg_general directly, instead of via the user API
     # which sets different values for min_count, so do that here.
-    g = df.groupby(pd.cut(df[0], grps), observed=observed)
+    g = df.groupby(pd.cut(df[0], grps), observed=)
     result = g._cython_agg_general(op, alt=None, numeric_only=True)
 
-    g = df.groupby(pd.cut(df[0], grps), observed=observed)
+    g = df.groupby(pd.cut(df[0], grps), observed=)
     expected = g.agg(lambda x: targop(x))
     tm.assert_frame_equal(result, expected)
 
@@ -231,7 +231,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
     df = DataFrame([11, 12, 13], columns=["a"])
     grps = np.arange(0, 25, 5, dtype=int)
     # add / sum
-    result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
+    result = df.groupby(pd.cut(df["a"], grps), observed=)._cython_agg_general(
         "sum", alt=None, numeric_only=True
     )
     intervals = pd.interval_range(0, 20, freq=5)
@@ -245,7 +245,7 @@ def test_cython_agg_empty_buckets_nanops(observed):
     tm.assert_frame_equal(result, expected)
 
     # prod
-    result = df.groupby(pd.cut(df["a"], grps), observed=observed)._cython_agg_general(
+    result = df.groupby(pd.cut(df["a"], grps), observed=)._cython_agg_general(
         "prod", alt=None, numeric_only=True
     )
     expected = DataFrame(
@@ -268,7 +268,7 @@ def test_cython_with_timestamp_and_nat(op, data):
     index = Index([0, 1], name="a")
 
     # We will group by a and test the cython aggregations
-    expected = DataFrame({"b": [data, NaT]}, index=index)
+    expected = DataFrame({"b": [data, NaT]}, index=)
 
     result = df.groupby("a").aggregate(op)
     tm.assert_frame_equal(expected, result)
@@ -346,7 +346,7 @@ def test_cython_agg_nullable_int(op_name):
         convert_integer = False
     else:
         convert_integer = True
-    expected = expected.convert_dtypes(convert_integer=convert_integer)
+    expected = expected.convert_dtypes(convert_integer=)
     tm.assert_series_equal(result, expected)
 
 
@@ -355,8 +355,8 @@ def test_count_masked_returns_masked_dtype(dtype):
     df = DataFrame(
         {
             "A": [1, 1],
-            "B": pd.array([1, pd.NA], dtype=dtype),
-            "C": pd.array([1, 1], dtype=dtype),
+            "B": pd.array([1, pd.NA], dtype=),
+            "C": pd.array([1, 1], dtype=),
         }
     )
     result = df.groupby("A").count()

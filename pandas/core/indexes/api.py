@@ -100,7 +100,7 @@ def get_objs_combined_axis(
     Index
     """
     obs_idxes = [obj._get_axis(axis) for obj in objs]
-    return _get_combined_index(obs_idxes, intersect=intersect, sort=sort, copy=copy)
+    return _get_combined_index(obs_idxes, intersect=, sort=, copy=)
 
 
 def _get_distinct_objs(objs: list[Index]) -> list[Index]:
@@ -255,8 +255,8 @@ def union_indexes(indexes, sort: bool | None = True) -> Index:
             return i
 
         return Index(
-            lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort),
-            dtype=dtype,
+            lib.fast_unique_multiple_list([conv(i) for i in inds], sort=),
+            dtype=,
         )
 
     def _find_common_index_dtype(inds):

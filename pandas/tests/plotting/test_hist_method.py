@@ -45,11 +45,11 @@ class TestSeriesPlots:
 
     def test_hist_legacy_ax(self, ts):
         fig, ax = mpl.pyplot.subplots(1, 1)
-        _check_plot_works(ts.hist, ax=ax, default_axes=True)
+        _check_plot_works(ts.hist, ax=, default_axes=True)
 
     def test_hist_legacy_ax_and_fig(self, ts):
         fig, ax = mpl.pyplot.subplots(1, 1)
-        _check_plot_works(ts.hist, ax=ax, figure=fig, default_axes=True)
+        _check_plot_works(ts.hist, ax=, figure=fig, default_axes=True)
 
     def test_hist_legacy_fig(self, ts):
         fig, _ = mpl.pyplot.subplots(1, 1)
@@ -103,8 +103,8 @@ class TestSeriesPlots:
         # so we get a warning about an axis being cleared, even
         # though we don't explicing pass one, see GH #13188
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(df.height.hist, by=getattr(df, by), layout=layout)
-        _check_axes_shape(axes, axes_num=axes_num, layout=res_layout)
+            axes = _check_plot_works(df.height.hist, by=getattr(df, by), layout=)
+        _check_axes_shape(axes, axes_num=, layout=res_layout)
 
     def test_hist_layout_with_by_shape(self, hist_df):
         df = hist_df
@@ -155,7 +155,7 @@ class TestSeriesPlots:
     def test_histtype_argument(self, histtype, expected):
         # GH23992 Verify functioning of histtype argument
         ser = Series(np.random.default_rng(2).integers(1, 10))
-        ax = ser.hist(histtype=histtype)
+        ax = ser.hist(histtype=)
         _check_patches_all_filled(ax, filled=expected)
 
     @pytest.mark.parametrize(
@@ -164,11 +164,11 @@ class TestSeriesPlots:
     def test_hist_with_legend(self, by, expected_axes_num, expected_layout):
         # GH 6279 - Series histogram can have a legend
         index = 15 * ["1"] + 15 * ["2"]
-        s = Series(np.random.default_rng(2).standard_normal(30), index=index, name="a")
+        s = Series(np.random.default_rng(2).standard_normal(30), index=, name="a")
         s.index.name = "b"
 
         # Use default_axes=True when plotting method generate subplots itself
-        axes = _check_plot_works(s.hist, default_axes=True, legend=True, by=by)
+        axes = _check_plot_works(s.hist, default_axes=True, legend=True, by=)
         _check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
         _check_legend_labels(axes, "a")
 
@@ -176,34 +176,34 @@ class TestSeriesPlots:
     def test_hist_with_legend_raises(self, by):
         # GH 6279 - Series histogram with legend and label raises
         index = 15 * ["1"] + 15 * ["2"]
-        s = Series(np.random.default_rng(2).standard_normal(30), index=index, name="a")
+        s = Series(np.random.default_rng(2).standard_normal(30), index=, name="a")
         s.index.name = "b"
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
-            s.hist(legend=True, by=by, label="c")
+            s.hist(legend=True, by=, label="c")
 
     def test_hist_kwargs(self, ts):
         _, ax = mpl.pyplot.subplots()
-        ax = ts.plot.hist(bins=5, ax=ax)
+        ax = ts.plot.hist(bins=5, ax=)
         assert len(ax.patches) == 5
         _check_text_labels(ax.yaxis.get_label(), "Frequency")
 
     def test_hist_kwargs_horizontal(self, ts):
         _, ax = mpl.pyplot.subplots()
-        ax = ts.plot.hist(bins=5, ax=ax)
-        ax = ts.plot.hist(orientation="horizontal", ax=ax)
+        ax = ts.plot.hist(bins=5, ax=)
+        ax = ts.plot.hist(orientation="horizontal", ax=)
         _check_text_labels(ax.xaxis.get_label(), "Frequency")
 
     def test_hist_kwargs_align(self, ts):
         _, ax = mpl.pyplot.subplots()
-        ax = ts.plot.hist(bins=5, ax=ax)
-        ax = ts.plot.hist(align="left", stacked=True, ax=ax)
+        ax = ts.plot.hist(bins=5, ax=)
+        ax = ts.plot.hist(align="left", stacked=True, ax=)
 
     @pytest.mark.xfail(reason="Api changed in 3.6.0")
     def test_hist_kde(self, ts):
         pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
-        ax = ts.plot.hist(logy=True, ax=ax)
+        ax = ts.plot.hist(logy=True, ax=)
         _check_ax_scales(ax, yaxis="log")
         xlabels = ax.get_xticklabels()
         # ticks are values, thus ticklabels are blank
@@ -223,7 +223,7 @@ class TestSeriesPlots:
     def test_hist_kde_logy(self, ts):
         pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
-        ax = ts.plot.kde(logy=True, ax=ax)
+        ax = ts.plot.kde(logy=True, ax=)
         _check_ax_scales(ax, yaxis="log")
         xlabels = ax.get_xticklabels()
         _check_text_labels(xlabels, [""] * len(xlabels))
@@ -233,7 +233,7 @@ class TestSeriesPlots:
     def test_hist_kde_color_bins(self, ts):
         pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
-        ax = ts.plot.hist(logy=True, bins=10, color="b", ax=ax)
+        ax = ts.plot.hist(logy=True, bins=10, color="b", ax=)
         _check_ax_scales(ax, yaxis="log")
         assert len(ax.patches) == 10
         _check_colors(ax.patches, facecolors=["b"] * 10)
@@ -241,7 +241,7 @@ class TestSeriesPlots:
     def test_hist_kde_color(self, ts):
         pytest.importorskip("scipy")
         _, ax = mpl.pyplot.subplots()
-        ax = ts.plot.kde(logy=True, color="r", ax=ax)
+        ax = ts.plot.kde(logy=True, color="r", ax=)
         _check_ax_scales(ax, yaxis="log")
         lines = ax.get_lines()
         assert len(lines) == 1
@@ -320,8 +320,8 @@ class TestDataFramePlots:
         obj = frame_or_series(range(10))
         xf, yf = 20, 18
         xrot, yrot = 30, 40
-        axes = obj.hist(xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
-        _check_ticks_props(axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
+        axes = obj.hist(xlabelsize=xf, xrot=, ylabelsize=yf, yrot=)
+        _check_ticks_props(axes, xlabelsize=xf, xrot=, ylabelsize=yf, yrot=)
 
     @pytest.mark.slow
     def test_hist_df_legacy_rectangles(self):
@@ -480,7 +480,7 @@ class TestDataFramePlots:
         axes = _check_plot_works(
             df.hist,
             default_axes=True,
-            column=column,
+            column=,
             layout=(1, 3),
         )
         result = [axes[0, i].get_title() for i in range(3)]
@@ -500,7 +500,7 @@ class TestDataFramePlots:
         df = DataFrame(
             np.random.default_rng(2).integers(1, 10, size=(100, 2)), columns=["a", "b"]
         )
-        ax = df.hist(histtype=histtype)
+        ax = df.hist(histtype=)
         _check_patches_all_filled(ax, filled=expected)
 
     @pytest.mark.parametrize("by", [None, "c"])
@@ -516,7 +516,7 @@ class TestDataFramePlots:
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((30, 2)),
-            index=index,
+            index=,
             columns=["a", "b"],
         )
 
@@ -525,8 +525,8 @@ class TestDataFramePlots:
             df.hist,
             default_axes=True,
             legend=True,
-            by=by,
-            column=column,
+            by=,
+            column=,
         )
 
         _check_axes_shape(axes, axes_num=expected_axes_num, layout=expected_layout)
@@ -542,17 +542,17 @@ class TestDataFramePlots:
         index = Index(15 * ["1"] + 15 * ["2"], name="c")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((30, 2)),
-            index=index,
+            index=,
             columns=["a", "b"],
         )
 
         with pytest.raises(ValueError, match="Cannot use both legend and label"):
-            df.hist(legend=True, by=by, column=column, label="d")
+            df.hist(legend=True, by=, column=, label="d")
 
     def test_hist_df_kwargs(self):
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
         _, ax = mpl.pyplot.subplots()
-        ax = df.plot.hist(bins=5, ax=ax)
+        ax = df.plot.hist(bins=5, ax=)
         assert len(ax.patches) == 10
 
     def test_hist_df_with_nonnumerics(self):
@@ -563,7 +563,7 @@ class TestDataFramePlots:
         )
         df["E"] = ["x", "y"] * 5
         _, ax = mpl.pyplot.subplots()
-        ax = df.plot.hist(bins=5, ax=ax)
+        ax = df.plot.hist(bins=5, ax=)
         assert len(ax.patches) == 20
 
     def test_hist_df_with_nonnumerics_no_bins(self):
@@ -574,7 +574,7 @@ class TestDataFramePlots:
         )
         df["E"] = ["x", "y"] * 5
         _, ax = mpl.pyplot.subplots()
-        ax = df.plot.hist(ax=ax)  # bins=10
+        ax = df.plot.hist(ax=)  # bins=10
         assert len(ax.patches) == 40
 
     def test_hist_secondary_legend(self):
@@ -585,8 +585,8 @@ class TestDataFramePlots:
 
         # primary -> secondary
         _, ax = mpl.pyplot.subplots()
-        ax = df["a"].plot.hist(legend=True, ax=ax)
-        df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
+        ax = df["a"].plot.hist(legend=True, ax=)
+        df["b"].plot.hist(ax=, legend=True, secondary_y=True)
         # both legends are drawn on left ax
         # left and right axis must be visible
         _check_legend_labels(ax, labels=["a", "b (right)"])
@@ -600,8 +600,8 @@ class TestDataFramePlots:
         )
         # secondary -> secondary
         _, ax = mpl.pyplot.subplots()
-        ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
-        df["b"].plot.hist(ax=ax, legend=True, secondary_y=True)
+        ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=)
+        df["b"].plot.hist(ax=, legend=True, secondary_y=True)
         # both legends are draw on left ax
         # left axis must be invisible, right axis must be visible
         _check_legend_labels(ax.left_ax, labels=["a (right)", "b (right)"])
@@ -615,9 +615,9 @@ class TestDataFramePlots:
         )
         # secondary -> primary
         _, ax = mpl.pyplot.subplots()
-        ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=ax)
+        ax = df["a"].plot.hist(legend=True, secondary_y=True, ax=)
         # right axes is returned
-        df["b"].plot.hist(ax=ax, legend=True)
+        df["b"].plot.hist(ax=, legend=True)
         # both legends are draw on left ax
         # left and right axis must be visible
         _check_legend_labels(ax.left_ax, labels=["a (right)", "b"])
@@ -636,7 +636,7 @@ class TestDataFramePlots:
         no_nan_weights = np.array([[0.3, 0.25, 0.25], [0.45, 0.45, 0.45]])
 
         _, ax0 = mpl.pyplot.subplots()
-        df.plot.hist(ax=ax0, weights=weights)
+        df.plot.hist(ax=ax0, weights=)
         rects = [x for x in ax0.get_children() if isinstance(x, mpl_patches.Rectangle)]
         heights = [rect.get_height() for rect in rects]
         _, ax1 = mpl.pyplot.subplots()
@@ -735,9 +735,9 @@ class TestDataFrameGroupByPlots:
             cumulative=True,
             bins=4,
             xlabelsize=xf,
-            xrot=xrot,
+            xrot=,
             ylabelsize=yf,
-            yrot=yrot,
+            yrot=,
             density=True,
         )
         # height of last bin (index 5) must be 1.0
@@ -745,7 +745,7 @@ class TestDataFrameGroupByPlots:
             rects = [x for x in ax.get_children() if isinstance(x, Rectangle)]
             height = rects[-1].get_height()
             tm.assert_almost_equal(height, 1.0)
-        _check_ticks_props(axes, xlabelsize=xf, xrot=xrot, ylabelsize=yf, yrot=yrot)
+        _check_ticks_props(axes, xlabelsize=xf, xrot=, ylabelsize=yf, yrot=)
 
     def test_grouped_hist_legacy_grouped_hist(self):
         from pandas.plotting._matplotlib.hist import _grouped_hist
@@ -840,7 +840,7 @@ class TestDataFrameGroupByPlots:
     def test_grouped_hist_layout_error(self, hist_df, msg, plot_col, by_col, layout):
         df = hist_df
         with pytest.raises(ValueError, match=msg):
-            df.hist(column=plot_col, by=getattr(df, by_col), layout=layout)
+            df.hist(column=plot_col, by=getattr(df, by_col), layout=)
 
     @pytest.mark.slow
     def test_grouped_hist_layout_warning(self, hist_df):
@@ -858,8 +858,8 @@ class TestDataFrameGroupByPlots:
     )
     def test_grouped_hist_layout_figsize(self, hist_df, layout, check_layout, figsize):
         df = hist_df
-        axes = df.hist(column="height", by=df.category, layout=layout, figsize=figsize)
-        _check_axes_shape(axes, axes_num=4, layout=check_layout, figsize=figsize)
+        axes = df.hist(column="height", by=df.category, layout=, figsize=)
+        _check_axes_shape(axes, axes_num=4, layout=check_layout, figsize=)
 
     @pytest.mark.slow
     @pytest.mark.parametrize("kwargs", [{}, {"column": "height", "layout": (2, 2)}])
@@ -881,7 +881,7 @@ class TestDataFrameGroupByPlots:
     def test_grouped_hist_layout_axes(self, hist_df, kwargs, axes_num, layout):
         df = hist_df
         axes = df.hist(**kwargs)
-        _check_axes_shape(axes, axes_num=axes_num, layout=layout)
+        _check_axes_shape(axes, axes_num=, layout=)
 
     def test_grouped_hist_multiple_axes(self, hist_df):
         # GH 6970, GH 7069
@@ -962,5 +962,5 @@ class TestDataFrameGroupByPlots:
         df = DataFrame(
             np.random.default_rng(2).integers(1, 10, size=(10, 2)), columns=["a", "b"]
         )
-        ax = df.hist(by="a", histtype=histtype)
+        ax = df.hist(by="a", histtype=)
         _check_patches_all_filled(ax, filled=expected)

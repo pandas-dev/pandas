@@ -17,7 +17,7 @@ class TestCopy:
         if deep == "default":
             ser2 = ser.copy()
         else:
-            ser2 = ser.copy(deep=deep)
+            ser2 = ser.copy(deep=)
 
         if using_copy_on_write:
             # INFO(CoW) a shallow copy doesn't yet copy the data
@@ -50,7 +50,7 @@ class TestCopy:
         if deep == "default":
             ser2 = ser.copy()
         else:
-            ser2 = ser.copy(deep=deep)
+            ser2 = ser.copy(deep=)
 
         if using_copy_on_write:
             # INFO(CoW) a shallow copy doesn't yet copy the data

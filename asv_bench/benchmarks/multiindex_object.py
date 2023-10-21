@@ -146,7 +146,7 @@ class Duplicated:
         n, k = 200, 5000
         levels = [np.arange(n), tm.makeStringIndex(n).values, 1000 + np.arange(n)]
         codes = [np.random.choice(n, (k * n)) for lev in levels]
-        self.mi = MultiIndex(levels=levels, codes=codes)
+        self.mi = MultiIndex(levels=, codes=)
 
     def time_duplicated(self):
         self.mi.duplicated()
@@ -182,8 +182,8 @@ class SortValues:
     param_names = ["dtype"]
 
     def setup(self, dtype):
-        a = array(np.tile(np.arange(100), 1000), dtype=dtype)
-        b = array(np.tile(np.arange(1000), 100), dtype=dtype)
+        a = array(np.tile(np.arange(100), 1000), dtype=)
+        b = array(np.tile(np.arange(1000), 100), dtype=)
         self.mi = MultiIndex.from_arrays([a, b])
 
     def time_sort_values(self, dtype):
@@ -270,7 +270,7 @@ class SetOperations:
         self.right = data[dtype]["right"]
 
     def time_operation(self, index_structure, dtype, method, sort):
-        getattr(self.left, method)(self.right, sort=sort)
+        getattr(self.left, method)(self.right, sort=)
 
 
 class Difference:

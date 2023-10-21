@@ -32,17 +32,17 @@ class TestCategoricalIndex:
 
         # test 0th element
         result = ci.insert(0, "a")
-        expected = CategoricalIndex(list("aaabbca"), categories=categories)
+        expected = CategoricalIndex(list("aaabbca"), categories=)
         tm.assert_index_equal(result, expected, exact=True)
 
         # test Nth element that follows Python list behavior
         result = ci.insert(-1, "a")
-        expected = CategoricalIndex(list("aabbcaa"), categories=categories)
+        expected = CategoricalIndex(list("aabbcaa"), categories=)
         tm.assert_index_equal(result, expected, exact=True)
 
         # test empty
-        result = CategoricalIndex([], categories=categories).insert(0, "a")
-        expected = CategoricalIndex(["a"], categories=categories)
+        result = CategoricalIndex([], categories=).insert(0, "a")
+        expected = CategoricalIndex(["a"], categories=)
         tm.assert_index_equal(result, expected, exact=True)
 
         # invalid -> cast to object
@@ -67,11 +67,11 @@ class TestCategoricalIndex:
         categories = ci.categories
 
         result = ci.delete(0)
-        expected = CategoricalIndex(list("abbca"), categories=categories)
+        expected = CategoricalIndex(list("abbca"), categories=)
         tm.assert_index_equal(result, expected, exact=True)
 
         result = ci.delete(-1)
-        expected = CategoricalIndex(list("aabbc"), categories=categories)
+        expected = CategoricalIndex(list("aabbc"), categories=)
         tm.assert_index_equal(result, expected, exact=True)
 
         with tm.external_error_raised((IndexError, ValueError)):
@@ -108,11 +108,11 @@ class TestCategoricalIndex:
         # non lexsorted categories
         categories = non_lexsorted_data
 
-        c = CategoricalIndex(categories[:2], categories=categories)
+        c = CategoricalIndex(categories[:2], categories=)
         assert c.is_monotonic_increasing is True
         assert c.is_monotonic_decreasing is False
 
-        c = CategoricalIndex(categories[1:3], categories=categories)
+        c = CategoricalIndex(categories[1:3], categories=)
         assert c.is_monotonic_increasing is True
         assert c.is_monotonic_decreasing is False
 
@@ -171,11 +171,11 @@ class TestCategoricalIndex:
         ],
     )
     def test_drop_duplicates(self, data, categories, expected):
-        idx = CategoricalIndex(data, categories=categories, name="foo")
+        idx = CategoricalIndex(data, categories=, name="foo")
         for keep, e in expected.items():
-            tm.assert_numpy_array_equal(idx.duplicated(keep=keep), e)
+            tm.assert_numpy_array_equal(idx.duplicated(keep=), e)
             e = idx[~e]
-            result = idx.drop_duplicates(keep=keep)
+            result = idx.drop_duplicates(keep=)
             tm.assert_index_equal(result, e)
 
     @pytest.mark.parametrize(
@@ -188,10 +188,10 @@ class TestCategoricalIndex:
         ],
     )
     def test_unique(self, data, categories, expected_data, ordered):
-        dtype = CategoricalDtype(categories, ordered=ordered)
+        dtype = CategoricalDtype(categories, ordered=)
 
-        idx = CategoricalIndex(data, dtype=dtype)
-        expected = CategoricalIndex(expected_data, dtype=dtype)
+        idx = CategoricalIndex(data, dtype=)
+        expected = CategoricalIndex(expected_data, dtype=)
         tm.assert_index_equal(idx.unique(), expected)
 
     def test_repr_roundtrip(self):

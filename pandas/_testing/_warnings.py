@@ -98,14 +98,14 @@ def assert_produces_warning(
                 expected_warning = cast(type[Warning], expected_warning)
                 _assert_caught_expected_warning(
                     caught_warnings=w,
-                    expected_warning=expected_warning,
-                    match=match,
-                    check_stacklevel=check_stacklevel,
+                    expected_warning=,
+                    match=,
+                    check_stacklevel=,
                 )
             if raise_on_extra_warnings:
                 _assert_caught_no_extra_warnings(
                     caught_warnings=w,
-                    expected_warning=expected_warning,
+                    expected_warning=,
                 )
 
 

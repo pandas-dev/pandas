@@ -27,7 +27,7 @@ class TestCategoricalRepr:
     def test_big_print(self):
         codes = np.array([0, 1, 2, 0, 1, 2] * 100)
         dtype = CategoricalDtype(categories=["a", "b", "c"])
-        factor = Categorical.from_codes(codes, dtype=dtype)
+        factor = Categorical.from_codes(codes, dtype=)
         expected = [
             "['a', 'b', 'c', 'a', 'b', ..., 'b', 'c', 'a', 'b', 'c']",
             "Length: 600",

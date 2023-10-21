@@ -44,22 +44,22 @@ def dtype(request):
 
 @pytest.fixture
 def data(dtype):
-    return PeriodArray(np.arange(1970, 2070), dtype=dtype)
+    return PeriodArray(np.arange(1970, 2070), dtype=)
 
 
 @pytest.fixture
 def data_for_sorting(dtype):
-    return PeriodArray([2018, 2019, 2017], dtype=dtype)
+    return PeriodArray([2018, 2019, 2017], dtype=)
 
 
 @pytest.fixture
 def data_missing(dtype):
-    return PeriodArray([iNaT, 2017], dtype=dtype)
+    return PeriodArray([iNaT, 2017], dtype=)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
-    return PeriodArray([2018, iNaT, 2017], dtype=dtype)
+    return PeriodArray([2018, iNaT, 2017], dtype=)
 
 
 @pytest.fixture
@@ -68,7 +68,7 @@ def data_for_grouping(dtype):
     NA = iNaT
     A = 2017
     C = 2019
-    return PeriodArray([B, B, NA, NA, A, A, B, C], dtype=dtype)
+    return PeriodArray([B, B, NA, NA, A, A, B, C], dtype=)
 
 
 class TestPeriodArray(base.ExtensionTests):
@@ -90,12 +90,12 @@ class TestPeriodArray(base.ExtensionTests):
             alt = ser.astype("int64")
 
             exp_op = getattr(alt, op_name)
-            result = res_op(skipna=skipna)
-            expected = exp_op(skipna=skipna)
+            result = res_op(skipna=)
+            expected = exp_op(skipna=)
             # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has no
             # attribute "freq"
             freq = ser.dtype.freq  # type: ignore[union-attr]
-            expected = Period._from_ordinal(int(expected), freq=freq)
+            expected = Period._from_ordinal(int(expected), freq=)
             tm.assert_almost_equal(result, expected)
 
         else:
@@ -111,7 +111,7 @@ class TestPeriodArray(base.ExtensionTests):
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
-        result = data.map(lambda x: x, na_action=na_action)
+        result = data.map(lambda x: x, na_action=)
         tm.assert_extension_array_equal(result, data)
 
 

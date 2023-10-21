@@ -32,11 +32,9 @@ def test_rolling_apply_consistency_sum(
             request.applymarker(
                 pytest.mark.xfail(reason="np.sum has different behavior with NaNs")
             )
-    rolling_f_result = all_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).sum()
+    rolling_f_result = all_data.rolling(window=, min_periods=, center=).sum()
     rolling_apply_f_result = all_data.rolling(
-        window=window, min_periods=min_periods, center=center
+        window=, min_periods=, center=
     ).apply(func=f, raw=True)
     tm.assert_equal(rolling_f_result, rolling_apply_f_result)
 
@@ -45,19 +43,17 @@ def test_rolling_apply_consistency_sum(
 def test_moments_consistency_var(all_data, rolling_consistency_cases, center, ddof):
     window, min_periods = rolling_consistency_cases
 
-    var_x = all_data.rolling(window=window, min_periods=min_periods, center=center).var(
-        ddof=ddof
+    var_x = all_data.rolling(window=, min_periods=, center=).var(
+        ddof=
     )
     assert not (var_x < 0).any().any()
 
     if ddof == 0:
         # check that biased var(x) == mean(x^2) - mean(x)^2
-        mean_x = all_data.rolling(
-            window=window, min_periods=min_periods, center=center
-        ).mean()
+        mean_x = all_data.rolling(window=, min_periods=, center=).mean()
         mean_x2 = (
             (all_data * all_data)
-            .rolling(window=window, min_periods=min_periods, center=center)
+            .rolling(window=, min_periods=, center=)
             .mean()
         )
         tm.assert_equal(var_x, mean_x2 - (mean_x * mean_x))
@@ -69,12 +65,10 @@ def test_moments_consistency_var_constant(
 ):
     window, min_periods = rolling_consistency_cases
 
-    count_x = consistent_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).count()
+    count_x = consistent_data.rolling(window=, min_periods=, center=).count()
     var_x = consistent_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).var(ddof=ddof)
+        window=, min_periods=, center=
+    ).var(ddof=)
 
     # check that variance of constant series is identically 0
     assert not (var_x > 0).any().any()
@@ -91,13 +85,13 @@ def test_rolling_consistency_var_std_cov(
 ):
     window, min_periods = rolling_consistency_cases
 
-    var_x = all_data.rolling(window=window, min_periods=min_periods, center=center).var(
-        ddof=ddof
+    var_x = all_data.rolling(window=, min_periods=, center=).var(
+        ddof=
     )
     assert not (var_x < 0).any().any()
 
-    std_x = all_data.rolling(window=window, min_periods=min_periods, center=center).std(
-        ddof=ddof
+    std_x = all_data.rolling(window=, min_periods=, center=).std(
+        ddof=
     )
     assert not (std_x < 0).any().any()
 
@@ -105,8 +99,8 @@ def test_rolling_consistency_var_std_cov(
     tm.assert_equal(var_x, std_x * std_x)
 
     cov_x_x = all_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).cov(all_data, ddof=ddof)
+        window=, min_periods=, center=
+    ).cov(all_data, ddof=)
     assert not (cov_x_x < 0).any().any()
 
     # check that var(x) == cov(x, x)
@@ -121,18 +115,14 @@ def test_rolling_consistency_series_cov_corr(
 
     var_x_plus_y = (
         (series_data + series_data)
-        .rolling(window=window, min_periods=min_periods, center=center)
-        .var(ddof=ddof)
+        .rolling(window=, min_periods=, center=)
+        .var(ddof=)
     )
-    var_x = series_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).var(ddof=ddof)
-    var_y = series_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).var(ddof=ddof)
+    ).var(ddof=)
+    ).var(ddof=)
     cov_x_y = series_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).cov(series_data, ddof=ddof)
+        window=, min_periods=, center=
+    ).cov(series_data, ddof=)
     # check that cov(x, y) == (var(x+y) - var(x) -
     # var(y)) / 2
     tm.assert_equal(cov_x_y, 0.5 * (var_x_plus_y - var_x - var_y))
@@ -140,28 +130,20 @@ def test_rolling_consistency_series_cov_corr(
     # check that corr(x, y) == cov(x, y) / (std(x) *
     # std(y))
     corr_x_y = series_data.rolling(
-        window=window, min_periods=min_periods, center=center
+        window=, min_periods=, center=
     ).corr(series_data)
-    std_x = series_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).std(ddof=ddof)
-    std_y = series_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).std(ddof=ddof)
+    ).std(ddof=)
+    ).std(ddof=)
     tm.assert_equal(corr_x_y, cov_x_y / (std_x * std_y))
 
     if ddof == 0:
         # check that biased cov(x, y) == mean(x*y) -
         # mean(x)*mean(y)
-        mean_x = series_data.rolling(
-            window=window, min_periods=min_periods, center=center
-        ).mean()
-        mean_y = series_data.rolling(
-            window=window, min_periods=min_periods, center=center
-        ).mean()
+        mean_x = series_data.rolling(window=, min_periods=, center=).mean()
+        mean_y = series_data.rolling(window=, min_periods=, center=).mean()
         mean_x_times_y = (
             (series_data * series_data)
-            .rolling(window=window, min_periods=min_periods, center=center)
+            .rolling(window=, min_periods=, center=)
             .mean()
         )
         tm.assert_equal(cov_x_y, mean_x_times_y - (mean_x * mean_y))
@@ -170,16 +152,12 @@ def test_rolling_consistency_series_cov_corr(
 def test_rolling_consistency_mean(all_data, rolling_consistency_cases, center):
     window, min_periods = rolling_consistency_cases
 
-    result = all_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).mean()
+    result = all_data.rolling(window=, min_periods=, center=).mean()
     expected = (
-        all_data.rolling(window=window, min_periods=min_periods, center=center)
+        all_data.rolling(window=, min_periods=, center=)
         .sum()
         .divide(
-            all_data.rolling(
-                window=window, min_periods=min_periods, center=center
-            ).count()
+            all_data.rolling(window=, min_periods=, center=).count()
         )
     )
     tm.assert_equal(result, expected.astype("float64"))
@@ -190,15 +168,11 @@ def test_rolling_consistency_constant(
 ):
     window, min_periods = rolling_consistency_cases
 
-    count_x = consistent_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).count()
-    mean_x = consistent_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).mean()
+    count_x = consistent_data.rolling(window=, min_periods=, center=).count()
+    mean_x = consistent_data.rolling(window=, min_periods=, center=).mean()
     # check that correlation of a series with itself is either 1 or NaN
     corr_x_x = consistent_data.rolling(
-        window=window, min_periods=min_periods, center=center
+        window=, min_periods=, center=
     ).corr(consistent_data)
 
     exp = (
@@ -223,20 +197,14 @@ def test_rolling_consistency_var_debiasing_factors(
     window, min_periods = rolling_consistency_cases
 
     # check variance debiasing factors
-    var_unbiased_x = all_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).var()
-    var_biased_x = all_data.rolling(
-        window=window, min_periods=min_periods, center=center
-    ).var(ddof=0)
+    var_unbiased_x = all_data.rolling(window=, min_periods=, center=).var()
+    var_biased_x = all_data.rolling(window=, min_periods=, center=).var(ddof=0)
     var_debiasing_factors_x = (
-        all_data.rolling(window=window, min_periods=min_periods, center=center)
+        all_data.rolling(window=, min_periods=, center=)
         .count()
         .divide(
             (
-                all_data.rolling(
-                    window=window, min_periods=min_periods, center=center
-                ).count()
+                all_data.rolling(window=, min_periods=, center=).count()
                 - 1.0
             ).replace(0.0, np.nan)
         )

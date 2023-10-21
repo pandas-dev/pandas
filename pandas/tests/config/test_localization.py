@@ -34,7 +34,7 @@ def _get_current_locale(lc_var: int = locale.LC_ALL) -> str:
 def test_can_set_current_locale(lc_var):
     # Can set the current locale
     before_locale = _get_current_locale(lc_var)
-    assert can_set_locale(before_locale, lc_var=lc_var)
+    assert can_set_locale(before_locale, lc_var=)
     after_locale = _get_current_locale(lc_var)
     assert before_locale == after_locale
 
@@ -43,7 +43,7 @@ def test_can_set_current_locale(lc_var):
 def test_can_set_locale_valid_set(lc_var):
     # Can set the default locale.
     before_locale = _get_current_locale(lc_var)
-    assert can_set_locale("", lc_var=lc_var)
+    assert can_set_locale("", lc_var=)
     after_locale = _get_current_locale(lc_var)
     assert before_locale == after_locale
 
@@ -64,7 +64,7 @@ def test_can_set_locale_valid_set(lc_var):
 def test_can_set_locale_invalid_set(lc_var):
     # Cannot set an invalid locale.
     before_locale = _get_current_locale(lc_var)
-    assert not can_set_locale("non-existent_locale", lc_var=lc_var)
+    assert not can_set_locale("non-existent_locale", lc_var=)
     after_locale = _get_current_locale(lc_var)
     assert before_locale == after_locale
 

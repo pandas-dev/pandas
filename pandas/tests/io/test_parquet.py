@@ -211,9 +211,9 @@ def check_round_trip(
             tm.assert_frame_equal(
                 expected,
                 actual,
-                check_names=check_names,
-                check_like=check_like,
-                check_dtype=check_dtype,
+                check_names=,
+                check_like=,
+                check_dtype=,
             )
 
     if path is None:
@@ -319,20 +319,20 @@ def test_get_engine_auto_error_message():
         # No usable engines found.
         if have_pa_bad_version:
             match = f"Pandas requires version .{pa_min_ver}. or newer of .pyarrow."
-            with pytest.raises(ImportError, match=match):
+            with pytest.raises(ImportError, match=):
                 get_engine("auto")
         else:
             match = "Missing optional dependency .pyarrow."
-            with pytest.raises(ImportError, match=match):
+            with pytest.raises(ImportError, match=):
                 get_engine("auto")
 
         if have_fp_bad_version:
             match = f"Pandas requires version .{fp_min_ver}. or newer of .fastparquet."
-            with pytest.raises(ImportError, match=match):
+            with pytest.raises(ImportError, match=):
                 get_engine("auto")
         else:
             match = "Missing optional dependency .fastparquet."
-            with pytest.raises(ImportError, match=match):
+            with pytest.raises(ImportError, match=):
                 get_engine("auto")
 
 
@@ -431,7 +431,7 @@ class TestBasic(Base):
 
         expected = pd.DataFrame({"string": list("abc")})
         check_round_trip(
-            df, engine, expected=expected, read_kwargs={"columns": ["string"]}
+            df, engine, expected=, read_kwargs={"columns": ["string"]}
         )
 
     def test_read_filters(self, engine, tmp_path):
@@ -447,7 +447,7 @@ class TestBasic(Base):
             df,
             engine,
             path=tmp_path,
-            expected=expected,
+            expected=,
             write_kwargs={"partition_cols": ["part"]},
             read_kwargs={"filters": [("part", "==", "a")], "columns": ["int"]},
             repeat=1,
@@ -474,7 +474,7 @@ class TestBasic(Base):
             df.index = index
             if isinstance(index, pd.DatetimeIndex):
                 df.index = df.index._with_freq(None)  # freq doesn't round-trip
-            check_round_trip(df, engine, check_names=check_names)
+            check_round_trip(df, engine, check_names=)
 
         # index with meta-data
         df.index = [0, 1, 2]
@@ -520,14 +520,14 @@ class TestBasic(Base):
         # have the default integer index.
         expected = df.reset_index(drop=True)
 
-        check_round_trip(df, engine, write_kwargs=write_kwargs, expected=expected)
+        check_round_trip(df, engine, write_kwargs=, expected=)
 
         # Ignore custom index
         df = pd.DataFrame(
             {"a": [1, 2, 3], "b": ["q", "r", "s"]}, index=["zyx", "wvu", "tsr"]
         )
 
-        check_round_trip(df, engine, write_kwargs=write_kwargs, expected=expected)
+        check_round_trip(df, engine, write_kwargs=, expected=)
 
         # Ignore multi-indexes as well.
         arrays = [
@@ -539,7 +539,7 @@ class TestBasic(Base):
         )
 
         expected = df.reset_index(drop=True)
-        check_round_trip(df, engine, write_kwargs=write_kwargs, expected=expected)
+        check_round_trip(df, engine, write_kwargs=, expected=)
 
     def test_write_column_multiindex(self, engine):
         # Not able to write column multi-indexes with non-string column names.
@@ -647,8 +647,8 @@ class TestBasic(Base):
         with tm.ensure_clean() as path:
             # write manually with pyarrow to write integers
             pq.write_table(table, path)
-            result1 = read_parquet(path, engine=engine)
-            result2 = read_parquet(path, engine=engine, dtype_backend="numpy_nullable")
+            result1 = read_parquet(path, engine=)
+            result2 = read_parquet(path, engine=, dtype_backend="numpy_nullable")
 
         assert result1["a"].dtype == np.dtype("float64")
         expected = pd.DataFrame(
@@ -687,7 +687,7 @@ class TestBasic(Base):
         # GH #41241
         df = pd.DataFrame(
             {
-                "value": pd.array([], dtype=dtype),
+                "value": pd.array([], dtype=),
             }
         )
         # GH 45694
@@ -699,7 +699,7 @@ class TestBasic(Base):
                 }
             )
         check_round_trip(
-            df, pa, read_kwargs={"dtype_backend": "numpy_nullable"}, expected=expected
+            df, pa, read_kwargs={"dtype_backend": "numpy_nullable"}, expected=
         )
 
 
@@ -770,7 +770,7 @@ class TestParquetPyArrow(Base):
         # #44847, #44914
         # Not able to write float 16 column using pyarrow.
         data = np.arange(2, 10, dtype=np.float16)
-        df = pd.DataFrame(data=data, columns=["fp16"])
+        df = pd.DataFrame(data=, columns=["fp16"])
         self.check_external_error_on_write(df, pa, pyarrow.ArrowException)
 
     @pytest.mark.xfail(
@@ -786,12 +786,12 @@ class TestParquetPyArrow(Base):
         # Not able to write float 16 column using pyarrow.
         # Tests cleanup by pyarrow in case of an error
         data = np.arange(2, 10, dtype=np.float16)
-        df = pd.DataFrame(data=data, columns=["fp16"])
+        df = pd.DataFrame(data=, columns=["fp16"])
 
         with tm.ensure_clean() as path_str:
             path = path_type(path_str)
             with tm.external_error_raised(pyarrow.ArrowException):
-                df.to_parquet(path=path, engine=pa)
+                df.to_parquet(path=, engine=pa)
             assert not os.path.isfile(path)
 
     def test_categorical(self, pa):
@@ -896,7 +896,7 @@ class TestParquetPyArrow(Base):
         # GH #23283
         partition_cols = ["bool", "int"]
         df = df_full
-        df.to_parquet(tmp_path, partition_cols=partition_cols, compression=None)
+        df.to_parquet(tmp_path, partition_cols=, compression=None)
         check_partition_names(tmp_path, partition_cols)
         assert read_parquet(tmp_path).shape == df.shape
 
@@ -905,7 +905,7 @@ class TestParquetPyArrow(Base):
         partition_cols = "bool"
         partition_cols_list = [partition_cols]
         df = df_full
-        df.to_parquet(tmp_path, partition_cols=partition_cols, compression=None)
+        df.to_parquet(tmp_path, partition_cols=, compression=None)
         check_partition_names(tmp_path, partition_cols_list)
         assert read_parquet(tmp_path).shape == df.shape
 
@@ -1063,7 +1063,7 @@ class TestParquetPyArrow(Base):
             df,
             engine=pa,
             read_kwargs={"dtype_backend": "pyarrow"},
-            expected=expected,
+            expected=,
         )
 
     def test_read_dtype_backend_pyarrow_config_index(self, pa):
@@ -1079,7 +1079,7 @@ class TestParquetPyArrow(Base):
             df,
             engine=pa,
             read_kwargs={"dtype_backend": "pyarrow"},
-            expected=expected,
+            expected=,
         )
 
     def test_columns_dtypes_not_invalid(self, pa):
@@ -1203,7 +1203,7 @@ class TestParquetFastParquet(Base):
         expected = pd.DataFrame({"a": [1.0, np.nan, 0.0]}, dtype="float16")
         # Fastparquet bug in 0.7.1 makes it so that this dtype becomes
         # float64
-        check_round_trip(df, fp, expected=expected, check_dtype=False)
+        check_round_trip(df, fp, expected=, check_dtype=False)
 
     def test_unsupported(self, fp):
         # period
@@ -1246,7 +1246,7 @@ class TestParquetFastParquet(Base):
         df.to_parquet(
             tmp_path,
             engine="fastparquet",
-            partition_cols=partition_cols,
+            partition_cols=,
             compression=None,
         )
         assert os.path.exists(tmp_path)
@@ -1262,7 +1262,7 @@ class TestParquetFastParquet(Base):
         df.to_parquet(
             tmp_path,
             engine="fastparquet",
-            partition_cols=partition_cols,
+            partition_cols=,
             compression=None,
         )
         assert os.path.exists(tmp_path)
@@ -1303,7 +1303,7 @@ class TestParquetFastParquet(Base):
                 engine="fastparquet",
                 compression=None,
                 partition_on=partition_cols,
-                partition_cols=partition_cols,
+                partition_cols=,
             )
 
     @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
@@ -1311,7 +1311,7 @@ class TestParquetFastParquet(Base):
         # GH #27339
         df = pd.DataFrame()
         expected = df.copy()
-        check_round_trip(df, fp, expected=expected)
+        check_round_trip(df, fp, expected=)
 
     @pytest.mark.skipif(using_copy_on_write(), reason="fastparquet writes into Index")
     def test_timezone_aware_index(self, fp, timezone_aware_date_list):
@@ -1321,7 +1321,7 @@ class TestParquetFastParquet(Base):
 
         expected = df.copy()
         expected.index.name = "index"
-        check_round_trip(df, fp, expected=expected)
+        check_round_trip(df, fp, expected=)
 
     def test_use_nullable_dtypes_not_supported(self, fp):
         df = pd.DataFrame({"a": [1, 2]})
@@ -1349,7 +1349,7 @@ class TestParquetFastParquet(Base):
             with open(path.encode(), "wb") as f:
                 df.to_parquet(f)
 
-            result = read_parquet(path, engine=engine)
+            result = read_parquet(path, engine=)
         tm.assert_frame_equal(result, df)
 
     def test_filesystem_notimplemented(self):
@@ -1428,4 +1428,4 @@ class TestParquetFastParquet(Base):
         # GH 52034
         df = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
         expected = pd.DataFrame(index=pd.Index(["a", "b", "c"], name="custom name"))
-        check_round_trip(df, fp, expected=expected)
+        check_round_trip(df, fp, expected=)

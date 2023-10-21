@@ -124,7 +124,7 @@ def inherit_names(
 
     def wrapper(cls: type[_ExtensionIndexT]) -> type[_ExtensionIndexT]:
         for name in names:
-            meth = _inherit_from_data(name, delegate, cache=cache, wrap=wrap)
+            meth = _inherit_from_data(name, delegate, cache=, wrap=)
             setattr(cls, name, meth)
 
         return cls

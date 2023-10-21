@@ -87,7 +87,7 @@ class TestGetLoc:
     @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
     def test_get_loc_numericindex_none_raises(self, dtype):
         # case that goes through searchsorted and key is non-comparable to values
-        arr = np.arange(10**7, dtype=dtype)
+        arr = np.arange(10**7, dtype=)
         idx = Index(arr)
         with pytest.raises(KeyError, match="None"):
             idx.get_loc(None)
@@ -131,7 +131,7 @@ class TestGetIndexer:
             index1 = index1[::-1]
             expected = expected[::-1]
 
-        result = index2.get_indexer(index1, method=method)
+        result = index2.get_indexer(index1, method=)
         tm.assert_almost_equal(result, expected)
 
     def test_get_indexer_invalid(self):
@@ -167,7 +167,7 @@ class TestGetIndexer:
     def test_get_indexer_nearest(self, method, tolerance, indexer, expected):
         index = Index(np.arange(10))
 
-        actual = index.get_indexer(indexer, method=method, tolerance=tolerance)
+        actual = index.get_indexer(indexer, method=, tolerance=)
         tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
 
     @pytest.mark.parametrize("listtype", [list, tuple, Series, np.array])
@@ -205,10 +205,10 @@ class TestGetIndexer:
     def test_get_indexer_nearest_decreasing(self, method, expected):
         index = Index(np.arange(10))[::-1]
 
-        actual = index.get_indexer([0, 5, 9], method=method)
+        actual = index.get_indexer([0, 5, 9], method=)
         tm.assert_numpy_array_equal(actual, np.array([9, 4, 0], dtype=np.intp))
 
-        actual = index.get_indexer([0.2, 1.8, 8.5], method=method)
+        actual = index.get_indexer([0.2, 1.8, 8.5], method=)
         tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
 
     @pytest.mark.parametrize("idx_dtype", ["int64", "float64", "uint64", "range"])
@@ -238,10 +238,10 @@ class TestGetIndexer:
         right = Index([True, False])
 
         with pytest.raises(TypeError, match="Cannot compare"):
-            left.get_indexer(right, method=method)
+            left.get_indexer(right, method=)
 
         with pytest.raises(TypeError, match="Cannot compare"):
-            right.get_indexer(left, method=method)
+            right.get_indexer(left, method=)
 
     def test_get_indexer_numeric_vs_bool(self):
         left = Index([1, 2, 3])
@@ -386,7 +386,7 @@ class TestGetIndexer:
         # GH#39133
         if dtype == "bool[pyarrow]":
             pytest.importorskip("pyarrow")
-        idx = Index([True, False, NA], dtype=dtype)
+        idx = Index([True, False, NA], dtype=)
         result = idx.get_loc(False)
         assert result == 1
         result = idx.get_loc(NA)
@@ -497,9 +497,9 @@ class TestTake:
     @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
     def test_take_fill_value_ints(self, dtype):
         # see gh-12631
-        idx = Index([1, 2, 3], dtype=dtype, name="xxx")
+        idx = Index([1, 2, 3], dtype=, name="xxx")
         result = idx.take(np.array([1, 0, -1]))
-        expected = Index([2, 1, 3], dtype=dtype, name="xxx")
+        expected = Index([2, 1, 3], dtype=, name="xxx")
         tm.assert_index_equal(result, expected)
 
         name = type(idx).__name__
@@ -511,7 +511,7 @@ class TestTake:
 
         # allow_fill=False
         result = idx.take(np.array([1, 0, -1]), allow_fill=False, fill_value=True)
-        expected = Index([2, 1, 3], dtype=dtype, name="xxx")
+        expected = Index([2, 1, 3], dtype=, name="xxx")
         tm.assert_index_equal(result, expected)
 
         with pytest.raises(ValueError, match=msg):
@@ -528,7 +528,7 @@ class TestContains:
     @pytest.mark.parametrize("dtype", [np.float64, np.int64, np.uint64])
     def test_contains_none(self, dtype):
         # GH#35788 should return False, not raise TypeError
-        index = Index([0, 1, 2, 3, 4], dtype=dtype)
+        index = Index([0, 1, 2, 3, 4], dtype=)
         assert None not in index
 
     def test_contains_float64_nans(self):
@@ -543,7 +543,7 @@ class TestContains:
 class TestSliceLocs:
     @pytest.mark.parametrize("dtype", [int, float])
     def test_slice_locs(self, dtype):
-        index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))
+        index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=))
         n = len(index)
 
         assert index.slice_locs(start=2) == (2, n)
@@ -560,7 +560,7 @@ class TestSliceLocs:
 
     @pytest.mark.parametrize("dtype", [int, float])
     def test_slice_locs_float_locs(self, dtype):
-        index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=dtype))
+        index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=))
         n = len(index)
         assert index.slice_locs(5.0, 10.0) == (3, n)
         assert index.slice_locs(4.5, 10.5) == (3, 8)
@@ -571,7 +571,7 @@ class TestSliceLocs:
 
     @pytest.mark.parametrize("dtype", [int, float])
     def test_slice_locs_dup_numeric(self, dtype):
-        index = Index(np.array([10, 12, 12, 14], dtype=dtype))
+        index = Index(np.array([10, 12, 12, 14], dtype=))
         assert index.slice_locs(12, 12) == (1, 3)
         assert index.slice_locs(11, 13) == (1, 3)
 
@@ -600,12 +600,12 @@ class TestGetSliceBounds:
     @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
     def test_get_slice_bounds_within(self, side, expected):
         index = Index(range(6))
-        result = index.get_slice_bound(4, side=side)
+        result = index.get_slice_bound(4, side=)
         assert result == expected
 
     @pytest.mark.parametrize("side", ["left", "right"])
     @pytest.mark.parametrize("bound, expected", [(-1, 0), (10, 6)])
     def test_get_slice_bounds_outside(self, side, expected, bound):
         index = Index(range(6))
-        result = index.get_slice_bound(bound, side=side)
+        result = index.get_slice_bound(bound, side=)
         assert result == expected

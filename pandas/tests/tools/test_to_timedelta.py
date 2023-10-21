@@ -66,8 +66,8 @@ class TestTimedeltas:
     )
     def test_to_timedelta_units_dtypes(self, dtype, unit):
         # arrays of various dtypes
-        arr = np.array([1] * 5, dtype=dtype)
-        result = to_timedelta(arr, unit=unit)
+        arr = np.array([1] * 5, dtype=)
+        result = to_timedelta(arr, unit=)
         exp_dtype = "m8[ns]" if dtype == "int64" else "m8[s]"
         expected = TimedeltaIndex([np.timedelta64(1, unit)] * 5, dtype=exp_dtype)
         tm.assert_index_equal(result, expected)
@@ -95,7 +95,7 @@ class TestTimedeltas:
     def test_to_timedelta_dataframe(self, arg, errors):
         # GH 11776
         with pytest.raises(TypeError, match="1-d array"):
-            to_timedelta(arg, errors=errors)
+            to_timedelta(arg, errors=)
 
     def test_to_timedelta_invalid_errors(self):
         # bad value for errors parameter

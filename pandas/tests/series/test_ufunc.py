@@ -45,10 +45,10 @@ def test_unary_ufunc(ufunc, sparse):
 
     index = list(string.ascii_letters[:10])
     name = "name"
-    series = pd.Series(arr, index=index, name=name)
+    series = pd.Series(arr, index=, name=)
 
     result = ufunc(series)
-    expected = pd.Series(ufunc(arr), index=index, name=name)
+    expected = pd.Series(ufunc(arr), index=, name=)
     tm.assert_series_equal(result, expected)
 
 
@@ -61,7 +61,7 @@ def test_binary_ufunc_with_array(flip, sparse, ufunc, arrays_for_binary_ufunc):
         a2 = SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
 
     name = "name"  # op(pd.Series, array) preserves the name.
-    series = pd.Series(a1, name=name)
+    series = pd.Series(a1, name=)
     other = a2
 
     array_args = (a1, a2)
@@ -71,7 +71,7 @@ def test_binary_ufunc_with_array(flip, sparse, ufunc, arrays_for_binary_ufunc):
         array_args = reversed(array_args)
         series_args = reversed(series_args)  # ufunc(array, series)
 
-    expected = pd.Series(ufunc(*array_args), name=name)
+    expected = pd.Series(ufunc(*array_args), name=)
     result = ufunc(*series_args)
     tm.assert_series_equal(result, expected)
 
@@ -87,9 +87,9 @@ def test_binary_ufunc_with_index(flip, sparse, ufunc, arrays_for_binary_ufunc):
         a2 = SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
 
     name = "name"  # op(pd.Series, array) preserves the name.
-    series = pd.Series(a1, name=name)
+    series = pd.Series(a1, name=)
 
-    other = pd.Index(a2, name=name).astype("int64")
+    other = pd.Index(a2, name=).astype("int64")
 
     array_args = (a1, a2)
     series_args = (series, other)  # ufunc(series, array)
@@ -98,7 +98,7 @@ def test_binary_ufunc_with_index(flip, sparse, ufunc, arrays_for_binary_ufunc):
         array_args = reversed(array_args)
         series_args = reversed(series_args)  # ufunc(array, series)
 
-    expected = pd.Series(ufunc(*array_args), name=name)
+    expected = pd.Series(ufunc(*array_args), name=)
     result = ufunc(*series_args)
     tm.assert_series_equal(result, expected)
 
@@ -117,8 +117,8 @@ def test_binary_ufunc_with_series(
         a2 = SparseArray(a2, dtype=pd.SparseDtype("int64", 0))
 
     name = "name"  # op(pd.Series, array) preserves the name.
-    series = pd.Series(a1, name=name)
-    other = pd.Series(a2, name=name)
+    series = pd.Series(a1, name=)
+    other = pd.Series(a2, name=)
 
     idx = np.random.default_rng(2).permutation(len(a1))
 
@@ -138,7 +138,7 @@ def test_binary_ufunc_with_series(
         array_args = tuple(reversed(array_args))
         series_args = tuple(reversed(series_args))  # ufunc(array, series)
 
-    expected = pd.Series(ufunc(*array_args), index=index, name=name)
+    expected = pd.Series(ufunc(*array_args), index=, name=)
     result = ufunc(*series_args)
     tm.assert_series_equal(result, expected)
 

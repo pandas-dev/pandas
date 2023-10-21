@@ -43,11 +43,7 @@ class PyxlsbReader(BaseExcelReader["Workbook"]):
         import_optional_dependency("pyxlsb")
         # This will call load_workbook on the filepath or buffer
         # And set the result to the book-attribute
-        super().__init__(
-            filepath_or_buffer,
-            storage_options=storage_options,
-            engine_kwargs=engine_kwargs,
-        )
+        super().__init__(filepath_or_buffer, storage_options=, engine_kwargs=)
 
     @property
     def _workbook_class(self) -> type[Workbook]:

@@ -64,7 +64,7 @@ class TestTimedeltas:
             f"'{depr_unit}' is deprecated and will be removed in a future version."
         )
 
-        expected = to_timedelta(np.arange(5), unit=unit)
+        expected = to_timedelta(np.arange(5), unit=)
         with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             result = to_timedelta(np.arange(5), unit=depr_unit)
             tm.assert_index_equal(result, expected)
@@ -74,8 +74,8 @@ class TestTimedeltas:
     )
     def test_linspace_behavior(self, periods, freq):
         # GH 20976
-        result = timedelta_range(start="0 days", end="4 days", periods=periods)
-        expected = timedelta_range(start="0 days", end="4 days", freq=freq)
+        result = timedelta_range(start="0 days", end="4 days", periods=)
+        expected = timedelta_range(start="0 days", end="4 days", freq=)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("msg_freq, freq", [("H", "19H12min"), ("T", "19h12T")])
@@ -85,7 +85,7 @@ class TestTimedeltas:
 
         result = timedelta_range(start="0 days", end="4 days", periods=6)
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            expected = timedelta_range(start="0 days", end="4 days", freq=freq)
+            expected = timedelta_range(start="0 days", end="4 days", freq=)
         tm.assert_index_equal(result, expected)
 
     def test_errors(self):
@@ -123,7 +123,7 @@ class TestTimedeltas:
     )
     def test_timedelta_range_freq_divide_end(self, start, end, freq, expected_periods):
         # GH 33498 only the cases where `(end % freq) == 0` used to fail
-        res = timedelta_range(start=start, end=end, freq=freq)
+        res = timedelta_range(start=, end=, freq=)
         assert Timedelta(start) == res[0]
         assert Timedelta(end) >= res[-1]
         assert len(res) == expected_periods
@@ -166,7 +166,7 @@ class TestTimedeltas:
         )
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = timedelta_range(start=start, end=end, freq=freq_depr)
+            result = timedelta_range(start=, end=, freq=freq_depr)
         expected = TimedeltaIndex(
             expected_values, dtype="timedelta64[ns]", freq=expected_freq
         )

@@ -40,7 +40,7 @@ def test_styler_to_excel_unstyled(engine):
     pytest.importorskip(engine)
     df = DataFrame(np.random.default_rng(2).standard_normal((2, 2)))
     with tm.ensure_clean(".xlsx") as path:
-        with ExcelWriter(path, engine=engine) as writer:
+        with ExcelWriter(path, engine=) as writer:
             df.to_excel(writer, sheet_name="dataframe")
             df.style.to_excel(writer, sheet_name="unstyled")
 
@@ -134,7 +134,7 @@ def test_styler_to_excel_basic(engine, css, attrs, expected):
     styler = df.style.map(lambda x: css)
 
     with tm.ensure_clean(".xlsx") as path:
-        with ExcelWriter(path, engine=engine) as writer:
+        with ExcelWriter(path, engine=) as writer:
             df.to_excel(writer, sheet_name="dataframe")
             styler.to_excel(writer, sheet_name="styled")
 
@@ -173,7 +173,7 @@ def test_styler_to_excel_basic_indexes(engine, css, attrs, expected):
     null_styler.map_index(lambda x: "null: css;", axis=1)
 
     with tm.ensure_clean(".xlsx") as path:
-        with ExcelWriter(path, engine=engine) as writer:
+        with ExcelWriter(path, engine=) as writer:
             null_styler.to_excel(writer, sheet_name="null_styled")
             styler.to_excel(writer, sheet_name="styled")
 
@@ -234,7 +234,7 @@ def test_styler_to_excel_border_style(engine, border_style):
     styler = df.style.map(lambda x: css)
 
     with tm.ensure_clean(".xlsx") as path:
-        with ExcelWriter(path, engine=engine) as writer:
+        with ExcelWriter(path, engine=) as writer:
             df.to_excel(writer, sheet_name="dataframe")
             styler.to_excel(writer, sheet_name="styled")
 

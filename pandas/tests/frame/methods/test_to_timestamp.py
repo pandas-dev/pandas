@@ -20,7 +20,7 @@ def _get_with_delta(delta, freq="Y-DEC"):
     return date_range(
         to_datetime("1/1/2001") + delta,
         to_datetime("12/31/2009") + delta,
-        freq=freq,
+        freq=,
     )
 
 
@@ -30,7 +30,7 @@ class TestToTimestamp:
         index = period_range(freq="Y", start="1/1/2001", end="12/1/2009")
         obj = DataFrame(
             np.random.default_rng(2).standard_normal((len(index), K)),
-            index=index,
+            index=,
             columns=["A", "B", "C", "D", "E"],
         )
         obj["mix"] = "a"
@@ -74,7 +74,7 @@ class TestToTimestamp:
         index = period_range(freq="Y", start="1/1/2001", end="12/1/2009")
         df = DataFrame(
             np.random.default_rng(2).standard_normal((len(index), K)),
-            index=index,
+            index=,
             columns=["A", "B", "C", "D", "E"],
         )
         df["mix"] = "a"
@@ -124,7 +124,7 @@ class TestToTimestamp:
     def test_to_timestamp_invalid_axis(self):
         index = period_range(freq="Y", start="1/1/2001", end="12/1/2009")
         obj = DataFrame(
-            np.random.default_rng(2).standard_normal((len(index), 5)), index=index
+            np.random.default_rng(2).standard_normal((len(index), 5)), index=
         )
 
         # invalid axis
@@ -133,7 +133,7 @@ class TestToTimestamp:
 
     def test_to_timestamp_hourly(self, frame_or_series):
         index = period_range(freq="h", start="1/1/2001", end="1/2/2001")
-        obj = Series(1, index=index, name="foo")
+        obj = Series(1, index=, name="foo")
         if frame_or_series is not Series:
             obj = obj.to_frame()
 
@@ -146,7 +146,7 @@ class TestToTimestamp:
 
     def test_to_timestamp_raises(self, index, frame_or_series):
         # GH#33327
-        obj = frame_or_series(index=index, dtype=object)
+        obj = frame_or_series(index=, dtype=object)
 
         if not isinstance(index, PeriodIndex):
             msg = f"unsupported Type {type(index).__name__}"

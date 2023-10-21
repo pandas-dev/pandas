@@ -246,7 +246,7 @@ def test_timezones_fixed_format_empty(setup_path, tz_aware_fixture, frame_or_ser
 
     dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
 
-    obj = Series(dtype=dtype, name="A")
+    obj = Series(dtype=, name="A")
     if frame_or_series is DataFrame:
         obj = obj.to_frame()
 
@@ -262,7 +262,7 @@ def test_timezones_fixed_format_series_nonempty(setup_path, tz_aware_fixture):
     dtype = pd.DatetimeTZDtype(tz=tz_aware_fixture)
 
     with ensure_clean_store(setup_path) as store:
-        s = Series([0], dtype=dtype)
+        s = Series([0], dtype=)
         store["s"] = s
         result = store["s"]
         tm.assert_series_equal(result, s)
@@ -348,7 +348,7 @@ def test_dst_transitions(setup_path):
 def test_read_with_where_tz_aware_index(tmp_path, setup_path):
     # GH 11926
     periods = 10
-    dts = date_range("20151201", periods=periods, freq="D", tz="UTC")
+    dts = date_range("20151201", periods=, freq="D", tz="UTC")
     mi = pd.MultiIndex.from_arrays([dts, range(periods)], names=["DATE", "NO"])
     expected = DataFrame({"MYCOL": 0}, index=mi)
 
@@ -366,7 +366,7 @@ def test_py2_created_with_datetimez(datapath):
     #
     # GH26443
     index = [Timestamp("2019-01-01T18:00").tz_localize("America/New_York")]
-    expected = DataFrame({"data": 123}, index=index)
+    expected = DataFrame({"data": 123}, index=)
     with ensure_clean_store(
         datapath("io", "data", "legacy_hdf", "gh26443.h5"), mode="r"
     ) as store:

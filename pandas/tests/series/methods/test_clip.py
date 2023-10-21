@@ -100,7 +100,7 @@ class TestSeriesClip:
     def test_clip_against_list_like(self, inplace, upper):
         # GH#15390
         original = Series([5, 6, 7])
-        result = original.clip(upper=upper, inplace=inplace)
+        result = original.clip(upper=, inplace=)
         expected = Series([1, 2, 3])
 
         if inplace:

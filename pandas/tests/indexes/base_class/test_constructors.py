@@ -48,7 +48,7 @@ class TestIndexConstructor:
         # GH#54430
         pytest.importorskip("pyarrow")
         dtype = "string[pyarrow_numpy]"
-        expected = Index(["a", "b"], dtype=dtype)
+        expected = Index(["a", "b"], dtype=)
         with pd.option_context("future.infer_string", True):
             ser = Index(["a", "b"])
         tm.assert_index_equal(ser, expected)

@@ -23,7 +23,7 @@ def generate_apply_looper(func, nopython=True, nogil=True, parallel=False):
         numba = import_optional_dependency("numba")
     nb_compat_func = numba.extending.register_jitable(func)
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nopython=, nogil=, parallel=)
     def nb_looper(values, axis):
         # Operate on the first row/col in order to get
         # the output shape
@@ -63,7 +63,7 @@ def make_looper(func, result_dtype, is_grouped_kernel, nopython, nogil, parallel
 
     if is_grouped_kernel:
 
-        @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+        @numba.jit(nopython=, nogil=, parallel=)
         def column_looper(
             values: np.ndarray,
             labels: np.ndarray,
@@ -84,7 +84,7 @@ def make_looper(func, result_dtype, is_grouped_kernel, nopython, nogil, parallel
 
     else:
 
-        @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+        @numba.jit(nopython=, nogil=, parallel=)
         def column_looper(
             values: np.ndarray,
             start: np.ndarray,

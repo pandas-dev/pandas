@@ -36,8 +36,8 @@ class BaseReduceTests:
             result = res_op()
             expected = exp_op()
         else:
-            result = res_op(skipna=skipna)
-            expected = exp_op(skipna=skipna)
+            result = res_op(skipna=)
+            expected = exp_op(skipna=)
         tm.assert_almost_equal(result, expected)
 
     def _get_expected_reduction_dtype(self, arr, op_name: str):
@@ -63,8 +63,8 @@ class BaseReduceTests:
 
         # The DataFrame method just calls arr._reduce with keepdims=True,
         #  so this first check is perfunctory.
-        result1 = arr._reduce(op_name, skipna=skipna, keepdims=True, **kwargs)
-        result2 = getattr(df, op_name)(skipna=skipna, **kwargs).array
+        result1 = arr._reduce(op_name, skipna=, keepdims=True, **kwargs)
+        result2 = getattr(df, op_name)(skipna=, **kwargs).array
         tm.assert_extension_array_equal(result1, result2)
 
         # Check that the 2D reduction looks like a wrapped version of the
@@ -90,7 +90,7 @@ class BaseReduceTests:
             )
 
             with pytest.raises(TypeError, match=msg):
-                getattr(ser, op_name)(skipna=skipna)
+                getattr(ser, op_name)(skipna=)
 
         else:
             self.check_reduce(ser, op_name, skipna)
@@ -109,7 +109,7 @@ class BaseReduceTests:
             )
 
             with pytest.raises(TypeError, match=msg):
-                getattr(ser, op_name)(skipna=skipna)
+                getattr(ser, op_name)(skipna=)
 
         else:
             # min/max with empty produce numpy warnings

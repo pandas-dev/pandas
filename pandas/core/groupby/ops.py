@@ -322,11 +322,11 @@ class WrappedCythonOp:
                 result_mask = result_mask[None, :]
             res = self._call_cython_op(
                 values2d,
-                min_count=min_count,
-                ngroups=ngroups,
-                comp_ids=comp_ids,
-                mask=mask,
-                result_mask=result_mask,
+                min_count=,
+                ngroups=,
+                comp_ids=,
+                mask=,
+                result_mask=,
                 **kwargs,
             )
             if res.shape[0] == 1:
@@ -337,11 +337,11 @@ class WrappedCythonOp:
 
         return self._call_cython_op(
             values,
-            min_count=min_count,
-            ngroups=ngroups,
-            comp_ids=comp_ids,
-            mask=mask,
-            result_mask=result_mask,
+            min_count=,
+            ngroups=,
+            comp_ids=,
+            mask=,
+            result_mask=,
             **kwargs,
         )
 
@@ -402,13 +402,13 @@ class WrappedCythonOp:
             if self.how in ["min", "max", "mean", "last", "first", "sum"]:
                 func(
                     out=result,
-                    counts=counts,
-                    values=values,
+                    counts=,
+                    values=,
                     labels=comp_ids,
-                    min_count=min_count,
-                    mask=mask,
-                    result_mask=result_mask,
-                    is_datetimelike=is_datetimelike,
+                    min_count=,
+                    mask=,
+                    result_mask=,
+                    is_datetimelike=,
                 )
             elif self.how in ["sem", "std", "var", "ohlc", "prod", "median"]:
                 if self.how in ["std", "sem"]:
@@ -418,29 +418,29 @@ class WrappedCythonOp:
                     counts,
                     values,
                     comp_ids,
-                    min_count=min_count,
-                    mask=mask,
-                    result_mask=result_mask,
+                    min_count=,
+                    mask=,
+                    result_mask=,
                     **kwargs,
                 )
             elif self.how in ["any", "all"]:
                 func(
                     out=result,
-                    values=values,
+                    values=,
                     labels=comp_ids,
-                    mask=mask,
-                    result_mask=result_mask,
+                    mask=,
+                    result_mask=,
                     **kwargs,
                 )
                 result = result.astype(bool, copy=False)
             elif self.how in ["skew"]:
                 func(
                     out=result,
-                    counts=counts,
-                    values=values,
+                    counts=,
+                    values=,
                     labels=comp_ids,
-                    mask=mask,
-                    result_mask=result_mask,
+                    mask=,
+                    result_mask=,
                     **kwargs,
                 )
                 if dtype == object:
@@ -455,11 +455,11 @@ class WrappedCythonOp:
                 kwargs["result_mask"] = result_mask
             func(
                 out=result,
-                values=values,
+                values=,
                 labels=comp_ids,
-                ngroups=ngroups,
-                is_datetimelike=is_datetimelike,
-                mask=mask,
+                ngroups=,
+                is_datetimelike=,
+                mask=,
                 **kwargs,
             )
 
@@ -525,17 +525,17 @@ class WrappedCythonOp:
             return values._groupby_op(
                 how=self.how,
                 has_dropped_na=self.has_dropped_na,
-                min_count=min_count,
-                ngroups=ngroups,
+                min_count=,
+                ngroups=,
                 ids=comp_ids,
                 **kwargs,
             )
 
         return self._cython_op_ndim_compat(
             values,
-            min_count=min_count,
-            ngroups=ngroups,
-            comp_ids=comp_ids,
+            min_count=,
+            ngroups=,
+            comp_ids=,
             mask=None,
             **kwargs,
         )
@@ -599,7 +599,7 @@ class BaseGrouper:
         Generator yielding sequence of (name, subsetted object)
         for each group
         """
-        splitter = self._get_splitter(data, axis=axis)
+        splitter = self._get_splitter(data, axis=)
         keys = self.group_keys_seq
         yield from zip(keys, splitter)
 
@@ -617,7 +617,7 @@ class BaseGrouper:
             ngroups,
             sorted_ids=self._sorted_ids,
             sort_idx=self._sort_idx,
-            axis=axis,
+            axis=,
         )
 
     @final
@@ -771,7 +771,7 @@ class BaseGrouper:
         codes = self.reconstructed_codes
         levels = [ping.result_index for ping in self.groupings]
         return MultiIndex(
-            levels=levels, codes=codes, verify_integrity=False, names=self.names
+            levels=, codes=, verify_integrity=False, names=self.names
         )
 
     @final
@@ -808,16 +808,16 @@ class BaseGrouper:
         """
         assert kind in ["transform", "aggregate"]
 
-        cy_op = WrappedCythonOp(kind=kind, how=how, has_dropped_na=self.has_dropped_na)
+        cy_op = WrappedCythonOp(kind=, how=, has_dropped_na=self.has_dropped_na)
 
         ids, _, _ = self.group_info
         ngroups = self.ngroups
         return cy_op.cython_operation(
-            values=values,
-            axis=axis,
-            min_count=min_count,
+            values=,
+            axis=,
+            min_count=,
             comp_ids=ids,
-            ngroups=ngroups,
+            ngroups=,
             **kwargs,
         )
 
@@ -885,7 +885,7 @@ class BaseGrouper:
         self, f: Callable, data: DataFrame | Series, axis: AxisInt = 0
     ) -> tuple[list, bool]:
         mutated = False
-        splitter = self._get_splitter(data, axis=axis)
+        splitter = self._get_splitter(data, axis=)
         group_keys = self.group_keys_seq
         result_values = []
 
@@ -1189,6 +1189,4 @@ def _get_splitter(
         # i.e. DataFrame
         klass = FrameSplitter
 
-    return klass(
-        data, labels, ngroups, sort_idx=sort_idx, sorted_ids=sorted_ids, axis=axis
-    )
+    return klass(data, labels, ngroups, sort_idx=, sorted_ids=, axis=)

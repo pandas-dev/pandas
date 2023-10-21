@@ -405,7 +405,7 @@ def test_hide_raises(mi_styler):
 @pytest.mark.parametrize("level", [1, "one", [1], ["one"]])
 def test_hide_index_level(mi_styler, level):
     mi_styler.index.names, mi_styler.columns.names = ["zero", "one"], ["zero", "one"]
-    ctx = mi_styler.hide(axis="index", level=level)._translate(False, True)
+    ctx = mi_styler.hide(axis="index", level=)._translate(False, True)
     assert len(ctx["head"][0]) == 3
     assert len(ctx["head"][1]) == 3
     assert len(ctx["head"][2]) == 4
@@ -424,7 +424,7 @@ def test_hide_columns_level(mi_styler, level, names):
     mi_styler.columns.names = ["zero", "one"]
     if names:
         mi_styler.index.names = ["zero", "one"]
-    ctx = mi_styler.hide(axis="columns", level=level)._translate(True, False)
+    ctx = mi_styler.hide(axis="columns", level=)._translate(True, False)
     assert len(ctx["head"]) == (2 if names else 1)
 
 
@@ -439,7 +439,7 @@ def test_apply_map_header(method, axis):
     }
 
     # test execution added to todo
-    result = getattr(df.style, f"{method}_index")(func[method], axis=axis)
+    result = getattr(df.style, f"{method}_index")(func[method], axis=)
     assert len(result._todo) == 1
     assert len(getattr(result, f"ctx_{axis}")) == 0
 
@@ -459,7 +459,7 @@ def test_apply_map_header_mi(mi_styler, method, axis):
         "apply": lambda s: ["attr: val;" if "b" in v else "" for v in s],
         "map": lambda v: "attr: val" if "b" in v else "",
     }
-    result = getattr(mi_styler, f"{method}_index")(func[method], axis=axis)._compute()
+    result = getattr(mi_styler, f"{method}_index")(func[method], axis=)._compute()
     expected = {(1, 1): [("attr", "val")]}
     assert getattr(result, f"ctx_{axis}") == expected
 
@@ -627,13 +627,13 @@ class TestStyler:
 
         # test Series return where len(Series) < df.index or df.columns but labels OK
         func = lambda s: Series(["color: red;"], index=["Y"])
-        result = df.style.apply(func, axis=axis)._compute().ctx
+        result = df.style.apply(func, axis=)._compute().ctx
         assert result[(1, 1)] == [("color", "red")]
         assert result[(1 - axis, axis)] == [("color", "red")]
 
         # test Series return where labels align but different order
         func = lambda s: Series(["color: red;", "color: blue;"], index=["Y", "X"])
-        result = df.style.apply(func, axis=axis)._compute().ctx
+        result = df.style.apply(func, axis=)._compute().ctx
         assert result[(0, 0)] == [("color", "blue")]
         assert result[(1, 1)] == [("color", "red")]
         assert result[(1 - axis, axis)] == [("color", "red")]
@@ -669,7 +669,7 @@ class TestStyler:
         def h(x, color="bar"):
             return Series(f"color: {color}", index=x.index, name=x.name)
 
-        result = df.style.apply(h, axis=axis, subset=slice_, color="baz")._compute().ctx
+        result = df.style.apply(h, axis=, subset=slice_, color="baz")._compute().ctx
         expected = {
             (r, c): [("color", "baz")]
             for r, row in enumerate(df.index)
@@ -741,10 +741,10 @@ class TestStyler:
         # Checks styler.map works with multindex when codes are provided
         codes = np.array([[0, 0, 1, 1], [0, 1, 0, 1]])
         columns = MultiIndex(
-            levels=[["a", "b"], ["%", "#"]], codes=codes, names=["", ""]
+            levels=[["a", "b"], ["%", "#"]], codes=, names=["", ""]
         )
         df = DataFrame(
-            [[1, -1, 1, 1], [-1, 1, 1, 1]], index=["hello", "world"], columns=columns
+            [[1, -1, 1, 1], [-1, 1, 1, 1]], index=["hello", "world"], columns=
         )
         pct_subset = IndexSlice[:, IndexSlice[:, "%":"%"]]
 

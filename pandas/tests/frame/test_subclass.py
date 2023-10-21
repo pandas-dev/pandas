@@ -659,13 +659,13 @@ class TestDataFrameSubclassing:
         columns = ["one", "two", "three", "four"]
         df1 = tm.SubclassedDataFrame(
             np.random.default_rng(2).standard_normal((5, 4)),
-            index=index,
-            columns=columns,
+            index=,
+            columns=,
         )
         df2 = tm.SubclassedDataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
             index=index[:4],
-            columns=columns,
+            columns=,
         )
         correls = df1.corrwith(df2, axis=1, drop=True, method="kendall")
 

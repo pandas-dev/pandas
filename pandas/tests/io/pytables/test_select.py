@@ -40,7 +40,7 @@ def test_select_columns_in_where(setup_path):
     # With a DataFrame
     df = DataFrame(
         np.random.default_rng(2).standard_normal((10, 3)),
-        index=index,
+        index=,
         columns=["A", "B", "C"],
     )
 
@@ -53,7 +53,7 @@ def test_select_columns_in_where(setup_path):
         tm.assert_frame_equal(store.select("df", where="columns=['A']"), expected)
 
     # With a Series
-    s = Series(np.random.default_rng(2).standard_normal(10), index=index, name="A")
+    s = Series(np.random.default_rng(2).standard_normal(10), index=, name="A")
     with ensure_clean_store(setup_path) as store:
         store.put("s", s, format="table")
         tm.assert_series_equal(store.select("s", where="columns=['A']"), s)
@@ -411,19 +411,19 @@ def test_select_iterator_complete_8014(setup_path):
         # select w/o iterator and where clause, single term, begin
         # of range, works
         where = f"index >= '{beg_dt}'"
-        result = store.select("df", where=where)
+        result = store.select("df", where=)
         tm.assert_frame_equal(expected, result)
 
         # select w/o iterator and where clause, single term, end
         # of range, works
         where = f"index <= '{end_dt}'"
-        result = store.select("df", where=where)
+        result = store.select("df", where=)
         tm.assert_frame_equal(expected, result)
 
         # select w/o iterator and where clause, inclusive range,
         # works
         where = f"index >= '{beg_dt}' & index <= '{end_dt}'"
-        result = store.select("df", where=where)
+        result = store.select("df", where=)
         tm.assert_frame_equal(expected, result)
 
     # with iterator, full range
@@ -436,25 +436,25 @@ def test_select_iterator_complete_8014(setup_path):
         end_dt = expected.index[-1]
 
         # select w/iterator and no where clause works
-        results = list(store.select("df", chunksize=chunksize))
+        results = list(store.select("df", chunksize=))
         result = concat(results)
         tm.assert_frame_equal(expected, result)
 
         # select w/iterator and where clause, single term, begin of range
         where = f"index >= '{beg_dt}'"
-        results = list(store.select("df", where=where, chunksize=chunksize))
+        results = list(store.select("df", where=, chunksize=))
         result = concat(results)
         tm.assert_frame_equal(expected, result)
 
         # select w/iterator and where clause, single term, end of range
         where = f"index <= '{end_dt}'"
-        results = list(store.select("df", where=where, chunksize=chunksize))
+        results = list(store.select("df", where=, chunksize=))
         result = concat(results)
         tm.assert_frame_equal(expected, result)
 
         # select w/iterator and where clause, inclusive range
         where = f"index >= '{beg_dt}' & index <= '{end_dt}'"
-        results = list(store.select("df", where=where, chunksize=chunksize))
+        results = list(store.select("df", where=, chunksize=))
         result = concat(results)
         tm.assert_frame_equal(expected, result)
 
@@ -475,21 +475,21 @@ def test_select_iterator_non_complete_8014(setup_path):
 
         # select w/iterator and where clause, single term, begin of range
         where = f"index >= '{beg_dt}'"
-        results = list(store.select("df", where=where, chunksize=chunksize))
+        results = list(store.select("df", where=, chunksize=))
         result = concat(results)
         rexpected = expected[expected.index >= beg_dt]
         tm.assert_frame_equal(rexpected, result)
 
         # select w/iterator and where clause, single term, end of range
         where = f"index <= '{end_dt}'"
-        results = list(store.select("df", where=where, chunksize=chunksize))
+        results = list(store.select("df", where=, chunksize=))
         result = concat(results)
         rexpected = expected[expected.index <= end_dt]
         tm.assert_frame_equal(rexpected, result)
 
         # select w/iterator and where clause, inclusive range
         where = f"index >= '{beg_dt}' & index <= '{end_dt}'"
-        results = list(store.select("df", where=where, chunksize=chunksize))
+        results = list(store.select("df", where=, chunksize=))
         result = concat(results)
         rexpected = expected[(expected.index >= beg_dt) & (expected.index <= end_dt)]
         tm.assert_frame_equal(rexpected, result)
@@ -504,7 +504,7 @@ def test_select_iterator_non_complete_8014(setup_path):
 
         # select w/iterator and where clause, single term, begin of range
         where = f"index > '{end_dt}'"
-        results = list(store.select("df", where=where, chunksize=chunksize))
+        results = list(store.select("df", where=, chunksize=))
         assert 0 == len(results)
 
 
@@ -525,14 +525,14 @@ def test_select_iterator_many_empty_frames(setup_path):
 
         # select w/iterator and where clause, single term, begin of range
         where = f"index >= '{beg_dt}'"
-        results = list(store.select("df", where=where, chunksize=chunksize))
+        results = list(store.select("df", where=, chunksize=))
         result = concat(results)
         rexpected = expected[expected.index >= beg_dt]
         tm.assert_frame_equal(rexpected, result)
 
         # select w/iterator and where clause, single term, end of range
         where = f"index <= '{end_dt}'"
-        results = list(store.select("df", where=where, chunksize=chunksize))
+        results = list(store.select("df", where=, chunksize=))
 
         assert len(results) == 1
         result = concat(results)
@@ -541,7 +541,7 @@ def test_select_iterator_many_empty_frames(setup_path):
 
         # select w/iterator and where clause, inclusive range
         where = f"index >= '{beg_dt}' & index <= '{end_dt}'"
-        results = list(store.select("df", where=where, chunksize=chunksize))
+        results = list(store.select("df", where=, chunksize=))
 
         # should be 1, is 10
         assert len(results) == 1
@@ -557,7 +557,7 @@ def test_select_iterator_many_empty_frames(setup_path):
         # True.
 
         where = f"index <= '{beg_dt}' & index >= '{end_dt}'"
-        results = list(store.select("df", where=where, chunksize=chunksize))
+        results = list(store.select("df", where=, chunksize=))
 
         # should be []
         assert len(results) == 0
@@ -955,7 +955,7 @@ def test_select_empty_where(tmp_path, where):
     path = tmp_path / "empty_where.h5"
     with HDFStore(path) as store:
         store.put("df", df, "t")
-        result = read_hdf(store, "df", where=where)
+        result = read_hdf(store, "df", where=)
         tm.assert_frame_equal(result, df)
 
 

@@ -212,7 +212,7 @@ class TestMultiIndexBasic:
     def test_multiindex_dtype_preservation(self):
         # GH51261
         columns = MultiIndex.from_tuples([("A", "B")], names=["lvl1", "lvl2"])
-        df = DataFrame(["value"], columns=columns).astype("category")
+        df = DataFrame(["value"], columns=).astype("category")
         df_no_multiindex = df["A"]
         assert isinstance(df_no_multiindex["B"].dtype, CategoricalDtype)
 

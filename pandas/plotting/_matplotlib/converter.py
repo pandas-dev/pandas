@@ -175,7 +175,7 @@ class TimeConverter(munits.ConversionInterface):
 
         majloc = AutoLocator()
         majfmt = TimeFormatter(majloc)
-        return munits.AxisInfo(majloc=majloc, majfmt=majfmt, label="time")
+        return munits.AxisInfo(majloc=, majfmt=, label="time")
 
     @staticmethod
     def default_units(x, axis) -> str:
@@ -339,13 +339,13 @@ class DatetimeConverter(mdates.DateConverter):
         """
         tz = unit
 
-        majloc = PandasAutoDateLocator(tz=tz)
-        majfmt = PandasAutoDateFormatter(majloc, tz=tz)
+        majloc = PandasAutoDateLocator(tz=)
+        majfmt = PandasAutoDateFormatter(majloc, tz=)
         datemin = pydt.date(2000, 1, 1)
         datemax = pydt.date(2010, 1, 1)
 
         return munits.AxisInfo(
-            majloc=majloc, majfmt=majfmt, label="", default_limits=(datemin, datemax)
+            majloc=, majfmt=, label="", default_limits=(datemin, datemax)
         )
 
 
@@ -424,7 +424,7 @@ class MilliSecondLocator(mdates.DateLocator):
         tz = self.tz.tzname(None)
         st = dmin.replace(tzinfo=None)
         ed = dmin.replace(tzinfo=None)
-        all_dates = date_range(start=st, end=ed, freq=freq, tz=tz).astype(object)
+        all_dates = date_range(start=st, end=ed, freq=, tz=).astype(object)
 
         try:
             if len(all_dates) > 0:
@@ -595,9 +595,9 @@ def _daily_finder(vmin, vmax, freq: BaseOffset) -> np.ndarray:
             "ignore", r"PeriodDtype\[B\] is deprecated", category=FutureWarning
         )
         dates_ = period_range(
-            start=Period(ordinal=vmin, freq=freq),
-            end=Period(ordinal=vmax, freq=freq),
-            freq=freq,
+            start=Period(ordinal=vmin, freq=),
+            end=Period(ordinal=vmax, freq=),
+            freq=,
         )
 
     # Initialize the output

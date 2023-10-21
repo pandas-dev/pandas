@@ -20,7 +20,7 @@ class TestGetIndexer:
     )
     def test_get_indexer_strings(self, method, expected):
         index = Index(["b", "c"])
-        actual = index.get_indexer(["a", "b", "c", "d"], method=method)
+        actual = index.get_indexer(["a", "b", "c", "d"], method=)
 
         tm.assert_numpy_array_equal(actual, expected)
 

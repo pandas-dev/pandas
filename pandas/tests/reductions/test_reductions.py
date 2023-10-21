@@ -91,11 +91,11 @@ class TestReductions:
             else:
                 return isna(res)
 
-        obj = klass([None], dtype=dtype)
+        obj = klass([None], dtype=)
         assert check_missing(getattr(obj, opname)())
         assert check_missing(getattr(obj, opname)(skipna=False))
 
-        obj = klass([], dtype=dtype)
+        obj = klass([], dtype=)
         assert check_missing(getattr(obj, opname)())
         assert check_missing(getattr(obj, opname)(skipna=False))
 
@@ -103,11 +103,11 @@ class TestReductions:
             # generic test with object only works for empty / all NaN
             return
 
-        obj = klass([None, val], dtype=dtype)
+        obj = klass([None, val], dtype=)
         assert getattr(obj, opname)() == val
         assert check_missing(getattr(obj, opname)(skipna=False))
 
-        obj = klass([None, val, None], dtype=dtype)
+        obj = klass([None, val, None], dtype=)
         assert getattr(obj, opname)() == val
         assert check_missing(getattr(obj, opname)(skipna=False))
 
@@ -149,7 +149,7 @@ class TestReductions:
         klass = index_or_series
         arg_op = "arg" + opname if klass is Index else "idx" + opname
 
-        obj = klass([], dtype=dtype)
+        obj = klass([], dtype=)
 
         assert getattr(obj, opname)() is NaT
         assert getattr(obj, opname)(skipna=False) is NaT
@@ -399,18 +399,18 @@ class TestIndexReductions:
     def test_minmax_tz(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # monotonic
-        idx1 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz=tz)
+        idx1 = DatetimeIndex(["2011-01-01", "2011-01-02", "2011-01-03"], tz=)
         assert idx1.is_monotonic_increasing
 
         # non-monotonic
         idx2 = DatetimeIndex(
-            ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], tz=tz
+            ["2011-01-01", NaT, "2011-01-03", "2011-01-02", NaT], tz=
         )
         assert not idx2.is_monotonic_increasing
 
         for idx in [idx1, idx2]:
-            assert idx.min() == Timestamp("2011-01-01", tz=tz)
-            assert idx.max() == Timestamp("2011-01-03", tz=tz)
+            assert idx.min() == Timestamp("2011-01-01", tz=)
+            assert idx.max() == Timestamp("2011-01-03", tz=)
             assert idx.argmin() == 0
             assert idx.argmax() == 2
 
@@ -603,7 +603,7 @@ class TestSeriesReductions:
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#9422 / GH#18921
             # Entirely empty
-            s = Series([], dtype=dtype)
+            s = Series([], dtype=)
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -633,7 +633,7 @@ class TestSeriesReductions:
             assert isna(result)
 
             # All-NA
-            s = Series([np.nan], dtype=dtype)
+            s = Series([np.nan], dtype=)
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -657,7 +657,7 @@ class TestSeriesReductions:
             assert isna(result)
 
             # Mix of valid, empty
-            s = Series([np.nan, 1], dtype=dtype)
+            s = Series([np.nan, 1], dtype=)
             # Default
             result = getattr(s, method)()
             assert result == 1.0
@@ -677,21 +677,21 @@ class TestSeriesReductions:
             assert result == 1.0
 
             # GH#844 (changed in GH#9422)
-            df = DataFrame(np.empty((10, 0)), dtype=dtype)
+            df = DataFrame(np.empty((10, 0)), dtype=)
             assert (getattr(df, method)(1) == unit).all()
 
-            s = Series([1], dtype=dtype)
+            s = Series([1], dtype=)
             result = getattr(s, method)(min_count=2)
             assert isna(result)
 
             result = getattr(s, method)(skipna=False, min_count=2)
             assert isna(result)
 
-            s = Series([np.nan], dtype=dtype)
+            s = Series([np.nan], dtype=)
             result = getattr(s, method)(min_count=2)
             assert isna(result)
 
-            s = Series([np.nan, 1], dtype=dtype)
+            s = Series([np.nan, 1], dtype=)
             result = getattr(s, method)(min_count=2)
             assert isna(result)
 
@@ -702,12 +702,12 @@ class TestSeriesReductions:
         # consistency for nullable dtypes on empty or ALL-NA mean
 
         # empty series
-        eser = Series([], dtype=dtype)
+        eser = Series([], dtype=)
         result = getattr(eser, method)()
         assert result is pd.NA
 
         # ALL-NA series
-        nser = Series([np.nan], dtype=dtype)
+        nser = Series([np.nan], dtype=)
         result = getattr(nser, method)()
         assert result is pd.NA
 
@@ -747,7 +747,7 @@ class TestSeriesReductions:
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH#6915
             # overflowing on the smaller int dtypes
-            v = np.arange(5000000, dtype=dtype)
+            v = np.arange(5000000, dtype=)
             s = Series(v)
 
             result = s.sum(skipna=False)
@@ -761,11 +761,11 @@ class TestSeriesReductions:
     @pytest.mark.parametrize("dtype", ["float32", "float64"])
     def test_sum_overflow_float(self, use_bottleneck, dtype):
         with pd.option_context("use_bottleneck", use_bottleneck):
-            v = np.arange(5000000, dtype=dtype)
+            v = np.arange(5000000, dtype=)
             s = Series(v)
 
             result = s.sum(skipna=False)
-            assert result == v.sum(dtype=dtype)
+            assert result == v.sum(dtype=)
             result = s.min(skipna=False)
             assert np.allclose(float(result), 0.0)
             result = s.max(skipna=False)
@@ -788,8 +788,8 @@ class TestSeriesReductions:
         # GH#48379
         ser = Series([1, 2, 3, 4, 5], dtype="Int64")
         ser_numpy_dtype = Series([1, 2, 3, 4, 5], dtype="int64")
-        result = ser.var(ddof=ddof)
-        result_numpy_dtype = ser_numpy_dtype.var(ddof=ddof)
+        result = ser.var(ddof=)
+        result_numpy_dtype = ser_numpy_dtype.var(ddof=)
         assert result == result_numpy_dtype
         assert result == exp
 
@@ -797,8 +797,8 @@ class TestSeriesReductions:
     @pytest.mark.parametrize("skipna", [True, False])
     def test_empty_timeseries_reductions_return_nat(self, dtype, skipna):
         # covers GH#11245
-        assert Series([], dtype=dtype).min(skipna=skipna) is NaT
-        assert Series([], dtype=dtype).max(skipna=skipna) is NaT
+        assert Series([], dtype=dtype).min(skipna=) is NaT
+        assert Series([], dtype=dtype).max(skipna=) is NaT
 
     def test_numpy_argmin(self):
         # See GH#16830
@@ -980,7 +980,7 @@ class TestSeriesReductions:
     def test_any_all_object_dtype(self, bool_agg_func, skipna):
         # GH#12863
         ser = Series(["a", "b", "c", "d", "e"], dtype=object)
-        result = getattr(ser, bool_agg_func)(skipna=skipna)
+        result = getattr(ser, bool_agg_func)(skipna=)
         expected = True
 
         assert result == expected
@@ -1018,10 +1018,10 @@ class TestSeriesReductions:
         self, bool_agg_func, skipna, data, dtype, expected_data
     ):
         # GH-37506, GH-41967
-        ser = Series(data, dtype=dtype)
+        ser = Series(data, dtype=)
         expected = expected_data[skipna][bool_agg_func == "all"]
 
-        result = getattr(ser, bool_agg_func)(skipna=skipna)
+        result = getattr(ser, bool_agg_func)(skipna=)
         assert (result is pd.NA and expected is pd.NA) or result == expected
 
     def test_any_axis1_bool_only(self):
@@ -1362,7 +1362,7 @@ class TestCategoricalSeriesReductions:
     @pytest.mark.parametrize("function", ["min", "max"])
     def test_min_max_ordered(self, values, categories, function):
         # GH 25303
-        cat = Series(Categorical(values, categories=categories, ordered=True))
+        cat = Series(Categorical(values, categories=, ordered=True))
         result = getattr(cat, function)(skipna=True)
         expected = categories[0] if function == "min" else categories[2]
         assert result == expected
@@ -1372,7 +1372,7 @@ class TestCategoricalSeriesReductions:
     def test_min_max_ordered_with_nan_only(self, function, skipna):
         # https://github.com/pandas-dev/pandas/issues/33450
         cat = Series(Categorical([np.nan], categories=[1, 2], ordered=True))
-        result = getattr(cat, function)(skipna=skipna)
+        result = getattr(cat, function)(skipna=)
         assert result is np.nan
 
     @pytest.mark.parametrize("function", ["min", "max"])
@@ -1381,7 +1381,7 @@ class TestCategoricalSeriesReductions:
         cat = Series(
             Categorical(["a", "b", np.nan, "a"], categories=["b", "a"], ordered=True)
         )
-        result = getattr(cat, function)(skipna=skipna)
+        result = getattr(cat, function)(skipna=)
 
         if skipna is True:
             expected = "b" if function == "min" else "a"
@@ -1634,7 +1634,7 @@ class TestSeriesMode:
         ],
     )
     def test_single_mode_value_complex(self, array, expected, dtype):
-        result = Series(array, dtype=dtype).mode()
+        result = Series(array, dtype=).mode()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -1657,5 +1657,5 @@ class TestSeriesMode:
         # GH 17927
         # mode tries to sort multimodal series.
         # Complex numbers are sorted by their magnitude
-        result = Series(array, dtype=dtype).mode()
+        result = Series(array, dtype=).mode()
         tm.assert_series_equal(result, expected)

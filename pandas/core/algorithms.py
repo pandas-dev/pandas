@@ -205,7 +205,7 @@ def _reconstruct_data(
         #  that values.dtype == dtype
         cls = dtype.construct_array_type()
 
-        values = cls._from_sequence(values, dtype=dtype)
+        values = cls._from_sequence(values, dtype=)
 
     else:
         values = values.astype(dtype, copy=False)
@@ -441,7 +441,7 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
         return uniques
 
     else:
-        uniques, mask = table.unique(values, mask=mask)
+        uniques, mask = table.unique(values, mask=)
         uniques = _reconstruct_data(uniques, original.dtype, original)
         assert mask is not None  # for mypy
         return uniques, mask.astype("bool")
@@ -594,8 +594,8 @@ def factorize_array(
     uniques, codes = table.factorize(
         values,
         na_sentinel=-1,
-        na_value=na_value,
-        mask=mask,
+        na_value=,
+        mask=,
         ignore_na=use_na_sentinel,
     )
 
@@ -759,7 +759,7 @@ def factorize(
     # responsible only for factorization. All data coercion, sorting and boxing
     # should happen here.
     if isinstance(values, (ABCIndex, ABCSeries)):
-        return values.factorize(sort=sort, use_na_sentinel=use_na_sentinel)
+        return values.factorize(sort=, use_na_sentinel=)
 
     values = _ensure_arraylike(values, func_name="factorize")
     original = values
@@ -770,12 +770,12 @@ def factorize(
     ):
         # The presence of 'freq' means we can fast-path sorting and know there
         #  aren't NAs
-        codes, uniques = values.factorize(sort=sort)
+        codes, uniques = values.factorize(sort=)
         return codes, uniques
 
     elif not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
-        codes, uniques = values.factorize(use_na_sentinel=use_na_sentinel)
+        codes, uniques = values.factorize(use_na_sentinel=)
 
     else:
         values = np.asarray(values)  # convert DTA/TDA/MultiIndex
@@ -791,17 +791,13 @@ def factorize(
                 # Don't modify (potentially user-provided) array
                 values = np.where(null_mask, na_value, values)
 
-        codes, uniques = factorize_array(
-            values,
-            use_na_sentinel=use_na_sentinel,
-            size_hint=size_hint,
-        )
+        codes, uniques = factorize_array(values, use_na_sentinel=, size_hint=)
 
     if sort and len(uniques) > 0:
         uniques, codes = safe_sort(
             uniques,
             codes,
-            use_na_sentinel=use_na_sentinel,
+            use_na_sentinel=,
             assume_unique=True,
             verify=False,
         )
@@ -850,11 +846,11 @@ def value_counts(
     )
     return value_counts_internal(
         values,
-        sort=sort,
-        ascending=ascending,
-        normalize=normalize,
-        bins=bins,
-        dropna=dropna,
+        sort=,
+        ascending=,
+        normalize=,
+        bins=,
+        dropna=,
     )
 
 
@@ -886,7 +882,7 @@ def value_counts_internal(
             raise TypeError("bins argument only works with numeric data.") from err
 
         # count, remove nulls (from the index), and but the bins
-        result = ii.value_counts(dropna=dropna)
+        result = ii.value_counts(dropna=)
         result.name = name
         result = result[result.index.notna()]
         result.index = result.index.astype("interval")
@@ -902,7 +898,7 @@ def value_counts_internal(
     else:
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
-            result = Series(values, copy=False)._values.value_counts(dropna=dropna)
+            result = Series(values, copy=False)._values.value_counts(dropna=)
             result.name = name
             result.index.name = index_name
             counts = result._values
@@ -914,8 +910,8 @@ def value_counts_internal(
             # GH49558
             levels = list(range(values.nlevels))
             result = (
-                Series(index=values, name=name)
-                .groupby(level=levels, dropna=dropna)
+                Series(index=values, name=)
+                .groupby(level=levels, dropna=)
                 .size()
             )
             result.index.names = values.names
@@ -934,10 +930,10 @@ def value_counts_internal(
                 idx = idx.astype(object)
             idx.name = index_name
 
-            result = Series(counts, index=idx, name=name, copy=False)
+            result = Series(counts, index=idx, name=, copy=False)
 
     if sort:
-        result = result.sort_values(ascending=ascending)
+        result = result.sort_values(ascending=)
 
     if normalize:
         result = result / counts.sum()
@@ -964,7 +960,7 @@ def value_counts_arraylike(
     original = values
     values = _ensure_data(values)
 
-    keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
+    keys, counts, na_counter = htable.value_count(values, dropna, mask=)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -1003,7 +999,7 @@ def duplicated(
     duplicated : ndarray[bool]
     """
     values = _ensure_data(values)
-    return htable.duplicated(values, keep=keep, mask=mask)
+    return htable.duplicated(values, keep=, mask=)
 
 
 def mode(
@@ -1030,11 +1026,11 @@ def mode(
         # Got here with ndarray; dispatch to DatetimeArray/TimedeltaArray.
         values = ensure_wrapped_if_datetimelike(values)
         values = cast("ExtensionArray", values)
-        return values._mode(dropna=dropna)
+        return values._mode(dropna=)
 
     values = _ensure_data(values)
 
-    npresult = htable.mode(values, dropna=dropna, mask=mask)
+    npresult = htable.mode(values, dropna=, mask=)
     try:
         npresult = np.sort(npresult)
     except TypeError as err:
@@ -1084,21 +1080,21 @@ def rank(
     if values.ndim == 1:
         ranks = algos.rank_1d(
             values,
-            is_datetimelike=is_datetimelike,
+            is_datetimelike=,
             ties_method=method,
-            ascending=ascending,
-            na_option=na_option,
-            pct=pct,
+            ascending=,
+            na_option=,
+            pct=,
         )
     elif values.ndim == 2:
         ranks = algos.rank_2d(
             values,
-            axis=axis,
-            is_datetimelike=is_datetimelike,
+            axis=,
+            is_datetimelike=,
             ties_method=method,
-            ascending=ascending,
-            na_option=na_option,
-            pct=pct,
+            ascending=,
+            na_option=,
+            pct=,
         )
     else:
         raise TypeError("Array with ndim > 2 are not supported.")
@@ -1306,12 +1302,10 @@ def take(
     if allow_fill:
         # Pandas style, -1 means NA
         validate_indices(indices, arr.shape[axis])
-        result = take_nd(
-            arr, indices, axis=axis, allow_fill=True, fill_value=fill_value
-        )
+        result = take_nd(arr, indices, axis=, allow_fill=True, fill_value=)
     else:
         # NumPy style
-        result = arr.take(indices, axis=axis)
+        result = arr.take(indices, axis=)
     return result
 
 
@@ -1393,7 +1387,7 @@ def searchsorted(
             # We know that value is int
             value = cast(int, dtype.type(value))
         else:
-            value = pd_array(cast(ArrayLike, value), dtype=dtype)
+            value = pd_array(cast(ArrayLike, value), dtype=)
     else:
         # E.g. if `arr` is an array with dtype='datetime64[ns]'
         # and `value` is a pd.Timestamp, we may need to convert value
@@ -1401,7 +1395,7 @@ def searchsorted(
 
     # Argument 1 to "searchsorted" of "ndarray" has incompatible type
     # "Union[NumpyValueArrayLike, ExtensionArray]"; expected "NumpyValueArrayLike"
-    return arr.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
+    return arr.searchsorted(value, side=, sorter=)  # type: ignore[arg-type]
 
 
 # ---- #
@@ -1486,7 +1480,7 @@ def diff(arr, n: int, axis: AxisInt = 0):
         # TODO: require axis == 0
 
     dtype = np.dtype(dtype)
-    out_arr = np.empty(arr.shape, dtype=dtype)
+    out_arr = np.empty(arr.shape, dtype=)
 
     na_indexer = [slice(None)] * 2
     na_indexer[axis] = slice(None, n) if n >= 0 else slice(n, None)
@@ -1806,8 +1800,8 @@ def map_array(
     # we must convert to python types
     values = arr.astype(object, copy=False)
     if na_action is None:
-        return lib.map_infer(values, mapper, convert=convert)
+        return lib.map_infer(values, mapper, convert=)
     else:
         return lib.map_infer_mask(
-            values, mapper, mask=isna(values).view(np.uint8), convert=convert
+            values, mapper, mask=isna(values).view(np.uint8), convert=
         )

@@ -15,7 +15,7 @@ class TestGetSliceBounds:
     @pytest.mark.parametrize("side, expected", [("left", 4), ("right", 5)])
     def test_get_slice_bounds_within(self, side, expected):
         index = Index(list("abcdef"))
-        result = index.get_slice_bound("e", side=side)
+        result = index.get_slice_bound("e", side=)
         assert result == expected
 
     @pytest.mark.parametrize("side", ["left", "right"])
@@ -24,7 +24,7 @@ class TestGetSliceBounds:
     )
     def test_get_slice_bounds_outside(self, side, expected, data, bound):
         index = Index(data)
-        result = index.get_slice_bound(bound, side=side)
+        result = index.get_slice_bound(bound, side=)
         assert result == expected
 
     def test_get_slice_bounds_invalid_side(self):

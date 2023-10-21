@@ -56,7 +56,7 @@ def test_constructor(frame_or_series):
     msg = "alpha must satisfy: 0 < alpha <= 1"
     for alpha in (-0.5, 1.5):
         with pytest.raises(ValueError, match=msg):
-            c(alpha=alpha)
+            c(alpha=)
 
 
 def test_ewma_times_not_datetime_type():
@@ -97,8 +97,8 @@ def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
     data = np.arange(10.0)
     data[::2] = np.nan
     df = DataFrame({"A": data})
-    result = df.ewm(halflife=halflife, min_periods=min_periods, times=times).mean()
-    expected = df.ewm(halflife=1.0, min_periods=min_periods).mean()
+    result = df.ewm(halflife=, min_periods=, times=).mean()
+    expected = df.ewm(halflife=1.0, min_periods=).mean()
     tm.assert_frame_equal(result, expected)
 
 
@@ -110,7 +110,7 @@ def test_ewma_with_times_variable_spacing(tz_aware_fixture):
     ).tz_localize(tz)
     data = np.arange(3)
     df = DataFrame(data)
-    result = df.ewm(halflife=halflife, times=times).mean()
+    result = df.ewm(halflife=, times=).mean()
     expected = DataFrame([0.0, 0.5674161888241773, 1.545239952073459])
     tm.assert_frame_equal(result, expected)
 
@@ -120,7 +120,7 @@ def test_ewm_with_nat_raises(halflife_with_times):
     ser = Series(range(1))
     times = DatetimeIndex(["NaT"])
     with pytest.raises(ValueError, match="Cannot convert NaT values to integer"):
-        ser.ewm(com=0.1, halflife=halflife_with_times, times=times)
+        ser.ewm(com=0.1, halflife=halflife_with_times, times=)
 
 
 def test_ewm_with_times_getitem(halflife_with_times):
@@ -130,7 +130,7 @@ def test_ewm_with_times_getitem(halflife_with_times):
     data[::2] = np.nan
     times = date_range("2000", freq="D", periods=10)
     df = DataFrame({"A": data, "B": data})
-    result = df.ewm(halflife=halflife, times=times)["A"].mean()
+    result = df.ewm(halflife=, times=)["A"].mean()
     expected = df.ewm(halflife=1.0)["A"].mean()
     tm.assert_series_equal(result, expected)
 
@@ -251,7 +251,7 @@ def test_ewma_cases(adjust, ignore_na):
     else:
         expected = Series([1.0, 1.333333, 2.222222, 4.148148])
 
-    result = s.ewm(com=2.0, adjust=adjust, ignore_na=ignore_na).mean()
+    result = s.ewm(com=2.0, adjust=, ignore_na=).mean()
     tm.assert_series_equal(result, expected)
 
 
@@ -404,12 +404,12 @@ def test_ewma_nan_handling():
 def test_ewma_nan_handling_cases(s, adjust, ignore_na, w):
     # GH 7603
     expected = (s.multiply(w).cumsum() / Series(w).cumsum()).ffill()
-    result = s.ewm(com=2.0, adjust=adjust, ignore_na=ignore_na).mean()
+    result = s.ewm(com=2.0, adjust=, ignore_na=).mean()
 
     tm.assert_series_equal(result, expected)
     if ignore_na is False:
         # check that ignore_na defaults to False
-        result = s.ewm(com=2.0, adjust=adjust).mean()
+        result = s.ewm(com=2.0, adjust=).mean()
         tm.assert_series_equal(result, expected)
 
 
@@ -494,7 +494,7 @@ def test_ew_min_periods(min_periods, name):
     assert result[:11].isna().all()
     assert not result[11:].isna().any()
 
-    result = getattr(s.ewm(com=50, min_periods=min_periods), name)()
+    result = getattr(s.ewm(com=50, min_periods=), name)()
     if name == "mean":
         assert result[:10].isna().all()
         assert not result[10:].isna().any()
@@ -505,11 +505,11 @@ def test_ew_min_periods(min_periods, name):
         assert not result[11:].isna().any()
 
     # check series of length 0
-    result = getattr(Series(dtype=object).ewm(com=50, min_periods=min_periods), name)()
+    result = getattr(Series(dtype=object).ewm(com=50, min_periods=), name)()
     tm.assert_series_equal(result, Series(dtype="float64"))
 
     # check series of length 1
-    result = getattr(Series([1.0]).ewm(50, min_periods=min_periods), name)()
+    result = getattr(Series([1.0]).ewm(50, min_periods=), name)()
     if name == "mean":
         tm.assert_series_equal(result, Series([1.0]))
     else:
@@ -545,7 +545,7 @@ def test_ewm_corr_cov_min_periods(name, min_periods):
     A[:10] = np.nan
     B.iloc[-10:] = np.nan
 
-    result = getattr(A.ewm(com=20, min_periods=min_periods), name)(B)
+    result = getattr(A.ewm(com=20, min_periods=), name)(B)
     # binary functions (ewmcov, ewmcorr) with bias=False require at
     # least two values
     assert np.isnan(result.values[:11]).all()
@@ -553,11 +553,11 @@ def test_ewm_corr_cov_min_periods(name, min_periods):
 
     # check series of length 0
     empty = Series([], dtype=np.float64)
-    result = getattr(empty.ewm(com=50, min_periods=min_periods), name)(empty)
+    result = getattr(empty.ewm(com=50, min_periods=), name)(empty)
     tm.assert_series_equal(result, empty)
 
     # check series of length 1
-    result = getattr(Series([1.0]).ewm(com=50, min_periods=min_periods), name)(
+    result = getattr(Series([1.0]).ewm(com=50, min_periods=), name)(
         Series([1.0])
     )
     tm.assert_series_equal(result, Series([np.nan]))
@@ -650,7 +650,7 @@ def test_numeric_only_frame(arithmetic_win_operators, numeric_only):
     ewm = df.ewm(span=2, min_periods=1)
     op = getattr(ewm, kernel, None)
     if op is not None:
-        result = op(numeric_only=numeric_only)
+        result = op(numeric_only=)
 
         columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
         expected = df[columns].agg([kernel]).reset_index(drop=True).astype(float)
@@ -668,7 +668,7 @@ def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
     arg = (df,) if use_arg else ()
     ewm = df.ewm(span=2, min_periods=1)
     op = getattr(ewm, kernel)
-    result = op(*arg, numeric_only=numeric_only)
+    result = op(*arg, numeric_only=)
 
     # Compare result to op using float dtypes, dropping c when numeric_only is True
     columns = ["a", "b"] if numeric_only else ["a", "b", "c"]
@@ -676,7 +676,7 @@ def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
     arg2 = (df2,) if use_arg else ()
     ewm2 = df2.ewm(span=2, min_periods=1)
     op2 = getattr(ewm2, kernel)
-    expected = op2(*arg2, numeric_only=numeric_only)
+    expected = op2(*arg2, numeric_only=)
 
     tm.assert_frame_equal(result, expected)
 
@@ -685,7 +685,7 @@ def test_numeric_only_corr_cov_frame(kernel, numeric_only, use_arg):
 def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
     # GH#46560
     kernel = arithmetic_win_operators
-    ser = Series([1], dtype=dtype)
+    ser = Series([1], dtype=)
     ewm = ser.ewm(span=2, min_periods=1)
     op = getattr(ewm, kernel, None)
     if op is None:
@@ -694,9 +694,9 @@ def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
     if numeric_only and dtype is object:
         msg = f"ExponentialMovingWindow.{kernel} does not implement numeric_only"
         with pytest.raises(NotImplementedError, match=msg):
-            op(numeric_only=numeric_only)
+            op(numeric_only=)
     else:
-        result = op(numeric_only=numeric_only)
+        result = op(numeric_only=)
         expected = ser.agg([kernel]).reset_index(drop=True).astype(float)
         tm.assert_series_equal(result, expected)
 
@@ -706,20 +706,20 @@ def test_numeric_only_series(arithmetic_win_operators, numeric_only, dtype):
 @pytest.mark.parametrize("dtype", [int, object])
 def test_numeric_only_corr_cov_series(kernel, use_arg, numeric_only, dtype):
     # GH#46560
-    ser = Series([1, 2, 3], dtype=dtype)
+    ser = Series([1, 2, 3], dtype=)
     arg = (ser,) if use_arg else ()
     ewm = ser.ewm(span=2, min_periods=1)
     op = getattr(ewm, kernel)
     if numeric_only and dtype is object:
         msg = f"ExponentialMovingWindow.{kernel} does not implement numeric_only"
         with pytest.raises(NotImplementedError, match=msg):
-            op(*arg, numeric_only=numeric_only)
+            op(*arg, numeric_only=)
     else:
-        result = op(*arg, numeric_only=numeric_only)
+        result = op(*arg, numeric_only=)
 
         ser2 = ser.astype(float)
         arg2 = (ser2,) if use_arg else ()
         ewm2 = ser2.ewm(span=2, min_periods=1)
         op2 = getattr(ewm2, kernel)
-        expected = op2(*arg2, numeric_only=numeric_only)
+        expected = op2(*arg2, numeric_only=)
         tm.assert_series_equal(result, expected)

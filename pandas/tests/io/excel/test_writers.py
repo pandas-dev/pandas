@@ -81,7 +81,7 @@ class TestRoundTrip:
         with tm.ensure_clean(ext) as path:
             df.to_excel(path, sheet_name=filename, index=False, header=False)
             result = pd.read_excel(
-                path, sheet_name=filename, usecols=[0], header=header
+                path, sheet_name=filename, usecols=[0], header=
             )
 
         tm.assert_frame_equal(result, expected)
@@ -97,7 +97,7 @@ class TestRoundTrip:
         with tm.ensure_clean(ext) as path:
             df.to_excel(path, sheet_name="with_header", index=False, header=True)
             result = pd.read_excel(
-                path, sheet_name=filename, usecols=[0], header=header
+                path, sheet_name=filename, usecols=[0], header=
             )
 
         tm.assert_frame_equal(result, expected)
@@ -233,7 +233,7 @@ class TestRoundTrip:
                 index_col=list(range(r_idx_levels)),
                 header=list(range(c_idx_levels)),
             )
-            tm.assert_frame_equal(df, act, check_names=check_names)
+            tm.assert_frame_equal(df, act, check_names=)
 
             df.iloc[0, :] = np.nan
             df.to_excel(pth)
@@ -243,7 +243,7 @@ class TestRoundTrip:
                 index_col=list(range(r_idx_levels)),
                 header=list(range(c_idx_levels)),
             )
-            tm.assert_frame_equal(df, act, check_names=check_names)
+            tm.assert_frame_equal(df, act, check_names=)
 
             df.iloc[-1, :] = np.nan
             df.to_excel(pth)
@@ -252,7 +252,7 @@ class TestRoundTrip:
                 index_col=list(range(r_idx_levels)),
                 header=list(range(c_idx_levels)),
             )
-            tm.assert_frame_equal(df, act, check_names=check_names)
+            tm.assert_frame_equal(df, act, check_names=)
 
     def test_read_excel_parse_dates(self, ext):
         # see gh-11544, gh-12051
@@ -278,7 +278,7 @@ class TestRoundTrip:
                 res = pd.read_excel(
                     pth,
                     parse_dates=["date_strings"],
-                    date_parser=date_parser,
+                    date_parser=,
                     index_col=0,
                 )
             tm.assert_frame_equal(df, res)
@@ -571,7 +571,7 @@ class TestExcelWriter:
         # test index_label
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 2))) >= 0
         df.to_excel(
-            path, sheet_name="test1", index_label=["test"], merge_cells=merge_cells
+            path, sheet_name="test1", index_label=["test"], merge_cells=
         )
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0).astype(
@@ -585,7 +585,7 @@ class TestExcelWriter:
             path,
             sheet_name="test1",
             index_label=["test", "dummy", "dummy2"],
-            merge_cells=merge_cells,
+            merge_cells=,
         )
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0).astype(
@@ -595,9 +595,7 @@ class TestExcelWriter:
         assert df.index.names == recons.index.names
 
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 2))) >= 0
-        df.to_excel(
-            path, sheet_name="test1", index_label="test", merge_cells=merge_cells
-        )
+        df.to_excel(path, sheet_name="test1", index_label="test", merge_cells=)
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0).astype(
                 np.int64
@@ -610,7 +608,7 @@ class TestExcelWriter:
             sheet_name="test1",
             columns=["A", "B", "C", "D"],
             index=False,
-            merge_cells=merge_cells,
+            merge_cells=,
         )
         # take 'A' and 'B' as indexes (same row as cols 'C', 'D')
         df = frame.copy()
@@ -624,7 +622,7 @@ class TestExcelWriter:
         df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
         df.index.name = "foo"
 
-        df.to_excel(path, merge_cells=merge_cells)
+        df.to_excel(path, merge_cells=)
 
         with ExcelFile(path) as xf:
             result = pd.read_excel(xf, sheet_name=xf.sheet_names[0], index_col=0)
@@ -642,7 +640,7 @@ class TestExcelWriter:
         tsf = tsframe.copy()
 
         tsf.index = [x.date() for x in tsframe.index]
-        tsf.to_excel(path, sheet_name="test1", merge_cells=merge_cells)
+        tsf.to_excel(path, sheet_name="test1", merge_cells=)
 
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=0)
@@ -768,7 +766,7 @@ class TestExcelWriter:
         frame.to_excel(path, sheet_name="test1", columns=["A", "B"])
 
         # round trip
-        frame.to_excel(path, sheet_name="test1", merge_cells=merge_cells)
+        frame.to_excel(path, sheet_name="test1", merge_cells=)
         with ExcelFile(path) as reader:
             df = pd.read_excel(reader, sheet_name="test1", index_col=[0, 1])
         tm.assert_frame_equal(frame, df)
@@ -784,7 +782,7 @@ class TestExcelWriter:
         )
         df = df.set_index(["A", "B"])
 
-        df.to_excel(path, merge_cells=merge_cells)
+        df.to_excel(path, merge_cells=)
         df1 = pd.read_excel(path, index_col=[0, 1])
         tm.assert_frame_equal(df, df1)
 
@@ -803,10 +801,10 @@ class TestExcelWriter:
             header = 0
 
         # round trip
-        frame.to_excel(path, sheet_name="test1", merge_cells=merge_cells)
+        frame.to_excel(path, sheet_name="test1", merge_cells=)
         with ExcelFile(path) as reader:
             df = pd.read_excel(
-                reader, sheet_name="test1", header=header, index_col=[0, 1]
+                reader, sheet_name="test1", header=, index_col=[0, 1]
             )
         if not merge_cells:
             fm = frame.columns._format_multi(sparsify=False, include_names=False)
@@ -819,7 +817,7 @@ class TestExcelWriter:
         tsframe.index = MultiIndex.from_arrays(new_index)
 
         tsframe.index.names = ["time", "foo"]
-        tsframe.to_excel(path, sheet_name="test1", merge_cells=merge_cells)
+        tsframe.to_excel(path, sheet_name="test1", merge_cells=)
         with ExcelFile(path) as reader:
             recons = pd.read_excel(reader, sheet_name="test1", index_col=[0, 1])
 
@@ -923,7 +921,7 @@ class TestExcelWriter:
         self, merge_cells, c_idx_nlevels, r_idx_nlevels, use_headers, path
     ):
         def roundtrip(data, header=True, parser_hdr=0, index=True):
-            data.to_excel(path, header=header, merge_cells=merge_cells, index=index)
+            data.to_excel(path, header=, merge_cells=, index=)
 
             with ExcelFile(path) as xf:
                 return pd.read_excel(
@@ -945,7 +943,7 @@ class TestExcelWriter:
         # override of gh-2370 until sorted out in 0.11
 
         df = tm.makeCustomDataframe(
-            nrows, ncols, r_idx_nlevels=r_idx_nlevels, c_idx_nlevels=c_idx_nlevels
+            nrows, ncols, r_idx_nlevels=, c_idx_nlevels=
         )
 
         # This if will be removed once multi-column Excel writing
@@ -1129,7 +1127,7 @@ class TestExcelWriter:
             df = DataFrame(np.random.default_rng(2).standard_normal((10, 2)))
 
             # Pass engine explicitly, as there is no file path to infer from.
-            with ExcelWriter(bio, engine=engine) as writer:
+            with ExcelWriter(bio, engine=) as writer:
                 df.to_excel(writer)
 
             bio.seek(0)
@@ -1162,11 +1160,7 @@ class TestExcelWriter:
             ] = r"load_workbook() got an unexpected keyword argument 'foo'"
 
         with pytest.raises(TypeError, match=re.escape(msgs[engine])):
-            df.to_excel(
-                path,
-                engine=engine,
-                engine_kwargs={"foo": "bar"},
-            )
+            df.to_excel(path, engine=, engine_kwargs={"foo": "bar"})
 
     def test_write_lists_dict(self, path):
         # see gh-8188.
@@ -1217,7 +1211,7 @@ class TestExcelWriter:
 
     def test_path_path_lib(self, engine, ext):
         df = tm.makeDataFrame()
-        writer = partial(df.to_excel, engine=engine)
+        writer = partial(df.to_excel, engine=)
 
         reader = partial(pd.read_excel, index_col=0)
         result = tm.round_trip_pathlib(writer, reader, path=f"foo{ext}")
@@ -1225,7 +1219,7 @@ class TestExcelWriter:
 
     def test_path_local_path(self, engine, ext):
         df = tm.makeDataFrame()
-        writer = partial(df.to_excel, engine=engine)
+        writer = partial(df.to_excel, engine=)
 
         reader = partial(pd.read_excel, index_col=0)
         result = tm.round_trip_localpath(writer, reader, path=f"foo{ext}")
@@ -1253,13 +1247,13 @@ class TestExcelWriter:
     def test_raise_when_saving_timezones(self, dtype, tz_aware_fixture, path):
         # GH 27008, GH 7056
         tz = tz_aware_fixture
-        data = pd.Timestamp("2019", tz=tz)
-        df = DataFrame([data], dtype=dtype)
+        data = pd.Timestamp("2019", tz=)
+        df = DataFrame([data], dtype=)
         with pytest.raises(ValueError, match="Excel does not support"):
             df.to_excel(path)
 
         data = data.to_pydatetime()
-        df = DataFrame([data], dtype=dtype)
+        df = DataFrame([data], dtype=)
         with pytest.raises(ValueError, match="Excel does not support"):
             df.to_excel(path)
 
@@ -1283,7 +1277,7 @@ class TestExcelWriter:
     def test_excel_writer_empty_frame(self, engine, ext):
         # GH#45793
         with tm.ensure_clean(ext) as path:
-            with ExcelWriter(path, engine=engine) as writer:
+            with ExcelWriter(path, engine=) as writer:
                 DataFrame().to_excel(writer)
             result = pd.read_excel(path)
             expected = DataFrame()
@@ -1292,7 +1286,7 @@ class TestExcelWriter:
     def test_to_excel_empty_frame(self, engine, ext):
         # GH#45793
         with tm.ensure_clean(ext) as path:
-            DataFrame().to_excel(path, engine=engine)
+            DataFrame().to_excel(path, engine=)
             result = pd.read_excel(path)
             expected = DataFrame()
             tm.assert_frame_equal(result, expected)

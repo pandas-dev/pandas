@@ -367,7 +367,7 @@ class TestTimedeltas:
     )
     def test_rounding_on_int_unit_construction(self, unit, value, expected):
         # GH 12690
-        result = Timedelta(value, unit=unit)
+        result = Timedelta(value, unit=)
         assert result._value == expected
         result = Timedelta(str(value) + unit)
         assert result._value == expected
@@ -582,9 +582,9 @@ class TestTimedeltas:
         else:
             warn = None
         with tm.assert_produces_warning(warn, match=msg):
-            result = to_timedelta(wrapper(range(5)), unit=unit)
+            result = to_timedelta(wrapper(range(5)), unit=)
             tm.assert_index_equal(result, expected)
-            result = TimedeltaIndex(wrapper(range(5)), unit=unit)
+            result = TimedeltaIndex(wrapper(range(5)), unit=)
             tm.assert_index_equal(result, expected)
 
             str_repr = [f"{x}{unit}" for x in np.arange(5)]
@@ -595,9 +595,9 @@ class TestTimedeltas:
 
             # scalar
             expected = Timedelta(np.timedelta64(2, np_unit).astype("timedelta64[ns]"))
-            result = to_timedelta(2, unit=unit)
+            result = to_timedelta(2, unit=)
             assert result == expected
-            result = Timedelta(2, unit=unit)
+            result = Timedelta(2, unit=)
             assert result == expected
 
             result = to_timedelta(f"2{unit}")
@@ -1055,7 +1055,7 @@ def test_units_H_T_S_L_N_U_deprecated(unit, unit_depr):
     # GH#52536
     msg = f"'{unit_depr}' is deprecated and will be removed in a future version."
 
-    expected = Timedelta(1, unit=unit)
+    expected = Timedelta(1, unit=)
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = Timedelta(1, unit=unit_depr)
     tm.assert_equal(result, expected)

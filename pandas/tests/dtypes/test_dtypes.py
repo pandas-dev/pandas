@@ -781,7 +781,7 @@ class TestIntervalDtype(Base):
     def test_equality_generic(self, subtype):
         # GH 18980
         closed = "right" if subtype is not None else None
-        dtype = IntervalDtype(subtype, closed=closed)
+        dtype = IntervalDtype(subtype, closed=)
         assert is_dtype_equal(dtype, "interval")
         assert is_dtype_equal(dtype, IntervalDtype())
 
@@ -800,7 +800,7 @@ class TestIntervalDtype(Base):
     def test_name_repr(self, subtype):
         # GH 18980
         closed = "right" if subtype is not None else None
-        dtype = IntervalDtype(subtype, closed=closed)
+        dtype = IntervalDtype(subtype, closed=)
         expected = f"interval[{subtype}, {closed}]"
         assert str(dtype) == expected
         assert dtype.name == "interval"
@@ -888,7 +888,7 @@ class TestCategoricalDtypeParametrized:
         ],
     )
     def test_basic(self, categories, ordered):
-        c1 = CategoricalDtype(categories, ordered=ordered)
+        c1 = CategoricalDtype(categories, ordered=)
         tm.assert_index_equal(c1.categories, pd.Index(categories))
         assert c1.ordered is ordered
 
@@ -902,8 +902,8 @@ class TestCategoricalDtypeParametrized:
 
     @pytest.mark.parametrize("ordered", [False, None])
     def test_unordered_same(self, ordered):
-        c1 = CategoricalDtype(["a", "b"], ordered=ordered)
-        c2 = CategoricalDtype(["b", "a"], ordered=ordered)
+        c1 = CategoricalDtype(["a", "b"], ordered=)
+        c2 = CategoricalDtype(["b", "a"], ordered=)
         assert hash(c1) == hash(c2)
 
     def test_categories(self):
@@ -1055,14 +1055,14 @@ class TestCategoricalDtypeParametrized:
         assert result == CategoricalDtype([1, 2], ordered=False)
 
     def test_str_vs_repr(self, ordered):
-        c1 = CategoricalDtype(["a", "b"], ordered=ordered)
+        c1 = CategoricalDtype(["a", "b"], ordered=)
         assert str(c1) == "category"
         # Py2 will have unicode prefixes
         pat = (
             r"CategoricalDtype\(categories=\[.*\], ordered={ordered}, "
             r"categories_dtype=object\)"
         )
-        assert re.match(pat.format(ordered=ordered), repr(c1))
+        assert re.match(pat.format(ordered=), repr(c1))
 
     def test_categorical_categories(self):
         # GH17884

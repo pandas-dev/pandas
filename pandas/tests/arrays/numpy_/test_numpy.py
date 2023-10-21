@@ -239,7 +239,7 @@ def test_ufunc_unary(ufunc):
 
     # same thing but with the 'out' keyword
     out = NumpyExtensionArray(np.array([-9.0, -9.0, -9.0]))
-    ufunc(arr, out=out)
+    ufunc(arr, out=)
     tm.assert_extension_array_equal(out, expected)
 
 
@@ -265,9 +265,9 @@ def test_basic_binop():
 
 @pytest.mark.parametrize("dtype", [None, object])
 def test_setitem_object_typecode(dtype):
-    arr = NumpyExtensionArray(np.array(["a", "b", "c"], dtype=dtype))
+    arr = NumpyExtensionArray(np.array(["a", "b", "c"], dtype=))
     arr[0] = "t"
-    expected = NumpyExtensionArray(np.array(["t", "b", "c"], dtype=dtype))
+    expected = NumpyExtensionArray(np.array(["t", "b", "c"], dtype=))
     tm.assert_extension_array_equal(arr, expected)
 
 
@@ -303,7 +303,7 @@ def test_setitem_preserves_views():
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
 def test_quantile_empty(dtype):
     # we should get back np.nans, not -1s
-    arr = NumpyExtensionArray(np.array([], dtype=dtype))
+    arr = NumpyExtensionArray(np.array([], dtype=))
     idx = pd.Index([0.0, 0.5])
 
     result = arr._quantile(idx, interpolation="linear")

@@ -112,7 +112,7 @@ def compute_expected(df_left, df_right, on=None, left_on=None, right_on=None, ho
         df_right = df_right.reset_index(level=reset_right)
 
     # Perform merge
-    expected = df_left.merge(df_right, left_on=left_on, right_on=right_on, how=how)
+    expected = df_left.merge(df_right, left_on=, right_on=, how=)
 
     # Restore index levels
     if output_levels:
@@ -132,10 +132,10 @@ def compute_expected(df_left, df_right, on=None, left_on=None, right_on=None, ho
 )
 def test_merge_indexes_and_columns_on(left_df, right_df, on, how):
     # Construct expected result
-    expected = compute_expected(left_df, right_df, on=on, how=how)
+    expected = compute_expected(left_df, right_df, on=, how=)
 
     # Perform merge
-    result = left_df.merge(right_df, on=on, how=how)
+    result = left_df.merge(right_df, on=, how=)
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
@@ -152,12 +152,10 @@ def test_merge_indexes_and_columns_lefton_righton(
     left_df, right_df, left_on, right_on, how
 ):
     # Construct expected result
-    expected = compute_expected(
-        left_df, right_df, left_on=left_on, right_on=right_on, how=how
-    )
+    expected = compute_expected(left_df, right_df, left_on=, right_on=, how=)
 
     # Perform merge
-    result = left_df.merge(right_df, left_on=left_on, right_on=right_on, how=how)
+    result = left_df.merge(right_df, left_on=, right_on=, how=)
     tm.assert_frame_equal(result, expected, check_like=True)
 
 

@@ -47,7 +47,7 @@ def test_apply(float_frame):
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("raw", [True, False])
 def test_apply_args(float_frame, axis, raw):
-    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,), raw=raw)
+    result = float_frame.apply(lambda x, y: x + y, axis, args=(1,), raw=)
     expected = float_frame + 1
     tm.assert_frame_equal(result, expected)
 
@@ -75,7 +75,7 @@ def test_apply_axis1_with_ea():
 )
 def test_agg_axis1_duplicate_index(data, dtype):
     # GH 42380
-    expected = DataFrame([[data], [data]], index=["a", "a"], dtype=dtype)
+    expected = DataFrame([[data], [data]], index=["a", "a"], dtype=)
     result = expected.agg(lambda x: x, axis=1)
     tm.assert_frame_equal(result, expected)
 
@@ -250,19 +250,19 @@ def test_apply_raw_float_frame(float_frame, axis, engine):
         assert isinstance(x, np.ndarray)
         assert x.ndim == 1
 
-    float_frame.apply(_assert_raw, axis=axis, engine=engine, raw=True)
+    float_frame.apply(_assert_raw, axis=, engine=, raw=True)
 
 
 @pytest.mark.parametrize("axis", [0, 1])
 def test_apply_raw_float_frame_lambda(float_frame, axis, engine):
-    result = float_frame.apply(np.mean, axis=axis, engine=engine, raw=True)
-    expected = float_frame.apply(lambda x: x.values.mean(), axis=axis)
+    result = float_frame.apply(np.mean, axis=, engine=, raw=True)
+    expected = float_frame.apply(lambda x: x.values.mean(), axis=)
     tm.assert_series_equal(result, expected)
 
 
 def test_apply_raw_float_frame_no_reduction(float_frame, engine):
     # no reduction
-    result = float_frame.apply(lambda x: x * 2, engine=engine, raw=True)
+    result = float_frame.apply(lambda x: x * 2, engine=, raw=True)
     expected = float_frame * 2
     tm.assert_frame_equal(result, expected)
 
@@ -277,7 +277,7 @@ def test_apply_raw_mixed_type_frame(mixed_type_frame, axis, engine):
         assert x.ndim == 1
 
     # Mixed dtype (GH-32423)
-    mixed_type_frame.apply(_assert_raw, axis=axis, engine=engine, raw=True)
+    mixed_type_frame.apply(_assert_raw, axis=, engine=, raw=True)
 
 
 def test_apply_axis1(float_frame):
@@ -327,7 +327,7 @@ def test_apply_empty_infer_type(ax, func, raw, axis, engine, request):
             )
             request.applymarker(mark)
 
-        result = df.apply(func, axis=axis, engine=engine, raw=raw)
+        result = df.apply(func, axis=, engine=, raw=)
         if is_reduction:
             agg_axis = df._get_agg_axis(axis)
             assert isinstance(result, Series)
@@ -526,9 +526,9 @@ def test_apply_attach_name_non_reduction_axis1(float_frame):
 
 def test_apply_multi_index():
     index = MultiIndex.from_arrays([["a", "a", "b"], ["c", "d", "d"]])
-    s = DataFrame([[1, 2], [3, 4], [5, 6]], index=index, columns=["col1", "col2"])
+    s = DataFrame([[1, 2], [3, 4], [5, 6]], index=, columns=["col1", "col2"])
     result = s.apply(lambda x: Series({"min": min(x), "max": max(x)}), 1)
-    expected = DataFrame([[1, 2], [3, 4], [5, 6]], index=index, columns=["min", "max"])
+    expected = DataFrame([[1, 2], [3, 4], [5, 6]], index=, columns=["min", "max"])
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
@@ -645,7 +645,7 @@ def test_apply_raw_function_runs_once(engine):
     for func in [reducing_function, non_reducing_function]:
         del values[:]
 
-        df.apply(func, engine=engine, raw=True, axis=1)
+        df.apply(func, engine=, raw=True, axis=1)
         assert values == list(df.a.to_list())
 
 
@@ -712,7 +712,7 @@ def test_infer_row_shape():
 def test_dictlike_lambda(ops, by_row, expected):
     # GH53601
     df = DataFrame({"a": [1, 2]})
-    result = df.apply(ops, by_row=by_row)
+    result = df.apply(ops, by_row=)
     tm.assert_equal(result, expected)
 
 
@@ -813,7 +813,7 @@ def test_with_dictlike_columns_with_infer():
 def test_listlike_lambda(ops, by_row, expected):
     # GH53601
     df = DataFrame({"a": [1, 2]})
-    result = df.apply(ops, by_row=by_row)
+    result = df.apply(ops, by_row=)
     tm.assert_equal(result, expected)
 
 
@@ -1052,11 +1052,11 @@ def test_agg_transform(axis, float_frame):
 
         # ufunc
         expected = f_sqrt.copy()
-        result = float_frame.apply(np.sqrt, axis=axis)
+        result = float_frame.apply(np.sqrt, axis=)
         tm.assert_frame_equal(result, expected)
 
         # list-like
-        result = float_frame.apply([np.sqrt], axis=axis)
+        result = float_frame.apply([np.sqrt], axis=)
         expected = f_sqrt.copy()
         if axis in {0, "index"}:
             expected.columns = MultiIndex.from_product([float_frame.columns, ["sqrt"]])
@@ -1067,7 +1067,7 @@ def test_agg_transform(axis, float_frame):
         # multiple items in list
         # these are in the order as if we are applying both
         # functions per series and then concatting
-        result = float_frame.apply([np.abs, np.sqrt], axis=axis)
+        result = float_frame.apply([np.abs, np.sqrt], axis=)
         expected = zip_frames([f_abs, f_sqrt], axis=other_axis)
         if axis in {0, "index"}:
             expected.columns = MultiIndex.from_product(
@@ -1174,21 +1174,21 @@ def test_agg_reduce(axis, float_frame):
     # all reducers
     expected = pd.concat(
         [
-            float_frame.mean(axis=axis),
-            float_frame.max(axis=axis),
-            float_frame.sum(axis=axis),
+            float_frame.mean(axis=),
+            float_frame.max(axis=),
+            float_frame.sum(axis=),
         ],
         axis=1,
     )
     expected.columns = ["mean", "max", "sum"]
     expected = expected.T if axis in {0, "index"} else expected
 
-    result = float_frame.agg(["mean", "max", "sum"], axis=axis)
+    result = float_frame.agg(["mean", "max", "sum"], axis=)
     tm.assert_frame_equal(result, expected)
 
     # dict input with scalars
     func = {name1: "mean", name2: "sum"}
-    result = float_frame.agg(func, axis=axis)
+    result = float_frame.agg(func, axis=)
     expected = Series(
         [
             float_frame.loc(other_axis)[name1].mean(),
@@ -1200,7 +1200,7 @@ def test_agg_reduce(axis, float_frame):
 
     # dict input with lists
     func = {name1: ["mean"], name2: ["sum"]}
-    result = float_frame.agg(func, axis=axis)
+    result = float_frame.agg(func, axis=)
     expected = DataFrame(
         {
             name1: Series([float_frame.loc(other_axis)[name1].mean()], index=["mean"]),
@@ -1212,7 +1212,7 @@ def test_agg_reduce(axis, float_frame):
 
     # dict input with lists with multiple
     func = {name1: ["mean", "sum"], name2: ["sum", "max"]}
-    result = float_frame.agg(func, axis=axis)
+    result = float_frame.agg(func, axis=)
     expected = pd.concat(
         {
             name1: Series(
@@ -1325,7 +1325,7 @@ def test_size_as_str(how, axis):
     )
     # Just a string attribute arg same as calling df.arg
     # on the columns
-    result = getattr(df, how)("size", axis=axis)
+    result = getattr(df, how)("size", axis=)
     if axis in (0, "index"):
         expected = Series(df.shape[0], index=df.columns)
     else:
@@ -1383,7 +1383,7 @@ def test_frequency_is_original(num_cols):
     # GH 22150
     index = pd.DatetimeIndex(["1950-06-30", "1952-10-24", "1953-05-29"])
     original = index.copy()
-    df = DataFrame(1, index=index, columns=range(num_cols))
+    df = DataFrame(1, index=, columns=range(num_cols))
     df.apply(lambda x: x)
     assert index.freq == original.freq
 
@@ -1476,7 +1476,7 @@ def test_apply_raw_returns_string(engine):
     if engine == "numba":
         pytest.skip("No object dtype support in numba")
     df = DataFrame({"A": ["aa", "bbb"]})
-    result = df.apply(lambda x: x[0], engine=engine, axis=1, raw=True)
+    result = df.apply(lambda x: x[0], engine=, axis=1, raw=True)
     expected = Series(["aa", "bbb"])
     tm.assert_series_equal(result, expected)
 

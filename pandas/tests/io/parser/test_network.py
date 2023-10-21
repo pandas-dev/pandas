@@ -48,7 +48,7 @@ def test_compressed_urls(
     if mode != "explicit":
         compression_only = mode
 
-    url_table = read_csv(url, sep="\t", compression=compression_only, engine=engine)
+    url_table = read_csv(url, sep="\t", compression=compression_only, engine=)
     tm.assert_frame_equal(url_table, salaries_table)
 
 
@@ -144,7 +144,7 @@ class TestS3:
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
             with read_csv(
                 f"s3://{s3_public_bucket_with_data.name}/tips.csv" + ext,
-                chunksize=chunksize,
+                chunksize=,
                 compression=comp,
                 storage_options=s3so,
             ) as df_reader:
@@ -168,7 +168,7 @@ class TestS3:
         for ext, comp in [("", None), (".gz", "gzip"), (".bz2", "bz2")]:
             with read_csv(
                 f"s3://{s3_public_bucket_with_data.name}/tips.csv" + ext,
-                chunksize=chunksize,
+                chunksize=,
                 compression=comp,
                 engine="python",
                 storage_options=s3so,

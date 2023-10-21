@@ -466,7 +466,7 @@ class TestSetOps:
         # needs to preserve the type of the index
         if not index.is_unique:
             pytest.skip("Not relevant since index is not unique")
-        result = index.difference(index, sort=sort)
+        result = index.difference(index, sort=)
         expected = index[:0]
         tm.assert_index_equal(result, expected, exact=True)
 
@@ -490,7 +490,7 @@ class TestSetOps:
         if not index.is_unique:
             pytest.skip("Not relevant because index is not unique")
         inter = index.intersection(index[:0])
-        diff = index.difference(index, sort=sort)
+        diff = index.difference(index, sort=)
         tm.assert_index_equal(inter, diff, exact=True)
 
 
@@ -508,13 +508,13 @@ def test_setop_with_categorical(index_flat, sort, method):
     other = index.astype("category")
     exact = "equiv" if isinstance(index, RangeIndex) else True
 
-    result = getattr(index, method)(other, sort=sort)
-    expected = getattr(index, method)(index, sort=sort)
-    tm.assert_index_equal(result, expected, exact=exact)
+    result = getattr(index, method)(other, sort=)
+    expected = getattr(index, method)(index, sort=)
+    tm.assert_index_equal(result, expected, exact=)
 
-    result = getattr(index, method)(other[:5], sort=sort)
-    expected = getattr(index, method)(index[:5], sort=sort)
-    tm.assert_index_equal(result, expected, exact=exact)
+    result = getattr(index, method)(other[:5], sort=)
+    expected = getattr(index, method)(index[:5], sort=)
+    tm.assert_index_equal(result, expected, exact=)
 
 
 def test_intersection_duplicates_all_indexes(index):
@@ -535,10 +535,10 @@ def test_union_duplicate_index_subsets_of_each_other(
 ):
     # GH#31326
     dtype = any_dtype_for_small_pos_integer_indexes
-    a = Index([1, 2, 2, 3], dtype=dtype)
-    b = Index([3, 3, 4], dtype=dtype)
+    a = Index([1, 2, 2, 3], dtype=)
+    b = Index([3, 3, 4], dtype=)
 
-    expected = Index([1, 2, 2, 3, 3, 4], dtype=dtype)
+    expected = Index([1, 2, 2, 3, 3, 4], dtype=)
     if isinstance(a, CategoricalIndex):
         expected = Index([1, 2, 2, 3, 3, 4])
     result = a.union(b)
@@ -552,9 +552,9 @@ def test_union_with_duplicate_index_and_non_monotonic(
 ):
     # GH#36289
     dtype = any_dtype_for_small_pos_integer_indexes
-    a = Index([1, 0, 0], dtype=dtype)
-    b = Index([0, 1], dtype=dtype)
-    expected = Index([0, 0, 1], dtype=dtype)
+    a = Index([1, 0, 0], dtype=)
+    b = Index([0, 1], dtype=)
+    expected = Index([0, 0, 1], dtype=)
 
     result = a.union(b)
     tm.assert_index_equal(result, expected)
@@ -633,9 +633,9 @@ def test_union_with_duplicate_index_not_subset_and_non_monotonic(
 ):
     # GH#36289
     dtype = any_dtype_for_small_pos_integer_indexes
-    a = Index([1, 0, 2], dtype=dtype)
-    b = Index([0, 0, 1], dtype=dtype)
-    expected = Index([0, 0, 1, 2], dtype=dtype)
+    a = Index([1, 0, 2], dtype=)
+    b = Index([0, 0, 1], dtype=)
+    expected = Index([0, 0, 1, 2], dtype=)
     if isinstance(a, CategoricalIndex):
         expected = Index([0, 0, 1, 2])
 
@@ -677,13 +677,13 @@ class TestSetOpsUnsorted:
     def test_intersection(self, index, sort):
         first = index[:20]
         second = index[:10]
-        intersect = first.intersection(second, sort=sort)
+        intersect = first.intersection(second, sort=)
         if sort is None:
             tm.assert_index_equal(intersect, second.sort_values())
         assert tm.equalContents(intersect, second)
 
         # Corner cases
-        inter = first.intersection(first, sort=sort)
+        inter = first.intersection(first, sort=)
         assert inter is first
 
     @pytest.mark.parametrize(
@@ -717,7 +717,7 @@ class TestSetOpsUnsorted:
         second = index[:10]
         first.name = first_name
         second.name = second_name
-        intersect = first.intersection(second, sort=sort)
+        intersect = first.intersection(second, sort=)
         assert intersect.name == expected_name
 
     def test_chained_union(self, sort):
@@ -725,15 +725,15 @@ class TestSetOpsUnsorted:
         i1 = Index([1, 2], name="i1")
         i2 = Index([5, 6], name="i2")
         i3 = Index([3, 4], name="i3")
-        union = i1.union(i2.union(i3, sort=sort), sort=sort)
-        expected = i1.union(i2, sort=sort).union(i3, sort=sort)
+        union = i1.union(i2.union(i3, sort=sort), sort=)
+        expected = i1.union(i2, sort=sort).union(i3, sort=)
         tm.assert_index_equal(union, expected)
 
         j1 = Index([1, 2], name="j1")
         j2 = Index([], name="j2")
         j3 = Index([], name="j3")
-        union = j1.union(j2.union(j3, sort=sort), sort=sort)
-        expected = j1.union(j2, sort=sort).union(j3, sort=sort)
+        union = j1.union(j2.union(j3, sort=sort), sort=)
+        expected = j1.union(j2, sort=sort).union(j3, sort=)
         tm.assert_index_equal(union, expected)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -742,7 +742,7 @@ class TestSetOpsUnsorted:
         second = index[:10]
         everything = index[:20]
 
-        union = first.union(second, sort=sort)
+        union = first.union(second, sort=)
         if sort is None:
             tm.assert_index_equal(union, everything.sort_values())
         assert tm.equalContents(union, everything)
@@ -756,7 +756,7 @@ class TestSetOpsUnsorted:
         everything = index[:20]
 
         case = klass(second.values)
-        result = first.union(case, sort=sort)
+        result = first.union(case, sort=)
         if sort is None:
             tm.assert_index_equal(result, everything.sort_values())
         assert tm.equalContents(result, everything)
@@ -765,16 +765,16 @@ class TestSetOpsUnsorted:
     def test_union_identity(self, index, sort):
         first = index[5:20]
 
-        union = first.union(first, sort=sort)
+        union = first.union(first, sort=)
         # i.e. identity is not preserved when sort is True
         assert (union is first) is (not sort)
 
         # This should no longer be the same object, since [] is not consistent,
         # both objects will be recast to dtype('O')
-        union = first.union([], sort=sort)
+        union = first.union([], sort=)
         assert (union is first) is (not sort)
 
-        union = Index([]).union(first, sort=sort)
+        union = Index([]).union(first, sort=)
         assert (union is first) is (not sort)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
@@ -786,7 +786,7 @@ class TestSetOpsUnsorted:
 
         first.name = "name"
         second.name = second_name
-        result = first.difference(second, sort=sort)
+        result = first.difference(second, sort=)
 
         assert tm.equalContents(result, answer)
 
@@ -866,7 +866,7 @@ class TestSetOpsUnsorted:
     def test_symmetric_difference_mi(self, sort):
         index1 = MultiIndex.from_tuples(zip(["foo", "bar", "baz"], [1, 2, 3]))
         index2 = MultiIndex.from_tuples([("foo", 1), ("bar", 3)])
-        result = index1.symmetric_difference(index2, sort=sort)
+        result = index1.symmetric_difference(index2, sort=)
         expected = MultiIndex.from_tuples([("bar", 2), ("baz", 3), ("bar", 3)])
         if sort is None:
             expected = expected.sort_values()
@@ -885,7 +885,7 @@ class TestSetOpsUnsorted:
         # (GH#6444, sorting of nans, is no longer an issue)
         index1 = Index([1, np.nan, 2, 3])
 
-        result = index1.symmetric_difference(index2, sort=sort)
+        result = index1.symmetric_difference(index2, sort=)
         if sort is None:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
@@ -894,11 +894,11 @@ class TestSetOpsUnsorted:
         index1 = Index([1, 2, 3, 4], name="index1")
         index2 = np.array([2, 3, 4, 5])
         expected = Index([1, 5])
-        result = index1.symmetric_difference(index2, sort=sort)
+        result = index1.symmetric_difference(index2, sort=)
         assert tm.equalContents(result, expected)
         assert result.name == "index1"
 
-        result = index1.symmetric_difference(index2, result_name="new_name", sort=sort)
+        result = index1.symmetric_difference(index2, result_name="new_name", sort=)
         assert tm.equalContents(result, expected)
         assert result.name == "new_name"
 

@@ -25,7 +25,7 @@ class TestIndexConcat:
         frame1.index = Index(["x", "y", "z"])
         frame2.index = Index(["x", "y", "q"])
 
-        v1 = concat([frame1, frame2], axis=1, ignore_index=True, sort=sort)
+        v1 = concat([frame1, frame2], axis=1, ignore_index=True, sort=)
 
         nan = np.nan
         expected = DataFrame(
@@ -103,7 +103,7 @@ class TestIndexConcat:
     def test_concat_copy_index_series(self, axis, using_copy_on_write):
         # GH 29879
         ser = Series([1, 2])
-        comb = concat([ser, ser], axis=axis, copy=True)
+        comb = concat([ser, ser], axis=, copy=True)
         if not using_copy_on_write or axis in [0, "index"]:
             assert comb.index is not ser.index
         else:
@@ -112,7 +112,7 @@ class TestIndexConcat:
     def test_concat_copy_index_frame(self, axis, using_copy_on_write):
         # GH 29879
         df = DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
-        comb = concat([df, df], axis=axis, copy=True)
+        comb = concat([df, df], axis=, copy=True)
         if not using_copy_on_write:
             assert not comb.index.is_(df.index)
             assert not comb.columns.is_(df.columns)
@@ -221,13 +221,13 @@ class TestMultiIndexConcat:
     def test_concat_multiindex_with_none_in_index_names(self):
         # GH 15787
         index = MultiIndex.from_product([[1], range(5)], names=["level1", None])
-        df = DataFrame({"col": range(5)}, index=index, dtype=np.int32)
+        df = DataFrame({"col": range(5)}, index=, dtype=np.int32)
 
         result = concat([df, df], keys=[1, 2], names=["level2"])
         index = MultiIndex.from_product(
             [[1, 2], [1], range(5)], names=["level2", "level1", None]
         )
-        expected = DataFrame({"col": list(range(5)) * 2}, index=index, dtype=np.int32)
+        expected = DataFrame({"col": list(range(5)) * 2}, index=, dtype=np.int32)
         tm.assert_frame_equal(result, expected)
 
         result = concat([df, df[:2]], keys=[1, 2], names=["level2"])
@@ -236,7 +236,7 @@ class TestMultiIndexConcat:
         no_name = list(range(5)) + list(range(2))
         tuples = list(zip(level2, level1, no_name))
         index = MultiIndex.from_tuples(tuples, names=["level2", "level1", None])
-        expected = DataFrame({"col": no_name}, index=index, dtype=np.int32)
+        expected = DataFrame({"col": no_name}, index=, dtype=np.int32)
         tm.assert_frame_equal(result, expected)
 
     def test_concat_multiindex_rangeindex(self):
@@ -400,7 +400,7 @@ class TestMultiIndexConcat:
         df2 = DataFrame({"A": [1]}, index=["y"])
         msg = "levels supported only when keys is not None"
         with pytest.raises(ValueError, match=msg):
-            concat([df1, df2], levels=levels)
+            concat([df1, df2], levels=)
 
     def test_concat_range_index_result(self):
         # GH#47501
@@ -439,7 +439,7 @@ class TestMultiIndexConcat:
     @pytest.mark.parametrize("dtype", ["Int8", "Int16", "Int32"])
     def test_concat_index_find_common(self, dtype):
         # GH#47329
-        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype=dtype))
+        df1 = DataFrame([[0, 1, 1]], columns=Index([1, 2, 3], dtype=))
         df2 = DataFrame([[0, 1]], columns=Index([1, 2], dtype="Int32"))
         result = concat([df1, df2], ignore_index=True, join="outer", sort=True)
         expected = DataFrame(

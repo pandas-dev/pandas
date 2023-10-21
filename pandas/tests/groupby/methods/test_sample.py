@@ -13,12 +13,12 @@ def test_groupby_sample_balanced_groups_shape(n, frac):
     values = [1] * 10 + [2] * 10
     df = DataFrame({"a": values, "b": values})
 
-    result = df.groupby("a").sample(n=n, frac=frac)
+    result = df.groupby("a").sample(n=, frac=)
     values = [1] * 2 + [2] * 2
     expected = DataFrame({"a": values, "b": values}, index=result.index)
     tm.assert_frame_equal(result, expected)
 
-    result = df.groupby("a")["b"].sample(n=n, frac=frac)
+    result = df.groupby("a")["b"].sample(n=, frac=)
     expected = Series(values, name="b", index=result.index)
     tm.assert_series_equal(result, expected)
 
@@ -83,10 +83,10 @@ def test_groupby_sample_invalid_n_raises(n):
         msg = "Only integers accepted as `n` values"
 
     with pytest.raises(ValueError, match=msg):
-        df.groupby("a").sample(n=n)
+        df.groupby("a").sample(n=)
 
     with pytest.raises(ValueError, match=msg):
-        df.groupby("a")["b"].sample(n=n)
+        df.groupby("a")["b"].sample(n=)
 
 
 def test_groupby_sample_oversample():

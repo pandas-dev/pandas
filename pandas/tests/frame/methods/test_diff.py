@@ -72,7 +72,7 @@ class TestDataFrameDiff:
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_diff_datetime_axis0_with_nat(self, tz):
         # GH#32441
-        dti = pd.DatetimeIndex(["NaT", "2019-01-01", "2019-01-02"], tz=tz)
+        dti = pd.DatetimeIndex(["NaT", "2019-01-01", "2019-01-02"], tz=)
         ser = Series(dti)
 
         df = ser.to_frame()
@@ -85,7 +85,7 @@ class TestDataFrameDiff:
     @pytest.mark.parametrize("tz", [None, "UTC"])
     def test_diff_datetime_with_nat_zero_periods(self, tz):
         # diff on NaT values should give NaT, not timedelta64(0)
-        dti = date_range("2016-01-01", periods=4, tz=tz)
+        dti = date_range("2016-01-01", periods=4, tz=)
         ser = Series(dti)
         df = ser.to_frame()
 
@@ -107,8 +107,8 @@ class TestDataFrameDiff:
         # GH#18578
         df = DataFrame(
             {
-                0: date_range("2010", freq="D", periods=2, tz=tz),
-                1: date_range("2010", freq="D", periods=2, tz=tz),
+                0: date_range("2010", freq="D", periods=2, tz=),
+                1: date_range("2010", freq="D", periods=2, tz=),
             }
         )
 
@@ -126,8 +126,8 @@ class TestDataFrameDiff:
         # GH#18578
         df = DataFrame(
             {
-                0: date_range("2010", freq="D", periods=2, tz=tz),
-                1: date_range("2010", freq="D", periods=2, tz=tz),
+                0: date_range("2010", freq="D", periods=2, tz=),
+                1: date_range("2010", freq="D", periods=2, tz=),
             }
         )
 
@@ -280,7 +280,7 @@ class TestDataFrameDiff:
         )
 
         # Test case for default behaviour of diff
-        result = df.diff(axis=axis)
+        result = df.diff(axis=)
         tm.assert_frame_equal(result, expected)
 
     def test_diff_readonly(self):

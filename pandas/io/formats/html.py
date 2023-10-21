@@ -174,10 +174,10 @@ class HTMLFormatter:
             tags = tags or ""
             tags += f'style="min-width: {col_space};"'
 
-        self._write_cell(s, kind="th", indent=indent, tags=tags)
+        self._write_cell(s, kind="th", indent=, tags=)
 
     def write_td(self, s: Any, indent: int = 0, tags: str | None = None) -> None:
-        self._write_cell(s, kind="td", indent=indent, tags=tags)
+        self._write_cell(s, kind="td", indent=, tags=)
 
     def _write_cell(
         self, s: Any, kind: str = "td", indent: int = 0, tags: str | None = None
@@ -226,7 +226,7 @@ class HTMLFormatter:
         for i, s in enumerate(line):
             val_tag = tags.get(i, None)
             if header or (self.bold_rows and i < nindex_levels):
-                self.write_th(s, indent=indent, header=header, tags=val_tag)
+                self.write_th(s, indent=, header=, tags=val_tag)
             else:
                 self.write_td(s, indent, tags=val_tag)
 
@@ -361,7 +361,7 @@ class HTMLFormatter:
                         continue
                     j += 1
                     row.append(v)
-                self.write_tr(row, indent, self.indent_delta, tags=tags, header=True)
+                self.write_tr(row, indent, self.indent_delta, tags=, header=True)
         else:
             # see gh-22579
             # Column misalignment also occurs for
@@ -387,7 +387,7 @@ class HTMLFormatter:
                 ins_col = self.row_levels + self.fmt.tr_col_num
                 row.insert(ins_col, "...")
 
-            self.write_tr(row, indent, self.indent_delta, header=True, align=align)
+            self.write_tr(row, indent, self.indent_delta, header=True, align=)
 
     def _write_row_header(self, indent: int) -> None:
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
@@ -563,7 +563,7 @@ class HTMLFormatter:
                     row,
                     indent,
                     self.indent_delta,
-                    tags=tags,
+                    tags=,
                     nindex_levels=len(levels) - sparse_offset,
                 )
         else:

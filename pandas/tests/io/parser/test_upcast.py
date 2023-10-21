@@ -23,7 +23,7 @@ def test_maybe_upcast(any_real_numpy_dtype):
 
     dtype = np.dtype(any_real_numpy_dtype)
     na_value = na_values[dtype]
-    arr = np.array([1, 2, na_value], dtype=dtype)
+    arr = np.array([1, 2, na_value], dtype=)
     result = _maybe_upcast(arr, use_dtype_backend=True)
 
     expected_mask = np.array([False, False, True])
@@ -76,7 +76,7 @@ def test_maybe_upcaste_all_nan():
     # GH#36712
     dtype = np.int64
     na_value = na_values[dtype]
-    arr = np.array([na_value, na_value], dtype=dtype)
+    arr = np.array([na_value, na_value], dtype=)
     result = _maybe_upcast(arr, use_dtype_backend=True)
 
     expected_mask = np.array([True, True])

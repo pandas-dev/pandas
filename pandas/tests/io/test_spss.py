@@ -91,7 +91,7 @@ def test_spss_umlauts_dtype_backend(datapath, dtype_backend):
     # Licence at LICENSES/HAVEN_LICENSE, LICENSES/HAVEN_MIT
     fname = datapath("io", "data", "spss", "umlauts.sav")
 
-    df = pd.read_spss(fname, convert_categoricals=False, dtype_backend=dtype_backend)
+    df = pd.read_spss(fname, convert_categoricals=False, dtype_backend=)
     expected = pd.DataFrame({"var1": [1.0, 2.0, 1.0, 3.0]}, dtype="Int64")
 
     if dtype_backend == "pyarrow":

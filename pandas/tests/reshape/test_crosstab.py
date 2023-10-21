@@ -202,7 +202,7 @@ class TestCrosstab:
                     rownames=["a"],
                     colnames=("b", "c"),
                     margins=True,
-                    margins_name=margins_name,
+                    margins_name=,
                 )
 
     def test_crosstab_pass_values(self):
@@ -531,7 +531,7 @@ class TestCrosstab:
 
         expected_index = Index(["Acura", "Honda", "Tesla"], name="MAKE")
         expected_columns = CategoricalIndex(
-            categories, categories=categories, ordered=False, name="MODEL"
+            categories, categories=, ordered=False, name="MODEL"
         )
         expected_data = [[2, 0, 0], [2, 0, 1], [0, 1, 0]]
         expected = DataFrame(
@@ -617,7 +617,7 @@ class TestCrosstab:
         s1 = Series(range(3), name=names[0])
         s2 = Series(range(1, 4), name=names[1])
 
-        mi = MultiIndex.from_arrays([range(3), range(1, 4)], names=names)
+        mi = MultiIndex.from_arrays([range(3), range(1, 4)], names=)
         expected = Series(1, index=mi).unstack(1, fill_value=0)
 
         result = crosstab(s1, s2)

@@ -153,7 +153,7 @@ class TestTimestampComparison:
     @pytest.mark.parametrize("tz", [None, "US/Pacific"])
     def test_compare_date(self, tz):
         # GH#36131 comparing Timestamp with date object is deprecated
-        ts = Timestamp("2021-01-01 00:00:00.00000", tz=tz)
+        ts = Timestamp("2021-01-01 00:00:00.00000", tz=)
         dt = ts.to_pydatetime().date()
         # in 2.0 we disallow comparing pydate objects with Timestamps,
         #  following the stdlib datetime behavior.

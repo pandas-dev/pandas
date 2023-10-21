@@ -323,56 +323,56 @@ def array(
 
     if isinstance(dtype, ExtensionDtype):
         cls = dtype.construct_array_type()
-        return cls._from_sequence(data, dtype=dtype, copy=copy)
+        return cls._from_sequence(data, dtype=, copy=)
 
     if dtype is None:
         inferred_dtype = lib.infer_dtype(data, skipna=True)
         if inferred_dtype == "period":
             period_data = cast(Union[Sequence[Optional[Period]], AnyArrayLike], data)
-            return PeriodArray._from_sequence(period_data, copy=copy)
+            return PeriodArray._from_sequence(period_data, copy=)
 
         elif inferred_dtype == "interval":
-            return IntervalArray(data, copy=copy)
+            return IntervalArray(data, copy=)
 
         elif inferred_dtype.startswith("datetime"):
             # datetime, datetime64
             try:
-                return DatetimeArray._from_sequence(data, copy=copy)
+                return DatetimeArray._from_sequence(data, copy=)
             except ValueError:
                 # Mixture of timezones, fall back to NumpyExtensionArray
                 pass
 
         elif inferred_dtype.startswith("timedelta"):
             # timedelta, timedelta64
-            return TimedeltaArray._from_sequence(data, copy=copy)
+            return TimedeltaArray._from_sequence(data, copy=)
 
         elif inferred_dtype == "string":
             # StringArray/ArrowStringArray depending on pd.options.mode.string_storage
-            return StringDtype().construct_array_type()._from_sequence(data, copy=copy)
+            return StringDtype().construct_array_type()._from_sequence(data, copy=)
 
         elif inferred_dtype == "integer":
-            return IntegerArray._from_sequence(data, copy=copy)
+            return IntegerArray._from_sequence(data, copy=)
         elif inferred_dtype == "empty" and not hasattr(data, "dtype") and not len(data):
-            return FloatingArray._from_sequence(data, copy=copy)
+            return FloatingArray._from_sequence(data, copy=)
         elif (
             inferred_dtype in ("floating", "mixed-integer-float")
             and getattr(data, "dtype", None) != np.float16
         ):
             # GH#44715 Exclude np.float16 bc FloatingArray does not support it;
             #  we will fall back to NumpyExtensionArray.
-            return FloatingArray._from_sequence(data, copy=copy)
+            return FloatingArray._from_sequence(data, copy=)
 
         elif inferred_dtype == "boolean":
-            return BooleanArray._from_sequence(data, copy=copy)
+            return BooleanArray._from_sequence(data, copy=)
 
     # Pandas overrides NumPy for
     #   1. datetime64[ns,us,ms,s]
     #   2. timedelta64[ns,us,ms,s]
     # so that a DatetimeArray is returned.
     if lib.is_np_dtype(dtype, "M") and is_supported_unit(get_unit_from_dtype(dtype)):
-        return DatetimeArray._from_sequence(data, dtype=dtype, copy=copy)
+        return DatetimeArray._from_sequence(data, dtype=, copy=)
     if lib.is_np_dtype(dtype, "m") and is_supported_unit(get_unit_from_dtype(dtype)):
-        return TimedeltaArray._from_sequence(data, dtype=dtype, copy=copy)
+        return TimedeltaArray._from_sequence(data, dtype=, copy=)
 
     elif lib.is_np_dtype(dtype, "mM"):
         warnings.warn(
@@ -384,7 +384,7 @@ def array(
             stacklevel=find_stack_level(),
         )
 
-    return NumpyExtensionArray._from_sequence(data, dtype=dtype, copy=copy)
+    return NumpyExtensionArray._from_sequence(data, dtype=, copy=)
 
 
 _typs = frozenset(
@@ -575,7 +575,7 @@ def sanitize_array(
         # Until GH#49309 is fixed this check needs to come before the
         #  ExtensionDtype check
         if dtype is not None:
-            subarr = data.astype(dtype, copy=copy)
+            subarr = data.astype(dtype, copy=)
         elif copy:
             subarr = data.copy()
         else:
@@ -585,7 +585,7 @@ def sanitize_array(
         # create an extension array from its dtype
         _sanitize_non_ordered(data)
         cls = dtype.construct_array_type()
-        subarr = cls._from_sequence(data, dtype=dtype, copy=copy)
+        subarr = cls._from_sequence(data, dtype=, copy=)
 
     # GH#846
     elif isinstance(data, np.ndarray):
@@ -600,7 +600,7 @@ def sanitize_array(
                 from pandas.core.arrays.string_ import StringDtype
 
                 dtype = StringDtype(storage="pyarrow_numpy")
-                subarr = dtype.construct_array_type()._from_sequence(data, dtype=dtype)
+                subarr = dtype.construct_array_type()._from_sequence(data, dtype=)
 
             if subarr is data and copy:
                 subarr = subarr.copy()
@@ -611,14 +611,8 @@ def sanitize_array(
 
     elif hasattr(data, "__array__"):
         # e.g. dask array GH#38645
-        data = np.array(data, copy=copy)
-        return sanitize_array(
-            data,
-            index=index,
-            dtype=dtype,
-            copy=False,
-            allow_2d=allow_2d,
-        )
+        data = np.array(data, copy=)
+        return sanitize_array(data, index=, dtype=, copy=False, allow_2d=)
 
     else:
         _sanitize_non_ordered(data)
@@ -638,7 +632,7 @@ def sanitize_array(
                 subarr = cast(np.ndarray, subarr)
                 subarr = maybe_infer_to_datetimelike(subarr)
 
-    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=)
 
     if isinstance(subarr, np.ndarray):
         # at this point we should have dtype be None or subarr.dtype == dtype
@@ -705,12 +699,12 @@ def _sanitize_ndim(
 
             result = com.asarray_tuplesafe(data, dtype=np.dtype("object"))
             cls = dtype.construct_array_type()
-            result = cls._from_sequence(result, dtype=dtype)
+            result = cls._from_sequence(result, dtype=)
         else:
             # error: Argument "dtype" to "asarray_tuplesafe" has incompatible type
             # "Union[dtype[Any], ExtensionDtype, None]"; expected "Union[str,
             # dtype[Any], None]"
-            result = com.asarray_tuplesafe(data, dtype=dtype)  # type: ignore[arg-type]
+            result = com.asarray_tuplesafe(data, dtype=)  # type: ignore[arg-type]
     return result
 
 
@@ -729,8 +723,8 @@ def _sanitize_str_dtypes(
         # GH#19853: If data is a scalar, result has already the result
         if not lib.is_scalar(data):
             if not np.all(isna(data)):
-                data = np.array(data, dtype=dtype, copy=False)
-            result = np.array(data, dtype=object, copy=copy)
+                data = np.array(data, dtype=, copy=False)
+            result = np.array(data, dtype=object, copy=)
     return result
 
 
@@ -771,7 +765,7 @@ def _try_cast(
         if not is_ndarray:
             subarr = construct_1d_object_array_from_listlike(arr)
             return subarr
-        return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=copy)
+        return ensure_wrapped_if_datetimelike(arr).astype(dtype, copy=)
 
     elif dtype.kind == "U":
         # TODO: test cases with arr.dtype.kind in "mM"
@@ -782,7 +776,7 @@ def _try_cast(
                 arr = arr.ravel()
         else:
             shape = (len(arr),)
-        return lib.ensure_string_array(arr, convert_na_value=False, copy=copy).reshape(
+        return lib.ensure_string_array(arr, convert_na_value=False, copy=).reshape(
             shape
         )
 
@@ -796,6 +790,6 @@ def _try_cast(
 
         subarr = maybe_cast_to_integer_array(arr, dtype)
     else:
-        subarr = np.array(arr, dtype=dtype, copy=copy)
+        subarr = np.array(arr, dtype=, copy=)
 
     return subarr

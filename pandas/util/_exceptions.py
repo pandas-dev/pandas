@@ -90,8 +90,8 @@ def rewrite_warning(
             else:
                 category, message = warning.category, warning.message
             warnings.warn_explicit(
-                message=message,
-                category=category,
+                message=,
+                category=,
                 filename=warning.filename,
                 lineno=warning.lineno,
             )

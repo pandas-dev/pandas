@@ -299,10 +299,10 @@ def pandas_validate(func_name: str):
             result["errors"].append(
                 pandas_error(
                     "EX03",
-                    error_code=error_code,
-                    error_message=error_message,
-                    line_number=line_number,
-                    col_number=col_number,
+                    error_code=,
+                    error_message=,
+                    line_number=,
+                    col_number=,
                 )
             )
         examples_source_code = "".join(doc.examples_source_code)

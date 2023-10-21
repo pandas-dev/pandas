@@ -932,13 +932,13 @@ class DataFrameRenderer:
 
         html_formatter = Klass(
             self.fmt,
-            classes=classes,
-            border=border,
-            table_id=table_id,
-            render_links=render_links,
+            classes=,
+            border=,
+            table_id=,
+            render_links=,
         )
         string = html_formatter.to_string()
-        return save_to_buffer(string, buf=buf, encoding=encoding)
+        return save_to_buffer(string, buf=, encoding=)
 
     def to_string(
         self,
@@ -962,9 +962,9 @@ class DataFrameRenderer:
         """
         from pandas.io.formats.string import StringFormatter
 
-        string_formatter = StringFormatter(self.fmt, line_width=line_width)
+        string_formatter = StringFormatter(self.fmt, line_width=)
         string = string_formatter.to_string()
-        return save_to_buffer(string, buf=buf, encoding=encoding)
+        return save_to_buffer(string, buf=, encoding=)
 
     def to_csv(
         self,
@@ -997,22 +997,22 @@ class DataFrameRenderer:
             created_buffer = False
 
         csv_formatter = CSVFormatter(
-            path_or_buf=path_or_buf,
-            lineterminator=lineterminator,
-            sep=sep,
-            encoding=encoding,
-            errors=errors,
-            compression=compression,
-            quoting=quoting,
+            path_or_buf=,
+            lineterminator=,
+            sep=,
+            encoding=,
+            errors=,
+            compression=,
+            quoting=,
             cols=columns,
-            index_label=index_label,
-            mode=mode,
-            chunksize=chunksize,
-            quotechar=quotechar,
-            date_format=date_format,
-            doublequote=doublequote,
-            escapechar=escapechar,
-            storage_options=storage_options,
+            index_label=,
+            mode=,
+            chunksize=,
+            quotechar=,
+            date_format=,
+            doublequote=,
+            escapechar=,
+            storage_options=,
             formatter=self.fmt,
         )
         csv_formatter.save()
@@ -1034,7 +1034,7 @@ def save_to_buffer(
     """
     Perform serialization. Write to buf or return as string if buf is None.
     """
-    with _get_buffer(buf, encoding=encoding) as fd:
+    with _get_buffer(buf, encoding=) as fd:
         fd.write(string)
         if buf is None:
             # error: "WriteBuffer[str]" has no attribute "getvalue"
@@ -1066,7 +1066,7 @@ def _get_buffer(
         yield buf  # type: ignore[misc]
     elif isinstance(buf, str):
         check_parent_directory(str(buf))
-        with open(buf, "w", encoding=encoding, newline="") as f:
+        with open(buf, "w", encoding=, newline="") as f:
             # GH#30034 open instead of codecs.open prevents a file leak
             #  if we have an invalid encoding argument.
             # newline="" is needed to roundtrip correctly on
@@ -1150,16 +1150,16 @@ def format_array(
 
     fmt_obj = fmt_klass(
         values,
-        digits=digits,
-        na_rep=na_rep,
-        float_format=float_format,
-        formatter=formatter,
-        space=space,
-        justify=justify,
-        decimal=decimal,
-        leading_space=leading_space,
-        quoting=quoting,
-        fallback_formatter=fallback_formatter,
+        digits=,
+        na_rep=,
+        float_format=,
+        formatter=,
+        space=,
+        justify=,
+        decimal=,
+        leading_space=,
+        quoting=,
+        fallback_formatter=,
     )
 
     return fmt_obj.get_result()
@@ -1218,7 +1218,7 @@ class _GenericArrayFormatter:
             formatter = partial(
                 printing.pprint_thing,
                 escape_chars=("\t", "\r", "\n"),
-                quote_strings=quote_strings,
+                quote_strings=,
             )
 
         def _format(x):
@@ -1479,9 +1479,9 @@ class FloatArrayFormatter(_GenericArrayFormatter):
 class _IntArrayFormatter(_GenericArrayFormatter):
     def _format_strings(self) -> list[str]:
         if self.leading_space is False:
-            formatter_str = lambda x: f"{x:d}".format(x=x)
+            formatter_str = lambda x: f"{x:d}".format(x=)
         else:
-            formatter_str = lambda x: f"{x: d}".format(x=x)
+            formatter_str = lambda x: f"{x: d}".format(x=)
         formatter = self.formatter or formatter_str
         fmt_values = [formatter(x) for x in self.values]
         return fmt_values
@@ -1545,7 +1545,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
             decimal=self.decimal,
             leading_space=self.leading_space,
             quoting=self.quoting,
-            fallback_formatter=fallback_formatter,
+            fallback_formatter=,
         )
         return fmt_values
 
@@ -1609,7 +1609,7 @@ def format_percentiles(
 
     # Least precision that keeps percentiles unique after rounding
     prec = -np.floor(
-        np.log10(np.min(np.ediff1d(unique_pcts, to_begin=to_begin, to_end=to_end)))
+        np.log10(np.min(np.ediff1d(unique_pcts, to_begin=, to_end=)))
     ).astype(int)
     prec = max(1, prec)
     out = np.empty_like(percentiles, dtype=object)
@@ -1650,11 +1650,9 @@ def get_format_datetime64(
     a string as output"""
 
     if is_dates_only:
-        return lambda x: _format_datetime64_dateonly(
-            x, nat_rep=nat_rep, date_format=date_format
-        )
+        return lambda x: _format_datetime64_dateonly(x, nat_rep=, date_format=)
     else:
-        return lambda x: _format_datetime64(x, nat_rep=nat_rep)
+        return lambda x: _format_datetime64(x, nat_rep=)
 
 
 class _Datetime64TZFormatter(_Datetime64Formatter):
@@ -1718,7 +1716,7 @@ def get_format_timedelta64(
             x = Timedelta(x)
 
         # Timedelta._repr_base uses string formatting (faster than strftime)
-        result = x._repr_base(format=format)
+        result = x._repr_base(format=)
         if box:
             result = f"'{result}'"
         return result
@@ -1939,7 +1937,7 @@ class EngFormatter:
         else:
             format_str = f"{{mant: .{self.accuracy:d}f}}{{prefix}}"
 
-        formatted = format_str.format(mant=mant, prefix=prefix)
+        formatted = format_str.format(mant=, prefix=)
 
         return formatted
 

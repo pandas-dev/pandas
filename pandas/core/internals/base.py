@@ -115,10 +115,10 @@ class DataManager(PandasObject):
         return self.reindex_indexer(
             new_index,
             indexer,
-            axis=axis,
-            fill_value=fill_value,
+            axis=,
+            fill_value=,
             copy=False,
-            only_slice=only_slice,
+            only_slice=,
         )
 
     def _equal_values(self, other: Self) -> bool:
@@ -162,20 +162,20 @@ class DataManager(PandasObject):
 
     @final
     def isna(self, func) -> Self:
-        return self.apply("apply", func=func)
+        return self.apply("apply", func=)
 
     @final
     def fillna(self, value, limit: int | None, inplace: bool, downcast) -> Self:
         if limit is not None:
             # Do this validation even if we go through one of the no-op paths
-            limit = libalgos.validate_limit(None, limit=limit)
+            limit = libalgos.validate_limit(None, limit=)
 
         return self.apply_with_block(
             "fillna",
-            value=value,
-            limit=limit,
-            inplace=inplace,
-            downcast=downcast,
+            value=,
+            limit=,
+            inplace=,
+            downcast=,
             using_cow=using_copy_on_write(),
         )
 
@@ -189,9 +189,9 @@ class DataManager(PandasObject):
 
         return self.apply_with_block(
             "where",
-            align_keys=align_keys,
-            other=other,
-            cond=cond,
+            align_keys=,
+            other=,
+            cond=,
             using_cow=using_copy_on_write(),
         )
 
@@ -205,19 +205,15 @@ class DataManager(PandasObject):
 
         return self.apply_with_block(
             "putmask",
-            align_keys=align_keys,
-            mask=mask,
-            new=new,
+            align_keys=,
+            mask=,
+            new=,
             using_cow=using_copy_on_write(),
         )
 
     @final
     def round(self, decimals: int, using_cow: bool = False) -> Self:
-        return self.apply_with_block(
-            "round",
-            decimals=decimals,
-            using_cow=using_cow,
-        )
+        return self.apply_with_block("round", decimals=, using_cow=)
 
     @final
     def replace(self, to_replace, value, inplace: bool) -> Self:
@@ -227,9 +223,9 @@ class DataManager(PandasObject):
         assert not lib.is_list_like(value)
         return self.apply_with_block(
             "replace",
-            to_replace=to_replace,
-            value=value,
-            inplace=inplace,
+            to_replace=,
+            value=,
+            inplace=,
             using_cow=using_copy_on_write(),
         )
 
@@ -252,10 +248,10 @@ class DataManager(PandasObject):
 
         bm = self.apply_with_block(
             "replace_list",
-            src_list=src_list,
-            dest_list=dest_list,
-            inplace=inplace,
-            regex=regex,
+            src_list=,
+            dest_list=,
+            inplace=,
+            regex=,
             using_cow=using_copy_on_write(),
         )
         bm._consolidate_inplace()
@@ -263,13 +259,13 @@ class DataManager(PandasObject):
 
     def interpolate(self, inplace: bool, **kwargs) -> Self:
         return self.apply_with_block(
-            "interpolate", inplace=inplace, **kwargs, using_cow=using_copy_on_write()
+            "interpolate", inplace=, **kwargs, using_cow=using_copy_on_write()
         )
 
     def pad_or_backfill(self, inplace: bool, **kwargs) -> Self:
         return self.apply_with_block(
             "pad_or_backfill",
-            inplace=inplace,
+            inplace=,
             **kwargs,
             using_cow=using_copy_on_write(),
         )
@@ -278,7 +274,7 @@ class DataManager(PandasObject):
         if fill_value is lib.no_default:
             fill_value = None
 
-        return self.apply_with_block("shift", periods=periods, fill_value=fill_value)
+        return self.apply_with_block("shift", periods=, fill_value=)
 
     # --------------------------------------------------------------------
     # Consolidation: No-ops for all but BlockManager

@@ -67,7 +67,7 @@ def test_iloc_getitem_multiple_items():
     # GH 5528
     tup = zip(*[["a", "a", "b", "b"], ["x", "y", "x", "y"]])
     index = MultiIndex.from_tuples(tup)
-    df = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), index=index)
+    df = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), index=)
     result = df.iloc[[2, 3]]
     expected = df.xs("b", drop_level=False)
     tm.assert_frame_equal(result, expected)
@@ -108,7 +108,7 @@ def test_indexing_ambiguity_bug_1678():
     )
     index = MultiIndex.from_tuples([("a", 1), ("a", 2), ("b", 1), ("b", 2)])
 
-    df = DataFrame(np.arange(12).reshape((4, 3)), index=index, columns=columns)
+    df = DataFrame(np.arange(12).reshape((4, 3)), index=, columns=)
 
     result = df.iloc[:, 1]
     expected = df.loc[:, ("Ohio", "Red")]
@@ -130,7 +130,7 @@ def test_iloc_integer_locations():
     )
 
     expected = DataFrame(data)
-    df = DataFrame(data, index=index)
+    df = DataFrame(data, index=)
 
     result = DataFrame([[df.iloc[r, c] for c in range(2)] for r in range(5)])
 
@@ -152,7 +152,7 @@ def test_iloc_integer_locations():
 )
 def test_iloc_setitem_int_multiindex_series(data, indexes, values, expected_k):
     # GH17148
-    df = DataFrame(data=data, columns=["i", "j", "k"])
+    df = DataFrame(data=, columns=["i", "j", "k"])
     df = df.set_index(["i", "j"])
 
     series = df.k.copy()

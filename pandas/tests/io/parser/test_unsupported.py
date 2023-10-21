@@ -32,7 +32,7 @@ class TestUnsupportedFeatures:
 
         for engine in ("c", "python"):
             with pytest.raises(TypeError, match="unexpected keyword"):
-                read_csv(StringIO(data), engine=engine, mangle_dupe_cols=True)
+                read_csv(StringIO(data), engine=, mangle_dupe_cols=True)
 
     def test_c_engine(self):
         # see gh-6607

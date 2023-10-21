@@ -203,13 +203,13 @@ class XlsxWriter(ExcelWriter):
 
         super().__init__(
             path,
-            engine=engine,
-            date_format=date_format,
-            datetime_format=datetime_format,
-            mode=mode,
-            storage_options=storage_options,
-            if_sheet_exists=if_sheet_exists,
-            engine_kwargs=engine_kwargs,
+            engine=,
+            date_format=,
+            datetime_format=,
+            mode=,
+            storage_options=,
+            if_sheet_exists=,
+            engine_kwargs=,
         )
 
         try:

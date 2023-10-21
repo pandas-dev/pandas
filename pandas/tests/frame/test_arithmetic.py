@@ -607,7 +607,7 @@ class TestFrameFlexArithmetic:
             # scalar), and then the int32/int64 combo results in int64 result
             dtype["A"] = (2 + mixed_int_frame)["A"].dtype
         tm.assert_frame_equal(result, expected)
-        _check_mixed_int(result, dtype=dtype)
+        _check_mixed_int(result, dtype=)
 
         # vs mix float
         result = getattr(mixed_float_frame, op)(2 * mixed_float_frame)
@@ -675,7 +675,7 @@ class TestFrameFlexArithmetic:
     @pytest.mark.parametrize("dtype", ["int64", "float64"])
     def test_arith_flex_series_broadcasting(self, dtype):
         # broadcasting issue in GH 7325
-        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype=dtype)
+        df = DataFrame(np.arange(3 * 2).reshape((3, 2)), dtype=)
         expected = DataFrame([[np.nan, np.inf], [1.0, 1.5], [1.0, 1.25]])
         result = df.div(df[0], axis="index")
         tm.assert_frame_equal(result, expected)
@@ -731,7 +731,7 @@ class TestFrameFlexArithmetic:
         df2 = DataFrame({("A", "C"): [0, 0, 0], ("A", "D"): [0, 0, 0]})
         df2.columns = df2.columns.set_names(["L1", "L2"])
 
-        result = df1.add(df2, level=level)
+        result = df1.add(df2, level=)
         expected = DataFrame({("A", "C"): [0, 1, 2], ("A", "D"): [0, 1, 2]})
         expected.columns = expected.columns.set_names(["L1", "L2"])
 
@@ -955,7 +955,7 @@ class TestFrameArithmetic:
             #   DataFrame op will return all-float.  So we upcast `expected`
             dtype = np.common_type(*(x.values for x in exvals.values()))
 
-        expected = DataFrame(exvals, columns=df.columns, index=df.index, dtype=dtype)
+        expected = DataFrame(exvals, columns=df.columns, index=df.index, dtype=)
 
         result = getattr(df, opname)(collike)
         tm.assert_frame_equal(result, expected)
@@ -1303,7 +1303,7 @@ class TestFrameArithmeticUnsorted:
 
         df = DataFrame(
             np.arange(27 * 3).reshape(27, 3),
-            index=index,
+            index=,
             columns=["value1", "value2", "value3"],
         ).sort_index()
 
@@ -1673,7 +1673,7 @@ class TestFrameArithmeticUnsorted:
         columns = list("abcdefg")
         X_orig = DataFrame(
             np.arange(10 * len(columns)).reshape(-1, len(columns)),
-            columns=columns,
+            columns=,
             index=range(10),
         )
         Z = 100 * X_orig.iloc[:, 1:-1].copy()
@@ -1827,8 +1827,8 @@ class TestFrameArithmeticUnsorted:
         columns = ["X", "Y", "Z"]
         df = DataFrame(
             np.random.default_rng(2).standard_normal((3, 3)),
-            index=index,
-            columns=columns,
+            index=,
+            columns=,
         )
 
         align = DataFrame._align_for_op
@@ -1847,8 +1847,8 @@ class TestFrameArithmeticUnsorted:
         columns = ["X", "Y", "Z"]
         df = DataFrame(
             np.random.default_rng(2).standard_normal((3, 3)),
-            index=index,
-            columns=columns,
+            index=,
+            columns=,
         )
 
         align = DataFrame._align_for_op
@@ -1865,8 +1865,8 @@ class TestFrameArithmeticUnsorted:
         columns = ["X", "Y", "Z"]
         df = DataFrame(
             np.random.default_rng(2).standard_normal((3, 3)),
-            index=index,
-            columns=columns,
+            index=,
+            columns=,
         )
 
         align = DataFrame._align_for_op

@@ -130,26 +130,24 @@ class TestSeriesToCSV:
     )
     def test_to_csv_compression(self, s, encoding, compression):
         with tm.ensure_clean() as filename:
-            s.to_csv(filename, compression=compression, encoding=encoding, header=True)
+            s.to_csv(filename, compression=, encoding=, header=True)
             # test the round trip - to_csv -> read_csv
             result = pd.read_csv(
                 filename,
-                compression=compression,
-                encoding=encoding,
+                compression=,
+                encoding=,
                 index_col=0,
             ).squeeze("columns")
             tm.assert_series_equal(s, result)
 
             # test the round trip using file handle - to_csv -> read_csv
-            with get_handle(
-                filename, "w", compression=compression, encoding=encoding
-            ) as handles:
-                s.to_csv(handles.handle, encoding=encoding, header=True)
+            with get_handle(filename, "w", compression=, encoding=) as handles:
+                s.to_csv(handles.handle, encoding=, header=True)
 
             result = pd.read_csv(
                 filename,
-                compression=compression,
-                encoding=encoding,
+                compression=,
+                encoding=,
                 index_col=0,
             ).squeeze("columns")
             tm.assert_series_equal(s, result)
@@ -162,7 +160,7 @@ class TestSeriesToCSV:
             with tm.decompress_file(filename, compression) as fh:
                 tm.assert_series_equal(
                     s,
-                    pd.read_csv(fh, index_col=0, encoding=encoding).squeeze("columns"),
+                    pd.read_csv(fh, index_col=0, encoding=).squeeze("columns"),
                 )
 
     def test_to_csv_interval_index(self):

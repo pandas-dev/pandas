@@ -85,12 +85,12 @@ def mask_missing(arr: ArrayLike, values_to_mask) -> npt.NDArray[np.bool_]:
     dtype, values_to_mask = infer_dtype_from(values_to_mask)
 
     if isinstance(dtype, np.dtype):
-        values_to_mask = np.array(values_to_mask, dtype=dtype)
+        values_to_mask = np.array(values_to_mask, dtype=)
     else:
         cls = dtype.construct_array_type()
         if not lib.is_list_like(values_to_mask):
             values_to_mask = [values_to_mask]
-        values_to_mask = cls._from_sequence(values_to_mask, dtype=dtype, copy=False)
+        values_to_mask = cls._from_sequence(values_to_mask, dtype=, copy=False)
 
     potential_na = False
     if is_object_dtype(arr.dtype):
@@ -369,7 +369,7 @@ def interpolate_2d_inplace(
     limit_area_validated = validate_limit_area(limit_area)
 
     # default limit is unlimited GH #16282
-    limit = algos.validate_limit(nobs=None, limit=limit)
+    limit = algos.validate_limit(nobs=None, limit=)
 
     indices = _index_to_interp_indices(index, method)
 
@@ -377,13 +377,13 @@ def interpolate_2d_inplace(
         # process 1-d slices in the axis direction
 
         _interpolate_1d(
-            indices=indices,
-            yvalues=yvalues,
-            method=method,
-            limit=limit,
-            limit_direction=limit_direction,
+            indices=,
+            yvalues=,
+            method=,
+            limit=,
+            limit_direction=,
             limit_area=limit_area_validated,
-            fill_value=fill_value,
+            fill_value=,
             bounds_error=False,
             **kwargs,
         )
@@ -513,10 +513,10 @@ def _interpolate_1d(
             indices[valid],
             yvalues[valid],
             indices[invalid],
-            method=method,
-            fill_value=fill_value,
-            bounds_error=bounds_error,
-            order=order,
+            method=,
+            fill_value=,
+            bounds_error=,
+            order=,
             **kwargs,
         )
 
@@ -543,7 +543,7 @@ def _interpolate_scipy_wrapper(
     the list in _clean_interp_method.
     """
     extra = f"{method} interpolation requires SciPy."
-    import_optional_dependency("scipy", extra=extra)
+    import_optional_dependency("scipy", extra=)
     from scipy import interpolate
 
     new_x = np.asarray(new_x)
@@ -572,9 +572,7 @@ def _interpolate_scipy_wrapper(
             kind = order
         else:
             kind = method
-        terp = interpolate.interp1d(
-            x, y, kind=kind, fill_value=fill_value, bounds_error=bounds_error
-        )
+        terp = interpolate.interp1d(x, y, kind=, fill_value=, bounds_error=)
         new_y = terp(new_x)
     elif method == "spline":
         # GH #10633, #24014
@@ -643,7 +641,7 @@ def _from_derivatives(
 
     # return the method for compat with scipy version & backwards compat
     method = interpolate.BPoly.from_derivatives
-    m = method(xi, yi.reshape(-1, 1), orders=order, extrapolate=extrapolate)
+    m = method(xi, yi.reshape(-1, 1), orders=order, extrapolate=)
 
     return m(x)
 
@@ -692,7 +690,7 @@ def _akima_interpolate(
     """
     from scipy import interpolate
 
-    P = interpolate.Akima1DInterpolator(xi, yi, axis=axis)
+    P = interpolate.Akima1DInterpolator(xi, yi, axis=)
 
     return P(x, nu=der)
 
@@ -776,9 +774,7 @@ def _cubicspline_interpolate(
     """
     from scipy import interpolate
 
-    P = interpolate.CubicSpline(
-        xi, yi, axis=axis, bc_type=bc_type, extrapolate=extrapolate
-    )
+    P = interpolate.CubicSpline(xi, yi, axis=, bc_type=, extrapolate=)
 
     return P(x)
 
@@ -812,18 +808,14 @@ def _interpolate_with_limit_area(
     is_valid = ~invalid
 
     if not invalid.all():
-        first = find_valid_index(how="first", is_valid=is_valid)
+        first = find_valid_index(how="first", is_valid=)
         if first is None:
             first = 0
-        last = find_valid_index(how="last", is_valid=is_valid)
+        last = find_valid_index(how="last", is_valid=)
         if last is None:
             last = len(values)
 
-        pad_or_backfill_inplace(
-            values,
-            method=method,
-            limit=limit,
-        )
+        pad_or_backfill_inplace(values, method=, limit=)
 
         if limit_area == "inside":
             invalid[first : last + 1] = False
@@ -875,9 +867,9 @@ def pad_or_backfill_inplace(
             # SupportsArray[dtype[<nothing>]]]]]]]]"
             partial(  # type: ignore[arg-type]
                 _interpolate_with_limit_area,
-                method=method,
-                limit=limit,
-                limit_area=limit_area,
+                method=,
+                limit=,
+                limit_area=,
             ),
             axis,
             values,
@@ -897,7 +889,7 @@ def pad_or_backfill_inplace(
 
     func = get_fill_func(method, ndim=2)
     # _pad_2d and _backfill_2d both modify tvalues inplace
-    func(tvalues, limit=limit)
+    func(tvalues, limit=)
     return
 
 
@@ -925,10 +917,10 @@ def _datetimelike_compat(func: F) -> F:
                 # This needs to occur before casting to int64
                 mask = isna(values)
 
-            result, mask = func(values.view("i8"), limit=limit, mask=mask)
+            result, mask = func(values.view("i8"), limit=, mask=)
             return result.view(values.dtype), mask
 
-        return func(values, limit=limit, mask=mask)
+        return func(values, limit=, mask=)
 
     return cast(F, new_func)
 
@@ -940,7 +932,7 @@ def _pad_1d(
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     mask = _fillna_prep(values, mask)
-    algos.pad_inplace(values, mask, limit=limit)
+    algos.pad_inplace(values, mask, limit=)
     return values, mask
 
 
@@ -951,7 +943,7 @@ def _backfill_1d(
     mask: npt.NDArray[np.bool_] | None = None,
 ) -> tuple[np.ndarray, npt.NDArray[np.bool_]]:
     mask = _fillna_prep(values, mask)
-    algos.backfill_inplace(values, mask, limit=limit)
+    algos.backfill_inplace(values, mask, limit=)
     return values, mask
 
 
@@ -964,7 +956,7 @@ def _pad_2d(
     mask = _fillna_prep(values, mask)
 
     if values.size:
-        algos.pad_2d_inplace(values, mask, limit=limit)
+        algos.pad_2d_inplace(values, mask, limit=)
     else:
         # for test coverage
         pass
@@ -978,7 +970,7 @@ def _backfill_2d(
     mask = _fillna_prep(values, mask)
 
     if values.size:
-        algos.backfill_2d_inplace(values, mask, limit=limit)
+        algos.backfill_2d_inplace(values, mask, limit=)
     else:
         # for test coverage
         pass
@@ -1080,4 +1072,4 @@ def _rolling_window(a: npt.NDArray[np.bool_], window: int) -> npt.NDArray[np.boo
     # https://stackoverflow.com/a/6811241
     shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
     strides = a.strides + (a.strides[-1],)
-    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+    return np.lib.stride_tricks.as_strided(a, shape=, strides=)

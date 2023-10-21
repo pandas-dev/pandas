@@ -607,7 +607,7 @@ def test_append_with_data_columns(setup_path):
         index = date_range("1/1/2000", periods=8)
         df_dc = DataFrame(
             np.random.default_rng(2).standard_normal((8, 3)),
-            index=index,
+            index=,
             columns=["A", "B", "C"],
         )
         df_dc["string"] = "foo"
@@ -672,7 +672,7 @@ def test_append_misc_chunksize(setup_path, chunksize):
     df["time1"] = Timestamp("20130101").as_unit("ns")
     df["time2"] = Timestamp("20130102").as_unit("ns")
     with ensure_clean_store(setup_path, mode="w") as store:
-        store.append("obj", df, chunksize=chunksize)
+        store.append("obj", df, chunksize=)
         result = store.select("obj")
         tm.assert_frame_equal(result, df)
 

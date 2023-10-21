@@ -81,7 +81,7 @@ class TestConversion:
         # GH#18699
 
         # index kwarg
-        ser = index.to_series(index=index)
+        ser = index.to_series(index=)
 
         assert ser.values is not index.values
         assert ser.index is index

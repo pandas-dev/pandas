@@ -94,7 +94,7 @@ def test_split_regex_explicit(any_string_dtype):
 @pytest.mark.parametrize("method", ["split", "rsplit"])
 def test_split_object_mixed(expand, method):
     mixed = Series(["a_b_c", np.nan, "d_e_f", True, datetime.today(), None, 1, 2.0])
-    result = getattr(mixed.str, method)("_", expand=expand)
+    result = getattr(mixed.str, method)("_", expand=)
     exp = Series(
         [
             ["a", "b", "c"],
@@ -116,7 +116,7 @@ def test_split_object_mixed(expand, method):
 def test_split_n(any_string_dtype, method, n):
     s = Series(["a b", pd.NA, "b c"], dtype=any_string_dtype)
     expected = Series([["a", "b"], pd.NA, ["b", "c"]])
-    result = getattr(s.str, method)(" ", n=n)
+    result = getattr(s.str, method)(" ", n=)
     expected = _convert_na_value(s, expected)
     tm.assert_series_equal(result, expected)
 
@@ -184,8 +184,8 @@ def test_split_maxsplit(data, pat, any_string_dtype, n):
     # re.split 0, str.split -1
     s = Series(data, dtype=any_string_dtype)
 
-    result = s.str.split(pat=pat, n=n)
-    xp = s.str.split(pat=pat)
+    result = s.str.split(pat=, n=)
+    xp = s.str.split(pat=)
     tm.assert_series_equal(result, xp)
 
 
@@ -206,7 +206,7 @@ def test_split_maxsplit(data, pat, any_string_dtype, n):
 )
 def test_split_no_pat_with_nonzero_n(data, pat, expected, any_string_dtype):
     s = Series(data, dtype=any_string_dtype)
-    result = s.str.split(pat=pat, n=1)
+    result = s.str.split(pat=, n=1)
     tm.assert_series_equal(expected, result, check_index_type=False)
 
 
@@ -560,7 +560,7 @@ def test_partition_index(method, expand, exp, exp_levels):
 
     values = Index(["a_b_c", "c_d_e", "f_g_h", np.nan, None])
 
-    result = getattr(values.str, method)("_", expand=expand)
+    result = getattr(values.str, method)("_", expand=)
     exp = Index(exp)
     tm.assert_index_equal(result, exp)
     assert result.nlevels == exp_levels

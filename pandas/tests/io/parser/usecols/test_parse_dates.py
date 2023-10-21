@@ -32,7 +32,7 @@ def test_usecols_with_parse_dates(all_parsers, usecols):
         "c_d": [Timestamp("2014-01-01 09:00:00"), Timestamp("2014-01-02 10:00:00")],
     }
     expected = DataFrame(cols, columns=["c_d", "a"])
-    result = parser.read_csv(StringIO(data), usecols=usecols, parse_dates=parse_dates)
+    result = parser.read_csv(StringIO(data), usecols=, parse_dates=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -56,15 +56,15 @@ def test_usecols_with_parse_dates2(all_parsers):
         name="date",
     )
     cols = {"values": [1032.43, 1042.54, 1051.65]}
-    expected = DataFrame(cols, index=index)
+    expected = DataFrame(cols, index=)
 
     result = parser.read_csv(
         StringIO(data),
-        parse_dates=parse_dates,
+        parse_dates=,
         index_col=0,
-        usecols=usecols,
+        usecols=,
         header=None,
-        names=names,
+        names=,
     )
     tm.assert_frame_equal(result, expected)
 
@@ -92,7 +92,7 @@ def test_usecols_with_parse_dates3(all_parsers):
     }
     expected = DataFrame(cols, columns=usecols)
 
-    result = parser.read_csv(StringIO(data), usecols=usecols, parse_dates=parse_dates)
+    result = parser.read_csv(StringIO(data), usecols=, parse_dates=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -115,11 +115,7 @@ def test_usecols_with_parse_dates4(all_parsers):
     }
     expected = DataFrame(cols, columns=["a_b"] + list("cdefghij"))
 
-    result = parser.read_csv(
-        StringIO(data),
-        usecols=usecols,
-        parse_dates=parse_dates,
-    )
+    result = parser.read_csv(StringIO(data), usecols=, parse_dates=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -144,7 +140,5 @@ def test_usecols_with_parse_dates_and_names(all_parsers, usecols, names):
     }
     expected = DataFrame(cols, columns=["c_d", "a"])
 
-    result = parser.read_csv(
-        StringIO(s), names=names, parse_dates=parse_dates, usecols=usecols
-    )
+    result = parser.read_csv(StringIO(s), names=, parse_dates=, usecols=)
     tm.assert_frame_equal(result, expected)

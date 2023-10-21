@@ -123,7 +123,7 @@ def test_groupby_raises_string(
 ):
     df = df_with_string_col
     args = get_groupby_method_args(groupby_func, df)
-    gb = df.groupby(by=by)
+    gb = df.groupby(by=)
 
     if groupby_series:
         gb = gb["d"]
@@ -199,7 +199,7 @@ def test_groupby_raises_string(
 @pytest.mark.parametrize("how", ["agg", "transform"])
 def test_groupby_raises_string_udf(how, by, groupby_series, df_with_string_col):
     df = df_with_string_col
-    gb = df.groupby(by=by)
+    gb = df.groupby(by=)
 
     if groupby_series:
         gb = gb["d"]
@@ -218,7 +218,7 @@ def test_groupby_raises_string_np(
 ):
     # GH#50749
     df = df_with_string_col
-    gb = df.groupby(by=by)
+    gb = df.groupby(by=)
 
     if groupby_series:
         gb = gb["d"]
@@ -235,7 +235,7 @@ def test_groupby_raises_string_np(
         warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
         warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -244,7 +244,7 @@ def test_groupby_raises_datetime(
 ):
     df = df_with_datetime_col
     args = get_groupby_method_args(groupby_func, df)
-    gb = df.groupby(by=by)
+    gb = df.groupby(by=)
 
     if groupby_series:
         gb = gb["d"]
@@ -302,13 +302,13 @@ def test_groupby_raises_datetime(
         warn_msg = f"'{groupby_func}' with datetime64 dtypes is deprecated"
     else:
         warn_msg = ""
-    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=)
 
 
 @pytest.mark.parametrize("how", ["agg", "transform"])
 def test_groupby_raises_datetime_udf(how, by, groupby_series, df_with_datetime_col):
     df = df_with_datetime_col
-    gb = df.groupby(by=by)
+    gb = df.groupby(by=)
 
     if groupby_series:
         gb = gb["d"]
@@ -327,7 +327,7 @@ def test_groupby_raises_datetime_np(
 ):
     # GH#50749
     df = df_with_datetime_col
-    gb = df.groupby(by=by)
+    gb = df.groupby(by=)
 
     if groupby_series:
         gb = gb["d"]
@@ -341,7 +341,7 @@ def test_groupby_raises_datetime_np(
         warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
         warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=)
 
 
 @pytest.mark.parametrize("func", ["prod", "cumprod", "skew", "var"])
@@ -366,7 +366,7 @@ def test_groupby_raises_category(
     # GH#50749
     df = df_with_cat_col
     args = get_groupby_method_args(groupby_func, df)
-    gb = df.groupby(by=by)
+    gb = df.groupby(by=)
 
     if groupby_series:
         gb = gb["d"]
@@ -502,7 +502,7 @@ def test_groupby_raises_category(
 def test_groupby_raises_category_udf(how, by, groupby_series, df_with_cat_col):
     # GH#50749
     df = df_with_cat_col
-    gb = df.groupby(by=by)
+    gb = df.groupby(by=)
 
     if groupby_series:
         gb = gb["d"]
@@ -521,7 +521,7 @@ def test_groupby_raises_category_np(
 ):
     # GH#50749
     df = df_with_cat_col
-    gb = df.groupby(by=by)
+    gb = df.groupby(by=)
 
     if groupby_series:
         gb = gb["d"]
@@ -538,7 +538,7 @@ def test_groupby_raises_category_np(
         warn_msg = "using SeriesGroupBy.[sum|mean]"
     else:
         warn_msg = "using DataFrameGroupBy.[sum|mean]"
-    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=warn_msg)
+    _call_and_check(klass, msg, how, gb, groupby_func_np, (), warn_msg=)
 
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
@@ -559,7 +559,7 @@ def test_groupby_raises_category_on_category(
         ordered=True,
     )
     args = get_groupby_method_args(groupby_func, df)
-    gb = df.groupby(by=by, observed=observed)
+    gb = df.groupby(by=, observed=)
 
     if groupby_series:
         gb = gb["d"]

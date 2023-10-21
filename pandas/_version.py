@@ -89,8 +89,8 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False, env=
             # remember shell=False, so use git.cmd on windows, not just git
             process = subprocess.Popen(
                 [command] + args,
-                cwd=cwd,
-                env=env,
+                cwd=,
+                env=,
                 stdout=subprocess.PIPE,
                 stderr=(subprocess.PIPE if hide_stderr else None),
                 **popen_kwargs,
@@ -263,7 +263,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, runner=run_command):
     # but that should not change where we get our version from.
     env = os.environ.copy()
     env.pop("GIT_DIR", None)
-    runner = functools.partial(runner, env=env)
+    runner = functools.partial(runner, env=)
 
     _, rc = runner(GITS, ["rev-parse", "--git-dir"], cwd=root, hide_stderr=not verbose)
     if rc != 0:

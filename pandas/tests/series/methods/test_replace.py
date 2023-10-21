@@ -337,7 +337,7 @@ class TestSeriesReplace:
         ser = pd.Series([1, 2, 3])
         expected = pd.Series([2, 3, 4])
 
-        res = ser.replace([1, 2, 3], [2, 3, 4], inplace=inplace)
+        res = ser.replace([1, 2, 3], [2, 3, 4], inplace=)
         if inplace:
             tm.assert_series_equal(ser, expected)
         else:
@@ -658,9 +658,9 @@ class TestSeriesReplace:
     )
     def test_replace_dtype(self, dtype, input_data, to_replace, expected_data):
         # GH#33484
-        ser = pd.Series(input_data, dtype=dtype)
+        ser = pd.Series(input_data, dtype=)
         result = ser.replace(to_replace)
-        expected = pd.Series(expected_data, dtype=dtype)
+        expected = pd.Series(expected_data, dtype=)
         tm.assert_series_equal(result, expected)
 
     def test_replace_string_dtype(self):
@@ -726,7 +726,7 @@ class TestSeriesReplace:
         expected = pd.Series([1])
         msg = "Downcasting behavior in `replace`"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = series.replace(to_replace="0", value=1, regex=regex)
+            result = series.replace(to_replace="0", value=1, regex=)
         tm.assert_series_equal(result, expected)
 
     def test_replace_different_int_types(self, any_int_numpy_dtype):
@@ -766,8 +766,8 @@ class TestSeriesReplace:
     @pytest.mark.parametrize("dtype", ["object", "Int64"])
     def test_replace_na_in_obj_column(self, dtype):
         # GH#47480
-        ser = pd.Series([0, 1, pd.NA], dtype=dtype)
-        expected = pd.Series([0, 2, pd.NA], dtype=dtype)
+        ser = pd.Series([0, 1, pd.NA], dtype=)
+        expected = pd.Series([0, 2, pd.NA], dtype=)
         result = ser.replace(to_replace=1, value=2)
         tm.assert_series_equal(result, expected)
 

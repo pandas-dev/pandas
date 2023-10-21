@@ -53,7 +53,7 @@ class TestAttributes:
         # GH27219
         tuples = [(left, left), (left, right), np.nan]
         expected = np.array([closed != "both", False, False])
-        result = constructor.from_tuples(tuples, closed=closed).is_empty
+        result = constructor.from_tuples(tuples, closed=).is_empty
         tm.assert_numpy_array_equal(result, expected)
 
 
@@ -61,7 +61,7 @@ class TestMethods:
     @pytest.mark.parametrize("new_closed", ["left", "right", "both", "neither"])
     def test_set_closed(self, closed, new_closed):
         # GH 21670
-        array = IntervalArray.from_breaks(range(10), closed=closed)
+        array = IntervalArray.from_breaks(range(10), closed=)
         result = array.set_closed(new_closed)
         expected = IntervalArray.from_breaks(range(10), closed=new_closed)
         tm.assert_extension_array_equal(result, expected)
@@ -78,10 +78,10 @@ class TestMethods:
         ser = pd.Series(IntervalArray.from_breaks([1, 2, 3, 4], closed="left"))
         mask = np.array([True, False, True])
         match = "'value.closed' is 'right', expected 'left'."
-        with pytest.raises(ValueError, match=match):
+        with pytest.raises(ValueError, match=):
             ser.array._where(mask, other)
 
-        res = ser.where(mask, other=other)
+        res = ser.where(mask, other=)
         expected = ser.astype(object).where(mask, other)
         tm.assert_series_equal(res, expected)
 
@@ -188,9 +188,9 @@ class TestReductions:
         msg = "`axis` must be fewer than the number of dimensions"
         for axis in [-2, 1]:
             with pytest.raises(ValueError, match=msg):
-                arr.min(axis=axis)
+                arr.min(axis=)
             with pytest.raises(ValueError, match=msg):
-                arr.max(axis=axis)
+                arr.max(axis=)
 
         msg = "'>=' not supported between"
         with pytest.raises(TypeError, match=msg):
@@ -222,11 +222,11 @@ class TestReductions:
         arr_na = index_or_series_or_array(arr_na)
 
         for skipna in [True, False]:
-            res = arr.min(skipna=skipna)
+            res = arr.min(skipna=)
             assert res == MIN
             assert type(res) == type(MIN)
 
-            res = arr.max(skipna=skipna)
+            res = arr.max(skipna=)
             assert res == MAX
             assert type(res) == type(MAX)
 
@@ -412,7 +412,7 @@ def test_interval_index_subtype(timezone, inclusive_endpoints_fixture):
         ["2022-01-01", "2022-01-02"],
         ["2022-01-02", "2022-01-03"],
         closed=inclusive_endpoints_fixture,
-        dtype=dtype,
+        dtype=,
     )
     expected = IntervalIndex.from_arrays(
         dates[:-1], dates[1:], closed=inclusive_endpoints_fixture

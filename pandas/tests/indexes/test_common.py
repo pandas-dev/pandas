@@ -192,7 +192,7 @@ class TestCommon:
         # GH 17896
         expected = index.drop_duplicates()
         for level in [0, index.name, None]:
-            result = index.unique(level=level)
+            result = index.unique(level=)
             tm.assert_index_equal(result, expected)
 
         msg = "Too many levels: Index has only 1 level, not 4"
@@ -317,7 +317,7 @@ class TestCommon:
         holder = type(index)
         unique_values = list(set(index))
         dtype = index.dtype if is_numeric_dtype(index) else None
-        unique_idx = holder(unique_values, dtype=dtype)
+        unique_idx = holder(unique_values, dtype=)
 
         # make duplicated index
         n = len(unique_idx)
@@ -326,13 +326,13 @@ class TestCommon:
 
         # Series.duplicated is tested separately
         expected_duplicated = (
-            pd.Series(duplicated_selection).duplicated(keep=keep).values
+            pd.Series(duplicated_selection).duplicated(keep=).values
         )
-        tm.assert_numpy_array_equal(idx.duplicated(keep=keep), expected_duplicated)
+        tm.assert_numpy_array_equal(idx.duplicated(keep=), expected_duplicated)
 
         # Series.drop_duplicates is tested separately
-        expected_dropped = holder(pd.Series(idx).drop_duplicates(keep=keep))
-        tm.assert_index_equal(idx.drop_duplicates(keep=keep), expected_dropped)
+        expected_dropped = holder(pd.Series(idx).drop_duplicates(keep=))
+        tm.assert_index_equal(idx.drop_duplicates(keep=), expected_dropped)
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_drop_duplicates_no_duplicates(self, index_flat):
@@ -347,7 +347,7 @@ class TestCommon:
             holder = type(index)
             unique_values = list(set(index))
             dtype = index.dtype if is_numeric_dtype(index) else None
-            unique_idx = holder(unique_values, dtype=dtype)
+            unique_idx = holder(unique_values, dtype=)
 
         # check on unique index
         expected_duplicated = np.array([False] * len(unique_idx), dtype="bool")
@@ -449,7 +449,7 @@ class TestCommon:
 @pytest.mark.parametrize("na_position", [None, "middle"])
 def test_sort_values_invalid_na_position(index_with_missing, na_position):
     with pytest.raises(ValueError, match=f"invalid na_position: {na_position}"):
-        index_with_missing.sort_values(na_position=na_position)
+        index_with_missing.sort_values(na_position=)
 
 
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
@@ -476,7 +476,7 @@ def test_sort_values_with_missing(index_with_missing, na_position, request):
     # Explicitly pass dtype needed for Index backed by EA e.g. IntegerArray
     expected = type(index_with_missing)(sorted_values, dtype=index_with_missing.dtype)
 
-    result = index_with_missing.sort_values(na_position=na_position)
+    result = index_with_missing.sort_values(na_position=)
     tm.assert_index_equal(result, expected)
 
 

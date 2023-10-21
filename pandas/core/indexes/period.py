@@ -69,7 +69,7 @@ def _new_PeriodIndex(cls, **d):
     if values.dtype == "int64":
         freq = d.pop("freq", None)
         dtype = PeriodDtype(freq)
-        values = PeriodArray(values, dtype=dtype)
+        values = PeriodArray(values, dtype=)
         return cls._simple_new(values, **d)
     else:
         return cls(values, **d)
@@ -248,7 +248,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
             freq = freq2
 
             dtype = PeriodDtype(freq)
-            data = PeriodArray(data, dtype=dtype)
+            data = PeriodArray(data, dtype=)
         else:
             freq = validate_dtype_freq(dtype, freq)
 
@@ -264,15 +264,15 @@ class PeriodIndex(DatetimeIndexOpsMixin):
                 # we strangely ignore `ordinal` if data is passed.
                 ordinal = np.asarray(ordinal, dtype=np.int64)
                 dtype = PeriodDtype(freq)
-                data = PeriodArray(ordinal, dtype=dtype)
+                data = PeriodArray(ordinal, dtype=)
             else:
                 # don't pass copy here, since we copy later.
-                data = period_array(data=data, freq=freq)
+                data = period_array(data=, freq=)
 
         if copy:
             data = data.copy()
 
-        return cls._simple_new(data, name=name, refs=refs)
+        return cls._simple_new(data, name=, refs=)
 
     # ------------------------------------------------------------------------
     # Data
@@ -455,7 +455,7 @@ class PeriodIndex(DatetimeIndexOpsMixin):
 
     def _parsed_string_to_bounds(self, reso: Resolution, parsed: datetime):
         freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
-        iv = Period(parsed, freq=freq)
+        iv = Period(parsed, freq=)
         return (iv.asfreq(self.freq, how="start"), iv.asfreq(self.freq, how="end"))
 
     @doc(DatetimeIndexOpsMixin.shift)
@@ -533,5 +533,5 @@ def period_range(
 
     data, freq = PeriodArray._generate_range(start, end, periods, freq, fields={})
     dtype = PeriodDtype(freq)
-    data = PeriodArray(data, dtype=dtype)
-    return PeriodIndex(data, name=name)
+    data = PeriodArray(data, dtype=)
+    return PeriodIndex(data, name=)

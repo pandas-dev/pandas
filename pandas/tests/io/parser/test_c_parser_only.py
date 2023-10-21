@@ -141,7 +141,7 @@ def test_unsupported_dtype(c_parser_only, match, kwargs):
     with tm.ensure_clean("__unsupported_dtype__.csv") as path:
         df.to_csv(path)
 
-        with pytest.raises(TypeError, match=match):
+        with pytest.raises(TypeError, match=):
             parser.read_csv(path, index_col=0, **kwargs)
 
 
@@ -375,7 +375,7 @@ def test_parse_trim_buffers(c_parser_only):
 
     # Iterate over the CSV file in chunks of `chunksize` lines
     with parser.read_csv(
-        StringIO(csv_data), header=None, dtype=object, chunksize=chunksize
+        StringIO(csv_data), header=None, dtype=object, chunksize=
     ) as chunks_:
         result = concat(chunks_, axis=0, ignore_index=True)
 
@@ -389,7 +389,7 @@ def test_parse_trim_buffers(c_parser_only):
         StringIO(csv_data),
         header=None,
         dtype=object,
-        chunksize=chunksize,
+        chunksize=,
         encoding="utf_8",
     ) as chunks_:
         result = concat(chunks_, axis=0, ignore_index=True)
@@ -412,7 +412,7 @@ def test_internal_null_byte(c_parser_only):
     data = "1,2,3\n4,\x00,6\n7,8,9"
     expected = DataFrame([[1, 2.0, 3], [4, np.nan, 6], [7, 8, 9]], columns=names)
 
-    result = parser.read_csv(StringIO(data), names=names)
+    result = parser.read_csv(StringIO(data), names=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -640,9 +640,9 @@ def test_1000_sep_with_decimal(
     result = parser.read_csv(
         StringIO(data),
         sep="|",
-        thousands=thousands,
-        decimal=decimal,
-        float_precision=float_precision,
+        thousands=,
+        decimal=,
+        float_precision=,
     )
     tm.assert_frame_equal(result, expected)
 

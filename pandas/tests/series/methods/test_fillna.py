@@ -415,13 +415,13 @@ class TestSeriesFillNA:
         # check s is not changed
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(Timestamp("2011-01-02 10:00", tz=tz))
+        result = ser.fillna(Timestamp("2011-01-02 10:00", tz=))
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00"),
-                Timestamp("2011-01-02 10:00", tz=tz),
+                Timestamp("2011-01-02 10:00", tz=),
                 Timestamp("2011-01-03 10:00"),
-                Timestamp("2011-01-02 10:00", tz=tz),
+                Timestamp("2011-01-02 10:00", tz=),
             ]
         )
         tm.assert_series_equal(expected, result)
@@ -442,14 +442,14 @@ class TestSeriesFillNA:
 
         result = ser.fillna(
             {
-                1: Timestamp("2011-01-02 10:00", tz=tz),
+                1: Timestamp("2011-01-02 10:00", tz=),
                 3: Timestamp("2011-01-04 10:00"),
             }
         )
         expected = Series(
             [
                 Timestamp("2011-01-01 10:00"),
-                Timestamp("2011-01-02 10:00", tz=tz),
+                Timestamp("2011-01-02 10:00", tz=),
                 Timestamp("2011-01-03 10:00"),
                 Timestamp("2011-01-04 10:00"),
             ]
@@ -472,7 +472,7 @@ class TestSeriesFillNA:
         tm.assert_series_equal(isna(ser), null_loc)
 
         # DatetimeTZBlock
-        idx = DatetimeIndex(["2011-01-01 10:00", NaT, "2011-01-03 10:00", NaT], tz=tz)
+        idx = DatetimeIndex(["2011-01-01 10:00", NaT, "2011-01-03 10:00", NaT], tz=)
         ser = Series(idx)
         assert ser.dtype == f"datetime64[ns, {tz}]"
         tm.assert_series_equal(isna(ser), null_loc)
@@ -480,16 +480,16 @@ class TestSeriesFillNA:
         result = ser.fillna(Timestamp("2011-01-02 10:00"))
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00", tz=tz),
+                Timestamp("2011-01-01 10:00", tz=),
                 Timestamp("2011-01-02 10:00"),
-                Timestamp("2011-01-03 10:00", tz=tz),
+                Timestamp("2011-01-03 10:00", tz=),
                 Timestamp("2011-01-02 10:00"),
             ]
         )
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(Timestamp("2011-01-02 10:00", tz=tz))
+        result = ser.fillna(Timestamp("2011-01-02 10:00", tz=))
         idx = DatetimeIndex(
             [
                 "2011-01-01 10:00",
@@ -497,13 +497,13 @@ class TestSeriesFillNA:
                 "2011-01-03 10:00",
                 "2011-01-02 10:00",
             ],
-            tz=tz,
+            tz=,
         )
         expected = Series(idx)
         tm.assert_series_equal(expected, result)
         tm.assert_series_equal(isna(ser), null_loc)
 
-        result = ser.fillna(Timestamp("2011-01-02 10:00", tz=tz).to_pydatetime())
+        result = ser.fillna(Timestamp("2011-01-02 10:00", tz=).to_pydatetime())
         idx = DatetimeIndex(
             [
                 "2011-01-01 10:00",
@@ -511,7 +511,7 @@ class TestSeriesFillNA:
                 "2011-01-03 10:00",
                 "2011-01-02 10:00",
             ],
-            tz=tz,
+            tz=,
         )
         expected = Series(idx)
         tm.assert_series_equal(expected, result)
@@ -520,9 +520,9 @@ class TestSeriesFillNA:
         result = ser.fillna("AAA")
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00", tz=tz),
+                Timestamp("2011-01-01 10:00", tz=),
                 "AAA",
-                Timestamp("2011-01-03 10:00", tz=tz),
+                Timestamp("2011-01-03 10:00", tz=),
                 "AAA",
             ],
             dtype=object,
@@ -532,15 +532,15 @@ class TestSeriesFillNA:
 
         result = ser.fillna(
             {
-                1: Timestamp("2011-01-02 10:00", tz=tz),
+                1: Timestamp("2011-01-02 10:00", tz=),
                 3: Timestamp("2011-01-04 10:00"),
             }
         )
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00", tz=tz),
-                Timestamp("2011-01-02 10:00", tz=tz),
-                Timestamp("2011-01-03 10:00", tz=tz),
+                Timestamp("2011-01-01 10:00", tz=),
+                Timestamp("2011-01-02 10:00", tz=),
+                Timestamp("2011-01-03 10:00", tz=),
                 Timestamp("2011-01-04 10:00"),
             ]
         )
@@ -549,16 +549,16 @@ class TestSeriesFillNA:
 
         result = ser.fillna(
             {
-                1: Timestamp("2011-01-02 10:00", tz=tz),
-                3: Timestamp("2011-01-04 10:00", tz=tz),
+                1: Timestamp("2011-01-02 10:00", tz=),
+                3: Timestamp("2011-01-04 10:00", tz=),
             }
         )
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00", tz=tz),
-                Timestamp("2011-01-02 10:00", tz=tz),
-                Timestamp("2011-01-03 10:00", tz=tz),
-                Timestamp("2011-01-04 10:00", tz=tz),
+                Timestamp("2011-01-01 10:00", tz=),
+                Timestamp("2011-01-02 10:00", tz=),
+                Timestamp("2011-01-03 10:00", tz=),
+                Timestamp("2011-01-04 10:00", tz=),
             ]
         )
         tm.assert_series_equal(expected, result)
@@ -568,9 +568,9 @@ class TestSeriesFillNA:
         result = ser.fillna(Timestamp("20130101"))
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00", tz=tz),
+                Timestamp("2011-01-01 10:00", tz=),
                 Timestamp("2013-01-01"),
-                Timestamp("2011-01-03 10:00", tz=tz),
+                Timestamp("2011-01-03 10:00", tz=),
                 Timestamp("2013-01-01"),
             ]
         )
@@ -582,9 +582,9 @@ class TestSeriesFillNA:
         result = ser.fillna(Timestamp("20130101", tz="US/Pacific"))
         expected = Series(
             [
-                Timestamp("2011-01-01 10:00", tz=tz),
+                Timestamp("2011-01-01 10:00", tz=),
                 Timestamp("2013-01-01", tz="US/Pacific").tz_convert(tz),
-                Timestamp("2011-01-03 10:00", tz=tz),
+                Timestamp("2011-01-03 10:00", tz=),
                 Timestamp("2013-01-01", tz="US/Pacific").tz_convert(tz),
             ]
         )
@@ -763,25 +763,25 @@ class TestSeriesFillNA:
     @pytest.mark.parametrize("scalar", [True, False])
     def test_fillna_float_casting(self, dtype, fill_type, scalar):
         # GH-43424
-        ser = Series([np.nan, 1.2], dtype=dtype)
+        ser = Series([np.nan, 1.2], dtype=)
         fill_values = Series([2, 2], dtype=fill_type)
         if scalar:
             fill_values = fill_values.dtype.type(2)
 
         result = ser.fillna(fill_values)
-        expected = Series([2.0, 1.2], dtype=dtype)
+        expected = Series([2.0, 1.2], dtype=)
         tm.assert_series_equal(result, expected)
 
-        ser = Series([np.nan, 1.2], dtype=dtype)
+        ser = Series([np.nan, 1.2], dtype=)
         mask = ser.isna().to_numpy()
         ser[mask] = fill_values
         tm.assert_series_equal(ser, expected)
 
-        ser = Series([np.nan, 1.2], dtype=dtype)
+        ser = Series([np.nan, 1.2], dtype=)
         ser.mask(mask, fill_values, inplace=True)
         tm.assert_series_equal(ser, expected)
 
-        ser = Series([np.nan, 1.2], dtype=dtype)
+        ser = Series([np.nan, 1.2], dtype=)
         res = ser.where(~mask, fill_values)
         tm.assert_series_equal(res, expected)
 
@@ -824,7 +824,7 @@ class TestSeriesFillNA:
         for limit in [-1, 0, 1.0, 2.0]:
             for method in ["backfill", "bfill", "pad", "ffill", None]:
                 with pytest.raises(ValueError, match=msg):
-                    ser.fillna(1, limit=limit, method=method)
+                    ser.fillna(1, limit=, method=)
 
     def test_fillna_datetime64_with_timezone_tzinfo(self):
         # https://github.com/pandas-dev/pandas/issues/38851
@@ -911,7 +911,7 @@ class TestFillnaPad:
 
     def test_series_fillna_limit(self):
         index = np.arange(10)
-        s = Series(np.random.default_rng(2).standard_normal(10), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(10), index=)
 
         result = s[:2].reindex(index)
         result = result.fillna(method="pad", limit=5)
@@ -929,7 +929,7 @@ class TestFillnaPad:
 
     def test_series_pad_backfill_limit(self):
         index = np.arange(10)
-        s = Series(np.random.default_rng(2).standard_normal(10), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(10), index=)
 
         result = s[:2].reindex(index, method="pad", limit=5)
 

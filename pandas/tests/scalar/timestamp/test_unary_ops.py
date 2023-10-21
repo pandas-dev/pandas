@@ -427,17 +427,17 @@ class TestTimestampUnaryOps:
         tz = tz_aware_fixture
         # GH#14621, GH#7825
         # replacing datetime components with and w/o presence of a timezone
-        ts = Timestamp("2016-01-01 09:00:00", tz=tz)
+        ts = Timestamp("2016-01-01 09:00:00", tz=)
         result = ts.replace(hour=0)
-        expected = Timestamp("2016-01-01 00:00:00", tz=tz)
+        expected = Timestamp("2016-01-01 00:00:00", tz=)
         assert result == expected
 
     def test_replace_preserves_nanos(self, tz_aware_fixture):
         tz = tz_aware_fixture
         # GH#14621, GH#7825
-        ts = Timestamp("2016-01-01 09:00:00.000000123", tz=tz)
+        ts = Timestamp("2016-01-01 09:00:00.000000123", tz=)
         result = ts.replace(hour=0)
-        expected = Timestamp("2016-01-01 00:00:00.000000123", tz=tz)
+        expected = Timestamp("2016-01-01 00:00:00.000000123", tz=)
         assert result == expected
 
     def test_replace_multiple(self, tz_aware_fixture):
@@ -445,7 +445,7 @@ class TestTimestampUnaryOps:
         # GH#14621, GH#7825
         # replacing datetime components with and w/o presence of a timezone
         # test all
-        ts = Timestamp("2016-01-01 09:00:00.000000123", tz=tz)
+        ts = Timestamp("2016-01-01 09:00:00.000000123", tz=)
         result = ts.replace(
             year=2015,
             month=2,
@@ -456,13 +456,13 @@ class TestTimestampUnaryOps:
             microsecond=5,
             nanosecond=5,
         )
-        expected = Timestamp("2015-02-02 00:05:05.000005005", tz=tz)
+        expected = Timestamp("2015-02-02 00:05:05.000005005", tz=)
         assert result == expected
 
     def test_replace_invalid_kwarg(self, tz_aware_fixture):
         tz = tz_aware_fixture
         # GH#14621, GH#7825
-        ts = Timestamp("2016-01-01 09:00:00.000000123", tz=tz)
+        ts = Timestamp("2016-01-01 09:00:00.000000123", tz=)
         msg = r"replace\(\) got an unexpected keyword argument"
         with pytest.raises(TypeError, match=msg):
             ts.replace(foo=5)
@@ -470,7 +470,7 @@ class TestTimestampUnaryOps:
     def test_replace_integer_args(self, tz_aware_fixture):
         tz = tz_aware_fixture
         # GH#14621, GH#7825
-        ts = Timestamp("2016-01-01 09:00:00.000000123", tz=tz)
+        ts = Timestamp("2016-01-01 09:00:00.000000123", tz=)
         msg = "value must be an integer, received <class 'float'> for hour"
         with pytest.raises(ValueError, match=msg):
             ts.replace(hour=0.1)
@@ -487,8 +487,8 @@ class TestTimestampUnaryOps:
         dt = datetime(2016, 3, 27, 1)
         tzinfo = pytz.timezone("CET").localize(dt, is_dst=False).tzinfo
 
-        result_dt = dt.replace(tzinfo=tzinfo)
-        result_pd = Timestamp(dt).replace(tzinfo=tzinfo)
+        result_dt = dt.replace(tzinfo=)
+        result_pd = Timestamp(dt).replace(tzinfo=)
 
         # datetime.timestamp() converts in the local timezone
         with tm.set_timezone("UTC"):
@@ -497,8 +497,8 @@ class TestTimestampUnaryOps:
         assert result_dt == result_pd
         assert result_dt == result_pd.to_pydatetime()
 
-        result_dt = dt.replace(tzinfo=tzinfo).replace(tzinfo=None)
-        result_pd = Timestamp(dt).replace(tzinfo=tzinfo).replace(tzinfo=None)
+        result_dt = dt.replace(tzinfo=).replace(tzinfo=None)
+        result_pd = Timestamp(dt).replace(tzinfo=).replace(tzinfo=None)
 
         # datetime.timestamp() converts in the local timezone
         with tm.set_timezone("UTC"):
@@ -548,8 +548,8 @@ class TestTimestampUnaryOps:
     def test_replace_dst_fold(self, fold, tz, unit):
         # GH 25017
         d = datetime(2019, 10, 27, 2, 30)
-        ts = Timestamp(d, tz=tz).as_unit(unit)
-        result = ts.replace(hour=1, fold=fold)
+        ts = Timestamp(d, tz=).as_unit(unit)
+        result = ts.replace(hour=1, fold=)
         expected = Timestamp(datetime(2019, 10, 27, 1, 30)).tz_localize(
             tz, ambiguous=not fold
         )
@@ -563,9 +563,9 @@ class TestTimestampUnaryOps:
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
     def test_normalize(self, tz_naive_fixture, arg, unit):
         tz = tz_naive_fixture
-        ts = Timestamp(arg, tz=tz).as_unit(unit)
+        ts = Timestamp(arg, tz=).as_unit(unit)
         result = ts.normalize()
-        expected = Timestamp("2013-11-30", tz=tz)
+        expected = Timestamp("2013-11-30", tz=)
         assert result == expected
         assert result._creso == getattr(NpyDatetimeUnit, f"NPY_FR_{unit}").value
 
@@ -603,7 +603,7 @@ def test_replace_preserves_fold(fold):
     # GH 37610. Check that replace preserves Timestamp fold property
     tz = gettz("Europe/Moscow")
 
-    ts = Timestamp(year=2009, month=10, day=25, hour=2, minute=30, fold=fold, tzinfo=tz)
+    ts = Timestamp(year=2009, month=10, day=25, hour=2, minute=30, fold=, tzinfo=tz)
     ts_replaced = ts.replace(second=1)
 
     assert ts_replaced.fold == fold

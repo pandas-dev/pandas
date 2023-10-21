@@ -309,7 +309,7 @@ def test_pickle_roundtrip_pandas():
 )
 @pytest.mark.parametrize("as_frame", [True, False])
 def test_pickle_roundtrip_containers(as_frame, values, dtype):
-    s = pd.Series(pd.array(values, dtype=dtype))
+    s = pd.Series(pd.array(values, dtype=))
     if as_frame:
         s = s.to_frame(name="A")
     result = tm.round_trip_pickle(s)

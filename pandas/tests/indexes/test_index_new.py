@@ -83,8 +83,8 @@ class TestIndexConstructorInference:
     )
     def test_constructor_int_dtype_float(self, dtype):
         # GH#18400
-        expected = Index([0, 1, 2, 3], dtype=dtype)
-        result = Index([0.0, 1.0, 2.0, 3.0], dtype=dtype)
+        expected = Index([0, 1, 2, 3], dtype=)
+        result = Index([0.0, 1.0, 2.0, 3.0], dtype=)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("cast_index", [True, False])
@@ -198,17 +198,17 @@ class TestDtypeEnforced:
     def test_constructor_range_values_mismatched_dtype(self, dtype):
         rng = Index(range(5))
 
-        result = Index(rng, dtype=dtype)
+        result = Index(rng, dtype=)
         assert result.dtype == dtype
 
-        result = Index(range(5), dtype=dtype)
+        result = Index(range(5), dtype=)
         assert result.dtype == dtype
 
     @pytest.mark.parametrize("dtype", [object, "float64", "uint64", "category"])
     def test_constructor_categorical_values_mismatched_non_ea_dtype(self, dtype):
         cat = Categorical([1, 2, 3])
 
-        result = Index(cat, dtype=dtype)
+        result = Index(cat, dtype=)
         assert result.dtype == dtype
 
     def test_constructor_categorical_values_mismatched_dtype(self):
@@ -270,7 +270,7 @@ class TestDtypeEnforced:
         data = [np.nan]
         msg = "cannot convert"
         with pytest.raises(ValueError, match=msg):
-            Index(data, dtype=dtype)
+            Index(data, dtype=)
 
     @pytest.mark.parametrize(
         "vals",
@@ -285,7 +285,7 @@ class TestDtypeEnforced:
     )
     def test_constructor_dtypes_to_int(self, vals, any_int_numpy_dtype):
         dtype = any_int_numpy_dtype
-        index = Index(vals, dtype=dtype)
+        index = Index(vals, dtype=)
         assert index.dtype == dtype
 
     @pytest.mark.parametrize(
@@ -300,7 +300,7 @@ class TestDtypeEnforced:
     )
     def test_constructor_dtypes_to_float(self, vals, float_numpy_dtype):
         dtype = float_numpy_dtype
-        index = Index(vals, dtype=dtype)
+        index = Index(vals, dtype=)
         assert index.dtype == dtype
 
     @pytest.mark.parametrize(

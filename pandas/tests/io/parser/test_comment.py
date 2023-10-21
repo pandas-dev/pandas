@@ -23,7 +23,7 @@ def test_comment(all_parsers, na_values):
     expected = DataFrame(
         [[1.0, 2.0, 4.0], [5.0, np.nan, 10.0]], columns=["A", "B", "C"]
     )
-    result = parser.read_csv(StringIO(data), comment="#", na_values=na_values)
+    result = parser.read_csv(StringIO(data), comment="#", na_values=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -137,7 +137,7 @@ def test_comment_first_line(all_parsers, header):
     else:
         expected = DataFrame([[1, 2, 3]], columns=["a", "b", "c"])
 
-    result = parser.read_csv(StringIO(data), comment="#", header=header)
+    result = parser.read_csv(StringIO(data), comment="#", header=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -146,7 +146,7 @@ def test_comment_char_in_default_value(all_parsers, request):
     if all_parsers.engine == "c":
         reason = "see gh-34002: works on the python engine but not the c engine"
         # NA value containing comment char is interpreted as comment
-        request.applymarker(pytest.mark.xfail(reason=reason, raises=AssertionError))
+        request.applymarker(pytest.mark.xfail(reason=, raises=AssertionError))
     parser = all_parsers
 
     data = (

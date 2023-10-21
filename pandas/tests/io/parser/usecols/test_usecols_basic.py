@@ -39,7 +39,7 @@ def test_raise_on_mixed_dtype_usecols(all_parsers):
     parser = all_parsers
 
     with pytest.raises(ValueError, match=_msg_validate_usecols_arg):
-        parser.read_csv(StringIO(data), usecols=usecols)
+        parser.read_csv(StringIO(data), usecols=)
 
 
 @skip_pyarrow
@@ -52,7 +52,7 @@ a,b,c
 7,8,9
 10,11,12"""
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), usecols=usecols)
+    result = parser.read_csv(StringIO(data), usecols=)
 
     expected = DataFrame([[2, 3], [5, 6], [8, 9], [11, 12]], columns=["b", "c"])
     tm.assert_frame_equal(result, expected)
@@ -68,7 +68,7 @@ a,b,c
 10,11,12"""
     parser = all_parsers
     names = ["foo", "bar"]
-    result = parser.read_csv(StringIO(data), names=names, usecols=[1, 2], header=0)
+    result = parser.read_csv(StringIO(data), names=, usecols=[1, 2], header=0)
 
     expected = DataFrame([[2, 3], [5, 6], [8, 9], [11, 12]], columns=names)
     tm.assert_frame_equal(result, expected)
@@ -85,7 +85,7 @@ def test_usecols_relative_to_names(all_parsers, names, usecols):
 7,8,9
 10,11,12"""
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), names=names, header=None, usecols=usecols)
+    result = parser.read_csv(StringIO(data), names=, header=None, usecols=)
 
     expected = DataFrame([[2, 3], [5, 6], [8, 9], [11, 12]], columns=["b", "c"])
     tm.assert_frame_equal(result, expected)
@@ -143,7 +143,7 @@ def test_usecols_index_col_false(all_parsers, data):
     usecols = ["a", "c", "d"]
     expected = DataFrame({"a": [1, 5], "c": [3, 7], "d": [4, 8]})
 
-    result = parser.read_csv(StringIO(data), usecols=usecols, index_col=False)
+    result = parser.read_csv(StringIO(data), usecols=, index_col=False)
     tm.assert_frame_equal(result, expected)
 
 
@@ -156,7 +156,7 @@ def test_usecols_index_col_conflict(all_parsers, usecols, index_col):
     data = "a,b,c,d\nA,a,1,one\nB,b,2,two"
     expected = DataFrame({"c": [1, 2]}, index=Index(["a", "b"], name="b"))
 
-    result = parser.read_csv(StringIO(data), usecols=usecols, index_col=index_col)
+    result = parser.read_csv(StringIO(data), usecols=, index_col=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -262,7 +262,7 @@ def test_usecols_with_integer_like_header(all_parsers, usecols, expected):
 1000,2000,3000
 4000,5000,6000"""
 
-    result = parser.read_csv(StringIO(data), usecols=usecols)
+    result = parser.read_csv(StringIO(data), usecols=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -288,7 +288,7 @@ def test_np_array_usecols(all_parsers):
     if parser.engine == "pyarrow":
         warn = DeprecationWarning
     with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(StringIO(data), usecols=usecols)
+        result = parser.read_csv(StringIO(data), usecols=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -321,7 +321,7 @@ def test_callable_usecols(all_parsers, usecols, expected):
 3.568935038,7,False,a"""
     parser = all_parsers
 
-    result = parser.read_csv(StringIO(data), usecols=usecols)
+    result = parser.read_csv(StringIO(data), usecols=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -334,7 +334,7 @@ def test_incomplete_first_row(all_parsers, usecols):
     names = ["a", "b", "c"]
     expected = DataFrame({"a": [1, 1], "c": [np.nan, 3]})
 
-    result = parser.read_csv(StringIO(data), names=names, usecols=usecols)
+    result = parser.read_csv(StringIO(data), names=, usecols=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -367,7 +367,7 @@ def test_incomplete_first_row(all_parsers, usecols):
 def test_uneven_length_cols(all_parsers, data, usecols, kwargs, expected):
     # see gh-8985
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), usecols=usecols, **kwargs)
+    result = parser.read_csv(StringIO(data), usecols=, **kwargs)
     tm.assert_frame_equal(result, expected)
 
 
@@ -417,7 +417,7 @@ def test_uneven_length_cols(all_parsers, data, usecols, kwargs, expected):
 )
 def test_raises_on_usecols_names_mismatch(all_parsers, usecols, kwargs, expected, msg):
     data = "a,b,c,d\n1,2,3,4\n5,6,7,8"
-    kwargs.update(usecols=usecols)
+    kwargs.update(usecols=)
     parser = all_parsers
 
     if expected is None:
@@ -435,7 +435,7 @@ def test_usecols_subset_names_mismatch_orig_columns(all_parsers, usecols):
     names = ["A", "B", "C", "D"]
     parser = all_parsers
 
-    result = parser.read_csv(StringIO(data), header=0, names=names, usecols=usecols)
+    result = parser.read_csv(StringIO(data), header=0, names=, usecols=)
     expected = DataFrame({"A": [1, 5], "C": [3, 7]})
     tm.assert_frame_equal(result, expected)
 
@@ -450,7 +450,7 @@ a,b
 1,2
     """
     with pytest.raises(ParserError, match="Defining usecols without of bounds"):
-        parser.read_csv(StringIO(data), usecols=[0, 2], names=names, header=0)
+        parser.read_csv(StringIO(data), usecols=[0, 2], names=, header=0)
 
 
 @skip_pyarrow
@@ -458,7 +458,7 @@ def test_usecols_additional_columns(all_parsers):
     # GH#46997
     parser = all_parsers
     usecols = lambda header: header.strip() in ["a", "b", "c"]
-    result = parser.read_csv(StringIO("a,b\nx,y,z"), index_col=False, usecols=usecols)
+    result = parser.read_csv(StringIO("a,b\nx,y,z"), index_col=False, usecols=)
     expected = DataFrame({"a": ["x"], "b": "y"})
     tm.assert_frame_equal(result, expected)
 
@@ -468,7 +468,7 @@ def test_usecols_additional_columns_integer_columns(all_parsers):
     # GH#46997
     parser = all_parsers
     usecols = lambda header: header.strip() in ["0", "1"]
-    result = parser.read_csv(StringIO("0,1\nx,y,z"), index_col=False, usecols=usecols)
+    result = parser.read_csv(StringIO("0,1\nx,y,z"), index_col=False, usecols=)
     expected = DataFrame({"0": ["x"], "1": "y"})
     tm.assert_frame_equal(result, expected)
 

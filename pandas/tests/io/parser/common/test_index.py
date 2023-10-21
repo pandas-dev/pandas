@@ -103,9 +103,9 @@ bar,two,12,13,14,15
     parser = all_parsers
 
     result = parser.read_csv(
-        StringIO(headless_data), index_col=index_col, header=None, names=names
+        StringIO(headless_data), index_col=, header=None, names=
     )
-    expected = parser.read_csv(StringIO(data), index_col=index_col)
+    expected = parser.read_csv(StringIO(data), index_col=)
 
     # No index names in headless data.
     expected.index.names = [None] * 2
@@ -164,7 +164,7 @@ def test_multi_index_blank_df(all_parsers, data, expected, header, round_trip):
     parser = all_parsers
     data = expected.to_csv(index=False) if round_trip else data
 
-    result = parser.read_csv(StringIO(data), header=header)
+    result = parser.read_csv(StringIO(data), header=)
     tm.assert_frame_equal(result, expected)
 
 

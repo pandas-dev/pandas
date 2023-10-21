@@ -132,11 +132,11 @@ class TestDataFrameShift:
         # 32-bit taking
         # GH#8129
         index = date_range("2000-01-01", periods=5)
-        arr = np.arange(5, dtype=dtype)
-        s1 = frame_or_series(arr, index=index)
+        arr = np.arange(5, dtype=)
+        s1 = frame_or_series(arr, index=)
         p = arr[1]
         result = s1.shift(periods=p)
-        expected = frame_or_series([np.nan, 0, 1, 2, 3], index=index)
+        expected = frame_or_series([np.nan, 0, 1, 2, 3], index=)
         tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize("periods", [1, 2, 3, 4])
@@ -144,14 +144,14 @@ class TestDataFrameShift:
         # GH#21275
         obj = frame_or_series(
             range(periods),
-            index=date_range("2016-1-1 00:00:00", periods=periods, freq="h"),
+            index=date_range("2016-1-1 00:00:00", periods=, freq="h"),
         )
 
         result = obj.shift(1, "2h")
 
         expected = frame_or_series(
             range(periods),
-            index=date_range("2016-1-1 02:00:00", periods=periods, freq="h"),
+            index=date_range("2016-1-1 02:00:00", periods=, freq="h"),
         )
         tm.assert_equal(result, expected)
 
@@ -407,7 +407,7 @@ class TestDataFrameShift:
 
         shifted = []
         for columns in column_lists:
-            df = DataFrame(data.copy(), columns=columns)
+            df = DataFrame(data.copy(), columns=)
             for s in range(5):
                 df.iloc[:, s] = df.iloc[:, s].shift(s + 1)
             df.columns = range(5)

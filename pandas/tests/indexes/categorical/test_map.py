@@ -20,10 +20,10 @@ import pandas._testing as tm
 )
 def test_map_str(data, categories, ordered):
     # GH 31202 - override base class since we want to maintain categorical/ordered
-    index = CategoricalIndex(data, categories=categories, ordered=ordered)
+    index = CategoricalIndex(data, categories=, ordered=)
     result = index.map(str)
     expected = CategoricalIndex(
-        map(str, data), categories=map(str, categories), ordered=ordered
+        map(str, data), categories=map(str, categories), ordered=
     )
     tm.assert_index_equal(result, expected)
 

@@ -32,7 +32,7 @@ class TestEquals:
         # Add object dtype column with nans
         index = np.random.default_rng(2).random(10)
         df1 = DataFrame(
-            np.random.default_rng(2).random(10), index=index, columns=["floats"]
+            np.random.default_rng(2).random(10), index=, columns=["floats"]
         )
         df1["text"] = "the sky is so blue. we could use more chocolate.".split()
         df1["start"] = date_range("2000-1-1", periods=10, freq="min")

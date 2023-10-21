@@ -80,21 +80,21 @@ def pivot_table(
         for func in aggfunc:
             _table = __internal_pivot_table(
                 data,
-                values=values,
-                index=index,
-                columns=columns,
-                fill_value=fill_value,
+                values=,
+                index=,
+                columns=,
+                fill_value=,
                 aggfunc=func,
-                margins=margins,
-                dropna=dropna,
-                margins_name=margins_name,
-                observed=observed,
-                sort=sort,
+                margins=,
+                dropna=,
+                margins_name=,
+                observed=,
+                sort=,
             )
             pieces.append(_table)
             keys.append(getattr(func, "__name__", func))
 
-        table = concat(pieces, keys=keys, axis=1)
+        table = concat(pieces, keys=, axis=1)
         return table.__finalize__(data, method="pivot_table")
 
     table = __internal_pivot_table(
@@ -166,7 +166,7 @@ def __internal_pivot_table(
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys, observed=observed, sort=sort, dropna=dropna)
+    grouped = data.groupby(keys, observed=, sort=, dropna=)
     agged = grouped.agg(aggfunc)
 
     if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
@@ -187,20 +187,20 @@ def __internal_pivot_table(
                 to_unstack.append(i)
             else:
                 to_unstack.append(name)
-        table = agged.unstack(to_unstack, fill_value=fill_value)
+        table = agged.unstack(to_unstack, fill_value=)
 
     if not dropna:
         if isinstance(table.index, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.index.levels), names=table.index.names
             )
-            table = table.reindex(m, axis=0, fill_value=fill_value)
+            table = table.reindex(m, axis=0, fill_value=)
 
         if isinstance(table.columns, MultiIndex):
             m = MultiIndex.from_arrays(
                 cartesian_product(table.columns.levels), names=table.columns.names
             )
-            table = table.reindex(m, axis=1, fill_value=fill_value)
+            table = table.reindex(m, axis=1, fill_value=)
 
     if sort is True and isinstance(table, ABCDataFrame):
         table = table.sort_index(axis=1)
@@ -221,10 +221,10 @@ def __internal_pivot_table(
             values,
             rows=index,
             cols=columns,
-            aggfunc=aggfunc,
+            aggfunc=,
             observed=dropna,
-            margins_name=margins_name,
-            fill_value=fill_value,
+            margins_name=,
+            fill_value=,
         )
 
     # discard the top level
@@ -295,7 +295,7 @@ def _add_margins(
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
 
-    row_margin = row_margin.reindex(result.columns, fill_value=fill_value)
+    row_margin = row_margin.reindex(result.columns, fill_value=)
     # populate grand margin
     for k in margin_keys:
         if isinstance(k, str):
@@ -367,10 +367,10 @@ def _generate_marginal_results(
             return (key, margins_name) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[rows + values].groupby(rows, observed=observed).agg(aggfunc)
+            margin = data[rows + values].groupby(rows, observed=).agg(aggfunc)
             cat_axis = 1
 
-            for key, piece in table.T.groupby(level=0, observed=observed):
+            for key, piece in table.T.groupby(level=0, observed=):
                 piece = piece.T
                 all_key = _all_key(key)
 
@@ -384,7 +384,7 @@ def _generate_marginal_results(
             from pandas import DataFrame
 
             cat_axis = 0
-            for key, piece in table.groupby(level=0, observed=observed):
+            for key, piece in table.groupby(level=0, observed=):
                 if len(cols) > 1:
                     all_key = _all_key(key)
                 else:
@@ -418,7 +418,7 @@ def _generate_marginal_results(
         margin_keys = table.columns
 
     if len(cols) > 0:
-        row_margin = data[cols + values].groupby(cols, observed=observed).agg(aggfunc)
+        row_margin = data[cols + values].groupby(cols, observed=).agg(aggfunc)
         row_margin = row_margin.stack(future_stack=True)
 
         # slight hack
@@ -450,14 +450,14 @@ def _generate_marginal_results_without_values(
             return (margins_name,) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data.groupby(rows, observed=observed)[rows].apply(aggfunc)
+            margin = data.groupby(rows, observed=)[rows].apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
             margin_keys.append(all_key)
 
         else:
-            margin = data.groupby(level=0, axis=0, observed=observed).apply(aggfunc)
+            margin = data.groupby(level=0, axis=0, observed=).apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -468,7 +468,7 @@ def _generate_marginal_results_without_values(
         margin_keys = table.columns
 
     if len(cols):
-        row_margin = data.groupby(cols, observed=observed)[cols].apply(aggfunc)
+        row_margin = data.groupby(cols, observed=)[cols].apply(aggfunc)
     else:
         row_margin = Series(np.nan, index=result.columns)
 
@@ -714,17 +714,15 @@ def crosstab(
         "__dummy__",
         index=unique_rownames,
         columns=unique_colnames,
-        margins=margins,
-        margins_name=margins_name,
-        dropna=dropna,
+        margins=,
+        margins_name=,
+        dropna=,
         **kwargs,  # type: ignore[arg-type]
     )
 
     # Post-process
     if normalize is not False:
-        table = _normalize(
-            table, normalize=normalize, margins=margins, margins_name=margins_name
-        )
+        table = _normalize(table, normalize=, margins=, margins_name=)
 
     table = table.rename_axis(index=rownames_mapper, axis=0)
     table = table.rename_axis(columns=colnames_mapper, axis=1)
@@ -777,7 +775,7 @@ def _normalize(
         table = table.iloc[:-1, :-1]
 
         # Normalize core
-        table = _normalize(table, normalize=normalize, margins=False)
+        table = _normalize(table, normalize=, margins=False)
 
         # Fix Margins
         if normalize == "columns":

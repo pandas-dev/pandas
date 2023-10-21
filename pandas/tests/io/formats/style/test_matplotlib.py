@@ -97,7 +97,7 @@ def test_background_gradient_axis(styler, axis, expected, f):
             "mid": [("color", "#abd0e6")],
             "high": [("color", "#08306b")],
         }
-    result = getattr(styler, f)(cmap="Blues", axis=axis)._compute().ctx
+    result = getattr(styler, f)(cmap="Blues", axis=)._compute().ctx
     for i, cell in enumerate([(0, 0), (0, 1), (1, 0), (1, 1)]):
         assert result[cell] == colors[expected[i]]
 
@@ -131,7 +131,7 @@ def test_background_gradient_axis(styler, axis, expected, f):
 def test_text_color_threshold(cmap, expected):
     # GH 39888
     df = DataFrame(np.arange(100).reshape(10, 10))
-    result = df.style.background_gradient(cmap=cmap, axis=None)._compute().ctx
+    result = df.style.background_gradient(cmap=, axis=None)._compute().ctx
     for k in expected.keys():
         assert result[k] == expected[k]
 
@@ -192,7 +192,7 @@ def test_background_gradient_int64():
 )
 def test_background_gradient_gmap_array(styler_blank, axis, gmap, expected):
     # tests when gmap is given as a sequence and converted to ndarray
-    result = styler_blank.background_gradient(axis=axis, gmap=gmap)._compute().ctx
+    result = styler_blank.background_gradient(axis=, gmap=)._compute().ctx
     assert result == expected
 
 
@@ -204,7 +204,7 @@ def test_background_gradient_gmap_array_raises(gmap, axis):
     df = DataFrame([[0, 0, 0], [0, 0, 0]])
     msg = "supplied 'gmap' is not correct shape"
     with pytest.raises(ValueError, match=msg):
-        df.style.background_gradient(gmap=gmap, axis=axis)._compute()
+        df.style.background_gradient(gmap=, axis=)._compute()
 
 
 @pytest.mark.parametrize(
@@ -239,8 +239,8 @@ def test_background_gradient_gmap_array_raises(gmap, axis):
 )
 def test_background_gradient_gmap_dataframe_align(styler_blank, gmap, subset, exp_gmap):
     # test gmap given as DataFrame that it aligns to the data including subset
-    expected = styler_blank.background_gradient(axis=None, gmap=exp_gmap, subset=subset)
-    result = styler_blank.background_gradient(axis=None, gmap=gmap, subset=subset)
+    expected = styler_blank.background_gradient(axis=None, gmap=exp_gmap, subset=)
+    result = styler_blank.background_gradient(axis=None, gmap=, subset=)
     assert expected._compute().ctx == result._compute().ctx
 
 
@@ -256,7 +256,7 @@ def test_background_gradient_gmap_dataframe_align(styler_blank, gmap, subset, ex
 def test_background_gradient_gmap_series_align(styler_blank, gmap, axis, exp_gmap):
     # test gmap given as Series that it aligns to the data including subset
     expected = styler_blank.background_gradient(axis=None, gmap=exp_gmap)._compute()
-    result = styler_blank.background_gradient(axis=axis, gmap=gmap)._compute()
+    result = styler_blank.background_gradient(axis=, gmap=)._compute()
     assert expected.ctx == result.ctx
 
 
@@ -271,7 +271,7 @@ def test_background_gradient_gmap_wrong_dataframe(styler_blank, gmap, axis):
     # test giving a gmap in DataFrame but with wrong axis
     msg = "'gmap' is a DataFrame but underlying data for operations is a Series"
     with pytest.raises(ValueError, match=msg):
-        styler_blank.background_gradient(gmap=gmap, axis=axis)._compute()
+        styler_blank.background_gradient(gmap=, axis=)._compute()
 
 
 def test_background_gradient_gmap_wrong_series(styler_blank):
@@ -279,7 +279,7 @@ def test_background_gradient_gmap_wrong_series(styler_blank):
     msg = "'gmap' is a Series but underlying data for operations is a DataFrame"
     gmap = Series([1, 2], index=["X", "Y"])
     with pytest.raises(ValueError, match=msg):
-        styler_blank.background_gradient(gmap=gmap, axis=None)._compute()
+        styler_blank.background_gradient(gmap=, axis=None)._compute()
 
 
 def test_background_gradient_nullable_dtypes():
@@ -298,7 +298,7 @@ def test_background_gradient_nullable_dtypes():
 )
 def test_bar_colormap(cmap):
     data = DataFrame([[1, 2], [3, 4]])
-    ctx = data.style.bar(cmap=cmap, axis=None)._compute().ctx
+    ctx = data.style.bar(cmap=, axis=None)._compute().ctx
     pubu_colors = {
         (0, 0): "#d0d1e6",
         (1, 0): "#056faf",

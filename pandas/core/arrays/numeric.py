@@ -156,7 +156,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
         return values, mask, dtype, inferred_type
 
     original = values
-    values = np.array(values, copy=copy)
+    values = np.array(values, copy=)
     inferred_type = None
     if values.dtype == object or is_string_dtype(values.dtype):
         inferred_type = lib.infer_dtype(values, skipna=True)
@@ -165,7 +165,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
             raise TypeError(f"{values.dtype} cannot be converted to {name}")
 
     elif values.dtype.kind == "b" and checker(dtype):
-        values = np.array(values, dtype=default_dtype, copy=copy)
+        values = np.array(values, dtype=default_dtype, copy=)
 
     elif values.dtype.kind not in "iuf":
         name = dtype_cls.__name__.strip("_")
@@ -194,7 +194,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
 
     if is_integer_dtype(dtype) and values.dtype.kind == "f" and len(values) > 0:
         if mask.all():
-            values = np.ones(values.shape, dtype=dtype)
+            values = np.ones(values.shape, dtype=)
         else:
             idx = np.nanargmax(values)
             if int(values[idx]) != original[idx]:
@@ -204,7 +204,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
                     inferred_type not in ["floating", "mixed-integer-float"]
                     and not mask.any()
                 ):
-                    values = np.array(original, dtype=dtype, copy=False)
+                    values = np.array(original, dtype=, copy=False)
                 else:
                     values = np.array(original, dtype="object", copy=False)
 
@@ -215,7 +215,7 @@ def _coerce_to_data_and_mask(values, mask, dtype, copy, dtype_cls, default_dtype
     if inferred_type in ("string", "unicode"):
         # casts from str are always safe since they raise
         # a ValueError if the str cannot be parsed into a float
-        values = values.astype(dtype, copy=copy)
+        values = values.astype(dtype, copy=)
     else:
         values = dtype_cls._safe_cast(values, dtype, copy=False)
 
@@ -247,7 +247,7 @@ class NumericArray(BaseMaskedArray):
             # If we don't raise here, then accessing self.dtype would raise
             raise TypeError("FloatingArray does not support np.float16 dtype.")
 
-        super().__init__(values, mask, copy=copy)
+        super().__init__(values, mask, copy=)
 
     @cache_readonly
     def dtype(self) -> NumericDtype:
@@ -273,6 +273,6 @@ class NumericArray(BaseMaskedArray):
         from pandas.core.tools.numeric import to_numeric
 
         scalars = to_numeric(strings, errors="raise", dtype_backend="numpy_nullable")
-        return cls._from_sequence(scalars, dtype=dtype, copy=copy)
+        return cls._from_sequence(scalars, dtype=, copy=)
 
     _HANDLED_TYPES = (np.ndarray, numbers.Number)

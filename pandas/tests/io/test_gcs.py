@@ -152,17 +152,17 @@ def test_to_csv_compression_encoding_gcs(
     if compression_only == "gzip":
         compression["mtime"] = 1  # be reproducible
     buffer = BytesIO()
-    df.to_csv(buffer, compression=compression, encoding=encoding, mode="wb")
+    df.to_csv(buffer, compression=, encoding=, mode="wb")
 
     # write compressed file with explicit compression
     path_gcs = "gs://test/test.csv"
-    df.to_csv(path_gcs, compression=compression, encoding=encoding)
+    df.to_csv(path_gcs, compression=, encoding=)
     res = gcs_buffer.getvalue()
     expected = buffer.getvalue()
     assert_equal_zip_safe(res, expected, compression_only)
 
     read_df = read_csv(
-        path_gcs, index_col=0, compression=compression_only, encoding=encoding
+        path_gcs, index_col=0, compression=compression_only, encoding=
     )
     tm.assert_frame_equal(df, read_df)
 
@@ -170,13 +170,13 @@ def test_to_csv_compression_encoding_gcs(
     file_ext = compression_to_extension[compression_only]
     compression["method"] = "infer"
     path_gcs += f".{file_ext}"
-    df.to_csv(path_gcs, compression=compression, encoding=encoding)
+    df.to_csv(path_gcs, compression=, encoding=)
 
     res = gcs_buffer.getvalue()
     expected = buffer.getvalue()
     assert_equal_zip_safe(res, expected, compression_only)
 
-    read_df = read_csv(path_gcs, index_col=0, compression="infer", encoding=encoding)
+    read_df = read_csv(path_gcs, index_col=0, compression="infer", encoding=)
     tm.assert_frame_equal(df, read_df)
 
 

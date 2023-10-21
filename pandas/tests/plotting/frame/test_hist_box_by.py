@@ -68,7 +68,7 @@ class TestHistWithBy:
     def test_hist_plot_by_argument(self, by, column, titles, legends, hist_df):
         # GH 15079
         axes = _check_plot_works(
-            hist_df.plot.hist, column=column, by=by, default_axes=True
+            hist_df.plot.hist, column=, by=, default_axes=True
         )
         result_titles = [ax.get_title() for ax in axes]
         result_legends = [
@@ -100,7 +100,7 @@ class TestHistWithBy:
         df = hist_df.copy()
         df = df.rename(columns={"C": 0})
 
-        axes = _check_plot_works(df.plot.hist, default_axes=True, column=column, by=by)
+        axes = _check_plot_works(df.plot.hist, default_axes=True, column=, by=)
         result_titles = [ax.get_title() for ax in axes]
         result_legends = [
             [legend.get_text() for legend in ax.get_legend().texts] for ax in axes
@@ -123,7 +123,7 @@ class TestHistWithBy:
         msg = "No group keys passed"
         with pytest.raises(ValueError, match=msg):
             _check_plot_works(
-                hist_df.plot.hist, default_axes=True, column=column, by=by
+                hist_df.plot.hist, default_axes=True, column=, by=
             )
 
     @pytest.mark.slow
@@ -147,10 +147,8 @@ class TestHistWithBy:
         # GH 15079
         # _check_plot_works adds an ax so catch warning. see GH #13188
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            axes = _check_plot_works(
-                hist_df.plot.hist, column=column, by=by, layout=layout
-            )
-        _check_axes_shape(axes, axes_num=axes_num, layout=layout)
+            axes = _check_plot_works(hist_df.plot.hist, column=, by=, layout=)
+        _check_axes_shape(axes, axes_num=, layout=)
 
     @pytest.mark.parametrize(
         "msg, by, layout",
@@ -164,7 +162,7 @@ class TestHistWithBy:
         # GH 15079, test if error is raised when invalid layout is given
 
         with pytest.raises(ValueError, match=msg):
-            hist_df.plot.hist(column=["A", "B"], by=by, layout=layout)
+            hist_df.plot.hist(column=["A", "B"], by=, layout=)
 
     @pytest.mark.slow
     def test_axis_share_x_with_by(self, hist_df):
@@ -203,8 +201,8 @@ class TestHistWithBy:
     @pytest.mark.parametrize("figsize", [(12, 8), (20, 10)])
     def test_figure_shape_hist_with_by(self, figsize, hist_df):
         # GH 15079
-        axes = hist_df.plot.hist(column="A", by="C", figsize=figsize)
-        _check_axes_shape(axes, axes_num=3, figsize=figsize)
+        axes = hist_df.plot.hist(column="A", by="C", figsize=)
+        _check_axes_shape(axes, axes_num=3, figsize=)
 
 
 class TestBoxWithBy:
@@ -244,7 +242,7 @@ class TestBoxWithBy:
     def test_box_plot_by_argument(self, by, column, titles, xticklabels, hist_df):
         # GH 15079
         axes = _check_plot_works(
-            hist_df.plot.box, default_axes=True, column=column, by=by
+            hist_df.plot.box, default_axes=True, column=, by=
         )
         result_titles = [ax.get_title() for ax in axes]
         result_xticklabels = [
@@ -278,7 +276,7 @@ class TestBoxWithBy:
         df = hist_df.copy()
         df = df.rename(columns={"C": 0})
 
-        axes = _check_plot_works(df.plot.box, default_axes=True, column=column, by=by)
+        axes = _check_plot_works(df.plot.box, default_axes=True, column=, by=)
         result_titles = [ax.get_title() for ax in axes]
         result_xticklabels = [
             [label.get_text() for label in ax.get_xticklabels()] for ax in axes
@@ -300,7 +298,7 @@ class TestBoxWithBy:
         # GH 15079
         msg = "No group keys passed"
         with pytest.raises(ValueError, match=msg):
-            _check_plot_works(hist_df.plot.box, default_axes=True, column=column, by=by)
+            _check_plot_works(hist_df.plot.box, default_axes=True, column=, by=)
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
@@ -317,9 +315,9 @@ class TestBoxWithBy:
     def test_box_plot_layout_with_by(self, by, column, layout, axes_num, hist_df):
         # GH 15079
         axes = _check_plot_works(
-            hist_df.plot.box, default_axes=True, column=column, by=by, layout=layout
+            hist_df.plot.box, default_axes=True, column=, by=, layout=
         )
-        _check_axes_shape(axes, axes_num=axes_num, layout=layout)
+        _check_axes_shape(axes, axes_num=, layout=)
 
     @pytest.mark.parametrize(
         "msg, by, layout",
@@ -333,10 +331,10 @@ class TestBoxWithBy:
         # GH 15079, test if error is raised when invalid layout is given
 
         with pytest.raises(ValueError, match=msg):
-            hist_df.plot.box(column=["A", "B"], by=by, layout=layout)
+            hist_df.plot.box(column=["A", "B"], by=, layout=)
 
     @pytest.mark.parametrize("figsize", [(12, 8), (20, 10)])
     def test_figure_shape_hist_with_by(self, figsize, hist_df):
         # GH 15079
-        axes = hist_df.plot.box(column="A", by="C", figsize=figsize)
-        _check_axes_shape(axes, axes_num=1, figsize=figsize)
+        axes = hist_df.plot.box(column="A", by="C", figsize=)
+        _check_axes_shape(axes, axes_num=1, figsize=)

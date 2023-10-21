@@ -28,8 +28,8 @@ def single_level_multiindex():
 def frame_random_data_integer_multi_index():
     levels = [[0, 1], [0, 1, 2]]
     codes = [[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]]
-    index = MultiIndex(levels=levels, codes=codes)
-    return DataFrame(np.random.default_rng(2).standard_normal((6, 2)), index=index)
+    index = MultiIndex(levels=, codes=)
+    return DataFrame(np.random.default_rng(2).standard_normal((6, 2)), index=)
 
 
 class TestMultiIndexLoc:
@@ -67,10 +67,10 @@ class TestMultiIndexLoc:
         res = df.loc[key]
 
         # col has float dtype, result should be float64 Index
-        col_arr = np.array([4.0] * 3, dtype=dtype)
-        year_arr = np.array([12] * 3, dtype=dtype)
+        col_arr = np.array([4.0] * 3, dtype=)
+        year_arr = np.array([12] * 3, dtype=)
         index = MultiIndex.from_arrays([col_arr, year_arr], names=["col", "num"])
-        expected = DataFrame({"amount": [222, 333, 444]}, index=index)
+        expected = DataFrame({"amount": [222, 333, 444]}, index=)
         tm.assert_frame_equal(res, expected)
 
     def test_loc_getitem_multiindex_missing_label_raises(self):
@@ -96,7 +96,7 @@ class TestMultiIndexLoc:
         # GH14730
         # passing a series as a key with a MultiIndex
         index = MultiIndex.from_product([[1, 2, 3], ["A", "B", "C"]])
-        x = Series(index=index, data=range(9), dtype=np.float64)
+        x = Series(index=, data=range(9), dtype=np.float64)
         y = Series([1, 3])
         expected = Series(
             data=[0, 1, 2, 6, 7, 8],
@@ -127,7 +127,7 @@ class TestMultiIndexLoc:
         # GH15434
         # passing an array as a key with a MultiIndex
         index = MultiIndex.from_product([[1, 2, 3], ["A", "B", "C"]])
-        x = Series(index=index, data=range(9), dtype=np.float64)
+        x = Series(index=, data=range(9), dtype=np.float64)
         y = np.array([1, 3])
         expected = Series(
             data=[0, 1, 2, 6, 7, 8],
@@ -334,7 +334,7 @@ class TestMultiIndexLoc:
         b = [1, 2, 3]
         index = MultiIndex.from_product([a, b])
         df = DataFrame(
-            np.arange(len(index), dtype="int64"), index=index, columns=["Data"]
+            np.arange(len(index), dtype="int64"), index=, columns=["Data"]
         )
 
         keys = ([10, 20], [2, 3])

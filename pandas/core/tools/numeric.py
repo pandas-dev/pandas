@@ -222,7 +222,7 @@ def to_numeric(
             values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]  # noqa: E501
                 values,
                 set(),
-                coerce_numeric=coerce_numeric,
+                coerce_numeric=,
                 convert_to_masked_nullable=dtype_backend is not lib.no_default
                 or isinstance(values_dtype, StringDtype),
             )

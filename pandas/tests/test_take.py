@@ -45,14 +45,14 @@ class TestTake:
         data = np.random.default_rng(2).integers(0, 2, 4).astype(dtype)
         indexer = [2, 1, 0, -1]
 
-        result = algos.take_nd(data, indexer, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, fill_value=)
         assert (result[[0, 1, 2]] == data[[2, 1, 0]]).all()
         assert result[3] == fill_value
         assert result.dtype == out_dtype
 
         indexer = [2, 1, 0, 1]
 
-        result = algos.take_nd(data, indexer, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, fill_value=)
         assert (result[[0, 1, 2, 3]] == data[indexer]).all()
         assert result.dtype == dtype
 
@@ -61,22 +61,22 @@ class TestTake:
         data = np.random.default_rng(2).integers(0, 2, (5, 3)).astype(dtype)
         indexer = [2, 1, 0, -1]
 
-        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, axis=0, fill_value=)
         assert (result[[0, 1, 2], :] == data[[2, 1, 0], :]).all()
         assert (result[3, :] == fill_value).all()
         assert result.dtype == out_dtype
 
-        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, axis=1, fill_value=)
         assert (result[:, [0, 1, 2]] == data[:, [2, 1, 0]]).all()
         assert (result[:, 3] == fill_value).all()
         assert result.dtype == out_dtype
 
         indexer = [2, 1, 0, 1]
-        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, axis=0, fill_value=)
         assert (result[[0, 1, 2, 3], :] == data[indexer, :]).all()
         assert result.dtype == dtype
 
-        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, axis=1, fill_value=)
         assert (result[:, [0, 1, 2, 3]] == data[:, indexer]).all()
         assert result.dtype == dtype
 
@@ -86,31 +86,31 @@ class TestTake:
         data = np.random.default_rng(2).integers(0, 2, (5, 4, 3)).astype(dtype)
         indexer = [2, 1, 0, -1]
 
-        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, axis=0, fill_value=)
         assert (result[[0, 1, 2], :, :] == data[[2, 1, 0], :, :]).all()
         assert (result[3, :, :] == fill_value).all()
         assert result.dtype == out_dtype
 
-        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, axis=1, fill_value=)
         assert (result[:, [0, 1, 2], :] == data[:, [2, 1, 0], :]).all()
         assert (result[:, 3, :] == fill_value).all()
         assert result.dtype == out_dtype
 
-        result = algos.take_nd(data, indexer, axis=2, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, axis=2, fill_value=)
         assert (result[:, :, [0, 1, 2]] == data[:, :, [2, 1, 0]]).all()
         assert (result[:, :, 3] == fill_value).all()
         assert result.dtype == out_dtype
 
         indexer = [2, 1, 0, 1]
-        result = algos.take_nd(data, indexer, axis=0, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, axis=0, fill_value=)
         assert (result[[0, 1, 2, 3], :, :] == data[indexer, :, :]).all()
         assert result.dtype == dtype
 
-        result = algos.take_nd(data, indexer, axis=1, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, axis=1, fill_value=)
         assert (result[:, [0, 1, 2, 3], :] == data[:, indexer, :]).all()
         assert result.dtype == dtype
 
-        result = algos.take_nd(data, indexer, axis=2, fill_value=fill_value)
+        result = algos.take_nd(data, indexer, axis=2, fill_value=)
         assert (result[:, :, [0, 1, 2, 3]] == data[:, :, indexer]).all()
         assert result.dtype == dtype
 
@@ -281,7 +281,7 @@ class TestExtensionTake:
     def test_take_empty(self, allow_fill):
         arr = np.array([], dtype=np.int64)
         # empty take is ok
-        result = algos.take(arr, [], allow_fill=allow_fill)
+        result = algos.take(arr, [], allow_fill=)
         tm.assert_numpy_array_equal(arr, result)
 
         msg = "|".join(
@@ -291,7 +291,7 @@ class TestExtensionTake:
             ]
         )
         with pytest.raises(IndexError, match=msg):
-            algos.take(arr, [0], allow_fill=allow_fill)
+            algos.take(arr, [0], allow_fill=)
 
     def test_take_na_empty(self):
         result = algos.take(np.array([]), [-1, -1], allow_fill=True, fill_value=0.0)

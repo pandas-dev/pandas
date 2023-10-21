@@ -362,7 +362,7 @@ def test_frame1():
             0.67525259227,
         ),
     ]
-    return DataFrame(data, columns=columns)
+    return DataFrame(data, columns=)
 
 
 @pytest.fixture
@@ -374,7 +374,7 @@ def test_frame3():
         ("2000-01-05 00:00:00", 20000, 0.731167677815),
         ("2000-01-06 00:00:00", -290867, 1.56762092543),
     ]
-    return DataFrame(data, columns=columns)
+    return DataFrame(data, columns=)
 
 
 def get_all_views(conn):
@@ -691,7 +691,7 @@ def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
 def test_to_sql(conn, method, test_frame1, request):
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
-        pandasSQL.to_sql(test_frame1, "test_frame", method=method)
+        pandasSQL.to_sql(test_frame1, "test_frame", method=)
         assert pandasSQL.has_table("test_frame")
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
@@ -1136,7 +1136,7 @@ def test_read_sql_iris_parameter(conn, request, sql_strings, flavor):
     params = ("Iris-setosa", 5.1)
     with pandasSQL_builder(conn) as pandasSQL:
         with pandasSQL.run_transaction():
-            iris_frame = pandasSQL.read_query(query, params=params)
+            iris_frame = pandasSQL.read_query(query, params=)
     check_iris_frame(iris_frame)
 
 
@@ -1148,7 +1148,7 @@ def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
     params = {"name": "Iris-setosa", "length": 5.1}
     pandasSQL = pandasSQL_builder(conn)
     with pandasSQL.run_transaction():
-        iris_frame = pandasSQL.read_query(query, params=params)
+        iris_frame = pandasSQL.read_query(query, params=)
     check_iris_frame(iris_frame)
 
 
@@ -1488,7 +1488,7 @@ def test_api_to_sql_index_label(conn, request, index_name, index_label, expected
     temp_frame = DataFrame({"col1": range(4)})
     temp_frame.index.name = index_name
     query = "SELECT * FROM test_index_label"
-    sql.to_sql(temp_frame, "test_index_label", conn, index_label=index_label)
+    sql.to_sql(temp_frame, "test_index_label", conn, index_label=)
     frame = sql.read_sql_query(query, conn)
     assert frame.columns[0] == expected
 
@@ -1610,7 +1610,7 @@ def test_api_dtype_argument(conn, request, dtype):
         query = 'SELECT "A", "B" FROM test_dtype_argument'
     else:
         query = "SELECT A, B FROM test_dtype_argument"
-    result = sql.read_sql_query(query, con=conn, dtype=dtype)
+    result = sql.read_sql_query(query, con=conn, dtype=)
 
     tm.assert_frame_equal(result, expected)
 
@@ -3049,7 +3049,7 @@ def test_read_sql_dtype_backend(
 
     with pd.option_context("mode.string_storage", string_storage):
         result = getattr(pd, func)(
-            f"Select * from {table}", conn, dtype_backend=dtype_backend
+            f"Select * from {table}", conn, dtype_backend=
         )
     expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
     tm.assert_frame_equal(result, expected)
@@ -3058,7 +3058,7 @@ def test_read_sql_dtype_backend(
         iterator = getattr(pd, func)(
             f"Select * from {table}",
             con=conn,
-            dtype_backend=dtype_backend,
+            dtype_backend=,
             chunksize=3,
         )
         expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
@@ -3094,17 +3094,12 @@ def test_read_sql_dtype_backend_table(
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
     with pd.option_context("mode.string_storage", string_storage):
-        result = getattr(pd, func)(table, conn, dtype_backend=dtype_backend)
+        result = getattr(pd, func)(table, conn, dtype_backend=)
     expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
     tm.assert_frame_equal(result, expected)
 
     with pd.option_context("mode.string_storage", string_storage):
-        iterator = getattr(pd, func)(
-            table,
-            conn,
-            dtype_backend=dtype_backend,
-            chunksize=3,
-        )
+        iterator = getattr(pd, func)(table, conn, dtype_backend=, chunksize=3)
         expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
         for result in iterator:
             tm.assert_frame_equal(result, expected)
@@ -3221,7 +3216,7 @@ def test_read_sql_dtype(conn, request, func, dtype_backend):
         f"Select * from {table}",
         conn,
         dtype={"a": np.float64},
-        dtype_backend=dtype_backend,
+        dtype_backend=,
     )
     expected = DataFrame(
         {
@@ -3318,7 +3313,7 @@ def test_read_sql_string_inference(sqlite_sqlalchemy_memory_engine):
 
     dtype = "string[pyarrow_numpy]"
     expected = DataFrame(
-        {"a": ["x", "y"]}, dtype=dtype, columns=Index(["a"], dtype=dtype)
+        {"a": ["x", "ydtype=dtype, columns=Index(["a"], dtype=)
     )
 
     tm.assert_frame_equal(result, expected)

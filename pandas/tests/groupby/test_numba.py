@@ -20,10 +20,8 @@ class TestEngine:
         func, kwargs = numba_supported_reductions
         df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        gb = df.groupby("a", sort=sort)
-        result = getattr(gb, func)(
-            engine="numba", engine_kwargs=engine_kwargs, **kwargs
-        )
+        gb = df.groupby("a", sort=)
+        result = getattr(gb, func)(engine="numba", engine_kwargs=, **kwargs)
         expected = getattr(gb, func)(**kwargs)
         tm.assert_frame_equal(result, expected)
 
@@ -33,10 +31,8 @@ class TestEngine:
         func, kwargs = numba_supported_reductions
         df = DataFrame({"a": [3, 2, 3, 2], "b": range(4), "c": range(1, 5)})
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        gb = df.groupby("a", sort=sort)["c"]
-        result = getattr(gb, func)(
-            engine="numba", engine_kwargs=engine_kwargs, **kwargs
-        )
+        gb = df.groupby("a", sort=)["c"]
+        result = getattr(gb, func)(engine="numba", engine_kwargs=, **kwargs)
         expected = getattr(gb, func)(**kwargs)
         tm.assert_series_equal(result, expected)
 
@@ -46,10 +42,8 @@ class TestEngine:
         func, kwargs = numba_supported_reductions
         ser = Series(range(3), index=[1, 2, 1], name="foo")
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        gb = ser.groupby(level=0, sort=sort)
-        result = getattr(gb, func)(
-            engine="numba", engine_kwargs=engine_kwargs, **kwargs
-        )
+        gb = ser.groupby(level=0, sort=)
+        result = getattr(gb, func)(engine="numba", engine_kwargs=, **kwargs)
         expected = getattr(gb, func)(**kwargs)
         tm.assert_series_equal(result, expected)
 

@@ -41,8 +41,8 @@ def test_inplace_mutation_resets_values():
     levels2 = [[1, 2, 3], ["a"]]
     codes = [[0, 1, 0, 2, 2, 0], [0, 0, 0, 0, 0, 0]]
 
-    mi1 = MultiIndex(levels=levels, codes=codes)
-    mi2 = MultiIndex(levels=levels2, codes=codes)
+    mi1 = MultiIndex(levels=, codes=)
+    mi2 = MultiIndex(levels=levels2, codes=)
 
     # instantiating MultiIndex should not access/cache _.values
     assert "_values" not in mi1._cache

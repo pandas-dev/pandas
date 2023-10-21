@@ -64,9 +64,9 @@ def read_spss(
         usecols = list(usecols)  # pyreadstat requires a list
 
     df, metadata = pyreadstat.read_sav(
-        stringify_path(path), usecols=usecols, apply_value_formats=convert_categoricals
+        stringify_path(path), usecols=, apply_value_formats=convert_categoricals
     )
     df.attrs = metadata.__dict__
     if dtype_backend is not lib.no_default:
-        df = df.convert_dtypes(dtype_backend=dtype_backend)
+        df = df.convert_dtypes(dtype_backend=)
     return df

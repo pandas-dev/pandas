@@ -16,7 +16,7 @@ from pandas.core.construction import sanitize_array
     ],
 )
 def test_construct_1d_ndarray_preserving_na(values, dtype, expected):
-    result = sanitize_array(values, index=None, dtype=dtype)
+    result = sanitize_array(values, index=None, dtype=)
     tm.assert_numpy_array_equal(result, expected)
 
 

@@ -70,7 +70,7 @@ class TestTranspose:
     @pytest.mark.parametrize("tz", [None, "America/New_York"])
     def test_transpose_preserves_dtindex_equality_with_dst(self, tz):
         # GH#19970
-        idx = date_range("20161101", "20161130", freq="4h", tz=tz)
+        idx = date_range("20161101", "20161130", freq="4h", tz=)
         df = DataFrame({"a": range(len(idx)), "b": range(len(idx))}, index=idx)
         result = df.T == df.T
         expected = DataFrame(True, index=list("ab"), columns=idx)
@@ -105,7 +105,7 @@ class TestTranspose:
 
         # mixed type
         index, data = tm.getMixedTypeDict()
-        mixed = DataFrame(data, index=index)
+        mixed = DataFrame(data, index=)
 
         mixed_T = mixed.T
         for col, s in mixed_T.items():

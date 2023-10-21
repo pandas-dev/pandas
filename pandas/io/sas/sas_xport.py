@@ -187,7 +187,7 @@ def _handle_truncated_float_vec(vec, nbytes):
     if nbytes != 8:
         vec1 = np.zeros(len(vec), np.dtype("S8"))
         dtype = np.dtype(f"S{nbytes},S{8 - nbytes}")
-        vec2 = vec1.view(dtype=dtype)
+        vec2 = vec1.view(dtype=)
         vec2["f0"] = vec
         return vec2
 
@@ -200,7 +200,7 @@ def _parse_float_vec(vec):
     native 8 byte floats.
     """
     dtype = np.dtype(">u4,>u4")
-    vec1 = vec.view(dtype=dtype)
+    vec1 = vec.view(dtype=)
     xport1 = vec1["f0"]
     xport2 = vec1["f1"]
 
@@ -270,9 +270,9 @@ class XportReader(ReaderBase, abc.Iterator):
         self.handles = get_handle(
             filepath_or_buffer,
             "rb",
-            encoding=encoding,
+            encoding=,
             is_text=False,
-            compression=compression,
+            compression=,
         )
         self.filepath_or_buffer = self.handles.handle
 

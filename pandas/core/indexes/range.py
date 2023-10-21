@@ -145,9 +145,9 @@ class RangeIndex(Index):
 
         # RangeIndex
         if isinstance(start, cls):
-            return start.copy(name=name)
+            return start.copy(name=)
         elif isinstance(start, range):
-            return cls._simple_new(start, name=name)
+            return cls._simple_new(start, name=)
 
         # validate the arguments
         if com.all_none(start, stop, step):
@@ -165,7 +165,7 @@ class RangeIndex(Index):
             raise ValueError("Step must not be zero")
 
         rng = range(start, stop, step)
-        return cls._simple_new(rng, name=name)
+        return cls._simple_new(rng, name=)
 
     @classmethod
     def from_range(cls, data: range, name=None, dtype: Dtype | None = None) -> Self:
@@ -190,7 +190,7 @@ class RangeIndex(Index):
                 f"range, {repr(data)} was passed"
             )
         cls._validate_dtype(dtype)
-        return cls._simple_new(data, name=name)
+        return cls._simple_new(data, name=)
 
     #  error: Argument 1 of "_simple_new" is incompatible with supertype "Index";
     #  supertype defines the argument type as
@@ -427,9 +427,7 @@ class RangeIndex(Index):
         tolerance=None,
     ) -> npt.NDArray[np.intp]:
         if com.any_not_none(method, tolerance, limit):
-            return super()._get_indexer(
-                target, method=method, tolerance=tolerance, limit=limit
-            )
+            return super()._get_indexer(target, method=, tolerance=, limit=)
 
         if self.step > 0:
             start, stop, step = self.start, self.stop, self.step
@@ -470,16 +468,16 @@ class RangeIndex(Index):
         name = self._name if name is no_default else name
 
         if values.dtype.kind == "f":
-            return Index(values, name=name, dtype=np.float64)
+            return Index(values, name=, dtype=np.float64)
         # GH 46675 & 43885: If values is equally spaced, return a
         # more memory-compact RangeIndex instead of Index with 64-bit dtype
         unique_diffs = unique_deltas(values)
         if len(unique_diffs) == 1 and unique_diffs[0] != 0:
             diff = unique_diffs[0]
             new_range = range(values[0], values[-1] + diff, diff)
-            return type(self)._simple_new(new_range, name=name)
+            return type(self)._simple_new(new_range, name=)
         else:
-            return self._constructor._simple_new(values, name=name)
+            return self._constructor._simple_new(values, name=)
 
     def _view(self) -> Self:
         result = type(self)._simple_new(self._range, name=self._name)
@@ -488,8 +486,8 @@ class RangeIndex(Index):
 
     @doc(Index.copy)
     def copy(self, name: Hashable | None = None, deep: bool = False) -> Self:
-        name = self._validate_names(name=name, deep=deep)[0]
-        new_index = self._rename(name=name)
+        name = self._validate_names(name=, deep=)[0]
+        new_index = self._rename(name=)
         return new_index
 
     def _minmax(self, meth: str):
@@ -568,10 +566,10 @@ class RangeIndex(Index):
     ):
         if key is not None:
             return super().sort_values(
-                return_indexer=return_indexer,
-                ascending=ascending,
-                na_position=na_position,
-                key=key,
+                return_indexer=,
+                ascending=,
+                na_position=,
+                key=,
             )
         else:
             sorted_index = self
@@ -601,7 +599,7 @@ class RangeIndex(Index):
         # caller is responsible for checking self and other are both non-empty
 
         if not isinstance(other, RangeIndex):
-            return super()._intersection(other, sort=sort)
+            return super()._intersection(other, sort=)
 
         first = self._range[::-1] if self.step < 0 else self._range
         second = other._range[::-1] if other.step < 0 else other._range
@@ -749,7 +747,7 @@ class RangeIndex(Index):
                     ):
                         return type(self)(start_r, end_r + step_o, step_o)
 
-        return super()._union(other, sort=sort)
+        return super()._union(other, sort=)
 
     def _difference(self, other, sort=None):
         # optimized set operation if we have another RangeIndex
@@ -758,7 +756,7 @@ class RangeIndex(Index):
         other, result_name = self._convert_can_do_setop(other)
 
         if not isinstance(other, RangeIndex):
-            return super()._difference(other, sort=sort)
+            return super()._difference(other, sort=)
 
         if sort is not False and self.step < 0:
             return self[::-1]._difference(other)
@@ -788,7 +786,7 @@ class RangeIndex(Index):
                 return self[::2]
 
             else:
-                return super()._difference(other, sort=sort)
+                return super()._difference(other, sort=)
 
         elif len(overlap) == 2 and overlap[0] == first[0] and overlap[-1] == first[-1]:
             # e.g. range(-8, 20, 7) and range(13, -9, -3)
@@ -808,7 +806,7 @@ class RangeIndex(Index):
             else:
                 # The difference is not range-like
                 # e.g. range(1, 10, 1) and range(3, 7, 1)
-                return super()._difference(other, sort=sort)
+                return super()._difference(other, sort=)
 
         else:
             # We must have len(self) > 1, bc we ruled out above
@@ -826,11 +824,11 @@ class RangeIndex(Index):
 
                 else:
                     # We can get here with  e.g. range(20) and range(0, 10, 2)
-                    return super()._difference(other, sort=sort)
+                    return super()._difference(other, sort=)
 
             else:
                 # e.g. range(10) and range(0, 10, 3)
-                return super()._difference(other, sort=sort)
+                return super()._difference(other, sort=)
 
         new_index = type(self)._simple_new(new_rng, name=res_name)
         if first is not self._range:

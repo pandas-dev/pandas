@@ -42,10 +42,10 @@ def test_mode(setup_path, tmp_path, mode):
     # constructor
     if mode in ["r", "r+"]:
         with pytest.raises(OSError, match=msg):
-            HDFStore(path, mode=mode)
+            HDFStore(path, mode=)
 
     else:
-        with HDFStore(path, mode=mode) as store:
+        with HDFStore(path, mode=) as store:
             assert store._handle.mode == mode
 
     path = tmp_path / setup_path
@@ -53,10 +53,10 @@ def test_mode(setup_path, tmp_path, mode):
     # context
     if mode in ["r", "r+"]:
         with pytest.raises(OSError, match=msg):
-            with HDFStore(path, mode=mode) as store:
+            with HDFStore(path, mode=) as store:
                 pass
     else:
-        with HDFStore(path, mode=mode) as store:
+        with HDFStore(path, mode=) as store:
             assert store._handle.mode == mode
 
     path = tmp_path / setup_path
@@ -64,10 +64,10 @@ def test_mode(setup_path, tmp_path, mode):
     # conv write
     if mode in ["r", "r+"]:
         with pytest.raises(OSError, match=msg):
-            df.to_hdf(path, key="df", mode=mode)
+            df.to_hdf(path, key="df", mode=)
         df.to_hdf(path, key="df", mode="w")
     else:
-        df.to_hdf(path, key="df", mode=mode)
+        df.to_hdf(path, key="df", mode=)
 
     # conv read
     if mode in ["w"]:
@@ -76,9 +76,9 @@ def test_mode(setup_path, tmp_path, mode):
             r"Allowed modes are r, r\+ and a."
         )
         with pytest.raises(ValueError, match=msg):
-            read_hdf(path, "df", mode=mode)
+            read_hdf(path, "df", mode=)
     else:
-        result = read_hdf(path, "df", mode=mode)
+        result = read_hdf(path, "df", mode=)
         tm.assert_frame_equal(result, df)
 
 
@@ -305,10 +305,10 @@ def test_latin_encoding(tmp_path, setup_path, dtype, val):
     key = "data"
 
     val = [x.decode(enc) if isinstance(x, bytes) else x for x in val]
-    ser = Series(val, dtype=dtype)
+    ser = Series(val, dtype=)
 
     store = tmp_path / setup_path
-    ser.to_hdf(store, key=key, format="table", encoding=enc, nan_rep=nan_rep)
+    ser.to_hdf(store, key=, format="table", encoding=enc, nan_rep=)
     retr = read_hdf(store, key)
 
     s_nan = ser.replace(nan_rep, np.nan)

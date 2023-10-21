@@ -146,7 +146,7 @@ def test_get_with_default():
     d1 = np.arange(4, dtype="int64")
 
     for data, index in ((d0, d1), (d1, d0)):
-        s = Series(data, index=index)
+        s = Series(data, index=)
         for i, d in zip(index, data):
             assert s.get(i) == d
             assert s.get(i, d) == d

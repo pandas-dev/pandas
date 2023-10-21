@@ -200,15 +200,15 @@ class TestDatetimeConcat:
         first = DataFrame([[pd.NaT], [pd.NaT]])
         first = first.apply(lambda x: x.dt.tz_localize(tz))
         second = DataFrame(
-            [[Timestamp("2015/01/01", tz=tz)], [Timestamp("2016/01/01", tz=tz)]],
+            [[Timestamp("2015/01/01", tz=tz)], [Timestamp("2016/01/01", tz=)]],
             index=[2, 3],
         )
         expected = DataFrame(
             [
                 pd.NaT,
                 pd.NaT,
-                Timestamp("2015/01/01", tz=tz),
-                Timestamp("2016/01/01", tz=tz),
+                Timestamp("2015/01/01", tz=),
+                Timestamp("2016/01/01", tz=),
             ]
         )
 

@@ -68,7 +68,7 @@ class TestSetIndex:
     def test_set_index_multiindexcolumns(self):
         columns = MultiIndex.from_tuples([("foo", 1), ("foo", 2), ("bar", 1)])
         df = DataFrame(
-            np.random.default_rng(2).standard_normal((3, 3)), columns=columns
+            np.random.default_rng(2).standard_normal((3, 3)), columns=
         )
 
         result = df.set_index(df.columns[0])
@@ -172,10 +172,10 @@ class TestSetIndex:
 
         if inplace:
             result = df.copy()
-            return_value = result.set_index(keys, drop=drop, inplace=True)
+            return_value = result.set_index(keys, drop=, inplace=True)
             assert return_value is None
         else:
-            result = df.set_index(keys, drop=drop)
+            result = df.set_index(keys, drop=)
 
         tm.assert_frame_equal(result, expected)
 
@@ -192,7 +192,7 @@ class TestSetIndex:
         expected = df.drop(keys, axis=1) if drop else df.copy()
         expected.index = idx
 
-        result = df.set_index(keys, drop=drop, append=True)
+        result = df.set_index(keys, drop=, append=True)
 
         tm.assert_frame_equal(result, expected)
 
@@ -201,12 +201,12 @@ class TestSetIndex:
     @pytest.mark.parametrize("drop", [True, False])
     def test_set_index_append_to_multiindex(self, frame_of_index_cols, drop, keys):
         # append to existing multiindex
-        df = frame_of_index_cols.set_index(["D"], drop=drop, append=True)
+        df = frame_of_index_cols.set_index(["D"], drop=, append=True)
 
         keys = keys if isinstance(keys, list) else [keys]
-        expected = frame_of_index_cols.set_index(["D"] + keys, drop=drop, append=True)
+        expected = frame_of_index_cols.set_index(["D"] + keys, drop=, append=True)
 
-        result = df.set_index(keys, drop=drop, append=True)
+        result = df.set_index(keys, drop=, append=True)
 
         tm.assert_frame_equal(result, expected)
 
@@ -248,17 +248,17 @@ class TestSetIndex:
             # list of strings gets interpreted as list of keys
             msg = "['one', 'two', 'three', 'one', 'two']"
             with pytest.raises(KeyError, match=msg):
-                df.set_index(key, drop=drop, append=append)
+                df.set_index(key, drop=, append=)
         else:
             # np.array/list-of-list "forget" the name of B
             name_mi = getattr(key, "names", None)
             name = [getattr(key, "name", None)] if name_mi is None else name_mi
 
-            result = df.set_index(key, drop=drop, append=append)
+            result = df.set_index(key, drop=, append=)
 
             # only valid column keys are dropped
             # since B is always passed as array above, nothing is dropped
-            expected = df.set_index(["B"], drop=False, append=append)
+            expected = df.set_index(["B"], drop=False, append=)
             expected.index.names = [index_name] + name if append else name
 
             tm.assert_frame_equal(result, expected)
@@ -283,11 +283,11 @@ class TestSetIndex:
         # np.array/list "forget" the name of B
         names = ["A", None if box in [np.array, list, tuple, iter] else "B"]
 
-        result = df.set_index(keys, drop=drop, append=append)
+        result = df.set_index(keys, drop=, append=)
 
         # only valid column keys are dropped
         # since B is always passed as array above, only A is dropped, if at all
-        expected = df.set_index(["A", "B"], drop=False, append=append)
+        expected = df.set_index(["A", "B"], drop=False, append=)
         expected = expected.drop("A", axis=1) if drop else expected
         expected.index.names = [index_name] + names if append else names
 
@@ -331,7 +331,7 @@ class TestSetIndex:
         df.index.name = index_name
 
         keys = [box1(df["A"]), box2(df["A"])]
-        result = df.set_index(keys, drop=drop, append=append)
+        result = df.set_index(keys, drop=, append=)
 
         # if either box is iter, it has been consumed; re-read
         keys = [box1(df["A"]), box2(df["A"])]
@@ -352,8 +352,8 @@ class TestSetIndex:
         # to test against already-tested behaviour, we add sequentially,
         # hence second append always True; must wrap keys in list, otherwise
         # box = list would be interpreted as keys
-        expected = df.set_index([keys[0]], drop=first_drop, append=append)
-        expected = expected.set_index([keys[1]], drop=drop, append=True)
+        expected = df.set_index([keys[0]], drop=first_drop, append=)
+        expected = expected.set_index([keys[1]], drop=, append=True)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("append", [True, False])
@@ -362,10 +362,10 @@ class TestSetIndex:
         df = frame_of_index_cols
         keys = MultiIndex.from_arrays([df["A"], df["B"]], names=["A", "B"])
 
-        result = df.set_index(keys, drop=drop, append=append)
+        result = df.set_index(keys, drop=, append=)
 
         # setting with a MultiIndex will never drop columns
-        expected = df.set_index(["A", "B"], drop=False, append=append)
+        expected = df.set_index(["A", "B"], drop=False, append=)
 
         tm.assert_frame_equal(result, expected)
 
@@ -528,20 +528,20 @@ class TestSetIndexInvalid:
 
         with pytest.raises(KeyError, match="['foo', 'bar', 'baz']"):
             # column names are A-E, as well as one tuple
-            df.set_index(["foo", "bar", "baz"], drop=drop, append=append)
+            df.set_index(["foo", "bar", "baz"], drop=, append=)
 
         # non-existent key in list with arrays
         with pytest.raises(KeyError, match="X"):
-            df.set_index([df["A"], df["B"], "X"], drop=drop, append=append)
+            df.set_index([df["A"], df["B"], "X"], drop=, append=)
 
         msg = "[('foo', 'foo', 'foo', 'bar', 'bar')]"
         # tuples always raise KeyError
         with pytest.raises(KeyError, match=msg):
-            df.set_index(tuple(df["A"]), drop=drop, append=append)
+            df.set_index(tuple(df["A"]), drop=, append=)
 
         # also within a list
         with pytest.raises(KeyError, match=msg):
-            df.set_index(["A", df["A"], tuple(df["A"])], drop=drop, append=append)
+            df.set_index(["A", df["A"], tuple(df["A"])], drop=, append=)
 
     @pytest.mark.parametrize("append", [True, False])
     @pytest.mark.parametrize("drop", [True, False])
@@ -552,11 +552,11 @@ class TestSetIndexInvalid:
         msg = 'The parameter "keys" may be a column key, .*'
         # forbidden type, e.g. set
         with pytest.raises(TypeError, match=msg):
-            df.set_index(box(df["A"]), drop=drop, append=append)
+            df.set_index(box(df["A"]), drop=, append=)
 
         # forbidden type in list, e.g. set
         with pytest.raises(TypeError, match=msg):
-            df.set_index(["A", df["A"], box(df["A"])], drop=drop, append=append)
+            df.set_index(["A", df["A"], box(df["A"])], drop=, append=)
 
     # MultiIndex constructor does not work directly on Series -> lambda
     @pytest.mark.parametrize(
@@ -579,11 +579,11 @@ class TestSetIndexInvalid:
 
         # wrong length directly
         with pytest.raises(ValueError, match=msg):
-            df.set_index(box(values), drop=drop, append=append)
+            df.set_index(box(values), drop=, append=)
 
         # wrong length in list
         with pytest.raises(ValueError, match=msg):
-            df.set_index(["A", df.A, box(values)], drop=drop, append=append)
+            df.set_index(["A", df.A, box(values)], drop=, append=)
 
 
 class TestSetIndexCustomLabelType:

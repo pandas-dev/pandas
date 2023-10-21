@@ -91,7 +91,7 @@ def test_infer_dtype_from_timedelta():
 
 @pytest.mark.parametrize("freq", ["M", "D"])
 def test_infer_dtype_from_period(freq):
-    p = Period("2011-01-01", freq=freq)
+    p = Period("2011-01-01", freq=)
     dtype, val = infer_dtype_from_scalar(p)
 
     exp_dtype = f"period[{freq}]"
@@ -112,7 +112,7 @@ def test_infer_dtype_misc():
 
 @pytest.mark.parametrize("tz", ["UTC", "US/Eastern", "Asia/Tokyo"])
 def test_infer_from_scalar_tz(tz):
-    dt = Timestamp(1, tz=tz)
+    dt = Timestamp(1, tz=)
     dtype, val = infer_dtype_from_scalar(dt)
 
     exp_dtype = f"datetime64[ns, {tz}]"

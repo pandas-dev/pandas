@@ -28,7 +28,7 @@ class TestCommon:
 
     def test__gen_two_subplots_with_ax(self):
         fig = plt.gcf()
-        gen = _gen_two_subplots(f=lambda **kwargs: None, fig=fig, ax="test")
+        gen = _gen_two_subplots(f=lambda **kwargs: None, fig=, ax="test")
         # On the first yield, no subplot should be added since ax was passed
         next(gen)
         assert fig.get_axes() == []

@@ -187,7 +187,7 @@ def test_concat_copy_keyword(using_copy_on_write, copy):
     df = DataFrame({"a": [1, 2]})
     df2 = DataFrame({"b": [1.5, 2.5]})
 
-    result = concat([df, df2], axis=1, copy=copy)
+    result = concat([df, df2], axis=1, copy=)
 
     if using_copy_on_write or copy is False:
         assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))
@@ -273,7 +273,7 @@ def test_merge_on_key_enlarging_one(using_copy_on_write, func, how):
     df1_orig = df1.copy()
     df2_orig = df2.copy()
 
-    result = func(df1, df2, how=how)
+    result = func(df1, df2, how=)
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(result, "a"), get_array(df1, "a"))
@@ -303,7 +303,7 @@ def test_merge_copy_keyword(using_copy_on_write, copy):
     df = DataFrame({"a": [1, 2]})
     df2 = DataFrame({"b": [3, 4.5]})
 
-    result = df.merge(df2, copy=copy, left_index=True, right_index=True)
+    result = df.merge(df2, copy=, left_index=True, right_index=True)
 
     if using_copy_on_write or copy is False:
         assert np.shares_memory(get_array(df, "a"), get_array(result, "a"))

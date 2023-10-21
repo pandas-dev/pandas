@@ -185,7 +185,7 @@ class TestDatetimeIndex:
     )
     def test_construction_with_alt(self, kwargs, tz_aware_fixture):
         tz = tz_aware_fixture
-        i = date_range("20130101", periods=5, freq="h", tz=tz)
+        i = date_range("20130101", periods=5, freq="h", tz=)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
         result = DatetimeIndex(i, **kwargs)
         tm.assert_index_equal(i, result)
@@ -196,7 +196,7 @@ class TestDatetimeIndex:
     )
     def test_construction_with_alt_tz_localize(self, kwargs, tz_aware_fixture):
         tz = tz_aware_fixture
-        i = date_range("20130101", periods=5, freq="h", tz=tz)
+        i = date_range("20130101", periods=5, freq="h", tz=)
         i = i._with_freq(None)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
 
@@ -652,61 +652,61 @@ class TestDatetimeIndex:
     def test_constructor_datetime64_tzformat(self, freq):
         # see GH#6572: ISO 8601 format results in stdlib timezone object
         idx = date_range(
-            "2013-01-01T00:00:00-05:00", "2016-01-01T23:59:59-05:00", freq=freq
+            "2013-01-01T00:00:00-05:00", "2016-01-01T23:59:59-05:00", freq=
         )
         expected = date_range(
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
-            freq=freq,
+            freq=,
             tz=timezone(timedelta(minutes=-300)),
         )
         tm.assert_index_equal(idx, expected)
         # Unable to use `US/Eastern` because of DST
         expected_i8 = date_range(
-            "2013-01-01T00:00:00", "2016-01-01T23:59:59", freq=freq, tz="America/Lima"
+            "2013-01-01T00:00:00", "2016-01-01T23:59:59", freq=, tz="America/Lima"
         )
         tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
         idx = date_range(
-            "2013-01-01T00:00:00+09:00", "2016-01-01T23:59:59+09:00", freq=freq
+            "2013-01-01T00:00:00+09:00", "2016-01-01T23:59:59+09:00", freq=
         )
         expected = date_range(
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
-            freq=freq,
+            freq=,
             tz=timezone(timedelta(minutes=540)),
         )
         tm.assert_index_equal(idx, expected)
         expected_i8 = date_range(
-            "2013-01-01T00:00:00", "2016-01-01T23:59:59", freq=freq, tz="Asia/Tokyo"
+            "2013-01-01T00:00:00", "2016-01-01T23:59:59", freq=, tz="Asia/Tokyo"
         )
         tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
         # Non ISO 8601 format results in dateutil.tz.tzoffset
-        idx = date_range("2013/1/1 0:00:00-5:00", "2016/1/1 23:59:59-5:00", freq=freq)
+        idx = date_range("2013/1/1 0:00:00-5:00", "2016/1/1 23:59:59-5:00", freq=)
         expected = date_range(
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
-            freq=freq,
+            freq=,
             tz=timezone(timedelta(minutes=-300)),
         )
         tm.assert_index_equal(idx, expected)
         # Unable to use `US/Eastern` because of DST
         expected_i8 = date_range(
-            "2013-01-01T00:00:00", "2016-01-01T23:59:59", freq=freq, tz="America/Lima"
+            "2013-01-01T00:00:00", "2016-01-01T23:59:59", freq=, tz="America/Lima"
         )
         tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
-        idx = date_range("2013/1/1 0:00:00+9:00", "2016/1/1 23:59:59+09:00", freq=freq)
+        idx = date_range("2013/1/1 0:00:00+9:00", "2016/1/1 23:59:59+09:00", freq=)
         expected = date_range(
             "2013-01-01T00:00:00",
             "2016-01-01T23:59:59",
-            freq=freq,
+            freq=,
             tz=timezone(timedelta(minutes=540)),
         )
         tm.assert_index_equal(idx, expected)
         expected_i8 = date_range(
-            "2013-01-01T00:00:00", "2016-01-01T23:59:59", freq=freq, tz="Asia/Tokyo"
+            "2013-01-01T00:00:00", "2016-01-01T23:59:59", freq=, tz="Asia/Tokyo"
         )
         tm.assert_numpy_array_equal(idx.asi8, expected_i8.asi8)
 
@@ -750,7 +750,7 @@ class TestDatetimeIndex:
         # GH 23986
         msg = "Unexpected value for 'dtype'"
         with pytest.raises(ValueError, match=msg):
-            DatetimeIndex([1, 2], dtype=dtype)
+            DatetimeIndex([1, 2], dtype=)
 
     def test_constructor_name(self):
         idx = date_range(start="2000-01-01", periods=1, freq="Y", name="TEST")
@@ -783,7 +783,7 @@ class TestDatetimeIndex:
         # GH 18595
         start = Timestamp("2013-01-01 06:00:00", tz="America/Los_Angeles")
         end = Timestamp("2013-01-02 06:00:00", tz="America/Los_Angeles")
-        result = date_range(freq="D", start=start, end=end, tz=tz)
+        result = date_range(freq="D", start=, end=, tz=)
         expected = DatetimeIndex(
             ["2013-01-01 06:00:00", "2013-01-02 06:00:00"],
             tz="America/Los_Angeles",
@@ -796,7 +796,7 @@ class TestDatetimeIndex:
     @pytest.mark.parametrize("tz", ["US/Pacific", "US/Eastern", "Asia/Tokyo"])
     def test_constructor_with_non_normalized_pytz(self, tz):
         # GH 18595
-        non_norm_tz = Timestamp("2010", tz=tz).tz
+        non_norm_tz = Timestamp("2010", tz=).tz
         result = DatetimeIndex(["2010"], tz=non_norm_tz)
         assert pytz.timezone(tz) is result.tz
 
@@ -818,8 +818,8 @@ class TestDatetimeIndex:
     )
     def test_constructor_with_int_tz(self, klass, box, tz, dtype):
         # GH 20997, 20964
-        ts = Timestamp("2018-01-01", tz=tz).as_unit("ns")
-        result = klass(box([ts._value]), dtype=dtype)
+        ts = Timestamp("2018-01-01", tz=).as_unit("ns")
+        result = klass(box([ts._value]), dtype=)
         expected = klass([ts])
         assert result == expected
 
@@ -828,7 +828,7 @@ class TestDatetimeIndex:
         tz = tz_naive_fixture
 
         result = 1293858000000000000
-        expected = DatetimeIndex([result], tz=tz).asi8[0]
+        expected = DatetimeIndex([result], tz=).asi8[0]
         assert result == expected
 
     def test_construction_from_replaced_timestamps_with_dst(self):
@@ -839,7 +839,7 @@ class TestDatetimeIndex:
             freq="MS",
             tz="Australia/Melbourne",
         )
-        test = pd.DataFrame({"data": range(len(index))}, index=index)
+        test = pd.DataFrame({"data": range(len(index))}, index=)
         test = test.resample("Y").mean()
         result = DatetimeIndex([x.replace(month=6, day=1) for x in test.index])
         expected = DatetimeIndex(
@@ -864,8 +864,8 @@ class TestDatetimeIndex:
 
     def test_construction_with_nat_and_tzlocal(self):
         tz = dateutil.tz.tzlocal()
-        result = DatetimeIndex(["2018", "NaT"], tz=tz)
-        expected = DatetimeIndex([Timestamp("2018", tz=tz), pd.NaT])
+        result = DatetimeIndex(["2018", "NaT"], tz=)
+        expected = DatetimeIndex([Timestamp("2018", tz=), pd.NaT])
         tm.assert_index_equal(result, expected)
 
     def test_constructor_with_ambiguous_keyword_arg(self):
@@ -883,7 +883,7 @@ class TestDatetimeIndex:
         start = Timestamp(year=2020, month=11, day=1, hour=1).tz_localize(
             timezone, ambiguous=False
         )
-        result = date_range(start=start, periods=2, ambiguous=False)
+        result = date_range(start=, periods=2, ambiguous=False)
         tm.assert_index_equal(result, expected)
 
         # ambiguous keyword in end
@@ -891,7 +891,7 @@ class TestDatetimeIndex:
         end = Timestamp(year=2020, month=11, day=2, hour=1).tz_localize(
             timezone, ambiguous=False
         )
-        result = date_range(end=end, periods=2, ambiguous=False)
+        result = date_range(end=, periods=2, ambiguous=False)
         tm.assert_index_equal(result, expected)
 
     def test_constructor_with_nonexistent_keyword_arg(self, warsaw):
@@ -902,7 +902,7 @@ class TestDatetimeIndex:
         start = Timestamp("2015-03-29 02:30:00").tz_localize(
             timezone, nonexistent="shift_forward"
         )
-        result = date_range(start=start, periods=2, freq="h")
+        result = date_range(start=, periods=2, freq="h")
         expected = DatetimeIndex(
             [
                 Timestamp("2015-03-29 03:00:00+02:00", tz=timezone),
@@ -916,7 +916,7 @@ class TestDatetimeIndex:
         end = Timestamp("2015-03-29 02:30:00").tz_localize(
             timezone, nonexistent="shift_forward"
         )
-        result = date_range(end=end, periods=2, freq="h")
+        result = date_range(end=, periods=2, freq="h")
         expected = DatetimeIndex(
             [
                 Timestamp("2015-03-29 01:00:00+01:00", tz=timezone),
@@ -972,17 +972,17 @@ class TestTimeSeries:
     def test_dti_constructor_years_only(self, tz_naive_fixture):
         tz = tz_naive_fixture
         # GH 6961
-        rng1 = date_range("2014", "2015", freq="ME", tz=tz)
-        expected1 = date_range("2014-01-31", "2014-12-31", freq="ME", tz=tz)
+        rng1 = date_range("2014", "2015", freq="ME", tz=)
+        expected1 = date_range("2014-01-31", "2014-12-31", freq="ME", tz=)
 
-        rng2 = date_range("2014", "2015", freq="MS", tz=tz)
-        expected2 = date_range("2014-01-01", "2015-01-01", freq="MS", tz=tz)
+        rng2 = date_range("2014", "2015", freq="MS", tz=)
+        expected2 = date_range("2014-01-01", "2015-01-01", freq="MS", tz=)
 
-        rng3 = date_range("2014", "2020", freq="Y", tz=tz)
-        expected3 = date_range("2014-12-31", "2019-12-31", freq="Y", tz=tz)
+        rng3 = date_range("2014", "2020", freq="Y", tz=)
+        expected3 = date_range("2014-12-31", "2019-12-31", freq="Y", tz=)
 
-        rng4 = date_range("2014", "2020", freq="YS", tz=tz)
-        expected4 = date_range("2014-01-01", "2020-01-01", freq="YS", tz=tz)
+        rng4 = date_range("2014", "2020", freq="YS", tz=)
+        expected4 = date_range("2014-01-01", "2020-01-01", freq="YS", tz=)
 
         for rng, expected in [
             (rng1, expected1),
@@ -1039,14 +1039,14 @@ class TestTimeSeries:
         "freq", ["ME", "Q", "Y", "D", "B", "bh", "min", "s", "ms", "us", "h", "ns", "C"]
     )
     def test_from_freq_recreate_from_data(self, freq):
-        org = date_range(start="2001/02/01 09:00", freq=freq, periods=1)
-        idx = DatetimeIndex(org, freq=freq)
+        org = date_range(start="2001/02/01 09:00", freq=, periods=1)
+        idx = DatetimeIndex(org, freq=)
         tm.assert_index_equal(idx, org)
 
         org = date_range(
-            start="2001/02/01 09:00", freq=freq, tz="US/Pacific", periods=1
+            start="2001/02/01 09:00", freq=, tz="US/Pacific", periods=1
         )
-        idx = DatetimeIndex(org, freq=freq, tz="US/Pacific")
+        idx = DatetimeIndex(org, freq=, tz="US/Pacific")
         tm.assert_index_equal(idx, org)
 
     def test_datetimeindex_constructor_misc(self):

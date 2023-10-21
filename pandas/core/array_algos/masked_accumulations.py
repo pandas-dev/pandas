@@ -75,16 +75,16 @@ def _cum_func(
 
 
 def cumsum(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
-    return _cum_func(np.cumsum, values, mask, skipna=skipna)
+    return _cum_func(np.cumsum, values, mask, skipna=)
 
 
 def cumprod(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
-    return _cum_func(np.cumprod, values, mask, skipna=skipna)
+    return _cum_func(np.cumprod, values, mask, skipna=)
 
 
 def cummin(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
-    return _cum_func(np.minimum.accumulate, values, mask, skipna=skipna)
+    return _cum_func(np.minimum.accumulate, values, mask, skipna=)
 
 
 def cummax(values: np.ndarray, mask: npt.NDArray[np.bool_], *, skipna: bool = True):
-    return _cum_func(np.maximum.accumulate, values, mask, skipna=skipna)
+    return _cum_func(np.maximum.accumulate, values, mask, skipna=)

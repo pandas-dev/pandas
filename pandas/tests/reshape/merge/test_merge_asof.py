@@ -674,7 +674,7 @@ class TestAsOfMerge:
                     freq="D",
                     periods=5,
                     tz=pytz.timezone("UTC"),
-                    unit=unit,
+                    unit=,
                 ),
                 "value1": np.arange(5),
             }
@@ -686,7 +686,7 @@ class TestAsOfMerge:
                     freq="D",
                     periods=5,
                     tz=pytz.timezone("UTC"),
-                    unit=unit,
+                    unit=,
                 ),
                 "value2": list("ABCDE"),
             }
@@ -700,7 +700,7 @@ class TestAsOfMerge:
                     freq="D",
                     periods=5,
                     tz=pytz.timezone("UTC"),
-                    unit=unit,
+                    unit=,
                 ),
                 "value1": np.arange(5),
                 "value2": list("BCDEE"),
@@ -1404,7 +1404,7 @@ class TestAsOfMerge:
         left = pd.DataFrame([0.9, 0.8, 0.7, 0.6], columns=["xyz"], index=index[1:])
         right = pd.DataFrame({"from_date": index, "abc": [2.46] * 4 + [2.19]})
         result = merge_asof(
-            left=left, right=right, left_index=True, right_on=["from_date"]
+            left=, right=, left_index=True, right_on=["from_date"]
         )
         expected = pd.DataFrame(
             {
@@ -1439,9 +1439,9 @@ class TestAsOfMerge:
             )
 
         dr1 = pd.date_range(
-            start="1/1/2020", end="1/20/2020", freq="2D", unit=unit
+            start="1/1/2020", end="1/20/2020", freq="2D", unit=
         ) + Timedelta(seconds=0.4).as_unit(unit)
-        dr2 = pd.date_range(start="1/1/2020", end="2/1/2020", unit=unit)
+        dr2 = pd.date_range(start="1/1/2020", end="2/1/2020", unit=)
 
         df1 = pd.DataFrame({"val1": "foo"}, index=pd.DatetimeIndex(dr1))
         df2 = pd.DataFrame({"val2": "bar"}, index=pd.DatetimeIndex(dr2))
@@ -1506,13 +1506,13 @@ def test_merge_asof_non_numerical_dtype_object():
 def test_merge_asof_index_behavior(kwargs):
     # GH 33463
     index = Index([1, 5, 10], name="test")
-    left = pd.DataFrame({"left": ["a", "b", "c"], "left_time": [1, 4, 10]}, index=index)
+    left = pd.DataFrame({"left": ["a", "b", "c"], "left_time": [1, 4, 10]}, index=)
     right = pd.DataFrame({"right": [1, 2, 3, 6, 7]}, index=[1, 2, 3, 6, 7])
     result = merge_asof(left, right, **kwargs)
 
     expected = pd.DataFrame(
         {"left": ["a", "b", "c"], "left_time": [1, 4, 10], "right": [1, 3, 7]},
-        index=index,
+        index=,
     )
     tm.assert_frame_equal(result, expected)
 

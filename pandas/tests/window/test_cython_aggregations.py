@@ -21,7 +21,7 @@ def _get_rolling_aggregations():
             ("roll_mean", window_aggregations.roll_mean),
         ]
         + [
-            (f"roll_var({ddof})", partial(window_aggregations.roll_var, ddof=ddof))
+            (f"roll_var({ddof})", partial(window_aggregations.roll_var, ddof=))
             for ddof in [0, 1]
         ]
         + [
@@ -36,8 +36,8 @@ def _get_rolling_aggregations():
                 f"roll_quantile({quantile},{interpolation})",
                 partial(
                     window_aggregations.roll_quantile,
-                    quantile=quantile,
-                    interpolation=interpolation,
+                    quantile=,
+                    interpolation=,
                 ),
             )
             for quantile in [0.0001, 0.5, 0.9999]
@@ -48,9 +48,9 @@ def _get_rolling_aggregations():
                 f"roll_rank({percentile},{method},{ascending})",
                 partial(
                     window_aggregations.roll_rank,
-                    percentile=percentile,
-                    method=method,
-                    ascending=ascending,
+                    percentile=,
+                    method=,
+                    ascending=,
                 ),
             )
             for percentile in [True, False]

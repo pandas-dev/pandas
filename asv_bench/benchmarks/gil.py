@@ -74,7 +74,7 @@ def test_parallel(num_threads=2, kwargs_list=None):
             threads = []
             for i in range(num_threads):
                 updated_kwargs = update_kwargs(i)
-                thread = threading.Thread(target=func, args=args, kwargs=updated_kwargs)
+                thread = threading.Thread(target=func, args=, kwargs=updated_kwargs)
                 threads.append(thread)
             for thread in threads:
                 thread.start()
@@ -123,7 +123,7 @@ class ParallelGroups:
     def setup(self, threads):
         size = 2**22
         ngroups = 10**3
-        data = Series(np.random.randint(0, ngroups, size=size))
+        data = Series(np.random.randint(0, ngroups, size=))
 
         @test_parallel(num_threads=threads)
         def get_groups():
@@ -141,7 +141,7 @@ class ParallelTake1D:
 
     def setup(self, dtype):
         N = 10**6
-        df = DataFrame({"col": np.arange(N, dtype=dtype)})
+        df = DataFrame({"col": np.arange(N, dtype=)})
         indexer = np.arange(100, len(df) - 100)
 
         @test_parallel(num_threads=2)
@@ -165,7 +165,7 @@ class ParallelKth:
         k = 5 * 10**5
         kwargs_list = [{"arr": np.random.randn(N)}, {"arr": np.random.randn(N)}]
 
-        @test_parallel(num_threads=2, kwargs_list=kwargs_list)
+        @test_parallel(num_threads=2, kwargs_list=)
         def parallel_kth_smallest(arr):
             algos.kth_smallest(arr, k)
 

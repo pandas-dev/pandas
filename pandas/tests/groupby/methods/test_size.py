@@ -14,7 +14,7 @@ import pandas._testing as tm
 
 @pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])
 def test_size(df, by):
-    grouped = df.groupby(by=by)
+    grouped = df.groupby(by=)
     result = grouped.size()
     for key, group in grouped:
         assert result[key] == len(group)
@@ -43,7 +43,7 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
 
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped = df.groupby(by=by, axis=axis_1, sort=sort, dropna=dropna)
+        grouped = df.groupby(by=, axis=axis_1, sort=, dropna=)
     result = grouped.size()
     tm.assert_series_equal(result, expected)
 
@@ -52,8 +52,8 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
 @pytest.mark.parametrize("sort", [True, False])
 def test_size_sort(sort, by):
     df = DataFrame(np.random.default_rng(2).choice(20, (1000, 3)), columns=list("ABC"))
-    left = df.groupby(by=by, sort=sort).size()
-    right = df.groupby(by=by, sort=sort)["C"].apply(lambda a: a.shape[0])
+    left = df.groupby(by=, sort=).size()
+    right = df.groupby(by=, sort=)["C"].apply(lambda a: a.shape[0])
     tm.assert_series_equal(left, right, check_names=False)
 
 
@@ -85,7 +85,7 @@ def test_size_period_index():
 def test_size_on_categorical(as_index):
     df = DataFrame([[1, 1], [2, 2]], columns=["A", "B"])
     df["A"] = df["A"].astype("category")
-    result = df.groupby(["A", "B"], as_index=as_index, observed=False).size()
+    result = df.groupby(["A", "B"], as_index=, observed=False).size()
 
     expected = DataFrame(
         [[1, 1, 1], [1, 2, 0], [2, 1, 0], [2, 2, 1]], columns=["A", "B", "size"]
@@ -100,7 +100,7 @@ def test_size_on_categorical(as_index):
 @pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
 def test_size_series_masked_type_returns_Int64(dtype):
     # GH 54132
-    ser = Series([1, 1, 1], index=["a", "a", "b"], dtype=dtype)
+    ser = Series([1, 1, 1], index=["a", "a", "b"], dtype=)
     result = ser.groupby(level=0).size()
     expected = Series([2, 1], dtype="Int64", index=["a", "b"])
     tm.assert_series_equal(result, expected)

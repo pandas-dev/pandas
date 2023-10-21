@@ -65,7 +65,7 @@ class TestAstype:
         # GH#39616
         dtype = CategoricalDtype([str(i) for i in range(5)])
         codes = np.random.default_rng(2).integers(5, size=20)
-        arr = Categorical.from_codes(codes, dtype=dtype)
+        arr = Categorical.from_codes(codes, dtype=)
 
         res = arr.astype("Int64")
         expected = array(codes, dtype="Int64")
@@ -75,7 +75,7 @@ class TestAstype:
         # GH#39616
         dtype = CategoricalDtype([str(i / 2) for i in range(5)])
         codes = np.random.default_rng(2).integers(5, size=20)
-        arr = Categorical.from_codes(codes, dtype=dtype)
+        arr = Categorical.from_codes(codes, dtype=)
 
         res = arr.astype("Float64")
         expected = array(codes, dtype="Float64") / 2
@@ -84,7 +84,7 @@ class TestAstype:
     @pytest.mark.parametrize("ordered", [True, False])
     def test_astype(self, ordered):
         # string
-        cat = Categorical(list("abbaaccc"), ordered=ordered)
+        cat = Categorical(list("abbaaccc"), ordered=)
         result = cat.astype(object)
         expected = np.array(cat)
         tm.assert_numpy_array_equal(result, expected)
@@ -94,7 +94,7 @@ class TestAstype:
             cat.astype(float)
 
         # numeric
-        cat = Categorical([0, 1, 2, 2, 1, 0, 1, 0, 2], ordered=ordered)
+        cat = Categorical([0, 1, 2, 2, 1, 0, 1, 0, 2], ordered=)
         result = cat.astype(object)
         expected = np.array(cat, dtype=object)
         tm.assert_numpy_array_equal(result, expected)
@@ -123,7 +123,7 @@ class TestAstype:
         # non-standard categories
         dtype = CategoricalDtype(list("adc"), dtype_ordered)
         result = cat.astype(dtype)
-        expected = Categorical(data, dtype=dtype)
+        expected = Categorical(data, dtype=)
         tm.assert_categorical_equal(result, expected)
 
         if dtype_ordered is False:

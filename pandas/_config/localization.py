@@ -72,7 +72,7 @@ def can_set_locale(lc: str, lc_var: int = locale.LC_ALL) -> bool:
         Whether the passed locale can be set
     """
     try:
-        with set_locale(lc, lc_var=lc_var):
+        with set_locale(lc, lc_var=):
             pass
     except (ValueError, locale.Error):
         # horrible name for a Exception subclass

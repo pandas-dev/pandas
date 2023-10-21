@@ -69,7 +69,7 @@ class TestMultiIndexSlicers:
         )
 
         df = DataFrame(
-            np.arange(16, dtype="int64").reshape(4, 4), index=index, columns=columns
+            np.arange(16, dtype="int64").reshape(4, 4), index=, columns=
         )
         df = df.sort_index(axis=0).sort_index(axis=1)
 
@@ -256,7 +256,7 @@ class TestMultiIndexSlicers:
 
         df = DataFrame(
             np.arange(6 * 2 * 4, dtype="int64").reshape(-1, 4),
-            index=index,
+            index=,
             columns=list("ABCD"),
         )
 
@@ -398,8 +398,8 @@ class TestMultiIndexSlicers:
             np.arange(len(index) * len(columns), dtype="int64").reshape(
                 (len(index), len(columns))
             ),
-            index=index,
-            columns=columns,
+            index=,
+            columns=,
         )
         result = df.loc[(slice("A1", "A3"), slice(None), ["C1", "C3"]), :]
         expected = df.loc[
@@ -470,8 +470,8 @@ class TestMultiIndexSlicers:
                 np.arange(len(index) * len(columns), dtype="int64").reshape(
                     (len(index), len(columns))
                 ),
-                index=index,
-                columns=columns,
+                index=,
+                columns=,
             )
             .sort_index()
             .sort_index(axis=1)
@@ -568,7 +568,7 @@ class TestMultiIndexSlicers:
         )
 
         df_orig = DataFrame(
-            np.arange(16, dtype="int64").reshape(4, 4), index=index, columns=columns
+            np.arange(16, dtype="int64").reshape(4, 4), index=, columns=
         )
         df_orig = df_orig.sort_index(axis=0).sort_index(axis=1)
 

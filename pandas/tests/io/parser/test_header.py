@@ -62,7 +62,7 @@ def test_negative_multi_index_header(all_parsers, header):
     with pytest.raises(
         ValueError, match="cannot specify multi-index header with negative integers"
     ):
-        parser.read_csv(StringIO(data), header=header)
+        parser.read_csv(StringIO(data), header=)
 
 
 @pytest.mark.parametrize("header", [True, False])
@@ -77,7 +77,7 @@ a
 b"""
     msg = "Passing a bool to header is invalid"
     with pytest.raises(TypeError, match=msg):
-        parser.read_csv(StringIO(data), header=header)
+        parser.read_csv(StringIO(data), header=)
 
 
 @skip_pyarrow
@@ -88,7 +88,7 @@ bar,4,5,6
 baz,7,8,9
 """
     names = ["A", "B", "C"]
-    result = parser.read_csv(StringIO(data), names=names)
+    result = parser.read_csv(StringIO(data), names=)
 
     expected = DataFrame(
         [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
@@ -397,7 +397,7 @@ def test_header_multi_index_blank_line(all_parsers):
     parser = all_parsers
     data = [[None, None], [1, 2], [3, 4]]
     columns = MultiIndex.from_tuples([("a", "A"), ("b", "B")])
-    expected = DataFrame(data, columns=columns)
+    expected = DataFrame(data, columns=)
     data = "a,b\nA,B\n,\n1,2\n3,4"
     result = parser.read_csv(StringIO(data), header=[0, 1])
     tm.assert_frame_equal(expected, result)
@@ -412,7 +412,7 @@ def test_header_names_backward_compat(all_parsers, data, header):
     parser = all_parsers
     expected = parser.read_csv(StringIO("1,2,3\n4,5,6"), names=["a", "b", "c"])
 
-    result = parser.read_csv(StringIO(data), names=["a", "b", "c"], header=header)
+    result = parser.read_csv(StringIO(data), names=["a", "b", "c"], header=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -458,7 +458,7 @@ def test_non_int_header(all_parsers, header):
     parser = all_parsers
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), header=header)
+        parser.read_csv(StringIO(data), header=)
 
 
 @skip_pyarrow
@@ -541,7 +541,7 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
     else:
         data = ",".join([""] + (columns or ["", ""])) + "\n,0,1\n0,2,3\n1,4,5\n"
 
-    result = parser.read_csv(StringIO(data), header=header, index_col=index_col)
+    result = parser.read_csv(StringIO(data), header=, index_col=)
     exp_columns = []
 
     if columns is None:
@@ -554,7 +554,7 @@ def test_multi_index_unnamed(all_parsers, index_col, columns):
         exp_columns.append(col)
 
     columns = MultiIndex.from_tuples(zip(exp_columns, ["0", "1"]))
-    expected = DataFrame([[2, 3], [4, 5]], columns=columns)
+    expected = DataFrame([[2, 3], [4, 5]], columns=)
     tm.assert_frame_equal(result, expected)
 
 

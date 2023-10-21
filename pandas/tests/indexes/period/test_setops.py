@@ -129,7 +129,7 @@ class TestPeriodIndex:
             (rng7, other7, expected7),
             (rng8, other8, expected8),
         ]:
-            result_union = rng.union(other, sort=sort)
+            result_union = rng.union(other, sort=)
             if sort is None:
                 expected = expected.sort_values()
             tm.assert_index_equal(result_union, expected)
@@ -137,11 +137,11 @@ class TestPeriodIndex:
     def test_union_misc(self, sort):
         index = period_range("1/1/2000", "1/20/2000", freq="D")
 
-        result = index[:-5].union(index[10:], sort=sort)
+        result = index[:-5].union(index[10:], sort=)
         tm.assert_index_equal(result, index)
 
         # not in order
-        result = _permute(index[:-5]).union(_permute(index[10:]), sort=sort)
+        result = _permute(index[:-5]).union(_permute(index[10:]), sort=)
         if sort is None:
             tm.assert_index_equal(result, index)
         assert tm.equalContents(result, index)
@@ -149,20 +149,20 @@ class TestPeriodIndex:
         # cast if different frequencies
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
-        result = index.union(index2, sort=sort)
-        expected = index.astype(object).union(index2.astype(object), sort=sort)
+        result = index.union(index2, sort=)
+        expected = index.astype(object).union(index2.astype(object), sort=)
         tm.assert_index_equal(result, expected)
 
     def test_intersection(self, sort):
         index = period_range("1/1/2000", "1/20/2000", freq="D")
 
-        result = index[:-5].intersection(index[10:], sort=sort)
+        result = index[:-5].intersection(index[10:], sort=)
         tm.assert_index_equal(result, index[10:-5])
 
         # not in order
         left = _permute(index[:-5])
         right = _permute(index[10:])
-        result = left.intersection(right, sort=sort)
+        result = left.intersection(right, sort=)
         if sort is None:
             tm.assert_index_equal(result, index[10:-5])
         assert tm.equalContents(result, index[10:-5])
@@ -171,12 +171,12 @@ class TestPeriodIndex:
         index = period_range("1/1/2000", "1/20/2000", freq="D")
         index2 = period_range("1/1/2000", "1/20/2000", freq="W-WED")
 
-        result = index.intersection(index2, sort=sort)
+        result = index.intersection(index2, sort=)
         expected = pd.Index([], dtype=object)
         tm.assert_index_equal(result, expected)
 
         index3 = period_range("1/1/2000", "1/20/2000", freq="2D")
-        result = index.intersection(index3, sort=sort)
+        result = index.intersection(index3, sort=)
         tm.assert_index_equal(result, expected)
 
     def test_intersection_cases(self, sort):
@@ -198,7 +198,7 @@ class TestPeriodIndex:
             (rng3, expected3),
             (rng4, expected4),
         ]:
-            result = base.intersection(rng, sort=sort)
+            result = base.intersection(rng, sort=)
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
             assert result.freq == expected.freq
@@ -232,7 +232,7 @@ class TestPeriodIndex:
             (rng3, expected3),
             (rng4, expected4),
         ]:
-            result = base.intersection(rng, sort=sort)
+            result = base.intersection(rng, sort=)
             if sort is None:
                 expected = expected.sort_values()
             tm.assert_index_equal(result, expected)
@@ -306,7 +306,7 @@ class TestPeriodIndex:
             (rng6, other6, expected6),
             (rng7, other7, expected7),
         ]:
-            result_difference = rng.difference(other, sort=sort)
+            result_difference = rng.difference(other, sort=)
             if sort is None and len(other):
                 # We dont sort (yet?) when empty GH#24959
                 expected = expected.sort_values()

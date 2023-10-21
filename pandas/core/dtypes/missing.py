@@ -198,31 +198,31 @@ def _isna(obj, inf_as_na: bool = False):
     boolean ndarray or boolean
     """
     if is_scalar(obj):
-        return libmissing.checknull(obj, inf_as_na=inf_as_na)
+        return libmissing.checknull(obj, inf_as_na=)
     elif isinstance(obj, ABCMultiIndex):
         raise NotImplementedError("isna is not defined for MultiIndex")
     elif isinstance(obj, type):
         return False
     elif isinstance(obj, (np.ndarray, ABCExtensionArray)):
-        return _isna_array(obj, inf_as_na=inf_as_na)
+        return _isna_array(obj, inf_as_na=)
     elif isinstance(obj, ABCIndex):
         # Try to use cached isna, which also short-circuits for integer dtypes
         #  and avoids materializing RangeIndex._values
         if not obj._can_hold_na:
             return obj.isna()
-        return _isna_array(obj._values, inf_as_na=inf_as_na)
+        return _isna_array(obj._values, inf_as_na=)
 
     elif isinstance(obj, ABCSeries):
-        result = _isna_array(obj._values, inf_as_na=inf_as_na)
+        result = _isna_array(obj._values, inf_as_na=)
         # box
         result = obj._constructor(result, index=obj.index, name=obj.name, copy=False)
         return result
     elif isinstance(obj, ABCDataFrame):
         return obj.isna()
     elif isinstance(obj, list):
-        return _isna_array(np.asarray(obj, dtype=object), inf_as_na=inf_as_na)
+        return _isna_array(np.asarray(obj, dtype=object), inf_as_na=)
     elif hasattr(obj, "__array__"):
-        return _isna_array(np.asarray(obj), inf_as_na=inf_as_na)
+        return _isna_array(np.asarray(obj), inf_as_na=)
     else:
         return False
 
@@ -249,7 +249,7 @@ def _use_inf_as_na(key) -> None:
       programmatically-creating-variables-in-python/4859312#4859312
     """
     inf_as_na = get_option(key)
-    globals()["_isna"] = partial(_isna, inf_as_na=inf_as_na)
+    globals()["_isna"] = partial(_isna, inf_as_na=)
     if inf_as_na:
         globals()["nan_checker"] = lambda x: ~np.isfinite(x)
         globals()["INF_AS_NA"] = True
@@ -279,7 +279,7 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
     if not isinstance(values, np.ndarray):
         # i.e. ExtensionArray
         if inf_as_na and isinstance(dtype, CategoricalDtype):
-            result = libmissing.isnaobj(values.to_numpy(), inf_as_na=inf_as_na)
+            result = libmissing.isnaobj(values.to_numpy(), inf_as_na=)
         else:
             # error: Incompatible types in assignment (expression has type
             # "Union[ndarray[Any, Any], ExtensionArraySupportsAnyAll]", variable has
@@ -287,9 +287,9 @@ def _isna_array(values: ArrayLike, inf_as_na: bool = False):
             result = values.isna()  # type: ignore[assignment]
     elif isinstance(values, np.rec.recarray):
         # GH 48526
-        result = _isna_recarray_dtype(values, inf_as_na=inf_as_na)
+        result = _isna_recarray_dtype(values, inf_as_na=)
     elif is_string_or_object_np_dtype(values.dtype):
-        result = _isna_string_dtype(values, inf_as_na=inf_as_na)
+        result = _isna_string_dtype(values, inf_as_na=)
     elif dtype.kind in "mM":
         # this is the NaT pattern
         result = values.view("i8") == iNaT
@@ -310,10 +310,10 @@ def _isna_string_dtype(values: np.ndarray, inf_as_na: bool) -> npt.NDArray[np.bo
         result = np.zeros(values.shape, dtype=bool)
     else:
         if values.ndim in {1, 2}:
-            result = libmissing.isnaobj(values, inf_as_na=inf_as_na)
+            result = libmissing.isnaobj(values, inf_as_na=)
         else:
             # 0-D, reached via e.g. mask_missing
-            result = libmissing.isnaobj(values.ravel(), inf_as_na=inf_as_na)
+            result = libmissing.isnaobj(values.ravel(), inf_as_na=)
             result = result.reshape(values.shape)
 
     return result

@@ -31,10 +31,10 @@ def ensure_clean_store(
         tmp_path = pathlib.Path(tmpdirname, path)
         with HDFStore(
             tmp_path,
-            mode=mode,
-            complevel=complevel,
-            complib=complib,
-            fletcher32=fletcher32,
+            mode=,
+            complevel=,
+            complib=,
+            fletcher32=,
         ) as store:
             yield store
 

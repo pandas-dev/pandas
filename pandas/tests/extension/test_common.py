@@ -31,7 +31,7 @@ class DummyArray(ExtensionArray):
                 return type(self)(self.data)
             return self
 
-        return np.array(self, dtype=dtype, copy=copy)
+        return np.array(self, dtype=, copy=)
 
 
 class TestExtensionArrayDtype:

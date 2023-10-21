@@ -442,7 +442,7 @@ def main(
                 is_failed = True
                 print(
                     output_format.format(
-                        source_path=file_path, line_number=line_number, msg=msg
+                        source_path=file_path, line_number=, msg=
                     )
                 )
 

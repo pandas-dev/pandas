@@ -120,10 +120,7 @@ with open(os.path.join(source_path, "index.rst.template"), encoding="utf-8") as 
     t = jinja2.Template(f.read())
 with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     f.write(
-        t.render(
-            include_api=include_api,
-            single_doc=(pattern if single_doc else None),
-        )
+        t.render(include_api=, single_doc=(pattern if single_doc else None))
     )
 autosummary_generate = True if include_api else ["index"]
 autodoc_typehints = "none"

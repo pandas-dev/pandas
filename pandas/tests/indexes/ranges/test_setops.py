@@ -23,7 +23,7 @@ class TestRangeIndexSetOps:
     def test_intersection_mismatched_dtype(self, dtype):
         # check that we cast to float, not object
         index = RangeIndex(start=0, stop=20, step=2, name="foo")
-        index = Index(index, dtype=dtype)
+        index = Index(index, dtype=)
 
         flt = index.astype(np.float64)
 
@@ -53,22 +53,22 @@ class TestRangeIndexSetOps:
         index = RangeIndex(start=0, stop=20, step=2, name=names[0])
 
         # empty other
-        result = index.intersection(index[:0].rename(names[1]), sort=sort)
+        result = index.intersection(index[:0].rename(names[1]), sort=)
         tm.assert_index_equal(result, index[:0].rename(names[2]), exact=True)
 
         # empty self
-        result = index[:0].intersection(index.rename(names[1]), sort=sort)
+        result = index[:0].intersection(index.rename(names[1]), sort=)
         tm.assert_index_equal(result, index[:0].rename(names[2]), exact=True)
 
     def test_intersection(self, sort):
         # intersect with Index with dtype int64
         index = RangeIndex(start=0, stop=20, step=2)
         other = Index(np.arange(1, 6))
-        result = index.intersection(other, sort=sort)
+        result = index.intersection(other, sort=)
         expected = Index(np.sort(np.intersect1d(index.values, other.values)))
         tm.assert_index_equal(result, expected)
 
-        result = other.intersection(index, sort=sort)
+        result = other.intersection(index, sort=)
         expected = Index(
             np.sort(np.asarray(np.intersect1d(index.values, other.values)))
         )
@@ -76,58 +76,58 @@ class TestRangeIndexSetOps:
 
         # intersect with increasing RangeIndex
         other = RangeIndex(1, 6)
-        result = index.intersection(other, sort=sort)
+        result = index.intersection(other, sort=)
         expected = Index(np.sort(np.intersect1d(index.values, other.values)))
         tm.assert_index_equal(result, expected, exact="equiv")
 
         # intersect with decreasing RangeIndex
         other = RangeIndex(5, 0, -1)
-        result = index.intersection(other, sort=sort)
+        result = index.intersection(other, sort=)
         expected = Index(np.sort(np.intersect1d(index.values, other.values)))
         tm.assert_index_equal(result, expected, exact="equiv")
 
         # reversed (GH 17296)
-        result = other.intersection(index, sort=sort)
+        result = other.intersection(index, sort=)
         tm.assert_index_equal(result, expected, exact="equiv")
 
         # GH 17296: intersect two decreasing RangeIndexes
         first = RangeIndex(10, -2, -2)
         other = RangeIndex(5, -4, -1)
-        expected = first.astype(int).intersection(other.astype(int), sort=sort)
-        result = first.intersection(other, sort=sort).astype(int)
+        expected = first.astype(int).intersection(other.astype(int), sort=)
+        result = first.intersection(other, sort=).astype(int)
         tm.assert_index_equal(result, expected)
 
         # reversed
-        result = other.intersection(first, sort=sort).astype(int)
+        result = other.intersection(first, sort=).astype(int)
         tm.assert_index_equal(result, expected)
 
         index = RangeIndex(5, name="foo")
 
         # intersect of non-overlapping indices
         other = RangeIndex(5, 10, 1, name="foo")
-        result = index.intersection(other, sort=sort)
+        result = index.intersection(other, sort=)
         expected = RangeIndex(0, 0, 1, name="foo")
         tm.assert_index_equal(result, expected)
 
         other = RangeIndex(-1, -5, -1)
-        result = index.intersection(other, sort=sort)
+        result = index.intersection(other, sort=)
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
         # intersection of empty indices
         other = RangeIndex(0, 0, 1)
-        result = index.intersection(other, sort=sort)
+        result = index.intersection(other, sort=)
         expected = RangeIndex(0, 0, 1)
         tm.assert_index_equal(result, expected)
 
-        result = other.intersection(index, sort=sort)
+        result = other.intersection(index, sort=)
         tm.assert_index_equal(result, expected)
 
     def test_intersection_non_overlapping_gcd(self, sort, names):
         # intersection of non-overlapping values based on start value and gcd
         index = RangeIndex(1, 10, 2, name=names[0])
         other = RangeIndex(0, 10, 4, name=names[1])
-        result = index.intersection(other, sort=sort)
+        result = index.intersection(other, sort=)
         expected = RangeIndex(0, 0, 1, name=names[2])
         tm.assert_index_equal(result, expected)
 
@@ -135,11 +135,11 @@ class TestRangeIndexSetOps:
         # corner case, Index with non-int64 dtype
         index = RangeIndex(start=0, stop=20, step=2)
         other = Index([datetime.now() + timedelta(i) for i in range(4)], dtype=object)
-        result = index.union(other, sort=sort)
+        result = index.union(other, sort=)
         expected = Index(np.concatenate((index, other)))
         tm.assert_index_equal(result, expected)
 
-        result = other.union(index, sort=sort)
+        result = other.union(index, sort=)
         expected = Index(np.concatenate((other, index)))
         tm.assert_index_equal(result, expected)
 

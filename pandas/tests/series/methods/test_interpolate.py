@@ -337,7 +337,7 @@ class TestSeriesInterpolateData:
         s = Series([1, 2, np.nan, 4])
         method, kwargs = nontemporal_method
         with pytest.raises(ValueError, match="Limit must be greater than 0"):
-            s.interpolate(limit=limit, method=method, **kwargs)
+            s.interpolate(limit=, method=, **kwargs)
 
     def test_interpolate_invalid_float_limit(self, nontemporal_method):
         # GH 9217: make sure limit is an integer.
@@ -345,7 +345,7 @@ class TestSeriesInterpolateData:
         method, kwargs = nontemporal_method
         limit = 2.0
         with pytest.raises(ValueError, match="Limit must be an integer"):
-            s.interpolate(limit=limit, method=method, **kwargs)
+            s.interpolate(limit=, method=, **kwargs)
 
     @pytest.mark.parametrize("invalid_method", [None, "nonexistent_method"])
     def test_interp_invalid_method(self, invalid_method):
@@ -482,7 +482,7 @@ class TestSeriesInterpolateData:
         msg2 = "Series.interpolate with method="
         with pytest.raises(ValueError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=msg2):
-                s.interpolate(method=method, limit_direction=limit_direction)
+                s.interpolate(method=, limit_direction=)
 
     @pytest.mark.parametrize(
         "data, expected_data, kwargs",
@@ -660,7 +660,7 @@ class TestSeriesInterpolateData:
         warn = None if method == "nearest" else FutureWarning
         msg = "Series.interpolate with method=pad is deprecated"
         with tm.assert_produces_warning(warn, match=msg):
-            result = df.interpolate(method=method)
+            result = df.interpolate(method=)
         if warn is not None:
             # check the "use ffill instead" is equivalent
             alt = df.ffill()
@@ -703,7 +703,7 @@ class TestSeriesInterpolateData:
         s = Series([0, 1, np.nan, 3])
         msg = "You must specify the order of the spline or polynomial"
         with pytest.raises(ValueError, match=msg):
-            s.interpolate(method=method)
+            s.interpolate(method=)
 
     @pytest.mark.parametrize("order", [-1, -1.0, 0, 0.0, np.nan])
     def test_interpolate_spline_invalid_order(self, order):
@@ -711,7 +711,7 @@ class TestSeriesInterpolateData:
         s = Series([0, 1, np.nan, 3])
         msg = "order needs to be specified and greater than 0"
         with pytest.raises(ValueError, match=msg):
-            s.interpolate(method="spline", order=order)
+            s.interpolate(method="spline", order=)
 
     def test_spline(self):
         pytest.importorskip("scipy")
@@ -815,7 +815,7 @@ class TestSeriesInterpolateData:
                 "interpolating."
             )
             with pytest.raises(ValueError, match=expected_error):
-                df[0].interpolate(method=method, **kwargs)
+                df[0].interpolate(method=, **kwargs)
 
     def test_interpolate_timedelta_index(self, request, interp_methods_ind):
         """
@@ -836,7 +836,7 @@ class TestSeriesInterpolateData:
                     reason=f"{method} interpolation is not supported for TimedeltaIndex"
                 )
             )
-        result = df[0].interpolate(method=method, **kwargs)
+        result = df[0].interpolate(method=, **kwargs)
         expected = Series([0.0, 1.0, 2.0, 3.0], name=0, index=ind)
         tm.assert_series_equal(result, expected)
 
@@ -847,7 +847,7 @@ class TestSeriesInterpolateData:
     def test_interpolate_unsorted_index(self, ascending, expected_values):
         # GH 21037
         ts = Series(data=[10, 9, np.nan, 2, 1], index=[10, 9, 3, 2, 1])
-        result = ts.sort_index(ascending=ascending).interpolate(method="index")
+        result = ts.sort_index(ascending=).interpolate(method="index")
         expected = Series(data=expected_values, index=expected_values, dtype=float)
         tm.assert_series_equal(result, expected)
 

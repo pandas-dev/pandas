@@ -470,7 +470,7 @@ def test_apply_chunk_view(group_keys):
 
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("key", group_keys=group_keys).apply(lambda x: x.iloc[:2])
+        result = df.groupby("key", group_keys=).apply(lambda x: x.iloc[:2])
     expected = df.take([0, 1, 3, 4, 6, 7])
     if group_keys:
         expected.index = MultiIndex.from_arrays(
@@ -528,7 +528,7 @@ def test_apply_multiindex_fail():
             "c": np.tile(["a", "b", "c"], 2),
             "v": np.arange(1.0, 7.0),
         },
-        index=index,
+        index=,
     )
 
     def f(group):
@@ -1013,7 +1013,7 @@ def test_groupby_apply_datetime_result_dtypes():
 )
 def test_apply_index_has_complex_internals(index):
     # GH 31248
-    df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=index)
+    df = DataFrame({"group": [1, 1, 2], "value": [0, 1, 0]}, index=)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = df.groupby("group", group_keys=False).apply(lambda x: x)
@@ -1106,8 +1106,8 @@ def test_apply_result_type(group_keys, udf):
     df = DataFrame({"A": ["a", "b"], "B": [1, 2]})
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        df_result = df.groupby("A", group_keys=group_keys).apply(udf)
-    series_result = df.B.groupby(df.A, group_keys=group_keys).apply(udf)
+        df_result = df.groupby("A", group_keys=).apply(udf)
+    series_result = df.B.groupby(df.A, group_keys=).apply(udf)
 
     if group_keys:
         assert df_result.index.nlevels == 2
@@ -1252,7 +1252,7 @@ def test_apply_dropna_with_indexed_same(dropna):
     )
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("group", dropna=dropna, group_keys=False).apply(lambda x: x)
+        result = df.groupby("group", dropna=, group_keys=False).apply(lambda x: x)
     expected = df.dropna() if dropna else df.iloc[[0, 3, 1, 2, 4]]
     tm.assert_frame_equal(result, expected)
 
@@ -1279,7 +1279,7 @@ def test_apply_as_index_constant_lambda(as_index, expected):
     df = DataFrame({"a": [1, 1, 2, 2], "b": [1, 1, 2, 2], "c": [1, 1, 1, 1]})
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby(["a", "b"], as_index=as_index).apply(lambda x: 1)
+        result = df.groupby(["a", "b"], as_index=).apply(lambda x: 1)
     tm.assert_equal(result, expected)
 
 
@@ -1357,7 +1357,7 @@ def test_apply_na(dropna):
     df = DataFrame(
         {"grp": [1, 1, 2, 2], "y": [1, 0, 2, 5], "z": [1, 2, np.nan, np.nan]}
     )
-    dfgrp = df.groupby("grp", dropna=dropna)
+    dfgrp = df.groupby("grp", dropna=)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = dfgrp.apply(lambda grp_df: grp_df.nlargest(1, "z"))
@@ -1475,9 +1475,9 @@ def test_apply_str_with_args(df, args, kwargs):
 @pytest.mark.parametrize("name", ["some_name", None])
 def test_result_name_when_one_group(name):
     # GH 46369
-    ser = Series([1, 2], name=name)
+    ser = Series([1, 2], name=)
     result = ser.groupby(["a", "a"], group_keys=False).apply(lambda x: x)
-    expected = Series([1, 2], name=name)
+    expected = Series([1, 2], name=)
 
     tm.assert_series_equal(result, expected)
 
@@ -1514,7 +1514,7 @@ def test_include_groups(include_groups):
     warn = FutureWarning if include_groups else None
     msg = "DataFrameGroupBy.apply operated on the grouping columns"
     with tm.assert_produces_warning(warn, match=msg):
-        result = gb.apply(lambda x: x.sum(), include_groups=include_groups)
+        result = gb.apply(lambda x: x.sum(), include_groups=)
     expected = DataFrame({"a": [2, 2], "b": [7, 5]}, index=Index([1, 2], name="a"))
     if not include_groups:
         expected = expected[["b"]]

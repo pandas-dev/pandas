@@ -38,9 +38,9 @@ class TestPeriodIndex:
     def test_base_constructor_with_period_dtype(self):
         dtype = PeriodDtype("D")
         values = ["2011-01-01", "2012-03-04", "2014-05-01"]
-        result = Index(values, dtype=dtype)
+        result = Index(values, dtype=)
 
-        expected = PeriodIndex(values, dtype=dtype)
+        expected = PeriodIndex(values, dtype=)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -147,8 +147,8 @@ class TestPeriodIndex:
     def test_constructor_with_without_freq(self):
         # GH53687
         start = Period("2002-01-01 00:00", freq="30min")
-        exp = period_range(start=start, periods=5, freq=start.freq)
-        result = period_range(start=start, periods=5)
+        exp = period_range(start=, periods=5, freq=start.freq)
+        result = period_range(start=, periods=5)
         tm.assert_index_equal(exp, result)
 
     def test_constructor_fromarraylike(self):
@@ -378,7 +378,7 @@ class TestPeriodIndex:
     def test_constructor_year_and_quarter(self):
         year = Series([2001, 2002, 2003])
         quarter = year - 2000
-        idx = PeriodIndex(year=year, quarter=quarter)
+        idx = PeriodIndex(year=, quarter=)
         strs = [f"{t[0]:d}Q{t[1]:d}" for t in zip(quarter, year)]
         lops = list(map(Period, strs))
         p = PeriodIndex(lops)
@@ -445,10 +445,10 @@ class TestPeriodIndex:
 
     def test_constructor_freq_combined(self):
         for freq in ["1D1h", "1h1D"]:
-            pidx = PeriodIndex(["2016-01-01", "2016-01-02"], freq=freq)
+            pidx = PeriodIndex(["2016-01-01", "2016-01-02"], freq=)
             expected = PeriodIndex(["2016-01-01 00:00", "2016-01-02 00:00"], freq="25h")
         for freq in ["1D1h", "1h1D"]:
-            pidx = period_range(start="2016-01-01", periods=2, freq=freq)
+            pidx = period_range(start="2016-01-01", periods=2, freq=)
             expected = PeriodIndex(["2016-01-01 00:00", "2016-01-02 01:00"], freq="25h")
             tm.assert_index_equal(pidx, expected)
 
@@ -481,7 +481,7 @@ class TestPeriodIndex:
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             start = Period("02-Apr-2005", "B")
-            i1 = period_range(start=start, periods=20)
+            i1 = period_range(start=, periods=20)
         assert len(i1) == 20
         assert i1.freq == start.freq
         assert i1[0] == start
@@ -500,7 +500,7 @@ class TestPeriodIndex:
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             end_intv = Period("2005-05-01", "B")
-            i1 = period_range(start=start, end=end_intv)
+            i1 = period_range(start=, end=end_intv)
 
             # infer freq from first element
             i2 = PeriodIndex([end_intv, Period("2005-05-05", "B")])
@@ -533,8 +533,8 @@ class TestPeriodIndex:
     )
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     def test_recreate_from_data(self, freq):
-        org = period_range(start="2001/04/01", freq=freq, periods=1)
-        idx = PeriodIndex(org.values, freq=freq)
+        org = period_range(start="2001/04/01", freq=, periods=1)
+        idx = PeriodIndex(org.values, freq=)
         tm.assert_index_equal(idx, org)
 
     def test_map_with_string_constructor(self):

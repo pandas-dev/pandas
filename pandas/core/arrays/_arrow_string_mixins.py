@@ -33,7 +33,7 @@ class ArrowStringArrayMixin:
             raise ValueError(
                 f"Invalid side: {side}. Side must be one of 'left', 'right', 'both'"
             )
-        return type(self)(pa_pad(self._pa_array, width=width, padding=fillchar))
+        return type(self)(pa_pad(self._pa_array, width=, padding=fillchar))
 
     def _str_get(self, i: int):
         lengths = pc.utf8_length(self._pa_array)
@@ -49,7 +49,7 @@ class ArrowStringArrayMixin:
             step = -1
         not_out_of_bounds = pc.invert(out_of_bounds.fill_null(True))
         selected = pc.utf8_slice_codeunits(
-            self._pa_array, start=start, stop=stop, step=step
+            self._pa_array, start=, stop=, step=
         )
         null_value = pa.scalar(
             None, type=self._pa_array.type  # type: ignore[attr-defined]

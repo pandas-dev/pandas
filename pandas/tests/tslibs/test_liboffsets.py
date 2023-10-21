@@ -57,7 +57,7 @@ def test_get_first_bday(dt, exp_week_day, exp_first_day):
 )
 def test_shift_month_dt(months, day_opt, expected):
     dt = datetime(2017, 11, 30)
-    assert liboffsets.shift_month(dt, months, day_opt=day_opt) == expected
+    assert liboffsets.shift_month(dt, months, day_opt=) == expected
 
 
 @pytest.mark.parametrize(
@@ -71,7 +71,7 @@ def test_shift_month_dt(months, day_opt, expected):
 )
 def test_shift_month_ts(months, day_opt, expected):
     ts = Timestamp("1929-05-05")
-    assert liboffsets.shift_month(ts, months, day_opt=day_opt) == expected
+    assert liboffsets.shift_month(ts, months, day_opt=) == expected
 
 
 def test_shift_month_error():
@@ -79,7 +79,7 @@ def test_shift_month_error():
     day_opt = "this should raise"
 
     with pytest.raises(ValueError, match=day_opt):
-        liboffsets.shift_month(dt, 3, day_opt=day_opt)
+        liboffsets.shift_month(dt, 3, day_opt=)
 
 
 @pytest.mark.parametrize(
@@ -124,7 +124,7 @@ def test_get_day_of_month_error():
 
     with pytest.raises(ValueError, match=day_opt):
         # To hit the raising case we need month == dt.month and n > 0.
-        roll_qtrday(dt, n=3, month=11, day_opt=day_opt, modby=12)
+        roll_qtrday(dt, n=3, month=11, day_opt=, modby=12)
 
 
 @pytest.mark.parametrize(

@@ -35,7 +35,7 @@ def construct(box, shape, value=None, dtype=None, **kwargs):
                 # remove the info axis
                 kwargs.pop(box._info_axis_name, None)
             else:
-                arr = np.empty(shape, dtype=dtype)
+                arr = np.empty(shape, dtype=)
                 arr.fill(value)
         else:
             fshape = np.prod(shape)
@@ -47,7 +47,7 @@ def construct(box, shape, value=None, dtype=None, **kwargs):
             arr = np.repeat(arr, new_shape).reshape(shape)
     else:
         arr = np.random.default_rng(2).standard_normal(shape)
-    return box(arr, dtype=dtype, **kwargs)
+    return box(arr, dtype=, **kwargs)
 
 
 class TestGeneric:
@@ -154,7 +154,7 @@ class TestGeneric:
         # Compound dtypes should raise NotImplementedError.
 
         def f(dtype):
-            return construct(frame_or_series, shape=3, value=1, dtype=dtype)
+            return construct(frame_or_series, shape=3, value=1, dtype=)
 
         msg = (
             "compound dtypes are not implemented "
@@ -267,13 +267,13 @@ class TestGeneric:
         errmsg = "the 'out' parameter is not supported"
 
         with pytest.raises(ValueError, match=errmsg):
-            obj.max(out=out)  # stat_function
+            obj.max(out=)  # stat_function
         with pytest.raises(ValueError, match=errmsg):
-            obj.var(out=out)  # stat_function_ddof
+            obj.var(out=)  # stat_function_ddof
         with pytest.raises(ValueError, match=errmsg):
-            obj.sum(out=out)  # cum_function
+            obj.sum(out=)  # cum_function
         with pytest.raises(ValueError, match=errmsg):
-            obj.any(out=out)  # logical_function
+            obj.any(out=)  # logical_function
 
     def test_truncate_out_of_bounds(self, frame_or_series):
         # GH11382

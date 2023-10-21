@@ -399,27 +399,25 @@ class TestDataFrameAlign:
         )
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            aa, ab = a.align(
-                b, axis=axis, join=how, method=method, limit=limit, fill_axis=fill_axis
-            )
+            aa, ab = a.align(b, axis=, join=how, method=, limit=, fill_axis=)
 
         join_index, join_columns = None, None
 
         ea, eb = a, b
         if axis is None or axis == 0:
-            join_index = a.index.join(b.index, how=how)
+            join_index = a.index.join(b.index, how=)
             ea = ea.reindex(index=join_index)
             eb = eb.reindex(index=join_index)
 
         if axis is None or axis == 1:
-            join_columns = a.columns.join(b.columns, how=how)
+            join_columns = a.columns.join(b.columns, how=)
             ea = ea.reindex(columns=join_columns)
             eb = eb.reindex(columns=join_columns)
 
         msg = "DataFrame.fillna with 'method' is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            ea = ea.fillna(axis=fill_axis, method=method, limit=limit)
-            eb = eb.fillna(axis=fill_axis, method=method, limit=limit)
+            ea = ea.fillna(axis=fill_axis, method=, limit=)
+            eb = eb.fillna(axis=fill_axis, method=, limit=)
 
         tm.assert_frame_equal(aa, ea)
         tm.assert_frame_equal(ab, eb)

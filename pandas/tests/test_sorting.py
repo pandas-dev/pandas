@@ -151,7 +151,7 @@ class TestSorting:
     )
     def test_lexsort_indexer(self, order, na_position, exp):
         keys = [[np.nan] * 5 + list(range(100)) + [np.nan] * 5]
-        result = lexsort_indexer(keys, orders=order, na_position=na_position)
+        result = lexsort_indexer(keys, orders=order, na_position=)
         tm.assert_numpy_array_equal(result, np.array(exp, dtype=np.intp))
 
     @pytest.mark.parametrize(
@@ -191,9 +191,7 @@ class TestSorting:
         # because quick and merge sort fall over to insertion sort for small
         # arrays."""
 
-        result = nargsort(
-            items, kind="mergesort", ascending=ascending, na_position=na_position
-        )
+        result = nargsort(items, kind="mergesort", ascending=, na_position=)
         tm.assert_numpy_array_equal(result, np.array(exp), check_dtype=False)
 
 
@@ -230,7 +228,7 @@ class TestMerge:
         out = merge(left, right, how="outer")
         out.sort_values(out.columns.tolist(), inplace=True)
         out.index = np.arange(len(out))
-        tm.assert_frame_equal(out, merge(left, right, how=how, sort=True))
+        tm.assert_frame_equal(out, merge(left, right, how=, sort=True))
 
     @pytest.mark.slow
     def test_int64_overflow_sort_false_order(self, left_right):
@@ -333,7 +331,7 @@ class TestMerge:
         frame = align(out[mask].copy())
         assert mask.all() ^ mask.any() or how == "outer"
 
-        res = merge(left, right, how=how, sort=sort)
+        res = merge(left, right, how=, sort=)
         if sort:
             kcols = list("ABCDEFG")
             tm.assert_frame_equal(
@@ -403,7 +401,7 @@ class TestSafeSort:
         expected = np.array([0, 1, 2, 3, 4])
 
         result, result_codes = safe_sort(
-            values, codes, use_na_sentinel=True, verify=verify
+            values, codes, use_na_sentinel=True, verify=
         )
         expected_codes = np.array(exp_codes, dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
@@ -457,7 +455,7 @@ class TestSafeSort:
     )
     def test_exceptions(self, arg, codes, err, msg):
         with pytest.raises(err, match=msg):
-            safe_sort(values=arg, codes=codes)
+            safe_sort(values=arg, codes=)
 
     @pytest.mark.parametrize(
         "arg, exp", [[[1, 3, 2], [1, 2, 3]], [[1, 3, np.nan, 2], [1, 2, 3, np.nan]]]
@@ -471,7 +469,7 @@ class TestSafeSort:
     @pytest.mark.parametrize("verify", [True, False])
     def test_extension_array_codes(self, verify):
         a = array([1, 3, 2], dtype="Int64")
-        result, codes = safe_sort(a, [0, 1, -1, 2], use_na_sentinel=True, verify=verify)
+        result, codes = safe_sort(a, [0, 1, -1, 2], use_na_sentinel=True, verify=)
         expected_values = array([1, 2, 3], dtype="Int64")
         expected_codes = np.array([0, 2, -1, 1], dtype=np.intp)
         tm.assert_extension_array_equal(result, expected_values)

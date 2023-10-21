@@ -48,7 +48,7 @@ class PeriodProperties:
     param_names = ["freq", "attr"]
 
     def setup(self, freq, attr):
-        self.per = Period("2012-06-01", freq=freq)
+        self.per = Period("2012-06-01", freq=)
 
     def time_property(self, freq, attr):
         getattr(self.per, attr)
@@ -59,7 +59,7 @@ class PeriodUnaryMethods:
     param_names = ["freq"]
 
     def setup(self, freq):
-        self.per = Period("2012-06-01", freq=freq)
+        self.per = Period("2012-06-01", freq=)
         if freq == "M":
             self.default_fmt = "%Y-%m"
         elif freq == "min":
@@ -101,7 +101,7 @@ class PeriodConstructor:
             self.freq = freq
 
     def time_period_constructor(self, freq, is_offset):
-        Period("2012-06-01", freq=freq)
+        Period("2012-06-01", freq=)
 
 
 _freq_ints = [

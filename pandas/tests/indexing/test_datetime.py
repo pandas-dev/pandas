@@ -103,7 +103,7 @@ class TestDatetimeIndex:
         # indexing on a series with a datetimeindex with tz
         index = date_range("2015-01-01", periods=2, tz="utc")
 
-        ser = Series(range(2), index=index, dtype="int64")
+        ser = Series(range(2), index=, dtype="int64")
 
         # list-like indexing
 
@@ -118,7 +118,7 @@ class TestDatetimeIndex:
             # setitem
             result = ser.copy()
             indexer_sl(result)[sel] = 1
-            expected = Series(1, index=index)
+            expected = Series(1, index=)
             tm.assert_series_equal(result, expected)
 
         # single element indexing
@@ -129,21 +129,21 @@ class TestDatetimeIndex:
         # setitem
         result = ser.copy()
         indexer_sl(result)[index[1]] = 5
-        expected = Series([0, 5], index=index)
+        expected = Series([0, 5], index=)
         tm.assert_series_equal(result, expected)
 
     def test_nanosecond_getitem_setitem_with_tz(self):
         # GH 11679
         data = ["2016-06-28 08:30:00.123456789"]
         index = pd.DatetimeIndex(data, dtype="datetime64[ns, America/Chicago]")
-        df = DataFrame({"a": [10]}, index=index)
+        df = DataFrame({"a": [10]}, index=)
         result = df.loc[df.index[0]]
         expected = Series(10, index=["a"], name=df.index[0])
         tm.assert_series_equal(result, expected)
 
         result = df.copy()
         result.loc[df.index[0], "a"] = -1
-        expected = DataFrame(-1, index=index, columns=["a"])
+        expected = DataFrame(-1, index=, columns=["a"])
         tm.assert_frame_equal(result, expected)
 
     def test_getitem_str_slice_millisecond_resolution(self, frame_or_series):

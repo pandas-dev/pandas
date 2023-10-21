@@ -19,7 +19,7 @@ from pandas.io.formats.style import Styler
 @pytest.fixture
 def env():
     loader = jinja2.PackageLoader("pandas", "io/formats/templates")
-    env = jinja2.Environment(loader=loader, trim_blocks=True)
+    env = jinja2.Environment(loader=, trim_blocks=True)
     return env
 
 
@@ -374,9 +374,9 @@ def test_sticky_mi(styler_mi, index, columns):
 def test_sticky_levels(styler_mi, index, columns, levels):
     styler_mi.index.names, styler_mi.columns.names = ["zero", "one"], ["zero", "one"]
     if index:
-        styler_mi.set_sticky(axis=0, levels=levels)
+        styler_mi.set_sticky(axis=0, levels=)
     if columns:
-        styler_mi.set_sticky(axis=1, levels=levels)
+        styler_mi.set_sticky(axis=1, levels=)
 
     left_css = (
         "#T_ {0} {{\n  position: sticky;\n  background-color: inherit;\n"
@@ -424,7 +424,7 @@ def test_sparse_options(sparse_index, sparse_columns):
     ):
         html1 = styler.to_html()
         assert (html1 == default_html) is (sparse_index and sparse_columns)
-    html2 = styler.to_html(sparse_index=sparse_index, sparse_columns=sparse_columns)
+    html2 = styler.to_html(sparse_index=, sparse_columns=)
     assert html1 == html2
 
 

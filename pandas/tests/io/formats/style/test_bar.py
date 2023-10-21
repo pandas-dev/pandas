@@ -65,7 +65,7 @@ def df_mix():
 )
 def test_align_positive_cases(df_pos, align, exp):
     # test different align cases for all positive values
-    result = df_pos.style.bar(align=align)._compute().ctx
+    result = df_pos.style.bar(align=)._compute().ctx
     expected = {(0, 0): exp[0], (1, 0): exp[1], (2, 0): exp[2]}
     assert result == expected
 
@@ -84,7 +84,7 @@ def test_align_positive_cases(df_pos, align, exp):
 )
 def test_align_negative_cases(df_neg, align, exp):
     # test different align cases for all negative values
-    result = df_neg.style.bar(align=align)._compute().ctx
+    result = df_neg.style.bar(align=)._compute().ctx
     expected = {(0, 0): exp[0], (1, 0): exp[1], (2, 0): exp[2]}
     assert result == expected
 
@@ -109,7 +109,7 @@ def test_align_mixed_cases(df_mix, align, exp, nans):
     if nans:
         df_mix.loc[3, :] = np.nan
         expected.update({(3, 0): no_bar()})
-    result = df_mix.style.bar(align=align)._compute().ctx
+    result = df_mix.style.bar(align=)._compute().ctx
     assert result == expected
 
 
@@ -173,7 +173,7 @@ def test_align_axis(align, exp, axis):
     # test all axis combinations with positive values and different aligns
     data = DataFrame([[1, 2], [3, 4]])
     result = (
-        data.style.bar(align=align, axis=None if axis == "none" else axis)
+        data.style.bar(align=, axis=None if axis == "none" else axis)
         ._compute()
         .ctx
     )
@@ -211,11 +211,11 @@ def test_vmin_vmax_clipping(df_pos, df_neg, df_mix, values, vmin, vmax, nullify,
     clip_df = clip_df.where(clip_df >= (vmin if vmin else -999), other=vmin)
 
     result = (
-        df.style.bar(align=align, vmin=vmin, vmax=vmax, color=["red", "green"])
+        df.style.bar(align=, vmin=, vmax=, color=["red", "green"])
         ._compute()
         .ctx
     )
-    expected = clip_df.style.bar(align=align, color=["red", "green"])._compute().ctx
+    expected = clip_df.style.bar(align=, color=["red", "green"])._compute().ctx
     assert result == expected
 
 
@@ -244,11 +244,11 @@ def test_vmin_vmax_widening(df_pos, df_neg, df_mix, values, vmin, vmax, nullify,
     expand_df.loc[3, :], expand_df.loc[4, :] = vmin, vmax
 
     result = (
-        df.style.bar(align=align, vmin=vmin, vmax=vmax, color=["red", "green"])
+        df.style.bar(align=, vmin=, vmax=, color=["red", "green"])
         ._compute()
         .ctx
     )
-    expected = expand_df.style.bar(align=align, color=["red", "green"])._compute().ctx
+    expected = expand_df.style.bar(align=, color=["red", "green"])._compute().ctx
     assert result.items() <= expected.items()
 
 
@@ -271,7 +271,7 @@ def test_numerics():
 )
 def test_colors_mixed(align, exp):
     data = DataFrame([[-1], [3]])
-    result = data.style.bar(align=align, color=["red", "green"])._compute().ctx
+    result = data.style.bar(align=, color=["red", "green"])._compute().ctx
     assert result == {(0, 0): exp[0], (1, 0): exp[1]}
 
 

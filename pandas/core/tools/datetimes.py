@@ -136,7 +136,7 @@ def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str 
         if type(first_non_nan_element := arr[first_non_null]) is str:  # noqa: E721
             # GH#32264 np.str_ object
             guessed_format = guess_datetime_format(
-                first_non_nan_element, dayfirst=dayfirst
+                first_non_nan_element, dayfirst=
             )
             if guessed_format is not None:
                 return guessed_format
@@ -288,8 +288,8 @@ def _box_as_indexlike(
 
     if lib.is_np_dtype(dt_array.dtype, "M"):
         tz = "utc" if utc else None
-        return DatetimeIndex(dt_array, tz=tz, name=name)
-    return Index(dt_array, name=name, dtype=dt_array.dtype)
+        return DatetimeIndex(dt_array, tz=, name=)
+    return Index(dt_array, name=, dtype=dt_array.dtype)
 
 
 def _convert_and_box_cache(
@@ -315,7 +315,7 @@ def _convert_and_box_cache(
     from pandas import Series
 
     result = Series(arg, dtype=cache_array.index.dtype).map(cache_array)
-    return _box_as_indexlike(result._values, utc=False, name=name)
+    return _box_as_indexlike(result._values, utc=False, name=)
 
 
 def _return_parsed_timezone_results(
@@ -363,7 +363,7 @@ def _return_parsed_timezone_results(
             FutureWarning,
             stacklevel=find_stack_level(),
         )
-    return Index(tz_results, name=name)
+    return Index(tz_results, name=)
 
 
 def _convert_listlike_datetimes(
@@ -414,7 +414,7 @@ def _convert_listlike_datetimes(
     tz = "utc" if utc else None
     if isinstance(arg_dtype, DatetimeTZDtype):
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
-            return DatetimeIndex(arg, tz=tz, name=name)
+            return DatetimeIndex(arg, tz=, name=)
         if utc:
             arg = arg.tz_convert(None).tz_localize("utc")
         return arg
@@ -449,7 +449,7 @@ def _convert_listlike_datetimes(
             )
 
         if not isinstance(arg, (DatetimeArray, DatetimeIndex)):
-            return DatetimeIndex(arg, tz=tz, name=name)
+            return DatetimeIndex(arg, tz=, name=)
         elif utc:
             # DatetimeArray, DatetimeIndex
             return arg.tz_localize("utc")
@@ -472,16 +472,16 @@ def _convert_listlike_datetimes(
     except TypeError:
         if errors == "coerce":
             npvalues = np.array(["NaT"], dtype="datetime64[ns]").repeat(len(arg))
-            return DatetimeIndex(npvalues, name=name)
+            return DatetimeIndex(npvalues, name=)
         elif errors == "ignore":
-            idx = Index(arg, name=name)
+            idx = Index(arg, name=)
             return idx
         raise
 
     arg = ensure_object(arg)
 
     if format is None:
-        format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
+        format = _guess_datetime_format_for_array(arg, dayfirst=)
 
     # `format` could be inferred, or user didn't ask for mixed-format parsing.
     if format is not None and format != "mixed":
@@ -489,10 +489,10 @@ def _convert_listlike_datetimes(
 
     result, tz_parsed = objects_to_datetime64ns(
         arg,
-        dayfirst=dayfirst,
-        yearfirst=yearfirst,
-        utc=utc,
-        errors=errors,
+        dayfirst=,
+        yearfirst=,
+        utc=,
+        errors=,
         allow_object=True,
     )
 
@@ -500,9 +500,9 @@ def _convert_listlike_datetimes(
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
         dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
-        return DatetimeIndex._simple_new(dta, name=name)
+        return DatetimeIndex._simple_new(dta, name=)
 
-    return _box_as_indexlike(result, utc=utc, name=name)
+    return _box_as_indexlike(result, utc=, name=)
 
 
 def _array_strptime_with_fallback(
@@ -516,11 +516,11 @@ def _array_strptime_with_fallback(
     """
     Call array_strptime, with fallback behavior depending on 'errors'.
     """
-    result, timezones = array_strptime(arg, fmt, exact=exact, errors=errors, utc=utc)
+    result, timezones = array_strptime(arg, fmt, exact=, errors=, utc=)
     if any(tz is not None for tz in timezones):
         return _return_parsed_timezone_results(result, timezones, utc, name)
 
-    return _box_as_indexlike(result, utc=utc, name=name)
+    return _box_as_indexlike(result, utc=, name=)
 
 
 def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
@@ -571,13 +571,13 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             tz_parsed = None
         else:
             arg = arg.astype(object, copy=False)
-            arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=errors)
+            arr, tz_parsed = tslib.array_with_unit_to_datetime(arg, unit, errors=)
 
     if errors == "ignore":
         # Index constructor _may_ infer to DatetimeIndex
-        result = Index._with_infer(arr, name=name)
+        result = Index._with_infer(arr, name=)
     else:
-        result = DatetimeIndex(arr, name=name)
+        result = DatetimeIndex(arr, name=)
 
     if not isinstance(result, DatetimeIndex):
         return result
@@ -644,7 +644,7 @@ def _adjust_to_origin(arg, origin, unit):
 
         # we are going to offset back to unix / epoch time
         try:
-            offset = Timestamp(origin, unit=unit)
+            offset = Timestamp(origin, unit=)
         except OutOfBoundsDatetime as err:
             raise OutOfBoundsDatetime(f"origin {origin} is Out of Bounds") from err
         except ValueError as err:
@@ -658,7 +658,7 @@ def _adjust_to_origin(arg, origin, unit):
 
         # convert the offset to the unit of the arg
         # this should be lossless in terms of precision
-        ioffset = td_offset // Timedelta(1, unit=unit)
+        ioffset = td_offset // Timedelta(1, unit=)
 
         # scalars & ndarray-like can handle the addition
         if is_list_like(arg) and not isinstance(arg, (ABCSeries, Index, np.ndarray)):
@@ -1087,12 +1087,12 @@ def to_datetime(
 
     convert_listlike = partial(
         _convert_listlike_datetimes,
-        utc=utc,
-        unit=unit,
-        dayfirst=dayfirst,
-        yearfirst=yearfirst,
-        errors=errors,
-        exact=exact,
+        utc=,
+        unit=,
+        dayfirst=,
+        yearfirst=,
+        errors=,
+        exact=,
     )
     # pylint: disable-next=used-before-assignment
     result: Timestamp | NaTType | Series | Index
@@ -1243,7 +1243,7 @@ def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, utc: bool):
 
     def coerce(values):
         # we allow coercion to if errors allows
-        values = to_numeric(values, errors=errors)
+        values = to_numeric(values, errors=)
 
         # prevent overflow in case of int8 or int16
         if is_integer_dtype(values):
@@ -1256,7 +1256,7 @@ def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, utc: bool):
         + coerce(arg[unit_rev["day"]])
     )
     try:
-        values = to_datetime(values, format="%Y%m%d", errors=errors, utc=utc)
+        values = to_datetime(values, format="%Y%m%d", errors=, utc=)
     except (TypeError, ValueError) as err:
         raise ValueError(f"cannot assemble the datetimes: {err}") from err
 
@@ -1265,7 +1265,7 @@ def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, utc: bool):
         value = unit_rev.get(u)
         if value is not None and value in arg:
             try:
-                values += to_timedelta(coerce(arg[value]), unit=u, errors=errors)
+                values += to_timedelta(coerce(arg[value]), unit=u, errors=)
             except (TypeError, ValueError) as err:
                 raise ValueError(
                     f"cannot assemble the datetimes [{value}]: {err}"
@@ -1291,7 +1291,7 @@ def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray |
         parsed = parsing.try_parse_year_month_day(
             carg / 10000, carg / 100 % 100, carg % 100
         )
-        return tslib.array_to_datetime(parsed, errors=errors)[0]
+        return tslib.array_to_datetime(parsed, errors=)[0]
 
     def calc_with_mask(carg, mask):
         result = np.empty(carg.shape, dtype="M8[ns]")

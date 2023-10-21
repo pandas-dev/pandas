@@ -37,29 +37,29 @@ class BaseConstructorsTests:
 
     def test_series_constructor_no_data_with_index(self, dtype):
         na_value = dtype.na_value
-        result = pd.Series(index=[1, 2, 3], dtype=dtype)
-        expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=dtype)
+        result = pd.Series(index=[1, 2, 3], dtype=)
+        expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=)
         tm.assert_series_equal(result, expected)
 
         # GH 33559 - empty index
-        result = pd.Series(index=[], dtype=dtype)
-        expected = pd.Series([], index=pd.Index([], dtype="object"), dtype=dtype)
+        result = pd.Series(index=[], dtype=)
+        expected = pd.Series([], index=pd.Index([], dtype="object"), dtype=)
         tm.assert_series_equal(result, expected)
 
     def test_series_constructor_scalar_na_with_index(self, dtype):
         na_value = dtype.na_value
-        result = pd.Series(na_value, index=[1, 2, 3], dtype=dtype)
-        expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=dtype)
+        result = pd.Series(na_value, index=[1, 2, 3], dtype=)
+        expected = pd.Series([na_value] * 3, index=[1, 2, 3], dtype=)
         tm.assert_series_equal(result, expected)
 
     def test_series_constructor_scalar_with_index(self, data, dtype):
         scalar = data[0]
-        result = pd.Series(scalar, index=[1, 2, 3], dtype=dtype)
-        expected = pd.Series([scalar] * 3, index=[1, 2, 3], dtype=dtype)
+        result = pd.Series(scalar, index=[1, 2, 3], dtype=)
+        expected = pd.Series([scalar] * 3, index=[1, 2, 3], dtype=)
         tm.assert_series_equal(result, expected)
 
-        result = pd.Series(scalar, index=["foo"], dtype=dtype)
-        expected = pd.Series([scalar], index=["foo"], dtype=dtype)
+        result = pd.Series(scalar, index=["foo"], dtype=)
+        expected = pd.Series([scalar], index=["foo"], dtype=)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("from_series", [True, False])
@@ -91,7 +91,7 @@ class BaseConstructorsTests:
         dtype = data.dtype
 
         expected = pd.Series(data)
-        result = pd.Series(list(data), dtype=dtype)
+        result = pd.Series(list(data), dtype=)
         tm.assert_series_equal(result, expected)
 
         result = pd.Series(list(data), dtype=str(dtype))
@@ -100,7 +100,7 @@ class BaseConstructorsTests:
         # gh-30280
 
         expected = pd.DataFrame(data).astype(dtype)
-        result = pd.DataFrame(list(data), dtype=dtype)
+        result = pd.DataFrame(list(data), dtype=)
         tm.assert_frame_equal(result, expected)
 
         result = pd.DataFrame(list(data), dtype=str(dtype))
@@ -119,15 +119,15 @@ class BaseConstructorsTests:
 
     def test_construct_empty_dataframe(self, dtype):
         # GH 33623
-        result = pd.DataFrame(columns=["a"], dtype=dtype)
+        result = pd.DataFrame(columns=["a"], dtype=)
         expected = pd.DataFrame(
-            {"a": pd.array([], dtype=dtype)}, index=pd.RangeIndex(0)
+            {"a": pd.array([], dtype=)}, index=pd.RangeIndex(0)
         )
         tm.assert_frame_equal(result, expected)
 
     def test_empty(self, dtype):
         cls = dtype.construct_array_type()
-        result = cls._empty((4,), dtype=dtype)
+        result = cls._empty((4,), dtype=)
         assert isinstance(result, cls)
         assert result.dtype == dtype
         assert result.shape == (4,)

@@ -17,15 +17,15 @@ class TestIndexer:
     def test_outer_join_indexer(self, dtype):
         indexer = libjoin.outer_join_indexer
 
-        left = np.arange(3, dtype=dtype)
-        right = np.arange(2, 5, dtype=dtype)
-        empty = np.array([], dtype=dtype)
+        left = np.arange(3, dtype=)
+        right = np.arange(2, 5, dtype=)
+        empty = np.array([], dtype=)
 
         result, lindexer, rindexer = indexer(left, right)
         assert isinstance(result, np.ndarray)
         assert isinstance(lindexer, np.ndarray)
         assert isinstance(rindexer, np.ndarray)
-        tm.assert_numpy_array_equal(result, np.arange(5, dtype=dtype))
+        tm.assert_numpy_array_equal(result, np.arange(5, dtype=))
         exp = np.array([0, 1, 2, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(lindexer, exp)
         exp = np.array([-1, -1, 0, 1, 2], dtype=np.intp)

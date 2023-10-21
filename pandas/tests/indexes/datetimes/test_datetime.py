@@ -60,10 +60,10 @@ class TestDatetimeIndex:
         # overflow.
         periods = np_long(1000)
 
-        idx1 = date_range(start="2000", periods=periods, freq="s")
+        idx1 = date_range(start="2000", periods=, freq="s")
         assert len(idx1) == periods
 
-        idx2 = date_range(end="2000", periods=periods, freq="s")
+        idx2 = date_range(end="2000", periods=, freq="s")
         assert len(idx2) == periods
 
     def test_nat(self):
@@ -129,7 +129,7 @@ class TestDatetimeIndex:
     def test_iteration_over_chunksize(self, periods):
         # GH21012
 
-        index = date_range("2000-01-01 00:00:00", periods=periods, freq="min")
+        index = date_range("2000-01-01 00:00:00", periods=, freq="min")
         num = 0
         for stamp in index:
             assert index[num] == stamp
@@ -162,7 +162,7 @@ class TestDatetimeIndex:
 
         dt = dtstart + np.arange(nsamples) * np.timedelta64(ns, "ns")
         freq = ns * offsets.Nano()
-        index = DatetimeIndex(dt, freq=freq, name="time")
+        index = DatetimeIndex(dt, freq=, name="time")
         self.assert_index_parameters(index)
 
         new_index = date_range(start=index[0], end=index[-1], freq=index.freq)
@@ -185,7 +185,7 @@ class TestDatetimeIndex:
 
     def test_asarray_tz_aware(self):
         tz = "US/Central"
-        idx = date_range("2000", periods=2, tz=tz)
+        idx = date_range("2000", periods=2, tz=)
         expected = np.array(["2000-01-01T06", "2000-01-02T06"], dtype="M8[ns]")
         result = np.asarray(idx, dtype="datetime64[ns]")
 
@@ -198,7 +198,7 @@ class TestDatetimeIndex:
 
         # Future behavior with no warning
         expected = np.array(
-            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)]
+            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=)]
         )
         result = np.asarray(idx, dtype=object)
 

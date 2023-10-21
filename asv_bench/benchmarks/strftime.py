@@ -59,7 +59,7 @@ class PeriodStrftime:
     def setup(self, nobs, freq):
         self.data = pd.DataFrame(
             {
-                "p": pd.period_range(start="2000-01-01", periods=nobs, freq=freq),
+                "p": pd.period_range(start="2000-01-01", periods=nobs, freq=),
                 "r": [np.random.uniform()] * nobs,
             }
         )

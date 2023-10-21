@@ -167,8 +167,8 @@ class TestConcatenate:
         tm.assert_frame_equal(result, expected)
 
         keys = ["baz", "foo", "bar"]
-        result = concat(frames, keys=keys)
-        expected = concat([frames[k] for k in keys], keys=keys)
+        result = concat(frames, keys=)
+        expected = concat([frames[k] for k in keys], keys=)
         tm.assert_frame_equal(result, expected)
 
     def test_concat_keys_and_levels(self):
@@ -180,8 +180,8 @@ class TestConcatenate:
         result = concat(
             [df, df2, df, df2],
             keys=[("foo", "one"), ("foo", "two"), ("baz", "one"), ("baz", "two")],
-            levels=levels,
-            names=names,
+            levels=,
+            names=,
         )
         expected = concat([df, df2, df, df2])
         exp_index = MultiIndex(
@@ -197,7 +197,7 @@ class TestConcatenate:
         result = concat(
             [df, df2, df, df2],
             keys=[("foo", "one"), ("foo", "two"), ("baz", "one"), ("baz", "two")],
-            levels=levels,
+            levels=,
         )
         assert result.index.names == (None,) * 3
 
@@ -234,7 +234,7 @@ class TestConcatenate:
                 "C": np.array([1, 2, 3, 4], dtype="f8"),
                 "D": np.array([1, 2, 3, 4], dtype="i8"),
             },
-            columns=columns,
+            columns=,
         )
 
         df2 = DataFrame(
@@ -244,12 +244,12 @@ class TestConcatenate:
                 "C": np.array([1, 2, 3, 4], dtype="i8"),
                 "D": np.array([1, 2, 3, 4], dtype="f8"),
             },
-            columns=columns,
+            columns=,
         )
 
         appended = concat([df1, df2], ignore_index=True)
         expected = DataFrame(
-            np.concatenate([df1.values, df2.values], axis=0), columns=columns
+            np.concatenate([df1.values, df2.values], axis=0), columns=
         )
         tm.assert_frame_equal(appended, expected)
 
@@ -265,7 +265,7 @@ class TestConcatenate:
         df2 = DataFrame({"B": "foo", ("B", 1): "bar"}, index=range(2))
 
         # it works
-        concat([df1, df2], sort=sort)
+        concat([df1, df2], sort=)
 
     def test_concat_mixed_objs(self):
         # concat mixed series/frames
@@ -274,30 +274,30 @@ class TestConcatenate:
         # axis 1
         index = date_range("01-Jan-2013", periods=10, freq="h")
         arr = np.arange(10, dtype="int64")
-        s1 = Series(arr, index=index)
-        s2 = Series(arr, index=index)
-        df = DataFrame(arr.reshape(-1, 1), index=index)
+        s1 = Series(arr, index=)
+        s2 = Series(arr, index=)
+        df = DataFrame(arr.reshape(-1, 1), index=)
 
         expected = DataFrame(
-            np.repeat(arr, 2).reshape(-1, 2), index=index, columns=[0, 0]
+            np.repeat(arr, 2).reshape(-1, 2), index=, columns=[0, 0]
         )
         result = concat([df, df], axis=1)
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
-            np.repeat(arr, 2).reshape(-1, 2), index=index, columns=[0, 1]
+            np.repeat(arr, 2).reshape(-1, 2), index=, columns=[0, 1]
         )
         result = concat([s1, s2], axis=1)
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
-            np.repeat(arr, 3).reshape(-1, 3), index=index, columns=[0, 1, 2]
+            np.repeat(arr, 3).reshape(-1, 3), index=, columns=[0, 1, 2]
         )
         result = concat([s1, s2, s1], axis=1)
         tm.assert_frame_equal(result, expected)
 
         expected = DataFrame(
-            np.repeat(arr, 5).reshape(-1, 5), index=index, columns=[0, 0, 1, 2, 3]
+            np.repeat(arr, 5).reshape(-1, 5), index=, columns=[0, 0, 1, 2, 3]
         )
         result = concat([s1, df, s2, s2, s1], axis=1)
         tm.assert_frame_equal(result, expected)
@@ -305,21 +305,21 @@ class TestConcatenate:
         # with names
         s1.name = "foo"
         expected = DataFrame(
-            np.repeat(arr, 3).reshape(-1, 3), index=index, columns=["foo", 0, 0]
+            np.repeat(arr, 3).reshape(-1, 3), index=, columns=["foo", 0, 0]
         )
         result = concat([s1, df, s2], axis=1)
         tm.assert_frame_equal(result, expected)
 
         s2.name = "bar"
         expected = DataFrame(
-            np.repeat(arr, 3).reshape(-1, 3), index=index, columns=["foo", 0, "bar"]
+            np.repeat(arr, 3).reshape(-1, 3), index=, columns=["foo", 0, "bar"]
         )
         result = concat([s1, df, s2], axis=1)
         tm.assert_frame_equal(result, expected)
 
         # ignore index
         expected = DataFrame(
-            np.repeat(arr, 3).reshape(-1, 3), index=index, columns=[0, 1, 2]
+            np.repeat(arr, 3).reshape(-1, 3), index=, columns=[0, 1, 2]
         )
         result = concat([s1, df, s2], axis=1, ignore_index=True)
         tm.assert_frame_equal(result, expected)
@@ -556,7 +556,7 @@ def test_concat_sparse():
 def test_concat_dense_sparse():
     # GH 30668
     dtype = pd.SparseDtype(np.float64, None)
-    a = Series(pd.arrays.SparseArray([1, None]), dtype=dtype)
+    a = Series(pd.arrays.SparseArray([1, None]), dtype=)
     b = Series([1], dtype=float)
     expected = Series(data=[1, None, 1], index=[0, 1, 0]).astype(dtype)
     result = concat([a, b], axis=0)
@@ -569,7 +569,7 @@ def test_duplicate_keys(keys):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     s1 = Series([7, 8, 9], name="c")
     s2 = Series([10, 11, 12], name="d")
-    result = concat([df, s1, s2], axis=1, keys=keys)
+    result = concat([df, s1, s2], axis=1, keys=)
     expected_values = [[1, 4, 7, 10], [2, 5, 8, 11], [3, 6, 9, 12]]
     expected_columns = MultiIndex.from_tuples(
         [(keys[0], "a"), (keys[0], "b"), (keys[1], "c"), (keys[2], "d")]
@@ -582,7 +582,7 @@ def test_duplicate_keys_same_frame():
     # GH 43595
     keys = ["e", "e"]
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    result = concat([df, df], axis=1, keys=keys)
+    result = concat([df, df], axis=1, keys=)
     expected_values = [[1, 4, 1, 4], [2, 5, 2, 5], [3, 6, 3, 6]]
     expected_columns = MultiIndex.from_tuples(
         [(keys[0], "a"), (keys[0], "b"), (keys[1], "a"), (keys[1], "b")]
@@ -658,7 +658,7 @@ def test_concat_bool_types(dtype1, dtype2, expected_dtype):
 def test_concat_repeated_keys(keys, integrity):
     # GH: 20816
     series_list = [Series({"a": 1}), Series({"b": 2}), Series({"c": 3})]
-    result = concat(series_list, keys=keys, verify_integrity=integrity)
+    result = concat(series_list, keys=, verify_integrity=integrity)
     tuples = list(zip(keys, ["a", "b", "c"]))
     expected = Series([1, 2, 3], index=MultiIndex.from_tuples(tuples))
     tm.assert_series_equal(result, expected)
@@ -822,9 +822,9 @@ def test_concat_mismatched_keys_length():
 
     msg = r"The behavior of pd.concat with len\(keys\) != len\(objs\) is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        concat(sers, keys=keys, axis=1)
+        concat(sers, keys=, axis=1)
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        concat(sers, keys=keys, axis=0)
+        concat(sers, keys=, axis=0)
     with tm.assert_produces_warning(FutureWarning, match=msg):
         concat((x for x in sers), keys=(y for y in keys), axis=1)
     with tm.assert_produces_warning(FutureWarning, match=msg):

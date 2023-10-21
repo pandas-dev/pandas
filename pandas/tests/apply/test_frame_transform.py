@@ -31,7 +31,7 @@ def test_transform_ufunc(axis, float_frame, frame_or_series):
         f_sqrt = np.sqrt(obj)
 
     # ufunc
-    result = obj.transform(np.sqrt, axis=axis)
+    result = obj.transform(np.sqrt, axis=)
     expected = f_sqrt
     tm.assert_equal(result, expected)
 
@@ -54,7 +54,7 @@ def test_transform_listlike(axis, float_frame, ops, names):
         expected.columns = MultiIndex.from_product([float_frame.columns, names])
     else:
         expected.index = MultiIndex.from_product([float_frame.index, names])
-    result = float_frame.transform(ops, axis=axis)
+    result = float_frame.transform(ops, axis=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -97,7 +97,7 @@ def test_transform_dictlike(axis, float_frame, box):
     else:
         e = float_frame.index[0]
         expected = float_frame.iloc[[0]].transform(np.abs)
-    result = float_frame.transform(box({e: np.abs}), axis=axis)
+    result = float_frame.transform(box({e: np.abs}), axis=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -143,7 +143,7 @@ def test_transform_udf(axis, float_frame, use_apply, frame_or_series):
             raise ValueError
         return x + 1
 
-    result = obj.transform(func, axis=axis)
+    result = obj.transform(func, axis=)
     expected = obj + 1
     tm.assert_equal(result, expected)
 

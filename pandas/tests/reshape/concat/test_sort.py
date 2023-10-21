@@ -23,7 +23,7 @@ class TestConcatSort:
 
         # default
         with tm.assert_produces_warning(None):
-            result = pd.concat([df1, df2], ignore_index=True, sort=sort)
+            result = pd.concat([df1, df2], ignore_index=True, sort=)
         tm.assert_frame_equal(result, expected)
 
     def test_concat_sorts_index(self, sort):
@@ -41,7 +41,7 @@ class TestConcatSort:
 
         # Warn and sort by default
         with tm.assert_produces_warning(None):
-            result = pd.concat([df1, df2], axis=1, sort=sort)
+            result = pd.concat([df1, df2], axis=1, sort=)
         tm.assert_frame_equal(result, expected)
 
     def test_concat_inner_sort(self, sort):
@@ -54,7 +54,7 @@ class TestConcatSort:
         with tm.assert_produces_warning(None):
             # unset sort should *not* warn for inner join
             # since that never sorted
-            result = pd.concat([df1, df2], sort=sort, join="inner", ignore_index=True)
+            result = pd.concat([df1, df2], sort=, join="inner", ignore_index=True)
 
         expected = DataFrame({"b": [1, 2, 3, 4], "a": [1, 2, 1, 2]}, columns=["b", "a"])
         if sort is True:

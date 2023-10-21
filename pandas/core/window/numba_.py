@@ -54,7 +54,7 @@ def generate_numba_apply_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nopython=, nogil=, parallel=)
     def roll_apply(
         values: np.ndarray,
         begin: np.ndarray,
@@ -115,7 +115,7 @@ def generate_numba_ewm_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nopython=, nogil=, parallel=)
     def ewm(
         values: np.ndarray,
         begin: np.ndarray,
@@ -213,7 +213,7 @@ def generate_numba_table_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nopython=, nogil=, parallel=)
     def roll_table(
         values: np.ndarray,
         begin: np.ndarray,
@@ -297,7 +297,7 @@ def generate_numba_ewm_table_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nopython=, nogil=, parallel=)
     def ewm_table(
         values: np.ndarray,
         begin: np.ndarray,

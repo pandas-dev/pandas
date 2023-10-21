@@ -47,10 +47,10 @@ class TestDataFrameSetItem:
 
         data = ["2020-10-22 01:21:00+00:00"]
         index = DatetimeIndex(data)
-        df = DataFrame({"a": [1]}, index=index)
+        df = DataFrame({"a": [1]}, index=)
         df["b"] = 2
         df[mystring("c")] = 3
-        expected = DataFrame({"a": [1], "b": [2], mystring("c"): [3]}, index=index)
+        expected = DataFrame({"a": [1], "b": [2], mystring("c"): [3]}, index=)
         tm.assert_equal(df, expected)
 
     @pytest.mark.parametrize(
@@ -60,7 +60,7 @@ class TestDataFrameSetItem:
         # Use integers since casting negative floats to uints is undefined
         arr = np.random.default_rng(2).integers(1, 10, len(float_frame))
 
-        float_frame[dtype] = np.array(arr, dtype=dtype)
+        float_frame[dtype] = np.array(arr, dtype=)
         assert float_frame[dtype].dtype.name == dtype
 
     def test_setitem_list_not_dataframe(self, float_frame):
@@ -245,7 +245,7 @@ class TestDataFrameSetItem:
     )
     def test_setitem_extension_types(self, obj, dtype):
         # GH: 34832
-        expected = DataFrame({"idx": [1, 2, 3], "obj": Series([obj] * 3, dtype=dtype)})
+        expected = DataFrame({"idx": [1, 2, 3], "obj": Series([obj] * 3, dtype=)})
 
         df = DataFrame({"idx": [1, 2, 3]})
         df["obj"] = obj
@@ -402,7 +402,7 @@ class TestDataFrameSetItem:
     @pytest.mark.parametrize("dtype", ["f8", "i8", "u8"])
     def test_setitem_bool_with_numeric_index(self, dtype):
         # GH#36319
-        cols = Index([1, 2, 3], dtype=dtype)
+        cols = Index([1, 2, 3], dtype=)
         df = DataFrame(np.random.default_rng(2).standard_normal((3, 3)), columns=cols)
 
         df[False] = ["a", "b", "c"]
@@ -542,9 +542,9 @@ class TestDataFrameSetItem:
     def test_setitem_with_empty_listlike(self):
         # GH#17101
         index = Index([], name="idx")
-        result = DataFrame(columns=["A"], index=index)
+        result = DataFrame(columns=["A"], index=)
         result["A"] = []
-        expected = DataFrame(columns=["A"], index=index)
+        expected = DataFrame(columns=["A"], index=)
         tm.assert_index_equal(result.index, expected.index)
 
     @pytest.mark.parametrize(
@@ -573,7 +573,7 @@ class TestDataFrameSetItem:
         cols = MultiIndex.from_product(it)
         index = date_range("20141006", periods=20)
         vals = np.random.default_rng(2).integers(1, 1000, (len(index), len(cols)))
-        df = DataFrame(vals, columns=cols, index=index)
+        df = DataFrame(vals, columns=cols, index=)
 
         i, j = df.index.values.copy(), it[-1][:]
 
@@ -670,11 +670,11 @@ class TestDataFrameSetItem:
     def test_setitem_dtypes_bytes_type_to_object(self):
         # GH 20734
         index = Series(name="id", dtype="S24")
-        df = DataFrame(index=index)
-        df["a"] = Series(name="a", index=index, dtype=np.uint32)
-        df["b"] = Series(name="b", index=index, dtype="S64")
-        df["c"] = Series(name="c", index=index, dtype="S64")
-        df["d"] = Series(name="d", index=index, dtype=np.uint8)
+        df = DataFrame(index=)
+        df["a"] = Series(name="a", index=, dtype=np.uint32)
+        df["b"] = Series(name="b", index=, dtype="S64")
+        df["c"] = Series(name="c", index=, dtype="S64")
+        df["d"] = Series(name="d", index=, dtype=np.uint8)
         result = df.dtypes
         expected = Series([np.uint32, object, object, np.uint8], index=list("abcd"))
         tm.assert_series_equal(result, expected)
@@ -852,7 +852,7 @@ class TestDataFrameSetItemWithExpansion:
         labels = Categorical([f"{i} - {i + 499}" for i in range(0, 10000, 500)])
 
         df = df.sort_values(by=["value"], ascending=True)
-        ser = cut(df.value, range(0, 10500, 500), right=False, labels=labels)
+        ser = cut(df.value, range(0, 10500, 500), right=False, labels=)
         cat = ser.values
 
         # setting with a Categorical
@@ -911,7 +911,7 @@ class TestDataFrameSetItemWithExpansion:
     def test_frame_setitem_newcol_timestamp(self):
         # GH#2155
         columns = date_range(start="1/1/2012", end="2/1/2012", freq=BDay())
-        data = DataFrame(columns=columns, index=range(10))
+        data = DataFrame(columns=, index=range(10))
         t = datetime(2012, 11, 1)
         ts = Timestamp(t)
         data[ts] = np.nan  # works, mostly a smoke-test
@@ -1305,10 +1305,10 @@ class TestDataFrameSetitemCopyViewSemantics:
     @pytest.mark.parametrize("dtype", ["int64", "Int64"])
     def test_setitem_iloc_with_numpy_array(self, dtype):
         # GH-33828
-        df = DataFrame({"a": np.ones(3)}, dtype=dtype)
+        df = DataFrame({"a": np.ones(3)}, dtype=)
         df.iloc[np.array([0]), np.array([0])] = np.array([[2]])
 
-        expected = DataFrame({"a": [2, 1, 1]}, dtype=dtype)
+        expected = DataFrame({"a": [2, 1, 1]}, dtype=)
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_frame_dup_cols_dtype(self):

@@ -75,24 +75,18 @@ class TestSeriesPctChange:
 
         # GH#7292
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs_freq = datetime_series.pct_change(
-                freq=freq, fill_method=fill_method, limit=limit
-            )
+            rs_freq = datetime_series.pct_change(freq=, fill_method=, limit=)
         with tm.assert_produces_warning(FutureWarning, match=msg):
             rs_periods = datetime_series.pct_change(
-                periods, fill_method=fill_method, limit=limit
+                periods, fill_method=, limit=
             )
         tm.assert_series_equal(rs_freq, rs_periods)
 
         empty_ts = Series(index=datetime_series.index, dtype=object)
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs_freq = empty_ts.pct_change(
-                freq=freq, fill_method=fill_method, limit=limit
-            )
+            rs_freq = empty_ts.pct_change(freq=, fill_method=, limit=)
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            rs_periods = empty_ts.pct_change(
-                periods, fill_method=fill_method, limit=limit
-            )
+            rs_periods = empty_ts.pct_change(periods, fill_method=, limit=)
         tm.assert_series_equal(rs_freq, rs_periods)
 
 
@@ -103,7 +97,7 @@ def test_pct_change_with_duplicated_indices(fill_method):
 
     msg = "The 'fill_method' and 'limit' keywords in Series.pct_change are deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = s.pct_change(fill_method=fill_method)
+        result = s.pct_change(fill_method=)
 
     expected = Series([np.nan, np.nan, 1.0, 0.5, 2.0, 1.0], index=["a", "b"] * 3)
     tm.assert_series_equal(result, expected)

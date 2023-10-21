@@ -81,7 +81,7 @@ def _new_DatetimeIndex(cls, d):
             #  a DatetimeArray to adapt to the newer _simple_new signature
             tz = d.pop("tz")
             freq = d.pop("freq")
-            dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz), freq=freq)
+            dta = DatetimeArray._simple_new(data, dtype=tz_to_dtype(tz), freq=)
         else:
             dta = data
             for key in ["tz", "freq"]:
@@ -363,23 +363,23 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             # Note in this particular case we retain non-nano.
             if copy:
                 data = data.copy()
-            return cls._simple_new(data, name=name)
+            return cls._simple_new(data, name=)
 
         dtarr = DatetimeArray._from_sequence_not_strict(
             data,
-            dtype=dtype,
-            copy=copy,
-            tz=tz,
-            freq=freq,
-            dayfirst=dayfirst,
-            yearfirst=yearfirst,
-            ambiguous=ambiguous,
+            dtype=,
+            copy=,
+            tz=,
+            freq=,
+            dayfirst=,
+            yearfirst=,
+            ambiguous=,
         )
         refs = None
         if not copy and isinstance(data, (Index, ABCSeries)):
             refs = data._references
 
-        subarr = cls._simple_new(dtarr, name=name, refs=refs)
+        subarr = cls._simple_new(dtarr, name=, refs=)
         return subarr
 
     # --------------------------------------------------------------------
@@ -529,7 +529,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         lower, upper: pd.Timestamp
         """
         freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
-        per = Period(parsed, freq=freq)
+        per = Period(parsed, freq=)
         start, end = per.start_time, per.end_time
 
         # GH 24076
@@ -1001,17 +1001,17 @@ def date_range(
         freq = "D"
 
     dtarr = DatetimeArray._generate_range(
-        start=start,
-        end=end,
-        periods=periods,
-        freq=freq,
-        tz=tz,
-        normalize=normalize,
-        inclusive=inclusive,
-        unit=unit,
+        start=,
+        end=,
+        periods=,
+        freq=,
+        tz=,
+        normalize=,
+        inclusive=,
+        unit=,
         **kwargs,
     )
-    return DatetimeIndex._simple_new(dtarr, name=name)
+    return DatetimeIndex._simple_new(dtarr, name=)
 
 
 def bdate_range(
@@ -1093,7 +1093,7 @@ def bdate_range(
     if isinstance(freq, str) and freq.startswith("C"):
         try:
             weekmask = weekmask or "Mon Tue Wed Thu Fri"
-            freq = prefix_mapping[freq](holidays=holidays, weekmask=weekmask)
+            freq = prefix_mapping[freq](holidays=, weekmask=)
         except (KeyError, TypeError) as err:
             msg = f"invalid custom frequency string: {freq}"
             raise ValueError(msg) from err
@@ -1105,14 +1105,14 @@ def bdate_range(
         raise ValueError(msg)
 
     return date_range(
-        start=start,
-        end=end,
-        periods=periods,
-        freq=freq,
-        tz=tz,
-        normalize=normalize,
-        name=name,
-        inclusive=inclusive,
+        start=,
+        end=,
+        periods=,
+        freq=,
+        tz=,
+        normalize=,
+        name=,
+        inclusive=,
         **kwargs,
     )
 

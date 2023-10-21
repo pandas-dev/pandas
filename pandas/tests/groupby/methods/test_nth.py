@@ -507,7 +507,7 @@ def test_nth_multi_index_as_expected():
 @pytest.mark.parametrize("as_index", [True, False])
 def test_groupby_head_tail(op, n, expected_rows, columns, as_index):
     df = DataFrame([[1, 2], [1, 4], [5, 6]], columns=["A", "B"])
-    g = df.groupby("A", as_index=as_index)
+    g = df.groupby("A", as_index=)
     expected = df.iloc[expected_rows]
     if columns is not None:
         g = g[columns]
@@ -610,7 +610,7 @@ def test_nth_nan_in_grouper(dropna):
             "c": [1, 3, 5, 7, 9],
         }
     )
-    result = df.groupby("a").nth(0, dropna=dropna)
+    result = df.groupby("a").nth(0, dropna=)
     expected = df.iloc[[1, 3]]
 
     tm.assert_frame_equal(result, expected)
@@ -625,7 +625,7 @@ def test_nth_nan_in_grouper_series(dropna):
             "b": [0, 2, 4, 6, 8],
         }
     )
-    result = df.groupby("a")["b"].nth(0, dropna=dropna)
+    result = df.groupby("a")["b"].nth(0, dropna=)
     expected = df["b"].iloc[[1, 3]]
 
     tm.assert_series_equal(result, expected)
@@ -866,7 +866,7 @@ def test_nth_after_selection(selection, dropna):
         }
     )
     gb = df.groupby("a")[selection]
-    result = gb.nth(0, dropna=dropna)
+    result = gb.nth(0, dropna=)
     if dropna == "any" or (dropna == "all" and selection != ["b", "c"]):
         locs = [1, 2]
     else:

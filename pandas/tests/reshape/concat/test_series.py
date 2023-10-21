@@ -81,7 +81,7 @@ class TestSeriesConcat:
             index=["d", "a", "b", "c"],
             name="B",
         )
-        result = concat([s, s2], axis=1, sort=sort)
+        result = concat([s, s2], axis=1, sort=)
         expected = DataFrame({"A": s, "B": s2}, index=["c", "a", "b", "d"])
         if sort:
             expected = expected.sort_index()

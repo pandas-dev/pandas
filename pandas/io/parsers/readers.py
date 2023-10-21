@@ -973,7 +973,7 @@ def read_csv(
         on_bad_lines,
         names,
         defaults={"delimiter": ","},
-        dtype_backend=dtype_backend,
+        dtype_backend=,
     )
     kwds.update(kwds_defaults)
 
@@ -1307,7 +1307,7 @@ def read_table(
         on_bad_lines,
         names,
         defaults={"delimiter": "\t"},
-        dtype_backend=dtype_backend,
+        dtype_backend=,
     )
     kwds.update(kwds_defaults)
 
@@ -1789,7 +1789,7 @@ class TextFileReader(abc.Iterator):
                 encoding=self.options.get("encoding", None),
                 compression=self.options.get("compression", None),
                 memory_map=self.options.get("memory_map", False),
-                is_text=is_text,
+                is_text=,
                 errors=self.options.get("encoding_errors", "strict"),
                 storage_options=self.options.get("storage_options", None),
             )
@@ -1843,7 +1843,7 @@ class TextFileReader(abc.Iterator):
             else:
                 new_rows = len(index)
 
-            df = DataFrame(col_dict, columns=columns, index=index)
+            df = DataFrame(col_dict, columns=, index=)
 
             self._currow += new_rows
         return df

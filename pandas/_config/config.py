@@ -209,7 +209,7 @@ def _reset_option(pat: str, silent: bool = False) -> None:
         )
 
     for k in keys:
-        _set_option(k, _registered_options[k].defval, silent=silent)
+        _set_option(k, _registered_options[k].defval, silent=)
 
 
 def get_default_val(pat: str):
@@ -276,7 +276,7 @@ class CallableDynamicDoc(Generic[T]):
     def __doc__(self) -> str:  # type: ignore[override]
         opts_desc = _describe_option("all", _print_desc=False)
         opts_list = pp_options_list(list(_registered_options.keys()))
-        return self.__doc_tmpl__.format(opts_desc=opts_desc, opts_list=opts_list)
+        return self.__doc_tmpl__.format(opts_desc=, opts_list=)
 
 
 _get_option_tmpl = """
@@ -557,7 +557,7 @@ def register_option(
 
     # save the option metadata
     _registered_options[key] = RegisteredOption(
-        key=key, defval=defval, doc=doc, validator=validator, cb=cb
+        key=, defval=, doc=, validator=, cb=
     )
 
 

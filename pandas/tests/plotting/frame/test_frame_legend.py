@@ -32,7 +32,7 @@ class TestFrameLegend:
         df = DataFrame([{"x": 1, "a": 1, "b": 1}, {"x": 2, "a": 2, "b": 3}])
 
         ax = df.plot("x", "a", c="orange", yerr=0.1, label="orange")
-        df.plot("x", "b", c="blue", yerr=None, ax=ax, label="blue")
+        df.plot("x", "b", c="blue", yerr=None, ax=, label="blue")
 
         legend = ax.get_legend()
         if Version(mpl.__version__) < Version("3.7"):
@@ -49,7 +49,7 @@ class TestFrameLegend:
         df2 = DataFrame({"d": [2.5, 2.5]})
 
         ax = df.plot(legend=True, color={"a": "blue", "b": "green"}, secondary_y="b")
-        df2.plot(legend=True, color={"d": "red"}, ax=ax)
+        df2.plot(legend=True, color={"d": "red"}, ax=)
         legend = ax.get_legend()
         if Version(mpl.__version__) < Version("3.7"):
             handles = legend.legendHandles
@@ -73,16 +73,16 @@ class TestFrameLegend:
             np.random.default_rng(2).random((3, 3)), columns=["j", "k", "l"]
         )
 
-        ax = df.plot(kind=kind, legend=True)
+        ax = df.plot(kind=, legend=True)
         _check_legend_labels(ax, labels=df.columns)
 
-        ax = df2.plot(kind=kind, legend=False, ax=ax)
+        ax = df2.plot(kind=, legend=False, ax=)
         _check_legend_labels(ax, labels=df.columns)
 
-        ax = df3.plot(kind=kind, legend=True, ax=ax)
+        ax = df3.plot(kind=, legend=True, ax=)
         _check_legend_labels(ax, labels=df.columns.union(df3.columns))
 
-        ax = df4.plot(kind=kind, legend="reverse", ax=ax)
+        ax = df4.plot(kind=, legend="reverse", ax=)
         expected = list(df.columns.union(df3.columns)) + list(reversed(df4.columns))
         _check_legend_labels(ax, labels=expected)
 
@@ -98,9 +98,9 @@ class TestFrameLegend:
         # Secondary Y
         ax = df.plot(legend=True, secondary_y="b")
         _check_legend_labels(ax, labels=["a", "b (right)", "c"])
-        ax = df2.plot(legend=False, ax=ax)
+        ax = df2.plot(legend=False, ax=)
         _check_legend_labels(ax, labels=["a", "b (right)", "c"])
-        ax = df3.plot(kind="bar", legend=True, secondary_y="h", ax=ax)
+        ax = df3.plot(kind="bar", legend=True, secondary_y="h", ax=)
         _check_legend_labels(ax, labels=["a", "b (right)", "c", "g", "h (right)", "i"])
 
     def test_df_legend_labels_time_series(self):
@@ -124,9 +124,9 @@ class TestFrameLegend:
         )
         ax = df.plot(legend=True, secondary_y="b")
         _check_legend_labels(ax, labels=["a", "b (right)", "c"])
-        ax = df2.plot(legend=False, ax=ax)
+        ax = df2.plot(legend=False, ax=)
         _check_legend_labels(ax, labels=["a", "b (right)", "c"])
-        ax = df3.plot(legend=True, ax=ax)
+        ax = df3.plot(legend=True, ax=)
         _check_legend_labels(ax, labels=["a", "b (right)", "c", "g", "h", "i"])
 
     def test_df_legend_labels_time_series_scatter(self):
@@ -151,9 +151,9 @@ class TestFrameLegend:
         # scatter
         ax = df.plot.scatter(x="a", y="b", label="data1")
         _check_legend_labels(ax, labels=["data1"])
-        ax = df2.plot.scatter(x="d", y="e", legend=False, label="data2", ax=ax)
+        ax = df2.plot.scatter(x="d", y="e", legend=False, label="data2", ax=)
         _check_legend_labels(ax, labels=["data1"])
-        ax = df3.plot.scatter(x="g", y="h", label="data3", ax=ax)
+        ax = df3.plot.scatter(x="g", y="h", label="data3", ax=)
         _check_legend_labels(ax, labels=["data1", "data3"])
 
     def test_df_legend_labels_time_series_no_mutate(self):
@@ -173,7 +173,7 @@ class TestFrameLegend:
         ax = df5.plot(y="b", label="LABEL_b")
         _check_legend_labels(ax, labels=["LABEL_b"])
         _check_text_labels(ax.xaxis.get_label(), "a")
-        ax = df5.plot(y="c", label="LABEL_c", ax=ax)
+        ax = df5.plot(y="c", label="LABEL_c", ax=)
         _check_legend_labels(ax, labels=["LABEL_b", "LABEL_c"])
         assert df5.columns.tolist() == ["b", "c"]
 
@@ -212,16 +212,16 @@ class TestFrameLegend:
         _check_text_labels(leg_title, "group,individual")
 
         df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
-        ax = df.plot(legend=True, ax=ax)
+        ax = df.plot(legend=True, ax=)
         leg_title = ax.legend_.get_title()
         _check_text_labels(leg_title, "group,individual")
 
         df.columns.name = "new"
-        ax = df.plot(legend=False, ax=ax)
+        ax = df.plot(legend=False, ax=)
         leg_title = ax.legend_.get_title()
         _check_text_labels(leg_title, "group,individual")
 
-        ax = df.plot(legend=True, ax=ax)
+        ax = df.plot(legend=True, ax=)
         leg_title = ax.legend_.get_title()
         _check_text_labels(leg_title, "new")
 
@@ -238,7 +238,7 @@ class TestFrameLegend:
     )
     def test_no_legend(self, kind):
         df = DataFrame(np.random.default_rng(2).random((3, 3)), columns=["a", "b", "c"])
-        ax = df.plot(kind=kind, legend=False)
+        ax = df.plot(kind=, legend=False)
         _check_legend_labels(ax, visible=False)
 
     def test_missing_markers_legend(self):
@@ -247,8 +247,8 @@ class TestFrameLegend:
             np.random.default_rng(2).standard_normal((8, 3)), columns=["A", "B", "C"]
         )
         ax = df.plot(y=["A"], marker="x", linestyle="solid")
-        df.plot(y=["B"], marker="o", linestyle="dotted", ax=ax)
-        df.plot(y=["C"], marker="<", linestyle="dotted", ax=ax)
+        df.plot(y=["B"], marker="o", linestyle="dotted", ax=)
+        df.plot(y=["C"], marker="<", linestyle="dotted", ax=)
 
         _check_legend_labels(ax, labels=["A", "B", "C"])
         _check_legend_marker(ax, expected_markers=["x", "o", "<"])
@@ -266,7 +266,7 @@ class TestFrameLegend:
 
         _, ax = mpl.pyplot.subplots()
         for kind in "ABC":
-            df.plot("X", kind, label=kind, ax=ax, style=".")
+            df.plot("X", kind, label=kind, ax=, style=".")
 
         _check_legend_labels(ax, labels=["A", "B", "C"])
         _check_legend_marker(ax, expected_markers=[".", ".", "."])

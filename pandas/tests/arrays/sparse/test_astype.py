@@ -128,6 +128,6 @@ class TestAstype:
         # GH#50087 we should match the non-sparse behavior regardless of
         #  if we have a fill_value other than NaT
         dtype = SparseDtype("datetime64[ns]", values[1])
-        arr3 = SparseArray(values, dtype=dtype)
+        arr3 = SparseArray(values, dtype=)
         result3 = arr3.astype("int64")
         tm.assert_numpy_array_equal(result3, expected)

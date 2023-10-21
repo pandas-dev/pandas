@@ -30,7 +30,7 @@ class TestTimestampRendering:
         assert freq_repr not in repr(date_only)
         assert date_only == eval(repr(date_only))
 
-        date_tz = Timestamp(date, tz=tz)
+        date_tz = Timestamp(date, tz=)
         assert date in repr(date_tz)
         assert tz_repr in repr(date_tz)
         assert freq_repr not in repr(date_tz)

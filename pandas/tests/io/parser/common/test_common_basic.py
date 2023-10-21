@@ -234,7 +234,7 @@ bar2,12,13,14,15
     )
     parser = all_parsers
 
-    result = parser.read_csv(StringIO(data), nrows=nrows)
+    result = parser.read_csv(StringIO(data), nrows=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -253,7 +253,7 @@ bar2,12,13,14,15
     parser = all_parsers
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), nrows=nrows)
+        parser.read_csv(StringIO(data), nrows=)
 
 
 def test_nrows_skipfooter_errors(all_parsers):
@@ -404,7 +404,7 @@ def test_uneven_lines_with_usecols(all_parsers, usecols):
     else:
         expected = DataFrame({"a": [0, 3, 8], "b": [1, 4, 9]})
 
-        result = parser.read_csv(StringIO(data), usecols=usecols)
+        result = parser.read_csv(StringIO(data), usecols=)
         tm.assert_frame_equal(result, expected)
 
 
@@ -506,7 +506,7 @@ b\n"""
 
     expected = DataFrame({"MyColumn": list("abab")})
     result = parser.read_csv(
-        StringIO(data), skipinitialspace=True, delim_whitespace=delim_whitespace
+        StringIO(data), skipinitialspace=True, delim_whitespace=
     )
     tm.assert_frame_equal(result, expected)
 
@@ -547,7 +547,7 @@ A,B,C
     if sep == r"\s+":
         data = data.replace(",", "  ")
 
-    result = parser.read_csv(StringIO(data), sep=sep, skip_blank_lines=skip_blank_lines)
+    result = parser.read_csv(StringIO(data), sep=, skip_blank_lines=)
     expected = DataFrame(exp_data, columns=["A", "B", "C"])
     tm.assert_frame_equal(result, expected)
 
@@ -698,7 +698,7 @@ def test_blank_lines_between_header_and_data_rows(all_parsers, nrows):
     )
     csv = "\nheader\n\na,b\n\n\n1,2\n\n3,4"
     parser = all_parsers
-    df = parser.read_csv(StringIO(csv), header=3, nrows=nrows, skip_blank_lines=False)
+    df = parser.read_csv(StringIO(csv), header=3, nrows=, skip_blank_lines=False)
     tm.assert_frame_equal(df, ref[:nrows])
 
 
@@ -754,7 +754,7 @@ def test_read_csv_delim_whitespace_non_default_sep(all_parsers, delimiter):
         parser.read_csv(f, delim_whitespace=True, sep=delimiter)
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(f, delim_whitespace=True, delimiter=delimiter)
+        parser.read_csv(f, delim_whitespace=True, delimiter=)
 
 
 def test_read_csv_delimiter_and_sep_no_default(all_parsers):
@@ -795,7 +795,7 @@ def test_read_table_delim_whitespace_non_default_sep(all_parsers, delimiter):
         parser.read_table(f, delim_whitespace=True, sep=delimiter)
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_table(f, delim_whitespace=True, delimiter=delimiter)
+        parser.read_table(f, delim_whitespace=True, delimiter=)
 
 
 @xfail_pyarrow

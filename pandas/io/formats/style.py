@@ -270,14 +270,14 @@ class Styler(StylerRenderer):
         formatter: ExtFormatter | None = None,
     ) -> None:
         super().__init__(
-            data=data,
-            uuid=uuid,
-            uuid_len=uuid_len,
-            table_styles=table_styles,
-            table_attributes=table_attributes,
-            caption=caption,
-            cell_ids=cell_ids,
-            precision=precision,
+            data=,
+            uuid=,
+            uuid_len=,
+            table_styles=,
+            table_attributes=,
+            caption=,
+            cell_ids=,
+            precision=,
         )
 
         # validate ordered args
@@ -289,12 +289,12 @@ class Styler(StylerRenderer):
         # precision is handled by superclass as default for performance
 
         self.format(
-            formatter=formatter,
-            precision=precision,
-            na_rep=na_rep,
-            escape=escape,
-            decimal=decimal,
-            thousands=thousands,
+            formatter=,
+            precision=,
+            na_rep=,
+            escape=,
+            decimal=,
+            thousands=,
         )
 
     def concat(self, other: Styler) -> Styler:
@@ -539,23 +539,23 @@ class Styler(StylerRenderer):
 
         formatter = ExcelFormatter(
             self,
-            na_rep=na_rep,
+            na_rep=,
             cols=columns,
-            header=header,
-            float_format=float_format,
-            index=index,
-            index_label=index_label,
-            merge_cells=merge_cells,
-            inf_rep=inf_rep,
+            header=,
+            float_format=,
+            index=,
+            index_label=,
+            merge_cells=,
+            inf_rep=,
         )
         formatter.write(
             excel_writer,
-            sheet_name=sheet_name,
-            startrow=startrow,
-            startcol=startcol,
-            freeze_panes=freeze_panes,
-            engine=engine,
-            storage_options=storage_options,
+            sheet_name=,
+            startrow=,
+            startcol=,
+            freeze_panes=,
+            engine=,
+            storage_options=,
         )
 
     @overload
@@ -1157,14 +1157,14 @@ class Styler(StylerRenderer):
         multicol_align = multicol_align or get_option("styler.latex.multicol_align")
         multirow_align = multirow_align or get_option("styler.latex.multirow_align")
         latex = obj._render_latex(
-            sparse_index=sparse_index,
-            sparse_columns=sparse_columns,
-            multirow_align=multirow_align,
-            multicol_align=multicol_align,
-            environment=environment,
-            convert_css=convert_css,
-            siunitx=siunitx,
-            clines=clines,
+            sparse_index=,
+            sparse_columns=,
+            multirow_align=,
+            multicol_align=,
+            environment=,
+            convert_css=,
+            siunitx=,
+            clines=,
         )
 
         encoding = (
@@ -1172,7 +1172,7 @@ class Styler(StylerRenderer):
             if isinstance(buf, str)  # i.e. a filepath
             else encoding
         )
-        return save_to_buffer(latex, buf=buf, encoding=encoding)
+        return save_to_buffer(latex, buf=, encoding=)
 
     @overload
     def to_html(
@@ -1346,18 +1346,18 @@ class Styler(StylerRenderer):
 
         # Build HTML string..
         html = obj._render_html(
-            sparse_index=sparse_index,
-            sparse_columns=sparse_columns,
-            max_rows=max_rows,
+            sparse_index=,
+            sparse_columns=,
+            max_rows=,
             max_cols=max_columns,
-            exclude_styles=exclude_styles,
+            exclude_styles=,
             encoding=encoding or get_option("styler.render.encoding"),
-            doctype_html=doctype_html,
+            doctype_html=,
             **kwargs,
         )
 
         return save_to_buffer(
-            html, buf=buf, encoding=(encoding if buf is not None else None)
+            html, buf=, encoding=(encoding if buf is not None else None)
         )
 
     @overload
@@ -1449,14 +1449,14 @@ class Styler(StylerRenderer):
             sparse_columns = get_option("styler.sparse.columns")
 
         text = obj._render_string(
-            sparse_columns=sparse_columns,
-            sparse_index=sparse_index,
-            max_rows=max_rows,
+            sparse_columns=,
+            sparse_index=,
+            max_rows=,
             max_cols=max_columns,
-            delimiter=delimiter,
+            delimiter=,
         )
         return save_to_buffer(
-            text, buf=buf, encoding=(encoding if buf is not None else None)
+            text, buf=, encoding=(encoding if buf is not None else None)
         )
 
     def set_td_classes(self, classes: DataFrame) -> Styler:
@@ -2978,15 +2978,15 @@ class Styler(StylerRenderer):
 
         self.apply(
             _background_gradient,
-            cmap=cmap,
-            subset=subset,
-            axis=axis,
-            low=low,
-            high=high,
-            text_color_threshold=text_color_threshold,
-            vmin=vmin,
-            vmax=vmax,
-            gmap=gmap,
+            cmap=,
+            subset=,
+            axis=,
+            low=,
+            high=,
+            text_color_threshold=,
+            vmin=,
+            vmax=,
+            gmap=,
         )
         return self
 
@@ -3013,14 +3013,14 @@ class Styler(StylerRenderer):
 
         return self.apply(
             _background_gradient,
-            cmap=cmap,
-            subset=subset,
-            axis=axis,
-            low=low,
-            high=high,
-            vmin=vmin,
-            vmax=vmax,
-            gmap=gmap,
+            cmap=,
+            subset=,
+            axis=,
+            low=,
+            high=,
+            vmin=,
+            vmax=,
+            gmap=,
             text_only=True,
         )
 
@@ -3054,7 +3054,7 @@ class Styler(StylerRenderer):
         more details.
         """
         values = "".join([f"{p}: {v};" for p, v in kwargs.items()])
-        return self.map(lambda x: values, subset=subset)
+        return self.map(lambda x: values, subset=)
 
     @Substitution(subset=subset_args)
     def bar(  # pylint: disable=disallowed-name
@@ -3170,15 +3170,15 @@ class Styler(StylerRenderer):
 
         self.apply(
             _bar,
-            subset=subset,
-            axis=axis,
-            align=align,
+            subset=,
+            axis=,
+            align=,
             colors=color,
-            cmap=cmap,
+            cmap=,
             width=width / 100,
             height=height / 100,
-            vmin=vmin,
-            vmax=vmax,
+            vmin=,
+            vmax=,
             base_css=props,
         )
 
@@ -3235,7 +3235,7 @@ class Styler(StylerRenderer):
 
         if props is None:
             props = f"background-color: {color};"
-        return self.apply(f, axis=None, subset=subset, props=props)
+        return self.apply(f, axis=None, subset=, props=)
 
     @Substitution(
         subset=subset_args,
@@ -3288,9 +3288,9 @@ class Styler(StylerRenderer):
             props = f"background-color: {color};"
         return self.apply(
             partial(_highlight_value, op="max"),
-            axis=axis,
-            subset=subset,
-            props=props,
+            axis=,
+            subset=,
+            props=,
         )
 
     @Substitution(
@@ -3344,9 +3344,9 @@ class Styler(StylerRenderer):
             props = f"background-color: {color};"
         return self.apply(
             partial(_highlight_value, op="min"),
-            axis=axis,
-            subset=subset,
-            props=props,
+            axis=,
+            subset=,
+            props=,
         )
 
     @Substitution(
@@ -3449,12 +3449,12 @@ class Styler(StylerRenderer):
             props = f"background-color: {color};"
         return self.apply(
             _highlight_between,
-            axis=axis,
-            subset=subset,
-            props=props,
-            left=left,
-            right=right,
-            inclusive=inclusive,
+            axis=,
+            subset=,
+            props=,
+            left=,
+            right=,
+            inclusive=,
         )
 
     @Substitution(
@@ -3544,13 +3544,13 @@ class Styler(StylerRenderer):
         quantiles = [q_left, q_right]
         if axis is None:
             q = Series(data.to_numpy().ravel()).quantile(
-                q=quantiles, interpolation=interpolation
+                q=quantiles, interpolation=
             )
             axis_apply: int | None = None
         else:
             axis = self.data._get_axis_number(axis)
             q = data.quantile(
-                axis=axis, numeric_only=False, q=quantiles, interpolation=interpolation
+                axis=, numeric_only=False, q=quantiles, interpolation=
             )
             axis_apply = 1 - axis
 
@@ -3559,11 +3559,11 @@ class Styler(StylerRenderer):
         return self.apply(
             _highlight_between,
             axis=axis_apply,
-            subset=subset,
-            props=props,
+            subset=,
+            props=,
             left=q.iloc[0],
             right=q.iloc[1],
-            inclusive=inclusive,
+            inclusive=,
         )
 
     @classmethod
@@ -3618,7 +3618,7 @@ class Styler(StylerRenderer):
         # error: Variable "cls" is not valid as a type
         # error: Invalid base class "cls"
         class MyStyler(cls):  # type: ignore[valid-type,misc]
-            env = jinja2.Environment(loader=loader)
+            env = jinja2.Environment(loader=)
             if html_table:
                 template_html_table = env.get_template(html_table)
             if html_style:

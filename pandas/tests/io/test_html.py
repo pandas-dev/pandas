@@ -85,7 +85,7 @@ def test_invalid_flavor():
     msg = r"\{" + flavor + r"\} is not a valid set of flavors"
 
     with pytest.raises(ValueError, match=msg):
-        read_html(StringIO(url), match="google", flavor=flavor)
+        read_html(StringIO(url), match="google", flavor=)
 
 
 def test_same_ordering(datapath):
@@ -194,7 +194,7 @@ class TestReadHtml:
 
         out = df.to_html(index=False)
         with pd.option_context("mode.string_storage", string_storage):
-            result = flavor_read_html(StringIO(out), dtype_backend=dtype_backend)[0]
+            result = flavor_read_html(StringIO(out), dtype_backend=)[0]
 
         expected = DataFrame(
             {
@@ -1040,7 +1040,7 @@ class TestReadHtml:
         )[0]
 
         columns = MultiIndex(levels=[["A", "B"], ["a", "b"]], codes=[[0, 1], [0, 1]])
-        expected = DataFrame(data=[[1, 2]], columns=columns)
+        expected = DataFrame(data=[[1, 2]], columns=)
 
         tm.assert_frame_equal(result, expected)
 
@@ -1273,7 +1273,7 @@ class TestReadHtml:
         )[0]
 
         columns = MultiIndex(levels=[["A", "B"], ["a", "b"]], codes=[[0, 1], [0, 1]])
-        expected = DataFrame(data=[[1, 2]], columns=columns)
+        expected = DataFrame(data=[[1, 2]], columns=)
 
         tm.assert_frame_equal(result, expected)
 
@@ -1357,7 +1357,7 @@ class TestReadHtml:
           </body>
         </html>"""
 
-        dfs = flavor_read_html(StringIO(data), displayed_only=displayed_only)
+        dfs = flavor_read_html(StringIO(data), displayed_only=)
         tm.assert_frame_equal(dfs[0], exp0)
 
         if exp1 is not None:
@@ -1383,7 +1383,7 @@ class TestReadHtml:
             </tr>
         </table>
         """
-        result = flavor_read_html(StringIO(html_table), displayed_only=displayed_only)[
+        result = flavor_read_html(StringIO(html_table), displayed_only=)[
             0
         ]
         expected = DataFrame({"A": [1, 4], "B": [2, 5]})
@@ -1401,16 +1401,16 @@ class TestReadHtml:
         try:
             with open(html_encoding_file, "rb") as fobj:
                 from_string = flavor_read_html(
-                    fobj.read(), encoding=encoding, index_col=0
+                    fobj.read(), encoding=, index_col=0
                 ).pop()
 
             with open(html_encoding_file, "rb") as fobj:
                 from_file_like = flavor_read_html(
-                    BytesIO(fobj.read()), encoding=encoding, index_col=0
+                    BytesIO(fobj.read()), encoding=, index_col=0
                 ).pop()
 
             from_filename = flavor_read_html(
-                html_encoding_file, encoding=encoding, index_col=0
+                html_encoding_file, encoding=, index_col=0
             ).pop()
             tm.assert_frame_equal(from_string, from_file_like)
             tm.assert_frame_equal(from_string, from_filename)

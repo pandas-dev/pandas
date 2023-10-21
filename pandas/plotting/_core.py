@@ -124,16 +124,16 @@ def hist_series(
     plot_backend = _get_plot_backend(backend)
     return plot_backend.hist_series(
         self,
-        by=by,
-        ax=ax,
-        grid=grid,
-        xlabelsize=xlabelsize,
-        xrot=xrot,
-        ylabelsize=ylabelsize,
-        yrot=yrot,
-        figsize=figsize,
-        bins=bins,
-        legend=legend,
+        by=,
+        ax=,
+        grid=,
+        xlabelsize=,
+        xrot=,
+        ylabelsize=,
+        yrot=,
+        figsize=,
+        bins=,
+        legend=,
         **kwargs,
     )
 
@@ -246,20 +246,20 @@ def hist_frame(
     plot_backend = _get_plot_backend(backend)
     return plot_backend.hist_frame(
         data,
-        column=column,
-        by=by,
-        grid=grid,
-        xlabelsize=xlabelsize,
-        xrot=xrot,
-        ylabelsize=ylabelsize,
-        yrot=yrot,
-        ax=ax,
-        sharex=sharex,
-        sharey=sharey,
-        figsize=figsize,
-        layout=layout,
-        legend=legend,
-        bins=bins,
+        column=,
+        by=,
+        grid=,
+        xlabelsize=,
+        xrot=,
+        ylabelsize=,
+        yrot=,
+        ax=,
+        sharex=,
+        sharey=,
+        figsize=,
+        layout=,
+        legend=,
+        bins=,
         **kwargs,
     )
 
@@ -496,15 +496,15 @@ def boxplot(
     plot_backend = _get_plot_backend("matplotlib")
     return plot_backend.boxplot(
         data,
-        column=column,
-        by=by,
-        ax=ax,
-        fontsize=fontsize,
-        rot=rot,
-        grid=grid,
-        figsize=figsize,
-        layout=layout,
-        return_type=return_type,
+        column=,
+        by=,
+        ax=,
+        fontsize=,
+        rot=,
+        grid=,
+        figsize=,
+        layout=,
+        return_type=,
         **kwargs,
     )
 
@@ -528,15 +528,15 @@ def boxplot_frame(
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame(
         self,
-        column=column,
-        by=by,
-        ax=ax,
-        fontsize=fontsize,
-        rot=rot,
-        grid=grid,
-        figsize=figsize,
-        layout=layout,
-        return_type=return_type,
+        column=,
+        by=,
+        ax=,
+        fontsize=,
+        rot=,
+        grid=,
+        figsize=,
+        layout=,
+        return_type=,
         **kwargs,
     )
 
@@ -618,16 +618,16 @@ def boxplot_frame_groupby(
     plot_backend = _get_plot_backend(backend)
     return plot_backend.boxplot_frame_groupby(
         grouped,
-        subplots=subplots,
-        column=column,
-        fontsize=fontsize,
-        rot=rot,
-        grid=grid,
-        ax=ax,
-        figsize=figsize,
-        layout=layout,
-        sharex=sharex,
-        sharey=sharey,
+        subplots=,
+        column=,
+        fontsize=,
+        rot=,
+        grid=,
+        ax=,
+        figsize=,
+        layout=,
+        sharex=,
+        sharey=,
         **kwargs,
     )
 
@@ -958,7 +958,7 @@ class PlotAccessor(PandasObject):
 
         # when using another backend, get out of the way
         if plot_backend.__name__ != "pandas.plotting._matplotlib":
-            return plot_backend.plot(self._parent, x=x, y=y, kind=kind, **kwargs)
+            return plot_backend.plot(self._parent, x=, y=, kind=, **kwargs)
 
         if kind not in self._all_kinds:
             raise ValueError(f"{kind} is not a valid plot kind")
@@ -973,7 +973,7 @@ class PlotAccessor(PandasObject):
 
         if kind in self._dataframe_kinds:
             if isinstance(data, ABCDataFrame):
-                return plot_backend.plot(data, x=x, y=y, kind=kind, **kwargs)
+                return plot_backend.plot(data, x=, y=, kind=, **kwargs)
             else:
                 raise ValueError(f"plot kind {kind} can only be used for data frames")
         elif kind in self._series_kinds:
@@ -1028,7 +1028,7 @@ class PlotAccessor(PandasObject):
                     label_name = label_kw or data.columns
                     data.columns = label_name
 
-        return plot_backend.plot(data, kind=kind, **kwargs)
+        return plot_backend.plot(data, kind=, **kwargs)
 
     __call__.__doc__ = __doc__
 
@@ -1098,7 +1098,7 @@ class PlotAccessor(PandasObject):
         This function is useful to plot lines using DataFrame's values
         as coordinates.
         """
-        return self(kind="line", x=x, y=y, **kwargs)
+        return self(kind="line", x=, y=, **kwargs)
 
     @Appender(
         """
@@ -1190,7 +1190,7 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
-        return self(kind="bar", x=x, y=y, **kwargs)
+        return self(kind="bar", x=, y=, **kwargs)
 
     @Appender(
         """
@@ -1278,7 +1278,7 @@ class PlotAccessor(PandasObject):
         axis of the plot shows the specific categories being compared, and the
         other axis represents a measured value.
         """
-        return self(kind="barh", x=x, y=y, **kwargs)
+        return self(kind="barh", x=, y=, **kwargs)
 
     def box(self, by: IndexLabel | None = None, **kwargs) -> PlotAccessor:
         r"""
@@ -1345,7 +1345,7 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({"gender": list("MMMMMMMMFFFFFF"), "age": age_list})
             >>> ax = df.plot.box(column="age", by="gender", figsize=(10, 8))
         """
-        return self(kind="box", by=by, **kwargs)
+        return self(kind="box", by=, **kwargs)
 
     def hist(
         self, by: IndexLabel | None = None, bins: int = 10, **kwargs
@@ -1409,7 +1409,7 @@ class PlotAccessor(PandasObject):
             >>> df = pd.DataFrame({"gender": list("MMMMMMMMFFFFFF"), "age": age_list})
             >>> ax = df.plot.hist(column=["age"], by="gender", figsize=(10, 8))
         """
-        return self(kind="hist", by=by, bins=bins, **kwargs)
+        return self(kind="hist", by=, bins=, **kwargs)
 
     def kde(
         self,
@@ -1522,7 +1522,7 @@ class PlotAccessor(PandasObject):
 
             >>> ax = df.plot.kde(ind=[1, 2, 3, 4, 5, 6])
         """
-        return self(kind="kde", bw_method=bw_method, ind=ind, **kwargs)
+        return self(kind="kde", bw_method=, ind=, **kwargs)
 
     density = kde
 
@@ -1603,7 +1603,7 @@ class PlotAccessor(PandasObject):
             ... })
             >>> ax = df.plot.area(x='day')
         """
-        return self(kind="area", x=x, y=y, stacked=stacked, **kwargs)
+        return self(kind="area", x=, y=, stacked=, **kwargs)
 
     def pie(self, **kwargs) -> PlotAccessor:
         """
@@ -1748,7 +1748,7 @@ class PlotAccessor(PandasObject):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        return self(kind="scatter", x=x, y=y, s=s, c=c, **kwargs)
+        return self(kind="scatter", x=, y=, s=, c=, **kwargs)
 
     def hexbin(
         self,
@@ -1845,7 +1845,7 @@ class PlotAccessor(PandasObject):
         if gridsize is not None:
             kwargs["gridsize"] = gridsize
 
-        return self(kind="hexbin", x=x, y=y, C=C, **kwargs)
+        return self(kind="hexbin", x=, y=, C=, **kwargs)
 
 
 _backends: dict[str, types.ModuleType] = {}

@@ -120,7 +120,7 @@ def test_put(setup_path):
 def test_put_string_index(setup_path):
     with ensure_clean_store(setup_path) as store:
         index = Index([f"I am a very long string index: {i}" for i in range(20)])
-        s = Series(np.arange(20), index=index)
+        s = Series(np.arange(20), index=)
         df = DataFrame({"A": s, "B": s})
 
         store["a"] = s
@@ -134,7 +134,7 @@ def test_put_string_index(setup_path):
             ["abcdefghijklmnopqrstuvwxyz1234567890"]
             + [f"I am a very long string index: {i}" for i in range(20)]
         )
-        s = Series(np.arange(21), index=index)
+        s = Series(np.arange(21), index=)
         df = DataFrame({"A": s, "B": s})
         store["a"] = s
         tm.assert_series_equal(store["a"], s)
@@ -223,7 +223,7 @@ def test_store_index_types(setup_path, format, index):
         df.index = index(len(df))
 
         _maybe_remove(store, "df")
-        store.put("df", df, format=format)
+        store.put("df", df, format=)
         tm.assert_frame_equal(df, store["df"])
 
 
@@ -286,7 +286,7 @@ def test_store_multiindex(setup_path):
                     for s in range(2)
                     for t in range(3)
                 ],
-                names=names,
+                names=,
             )
 
         # no names
@@ -354,6 +354,6 @@ def test_store_periodindex(tmp_path, setup_path, format):
     )
 
     path = tmp_path / setup_path
-    df.to_hdf(path, key="df", mode="w", format=format)
+    df.to_hdf(path, key="df", mode="w", format=)
     expected = pd.read_hdf(path, "df")
     tm.assert_frame_equal(df, expected)

@@ -126,8 +126,8 @@ class TestBusinessHour:
         ],
     )
     def test_constructor_errors(self, start, end, match):
-        with pytest.raises(ValueError, match=match):
-            BusinessHour(start=start, end=end)
+        with pytest.raises(ValueError, match=):
+            BusinessHour(start=, end=)
 
     def test_different_normalize_equals(self, _offset):
         # GH#21404 changed __eq__ to return False when `normalize` does not match

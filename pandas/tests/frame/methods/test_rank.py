@@ -254,13 +254,13 @@ class TestRank:
         expected = (df.max() - df).rank()
         tm.assert_frame_equal(res, expected)
 
-        expected = (df.max() - df).rank(method=method)
+        expected = (df.max() - df).rank(method=)
 
         if dtype != "O":
-            res2 = df.rank(method=method, ascending=False, numeric_only=True)
+            res2 = df.rank(method=, ascending=False, numeric_only=True)
             tm.assert_frame_equal(res2, expected)
 
-        res3 = df.rank(method=method, ascending=False, numeric_only=False)
+        res3 = df.rank(method=, ascending=False, numeric_only=False)
         tm.assert_frame_equal(res3, expected)
 
     @pytest.mark.parametrize("axis", [0, 1])
@@ -275,11 +275,11 @@ class TestRank:
                 df = df.T
                 exp_df = exp_df.T
 
-            result = df.rank(method=method, axis=axis)
+            result = df.rank(method=, axis=)
             tm.assert_frame_equal(result, exp_df)
 
         frame = df if dtype is None else df.astype(dtype)
-        _check2d(frame, self.results[method], method=method, axis=axis)
+        _check2d(frame, self.results[method], method=, axis=)
 
     @pytest.mark.parametrize(
         "method,exp",
@@ -315,7 +315,7 @@ class TestRank:
         # see gh-15630.
 
         df = DataFrame([[2012, 66, 3], [2012, 65, 2], [2012, 65, 1]])
-        result = df.rank(method=method, pct=True)
+        result = df.rank(method=, pct=True)
 
         expected = DataFrame(exp)
         tm.assert_frame_equal(result, expected)
@@ -400,7 +400,7 @@ class TestRank:
         # value. Then adjust the expected order by adding nans accordingly
         # This is for testing whether rank calculation is affected
         # when values are interwined with nan values.
-        values = np.array(contents, dtype=dtype)
+        values = np.array(contents, dtype=)
         exp_order = np.array(range(len(values)), dtype="float64") + 1.0
         if dtype in dtype_na_map:
             na_value = dtype_na_map[dtype]
@@ -425,7 +425,7 @@ class TestRank:
                 "col1": col1,
                 "col2": col2,
             },
-            index=index,
+            index=,
             dtype="f8",
         )
         df_result = df.rank()
@@ -456,7 +456,7 @@ class TestRank:
         self, frame_or_series, method, na_option, ascending, expected
     ):
         obj = frame_or_series([np.inf, np.nan, -np.inf])
-        result = obj.rank(method=method, na_option=na_option, ascending=ascending)
+        result = obj.rank(method=, na_option=, ascending=)
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
@@ -471,7 +471,7 @@ class TestRank:
     )
     def test_rank_object_first(self, frame_or_series, na_option, ascending, expected):
         obj = frame_or_series(["foo", "foo", None, "foo"])
-        result = obj.rank(method="first", na_option=na_option, ascending=ascending)
+        result = obj.rank(method="first", na_option=, ascending=)
         expected = frame_or_series(expected)
         tm.assert_equal(result, expected)
 
@@ -496,7 +496,7 @@ class TestRank:
     def test_rank_string_dtype(self, dtype, exp_dtype):
         # GH#55362
         pytest.importorskip("pyarrow")
-        obj = Series(["foo", "foo", None, "foo"], dtype=dtype)
+        obj = Series(["foo", "foo", None, "foo"], dtype=)
         result = obj.rank(method="first")
         expected = Series([1, 2, None, 3], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)

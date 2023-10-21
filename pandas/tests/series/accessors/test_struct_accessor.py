@@ -71,13 +71,13 @@ def test_struct_accessor_field():
                 ]
             )
         ),
-        index=index,
+        index=,
     )
     by_name = ser.struct.field("maize")
     by_name_expected = Series(
         [-1, 0, 1],
         dtype=ArrowDtype(pa.int64()),
-        index=index,
+        index=,
         name="maize",
     )
     tm.assert_series_equal(by_name, by_name_expected)
@@ -86,7 +86,7 @@ def test_struct_accessor_field():
     by_index_expected = Series(
         ["a", "b", "c"],
         dtype=ArrowDtype(pa.string()),
-        index=index,
+        index=,
         name="wheat",
     )
     tm.assert_series_equal(by_index, by_index_expected)
@@ -115,15 +115,15 @@ def test_struct_accessor_explode():
                 ]
             )
         ),
-        index=index,
+        index=,
     )
     actual = ser.struct.explode()
     expected = DataFrame(
         {
-            "painted": Series([1, 2, 3], index=index, dtype=ArrowDtype(pa.int64())),
+            "painted": Series([1, 2, 3], index=, dtype=ArrowDtype(pa.int64())),
             "snapping": Series(
                 [{"sea": "green"}, {"sea": "leatherback"}, {"sea": "hawksbill"}],
-                index=index,
+                index=,
                 dtype=ArrowDtype(pa.struct([("sea", pa.string())])),
             ),
         },

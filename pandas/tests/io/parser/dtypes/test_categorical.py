@@ -51,7 +51,7 @@ def test_categorical_dtype(all_parsers, dtype):
             "c": Categorical(["3.4", "3.4", "4.5"]),
         }
     )
-    actual = parser.read_csv(StringIO(data), dtype=dtype)
+    actual = parser.read_csv(StringIO(data), dtype=)
     tm.assert_frame_equal(actual, expected)
 
 
@@ -67,7 +67,7 @@ def test_categorical_dtype_single(all_parsers, dtype):
     expected = DataFrame(
         {"a": [1, 1, 2], "b": Categorical(["a", "a", "b"]), "c": [3.4, 3.4, 4.5]}
     )
-    actual = parser.read_csv(StringIO(data), dtype=dtype)
+    actual = parser.read_csv(StringIO(data), dtype=)
     tm.assert_frame_equal(actual, expected)
 
 
@@ -134,10 +134,10 @@ def test_categorical_dtype_utf16(all_parsers, csv_dir_path):
     encoding = "utf-16"
     sep = "\t"
 
-    expected = parser.read_csv(pth, sep=sep, encoding=encoding)
+    expected = parser.read_csv(pth, sep=, encoding=)
     expected = expected.apply(Categorical)
 
-    actual = parser.read_csv(pth, sep=sep, encoding=encoding, dtype="category")
+    actual = parser.read_csv(pth, sep=, encoding=, dtype="category")
     tm.assert_frame_equal(actual, expected)
 
 
@@ -190,10 +190,10 @@ def test_categorical_dtype_latin1(all_parsers, csv_dir_path):
     parser = all_parsers
     encoding = "latin-1"
 
-    expected = parser.read_csv(pth, header=None, encoding=encoding)
+    expected = parser.read_csv(pth, header=None, encoding=)
     expected[1] = Categorical(expected[1])
 
-    actual = parser.read_csv(pth, header=None, encoding=encoding, dtype={1: "category"})
+    actual = parser.read_csv(pth, header=None, encoding=, dtype={1: "category"})
     tm.assert_frame_equal(actual, expected)
 
 
@@ -212,14 +212,12 @@ def test_categorical_category_dtype(all_parsers, categories, ordered):
     expected = DataFrame(
         {
             "a": [1, 1, 1, 2],
-            "b": Categorical(
-                ["a", "b", "b", "c"], categories=categories, ordered=ordered
-            ),
+            "b": Categorical(["a", "b", "b", "c"], categories=, ordered=),
         }
     )
 
-    dtype = {"b": CategoricalDtype(categories=categories, ordered=ordered)}
-    result = parser.read_csv(StringIO(data), dtype=dtype)
+    dtype = {"b": CategoricalDtype(categories=, ordered=)}
+    result = parser.read_csv(StringIO(data), dtype=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -249,7 +247,7 @@ def test_categorical_coerces_numeric(all_parsers):
     data = "b\n1\n1\n2\n3"
     expected = DataFrame({"b": Categorical([1, 1, 2, 3])})
 
-    result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -262,7 +260,7 @@ def test_categorical_coerces_datetime(all_parsers):
     data = "b\n2017-01-01\n2018-01-01\n2019-01-01"
     expected = DataFrame({"b": Categorical(dtype["b"].categories)})
 
-    result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -273,7 +271,7 @@ def test_categorical_coerces_timestamp(all_parsers):
     data = "b\n2014-01-01\n2014-01-01"
     expected = DataFrame({"b": Categorical([Timestamp("2014")] * 2)})
 
-    result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -284,7 +282,7 @@ def test_categorical_coerces_timedelta(all_parsers):
     data = "b\n1h\n2h\n3h"
     expected = DataFrame({"b": Categorical(dtype["b"].categories)})
 
-    result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -303,7 +301,7 @@ def test_categorical_dtype_coerces_boolean(all_parsers, data):
     dtype = {"b": CategoricalDtype([False, True])}
     expected = DataFrame({"b": Categorical([True, False, None, False])})
 
-    result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -314,5 +312,5 @@ def test_categorical_unexpected_categories(all_parsers):
     data = "b\nd\na\nc\nd"  # Unexpected c
     expected = DataFrame({"b": Categorical(list("dacd"), dtype=dtype["b"])})
 
-    result = parser.read_csv(StringIO(data), dtype=dtype)
+    result = parser.read_csv(StringIO(data), dtype=)
     tm.assert_frame_equal(result, expected)

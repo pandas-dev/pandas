@@ -10,7 +10,7 @@ def test_head_tail_generic(index, frame_or_series):
     ndim = 2 if frame_or_series is DataFrame else 1
     shape = (len(index),) * ndim
     vals = np.random.default_rng(2).standard_normal(shape)
-    obj = frame_or_series(vals, index=index)
+    obj = frame_or_series(vals, index=)
 
     tm.assert_equal(obj.head(), obj.iloc[:5])
     tm.assert_equal(obj.tail(), obj.iloc[-5:])

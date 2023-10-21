@@ -680,7 +680,7 @@ class TestBase:
         if idx.dtype.kind == "f":
             dtype = idx.dtype
 
-        expected = Index([np.nan] * len(idx), dtype=dtype)
+        expected = Index([np.nan] * len(idx), dtype=)
         result = idx.map(mapper(expected, idx))
         tm.assert_index_equal(result, expected)
 
@@ -703,21 +703,21 @@ class TestBase:
             idx = idx.rename(name)
 
         # standard categories
-        dtype = CategoricalDtype(ordered=ordered)
-        result = idx.astype(dtype, copy=copy)
-        expected = CategoricalIndex(idx, name=name, ordered=ordered)
+        dtype = CategoricalDtype(ordered=)
+        result = idx.astype(dtype, copy=)
+        expected = CategoricalIndex(idx, name=, ordered=)
         tm.assert_index_equal(result, expected, exact=True)
 
         # non-standard categories
         dtype = CategoricalDtype(idx.unique().tolist()[:-1], ordered)
-        result = idx.astype(dtype, copy=copy)
-        expected = CategoricalIndex(idx, name=name, dtype=dtype)
+        result = idx.astype(dtype, copy=)
+        expected = CategoricalIndex(idx, name=, dtype=)
         tm.assert_index_equal(result, expected, exact=True)
 
         if ordered is False:
             # dtype='category' defaults to ordered=False, so only test once
-            result = idx.astype("category", copy=copy)
-            expected = CategoricalIndex(idx, name=name)
+            result = idx.astype("category", copy=)
+            expected = CategoricalIndex(idx, name=)
             tm.assert_index_equal(result, expected, exact=True)
 
     def test_is_unique(self, simple_index):
@@ -927,7 +927,7 @@ class TestNumericBase:
         index_cls = type(simple_index)
         dtype = simple_index.dtype
 
-        idx = Index([1, 2], dtype=dtype)
+        idx = Index([1, 2], dtype=)
         result = index_cls(idx)
         expected = np.array([1, 2], dtype=idx.dtype)
         tm.assert_numpy_array_equal(result._data, expected)
@@ -943,7 +943,7 @@ class TestNumericBase:
         index_cls = type(simple_index)
         dtype = simple_index.dtype
 
-        idx = index_cls([], dtype=dtype, name="Foo")
+        idx = index_cls([], dtype=, name="Foo")
         idx_view = idx.view()
         assert idx_view.name == "Foo"
 

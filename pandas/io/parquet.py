@@ -138,7 +138,7 @@ def _get_path_or_handle(
         # fsspec resources can also point to directories
         # this branch is used for example when reading from non-fsspec URLs
         handles = get_handle(
-            path_or_handle, mode, is_text=False, storage_options=storage_options
+            path_or_handle, mode, is_text=False, storage_options=
         )
         fs = None
         path_or_handle = handles.handle
@@ -198,7 +198,7 @@ class PyArrowImpl(BaseImpl):
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,
-            storage_options=storage_options,
+            storage_options=,
             mode="wb",
             is_dir=partition_cols is not None,
         )
@@ -217,9 +217,9 @@ class PyArrowImpl(BaseImpl):
                 self.api.parquet.write_to_dataset(
                     table,
                     path_or_handle,
-                    compression=compression,
-                    partition_cols=partition_cols,
-                    filesystem=filesystem,
+                    compression=,
+                    partition_cols=,
+                    filesystem=,
                     **kwargs,
                 )
             else:
@@ -227,8 +227,8 @@ class PyArrowImpl(BaseImpl):
                 self.api.parquet.write_table(
                     table,
                     path_or_handle,
-                    compression=compression,
-                    filesystem=filesystem,
+                    compression=,
+                    filesystem=,
                     **kwargs,
                 )
         finally:
@@ -266,15 +266,15 @@ class PyArrowImpl(BaseImpl):
         path_or_handle, handles, filesystem = _get_path_or_handle(
             path,
             filesystem,
-            storage_options=storage_options,
+            storage_options=,
             mode="rb",
         )
         try:
             pa_table = self.api.parquet.read_table(
                 path_or_handle,
-                columns=columns,
-                filesystem=filesystem,
-                filters=filters,
+                columns=,
+                filesystem=,
+                filters=,
                 **kwargs,
             )
             result = pa_table.to_pandas(**to_pandas_kwargs)
@@ -348,7 +348,7 @@ class FastParquetImpl(BaseImpl):
             self.api.write(
                 path,
                 df,
-                compression=compression,
+                compression=,
                 write_index=index,
                 partition_on=partition_cols,
                 **kwargs,
@@ -392,14 +392,12 @@ class FastParquetImpl(BaseImpl):
             # use get_handle only when we are very certain that it is not a directory
             # fsspec resources can also point to directories
             # this branch is used for example when reading from non-fsspec URLs
-            handles = get_handle(
-                path, "rb", is_text=False, storage_options=storage_options
-            )
+            handles = get_handle(path, "rb", is_text=False, storage_options=)
             path = handles.handle
 
         try:
             parquet_file = self.api.ParquetFile(path, **parquet_kwargs)
-            return parquet_file.to_pandas(columns=columns, filters=filters, **kwargs)
+            return parquet_file.to_pandas(columns=, filters=, **kwargs)
         finally:
             if handles is not None:
                 handles.close()
@@ -484,11 +482,11 @@ def to_parquet(
     impl.write(
         df,
         path_or_buf,
-        compression=compression,
-        index=index,
-        partition_cols=partition_cols,
-        storage_options=storage_options,
-        filesystem=filesystem,
+        compression=,
+        index=,
+        partition_cols=,
+        storage_options=,
+        filesystem=,
         **kwargs,
     )
 
@@ -670,11 +668,11 @@ def read_parquet(
 
     return impl.read(
         path,
-        columns=columns,
-        filters=filters,
-        storage_options=storage_options,
-        use_nullable_dtypes=use_nullable_dtypes,
-        dtype_backend=dtype_backend,
-        filesystem=filesystem,
+        columns=,
+        filters=,
+        storage_options=,
+        use_nullable_dtypes=,
+        dtype_backend=,
+        filesystem=,
         **kwargs,
     )

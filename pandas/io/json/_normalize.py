@@ -156,8 +156,8 @@ def _normalise_json(
             _normalise_json(
                 data=value,
                 key_string=new_key,
-                normalized_dict=normalized_dict,
-                separator=separator,
+                normalized_dict=,
+                separator=,
             )
     else:
         normalized_dict[key_string] = data
@@ -184,7 +184,7 @@ def _normalise_json_ordered(data: dict[str, Any], separator: str) -> dict[str, A
         data={k: v for k, v in data.items() if isinstance(v, dict)},
         key_string="",
         normalized_dict={},
-        separator=separator,
+        separator=,
     )
     return {**top_dict_, **nested_dict_}
 
@@ -237,7 +237,7 @@ def _simple_json_normalize(
     if isinstance(ds, dict):
         normalised_json_object = _normalise_json_ordered(data=ds, separator=sep)
     elif isinstance(ds, list):
-        normalised_json_list = [_simple_json_normalize(row, sep=sep) for row in ds]
+        normalised_json_list = [_simple_json_normalize(row, sep=) for row in ds]
         return normalised_json_list
     return normalised_json_object
 
@@ -454,7 +454,7 @@ def json_normalize(
         and record_prefix is None
         and max_level is None
     ):
-        return DataFrame(_simple_json_normalize(data, sep=sep))
+        return DataFrame(_simple_json_normalize(data, sep=))
 
     if record_path is None:
         if any([isinstance(x, dict) for x in y.values()] for y in data):
@@ -465,7 +465,7 @@ def json_normalize(
             #
             # TODO: handle record value which are lists, at least error
             #       reasonably
-            data = nested_to_record(data, sep=sep, max_level=max_level)
+            data = nested_to_record(data, sep=, max_level=)
         return DataFrame(data)
     elif not isinstance(record_path, list):
         record_path = [record_path]
@@ -498,7 +498,7 @@ def json_normalize(
             for obj in data:
                 recs = _pull_records(obj, path[0])
                 recs = [
-                    nested_to_record(r, sep=sep, max_level=max_level)
+                    nested_to_record(r, sep=, max_level=)
                     if isinstance(r, dict)
                     else r
                     for r in recs

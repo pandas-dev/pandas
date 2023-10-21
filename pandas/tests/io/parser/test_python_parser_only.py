@@ -53,7 +53,7 @@ def test_invalid_skipfooter_non_int(python_parser_only, skipfooter):
     msg = "skipfooter must be an integer"
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), skipfooter=skipfooter)
+        parser.read_csv(StringIO(data), skipfooter=)
 
 
 def test_invalid_skipfooter_negative(python_parser_only):
@@ -115,11 +115,11 @@ baz|7|8|9
     if encoding is not None:
         data = data.encode(encoding)
         data = BytesIO(data)
-        data = TextIOWrapper(data, encoding=encoding)
+        data = TextIOWrapper(data, encoding=)
     else:
         data = StringIO(data)
 
-    result = parser.read_csv(data, index_col=0, sep=None, skiprows=2, encoding=encoding)
+    result = parser.read_csv(data, index_col=0, sep=None, skiprows=2, encoding=)
     expected = DataFrame(
         [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
         columns=["A", "B", "C"],
@@ -174,7 +174,7 @@ def test_decompression_regex_sep(python_parser_only, csv1, compression, klass):
         with klass(path, mode="wb") as tmp:
             tmp.write(data)
 
-        result = parser.read_csv(path, sep="::", compression=compression)
+        result = parser.read_csv(path, sep="::", compression=)
         tm.assert_frame_equal(result, expected)
 
 
@@ -251,7 +251,7 @@ def test_encoding_non_utf8_multichar_sep(python_parser_only, sep, encoding):
     encoded_data = data.encode(encoding)
 
     result = parser.read_csv(
-        BytesIO(encoded_data), sep=sep, names=["a", "b"], encoding=encoding
+        BytesIO(encoded_data), sep=, names=["a", "b"], encoding=
     )
     tm.assert_frame_equal(result, expected)
 
@@ -267,11 +267,11 @@ def test_multi_char_sep_quotes(python_parser_only, quoting):
     if quoting == csv.QUOTE_NONE:
         msg = "Expected 2 fields in line 3, saw 3"
         with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
+            parser.read_csv(StringIO(data), quoting=, **kwargs)
     else:
         msg = "ignored when a multi-char delimiter is used"
         with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
+            parser.read_csv(StringIO(data), quoting=, **kwargs)
 
 
 def test_none_delimiter(python_parser_only):
@@ -300,11 +300,11 @@ def test_skipfooter_bad_row(python_parser_only, data, skipfooter):
     if skipfooter:
         msg = "parsing errors in the skipped footer rows"
         with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), skipfooter=skipfooter)
+            parser.read_csv(StringIO(data), skipfooter=)
     else:
         msg = "unexpected end of data|expected after"
         with pytest.raises(ParserError, match=msg):
-            parser.read_csv(StringIO(data), skipfooter=skipfooter)
+            parser.read_csv(StringIO(data), skipfooter=)
 
 
 def test_malformed_skipfooter(python_parser_only):
@@ -390,7 +390,7 @@ good{sep}bye
 """
     bad_sio = StringIO(data)
     result_iter = parser.read_csv(
-        bad_sio, on_bad_lines=bad_line_func, chunksize=1, iterator=True, sep=sep
+        bad_sio, on_bad_lines=bad_line_func, chunksize=1, iterator=True, sep=
     )
     expecteds = [
         {"0": "hi", "1": "there"},
@@ -507,12 +507,7 @@ a;b;c
 0000.7995;16.000;0
 3.03.001.00514;0;4.000
 4923.600.041;23.000;131"""
-    result = parser.read_csv(
-        StringIO(data),
-        sep=";",
-        dtype=dtype,
-        thousands=".",
-    )
+    result = parser.read_csv(StringIO(data), sep=";", dtype=, thousands=".")
     expected = DataFrame(
         {
             "a": ["0000.7995", "3.03.001.00514", "4923.600.041"],
@@ -554,11 +549,6 @@ def test_no_thousand_convert_for_non_numeric_cols(python_parser_only, dtype, exp
 3,03,001,00514;0;4,001
 4923,600,041;23,000;131
 """
-    result = parser.read_csv(
-        StringIO(data),
-        sep=";",
-        dtype=dtype,
-        thousands=",",
-    )
+    result = parser.read_csv(StringIO(data), sep=";", dtype=, thousands=",")
     expected.insert(0, "a", ["0000,7995", "3,03,001,00514", "4923,600,041"])
     tm.assert_frame_equal(result, expected)

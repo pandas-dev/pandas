@@ -19,7 +19,7 @@ def test_series_set_value():
     s._set_value(dates[0], 1.0)
     s._set_value(dates[1], np.nan)
 
-    expected = Series([1.0, np.nan], index=index)
+    expected = Series([1.0, np.nan], index=)
 
     tm.assert_series_equal(s, expected)
 

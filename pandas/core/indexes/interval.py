@@ -232,10 +232,10 @@ class IntervalIndex(ExtensionIndex):
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray(
                 data,
-                closed=closed,
-                copy=copy,
-                dtype=dtype,
-                verify_integrity=verify_integrity,
+                closed=,
+                copy=,
+                dtype=,
+                verify_integrity=,
             )
 
         return cls._simple_new(array, name)
@@ -270,10 +270,8 @@ class IntervalIndex(ExtensionIndex):
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
-            array = IntervalArray.from_breaks(
-                breaks, closed=closed, copy=copy, dtype=dtype
-            )
-        return cls._simple_new(array, name=name)
+            array = IntervalArray.from_breaks(breaks, closed=, copy=, dtype=)
+        return cls._simple_new(array, name=)
 
     @classmethod
     @Appender(
@@ -307,9 +305,9 @@ class IntervalIndex(ExtensionIndex):
     ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray.from_arrays(
-                left, right, closed, copy=copy, dtype=dtype
+                left, right, closed, copy=, dtype=
             )
-        return cls._simple_new(array, name=name)
+        return cls._simple_new(array, name=)
 
     @classmethod
     @Appender(
@@ -341,8 +339,8 @@ class IntervalIndex(ExtensionIndex):
         dtype: Dtype | None = None,
     ) -> IntervalIndex:
         with rewrite_exception("IntervalArray", cls.__name__):
-            arr = IntervalArray.from_tuples(data, closed=closed, copy=copy, dtype=dtype)
-        return cls._simple_new(arr, name=name)
+            arr = IntervalArray.from_tuples(data, closed=, copy=, dtype=)
+        return cls._simple_new(arr, name=)
 
     # --------------------------------------------------------------------
     # error: Return type "IntervalTree" of "_engine" incompatible with return type
@@ -411,7 +409,7 @@ class IntervalIndex(ExtensionIndex):
     def memory_usage(self, deep: bool = False) -> int:
         # we don't use an explicit engine
         # so return the bytes here
-        return self.left.memory_usage(deep=deep) + self.right.memory_usage(deep=deep)
+        return self.left.memory_usage(deep=) + self.right.memory_usage(deep=)
 
     # IntervalTree doesn't have a is_monotonic_decreasing, so have to override
     #  the Index implementation
@@ -1131,8 +1129,8 @@ def interval_range(
     else:
         # delegate to the appropriate range function
         if isinstance(endpoint, Timestamp):
-            breaks = date_range(start=start, end=end, periods=periods, freq=freq)
+            breaks = date_range(start=, end=, periods=, freq=)
         else:
-            breaks = timedelta_range(start=start, end=end, periods=periods, freq=freq)
+            breaks = timedelta_range(start=, end=, periods=, freq=)
 
-    return IntervalIndex.from_breaks(breaks, name=name, closed=closed)
+    return IntervalIndex.from_breaks(breaks, name=, closed=)

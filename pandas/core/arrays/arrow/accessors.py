@@ -41,11 +41,11 @@ class StructAccessor:
         dtype = data.dtype
         if not isinstance(dtype, ArrowDtype):
             # Raise AttributeError so that inspect can handle non-struct Series.
-            raise AttributeError(self._validation_msg.format(dtype=dtype))
+            raise AttributeError(self._validation_msg.format(dtype=))
 
         if not pa.types.is_struct(dtype.pyarrow_dtype):
             # Raise AttributeError so that inspect can handle non-struct Series.
-            raise AttributeError(self._validation_msg.format(dtype=dtype))
+            raise AttributeError(self._validation_msg.format(dtype=))
 
     @property
     def dtypes(self) -> Series:

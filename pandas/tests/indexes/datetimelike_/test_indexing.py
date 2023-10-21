@@ -25,7 +25,7 @@ def test_get_indexer_non_unique_wrong_dtype(ldtype, rdtype):
         if dtype is dtlike_dtypes[-1]:
             # PeriodArray will try to cast ints to strings
             return DatetimeIndex(vals).astype(dtype)
-        return Index(vals, dtype=dtype)
+        return Index(vals, dtype=)
 
     left = construct(ldtype)
     right = construct(rdtype)

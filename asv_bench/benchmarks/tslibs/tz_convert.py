@@ -33,7 +33,7 @@ class TimeTZConvert:
             # tzlocal is cumbersomely slow, so skip to keep runtime in check
             raise NotImplementedError
 
-        arr = np.random.randint(0, 10, size=size, dtype="i8")
+        arr = np.random.randint(0, 10, size=, dtype="i8")
         self.i8data = arr
 
     def time_tz_convert_from_utc(self, size, tz):

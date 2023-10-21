@@ -171,10 +171,10 @@ def parser(request):
 
 
 def test_file_output_str_read(xml_books, parser, from_file_expected):
-    df_file = read_xml(xml_books, parser=parser)
+    df_file = read_xml(xml_books, parser=)
 
     with tm.ensure_clean("test.xml") as path:
-        df_file.to_xml(path, parser=parser)
+        df_file.to_xml(path, parser=)
         with open(path, "rb") as f:
             output = f.read().decode("utf-8").strip()
 
@@ -184,10 +184,10 @@ def test_file_output_str_read(xml_books, parser, from_file_expected):
 
 
 def test_file_output_bytes_read(xml_books, parser, from_file_expected):
-    df_file = read_xml(xml_books, parser=parser)
+    df_file = read_xml(xml_books, parser=)
 
     with tm.ensure_clean("test.xml") as path:
-        df_file.to_xml(path, parser=parser)
+        df_file.to_xml(path, parser=)
         with open(path, "rb") as f:
             output = f.read().decode("utf-8").strip()
 
@@ -197,9 +197,9 @@ def test_file_output_bytes_read(xml_books, parser, from_file_expected):
 
 
 def test_str_output(xml_books, parser, from_file_expected):
-    df_file = read_xml(xml_books, parser=parser)
+    df_file = read_xml(xml_books, parser=)
 
-    output = df_file.to_xml(parser=parser)
+    output = df_file.to_xml(parser=)
     output = equalize_decl(output)
 
     assert output == from_file_expected
@@ -212,7 +212,7 @@ def test_wrong_file_path(parser, geom_df):
         OSError,
         match=(r"Cannot save file into a non-existent directory: .*path"),
     ):
-        geom_df.to_xml(path, parser=parser)
+        geom_df.to_xml(path, parser=)
 
 
 # INDEX
@@ -245,10 +245,10 @@ def test_index_false(xml_books, parser):
   </row>
 </data>"""
 
-    df_file = read_xml(xml_books, parser=parser)
+    df_file = read_xml(xml_books, parser=)
 
     with tm.ensure_clean("test.xml") as path:
-        df_file.to_xml(path, index=False, parser=parser)
+        df_file.to_xml(path, index=False, parser=)
         with open(path, "rb") as f:
             output = f.read().decode("utf-8").strip()
 
@@ -284,11 +284,11 @@ def test_index_false_rename_row_root(xml_books, parser):
   </book>
 </books>"""
 
-    df_file = read_xml(xml_books, parser=parser)
+    df_file = read_xml(xml_books, parser=)
 
     with tm.ensure_clean("test.xml") as path:
         df_file.to_xml(
-            path, index=False, root_name="books", row_name="book", parser=parser
+            path, index=False, root_name="books", row_name="book", parser=
         )
         with open(path, "rb") as f:
             output = f.read().decode("utf-8").strip()
@@ -331,7 +331,7 @@ def test_index_false_with_offset_input_index(parser, offset_index, geom_df):
 
     offset_geom_df = geom_df.copy()
     offset_geom_df.index = Index(offset_index)
-    output = offset_geom_df.to_xml(index=False, parser=parser)
+    output = offset_geom_df.to_xml(index=False, parser=)
     output = equalize_decl(output)
 
     assert output == expected
@@ -364,14 +364,14 @@ na_expected = """\
 
 
 def test_na_elem_output(parser, geom_df):
-    output = geom_df.to_xml(parser=parser)
+    output = geom_df.to_xml(parser=)
     output = equalize_decl(output)
 
     assert output == na_expected
 
 
 def test_na_empty_str_elem_option(parser, geom_df):
-    output = geom_df.to_xml(na_rep="", parser=parser)
+    output = geom_df.to_xml(na_rep="", parser=)
     output = equalize_decl(output)
 
     assert output == na_expected
@@ -401,7 +401,7 @@ def test_na_empty_elem_option(parser, geom_df):
   </row>
 </data>"""
 
-    output = geom_df.to_xml(na_rep="0.0", parser=parser)
+    output = geom_df.to_xml(na_rep="0.0", parser=)
     output = equalize_decl(output)
 
     assert output == expected
@@ -419,7 +419,7 @@ def test_attrs_cols_nan_output(parser, geom_df):
   <row index="2" shape="triangle" degrees="180" sides="3.0"/>
 </data>"""
 
-    output = geom_df.to_xml(attr_cols=["shape", "degrees", "sides"], parser=parser)
+    output = geom_df.to_xml(attr_cols=["shape", "degrees", "sides"], parser=)
     output = equalize_decl(output)
 
     assert output == expected
@@ -441,7 +441,7 @@ doc:degrees="180" doc:sides="3.0"/>
         attr_cols=["index", "shape", "degrees", "sides"],
         namespaces={"doc": "http://example.xom"},
         prefix="doc",
-        parser=parser,
+        parser=,
     )
     output = equalize_decl(output)
 
@@ -450,12 +450,12 @@ doc:degrees="180" doc:sides="3.0"/>
 
 def test_attrs_unknown_column(parser, geom_df):
     with pytest.raises(KeyError, match=("no valid column")):
-        geom_df.to_xml(attr_cols=["shape", "degree", "sides"], parser=parser)
+        geom_df.to_xml(attr_cols=["shape", "degree", "sides"], parser=)
 
 
 def test_attrs_wrong_type(parser, geom_df):
     with pytest.raises(TypeError, match=("is not a valid type for attr_cols")):
-        geom_df.to_xml(attr_cols='"shape", "degree", "sides"', parser=parser)
+        geom_df.to_xml(attr_cols='"shape", "degree", "sides"', parser=)
 
 
 # ELEM_COLS
@@ -483,7 +483,7 @@ def test_elems_cols_nan_output(parser, geom_df):
 </data>"""
 
     output = geom_df.to_xml(
-        index=False, elem_cols=["degrees", "sides", "shape"], parser=parser
+        index=False, elem_cols=["degrees", "sides", "shape"], parser=
     )
     output = equalize_decl(output)
 
@@ -492,12 +492,12 @@ def test_elems_cols_nan_output(parser, geom_df):
 
 def test_elems_unknown_column(parser, geom_df):
     with pytest.raises(KeyError, match=("no valid column")):
-        geom_df.to_xml(elem_cols=["shape", "degree", "sides"], parser=parser)
+        geom_df.to_xml(elem_cols=["shape", "degree", "sides"], parser=)
 
 
 def test_elems_wrong_type(parser, geom_df):
     with pytest.raises(TypeError, match=("is not a valid type for elem_cols")):
-        geom_df.to_xml(elem_cols='"shape", "degree", "sides"', parser=parser)
+        geom_df.to_xml(elem_cols='"shape", "degree", "sides"', parser=)
 
 
 def test_elems_and_attrs_cols(parser, geom_df):
@@ -522,7 +522,7 @@ def test_elems_and_attrs_cols(parser, geom_df):
         index=False,
         elem_cols=["degrees", "sides"],
         attr_cols=["shape"],
-        parser=parser,
+        parser=,
     )
     output = equalize_decl(output)
 
@@ -573,7 +573,7 @@ def test_hierarchical_columns(parser, planet_df):
         margins=True,
     ).round(2)
 
-    output = pvt.to_xml(parser=parser)
+    output = pvt.to_xml(parser=)
     output = equalize_decl(output)
 
     assert output == expected
@@ -600,7 +600,7 @@ sum_mass="2667.54" mean_mass="333.44"/>
         margins=True,
     ).round(2)
 
-    output = pvt.to_xml(attr_cols=list(pvt.reset_index().columns.values), parser=parser)
+    output = pvt.to_xml(attr_cols=list(pvt.reset_index().columns.values), parser=)
     output = equalize_decl(output)
 
     assert output == expected
@@ -642,7 +642,7 @@ def test_multi_index(parser, planet_df):
         .round(2)
     )
 
-    output = agg.to_xml(parser=parser)
+    output = agg.to_xml(parser=)
     output = equalize_decl(output)
 
     assert output == expected
@@ -665,7 +665,7 @@ sum="189.23" mean="94.61"/>
         .agg(["count", "sum", "mean"])
         .round(2)
     )
-    output = agg.to_xml(attr_cols=list(agg.reset_index().columns.values), parser=parser)
+    output = agg.to_xml(attr_cols=list(agg.reset_index().columns.values), parser=)
     output = equalize_decl(output)
 
     assert output == expected
@@ -698,7 +698,7 @@ def test_default_namespace(parser, geom_df):
   </row>
 </data>"""
 
-    output = geom_df.to_xml(namespaces={"": "http://example.com"}, parser=parser)
+    output = geom_df.to_xml(namespaces={"": "http://example.com"}, parser=)
     output = equalize_decl(output)
 
     assert output == expected
@@ -730,7 +730,7 @@ def test_unused_namespaces(parser, geom_df):
 
     output = geom_df.to_xml(
         namespaces={"oth": "http://other.org", "ex": "http://example.com"},
-        parser=parser,
+        parser=,
     )
     output = equalize_decl(output)
 
@@ -765,7 +765,7 @@ def test_namespace_prefix(parser, geom_df):
 </doc:data>"""
 
     output = geom_df.to_xml(
-        namespaces={"doc": "http://example.com"}, prefix="doc", parser=parser
+        namespaces={"doc": "http://example.com"}, prefix="doc", parser=
     )
     output = equalize_decl(output)
 
@@ -775,7 +775,7 @@ def test_namespace_prefix(parser, geom_df):
 def test_missing_prefix_in_nmsp(parser, geom_df):
     with pytest.raises(KeyError, match=("doc is not included in namespaces")):
         geom_df.to_xml(
-            namespaces={"": "http://example.com"}, prefix="doc", parser=parser
+            namespaces={"": "http://example.com"}, prefix="doc", parser=
         )
 
 
@@ -806,7 +806,7 @@ def test_namespace_prefix_and_default(parser, geom_df):
     output = geom_df.to_xml(
         namespaces={"": "http://example.com", "doc": "http://other.org"},
         prefix="doc",
-        parser=parser,
+        parser=,
     )
     output = equalize_decl(output)
 
@@ -852,9 +852,9 @@ encoding_expected = """\
 
 
 def test_encoding_option_str(xml_baby_names, parser):
-    df_file = read_xml(xml_baby_names, parser=parser, encoding="ISO-8859-1").head(5)
+    df_file = read_xml(xml_baby_names, parser=, encoding="ISO-8859-1").head(5)
 
-    output = df_file.to_xml(encoding="ISO-8859-1", parser=parser)
+    output = df_file.to_xml(encoding="ISO-8859-1", parser=)
 
     if output is not None:
         # etree and lxml differ on quotes and case in xml declaration
@@ -880,12 +880,12 @@ def test_wrong_encoding_option_lxml(xml_baby_names, parser, encoding):
     df_file = read_xml(xml_baby_names, encoding="ISO-8859-1", parser="lxml")
 
     with tm.ensure_clean("test.xml") as path:
-        df_file.to_xml(path, index=False, encoding=encoding, parser=parser)
+        df_file.to_xml(path, index=False, encoding=, parser=)
 
 
 def test_misspelled_encoding(parser, geom_df):
     with pytest.raises(LookupError, match=("unknown encoding")):
-        geom_df.to_xml(encoding="uft-8", parser=parser)
+        geom_df.to_xml(encoding="uft-8", parser=)
 
 
 # PRETTY PRINT
@@ -931,7 +931,7 @@ def test_no_pretty_print_with_decl(parser, geom_df):
         "</row></data>"
     )
 
-    output = geom_df.to_xml(pretty_print=False, parser=parser)
+    output = geom_df.to_xml(pretty_print=False, parser=)
     output = equalize_decl(output)
 
     # etree adds space for closed tags
@@ -951,7 +951,7 @@ def test_no_pretty_print_no_decl(parser, geom_df):
         "</row></data>"
     )
 
-    output = geom_df.to_xml(xml_declaration=False, pretty_print=False, parser=parser)
+    output = geom_df.to_xml(xml_declaration=False, pretty_print=False, parser=)
 
     # etree adds space for closed tags
     if output is not None:
@@ -1305,7 +1305,7 @@ geom_xml = """\
 
 def test_compression_output(parser, compression_only, geom_df):
     with tm.ensure_clean() as path:
-        geom_df.to_xml(path, parser=parser, compression=compression_only)
+        geom_df.to_xml(path, parser=, compression=compression_only)
 
         with get_handle(
             path,
@@ -1324,7 +1324,7 @@ def test_filename_and_suffix_comp(
 ):
     compfile = "xml." + compression_to_extension[compression_only]
     with tm.ensure_clean(filename=compfile) as path:
-        geom_df.to_xml(path, parser=parser, compression=compression_only)
+        geom_df.to_xml(path, parser=, compression=compression_only)
 
         with get_handle(
             path,
@@ -1348,14 +1348,14 @@ def test_ea_dtypes(any_numeric_ea_dtype, parser):
   </row>
 </data>"""
     df = DataFrame({"a": [NA]}).astype(any_numeric_ea_dtype)
-    result = df.to_xml(parser=parser)
+    result = df.to_xml(parser=)
     assert equalize_decl(result).strip() == expected
 
 
 def test_unsuported_compression(parser, geom_df):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         with tm.ensure_clean() as path:
-            geom_df.to_xml(path, parser=parser, compression="7z")
+            geom_df.to_xml(path, parser=, compression="7z")
 
 
 # STORAGE OPTIONS
@@ -1371,5 +1371,5 @@ def test_s3_permission_output(parser, s3_public_bucket, geom_df):
         fs.ls(s3_public_bucket.name)
 
         geom_df.to_xml(
-            f"s3://{s3_public_bucket.name}/geom.xml", compression="zip", parser=parser
+            f"s3://{s3_public_bucket.name}/geom.xml", compression="zip", parser=
         )

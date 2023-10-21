@@ -95,8 +95,8 @@ def test_to_numpy_dtype(box, dtype):
     con = pd.Series if box else pd.array
     arr = con([0.0, 1.0], dtype="Float64")
 
-    result = arr.to_numpy(dtype=dtype)
-    expected = np.array([0, 1], dtype=dtype)
+    result = arr.to_numpy(dtype=)
+    expected = np.array([0, 1], dtype=)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -106,7 +106,7 @@ def test_to_numpy_na_raises(box, dtype):
     con = pd.Series if box else pd.array
     arr = con([0.0, 1.0, None], dtype="Float64")
     with pytest.raises(ValueError, match=dtype):
-        arr.to_numpy(dtype=dtype)
+        arr.to_numpy(dtype=)
 
 
 @pytest.mark.parametrize("box", [True, False], ids=["series", "array"])

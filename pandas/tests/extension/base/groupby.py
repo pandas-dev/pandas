@@ -39,7 +39,7 @@ class BaseGroupbyTests:
             #  (see data_for_grouping docstring)
             df = df.iloc[:-1]
 
-        result = df.groupby("B", as_index=as_index).A.mean()
+        result = df.groupby("B", as_index=).A.mean()
         _, uniques = pd.factorize(data_for_grouping, sort=True)
 
         exp_vals = [3.0, 1.0, 4.0]
@@ -47,7 +47,7 @@ class BaseGroupbyTests:
             exp_vals = exp_vals[:-1]
         if as_index:
             index = pd.Index(uniques, name="B")
-            expected = pd.Series(exp_vals, index=index, name="A")
+            expected = pd.Series(exp_vals, index=, name="A")
             tm.assert_series_equal(result, expected)
         else:
             expected = pd.DataFrame({"B": uniques, "A": exp_vals})
@@ -85,7 +85,7 @@ class BaseGroupbyTests:
         exp_vals = [1.0, 3.0, 4.0]
         if is_bool:
             exp_vals = exp_vals[:-1]
-        expected = pd.Series(exp_vals, index=index, name="A")
+        expected = pd.Series(exp_vals, index=, name="A")
         tm.assert_series_equal(result, expected)
 
     def test_groupby_extension_transform(self, data_for_grouping):

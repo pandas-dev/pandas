@@ -27,7 +27,7 @@ def test_concat_single_dataframe_tz_aware(copy):
         {"timestamp": [pd.Timestamp("2020-04-08 09:00:00.709949+0000", tz="UTC")]}
     )
     expected = df.copy()
-    result = pd.concat([df], copy=copy)
+    result = pd.concat([df], copy=)
     tm.assert_frame_equal(result, expected)
 
 

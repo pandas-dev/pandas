@@ -335,7 +335,7 @@ class TestHashTableUnsorted:
         # reallocations (GH 7157)
         # Changed from using np.random.default_rng(2).rand to range
         # which could cause flaky CI failures when safely_resizes=False
-        vals = np.array(range(1000), dtype=dtype)
+        vals = np.array(range(1000), dtype=)
 
         # GH 21688 ensures we can deal with read-only memory views
         vals.setflags(write=writable)
@@ -377,7 +377,7 @@ class TestHashTableUnsorted:
     def test_hashtable_large_sizehint(self, hashtable):
         # GH#22729 smoketest for not raising when passing a large size_hint
         size_hint = np.iinfo(np.uint32).max + 1
-        hashtable(size_hint=size_hint)
+        hashtable(size_hint=)
 
 
 class TestPyObjectHashTableWithNans:
@@ -525,7 +525,7 @@ class TestHashTableWithNans:
     def test_map_locations(self, table_type, dtype):
         N = 10
         table = table_type()
-        keys = np.full(N, np.nan, dtype=dtype)
+        keys = np.full(N, np.nan, dtype=)
         table.map_locations(keys)
         assert len(table) == 1
         assert table.get_item(np.nan) == N - 1
@@ -533,7 +533,7 @@ class TestHashTableWithNans:
     def test_unique(self, table_type, dtype):
         N = 1020
         table = table_type()
-        keys = np.full(N, np.nan, dtype=dtype)
+        keys = np.full(N, np.nan, dtype=)
         unique = table.unique(keys)
         assert np.all(np.isnan(unique)) and len(unique) == 1
 
@@ -593,11 +593,11 @@ class TestHelpFunctions:
     def test_value_count_mask(self, dtype):
         if dtype == np.object_:
             pytest.skip("mask not implemented for object dtype")
-        values = np.array([1] * 5, dtype=dtype)
+        values = np.array([1] * 5, dtype=)
         mask = np.zeros((5,), dtype=np.bool_)
         mask[1] = True
         mask[4] = True
-        keys, counts, na_counter = ht.value_count(values, False, mask=mask)
+        keys, counts, na_counter = ht.value_count(values, False, mask=)
         assert len(keys) == 2
         assert na_counter == 2
 
@@ -695,7 +695,7 @@ def test_unique_label_indices():
 )
 class TestHelpFunctionsWithNans:
     def test_value_count(self, dtype):
-        values = np.array([np.nan, np.nan, np.nan], dtype=dtype)
+        values = np.array([np.nan, np.nan, np.nan], dtype=)
         keys, counts, _ = ht.value_count(values, True)
         assert len(keys) == 0
         keys, counts, _ = ht.value_count(values, False)
@@ -703,27 +703,27 @@ class TestHelpFunctionsWithNans:
         assert counts[0] == 3
 
     def test_duplicated_first(self, dtype):
-        values = np.array([np.nan, np.nan, np.nan], dtype=dtype)
+        values = np.array([np.nan, np.nan, np.nan], dtype=)
         result = ht.duplicated(values)
         expected = np.array([False, True, True])
         tm.assert_numpy_array_equal(result, expected)
 
     def test_ismember_yes(self, dtype):
-        arr = np.array([np.nan, np.nan, np.nan], dtype=dtype)
-        values = np.array([np.nan, np.nan], dtype=dtype)
+        arr = np.array([np.nan, np.nan, np.nan], dtype=)
+        values = np.array([np.nan, np.nan], dtype=)
         result = ht.ismember(arr, values)
         expected = np.array([True, True, True], dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_ismember_no(self, dtype):
-        arr = np.array([np.nan, np.nan, np.nan], dtype=dtype)
-        values = np.array([1], dtype=dtype)
+        arr = np.array([np.nan, np.nan, np.nan], dtype=)
+        values = np.array([1], dtype=)
         result = ht.ismember(arr, values)
         expected = np.array([False, False, False], dtype=np.bool_)
         tm.assert_numpy_array_equal(result, expected)
 
     def test_mode(self, dtype):
-        values = np.array([42, np.nan, np.nan, np.nan], dtype=dtype)
+        values = np.array([42, np.nan, np.nan, np.nan], dtype=)
         assert ht.mode(values, True) == 42
         assert np.isnan(ht.mode(values, False))
 

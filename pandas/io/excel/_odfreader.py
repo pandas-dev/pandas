@@ -47,11 +47,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
             Arbitrary keyword arguments passed to excel engine.
         """
         import_optional_dependency("odf")
-        super().__init__(
-            filepath_or_buffer,
-            storage_options=storage_options,
-            engine_kwargs=engine_kwargs,
-        )
+        super().__init__(filepath_or_buffer, storage_options=, engine_kwargs=)
 
     @property
     def _workbook_class(self) -> type[OpenDocument]:

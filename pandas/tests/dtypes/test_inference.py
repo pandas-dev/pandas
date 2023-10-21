@@ -187,7 +187,7 @@ ll_params = [
 objs, expected, ids = zip(*ll_params)
 
 
-@pytest.fixture(params=zip(objs, expected), ids=ids)
+@pytest.fixture(params=zip(objs, expected), ids=)
 def maybe_list_like(request):
     return request.param
 
@@ -538,7 +538,7 @@ class TestInference:
         # GH 40687
         arr = np.array([True, np.nan], dtype=object)
         result = libops.maybe_convert_bool(
-            arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
+            arr, set(), convert_to_masked_nullable=
         )
         if convert_to_masked_nullable:
             tm.assert_extension_array_equal(BooleanArray(*result), exp)
@@ -559,8 +559,8 @@ class TestInference:
         result, _ = lib.maybe_convert_numeric(
             np.array([prefix + infinity], dtype=object),
             na_values={"", "NULL", "nan"},
-            coerce_numeric=coerce_numeric,
-            convert_to_masked_nullable=convert_to_masked_nullable,
+            coerce_numeric=,
+            convert_to_masked_nullable=,
         )
         expected = np.array([np.inf if prefix in ["", "+"] else -np.inf])
         tm.assert_numpy_array_equal(result, expected)
@@ -573,7 +573,7 @@ class TestInference:
                 np.array(["foo_inf"], dtype=object),
                 na_values={"", "NULL", "nan"},
                 coerce_numeric=False,
-                convert_to_masked_nullable=convert_to_masked_nullable,
+                convert_to_masked_nullable=,
             )
 
     @pytest.mark.parametrize("convert_to_masked_nullable", [True, False])
@@ -589,7 +589,7 @@ class TestInference:
             data,
             nan_values,
             coerce,
-            convert_to_masked_nullable=convert_to_masked_nullable,
+            convert_to_masked_nullable=,
         )
         if convert_to_masked_nullable:
             expected = FloatingArray(expected, np.isnan(expected))
@@ -661,7 +661,7 @@ class TestInference:
             arr,
             na_values,
             coerce_numeric=coerce,
-            convert_to_masked_nullable=convert_to_masked_nullable,
+            convert_to_masked_nullable=,
         )
         if convert_to_masked_nullable and coerce:
             expected = IntegerArray(
@@ -693,7 +693,7 @@ class TestInference:
             case,
             set(),
             coerce_numeric=coerce,
-            convert_to_masked_nullable=convert_to_masked_nullable,
+            convert_to_masked_nullable=,
         )
 
         tm.assert_almost_equal(result, expected)
@@ -705,7 +705,7 @@ class TestInference:
             np.array(["uint64"], dtype=object),
             set(),
             coerce_numeric=True,
-            convert_to_masked_nullable=convert_to_masked_nullable,
+            convert_to_masked_nullable=,
         )
         if convert_to_masked_nullable:
             result = FloatingArray(*result)
@@ -875,7 +875,7 @@ class TestInference:
         arr = np.array([val, None, 3], dtype="object")
         result = lib.maybe_convert_objects(arr, convert_to_nullable_dtype=True)
         expected = IntegerArray(
-            np.array([val, 0, 3], dtype=dtype), np.array([False, True, False])
+            np.array([val, 0, 3], dtype=), np.array([False, True, False])
         )
         tm.assert_extension_array_equal(result, expected)
 
@@ -892,7 +892,7 @@ class TestInference:
         # GH 40687
         arr = np.array([2, np.nan], dtype=object)
         result = lib.maybe_convert_numeric(
-            arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
+            arr, set(), convert_to_masked_nullable=
         )
         if convert_to_masked_nullable:
             result = IntegerArray(*result)
@@ -919,7 +919,7 @@ class TestInference:
         # GH 40687
         arr = np.array([2.0, np.nan], dtype=object)
         result = lib.maybe_convert_numeric(
-            arr, set(), convert_to_masked_nullable=convert_to_masked_nullable
+            arr, set(), convert_to_masked_nullable=
         )
         if convert_to_masked_nullable:
             tm.assert_extension_array_equal(FloatingArray(*result), exp)
@@ -1052,15 +1052,15 @@ class TestTypeInference:
 
     @pytest.mark.parametrize("skipna", [True, False])
     def test_length_zero(self, skipna):
-        result = lib.infer_dtype(np.array([], dtype="i4"), skipna=skipna)
+        result = lib.infer_dtype(np.array([], dtype="i4"), skipna=)
         assert result == "integer"
 
-        result = lib.infer_dtype([], skipna=skipna)
+        result = lib.infer_dtype([], skipna=)
         assert result == "empty"
 
         # GH 18004
         arr = np.array([np.array([], dtype=object), np.array([], dtype=object)])
-        result = lib.infer_dtype(arr, skipna=skipna)
+        result = lib.infer_dtype(arr, skipna=)
         assert result == "empty"
 
     def test_integers(self):
@@ -1087,7 +1087,7 @@ class TestTypeInference:
     )
     def test_integer_na(self, arr, skipna):
         # GH 27392
-        result = lib.infer_dtype(arr, skipna=skipna)
+        result = lib.infer_dtype(arr, skipna=)
         expected = "integer" if skipna else "integer-na"
         assert result == expected
 
@@ -1166,33 +1166,33 @@ class TestTypeInference:
     def test_complex(self, skipna):
         # gets cast to complex on array construction
         arr = np.array([1.0, 2.0, 1 + 1j])
-        result = lib.infer_dtype(arr, skipna=skipna)
+        result = lib.infer_dtype(arr, skipna=)
         assert result == "complex"
 
         arr = np.array([1.0, 2.0, 1 + 1j], dtype="O")
-        result = lib.infer_dtype(arr, skipna=skipna)
+        result = lib.infer_dtype(arr, skipna=)
         assert result == "mixed"
 
-        result = lib.infer_dtype(arr[::-1], skipna=skipna)
+        result = lib.infer_dtype(arr[::-1], skipna=)
         assert result == "mixed"
 
         # gets cast to complex on array construction
         arr = np.array([1, np.nan, 1 + 1j])
-        result = lib.infer_dtype(arr, skipna=skipna)
+        result = lib.infer_dtype(arr, skipna=)
         assert result == "complex"
 
         arr = np.array([1.0, np.nan, 1 + 1j], dtype="O")
-        result = lib.infer_dtype(arr, skipna=skipna)
+        result = lib.infer_dtype(arr, skipna=)
         assert result == "mixed"
 
         # complex with nans stays complex
         arr = np.array([1 + 1j, np.nan, 3 + 3j], dtype="O")
-        result = lib.infer_dtype(arr, skipna=skipna)
+        result = lib.infer_dtype(arr, skipna=)
         assert result == "complex"
 
         # test smaller complex dtype; will pass through _try_infer_map fastpath
         arr = np.array([1 + 1j, np.nan, 3 + 3j], dtype=np.complex64)
-        result = lib.infer_dtype(arr, skipna=skipna)
+        result = lib.infer_dtype(arr, skipna=)
         assert result == "complex"
 
     def test_string(self):
@@ -1237,9 +1237,9 @@ class TestTypeInference:
     @pytest.mark.parametrize("box", [Series, np.array])
     def test_object_empty(self, box, missing, dtype, skipna, expected):
         # GH 23421
-        arr = box([missing, missing], dtype=dtype)
+        arr = box([missing, missing], dtype=)
 
-        result = lib.infer_dtype(arr, skipna=skipna)
+        result = lib.infer_dtype(arr, skipna=)
         assert result == expected
 
     def test_datetime(self):
@@ -1352,7 +1352,7 @@ class TestTypeInference:
                 pd.NaT,
             ]
         )
-        assert lib.infer_dtype(values, skipna=skipna) == "period"
+        assert lib.infer_dtype(values, skipna=) == "period"
 
         # periods but mixed freq
         values = klass(
@@ -1365,7 +1365,7 @@ class TestTypeInference:
         # with pd.array this becomes NumpyExtensionArray which ends up
         #  as "unknown-array"
         exp = "unknown-array" if klass is pd.array else "mixed"
-        assert lib.infer_dtype(values, skipna=skipna) == exp
+        assert lib.infer_dtype(values, skipna=) == exp
 
     def test_infer_dtype_period_mixed(self):
         arr = np.array(
@@ -1535,7 +1535,7 @@ class TestTypeInference:
     @pytest.mark.parametrize("skipna", [True, False])
     def test_infer_dtype_date_order_invariant(self, values, skipna):
         # https://github.com/pandas-dev/pandas/issues/33741
-        result = lib.infer_dtype(values, skipna=skipna)
+        result = lib.infer_dtype(values, skipna=)
         assert result == "date"
 
     def test_is_numeric_array(self):
@@ -1697,7 +1697,7 @@ class TestTypeInference:
     def test_string_dtype(self, data, skipna, klass, nullable_string_dtype):
         # StringArray
         val = klass(data, dtype=nullable_string_dtype)
-        inferred = lib.infer_dtype(val, skipna=skipna)
+        inferred = lib.infer_dtype(val, skipna=)
         assert inferred == "string"
 
     @pytest.mark.parametrize("klass", [pd.array, Series])
@@ -1706,7 +1706,7 @@ class TestTypeInference:
     def test_boolean_dtype(self, data, skipna, klass):
         # BooleanArray
         val = klass(data, dtype="boolean")
-        inferred = lib.infer_dtype(val, skipna=skipna)
+        inferred = lib.infer_dtype(val, skipna=)
         assert inferred == "boolean"
 
 

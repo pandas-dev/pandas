@@ -99,41 +99,41 @@ def data(dtype):
         data = make_bool_data()
     else:
         data = make_data()
-    return pd.array(data, dtype=dtype)
+    return pd.array(data, dtype=)
 
 
 @pytest.fixture
 def data_for_twos(dtype):
     if dtype.kind == "b":
-        return pd.array(np.ones(100), dtype=dtype)
-    return pd.array(np.ones(100) * 2, dtype=dtype)
+        return pd.array(np.ones(100), dtype=)
+    return pd.array(np.ones(100) * 2, dtype=)
 
 
 @pytest.fixture
 def data_missing(dtype):
     if dtype.kind == "f":
-        return pd.array([pd.NA, 0.1], dtype=dtype)
+        return pd.array([pd.NA, 0.1], dtype=)
     elif dtype.kind == "b":
-        return pd.array([np.nan, True], dtype=dtype)
-    return pd.array([pd.NA, 1], dtype=dtype)
+        return pd.array([np.nan, True], dtype=)
+    return pd.array([pd.NA, 1], dtype=)
 
 
 @pytest.fixture
 def data_for_sorting(dtype):
     if dtype.kind == "f":
-        return pd.array([0.1, 0.2, 0.0], dtype=dtype)
+        return pd.array([0.1, 0.2, 0.0], dtype=)
     elif dtype.kind == "b":
-        return pd.array([True, True, False], dtype=dtype)
-    return pd.array([1, 2, 0], dtype=dtype)
+        return pd.array([True, True, False], dtype=)
+    return pd.array([1, 2, 0], dtype=)
 
 
 @pytest.fixture
 def data_missing_for_sorting(dtype):
     if dtype.kind == "f":
-        return pd.array([0.1, pd.NA, 0.0], dtype=dtype)
+        return pd.array([0.1, pd.NA, 0.0], dtype=)
     elif dtype.kind == "b":
-        return pd.array([True, np.nan, False], dtype=dtype)
-    return pd.array([1, pd.NA, 0], dtype=dtype)
+        return pd.array([True, np.nan, False], dtype=)
+    return pd.array([1, pd.NA, 0], dtype=)
 
 
 @pytest.fixture
@@ -158,7 +158,7 @@ def data_for_grouping(dtype):
         c = 2
 
     na = pd.NA
-    return pd.array([b, b, na, na, a, a, b, c], dtype=dtype)
+    return pd.array([b, b, na, na, a, a, b, c], dtype=)
 
 
 class TestMaskedArrays(base.ExtensionTests):
@@ -273,8 +273,8 @@ class TestMaskedArrays(base.ExtensionTests):
             result = getattr(ser, op_name)()
             expected = getattr(alt, op_name)()
         else:
-            result = getattr(ser, op_name)(skipna=skipna)
-            expected = getattr(alt, op_name)(skipna=skipna)
+            result = getattr(ser, op_name)(skipna=)
+            expected = getattr(alt, op_name)(skipna=)
             if not skipna and ser.isna().any() and op_name not in ["any", "all"]:
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
@@ -340,28 +340,28 @@ class TestMaskedArrays(base.ExtensionTests):
             )
 
         if op_name == "cumsum":
-            result = getattr(ser, op_name)(skipna=skipna)
+            result = getattr(ser, op_name)(skipna=)
             expected = pd.Series(
                 pd.array(
-                    getattr(ser.astype("float64"), op_name)(skipna=skipna),
+                    getattr(ser.astype("float64"), op_name)(skipna=),
                     dtype=expected_dtype,
                 )
             )
             tm.assert_series_equal(result, expected)
         elif op_name in ["cummax", "cummin"]:
-            result = getattr(ser, op_name)(skipna=skipna)
+            result = getattr(ser, op_name)(skipna=)
             expected = pd.Series(
                 pd.array(
-                    getattr(ser.astype("float64"), op_name)(skipna=skipna),
+                    getattr(ser.astype("float64"), op_name)(skipna=),
                     dtype=ser.dtype,
                 )
             )
             tm.assert_series_equal(result, expected)
         elif op_name == "cumprod":
-            result = getattr(ser[:12], op_name)(skipna=skipna)
+            result = getattr(ser[:12], op_name)(skipna=)
             expected = pd.Series(
                 pd.array(
-                    getattr(ser[:12].astype("float64"), op_name)(skipna=skipna),
+                    getattr(ser[:12].astype("float64"), op_name)(skipna=),
                     dtype=expected_dtype,
                 )
             )

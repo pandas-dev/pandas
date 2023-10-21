@@ -187,17 +187,17 @@ def test_extract_expand_capture_groups_index(index, any_string_dtype):
         index = index.repeat(2)
 
     index = index[: len(data)]
-    ser = Series(data, index=index, dtype=any_string_dtype)
+    ser = Series(data, index=, dtype=any_string_dtype)
 
     result = ser.str.extract(r"(\d)", expand=False)
-    expected = Series(["1", "2", np.nan], index=index, dtype=any_string_dtype)
+    expected = Series(["1", "2", np.nan], index=, dtype=any_string_dtype)
     tm.assert_series_equal(result, expected)
 
     result = ser.str.extract(r"(?P<letter>\D)(?P<number>\d)?", expand=False)
     expected = DataFrame(
         [["A", "1"], ["B", "2"], ["C", np.nan]],
         columns=["letter", "number"],
-        index=index,
+        index=,
         dtype=any_string_dtype,
     )
     tm.assert_frame_equal(result, expected)
@@ -268,7 +268,7 @@ def test_extract_expand_True_single_capture_group(index_or_series, any_string_dt
 @pytest.mark.parametrize("name", [None, "series_name"])
 def test_extract_series(name, any_string_dtype):
     # extract should give the same result whether or not the series has a name.
-    s = Series(["A1", "B2", "C3"], name=name, dtype=any_string_dtype)
+    s = Series(["A1", "B2", "C3"], name=, dtype=any_string_dtype)
 
     # one group, no matches
     result = s.str.extract("(_)", expand=True)
@@ -363,17 +363,17 @@ def test_extract_dataframe_capture_groups_index(index, any_string_dtype):
         pytest.skip("Index too short")
 
     index = index[: len(data)]
-    s = Series(data, index=index, dtype=any_string_dtype)
+    s = Series(data, index=, dtype=any_string_dtype)
 
     result = s.str.extract(r"(\d)", expand=True)
-    expected = DataFrame(["1", "2", np.nan], index=index, dtype=any_string_dtype)
+    expected = DataFrame(["1", "2", np.nan], index=, dtype=any_string_dtype)
     tm.assert_frame_equal(result, expected)
 
     result = s.str.extract(r"(?P<letter>\D)(?P<number>\d)?", expand=True)
     expected = DataFrame(
         [["A", "1"], ["B", "2"], ["C", np.nan]],
         columns=["letter", "number"],
-        index=index,
+        index=,
         dtype=any_string_dtype,
     )
     tm.assert_frame_equal(result, expected)
@@ -553,8 +553,8 @@ def test_extractall_no_matches(data, names, any_string_dtype):
         index = Index(range(n), name=names[0])
     else:
         tuples = (tuple([i] * (n - 1)) for i in range(n))
-        index = MultiIndex.from_tuples(tuples, names=names)
-    s = Series(data, name="series_name", index=index, dtype=any_string_dtype)
+        index = MultiIndex.from_tuples(tuples, names=)
+    s = Series(data, name="series_name", index=, dtype=any_string_dtype)
     expected_index = MultiIndex.from_tuples([], names=(names + ("match",)))
 
     # one un-named group.

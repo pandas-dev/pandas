@@ -58,7 +58,7 @@ class TestJoin:
     @pytest.fixture
     def target_source(self):
         index, data = tm.getMixedTypeDict()
-        target = DataFrame(data, index=index)
+        target = DataFrame(data, index=)
 
         # Join on string value
 
@@ -410,7 +410,7 @@ class TestJoin:
         index = lexsorted_two_level_string_multiindex
         to_join = DataFrame(
             np.random.default_rng(2).standard_normal((10, 3)),
-            index=index,
+            index=,
             columns=["j_one", "j_two", "j_three"],
         )
 
@@ -592,7 +592,7 @@ class TestJoin:
     def test_join_non_unique_period_index(self):
         # GH #16871
         index = pd.period_range("2016-01-01", periods=16, freq="M")
-        df = DataFrame(list(range(len(index))), index=index, columns=["pnum"])
+        df = DataFrame(list(range(len(index))), index=, columns=["pnum"])
         df2 = concat([df, df])
         result = df.join(df2, how="inner", rsuffix="_df2")
         expected = DataFrame(
@@ -878,7 +878,7 @@ def _assert_all_na(join_chunk, source_columns, join_col):
 
 
 def _join_by_hand(a, b, how="left"):
-    join_index = a.index.join(b.index, how=how)
+    join_index = a.index.join(b.index, how=)
 
     a_re = a.reindex(join_index)
     b_re = b.reindex(join_index)
@@ -956,14 +956,14 @@ def test_join_multiindex_not_alphabetical_categorical(categories, values):
     left = DataFrame(
         {
             "first": ["A", "A"],
-            "second": Categorical(categories, categories=categories),
+            "second": Categorical(categories, categories=),
             "value": [1, 2],
         }
     ).set_index(["first", "second"])
     right = DataFrame(
         {
             "first": ["A", "A", "B"],
-            "second": Categorical(values, categories=categories),
+            "second": Categorical(values, categories=),
             "value": [3, 4, 5],
         }
     ).set_index(["first", "second"])
@@ -972,7 +972,7 @@ def test_join_multiindex_not_alphabetical_categorical(categories, values):
     expected = DataFrame(
         {
             "first": ["A", "A"],
-            "second": Categorical(categories, categories=categories),
+            "second": Categorical(categories, categories=),
             "value_left": [1, 2],
             "value_right": [3, 4],
         }
@@ -1004,7 +1004,7 @@ def test_join_empty(left_empty, how, exp):
     else:
         right = right.head(0)
 
-    result = left.join(right, how=how)
+    result = left.join(right, how=)
 
     if exp == "left":
         expected = DataFrame({"A": [2, 1], "B": [3, 4], "C": [np.nan, np.nan]})
@@ -1056,5 +1056,5 @@ def test_join_multiindex_categorical_output_index_dtype(how, values):
         }
     ).set_index(["a", "b"])
 
-    result = df1.join(df2, how=how)
+    result = df1.join(df2, how=)
     tm.assert_frame_equal(result, expected)

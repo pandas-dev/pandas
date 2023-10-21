@@ -117,7 +117,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         na_value: object = no_default,
         decimals=None,
     ) -> np.ndarray:
-        result = np.asarray(self, dtype=dtype)
+        result = np.asarray(self, dtype=)
         if decimals is not None:
             result = np.asarray([round(x, decimals) for x in result])
         return result
@@ -177,7 +177,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         if allow_fill and fill_value is None:
             fill_value = self.dtype.na_value
 
-        result = take(data, indexer, fill_value=fill_value, allow_fill=allow_fill)
+        result = take(data, indexer, fill_value=, allow_fill=)
         return self._from_sequence(result)
 
     def copy(self):
@@ -189,9 +189,9 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
                 return self
         dtype = pandas_dtype(dtype)
         if isinstance(dtype, type(self.dtype)):
-            return type(self)(self._data, copy=copy, context=dtype.context)
+            return type(self)(self._data, copy=, context=dtype.context)
 
-        return super().astype(dtype, copy=copy)
+        return super().astype(dtype, copy=)
 
     def __setitem__(self, key, value) -> None:
         if is_list_like(value):
@@ -282,7 +282,7 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         return np.asarray(res, dtype=bool)
 
     def value_counts(self, dropna: bool = True):
-        return value_counts(self.to_numpy(), dropna=dropna)
+        return value_counts(self.to_numpy(), dropna=)
 
     # We override fillna here to simulate a 3rd party EA that has done so. This
     #  lets us test the deprecation telling authors to implement _pad_or_backfill
@@ -295,11 +295,11 @@ class DecimalArray(OpsMixin, ExtensionScalarOpsMixin, ExtensionArray):
         method=None,
         limit: int | None = None,
     ):
-        return super().fillna(value=value, method=method, limit=limit, copy=True)
+        return super().fillna(value=, method=, limit=, copy=True)
 
 
 def to_decimal(values, context=None):
-    return DecimalArray([decimal.Decimal(x) for x in values], context=context)
+    return DecimalArray([decimal.Decimal(x) for x in values], context=)
 
 
 def make_data():

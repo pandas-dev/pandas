@@ -56,7 +56,7 @@ class TestPeriodIndexEquals(EqualsTests):
     @pytest.mark.parametrize("freq", ["D", "M"])
     def test_equals2(self, freq):
         # GH#13107
-        idx = PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq=freq)
+        idx = PeriodIndex(["2011-01-01", "2011-01-02", "NaT"], freq=)
         assert idx.equals(idx)
         assert idx.equals(idx.copy())
         assert idx.equals(idx.astype(object))
@@ -134,7 +134,7 @@ class TestDatetimeIndexEquals(EqualsTests):
 
     @pytest.mark.parametrize("freq", ["B", "C"])
     def test_not_equals_bday(self, freq):
-        rng = date_range("2009-01-01", "2010-01-01", freq=freq)
+        rng = date_range("2009-01-01", "2010-01-01", freq=)
         assert not rng.equals(list(rng))
 
 

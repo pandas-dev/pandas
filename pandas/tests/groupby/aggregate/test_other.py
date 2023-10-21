@@ -93,8 +93,8 @@ def test_agg_period_index():
 
     # GH 3579
     index = period_range(start="1999-01", periods=5, freq="M")
-    s1 = Series(np.random.default_rng(2).random(len(index)), index=index)
-    s2 = Series(np.random.default_rng(2).random(len(index)), index=index)
+    s1 = Series(np.random.default_rng(2).random(len(index)), index=)
+    s2 = Series(np.random.default_rng(2).random(len(index)), index=)
     df = DataFrame.from_dict({"s1": s1, "s2": s2})
     grouped = df.groupby(df.index.month)
     list(grouped)
@@ -523,7 +523,7 @@ def test_sum_uint64_overflow():
     )
     expected = DataFrame(
         {1: [9223372036854775809, 9223372036854775811, 9223372036854775813]},
-        index=index,
+        index=,
         dtype=object,
     )
 
@@ -585,14 +585,14 @@ def test_agg_structs_series(structure, expected):
 def test_agg_category_nansum(observed):
     categories = ["a", "b", "c"]
     df = DataFrame(
-        {"A": pd.Categorical(["a", "a", "b"], categories=categories), "B": [1, 2, 3]}
+        {"A": pd.Categorical(["a", "a", "b"], categories=), "B": [1, 2, 3]}
     )
     msg = "using SeriesGroupBy.sum"
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        result = df.groupby("A", observed=observed).B.agg(np.nansum)
+        result = df.groupby("A", observed=).B.agg(np.nansum)
     expected = Series(
         [3, 3, 0],
-        index=pd.CategoricalIndex(["a", "b", "c"], categories=categories, name="A"),
+        index=pd.CategoricalIndex(["a", "b", "c"], categories=, name="A"),
         name="B",
     )
     if observed:

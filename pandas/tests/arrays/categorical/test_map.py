@@ -25,27 +25,27 @@ def na_action(request):
 )
 def test_map_str(data, categories, ordered, na_action):
     # GH 31202 - override base class since we want to maintain categorical/ordered
-    cat = Categorical(data, categories=categories, ordered=ordered)
-    result = cat.map(str, na_action=na_action)
+    cat = Categorical(data, categories=, ordered=)
+    result = cat.map(str, na_action=)
     expected = Categorical(
-        map(str, data), categories=map(str, categories), ordered=ordered
+        map(str, data), categories=map(str, categories), ordered=
     )
     tm.assert_categorical_equal(result, expected)
 
 
 def test_map(na_action):
     cat = Categorical(list("ABABC"), categories=list("CBA"), ordered=True)
-    result = cat.map(lambda x: x.lower(), na_action=na_action)
+    result = cat.map(lambda x: x.lower(), na_action=)
     exp = Categorical(list("ababc"), categories=list("cba"), ordered=True)
     tm.assert_categorical_equal(result, exp)
 
     cat = Categorical(list("ABABC"), categories=list("BAC"), ordered=False)
-    result = cat.map(lambda x: x.lower(), na_action=na_action)
+    result = cat.map(lambda x: x.lower(), na_action=)
     exp = Categorical(list("ababc"), categories=list("bac"), ordered=False)
     tm.assert_categorical_equal(result, exp)
 
     # GH 12766: Return an index not an array
-    result = cat.map(lambda x: 1, na_action=na_action)
+    result = cat.map(lambda x: 1, na_action=)
     exp = Index(np.array([1] * 5, dtype=np.int64))
     tm.assert_index_equal(result, exp)
 
@@ -55,15 +55,15 @@ def test_map(na_action):
     def f(x):
         return {"A": 10, "B": 20, "C": 30}.get(x)
 
-    result = cat.map(f, na_action=na_action)
+    result = cat.map(f, na_action=)
     exp = Categorical([10, 20, 10, 20, 30], categories=[20, 10, 30], ordered=False)
     tm.assert_categorical_equal(result, exp)
 
     mapper = Series([10, 20, 30], index=["A", "B", "C"])
-    result = cat.map(mapper, na_action=na_action)
+    result = cat.map(mapper, na_action=)
     tm.assert_categorical_equal(result, exp)
 
-    result = cat.map({"A": 10, "B": 20, "C": 30}, na_action=na_action)
+    result = cat.map({"A": 10, "B": 20, "C": 30}, na_action=)
     tm.assert_categorical_equal(result, exp)
 
 
@@ -129,14 +129,14 @@ def test_map_with_dict_or_series(na_action):
     cat = Categorical(orig_values)
 
     mapper = Series(new_values[:-1], index=orig_values[:-1])
-    result = cat.map(mapper, na_action=na_action)
+    result = cat.map(mapper, na_action=)
 
     # Order of categories in result can be different
     expected = Categorical(new_values, categories=[3.0, 2, "one"])
     tm.assert_categorical_equal(result, expected)
 
     mapper = dict(zip(orig_values[:-1], new_values[:-1]))
-    result = cat.map(mapper, na_action=na_action)
+    result = cat.map(mapper, na_action=)
     # Order of categories in result can be different
     tm.assert_categorical_equal(result, expected)
 

@@ -72,11 +72,11 @@ class TestEngine:
         args = (2,)
 
         s = Series(range(10))
-        result = s.rolling(2, center=center, step=step).apply(
-            f, args=args, engine="numba", engine_kwargs=engine_kwargs, raw=True
+        result = s.rolling(2, center=, step=).apply(
+            f, args=, engine="numba", engine_kwargs=, raw=True
         )
-        expected = s.rolling(2, center=center, step=step).apply(
-            f, engine="cython", args=args, raw=True
+        expected = s.rolling(2, center=, step=).apply(
+            f, engine="cython", args=, raw=True
         )
         tm.assert_series_equal(result, expected)
 
@@ -109,9 +109,9 @@ class TestEngine:
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
-        roll = data.rolling(3, step=step)
+        roll = data.rolling(3, step=)
         result = getattr(roll, method)(
-            engine="numba", engine_kwargs=engine_kwargs, **kwargs
+            engine="numba", engine_kwargs=, **kwargs
         )
         expected = getattr(roll, method)(engine="cython", **kwargs)
         tm.assert_equal(result, expected)
@@ -129,7 +129,7 @@ class TestEngine:
         data = DataFrame(np.eye(5))
         expand = data.expanding()
         result = getattr(expand, method)(
-            engine="numba", engine_kwargs=engine_kwargs, **kwargs
+            engine="numba", engine_kwargs=, **kwargs
         )
         expected = getattr(expand, method)(engine="cython", **kwargs)
         tm.assert_equal(result, expected)
@@ -151,22 +151,16 @@ class TestEngine:
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
-        roll = Series(range(10)).rolling(2, step=step)
-        result = roll.apply(
-            func_1, engine="numba", engine_kwargs=engine_kwargs, raw=True
-        )
+        roll = Series(range(10)).rolling(2, step=)
+        result = roll.apply(func_1, engine="numba", engine_kwargs=, raw=True)
         expected = roll.apply(func_1, engine="cython", raw=True)
         tm.assert_series_equal(result, expected)
 
-        result = roll.apply(
-            func_2, engine="numba", engine_kwargs=engine_kwargs, raw=True
-        )
+        result = roll.apply(func_2, engine="numba", engine_kwargs=, raw=True)
         expected = roll.apply(func_2, engine="cython", raw=True)
         tm.assert_series_equal(result, expected)
         # This run should use the cached func_1
-        result = roll.apply(
-            func_1, engine="numba", engine_kwargs=engine_kwargs, raw=True
-        )
+        result = roll.apply(func_1, engine="numba", engine_kwargs=, raw=True)
         expected = roll.apply(func_1, engine="cython", raw=True)
         tm.assert_series_equal(result, expected)
 
@@ -187,14 +181,14 @@ class TestEngine:
 
         engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
         df = DataFrame({"value": [0, 0, 0]})
-        result = getattr(df, window)(method=method, **window_kwargs).apply(
-            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(1,)
+        result = getattr(df, window)(method=, **window_kwargs).apply(
+            add, raw=True, engine="numba", engine_kwargs=, args=(1,)
         )
         expected = DataFrame({"value": [1.0, 1.0, 1.0]})
         tm.assert_frame_equal(result, expected)
 
-        result = getattr(df, window)(method=method, **window_kwargs).apply(
-            add, raw=True, engine="numba", engine_kwargs=engine_kwargs, args=(2,)
+        result = getattr(df, window)(method=, **window_kwargs).apply(
+            add, raw=True, engine="numba", engine_kwargs=, args=(2,)
         )
         expected = DataFrame({"value": [2.0, 2.0, 2.0]})
         tm.assert_frame_equal(result, expected)
@@ -212,7 +206,7 @@ class TestEngine:
         engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
         df = DataFrame({"value": [0, 0, 0]})
         result = df.rolling(1).apply(
-            func, raw=True, engine="numba", engine_kwargs=engine_kwargs
+            func, raw=True, engine="numba", engine_kwargs=
         )
         expected = DataFrame({"value": [2.0, 2.0, 2.0]})
         tm.assert_frame_equal(result, expected)
@@ -220,7 +214,7 @@ class TestEngine:
         parallel = False
         engine_kwargs = {"nopython": nopython, "nogil": nogil, "parallel": parallel}
         result = df.rolling(1).apply(
-            func, raw=True, engine="numba", engine_kwargs=engine_kwargs
+            func, raw=True, engine="numba", engine_kwargs=
         )
         expected = DataFrame({"value": [1.0, 1.0, 1.0]})
         tm.assert_frame_equal(result, expected)
@@ -261,10 +255,10 @@ class TestEWM:
             grouper = lambda x: x.groupby("A")
         if method == "sum":
             adjust = True
-        ewm = grouper(df).ewm(com=1.0, adjust=adjust, ignore_na=ignore_na)
+        ewm = grouper(df).ewm(com=1.0, adjust=, ignore_na=)
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
-        result = getattr(ewm, method)(engine="numba", engine_kwargs=engine_kwargs)
+        result = getattr(ewm, method)(engine="numba", engine_kwargs=)
         expected = getattr(ewm, method)(engine="cython")
 
         tm.assert_frame_equal(result, expected)
@@ -291,13 +285,11 @@ class TestEWM:
                 "2020-01-03",
             ]
         )
-        ewm = grouper(df).ewm(
-            halflife=halflife, adjust=True, ignore_na=ignore_na, times=times
-        )
+        ewm = grouper(df).ewm(halflife=, adjust=True, ignore_na=, times=)
 
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
-        result = ewm.mean(engine="numba", engine_kwargs=engine_kwargs)
+        result = ewm.mean(engine="numba", engine_kwargs=)
         expected = ewm.mean(engine="cython")
 
         tm.assert_frame_equal(result, expected)
@@ -353,21 +345,21 @@ class TestTableMethod:
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
-        roll_table = df.rolling(2, method="table", axis=axis, min_periods=0, step=step)
+        roll_table = df.rolling(2, method="table", axis=, min_periods=0, step=)
         if method in ("var", "std"):
             with pytest.raises(NotImplementedError, match=f"{method} not supported"):
                 getattr(roll_table, method)(
-                    engine_kwargs=engine_kwargs, engine="numba", **kwargs
+                    engine_kwargs=, engine="numba", **kwargs
                 )
         else:
             roll_single = df.rolling(
-                2, method="single", axis=axis, min_periods=0, step=step
+                2, method="single", axis=, min_periods=0, step=
             )
             result = getattr(roll_table, method)(
-                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+                engine_kwargs=, engine="numba", **kwargs
             )
             expected = getattr(roll_single, method)(
-                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+                engine_kwargs=, engine="numba", **kwargs
             )
             tm.assert_frame_equal(result, expected)
 
@@ -379,11 +371,11 @@ class TestTableMethod:
 
         df = DataFrame(np.eye(3))
         result = df.rolling(
-            2, method="table", axis=axis, min_periods=0, step=step
-        ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
+            2, method="table", axis=, min_periods=0, step=
+        ).apply(f, raw=True, engine_kwargs=, engine="numba")
         expected = df.rolling(
-            2, method="single", axis=axis, min_periods=0, step=step
-        ).apply(f, raw=True, engine_kwargs=engine_kwargs, engine="numba")
+            2, method="single", axis=, min_periods=0, step=
+        ).apply(f, raw=True, engine_kwargs=, engine="numba")
         tm.assert_frame_equal(result, expected)
 
     def test_table_method_rolling_weighted_mean(self, step):
@@ -393,7 +385,7 @@ class TestTableMethod:
             return arr
 
         df = DataFrame([[1, 2, 0.6], [2, 3, 0.4], [3, 4, 0.2], [4, 5, 0.7]])
-        result = df.rolling(2, method="table", min_periods=0, step=step).apply(
+        result = df.rolling(2, method="table", min_periods=0, step=).apply(
             weighted_mean, raw=True, engine="numba"
         )
         expected = DataFrame(
@@ -413,11 +405,11 @@ class TestTableMethod:
             return np.sum(x, axis=0) + 1
 
         df = DataFrame(np.eye(3))
-        result = df.expanding(method="table", axis=axis).apply(
-            f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
+        result = df.expanding(method="table", axis=).apply(
+            f, raw=True, engine_kwargs=, engine="numba"
         )
-        expected = df.expanding(method="single", axis=axis).apply(
-            f, raw=True, engine_kwargs=engine_kwargs, engine="numba"
+        expected = df.expanding(method="single", axis=).apply(
+            f, raw=True, engine_kwargs=, engine="numba"
         )
         tm.assert_frame_equal(result, expected)
 
@@ -429,19 +421,19 @@ class TestTableMethod:
         engine_kwargs = {"nogil": nogil, "parallel": parallel, "nopython": nopython}
 
         df = DataFrame(np.eye(3))
-        expand_table = df.expanding(method="table", axis=axis)
+        expand_table = df.expanding(method="table", axis=)
         if method in ("var", "std"):
             with pytest.raises(NotImplementedError, match=f"{method} not supported"):
                 getattr(expand_table, method)(
-                    engine_kwargs=engine_kwargs, engine="numba", **kwargs
+                    engine_kwargs=, engine="numba", **kwargs
                 )
         else:
-            expand_single = df.expanding(method="single", axis=axis)
+            expand_single = df.expanding(method="single", axis=)
             result = getattr(expand_table, method)(
-                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+                engine_kwargs=, engine="numba", **kwargs
             )
             expected = getattr(expand_single, method)(
-                engine_kwargs=engine_kwargs, engine="numba", **kwargs
+                engine_kwargs=, engine="numba", **kwargs
             )
             tm.assert_frame_equal(result, expected)
 
@@ -452,10 +444,10 @@ class TestTableMethod:
 
         df = DataFrame(data)
 
-        result = getattr(df.ewm(com=1, method="table", axis=axis), method)(
-            engine_kwargs=engine_kwargs, engine="numba"
+        result = getattr(df.ewm(com=1, method="table", axis=), method)(
+            engine_kwargs=, engine="numba"
         )
-        expected = getattr(df.ewm(com=1, method="single", axis=axis), method)(
-            engine_kwargs=engine_kwargs, engine="numba"
+        expected = getattr(df.ewm(com=1, method="single", axis=), method)(
+            engine_kwargs=, engine="numba"
         )
         tm.assert_frame_equal(result, expected)

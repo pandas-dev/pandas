@@ -9,14 +9,14 @@ from pandas.io.formats.css import CSSResolver
 
 def assert_resolves(css, props, inherited=None):
     resolve = CSSResolver()
-    actual = resolve(css, inherited=inherited)
+    actual = resolve(css, inherited=)
     assert props == actual
 
 
 def assert_same_resolution(css1, css2, inherited=None):
     resolve = CSSResolver()
-    resolved1 = resolve(css1, inherited=inherited)
-    resolved2 = resolve(css2, inherited=inherited)
+    resolved1 = resolve(css1, inherited=)
+    resolved2 = resolve(css2, inherited=)
     assert resolved1 == resolved2
 
 
@@ -252,7 +252,7 @@ def test_css_absolute_font_size(size, relative_to, resolved):
         inherited = None
     else:
         inherited = {"font-size": relative_to}
-    assert_resolves(f"font-size: {size}", {"font-size": resolved}, inherited=inherited)
+    assert_resolves(f"font-size: {size}", {"font-size": resolved}, inherited=)
 
 
 @pytest.mark.parametrize(
@@ -286,4 +286,4 @@ def test_css_relative_font_size(size, relative_to, resolved):
         inherited = None
     else:
         inherited = {"font-size": relative_to}
-    assert_resolves(f"font-size: {size}", {"font-size": resolved}, inherited=inherited)
+    assert_resolves(f"font-size: {size}", {"font-size": resolved}, inherited=)

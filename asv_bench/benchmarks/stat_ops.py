@@ -17,7 +17,7 @@ class FrameOps:
         self.df_func = getattr(df, op)
 
     def time_op(self, op, dtype, axis):
-        self.df_func(axis=axis)
+        self.df_func(axis=)
 
 
 class FrameMultiIndexOps:
@@ -31,8 +31,8 @@ class FrameMultiIndexOps:
             np.tile(np.arange(100).repeat(100), 10),
             np.tile(np.tile(np.arange(100), 100), 10),
         ]
-        index = pd.MultiIndex(levels=levels, codes=codes)
-        df = pd.DataFrame(np.random.randn(len(index), 4), index=index)
+        index = pd.MultiIndex(levels=, codes=)
+        df = pd.DataFrame(np.random.randn(len(index), 4), index=)
         self.df_func = getattr(df, op)
 
     def time_op(self, op):
@@ -62,8 +62,8 @@ class SeriesMultiIndexOps:
             np.tile(np.arange(100).repeat(100), 10),
             np.tile(np.tile(np.arange(100), 100), 10),
         ]
-        index = pd.MultiIndex(levels=levels, codes=codes)
-        s = pd.Series(np.random.randn(len(index)), index=index)
+        index = pd.MultiIndex(levels=, codes=)
+        s = pd.Series(np.random.randn(len(index)), index=)
         self.s_func = getattr(s, op)
 
     def time_op(self, op):
@@ -79,10 +79,10 @@ class Rank:
         self.data = getattr(pd, constructor)(values)
 
     def time_rank(self, constructor, pct):
-        self.data.rank(pct=pct)
+        self.data.rank(pct=)
 
     def time_average_old(self, constructor, pct):
-        self.data.rank(pct=pct) / len(self.data)
+        self.data.rank(pct=) / len(self.data)
 
 
 class Correlation:
@@ -98,25 +98,25 @@ class Correlation:
         self.s2 = pd.Series(np.random.randn(500))
 
     def time_corr(self, method):
-        self.df.corr(method=method)
+        self.df.corr(method=)
 
     def time_corr_wide(self, method):
-        self.df_wide.corr(method=method)
+        self.df_wide.corr(method=)
 
     def time_corr_wide_nans(self, method):
-        self.df_wide_nans.corr(method=method)
+        self.df_wide_nans.corr(method=)
 
     def peakmem_corr_wide(self, method):
-        self.df_wide.corr(method=method)
+        self.df_wide.corr(method=)
 
     def time_corr_series(self, method):
-        self.s.corr(self.s2, method=method)
+        self.s.corr(self.s2, method=)
 
     def time_corrwith_cols(self, method):
-        self.df.corrwith(self.df2, method=method)
+        self.df.corrwith(self.df2, method=)
 
     def time_corrwith_rows(self, method):
-        self.df.corrwith(self.df2, axis=1, method=method)
+        self.df.corrwith(self.df2, axis=1, method=)
 
 
 class Covariance:

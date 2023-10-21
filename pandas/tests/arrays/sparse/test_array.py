@@ -37,7 +37,7 @@ class TestSparseArray:
     def test_shift_fill_value(self, fill_value):
         # GH #24128
         sparse = SparseArray(np.array([1, 0, 0, 3, 0]), fill_value=8.0)
-        res = sparse.shift(1, fill_value=fill_value)
+        res = sparse.shift(1, fill_value=)
         if isna(fill_value):
             fill_value = res.dtype.na_value
         exp = SparseArray(np.array([fill_value, 1, 0, 0, 3]), fill_value=8.0)
@@ -97,7 +97,7 @@ class TestSparseArray:
     )
     def test_shape(self, data, shape, dtype):
         # GH 21126
-        out = SparseArray(data, dtype=dtype)
+        out = SparseArray(data, dtype=)
         assert out.shape == shape
 
     @pytest.mark.parametrize(
@@ -111,7 +111,7 @@ class TestSparseArray:
     @pytest.mark.parametrize("fill_value", [None, 0])
     def test_dense_repr(self, vals, fill_value):
         vals = np.array(vals)
-        arr = SparseArray(vals, fill_value=fill_value)
+        arr = SparseArray(vals, fill_value=)
 
         res = arr.to_dense()
         tm.assert_numpy_array_equal(res, vals)
@@ -261,12 +261,12 @@ class TestSparseArrayAnalytics:
 
             msg = "the 'out' parameter is not supported"
             with pytest.raises(ValueError, match=msg):
-                np.cumsum(SparseArray(data), out=out)
+                np.cumsum(SparseArray(data), out=)
         else:
             axis = 1  # SparseArray currently 1-D, so only axis = 0 is valid.
             msg = re.escape(f"axis(={axis}) out of bounds")
             with pytest.raises(ValueError, match=msg):
-                SparseArray(data).cumsum(axis=axis)
+                SparseArray(data).cumsum(axis=)
 
     def test_ufunc(self):
         # GH 13853 make sure ufunc is applied to fill_value
@@ -314,11 +314,11 @@ class TestSparseArrayAnalytics:
     @pytest.mark.parametrize("fill_value", [0.0, np.nan])
     def test_modf(self, fill_value):
         # https://github.com/pandas-dev/pandas/issues/26946
-        sparse = SparseArray([fill_value] * 10 + [1.1, 2.2], fill_value=fill_value)
+        sparse = SparseArray([fill_value] * 10 + [1.1, 2.2], fill_value=)
         r1, r2 = np.modf(sparse)
         e1, e2 = np.modf(np.asarray(sparse))
-        tm.assert_sp_array_equal(r1, SparseArray(e1, fill_value=fill_value))
-        tm.assert_sp_array_equal(r2, SparseArray(e2, fill_value=fill_value))
+        tm.assert_sp_array_equal(r1, SparseArray(e1, fill_value=))
+        tm.assert_sp_array_equal(r2, SparseArray(e2, fill_value=))
 
     def test_nbytes_integer(self):
         arr = SparseArray([1, 0, 0, 0, 2], kind="integer")
@@ -391,7 +391,7 @@ def test_setting_fill_value_updates():
     ],
 )
 def test_first_fill_value_loc(arr, fill_value, loc):
-    result = SparseArray(arr, fill_value=fill_value)._first_fill_value_loc()
+    result = SparseArray(arr, fill_value=)._first_fill_value_loc()
     assert result == loc
 
 
@@ -407,7 +407,7 @@ def test_first_fill_value_loc(arr, fill_value, loc):
 )
 @pytest.mark.parametrize("fill_value", [np.nan, 0, 1])
 def test_unique_na_fill(arr, fill_value):
-    a = SparseArray(arr, fill_value=fill_value).unique()
+    a = SparseArray(arr, fill_value=).unique()
     b = pd.Series(arr).unique()
     assert isinstance(a, SparseArray)
     a = np.asarray(a)
@@ -451,8 +451,8 @@ def test_map_missing():
 @pytest.mark.parametrize("fill_value", [np.nan, 1])
 def test_dropna(fill_value):
     # GH-28287
-    arr = SparseArray([np.nan, 1], fill_value=fill_value)
-    exp = SparseArray([1.0], fill_value=fill_value)
+    arr = SparseArray([np.nan, 1], fill_value=)
+    exp = SparseArray([1.0], fill_value=)
     tm.assert_sp_array_equal(arr.dropna(), exp)
 
     df = pd.DataFrame({"a": [0, 1], "b": arr})

@@ -269,7 +269,7 @@ class TestSparseIndexCommon:
 
     @pytest.mark.parametrize("kind", ["integer", "block"])
     def test_lookup(self, kind):
-        idx = make_sparse_index(4, np.array([2, 3], dtype=np.int32), kind=kind)
+        idx = make_sparse_index(4, np.array([2, 3], dtype=np.int32), kind=)
         assert idx.lookup(-1) == -1
         assert idx.lookup(0) == -1
         assert idx.lookup(1) == -1
@@ -277,12 +277,12 @@ class TestSparseIndexCommon:
         assert idx.lookup(3) == 1
         assert idx.lookup(4) == -1
 
-        idx = make_sparse_index(4, np.array([], dtype=np.int32), kind=kind)
+        idx = make_sparse_index(4, np.array([], dtype=np.int32), kind=)
 
         for i in range(-1, 5):
             assert idx.lookup(i) == -1
 
-        idx = make_sparse_index(4, np.array([0, 1, 2, 3], dtype=np.int32), kind=kind)
+        idx = make_sparse_index(4, np.array([0, 1, 2, 3], dtype=np.int32), kind=)
         assert idx.lookup(-1) == -1
         assert idx.lookup(0) == 0
         assert idx.lookup(1) == 1
@@ -290,7 +290,7 @@ class TestSparseIndexCommon:
         assert idx.lookup(3) == 3
         assert idx.lookup(4) == -1
 
-        idx = make_sparse_index(4, np.array([0, 2, 3], dtype=np.int32), kind=kind)
+        idx = make_sparse_index(4, np.array([0, 2, 3], dtype=np.int32), kind=)
         assert idx.lookup(-1) == -1
         assert idx.lookup(0) == 0
         assert idx.lookup(1) == -1
@@ -300,7 +300,7 @@ class TestSparseIndexCommon:
 
     @pytest.mark.parametrize("kind", ["integer", "block"])
     def test_lookup_array(self, kind):
-        idx = make_sparse_index(4, np.array([2, 3], dtype=np.int32), kind=kind)
+        idx = make_sparse_index(4, np.array([2, 3], dtype=np.int32), kind=)
 
         res = idx.lookup_array(np.array([-1, 0, 2], dtype=np.int32))
         exp = np.array([-1, -1, 0], dtype=np.int32)
@@ -310,12 +310,12 @@ class TestSparseIndexCommon:
         exp = np.array([-1, 0, -1, 1], dtype=np.int32)
         tm.assert_numpy_array_equal(res, exp)
 
-        idx = make_sparse_index(4, np.array([], dtype=np.int32), kind=kind)
+        idx = make_sparse_index(4, np.array([], dtype=np.int32), kind=)
         res = idx.lookup_array(np.array([-1, 0, 2, 4], dtype=np.int32))
         exp = np.array([-1, -1, -1, -1], dtype=np.int32)
         tm.assert_numpy_array_equal(res, exp)
 
-        idx = make_sparse_index(4, np.array([0, 1, 2, 3], dtype=np.int32), kind=kind)
+        idx = make_sparse_index(4, np.array([0, 1, 2, 3], dtype=np.int32), kind=)
         res = idx.lookup_array(np.array([-1, 0, 2], dtype=np.int32))
         exp = np.array([-1, 0, 2], dtype=np.int32)
         tm.assert_numpy_array_equal(res, exp)
@@ -324,7 +324,7 @@ class TestSparseIndexCommon:
         exp = np.array([-1, 2, 1, 3], dtype=np.int32)
         tm.assert_numpy_array_equal(res, exp)
 
-        idx = make_sparse_index(4, np.array([0, 2, 3], dtype=np.int32), kind=kind)
+        idx = make_sparse_index(4, np.array([0, 2, 3], dtype=np.int32), kind=)
         res = idx.lookup_array(np.array([2, 1, 3, 0], dtype=np.int32))
         exp = np.array([1, -1, 2, 0], dtype=np.int32)
         tm.assert_numpy_array_equal(res, exp)

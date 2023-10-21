@@ -135,16 +135,16 @@ class bottleneck_switch:
                     # `mask` is not recognised by bottleneck, would raise
                     #  TypeError if called
                     kwds.pop("mask", None)
-                    result = bn_func(values, axis=axis, **kwds)
+                    result = bn_func(values, axis=, **kwds)
 
                     # prefer to treat inf/-inf as NA, but must compute the func
                     # twice :(
                     if _has_infs(result):
-                        result = alt(values, axis=axis, skipna=skipna, **kwds)
+                        result = alt(values, axis=, skipna=, **kwds)
                 else:
-                    result = alt(values, axis=axis, skipna=skipna, **kwds)
+                    result = alt(values, axis=, skipna=, **kwds)
             else:
-                result = alt(values, axis=axis, skipna=skipna, **kwds)
+                result = alt(values, axis=, skipna=, **kwds)
 
             return result
 
@@ -305,9 +305,7 @@ def _get_values(
     if skipna and (mask is not None):
         # get our fill value (in case we need to provide an alternative
         # dtype for it)
-        fill_value = _get_fill_value(
-            dtype, fill_value=fill_value, fill_value_typ=fill_value_typ
-        )
+        fill_value = _get_fill_value(dtype, fill_value=, fill_value_typ=)
 
         if fill_value is not None:
             if mask.any():
@@ -401,7 +399,7 @@ def _datetimelike_compat(func: F) -> F:
         if datetimelike and mask is None:
             mask = isna(values)
 
-        result = func(values, axis=axis, skipna=skipna, mask=mask, **kwargs)
+        result = func(values, axis=, skipna=, mask=, **kwargs)
 
         if datetimelike:
             result = _wrap_results(result, orig_values.dtype, fill_value=iNaT)
@@ -474,7 +472,7 @@ def maybe_operate_rowwise(func: F) -> F:
                 results = [func(x, **kwargs) for x in arrs]
             return np.array(results)
 
-        return func(values, axis=axis, **kwargs)
+        return func(values, axis=, **kwargs)
 
     return cast(F, newfunc)
 
@@ -528,7 +526,7 @@ def nanany(
             stacklevel=find_stack_level(),
         )
 
-    values, _ = _get_values(values, skipna, fill_value=False, mask=mask)
+    values, _ = _get_values(values, skipna, fill_value=False, mask=)
 
     # For object type, any won't necessarily return
     # boolean values (numpy/numpy#4352)
@@ -589,7 +587,7 @@ def nanall(
             stacklevel=find_stack_level(),
         )
 
-    values, _ = _get_values(values, skipna, fill_value=True, mask=mask)
+    values, _ = _get_values(values, skipna, fill_value=True, mask=)
 
     # For object type, all won't necessarily return
     # boolean values (numpy/numpy#4352)
@@ -636,7 +634,7 @@ def nansum(
     3.0
     """
     dtype = values.dtype
-    values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
+    values, mask = _get_values(values, skipna, fill_value=0, mask=)
     dtype_sum = _get_dtype_max(dtype)
     if dtype.kind == "f":
         dtype_sum = dtype
@@ -644,7 +642,7 @@ def nansum(
         dtype_sum = np.dtype(np.float64)
 
     the_sum = values.sum(axis, dtype=dtype_sum)
-    the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=min_count)
+    the_sum = _maybe_null_out(the_sum, axis, mask, values.shape, min_count=)
 
     return the_sum
 
@@ -658,7 +656,7 @@ def _mask_datetimelike_result(
     if isinstance(result, np.ndarray):
         # we need to apply the mask
         result = result.astype("i8").view(orig_values.dtype)
-        axis_mask = mask.any(axis=axis)
+        axis_mask = mask.any(axis=)
         # error: Unsupported target for indexed assignment ("Union[ndarray[Any, Any],
         # datetime64, timedelta64]")
         result[axis_mask] = iNaT  # type: ignore[index]
@@ -702,7 +700,7 @@ def nanmean(
     1.5
     """
     dtype = values.dtype
-    values, mask = _get_values(values, skipna, fill_value=0, mask=mask)
+    values, mask = _get_values(values, skipna, fill_value=0, mask=)
     dtype_sum = _get_dtype_max(dtype)
     dtype_count = np.dtype(np.float64)
 
@@ -774,7 +772,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
         return res
 
     dtype = values.dtype
-    values, mask = _get_values(values, skipna, mask=mask, fill_value=0)
+    values, mask = _get_values(values, skipna, mask=, fill_value=0)
     if values.dtype.kind != "f":
         if values.dtype == object:
             # GH#34671 avoid casting strings to numeric
@@ -811,7 +809,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
                         # GH52788: fastpath when squeezable, nanmedian for 2D array slow
                         res = np.nanmedian(np.squeeze(values), keepdims=True)
                     else:
-                        res = np.nanmedian(values, axis=axis)
+                        res = np.nanmedian(values, axis=)
 
         else:
             # must return the correct shape, but median is not defined for the
@@ -878,7 +876,7 @@ def _get_counts_nanvar(
     count : int, np.nan or np.ndarray
     d : int, np.nan or np.ndarray
     """
-    count = _get_counts(values_shape, mask, axis, dtype=dtype)
+    count = _get_counts(values_shape, mask, axis, dtype=)
     d = count - dtype.type(ddof)
 
     # always return NaN, never inf
@@ -939,9 +937,9 @@ def nanstd(
         values = values.view("m8[ns]")
 
     orig_dtype = values.dtype
-    values, mask = _get_values(values, skipna, mask=mask)
+    values, mask = _get_values(values, skipna, mask=)
 
-    result = np.sqrt(nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask))
+    result = np.sqrt(nanvar(values, axis=, skipna=, ddof=, mask=))
     return _wrap_results(result, orig_dtype)
 
 
@@ -1004,13 +1002,13 @@ def nanvar(
     # observations.
     #
     # See https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
-    avg = _ensure_numeric(values.sum(axis=axis, dtype=np.float64)) / count
+    avg = _ensure_numeric(values.sum(axis=, dtype=np.float64)) / count
     if axis is not None:
         avg = np.expand_dims(avg, axis)
     sqr = _ensure_numeric((avg - values) ** 2)
     if mask is not None:
         np.putmask(sqr, mask, 0)
-    result = sqr.sum(axis=axis, dtype=np.float64) / d
+    result = sqr.sum(axis=, dtype=np.float64) / d
 
     # Return variance as np.float64 (the datatype used in the accumulator),
     # unless we were dealing with a float array, in which case use the same
@@ -1058,7 +1056,7 @@ def nansem(
     """
     # This checks if non-numeric-like data is passed with numeric_only=False
     # and raises a TypeError otherwise
-    nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
+    nanvar(values, axis=, skipna=, ddof=, mask=)
 
     mask = _maybe_get_mask(values, skipna, mask)
     if values.dtype.kind != "f":
@@ -1068,7 +1066,7 @@ def nansem(
         return np.nan
 
     count, _ = _get_counts_nanvar(values.shape, mask, axis, ddof, values.dtype)
-    var = nanvar(values, axis=axis, skipna=skipna, ddof=ddof, mask=mask)
+    var = nanvar(values, axis=, skipna=, ddof=, mask=)
 
     return np.sqrt(var) / np.sqrt(count)
 
@@ -1086,9 +1084,7 @@ def _nanminmax(meth, fill_value_typ):
         if values.size == 0:
             return _na_for_min_count(values, axis)
 
-        values, mask = _get_values(
-            values, skipna, fill_value_typ=fill_value_typ, mask=mask
-        )
+        values, mask = _get_values(values, skipna, fill_value_typ=, mask=)
         result = getattr(values, meth)(axis)
         result = _maybe_null_out(result, axis, mask, values.shape)
         return result
@@ -1138,7 +1134,7 @@ def nanargmax(
     >>> nanops.nanargmax(arr, axis=1)
     array([2, 2, 1, 1])
     """
-    values, mask = _get_values(values, True, fill_value_typ="-inf", mask=mask)
+    values, mask = _get_values(values, True, fill_value_typ="-inf", mask=)
     # error: Need type annotation for 'result'
     result = values.argmax(axis)  # type: ignore[var-annotated]
     result = _maybe_arg_null_out(result, axis, mask, skipna)
@@ -1183,7 +1179,7 @@ def nanargmin(
     >>> nanops.nanargmin(arr, axis=1)
     array([0, 0, 1, 1])
     """
-    values, mask = _get_values(values, True, fill_value_typ="+inf", mask=mask)
+    values, mask = _get_values(values, True, fill_value_typ="+inf", mask=)
     # error: Need type annotation for 'result'
     result = values.argmin(axis)  # type: ignore[var-annotated]
     result = _maybe_arg_null_out(result, axis, mask, skipna)
@@ -1416,7 +1412,7 @@ def nanprod(
     # error: Incompatible return value type (got "Union[ndarray, float]", expected
     # "float")
     return _maybe_null_out(  # type: ignore[return-value]
-        result, axis, mask, values.shape, min_count=min_count
+        result, axis, mask, values.shape, min_count=
     )
 
 
@@ -1664,7 +1660,7 @@ def nancov(
     a = _ensure_numeric(a)
     b = _ensure_numeric(b)
 
-    return np.cov(a, b, ddof=ddof)[0, 1]
+    return np.cov(a, b, ddof=)[0, 1]
 
 
 def _ensure_numeric(x):

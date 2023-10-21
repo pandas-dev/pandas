@@ -35,7 +35,7 @@ class TestFreq:
     @pytest.mark.parametrize("tz", [None, "US/Eastern"])
     def test_freq_setter(self, values, freq, tz):
         # GH#20678
-        idx = DatetimeIndex(values, tz=tz)
+        idx = DatetimeIndex(values, tz=)
 
         # can set to an offset, converting from string if necessary
         idx._data.freq = freq

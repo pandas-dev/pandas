@@ -17,7 +17,7 @@ class TestGetLevelValues:
         levels = [dates, [0, 1]]
         codes = [[0, 0, 1, 1, 2, 2, 3, 3], [0, 1, 0, 1, 0, 1, 0, 1]]
 
-        index = MultiIndex(levels=levels, codes=codes)
+        index = MultiIndex(levels=, codes=)
 
         assert isinstance(index.get_level_values(0)[0], Timestamp)
 

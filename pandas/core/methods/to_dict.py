@@ -153,7 +153,7 @@ def to_dict(
     are_all_object_dtype_cols = len(box_native_indices) == len(df.dtypes)
 
     if orient == "dict":
-        return into_c((k, v.to_dict(into=into)) for k, v in df.items())
+        return into_c((k, v.to_dict(into=)) for k, v in df.items())
 
     elif orient == "list":
         object_dtype_indices_as_set: set[int] = set(box_native_indices)

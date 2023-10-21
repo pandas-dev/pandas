@@ -108,7 +108,7 @@ class TestIndexSetOps:
         second = index[:3]
 
         expected = Index([0, 1, "a"]) if sort is None else Index([0, "a", 1])
-        result = first.intersection(second, sort=sort)
+        result = first.intersection(second, sort=)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("klass", [np.array, Series, list])
@@ -118,7 +118,7 @@ class TestIndexSetOps:
         first = index[:5]
         second = index[:3]
 
-        result = first.intersection(klass(second.values), sort=sort)
+        result = first.intersection(klass(second.values), sort=)
         assert tm.equalContents(result, second)
 
     def test_intersection_nosort(self):
@@ -136,7 +136,7 @@ class TestIndexSetOps:
 
         i1 = Index(dt_dates, dtype=object)
         i2 = Index(["aa"], dtype=object)
-        result = i2.intersection(i1, sort=sort)
+        result = i2.intersection(i1, sort=)
 
         assert len(result) == 0
 
@@ -148,7 +148,7 @@ class TestIndexSetOps:
         # non-monotonic non-unique
         index1 = Index(["A", "B", "A", "C"])
         expected = Index(expected_arr, dtype="object")
-        result = index1.intersection(index2, sort=sort)
+        result = index1.intersection(index2, sort=)
         if sort is None:
             expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
@@ -218,7 +218,7 @@ class TestIndexSetOps:
             )
         )
 
-        result = getattr(index1, method)(index2, sort=sort)
+        result = getattr(index1, method)(index2, sort=)
         assert result.ndim == 1
 
         expected = Index(expected)
@@ -235,7 +235,7 @@ class TestIndexSetOps:
     ):
         first = Index(first_list, name=first_name)
         second = Index(second_list, name=second_name)
-        union = first.union(second, sort=sort)
+        union = first.union(second, sort=)
 
         vals = set(first_list).union(second_list)
 

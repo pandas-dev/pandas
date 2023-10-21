@@ -52,7 +52,7 @@ class TestFirstValidIndex:
         mat[:5] = np.nan
         mat[-5:] = np.nan
 
-        frame = DataFrame({"foo": mat}, index=index)
+        frame = DataFrame({"foo": mat}, index=)
         assert frame.first_valid_index() == frame.index[5]
         assert frame.last_valid_index() == frame.index[-6]
 
@@ -64,7 +64,7 @@ class TestFirstValidIndex:
     def test_first_last_valid_all_nan(self, index_func):
         # GH#17400: no valid entries
         index = index_func(30)
-        frame = DataFrame(np.nan, columns=["foo"], index=index)
+        frame = DataFrame(np.nan, columns=["foo"], index=)
 
         assert frame.last_valid_index() is None
         assert frame.first_valid_index() is None

@@ -123,7 +123,7 @@ class TestDataFrameTruncate:
             after = pd.Timestamp(after) if after is not None else None
             indices = [pd.Timestamp(i) for i in indices]
         values = frame_or_series(range(len(idx)), index=idx)
-        result = values.truncate(before=before, after=after)
+        result = values.truncate(before=, after=)
         expected = values.loc[indices]
         tm.assert_equal(result, expected)
 

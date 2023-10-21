@@ -19,24 +19,24 @@ import pandas._testing as tm
 
 @pytest.mark.parametrize("names", [None, ["first", "second"]])
 def test_unique(names):
-    mi = MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]], names=names)
+    mi = MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]], names=)
 
     res = mi.unique()
     exp = MultiIndex.from_arrays([[1, 2, 2], [1, 1, 2]], names=mi.names)
     tm.assert_index_equal(res, exp)
 
-    mi = MultiIndex.from_arrays([list("aaaa"), list("abab")], names=names)
+    mi = MultiIndex.from_arrays([list("aaaa"), list("abab")], names=)
     res = mi.unique()
     exp = MultiIndex.from_arrays([list("aa"), list("ab")], names=mi.names)
     tm.assert_index_equal(res, exp)
 
-    mi = MultiIndex.from_arrays([list("aaaa"), list("aaaa")], names=names)
+    mi = MultiIndex.from_arrays([list("aaaa"), list("aaaa")], names=)
     res = mi.unique()
     exp = MultiIndex.from_arrays([["a"], ["a"]], names=mi.names)
     tm.assert_index_equal(res, exp)
 
     # GH #20568 - empty MI
-    mi = MultiIndex.from_arrays([[], []], names=names)
+    mi = MultiIndex.from_arrays([[], []], names=)
     res = mi.unique()
     tm.assert_index_equal(mi, res)
 
@@ -62,19 +62,19 @@ def test_unique_datetimelike():
 @pytest.mark.parametrize("level", [0, "first", 1, "second"])
 def test_unique_level(idx, level):
     # GH #17896 - with level= argument
-    result = idx.unique(level=level)
+    result = idx.unique(level=)
     expected = idx.get_level_values(level).unique()
     tm.assert_index_equal(result, expected)
 
     # With already unique level
     mi = MultiIndex.from_arrays([[1, 3, 2, 4], [1, 3, 2, 5]], names=["first", "second"])
-    result = mi.unique(level=level)
+    result = mi.unique(level=)
     expected = mi.get_level_values(level)
     tm.assert_index_equal(result, expected)
 
     # With empty MI
     mi = MultiIndex.from_arrays([[], []], names=["first", "second"])
-    result = mi.unique(level=level)
+    result = mi.unique(level=)
     expected = mi.get_level_values(level)
     tm.assert_index_equal(result, expected)
 
@@ -96,7 +96,7 @@ def test_duplicate_multiindex_codes():
 @pytest.mark.parametrize("names", [["a", "b", "a"], [1, 1, 2], [1, "a", 1]])
 def test_duplicate_level_names(names):
     # GH18872, GH19029
-    mi = MultiIndex.from_product([[0, 1]] * 3, names=names)
+    mi = MultiIndex.from_product([[0, 1]] * 3, names=)
     assert mi.names == names
 
     # With .rename()
@@ -203,7 +203,7 @@ def test_has_duplicates_overflow(nlevels, with_nulls):
     levels = [level] * nlevels + [[0, 1]]
 
     # no dups
-    mi = MultiIndex(levels=levels, codes=codes)
+    mi = MultiIndex(levels=, codes=)
     assert not mi.has_duplicates
 
     # with a dup
@@ -213,7 +213,7 @@ def test_has_duplicates_overflow(nlevels, with_nulls):
             return np.insert(a, 1000, a[0])
 
         codes = list(map(f, codes))
-        mi = MultiIndex(levels=levels, codes=codes)
+        mi = MultiIndex(levels=, codes=)
     else:
         values = mi.values.tolist()
         mi = MultiIndex.from_tuples(values + [values[0]])
@@ -230,7 +230,7 @@ def test_has_duplicates_overflow(nlevels, with_nulls):
     ],
 )
 def test_duplicated(idx_dup, keep, expected):
-    result = idx_dup.duplicated(keep=keep)
+    result = idx_dup.duplicated(keep=)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -242,10 +242,10 @@ def test_duplicated_hashtable_impl(keep, monkeypatch):
     codes = [np.random.default_rng(2).choice(n, k * n) for _ in levels]
     with monkeypatch.context() as m:
         m.setattr(libindex, "_SIZE_CUTOFF", 50)
-        mi = MultiIndex(levels=levels, codes=codes)
+        mi = MultiIndex(levels=, codes=)
 
-        result = mi.duplicated(keep=keep)
-        expected = hashtable.duplicated(mi.values, keep=keep)
+        result = mi.duplicated(keep=)
+        expected = hashtable.duplicated(mi.values, keep=)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -326,7 +326,7 @@ def test_duplicated_series_complex_numbers(dtype):
             np.nan,
             np.nan + np.nan * 1j,
         ],
-        dtype=dtype,
+        dtype=,
     ).duplicated()
     tm.assert_series_equal(result, expected)
 

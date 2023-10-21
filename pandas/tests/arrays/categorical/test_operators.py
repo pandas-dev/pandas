@@ -133,8 +133,8 @@ class TestCategoricalOps:
     )
     def test_not_equal_with_na(self, categories):
         # https://github.com/pandas-dev/pandas/issues/32276
-        c1 = Categorical.from_codes([-1, 0], categories=categories)
-        c2 = Categorical.from_codes([0, 1], categories=categories)
+        c1 = Categorical.from_codes([-1, 0], categories=)
+        c2 = Categorical.from_codes([0, 1], categories=)
 
         result = c1 != c2
 

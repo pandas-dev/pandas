@@ -66,7 +66,7 @@ class TestCartesianProduct:
         msg = "Input must be a list-like of list-likes"
 
         with pytest.raises(TypeError, match=msg):
-            cartesian_product(X=X)
+            cartesian_product(X=)
 
     def test_exceed_product_space(self):
         # GH31355: raise useful error when produce space is too large

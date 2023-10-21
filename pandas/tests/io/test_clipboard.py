@@ -247,8 +247,8 @@ def test_mock_clipboard(mock_clipboard):
 @pytest.mark.usefixtures("mock_clipboard")
 class TestClipboard:
     def check_round_trip_frame(self, data, excel=None, sep=None, encoding=None):
-        data.to_clipboard(excel=excel, sep=sep, encoding=encoding)
-        result = read_clipboard(sep=sep or "\t", index_col=0, encoding=encoding)
+        data.to_clipboard(excel=, sep=, encoding=)
+        result = read_clipboard(sep=sep or "\t", index_col=0, encoding=)
         tm.assert_frame_equal(data, result)
 
     # Test that default arguments copy as tab delimited
@@ -258,7 +258,7 @@ class TestClipboard:
     # Test that explicit delimiters are respected
     @pytest.mark.parametrize("sep", ["\t", ",", "|"])
     def test_round_trip_frame_sep(self, df, sep):
-        self.check_round_trip_frame(df, sep=sep)
+        self.check_round_trip_frame(df, sep=)
 
     # Test white space separator
     def test_round_trip_frame_string(self, df):
@@ -436,7 +436,7 @@ y,2,5.0,,,,,False,"""
         mock_clipboard[request.node.name] = text
 
         with pd.option_context("mode.string_storage", string_storage):
-            result = read_clipboard(sep=",", dtype_backend=dtype_backend, engine=engine)
+            result = read_clipboard(sep=",", dtype_backend=, engine=)
 
         expected = DataFrame(
             {

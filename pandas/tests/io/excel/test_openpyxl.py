@@ -76,8 +76,8 @@ def test_write_cells_merge_styled(ext):
 
     with tm.ensure_clean(ext) as path:
         with _OpenpyxlWriter(path) as writer:
-            writer._write_cells(initial_cells, sheet_name=sheet_name)
-            writer._write_cells(merge_cells, sheet_name=sheet_name)
+            writer._write_cells(initial_cells, sheet_name=)
+            writer._write_cells(merge_cells, sheet_name=)
 
             wks = writer.sheets[sheet_name]
         xcell_b1 = wks["B1"]
@@ -91,7 +91,7 @@ def test_engine_kwargs_write(ext, iso_dates):
     # GH 42286 GH 43445
     engine_kwargs = {"iso_dates": iso_dates}
     with tm.ensure_clean(ext) as f:
-        with ExcelWriter(f, engine="openpyxl", engine_kwargs=engine_kwargs) as writer:
+        with ExcelWriter(f, engine="openpyxl", engine_kwargs=) as writer:
             assert writer.book.iso_dates == iso_dates
             # ExcelWriter won't allow us to close without writing something
             DataFrame().to_excel(writer)
@@ -144,7 +144,7 @@ def test_write_append_mode(ext, mode, expected):
         wb.worksheets[1]["A1"].value = "bar"
         wb.save(f)
 
-        with ExcelWriter(f, engine="openpyxl", mode=mode) as writer:
+        with ExcelWriter(f, engine="openpyxl", mode=) as writer:
             df.to_excel(writer, sheet_name="baz", index=False)
 
         with contextlib.closing(openpyxl.load_workbook(f)) as wb2:
@@ -171,7 +171,7 @@ def test_if_sheet_exists_append_modes(ext, if_sheet_exists, num_sheets, expected
     with tm.ensure_clean(ext) as f:
         df1.to_excel(f, engine="openpyxl", sheet_name="foo", index=False)
         with ExcelWriter(
-            f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
+            f, engine="openpyxl", mode="a", if_sheet_exists=
         ) as writer:
             df2.to_excel(writer, sheet_name="foo", index=False)
 
@@ -209,7 +209,7 @@ def test_append_overlay_startrow_startcol(ext, startrow, startcol, greeting, goo
                 index=False,
                 header=False,
                 startrow=startrow + 1,
-                startcol=startcol,
+                startcol=,
                 sheet_name="poo",
             )
 
@@ -243,7 +243,7 @@ def test_if_sheet_exists_raises(ext, if_sheet_exists, msg):
         with pytest.raises(ValueError, match=re.escape(msg)):
             df.to_excel(f, sheet_name="foo", engine="openpyxl")
             with ExcelWriter(
-                f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
+                f, engine="openpyxl", mode="a", if_sheet_exists=
             ) as writer:
                 df.to_excel(writer, sheet_name="foo")
 
@@ -266,7 +266,7 @@ def test_read_workbook(datapath, ext, read_only):
     # GH 39528
     filename = datapath("io", "data", "excel", "test1" + ext)
     with contextlib.closing(
-        openpyxl.load_workbook(filename, read_only=read_only)
+        openpyxl.load_workbook(filename, read_only=)
     ) as wb:
         result = pd.read_excel(wb, engine="openpyxl")
     expected = pd.read_excel(filename)
@@ -298,12 +298,12 @@ def test_read_with_bad_dimension(
     # GH 38956, 39001 - no/incorrect dimension information
     path = datapath("io", "data", "excel", f"{filename}{ext}")
     if read_only is None:
-        result = pd.read_excel(path, header=header)
+        result = pd.read_excel(path, header=)
     else:
         with contextlib.closing(
-            openpyxl.load_workbook(path, read_only=read_only)
+            openpyxl.load_workbook(path, read_only=)
         ) as wb:
-            result = pd.read_excel(wb, engine="openpyxl", header=header)
+            result = pd.read_excel(wb, engine="openpyxl", header=)
     expected = DataFrame(expected_data)
     tm.assert_frame_equal(result, expected)
 
@@ -338,7 +338,7 @@ def test_read_with_empty_trailing_rows(datapath, ext, read_only):
         result = pd.read_excel(path)
     else:
         with contextlib.closing(
-            openpyxl.load_workbook(path, read_only=read_only)
+            openpyxl.load_workbook(path, read_only=)
         ) as wb:
             result = pd.read_excel(wb, engine="openpyxl")
     expected = DataFrame(
@@ -360,7 +360,7 @@ def test_read_empty_with_blank_row(datapath, ext, read_only):
         result = pd.read_excel(path)
     else:
         with contextlib.closing(
-            openpyxl.load_workbook(path, read_only=read_only)
+            openpyxl.load_workbook(path, read_only=)
         ) as wb:
             result = pd.read_excel(wb, engine="openpyxl")
     expected = DataFrame()

@@ -36,6 +36,6 @@ class BasePrintingTests:
 
     def test_dtype_name_in_info(self, data):
         buf = io.StringIO()
-        pd.DataFrame({"A": data}).info(buf=buf)
+        pd.DataFrame({"A": data}).info(buf=)
         result = buf.getvalue()
         assert data.dtype.name in result

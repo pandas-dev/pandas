@@ -113,7 +113,7 @@ def right_w_dups(right_no_dup):
     ],
 )
 def test_join(left, right, how, sort, expected):
-    result = left.join(right, how=how, sort=sort, validate="1:1")
+    result = left.join(right, how=, sort=, validate="1:1")
     tm.assert_frame_equal(result, expected)
 
 
@@ -299,7 +299,7 @@ def test_join_index(float_frame):
     msg = "columns overlap but no suffix"
     for how in ("outer", "left", "inner"):
         with pytest.raises(ValueError, match=msg):
-            float_frame.join(float_frame, how=how)
+            float_frame.join(float_frame, how=)
 
 
 def test_join_index_more(float_frame):
@@ -438,7 +438,7 @@ class TestDataFrameJoin:
         df2 = df2.set_index(["a", "b"])
         # it works!
         for how in ["left", "right", "outer"]:
-            df1.join(df2, how=how)
+            df1.join(df2, how=)
 
     def test_join_str_datetime(self):
         str_dates = ["20120209", "20120222"]
@@ -540,7 +540,7 @@ class TestDataFrameJoin:
 
         # second dataframe
         columns = MultiIndex.from_tuples([("a", ""), ("c", "c1")])
-        df2 = DataFrame(columns=columns, data=[[1, 33], [0, 44]])
+        df2 = DataFrame(columns=, data=[[1, 33], [0, 44]])
 
         # merge
         with pytest.raises(

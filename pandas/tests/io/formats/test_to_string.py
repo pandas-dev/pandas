@@ -30,7 +30,7 @@ def test_repr_tuples():
 
     df = DataFrame({"tups": list(zip(range(10), range(10)))})
     repr(df)
-    df.to_string(col_space=10, buf=buf)
+    df.to_string(col_space=10, buf=)
 
 
 def test_to_string_truncate():
@@ -152,18 +152,18 @@ def test_format_remove_leading_space_dataframe(input_array, expected):
 )
 def test_truncation_no_index(max_cols, max_rows, expected):
     df = DataFrame([[0] * 11] * 4)
-    assert df.to_string(index=False, max_cols=max_cols, max_rows=max_rows) == expected
+    assert df.to_string(index=False, max_cols=, max_rows=) == expected
 
 
 def test_to_string_unicode_columns(float_frame):
     df = DataFrame({"\u03c3": np.arange(10.0)})
 
     buf = StringIO()
-    df.to_string(buf=buf)
+    df.to_string(buf=)
     buf.getvalue()
 
     buf = StringIO()
-    df.info(buf=buf)
+    df.info(buf=)
     buf.getvalue()
 
     result = float_frame.to_string()
@@ -279,7 +279,7 @@ def test_to_string_complex_number_trims_zeros():
 def test_nullable_float_to_string(float_ea_dtype):
     # https://github.com/pandas-dev/pandas/issues/36775
     dtype = float_ea_dtype
-    s = Series([0.0, 1.0, None], dtype=dtype)
+    s = Series([0.0, 1.0, None], dtype=)
     result = s.to_string()
     expected = dedent(
         """\
@@ -293,7 +293,7 @@ def test_nullable_float_to_string(float_ea_dtype):
 def test_nullable_int_to_string(any_int_ea_dtype):
     # https://github.com/pandas-dev/pandas/issues/36775
     dtype = any_int_ea_dtype
-    s = Series([0, 1, None], dtype=dtype)
+    s = Series([0, 1, None], dtype=)
     result = s.to_string()
     expected = dedent(
         """\
@@ -308,7 +308,7 @@ def test_nullable_int_to_string(any_int_ea_dtype):
 def test_to_string_na_rep_and_float_format(na_rep):
     # GH 13828
     df = DataFrame([["A", 1.2225], ["A", None]], columns=["Group", "Data"])
-    result = df.to_string(na_rep=na_rep, float_format="{:.2f}".format)
+    result = df.to_string(na_rep=, float_format="{:.2f}".format)
     expected = dedent(
         f"""\
            Group  Data
@@ -337,7 +337,7 @@ def test_to_string_na_rep_and_float_format(na_rep):
 )
 def test_to_string_max_rows_zero(data, expected):
     # GH35394
-    result = DataFrame(data=data).to_string(max_rows=0)
+    result = DataFrame(data=).to_string(max_rows=0)
     assert result == expected
 
 

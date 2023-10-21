@@ -41,7 +41,7 @@ class TestSeriesAccessor:
                 np.array([0, 2, 1, 3], dtype=np.int32),
             ],
         )
-        expected = pd.Series([4, 9, 7, 5], index=index, dtype="Sparse[int]")
+        expected = pd.Series([4, 9, 7, 5], index=, dtype="Sparse[int]")
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -77,14 +77,14 @@ class TestSeriesAccessor:
                 ("a", 1, "z", 0),
             ]
         )
-        ss = pd.Series(values, index=index)
+        ss = pd.Series(values, index=)
 
         expected_A = np.zeros((4, 4))
         for value, (row, col) in expected_values_pos.items():
             expected_A[row, col] = value
 
         A, rows, cols = ss.sparse.to_coo(
-            row_levels=(0, 1), column_levels=(2, 3), sort_labels=sort_labels
+            row_levels=(0, 1), column_levels=(2, 3), sort_labels=
         )
         assert isinstance(A, sp_sparse.coo_matrix)
         tm.assert_numpy_array_equal(A.toarray(), expected_A)
@@ -109,12 +109,12 @@ class TestFrameAccessor:
     def test_from_spmatrix(self, format, labels, dtype):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        sp_dtype = SparseDtype(dtype, np.array(0, dtype=dtype).item())
+        sp_dtype = SparseDtype(dtype, np.array(0, dtype=).item())
 
-        mat = sp_sparse.eye(10, format=format, dtype=dtype)
+        mat = sp_sparse.eye(10, format=, dtype=)
         result = pd.DataFrame.sparse.from_spmatrix(mat, index=labels, columns=labels)
         expected = pd.DataFrame(
-            np.eye(10, dtype=dtype), index=labels, columns=labels
+            np.eye(10, dtype=), index=labels, columns=labels
         ).astype(sp_dtype)
         tm.assert_frame_equal(result, expected)
 
@@ -122,7 +122,7 @@ class TestFrameAccessor:
     def test_from_spmatrix_including_explicit_zero(self, format):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        mat = sp_sparse.random(10, 2, density=0.5, format=format)
+        mat = sp_sparse.random(10, 2, density=0.5, format=)
         mat.data[0] = 0
         result = pd.DataFrame.sparse.from_spmatrix(mat)
         dtype = SparseDtype("float64", 0.0)
@@ -139,8 +139,8 @@ class TestFrameAccessor:
         dtype = SparseDtype("float64", 0.0)
 
         mat = sp_sparse.random(10, 2, density=0.5)
-        result = pd.DataFrame.sparse.from_spmatrix(mat, columns=columns)
-        expected = pd.DataFrame(mat.toarray(), columns=columns).astype(dtype)
+        result = pd.DataFrame.sparse.from_spmatrix(mat, columns=)
+        expected = pd.DataFrame(mat.toarray(), columns=).astype(dtype)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -162,10 +162,10 @@ class TestFrameAccessor:
         df = pd.DataFrame(
             {
                 "A": SparseArray(
-                    [fill_value, fill_value, fill_value, 2], fill_value=fill_value
+                    [fill_value, fill_value, fill_value, 2], fill_value=
                 ),
                 "B": SparseArray(
-                    [fill_value, 2, fill_value, fill_value], fill_value=fill_value
+                    [fill_value, 2, fill_value, fill_value], fill_value=
                 ),
             }
         )
@@ -221,8 +221,8 @@ class TestFrameAccessor:
     def test_series_from_coo(self, dtype, dense_index):
         sp_sparse = pytest.importorskip("scipy.sparse")
 
-        A = sp_sparse.eye(3, format="coo", dtype=dtype)
-        result = pd.Series.sparse.from_coo(A, dense_index=dense_index)
+        A = sp_sparse.eye(3, format="coo", dtype=)
+        result = pd.Series.sparse.from_coo(A, dense_index=)
 
         index = pd.MultiIndex.from_tuples(
             [
@@ -231,7 +231,7 @@ class TestFrameAccessor:
                 np.array([2, 2], dtype=np.int32),
             ],
         )
-        expected = pd.Series(SparseArray(np.array([1, 1, 1], dtype=dtype)), index=index)
+        expected = pd.Series(SparseArray(np.array([1, 1, 1], dtype=)), index=)
         if dense_index:
             expected = expected.reindex(pd.MultiIndex.from_product(index.levels))
 

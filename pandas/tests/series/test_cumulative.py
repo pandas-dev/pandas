@@ -88,7 +88,7 @@ class TestSeriesCumulativeOps:
 
         exp_tdi = pd.to_timedelta(exp_tdi)
         expected = pd.Series(exp_tdi + ts)
-        result = getattr(ser, method)(skipna=skipna)
+        result = getattr(ser, method)(skipna=)
         tm.assert_series_equal(expected, result)
 
     @pytest.mark.parametrize(

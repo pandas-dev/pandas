@@ -60,10 +60,10 @@ class TestDataFrameIndexing:
     def test_getitem_numeric_should_not_fallback_to_positional(self, any_numeric_dtype):
         # GH51053
         dtype = any_numeric_dtype
-        idx = Index([1, 0, 1], dtype=dtype)
+        idx = Index([1, 0, 1], dtype=)
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=idx)
         result = df[1]
-        expected = DataFrame([[1, 3], [4, 6]], columns=Index([1, 1], dtype=dtype))
+        expected = DataFrame([[1, 3], [4, 6]], columns=Index([1, 1], dtype=))
         tm.assert_frame_equal(result, expected, check_exact=True)
 
     def test_getitem2(self, float_frame):
@@ -82,7 +82,7 @@ class TestDataFrameIndexing:
     def test_setitem_numeric_should_not_fallback_to_positional(self, any_numeric_dtype):
         # GH51053
         dtype = any_numeric_dtype
-        idx = Index([1, 0, 1], dtype=dtype)
+        idx = Index([1, 0, 1], dtype=)
         df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=idx)
         df[1] = 10
         expected = DataFrame([[10, 2, 10], [10, 5, 10]], columns=idx)
@@ -726,7 +726,7 @@ class TestDataFrameIndexing:
 
     def test_getitem_setitem_float_labels(self, using_array_manager):
         index = Index([1.5, 2, 3, 4, 5])
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=)
 
         result = df.loc[1.5:4]
         expected = df.reindex([1.5, 2, 3, 4])
@@ -756,7 +756,7 @@ class TestDataFrameIndexing:
 
         # #2727
         index = Index([1.0, 2.5, 3.5, 4.5, 5.0])
-        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=index)
+        df = DataFrame(np.random.default_rng(2).standard_normal((5, 5)), index=)
 
         # positional slicing only via iloc!
         msg = (
@@ -1234,14 +1234,14 @@ class TestDataFrameIndexing:
         columns = MultiIndex(
             levels=[["x", "y"], [0, 1]], codes=[[0, 1], [0, 0]], names=[None, "c"]
         )
-        expected = DataFrame([[1, 2], [3, 4]], columns=columns, index=index)
+        expected = DataFrame([[1, 2], [3, 4]], columns=, index=)
 
         result = dg.loc[:, (slice(None), 0)]
         tm.assert_frame_equal(result, expected)
 
         name = ("x", 0)
         index = Index(range(2), name="i")
-        expected = Series([1, 3], index=index, name=name)
+        expected = Series([1, 3], index=, name=)
 
         result = dg["x", 0]
         tm.assert_series_equal(result, expected)
@@ -1511,8 +1511,8 @@ class TestDataFrameIndexing:
         # GH#47687
         midx = MultiIndex.from_arrays(
             [
-                Series([True, True, False, False], dtype=dtype),
-                Series([True, False, True, False], dtype=dtype),
+                Series([True, True, False, False], dtype=),
+                Series([True, False, True, False], dtype=),
             ],
             names=["a", "b"],
         )
@@ -1520,7 +1520,7 @@ class TestDataFrameIndexing:
         with tm.maybe_produces_warning(PerformanceWarning, isinstance(indexer, tuple)):
             result = df.loc[indexer]
         expected = DataFrame(
-            {"c": [1, 2]}, index=Index([True, False], name="b", dtype=dtype)
+            {"c": [1, 2]}, index=Index([True, False], name="b", dtype=)
         )
         tm.assert_frame_equal(result, expected)
 
@@ -1531,7 +1531,7 @@ class TestDataFrameIndexing:
         df = DataFrame(
             {
                 "date": to_datetime(
-                    [datetime(2022, 1, 20), datetime(2022, 1, 22)], utc=utc
+                    [datetime(2022, 1, 20), datetime(2022, 1, 22)], utc=
                 ),
                 "update": [True, False],
             }

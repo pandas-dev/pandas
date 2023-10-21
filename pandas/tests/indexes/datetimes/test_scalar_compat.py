@@ -108,16 +108,16 @@ class TestDatetimeIndexOps:
 
     def test_round(self, tz_naive_fixture):
         tz = tz_naive_fixture
-        rng = date_range(start="2016-01-01", periods=5, freq="30Min", tz=tz)
+        rng = date_range(start="2016-01-01", periods=5, freq="30Min", tz=)
         elt = rng[1]
 
         expected_rng = DatetimeIndex(
             [
-                Timestamp("2016-01-01 00:00:00", tz=tz),
-                Timestamp("2016-01-01 00:00:00", tz=tz),
-                Timestamp("2016-01-01 01:00:00", tz=tz),
-                Timestamp("2016-01-01 02:00:00", tz=tz),
-                Timestamp("2016-01-01 02:00:00", tz=tz),
+                Timestamp("2016-01-01 00:00:00", tz=),
+                Timestamp("2016-01-01 00:00:00", tz=),
+                Timestamp("2016-01-01 01:00:00", tz=),
+                Timestamp("2016-01-01 02:00:00", tz=),
+                Timestamp("2016-01-01 02:00:00", tz=),
             ]
         )
         expected_elt = expected_rng[1]
@@ -138,17 +138,17 @@ class TestDatetimeIndexOps:
             elt.round(freq="ME")
 
         # GH#14440 & GH#15578
-        index = DatetimeIndex(["2016-10-17 12:00:00.0015"], tz=tz)
+        index = DatetimeIndex(["2016-10-17 12:00:00.0015"], tz=)
         result = index.round("ms")
-        expected = DatetimeIndex(["2016-10-17 12:00:00.002000"], tz=tz)
+        expected = DatetimeIndex(["2016-10-17 12:00:00.002000"], tz=)
         tm.assert_index_equal(result, expected)
 
         for freq in ["us", "ns"]:
             tm.assert_index_equal(index, index.round(freq))
 
-        index = DatetimeIndex(["2016-10-17 12:00:00.00149"], tz=tz)
+        index = DatetimeIndex(["2016-10-17 12:00:00.00149"], tz=)
         result = index.round("ms")
-        expected = DatetimeIndex(["2016-10-17 12:00:00.001000"], tz=tz)
+        expected = DatetimeIndex(["2016-10-17 12:00:00.001000"], tz=)
         tm.assert_index_equal(result, expected)
 
         index = DatetimeIndex(["2016-10-17 12:00:00.001501031"])
@@ -163,15 +163,15 @@ class TestDatetimeIndexOps:
     def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
         tz = tz_naive_fixture
-        rng = date_range(start="2016-01-01", periods=5, freq="2Min", tz=tz)
+        rng = date_range(start="2016-01-01", periods=5, freq="2Min", tz=)
 
         expected_rng = DatetimeIndex(
             [
-                Timestamp("2016-01-01 00:00:00", tz=tz),
-                Timestamp("2016-01-01 00:02:00", tz=tz),
-                Timestamp("2016-01-01 00:04:00", tz=tz),
-                Timestamp("2016-01-01 00:06:00", tz=tz),
-                Timestamp("2016-01-01 00:08:00", tz=tz),
+                Timestamp("2016-01-01 00:00:00", tz=),
+                Timestamp("2016-01-01 00:02:00", tz=),
+                Timestamp("2016-01-01 00:04:00", tz=),
+                Timestamp("2016-01-01 00:06:00", tz=),
+                Timestamp("2016-01-01 00:08:00", tz=),
             ]
         )
 
@@ -250,7 +250,7 @@ class TestDatetimeIndexOps:
         ],
     )
     def test_round_int64(self, start, index_freq, periods, round_freq):
-        dt = date_range(start=start, freq=index_freq, periods=periods)
+        dt = date_range(start=, freq=index_freq, periods=)
         unit = to_offset(round_freq).nanos
 
         # test floor

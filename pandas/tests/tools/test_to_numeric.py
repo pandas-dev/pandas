@@ -114,7 +114,7 @@ def test_error(data, msg):
 )
 def test_ignore_error(errors, exp_data):
     ser = Series([1, -3.14, "apple"])
-    result = to_numeric(ser, errors=errors)
+    result = to_numeric(ser, errors=)
 
     expected = Series(exp_data)
     tm.assert_series_equal(result, expected)
@@ -134,9 +134,9 @@ def test_bool_handling(errors, exp):
 
     if isinstance(exp, str):
         with pytest.raises(ValueError, match=exp):
-            to_numeric(ser, errors=errors)
+            to_numeric(ser, errors=)
     else:
-        result = to_numeric(ser, errors=errors)
+        result = to_numeric(ser, errors=)
         expected = Series(exp)
 
         tm.assert_series_equal(result, expected)
@@ -342,9 +342,9 @@ def test_scalar_fail(errors, checker):
 
     if isinstance(checker, str):
         with pytest.raises(ValueError, match=checker):
-            to_numeric(scalar, errors=errors)
+            to_numeric(scalar, errors=)
     else:
-        assert checker(to_numeric(scalar, errors=errors))
+        assert checker(to_numeric(scalar, errors=))
 
 
 @pytest.mark.parametrize("data", [[1, 2, 3], [1.0, np.nan, 3, np.nan]])
@@ -418,9 +418,9 @@ def test_non_hashable(errors, expected):
 
     if isinstance(expected, str):
         with pytest.raises(TypeError, match=expected):
-            to_numeric(ser, errors=errors)
+            to_numeric(ser, errors=)
     else:
-        result = to_numeric(ser, errors=errors)
+        result = to_numeric(ser, errors=)
         tm.assert_series_equal(result, expected)
 
 
@@ -528,7 +528,7 @@ def test_ignore_downcast_neg_to_unsigned():
 def test_ignore_downcast_cannot_convert_float(data, expected, downcast):
     # Cannot cast to an integer (signed or unsigned)
     # because we have a float number.
-    res = to_numeric(data, downcast=downcast)
+    res = to_numeric(data, downcast=)
     tm.assert_numpy_array_equal(res, expected)
 
 
@@ -541,7 +541,7 @@ def test_downcast_not8bit(downcast, expected_dtype):
     data = ["256", 257, 258]
 
     expected = np.array([256, 257, 258], dtype=expected_dtype)
-    res = to_numeric(data, downcast=downcast)
+    res = to_numeric(data, downcast=)
     tm.assert_numpy_array_equal(res, expected)
 
 
@@ -569,7 +569,7 @@ def test_downcast_not8bit(downcast, expected_dtype):
 )
 def test_downcast_limits(dtype, downcast, min_max):
     # see gh-14404: test the limits of each downcast.
-    series = to_numeric(Series(min_max), downcast=downcast)
+    series = to_numeric(Series(min_max), downcast=)
     assert series.dtype == dtype
 
 
@@ -637,9 +637,9 @@ def test_non_coerce_uint64_conflict(errors, exp):
 
     if isinstance(exp, str):
         with pytest.raises(ValueError, match=exp):
-            to_numeric(ser, errors=errors)
+            to_numeric(ser, errors=)
     else:
-        result = to_numeric(ser, errors=errors)
+        result = to_numeric(ser, errors=)
         tm.assert_series_equal(result, ser)
 
 
@@ -789,7 +789,7 @@ def test_to_numeric_from_nullable_string_ignore(nullable_string_dtype):
 )
 def test_downcast_nullable_numeric(data, input_dtype, downcast, expected_dtype):
     arr = pd.array(data, dtype=input_dtype)
-    result = to_numeric(arr, downcast=downcast)
+    result = to_numeric(arr, downcast=)
     expected = pd.array(data, dtype=expected_dtype)
     tm.assert_extension_array_equal(result, expected)
 
@@ -829,7 +829,7 @@ def test_to_numeric_dtype_backend(val, dtype):
     # GH#50505
     ser = Series([val], dtype=object)
     result = to_numeric(ser, dtype_backend="numpy_nullable")
-    expected = Series([val], dtype=dtype)
+    expected = Series([val], dtype=)
     tm.assert_series_equal(result, expected)
 
 
@@ -852,8 +852,8 @@ def test_to_numeric_dtype_backend_na(val, dtype):
     else:
         dtype_backend = "numpy_nullable"
     ser = Series([val, None], dtype=object)
-    result = to_numeric(ser, dtype_backend=dtype_backend)
-    expected = Series([val, pd.NA], dtype=dtype)
+    result = to_numeric(ser, dtype_backend=)
+    expected = Series([val, pd.NA], dtype=)
     tm.assert_series_equal(result, expected)
 
 
@@ -876,8 +876,8 @@ def test_to_numeric_dtype_backend_downcasting(val, dtype, downcast):
     else:
         dtype_backend = "numpy_nullable"
     ser = Series([val, None], dtype=object)
-    result = to_numeric(ser, dtype_backend=dtype_backend, downcast=downcast)
-    expected = Series([val, pd.NA], dtype=dtype)
+    result = to_numeric(ser, dtype_backend=, downcast=)
+    expected = Series([val, pd.NA], dtype=)
     tm.assert_series_equal(result, expected)
 
 
@@ -890,7 +890,7 @@ def test_to_numeric_dtype_backend_downcasting_uint(smaller, dtype_backend):
     if dtype_backend == "pyarrow":
         pytest.importorskip("pyarrow")
     ser = Series([1, pd.NA], dtype="UInt64")
-    result = to_numeric(ser, dtype_backend=dtype_backend, downcast="unsigned")
+    result = to_numeric(ser, dtype_backend=, downcast="unsigned")
     expected = Series([1, pd.NA], dtype=smaller)
     tm.assert_series_equal(result, expected)
 
@@ -912,9 +912,9 @@ def test_to_numeric_dtype_backend_already_nullable(dtype):
     # GH#50505
     if "pyarrow" in dtype:
         pytest.importorskip("pyarrow")
-    ser = Series([1, pd.NA], dtype=dtype)
+    ser = Series([1, pd.NA], dtype=)
     result = to_numeric(ser, dtype_backend="numpy_nullable")
-    expected = Series([1, pd.NA], dtype=dtype)
+    expected = Series([1, pd.NA], dtype=)
     tm.assert_series_equal(result, expected)
 
 
@@ -923,17 +923,17 @@ def test_to_numeric_dtype_backend_error(dtype_backend):
     ser = Series(["a", "b", ""])
     expected = ser.copy()
     with pytest.raises(ValueError, match="Unable to parse string"):
-        to_numeric(ser, dtype_backend=dtype_backend)
+        to_numeric(ser, dtype_backend=)
 
-    result = to_numeric(ser, dtype_backend=dtype_backend, errors="ignore")
+    result = to_numeric(ser, dtype_backend=, errors="ignore")
     tm.assert_series_equal(result, expected)
 
-    result = to_numeric(ser, dtype_backend=dtype_backend, errors="coerce")
+    result = to_numeric(ser, dtype_backend=, errors="coerce")
     if dtype_backend == "pyarrow":
         dtype = "double[pyarrow]"
     else:
         dtype = "Float64"
-    expected = Series([np.nan, np.nan, np.nan], dtype=dtype)
+    expected = Series([np.nan, np.nan, np.nan], dtype=)
     tm.assert_series_equal(result, expected)
 
 

@@ -114,7 +114,7 @@ class TestDataFramePlots:
                 scatter_matrix,
                 frame=df,
                 range_padding=0.1,
-                ax=ax,
+                ax=,
             )
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
         # GH 5662
@@ -140,7 +140,7 @@ class TestDataFramePlots:
                 scatter_matrix,
                 frame=df,
                 range_padding=0.1,
-                ax=ax,
+                ax=,
             )
         axes0_labels = axes[0][0].yaxis.get_majorticklabels()
         expected = ["-1.0", "-0.5", "0.0"]
@@ -187,7 +187,7 @@ class TestDataFramePlots:
             andrews_curves, frame=df, class_column="Name", color=linecolors
         )
         _check_colors(
-            ax.get_lines()[:10], linecolors=linecolors, mapping=df["Name"][:10]
+            ax.get_lines()[:10], linecolors=, mapping=df["Name"][:10]
         )
 
     @pytest.mark.slow
@@ -237,7 +237,7 @@ class TestDataFramePlots:
         df = iris
 
         ax = _check_plot_works(
-            parallel_coordinates, frame=df, class_column="Name", color=color
+            parallel_coordinates, frame=df, class_column="Name", color=
         )
         _check_colors(ax.get_lines()[:10], linecolors=color, mapping=df["Name"][:10])
 
@@ -324,7 +324,7 @@ class TestDataFramePlots:
         from pandas.plotting import radviz
 
         df = iris
-        ax = _check_plot_works(radviz, frame=df, class_column="Name", color=color)
+        ax = _check_plot_works(radviz, frame=df, class_column="Name", color=)
         # skip Circle drawn as ticks
         patches = [p for p in ax.patches[:20] if p.get_label() != ""]
         _check_colors(patches[:10], facecolors=color, mapping=df["Name"][:10])
@@ -357,7 +357,7 @@ class TestDataFramePlots:
         title = list(df.columns)
 
         # Case len(title) == len(df)
-        plot = df.plot(subplots=True, title=title)
+        plot = df.plot(subplots=True, title=)
         assert [p.get_title() for p in plot] == title
 
     def test_subplot_titles_too_much(self, iris):
@@ -394,7 +394,7 @@ class TestDataFramePlots:
             "`subplots=True` is passed"
         )
         with pytest.raises(ValueError, match=msg):
-            df.plot(subplots=False, title=title)
+            df.plot(subplots=False, title=)
 
     def test_subplot_titles_numeric_square_layout(self, iris):
         df = iris.drop("Name", axis=1).head()
@@ -486,7 +486,7 @@ class TestDataFramePlots:
         df1 = DataFrame(np.random.default_rng(2).random((2, 2)), columns=data_files)
         dic_color = {"b": (0.3, 0.7, 0.7), "a": (0.5, 0.24, 0.6)}
 
-        ax = df1.plot(kind=kind, color=dic_color)
+        ax = df1.plot(kind=, color=dic_color)
         if kind == "bar":
             colors = [rect.get_facecolor()[0:-1] for rect in ax.get_children()[0:3:2]]
         else:

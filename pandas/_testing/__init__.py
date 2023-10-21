@@ -238,7 +238,7 @@ if not pa_version_under7p0:
     ]
     DATE_PYARROW_DTYPES = [pa.date32(), pa.date64()]
     DATETIME_PYARROW_DTYPES = [
-        pa.timestamp(unit=unit, tz=tz)
+        pa.timestamp(unit=, tz=)
         for unit in ["s", "ms", "us", "ns"]
         for tz in [None, "UTC", "US/Pacific", "US/Eastern"]
     ]
@@ -374,7 +374,7 @@ def rands_array(
     chars = np.array(list(string.ascii_letters + string.digits), dtype=(np.str_, 1))
     retval = (
         np.random.default_rng(2)
-        .choice(chars, size=nchars * np.prod(size), replace=replace)
+        .choice(chars, size=nchars * np.prod(size), replace=)
         .view((np.str_, nchars))
         .reshape(size)
     )
@@ -387,7 +387,7 @@ def getCols(k) -> str:
 
 # make index
 def makeStringIndex(k: int = 10, name=None) -> Index:
-    return Index(rands_array(nchars=10, size=k), name=name)
+    return Index(rands_array(nchars=10, size=k), name=)
 
 
 def makeCategoricalIndex(
@@ -396,22 +396,22 @@ def makeCategoricalIndex(
     """make a length k index or n categories"""
     x = rands_array(nchars=4, size=n, replace=False)
     return CategoricalIndex(
-        Categorical.from_codes(np.arange(k) % n, categories=x), name=name, **kwargs
+        Categorical.from_codes(np.arange(k) % n, categories=x), name=, **kwargs
     )
 
 
 def makeIntervalIndex(k: int = 10, name=None, **kwargs) -> IntervalIndex:
     """make a length k IntervalIndex"""
     x = np.linspace(0, 100, num=(k + 1))
-    return IntervalIndex.from_breaks(x, name=name, **kwargs)
+    return IntervalIndex.from_breaks(x, name=, **kwargs)
 
 
 def makeBoolIndex(k: int = 10, name=None) -> Index:
     if k == 1:
-        return Index([True], name=name)
+        return Index([True], name=)
     elif k == 2:
-        return Index([False, True], name=name)
-    return Index([False, True] + [False] * (k - 2), name=name)
+        return Index([False, True], name=)
+    return Index([False, True] + [False] * (k - 2), name=)
 
 
 def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
@@ -419,7 +419,7 @@ def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
     assert isinstance(dtype, np.dtype)
 
     if dtype.kind in "iu":
-        values = np.arange(k, dtype=dtype)
+        values = np.arange(k, dtype=)
         if is_unsigned_integer_dtype(dtype):
             values += 2 ** (dtype.itemsize * 8 - 1)
     elif dtype.kind == "f":
@@ -429,58 +429,58 @@ def makeNumericIndex(k: int = 10, *, name=None, dtype: Dtype | None) -> Index:
     else:
         raise NotImplementedError(f"wrong dtype {dtype}")
 
-    return Index(values, dtype=dtype, name=name)
+    return Index(values, dtype=, name=)
 
 
 def makeIntIndex(k: int = 10, *, name=None, dtype: Dtype = "int64") -> Index:
     dtype = pandas_dtype(dtype)
     if not is_signed_integer_dtype(dtype):
         raise TypeError(f"Wrong dtype {dtype}")
-    return makeNumericIndex(k, name=name, dtype=dtype)
+    return makeNumericIndex(k, name=, dtype=)
 
 
 def makeUIntIndex(k: int = 10, *, name=None, dtype: Dtype = "uint64") -> Index:
     dtype = pandas_dtype(dtype)
     if not is_unsigned_integer_dtype(dtype):
         raise TypeError(f"Wrong dtype {dtype}")
-    return makeNumericIndex(k, name=name, dtype=dtype)
+    return makeNumericIndex(k, name=, dtype=)
 
 
 def makeRangeIndex(k: int = 10, name=None, **kwargs) -> RangeIndex:
-    return RangeIndex(0, k, 1, name=name, **kwargs)
+    return RangeIndex(0, k, 1, name=, **kwargs)
 
 
 def makeFloatIndex(k: int = 10, *, name=None, dtype: Dtype = "float64") -> Index:
     dtype = pandas_dtype(dtype)
     if not is_float_dtype(dtype):
         raise TypeError(f"Wrong dtype {dtype}")
-    return makeNumericIndex(k, name=name, dtype=dtype)
+    return makeNumericIndex(k, name=, dtype=)
 
 
 def makeDateIndex(
     k: int = 10, freq: Frequency = "B", name=None, **kwargs
 ) -> DatetimeIndex:
     dt = datetime(2000, 1, 1)
-    dr = bdate_range(dt, periods=k, freq=freq, name=name)
-    return DatetimeIndex(dr, name=name, **kwargs)
+    dr = bdate_range(dt, periods=k, freq=, name=)
+    return DatetimeIndex(dr, name=, **kwargs)
 
 
 def makeTimedeltaIndex(
     k: int = 10, freq: Frequency = "D", name=None, **kwargs
 ) -> TimedeltaIndex:
-    return pd.timedelta_range(start="1 day", periods=k, freq=freq, name=name, **kwargs)
+    return pd.timedelta_range(start="1 day", periods=k, freq=, name=, **kwargs)
 
 
 def makePeriodIndex(k: int = 10, name=None, **kwargs) -> PeriodIndex:
     dt = datetime(2000, 1, 1)
-    pi = pd.period_range(start=dt, periods=k, freq="D", name=name, **kwargs)
+    pi = pd.period_range(start=dt, periods=k, freq="D", name=, **kwargs)
     return pi
 
 
 def makeMultiIndex(k: int = 10, names=None, **kwargs):
     N = (k // 2) + 1
     rng = range(N)
-    mi = MultiIndex.from_product([("foo", "bar"), rng], names=names, **kwargs)
+    mi = MultiIndex.from_product([("foo", "bar"), rng], names=, **kwargs)
     assert len(mi) >= k  # GH#38795
     return mi[:k]
 
@@ -513,7 +513,7 @@ def all_timeseries_index_generator(k: int = 10) -> Iterable[Index]:
         makeTimedeltaIndex,
     ]
     for make_index_func in make_index_funcs:
-        yield make_index_func(k=k)
+        yield make_index_func(k=)
 
 
 # make series
@@ -522,28 +522,28 @@ def make_rand_series(name=None, dtype=np.float64) -> Series:
     data = np.random.default_rng(2).standard_normal(_N)
     with np.errstate(invalid="ignore"):
         data = data.astype(dtype, copy=False)
-    return Series(data, index=index, name=name)
+    return Series(data, index=, name=)
 
 
 def makeFloatSeries(name=None) -> Series:
-    return make_rand_series(name=name)
+    return make_rand_series(name=)
 
 
 def makeStringSeries(name=None) -> Series:
-    return make_rand_series(name=name)
+    return make_rand_series(name=)
 
 
 def makeObjectSeries(name=None) -> Series:
     data = makeStringIndex(_N)
     data = Index(data, dtype=object)
     index = makeStringIndex(_N)
-    return Series(data, index=index, name=name)
+    return Series(data, index=, name=)
 
 
 def getSeriesData() -> dict[str, Series]:
     index = makeStringIndex(_N)
     return {
-        c: Series(np.random.default_rng(i).standard_normal(_N), index=index)
+        c: Series(np.random.default_rng(i).standard_normal(_N), index=)
         for i, c in enumerate(getCols(_K))
     }
 
@@ -553,8 +553,8 @@ def makeTimeSeries(nper=None, freq: Frequency = "B", name=None) -> Series:
         nper = _N
     return Series(
         np.random.default_rng(2).standard_normal(nper),
-        index=makeDateIndex(nper, freq=freq),
-        name=name,
+        index=makeDateIndex(nper, freq=),
+        name=,
     )
 
 
@@ -564,7 +564,7 @@ def makePeriodSeries(nper=None, name=None) -> Series:
     return Series(
         np.random.default_rng(2).standard_normal(nper),
         index=makePeriodIndex(nper),
-        name=name,
+        name=,
     )
 
 
@@ -712,12 +712,12 @@ def makeCustomIndex(
     if nentries == 1:
         # we have a single level of tuples, i.e. a regular Index
         name = None if names is None else names[0]
-        index = Index(tuples[0], name=name)
+        index = Index(tuples[0], name=)
     elif nlevels == 1:
         name = None if names is None else names[0]
-        index = Index((x[0] for x in tuples), name=name)
+        index = Index((x[0] for x in tuples), name=)
     else:
-        index = MultiIndex.from_tuples(tuples, names=names)
+        index = MultiIndex.from_tuples(tuples, names=)
     return index
 
 
@@ -825,7 +825,7 @@ def makeCustomDataframe(
 
     data = [[data_gen_f(r, c) for c in range(ncols)] for r in range(nrows)]
 
-    return DataFrame(data, index, columns, dtype=dtype)
+    return DataFrame(data, index, columns, dtype=)
 
 
 class SubclassedSeries(Series):

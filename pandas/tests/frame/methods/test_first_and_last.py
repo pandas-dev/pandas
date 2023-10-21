@@ -97,7 +97,7 @@ class TestFirst:
         with tm.assert_produces_warning(FutureWarning, match=deprecated_msg):
             result = x.first("1ME")
         expected = frame_or_series(
-            [1] * periods, index=bdate_range(start, periods=periods)
+            [1] * periods, index=bdate_range(start, periods=)
         )
         tm.assert_equal(result, expected)
 

@@ -317,7 +317,7 @@ class Grouper:
             axis=self.axis,
             level=self.level,
             sort=self.sort,
-            validate=validate,
+            validate=,
             dropna=self.dropna,
         )
         # Without setting this, subsequent lookups to .groups raise
@@ -760,7 +760,7 @@ class Grouping:
                 ucodes = np.arange(len(categories))
 
             uniques = Categorical.from_codes(
-                codes=ucodes, categories=categories, ordered=cat.ordered, validate=False
+                codes=ucodes, categories=, ordered=cat.ordered, validate=False
             )
 
             codes = cat.codes
@@ -997,14 +997,14 @@ def get_grouper(
         elif is_in_axis(gpr):  # df.groupby('name')
             if obj.ndim != 1 and gpr in obj:
                 if validate:
-                    obj._check_label_or_level_ambiguity(gpr, axis=axis)
+                    obj._check_label_or_level_ambiguity(gpr, axis=)
                 in_axis, name, gpr = True, gpr, obj[gpr]
                 if gpr.ndim != 1:
                     # non-unique columns; raise here to get the name in the
                     # exception message
                     raise ValueError(f"Grouper for '{name}' not 1-dimensional")
                 exclusions.add(name)
-            elif obj._is_level_reference(gpr, axis=axis):
+            elif obj._is_level_reference(gpr, axis=):
                 in_axis, level, gpr = False, gpr, None
             else:
                 raise KeyError(gpr)
@@ -1021,12 +1021,12 @@ def get_grouper(
             Grouping(
                 group_axis,
                 gpr,
-                obj=obj,
-                level=level,
-                sort=sort,
-                observed=observed,
-                in_axis=in_axis,
-                dropna=dropna,
+                obj=,
+                level=,
+                sort=,
+                observed=,
+                in_axis=,
+                dropna=,
             )
             if not isinstance(gpr, Grouping)
             else gpr
@@ -1040,7 +1040,7 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)
+    grouper = ops.BaseGrouper(group_axis, groupings, sort=, dropna=)
     return grouper, frozenset(exclusions), obj
 
 

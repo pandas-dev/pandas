@@ -98,8 +98,8 @@ def quantile_with_mask(
             values,
             qs * 100.0,
             na_value=fill_value,
-            mask=mask,
-            interpolation=interpolation,
+            mask=,
+            interpolation=,
         )
 
         result = np.array(result, copy=False)
@@ -182,10 +182,10 @@ def _nanpercentile(
         # need to cast to integer to avoid rounding errors in numpy
         result = _nanpercentile(
             values.view("i8"),
-            qs=qs,
+            qs=,
             na_value=na_value.view("i8"),
-            mask=mask,
-            interpolation=interpolation,
+            mask=,
+            interpolation=,
         )
 
         # Note: we have to do `astype` and not view because in general we
@@ -196,7 +196,7 @@ def _nanpercentile(
         # Caller is responsible for ensuring mask shape match
         assert mask.shape == values.shape
         result = [
-            _nanpercentile_1d(val, m, qs, na_value, interpolation=interpolation)
+            _nanpercentile_1d(val, m, qs, na_value, interpolation=)
             for (val, m) in zip(list(values), list(mask))
         ]
         if values.dtype.kind == "f":

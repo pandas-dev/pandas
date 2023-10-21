@@ -14,7 +14,7 @@ pytest.importorskip("tabulate")
 def test_simple():
     buf = StringIO()
     df = pd.DataFrame([1, 2, 3])
-    df.to_markdown(buf=buf)
+    df.to_markdown(buf=)
     result = buf.getvalue()
     assert (
         result == "|    |   0 |\n|---:|----:|\n|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
@@ -24,7 +24,7 @@ def test_simple():
 def test_empty_frame():
     buf = StringIO()
     df = pd.DataFrame({"id": [], "first_name": [], "last_name": []}).set_index("id")
-    df.to_markdown(buf=buf)
+    df.to_markdown(buf=)
     result = buf.getvalue()
     assert result == (
         "| id   | first_name   | last_name   |\n"
@@ -35,7 +35,7 @@ def test_empty_frame():
 def test_other_tablefmt():
     buf = StringIO()
     df = pd.DataFrame([1, 2, 3])
-    df.to_markdown(buf=buf, tablefmt="jira")
+    df.to_markdown(buf=, tablefmt="jira")
     result = buf.getvalue()
     assert result == "||    ||   0 ||\n|  0 |   1 |\n|  1 |   2 |\n|  2 |   3 |"
 
@@ -43,7 +43,7 @@ def test_other_tablefmt():
 def test_other_headers():
     buf = StringIO()
     df = pd.DataFrame([1, 2, 3])
-    df.to_markdown(buf=buf, headers=["foo", "bar"])
+    df.to_markdown(buf=, headers=["foo", "bar"])
     result = buf.getvalue()
     assert result == (
         "|   foo |   bar |\n|------:|------:|\n|     0 "
@@ -54,7 +54,7 @@ def test_other_headers():
 def test_series():
     buf = StringIO()
     s = pd.Series([1, 2, 3], name="foo")
-    s.to_markdown(buf=buf)
+    s.to_markdown(buf=)
     result = buf.getvalue()
     assert result == (
         "|    |   foo |\n|---:|------:|\n|  0 |     1 "
@@ -76,7 +76,7 @@ def test_index(index):
 
     df = pd.DataFrame([1, 2, 3])
 
-    result = df.to_markdown(index=index)
+    result = df.to_markdown(index=)
 
     if index:
         expected = (

@@ -38,7 +38,7 @@ class TestDatetimeIndexNA(NATests):
     @pytest.fixture
     def index_without_na(self, tz_naive_fixture):
         tz = tz_naive_fixture
-        return DatetimeIndex(["2011-01-01", "2011-01-02"], tz=tz)
+        return DatetimeIndex(["2011-01-01", "2011-01-02"], tz=)
 
 
 class TestTimedeltaIndexNA(NATests):

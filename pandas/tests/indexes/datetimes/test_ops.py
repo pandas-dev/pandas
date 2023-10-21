@@ -38,7 +38,7 @@ class TestDatetimeIndexOps:
                 pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
             )
 
-        idx = date_range(start="2013-04-01", periods=30, freq=freq, tz=tz)
+        idx = date_range(start="2013-04-01", periods=30, freq=, tz=)
         assert idx.resolution == expected
 
     def test_infer_freq(self, freq_sample):
@@ -53,7 +53,7 @@ class TestDatetimeIndexOps:
 class TestBusinessDatetimeIndex:
     @pytest.fixture
     def rng(self, freq):
-        return bdate_range(START, END, freq=freq)
+        return bdate_range(START, END, freq=)
 
     def test_comparison(self, rng):
         d = rng[10]

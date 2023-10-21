@@ -42,11 +42,11 @@ class TestDelete:
 
         for tz in [None, "Asia/Tokyo", "US/Pacific"]:
             idx = date_range(
-                start="2000-01-01 09:00", periods=10, freq="h", name="idx", tz=tz
+                start="2000-01-01 09:00", periods=10, freq="h", name="idx", tz=
             )
 
             expected = date_range(
-                start="2000-01-01 10:00", periods=9, freq="h", name="idx", tz=tz
+                start="2000-01-01 10:00", periods=9, freq="h", name="idx", tz=
             )
             result = idx.delete(0)
             tm.assert_index_equal(result, expected)
@@ -55,7 +55,7 @@ class TestDelete:
             assert result.tz == expected.tz
 
             expected = date_range(
-                start="2000-01-01 09:00", periods=9, freq="h", name="idx", tz=tz
+                start="2000-01-01 09:00", periods=9, freq="h", name="idx", tz=
             )
             result = idx.delete(-1)
             tm.assert_index_equal(result, expected)
@@ -105,13 +105,13 @@ class TestDelete:
             ts = Series(
                 1,
                 index=date_range(
-                    "2000-01-01 09:00", periods=10, freq="h", name="idx", tz=tz
+                    "2000-01-01 09:00", periods=10, freq="h", name="idx", tz=
                 ),
             )
             # preserve freq
             result = ts.drop(ts.index[:5]).index
             expected = date_range(
-                "2000-01-01 14:00", periods=5, freq="h", name="idx", tz=tz
+                "2000-01-01 14:00", periods=5, freq="h", name="idx", tz=
             )
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
@@ -130,7 +130,7 @@ class TestDelete:
                 ],
                 freq=None,
                 name="idx",
-                tz=tz,
+                tz=,
             )
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name

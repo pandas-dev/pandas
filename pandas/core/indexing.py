@@ -858,7 +858,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 indexer = np.arange(len(keys), dtype=np.intp)
                 indexer[len(self.obj.columns) :] = -1
                 new_mgr = self.obj._mgr.reindex_indexer(
-                    keys, indexer=indexer, axis=0, only_slice=True, use_na_proxy=True
+                    keys, indexer=, axis=0, only_slice=True, use_na_proxy=True
                 )
                 self.obj._mgr = new_mgr
                 return
@@ -1009,7 +1009,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         # we can directly get the axis result since the axis is specified
         if self.axis is not None:
             axis = self.obj._get_axis_number(self.axis)
-            return self._getitem_axis(tup, axis=axis)
+            return self._getitem_axis(tup, axis=)
 
         # we may have a nested tuples indexer here
         if self._is_nested_tuple_indexer(tup):
@@ -1112,7 +1112,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             # this is a series with a multi-index specified a tuple of
             # selectors
             axis = self.axis or 0
-            return self._getitem_axis(tup, axis=axis)
+            return self._getitem_axis(tup, axis=)
 
         # handle the multi-axis by taking sections and reducing
         # this is iterative
@@ -1125,7 +1125,7 @@ class _LocationIndexer(NDFrameIndexerBase):
                 axis -= 1
                 continue
 
-            obj = getattr(obj, self.name)._getitem_axis(key, axis=axis)
+            obj = getattr(obj, self.name)._getitem_axis(key, axis=)
             axis -= 1
 
             # if we have a scalar, we are done
@@ -1151,7 +1151,7 @@ class _LocationIndexer(NDFrameIndexerBase):
             axis = self.axis or 0
 
             maybe_callable = com.apply_if_callable(key, self.obj)
-            return self._getitem_axis(maybe_callable, axis=axis)
+            return self._getitem_axis(maybe_callable, axis=)
 
     def _is_scalar_access(self, key: tuple):
         raise NotImplementedError()
@@ -1171,7 +1171,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         labels = self.obj._get_axis(axis)
         key = check_bool_indexer(labels, key)
         inds = key.nonzero()[0]
-        return self.obj._take_with_is_copy(inds, axis=axis)
+        return self.obj._take_with_is_copy(inds, axis=)
 
 
 @doc(IndexingMixin.loc)
@@ -1341,14 +1341,14 @@ class _LocIndexer(_LocationIndexer):
 
     def _get_label(self, label, axis: AxisInt):
         # GH#5567 this will fail if the label is not present in the axis.
-        return self.obj.xs(label, axis=axis)
+        return self.obj.xs(label, axis=)
 
     def _handle_lowerdim_multi_index_axis0(self, tup: tuple):
         # we have an axis0 multi-index, handle or raise
         axis = self.axis or 0
         try:
             # fast path for series or for tup devoid of slices
-            return self._get_label(tup, axis=axis)
+            return self._get_label(tup, axis=)
 
         except KeyError as ek:
             # raise KeyError if number of indexers match
@@ -1371,16 +1371,16 @@ class _LocIndexer(_LocationIndexer):
 
         if isinstance(key, slice):
             self._validate_key(key, axis)
-            return self._get_slice_axis(key, axis=axis)
+            return self._get_slice_axis(key, axis=)
         elif com.is_bool_indexer(key):
-            return self._getbool_axis(key, axis=axis)
+            return self._getbool_axis(key, axis=)
         elif is_list_like_indexer(key):
             # an iterable multi-selection
             if not (isinstance(key, tuple) and isinstance(labels, MultiIndex)):
                 if hasattr(key, "ndim") and key.ndim > 1:
                     raise ValueError("Cannot index with multidimensional key")
 
-                return self._getitem_iterable(key, axis=axis)
+                return self._getitem_iterable(key, axis=)
 
             # nested tuple slicing
             if is_nested_tuple(key, labels):
@@ -1391,7 +1391,7 @@ class _LocIndexer(_LocationIndexer):
 
         # fall thru to straight lookup
         self._validate_key(key, axis)
-        return self._get_label(key, axis=axis)
+        return self._get_label(key, axis=)
 
     def _get_slice_axis(self, slice_obj: slice, axis: AxisInt):
         """
@@ -1406,11 +1406,11 @@ class _LocIndexer(_LocationIndexer):
         indexer = labels.slice_indexer(slice_obj.start, slice_obj.stop, slice_obj.step)
 
         if isinstance(indexer, slice):
-            return self.obj._slice(indexer, axis=axis)
+            return self.obj._slice(indexer, axis=)
         else:
             # DatetimeIndex overrides Index.slice_indexer and may
             #  return a DatetimeIndex instead of a slice object.
-            return self.obj.take(indexer, axis=axis)
+            return self.obj.take(indexer, axis=)
 
     def _convert_to_indexer(self, key, axis: AxisInt):
         """
@@ -1674,7 +1674,7 @@ class _iLocIndexer(_LocationIndexer):
         `axis` can only be zero.
         """
         try:
-            return self.obj._take_with_is_copy(key, axis=axis)
+            return self.obj._take_with_is_copy(key, axis=)
         except IndexError as err:
             # re-raise with different error message, e.g. test_getitem_ndarray_3d
             raise IndexError("positional indexers are out-of-bounds") from err
@@ -1689,7 +1689,7 @@ class _iLocIndexer(_LocationIndexer):
             )
 
         if isinstance(key, slice):
-            return self._get_slice_axis(key, axis=axis)
+            return self._get_slice_axis(key, axis=)
 
         if is_iterator(key):
             key = list(key)
@@ -1699,11 +1699,11 @@ class _iLocIndexer(_LocationIndexer):
 
         if com.is_bool_indexer(key):
             self._validate_key(key, axis)
-            return self._getbool_axis(key, axis=axis)
+            return self._getbool_axis(key, axis=)
 
         # a list of integers
         elif is_list_like_indexer(key):
-            return self._get_list_axis(key, axis=axis)
+            return self._get_list_axis(key, axis=)
 
         # a single integer
         else:
@@ -1714,7 +1714,7 @@ class _iLocIndexer(_LocationIndexer):
             # validate the location
             self._validate_integer(key, axis)
 
-            return self.obj._ixs(key, axis=axis)
+            return self.obj._ixs(key, axis=)
 
     def _get_slice_axis(self, slice_obj: slice, axis: AxisInt):
         # caller is responsible for ensuring non-None axis
@@ -1725,7 +1725,7 @@ class _iLocIndexer(_LocationIndexer):
 
         labels = obj._get_axis(axis)
         labels._validate_positional_slice(slice_obj)
-        return self.obj._slice(slice_obj, axis=axis)
+        return self.obj._slice(slice_obj, axis=)
 
     def _convert_to_indexer(self, key, axis: AxisInt):
         """
@@ -2136,7 +2136,7 @@ class _iLocIndexer(_LocationIndexer):
         self.obj._check_is_chained_assignment_possible()
 
         # actually do the set
-        self.obj._mgr = self.obj._mgr.setitem(indexer=indexer, value=value)
+        self.obj._mgr = self.obj._mgr.setitem(indexer=, value=)
         self.obj._maybe_update_cacher(clear=True, inplace=True)
 
     def _setitem_with_indexer_missing(self, indexer, value):
@@ -2232,7 +2232,7 @@ class _iLocIndexer(_LocationIndexer):
                 else:
                     name = idx.name
 
-                df.index = Index([indexer], name=name)
+                df.index = Index([indexer], name=)
                 if not has_dtype:
                     # i.e. if we already had a Series or ndarray, keep that
                     #  dtype.  But if we had a list or dict, then do inference
@@ -2453,7 +2453,7 @@ class _ScalarAccessIndexer(NDFrameIndexerBase):
         if len(key) != self.ndim:
             raise ValueError("Not enough indexers for scalar access (setting)!")
 
-        self.obj._set_value(*key, value=value, takeable=self._takeable)
+        self.obj._set_value(*key, value=, takeable=self._takeable)
 
 
 @doc(IndexingMixin.at)

@@ -13,7 +13,7 @@ from pandas.core.arrays import SparseArray
 @pytest.mark.parametrize("op", [operator.pos, operator.neg])
 def test_unary_op(op, fill_value):
     arr = np.array([0, 1, np.nan, 2])
-    sparray = SparseArray(arr, fill_value=fill_value)
+    sparray = SparseArray(arr, fill_value=)
     result = op(sparray)
     expected = SparseArray(op(arr), fill_value=op(fill_value))
     tm.assert_sp_array_equal(result, expected)
@@ -22,7 +22,7 @@ def test_unary_op(op, fill_value):
 @pytest.mark.parametrize("fill_value", [True, False])
 def test_invert(fill_value):
     arr = np.array([True, False, False, True])
-    sparray = SparseArray(arr, fill_value=fill_value)
+    sparray = SparseArray(arr, fill_value=)
     result = ~sparray
     expected = SparseArray(~arr, fill_value=not fill_value)
     tm.assert_sp_array_equal(result, expected)

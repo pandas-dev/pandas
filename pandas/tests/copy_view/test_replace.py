@@ -205,7 +205,7 @@ def test_replace_inplace_reference(using_copy_on_write, to_replace):
     df = DataFrame({"a": [1.5, 2, 3]})
     arr_a = get_array(df, "a")
     view = df[:]
-    df.replace(to_replace=to_replace, value=15.5, inplace=True)
+    df.replace(to_replace=, value=15.5, inplace=True)
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df, "a"), arr_a)
@@ -220,7 +220,7 @@ def test_replace_inplace_reference_no_op(using_copy_on_write, to_replace):
     df = DataFrame({"a": [1.5, 2, 3]})
     arr_a = get_array(df, "a")
     view = df[:]
-    df.replace(to_replace=to_replace, value=15.5, inplace=True)
+    df.replace(to_replace=, value=15.5, inplace=True)
 
     assert np.shares_memory(get_array(df, "a"), arr_a)
     if using_copy_on_write:
@@ -235,7 +235,7 @@ def test_replace_categorical_inplace_reference(using_copy_on_write, val, to_repl
     df_orig = df.copy()
     arr_a = get_array(df, "a")
     view = df[:]
-    df.replace(to_replace=to_replace, value=val, inplace=True)
+    df.replace(to_replace=, value=val, inplace=True)
 
     if using_copy_on_write:
         assert not np.shares_memory(get_array(df, "a").codes, arr_a.codes)

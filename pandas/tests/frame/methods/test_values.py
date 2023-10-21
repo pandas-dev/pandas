@@ -86,14 +86,14 @@ class TestDataFrameValues:
 
     def test_frame_values_with_tz(self):
         tz = "US/Central"
-        df = DataFrame({"A": date_range("2000", periods=4, tz=tz)})
+        df = DataFrame({"A": date_range("2000", periods=4, tz=)})
         result = df.values
         expected = np.array(
             [
-                [Timestamp("2000-01-01", tz=tz)],
-                [Timestamp("2000-01-02", tz=tz)],
-                [Timestamp("2000-01-03", tz=tz)],
-                [Timestamp("2000-01-04", tz=tz)],
+                [Timestamp("2000-01-01", tz=)],
+                [Timestamp("2000-01-02", tz=)],
+                [Timestamp("2000-01-03", tz=)],
+                [Timestamp("2000-01-04", tz=)],
             ]
         )
         tm.assert_numpy_array_equal(result, expected)

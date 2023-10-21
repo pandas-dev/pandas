@@ -195,14 +195,14 @@ def to_json(
 
     s = writer(
         obj,
-        orient=orient,
-        date_format=date_format,
-        double_precision=double_precision,
+        orient=,
+        date_format=,
+        double_precision=,
         ensure_ascii=force_ascii,
-        date_unit=date_unit,
-        default_handler=default_handler,
-        index=index,
-        indent=indent,
+        date_unit=,
+        default_handler=,
+        index=,
+        indent=,
     ).write()
 
     if lines:
@@ -211,7 +211,7 @@ def to_json(
     if path_or_buf is not None:
         # apply compression and byte/text conversion
         with get_handle(
-            path_or_buf, mode, compression=compression, storage_options=storage_options
+            path_or_buf, mode, compression=, storage_options=
         ) as handles:
             handles.handle.write(s)
     else:
@@ -262,7 +262,7 @@ class Writer(ABC):
             double_precision=self.double_precision,
             ensure_ascii=self.ensure_ascii,
             date_unit=self.date_unit,
-            iso_dates=iso_dates,
+            iso_dates=,
             default_handler=self.default_handler,
             indent=self.indent,
         )
@@ -347,8 +347,8 @@ class JSONTableWriter(FrameWriter):
             ensure_ascii,
             date_unit,
             index,
-            default_handler=default_handler,
-            indent=indent,
+            default_handler=,
+            indent=,
         )
 
         if date_format != "iso":
@@ -780,23 +780,23 @@ def read_json(
 
     json_reader = JsonReader(
         path_or_buf,
-        orient=orient,
-        typ=typ,
-        dtype=dtype,
-        convert_axes=convert_axes,
-        convert_dates=convert_dates,
-        keep_default_dates=keep_default_dates,
-        precise_float=precise_float,
-        date_unit=date_unit,
-        encoding=encoding,
-        lines=lines,
-        chunksize=chunksize,
-        compression=compression,
-        nrows=nrows,
-        storage_options=storage_options,
-        encoding_errors=encoding_errors,
-        dtype_backend=dtype_backend,
-        engine=engine,
+        orient=,
+        typ=,
+        dtype=,
+        convert_axes=,
+        convert_dates=,
+        keep_default_dates=,
+        precise_float=,
+        date_unit=,
+        encoding=,
+        lines=,
+        chunksize=,
+        compression=,
+        nrows=,
+        storage_options=,
+        encoding_errors=,
+        dtype_backend=,
+        engine=,
     )
 
     if chunksize:

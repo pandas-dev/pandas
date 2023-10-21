@@ -144,7 +144,7 @@ class TestDataFrameIndexingWhere:
         # integers are upcast, so don't check the dtypes
         cond = df > 0
         check_dtypes = all(not issubclass(s.type, np.integer) for s in df.dtypes)
-        _check_align(df, cond, np.nan, check_dtypes=check_dtypes)
+        _check_align(df, cond, np.nan, check_dtypes=)
 
     # Ignore deprecation warning in Python 3.12 for inverting a bool
     @pytest.mark.filterwarnings("ignore::DeprecationWarning")
@@ -893,7 +893,7 @@ def test_where_duplicate_axes_mixed_dtypes():
     # duplicate axes.
     result = DataFrame(data=[[0, np.nan]], columns=Index(["A", "A"]))
     index, columns = result.axes
-    mask = DataFrame(data=[[True, True]], columns=columns, index=index)
+    mask = DataFrame(data=[[True, True]], columns=, index=)
     a = result.astype(object).where(mask)
     b = result.astype("f8").where(mask)
     c = result.T.where(mask.T).T

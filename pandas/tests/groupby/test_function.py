@@ -673,7 +673,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # GH#46560
     grouper = [0, 0, 1]
 
-    ser = Series([1, 0, 0], dtype=dtype)
+    ser = Series([1, 0, 0], dtype=)
     gb = ser.groupby(grouper)
 
     if groupby_func == "corrwith":
@@ -792,7 +792,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
 )
 def test_groupby_empty_dataset(dtype, kwargs):
     # GH#41575
-    df = DataFrame([[1, 2, 3]], columns=["A", "B", "C"], dtype=dtype)
+    df = DataFrame([[1, 2, 3]], columns=["A", "B", "C"], dtype=)
     df["B"] = df["B"].astype(int)
     df["C"] = df["C"].astype(float)
 
@@ -825,12 +825,12 @@ def test_duplicate_columns(request, groupby_func, as_index):
         request.applymarker(pytest.mark.xfail(reason=msg))
     df = DataFrame([[1, 3, 6], [1, 4, 7], [2, 5, 8]], columns=list("abb"))
     args = get_groupby_method_args(groupby_func, df)
-    gb = df.groupby("a", as_index=as_index)
+    gb = df.groupby("a", as_index=)
     result = getattr(gb, groupby_func)(*args)
 
     expected_df = df.set_axis(["a", "b", "c"], axis=1)
     expected_args = get_groupby_method_args(groupby_func, expected_df)
-    expected_gb = expected_df.groupby("a", as_index=as_index)
+    expected_gb = expected_df.groupby("a", as_index=)
     expected = getattr(expected_gb, groupby_func)(*expected_args)
     if groupby_func not in ("size", "ngroup", "cumcount"):
         expected = expected.rename(columns={"c": "b"})
@@ -868,20 +868,20 @@ def test_regression_allowlist_methods(op, axis, skipna, sort):
         msg = "DataFrame.groupby with axis=1 is deprecated"
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        grouped = frame.groupby(level=0, axis=axis, sort=sort)
+        grouped = frame.groupby(level=0, axis=, sort=)
 
     if op == "skew":
         # skew has skipna
-        result = getattr(grouped, op)(skipna=skipna)
+        result = getattr(grouped, op)(skipna=)
         expected = frame.groupby(level=0).apply(
-            lambda h: getattr(h, op)(axis=axis, skipna=skipna)
+            lambda h: getattr(h, op)(axis=, skipna=)
         )
         if sort:
-            expected = expected.sort_index(axis=axis)
+            expected = expected.sort_index(axis=)
         tm.assert_frame_equal(result, expected)
     else:
         result = getattr(grouped, op)()
-        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=axis))
+        expected = frame.groupby(level=0).apply(lambda h: getattr(h, op)(axis=))
         if sort:
-            expected = expected.sort_index(axis=axis)
+            expected = expected.sort_index(axis=)
         tm.assert_frame_equal(result, expected)

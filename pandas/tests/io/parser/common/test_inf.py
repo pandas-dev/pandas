@@ -40,7 +40,7 @@ j,-inF"""
         {"A": [float("inf"), float("-inf")] * 5},
         index=["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"],
     )
-    result = parser.read_csv(StringIO(data), index_col=0, na_filter=na_filter)
+    result = parser.read_csv(StringIO(data), index_col=0, na_filter=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -58,7 +58,7 @@ c,+Infinity
         {"A": [float("infinity"), float("-infinity"), float("+infinity")]},
         index=["a", "b", "c"],
     )
-    result = parser.read_csv(StringIO(data), index_col=0, na_filter=na_filter)
+    result = parser.read_csv(StringIO(data), index_col=0, na_filter=)
     tm.assert_frame_equal(result, expected)
 
 

@@ -104,7 +104,7 @@ class TestCategorical(base.ExtensionTests):
 
     def test_empty(self, dtype):
         cls = dtype.construct_array_type()
-        result = cls._empty((4,), dtype=dtype)
+        result = cls._empty((4,), dtype=)
 
         assert isinstance(result, cls)
         # the dtype we passed is not initialized, so will not match the
@@ -141,7 +141,7 @@ class TestCategorical(base.ExtensionTests):
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map(self, data, na_action):
-        result = data.map(lambda x: x, na_action=na_action)
+        result = data.map(lambda x: x, na_action=)
         tm.assert_extension_array_equal(result, data)
 
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):

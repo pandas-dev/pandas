@@ -484,8 +484,8 @@ def test_timedelta_pass_td_and_kwargs_raises():
 )
 def test_string_with_unit(constructor, value, unit, expectation):
     exp, match = expectation
-    with pytest.raises(exp, match=match):
-        _ = constructor(value, unit=unit)
+    with pytest.raises(exp, match=):
+        _ = constructor(value, unit=)
 
 
 @pytest.mark.parametrize(

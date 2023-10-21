@@ -25,7 +25,7 @@ class TestGetStandardColors:
             "axes.prop_cycle": cycler(color=["red", "green", "blue"]),
         }
         with mpl.rc_context(rc=mpl_params):
-            result = get_standard_colors(num_colors=num_colors)
+            result = get_standard_colors(num_colors=)
             assert result == expected
 
     @pytest.mark.parametrize(
@@ -46,7 +46,7 @@ class TestGetStandardColors:
             "axes.prop_cycle": cycler(color="bgry"),
         }
         with mpl.rc_context(rc=mpl_params):
-            result = get_standard_colors(num_colors=num_colors)
+            result = get_standard_colors(num_colors=)
             assert result == expected
 
     @pytest.mark.parametrize(
@@ -79,7 +79,7 @@ class TestGetStandardColors:
 
         with mpl.rc_context(rc={}):
             expected = [mcolors.to_hex(x) for x in expected_name]
-            result = get_standard_colors(num_colors=num_colors)
+            result = get_standard_colors(num_colors=)
             assert result == expected
 
     @pytest.mark.parametrize(
@@ -93,7 +93,7 @@ class TestGetStandardColors:
     )
     def test_user_input_color_sequence(self, num_colors, expected):
         color = ["red", "green", (0.1, 0.2, 0.3)]
-        result = get_standard_colors(color=color, num_colors=num_colors)
+        result = get_standard_colors(color=, num_colors=)
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -109,7 +109,7 @@ class TestGetStandardColors:
     )
     def test_user_input_color_string(self, num_colors, expected):
         color = "rgbk"
-        result = get_standard_colors(color=color, num_colors=num_colors)
+        result = get_standard_colors(color=, num_colors=)
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -122,7 +122,7 @@ class TestGetStandardColors:
     )
     def test_user_input_color_floats(self, num_colors, expected):
         color = (0.1, 0.2, 0.3)
-        result = get_standard_colors(color=color, num_colors=num_colors)
+        result = get_standard_colors(color=, num_colors=)
         assert result == expected
 
     @pytest.mark.parametrize(
@@ -134,13 +134,13 @@ class TestGetStandardColors:
         ],
     )
     def test_user_input_named_color_string(self, color, num_colors, expected):
-        result = get_standard_colors(color=color, num_colors=num_colors)
+        result = get_standard_colors(color=, num_colors=)
         assert result == expected
 
     @pytest.mark.parametrize("color", ["", [], (), Series([], dtype="object")])
     def test_empty_color_raises(self, color):
         with pytest.raises(ValueError, match="Invalid color argument"):
-            get_standard_colors(color=color, num_colors=1)
+            get_standard_colors(color=, num_colors=1)
 
     @pytest.mark.parametrize(
         "color",
@@ -154,4 +154,4 @@ class TestGetStandardColors:
     )
     def test_bad_color_raises(self, color):
         with pytest.raises(ValueError, match="Invalid color"):
-            get_standard_colors(color=color, num_colors=5)
+            get_standard_colors(color=, num_colors=5)

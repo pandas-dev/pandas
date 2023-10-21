@@ -69,7 +69,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             na_value = self._str_na_value
 
         if not len(self):
-            return np.array([], dtype=dtype)
+            return np.array([], dtype=)
 
         arr = np.asarray(self, dtype=object)
         mask = isna(arr)
@@ -96,7 +96,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
                 except (TypeError, AttributeError):
                     return na_value
 
-            return self._str_map(g, na_value=na_value, dtype=dtype)
+            return self._str_map(g, na_value=, dtype=)
         if not isinstance(result, np.ndarray):
             return result
         if na_value is not np.nan:
@@ -106,7 +106,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return result
 
     def _str_count(self, pat, flags: int = 0):
-        regex = re.compile(pat, flags=flags)
+        regex = re.compile(pat, flags=)
         f = lambda x: len(regex.findall(x))
         return self._str_map(f, dtype="int64")
 
@@ -133,7 +133,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             if not case:
                 flags |= re.IGNORECASE
 
-            pat = re.compile(pat, flags=flags)
+            pat = re.compile(pat, flags=)
 
             f = lambda x: pat.search(x) is not None
         else:
@@ -169,10 +169,10 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
             if not isinstance(pat, re.Pattern):
                 if regex is False:
                     pat = re.escape(pat)
-                pat = re.compile(pat, flags=flags)
+                pat = re.compile(pat, flags=)
 
             n = n if n >= 0 else 0
-            f = lambda x: pat.sub(repl=repl, string=x, count=n)
+            f = lambda x: pat.sub(repl=, string=x, count=n)
         else:
             f = lambda x: x.replace(pat, repl, n)
 
@@ -216,7 +216,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         if not case:
             flags |= re.IGNORECASE
 
-        regex = re.compile(pat, flags=flags)
+        regex = re.compile(pat, flags=)
 
         f = lambda x: regex.match(x) is not None
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
@@ -231,13 +231,13 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         if not case:
             flags |= re.IGNORECASE
 
-        regex = re.compile(pat, flags=flags)
+        regex = re.compile(pat, flags=)
 
         f = lambda x: regex.fullmatch(x) is not None
         return self._str_map(f, na_value=na, dtype=np.dtype(bool))
 
     def _str_encode(self, encoding, errors: str = "strict"):
-        f = lambda x: x.encode(encoding, errors=errors)
+        f = lambda x: x.encode(encoding, errors=)
         return self._str_map(f, dtype=object)
 
     def _str_find(self, sub, start: int = 0, end=None):
@@ -261,7 +261,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(f, dtype="int64")
 
     def _str_findall(self, pat, flags: int = 0):
-        regex = re.compile(pat, flags=flags)
+        regex = re.compile(pat, flags=)
         return self._str_map(regex.findall, dtype="object")
 
     def _str_get(self, i):
@@ -472,7 +472,7 @@ class ObjectStringArrayMixin(BaseStringArrayMethods):
         return self._str_map(lambda x: x.removesuffix(suffix))
 
     def _str_extract(self, pat: str, flags: int = 0, expand: bool = True):
-        regex = re.compile(pat, flags=flags)
+        regex = re.compile(pat, flags=)
         na_value = self._str_na_value
 
         if not expand:

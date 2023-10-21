@@ -53,10 +53,10 @@ class TestMultiIndexSorted:
         assert not df2.index.is_monotonic_increasing
 
         assert df2_original.index.equals(df2.index)
-        expected = df2.sort_index(key=key)
+        expected = df2.sort_index(key=)
         assert expected.index.is_monotonic_increasing
 
-        result = df2.sort_index(level=0, key=key)
+        result = df2.sort_index(level=0, key=)
         assert result.index.is_monotonic_increasing
         tm.assert_frame_equal(result, expected)
 
@@ -70,7 +70,7 @@ class TestMultiIndexSorted:
         index = index.sort_values(  # sort by third letter
             key=lambda x: x.map(lambda entry: entry[2])
         )
-        result = DataFrame(range(8), index=index)
+        result = DataFrame(range(8), index=)
 
         arrays = [
             ["foo", "foo", "bar", "bar", "qux", "qux", "baz", "baz"],
@@ -78,7 +78,7 @@ class TestMultiIndexSorted:
         ]
         tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
-        expected = DataFrame(range(8), index=index)
+        expected = DataFrame(range(8), index=)
 
         tm.assert_frame_equal(result, expected)
 
@@ -101,14 +101,14 @@ class TestMultiIndexSorted:
         ]
         index = MultiIndex.from_arrays(arrays)
         index = index.sort_values()
-        result = DataFrame(range(3), index=index)
+        result = DataFrame(range(3), index=)
 
         arrays = [
             array([1, 2, NA], dtype="Int64"),
             array([3, 1, 2], dtype="Int64"),
         ]
         index = MultiIndex.from_arrays(arrays)
-        expected = DataFrame(range(3), index=index)
+        expected = DataFrame(range(3), index=)
 
         tm.assert_frame_equal(result, expected)
 
@@ -141,7 +141,7 @@ class TestMultiIndexSorted:
         ]
         tuples = zip(*arrays)
         index = MultiIndex.from_tuples(tuples)
-        s = Series(np.random.default_rng(2).standard_normal(8), index=index)
+        s = Series(np.random.default_rng(2).standard_normal(8), index=)
 
         arrays = [np.array(x) for x in zip(*index.values)]
 

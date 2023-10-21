@@ -50,7 +50,7 @@ def test_numpy_transpose(index_or_series_obj):
 )
 def test_duplicate_labels(data, transposed_data, index, columns, dtype):
     # GH 42380
-    df = DataFrame(data, index=index, columns=columns, dtype=dtype)
+    df = DataFrame(data, index=, columns=, dtype=)
     result = df.T
-    expected = DataFrame(transposed_data, index=columns, columns=index, dtype=dtype)
+    expected = DataFrame(transposed_data, index=columns, columns=index, dtype=)
     tm.assert_frame_equal(result, expected)

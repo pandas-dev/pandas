@@ -51,7 +51,7 @@ class TestReindexSetIndex:
         df = DataFrame(
             np.random.default_rng(2).standard_normal((24, 1)),
             columns=["a"],
-            index=index,
+            index=,
         )
         new_index = date_range(
             datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="h", tz="US/Eastern"
@@ -94,19 +94,19 @@ class TestReindexSetIndex:
         # see gh-40817
         test_timezone = gettz(timezone)
         transition_1 = pd.Timestamp(
-            year=year,
-            month=month,
-            day=day,
-            hour=hour,
+            year=,
+            month=,
+            day=,
+            hour=,
             minute=0,
             fold=0,
             tzinfo=test_timezone,
         )
         transition_2 = pd.Timestamp(
-            year=year,
-            month=month,
-            day=day,
-            hour=hour,
+            year=,
+            month=,
+            day=,
+            hour=,
             minute=0,
             fold=1,
             tzinfo=test_timezone,
@@ -315,21 +315,21 @@ class TestDataFrameSelectReindex:
         target = np.array([-0.1, 0.9, 1.1, 1.5])
 
         expected = DataFrame({"x": expected_values}, index=target)
-        actual = df.reindex(target, method=method)
+        actual = df.reindex(target, method=)
         tm.assert_frame_equal(expected, actual)
 
-        actual = df.reindex(target, method=method, tolerance=1)
+        actual = df.reindex(target, method=, tolerance=1)
         tm.assert_frame_equal(expected, actual)
-        actual = df.reindex(target, method=method, tolerance=[1, 1, 1, 1])
+        actual = df.reindex(target, method=, tolerance=[1, 1, 1, 1])
         tm.assert_frame_equal(expected, actual)
 
         e2 = expected[::-1]
-        actual = df.reindex(target[::-1], method=method)
+        actual = df.reindex(target[::-1], method=)
         tm.assert_frame_equal(e2, actual)
 
         new_order = [3, 0, 2, 1]
         e2 = expected.iloc[new_order]
-        actual = df.reindex(target[new_order], method=method)
+        actual = df.reindex(target[new_order], method=)
         tm.assert_frame_equal(e2, actual)
 
         switched_method = (
@@ -353,7 +353,7 @@ class TestDataFrameSelectReindex:
     def test_reindex_nearest_tz(self, tz_aware_fixture):
         # GH26683
         tz = tz_aware_fixture
-        idx = date_range("2019-01-01", periods=5, tz=tz)
+        idx = date_range("2019-01-01", periods=5, tz=)
         df = DataFrame({"x": list(range(5))}, index=idx)
 
         expected = df.head(3)
@@ -392,7 +392,7 @@ class TestDataFrameSelectReindex:
             index=date_range("2020-01-01 00:00:00", periods=4, freq="h", tz="UTC"),
         )
         new_index = date_range("2020-01-01 00:01:00", periods=4, freq="h", tz="UTC")
-        result = obj.reindex(new_index, method=method, tolerance=pd.Timedelta("1 hour"))
+        result = obj.reindex(new_index, method=, tolerance=pd.Timedelta("1 hour"))
         expected = frame_or_series(exp_values, index=new_index)
         tm.assert_equal(result, expected)
 
@@ -446,7 +446,7 @@ class TestDataFrameSelectReindex:
         i = np.concatenate(list(map(f, idx)))
         left = df.set_index(icol).reindex(idx, level="jim")
         right = df.iloc[i].set_index(icol)
-        tm.assert_frame_equal(left, right, check_index_type=check_index_type)
+        tm.assert_frame_equal(left, right, check_index_type=)
 
     @pytest.mark.parametrize(
         "idx",
@@ -574,7 +574,7 @@ class TestDataFrameSelectReindex:
         icol = ["jim", "joe", "jolie"]
         left = df.set_index(icol).reindex(idx, level="joe")
         right = df.iloc[indexer].set_index(icol)
-        tm.assert_frame_equal(left, right, check_index_type=check_index_type)
+        tm.assert_frame_equal(left, right, check_index_type=)
 
     def test_non_monotonic_reindex_methods(self):
         dr = date_range("2013-08-01", periods=6, freq="B")
@@ -1268,7 +1268,7 @@ class TestDataFrameSelectReindex:
         index = df.index.append(Index([1]))
         columns = df.columns.append(Index(["foo"]))
 
-        res = df.reindex(index=index, columns=columns, fill_value=fv)
+        res = df.reindex(index=, columns=, fill_value=fv)
 
         expected = DataFrame(
             {
@@ -1276,7 +1276,7 @@ class TestDataFrameSelectReindex:
                 1: df[1].tolist() + [fv],
                 "foo": np.array(["NaT"] * 6, dtype=fv.dtype),
             },
-            index=index,
+            index=,
         )
         assert (res.dtypes[[0, 1]] == object).all()
         assert res.iloc[0, 0] is pd.NaT

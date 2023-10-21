@@ -310,17 +310,17 @@ class BaseArrayManager(DataManager):
         return type(self)(result_arrays, self._axes)
 
     def setitem(self, indexer, value) -> Self:
-        return self.apply_with_block("setitem", indexer=indexer, value=value)
+        return self.apply_with_block("setitem", indexer=, value=)
 
     def diff(self, n: int) -> Self:
         assert self.ndim == 2  # caller ensures
-        return self.apply(algos.diff, n=n)
+        return self.apply(algos.diff, n=)
 
     def astype(self, dtype, copy: bool | None = False, errors: str = "raise") -> Self:
         if copy is None:
             copy = True
 
-        return self.apply(astype_array_safe, dtype=dtype, copy=copy, errors=errors)
+        return self.apply(astype_array_safe, dtype=, copy=, errors=)
 
     def convert(self, copy: bool | None) -> Self:
         if copy is None:
@@ -348,11 +348,11 @@ class BaseArrayManager(DataManager):
     ) -> Self:
         return self.apply(
             get_values_for_csv,
-            na_rep=na_rep,
-            quoting=quoting,
-            float_format=float_format,
-            date_format=date_format,
-            decimal=decimal,
+            na_rep=,
+            quoting=,
+            float_format=,
+            date_format=,
+            decimal=,
         )
 
     @property
@@ -514,9 +514,7 @@ class BaseArrayManager(DataManager):
             new_arrays = []
             for i in indexer:
                 if i == -1:
-                    arr = self._make_na_array(
-                        fill_value=fill_value, use_na_proxy=use_na_proxy
-                    )
+                    arr = self._make_na_array(fill_value=, use_na_proxy=)
                 else:
                     arr = self.arrays[i]
                     if copy:
@@ -533,8 +531,8 @@ class BaseArrayManager(DataManager):
                     arr,
                     indexer,
                     allow_fill=needs_masking,
-                    fill_value=fill_value,
-                    mask=mask,
+                    fill_value=,
+                    mask=,
                     # if fill_value is not None else blk.fill_value
                 )
                 for arr in self.arrays
@@ -563,11 +561,11 @@ class BaseArrayManager(DataManager):
             raise ValueError("indexer should be 1-dimensional")
 
         n = self.shape_proper[axis]
-        indexer = maybe_convert_indices(indexer, n, verify=verify)
+        indexer = maybe_convert_indices(indexer, n, verify=)
 
         new_labels = self._axes[axis].take(indexer)
         return self._reindex_indexer(
-            new_axis=new_labels, indexer=indexer, axis=axis, allow_dups=True
+            new_axis=new_labels, indexer=, axis=, allow_dups=True
         )
 
     def _make_na_array(self, fill_value=None, use_na_proxy: bool = False):
@@ -661,14 +659,14 @@ class ArrayManager(BaseArrayManager):
 
         values = [arr[loc] for arr in self.arrays]
         if isinstance(dtype, ExtensionDtype):
-            result = dtype.construct_array_type()._from_sequence(values, dtype=dtype)
+            result = dtype.construct_array_type()._from_sequence(values, dtype=)
         # for datetime64/timedelta64, the np.ndarray constructor cannot handle pd.NaT
         elif is_datetime64_ns_dtype(dtype):
-            result = DatetimeArray._from_sequence(values, dtype=dtype)._ndarray
+            result = DatetimeArray._from_sequence(values, dtype=)._ndarray
         elif is_timedelta64_ns_dtype(dtype):
-            result = TimedeltaArray._from_sequence(values, dtype=dtype)._ndarray
+            result = TimedeltaArray._from_sequence(values, dtype=)._ndarray
         else:
-            result = np.array(values, dtype=dtype)
+            result = np.array(values, dtype=)
         return SingleArrayManager([result], [self._axes[1]])
 
     def get_slice(self, slobj: slice, axis: AxisInt = 0) -> ArrayManager:
@@ -895,7 +893,7 @@ class ArrayManager(BaseArrayManager):
             # what if datetime results in timedelta? (eg std)
             dtype = arr.dtype if res is NaT else None
             result_arrays.append(
-                sanitize_array([res], None, dtype=dtype)  # type: ignore[arg-type]
+                sanitize_array([res], None, dtype=)  # type: ignore[arg-type]
             )
 
         index = Index._simple_new(np.array([None], dtype=object))  # placeholder
@@ -1029,10 +1027,10 @@ class ArrayManager(BaseArrayManager):
 
         dtype = ensure_np_dtype(dtype)
 
-        result = np.empty(self.shape_proper, dtype=dtype)
+        result = np.empty(self.shape_proper, dtype=)
 
         for i, arr in enumerate(self.arrays):
-            arr = arr.astype(dtype, copy=copy)
+            arr = arr.astype(dtype, copy=)
             result[:, i] = arr
 
         if na_value is not lib.no_default:
@@ -1198,7 +1196,7 @@ class SingleArrayManager(BaseArrayManager, SingleDataManager):
         """
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
-        return self.apply_with_block("setitem", indexer=indexer, value=value)
+        return self.apply_with_block("setitem", indexer=, value=)
 
     def idelete(self, indexer) -> SingleArrayManager:
         """
@@ -1272,14 +1270,14 @@ class NullArrayProxy:
         np.ndarray or ExtensionArray
         """
         if isinstance(dtype, ExtensionDtype):
-            empty = dtype.construct_array_type()._from_sequence([], dtype=dtype)
+            empty = dtype.construct_array_type()._from_sequence([], dtype=)
             indexer = -np.ones(self.n, dtype=np.intp)
             return empty.take(indexer, allow_fill=True)
         else:
             # when introducing missing values, int becomes float, bool becomes object
             dtype = ensure_dtype_can_hold_na(dtype)
             fill_value = na_value_for_dtype(dtype)
-            arr = np.empty(self.n, dtype=dtype)
+            arr = np.empty(self.n, dtype=)
             arr.fill(fill_value)
             return ensure_wrapped_if_datetimelike(arr)
 

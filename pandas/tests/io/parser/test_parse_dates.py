@@ -481,7 +481,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
             ["KORD", " 21:56:00", -0.59, 1.71, 5.1, 0.0, 290.0],
         ],
         columns=["X0", "X2", "X3", "X4", "X5", "X6", "X7"],
-        index=index,
+        index=,
     )
     if parser.engine == "pyarrow":
         # https://github.com/pandas-dev/pandas/issues/44231
@@ -712,7 +712,7 @@ def test_multiple_date_col_name_collision(all_parsers, data, parse_dates, msg):
     parser = all_parsers
 
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), parse_dates=parse_dates)
+        parser.read_csv(StringIO(data), parse_dates=)
 
 
 def test_date_parser_int_bug(all_parsers):
@@ -845,7 +845,7 @@ def test_parse_dates_string(all_parsers):
     )
 
     expected = DataFrame(
-        {"A": ["a", "b", "c"], "B": [1, 3, 4], "C": [2, 4, 5]}, index=index
+        {"A": ["a", "b", "c"], "B": [1, 3, 4], "C": [2, 4, 5]}, index=
     )
     tm.assert_frame_equal(result, expected)
 
@@ -866,7 +866,7 @@ def test_yy_format_with_year_first(all_parsers, parse_dates):
         "Could not infer format",
         StringIO(data),
         index_col=0,
-        parse_dates=parse_dates,
+        parse_dates=,
     )
     index = DatetimeIndex(
         [
@@ -877,7 +877,7 @@ def test_yy_format_with_year_first(all_parsers, parse_dates):
         dtype=object,
         name="date_time",
     )
-    expected = DataFrame({"B": [1, 3, 5], "C": [2, 4, 6]}, index=index)
+    expected = DataFrame({"B": [1, 3, 5], "C": [2, 4, 6]}, index=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -893,7 +893,7 @@ def test_parse_dates_column_list(all_parsers, parse_dates):
     expected = expected.set_index(["a", "b"])
 
     result = parser.read_csv(
-        StringIO(data), index_col=[0, 1], parse_dates=parse_dates, dayfirst=True
+        StringIO(data), index_col=[0, 1], parse_dates=, dayfirst=True
     )
     tm.assert_frame_equal(result, expected)
 
@@ -938,13 +938,13 @@ def test_multi_index_parse_dates(all_parsers, index_col):
             ["c", 4, 5],
         ],
         columns=["A", "B", "C"],
-        index=index,
+        index=,
     )
     result = parser.read_csv_check_warnings(
         UserWarning,
         "Could not infer format",
         StringIO(data),
-        index_col=index_col,
+        index_col=,
         parse_dates=True,
     )
     tm.assert_frame_equal(result, expected)
@@ -1109,9 +1109,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
     if not isinstance(parse_dates, dict):
         expected.index.name = "date_NominalTime"
 
-    result = parser.read_csv(
-        StringIO(data), parse_dates=parse_dates, index_col=index_col
-    )
+    result = parser.read_csv(StringIO(data), parse_dates=, index_col=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1300,7 +1298,7 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
         header=None,
         names=["foo", "bar"],
         parse_dates=["foo"],
-        cache_dates=cache_dates,
+        cache_dates=,
     )
 
 
@@ -1334,7 +1332,7 @@ def test_bad_date_parse_with_warning(all_parsers, cache_dates, value):
         header=None,
         names=["foo", "bar"],
         parse_dates=["foo"],
-        cache_dates=cache_dates,
+        cache_dates=,
     )
 
 
@@ -1716,7 +1714,7 @@ date,time,prn,rxstatus
         FutureWarning,
         "use 'date_format' instead",
         StringIO(data),
-        date_parser=date_parser,
+        date_parser=,
         parse_dates={"datetime": ["date", "time"]},
         index_col=["datetime", "prn"],
     )
@@ -1764,7 +1762,7 @@ def test_parse_date_float(all_parsers, data, expected, parse_dates):
     # (i.e. float precision should remain unchanged).
     parser = all_parsers
 
-    result = parser.read_csv(StringIO(data), parse_dates=parse_dates)
+    result = parser.read_csv(StringIO(data), parse_dates=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -1830,7 +1828,7 @@ def test_parse_delimited_date_swap_no_warning(
     parser = all_parsers
     expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
     result = parser.read_csv(
-        StringIO(date_string), header=None, dayfirst=dayfirst, parse_dates=[0]
+        StringIO(date_string), header=None, dayfirst=, parse_dates=[0]
     )
     tm.assert_frame_equal(result, expected)
 
@@ -1859,7 +1857,7 @@ def test_parse_delimited_date_swap_with_warning(
         warning_msg,
         StringIO(date_string),
         header=None,
-        dayfirst=dayfirst,
+        dayfirst=,
         parse_dates=[0],
     )
     tm.assert_frame_equal(result, expected)
@@ -1907,13 +1905,13 @@ def test_hypothesis_delimited_date(
     date_string = test_datetime.strftime(date_format.replace(" ", delimiter))
 
     except_out_dateutil, result = _helper_hypothesis_delimited_date(
-        py_parse_datetime_string, date_string, dayfirst=dayfirst
+        py_parse_datetime_string, date_string, dayfirst=
     )
     except_in_dateutil, expected = _helper_hypothesis_delimited_date(
         du_parse,
         date_string,
         default=datetime(1, 1, 1),
-        dayfirst=dayfirst,
+        dayfirst=,
         yearfirst=False,
     )
 
@@ -1949,9 +1947,7 @@ def test_missing_parse_dates_column_raises(
     content = StringIO("date,time,val\n2020-01-31,04:20:32,32\n")
     msg = f"Missing column provided to 'parse_dates': '{missing_cols}'"
     with pytest.raises(ValueError, match=msg):
-        parser.read_csv(
-            content, sep=",", names=names, usecols=usecols, parse_dates=parse_dates
-        )
+        parser.read_csv(content, sep=",", names=, usecols=, parse_dates=)
 
 
 @skip_pyarrow
@@ -2122,7 +2118,7 @@ def test_dayfirst_warnings_no_leading_zero(date_string, dayfirst):
             StringIO(initial_value),
             parse_dates=["date"],
             index_col="date",
-            dayfirst=dayfirst,
+            dayfirst=,
         ).index
     tm.assert_index_equal(expected, res)
 
@@ -2256,7 +2252,7 @@ def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
 
     with tm.assert_produces_warning(None):
         result = parser.read_csv(
-            StringIO(data), date_format={key: "%d- %m-%Y"}, parse_dates=parse_dates
+            StringIO(data), date_format={key: "%d- %m-%Y"}, parse_dates=
         )
     expected = DataFrame(
         {

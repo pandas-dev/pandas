@@ -153,7 +153,7 @@ class ValueCounts:
         self.ts = pd.Series(arr).astype("category")
 
     def time_value_counts(self, dropna):
-        self.ts.value_counts(dropna=dropna)
+        self.ts.value_counts(dropna=)
 
 
 class Repr:
@@ -262,13 +262,13 @@ class CategoricalSlicing:
         categories = ["a", "b", "c"]
         values = [0] * N + [1] * N + [2] * N
         if index == "monotonic_incr":
-            self.data = pd.Categorical.from_codes(values, categories=categories)
+            self.data = pd.Categorical.from_codes(values, categories=)
         elif index == "monotonic_decr":
             self.data = pd.Categorical.from_codes(
-                list(reversed(values)), categories=categories
+                list(reversed(values)), categories=
             )
         elif index == "non_monotonic":
-            self.data = pd.Categorical.from_codes([0, 1, 2] * N, categories=categories)
+            self.data = pd.Categorical.from_codes([0, 1, 2] * N, categories=)
         else:
             raise ValueError(f"Invalid index param: {index}")
 

@@ -18,7 +18,7 @@ def test_compare_axis(align_axis):
     df2.loc[0, "col1"] = "c"
     df2.loc[2, "col3"] = 4.0
 
-    result = df.compare(df2, align_axis=align_axis)
+    result = df.compare(df2, align_axis=)
 
     if align_axis in (1, "columns"):
         indices = pd.Index([0, 2])
@@ -26,7 +26,7 @@ def test_compare_axis(align_axis):
         expected = pd.DataFrame(
             [["a", "c", np.nan, np.nan], [np.nan, np.nan, 3.0, 4.0]],
             index=indices,
-            columns=columns,
+            columns=,
         )
     else:
         indices = pd.MultiIndex.from_product([[0, 2], ["self", "other"]])
@@ -34,7 +34,7 @@ def test_compare_axis(align_axis):
         expected = pd.DataFrame(
             [["a", np.nan], ["c", np.nan], [np.nan, 3.0], [np.nan, 4.0]],
             index=indices,
-            columns=columns,
+            columns=,
         )
     tm.assert_frame_equal(result, expected)
 
@@ -57,7 +57,7 @@ def test_compare_various_formats(keep_shape, keep_equal):
     df2.loc[0, "col1"] = "c"
     df2.loc[2, "col3"] = 4.0
 
-    result = df.compare(df2, keep_shape=keep_shape, keep_equal=keep_equal)
+    result = df.compare(df2, keep_shape=, keep_equal=)
 
     if keep_shape:
         indices = pd.Index([0, 1, 2])
@@ -72,7 +72,7 @@ def test_compare_various_formats(keep_shape, keep_equal):
                     ["c", "c", np.nan, np.nan, 3.0, 4.0],
                 ],
                 index=indices,
-                columns=columns,
+                columns=,
             )
         else:
             expected = pd.DataFrame(
@@ -82,13 +82,13 @@ def test_compare_various_formats(keep_shape, keep_equal):
                     [np.nan, np.nan, np.nan, np.nan, 3.0, 4.0],
                 ],
                 index=indices,
-                columns=columns,
+                columns=,
             )
     else:
         indices = pd.Index([0, 2])
         columns = pd.MultiIndex.from_product([["col1", "col3"], ["self", "other"]])
         expected = pd.DataFrame(
-            [["a", "c", 1.0, 1.0], ["c", "c", 3.0, 4.0]], index=indices, columns=columns
+            [["a", "c", 1.0, 1.0], ["c", "c", 3.0, 4.0]], index=indices, columns=
         )
     tm.assert_frame_equal(result, expected)
 
@@ -106,7 +106,7 @@ def test_compare_with_equal_nulls():
     result = df.compare(df2)
     indices = pd.Index([0])
     columns = pd.MultiIndex.from_product([["col1"], ["self", "other"]])
-    expected = pd.DataFrame([["a", "c"]], index=indices, columns=columns)
+    expected = pd.DataFrame([["a", "c"]], index=indices, columns=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -128,7 +128,7 @@ def test_compare_with_non_equal_nulls():
     expected = pd.DataFrame(
         [["a", "c", np.nan, np.nan], [np.nan, np.nan, 3.0, np.nan]],
         index=indices,
-        columns=columns,
+        columns=,
     )
     tm.assert_frame_equal(result, expected)
 
@@ -145,7 +145,7 @@ def test_compare_multi_index(align_axis):
     df2.iloc[0, 0] = "c"
     df2.iloc[2, 2] = 4.0
 
-    result = df.compare(df2, align_axis=align_axis)
+    result = df.compare(df2, align_axis=)
 
     if align_axis == 0:
         indices = pd.MultiIndex.from_arrays(
@@ -164,7 +164,7 @@ def test_compare_multi_index(align_axis):
         )
         data = [["a", "c", np.nan, np.nan], [np.nan, np.nan, 3.0, 4.0]]
 
-    expected = pd.DataFrame(data=data, index=indices, columns=columns)
+    expected = pd.DataFrame(data=, index=indices, columns=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -243,7 +243,7 @@ def test_invalid_input_result_names(result_names):
             "supported. Provide 'result_names' as a tuple instead."
         ),
     ):
-        df1.compare(df2, result_names=result_names)
+        df1.compare(df2, result_names=)
 
 
 @pytest.mark.parametrize(

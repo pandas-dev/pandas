@@ -243,7 +243,7 @@ class SelectionMixin(Generic[NDFrameT]):
             if key not in self.obj:
                 raise KeyError(f"Column not found: {key}")
             ndim = self.obj[key].ndim
-            return self._gotitem(key, ndim=ndim)
+            return self._gotitem(key, ndim=)
 
     def _gotitem(self, key, ndim: int, subset=None):
         """
@@ -634,7 +634,7 @@ class IndexOpsMixin(OpsMixin):
               dtype='datetime64[ns]')
         """
         if isinstance(self.dtype, ExtensionDtype):
-            return self.array.to_numpy(dtype, copy=copy, na_value=na_value, **kwargs)
+            return self.array.to_numpy(dtype, copy=, na_value=, **kwargs)
         elif kwargs:
             bad_keys = next(iter(kwargs.keys()))
             raise TypeError(
@@ -653,13 +653,13 @@ class IndexOpsMixin(OpsMixin):
                 # if we can't hold the na_value asarray either makes a copy or we
                 # error before modifying values. The asarray later on thus won't make
                 # another copy
-                values = np.asarray(values, dtype=dtype)
+                values = np.asarray(values, dtype=)
             else:
                 values = values.copy()
 
             values[np.asanyarray(isna(self))] = na_value
 
-        result = np.asarray(values, dtype=dtype)
+        result = np.asarray(values, dtype=)
 
         if (copy and not fillna) or (not copy and using_copy_on_write()):
             if np.shares_memory(self._values[:2], result[:2]):
@@ -748,7 +748,7 @@ class IndexOpsMixin(OpsMixin):
             else:
                 return delegate.argmax()
         else:
-            result = nanops.nanargmax(delegate, skipna=skipna)
+            result = nanops.nanargmax(delegate, skipna=)
             if result == -1:
                 warnings.warn(
                     f"The behavior of {type(self).__name__}.argmax/argmin "
@@ -782,7 +782,7 @@ class IndexOpsMixin(OpsMixin):
             else:
                 return delegate.argmin()
         else:
-            result = nanops.nanargmin(delegate, skipna=skipna)
+            result = nanops.nanargmin(delegate, skipna=)
             if result == -1:
                 warnings.warn(
                     f"The behavior of {type(self).__name__}.argmax/argmin "
@@ -916,9 +916,9 @@ class IndexOpsMixin(OpsMixin):
         arr = self._values
 
         if isinstance(arr, ExtensionArray):
-            return arr.map(mapper, na_action=na_action)
+            return arr.map(mapper, na_action=)
 
-        return algorithms.map_array(arr, mapper, na_action=na_action, convert=convert)
+        return algorithms.map_array(arr, mapper, na_action=, convert=)
 
     @final
     def value_counts(
@@ -1009,11 +1009,11 @@ class IndexOpsMixin(OpsMixin):
         """
         return algorithms.value_counts_internal(
             self,
-            sort=sort,
-            ascending=ascending,
-            normalize=normalize,
-            bins=bins,
-            dropna=dropna,
+            sort=,
+            ascending=,
+            normalize=,
+            bins=,
+            dropna=,
         )
 
     def unique(self):
@@ -1193,7 +1193,7 @@ class IndexOpsMixin(OpsMixin):
         use_na_sentinel: bool = True,
     ) -> tuple[npt.NDArray[np.intp], Index]:
         codes, uniques = algorithms.factorize(
-            self._values, sort=sort, use_na_sentinel=use_na_sentinel
+            self._values, sort=, use_na_sentinel=
         )
         if uniques.dtype == np.float16:
             uniques = uniques.astype(np.float32)
@@ -1349,17 +1349,12 @@ class IndexOpsMixin(OpsMixin):
         values = self._values
         if not isinstance(values, np.ndarray):
             # Going through EA.searchsorted directly improves performance GH#38083
-            return values.searchsorted(value, side=side, sorter=sorter)
+            return values.searchsorted(value, side=, sorter=)
 
-        return algorithms.searchsorted(
-            values,
-            value,
-            side=side,
-            sorter=sorter,
-        )
+        return algorithms.searchsorted(values, value, side=, sorter=)
 
     def drop_duplicates(self, *, keep: DropKeep = "first"):
-        duplicated = self._duplicated(keep=keep)
+        duplicated = self._duplicated(keep=)
         # error: Value of type "IndexOpsMixin" is not indexable
         return self[~duplicated]  # type: ignore[index]
 
@@ -1367,8 +1362,8 @@ class IndexOpsMixin(OpsMixin):
     def _duplicated(self, keep: DropKeep = "first") -> npt.NDArray[np.bool_]:
         arr = self._values
         if isinstance(arr, ExtensionArray):
-            return arr.duplicated(keep=keep)
-        return algorithms.duplicated(arr, keep=keep)
+            return arr.duplicated(keep=)
+        return algorithms.duplicated(arr, keep=)
 
     def _arith_method(self, other, op):
         res_name = ops.get_op_result_name(self, other)

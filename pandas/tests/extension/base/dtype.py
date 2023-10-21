@@ -59,7 +59,7 @@ class BaseDtypeTests:
 
         # check equivalency for using .dtypes
         df = pd.DataFrame(
-            {"A": pd.Series(data, dtype=dtype), "B": data, "C": "foo", "D": 1}
+            {"A": pd.Series(data, dtype=), "B": data, "C": "foo", "D": 1}
         )
         result = df.dtypes == str(dtype)
         assert np.dtype("int64") != "Int64"
@@ -112,7 +112,7 @@ class BaseDtypeTests:
     @pytest.mark.parametrize("skipna", [True, False])
     def test_infer_dtype(self, data, data_missing, skipna):
         # only testing that this works without raising an error
-        res = infer_dtype(data, skipna=skipna)
+        res = infer_dtype(data, skipna=)
         assert isinstance(res, str)
-        res = infer_dtype(data_missing, skipna=skipna)
+        res = infer_dtype(data_missing, skipna=)
         assert isinstance(res, str)

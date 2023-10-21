@@ -207,9 +207,9 @@ class TestPeriodIndexComparisons:
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_parr_cmp_period_scalar(self, freq, box_with_array):
         # GH#13200
-        base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=freq)
+        base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=)
         base = tm.box_expected(base, box_with_array)
-        per = Period("2011-02", freq=freq)
+        per = Period("2011-02", freq=)
         xbox = get_upcast_box(base, per, True)
 
         exp = np.array([False, True, False, False])
@@ -245,11 +245,11 @@ class TestPeriodIndexComparisons:
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_parr_cmp_pi(self, freq, box_with_array):
         # GH#13200
-        base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=freq)
+        base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=)
         base = tm.box_expected(base, box_with_array)
 
         # TODO: could also box idx?
-        idx = PeriodIndex(["2011-02", "2011-01", "2011-03", "2011-05"], freq=freq)
+        idx = PeriodIndex(["2011-02", "2011-01", "2011-03", "2011-05"], freq=)
 
         xbox = get_upcast_box(base, idx, True)
 
@@ -281,7 +281,7 @@ class TestPeriodIndexComparisons:
     def test_parr_cmp_pi_mismatched_freq(self, freq, box_with_array):
         # GH#13200
         # different base freq
-        base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=freq)
+        base = PeriodIndex(["2011-01", "2011-02", "2011-03", "2011-04"], freq=)
         base = tm.box_expected(base, box_with_array)
 
         msg = rf"Invalid comparison between dtype=period\[{freq}\] and Period"
@@ -314,7 +314,7 @@ class TestPeriodIndexComparisons:
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_pi_cmp_nat(self, freq):
-        idx1 = PeriodIndex(["2011-01", "2011-02", "NaT", "2011-05"], freq=freq)
+        idx1 = PeriodIndex(["2011-01", "2011-02", "NaT", "2011-05"], freq=)
         per = idx1[1]
 
         result = idx1 > per
@@ -335,7 +335,7 @@ class TestPeriodIndexComparisons:
         result = pd.NaT != idx1
         tm.assert_numpy_array_equal(result, exp)
 
-        idx2 = PeriodIndex(["2011-02", "2011-01", "2011-04", "NaT"], freq=freq)
+        idx2 = PeriodIndex(["2011-02", "2011-01", "2011-04", "NaT"], freq=)
         result = idx1 < idx2
         exp = np.array([True, False, False, False])
         tm.assert_numpy_array_equal(result, exp)
@@ -358,7 +358,7 @@ class TestPeriodIndexComparisons:
 
     @pytest.mark.parametrize("freq", ["M", "2M", "3M"])
     def test_pi_cmp_nat_mismatched_freq_raises(self, freq):
-        idx1 = PeriodIndex(["2011-01", "2011-02", "NaT", "2011-05"], freq=freq)
+        idx1 = PeriodIndex(["2011-01", "2011-02", "NaT", "2011-05"], freq=)
 
         diff = PeriodIndex(["2011-02", "2011-01", "2011-04", "NaT"], freq="4M")
         msg = rf"Invalid comparison between dtype=period\[{freq}\] and PeriodArray"
@@ -675,8 +675,8 @@ class TestPeriodIndexArithmetic:
         p1_d = "19910905"
         p2_d = "19920406"
         freq = offset(n, normalize=False, **kwds)
-        p1 = PeriodIndex([p1_d], freq=freq)
-        p2 = PeriodIndex([p2_d], freq=freq)
+        p1 = PeriodIndex([p1_d], freq=)
+        p2 = PeriodIndex([p2_d], freq=)
 
         result = p2 - p1
         expected = PeriodIndex([p2_d], freq=freq.base) - PeriodIndex(
@@ -959,8 +959,8 @@ class TestPeriodIndexArithmetic:
 
         expected = PeriodIndex(["2016-03"], freq="2M")
 
-        pi = tm.box_expected(pi, box_with_array, transpose=transpose)
-        expected = tm.box_expected(expected, box_with_array, transpose=transpose)
+        pi = tm.box_expected(pi, box_with_array, transpose=)
+        expected = tm.box_expected(expected, box_with_array, transpose=)
 
         result = pi + per.freq
         tm.assert_equal(result, expected)
@@ -1226,8 +1226,8 @@ class TestPeriodIndexArithmetic:
         other = np.timedelta64("NaT")
         expected = PeriodIndex(["NaT"] * 9, freq="19D")
 
-        obj = tm.box_expected(pi, box_with_array, transpose=transpose)
-        expected = tm.box_expected(expected, box_with_array, transpose=transpose)
+        obj = tm.box_expected(pi, box_with_array, transpose=)
+        expected = tm.box_expected(expected, box_with_array, transpose=)
 
         result = obj + other
         tm.assert_equal(result, expected)

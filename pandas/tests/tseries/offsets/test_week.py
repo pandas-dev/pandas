@@ -110,7 +110,7 @@ class TestWeek:
 
     @pytest.mark.parametrize("weekday", range(7))
     def test_is_on_offset(self, weekday):
-        offset = Week(weekday=weekday)
+        offset = Week(weekday=)
 
         for day in range(1, 8):
             date = datetime(2008, 1, day)
@@ -127,7 +127,7 @@ class TestWeek:
     def test_is_on_offset_weekday_none(self, n, date):
         # GH 18510 Week with weekday = None, normalize = False
         # should always be is_on_offset
-        offset = Week(n=n, weekday=None)
+        offset = Week(n=, weekday=None)
         ts = Timestamp(date, tz="Africa/Lusaka")
         fast = offset.is_on_offset(ts)
         slow = (ts + offset) - offset == ts
@@ -212,7 +212,7 @@ class TestWeekOfMonth:
         ]
 
         for n, week, weekday, dt, expected in test_cases:
-            offset = WeekOfMonth(n, week=week, weekday=weekday)
+            offset = WeekOfMonth(n, week=, weekday=)
             assert_offset_equal(offset, dt, expected)
 
         # try subtracting
@@ -234,7 +234,7 @@ class TestWeekOfMonth:
     @pytest.mark.parametrize("case", on_offset_cases)
     def test_is_on_offset(self, case):
         week, weekday, dt, expected = case
-        offset = WeekOfMonth(week=week, weekday=weekday)
+        offset = WeekOfMonth(week=, weekday=)
         assert offset.is_on_offset(dt) == expected
 
     @pytest.mark.parametrize(
@@ -247,8 +247,8 @@ class TestWeekOfMonth:
     def test_is_on_offset_nanoseconds(self, n, week, date, tz):
         # GH 18864
         # Make sure that nanoseconds don't trip up is_on_offset (and with it apply)
-        offset = WeekOfMonth(n=n, week=week, weekday=0)
-        ts = Timestamp(date, tz=tz)
+        offset = WeekOfMonth(n=, week=, weekday=0)
+        ts = Timestamp(date, tz=)
         fast = offset.is_on_offset(ts)
         slow = (ts + offset) - offset == ts
         assert fast == slow
@@ -323,7 +323,7 @@ class TestLastWeekOfMonth:
     @pytest.mark.parametrize("case", on_offset_cases)
     def test_is_on_offset(self, case):
         weekday, dt, expected = case
-        offset = LastWeekOfMonth(weekday=weekday)
+        offset = LastWeekOfMonth(weekday=)
         assert offset.is_on_offset(dt) == expected
 
     @pytest.mark.parametrize(
@@ -335,8 +335,8 @@ class TestLastWeekOfMonth:
     )
     def test_last_week_of_month_on_offset(self, n, weekday, date, tz):
         # GH 19036, GH 18977 _adjust_dst was incorrect for LastWeekOfMonth
-        offset = LastWeekOfMonth(n=n, weekday=weekday)
-        ts = Timestamp(date, tz=tz)
+        offset = LastWeekOfMonth(n=, weekday=)
+        ts = Timestamp(date, tz=)
         slow = (ts + offset) - offset == ts
         fast = offset.is_on_offset(ts)
         assert fast == slow

@@ -90,7 +90,7 @@ class ResetIndex:
     param_names = "tz"
 
     def setup(self, tz):
-        idx = date_range(start="1/1/2000", periods=1000, freq="H", tz=tz)
+        idx = date_range(start="1/1/2000", periods=1000, freq="H", tz=)
         self.df = DataFrame(np.random.randn(1000, 2), index=idx)
 
     def time_reset_datetimeindex(self, tz):
@@ -107,7 +107,7 @@ class InferFreq:
             self.idx = date_range(start="1/1/1700", freq="D", periods=10000)
             self.idx._data._freq = None
         else:
-            self.idx = date_range(start="1/1/1700", freq=freq, periods=10000)
+            self.idx = date_range(start="1/1/1700", freq=, periods=10000)
 
     def time_infer_freq(self, freq):
         infer_freq(self.idx)
@@ -270,7 +270,7 @@ class DatetimeAccessor:
 
     def setup(self, tz):
         N = 100000
-        self.series = Series(date_range(start="1/1/2000", periods=N, freq="min", tz=tz))
+        self.series = Series(date_range(start="1/1/2000", periods=N, freq="min", tz=))
 
     def time_dt_accessor(self, tz):
         self.series.dt

@@ -168,12 +168,12 @@ class TestDatetimeIndex:
 
     @pytest.mark.parametrize("tz", [None, "Asia/Tokyo"])
     def test_astype_object_tz(self, tz):
-        idx = date_range(start="2013-01-01", periods=4, freq="ME", name="idx", tz=tz)
+        idx = date_range(start="2013-01-01", periods=4, freq="ME", name="idx", tz=)
         expected_list = [
-            Timestamp("2013-01-31", tz=tz),
-            Timestamp("2013-02-28", tz=tz),
-            Timestamp("2013-03-31", tz=tz),
-            Timestamp("2013-04-30", tz=tz),
+            Timestamp("2013-01-31", tz=),
+            Timestamp("2013-02-28", tz=),
+            Timestamp("2013-03-31", tz=),
+            Timestamp("2013-04-30", tz=),
         ]
         expected = Index(expected_list, dtype=object, name="idx")
         result = idx.astype(object)
@@ -266,9 +266,9 @@ class TestDatetimeIndex:
     )
     def test_integer_index_astype_datetime(self, tz, dtype):
         # GH 20997, 20964, 24559
-        val = [Timestamp("2018-01-01", tz=tz).as_unit("ns")._value]
+        val = [Timestamp("2018-01-01", tz=).as_unit("ns")._value]
         result = Index(val, name="idx").astype(dtype)
-        expected = DatetimeIndex(["2018-01-01"], tz=tz, name="idx")
+        expected = DatetimeIndex(["2018-01-01"], tz=, name="idx")
         tm.assert_index_equal(result, expected)
 
     def test_dti_astype_period(self):
@@ -286,10 +286,10 @@ class TestDatetimeIndex:
 class TestAstype:
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_category(self, tz):
-        obj = date_range("2000", periods=2, tz=tz, name="idx")
+        obj = date_range("2000", periods=2, tz=, name="idx")
         result = obj.astype("category")
         expected = pd.CategoricalIndex(
-            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=tz)],
+            [Timestamp("2000-01-01", tz=tz), Timestamp("2000-01-02", tz=)],
             name="idx",
         )
         tm.assert_index_equal(result, expected)
@@ -300,7 +300,7 @@ class TestAstype:
 
     @pytest.mark.parametrize("tz", [None, "US/Central"])
     def test_astype_array_fallback(self, tz):
-        obj = date_range("2000", periods=2, tz=tz, name="idx")
+        obj = date_range("2000", periods=2, tz=, name="idx")
         result = obj.astype(bool)
         expected = Index(np.array([True, True]), name="idx")
         tm.assert_index_equal(result, expected)

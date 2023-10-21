@@ -195,7 +195,7 @@ class TestCustomBusinessMonthBegin:
     def test_holidays(self):
         # Define a TradingDay offset
         holidays = ["2012-02-01", datetime(2012, 2, 2), np.datetime64("2012-03-01")]
-        bm_offset = CBMonthBegin(holidays=holidays)
+        bm_offset = CBMonthBegin(holidays=)
         dt = datetime(2012, 1, 1)
 
         assert dt + bm_offset == datetime(2012, 1, 2)
@@ -392,7 +392,7 @@ class TestCustomBusinessMonthEnd:
     def test_holidays(self):
         # Define a TradingDay offset
         holidays = ["2012-01-31", datetime(2012, 2, 28), np.datetime64("2012-02-29")]
-        bm_offset = CBMonthEnd(holidays=holidays)
+        bm_offset = CBMonthEnd(holidays=)
         dt = datetime(2012, 1, 1)
         assert dt + bm_offset == datetime(2012, 1, 30)
         assert dt + 2 * bm_offset == datetime(2012, 2, 27)
@@ -402,7 +402,7 @@ class TestCustomBusinessMonthEnd:
         hcal = USFederalHolidayCalendar()
         freq = CBMonthEnd(calendar=hcal)
 
-        assert date_range(start="20120101", end="20130101", freq=freq).tolist()[
+        assert date_range(start="20120101", end="20130101", freq=).tolist()[
             0
         ] == datetime(2012, 1, 31)
 

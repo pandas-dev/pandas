@@ -41,7 +41,7 @@ class WriteExcel:
     def time_write_excel(self, engine):
         bio = BytesIO()
         bio.seek(0)
-        with ExcelWriter(bio, engine=engine) as writer:
+        with ExcelWriter(bio, engine=) as writer:
             self.df.to_excel(writer, sheet_name="Sheet1")
 
 
@@ -55,7 +55,7 @@ class WriteExcelStyled:
     def time_write_excel_style(self, engine):
         bio = BytesIO()
         bio.seek(0)
-        with ExcelWriter(bio, engine=engine) as writer:
+        with ExcelWriter(bio, engine=) as writer:
             df_style = self.df.style
             df_style.map(lambda x: "border: red 1px solid;")
             df_style.map(lambda x: "color: blue")
@@ -94,7 +94,7 @@ class ReadExcel:
             fname = self.fname_odf
         else:
             fname = self.fname_excel
-        read_excel(fname, engine=engine)
+        read_excel(fname, engine=)
 
 
 class ReadExcelNRows(ReadExcel):
@@ -103,7 +103,7 @@ class ReadExcelNRows(ReadExcel):
             fname = self.fname_odf
         else:
             fname = self.fname_excel
-        read_excel(fname, engine=engine, nrows=10)
+        read_excel(fname, engine=, nrows=10)
 
 
 from ..pandas_vb_common import setup  # noqa: F401 isort:skip

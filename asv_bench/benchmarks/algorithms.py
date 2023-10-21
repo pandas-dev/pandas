@@ -63,10 +63,10 @@ class Factorize:
         self.data = data
 
     def time_factorize(self, unique, sort, dtype):
-        pd.factorize(self.data, sort=sort)
+        pd.factorize(self.data, sort=)
 
     def peakmem_factorize(self, unique, sort, dtype):
-        pd.factorize(self.data, sort=sort)
+        pd.factorize(self.data, sort=)
 
 
 class Duplicated:
@@ -111,7 +111,7 @@ class Duplicated:
         self.idx.is_unique
 
     def time_duplicated(self, unique, keep, dtype):
-        self.idx.duplicated(keep=keep)
+        self.idx.duplicated(keep=)
 
 
 class DuplicatedMaskedArray:
@@ -124,7 +124,7 @@ class DuplicatedMaskedArray:
 
     def setup(self, unique, keep, dtype):
         N = 10**5
-        data = pd.Series(np.arange(N), dtype=dtype)
+        data = pd.Series(np.arange(N), dtype=)
         data[list(range(1, N, 100))] = pd.NA
         if not unique:
             data = data.repeat(5)
@@ -133,7 +133,7 @@ class DuplicatedMaskedArray:
         self.ser.is_unique
 
     def time_duplicated(self, unique, keep, dtype):
-        self.ser.duplicated(keep=keep)
+        self.ser.duplicated(keep=)
 
 
 class Hashing:
@@ -195,7 +195,7 @@ class Quantile:
         self.idx = pd.Series(data[dtype].repeat(5))
 
     def time_quantile(self, quantile, interpolation, dtype):
-        self.idx.quantile(quantile, interpolation=interpolation)
+        self.idx.quantile(quantile, interpolation=)
 
 
 class SortIntegerArray:

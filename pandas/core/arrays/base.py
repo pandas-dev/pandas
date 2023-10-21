@@ -315,7 +315,7 @@ class ExtensionArray:
         pointwise operation.
         """
         try:
-            return cls._from_sequence(scalars, dtype=dtype, copy=False)
+            return cls._from_sequence(scalars, dtype=, copy=False)
         except (ValueError, TypeError):
             raise
         except Exception:
@@ -564,7 +564,7 @@ class ExtensionArray:
         -------
         numpy.ndarray
         """
-        result = np.asarray(self, dtype=dtype)
+        result = np.asarray(self, dtype=)
         if copy or na_value is not lib.no_default:
             result = result.copy()
         if na_value is not lib.no_default:
@@ -706,19 +706,19 @@ class ExtensionArray:
 
         if isinstance(dtype, ExtensionDtype):
             cls = dtype.construct_array_type()
-            return cls._from_sequence(self, dtype=dtype, copy=copy)
+            return cls._from_sequence(self, dtype=, copy=)
 
         elif lib.is_np_dtype(dtype, "M"):
             from pandas.core.arrays import DatetimeArray
 
-            return DatetimeArray._from_sequence(self, dtype=dtype, copy=copy)
+            return DatetimeArray._from_sequence(self, dtype=, copy=)
 
         elif lib.is_np_dtype(dtype, "m"):
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray._from_sequence(self, dtype=dtype, copy=copy)
+            return TimedeltaArray._from_sequence(self, dtype=, copy=)
 
-        return np.array(self, dtype=dtype, copy=copy)
+        return np.array(self, dtype=, copy=)
 
     def isna(self) -> np.ndarray | ExtensionArraySupportsAnyAll:
         """
@@ -843,9 +843,9 @@ class ExtensionArray:
         values = self._values_for_argsort()
         return nargsort(
             values,
-            kind=kind,
-            ascending=ascending,
-            na_position=na_position,
+            kind=,
+            ascending=,
+            na_position=,
             mask=np.asarray(self.isna()),
         )
 
@@ -1012,7 +1012,7 @@ class ExtensionArray:
                 DeprecationWarning,
                 stacklevel=find_stack_level(),
             )
-            return self.fillna(method=method, limit=limit)
+            return self.fillna(method=, limit=)
 
         mask = self.isna()
 
@@ -1022,11 +1022,11 @@ class ExtensionArray:
 
             npmask = np.asarray(mask)
             if meth == "pad":
-                indexer = libalgos.get_fill_indexer(npmask, limit=limit)
+                indexer = libalgos.get_fill_indexer(npmask, limit=)
                 return self.take(indexer, allow_fill=True)
             else:
                 # i.e. meth == "backfill"
-                indexer = libalgos.get_fill_indexer(npmask[::-1], limit=limit)[::-1]
+                indexer = libalgos.get_fill_indexer(npmask[::-1], limit=)[::-1]
                 return self[::-1].take(indexer, allow_fill=True)
 
         else:
@@ -1113,11 +1113,11 @@ class ExtensionArray:
 
                 npmask = np.asarray(mask)
                 if meth == "pad":
-                    indexer = libalgos.get_fill_indexer(npmask, limit=limit)
+                    indexer = libalgos.get_fill_indexer(npmask, limit=)
                     return self.take(indexer, allow_fill=True)
                 else:
                     # i.e. meth == "backfill"
-                    indexer = libalgos.get_fill_indexer(npmask[::-1], limit=limit)[::-1]
+                    indexer = libalgos.get_fill_indexer(npmask[::-1], limit=)[::-1]
                     return self[::-1].take(indexer, allow_fill=True)
             else:
                 # fill with value
@@ -1173,7 +1173,7 @@ class ExtensionArray:
         array([False,  True, False, False,  True])
         """
         mask = self.isna().astype(np.bool_, copy=False)
-        return duplicated(values=self, keep=keep, mask=mask)
+        return duplicated(values=self, keep=, mask=)
 
     def shift(self, periods: int = 1, fill_value: object = None) -> ExtensionArray:
         """
@@ -1312,7 +1312,7 @@ class ExtensionArray:
         arr = self.astype(object)
         if isinstance(value, ExtensionArray):
             value = value.astype(object)
-        return arr.searchsorted(value, side=side, sorter=sorter)
+        return arr.searchsorted(value, side=, sorter=)
 
     def equals(self, other: object) -> bool:
         """
@@ -1466,9 +1466,7 @@ class ExtensionArray:
         #    Complete control over factorization.
         arr, na_value = self._values_for_factorize()
 
-        codes, uniques = factorize_array(
-            arr, use_na_sentinel=use_na_sentinel, na_value=na_value
-        )
+        codes, uniques = factorize_array(arr, use_na_sentinel=, na_value=)
 
         uniques_ea = self._from_factorized(uniques, self)
         return codes, uniques_ea
@@ -1938,7 +1936,7 @@ class ExtensionArray:
                 f"'{type(self).__name__}' with dtype {self.dtype} "
                 f"does not support reduction '{name}'"
             )
-        result = meth(skipna=skipna, **kwargs)
+        result = meth(skipna=, **kwargs)
         if keepdims:
             result = np.array([result])
 
@@ -1999,9 +1997,7 @@ class ExtensionArray:
         from pandas.core.util.hashing import hash_array
 
         values, _ = self._values_for_factorize()
-        return hash_array(
-            values, encoding=encoding, hash_key=hash_key, categorize=categorize
-        )
+        return hash_array(values, encoding=, hash_key=, categorize=)
 
     def _explode(self) -> tuple[Self, npt.NDArray[np.uint64]]:
         """
@@ -2165,7 +2161,7 @@ class ExtensionArray:
         npvalues = self.astype(object)
         # NB: if we don't copy mask here, it may be altered inplace, which
         #  would mess up the `self[mask] = ...` below.
-        func(npvalues, limit=limit, mask=mask.copy())
+        func(npvalues, limit=, mask=mask.copy())
         new_values = self._from_sequence(npvalues, dtype=self.dtype)
         self[mask] = new_values[mask]
 
@@ -2186,11 +2182,11 @@ class ExtensionArray:
 
         return rank(
             self._values_for_argsort(),
-            axis=axis,
-            method=method,
-            na_option=na_option,
-            ascending=ascending,
-            pct=pct,
+            axis=,
+            method=,
+            na_option=,
+            ascending=,
+            pct=,
         )
 
     @classmethod
@@ -2206,7 +2202,7 @@ class ExtensionArray:
         # Implementer note: while ExtensionDtype.empty is the public way to
         # call this method, it is still required to implement this `_empty`
         # method as well (it is called internally in pandas)
-        obj = cls._from_sequence([], dtype=dtype)
+        obj = cls._from_sequence([], dtype=)
 
         taker = np.broadcast_to(np.intp(-1), shape)
         result = obj.take(taker, allow_fill=True)
@@ -2254,7 +2250,7 @@ class ExtensionArray:
         """
         # error: Incompatible return value type (got "Union[ExtensionArray,
         # ndarray[Any, Any]]", expected "Self")
-        return mode(self, dropna=dropna)  # type: ignore[return-value]
+        return mode(self, dropna=)  # type: ignore[return-value]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         if any(
@@ -2302,7 +2298,7 @@ class ExtensionArray:
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
         """
-        return map_array(self, mapper, na_action=na_action)
+        return map_array(self, mapper, na_action=)
 
     # ------------------------------------------------------------------------
     # GroupBy Methods
@@ -2347,7 +2343,7 @@ class ExtensionArray:
         from pandas.core.groupby.ops import WrappedCythonOp
 
         kind = WrappedCythonOp.get_kind_from_how(how)
-        op = WrappedCythonOp(how=how, kind=kind, has_dropped_na=has_dropped_na)
+        op = WrappedCythonOp(how=, kind=, has_dropped_na=)
 
         # GH#43682
         if isinstance(self.dtype, StringDtype):
@@ -2360,8 +2356,8 @@ class ExtensionArray:
 
         res_values = op._cython_op_ndim_compat(
             npvalues,
-            min_count=min_count,
-            ngroups=ngroups,
+            min_count=,
+            ngroups=,
             comp_ids=ids,
             mask=None,
             **kwargs,
@@ -2375,7 +2371,7 @@ class ExtensionArray:
         if isinstance(self.dtype, StringDtype):
             dtype = self.dtype
             string_array_cls = dtype.construct_array_type()
-            return string_array_cls._from_sequence(res_values, dtype=dtype)
+            return string_array_cls._from_sequence(res_values, dtype=)
 
         else:
             raise NotImplementedError

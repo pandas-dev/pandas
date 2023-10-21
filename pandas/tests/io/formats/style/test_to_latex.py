@@ -328,7 +328,7 @@ def test_multicol_naive(df, multicol_align, siunitx, header):
         """
     )
     styler = df.style.format(precision=2)
-    result = styler.to_latex(multicol_align=multicol_align, siunitx=siunitx)
+    result = styler.to_latex(multicol_align=, siunitx=)
     assert expected == result
 
 
@@ -445,7 +445,7 @@ B & c & \\textbf{\\cellcolor[rgb]{1,1,0.6}{{\\Huge 2}}} & -2.22 & """
 \\end{table}
 """
     ).replace("table", environment if environment else "table")
-    result = stlr.format(precision=2).to_latex(environment=environment)
+    result = stlr.format(precision=2).to_latex(environment=)
     assert result == expected
 
 
@@ -696,7 +696,7 @@ def test_longtable_multiindex_columns(df, sparse, exp, siunitx):
         """
     )
     result = df.style.to_latex(
-        environment="longtable", sparse_columns=sparse, siunitx=siunitx
+        environment="longtable", sparse_columns=sparse, siunitx=
     )
     assert expected in result
 
@@ -722,7 +722,7 @@ def test_longtable_caption_label(styler, caption, cap_exp, label, lab_exp):
         """
     )
     assert expected in styler.to_latex(
-        environment="longtable", caption=caption, label=label
+        environment="longtable", caption=, label=
     )
 
 
@@ -748,7 +748,7 @@ def test_apply_map_header_render_mi(df_ext, index, columns, siunitx):
     if columns:
         styler.map_index(func, axis="columns")
 
-    result = styler.to_latex(siunitx=siunitx)
+    result = styler.to_latex(siunitx=)
 
     expected_index = dedent(
         """\
@@ -796,7 +796,7 @@ def test_siunitx_basic_headers(styler):
 
 @pytest.mark.parametrize("axis", ["index", "columns"])
 def test_css_convert_apply_index(styler, axis):
-    styler.map_index(lambda x: "font-weight: bold;", axis=axis)
+    styler.map_index(lambda x: "font-weight: bold;", axis=)
     for label in getattr(styler, axis):
         assert f"\\bfseries {label}" in styler.to_latex(convert_css=True)
 
@@ -882,7 +882,7 @@ def test_apply_index_hidden_levels():
 def test_clines_validation(clines, styler):
     msg = f"`clines` value of {clines} is invalid."
     with pytest.raises(ValueError, match=msg):
-        styler.to_latex(clines=clines)
+        styler.to_latex(clines=)
 
 
 @pytest.mark.parametrize(
@@ -898,7 +898,7 @@ def test_clines_validation(clines, styler):
 @pytest.mark.parametrize("env", ["table", "longtable"])
 def test_clines_index(clines, exp, env):
     df = DataFrame([[1], [2], [3], [4]])
-    result = df.style.to_latex(clines=clines, environment=env)
+    result = df.style.to_latex(clines=, environment=env)
     expected = f"""\
 0 & 1 \\\\{exp}
 1 & 2 \\\\{exp}
@@ -988,7 +988,7 @@ def test_clines_multiindex(clines, expected, env):
     styler = df.style
     styler.hide([("-", 0, "X"), ("-", 0, "Y")])
     styler.hide(level=1)
-    result = styler.to_latex(clines=clines, environment=env)
+    result = styler.to_latex(clines=, environment=env)
     assert expected in result
 
 
@@ -1083,5 +1083,5 @@ def test_concat_chain():
 )
 def test_empty_clines(df: DataFrame, expected: str, clines: str):
     # GH 47203
-    result = df.style.to_latex(clines=clines)
+    result = df.style.to_latex(clines=)
     assert result == expected

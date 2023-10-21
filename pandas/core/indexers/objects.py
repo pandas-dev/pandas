@@ -379,7 +379,7 @@ class GroupbyIndexer(BaseIndexer):
         self.window_indexer = window_indexer
         self.indexer_kwargs = indexer_kwargs.copy() if indexer_kwargs else {}
         super().__init__(
-            index_array=index_array,
+            index_array=,
             window_size=self.indexer_kwargs.pop("window_size", window_size),
             **kwargs,
         )
@@ -407,7 +407,7 @@ class GroupbyIndexer(BaseIndexer):
             else:
                 index_array = self.index_array
             indexer = self.window_indexer(
-                index_array=index_array,
+                index_array=,
                 window_size=self.window_size,
                 **self.indexer_kwargs,
             )

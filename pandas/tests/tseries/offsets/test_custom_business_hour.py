@@ -47,7 +47,7 @@ def offset1():
 
 @pytest.fixture
 def offset2():
-    return CustomBusinessHour(holidays=holidays)
+    return CustomBusinessHour(holidays=)
 
 
 class TestCustomBusinessHour:
@@ -147,7 +147,7 @@ class TestCustomBusinessHour:
 
     normalize_cases = [
         (
-            CustomBusinessHour(normalize=True, holidays=holidays),
+            CustomBusinessHour(normalize=True, holidays=),
             {
                 datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
                 datetime(2014, 7, 1, 17): datetime(2014, 7, 3),
@@ -162,7 +162,7 @@ class TestCustomBusinessHour:
             },
         ),
         (
-            CustomBusinessHour(-1, normalize=True, holidays=holidays),
+            CustomBusinessHour(-1, normalize=True, holidays=),
             {
                 datetime(2014, 7, 1, 8): datetime(2014, 6, 26),
                 datetime(2014, 7, 1, 17): datetime(2014, 7, 1),
@@ -177,7 +177,7 @@ class TestCustomBusinessHour:
         ),
         (
             CustomBusinessHour(
-                1, normalize=True, start="17:00", end="04:00", holidays=holidays
+                1, normalize=True, start="17:00", end="04:00", holidays=
             ),
             {
                 datetime(2014, 7, 1, 8): datetime(2014, 7, 1),
@@ -211,12 +211,12 @@ class TestCustomBusinessHour:
         ],
     )
     def test_is_on_offset(self, dt, expected):
-        offset = CustomBusinessHour(start="10:00", end="15:00", holidays=holidays)
+        offset = CustomBusinessHour(start="10:00", end="15:00", holidays=)
         assert offset.is_on_offset(dt) == expected
 
     apply_cases = [
         (
-            CustomBusinessHour(holidays=holidays),
+            CustomBusinessHour(holidays=),
             {
                 datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 12),
                 datetime(2014, 7, 1, 13): datetime(2014, 7, 1, 14),
@@ -239,7 +239,7 @@ class TestCustomBusinessHour:
             },
         ),
         (
-            CustomBusinessHour(4, holidays=holidays),
+            CustomBusinessHour(4, holidays=),
             {
                 datetime(2014, 7, 1, 11): datetime(2014, 7, 1, 15),
                 datetime(2014, 7, 1, 13): datetime(2014, 7, 3, 9),
@@ -267,7 +267,7 @@ class TestCustomBusinessHour:
 
     nano_cases = [
         (
-            CustomBusinessHour(holidays=holidays),
+            CustomBusinessHour(holidays=),
             {
                 Timestamp("2014-07-01 15:00")
                 + Nano(5): Timestamp("2014-07-01 16:00")
@@ -281,7 +281,7 @@ class TestCustomBusinessHour:
             },
         ),
         (
-            CustomBusinessHour(-1, holidays=holidays),
+            CustomBusinessHour(-1, holidays=),
             {
                 Timestamp("2014-07-01 15:00")
                 + Nano(5): Timestamp("2014-07-01 14:00")
@@ -321,9 +321,7 @@ class TestCustomBusinessHour:
 def test_custom_businesshour_weekmask_and_holidays(weekmask, expected_time, mult):
     # GH 23542
     holidays = ["2018-11-09"]
-    bh = CustomBusinessHour(
-        start="08:00", end="17:00", weekmask=weekmask, holidays=holidays
-    )
+    bh = CustomBusinessHour(start="08:00", end="17:00", weekmask=, holidays=)
     result = Timestamp("2018-11-08 08:00") + mult * bh
     expected = Timestamp(expected_time)
     assert result == expected

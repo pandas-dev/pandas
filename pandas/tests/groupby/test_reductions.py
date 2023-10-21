@@ -52,7 +52,7 @@ def test_groupby_bool_aggs(skipna, agg_func, vals):
     expected = DataFrame(
         [exp] * 2, columns=["val"], index=pd.Index(["a", "b"], name="key")
     )
-    result = getattr(df.groupby("key"), agg_func)(skipna=skipna)
+    result = getattr(df.groupby("key"), agg_func)(skipna=)
     tm.assert_frame_equal(result, expected)
 
 
@@ -98,10 +98,10 @@ def test_masked_kleene_logic(bool_agg_func, skipna, data):
 
     # The result should match aggregating on the whole series. Correctness
     # there is verified in test_reductions.py::test_any_all_boolean_kleene_logic
-    expected_data = getattr(ser, bool_agg_func)(skipna=skipna)
+    expected_data = getattr(ser, bool_agg_func)(skipna=)
     expected = Series(expected_data, index=np.array([0]), dtype="boolean")
 
-    result = ser.groupby([0, 0, 0]).agg(bool_agg_func, skipna=skipna)
+    result = ser.groupby([0, 0, 0]).agg(bool_agg_func, skipna=)
     tm.assert_series_equal(result, expected)
 
 
@@ -150,13 +150,13 @@ def test_masked_mixed_types(dtype1, dtype2, exp_col1, exp_col2):
 @pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
 def test_masked_bool_aggs_skipna(bool_agg_func, dtype, skipna, frame_or_series):
     # GH#40585
-    obj = frame_or_series([pd.NA, 1], dtype=dtype)
+    obj = frame_or_series([pd.NA, 1], dtype=)
     expected_res = True
     if not skipna and bool_agg_func == "all":
         expected_res = pd.NA
     expected = frame_or_series([expected_res], index=np.array([1]), dtype="boolean")
 
-    result = obj.groupby([1, 1]).agg(bool_agg_func, skipna=skipna)
+    result = obj.groupby([1, 1]).agg(bool_agg_func, skipna=)
     tm.assert_equal(result, expected)
 
 
@@ -220,7 +220,7 @@ def test_idxmin_idxmax_returns_int_types(func, values, numeric_only):
     df["c_Integer"] = df["c_int"].astype("Int64")
     df["c_Floating"] = df["c_float"].astype("Float64")
 
-    result = getattr(df.groupby("name"), func)(numeric_only=numeric_only)
+    result = getattr(df.groupby("name"), func)(numeric_only=)
 
     expected = DataFrame(values, index=pd.Index(["A", "B"], name="name"))
     if numeric_only:
@@ -310,8 +310,8 @@ def test_median_empty_bins(observed):
     grps = range(0, 55, 5)
     bins = pd.cut(df[0], grps)
 
-    result = df.groupby(bins, observed=observed).median()
-    expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
+    result = df.groupby(bins, observed=).median()
+    expected = df.groupby(bins, observed=).agg(lambda x: x.median())
     tm.assert_frame_equal(result, expected)
 
 
@@ -511,7 +511,7 @@ def test_groupby_min_max_nullable(dtype):
     tm.assert_frame_equal(res_max, expected_max)
 
     result2 = gb.min(min_count=3)
-    expected2 = DataFrame({"ts": [pd.NA]}, index=expected.index, dtype=dtype)
+    expected2 = DataFrame({"ts": [pd.NA]}, index=expected.index, dtype=)
     tm.assert_frame_equal(result2, expected2)
 
     res_max2 = gb.max(min_count=3)
@@ -615,11 +615,11 @@ def test_series_groupby_nunique(sort, dropna, as_index, with_nan, keys):
         df.loc[8::19, "julie"] = None
         df.loc[9::19, "julie"] = None
     original_df = df.copy()
-    gr = df.groupby(keys, as_index=as_index, sort=sort)
-    left = gr["julie"].nunique(dropna=dropna)
+    gr = df.groupby(keys, as_index=, sort=)
+    left = gr["julie"].nunique(dropna=)
 
-    gr = df.groupby(keys, as_index=as_index, sort=sort)
-    right = gr["julie"].apply(Series.nunique, dropna=dropna)
+    gr = df.groupby(keys, as_index=, sort=)
+    right = gr["julie"].apply(Series.nunique, dropna=)
     if not as_index:
         right = right.reset_index(drop=True)
 
@@ -670,7 +670,7 @@ def test_nunique_with_object():
 
     result = data.groupby(["id", "amount"])["name"].nunique()
     index = MultiIndex.from_arrays([data.id, data.amount])
-    expected = Series([1] * 5, name="name", index=index)
+    expected = Series([1] * 5, name="name", index=)
     tm.assert_series_equal(result, expected)
 
 
@@ -743,7 +743,7 @@ def test_nunique_with_timegrouper():
 def test_nunique_with_NaT(key, data, dropna, expected):
     # GH 27951
     df = DataFrame({"key": key, "data": data})
-    result = df.groupby(["key"])["data"].nunique(dropna=dropna)
+    result = df.groupby(["key"])["data"].nunique(dropna=)
     tm.assert_series_equal(result, expected)
 
 
@@ -767,7 +767,7 @@ def test_empty_categorical(observed):
     # GH#21334
     cat = Series([1]).astype("category")
     ser = cat[:0]
-    gb = ser.groupby(ser, observed=observed)
+    gb = ser.groupby(ser, observed=)
     result = gb.nunique()
     if observed:
         expected = Series([], index=cat[:0], dtype="int64")
@@ -784,7 +784,7 @@ def test_groupby_sum_mincount_boolean(min_count):
     dfg = pd.array([b, b, na, na, a, a, b], dtype="boolean")
 
     df = DataFrame({"A": [1, 1, 2, 2, 3, 3, 1], "B": dfg})
-    result = df.groupby("A").sum(min_count=min_count)
+    result = df.groupby("A").sum(min_count=)
     if min_count == 0:
         expected = DataFrame(
             {"B": pd.array([3, 0, 0], dtype="Int64")},

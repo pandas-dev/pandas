@@ -24,13 +24,13 @@ from pandas.core.arrays import FloatingArray
     ids=["add", "mul", "sub", "div", "floordiv", "mod"],
 )
 def test_array_op(dtype, opname, exp):
-    a = pd.array([1.0, 2.0, None, 4.0, 5.0], dtype=dtype)
-    b = pd.array([0.1, 0.2, 0.3, None, 0.5], dtype=dtype)
+    a = pd.array([1.0, 2.0, None, 4.0, 5.0], dtype=)
+    b = pd.array([0.1, 0.2, 0.3, None, 0.5], dtype=)
 
     op = getattr(operator, opname)
 
     result = op(a, b)
-    expected = pd.array(exp, dtype=dtype)
+    expected = pd.array(exp, dtype=)
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -38,7 +38,7 @@ def test_array_op(dtype, opname, exp):
 def test_divide_by_zero(dtype, zero, negative):
     # TODO pending NA/NaN discussion
     # https://github.com/pandas-dev/pandas/issues/32265/
-    a = pd.array([0, 1, -1, None], dtype=dtype)
+    a = pd.array([0, 1, -1, None], dtype=)
     result = a / zero
     expected = FloatingArray(
         np.array([np.nan, np.inf, -np.inf, np.nan], dtype=dtype.numpy_dtype),
@@ -50,17 +50,17 @@ def test_divide_by_zero(dtype, zero, negative):
 
 
 def test_pow_scalar(dtype):
-    a = pd.array([-1, 0, 1, None, 2], dtype=dtype)
+    a = pd.array([-1, 0, 1, None, 2], dtype=)
     result = a**0
-    expected = pd.array([1, 1, 1, 1, 1], dtype=dtype)
+    expected = pd.array([1, 1, 1, 1, 1], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
     result = a**1
-    expected = pd.array([-1, 0, 1, None, 2], dtype=dtype)
+    expected = pd.array([-1, 0, 1, None, 2], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
     result = a**pd.NA
-    expected = pd.array([None, None, 1, None, None], dtype=dtype)
+    expected = pd.array([None, None, 1, None, None], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
     result = a**np.nan
@@ -75,15 +75,15 @@ def test_pow_scalar(dtype):
     a = a[1:]  # Can't raise integers to negative powers.
 
     result = 0**a
-    expected = pd.array([1, 0, None, 0], dtype=dtype)
+    expected = pd.array([1, 0, None, 0], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
     result = 1**a
-    expected = pd.array([1, 1, 1, 1], dtype=dtype)
+    expected = pd.array([1, 1, 1, 1], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
     result = pd.NA**a
-    expected = pd.array([1, None, None, None], dtype=dtype)
+    expected = pd.array([1, None, None, None], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
     result = np.nan**a
@@ -94,10 +94,10 @@ def test_pow_scalar(dtype):
 
 
 def test_pow_array(dtype):
-    a = pd.array([0, 0, 0, 1, 1, 1, None, None, None], dtype=dtype)
-    b = pd.array([0, 1, None, 0, 1, None, 0, 1, None], dtype=dtype)
+    a = pd.array([0, 0, 0, 1, 1, 1, None, None, None], dtype=)
+    b = pd.array([0, 1, None, 0, 1, None, 0, 1, None], dtype=)
     result = a**b
-    expected = pd.array([1, 0, None, 1, 1, 1, 1, None, None], dtype=dtype)
+    expected = pd.array([1, 0, None, 1, 1, 1, 1, None, None], dtype=)
     tm.assert_extension_array_equal(result, expected)
 
 
@@ -210,10 +210,10 @@ def test_cross_type_arithmetic():
 def test_unary_float_operators(float_ea_dtype, source, neg_target, abs_target):
     # GH38794
     dtype = float_ea_dtype
-    arr = pd.array(source, dtype=dtype)
+    arr = pd.array(source, dtype=)
     neg_result, pos_result, abs_result = -arr, +arr, abs(arr)
-    neg_target = pd.array(neg_target, dtype=dtype)
-    abs_target = pd.array(abs_target, dtype=dtype)
+    neg_target = pd.array(neg_target, dtype=)
+    abs_target = pd.array(abs_target, dtype=)
 
     tm.assert_extension_array_equal(neg_result, neg_target)
     tm.assert_extension_array_equal(pos_result, arr)
@@ -222,8 +222,8 @@ def test_unary_float_operators(float_ea_dtype, source, neg_target, abs_target):
 
 
 def test_bitwise(dtype):
-    left = pd.array([1, None, 3, 4], dtype=dtype)
-    right = pd.array([None, 3, 5, 4], dtype=dtype)
+    left = pd.array([1, None, 3, 4], dtype=)
+    right = pd.array([None, 3, 5, 4], dtype=)
 
     with pytest.raises(TypeError, match="unsupported operand type"):
         left | right

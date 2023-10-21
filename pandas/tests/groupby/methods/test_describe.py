@@ -43,7 +43,7 @@ def test_series_describe_as_index(as_index, keys):
             "foo2": [1, 2, 4, 4, 6],
         }
     )
-    gb = df.groupby(keys, as_index=as_index)["foo2"]
+    gb = df.groupby(keys, as_index=)["foo2"]
     result = gb.describe()
     expected = DataFrame(
         {
@@ -195,7 +195,7 @@ def test_describe_with_duplicate_output_column_names(as_index, keys):
     if not as_index:
         expected = expected.reset_index()
 
-    result = df.groupby(keys, as_index=as_index).describe()
+    result = df.groupby(keys, as_index=).describe()
 
     tm.assert_frame_equal(result, expected)
 
@@ -209,7 +209,7 @@ def test_describe_duplicate_columns():
 
     columns = ["count", "mean", "std", "min", "50%", "max"]
     frames = [
-        DataFrame([[1.0, val, np.nan, val, val, val]], index=[1], columns=columns)
+        DataFrame([[1.0, val, np.nan, val, val, val]], index=[1], columns=)
         for val in (0.0, 2.0, 3.0)
     ]
     expected = pd.concat(frames, axis=1)

@@ -152,7 +152,7 @@ def test_cummin_max_all_nan_column(method, dtype):
     base_df["B"] = base_df["B"].astype(dtype)
     grouped = base_df.groupby("A")
 
-    expected = DataFrame({"B": [np.nan] * 8}, dtype=dtype)
+    expected = DataFrame({"B": [np.nan] * 8}, dtype=)
     result = getattr(grouped, method)()
     tm.assert_frame_equal(expected, result)
 
@@ -236,12 +236,12 @@ def test_cummax_i8_at_implementation_bound():
 )
 def test_cummin_max_skipna(method, dtype, groups, expected_data):
     # GH-34047
-    df = DataFrame({"a": Series([1, None, 2], dtype=dtype)})
+    df = DataFrame({"a": Series([1, None, 2], dtype=)})
     orig = df.copy()
     gb = df.groupby(groups)["a"]
 
     result = getattr(gb, method)(skipna=False)
-    expected = Series(expected_data, dtype=dtype, name="a")
+    expected = Series(expected_data, dtype=, name="a")
 
     # check we didn't accidentally alter df
     tm.assert_frame_equal(df, orig)
@@ -282,10 +282,10 @@ def test_numpy_compat(func):
 )
 def test_nullable_int_not_cast_as_float(method, dtype, val):
     data = [val, pd.NA]
-    df = DataFrame({"grp": [1, 1], "b": data}, dtype=dtype)
+    df = DataFrame({"grp": [1, 1], "b": data}, dtype=)
     grouped = df.groupby("grp")
 
     result = grouped.transform(method)
-    expected = DataFrame({"b": data}, dtype=dtype)
+    expected = DataFrame({"b": data}, dtype=)
 
     tm.assert_frame_equal(result, expected)

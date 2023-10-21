@@ -12,11 +12,11 @@ import pandas._testing as tm
 
 def gen_obj(klass, index):
     if klass is Series:
-        obj = Series(np.arange(len(index)), index=index)
+        obj = Series(np.arange(len(index)), index=)
     else:
         obj = DataFrame(
             np.random.default_rng(2).standard_normal((len(index), len(index))),
-            index=index,
+            index=,
             columns=index,
         )
     return obj
@@ -266,7 +266,7 @@ class TestFloatIndexers:
             (Index(np.arange(5, dtype=np.int64) + 10), True),
         ]:
             # s is an in-range index
-            s = Series(range(5), index=index)
+            s = Series(range(5), index=)
 
             # getitem
             for idx in [slice(3.0, 4), slice(3, 4.0), slice(3.0, 4.0)]:
@@ -353,7 +353,7 @@ class TestFloatIndexers:
         # similar to above, but on the getitem dim (of a DataFrame)
         index = index_func(5)
 
-        s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
+        s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=)
 
         # getitem
         for idx in [slice(0.0, 1), slice(0, 1.0), slice(0.0, 1.0)]:
@@ -408,7 +408,7 @@ class TestFloatIndexers:
         # similar to above, but on the getitem dim (of a DataFrame)
         index = index_func(5)
 
-        s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=index)
+        s = DataFrame(np.random.default_rng(2).standard_normal((5, 2)), index=)
 
         # setitem
         sc = s.copy()
@@ -449,7 +449,7 @@ class TestFloatIndexers:
 
     def test_floating_index_doc_example(self):
         index = Index([1.5, 2, 3, 4.5, 5])
-        s = Series(range(5), index=index)
+        s = Series(range(5), index=)
         assert s[3] == 2
         assert s.loc[3] == 2
         assert s.iloc[3] == 3
@@ -680,7 +680,7 @@ class TestFloatIndexers:
         }
 
         # smoke test for the repr
-        s = Series(ser, dtype=dtype)
+        s = Series(ser, dtype=)
         result = s.value_counts()
         assert result.index.dtype == dtype
         str(result)

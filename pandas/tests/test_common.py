@@ -208,7 +208,7 @@ class TestIsBoolIndexer:
     def test_frozenlist(self):
         # GH#42461
         data = {"col1": [1, 2], "col2": [3, 4]}
-        df = pd.DataFrame(data=data)
+        df = pd.DataFrame(data=)
 
         frozen = df.index.names[1:]
         assert not com.is_bool_indexer(frozen)
@@ -225,7 +225,7 @@ def test_temp_setattr(with_exception):
     ser.name = "first"
     # Raise a ValueError in either case to satisfy pytest.raises
     match = "Inside exception raised" if with_exception else "Outside exception raised"
-    with pytest.raises(ValueError, match=match):
+    with pytest.raises(ValueError, match=):
         with com.temp_setattr(ser, "name", "second"):
             assert ser.name == "second"
             if with_exception:

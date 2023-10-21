@@ -46,7 +46,7 @@ class TestDataFrameReprInfoEtc:
     def test_repr_unicode_level_names(self, frame_or_series):
         index = MultiIndex.from_tuples([(0, 0), (1, 1)], names=["\u0394", "i1"])
 
-        obj = DataFrame(np.random.default_rng(2).standard_normal((2, 4)), index=index)
+        obj = DataFrame(np.random.default_rng(2).standard_normal((2, 4)), index=)
         obj = tm.get_obj(obj, frame_or_series)
         repr(obj)
 
@@ -113,7 +113,7 @@ NaT   4"""
             [("a", 0, "foo"), ("b", 1, "bar")], names=["a", "b", "c"]
         )
 
-        df = DataFrame({"value": [0, 1]}, index=index)
+        df = DataFrame({"value": [0, 1]}, index=)
 
         lines = repr(df).split("\n")
         assert lines[2].startswith("a 0 foo")
@@ -132,10 +132,10 @@ NaT   4"""
         repr(ymd.T)
 
         buf = StringIO()
-        frame.to_string(buf=buf)
-        ymd.to_string(buf=buf)
-        frame.T.to_string(buf=buf)
-        ymd.T.to_string(buf=buf)
+        frame.to_string(buf=)
+        ymd.to_string(buf=)
+        frame.T.to_string(buf=)
+        ymd.T.to_string(buf=)
 
     def test_repr_empty(self):
         # empty
@@ -150,7 +150,7 @@ NaT   4"""
 
         # mixed
         repr(float_string_frame)
-        float_string_frame.info(verbose=False, buf=buf)
+        float_string_frame.info(verbose=False, buf=)
 
     @pytest.mark.slow
     def test_repr_mixed_big(self):
@@ -172,11 +172,11 @@ NaT   4"""
 
         # small one
         repr(float_frame)
-        float_frame.info(verbose=False, buf=buf)
+        float_frame.info(verbose=False, buf=)
 
         # even smaller
-        float_frame.reindex(columns=["A"]).info(verbose=False, buf=buf)
-        float_frame.reindex(columns=["A", "B"]).info(verbose=False, buf=buf)
+        float_frame.reindex(columns=["A"]).info(verbose=False, buf=)
+        float_frame.reindex(columns=["A", "B"]).info(verbose=False, buf=)
 
         # exhausting cases in DataFrame.info
 
@@ -185,7 +185,7 @@ NaT   4"""
         repr(no_index)
 
         # no columns or index
-        DataFrame().info(buf=buf)
+        DataFrame().info(buf=)
 
         df = DataFrame(["a\n\r\tb"], columns=["a\n\r\td"], index=["a\n\r\tf"])
         assert "\t" not in repr(df)
@@ -345,7 +345,7 @@ NaT   4"""
 
     def test_frame_to_string_with_periodindex(self):
         index = PeriodIndex(["2011-1", "2011-2", "2011-3"], freq="M")
-        frame = DataFrame(np.random.default_rng(2).standard_normal((3, 4)), index=index)
+        frame = DataFrame(np.random.default_rng(2).standard_normal((3, 4)), index=)
 
         # it works!
         frame.to_string()

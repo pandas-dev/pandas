@@ -35,7 +35,7 @@ class ToFrame:
 
     def setup(self, dtype, name):
         arr = np.arange(10**5)
-        ser = Series(arr, dtype=dtype)
+        ser = Series(arr, dtype=)
         self.ser = ser
 
     def time_to_frame(self, dtype, name):
@@ -50,10 +50,10 @@ class NSort:
         self.s = Series(np.random.randint(1, 10, 100000))
 
     def time_nlargest(self, keep):
-        self.s.nlargest(3, keep=keep)
+        self.s.nlargest(3, keep=)
 
     def time_nsmallest(self, keep):
-        self.s.nsmallest(3, keep=keep)
+        self.s.nsmallest(3, keep=)
 
 
 class Dropna:
@@ -106,7 +106,7 @@ class Fillna:
         else:
             raise NotImplementedError
         fill_value = data[0]
-        ser = Series(data, dtype=dtype)
+        ser = Series(data, dtype=)
         ser[::2] = na_value
         self.ser = ser
         self.fill_value = fill_value
@@ -155,7 +155,7 @@ class Map:
 
     def setup(self, mapper, dtype):
         map_size = 1000
-        map_data = Series(map_size - np.arange(map_size), dtype=dtype)
+        map_data = Series(map_size - np.arange(map_size), dtype=)
 
         # construct mapper
         if mapper == "Series":
@@ -168,7 +168,7 @@ class Map:
         else:
             raise NotImplementedError
 
-        self.s = Series(np.random.randint(0, map_size, 10000), dtype=dtype)
+        self.s = Series(np.random.randint(0, map_size, 10000), dtype=)
 
     def time_map(self, mapper, *args, **kwargs):
         self.s.map(self.map_data)
@@ -215,7 +215,7 @@ class ValueCountsEA:
         self.s.loc[1] = NA
 
     def time_value_counts(self, N, dropna):
-        self.s.value_counts(dropna=dropna)
+        self.s.value_counts(dropna=)
 
 
 class ValueCountsObjectDropNAFalse:
@@ -274,7 +274,7 @@ class All:
 
     def setup(self, N, case, dtype):
         val = case != "fast"
-        self.s = Series([val] * N, dtype=dtype)
+        self.s = Series([val] * N, dtype=)
 
     def time_all(self, N, case, dtype):
         self.s.all()
@@ -286,7 +286,7 @@ class Any:
 
     def setup(self, N, case, dtype):
         val = case == "fast"
-        self.s = Series([val] * N, dtype=dtype)
+        self.s = Series([val] * N, dtype=)
 
     def time_any(self, N, case, dtype):
         self.s.any()
@@ -317,7 +317,7 @@ class NanOps:
         if func == "argmax" and dtype in {"Int64", "boolean"}:
             # Skip argmax for nullable int since this doesn't work yet (GH-24382)
             raise NotImplementedError
-        self.s = Series([1] * N, dtype=dtype)
+        self.s = Series([1] * N, dtype=)
         self.func = getattr(self.s, func)
 
     def time_func(self, func, N, dtype):
@@ -331,7 +331,7 @@ class Rank:
     ]
 
     def setup(self, dtype):
-        self.s = Series(np.random.randint(0, 1000, size=100000), dtype=dtype)
+        self.s = Series(np.random.randint(0, 1000, size=100000), dtype=)
 
     def time_rank(self, dtype):
         self.s.rank()
@@ -362,7 +362,7 @@ class Iter:
         else:
             raise NotImplementedError
 
-        self.s = Series(data, dtype=dtype)
+        self.s = Series(data, dtype=)
 
     def time_iter(self, dtype):
         for v in self.s:

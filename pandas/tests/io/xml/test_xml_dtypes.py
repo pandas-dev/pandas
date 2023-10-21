@@ -83,10 +83,10 @@ xml_dates = """<?xml version='1.0' encoding='utf-8'?>
 
 
 def test_dtype_single_str(parser):
-    df_result = read_xml(StringIO(xml_types), dtype={"degrees": "str"}, parser=parser)
+    df_result = read_xml(StringIO(xml_types), dtype={"degrees": "str"}, parser=)
     df_iter = read_xml_iterparse(
         xml_types,
-        parser=parser,
+        parser=,
         dtype={"degrees": "str"},
         iterparse={"row": ["shape", "degrees", "sides"]},
     )
@@ -104,10 +104,10 @@ def test_dtype_single_str(parser):
 
 
 def test_dtypes_all_str(parser):
-    df_result = read_xml(StringIO(xml_dates), dtype="string", parser=parser)
+    df_result = read_xml(StringIO(xml_dates), dtype="string", parser=)
     df_iter = read_xml_iterparse(
         xml_dates,
-        parser=parser,
+        parser=,
         dtype="string",
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
     )
@@ -131,11 +131,11 @@ def test_dtypes_with_names(parser):
         StringIO(xml_dates),
         names=["Col1", "Col2", "Col3", "Col4"],
         dtype={"Col2": "string", "Col3": "Int64", "Col4": "datetime64[ns]"},
-        parser=parser,
+        parser=,
     )
     df_iter = read_xml_iterparse(
         xml_dates,
-        parser=parser,
+        parser=,
         names=["Col1", "Col2", "Col3", "Col4"],
         dtype={"Col2": "string", "Col3": "Int64", "Col4": "datetime64[ns]"},
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
@@ -155,10 +155,10 @@ def test_dtypes_with_names(parser):
 
 
 def test_dtype_nullable_int(parser):
-    df_result = read_xml(StringIO(xml_types), dtype={"sides": "Int64"}, parser=parser)
+    df_result = read_xml(StringIO(xml_types), dtype={"sides": "Int64"}, parser=)
     df_iter = read_xml_iterparse(
         xml_types,
-        parser=parser,
+        parser=,
         dtype={"sides": "Int64"},
         iterparse={"row": ["shape", "degrees", "sides"]},
     )
@@ -176,10 +176,10 @@ def test_dtype_nullable_int(parser):
 
 
 def test_dtype_float(parser):
-    df_result = read_xml(StringIO(xml_types), dtype={"degrees": "float"}, parser=parser)
+    df_result = read_xml(StringIO(xml_types), dtype={"degrees": "float"}, parser=)
     df_iter = read_xml_iterparse(
         xml_types,
-        parser=parser,
+        parser=,
         dtype={"degrees": "float"},
         iterparse={"row": ["shape", "degrees", "sides"]},
     )
@@ -200,9 +200,7 @@ def test_wrong_dtype(xml_books, parser, iterparse):
     with pytest.raises(
         ValueError, match=('Unable to parse string "Everyday Italian" at position 0')
     ):
-        read_xml(
-            xml_books, dtype={"title": "Int64"}, parser=parser, iterparse=iterparse
-        )
+        read_xml(xml_books, dtype={"title": "Int64"}, parser=, iterparse=)
 
 
 def test_both_dtype_converters(parser):
@@ -219,13 +217,13 @@ def test_both_dtype_converters(parser):
             StringIO(xml_types),
             dtype={"degrees": "str"},
             converters={"degrees": str},
-            parser=parser,
+            parser=,
         )
         df_iter = read_xml_iterparse(
             xml_types,
             dtype={"degrees": "str"},
             converters={"degrees": str},
-            parser=parser,
+            parser=,
             iterparse={"row": ["shape", "degrees", "sides"]},
         )
 
@@ -238,11 +236,11 @@ def test_both_dtype_converters(parser):
 
 def test_converters_str(parser):
     df_result = read_xml(
-        StringIO(xml_types), converters={"degrees": str}, parser=parser
+        StringIO(xml_types), converters={"degrees": str}, parser=
     )
     df_iter = read_xml_iterparse(
         xml_types,
-        parser=parser,
+        parser=,
         converters={"degrees": str},
         iterparse={"row": ["shape", "degrees", "sides"]},
     )
@@ -262,11 +260,11 @@ def test_converters_str(parser):
 def test_converters_date(parser):
     convert_to_datetime = lambda x: to_datetime(x)
     df_result = read_xml(
-        StringIO(xml_dates), converters={"date": convert_to_datetime}, parser=parser
+        StringIO(xml_dates), converters={"date": convert_to_datetime}, parser=
     )
     df_iter = read_xml_iterparse(
         xml_dates,
-        parser=parser,
+        parser=,
         converters={"date": convert_to_datetime},
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
     )
@@ -286,33 +284,27 @@ def test_converters_date(parser):
 
 def test_wrong_converters_type(xml_books, parser, iterparse):
     with pytest.raises(TypeError, match=("Type converters must be a dict or subclass")):
-        read_xml(
-            xml_books, converters={"year", str}, parser=parser, iterparse=iterparse
-        )
+        read_xml(xml_books, converters={"year", str}, parser=, iterparse=)
 
 
 def test_callable_func_converters(xml_books, parser, iterparse):
     with pytest.raises(TypeError, match=("'float' object is not callable")):
-        read_xml(
-            xml_books, converters={"year": float()}, parser=parser, iterparse=iterparse
-        )
+        read_xml(xml_books, converters={"year": float()}, parser=, iterparse=)
 
 
 def test_callable_str_converters(xml_books, parser, iterparse):
     with pytest.raises(TypeError, match=("'str' object is not callable")):
-        read_xml(
-            xml_books, converters={"year": "float"}, parser=parser, iterparse=iterparse
-        )
+        read_xml(xml_books, converters={"year": "float"}, parser=, iterparse=)
 
 
 # PARSE DATES
 
 
 def test_parse_dates_column_name(parser):
-    df_result = read_xml(StringIO(xml_dates), parse_dates=["date"], parser=parser)
+    df_result = read_xml(StringIO(xml_dates), parse_dates=["date"], parser=)
     df_iter = read_xml_iterparse(
         xml_dates,
-        parser=parser,
+        parser=,
         parse_dates=["date"],
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
     )
@@ -331,10 +323,10 @@ def test_parse_dates_column_name(parser):
 
 
 def test_parse_dates_column_index(parser):
-    df_result = read_xml(StringIO(xml_dates), parse_dates=[3], parser=parser)
+    df_result = read_xml(StringIO(xml_dates), parse_dates=[3], parser=)
     df_iter = read_xml_iterparse(
         xml_dates,
-        parser=parser,
+        parser=,
         parse_dates=[3],
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
     )
@@ -353,11 +345,11 @@ def test_parse_dates_column_index(parser):
 
 
 def test_parse_dates_true(parser):
-    df_result = read_xml(StringIO(xml_dates), parse_dates=True, parser=parser)
+    df_result = read_xml(StringIO(xml_dates), parse_dates=True, parser=)
 
     df_iter = read_xml_iterparse(
         xml_dates,
-        parser=parser,
+        parser=,
         parse_dates=True,
         iterparse={"row": ["shape", "degrees", "sides", "date"]},
     )
@@ -405,11 +397,11 @@ def test_parse_dates_dictionary(parser):
 </data>"""
 
     df_result = read_xml(
-        StringIO(xml), parse_dates={"date_end": ["year", "month", "day"]}, parser=parser
+        StringIO(xml), parse_dates={"date_end": ["year", "month", "day"]}, parser=
     )
     df_iter = read_xml_iterparse(
         xml,
-        parser=parser,
+        parser=,
         parse_dates={"date_end": ["year", "month", "day"]},
         iterparse={"row": ["shape", "degrees", "sides", "year", "month", "day"]},
     )
@@ -463,11 +455,11 @@ def test_day_first_parse_dates(parser):
     with tm.assert_produces_warning(
         UserWarning, match="Parsing dates in %d/%m/%Y format"
     ):
-        df_result = read_xml(StringIO(xml), parse_dates=["date"], parser=parser)
+        df_result = read_xml(StringIO(xml), parse_dates=["date"], parser=)
         df_iter = read_xml_iterparse(
             xml,
             parse_dates=["date"],
-            parser=parser,
+            parser=,
             iterparse={"row": ["shape", "degrees", "sides", "date"]},
         )
 
@@ -479,4 +471,4 @@ def test_wrong_parse_dates_type(xml_books, parser, iterparse):
     with pytest.raises(
         TypeError, match=("Only booleans, lists, and dictionaries are accepted")
     ):
-        read_xml(xml_books, parse_dates={"date"}, parser=parser, iterparse=iterparse)
+        read_xml(xml_books, parse_dates={"date"}, parser=, iterparse=)

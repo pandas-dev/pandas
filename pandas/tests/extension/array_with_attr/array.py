@@ -49,7 +49,7 @@ class FloatAttrArray(ExtensionArray):
 
     @classmethod
     def _from_sequence(cls, scalars, dtype=None, copy=False):
-        data = np.array(scalars, dtype="float64", copy=copy)
+        data = np.array(scalars, dtype="float64", copy=)
         return cls(data)
 
     def __getitem__(self, item):
@@ -73,7 +73,7 @@ class FloatAttrArray(ExtensionArray):
         if allow_fill and fill_value is None:
             fill_value = self.dtype.na_value
 
-        result = take(data, indexer, fill_value=fill_value, allow_fill=allow_fill)
+        result = take(data, indexer, fill_value=, allow_fill=)
         return type(self)(result, self.attr)
 
     def copy(self):

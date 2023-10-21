@@ -63,7 +63,7 @@ def maybe_resample(series: Series, ax: Axes, kwargs):
 
     # Convert DatetimeIndex to PeriodIndex
     if isinstance(series.index, ABCDatetimeIndex):
-        series = series.to_period(freq=freq)
+        series = series.to_period(freq=)
 
     if ax_freq is not None and freq != ax_freq:
         if is_superperiod(freq, ax_freq):  # upsample input
@@ -117,7 +117,7 @@ def _upsample_others(ax: Axes, freq, kwargs) -> None:
         title = legend.get_title().get_text()
         if title == "None":
             title = None
-        ax.legend(lines, labels, loc="best", title=title)
+        ax.legend(lines, labels, loc="best", title=)
 
 
 def _replot_ax(ax: Axes, freq, kwargs):
@@ -306,7 +306,7 @@ def maybe_convert_index(ax: Axes, data):
 
 
 def _format_coord(freq, t, y) -> str:
-    time_period = Period(ordinal=int(t), freq=freq)
+    time_period = Period(ordinal=int(t), freq=)
     return f"t = {time_period}  y = {y:8f}"
 
 

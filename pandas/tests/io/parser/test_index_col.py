@@ -63,7 +63,7 @@ def test_index_col_named2(all_parsers):
     )
     names = ["a", "b", "c", "d", "message"]
 
-    result = parser.read_csv(StringIO(data), names=names, index_col=["message"])
+    result = parser.read_csv(StringIO(data), names=, index_col=["message"])
     tm.assert_frame_equal(result, expected)
 
 
@@ -138,7 +138,7 @@ baz,7,8,9
 def test_index_col_empty_data(all_parsers, index_col, kwargs):
     data = "x,y,z"
     parser = all_parsers
-    result = parser.read_csv(StringIO(data), index_col=index_col)
+    result = parser.read_csv(StringIO(data), index_col=)
 
     expected = DataFrame(**kwargs)
     tm.assert_frame_equal(result, expected)

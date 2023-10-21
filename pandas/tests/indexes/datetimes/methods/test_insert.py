@@ -21,8 +21,8 @@ class TestInsert:
     def test_insert_nat(self, tz, null):
         # GH#16537, GH#18295 (test missing)
 
-        idx = DatetimeIndex(["2017-01-01"], tz=tz)
-        expected = DatetimeIndex(["NaT", "2017-01-01"], tz=tz)
+        idx = DatetimeIndex(["2017-01-01"], tz=)
+        expected = DatetimeIndex(["NaT", "2017-01-01"], tz=)
         if tz is not None and isinstance(null, np.datetime64):
             expected = Index([null, idx[0]], dtype=object)
 
@@ -31,7 +31,7 @@ class TestInsert:
 
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Eastern"])
     def test_insert_invalid_na(self, tz):
-        idx = DatetimeIndex(["2017-01-01"], tz=tz)
+        idx = DatetimeIndex(["2017-01-01"], tz=)
 
         item = np.timedelta64("NaT")
         result = idx.insert(0, item)
@@ -41,14 +41,14 @@ class TestInsert:
     def test_insert_empty_preserves_freq(self, tz_naive_fixture):
         # GH#33573
         tz = tz_naive_fixture
-        dti = DatetimeIndex([], tz=tz, freq="D")
+        dti = DatetimeIndex([], tz=, freq="D")
         item = Timestamp("2017-04-05").tz_localize(tz)
 
         result = dti.insert(0, item)
         assert result.freq == dti.freq
 
         # But not when we insert an item that doesn't conform to freq
-        dti = DatetimeIndex([], tz=tz, freq="W-THU")
+        dti = DatetimeIndex([], tz=, freq="W-THU")
         result = dti.insert(0, item)
         assert result.freq is None
 
@@ -128,13 +128,13 @@ class TestInsert:
         assert result.freq is None
 
         for tz in ["US/Pacific", "Asia/Singapore"]:
-            idx = date_range("1/1/2000 09:00", periods=6, freq="h", tz=tz, name="idx")
+            idx = date_range("1/1/2000 09:00", periods=6, freq="h", tz=, name="idx")
             # preserve freq
             expected = date_range(
-                "1/1/2000 09:00", periods=7, freq="h", tz=tz, name="idx"
+                "1/1/2000 09:00", periods=7, freq="h", tz=, name="idx"
             )
             for d in [
-                Timestamp("2000-01-01 15:00", tz=tz),
+                Timestamp("2000-01-01 15:00", tz=),
                 pytz.timezone(tz).localize(datetime(2000, 1, 1, 15)),
             ]:
                 result = idx.insert(6, d)
@@ -154,12 +154,12 @@ class TestInsert:
                     "2000-01-01 10:00",
                 ],
                 name="idx",
-                tz=tz,
+                tz=,
                 freq=None,
             )
             # reset freq to None
             for d in [
-                Timestamp("2000-01-01 10:00", tz=tz),
+                Timestamp("2000-01-01 10:00", tz=),
                 pytz.timezone(tz).localize(datetime(2000, 1, 1, 10)),
             ]:
                 result = idx.insert(6, d)
@@ -220,7 +220,7 @@ class TestInsert:
     def test_insert_mismatched_types_raises(self, tz_aware_fixture, item):
         # GH#33703 dont cast these to dt64
         tz = tz_aware_fixture
-        dti = date_range("2019-11-04", periods=9, freq="-1D", name=9, tz=tz)
+        dti = date_range("2019-11-04", periods=9, freq="-1D", name=9, tz=)
 
         result = dti.insert(1, item)
 
@@ -235,7 +235,7 @@ class TestInsert:
     def test_insert_castable_str(self, tz_aware_fixture):
         # GH#33703
         tz = tz_aware_fixture
-        dti = date_range("2019-11-04", periods=3, freq="-1D", name=9, tz=tz)
+        dti = date_range("2019-11-04", periods=3, freq="-1D", name=9, tz=)
 
         value = "2019-11-05"
         result = dti.insert(0, value)
@@ -247,7 +247,7 @@ class TestInsert:
     def test_insert_non_castable_str(self, tz_aware_fixture):
         # GH#33703
         tz = tz_aware_fixture
-        dti = date_range("2019-11-04", periods=3, freq="-1D", name=9, tz=tz)
+        dti = date_range("2019-11-04", periods=3, freq="-1D", name=9, tz=)
 
         value = "foo"
         result = dti.insert(0, value)

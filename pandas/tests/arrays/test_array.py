@@ -229,7 +229,7 @@ def test_dt64_array(dtype_unit):
     ],
 )
 def test_array(data, dtype, expected):
-    result = pd.array(data, dtype=dtype)
+    result = pd.array(data, dtype=)
     tm.assert_equal(result, expected)
 
 
@@ -420,7 +420,7 @@ class DecimalArray2(DecimalArray):
         if isinstance(scalars, (pd.Series, pd.Index)):
             raise TypeError("scalars should not be of type pd.Series or pd.Index")
 
-        return super()._from_sequence(scalars, dtype=dtype, copy=copy)
+        return super()._from_sequence(scalars, dtype=, copy=)
 
 
 def test_array_unboxes(index_or_series):

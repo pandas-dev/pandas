@@ -34,7 +34,7 @@ def generate_online_numba_ewma_func(
     else:
         numba = import_optional_dependency("numba")
 
-    @numba.jit(nopython=nopython, nogil=nogil, parallel=parallel)
+    @numba.jit(nopython=, nogil=, parallel=)
     def online_ewma(
         values: np.ndarray,
         deltas: np.ndarray,

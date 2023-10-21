@@ -94,7 +94,7 @@ class TestFeather:
 
         expected = df.copy()
         expected.loc[1, "bool_with_null"] = None
-        self.check_round_trip(df, expected=expected)
+        self.check_round_trip(df, expected=)
 
     def test_duplicate_columns(self):
         # https://github.com/wesm/feather/issues/53
@@ -113,7 +113,7 @@ class TestFeather:
             }
         )
         columns = ["col1", "col3"]
-        self.check_round_trip(df, expected=df[columns], columns=columns)
+        self.check_round_trip(df, expected=df[columns], columns=)
 
     def test_read_columns_different_order(self):
         # GH 33878
@@ -182,7 +182,7 @@ class TestFeather:
         with tm.ensure_clean() as path:
             to_feather(df, path)
             with pd.option_context("mode.string_storage", string_storage):
-                result = read_feather(path, dtype_backend=dtype_backend)
+                result = read_feather(path, dtype_backend=)
 
         expected = pd.DataFrame(
             {
