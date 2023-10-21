@@ -2175,7 +2175,7 @@ class _AsOfMerge(_OrderedMerge):
                         left_by_values[n],
                         right_by_values[n],
                         sort=False,
-                        how="outer",
+                        how="left",
                     )
                     for n in range(len(left_by_values))
                 ]
