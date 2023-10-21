@@ -169,7 +169,7 @@ class TestNLargestNSmallest:
         if Version(np.__version__) >= Version("1.25") and (
             (order == ["a"] and n in (1, 2, 3, 4)) or (order == ["a", "b"]) and n == 5
         ):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=(
                         "pandas default unstable sorting of duplicates"

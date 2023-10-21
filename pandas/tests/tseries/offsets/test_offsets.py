@@ -560,29 +560,27 @@ class TestCommon:
         off = _create_offset(offset_types)
         assert hash(off) is not None
 
+    # TODO: belongs in arithmetic tests?
     @pytest.mark.filterwarnings(
         "ignore:Non-vectorized DateOffset being applied to Series or DatetimeIndex"
     )
     @pytest.mark.parametrize("unit", ["s", "ms", "us"])
-    def test_add_dt64_ndarray_non_nano(self, offset_types, unit, request):
+    def test_add_dt64_ndarray_non_nano(self, offset_types, unit):
         # check that the result with non-nano matches nano
         off = _create_offset(offset_types)
 
-        dti = date_range("2016-01-01", periods=35, freq="D")
+        dti = date_range("2016-01-01", periods=35, freq="D", unit=unit)
 
-        arr = dti._data._ndarray.astype(f"M8[{unit}]")
-        dta = type(dti._data)._simple_new(arr, dtype=arr.dtype)
-
-        expected = dti._data + off
-        result = dta + off
+        result = (dti + off)._with_freq(None)
 
         exp_unit = unit
-        if isinstance(off, Tick) and off._creso > dta._creso:
+        if isinstance(off, Tick) and off._creso > dti._data._creso:
             # cast to higher reso like we would with Timedelta scalar
             exp_unit = Timedelta(off).unit
-        expected = expected.as_unit(exp_unit)
+        # TODO(GH#55564): as_unit will be unnecessary
+        expected = DatetimeIndex([x + off for x in dti]).as_unit(exp_unit)
 
-        tm.assert_numpy_array_equal(result._ndarray, expected._ndarray)
+        tm.assert_index_equal(result, expected)
 
 
 class TestDateOffset:
@@ -602,7 +600,7 @@ class TestDateOffset:
     @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
     def test_constructor(self, kwd, request):
         if kwd == "millisecond":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     raises=NotImplementedError,
                     reason="Constructing DateOffset object with `millisecond` is not "
@@ -757,7 +755,7 @@ class TestOffsetNames:
     def test_get_offset_name(self):
         assert BDay().freqstr == "B"
         assert BDay(2).freqstr == "2B"
-        assert BMonthEnd().freqstr == "BM"
+        assert BMonthEnd().freqstr == "BME"
         assert Week(weekday=0).freqstr == "W-MON"
         assert Week(weekday=1).freqstr == "W-TUE"
         assert Week(weekday=2).freqstr == "W-WED"
@@ -776,8 +774,8 @@ def test_get_offset():
     pairs = [
         ("B", BDay()),
         ("b", BDay()),
-        ("bm", BMonthEnd()),
-        ("Bm", BMonthEnd()),
+        ("bme", BMonthEnd()),
+        ("Bme", BMonthEnd()),
         ("W-MON", Week(weekday=0)),
         ("W-TUE", Week(weekday=1)),
         ("W-WED", Week(weekday=2)),
@@ -811,7 +809,7 @@ class TestOffsetAliases:
             assert k == v.copy()
 
     def test_rule_code(self):
-        lst = ["ME", "MS", "BM", "BMS", "D", "B", "H", "min", "s", "ms", "us"]
+        lst = ["ME", "MS", "BME", "BMS", "D", "B", "h", "min", "s", "ms", "us"]
         for k in lst:
             assert k == _get_offset(k).rule_code
             # should be cached - this is kind of an internals test...
@@ -839,7 +837,7 @@ class TestOffsetAliases:
             "NOV",
             "DEC",
         ]
-        base_lst = ["A", "AS", "BA", "BAS", "Q", "QS", "BQ", "BQS"]
+        base_lst = ["Y", "YS", "BY", "BYS", "Q", "QS", "BQ", "BQS"]
         for base in base_lst:
             for v in suffix_lst:
                 alias = "-".join([base, v])
@@ -858,7 +856,7 @@ def test_freq_offsets():
 class TestReprNames:
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
-        month_prefixes = ["A", "AS", "BA", "BAS", "Q", "BQ", "BQS", "QS"]
+        month_prefixes = ["Y", "YS", "BY", "BYS", "Q", "BQ", "BQS", "QS"]
         names = [
             prefix + "-" + month
             for prefix in month_prefixes
@@ -916,7 +914,7 @@ def test_month_offset_name(month_classes):
 @pytest.mark.parametrize("kwd", sorted(liboffsets._relativedelta_kwds))
 def test_valid_relativedelta_kwargs(kwd, request):
     if kwd == "millisecond":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 raises=NotImplementedError,
                 reason="Constructing DateOffset object with `millisecond` is not "

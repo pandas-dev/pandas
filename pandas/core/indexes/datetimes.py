@@ -118,7 +118,6 @@ def _new_DatetimeIndex(cls, d):
         "tzinfo",
         "dtype",
         "to_pydatetime",
-        "_format_native_types",
         "date",
         "time",
         "timetz",
@@ -779,11 +778,11 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
 
         Examples
         --------
-        >>> idx = pd.date_range("2023-01-01", periods=4, freq="H")
+        >>> idx = pd.date_range("2023-01-01", periods=4, freq="h")
         >>> idx
         DatetimeIndex(['2023-01-01 00:00:00', '2023-01-01 01:00:00',
                            '2023-01-01 02:00:00', '2023-01-01 03:00:00'],
-                          dtype='datetime64[ns]', freq='H')
+                          dtype='datetime64[ns]', freq='h')
         >>> idx.indexer_between_time("00:00", "2:00", include_end=False)
         array([0, 1])
         """
@@ -848,7 +847,7 @@ def date_range(
     periods : int, optional
         Number of periods to generate.
     freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'D'
-        Frequency strings can have multiples, e.g. '5H'. See
+        Frequency strings can have multiples, e.g. '5h'. See
         :ref:`here <timeseries.offset_aliases>` for a list of
         frequency aliases.
     tz : str or tzinfo, optional
@@ -992,11 +991,11 @@ def date_range(
 
     **Specify a unit**
 
-    >>> pd.date_range(start="2017-01-01", periods=10, freq="100AS", unit="s")
+    >>> pd.date_range(start="2017-01-01", periods=10, freq="100YS", unit="s")
     DatetimeIndex(['2017-01-01', '2117-01-01', '2217-01-01', '2317-01-01',
                    '2417-01-01', '2517-01-01', '2617-01-01', '2717-01-01',
                    '2817-01-01', '2917-01-01'],
-                  dtype='datetime64[s]', freq='100AS-JAN')
+                  dtype='datetime64[s]', freq='100YS-JAN')
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"
@@ -1040,7 +1039,7 @@ def bdate_range(
     periods : int, default None
         Number of periods to generate.
     freq : str, Timedelta, datetime.timedelta, or DateOffset, default 'B'
-        Frequency strings can have multiples, e.g. '5H'. The default is
+        Frequency strings can have multiples, e.g. '5h'. The default is
         business daily ('B').
     tz : str or None
         Time zone name for returning localized DatetimeIndex, for example

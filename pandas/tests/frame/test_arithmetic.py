@@ -513,7 +513,7 @@ class TestFrameFlexArithmetic:
             and opname == "pow"
             and "python" in request.node.callspec.id
         ):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="https://github.com/pydata/numexpr/issues/454")
             )
 
@@ -1228,7 +1228,7 @@ def test_frame_single_columns_object_sum_axis_1():
 
 class TestFrameArithmeticUnsorted:
     def test_frame_add_tz_mismatch_converts_to_utc(self):
-        rng = pd.date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
+        rng = pd.date_range("1/1/2011", periods=10, freq="h", tz="US/Eastern")
         df = DataFrame(
             np.random.default_rng(2).standard_normal(len(rng)), index=rng, columns=["a"]
         )
@@ -1241,7 +1241,7 @@ class TestFrameArithmeticUnsorted:
         assert result.index.tz is timezone.utc
 
     def test_align_frame(self):
-        rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
+        rng = pd.period_range("1/1/2000", "1/1/2010", freq="Y")
         ts = DataFrame(
             np.random.default_rng(2).standard_normal((len(rng), 3)), index=rng
         )

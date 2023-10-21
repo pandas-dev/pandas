@@ -829,7 +829,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not using_copy_on_write() and copy is not False:
                 new_mgr = new_mgr.copy(deep=True)
 
-            return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
+            out = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+            return out.__finalize__(self, method="swapaxes")
 
         return self._constructor(
             new_values,
@@ -8784,6 +8785,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3     -1      6
         4      5     -4
 
+        Clips using specific lower and upper thresholds per column:
+
+        >>> df.clip([-2, -1], [4,5])
+            col_0  col_1
+        0      4     -1
+        1     -2     -1
+        2      0      5
+        3     -1      5
+        4      4     -1
+
         Clips using specific lower and upper thresholds per column element:
 
         >>> t = pd.Series([2, -4, -1, 6, 3])
@@ -9039,7 +9050,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
         Examples
         --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='12H')
+        >>> i = pd.date_range('2018-04-09', periods=4, freq='12h')
         >>> ts = pd.DataFrame({'A': [1, 2, 3, 4]}, index=i)
         >>> ts
                              A
@@ -9187,11 +9198,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
-            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'Y', 'Q', 'BME',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
-            for all frequency offsets except for 'ME', 'A', 'Q', 'BM',
+            for all frequency offsets except for 'ME', 'Y', 'Q', 'BME',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
@@ -9221,6 +9232,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionadded:: 1.3.0
 
+            .. note::
+
+                Only takes effect for Tick-frequencies (i.e. fixed frequencies like
+                days, hours, and minutes, rather than months or quarters).
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
 
@@ -9362,12 +9377,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         assigned to the first quarter of the period.
 
         >>> s = pd.Series([1, 2], index=pd.period_range('2012-01-01',
-        ...                                             freq='A',
+        ...                                             freq='Y',
         ...                                             periods=2))
         >>> s
         2012    1
         2013    2
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
         >>> s.resample('Q', convention='start').asfreq()
         2012Q1    1.0
         2012Q2    NaN
@@ -9491,12 +9506,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:26:00    24
         Freq: 17min, dtype: int64
 
-        >>> ts.resample('17W', origin='2000-01-01').sum()
-        2000-01-02      0
-        2000-04-30      0
-        2000-08-27      0
-        2000-12-24    108
-        Freq: 17W-SUN, dtype: int64
+        >>> ts.resample('17min', origin='2000-01-01').sum()
+        2000-10-01 23:24:00     3
+        2000-10-01 23:41:00    15
+        2000-10-01 23:58:00    45
+        2000-10-02 00:15:00    45
+        Freq: 17min, dtype: int64
 
         If you want to adjust the start of the bins with an `offset` Timedelta, the two
         following lines are equivalent:
@@ -11380,7 +11395,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2015-03-29 01:59:59.999999999+01:00    0
         2015-03-29 03:30:00+02:00              1
         dtype: int64
-        >>> s.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
+        >>> s.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
         2015-03-29 03:30:00+02:00    0
         2015-03-29 03:30:00+02:00    1
         dtype: int64
@@ -11910,7 +11925,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
     def any(
         self,
-        axis: Axis = 0,
+        axis: Axis | None = 0,
         bool_only: bool_t = False,
         skipna: bool_t = True,
         **kwargs,

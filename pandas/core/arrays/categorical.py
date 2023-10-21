@@ -101,6 +101,7 @@ if TYPE_CHECKING:
         AstypeArg,
         AxisInt,
         Dtype,
+        DtypeObj,
         NpDtype,
         Ordered,
         Self,
@@ -508,6 +509,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         cls, scalars, *, dtype: Dtype | None = None, copy: bool = False
     ) -> Self:
         return cls(scalars, dtype=dtype, copy=copy)
+
+    @classmethod
+    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
+        if dtype is None:
+            # The _from_scalars strictness doesn't make much sense in this case.
+            raise NotImplementedError
+
+        res = cls._from_sequence(scalars, dtype=dtype)
+
+        # if there are any non-category elements in scalars, these will be
+        #  converted to NAs in res.
+        mask = isna(scalars)
+        if not (mask == res.isna()).all():
+            # Some non-category element in scalars got converted to NA in res.
+            raise ValueError
+        return res
 
     @overload
     def astype(self, dtype: npt.DTypeLike, copy: bool = ...) -> np.ndarray:
@@ -2167,17 +2184,17 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         )
         if len(self.categories) > max_categories:
             num = max_categories // 2
-            head = format_array(self.categories[:num])
-            tail = format_array(self.categories[-num:])
+            head = format_array(self.categories[:num]._values)
+            tail = format_array(self.categories[-num:]._values)
             category_strs = head + ["..."] + tail
         else:
-            category_strs = format_array(self.categories)
+            category_strs = format_array(self.categories._values)
 
         # Strip all leading spaces, which format_array adds for columns...
         category_strs = [x.strip() for x in category_strs]
         return category_strs
 
-    def _repr_categories_info(self) -> str:
+    def _get_repr_footer(self) -> str:
         """
         Returns a string representation of the footer.
         """
@@ -2229,7 +2246,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         """
         String representation.
         """
-        footer = self._repr_categories_info()
+        footer = self._get_repr_footer()
         length = len(self)
         max_len = 10
         if length > max_len:

@@ -7,7 +7,6 @@ from __future__ import annotations
 from collections.abc import (
     Generator,
     Hashable,
-    Iterable,
     Mapping,
     Sequence,
 )
@@ -20,14 +19,12 @@ import math
 import re
 from shutil import get_terminal_size
 from typing import (
-    IO,
     TYPE_CHECKING,
     Any,
     Callable,
     Final,
     cast,
 )
-from unicodedata import east_asian_width
 
 import numpy as np
 
@@ -42,7 +39,6 @@ from pandas._libs.tslibs import (
     NaT,
     Timedelta,
     Timestamp,
-    iNaT,
 )
 from pandas._libs.tslibs.nattype import NaTType
 
@@ -104,7 +100,6 @@ if TYPE_CHECKING:
         SequenceNotStr,
         StorageOptions,
         WriteBuffer,
-        npt,
     )
 
     from pandas import (
@@ -172,7 +167,7 @@ common_docstring: Final = """
             Character recognized as decimal separator, e.g. ',' in Europe.
     """
 
-_VALID_JUSTIFY_PARAMETERS = (
+VALID_JUSTIFY_PARAMETERS = (
     "left",
     "right",
     "center",
@@ -196,10 +191,15 @@ return_docstring: Final = """
 
 
 class SeriesFormatter:
+    """
+    Implement the main logic of Series.to_string, which underlies
+    Series.__repr__.
+    """
+
     def __init__(
         self,
         series: Series,
-        buf: IO[str] | None = None,
+        *,
         length: bool | str = True,
         header: bool = True,
         index: bool = True,
@@ -211,7 +211,7 @@ class SeriesFormatter:
         min_rows: int | None = None,
     ) -> None:
         self.series = series
-        self.buf = buf if buf is not None else StringIO()
+        self.buf = StringIO()
         self.name = name
         self.na_rep = na_rep
         self.header = header
@@ -224,7 +224,7 @@ class SeriesFormatter:
             float_format = get_option("display.float_format")
         self.float_format = float_format
         self.dtype = dtype
-        self.adj = get_adjustment()
+        self.adj = printing.get_adjustment()
 
         self._chk_truncate()
 
@@ -259,11 +259,12 @@ class SeriesFormatter:
         name = self.series.name
         footer = ""
 
-        if getattr(self.series.index, "freq", None) is not None:
-            assert isinstance(
-                self.series.index, (DatetimeIndex, PeriodIndex, TimedeltaIndex)
-            )
-            footer += f"Freq: {self.series.index.freqstr}"
+        index = self.series.index
+        if (
+            isinstance(index, (DatetimeIndex, PeriodIndex, TimedeltaIndex))
+            and index.freq is not None
+        ):
+            footer += f"Freq: {index.freqstr}"
 
         if self.name is not False and name is not None:
             if footer:
@@ -289,23 +290,12 @@ class SeriesFormatter:
         # level infos are added to the end and in a new line, like it is done
         # for Categoricals
         if isinstance(self.tr_series.dtype, CategoricalDtype):
-            level_info = self.tr_series._values._repr_categories_info()
+            level_info = self.tr_series._values._get_repr_footer()
             if footer:
                 footer += "\n"
             footer += level_info
 
         return str(footer)
-
-    def _get_formatted_index(self) -> tuple[list[str], bool]:
-        index = self.tr_series.index
-
-        if isinstance(index, MultiIndex):
-            have_header = any(name for name in index.names)
-            fmt_index = index.format(names=True)
-        else:
-            have_header = index.name is not None
-            fmt_index = index.format(name=True)
-        return fmt_index, have_header
 
     def _get_formatted_values(self) -> list[str]:
         return format_array(
@@ -323,7 +313,14 @@ class SeriesFormatter:
         if len(series) == 0:
             return f"{type(self.series).__name__}([], {footer})"
 
-        fmt_index, have_header = self._get_formatted_index()
+        index = series.index
+        have_header = _has_names(index)
+        if isinstance(index, MultiIndex):
+            fmt_index = index._format_multi(include_names=True, sparsify=None)
+            adj = printing.get_adjustment()
+            fmt_index = adj.adjoin(2, *fmt_index).split("\n")
+        else:
+            fmt_index = index._format_flat(include_name=True)
         fmt_values = self._get_formatted_values()
 
         if self.is_truncated_vertically:
@@ -353,69 +350,6 @@ class SeriesFormatter:
             result += "\n" + footer
 
         return str("".join(result))
-
-
-class TextAdjustment:
-    def __init__(self) -> None:
-        self.encoding = get_option("display.encoding")
-
-    def len(self, text: str) -> int:
-        return len(text)
-
-    def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
-        return printing.justify(texts, max_len, mode=mode)
-
-    def adjoin(self, space: int, *lists, **kwargs) -> str:
-        return printing.adjoin(
-            space, *lists, strlen=self.len, justfunc=self.justify, **kwargs
-        )
-
-
-class EastAsianTextAdjustment(TextAdjustment):
-    def __init__(self) -> None:
-        super().__init__()
-        if get_option("display.unicode.ambiguous_as_wide"):
-            self.ambiguous_width = 2
-        else:
-            self.ambiguous_width = 1
-
-        # Definition of East Asian Width
-        # https://unicode.org/reports/tr11/
-        # Ambiguous width can be changed by option
-        self._EAW_MAP = {"Na": 1, "N": 1, "W": 2, "F": 2, "H": 1}
-
-    def len(self, text: str) -> int:
-        """
-        Calculate display width considering unicode East Asian Width
-        """
-        if not isinstance(text, str):
-            return len(text)
-
-        return sum(
-            self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
-        )
-
-    def justify(
-        self, texts: Iterable[str], max_len: int, mode: str = "right"
-    ) -> list[str]:
-        # re-calculate padding space per str considering East Asian Width
-        def _get_pad(t):
-            return max_len - self.len(t) + len(t)
-
-        if mode == "left":
-            return [x.ljust(_get_pad(x)) for x in texts]
-        elif mode == "center":
-            return [x.center(_get_pad(x)) for x in texts]
-        else:
-            return [x.rjust(_get_pad(x)) for x in texts]
-
-
-def get_adjustment() -> TextAdjustment:
-    use_east_asian_width = get_option("display.unicode.east_asian_width")
-    if use_east_asian_width:
-        return EastAsianTextAdjustment()
-    else:
-        return TextAdjustment()
 
 
 def get_dataframe_repr_params() -> dict[str, Any]:
@@ -469,16 +403,9 @@ def get_series_repr_params() -> dict[str, Any]:
     True
     """
     width, height = get_terminal_size()
-    max_rows = (
-        height
-        if get_option("display.max_rows") == 0
-        else get_option("display.max_rows")
-    )
-    min_rows = (
-        height
-        if get_option("display.max_rows") == 0
-        else get_option("display.min_rows")
-    )
+    max_rows_opt = get_option("display.max_rows")
+    max_rows = height if max_rows_opt == 0 else max_rows_opt
+    min_rows = height if max_rows_opt == 0 else get_option("display.min_rows")
 
     return {
         "name": True,
@@ -490,7 +417,11 @@ def get_series_repr_params() -> dict[str, Any]:
 
 
 class DataFrameFormatter:
-    """Class for processing dataframe formatting options and data."""
+    """
+    Class for processing dataframe formatting options and data.
+
+    Used by DataFrame.to_string, which backs DataFrame.__repr__.
+    """
 
     __doc__ = __doc__ if __doc__ else ""
     __doc__ += common_docstring + return_docstring
@@ -540,7 +471,7 @@ class DataFrameFormatter:
 
         self.tr_frame = self.frame
         self.truncate()
-        self.adj = get_adjustment()
+        self.adj = printing.get_adjustment()
 
     def get_strcols(self) -> list[list[str]]:
         """
@@ -852,7 +783,7 @@ class DataFrameFormatter:
         columns = frame.columns
 
         if isinstance(columns, MultiIndex):
-            fmt_columns = columns.format(sparsify=False, adjoin=False)
+            fmt_columns = columns._format_multi(sparsify=False, include_names=False)
             fmt_columns = list(zip(*fmt_columns))
             dtypes = self.frame.dtypes._values
 
@@ -877,7 +808,7 @@ class DataFrameFormatter:
 
             str_columns = [list(x) for x in zip(*str_columns)]
         else:
-            fmt_columns = columns.format()
+            fmt_columns = columns._format_flat(include_name=False)
             dtypes = self.frame.dtypes
             need_leadsp = dict(zip(fmt_columns, map(is_numeric_dtype, dtypes)))
             str_columns = [
@@ -896,14 +827,15 @@ class DataFrameFormatter:
         fmt = self._get_formatter("__index__")
 
         if isinstance(index, MultiIndex):
-            fmt_index = index.format(
+            fmt_index = index._format_multi(
                 sparsify=self.sparsify,
-                adjoin=False,
-                names=self.show_row_idx_names,
+                include_names=self.show_row_idx_names,
                 formatter=fmt,
             )
         else:
-            fmt_index = [index.format(name=self.show_row_idx_names, formatter=fmt)]
+            fmt_index = [
+                index._format_flat(include_name=self.show_row_idx_names, formatter=fmt)
+            ]
 
         fmt_index = [
             tuple(
@@ -1102,16 +1034,16 @@ def save_to_buffer(
     """
     Perform serialization. Write to buf or return as string if buf is None.
     """
-    with get_buffer(buf, encoding=encoding) as f:
-        f.write(string)
+    with _get_buffer(buf, encoding=encoding) as fd:
+        fd.write(string)
         if buf is None:
             # error: "WriteBuffer[str]" has no attribute "getvalue"
-            return f.getvalue()  # type: ignore[attr-defined]
+            return fd.getvalue()  # type: ignore[attr-defined]
         return None
 
 
 @contextmanager
-def get_buffer(
+def _get_buffer(
     buf: FilePath | WriteBuffer[str] | None, encoding: str | None = None
 ) -> Generator[WriteBuffer[str], None, None] | Generator[StringIO, None, None]:
     """
@@ -1180,7 +1112,7 @@ def format_array(
         the leading space to pad between columns.
 
         When formatting an Index subclass
-        (e.g. IntervalIndex._format_native_types), we don't want the
+        (e.g. IntervalIndex._get_values_for_csv), we don't want the
         leading space since it should be left-aligned.
     fallback_formatter
 
@@ -1188,24 +1120,24 @@ def format_array(
     -------
     List[str]
     """
-    fmt_klass: type[GenericArrayFormatter]
+    fmt_klass: type[_GenericArrayFormatter]
     if lib.is_np_dtype(values.dtype, "M"):
-        fmt_klass = Datetime64Formatter
+        fmt_klass = _Datetime64Formatter
         values = cast(DatetimeArray, values)
     elif isinstance(values.dtype, DatetimeTZDtype):
-        fmt_klass = Datetime64TZFormatter
+        fmt_klass = _Datetime64TZFormatter
         values = cast(DatetimeArray, values)
     elif lib.is_np_dtype(values.dtype, "m"):
-        fmt_klass = Timedelta64Formatter
+        fmt_klass = _Timedelta64Formatter
         values = cast(TimedeltaArray, values)
     elif isinstance(values.dtype, ExtensionDtype):
-        fmt_klass = ExtensionArrayFormatter
+        fmt_klass = _ExtensionArrayFormatter
     elif lib.is_np_dtype(values.dtype, "fc"):
         fmt_klass = FloatArrayFormatter
     elif lib.is_np_dtype(values.dtype, "iu"):
-        fmt_klass = IntArrayFormatter
+        fmt_klass = _IntArrayFormatter
     else:
-        fmt_klass = GenericArrayFormatter
+        fmt_klass = _GenericArrayFormatter
 
     if space is None:
         space = 12
@@ -1233,7 +1165,7 @@ def format_array(
     return fmt_obj.get_result()
 
 
-class GenericArrayFormatter:
+class _GenericArrayFormatter:
     def __init__(
         self,
         values: ArrayLike,
@@ -1291,18 +1223,16 @@ class GenericArrayFormatter:
 
         def _format(x):
             if self.na_rep is not None and is_scalar(x) and isna(x):
-                try:
-                    # try block for np.isnat specifically
-                    # determine na_rep if x is None or NaT-like
-                    if x is None:
-                        return "None"
-                    elif x is NA:
-                        return str(NA)
-                    elif x is NaT or np.isnat(x):
-                        return "NaT"
-                except (TypeError, ValueError):
-                    # np.isnat only handles datetime or timedelta objects
-                    pass
+                if x is None:
+                    return "None"
+                elif x is NA:
+                    return str(NA)
+                elif lib.is_float(x) and np.isinf(x):
+                    # TODO(3.0): this will be unreachable when use_inf_as_na
+                    #  deprecation is enforced
+                    return str(x)
+                elif x is NaT or isinstance(x, (np.datetime64, np.timedelta64)):
+                    return "NaT"
                 return self.na_rep
             elif isinstance(x, PandasObject):
                 return str(x)
@@ -1315,7 +1245,7 @@ class GenericArrayFormatter:
         vals = extract_array(self.values, extract_numpy=True)
         if not isinstance(vals, np.ndarray):
             raise TypeError(
-                "ExtensionArray formatting should use ExtensionArrayFormatter"
+                "ExtensionArray formatting should use _ExtensionArrayFormatter"
             )
         inferred = lib.map_infer(vals, is_float)
         is_float_type = (
@@ -1345,7 +1275,7 @@ class GenericArrayFormatter:
         return fmt_values
 
 
-class FloatArrayFormatter(GenericArrayFormatter):
+class FloatArrayFormatter(_GenericArrayFormatter):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -1546,7 +1476,7 @@ class FloatArrayFormatter(GenericArrayFormatter):
         return list(self.get_result_as_array())
 
 
-class IntArrayFormatter(GenericArrayFormatter):
+class _IntArrayFormatter(_GenericArrayFormatter):
     def _format_strings(self) -> list[str]:
         if self.leading_space is False:
             formatter_str = lambda x: f"{x:d}".format(x=x)
@@ -1557,7 +1487,7 @@ class IntArrayFormatter(GenericArrayFormatter):
         return fmt_values
 
 
-class Datetime64Formatter(GenericArrayFormatter):
+class _Datetime64Formatter(_GenericArrayFormatter):
     values: DatetimeArray
 
     def __init__(
@@ -1586,7 +1516,7 @@ class Datetime64Formatter(GenericArrayFormatter):
         return fmt_values.tolist()
 
 
-class ExtensionArrayFormatter(GenericArrayFormatter):
+class _ExtensionArrayFormatter(_GenericArrayFormatter):
     values: ExtensionArray
 
     def _format_strings(self) -> list[str]:
@@ -1727,7 +1657,7 @@ def get_format_datetime64(
         return lambda x: _format_datetime64(x, nat_rep=nat_rep)
 
 
-class Datetime64TZFormatter(Datetime64Formatter):
+class _Datetime64TZFormatter(_Datetime64Formatter):
     values: DatetimeArray
 
     def _format_strings(self) -> list[str]:
@@ -1742,23 +1672,22 @@ class Datetime64TZFormatter(Datetime64Formatter):
         return fmt_values
 
 
-class Timedelta64Formatter(GenericArrayFormatter):
+class _Timedelta64Formatter(_GenericArrayFormatter):
     values: TimedeltaArray
 
     def __init__(
         self,
         values: TimedeltaArray,
         nat_rep: str = "NaT",
-        box: bool = False,
         **kwargs,
     ) -> None:
+        # TODO: nat_rep is never passed, na_rep is.
         super().__init__(values, **kwargs)
         self.nat_rep = nat_rep
-        self.box = box
 
     def _format_strings(self) -> list[str]:
         formatter = self.formatter or get_format_timedelta64(
-            self.values, nat_rep=self.nat_rep, box=self.box
+            self.values, nat_rep=self.nat_rep, box=False
         )
         return [formatter(x) for x in self.values]
 
@@ -1774,15 +1703,7 @@ def get_format_timedelta64(
 
     If box, then show the return in quotes
     """
-    values_int = values.view(np.int64)
-    values_int = cast("npt.NDArray[np.int64]", values_int)
-
-    consider_values = values_int != iNaT
-
-    one_day_nanos = 86400 * 10**9
-    not_midnight = values_int % one_day_nanos != 0
-    both = np.logical_and(consider_values, not_midnight)
-    even_days = both.sum() == 0
+    even_days = values._is_dates_only
 
     if even_days:
         format = None
@@ -1809,13 +1730,13 @@ def _make_fixed_width(
     strings: list[str],
     justify: str = "right",
     minimum: int | None = None,
-    adj: TextAdjustment | None = None,
+    adj: printing._TextAdjustment | None = None,
 ) -> list[str]:
     if len(strings) == 0 or justify == "all":
         return strings
 
     if adj is None:
-        adjustment = get_adjustment()
+        adjustment = printing.get_adjustment()
     else:
         adjustment = adj
 

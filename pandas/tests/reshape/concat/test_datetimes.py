@@ -46,8 +46,8 @@ class TestDatetimeConcat:
 
     def test_concat_datetime_timezone(self):
         # GH 18523
-        idx1 = date_range("2011-01-01", periods=3, freq="H", tz="Europe/Paris")
-        idx2 = date_range(start=idx1[0], end=idx1[-1], freq="H")
+        idx1 = date_range("2011-01-01", periods=3, freq="h", tz="Europe/Paris")
+        idx2 = date_range(start=idx1[0], end=idx1[-1], freq="h")
         df1 = DataFrame({"a": [1, 2, 3]}, index=idx1)
         df2 = DataFrame({"b": [1, 2, 3]}, index=idx2)
         result = concat([df1, df2], axis=1)
@@ -59,7 +59,7 @@ class TestDatetimeConcat:
                     "2011-01-01 01:00:00+01:00",
                     "2011-01-01 02:00:00+01:00",
                 ],
-                freq="H",
+                freq="h",
             )
             .tz_convert("UTC")
             .tz_convert("Europe/Paris")
@@ -71,7 +71,7 @@ class TestDatetimeConcat:
 
         tm.assert_frame_equal(result, expected)
 
-        idx3 = date_range("2011-01-01", periods=3, freq="H", tz="Asia/Tokyo")
+        idx3 = date_range("2011-01-01", periods=3, freq="h", tz="Asia/Tokyo")
         df3 = DataFrame({"b": [1, 2, 3]}, index=idx3)
         result = concat([df1, df3], axis=1)
 
@@ -102,7 +102,7 @@ class TestDatetimeConcat:
         tm.assert_frame_equal(result, expected)
 
         # GH 13783: Concat after resample
-        result = concat([df1.resample("H").mean(), df2.resample("H").mean()], sort=True)
+        result = concat([df1.resample("h").mean(), df2.resample("h").mean()], sort=True)
         expected = DataFrame(
             {"a": [1, 2, 3] + [np.nan] * 3, "b": [np.nan] * 3 + [1, 2, 3]},
             index=idx1.append(idx1),
@@ -178,6 +178,7 @@ class TestDatetimeConcat:
         result = concat([y, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
+    def test_concat_NaT_series2(self):
         # without tz
         x = Series(date_range("20151124 08:00", "20151124 09:00", freq="1h"))
         y = Series(date_range("20151124 10:00", "20151124 11:00", freq="1h"))
@@ -298,6 +299,7 @@ class TestTimezoneConcat:
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
+    def test_concat_tz_series2(self):
         # gh-11887: concat tz and object
         x = Series(date_range("20151124 08:00", "20151124 09:00", freq="1h", tz="UTC"))
         y = Series(["a", "b"])
@@ -305,6 +307,7 @@ class TestTimezoneConcat:
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
+    def test_concat_tz_series3(self):
         # see gh-12217 and gh-12306
         # Concatenating two UTC times
         first = DataFrame([[datetime(2016, 1, 1)]])
@@ -316,6 +319,7 @@ class TestTimezoneConcat:
         result = concat([first, second])
         assert result[0].dtype == "datetime64[ns, UTC]"
 
+    def test_concat_tz_series4(self):
         # Concatenating two London times
         first = DataFrame([[datetime(2016, 1, 1)]])
         first[0] = first[0].dt.tz_localize("Europe/London")
@@ -326,6 +330,7 @@ class TestTimezoneConcat:
         result = concat([first, second])
         assert result[0].dtype == "datetime64[ns, Europe/London]"
 
+    def test_concat_tz_series5(self):
         # Concatenating 2+1 London times
         first = DataFrame([[datetime(2016, 1, 1)], [datetime(2016, 1, 2)]])
         first[0] = first[0].dt.tz_localize("Europe/London")
@@ -336,6 +341,7 @@ class TestTimezoneConcat:
         result = concat([first, second])
         assert result[0].dtype == "datetime64[ns, Europe/London]"
 
+    def test_concat_tz_series6(self):
         # Concat'ing 1+2 London times
         first = DataFrame([[datetime(2016, 1, 1)]])
         first[0] = first[0].dt.tz_localize("Europe/London")
@@ -512,6 +518,7 @@ class TestPeriodConcat:
         tm.assert_series_equal(result, expected)
         assert result.dtype == "object"
 
+    def test_concat_period_other_series2(self):
         # non-period
         x = Series(pd.PeriodIndex(["2015-11-01", "2015-12-01"], freq="D"))
         y = Series(DatetimeIndex(["2015-11-01", "2015-12-01"]))
@@ -520,6 +527,7 @@ class TestPeriodConcat:
         tm.assert_series_equal(result, expected)
         assert result.dtype == "object"
 
+    def test_concat_period_other_series3(self):
         x = Series(pd.PeriodIndex(["2015-11-01", "2015-12-01"], freq="D"))
         y = Series(["A", "B"])
         expected = Series([x[0], x[1], y[0], y[1]], dtype="object")

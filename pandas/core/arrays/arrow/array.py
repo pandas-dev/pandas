@@ -119,7 +119,8 @@ if not pa_version_under7p0:
     ) -> pa.ChunkedArray:
         # Ensure int // int -> int mirroring Python/Numpy behavior
         # as pc.floor(pc.divide_checked(int, int)) -> float
-        result = pc.floor(pc.divide(left, right))
+        converted_left = cast_for_truediv(left, right)
+        result = pc.floor(pc.divide(converted_left, right))
         if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
             result = result.cast(left.type)
         return result
@@ -2534,15 +2535,15 @@ class ArrowExtensionArray(
         if offset is None:
             raise ValueError(f"Must specify a valid frequency: {freq}")
         pa_supported_unit = {
-            "A": "year",
-            "AS": "year",
+            "Y": "year",
+            "YS": "year",
             "Q": "quarter",
             "QS": "quarter",
             "M": "month",
             "MS": "month",
             "W": "week",
             "D": "day",
-            "H": "hour",
+            "h": "hour",
             "min": "minute",
             "s": "second",
             "ms": "millisecond",
