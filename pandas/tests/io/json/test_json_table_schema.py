@@ -846,11 +846,12 @@ class TestTableOrientReader:
         result = pd.read_json(StringIO(df_json), orient="table")
         tm.assert_frame_equal(expected, result)
 
-    def test_read_json_table_orient_period_depr_freq(self, recwarn):
+    @pytest.mark.parametrize("freq", ["M", "2M"])
+    def test_read_json_table_orient_period_depr_freq(self, freq, recwarn):
         # GH#9586
         df = DataFrame(
             {"ints": [1, 2]},
-            index=pd.PeriodIndex(["2011-01", "2011-08"], freq="2M"),
+            index=pd.PeriodIndex(["2020-01", "2020-06"], freq=freq),
         )
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
