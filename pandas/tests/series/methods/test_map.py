@@ -204,7 +204,7 @@ def test_map(datetime_series):
 
 def test_map_empty(request, index):
     if isinstance(index, MultiIndex):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Initializing a Series from a MultiIndex is not supported"
             )

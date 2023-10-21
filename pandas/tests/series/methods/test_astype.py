@@ -170,7 +170,7 @@ class TestAstype:
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         msg = (
             rf"The '{dtype.__name__}' dtype has no unit\. "
@@ -485,7 +485,7 @@ class TestAstypeString:
             mark = pytest.mark.xfail(
                 reason="TODO StringArray.astype() with missing values #GH40566"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         # GH-40351
         ser = Series(data, dtype=dtype)
 

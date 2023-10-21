@@ -605,46 +605,6 @@ class TestDatetimeIndexTimezones:
         localized_is_dst = dr.tz_localize(tz, ambiguous=is_dst)
         tm.assert_index_equal(localized, localized_is_dst)
 
-    # TODO: belongs outside tz_localize tests?
-    @pytest.mark.parametrize("tz", ["Europe/London", "dateutil/Europe/London"])
-    def test_dti_construction_ambiguous_endpoint(self, tz):
-        # construction with an ambiguous end-point
-        # GH#11626
-
-        with pytest.raises(pytz.AmbiguousTimeError, match="Cannot infer dst time"):
-            date_range(
-                "2013-10-26 23:00", "2013-10-27 01:00", tz="Europe/London", freq="h"
-            )
-
-        times = date_range(
-            "2013-10-26 23:00", "2013-10-27 01:00", freq="h", tz=tz, ambiguous="infer"
-        )
-        assert times[0] == Timestamp("2013-10-26 23:00", tz=tz)
-        assert times[-1] == Timestamp("2013-10-27 01:00:00+0000", tz=tz)
-
-    @pytest.mark.parametrize(
-        "tz, option, expected",
-        [
-            ["US/Pacific", "shift_forward", "2019-03-10 03:00"],
-            ["dateutil/US/Pacific", "shift_forward", "2019-03-10 03:00"],
-            ["US/Pacific", "shift_backward", "2019-03-10 01:00"],
-            ["dateutil/US/Pacific", "shift_backward", "2019-03-10 01:00"],
-            ["US/Pacific", timedelta(hours=1), "2019-03-10 03:00"],
-        ],
-    )
-    def test_dti_construction_nonexistent_endpoint(self, tz, option, expected):
-        # construction with an nonexistent end-point
-
-        with pytest.raises(pytz.NonExistentTimeError, match="2019-03-10 02:00:00"):
-            date_range(
-                "2019-03-10 00:00", "2019-03-10 02:00", tz="US/Pacific", freq="h"
-            )
-
-        times = date_range(
-            "2019-03-10 00:00", "2019-03-10 02:00", freq="h", tz=tz, nonexistent=option
-        )
-        assert times[-1] == Timestamp(expected, tz=tz)
-
     def test_dti_tz_localize_bdate_range(self):
         dr = bdate_range("1/1/2009", "1/1/2010")
         dr_utc = bdate_range("1/1/2009", "1/1/2010", tz=pytz.utc)
@@ -973,16 +933,6 @@ class TestDatetimeIndexTimezones:
         assert (utc_range == berlin_range).all()
         assert (berlin_range == eastern_range).all()
 
-    def test_dti_intersection(self):
-        rng = date_range("1/1/2011", periods=100, freq="h", tz="utc")
-
-        left = rng[10:90][::-1]
-        right = rng[20:80][::-1]
-
-        assert left.tz == rng.tz
-        result = left.intersection(right)
-        assert result.tz == left.tz
-
     def test_dti_equals_with_tz(self):
         left = date_range("1/1/2011", periods=100, freq="h", tz="utc")
         right = date_range("1/1/2011", periods=100, freq="h", tz="US/Eastern")
@@ -1142,42 +1092,6 @@ class TestDatetimeIndexTimezones:
         ex_vals = np.array([Timestamp(x).as_unit("ns")._value for x in dates_aware])
         tm.assert_numpy_array_equal(converted.asi8, ex_vals)
         assert converted.tz is timezone.utc
-
-    # Note: not difference, as there is no symmetry requirement there
-    @pytest.mark.parametrize("setop", ["union", "intersection", "symmetric_difference"])
-    def test_dti_setop_aware(self, setop):
-        # non-overlapping
-        # GH#39328 as of 2.0 we cast these to UTC instead of object
-        rng = date_range("2012-11-15 00:00:00", periods=6, freq="h", tz="US/Central")
-
-        rng2 = date_range("2012-11-15 12:00:00", periods=6, freq="h", tz="US/Eastern")
-
-        result = getattr(rng, setop)(rng2)
-
-        left = rng.tz_convert("UTC")
-        right = rng2.tz_convert("UTC")
-        expected = getattr(left, setop)(right)
-        tm.assert_index_equal(result, expected)
-        assert result.tz == left.tz
-        if len(result):
-            assert result[0].tz is timezone.utc
-            assert result[-1].tz is timezone.utc
-
-    def test_dti_union_mixed(self):
-        # GH 21671
-        rng = DatetimeIndex([Timestamp("2011-01-01"), pd.NaT])
-        rng2 = DatetimeIndex(["2012-01-01", "2012-01-02"], tz="Asia/Tokyo")
-        result = rng.union(rng2)
-        expected = Index(
-            [
-                Timestamp("2011-01-01"),
-                pd.NaT,
-                Timestamp("2012-01-01", tz="Asia/Tokyo"),
-                Timestamp("2012-01-02", tz="Asia/Tokyo"),
-            ],
-            dtype=object,
-        )
-        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
         "tz", [None, "UTC", "US/Central", dateutil.tz.tzoffset(None, -28800)]
