@@ -9,6 +9,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas.compat import pa_version_under7p0
+
 from pandas import (
     Categorical,
     CategoricalIndex,
@@ -369,6 +371,20 @@ def test_against_frame_and_seriesgroupby(
             tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        object,
+        pytest.param(
+            "string[pyarrow_numpy]",
+            marks=pytest.mark.skipif(pa_version_under7p0, reason="arrow not installed"),
+        ),
+        pytest.param(
+            "string[pyarrow]",
+            marks=pytest.mark.skipif(pa_version_under7p0, reason="arrow not installed"),
+        ),
+    ],
+)
 @pytest.mark.parametrize("normalize", [True, False])
 @pytest.mark.parametrize(
     "sort, ascending, expected_rows, expected_count, expected_group_size",
@@ -386,7 +402,10 @@ def test_compound(
     expected_rows,
     expected_count,
     expected_group_size,
+    dtype,
 ):
+    education_df = education_df.astype(dtype)
+    education_df.columns = education_df.columns.astype(dtype)
     # Multiple groupby keys and as_index=False
     gp = education_df.groupby(["country", "gender"], as_index=False, sort=False)
     result = gp["education"].value_counts(
@@ -395,11 +414,17 @@ def test_compound(
     expected = DataFrame()
     for column in ["country", "gender", "education"]:
         expected[column] = [education_df[column][row] for row in expected_rows]
+        expected = expected.astype(dtype)
+        expected.columns = expected.columns.astype(dtype)
     if normalize:
         expected["proportion"] = expected_count
         expected["proportion"] /= expected_group_size
+        if dtype == "string[pyarrow]":
+            expected["proportion"] = expected["proportion"].convert_dtypes()
     else:
         expected["count"] = expected_count
+        if dtype == "string[pyarrow]":
+            expected["count"] = expected["count"].convert_dtypes()
     tm.assert_frame_equal(result, expected)
 
 
