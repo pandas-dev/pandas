@@ -24,6 +24,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Fixed bug in :class:`.DataFrameGroupBy` reductions not preserving object dtype when ``infer_string`` is set (:issue:`55620`)
 - Fixed bug in :meth:`Categorical.equals` if other has arrow backed string dtype (:issue:`55364`)
 - Fixed bug in :meth:`DataFrame.__setitem__` not inferring string dtype for zero-dimensional array with ``infer_string=True`` (:issue:`55366`)
 - Fixed bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax` raising for arrow dtypes (:issue:`55368`)
