@@ -277,7 +277,10 @@ def roll_qtrday(
 INVALID_FREQ_ERR_MSG: Literal["Invalid frequency: {0}"]
 
 def shift_months(
-    dtindex: npt.NDArray[np.int64], months: int, day_opt: str | None = ...
+    dtindex: npt.NDArray[np.int64],
+    months: int,
+    day_opt: str | None = ...,
+    reso: int = ...,
 ) -> npt.NDArray[np.int64]: ...
 
 _offset_map: dict[str, BaseOffset]

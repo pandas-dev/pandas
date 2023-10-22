@@ -47,6 +47,9 @@ class TestDataFrameReshape:
         tm.assert_frame_equal(unstacked_cols.T, df)
         tm.assert_frame_equal(unstacked_cols_df["bar"].T, df)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_mixed_level(self, future_stack):
         # GH 18310
         levels = [range(3), [3, "a", "b"], [1, 2]]
@@ -82,6 +85,9 @@ class TestDataFrameReshape:
         expected = df.unstack()
         tm.assert_series_equal(res, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_unstack_fill(self, future_stack):
         # GH #9746: fill_value keyword argument for Series
         # and DataFrame unstack
@@ -388,6 +394,9 @@ class TestDataFrameReshape:
         s = df1["A"]
         unstack_and_compare(s, "index")
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_ints(self, future_stack):
         columns = MultiIndex.from_tuples(list(itertools.product(range(3), repeat=3)))
         df = DataFrame(
@@ -418,6 +427,9 @@ class TestDataFrameReshape:
             ),
         )
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_mixed_levels(self, future_stack):
         columns = MultiIndex.from_tuples(
             [
@@ -474,6 +486,9 @@ class TestDataFrameReshape:
             check_names=False,
         )
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_int_level_names(self, future_stack):
         columns = MultiIndex.from_tuples(
             [
@@ -549,6 +564,9 @@ class TestDataFrameReshape:
         )
         tm.assert_frame_equal(rs, xp)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_unstack_level_binding(self, future_stack):
         # GH9856
         mi = MultiIndex(
@@ -676,6 +694,9 @@ class TestDataFrameReshape:
         assert left.shape == (3, 2)
         tm.assert_frame_equal(left, right)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_unstack_non_unique_index_names(self, future_stack):
         idx = MultiIndex.from_tuples([("a", "b"), ("c", "d")], names=["c1", "c1"])
         df = DataFrame([1, 2], index=idx)
@@ -1044,13 +1065,19 @@ class TestDataFrameReshape:
         # GH 8039
         t = datetime(2014, 1, 1)
         df = DataFrame([1, 2, 3, 4], columns=MultiIndex.from_tuples([(t, "A", "B")]))
-        result = df.stack(future_stack=future_stack)
+        warn = None if future_stack else FutureWarning
+        msg = "The previous implementation of stack is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            result = df.stack(future_stack=future_stack)
 
         eidx = MultiIndex.from_product([(0, 1, 2, 3), ("B",)])
         ecols = MultiIndex.from_tuples([(t, "A")])
         expected = DataFrame([1, 2, 3, 4], index=eidx, columns=ecols)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     @pytest.mark.parametrize(
         "multiindex_columns",
         [
@@ -1111,6 +1138,9 @@ class TestDataFrameReshape:
         else:
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_full_multiIndex(self, future_stack):
         # GH 8844
         full_multiindex = MultiIndex.from_tuples(
@@ -1146,6 +1176,9 @@ class TestDataFrameReshape:
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     @pytest.mark.parametrize("ordered", [False, True])
     @pytest.mark.parametrize(
         "labels,data",
@@ -1184,6 +1217,9 @@ class TestDataFrameReshape:
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize(
         "index, columns",
@@ -1207,6 +1243,9 @@ class TestDataFrameReshape:
         expected_codes = np.asarray(new_index.codes)
         tm.assert_numpy_array_equal(stacked_codes, expected_codes)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     @pytest.mark.parametrize(
         "vals1, vals2, dtype1, dtype2, expected_dtype",
         [
@@ -1369,6 +1408,7 @@ def test_stack_timezone_aware_values(future_stack):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:The previous implementation of stack is deprecated")
 @pytest.mark.parametrize("dropna", [True, False, lib.no_default])
 def test_stack_empty_frame(dropna, future_stack):
     # GH 36113
@@ -1384,6 +1424,7 @@ def test_stack_empty_frame(dropna, future_stack):
         tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:The previous implementation of stack is deprecated")
 @pytest.mark.parametrize("dropna", [True, False, lib.no_default])
 @pytest.mark.parametrize("fill_value", [None, 0])
 def test_stack_unstack_empty_frame(dropna, fill_value, future_stack):
@@ -1441,6 +1482,7 @@ def test_unstacking_multi_index_df():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:The previous implementation of stack is deprecated")
 def test_stack_positional_level_duplicate_column_names(future_stack):
     # https://github.com/pandas-dev/pandas/issues/36353
     columns = MultiIndex.from_product([("x", "y"), ("y", "z")], names=["a", "a"])
@@ -1476,6 +1518,7 @@ def test_unstack_non_slice_like_blocks(using_array_manager):
     tm.assert_frame_equal(res, expected)
 
 
+@pytest.mark.filterwarnings("ignore:The previous implementation of stack is deprecated")
 def test_stack_sort_false(future_stack):
     # GH 15105
     data = [[1, 2, 3.0, 4.0], [2, 3, 4.0, 5.0], [3, 4, np.nan, np.nan]]
@@ -1514,6 +1557,7 @@ def test_stack_sort_false(future_stack):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore:The previous implementation of stack is deprecated")
 def test_stack_sort_false_multi_level(future_stack):
     # GH 15105
     idx = MultiIndex.from_tuples([("weight", "kg"), ("height", "m")])
@@ -1600,6 +1644,9 @@ class TestStackUnstackMultiLevel:
         expected = unstacked.dropna(axis=1, how="all")
         tm.assert_frame_equal(unstacked, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack(self, multiindex_year_month_day_dataframe_random_data, future_stack):
         ymd = multiindex_year_month_day_dataframe_random_data
 
@@ -1720,6 +1767,9 @@ class TestStackUnstackMultiLevel:
             li, ri = result.index, expected.index
             tm.assert_index_equal(li, ri)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_unstack_odd_failure(self, future_stack):
         data = """day,time,smoker,sum,len
 Fri,Dinner,No,8.25,3.
@@ -1745,6 +1795,9 @@ Thu,Lunch,Yes,51.51,17"""
             recons = recons.dropna(how="all")
         tm.assert_frame_equal(recons, df)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_mixed_dtype(self, multiindex_dataframe_random_data, future_stack):
         frame = multiindex_dataframe_random_data
 
@@ -1777,6 +1830,9 @@ Thu,Lunch,Yes,51.51,17"""
         restacked = unstacked.stack(future_stack=future_stack)
         tm.assert_series_equal(restacked, result.reindex(restacked.index).astype(float))
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_unstack_preserve_names(
         self, multiindex_dataframe_random_data, future_stack
     ):
@@ -1816,6 +1872,9 @@ Thu,Lunch,Yes,51.51,17"""
         expected = frame.unstack(level=1)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_level_name(self, multiindex_dataframe_random_data, future_stack):
         frame = multiindex_dataframe_random_data
 
@@ -1828,6 +1887,9 @@ Thu,Lunch,Yes,51.51,17"""
         expected = frame.stack(future_stack=future_stack)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_unstack_multiple(
         self, multiindex_year_month_day_dataframe_random_data, future_stack
     ):
@@ -1862,6 +1924,9 @@ Thu,Lunch,Yes,51.51,17"""
         expected = ymd.unstack(2).unstack(1).dropna(axis=1, how="all")
         tm.assert_frame_equal(unstacked, expected.loc[:, unstacked.columns])
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_names_and_numbers(
         self, multiindex_year_month_day_dataframe_random_data, future_stack
     ):
@@ -1873,6 +1938,9 @@ Thu,Lunch,Yes,51.51,17"""
         with pytest.raises(ValueError, match="level should contain"):
             unstacked.stack([0, "month"], future_stack=future_stack)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_multiple_out_of_bounds(
         self, multiindex_year_month_day_dataframe_random_data, future_stack
     ):
@@ -2002,6 +2070,9 @@ Thu,Lunch,Yes,51.51,17"""
 
         tm.assert_frame_equal(result3, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_multiple_bug(self, future_stack):
         # bug when some uniques are not present in the data GH#3170
         id_col = ([1] * 3) + ([2] * 3)
@@ -2027,6 +2098,9 @@ Thu,Lunch,Yes,51.51,17"""
         xp.columns.name = "Params"
         tm.assert_frame_equal(rs, xp)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_dropna(self, future_stack):
         # GH#3997
         df = DataFrame({"A": ["a1", "a2"], "B": ["b1", "b2"], "C": [1, 1]})
@@ -2080,6 +2154,9 @@ Thu,Lunch,Yes,51.51,17"""
         # it works! is sufficient
         idf.unstack("E")
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_unstack_unobserved_keys(self, future_stack):
         # related to GH#2278 refactoring
         levels = [[0, 1], [0, 1, 2, 3]]
@@ -2117,6 +2194,9 @@ Thu,Lunch,Yes,51.51,17"""
                 with pytest.raises(Exception, match="Don't compute final result."):
                     df.unstack()
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     @pytest.mark.parametrize(
         "levels",
         itertools.chain.from_iterable(
@@ -2143,6 +2223,9 @@ Thu,Lunch,Yes,51.51,17"""
                 result = df_stacked.loc[result_row, result_col]
                 assert result == expected
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_order_with_unsorted_levels_multi_row(self, future_stack):
         # GH#16323
 
@@ -2161,6 +2244,9 @@ Thu,Lunch,Yes,51.51,17"""
             for col in df.columns
         )
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_order_with_unsorted_levels_multi_row_2(self, future_stack):
         # GH#53636
         levels = ((0, 1), (1, 0))
@@ -2182,6 +2268,9 @@ Thu,Lunch,Yes,51.51,17"""
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_unstack_unordered_multiindex(self, future_stack):
         # GH# 18265
         values = np.arange(5)
@@ -2315,6 +2404,9 @@ Thu,Lunch,Yes,51.51,17"""
 
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_nan_in_multiindex_columns(self, future_stack):
         # GH#39481
         df = DataFrame(
@@ -2343,6 +2435,9 @@ Thu,Lunch,Yes,51.51,17"""
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_multi_level_stack_categorical(self, future_stack):
         # GH 15239
         midx = MultiIndex.from_arrays(
@@ -2398,6 +2493,9 @@ Thu,Lunch,Yes,51.51,17"""
             )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_nan_level(self, future_stack):
         # GH 9406
         df_nan = DataFrame(
@@ -2441,6 +2539,9 @@ Thu,Lunch,Yes,51.51,17"""
         expected.columns = MultiIndex.from_tuples([("cat", 0), ("cat", 1)])
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_unsorted(self, future_stack):
         # GH 16925
         PAE = ["ITA", "FRA"]
@@ -2463,6 +2564,9 @@ Thu,Lunch,Yes,51.51,17"""
         )
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     def test_stack_nullable_dtype(self, future_stack):
         # GH#43561
         columns = MultiIndex.from_product(
