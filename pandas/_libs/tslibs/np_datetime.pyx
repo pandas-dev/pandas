@@ -484,7 +484,6 @@ import operator
 
 
 cdef int op_to_op_code(op):
-    # TODO: should exist somewhere?
     if op is operator.eq:
         return Py_EQ
     if op is operator.ne:
