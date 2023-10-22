@@ -1741,7 +1741,9 @@ class TestDataFrameConstructors:
         index = list(float_frame.index[:5])
         columns = list(float_frame.columns[:3])
 
-        result = DataFrame(float_frame._mgr, index=index, columns=columns)
+        msg = "Passing a BlockManager to DataFrame"
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            result = DataFrame(float_frame._mgr, index=index, columns=columns)
         tm.assert_index_equal(result.index, Index(index))
         tm.assert_index_equal(result.columns, Index(columns))
 
@@ -1823,7 +1825,7 @@ class TestDataFrameConstructors:
             DataFrame("a", [1, 2], ["a", "c"], float)
 
     def test_constructor_with_datetimes(self):
-        intname = np.dtype(np.int_).name
+        intname = np.dtype(int).name
         floatname = np.dtype(np.float64).name
         objectname = np.dtype(np.object_).name
 
@@ -2471,8 +2473,8 @@ class TestDataFrameConstructors:
         [
             ([1, 2]),
             (["1", "2"]),
-            (list(date_range("1/1/2011", periods=2, freq="H"))),
-            (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
+            (list(date_range("1/1/2011", periods=2, freq="h"))),
+            (list(date_range("1/1/2011", periods=2, freq="h", tz="US/Eastern"))),
             ([Interval(left=0, right=5)]),
         ],
     )
@@ -2742,6 +2744,13 @@ class TestDataFrameConstructors:
         with pd.option_context("future.infer_string", True):
             df = DataFrame(np.array([["a", "c"], ["b", "d"]]), columns=["a", "b"])
         tm.assert_frame_equal(df, expected)
+
+    def test_frame_string_inference_block_dim(self):
+        # GH#55363
+        pytest.importorskip("pyarrow")
+        with pd.option_context("future.infer_string", True):
+            df = DataFrame(np.array([["hello", "goodbye"], ["hello", "Hello"]]))
+        assert df._mgr.blocks[0].ndim == 2
 
 
 class TestDataFrameConstructorIndexInference:
@@ -3164,7 +3173,7 @@ class TestFromScalar:
                 "non-nano, but DatetimeArray._from_sequence has not",
                 strict=True,
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         scalar = datetime(9999, 1, 1)
         exp_dtype = "M8[us]"  # pydatetime objects default to this reso
@@ -3200,7 +3209,7 @@ class TestFromScalar:
                 "to non-nano, but TimedeltaArray._from_sequence has not",
                 strict=True,
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
         exp_dtype = "m8[us]"  # smallest reso that fits

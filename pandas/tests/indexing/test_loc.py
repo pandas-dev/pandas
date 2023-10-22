@@ -260,19 +260,19 @@ class TestLocBaseIndependent:
     @pytest.mark.parametrize(
         "msg, key",
         [
-            (r"Period\('2019', 'A-DEC'\), 'foo', 'bar'", (Period(2019), "foo", "bar")),
-            (r"Period\('2019', 'A-DEC'\), 'y1', 'bar'", (Period(2019), "y1", "bar")),
-            (r"Period\('2019', 'A-DEC'\), 'foo', 'z1'", (Period(2019), "foo", "z1")),
+            (r"Period\('2019', 'Y-DEC'\), 'foo', 'bar'", (Period(2019), "foo", "bar")),
+            (r"Period\('2019', 'Y-DEC'\), 'y1', 'bar'", (Period(2019), "y1", "bar")),
+            (r"Period\('2019', 'Y-DEC'\), 'foo', 'z1'", (Period(2019), "foo", "z1")),
             (
-                r"Period\('2018', 'A-DEC'\), Period\('2016', 'A-DEC'\), 'bar'",
+                r"Period\('2018', 'Y-DEC'\), Period\('2016', 'Y-DEC'\), 'bar'",
                 (Period(2018), Period(2016), "bar"),
             ),
-            (r"Period\('2018', 'A-DEC'\), 'foo', 'y1'", (Period(2018), "foo", "y1")),
+            (r"Period\('2018', 'Y-DEC'\), 'foo', 'y1'", (Period(2018), "foo", "y1")),
             (
-                r"Period\('2017', 'A-DEC'\), 'foo', Period\('2015', 'A-DEC'\)",
+                r"Period\('2017', 'Y-DEC'\), 'foo', Period\('2015', 'Y-DEC'\)",
                 (Period(2017), "foo", Period(2015)),
             ),
-            (r"Period\('2017', 'A-DEC'\), 'z1', 'bar'", (Period(2017), "z1", "bar")),
+            (r"Period\('2017', 'Y-DEC'\), 'z1', 'bar'", (Period(2017), "z1", "bar")),
         ],
     )
     def test_contains_raise_error_if_period_index_is_in_multi_index(self, msg, key):
@@ -442,7 +442,7 @@ class TestLocBaseIndependent:
         )
 
         msg = (
-            rf"\"None of \[Index\(\[1, 2\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[1, 2\], dtype='{np.dtype(int)}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -460,7 +460,7 @@ class TestLocBaseIndependent:
             s.loc[-1]
 
         msg = (
-            rf"\"None of \[Index\(\[-1, -2\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[-1, -2\], dtype='{np.dtype(int)}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -476,7 +476,7 @@ class TestLocBaseIndependent:
 
         s["a"] = 2
         msg = (
-            rf"\"None of \[Index\(\[-2\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[-2\], dtype='{np.dtype(int)}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -493,7 +493,7 @@ class TestLocBaseIndependent:
         df = DataFrame([["a"], ["b"]], index=[1, 2], columns=["value"])
 
         msg = (
-            rf"\"None of \[Index\(\[3\], dtype='{np.int_().dtype}'\)\] are "
+            rf"\"None of \[Index\(\[3\], dtype='{np.dtype(int)}'\)\] are "
             r"in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -510,7 +510,7 @@ class TestLocBaseIndependent:
 
         s.loc[[2]]
 
-        msg = f"\"None of [Index([3], dtype='{np.int_().dtype}')] are in the [index]"
+        msg = f"\"None of [Index([3], dtype='{np.dtype(int)}')] are in the [index]"
         with pytest.raises(KeyError, match=re.escape(msg)):
             s.loc[[3]]
 
@@ -1124,7 +1124,7 @@ class TestLocBaseIndependent:
 
         if not using_copy_on_write:
             mark = pytest.mark.xfail(reason="accidental fix reverted - GH37497")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
 
         y = x.copy()
@@ -1209,7 +1209,7 @@ class TestLocBaseIndependent:
         df = DataFrame(columns=["x", "y"])
         df.index = df.index.astype(np.int64)
         msg = (
-            rf"None of \[Index\(\[0, 1\], dtype='{np.int_().dtype}'\)\] "
+            rf"None of \[Index\(\[0, 1\], dtype='{np.dtype(int)}'\)\] "
             r"are in the \[index\]"
         )
         with pytest.raises(KeyError, match=msg):
@@ -1464,7 +1464,7 @@ class TestLocBaseIndependent:
     def test_loc_setitem_datetimeindex_tz(self, idxer, tz_naive_fixture):
         # GH#11365
         tz = tz_naive_fixture
-        idx = date_range(start="2015-07-12", periods=3, freq="H", tz=tz)
+        idx = date_range(start="2015-07-12", periods=3, freq="h", tz=tz)
         expected = DataFrame(1.2, index=idx, columns=["var"])
         # if result started off with object dtype, then the .loc.__setitem__
         #  below would retain object dtype
@@ -1656,6 +1656,14 @@ class TestLocBaseIndependent:
 
         expected = frame_or_series([0, 1, 10, 9, 11], index=obj.index)
         tm.assert_equal(obj, expected)
+
+    def test_loc_setitem_numpy_frame_categorical_value(self):
+        # GH#52927
+        df = DataFrame({"a": [1, 1, 1, 1, 1], "b": ["a", "a", "a", "a", "a"]})
+        df.loc[1:2, "a"] = Categorical([2, 2], categories=[1, 2])
+
+        expected = DataFrame({"a": [1, 2, 2, 1, 1], "b": ["a", "a", "a", "a", "a"]})
+        tm.assert_frame_equal(df, expected)
 
 
 class TestLocWithEllipsis:
@@ -2049,7 +2057,7 @@ class TestLocSetitemWithExpansion:
         start = Timestamp("2017-10-29 00:00:00+0200", tz="Europe/Madrid")
         end = Timestamp("2017-10-29 03:00:00+0100", tz="Europe/Madrid")
         ts = Timestamp("2016-10-10 03:00:00", tz="Europe/Madrid")
-        idx = date_range(start, end, inclusive="left", freq="H")
+        idx = date_range(start, end, inclusive="left", freq="h")
         assert ts not in idx  # i.e. result.loc setitem is with-expansion
 
         result = DataFrame(index=idx, columns=["value"])
@@ -2157,6 +2165,19 @@ class TestLocSetitemWithExpansion:
         result = DataFrame(index=df.index)
         result.loc[df.index, "data"] = ser._values
         tm.assert_frame_equal(result, df)
+
+    def test_loc_setitem_ea_not_full_column(self):
+        # GH#39163
+        df = DataFrame({"A": range(5)})
+
+        val = date_range("2016-01-01", periods=3, tz="US/Pacific")
+
+        df.loc[[0, 1, 2], "B"] = val
+
+        bex = val.append(DatetimeIndex([pd.NaT, pd.NaT], dtype=val.dtype))
+        expected = DataFrame({"A": range(5), "B": bex})
+        assert expected.dtypes["B"] == val.dtype
+        tm.assert_frame_equal(df, expected)
 
 
 class TestLocCallable:
@@ -2309,7 +2330,7 @@ class TestPartialStringSlicing:
         tm.assert_series_equal(result, expected)
 
     def test_loc_getitem_partial_string_slicing_with_timedeltaindex(self):
-        ix = timedelta_range(start="1 day", end="2 days", freq="1H")
+        ix = timedelta_range(start="1 day", end="2 days", freq="1h")
         ser = ix.to_series()
         result = ser.loc[:"1 days"]
         expected = ser.iloc[:-1]
@@ -2411,7 +2432,7 @@ class TestLabelSlicing:
         "index",
         [
             pd.period_range(start="2017-01-01", end="2018-01-01", freq="M"),
-            timedelta_range(start="1 day", end="2 days", freq="1H"),
+            timedelta_range(start="1 day", end="2 days", freq="1h"),
         ],
     )
     def test_loc_getitem_label_slice_period_timedelta(self, index):
@@ -2567,7 +2588,7 @@ class TestLocBooleanMask:
         df = DataFrame(
             np.arange(6.0).reshape(3, 2),
             columns=list("AB"),
-            index=date_range("1/1/2000", periods=3, freq="1H"),
+            index=date_range("1/1/2000", periods=3, freq="1h"),
         )
         expected = df.copy()
         expected["C"] = [expected.index[0]] + [pd.NaT, pd.NaT]
@@ -2866,7 +2887,7 @@ def test_loc_datetimelike_mismatched_dtypes():
     df = DataFrame(
         np.random.default_rng(2).standard_normal((5, 3)),
         columns=["a", "b", "c"],
-        index=date_range("2012", freq="H", periods=5),
+        index=date_range("2012", freq="h", periods=5),
     )
     # create dataframe with non-unique DatetimeIndex
     df = df.iloc[[0, 2, 2, 3]].copy()

@@ -136,7 +136,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Examples
     --------
-    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1H', '2H']))
+    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1h', '2h']))
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
@@ -471,7 +471,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         from pandas.io.formats.format import get_format_timedelta64
 
         # Relies on TimeDelta._repr_base
-        formatter = get_format_timedelta64(self._ndarray, na_rep)
+        formatter = get_format_timedelta64(self, na_rep)
         # equiv: np.array([formatter(x) for x in self._ndarray])
         #  but independent of dimension
         return np.frompyfunc(formatter, 1, 1)(self._ndarray)
