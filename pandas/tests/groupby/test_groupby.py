@@ -2792,13 +2792,23 @@ def test_rolling_wrong_param_min_period():
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
 
 
-def test_by_column_values_with_same_starting_value():
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        object,
+        pytest.param(
+            "string[pyarrow_numpy]",
+            marks=pytest.mark.skipif(pa_version_under7p0, reason="arrow not installed"),
+        ),
+    ],
+)
+def test_by_column_values_with_same_starting_value(dtype):
     # GH29635
     df = DataFrame(
         {
             "Name": ["Thomas", "Thomas", "Thomas John"],
             "Credit": [1200, 1300, 900],
-            "Mood": ["sad", "happy", "happy"],
+            "Mood": Series(["sad", "happy", "happy"], dtype=dtype),
         }
     )
     aggregate_details = {"Mood": Series.mode, "Credit": "sum"}
