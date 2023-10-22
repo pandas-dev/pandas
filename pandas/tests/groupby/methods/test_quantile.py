@@ -171,7 +171,9 @@ def test_groupby_quantile_with_arraylike_q_and_int_columns(frame_size, groupby, 
 def test_quantile_raises():
     df = DataFrame([["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"])
 
-    with pytest.raises(TypeError, match="cannot be performed against 'object' dtypes"):
+    with pytest.raises(
+        TypeError, match="cannot be performed against 'object' dtypes|No matching"
+    ):
         df.groupby("key").quantile()
 
 
@@ -260,7 +262,8 @@ def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
         tm.assert_frame_equal(result, expected)
     else:
         with pytest.raises(
-            TypeError, match="'quantile' cannot be performed against 'object' dtypes!"
+            TypeError,
+            match="'quantile' cannot be performed against 'object' dtypes!|No matching",
         ):
             df.groupby("a").quantile(q, numeric_only=numeric_only)
 
