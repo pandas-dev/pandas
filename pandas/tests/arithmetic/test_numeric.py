@@ -29,6 +29,13 @@ from pandas.tests.arithmetic.common import (
 )
 
 
+@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
+def switch_numexpr_min_elements(request, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(expr, "_MIN_ELEMENTS", request.param)
+        yield request.param
+
+
 @pytest.fixture(params=[Index, Series, tm.to_array])
 def box_pandas_1d_array(request):
     """

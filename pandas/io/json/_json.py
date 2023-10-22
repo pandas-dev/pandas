@@ -175,7 +175,7 @@ def to_json(
 
     if mode == "a" and (not lines or orient != "records"):
         msg = (
-            "mode='a' (append) is only supported when"
+            "mode='a' (append) is only supported when "
             "lines is True and orient is 'records'"
         )
         raise ValueError(msg)
@@ -1326,7 +1326,7 @@ class Parser:
                     warnings.filterwarnings(
                         "ignore",
                         ".*parsing datetimes with mixed time "
-                        "zones will raise a warning",
+                        "zones will raise an error",
                         category=FutureWarning,
                     )
                     new_data = to_datetime(new_data, errors="raise", unit=date_unit)

@@ -45,7 +45,7 @@ def test_quantile(interpolation, a_vals, b_vals, q, request):
         and isinstance(b_vals, list)
         and b_vals == [4, 3, 2, 1]
     ):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason="Unclear numpy expectation for nearest "
                 "result with equidistant data"
@@ -421,7 +421,7 @@ def test_timestamp_groupby_quantile():
         {
             "timestamp": pd.date_range(
                 start="2020-04-19 00:00:00", freq="1min", periods=100, tz="UTC"
-            ).floor("1H"),
+            ).floor("1h"),
             "category": list(range(1, 101)),
             "value": list(range(101, 201)),
         }
@@ -468,7 +468,7 @@ def test_groupby_quantile_dt64tz_period():
     # Check that we match the group-by-group result
     exp = {i: df.iloc[i::5].quantile(0.5) for i in range(5)}
     expected = DataFrame(exp).T.infer_objects()
-    expected.index = expected.index.astype(np.int_)
+    expected.index = expected.index.astype(int)
 
     tm.assert_frame_equal(result, expected)
 

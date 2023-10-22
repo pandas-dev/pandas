@@ -57,7 +57,7 @@ def test_setitem_with_view_invalidated_does_not_copy(using_copy_on_write, reques
         mark = pytest.mark.xfail(
             reason="blk.delete does not track references correctly"
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
         assert np.shares_memory(arr, get_array(df, "a"))
 
 

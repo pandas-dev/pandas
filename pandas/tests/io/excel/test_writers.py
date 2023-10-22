@@ -217,7 +217,7 @@ class TestRoundTrip:
                     reason="Column index name cannot be serialized unless "
                     "it's a MultiIndex"
                 )
-                request.node.add_marker(mark)
+                request.applymarker(mark)
 
             # Empty name case current read in as
             # unnamed levels, not Nones.
@@ -293,7 +293,7 @@ class TestRoundTrip:
             [
                 range(4),
                 pd.interval_range(
-                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6M"
+                    start=pd.Timestamp("2020-01-01"), periods=4, freq="6ME"
                 ),
             ]
         )
@@ -751,7 +751,7 @@ class TestExcelWriter:
         tm.assert_frame_equal(expected, recons)
 
     def test_to_excel_periodindex(self, tsframe, path):
-        xp = tsframe.resample("M", kind="period").mean()
+        xp = tsframe.resample("ME", kind="period").mean()
 
         xp.to_excel(path, sheet_name="sht1")
 
@@ -809,7 +809,7 @@ class TestExcelWriter:
                 reader, sheet_name="test1", header=header, index_col=[0, 1]
             )
         if not merge_cells:
-            fm = frame.columns.format(sparsify=False, adjoin=False, names=False)
+            fm = frame.columns._format_multi(sparsify=False, include_names=False)
             frame.columns = [".".join(map(str, q)) for q in zip(*fm)]
         tm.assert_frame_equal(frame, df)
 

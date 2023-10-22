@@ -131,6 +131,20 @@ class TestSelection:
 
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "func", [lambda x: x.sum(), lambda x: x.agg(lambda y: y.sum())]
+    )
+    def test_getitem_from_grouper(self, func):
+        # GH 50383
+        df = DataFrame({"a": [1, 1, 2], "b": 3, "c": 4, "d": 5})
+        gb = df.groupby(["a", "b"])[["a", "c"]]
+
+        idx = MultiIndex.from_tuples([(1, 3), (2, 3)], names=["a", "b"])
+        expected = DataFrame({"a": [2, 2], "c": [8, 4]}, index=idx)
+        result = func(gb)
+
+        tm.assert_frame_equal(result, expected)
+
     def test_indices_grouped_by_tuple_with_lambda(self):
         # GH 36158
         df = DataFrame(
@@ -231,6 +245,7 @@ class TestGrouping:
         expected = expected.loc[:, ["A", "B"]]
         tm.assert_frame_equal(result, expected)
 
+    def test_grouper_creation_bug2(self):
         # GH14334
         # Grouper(key=...) may be passed in a list
         df = DataFrame(
@@ -261,24 +276,25 @@ class TestGrouping:
         result = g.sum()
         tm.assert_frame_equal(result, expected)
 
+    def test_grouper_creation_bug3(self):
         # GH8866
-        s = Series(
+        ser = Series(
             np.arange(8, dtype="int64"),
             index=MultiIndex.from_product(
                 [list("ab"), range(2), date_range("20130101", periods=2)],
                 names=["one", "two", "three"],
             ),
         )
-        result = s.groupby(Grouper(level="three", freq="M")).sum()
+        result = ser.groupby(Grouper(level="three", freq="ME")).sum()
         expected = Series(
             [28],
-            index=pd.DatetimeIndex([Timestamp("2013-01-31")], freq="M", name="three"),
+            index=pd.DatetimeIndex([Timestamp("2013-01-31")], freq="ME", name="three"),
         )
         tm.assert_series_equal(result, expected)
 
         # just specifying a level breaks
-        result = s.groupby(Grouper(level="one")).sum()
-        expected = s.groupby(level="one").sum()
+        result = ser.groupby(Grouper(level="one")).sum()
+        expected = ser.groupby(level="one").sum()
         tm.assert_series_equal(result, expected)
 
     def test_grouper_column_and_index(self):
@@ -379,12 +395,12 @@ class TestGrouping:
             ),
         )
         result = df.groupby(
-            [Grouper(level="one"), Grouper(level="two", freq="M")]
+            [Grouper(level="one"), Grouper(level="two", freq="ME")]
         ).sum()
         expected = DataFrame(
             {"A": [31, 28, 21, 31, 28, 21]},
             index=MultiIndex.from_product(
-                [list("ab"), date_range("20130101", freq="M", periods=3)],
+                [list("ab"), date_range("20130101", freq="ME", periods=3)],
                 names=["one", "two"],
             ),
         )
@@ -461,7 +477,7 @@ class TestGrouping:
         df = DataFrame(
             {
                 "id": ["a", "b"] * 3,
-                "b": date_range("2000-01-01", "2000-01-03", freq="9H"),
+                "b": date_range("2000-01-01", "2000-01-03", freq="9h"),
             }
         )
         grouper = Grouper(key="b", freq="D")
@@ -720,7 +736,7 @@ class TestGrouping:
         # GH 14715
         df = DataFrame({"date": date_range("1/1/2011", periods=365, freq="D")})
         df.iloc[-1] = pd.NaT
-        grouper = Grouper(key="date", freq="AS")
+        grouper = Grouper(key="date", freq="YS")
 
         # Grouper in a list grouping
         result = df.groupby([grouper])
@@ -1069,7 +1085,7 @@ class TestIteration:
             {"event": ["start", "start"], "change": [1234, 5678]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10"]),
         )
-        grouped = df.groupby([Grouper(freq="M"), "event"])
+        grouped = df.groupby([Grouper(freq="ME"), "event"])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
         assert (Timestamp("2014-09-30"), "start") in grouped.groups
@@ -1084,7 +1100,7 @@ class TestIteration:
             {"event": ["start", "start", "start"], "change": [1234, 5678, 9123]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10", "2014-09-15"]),
         )
-        grouped = df.groupby([Grouper(freq="M"), "event"])
+        grouped = df.groupby([Grouper(freq="ME"), "event"])
         assert len(grouped.groups) == 2
         assert grouped.ngroups == 2
         assert (Timestamp("2014-09-30"), "start") in grouped.groups
@@ -1100,7 +1116,7 @@ class TestIteration:
             {"event": ["start", "start", "start"], "change": [1234, 5678, 9123]},
             index=pd.DatetimeIndex(["2014-09-10", "2013-10-10", "2014-08-05"]),
         )
-        grouped = df.groupby([Grouper(freq="M"), "event"])
+        grouped = df.groupby([Grouper(freq="ME"), "event"])
         assert len(grouped.groups) == 3
         assert grouped.ngroups == 3
         assert (Timestamp("2014-09-30"), "start") in grouped.groups

@@ -325,7 +325,7 @@ def test_apply_empty_infer_type(ax, func, raw, axis, engine, request):
             mark = pytest.mark.xfail(
                 reason="numba engine only supports raw=True at the moment"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         result = df.apply(func, axis=axis, engine=engine, raw=raw)
         if is_reduction:
@@ -839,7 +839,7 @@ def test_with_listlike_columns():
         {
             "a": Series(np.random.default_rng(2).standard_normal(4)),
             "b": ["a", "list", "of", "words"],
-            "ts": date_range("2016-10-01", periods=4, freq="H"),
+            "ts": date_range("2016-10-01", periods=4, freq="h"),
         }
     )
 

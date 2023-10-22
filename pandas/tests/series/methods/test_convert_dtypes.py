@@ -265,3 +265,11 @@ class TestSeriesConvertDtypes:
         result = ser.convert_dtypes(dtype_backend="numpy_nullable")
         expected = pd.Series(range(2), dtype="Int32")
         tm.assert_series_equal(result, expected)
+
+    def test_convert_dtypes_pyarrow_null(self):
+        # GH#55346
+        pa = pytest.importorskip("pyarrow")
+        ser = pd.Series([None, None])
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        expected = pd.Series([None, None], dtype=pd.ArrowDtype(pa.null()))
+        tm.assert_series_equal(result, expected)
