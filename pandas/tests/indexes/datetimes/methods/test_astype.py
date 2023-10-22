@@ -18,6 +18,25 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_dti_astype_asobject_around_dst_transition(self, tzstr):
+        # GH#1345
+
+        # dates around a dst transition
+        rng = date_range("2/13/2010", "5/6/2010", tz=tzstr)
+
+        objs = rng.astype(object)
+        for i, x in enumerate(objs):
+            exval = rng[i]
+            assert x == exval
+            assert x.tzinfo == exval.tzinfo
+
+        objs = rng.astype(object)
+        for i, x in enumerate(objs):
+            exval = rng[i]
+            assert x == exval
+            assert x.tzinfo == exval.tzinfo
+
     def test_astype(self):
         # GH 13149, GH 13209
         idx = DatetimeIndex(["2016-05-16", "NaT", NaT, np.nan], name="idx")

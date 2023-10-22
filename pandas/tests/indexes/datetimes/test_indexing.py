@@ -214,6 +214,14 @@ class TestWhere:
 
 
 class TestTake:
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_dti_take_dont_lose_meta(self, tzstr):
+        rng = date_range("1/1/2000", periods=20, tz=tzstr)
+
+        result = rng.take(range(5))
+        assert result.tz == rng.tz
+        assert result.freq == rng.freq
+
     def test_take_nan_first_datetime(self):
         index = DatetimeIndex([pd.NaT, Timestamp("20130101"), Timestamp("20130102")])
         result = index.take([-1, 0, 1])

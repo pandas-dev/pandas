@@ -18,3 +18,10 @@ def test_isocalendar_returns_correct_values_close_to_new_year_with_tz():
         dtype="UInt32",
     )
     tm.assert_frame_equal(result, expected_data_frame)
+
+
+def test_dti_timestamp_isocalendar_fields():
+    idx = tm.makeDateIndex(100)
+    expected = tuple(idx.isocalendar().iloc[-1].to_list())
+    result = idx[-1].isocalendar()
+    assert result == expected
