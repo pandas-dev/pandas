@@ -10,15 +10,15 @@ The full license is in the LICENSE file, distributed with this software.
 #pragma once
 
 #ifndef PANDAS_INLINE
-  #if defined(__clang__)
-    #define PANDAS_INLINE static __inline__ __attribute__ ((__unused__))
-  #elif defined(__GNUC__)
-    #define PANDAS_INLINE static __inline__
-  #elif defined(_MSC_VER)
-    #define PANDAS_INLINE static __inline
-  #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-    #define PANDAS_INLINE static inline
-  #else
-    #define PANDAS_INLINE
-  #endif  // __GNUC__
-#endif  // PANDAS_INLINE
+#if defined(__clang__)
+#define PANDAS_INLINE static __inline__ __attribute__((__unused__))
+#elif defined(__GNUC__)
+#define PANDAS_INLINE static __inline__
+#elif defined(_MSC_VER)
+#define PANDAS_INLINE static __inline
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#define PANDAS_INLINE static inline
+#else
+#define PANDAS_INLINE
+#endif // __GNUC__
+#endif // PANDAS_INLINE

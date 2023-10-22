@@ -12,7 +12,7 @@ Distributed under the terms of the BSD Simplified License.
 #include "pandas/parser/io.h"
 
 static int to_double(char *item, double *p_value, char sci, char decimal,
-                            int *maybe_int) {
+                     int *maybe_int) {
   char *p_end = NULL;
   int error = 0;
 
@@ -94,7 +94,6 @@ parsingerror:
   Py_XDECREF(tmp);
   return -1;
 }
-
 
 static void pandas_parser_destructor(PyObject *op) {
   void *ptr = PyCapsule_GetPointer(op, PandasParser_CAPSULE_NAME);
