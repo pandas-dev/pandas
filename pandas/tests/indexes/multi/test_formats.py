@@ -6,24 +6,31 @@ from pandas import (
     Index,
     MultiIndex,
 )
+import pandas._testing as tm
 
 
 def test_format(idx):
-    idx.format()
-    idx[:0].format()
+    msg = "MultiIndex.format is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        idx.format()
+        idx[:0].format()
 
 
 def test_format_integer_names():
     index = MultiIndex(
         levels=[[0, 1], [0, 1]], codes=[[0, 0, 1, 1], [0, 1, 0, 1]], names=[0, 1]
     )
-    index.format(names=True)
+    msg = "MultiIndex.format is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        index.format(names=True)
 
 
 def test_format_sparse_config(idx):
     # GH1538
+    msg = "MultiIndex.format is deprecated"
     with pd.option_context("display.multi_sparse", False):
-        result = idx.format()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = idx.format()
     assert result[1] == "foo  two"
 
 
@@ -37,8 +44,9 @@ def test_format_sparse_display():
             [0, 0, 0, 0, 0, 0],
         ],
     )
-
-    result = index.format()
+    msg = "MultiIndex.format is deprecated"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = index.format()
     assert result[3] == "1  0  0  0"
 
 

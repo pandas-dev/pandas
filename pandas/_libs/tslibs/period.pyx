@@ -1814,14 +1814,14 @@ cdef class _Period(PeriodMixin):
 
     def _add_timedeltalike_scalar(self, other) -> "Period":
         cdef:
-            int64_t inc
+            int64_t inc, ordinal
 
         if not self._dtype._is_tick_like():
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})")
 
         if (
-            util.is_timedelta64_object(other) and
+            cnp.is_timedelta64_object(other) and
             get_timedelta64_value(other) == NPY_NAT
         ):
             # i.e. np.timedelta64("nat")
@@ -1832,8 +1832,8 @@ cdef class _Period(PeriodMixin):
         except ValueError as err:
             raise IncompatibleFrequency("Input cannot be converted to "
                                         f"Period(freq={self.freqstr})") from err
-        # TODO: overflow-check here
-        ordinal = self.ordinal + inc
+        with cython.overflowcheck(True):
+            ordinal = self.ordinal + inc
         return Period(ordinal=ordinal, freq=self.freq)
 
     def _add_offset(self, other) -> "Period":
@@ -1846,6 +1846,7 @@ cdef class _Period(PeriodMixin):
         ordinal = self.ordinal + other.n
         return Period(ordinal=ordinal, freq=self.freq)
 
+    @cython.overflowcheck(True)
     def __add__(self, other):
         if not is_period_object(self):
             # cython semantics; this is analogous to a call to __radd__
@@ -2809,7 +2810,7 @@ class Period(_Period):
                 raise ValueError("Must supply freq for datetime value")
             if isinstance(dt, Timestamp):
                 nanosecond = dt.nanosecond
-        elif util.is_datetime64_object(value):
+        elif cnp.is_datetime64_object(value):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError("Must supply freq for datetime value")

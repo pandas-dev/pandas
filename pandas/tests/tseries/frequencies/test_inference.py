@@ -52,8 +52,8 @@ def base_delta_code_pair(request):
 
 freqs = (
     [f"Q-{month}" for month in MONTHS]
-    + [f"{annual}-{month}" for annual in ["Y", "BA"] for month in MONTHS]
-    + ["ME", "BM", "BMS"]
+    + [f"{annual}-{month}" for annual in ["Y", "BY"] for month in MONTHS]
+    + ["ME", "BME", "BMS"]
     + [f"WOM-{count}{day}" for count in range(1, 5) for day in DAYS]
     + [f"W-{day}" for day in DAYS]
 )
@@ -215,7 +215,7 @@ def test_infer_freq_index(freq, expected):
     "expected,dates",
     list(
         {
-            "AS-JAN": ["2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01"],
+            "YS-JAN": ["2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01"],
             "Q-OCT": ["2009-01-31", "2009-04-30", "2009-07-31", "2009-10-31"],
             "ME": ["2010-11-30", "2010-12-31", "2011-01-31", "2011-02-28"],
             "W-SAT": ["2010-12-25", "2011-01-01", "2011-01-08", "2011-01-15"],
@@ -229,10 +229,11 @@ def test_infer_freq_index(freq, expected):
         }.items()
     ),
 )
-def test_infer_freq_tz(tz_naive_fixture, expected, dates):
-    # see gh-7310
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_infer_freq_tz(tz_naive_fixture, expected, dates, unit):
+    # see gh-7310, GH#55609
     tz = tz_naive_fixture
-    idx = DatetimeIndex(dates, tz=tz)
+    idx = DatetimeIndex(dates, tz=tz).as_unit(unit)
     assert idx.inferred_freq == expected
 
 

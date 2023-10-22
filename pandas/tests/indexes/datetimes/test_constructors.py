@@ -9,6 +9,8 @@ from functools import partial
 from operator import attrgetter
 
 import dateutil
+import dateutil.tz
+from dateutil.tz import gettz
 import numpy as np
 import pytest
 import pytz
@@ -16,6 +18,7 @@ import pytz
 from pandas._libs.tslibs import (
     OutOfBoundsDatetime,
     astype_overflowsafe,
+    timezones,
 )
 
 import pandas as pd
@@ -32,6 +35,7 @@ from pandas.core.arrays import (
     DatetimeArray,
     period_array,
 )
+from pandas.tests.indexes.datetimes.test_timezones import FixedOffset
 
 
 class TestDatetimeIndex:
@@ -300,7 +304,7 @@ class TestDatetimeIndex:
         assert not isinstance(result, DatetimeIndex)
 
         msg = "DatetimeIndex has mixed timezones"
-        msg_depr = "parsing datetimes with mixed time zones will raise a warning"
+        msg_depr = "parsing datetimes with mixed time zones will raise an error"
         with pytest.raises(TypeError, match=msg):
             with tm.assert_produces_warning(FutureWarning, match=msg_depr):
                 DatetimeIndex(["2013-11-02 22:00-05:00", "2013-11-03 22:00-06:00"])
@@ -567,6 +571,16 @@ class TestDatetimeIndex:
             # can't create DatetimeIndex
             DatetimeIndex(dates)
 
+    @pytest.mark.parametrize("data", [["1400-01-01"], [datetime(1400, 1, 1)]])
+    def test_dti_date_out_of_range(self, data):
+        # GH#1475
+        msg = (
+            "^Out of bounds nanosecond timestamp: "
+            "1400-01-01( 00:00:00)?, at position 0$"
+        )
+        with pytest.raises(OutOfBoundsDatetime, match=msg):
+            DatetimeIndex(data)
+
     def test_construction_with_ndarray(self):
         # GH 5152
         dates = [datetime(2013, 10, 7), datetime(2013, 10, 8), datetime(2013, 10, 9)]
@@ -648,7 +662,7 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             date_range(periods=10, freq="D")
 
-    @pytest.mark.parametrize("freq", ["AS", "W-SUN"])
+    @pytest.mark.parametrize("freq", ["YS", "W-SUN"])
     def test_constructor_datetime64_tzformat(self, freq):
         # see GH#6572: ISO 8601 format results in stdlib timezone object
         idx = date_range(
@@ -948,6 +962,60 @@ class TestDatetimeIndex:
         expected = DatetimeIndex([Timestamp("2019", tz="UTC"), pd.NaT])
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("tz", [pytz.timezone("US/Eastern"), gettz("US/Eastern")])
+    def test_dti_from_tzaware_datetime(self, tz):
+        d = [datetime(2012, 8, 19, tzinfo=tz)]
+
+        index = DatetimeIndex(d)
+        assert timezones.tz_compare(index.tz, tz)
+
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_dti_tz_constructors(self, tzstr):
+        """Test different DatetimeIndex constructions with timezone
+        Follow-up of GH#4229
+        """
+        arr = ["11/10/2005 08:00:00", "11/10/2005 09:00:00"]
+
+        idx1 = to_datetime(arr).tz_localize(tzstr)
+        idx2 = date_range(start="2005-11-10 08:00:00", freq="h", periods=2, tz=tzstr)
+        idx2 = idx2._with_freq(None)  # the others all have freq=None
+        idx3 = DatetimeIndex(arr, tz=tzstr)
+        idx4 = DatetimeIndex(np.array(arr), tz=tzstr)
+
+        for other in [idx2, idx3, idx4]:
+            tm.assert_index_equal(idx1, other)
+
+    def test_dti_construction_univalent(self):
+        rng = date_range("03/12/2012 00:00", periods=10, freq="W-FRI", tz="US/Eastern")
+        rng2 = DatetimeIndex(data=rng, tz="US/Eastern")
+        tm.assert_index_equal(rng, rng2)
+
+    @pytest.mark.parametrize("prefix", ["", "dateutil/"])
+    def test_dti_constructor_static_tzinfo(self, prefix):
+        # it works!
+        index = DatetimeIndex([datetime(2012, 1, 1)], tz=prefix + "EST")
+        index.hour
+        index[0]
+
+    def test_dti_constructor_with_fixed_tz(self):
+        off = FixedOffset(420, "+07:00")
+        start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)
+        end = datetime(2012, 6, 11, 5, 0, 0, tzinfo=off)
+        rng = date_range(start=start, end=end)
+        assert off == rng.tz
+
+        rng2 = date_range(start, periods=len(rng), tz=off)
+        tm.assert_index_equal(rng, rng2)
+
+        rng3 = date_range("3/11/2012 05:00:00+07:00", "6/11/2012 05:00:00+07:00")
+        assert (rng.values == rng3.values).all()
+
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_dti_convert_datetime_list(self, tzstr):
+        dr = date_range("2012-06-02", periods=10, tz=tzstr, name="foo")
+        dr2 = DatetimeIndex(list(dr), name="foo", freq="D")
+        tm.assert_index_equal(dr, dr2)
+
 
 class TestTimeSeries:
     def test_dti_constructor_preserve_dti_freq(self):
@@ -981,8 +1049,8 @@ class TestTimeSeries:
         rng3 = date_range("2014", "2020", freq="Y", tz=tz)
         expected3 = date_range("2014-12-31", "2019-12-31", freq="Y", tz=tz)
 
-        rng4 = date_range("2014", "2020", freq="AS", tz=tz)
-        expected4 = date_range("2014-01-01", "2020-01-01", freq="AS", tz=tz)
+        rng4 = date_range("2014", "2020", freq="YS", tz=tz)
+        expected4 = date_range("2014-01-01", "2020-01-01", freq="YS", tz=tz)
 
         for rng, expected in [
             (rng1, expected1),
@@ -1110,9 +1178,3 @@ class TestTimeSeries:
         expected = Index(rng.to_pydatetime(), dtype=object)
 
         tm.assert_numpy_array_equal(idx.values, expected.values)
-
-    def test_date_range_tuple_freq_raises(self):
-        # GH#34703
-        edate = datetime(2000, 1, 1)
-        with pytest.raises(TypeError, match="pass as a string instead"):
-            date_range(end=edate, freq=("D", 5), periods=20)
