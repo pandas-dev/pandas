@@ -70,19 +70,6 @@ repos:
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: trailing-whitespace
--   repo: https://github.com/cpplint/cpplint
-    rev: 1.6.1
-    hooks:
-    -   id: cpplint
-        exclude: ^pandas/_libs/include/pandas/vendored/klib
-        args: [
-            --quiet,
-            '--extensions=c,h',
-            '--headers=h',
-            --recursive,
-            --linelength=88,
-            '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
-        ]
 -   repo: https://github.com/pylint-dev/pylint
     rev: v3.0.0b0
     hooks:
@@ -127,6 +114,13 @@ repos:
     rev: v0.6.8
     hooks:
     - id: sphinx-lint
+-   repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: ea59a72
+    hooks:
+    - id: clang-format
+      files: ^pandas/_libs/src|^pandas/_libs/include
+      args: [-i]
+      types_or: [c, c++]
 -   repo: local
     hooks:
     -   id: pyright

@@ -15,6 +15,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 # TODO(1.4): Change me to xfails at release time
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
@@ -341,7 +345,7 @@ def test_specify_dtype_for_index_col(all_parsers, dtype, val, request):
     data = "a,b\n01,2"
     parser = all_parsers
     if dtype == object and parser.engine == "pyarrow":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="Cannot disable type-inference for pyarrow engine")
         )
     result = parser.read_csv(StringIO(data), index_col="a", dtype={"a": dtype})
