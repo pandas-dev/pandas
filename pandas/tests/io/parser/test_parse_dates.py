@@ -2032,7 +2032,7 @@ def test_date_parser_usecols_thousands(all_parsers):
 
 
 @skip_pyarrow
-def test_parse_dates_and_keep_orgin_column(all_parsers):
+def test_parse_dates_and_keep_original_column(all_parsers):
     # GH#13378
     parser = all_parsers
     data = """A
