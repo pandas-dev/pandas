@@ -1904,8 +1904,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             ser = Series(values, copy=False)
         else:
             # We only get here with values.dtype == object
-            # TODO: special case not needed with ArrayManager
-            df = DataFrame(values.T)
+            df = DataFrame(values.T, dtype=values.dtype)
             # bc we split object blocks in grouped_reduce, we have only 1 col
             # otherwise we'd have to worry about block-splitting GH#39329
             assert df.shape[1] == 1
