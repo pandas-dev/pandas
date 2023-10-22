@@ -19,6 +19,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
@@ -127,9 +131,7 @@ def test_utf8_bom(all_parsers, data, kwargs, expected, request):
         and kwargs.get("skip_blank_lines", True)
     ):
         # Manually xfail, since we don't have mechanism to xfail specific version
-        request.node.add_marker(
-            pytest.mark.xfail(reason="Pyarrow can't read blank lines")
-        )
+        request.applymarker(pytest.mark.xfail(reason="Pyarrow can't read blank lines"))
 
     result = parser.read_csv(_encode_data_with_bom(data), encoding=utf8, **kwargs)
     tm.assert_frame_equal(result, expected)
@@ -223,12 +225,12 @@ def test_encoding_named_temp_file(all_parsers):
 def test_parse_encoded_special_characters(encoding):
     # GH16218 Verify parsing of data with encoded special characters
     # Data contains a Unicode 'FULLWIDTH COLON' (U+FF1A) at position (0,"a")
-    data = "a\tb\n：foo\t0\nbar\t1\nbaz\t2"
+    data = "a\tb\n：foo\t0\nbar\t1\nbaz\t2"  # noqa: RUF001
     encoded_data = BytesIO(data.encode(encoding))
     result = read_csv(encoded_data, delimiter="\t", encoding=encoding)
 
     expected = DataFrame(
-        data=[["：foo", 0], ["bar", 1], ["baz", 2]],
+        data=[["：foo", 0], ["bar", 1], ["baz", 2]],  # noqa: RUF001
         columns=["a", "b"],
     )
     tm.assert_frame_equal(result, expected)
@@ -310,7 +312,7 @@ def test_not_readable(all_parsers, mode):
     content = b"abcd"
     if "t" in mode:
         content = "abcd"
-    with tempfile.SpooledTemporaryFile(mode=mode) as handle:
+    with tempfile.SpooledTemporaryFile(mode=mode, encoding="utf-8") as handle:
         handle.write(content)
         handle.seek(0)
         df = parser.read_csv(handle)

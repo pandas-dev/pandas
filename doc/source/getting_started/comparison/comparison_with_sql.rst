@@ -107,7 +107,7 @@ methods.
 .. ipython:: python
 
     frame = pd.DataFrame(
-        {"col1": ["A", "B", np.NaN, "C", "D"], "col2": ["F", np.NaN, "G", "H", "I"]}
+        {"col1": ["A", "B", np.nan, "C", "D"], "col2": ["F", np.nan, "G", "H", "I"]}
     )
     frame
 
@@ -164,16 +164,16 @@ The pandas equivalent would be:
 
     tips.groupby("sex").size()
 
-Notice that in the pandas code we used :meth:`~pandas.core.groupby.DataFrameGroupBy.size` and not
-:meth:`~pandas.core.groupby.DataFrameGroupBy.count`. This is because
-:meth:`~pandas.core.groupby.DataFrameGroupBy.count` applies the function to each column, returning
+Notice that in the pandas code we used :meth:`.DataFrameGroupBy.size` and not
+:meth:`.DataFrameGroupBy.count`. This is because
+:meth:`.DataFrameGroupBy.count` applies the function to each column, returning
 the number of ``NOT NULL`` records within each.
 
 .. ipython:: python
 
     tips.groupby("sex").count()
 
-Alternatively, we could have applied the :meth:`~pandas.core.groupby.DataFrameGroupBy.count` method
+Alternatively, we could have applied the :meth:`.DataFrameGroupBy.count` method
 to an individual column:
 
 .. ipython:: python
@@ -181,7 +181,7 @@ to an individual column:
     tips.groupby("sex")["total_bill"].count()
 
 Multiple functions can also be applied at once. For instance, say we'd like to see how tip amount
-differs by day of the week - :meth:`~pandas.core.groupby.DataFrameGroupBy.agg` allows you to pass a dictionary
+differs by day of the week - :meth:`.DataFrameGroupBy.agg` allows you to pass a dictionary
 to your grouped DataFrame, indicating which functions to apply to specific columns.
 
 .. code-block:: sql

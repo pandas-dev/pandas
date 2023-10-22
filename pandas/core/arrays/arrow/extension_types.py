@@ -48,7 +48,7 @@ class ArrowPeriodType(pyarrow.ExtensionType):
     def __hash__(self) -> int:
         return hash((str(self), self.freq))
 
-    def to_pandas_dtype(self):
+    def to_pandas_dtype(self) -> PeriodDtype:
         return PeriodDtype(freq=self.freq)
 
 
@@ -105,7 +105,7 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     def __hash__(self) -> int:
         return hash((str(self), str(self.subtype), self.closed))
 
-    def to_pandas_dtype(self):
+    def to_pandas_dtype(self) -> IntervalDtype:
         return IntervalDtype(self.subtype.to_pandas_dtype(), self.closed)
 
 

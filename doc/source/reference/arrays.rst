@@ -134,12 +134,6 @@ is the missing value for datetime data.
 
    Timestamp
 
-.. autosummary::
-   :toctree: api/
-   :template: autosummary/class_without_autosummary.rst
-
-   NaT
-
 Properties
 ~~~~~~~~~~
 .. autosummary::
@@ -257,12 +251,6 @@ is the missing value for timedelta data.
    :toctree: api/
 
    Timedelta
-
-.. autosummary::
-   :toctree: api/
-   :template: autosummary/class_without_autosummary.rst
-
-   NaT
 
 Properties
 ~~~~~~~~~~
@@ -467,7 +455,6 @@ pandas provides this through :class:`arrays.IntegerArray`.
    UInt16Dtype
    UInt32Dtype
    UInt64Dtype
-   NA
 
 .. _api.arrays.float_na:
 
@@ -486,7 +473,6 @@ Nullable float
 
    Float32Dtype
    Float64Dtype
-   NA
 
 .. _api.arrays.categorical:
 
@@ -623,7 +609,6 @@ with a bool :class:`numpy.ndarray`.
    :template: autosummary/class_without_autosummary.rst
 
    BooleanDtype
-   NA
 
 
 .. Dtype attributes which are manually listed in their docstrings: including

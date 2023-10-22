@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import abc
-from datetime import datetime
+from datetime import date
 from functools import partial
 from itertools import islice
 from typing import (
@@ -98,7 +98,7 @@ if TYPE_CHECKING:
 
 ArrayConvertible = Union[list, tuple, AnyArrayLike]
 Scalar = Union[float, str]
-DatetimeScalar = Union[Scalar, datetime]
+DatetimeScalar = Union[Scalar, date, np.datetime64]
 
 DatetimeScalarOrArrayConvertible = Union[DatetimeScalar, ArrayConvertible]
 
@@ -133,7 +133,7 @@ start_caching_at = 50
 def _guess_datetime_format_for_array(arr, dayfirst: bool | None = False) -> str | None:
     # Try to guess the format based on the first non-NaN element, return None if can't
     if (first_non_null := tslib.first_non_null(arr)) != -1:
-        if type(first_non_nan_element := arr[first_non_null]) is str:
+        if type(first_non_nan_element := arr[first_non_null]) is str:  # noqa: E721
             # GH#32264 np.str_ object
             guessed_format = guess_datetime_format(
                 first_non_nan_element, dayfirst=dayfirst
@@ -356,7 +356,7 @@ def _return_parsed_timezone_results(
     if len(non_na_timezones) > 1:
         warnings.warn(
             "In a future version of pandas, parsing datetimes with mixed time "
-            "zones will raise a warning unless `utc=True`. Please specify `utc=True` "
+            "zones will raise an error unless `utc=True`. Please specify `utc=True` "
             "to opt in to the new behaviour and silence this warning. "
             "To create a `Series` with mixed offsets and `object` dtype, "
             "please use `apply` and `datetime.datetime.strptime`",
@@ -788,7 +788,7 @@ def to_datetime(
         .. warning::
 
             In a future version of pandas, parsing datetimes with mixed time
-            zones will raise a warning unless `utc=True`.
+            zones will raise an error unless `utc=True`.
             Please specify `utc=True` to opt in to the new behaviour
             and silence this warning. To create a `Series` with mixed offsets and
             `object` dtype, please use `apply` and `datetime.datetime.strptime`.
@@ -916,7 +916,7 @@ def to_datetime(
     - **DataFrame/dict-like** are converted to :class:`Series` with
       :class:`datetime64` dtype. For each row a datetime is created from assembling
       the various dataframe columns. Column keys can be common abbreviations
-      like [‘year’, ‘month’, ‘day’, ‘minute’, ‘second’, ‘ms’, ‘us’, ‘ns’]) or
+      like ['year', 'month', 'day', 'minute', 'second', 'ms', 'us', 'ns']) or
       plurals of the same.
 
     The following causes are responsible for :class:`datetime.datetime` objects
@@ -1023,7 +1023,7 @@ def to_datetime(
     >>> pd.to_datetime(['2020-10-25 02:00 +0200',
     ...                 '2020-10-25 04:00 +0100'])  # doctest: +SKIP
     FutureWarning: In a future version of pandas, parsing datetimes with mixed
-    time zones will raise a warning unless `utc=True`. Please specify `utc=True`
+    time zones will raise an error unless `utc=True`. Please specify `utc=True`
     to opt in to the new behaviour and silence this warning. To create a `Series`
     with mixed offsets and `object` dtype, please use `apply` and
     `datetime.datetime.strptime`.
@@ -1037,7 +1037,7 @@ def to_datetime(
     >>> pd.to_datetime(["2020-01-01 01:00:00-01:00",
     ...                 datetime(2020, 1, 1, 3, 0)])  # doctest: +SKIP
     FutureWarning: In a future version of pandas, parsing datetimes with mixed
-    time zones will raise a warning unless `utc=True`. Please specify `utc=True`
+    time zones will raise an error unless `utc=True`. Please specify `utc=True`
     to opt in to the new behaviour and silence this warning. To create a `Series`
     with mixed offsets and `object` dtype, please use `apply` and
     `datetime.datetime.strptime`.

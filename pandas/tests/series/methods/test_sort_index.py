@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 import pytest
 
@@ -26,7 +24,7 @@ class TestSeriesSortIndex:
         datetime_series.index = datetime_series.index._with_freq(None)
 
         rindex = list(datetime_series.index)
-        random.shuffle(rindex)
+        np.random.default_rng(2).shuffle(rindex)
 
         random_order = datetime_series.reindex(rindex)
         sorted_series = random_order.sort_index()
@@ -61,7 +59,7 @@ class TestSeriesSortIndex:
 
         # For GH#11402
         rindex = list(datetime_series.index)
-        random.shuffle(rindex)
+        np.random.default_rng(2).shuffle(rindex)
 
         # descending
         random_order = datetime_series.reindex(rindex)

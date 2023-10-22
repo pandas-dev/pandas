@@ -187,12 +187,9 @@ class TestConcatAppendCommon:
         exp_series_dtype = None
 
         if typ1 == typ2:
-            # same dtype is tested in test_concatlike_same_dtypes
-            return
+            pytest.skip("same dtype is tested in test_concatlike_same_dtypes")
         elif typ1 == "category" or typ2 == "category":
-            # The `vals1 + vals2` below fails bc one of these is a Categorical
-            #  instead of a list; we have separate dedicated tests for categorical
-            return
+            pytest.skip("categorical type tested elsewhere")
 
         # specify expected dtype
         if typ1 == "bool" and typ2 in ("int64", "float64"):
@@ -200,17 +197,15 @@ class TestConcatAppendCommon:
             # index doesn't because bool is object dtype
             exp_series_dtype = typ2
             mark = pytest.mark.xfail(reason="GH#39187 casting to object")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         elif typ2 == "bool" and typ1 in ("int64", "float64"):
             exp_series_dtype = typ1
             mark = pytest.mark.xfail(reason="GH#39187 casting to object")
-            request.node.add_marker(mark)
-        elif (
-            typ1 == "datetime64[ns, US/Eastern]"
-            or typ2 == "datetime64[ns, US/Eastern]"
-            or typ1 == "timedelta64[ns]"
-            or typ2 == "timedelta64[ns]"
-        ):
+            request.applymarker(mark)
+        elif typ1 in {"datetime64[ns, US/Eastern]", "timedelta64[ns]"} or typ2 in {
+            "datetime64[ns, US/Eastern]",
+            "timedelta64[ns]",
+        }:
             exp_index_dtype = object
             exp_series_dtype = object
 

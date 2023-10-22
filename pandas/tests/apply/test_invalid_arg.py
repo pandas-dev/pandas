@@ -8,7 +8,6 @@
 
 from itertools import chain
 import re
-import warnings
 
 import numpy as np
 import pytest
@@ -93,7 +92,7 @@ def test_series_nested_renamer(renamer):
 
 def test_apply_dict_depr():
     tsdf = DataFrame(
-        np.random.randn(10, 3),
+        np.random.default_rng(2).standard_normal((10, 3)),
         columns=["A", "B", "C"],
         index=date_range("1/1/2000", periods=10),
     )
@@ -190,9 +189,9 @@ def test_apply_modify_traceback():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -298,6 +297,7 @@ def test_transform_and_agg_err_agg(axis, float_frame):
             float_frame.agg(["max", "sqrt"], axis=axis)
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")  # GH53325
 @pytest.mark.parametrize(
     "func, msg",
     [
@@ -312,10 +312,7 @@ def test_transform_and_agg_err_series(string_series, func, msg):
     # we are trying to transform with an aggregator
     with pytest.raises(ValueError, match=msg):
         with np.errstate(all="ignore"):
-            # GH53325
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", FutureWarning)
-                string_series.agg(func)
+            string_series.agg(func)
 
 
 @pytest.mark.parametrize("func", [["max", "min"], ["max", "sqrt"]])

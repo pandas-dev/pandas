@@ -175,3 +175,31 @@ def test_data_frame_value_counts_subset(nulls_fixture, columns):
     )
 
     tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_categorical_future_warning():
+    # GH#54775
+    df = pd.DataFrame({"a": [1, 2, 3]}, dtype="category")
+    result = df.value_counts()
+    expected = pd.Series(
+        1,
+        index=pd.MultiIndex.from_arrays(
+            [pd.Index([1, 2, 3], name="a", dtype="category")]
+        ),
+        name="count",
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_with_missing_category():
+    # GH-54836
+    df = pd.DataFrame({"a": pd.Categorical([1, 2, 4], categories=[1, 2, 3, 4])})
+    result = df.value_counts()
+    expected = pd.Series(
+        [1, 1, 1, 0],
+        index=pd.MultiIndex.from_arrays(
+            [pd.CategoricalIndex([1, 2, 4, 3], categories=[1, 2, 3, 4], name="a")]
+        ),
+        name="count",
+    )
+    tm.assert_series_equal(result, expected)

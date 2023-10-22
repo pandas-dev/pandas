@@ -1,7 +1,5 @@
 # Test GroupBy._positional_selector positional grouped indexing GH#42864
 
-import random
-
 import numpy as np
 import pytest
 
@@ -122,6 +120,7 @@ def test_doc_examples():
 
 @pytest.fixture()
 def multiindex_data():
+    rng = np.random.default_rng(2)
     ndates = 100
     nitems = 20
     dates = pd.date_range("20130101", periods=ndates, freq="D")
@@ -129,9 +128,9 @@ def multiindex_data():
 
     data = {}
     for date in dates:
-        nitems_for_date = nitems - random.randint(0, 12)
+        nitems_for_date = nitems - rng.integers(0, 12)
         levels = [
-            (item, random.randint(0, 10000) / 100, random.randint(0, 10000) / 100)
+            (item, rng.integers(0, 10000) / 100, rng.integers(0, 10000) / 100)
             for item in items[:nitems_for_date]
         ]
         levels.sort(key=lambda x: x[1])

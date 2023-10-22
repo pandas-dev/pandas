@@ -12,7 +12,7 @@ class TestSeriesCount:
     def test_count(self, datetime_series):
         assert datetime_series.count() == len(datetime_series)
 
-        datetime_series[::2] = np.NaN
+        datetime_series[::2] = np.nan
 
         assert datetime_series.count() == np.isfinite(datetime_series).sum()
 

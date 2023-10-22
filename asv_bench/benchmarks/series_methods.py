@@ -28,9 +28,6 @@ class SeriesConstructor:
     def time_constructor_no_data(self):
         Series(data=None, index=self.idx)
 
-    def time_constructor_fastpath(self):
-        Series(self.array, index=self.idx2, name="name", fastpath=True)
-
 
 class ToFrame:
     params = [["int64", "datetime64[ns]", "category", "Int64"], [None, "foo"]]
@@ -104,7 +101,7 @@ class Fillna:
             data = np.arange(N)
             na_value = NA
         elif dtype in ("string", "string[pyarrow]"):
-            data = tm.rands_array(5, N)
+            data = np.array([str(i) * 5 for i in range(N)], dtype=object)
             na_value = NA
         else:
             raise NotImplementedError

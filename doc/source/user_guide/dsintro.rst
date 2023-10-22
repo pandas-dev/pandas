@@ -31,9 +31,9 @@ Series
 type (integers, strings, floating point numbers, Python objects, etc.). The axis
 labels are collectively referred to as the **index**. The basic method to create a :class:`Series` is to call:
 
-::
+.. code-block:: python
 
-    >>> s = pd.Series(data, index=index)
+   s = pd.Series(data, index=index)
 
 Here, ``data`` can be many different things:
 
@@ -308,7 +308,7 @@ The row and column labels can be accessed respectively by accessing the
 From dict of ndarrays / lists
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ndarrays must all be the same length. If an index is passed, it must
+All ndarrays must share the same length. If an index is passed, it must
 also be the same length as the arrays. If no index is passed, the
 result will be ``range(n)``, where ``n`` is the array length.
 

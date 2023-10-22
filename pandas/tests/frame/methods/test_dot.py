@@ -83,12 +83,16 @@ class DotSharedTests:
 class TestSeriesDot(DotSharedTests):
     @pytest.fixture
     def obj(self):
-        return Series(np.random.randn(4), index=["p", "q", "r", "s"])
+        return Series(
+            np.random.default_rng(2).standard_normal(4), index=["p", "q", "r", "s"]
+        )
 
     @pytest.fixture
     def other(self):
         return DataFrame(
-            np.random.randn(3, 4), index=["1", "2", "3"], columns=["p", "q", "r", "s"]
+            np.random.default_rng(2).standard_normal((3, 4)),
+            index=["1", "2", "3"],
+            columns=["p", "q", "r", "s"],
         ).T
 
     @pytest.fixture
@@ -107,13 +111,17 @@ class TestDataFrameDot(DotSharedTests):
     @pytest.fixture
     def obj(self):
         return DataFrame(
-            np.random.randn(3, 4), index=["a", "b", "c"], columns=["p", "q", "r", "s"]
+            np.random.default_rng(2).standard_normal((3, 4)),
+            index=["a", "b", "c"],
+            columns=["p", "q", "r", "s"],
         )
 
     @pytest.fixture
     def other(self):
         return DataFrame(
-            np.random.randn(4, 2), index=["p", "q", "r", "s"], columns=["1", "2"]
+            np.random.default_rng(2).standard_normal((4, 2)),
+            index=["p", "q", "r", "s"],
+            columns=["1", "2"],
         )
 
     @pytest.fixture

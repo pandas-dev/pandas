@@ -18,11 +18,16 @@ from pandas import (
 import pandas._testing as tm
 from pandas.util import _test_decorators as td
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 
 @pytest.fixture
 def gcs_buffer():
     """Emulate GCS using a binary buffer."""
-    import fsspec
+    pytest.importorskip("gcsfs")
+    fsspec = pytest.importorskip("fsspec")
 
     gcs_buffer = BytesIO()
     gcs_buffer.close = lambda: True
@@ -43,7 +48,6 @@ def gcs_buffer():
     return gcs_buffer
 
 
-@td.skip_if_no("gcsfs")
 # Patches pyarrow; other processes should not pick up change
 @pytest.mark.single_cpu
 @pytest.mark.parametrize("format", ["csv", "json", "parquet", "excel", "markdown"])
@@ -131,7 +135,6 @@ def assert_equal_zip_safe(result: bytes, expected: bytes, compression: str):
         assert result == expected
 
 
-@td.skip_if_no("gcsfs")
 @pytest.mark.parametrize("encoding", ["utf-8", "cp1251"])
 def test_to_csv_compression_encoding_gcs(
     gcs_buffer, compression_only, encoding, compression_to_extension
@@ -177,10 +180,11 @@ def test_to_csv_compression_encoding_gcs(
     tm.assert_frame_equal(df, read_df)
 
 
-@td.skip_if_no("fastparquet")
-@td.skip_if_no("gcsfs")
 def test_to_parquet_gcs_new_file(monkeypatch, tmpdir):
     """Regression test for writing to a not-yet-existent GCS Parquet file."""
+    pytest.importorskip("fastparquet")
+    pytest.importorskip("gcsfs")
+
     from fsspec import AbstractFileSystem
 
     df1 = DataFrame(

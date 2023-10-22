@@ -332,7 +332,9 @@ class TestPartialSetting:
         # GH 8473
         dates = date_range("1/1/2000", periods=8)
         df_orig = DataFrame(
-            np.random.randn(8, 4), index=dates, columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((8, 4)),
+            index=dates,
+            columns=["A", "B", "C", "D"],
         )
 
         expected = pd.concat(
@@ -400,7 +402,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}'\)\] "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.dtype(int)}'\)\] "
             r"are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -481,7 +483,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}', "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.dtype(int)}', "
             r"name='idx'\)\] are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):

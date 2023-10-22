@@ -134,15 +134,16 @@ def melt(
 
     mcolumns = id_vars + var_name + [value_name]
 
-    if frame.shape[1] > 0:
+    if frame.shape[1] > 0 and not any(
+        not isinstance(dt, np.dtype) and dt._supports_2d for dt in frame.dtypes
+    ):
         mdata[value_name] = concat(
             [frame.iloc[:, i] for i in range(frame.shape[1])]
         ).values
     else:
         mdata[value_name] = frame._values.ravel("F")
     for i, col in enumerate(var_name):
-        # asanyarray will keep the columns as an Index
-        mdata[col] = np.asanyarray(frame.columns._get_level_values(i)).repeat(N)
+        mdata[col] = frame.columns._get_level_values(i).repeat(N)
 
     result = frame._constructor(mdata, columns=mcolumns)
 

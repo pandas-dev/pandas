@@ -73,8 +73,8 @@ class TestCategoricalAnalytics:
     @pytest.mark.parametrize(
         "categories,expected",
         [
-            (list("ABC"), np.NaN),
-            ([1, 2, 3], np.NaN),
+            (list("ABC"), np.nan),
+            ([1, 2, 3], np.nan),
             pytest.param(
                 Series(date_range("2020-01-01", periods=3), dtype="category"),
                 NaT,

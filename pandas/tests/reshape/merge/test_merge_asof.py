@@ -353,7 +353,8 @@ class TestAsOfMerge:
         result = merge_asof(trades, quotes, on="time", by=["ticker", "exch"])
         tm.assert_frame_equal(result, expected)
 
-    def test_multiby_heterogeneous_types(self):
+    @pytest.mark.parametrize("dtype", ["object", "string"])
+    def test_multiby_heterogeneous_types(self, dtype):
         # GH13936
         trades = pd.DataFrame(
             {
@@ -373,6 +374,7 @@ class TestAsOfMerge:
             },
             columns=["time", "ticker", "exch", "price", "quantity"],
         )
+        trades = trades.astype({"ticker": dtype, "exch": dtype})
 
         quotes = pd.DataFrame(
             {
@@ -393,6 +395,7 @@ class TestAsOfMerge:
             },
             columns=["time", "ticker", "exch", "bid", "ask"],
         )
+        quotes = quotes.astype({"ticker": dtype, "exch": dtype})
 
         expected = pd.DataFrame(
             {
@@ -414,6 +417,7 @@ class TestAsOfMerge:
             },
             columns=["time", "ticker", "exch", "price", "quantity", "bid", "ask"],
         )
+        expected = expected.astype({"ticker": dtype, "exch": dtype})
 
         result = merge_asof(trades, quotes, on="time", by=["ticker", "exch"])
         tm.assert_frame_equal(result, expected)
@@ -1382,19 +1386,18 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
-    # TODO: any_int_dtype; causes failures in _get_join_indexers
-    def test_int_type_tolerance(self, any_int_numpy_dtype):
+    def test_int_type_tolerance(self, any_int_dtype):
         # GH #28870
 
         left = pd.DataFrame({"a": [0, 10, 20], "left_val": [1, 2, 3]})
         right = pd.DataFrame({"a": [5, 15, 25], "right_val": [1, 2, 3]})
-        left["a"] = left["a"].astype(any_int_numpy_dtype)
-        right["a"] = right["a"].astype(any_int_numpy_dtype)
+        left["a"] = left["a"].astype(any_int_dtype)
+        right["a"] = right["a"].astype(any_int_dtype)
 
         expected = pd.DataFrame(
             {"a": [0, 10, 20], "left_val": [1, 2, 3], "right_val": [np.nan, 1.0, 2.0]}
         )
-        expected["a"] = expected["a"].astype(any_int_numpy_dtype)
+        expected["a"] = expected["a"].astype(any_int_dtype)
 
         result = merge_asof(left, right, on="a", tolerance=10)
         tm.assert_frame_equal(result, expected)
@@ -1666,4 +1669,42 @@ def test_merge_asof_read_only_ndarray():
     right.index.values.flags.writeable = False
     result = merge_asof(left, right, left_index=True, right_index=True)
     expected = pd.DataFrame({"left": [2], "right": [1]}, index=[2])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_multiby_with_categorical():
+    # GH 43541
+    left = pd.DataFrame(
+        {
+            "c1": pd.Categorical(["a", "a", "b", "b"], categories=["a", "b"]),
+            "c2": ["x"] * 4,
+            "t": [1] * 4,
+            "v": range(4),
+        }
+    )
+    right = pd.DataFrame(
+        {
+            "c1": pd.Categorical(["b", "b"], categories=["b", "a"]),
+            "c2": ["x"] * 2,
+            "t": [1, 2],
+            "v": range(2),
+        }
+    )
+    result = merge_asof(
+        left,
+        right,
+        by=["c1", "c2"],
+        on="t",
+        direction="forward",
+        suffixes=["_left", "_right"],
+    )
+    expected = pd.DataFrame(
+        {
+            "c1": pd.Categorical(["a", "a", "b", "b"], categories=["a", "b"]),
+            "c2": ["x"] * 4,
+            "t": [1] * 4,
+            "v_left": range(4),
+            "v_right": [np.nan, np.nan, 0.0, 0.0],
+        }
+    )
     tm.assert_frame_equal(result, expected)

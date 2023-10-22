@@ -24,7 +24,7 @@ def get_test_data(ngroups=8, n=50):
     if len(arr) < n:
         arr = np.asarray(list(arr) + unique_groups[: n - len(arr)])
 
-    np.random.shuffle(arr)
+    np.random.default_rng(2).shuffle(arr)
     return arr
 
 
@@ -36,8 +36,8 @@ class TestJoin:
             {
                 "key1": get_test_data(),
                 "key2": get_test_data(),
-                "data1": np.random.randn(50),
-                "data2": np.random.randn(50),
+                "data1": np.random.default_rng(2).standard_normal(50),
+                "data2": np.random.default_rng(2).standard_normal(50),
             }
         )
 
@@ -51,7 +51,7 @@ class TestJoin:
             {
                 "key1": get_test_data(n=10),
                 "key2": get_test_data(ngroups=4, n=10),
-                "value": np.random.randn(10),
+                "value": np.random.default_rng(2).standard_normal(10),
             }
         )
 
@@ -152,10 +152,16 @@ class TestJoin:
 
     def test_join_on_fails_with_different_right_index(self):
         df = DataFrame(
-            {"a": np.random.choice(["m", "f"], size=3), "b": np.random.randn(3)}
+            {
+                "a": np.random.default_rng(2).choice(["m", "f"], size=3),
+                "b": np.random.default_rng(2).standard_normal(3),
+            }
         )
         df2 = DataFrame(
-            {"a": np.random.choice(["m", "f"], size=10), "b": np.random.randn(10)},
+            {
+                "a": np.random.default_rng(2).choice(["m", "f"], size=10),
+                "b": np.random.default_rng(2).standard_normal(10),
+            },
             index=tm.makeCustomIndex(10, 2),
         )
         msg = r'len\(left_on\) must equal the number of levels in the index of "right"'
@@ -164,11 +170,17 @@ class TestJoin:
 
     def test_join_on_fails_with_different_left_index(self):
         df = DataFrame(
-            {"a": np.random.choice(["m", "f"], size=3), "b": np.random.randn(3)},
+            {
+                "a": np.random.default_rng(2).choice(["m", "f"], size=3),
+                "b": np.random.default_rng(2).standard_normal(3),
+            },
             index=tm.makeCustomIndex(3, 2),
         )
         df2 = DataFrame(
-            {"a": np.random.choice(["m", "f"], size=10), "b": np.random.randn(10)}
+            {
+                "a": np.random.default_rng(2).choice(["m", "f"], size=10),
+                "b": np.random.default_rng(2).standard_normal(10),
+            }
         )
         msg = r'len\(right_on\) must equal the number of levels in the index of "left"'
         with pytest.raises(ValueError, match=msg):
@@ -176,10 +188,16 @@ class TestJoin:
 
     def test_join_on_fails_with_different_column_counts(self):
         df = DataFrame(
-            {"a": np.random.choice(["m", "f"], size=3), "b": np.random.randn(3)}
+            {
+                "a": np.random.default_rng(2).choice(["m", "f"], size=3),
+                "b": np.random.default_rng(2).standard_normal(3),
+            }
         )
         df2 = DataFrame(
-            {"a": np.random.choice(["m", "f"], size=10), "b": np.random.randn(10)},
+            {
+                "a": np.random.default_rng(2).choice(["m", "f"], size=10),
+                "b": np.random.default_rng(2).standard_normal(10),
+            },
             index=tm.makeCustomIndex(10, 2),
         )
         msg = r"len\(right_on\) must equal len\(left_on\)"
@@ -317,10 +335,12 @@ class TestJoin:
 
     def test_join_unconsolidated(self):
         # GH #331
-        a = DataFrame(np.random.randn(30, 2), columns=["a", "b"])
-        c = Series(np.random.randn(30))
+        a = DataFrame(
+            np.random.default_rng(2).standard_normal((30, 2)), columns=["a", "b"]
+        )
+        c = Series(np.random.default_rng(2).standard_normal(30))
         a["c"] = c
-        d = DataFrame(np.random.randn(30, 1), columns=["q"])
+        d = DataFrame(np.random.default_rng(2).standard_normal((30, 1)), columns=["q"])
 
         # it works!
         a.join(d)
@@ -337,8 +357,16 @@ class TestJoin:
             names=["first", "second"],
         )
 
-        df1 = DataFrame(data=np.random.randn(6), index=index1, columns=["var X"])
-        df2 = DataFrame(data=np.random.randn(6), index=index2, columns=["var Y"])
+        df1 = DataFrame(
+            data=np.random.default_rng(2).standard_normal(6),
+            index=index1,
+            columns=["var X"],
+        )
+        df2 = DataFrame(
+            data=np.random.default_rng(2).standard_normal(6),
+            index=index2,
+            columns=["var Y"],
+        )
 
         df1 = df1.sort_index(level=0)
         df2 = df2.sort_index(level=0)
@@ -376,12 +404,14 @@ class TestJoin:
             "one",
         ]
 
-        data = np.random.randn(len(key1))
+        data = np.random.default_rng(2).standard_normal(len(key1))
         data = DataFrame({"key1": key1, "key2": key2, "data": data})
 
         index = lexsorted_two_level_string_multiindex
         to_join = DataFrame(
-            np.random.randn(10, 3), index=index, columns=["j_one", "j_two", "j_three"]
+            np.random.default_rng(2).standard_normal((10, 3)),
+            index=index,
+            columns=["j_one", "j_two", "j_three"],
         )
 
         joined = data.join(to_join, on=["key1", "key2"], how="inner")
@@ -435,19 +465,29 @@ class TestJoin:
             merge(new_df, other_df, left_index=True, right_index=True)
 
     def test_join_float64_float32(self):
-        a = DataFrame(np.random.randn(10, 2), columns=["a", "b"], dtype=np.float64)
-        b = DataFrame(np.random.randn(10, 1), columns=["c"], dtype=np.float32)
+        a = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 2)),
+            columns=["a", "b"],
+            dtype=np.float64,
+        )
+        b = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 1)),
+            columns=["c"],
+            dtype=np.float32,
+        )
         joined = a.join(b)
         assert joined.dtypes["a"] == "float64"
         assert joined.dtypes["b"] == "float64"
         assert joined.dtypes["c"] == "float32"
 
-        a = np.random.randint(0, 5, 100).astype("int64")
-        b = np.random.random(100).astype("float64")
-        c = np.random.random(100).astype("float32")
+        a = np.random.default_rng(2).integers(0, 5, 100).astype("int64")
+        b = np.random.default_rng(2).random(100).astype("float64")
+        c = np.random.default_rng(2).random(100).astype("float32")
         df = DataFrame({"a": a, "b": b, "c": c})
         xpdf = DataFrame({"a": a, "b": b, "c": c})
-        s = DataFrame(np.random.random(5).astype("float32"), columns=["md"])
+        s = DataFrame(
+            np.random.default_rng(2).random(5).astype("float32"), columns=["md"]
+        )
         rs = df.merge(s, left_on="a", right_index=True)
         assert rs.dtypes["a"] == "int64"
         assert rs.dtypes["b"] == "float64"
@@ -496,8 +536,8 @@ class TestJoin:
             {
                 "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
                 "B": ["one", "one", "two", "three", "two", "two", "one", "three"],
-                "C": np.random.randn(8),
-                "D": np.random.randn(8),
+                "C": np.random.default_rng(2).standard_normal(8),
+                "D": np.random.default_rng(2).standard_normal(8),
             }
         )
         s = Series(
@@ -564,7 +604,10 @@ class TestJoin:
 
     def test_mixed_type_join_with_suffix(self):
         # GH #916
-        df = DataFrame(np.random.randn(20, 6), columns=["a", "b", "c", "d", "e", "f"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((20, 6)),
+            columns=["a", "b", "c", "d", "e", "f"],
+        )
         df.insert(0, "id", 0)
         df.insert(5, "dt", "foo")
 
@@ -579,7 +622,9 @@ class TestJoin:
         mn.join(cn, rsuffix="_right")
 
     def test_join_many(self):
-        df = DataFrame(np.random.randn(10, 6), columns=list("abcdef"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((10, 6)), columns=list("abcdef")
+        )
         df_list = [df[["a", "b"]], df[["c", "d"]], df[["e", "f"]]]
 
         joined = df_list[0].join(df_list[1:])
@@ -607,7 +652,10 @@ class TestJoin:
             df_list[0].join(df_list[1:], on="a")
 
     def test_join_many_mixed(self):
-        df = DataFrame(np.random.randn(8, 4), columns=["A", "B", "C", "D"])
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((8, 4)),
+            columns=["A", "B", "C", "D"],
+        )
         df["key"] = ["foo", "bar"] * 4
         df1 = df.loc[:, ["A", "B"]]
         df2 = df.loc[:, ["C", "D"]]
@@ -620,9 +668,13 @@ class TestJoin:
         # joining dups
         df = concat(
             [
-                DataFrame(np.random.randn(10, 4), columns=["A", "A", "B", "B"]),
                 DataFrame(
-                    np.random.randint(0, 10, size=20).reshape(10, 2), columns=["A", "C"]
+                    np.random.default_rng(2).standard_normal((10, 4)),
+                    columns=["A", "A", "B", "B"],
+                ),
+                DataFrame(
+                    np.random.default_rng(2).integers(0, 10, size=20).reshape(10, 2),
+                    columns=["A", "C"],
                 ),
             ],
             axis=1,
@@ -634,10 +686,18 @@ class TestJoin:
         tm.assert_frame_equal(result, expected)
 
         # GH 4975, invalid join on dups
-        w = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
-        x = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
-        y = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
-        z = DataFrame(np.random.randn(4, 2), columns=["x", "y"])
+        w = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 2)), columns=["x", "y"]
+        )
+        x = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 2)), columns=["x", "y"]
+        )
+        y = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 2)), columns=["x", "y"]
+        )
+        z = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 2)), columns=["x", "y"]
+        )
 
         dta = x.merge(y, left_index=True, right_index=True).merge(
             z, left_index=True, right_index=True, how="outer"
@@ -753,9 +813,7 @@ def _check_join(left, right, result, join_col, how="left", lsuffix="_x", rsuffix
     left_grouped = left.groupby(join_col)
     right_grouped = right.groupby(join_col)
 
-    for group_key, group in result.groupby(
-        join_col if len(join_col) > 1 else join_col[0]
-    ):
+    for group_key, group in result.groupby(join_col):
         l_joined = _restrict_to_columns(group, left.columns, lsuffix)
         r_joined = _restrict_to_columns(group, right.columns, rsuffix)
 
@@ -844,7 +902,7 @@ def test_join_inner_multiindex_deterministic_order():
     result = left.join(right, how="inner")
     expected = DataFrame(
         {"e": [5], "f": [6]},
-        index=MultiIndex.from_tuples([(2, 1, 4, 3)], names=("b", "a", "d", "c")),
+        index=MultiIndex.from_tuples([(1, 2, 4, 3)], names=("a", "b", "d", "c")),
     )
     tm.assert_frame_equal(result, expected)
 
@@ -868,10 +926,16 @@ def test_join_multiindex_one_level(join_type):
     )
     right = DataFrame(data={"d": 4}, index=MultiIndex.from_tuples([(2,)], names=("b",)))
     result = left.join(right, how=join_type)
-    expected = DataFrame(
-        {"c": [3], "d": [4]},
-        index=MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
-    )
+    if join_type == "right":
+        expected = DataFrame(
+            {"c": [3], "d": [4]},
+            index=MultiIndex.from_tuples([(2, 1)], names=["b", "a"]),
+        )
+    else:
+        expected = DataFrame(
+            {"c": [3], "d": [4]},
+            index=MultiIndex.from_tuples([(1, 2)], names=["a", "b"]),
+        )
     tm.assert_frame_equal(result, expected)
 
 

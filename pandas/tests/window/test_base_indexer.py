@@ -268,6 +268,19 @@ def test_non_fixed_variable_window_indexer(closed, expected_data):
     tm.assert_frame_equal(result, expected)
 
 
+def test_variableoffsetwindowindexer_not_dti():
+    # GH 54379
+    with pytest.raises(ValueError, match="index must be a DatetimeIndex."):
+        VariableOffsetWindowIndexer(index="foo", offset=BusinessDay(1))
+
+
+def test_variableoffsetwindowindexer_not_offset():
+    # GH 54379
+    idx = date_range("2020", periods=10)
+    with pytest.raises(ValueError, match="offset must be a DateOffset-like object."):
+        VariableOffsetWindowIndexer(index=idx, offset="foo")
+
+
 def test_fixed_forward_indexer_count(step):
     # GH: 35579
     df = DataFrame({"b": [None, None, None, 7]})

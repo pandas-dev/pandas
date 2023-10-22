@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.compat import IS64
+
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -106,7 +108,11 @@ class TestIntervalIndex:
         expected = df.take([4, 5, 4, 5])
         tm.assert_frame_equal(result, expected)
 
-        with pytest.raises(KeyError, match=r"None of \[\[10\]\] are"):
+        msg = (
+            r"None of \[Index\(\[10\], dtype='object', name='B'\)\] "
+            r"are in the \[index\]"
+        )
+        with pytest.raises(KeyError, match=msg):
             df.loc[[10]]
 
         # partial missing
@@ -127,6 +133,33 @@ class TestIntervalIndex:
         expected = obj
 
         tm.assert_equal(result, expected)
+
+    def test_setitem_interval_with_slice(self):
+        # GH#54722
+        ii = IntervalIndex.from_breaks(range(4, 15))
+        ser = Series(range(10), index=ii)
+
+        orig = ser.copy()
+
+        # This should be a no-op (used to raise)
+        ser.loc[1:3] = 20
+        tm.assert_series_equal(ser, orig)
+
+        ser.loc[6:8] = 19
+        orig.iloc[1:4] = 19
+        tm.assert_series_equal(ser, orig)
+
+        ser2 = Series(range(5), index=ii[::2])
+        orig2 = ser2.copy()
+
+        # this used to raise
+        ser2.loc[6:8] = 22  # <- raises on main, sets on branch
+        orig2.iloc[1] = 22
+        tm.assert_series_equal(ser2, orig2)
+
+        ser2.loc[5:7] = 21
+        orig2.iloc[:2] = 21
+        tm.assert_series_equal(ser2, orig2)
 
 
 class TestIntervalIndexInsideMultiIndex:
@@ -172,3 +205,19 @@ class TestIntervalIndexInsideMultiIndex:
         )
         expected = Series([1, 6, 2, 8, 7], index=expected_index, name="value")
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(not IS64, reason="GH 23440")
+    @pytest.mark.parametrize(
+        "base",
+        [101, 1010],
+    )
+    def test_reindex_behavior_with_interval_index(self, base):
+        # GH 51826
+
+        ser = Series(
+            range(base),
+            index=IntervalIndex.from_arrays(range(base), range(1, base + 1)),
+        )
+        expected_result = Series([np.nan, 0], index=[np.nan, 1.0], dtype=float)
+        result = ser.reindex(index=[np.nan, 1.0])
+        tm.assert_series_equal(result, expected_result)

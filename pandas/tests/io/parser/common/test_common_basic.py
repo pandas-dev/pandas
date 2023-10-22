@@ -29,6 +29,10 @@ import pandas._testing as tm
 from pandas.io.parsers import TextFileReader
 from pandas.io.parsers.c_parser_wrapper import CParserWrapper
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
@@ -85,7 +89,14 @@ def test_read_csv_local(all_parsers, csv1):
     parser = all_parsers
 
     fname = prefix + str(os.path.abspath(csv1))
-    result = parser.read_csv(fname, index_col=0, parse_dates=True)
+
+    warn = None
+    if parser.engine == "pyarrow":
+        warn = DeprecationWarning
+    msg = "Passing a BlockManager to DataFrame is deprecated"
+
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
+        result = parser.read_csv(fname, index_col=0, parse_dates=True)
 
     expected = DataFrame(
         [
@@ -856,7 +867,7 @@ def test_read_seek(all_parsers):
     prefix = "### DATA\n"
     content = "nkey,value\ntables,rectangular\n"
     with tm.ensure_clean() as path:
-        Path(path).write_text(prefix + content)
+        Path(path).write_text(prefix + content, encoding="utf-8")
         with open(path, encoding="utf-8") as file:
             file.readline()
             actual = parser.read_csv(file)

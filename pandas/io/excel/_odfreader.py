@@ -22,11 +22,13 @@ from pandas.core.shared_docs import _shared_docs
 from pandas.io.excel._base import BaseExcelReader
 
 if TYPE_CHECKING:
+    from odf.opendocument import OpenDocument
+
     from pandas._libs.tslibs.nattype import NaTType
 
 
 @doc(storage_options=_shared_docs["storage_options"])
-class ODFReader(BaseExcelReader):
+class ODFReader(BaseExcelReader["OpenDocument"]):
     def __init__(
         self,
         filepath_or_buffer: FilePath | ReadBuffer[bytes],
@@ -52,14 +54,14 @@ class ODFReader(BaseExcelReader):
         )
 
     @property
-    def _workbook_class(self):
+    def _workbook_class(self) -> type[OpenDocument]:
         from odf.opendocument import OpenDocument
 
         return OpenDocument
 
     def load_workbook(
         self, filepath_or_buffer: FilePath | ReadBuffer[bytes], engine_kwargs
-    ):
+    ) -> OpenDocument:
         from odf.opendocument import load
 
         return load(filepath_or_buffer, **engine_kwargs)
@@ -148,7 +150,7 @@ class ODFReader(BaseExcelReader):
                 max_row_len = len(table_row)
 
             row_repeat = self._get_row_repeat(sheet_row)
-            if self._is_empty_row(sheet_row):
+            if len(table_row) == 0:
                 empty_rows += row_repeat
             else:
                 # add blank rows to our table
@@ -179,16 +181,6 @@ class ODFReader(BaseExcelReader):
         from odf.namespaces import TABLENS
 
         return int(cell.attributes.get((TABLENS, "number-columns-repeated"), 1))
-
-    def _is_empty_row(self, row) -> bool:
-        """
-        Helper function to find empty rows
-        """
-        for column in row.childNodes:
-            if len(column.childNodes) > 0:
-                return False
-
-        return True
 
     def _get_cell_value(self, cell) -> Scalar | NaTType:
         from odf.namespaces import OFFICENS

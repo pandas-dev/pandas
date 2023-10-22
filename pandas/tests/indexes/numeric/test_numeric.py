@@ -227,6 +227,14 @@ class TestFloatNumericIndex:
         exp = Index([1.0, "obj", 3.0], name="x")
         tm.assert_index_equal(idx.fillna("obj"), exp, exact=True)
 
+    def test_logical_compat(self, simple_index):
+        idx = simple_index
+        assert idx.all() == idx.values.all()
+        assert idx.any() == idx.values.any()
+
+        assert idx.all() == idx.to_series().all()
+        assert idx.any() == idx.to_series().any()
+
 
 class TestNumericInt:
     @pytest.fixture(params=[np.int64, np.int32, np.int16, np.int8, np.uint64])

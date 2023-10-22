@@ -518,7 +518,7 @@ class TestTimeConversionFormats:
         self, fmt, dates, expected_dates
     ):
         # GH 13486, 50887
-        msg = "parsing datetimes with mixed time zones will raise a warning"
+        msg = "parsing datetimes with mixed time zones will raise an error"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_datetime(dates, format=fmt)
         expected = Index(expected_dates)
@@ -693,7 +693,7 @@ class TestToDatetime:
         args = ["2000-01-01 01:00:00", "2000-01-01 02:00:00+00:00"]
         ts1 = constructor(args[0])
         ts2 = args[1]
-        msg = "parsing datetimes with mixed time zones will raise a warning"
+        msg = "parsing datetimes with mixed time zones will raise an error"
 
         expected = Index(
             [
@@ -734,7 +734,7 @@ class TestToDatetime:
     )
     def test_to_datetime_mixed_offsets_with_none_tz(self, fmt, expected):
         # https://github.com/pandas-dev/pandas/issues/50071
-        msg = "parsing datetimes with mixed time zones will raise a warning"
+        msg = "parsing datetimes with mixed time zones will raise an error"
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_datetime(
@@ -1236,7 +1236,7 @@ class TestToDatetime:
         ts_string_2 = "March 1, 2018 12:00:00+0500"
         arr = [ts_string_1] * 5 + [ts_string_2] * 5
         expected = Index([parse(x) for x in arr])
-        msg = "parsing datetimes with mixed time zones will raise a warning"
+        msg = "parsing datetimes with mixed time zones will raise an error"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_datetime(arr, cache=cache)
         tm.assert_index_equal(result, expected)
@@ -1570,8 +1570,8 @@ class TestToDatetime:
             (Series([""] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
             (Series([pd.NA] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
             (Series([pd.NA] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
-            (Series([np.NaN] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
-            (Series([np.NaN] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
+            (Series([np.nan] * 20), Series([NaT] * 20, dtype="datetime64[ns]")),
+            (Series([np.nan] * 60), Series([NaT] * 60, dtype="datetime64[ns]")),
         ),
     )
     def test_to_datetime_converts_null_like_to_nat(self, cache, input, expected):
@@ -1604,7 +1604,7 @@ class TestToDatetime:
             "March 1, 2018 12:00:00+0500",
             "20100240",
         ]
-        msg = "parsing datetimes with mixed time zones will raise a warning"
+        msg = "parsing datetimes with mixed time zones will raise an error"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_datetime(ts_strings, errors="coerce")
         expected = Index(
@@ -1689,7 +1689,7 @@ class TestToDatetime:
     def test_iso_8601_strings_with_different_offsets(self):
         # GH 17697, 11736, 50887
         ts_strings = ["2015-11-18 15:30:00+05:30", "2015-11-18 16:30:00+06:30", NaT]
-        msg = "parsing datetimes with mixed time zones will raise a warning"
+        msg = "parsing datetimes with mixed time zones will raise an error"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = to_datetime(ts_strings)
         expected = np.array(
@@ -1729,7 +1729,7 @@ class TestToDatetime:
 
         now = Timestamp("now")
         today = Timestamp("today")
-        msg = "parsing datetimes with mixed time zones will raise a warning"
+        msg = "parsing datetimes with mixed time zones will raise an error"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             mixed = to_datetime(ser)
         expected = Series(
@@ -1787,7 +1787,9 @@ class TestToDatetime:
         assert result.tz is timezone.utc
 
     def test_to_datetime_fixed_offset(self):
-        from pandas.tests.indexes.datetimes.test_timezones import fixed_off
+        from pandas.tests.indexes.datetimes.test_timezones import FixedOffset
+
+        fixed_off = FixedOffset(-420, "-07:00")
 
         dates = [
             datetime(2000, 1, 1, tzinfo=fixed_off),
@@ -1810,7 +1812,7 @@ class TestToDatetime:
     )
     def test_to_datetime_mixed_offsets_with_utc_false_deprecated(self, date):
         # GH 50887
-        msg = "parsing datetimes with mixed time zones will raise a warning"
+        msg = "parsing datetimes with mixed time zones will raise an error"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             to_datetime(date, utc=False)
 
@@ -1818,7 +1820,7 @@ class TestToDatetime:
 class TestToDatetimeUnit:
     @pytest.mark.parametrize("unit", ["Y", "M"])
     @pytest.mark.parametrize("item", [150, float(150)])
-    def test_to_datetime_month_or_year_unit_int(self, cache, unit, item):
+    def test_to_datetime_month_or_year_unit_int(self, cache, unit, item, request):
         # GH#50870 Note we have separate tests that pd.Timestamp gets these right
         ts = Timestamp(item, unit=unit)
         expected = DatetimeIndex([ts])
@@ -1826,11 +1828,17 @@ class TestToDatetimeUnit:
         result = to_datetime([item], unit=unit, cache=cache)
         tm.assert_index_equal(result, expected)
 
-        # TODO: this should also work
-        #  result = to_datetime(np.array([item]), unit=unit, cache=cache)
-        #  tm.assert_index_equal(result, expected)
-
         result = to_datetime(np.array([item], dtype=object), unit=unit, cache=cache)
+        tm.assert_index_equal(result, expected)
+
+        # TODO: this should also work
+        if isinstance(item, float):
+            request.applymarker(
+                pytest.mark.xfail(
+                    reason=f"{type(item).__name__} in np.array should work"
+                )
+            )
+        result = to_datetime(np.array([item]), unit=unit, cache=cache)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("unit", ["Y", "M"])
@@ -1850,10 +1858,6 @@ class TestToDatetimeUnit:
         #  constructor; this may not be ideal
         with pytest.raises(ValueError, match=msg):
             to_datetime([1.5], unit=unit, errors="ignore")
-        # TODO: we are NOT consistent with the Timestamp behavior in the
-        #  float-like string case
-        # with pytest.raises(ValueError, match=msg):
-        #    to_datetime(["1.5"], unit=unit, errors="ignore")
 
         res = to_datetime([1.5], unit=unit, errors="coerce")
         expected = Index([NaT], dtype="M8[ns]")
@@ -2815,7 +2819,7 @@ class TestToDatetimeInferFormat:
     def test_to_datetime_infer_datetime_format_consistent_format(
         self, cache, test_format
     ):
-        ser = Series(date_range("20000101", periods=50, freq="H"))
+        ser = Series(date_range("20000101", periods=50, freq="h"))
 
         s_as_dt_strings = ser.apply(lambda x: x.strftime(test_format))
 
@@ -3540,25 +3544,6 @@ def test_empty_string_datetime_coerce__unit():
     tm.assert_index_equal(expected, result)
 
 
-@td.skip_if_no("xarray")
-def test_xarray_coerce_unit():
-    # GH44053
-    import xarray as xr
-
-    arr = xr.DataArray([1, 2, 3])
-    result = to_datetime(arr, unit="ns")
-    expected = DatetimeIndex(
-        [
-            "1970-01-01 00:00:00.000000001",
-            "1970-01-01 00:00:00.000000002",
-            "1970-01-01 00:00:00.000000003",
-        ],
-        dtype="datetime64[ns]",
-        freq=None,
-    )
-    tm.assert_index_equal(result, expected)
-
-
 @pytest.mark.parametrize("cache", [True, False])
 def test_to_datetime_monotonic_increasing_index(cache):
     # GH28238
@@ -3697,7 +3682,7 @@ def test_to_datetime_with_empty_str_utc_false_format_mixed():
 
 def test_to_datetime_with_empty_str_utc_false_offsets_and_format_mixed():
     # GH 50887
-    msg = "parsing datetimes with mixed time zones will raise a warning"
+    msg = "parsing datetimes with mixed time zones will raise an error"
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
         to_datetime(

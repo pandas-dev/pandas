@@ -3489,7 +3489,7 @@ class Styler(StylerRenderer):
             Left bound, in [0, q_right), for the target quantile range.
         q_right : float, default 1
             Right bound, in (q_left, 1], for the target quantile range.
-        interpolation : {‘linear’, ‘lower’, ‘higher’, ‘midpoint’, ‘nearest’}
+        interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             Argument passed to ``Series.quantile`` or ``DataFrame.quantile`` for
             quantile estimation.
         inclusive : {'both', 'neither', 'left', 'right'}
@@ -3602,13 +3602,12 @@ class Styler(StylerRenderer):
 
         Examples
         --------
-        >>> from pandas.io.formats.style import Styler  # doctest: +SKIP
-        >>> from IPython.display import HTML  # doctest: +SKIP
-        >>> df = pd.DataFrame({"A": [1, 2]})  # doctest: +SKIP
-        >>> path = "path/to/template"  # doctest: +SKIP
-        >>> file = "template.tpl"  # doctest: +SKIP
-        >>> EasyStyler = Styler.from_custom_template(path, file)  # doctest: +SKIP
-        >>> HTML(EasyStyler(df).to_html(table_title="Another Title"))  # doctest: +SKIP
+        >>> from pandas.io.formats.style import Styler
+        >>> EasyStyler = Styler.from_custom_template("path/to/template",
+        ...                                          "template.tpl",
+        ...                                          )  # doctest: +SKIP
+        >>> df = pd.DataFrame({"A": [1, 2]})
+        >>> EasyStyler(df)  # doctest: +SKIP
 
         Please see:
         `Table Visualization <../../user_guide/style.ipynb>`_ for more examples.

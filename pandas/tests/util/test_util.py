@@ -2,25 +2,11 @@ import os
 
 import pytest
 
-from pandas import compat
+from pandas import (
+    array,
+    compat,
+)
 import pandas._testing as tm
-
-
-def test_rands():
-    r = tm.rands(10)
-    assert len(r) == 10
-
-
-def test_rands_array_1d():
-    arr = tm.rands_array(5, size=10)
-    assert arr.shape == (10,)
-    assert len(arr[0]) == 5
-
-
-def test_rands_array_2d():
-    arr = tm.rands_array(7, size=(10, 10))
-    assert arr.shape == (10, 10)
-    assert len(arr[1, 1]) == 7
 
 
 def test_numpy_err_state_is_default():
@@ -61,3 +47,12 @@ def test_datapath(datapath):
 def test_external_error_raised():
     with tm.external_error_raised(TypeError):
         raise TypeError("Should not check this error message, so it will pass")
+
+
+def test_is_sorted():
+    arr = array([1, 2, 3], dtype="Int64")
+    tm.assert_is_sorted(arr)
+
+    arr = array([4, 2, 3], dtype="Int64")
+    with pytest.raises(AssertionError, match="ExtensionArray are different"):
+        tm.assert_is_sorted(arr)

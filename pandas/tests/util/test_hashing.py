@@ -135,7 +135,7 @@ def test_multiindex_objects():
         Series(dtype=object),
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
         DataFrame(),
-        tm.makeMissingDataframe(),
+        DataFrame(np.full((10, 4), np.nan)),
         tm.makeMixedDataFrame(),
         tm.makeTimeDataFrame(),
         tm.makeTimeSeries(),
@@ -161,7 +161,7 @@ def test_hash_pandas_object(obj, index):
         Series(["a", None, "c"]),
         Series([True, False, True]),
         DataFrame({"x": ["a", "b", "c"], "y": [1, 2, 3]}),
-        tm.makeMissingDataframe(),
+        DataFrame(np.full((10, 4), np.nan)),
         tm.makeMixedDataFrame(),
         tm.makeTimeDataFrame(),
         tm.makeTimeSeries(),
@@ -328,7 +328,7 @@ def test_alternate_encoding(index):
 @pytest.mark.parametrize("l_add", [0, 1])
 def test_same_len_hash_collisions(l_exp, l_add):
     length = 2 ** (l_exp + 8) + l_add
-    s = tm.rands_array(length, 2)
+    s = tm.makeStringIndex(length).to_numpy()
 
     result = hash_array(s, "utf8")
     assert not result[0] == result[1]

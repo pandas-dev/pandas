@@ -290,7 +290,7 @@ class ToJSONLines(BaseIO):
 class ToJSONMem:
     def setup_cache(self):
         df = DataFrame([[1]])
-        df2 = DataFrame(range(8), date_range("1/1/2000", periods=8, freq="T"))
+        df2 = DataFrame(range(8), date_range("1/1/2000", periods=8, freq="min"))
         frames = {"int": df, "float": df.astype(float), "datetime": df2}
 
         return frames

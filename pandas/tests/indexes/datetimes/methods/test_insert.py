@@ -76,18 +76,18 @@ class TestInsert:
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
-        idx = date_range("1/1/2000", periods=3, freq="M", name="idx")
+        idx = date_range("1/1/2000", periods=3, freq="ME", name="idx")
 
         # preserve freq
         expected_0 = DatetimeIndex(
             ["1999-12-31", "2000-01-31", "2000-02-29", "2000-03-31"],
             name="idx",
-            freq="M",
+            freq="ME",
         )
         expected_3 = DatetimeIndex(
             ["2000-01-31", "2000-02-29", "2000-03-31", "2000-04-30"],
             name="idx",
-            freq="M",
+            freq="ME",
         )
 
         # reset freq to None
@@ -128,10 +128,10 @@ class TestInsert:
         assert result.freq is None
 
         for tz in ["US/Pacific", "Asia/Singapore"]:
-            idx = date_range("1/1/2000 09:00", periods=6, freq="H", tz=tz, name="idx")
+            idx = date_range("1/1/2000 09:00", periods=6, freq="h", tz=tz, name="idx")
             # preserve freq
             expected = date_range(
-                "1/1/2000 09:00", periods=7, freq="H", tz=tz, name="idx"
+                "1/1/2000 09:00", periods=7, freq="h", tz=tz, name="idx"
             )
             for d in [
                 Timestamp("2000-01-01 15:00", tz=tz),

@@ -97,16 +97,16 @@ class TestSeriesPlots:
 
 
 class TestDataFramePlots:
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis(self, pass_axis):
+        pytest.importorskip("scipy")
         scatter_matrix = plotting.scatter_matrix
 
         ax = None
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.RandomState(42).randn(100, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((100, 3)))
 
         # we are plotting multiples on a sub-plot
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
@@ -122,16 +122,16 @@ class TestDataFramePlots:
         _check_text_labels(axes0_labels, expected)
         _check_ticks_props(axes, xlabelsize=8, xrot=90, ylabelsize=8, yrot=0)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("pass_axis", [False, True])
     def test_scatter_matrix_axis_smaller(self, pass_axis):
+        pytest.importorskip("scipy")
         scatter_matrix = plotting.scatter_matrix
 
         ax = None
         if pass_axis:
             _, ax = mpl.pyplot.subplots(3, 3)
 
-        df = DataFrame(np.random.RandomState(42).randn(100, 3))
+        df = DataFrame(np.random.default_rng(11).standard_normal((100, 3)))
         df[0] = (df[0] - 2) / 3
 
         # we are plotting multiples on a sub-plot
@@ -170,9 +170,9 @@ class TestDataFramePlots:
             "iris",
             DataFrame(
                 {
-                    "A": np.random.rand(10),
-                    "B": np.random.rand(10),
-                    "C": np.random.rand(10),
+                    "A": np.random.default_rng(2).standard_normal(10),
+                    "B": np.random.default_rng(2).standard_normal(10),
+                    "C": np.random.default_rng(2).standard_normal(10),
                     "Name": ["A"] * 10,
                 }
             ),
@@ -197,9 +197,9 @@ class TestDataFramePlots:
             "iris",
             DataFrame(
                 {
-                    "A": np.random.rand(10),
-                    "B": np.random.rand(10),
-                    "C": np.random.rand(10),
+                    "A": np.random.default_rng(2).standard_normal(10),
+                    "B": np.random.default_rng(2).standard_normal(10),
+                    "C": np.random.default_rng(2).standard_normal(10),
                     "Name": ["A"] * 10,
                 }
             ),
@@ -411,11 +411,11 @@ class TestDataFramePlots:
         # GH17525
         df = DataFrame(np.zeros((10, 10)))
 
-        # Make sure that the np.random.seed isn't reset by get_standard_colors
+        # Make sure that the random seed isn't reset by get_standard_colors
         plotting.parallel_coordinates(df, 0)
-        rand1 = np.random.random()
+        rand1 = np.random.default_rng(None).random()
         plotting.parallel_coordinates(df, 0)
-        rand2 = np.random.random()
+        rand2 = np.random.default_rng(None).random()
         assert rand1 != rand2
 
     def test_get_standard_colors_consistency(self):
@@ -467,7 +467,9 @@ class TestDataFramePlots:
         color_after = get_standard_colors(1, color=color_before)
         assert len(color_after) == len(color_before)
 
-        df = DataFrame(np.random.randn(48, 4), columns=list("ABCD"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((48, 4)), columns=list("ABCD")
+        )
 
         color_list = cm.gnuplot(np.linspace(0, 1, 16))
         p = df.A.plot.bar(figsize=(16, 7), color=color_list)
@@ -481,7 +483,7 @@ class TestDataFramePlots:
 
         expected = [(0.5, 0.24, 0.6), (0.3, 0.7, 0.7)]
 
-        df1 = DataFrame(np.random.rand(2, 2), columns=data_files)
+        df1 = DataFrame(np.random.default_rng(2).random((2, 2)), columns=data_files)
         dic_color = {"b": (0.3, 0.7, 0.7), "a": (0.5, 0.24, 0.6)}
 
         ax = df1.plot(kind=kind, color=dic_color)
@@ -595,7 +597,12 @@ class TestDataFramePlots:
     def test_externally_shared_axes(self):
         # Example from GH33819
         # Create data
-        df = DataFrame({"a": np.random.randn(1000), "b": np.random.randn(1000)})
+        df = DataFrame(
+            {
+                "a": np.random.default_rng(2).standard_normal(1000),
+                "b": np.random.default_rng(2).standard_normal(1000),
+            }
+        )
 
         # Create figure
         fig = mpl.pyplot.figure()

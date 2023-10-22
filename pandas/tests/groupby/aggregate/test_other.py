@@ -30,8 +30,8 @@ def test_agg_partial_failure_raises():
 
     df = DataFrame(
         {
-            "data1": np.random.randn(5),
-            "data2": np.random.randn(5),
+            "data1": np.random.default_rng(2).standard_normal(5),
+            "data2": np.random.default_rng(2).standard_normal(5),
             "key1": ["a", "a", "b", "b", "a"],
             "key2": ["one", "two", "one", "two", "one"],
         }
@@ -87,14 +87,14 @@ def test_agg_datetimes_mixed():
 
 def test_agg_period_index():
     prng = period_range("2012-1-1", freq="M", periods=3)
-    df = DataFrame(np.random.randn(3, 2), index=prng)
+    df = DataFrame(np.random.default_rng(2).standard_normal((3, 2)), index=prng)
     rs = df.groupby(level=0).sum()
     assert isinstance(rs.index, PeriodIndex)
 
     # GH 3579
     index = period_range(start="1999-01", periods=5, freq="M")
-    s1 = Series(np.random.rand(len(index)), index=index)
-    s2 = Series(np.random.rand(len(index)), index=index)
+    s1 = Series(np.random.default_rng(2).random(len(index)), index=index)
+    s2 = Series(np.random.default_rng(2).random(len(index)), index=index)
     df = DataFrame.from_dict({"s1": s1, "s2": s2})
     grouped = df.groupby(df.index.month)
     list(grouped)
@@ -106,7 +106,7 @@ def test_agg_dict_parameter_cast_result_dtypes():
     df = DataFrame(
         {
             "class": ["A", "A", "B", "B", "C", "C", "D", "D"],
-            "time": date_range("1/1/2011", periods=8, freq="H"),
+            "time": date_range("1/1/2011", periods=8, freq="h"),
         }
     )
     df.loc[[0, 1, 2, 5], "time"] = None
@@ -175,7 +175,7 @@ def test_aggregate_api_consistency():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
-            "C": np.random.randn(8) + 1.0,
+            "C": np.random.default_rng(2).standard_normal(8) + 1.0,
             "D": np.arange(8),
         }
     )
@@ -239,7 +239,7 @@ def test_agg_compat():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
-            "C": np.random.randn(8) + 1.0,
+            "C": np.random.default_rng(2).standard_normal(8) + 1.0,
             "D": np.arange(8),
         }
     )
@@ -260,7 +260,7 @@ def test_agg_nested_dicts():
         {
             "A": ["foo", "bar", "foo", "bar", "foo", "bar", "foo", "foo"],
             "B": ["one", "one", "two", "two", "two", "two", "one", "two"],
-            "C": np.random.randn(8) + 1.0,
+            "C": np.random.default_rng(2).standard_normal(8) + 1.0,
             "D": np.arange(8),
         }
     )
@@ -284,7 +284,7 @@ def test_agg_nested_dicts():
 
 
 def test_agg_item_by_item_raise_typeerror():
-    df = DataFrame(np.random.randint(10, size=(20, 10)))
+    df = DataFrame(np.random.default_rng(2).integers(10, size=(20, 10)))
 
     def raiseException(df):
         pprint_thing("----------------------------------------")
@@ -346,9 +346,9 @@ def test_series_agg_multi_pure_python():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -499,13 +499,17 @@ def test_agg_timezone_round_trip():
     assert ts == grouped.first()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert ts == grouped.apply(lambda x: x.iloc[0]).iloc[0, 1]
 
     ts = df["B"].iloc[2]
     assert ts == grouped.last()["B"].iloc[0]
 
     # GH#27110 applying iloc should return a DataFrame
-    assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        assert ts == grouped.apply(lambda x: x.iloc[-1]).iloc[0, 1]
 
 
 def test_sum_uint64_overflow():
