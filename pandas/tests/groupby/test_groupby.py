@@ -5,7 +5,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
+from pandas.compat.pyarrow import pa_installed
 from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
@@ -2770,7 +2770,7 @@ def test_rolling_wrong_param_min_period():
         object,
         pytest.param(
             "string[pyarrow_numpy]",
-            marks=pytest.mark.skipif(pa_version_under7p0, reason="arrow not installed"),
+            marks=pytest.mark.skipif(pa_installed, reason="arrow not installed"),
         ),
     ],
 )
