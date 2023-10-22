@@ -55,6 +55,7 @@ from pandas.core.dtypes.base import (
 from pandas.core.dtypes.generic import (
     ABCCategoricalIndex,
     ABCIndex,
+    ABCRangeIndex,
 )
 from pandas.core.dtypes.inference import (
     is_bool,
@@ -456,7 +457,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
             # With object-dtype we need a comparison that identifies
             #  e.g. int(2) as distinct from float(2)
-            return hash(self) == hash(other)
+            return set(left) == set(right)
 
     def __repr__(self) -> str_type:
         if self.categories is None:
@@ -464,8 +465,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             dtype = "None"
         else:
             data = self.categories._format_data(name=type(self).__name__)
-            if data is None:
-                # self.categories is RangeIndex
+            if isinstance(self.categories, ABCRangeIndex):
                 data = str(self.categories._range)
             data = data.rstrip(", ")
             dtype = self.categories.dtype

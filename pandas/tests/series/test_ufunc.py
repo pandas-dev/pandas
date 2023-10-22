@@ -274,7 +274,7 @@ class TestNumpyReductions:
 
         if isinstance(values, pd.core.arrays.SparseArray):
             mark = pytest.mark.xfail(reason="SparseArray has no 'prod'")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         if values.dtype.kind in "iuf":
             result = np.multiply.reduce(obj)

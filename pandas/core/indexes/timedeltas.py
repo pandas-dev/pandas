@@ -13,6 +13,7 @@ from pandas._libs.tslibs import (
     Timedelta,
     to_offset,
 )
+from pandas._libs.tslibs.timedeltas import disallow_ambiguous_unit
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -48,7 +49,6 @@ if TYPE_CHECKING:
         "sum",
         "std",
         "median",
-        "_format_native_types",
     ],
     TimedeltaArray,
 )
@@ -171,11 +171,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
         if is_scalar(data):
             cls._raise_scalar_data_error(data)
 
-        if unit in {"Y", "y", "M"}:
-            raise ValueError(
-                "Units 'M', 'Y', and 'y' are no longer supported, as they do not "
-                "represent unambiguous timedelta values durations."
-            )
+        disallow_ambiguous_unit(unit)
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
