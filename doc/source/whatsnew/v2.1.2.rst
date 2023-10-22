@@ -24,9 +24,11 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Fixed bug in :meth:`Categorical.equals` if other has arrow backed string dtype (:issue:`55364`)
+- Fixed bug in :meth:`DataFrame.__setitem__` casting :class:`Index` with object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
 - Fixed bug in :meth:`DataFrame.__setitem__` not inferring string dtype for zero-dimensional array with ``infer_string=True`` (:issue:`55366`)
 - Fixed bug in :meth:`DataFrame.idxmin` and :meth:`DataFrame.idxmax` raising for arrow dtypes (:issue:`55368`)
 - Fixed bug in :meth:`DataFrame.interpolate` raising incorrect error message (:issue:`55347`)
+- Fixed bug in :meth:`Index.insert` casting object-dtype to PyArrow backed strings when ``infer_string`` option is set (:issue:`55638`)
 - Fixed bug in :meth:`Index.insert` raising when inserting ``None`` into :class:`Index` with ``dtype="string[pyarrow_numpy]"`` (:issue:`55365`)
 - Fixed bug in :meth:`Series.all`  and :meth:`Series.any` not treating missing values correctly for ``dtype="string[pyarrow_numpy]"`` (:issue:`55367`)
 - Fixed bug in :meth:`Series.floordiv` for :class:`ArrowDtype` (:issue:`55561`)

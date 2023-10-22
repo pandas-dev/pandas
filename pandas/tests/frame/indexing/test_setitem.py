@@ -753,6 +753,15 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_setitem_string_option_object_index(self):
+        # GH#55638
+        pytest.importorskip("pyarrow")
+        df = DataFrame({"a": [1, 2]})
+        with pd.option_context("future.infer_string", True):
+            df["b"] = Index(["a", "b"], dtype=object)
+        expected = DataFrame({"a": [1, 2], "b": Series(["a", "b"], dtype=object)})
+        tm.assert_frame_equal(df, expected)
+
     def test_setitem_frame_midx_columns(self):
         # GH#49121
         df = DataFrame({("a", "b"): [10]})
