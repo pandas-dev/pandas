@@ -93,7 +93,7 @@ def test_cython_agg_boolean():
     tm.assert_series_equal(result, expected)
 
 
-def test_cython_agg_nothing_to_agg():
+def test_cython_agg_nothing_to_agg(using_infer_string):
     frame = DataFrame(
         {"a": np.random.default_rng(2).integers(0, 5, 50), "b": ["foo", "bar"] * 25}
     )
@@ -107,8 +107,12 @@ def test_cython_agg_nothing_to_agg():
     )
 
     result = frame[["b"]].groupby(frame["a"]).mean(numeric_only=True)
+    dtype = "string[pyarrow_numpy]" if using_infer_string else object
+
     expected = DataFrame(
-        [], index=frame["a"].sort_values().drop_duplicates(), columns=[]
+        [],
+        index=frame["a"].sort_values().drop_duplicates(),
+        columns=Index([], dtype=dtype),
     )
     tm.assert_frame_equal(result, expected)
 

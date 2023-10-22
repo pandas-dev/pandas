@@ -2836,11 +2836,16 @@ def test_groupby_none_in_first_mi_level():
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_none_column_name():
+def test_groupby_none_column_name(using_infer_string):
     # GH#47348
     df = DataFrame({None: [1, 1, 2, 2], "b": [1, 1, 2, 3], "c": [4, 5, 6, 7]})
-    result = df.groupby(by=[None]).sum()
-    expected = DataFrame({"b": [2, 5], "c": [9, 13]}, index=Index([1, 2], name=None))
+    if using_infer_string:
+        result = df.groupby(by=[np.nan]).sum()
+        name = np.nan
+    else:
+        result = df.groupby(by=[None]).sum()
+        name = None
+    expected = DataFrame({"b": [2, 5], "c": [9, 13]}, index=Index([1, 2], name=name))
     tm.assert_frame_equal(result, expected)
 
 

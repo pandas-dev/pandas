@@ -112,7 +112,9 @@ def test_groupby_dropna_multi_index_dataframe_nan_in_two_groups(
         ),
     ],
 )
-def test_groupby_dropna_normal_index_dataframe(dropna, idx, outputs):
+def test_groupby_dropna_normal_index_dataframe(
+    dropna, idx, outputs, using_infer_string
+):
     # GH 3729
     df_list = [
         ["B", 12, 12, 12],
@@ -123,7 +125,9 @@ def test_groupby_dropna_normal_index_dataframe(dropna, idx, outputs):
     df = pd.DataFrame(df_list, columns=["a", "b", "c", "d"])
     grouped = df.groupby("a", dropna=dropna).sum()
 
-    expected = pd.DataFrame(outputs, index=pd.Index(idx, dtype="object", name="a"))
+    dtype = "string[pyarrow_numpy]" if using_infer_string else object
+
+    expected = pd.DataFrame(outputs, index=pd.Index(idx, dtype=dtype, name="a"))
 
     tm.assert_frame_equal(grouped, expected)
 

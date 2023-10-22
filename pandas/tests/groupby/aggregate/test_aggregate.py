@@ -333,7 +333,7 @@ def test_wrap_agg_out(three_group):
     grouped = three_group.groupby(["A", "B"])
 
     def func(ser):
-        if ser.dtype == object:
+        if ser.dtype in [object, pd.StringDtype("pyarrow_numpy")]:
             raise TypeError("Test error message")
         return ser.sum()
 
@@ -1088,7 +1088,7 @@ def test_lambda_named_agg(func):
     tm.assert_frame_equal(result, expected)
 
 
-def test_aggregate_mixed_types():
+def test_aggregate_mixed_types(using_infer_string):
     # GH 16916
     df = DataFrame(
         data=np.array([0] * 9).reshape(3, 3), columns=list("XYZ"), index=list("abc")
@@ -1096,10 +1096,11 @@ def test_aggregate_mixed_types():
     df["grouping"] = ["group 1", "group 1", 2]
     result = df.groupby("grouping").aggregate(lambda x: x.tolist())
     expected_data = [[[0], [0], [0]], [[0, 0], [0, 0], [0, 0]]]
+    dtype = "string[pyarrow_numpy]" if using_infer_string else object
     expected = DataFrame(
         expected_data,
         index=Index([2, "group 1"], dtype="object", name="grouping"),
-        columns=Index(["X", "Y", "Z"], dtype="object"),
+        columns=Index(["X", "Y", "Z"], dtype=dtype),
     )
     tm.assert_frame_equal(result, expected)
 

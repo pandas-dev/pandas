@@ -476,10 +476,10 @@ def test_transform_nuisance_raises(df):
     grouped = df.groupby("A")
 
     gbc = grouped["B"]
-    with pytest.raises(TypeError, match="Could not convert"):
+    with pytest.raises(TypeError, match="Could not convert|does not support"):
         gbc.transform(lambda x: np.mean(x))
 
-    with pytest.raises(TypeError, match="Could not convert"):
+    with pytest.raises(TypeError, match="Could not convert|does not support"):
         df.groupby("A").transform(lambda x: np.mean(x))
 
 
@@ -579,7 +579,7 @@ def test_groupby_transform_with_int():
         }
     )
     with np.errstate(all="ignore"):
-        with pytest.raises(TypeError, match="Could not convert"):
+        with pytest.raises(TypeError, match="Could not convert|does not support"):
             df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
         result = df.groupby("A")[["B", "C"]].transform(
             lambda x: (x - x.mean()) / x.std()
@@ -591,7 +591,7 @@ def test_groupby_transform_with_int():
     s = Series([2, 3, 4, 10, 5, -1])
     df = DataFrame({"A": [1, 1, 1, 2, 2, 2], "B": 1, "C": s, "D": "foo"})
     with np.errstate(all="ignore"):
-        with pytest.raises(TypeError, match="Could not convert"):
+        with pytest.raises(TypeError, match="Could not convert|does not support"):
             df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
         result = df.groupby("A")[["B", "C"]].transform(
             lambda x: (x - x.mean()) / x.std()
@@ -863,7 +863,7 @@ def test_cython_transform_frame_column(
         msg = "|".join(
             [
                 "does not support .* operations",
-                ".* is not supported for object dtype",
+                ".* is not supported for (object|string) dtype",
                 "is not implemented for this dtype",
             ]
         )
@@ -1186,19 +1186,20 @@ def test_groupby_transform_with_datetimes(func, values):
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_transform_dtype():
+def test_groupby_transform_dtype(using_infer_string):
     # GH 22243
     df = DataFrame({"a": [1], "val": [1.35]})
 
     result = df["val"].transform(lambda x: x.map(lambda y: f"+{y}"))
-    expected1 = Series(["+1.35"], name="val", dtype="object")
+    dtype = "string[pyarrow_numpy]" if using_infer_string else object
+    expected1 = Series(["+1.35"], name="val", dtype=dtype)
     tm.assert_series_equal(result, expected1)
 
     result = df.groupby("a")["val"].transform(lambda x: x.map(lambda y: f"+{y}"))
     tm.assert_series_equal(result, expected1)
 
     result = df.groupby("a")["val"].transform(lambda x: x.map(lambda y: f"+({y})"))
-    expected2 = Series(["+(1.35)"], name="val", dtype="object")
+    expected2 = Series(["+(1.35)"], name="val", dtype=dtype)
     tm.assert_series_equal(result, expected2)
 
     df["val"] = df["val"].astype(object)

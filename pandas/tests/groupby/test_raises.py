@@ -119,7 +119,7 @@ def _call_and_check(klass, msg, how, gb, groupby_func, args, warn_msg=""):
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_string(
-    how, by, groupby_series, groupby_func, df_with_string_col
+    how, by, groupby_series, groupby_func, df_with_string_col, using_infer_string
 ):
     df = df_with_string_col
     args = get_groupby_method_args(groupby_func, df)
@@ -132,30 +132,41 @@ def test_groupby_raises_string(
             assert not hasattr(gb, "corrwith")
             return
 
+    if using_infer_string:
+        import pyarrow as pa
+
+        errs = (TypeError, pa.lib.ArrowNotImplementedError)
+    else:
+        errs = TypeError
+
     klass, msg = {
         "all": (None, ""),
         "any": (None, ""),
         "bfill": (None, ""),
-        "corrwith": (TypeError, "Could not convert"),
+        "corrwith": (errs, "Could not convert|has no kernel"),
         "count": (None, ""),
         "cumcount": (None, ""),
         "cummax": (
             (NotImplementedError, TypeError),
-            "(function|cummax) is not (implemented|supported) for (this|object) dtype",
+            "(function|cummax) is not (implemented|supported) "
+            "for (this|object|string) dtype",
         ),
         "cummin": (
             (NotImplementedError, TypeError),
-            "(function|cummin) is not (implemented|supported) for (this|object) dtype",
+            "(function|cummin) is not (implemented|supported) "
+            "for (this|object|string) dtype",
         ),
         "cumprod": (
             (NotImplementedError, TypeError),
-            "(function|cumprod) is not (implemented|supported) for (this|object) dtype",
+            "(function|cumprod) is not (implemented|supported) "
+            "for (this|object|string) dtype",
         ),
         "cumsum": (
             (NotImplementedError, TypeError),
-            "(function|cumsum) is not (implemented|supported) for (this|object) dtype",
+            "(function|cumsum) is not (implemented|supported) "
+            "for (this|object|string) dtype",
         ),
-        "diff": (TypeError, "unsupported operand type"),
+        "diff": (errs, "unsupported operand type|has no kernel"),
         "ffill": (None, ""),
         "fillna": (None, ""),
         "first": (None, ""),
@@ -165,21 +176,24 @@ def test_groupby_raises_string(
         "max": (None, ""),
         "mean": (
             TypeError,
-            re.escape("agg function failed [how->mean,dtype->object]"),
+            re.escape("agg function failed [how->mean,dtype->"),
         ),
         "median": (
             TypeError,
-            re.escape("agg function failed [how->median,dtype->object]"),
+            re.escape("agg function failed [how->median,dtype->"),
         ),
         "min": (None, ""),
         "ngroup": (None, ""),
         "nunique": (None, ""),
-        "pct_change": (TypeError, "unsupported operand type"),
+        "pct_change": (errs, "unsupported operand type|has no kernel"),
         "prod": (
             TypeError,
-            re.escape("agg function failed [how->prod,dtype->object]"),
+            re.escape("agg function failed [how->prod,dtype->"),
         ),
-        "quantile": (TypeError, "cannot be performed against 'object' dtypes!"),
+        "quantile": (
+            TypeError,
+            "cannot be performed against 'object' dtypes!|No matching signature",
+        ),
         "rank": (None, ""),
         "sem": (ValueError, "could not convert string to float"),
         "shift": (None, ""),
@@ -227,7 +241,7 @@ def test_groupby_raises_string_np(
         np.sum: (None, ""),
         np.mean: (
             TypeError,
-            re.escape("agg function failed [how->mean,dtype->object]"),
+            re.escape("agg function failed [how->mean,dtype->"),
         ),
     }[groupby_func_np]
 

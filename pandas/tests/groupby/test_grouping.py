@@ -947,11 +947,14 @@ class TestGetGroup:
         grouped = series.groupby(grouper)
         assert next(iter(grouped), None) is None
 
-    def test_groupby_with_single_column(self):
+    def test_groupby_with_single_column(self, using_infer_string):
         df = DataFrame({"a": list("abssbab")})
         tm.assert_frame_equal(df.groupby("a").get_group("a"), df.iloc[[0, 5]])
         # GH 13530
-        exp = DataFrame(index=Index(["a", "b", "s"], name="a"), columns=[])
+        dtype = "string[pyarrow_numpy]" if using_infer_string else object
+        exp = DataFrame(
+            index=Index(["a", "b", "s"], name="a"), columns=Index([], dtype=dtype)
+        )
         tm.assert_frame_equal(df.groupby("a").count(), exp)
         tm.assert_frame_equal(df.groupby("a").sum(), exp)
 

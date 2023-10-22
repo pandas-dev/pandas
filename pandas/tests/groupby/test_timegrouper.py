@@ -74,7 +74,7 @@ def groupby_with_truncated_bingrouper(frame_for_truncated_bingrouper):
 
 
 class TestGroupBy:
-    def test_groupby_with_timegrouper(self):
+    def test_groupby_with_timegrouper(self, using_infer_string):
         # GH 4161
         # TimeGrouper requires a sorted index
         # also verifies that the resultant index has the correct name
@@ -106,7 +106,9 @@ class TestGroupBy:
                 ),
             )
             # Cast to object to avoid implicit cast when setting entry to "CarlCarlCarl"
-            expected = expected.astype({"Buyer": object})
+            dtype = "string[pyarrow_numpy]" if using_infer_string else object
+
+            expected = expected.astype({"Buyer": dtype})
             expected.iloc[0, 0] = "CarlCarlCarl"
             expected.iloc[6, 0] = "CarlCarl"
             expected.iloc[18, 0] = "Joe"
