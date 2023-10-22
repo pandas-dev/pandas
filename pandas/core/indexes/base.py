@@ -127,6 +127,7 @@ from pandas.core.dtypes.generic import (
     ABCIntervalIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
+    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -1292,11 +1293,6 @@ class Index(IndexOpsMixin, PandasObject):
         attrs_str = [f"{k}={v}" for k, v in attrs]
         prepr = ", ".join(attrs_str)
 
-        # no data provided, just attributes
-        if data is None:
-            # i.e. RangeIndex
-            data = ""
-
         return f"{klass_name}({data}{prepr})"
 
     @property
@@ -1306,6 +1302,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return default_pprint
 
+    @final
     def _format_data(self, name=None) -> str_t:
         """
         Return the formatted data as a unicode string.
@@ -1319,6 +1316,9 @@ class Index(IndexOpsMixin, PandasObject):
             self = cast("CategoricalIndex", self)
             if is_object_dtype(self.categories.dtype):
                 is_justify = False
+        elif isinstance(self, ABCRangeIndex):
+            # We will do the relevant formatting via attrs
+            return ""
 
         return format_object_summary(
             self,
@@ -6961,6 +6961,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[~mask]
         return self.delete(indexer)
 
+    @final
     def infer_objects(self, copy: bool = True) -> Index:
         """
         If we have an object dtype, try to infer a non-object dtype.
@@ -6992,6 +6993,7 @@ class Index(IndexOpsMixin, PandasObject):
             result._references.add_index_reference(result)
         return result
 
+    @final
     def diff(self, periods: int = 1) -> Self:
         """
         Computes the difference between consecutive values in the Index object.
@@ -7020,6 +7022,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._constructor(self.to_series().diff(periods))
 
+    @final
     def round(self, decimals: int = 0) -> Self:
         """
         Round each value in the Index to the given number of decimals.

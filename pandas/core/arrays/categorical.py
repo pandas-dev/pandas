@@ -2165,7 +2165,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
     # Rendering Methods
 
     def _formatter(self, boxed: bool = False):
-        # Defer to CategoricalFormatter's formatter.
+        # Returning None here will cause format_array to do inference.
         return None
 
     def _repr_categories(self) -> list[str]:

@@ -69,7 +69,6 @@ from pandas.core.arrays import (
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.base import PandasObject
 import pandas.core.common as com
-from pandas.core.construction import extract_array
 from pandas.core.indexes.api import (
     Index,
     MultiIndex,
@@ -1242,7 +1241,7 @@ class _GenericArrayFormatter:
                 # object dtype
                 return str(formatter(x))
 
-        vals = extract_array(self.values, extract_numpy=True)
+        vals = self.values
         if not isinstance(vals, np.ndarray):
             raise TypeError(
                 "ExtensionArray formatting should use _ExtensionArrayFormatter"
@@ -1505,12 +1504,10 @@ class _Datetime64Formatter(_GenericArrayFormatter):
         """we by definition have DO NOT have a TZ"""
         values = self.values
 
-        dti = DatetimeIndex(values)
+        if self.formatter is not None:
+            return [self.formatter(x) for x in values]
 
-        if self.formatter is not None and callable(self.formatter):
-            return [self.formatter(x) for x in dti]
-
-        fmt_values = dti._data._format_native_types(
+        fmt_values = values._format_native_types(
             na_rep=self.nat_rep, date_format=self.date_format
         )
         return fmt_values.tolist()
@@ -1520,8 +1517,7 @@ class _ExtensionArrayFormatter(_GenericArrayFormatter):
     values: ExtensionArray
 
     def _format_strings(self) -> list[str]:
-        values = extract_array(self.values, extract_numpy=True)
-        values = cast(ExtensionArray, values)
+        values = self.values
 
         formatter = self.formatter
         fallback_formatter = None

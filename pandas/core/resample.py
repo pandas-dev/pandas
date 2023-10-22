@@ -189,6 +189,7 @@ class Resampler(BaseGroupBy, PandasObject):
         else:
             self.exclusions = frozenset()
 
+    @final
     def __str__(self) -> str:
         """
         Provide a nice str repr of our rolling object.
@@ -200,6 +201,7 @@ class Resampler(BaseGroupBy, PandasObject):
         )
         return f"{type(self).__name__} [{', '.join(attrs)}]"
 
+    @final
     def __getattr__(self, attr: str):
         if attr in self._internal_names_set:
             return object.__getattribute__(self, attr)
@@ -210,6 +212,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return object.__getattribute__(self, attr)
 
+    @final
     @property
     def _from_selection(self) -> bool:
         """
@@ -249,6 +252,7 @@ class Resampler(BaseGroupBy, PandasObject):
         bin_grouper = BinGrouper(bins, binlabels, indexer=self._indexer)
         return binner, bin_grouper
 
+    @final
     @Substitution(
         klass="Resampler",
         examples="""
@@ -334,6 +338,7 @@ class Resampler(BaseGroupBy, PandasObject):
     """
     )
 
+    @final
     @doc(
         _shared_docs["aggregate"],
         see_also=_agg_see_also_doc,
@@ -352,6 +357,7 @@ class Resampler(BaseGroupBy, PandasObject):
     agg = aggregate
     apply = aggregate
 
+    @final
     def transform(self, arg, *args, **kwargs):
         """
         Call function producing a like-indexed Series on each group.
@@ -471,6 +477,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return self._wrap_result(result)
 
+    @final
     def _get_resampler_for_grouping(
         self, groupby: GroupBy, key, include_groups: bool = True
     ):
@@ -506,6 +513,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
+    @final
     def ffill(self, limit: int | None = None):
         """
         Forward fill the values.
@@ -574,6 +582,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("ffill", limit=limit)
 
+    @final
     def nearest(self, limit: int | None = None):
         """
         Resample by using the nearest value.
@@ -634,6 +643,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("nearest", limit=limit)
 
+    @final
     def bfill(self, limit: int | None = None):
         """
         Backward fill the new missing values in the resampled data.
@@ -736,6 +746,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("bfill", limit=limit)
 
+    @final
     def fillna(self, method, limit: int | None = None):
         """
         Fill missing values introduced by upsampling.
@@ -903,6 +914,7 @@ class Resampler(BaseGroupBy, PandasObject):
         )
         return self._upsample(method, limit=limit)
 
+    @final
     def interpolate(
         self,
         method: InterpolateOptions = "linear",
@@ -1084,6 +1096,7 @@ class Resampler(BaseGroupBy, PandasObject):
             **kwargs,
         )
 
+    @final
     def asfreq(self, fill_value=None):
         """
         Return the values at the new freq, essentially a reindex.
@@ -1122,6 +1135,7 @@ class Resampler(BaseGroupBy, PandasObject):
         """
         return self._upsample("asfreq", fill_value=fill_value)
 
+    @final
     def sum(
         self,
         numeric_only: bool = False,
@@ -1169,6 +1183,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("sum", args, kwargs)
         return self._downsample("sum", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     def prod(
         self,
         numeric_only: bool = False,
@@ -1216,6 +1231,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("prod", args, kwargs)
         return self._downsample("prod", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     def min(
         self,
         numeric_only: bool = False,
@@ -1250,6 +1266,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("min", args, kwargs)
         return self._downsample("min", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     def max(
         self,
         numeric_only: bool = False,
@@ -1283,6 +1300,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("max", args, kwargs)
         return self._downsample("max", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     @doc(GroupBy.first)
     def first(
         self,
@@ -1295,6 +1313,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("first", args, kwargs)
         return self._downsample("first", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     @doc(GroupBy.last)
     def last(
         self,
@@ -1307,12 +1326,14 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("last", args, kwargs)
         return self._downsample("last", numeric_only=numeric_only, min_count=min_count)
 
+    @final
     @doc(GroupBy.median)
     def median(self, numeric_only: bool = False, *args, **kwargs):
         maybe_warn_args_and_kwargs(type(self), "median", args, kwargs)
         nv.validate_resampler_func("median", args, kwargs)
         return self._downsample("median", numeric_only=numeric_only)
 
+    @final
     def mean(
         self,
         numeric_only: bool = False,
@@ -1356,6 +1377,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("mean", args, kwargs)
         return self._downsample("mean", numeric_only=numeric_only)
 
+    @final
     def std(
         self,
         ddof: int = 1,
@@ -1403,6 +1425,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("std", args, kwargs)
         return self._downsample("std", ddof=ddof, numeric_only=numeric_only)
 
+    @final
     def var(
         self,
         ddof: int = 1,
@@ -1456,6 +1479,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("var", args, kwargs)
         return self._downsample("var", ddof=ddof, numeric_only=numeric_only)
 
+    @final
     @doc(GroupBy.sem)
     def sem(
         self,
@@ -1468,6 +1492,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("sem", args, kwargs)
         return self._downsample("sem", ddof=ddof, numeric_only=numeric_only)
 
+    @final
     @doc(GroupBy.ohlc)
     def ohlc(
         self,
@@ -1495,6 +1520,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return self._downsample("ohlc")
 
+    @final
     @doc(SeriesGroupBy.nunique)
     def nunique(
         self,
@@ -1505,6 +1531,7 @@ class Resampler(BaseGroupBy, PandasObject):
         nv.validate_resampler_func("nunique", args, kwargs)
         return self._downsample("nunique")
 
+    @final
     @doc(GroupBy.size)
     def size(self):
         result = self._downsample("size")
@@ -1524,6 +1551,7 @@ class Resampler(BaseGroupBy, PandasObject):
             result = Series([], index=result.index, dtype="int64", name=name)
         return result
 
+    @final
     @doc(GroupBy.count)
     def count(self):
         result = self._downsample("count")
@@ -1541,6 +1569,7 @@ class Resampler(BaseGroupBy, PandasObject):
 
         return result
 
+    @final
     def quantile(self, q: float | list[float] | AnyArrayLike = 0.5, **kwargs):
         """
         Return value at the given quantile.

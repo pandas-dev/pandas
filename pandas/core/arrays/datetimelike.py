@@ -2013,8 +2013,9 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         self._freq = value
 
+    @final
     @classmethod
-    def _validate_frequency(cls, index, freq, **kwargs):
+    def _validate_frequency(cls, index, freq: BaseOffset, **kwargs):
         """
         Validate that a frequency is compatible with the values of a given
         Datetime Array/Index or Timedelta Array/Index

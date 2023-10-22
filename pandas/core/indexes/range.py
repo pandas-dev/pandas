@@ -240,7 +240,7 @@ class RangeIndex(Index):
         """
         return np.arange(self.start, self.stop, self.step, dtype=np.int64)
 
-    def _get_data_as_items(self):
+    def _get_data_as_items(self) -> list[tuple[str, int]]:
         """return a list of tuples of start, stop, step"""
         rng = self._range
         return [("start", rng.start), ("stop", rng.stop), ("step", rng.step)]
@@ -257,14 +257,10 @@ class RangeIndex(Index):
         """
         Return a list of tuples of the (attr, formatted_value)
         """
-        attrs = self._get_data_as_items()
+        attrs = cast("list[tuple[str, str | int]]", self._get_data_as_items())
         if self._name is not None:
             attrs.append(("name", ibase.default_pprint(self._name)))
         return attrs
-
-    def _format_data(self, name=None):
-        # we are formatting thru the attributes
-        return None
 
     def _format_with_header(self, *, header: list[str], na_rep: str) -> list[str]:
         # Equivalent to Index implementation, but faster
