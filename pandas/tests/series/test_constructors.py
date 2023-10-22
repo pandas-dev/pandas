@@ -2123,6 +2123,14 @@ class TestSeriesConstructors:
             result = Series(["a", "b"], dtype="string")
         tm.assert_series_equal(result, expected)
 
+    def test_series_constructor_infer_string_scalar(self):
+        # GH#55537
+        with pd.option_context("future.infer_string", True):
+            ser = Series("a", index=[1, 2], dtype="string[python]")
+        expected = Series(["a", "a"], index=[1, 2], dtype="string[python]")
+        tm.assert_series_equal(ser, expected)
+        assert ser.dtype.storage == "python"
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
