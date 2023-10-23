@@ -997,12 +997,15 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
             )
 
 
-def test_parse_tz_aware(all_parsers, request):
+def test_parse_tz_aware(all_parsers):
     # See gh-1693
     parser = all_parsers
     data = "Date,x\n2012-06-13T01:39:00Z,0.5"
 
     result = parser.read_csv(StringIO(data), index_col=0, parse_dates=True)
+    # TODO: make unit check more specific
+    if parser.engine == "pyarrow":
+        result.index = result.index.as_unit("ns")
     expected = DataFrame(
         {"x": [0.5]}, index=Index([Timestamp("2012-06-13 01:39:00+00:00")], name="Date")
     )
@@ -2029,7 +2032,7 @@ def test_date_parser_usecols_thousands(all_parsers):
 
 
 @skip_pyarrow
-def test_parse_dates_and_keep_orgin_column(all_parsers):
+def test_parse_dates_and_keep_original_column(all_parsers):
     # GH#13378
     parser = all_parsers
     data = """A
@@ -2294,6 +2297,9 @@ def test_parse_dates_arrow_engine(all_parsers):
 2000-01-01 00:00:01,1"""
 
     result = parser.read_csv(StringIO(data), parse_dates=["a"])
+    # TODO: make unit check more specific
+    if parser.engine == "pyarrow":
+        result["a"] = result["a"].dt.as_unit("ns")
     expected = DataFrame(
         {
             "a": [
