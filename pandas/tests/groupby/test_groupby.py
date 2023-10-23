@@ -5,7 +5,6 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
 from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
@@ -2542,14 +2541,13 @@ def test_groupby_column_index_name_lost(func):
     "infer_string",
     [
         False,
-        pytest.param(
-            True,
-            marks=pytest.mark.skipif(pa_version_under7p0, reason="arrow not installed"),
-        ),
+        True,
     ],
 )
 def test_groupby_duplicate_columns(infer_string):
     # GH: 31735
+    if infer_string:
+        pytest.importorskip("pyarrow")
     df = DataFrame(
         {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
     ).astype(object)
