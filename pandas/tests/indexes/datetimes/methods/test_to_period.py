@@ -103,7 +103,7 @@ class TestToPeriod:
 
         rng = date_range("01-Jan-2012", periods=8, freq=freq)
         prng = rng.to_period()
-        with tm.assert_produces_warning(UserWarning, match=msg):
+        with tm.assert_produces_warning(FutureWarning, match=msg):
             assert prng.freq == freq_depr
 
     def test_to_period_infer(self):

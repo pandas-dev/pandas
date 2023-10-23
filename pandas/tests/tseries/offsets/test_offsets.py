@@ -1120,7 +1120,7 @@ def test_dateoffset_operations_on_dataframes():
 def test_is_yqm_start_end():
     freq_m = to_offset("ME")
     bm = to_offset("BME")
-    qfeb = to_offset("Q-FEB")
+    qfeb = to_offset("QE-FEB")
     qsfeb = to_offset("QS-FEB")
     bq = to_offset("BQ")
     bqs_apr = to_offset("BQS-APR")
