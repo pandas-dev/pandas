@@ -10,9 +10,10 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
+@xfail_pyarrow  # ValueError: The 'comment' option is not supported
 @pytest.mark.parametrize("na_values", [None, ["NaN"]])
 def test_comment(all_parsers, na_values):
     parser = all_parsers
@@ -27,6 +28,7 @@ def test_comment(all_parsers, na_values):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'comment' option is not supported
 @pytest.mark.parametrize(
     "read_kwargs", [{}, {"lineterminator": "*"}, {"delim_whitespace": True}]
 )
@@ -58,6 +60,7 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'comment' option is not supported
 def test_comment_skiprows(all_parsers):
     parser = all_parsers
     data = """# empty
@@ -76,6 +79,7 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'comment' option is not supported
 def test_comment_header(all_parsers):
     parser = all_parsers
     data = """# empty
@@ -93,6 +97,7 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'comment' option is not supported
 def test_comment_skiprows_header(all_parsers):
     parser = all_parsers
     data = """# empty
@@ -114,6 +119,7 @@ A,B,C
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'comment' option is not supported
 @pytest.mark.parametrize("comment_char", ["#", "~", "&", "^", "*", "@"])
 def test_custom_comment_char(all_parsers, comment_char):
     parser = all_parsers
@@ -126,6 +132,7 @@ def test_custom_comment_char(all_parsers, comment_char):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'comment' option is not supported
 @pytest.mark.parametrize("header", ["infer", None])
 def test_comment_first_line(all_parsers, header):
     # see gh-4623
@@ -141,6 +148,7 @@ def test_comment_first_line(all_parsers, header):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'comment' option is not supported
 def test_comment_char_in_default_value(all_parsers, request):
     # GH#34002
     if all_parsers.engine == "c":

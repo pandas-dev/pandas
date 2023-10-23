@@ -101,7 +101,7 @@ class TestIntervalIndexRendering:
             ),
         ],
     )
-    def test_to_native_types(self, tuples, closed, expected_data):
+    def test_get_values_for_csv(self, tuples, closed, expected_data):
         # GH 28210
         index = IntervalIndex.from_tuples(tuples, closed=closed)
         result = index._get_values_for_csv(na_rep="NaN")
