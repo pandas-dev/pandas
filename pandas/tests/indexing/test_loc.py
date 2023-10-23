@@ -1124,7 +1124,7 @@ class TestLocBaseIndependent:
 
         if not using_copy_on_write:
             mark = pytest.mark.xfail(reason="accidental fix reverted - GH37497")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
 
         y = x.copy()

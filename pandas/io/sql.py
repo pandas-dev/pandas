@@ -963,8 +963,12 @@ class SQLTable(PandasObject):
         from sqlalchemy import insert
 
         data = [dict(zip(keys, row)) for row in data_iter]
-        stmt = insert(self.table).values(data)
-        result = conn.execute(stmt)
+        stmt = insert(self.table)
+        # conn.execute is used here to ensure compatibility with Oracle.
+        # Using stmt.values(data) would produce a multi row insert that
+        # isn't supported by Oracle.
+        # see: https://docs.sqlalchemy.org/en/20/core/dml.html#sqlalchemy.sql.expression.Insert.values
+        result = conn.execute(stmt, data)
         return result.rowcount
 
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:

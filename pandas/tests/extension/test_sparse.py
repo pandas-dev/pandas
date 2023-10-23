@@ -133,6 +133,9 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     @pytest.mark.parametrize(
         "columns",
         [
@@ -214,7 +217,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
     def test_fillna_no_op_returns_copy(self, data, request):
         if np.isnan(data.fill_value):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="returns array with different fill value")
             )
         super().test_fillna_no_op_returns_copy(data)
@@ -392,7 +395,7 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             "rmod",
         ]:
             mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
 
 

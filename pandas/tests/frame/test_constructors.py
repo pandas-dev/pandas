@@ -1741,7 +1741,9 @@ class TestDataFrameConstructors:
         index = list(float_frame.index[:5])
         columns = list(float_frame.columns[:3])
 
-        result = DataFrame(float_frame._mgr, index=index, columns=columns)
+        msg = "Passing a BlockManager to DataFrame"
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            result = DataFrame(float_frame._mgr, index=index, columns=columns)
         tm.assert_index_equal(result.index, Index(index))
         tm.assert_index_equal(result.columns, Index(columns))
 
@@ -3171,7 +3173,7 @@ class TestFromScalar:
                 "non-nano, but DatetimeArray._from_sequence has not",
                 strict=True,
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         scalar = datetime(9999, 1, 1)
         exp_dtype = "M8[us]"  # pydatetime objects default to this reso
@@ -3207,7 +3209,7 @@ class TestFromScalar:
                 "to non-nano, but TimedeltaArray._from_sequence has not",
                 strict=True,
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         scalar = datetime(9999, 1, 1) - datetime(1970, 1, 1)
         exp_dtype = "m8[us]"  # smallest reso that fits
