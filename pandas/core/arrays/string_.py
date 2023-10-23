@@ -16,7 +16,7 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import ensure_string_array
-from pandas.compat import pa_version_under7p0
+from pandas.compat import pa_version_under10p1
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -127,9 +127,9 @@ class StringDtype(StorageExtensionDtype):
                 f"Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'. "
                 f"Got {storage} instead."
             )
-        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under7p0:
+        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under10p1:
             raise ImportError(
-                "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
             )
         self.storage = storage
 

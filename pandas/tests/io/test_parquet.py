@@ -13,8 +13,6 @@ from pandas._config.config import _get_option
 
 from pandas.compat import is_platform_windows
 from pandas.compat.pyarrow import (
-    pa_version_under7p0,
-    pa_version_under8p0,
     pa_version_under11p0,
     pa_version_under13p0,
 )
@@ -233,17 +231,10 @@ def check_partition_names(path, expected):
     expected: iterable of str
         Expected partition names.
     """
-    if pa_version_under7p0:
-        import pyarrow.parquet as pq
+    import pyarrow.dataset as ds
 
-        dataset = pq.ParquetDataset(path, validate_schema=False)
-        assert len(dataset.partitions.partition_names) == len(expected)
-        assert dataset.partitions.partition_names == set(expected)
-    else:
-        import pyarrow.dataset as ds
-
-        dataset = ds.dataset(path, partitioning="hive")
-        assert dataset.partitioning.schema.names == expected
+    dataset = ds.dataset(path, partitioning="hive")
+    assert dataset.partitioning.schema.names == expected
 
 
 def test_invalid_engine(df_compat):
@@ -619,9 +610,8 @@ class TestBasic(Base):
         else:
             check_round_trip(df, engine)
 
-    @pytest.mark.skipif(pa_version_under7p0, reason="minimum pyarrow not installed")
     def test_dtype_backend(self, engine, request):
-        import pyarrow.parquet as pq
+        pq = pytest.importorskip("pyarrow.parquet")
 
         if engine == "fastparquet":
             # We are manually disabling fastparquet's
@@ -754,10 +744,7 @@ class TestParquetPyArrow(Base):
 
     def test_timedelta(self, pa):
         df = pd.DataFrame({"a": pd.timedelta_range("1 day", periods=3)})
-        if pa_version_under8p0:
-            self.check_external_error_on_write(df, pa, NotImplementedError)
-        else:
-            check_round_trip(df, pa)
+        check_round_trip(df, pa)
 
     def test_unsupported(self, pa):
         # mixed python objects
@@ -979,18 +966,12 @@ class TestParquetPyArrow(Base):
         # with version 2.6, pyarrow defaults to writing the nanoseconds, so
         # this should work without error
         # Note in previous pyarrows(<7.0.0), only the pseudo-version 2.0 was available
-        if not pa_version_under7p0:
-            ver = "2.6"
-        else:
-            ver = "2.0"
+        ver = "2.6"
         df = pd.DataFrame({"a": pd.date_range("2017-01-01", freq="1ns", periods=10)})
         check_round_trip(df, pa, write_kwargs={"version": ver})
 
     def test_timezone_aware_index(self, request, pa, timezone_aware_date_list):
-        if (
-            not pa_version_under7p0
-            and timezone_aware_date_list.tzinfo != datetime.timezone.utc
-        ):
+        if timezone_aware_date_list.tzinfo != datetime.timezone.utc:
             request.applymarker(
                 pytest.mark.xfail(
                     reason="temporary skip this test until it is properly resolved: "

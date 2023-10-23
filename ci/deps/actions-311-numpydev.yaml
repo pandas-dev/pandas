@@ -29,4 +29,4 @@ dependencies:
     - "--extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
     - "--pre"
     - "numpy"
-    - "tzdata>=2022.1"
+    - "tzdata>=2022.7"

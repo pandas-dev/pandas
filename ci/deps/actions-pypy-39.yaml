@@ -25,4 +25,4 @@ dependencies:
   - python-dateutil
   - pytz
   - pip:
-    - tzdata>=2022.1
+    - tzdata>=2022.7

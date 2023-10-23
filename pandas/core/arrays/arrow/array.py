@@ -21,9 +21,7 @@ from pandas._libs.tslibs import (
     timezones,
 )
 from pandas.compat import (
-    pa_version_under7p0,
-    pa_version_under8p0,
-    pa_version_under9p0,
+    pa_version_under10p1,
     pa_version_under11p0,
     pa_version_under13p0,
 )
@@ -69,7 +67,7 @@ from pandas.core.strings.base import BaseStringArrayMethods
 from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
 
-if not pa_version_under7p0:
+if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -256,8 +254,8 @@ class ArrowExtensionArray(
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under7p0:
-            msg = "pyarrow>=7.0.0 is required for PyArrow backed ArrowExtensionArray."
+        if pa_version_under10p1:
+            msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._pa_array = pa.chunked_array([values])
@@ -1766,7 +1764,7 @@ class ArrowExtensionArray(
         ascending: bool = True,
         pct: bool = False,
     ):
-        if pa_version_under9p0 or axis != 0:
+        if axis != 0:
             ranked = super()._rank(
                 axis=axis,
                 method=method,
@@ -2003,16 +2001,6 @@ class ArrowExtensionArray(
         if isinstance(replacements, pa.ChunkedArray):
             # replacements must be array or scalar, not ChunkedArray
             replacements = replacements.combine_chunks()
-        if pa_version_under8p0:
-            # pc.replace_with_mask seems to be a bit unreliable for versions < 8.0:
-            #  version <= 7: segfaults with various types
-            #  version <= 6: fails to replace nulls
-            if isinstance(replacements, pa.Array):
-                indices = np.full(len(values), None)
-                indices[mask] = np.arange(len(replacements))
-                indices = pa.array(indices, type=pa.int64())
-                replacements = replacements.take(indices)
-            return cls._if_else(mask, replacements, values)
         if isinstance(values, pa.ChunkedArray) and pa.types.is_boolean(values.type):
             # GH#52059 replace_with_mask segfaults for chunked array
             # https://github.com/apache/arrow/issues/34634

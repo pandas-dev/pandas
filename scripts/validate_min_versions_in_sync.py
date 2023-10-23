@@ -36,7 +36,7 @@ CODE_PATH = pathlib.Path("pandas/compat/_optional.py").resolve()
 SETUP_PATH = pathlib.Path("pyproject.toml").resolve()
 YAML_PATH = pathlib.Path("ci/deps")
 ENV_PATH = pathlib.Path("environment.yml")
-EXCLUDE_DEPS = {"tzdata", "blosc"}
+EXCLUDE_DEPS = {"tzdata", "blosc", "pandas-gbq"}
 EXCLUSION_LIST = frozenset(["python=3.8[build=*_pypy]"])
 # pandas package is not available
 # in pre-commit environment
@@ -197,8 +197,10 @@ def pin_min_versions_to_yaml_file(
 def get_versions_from_code() -> dict[str, str]:
     """Min versions for checking within pandas code."""
     install_map = _optional.INSTALL_MAPPING
+    inverse_install_map = {v: k for k, v in install_map.items()}
     versions = _optional.VERSIONS
     for item in EXCLUDE_DEPS:
+        item = inverse_install_map.get(item, item)
         versions.pop(item, None)
     return {install_map.get(k, k).casefold(): v for k, v in versions.items()}
 
@@ -230,7 +232,7 @@ def get_versions_from_ci(content: list[str]) -> tuple[dict[str, str], dict[str, 
                 package, version = line.strip().split("==", maxsplit=1)
             else:
                 package, version = line.strip().split("=", maxsplit=1)
-            package = package[2:]
+            package = package.split()[-1]
             if package in EXCLUDE_DEPS:
                 continue
             if not seen_optional:

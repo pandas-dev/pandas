@@ -8,6 +8,7 @@ from pandas.util.version import Version
 # numpy versioning
 _np_version = np.__version__
 _nlv = Version(_np_version)
+np_version_lt1p23 = _nlv < Version("1.23")
 np_version_gte1p24 = _nlv >= Version("1.24")
 np_version_gte1p24p3 = _nlv >= Version("1.24.3")
 np_version_gte1p25 = _nlv >= Version("1.25")
