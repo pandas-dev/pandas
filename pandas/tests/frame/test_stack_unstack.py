@@ -1,5 +1,4 @@
 from datetime import datetime
-from io import StringIO
 import itertools
 import re
 
@@ -1771,21 +1770,21 @@ class TestStackUnstackMultiLevel:
         "ignore:The previous implementation of stack is deprecated"
     )
     def test_unstack_odd_failure(self, future_stack):
-        data = """day,time,smoker,sum,len
-Fri,Dinner,No,8.25,3.
-Fri,Dinner,Yes,27.03,9
-Fri,Lunch,No,3.0,1
-Fri,Lunch,Yes,13.68,6
-Sat,Dinner,No,139.63,45
-Sat,Dinner,Yes,120.77,42
-Sun,Dinner,No,180.57,57
-Sun,Dinner,Yes,66.82,19
-Thu,Dinner,No,3.0,1
-Thu,Lunch,No,117.32,44
-Thu,Lunch,Yes,51.51,17"""
-
-        df = pd.read_csv(StringIO(data)).set_index(["day", "time", "smoker"])
-
+        mi = MultiIndex.from_arrays(
+            [
+                ["Fri"] * 4 + ["Sat"] * 2 + ["Sun"] * 2 + ["Thu"] * 3,
+                ["Dinner"] * 2 + ["Lunch"] * 2 + ["Dinner"] * 5 + ["Lunch"] * 2,
+                ["No", "Yes"] * 4 + ["No", "No", "Yes"],
+            ],
+            names=["day", "time", "smoker"],
+        )
+        df = DataFrame(
+            {
+                "sum": np.arange(11, dtype="float64"),
+                "len": np.arange(11, dtype="float64"),
+            },
+            index=mi,
+        )
         # it works, #2100
         result = df.unstack(2)
 
