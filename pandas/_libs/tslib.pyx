@@ -46,7 +46,10 @@ from pandas._libs.tslibs.np_datetime cimport (
 import_pandas_datetime()
 
 
-from pandas._libs.tslibs.strptime cimport parse_today_now
+from pandas._libs.tslibs.strptime cimport (
+    DatetimeParseState,
+    parse_today_now,
+)
 from pandas._libs.util cimport (
     is_float_object,
     is_integer_object,
@@ -58,7 +61,6 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
     convert_str_to_tsobject,
-    convert_timezone,
     get_datetime64_nanos,
     parse_pydatetime,
 )
@@ -454,9 +456,9 @@ cpdef array_to_datetime(
         float tz_offset
         set out_tzoffset_vals = set()
         tzinfo tz_out = None
-        bint found_tz = False, found_naive = False
         cnp.flatiter it = cnp.PyArray_IterNew(values)
         NPY_DATETIMEUNIT creso = NPY_FR_ns
+        DatetimeParseState state = DatetimeParseState()
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
@@ -474,17 +476,7 @@ cpdef array_to_datetime(
                 iresult[i] = NPY_NAT
 
             elif PyDateTime_Check(val):
-                if val.tzinfo is not None:
-                    found_tz = True
-                else:
-                    found_naive = True
-                tz_out = convert_timezone(
-                    val.tzinfo,
-                    tz_out,
-                    found_naive,
-                    found_tz,
-                    utc_convert,
-                )
+                tz_out = state.process_datetime(val, tz_out, utc_convert)
                 iresult[i] = parse_pydatetime(val, &dts, utc_convert, creso=creso)
 
             elif PyDate_Check(val):
