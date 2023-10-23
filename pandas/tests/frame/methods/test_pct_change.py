@@ -143,15 +143,13 @@ def test_pct_change_with_duplicated_indices(fill_method):
         {0: [np.nan, 1, 2, 3, 9, 18], 1: [0, 1, np.nan, 3, 9, 18]}, index=["a", "b"] * 3
     )
 
-    if fill_method is not None:
-        msg = (
-            "The 'fill_method' keyword being not None and the 'limit' keyword in "
-            "DataFrame.pct_change are deprecated"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = data.pct_change(fill_method=fill_method)
-    else:
-        result = data.pct_change(fill_method=None)
+    warn = None if fill_method is None else FutureWarning
+    msg = (
+        "The 'fill_method' keyword being not None and the 'limit' keyword in "
+        "DataFrame.pct_change are deprecated"
+    )
+    with tm.assert_produces_warning(warn, match=msg):
+        result = data.pct_change(fill_method=fill_method)
 
     if fill_method is None:
         second_column = [np.nan, np.inf, np.nan, np.nan, 2.0, 1.0]

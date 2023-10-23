@@ -100,15 +100,13 @@ def test_pct_change_with_duplicated_indices(fill_method):
     # GH30463
     s = Series([np.nan, 1, 2, 3, 9, 18], index=["a", "b"] * 3)
 
-    if fill_method is not None:
-        msg = (
-            "The 'fill_method' keyword being not None and the 'limit' keyword in "
-            "Series.pct_change are deprecated"
-        )
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            result = s.pct_change(fill_method=fill_method)
-    else:
-        result = s.pct_change()
+    warn = None if fill_method is None else FutureWarning
+    msg = (
+        "The 'fill_method' keyword being not None and the 'limit' keyword in "
+        "Series.pct_change are deprecated"
+    )
+    with tm.assert_produces_warning(warn, match=msg):
+        result = s.pct_change(fill_method=fill_method)
 
     expected = Series([np.nan, np.nan, 1.0, 0.5, 2.0, 1.0], index=["a", "b"] * 3)
     tm.assert_series_equal(result, expected)
