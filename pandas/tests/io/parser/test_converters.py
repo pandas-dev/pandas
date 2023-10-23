@@ -15,9 +15,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
+@xfail_pyarrow  # ValueError: The 'converters' option is not supported
 def test_converters_type_must_be_dict(all_parsers):
     parser = all_parsers
     data = """index,A,B,C,D
@@ -28,6 +29,7 @@ foo,2,3,4,5
         parser.read_csv(StringIO(data), converters=0)
 
 
+@xfail_pyarrow  # ValueError: The 'converters' option is not supported
 @pytest.mark.parametrize("column", [3, "D"])
 @pytest.mark.parametrize(
     "converter", [parse, lambda x: int(x.split("/")[2])]  # Produce integer.
@@ -47,6 +49,7 @@ c,4,5,01/03/2009
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'converters' option is not supported
 def test_converters_no_implicit_conv(all_parsers):
     # see gh-2184
     parser = all_parsers
@@ -60,6 +63,7 @@ def test_converters_no_implicit_conv(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'converters' option is not supported
 def test_converters_euro_decimal_format(all_parsers):
     # see gh-583
     converters = {}
@@ -85,6 +89,7 @@ def test_converters_euro_decimal_format(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'converters' option is not supported
 def test_converters_corner_with_nans(all_parsers):
     parser = all_parsers
     data = """id,score,days
@@ -152,6 +157,7 @@ def test_converters_corner_with_nans(all_parsers):
     tm.assert_frame_equal(results[0], results[1])
 
 
+@xfail_pyarrow  # ValueError: The 'converters' option is not supported
 @pytest.mark.parametrize("conv_f", [lambda x: x, str])
 def test_converter_index_col_bug(all_parsers, conv_f):
     # see gh-1835 , GH#40589
@@ -166,6 +172,7 @@ def test_converter_index_col_bug(all_parsers, conv_f):
     tm.assert_frame_equal(rs, xp)
 
 
+@xfail_pyarrow  # ValueError: The 'converters' option is not supported
 def test_converter_identity_object(all_parsers):
     # GH#40589
     parser = all_parsers
@@ -177,6 +184,7 @@ def test_converter_identity_object(all_parsers):
     tm.assert_frame_equal(rs, xp)
 
 
+@xfail_pyarrow  # ValueError: The 'converters' option is not supported
 def test_converter_multi_index(all_parsers):
     # GH 42446
     parser = all_parsers

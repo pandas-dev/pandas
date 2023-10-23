@@ -6,9 +6,10 @@ from io import StringIO
 
 import pytest
 
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
+@xfail_pyarrow  # ValueError: The 'verbose' option is not supported
 def test_verbose_read(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
@@ -32,6 +33,7 @@ two,1,2,3"""
         assert captured.out == "Filled 3 NA values in column a\n"
 
 
+@xfail_pyarrow  # ValueError: The 'verbose' option is not supported
 def test_verbose_read2(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
