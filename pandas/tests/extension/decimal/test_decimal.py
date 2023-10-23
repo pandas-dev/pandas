@@ -85,14 +85,14 @@ class TestDecimalArray(base.ExtensionTests):
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna, request):
         if all_numeric_reductions in ["kurt", "skew", "sem", "median"]:
             mark = pytest.mark.xfail(raises=NotImplementedError)
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
 
     def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
         op_name = all_numeric_reductions
         if op_name in ["skew", "median"]:
             mark = pytest.mark.xfail(raises=NotImplementedError)
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
@@ -140,26 +140,59 @@ class TestDecimalArray(base.ExtensionTests):
     def test_fillna_limit_pad(self, data_missing):
         msg = "ExtensionArray.fillna 'method' keyword is deprecated"
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            DeprecationWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
+        ):
+            super().test_fillna_limit_pad(data_missing)
+
+        msg = "The 'method' keyword in DecimalArray.fillna is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
         ):
             super().test_fillna_limit_pad(data_missing)
 
     def test_fillna_limit_backfill(self, data_missing):
-        msg = "|".join(
-            [
-                "ExtensionArray.fillna added a 'copy' keyword",
-                "Series.fillna with 'method' is deprecated",
-            ]
-        )
+        msg = "Series.fillna with 'method' is deprecated"
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            FutureWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
+        ):
+            super().test_fillna_limit_backfill(data_missing)
+
+        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        with tm.assert_produces_warning(
+            DeprecationWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
+        ):
+            super().test_fillna_limit_backfill(data_missing)
+
+        msg = "The 'method' keyword in DecimalArray.fillna is deprecated"
+        with tm.assert_produces_warning(
+            FutureWarning,
+            match=msg,
+            check_stacklevel=False,
+            raise_on_extra_warnings=False,
         ):
             super().test_fillna_limit_backfill(data_missing)
 
     def test_fillna_no_op_returns_copy(self, data):
-        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        msg = "|".join(
+            [
+                "ExtensionArray.fillna 'method' keyword is deprecated",
+                "The 'method' keyword in DecimalArray.fillna is deprecated",
+            ]
+        )
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            (FutureWarning, DeprecationWarning), match=msg, check_stacklevel=False
         ):
             super().test_fillna_no_op_returns_copy(data)
 
@@ -171,9 +204,14 @@ class TestDecimalArray(base.ExtensionTests):
             super().test_fillna_series(data_missing)
 
     def test_fillna_series_method(self, data_missing, fillna_method):
-        msg = "ExtensionArray.fillna 'method' keyword is deprecated"
+        msg = "|".join(
+            [
+                "ExtensionArray.fillna 'method' keyword is deprecated",
+                "The 'method' keyword in DecimalArray.fillna is deprecated",
+            ]
+        )
         with tm.assert_produces_warning(
-            FutureWarning, match=msg, check_stacklevel=False
+            (FutureWarning, DeprecationWarning), match=msg, check_stacklevel=False
         ):
             super().test_fillna_series_method(data_missing, fillna_method)
 

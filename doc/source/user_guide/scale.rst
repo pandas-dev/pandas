@@ -40,7 +40,7 @@ Suppose our raw dataset on disk has many columns.
        return df
 
    timeseries = [
-       make_timeseries(freq="1T", seed=i).rename(columns=lambda x: f"{x}_{i}")
+       make_timeseries(freq="1min", seed=i).rename(columns=lambda x: f"{x}_{i}")
        for i in range(10)
    ]
    ts_wide = pd.concat(timeseries, axis=1)
@@ -51,6 +51,7 @@ To load the columns we want, we have two options.
 Option 1 loads in all the data and then filters to what we need.
 
 .. ipython:: python
+   :okwarning:
 
    columns = ["id_0", "name_0", "x_0", "y_0"]
 
@@ -59,6 +60,7 @@ Option 1 loads in all the data and then filters to what we need.
 Option 2 only loads the columns we request.
 
 .. ipython:: python
+   :okwarning:
 
    pd.read_parquet("timeseries_wide.parquet", columns=columns)
 
@@ -87,7 +89,7 @@ can store larger datasets in memory.
 .. ipython:: python
    :okwarning:
 
-   ts = make_timeseries(freq="30S", seed=0)
+   ts = make_timeseries(freq="30s", seed=0)
    ts.to_parquet("timeseries.parquet")
    ts = pd.read_parquet("timeseries.parquet")
    ts
@@ -173,7 +175,7 @@ files. Each file in the directory represents a different year of the entire data
    pathlib.Path("data/timeseries").mkdir(exist_ok=True)
 
    for i, (start, end) in enumerate(zip(starts, ends)):
-       ts = make_timeseries(start=start, end=end, freq="1T", seed=i)
+       ts = make_timeseries(start=start, end=end, freq="1min", seed=i)
        ts.to_parquet(f"data/timeseries/ts-{i:0>2d}.parquet")
 
 
@@ -200,6 +202,7 @@ counts up to this point. As long as each individual file fits in memory, this wi
 work for arbitrary-sized datasets.
 
 .. ipython:: python
+   :okwarning:
 
    %%time
    files = pathlib.Path("data/timeseries/").glob("ts*.parquet")

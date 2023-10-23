@@ -20,12 +20,12 @@ from pandas._libs.tslibs import (
         ("2h 60min", offsets.Hour(3)),
         ("2h 20.5min", offsets.Second(8430)),
         ("1.5min", offsets.Second(90)),
-        ("0.5S", offsets.Milli(500)),
-        ("15l500u", offsets.Micro(15500)),
-        ("10s75L", offsets.Milli(10075)),
+        ("0.5s", offsets.Milli(500)),
+        ("15ms500us", offsets.Micro(15500)),
+        ("10s75ms", offsets.Milli(10075)),
         ("1s0.25ms", offsets.Micro(1000250)),
-        ("1s0.25L", offsets.Micro(1000250)),
-        ("2800N", offsets.Nano(2800)),
+        ("1s0.25ms", offsets.Micro(1000250)),
+        ("2800ns", offsets.Nano(2800)),
         ("2SM", offsets.SemiMonthEnd(2)),
         ("2SM-16", offsets.SemiMonthEnd(2, day_of_month=16)),
         ("2SMS-14", offsets.SemiMonthBegin(2, day_of_month=14)),
@@ -38,7 +38,7 @@ def test_to_offset(freq_input, expected):
 
 
 @pytest.mark.parametrize(
-    "freqstr,expected", [("-1S", -1), ("-2SM", -2), ("-1SMS", -1), ("-5min10s", -310)]
+    "freqstr,expected", [("-1s", -1), ("-2SM", -2), ("-1SMS", -1), ("-5min10s", -310)]
 )
 def test_to_offset_negative(freqstr, expected):
     result = to_offset(freqstr)
@@ -49,12 +49,12 @@ def test_to_offset_negative(freqstr, expected):
     "freqstr",
     [
         "2h20m",
-        "U1",
-        "-U",
-        "3U1",
-        "-2-3U",
-        "-2D:3H",
-        "1.5.0S",
+        "us1",
+        "-us",
+        "3us1",
+        "-2-3us",
+        "-2D:3h",
+        "1.5.0s",
         "2SMS-15-15",
         "2SMS-15D",
         "100foo",
@@ -105,12 +105,12 @@ def test_to_offset_tuple_unsupported():
 @pytest.mark.parametrize(
     "freqstr,expected",
     [
-        ("2D 3H", offsets.Hour(51)),
-        ("2 D3 H", offsets.Hour(51)),
-        ("2 D 3 H", offsets.Hour(51)),
-        ("  2 D 3 H  ", offsets.Hour(51)),
-        ("   H    ", offsets.Hour()),
-        (" 3  H    ", offsets.Hour(3)),
+        ("2D 3h", offsets.Hour(51)),
+        ("2 D3 h", offsets.Hour(51)),
+        ("2 D 3 h", offsets.Hour(51)),
+        ("  2 D 3 h  ", offsets.Hour(51)),
+        ("   h    ", offsets.Hour()),
+        (" 3  h    ", offsets.Hour(3)),
     ],
 )
 def test_to_offset_whitespace(freqstr, expected):
@@ -119,7 +119,7 @@ def test_to_offset_whitespace(freqstr, expected):
 
 
 @pytest.mark.parametrize(
-    "freqstr,expected", [("00H 00T 01S", 1), ("-00H 03T 14S", -194)]
+    "freqstr,expected", [("00h 00min 01s", 1), ("-00h 03min 14s", -194)]
 )
 def test_to_offset_leading_zero(freqstr, expected):
     result = to_offset(freqstr)

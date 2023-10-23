@@ -136,7 +136,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Examples
     --------
-    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1H', '2H']))
+    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1h', '2h']))
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
@@ -471,7 +471,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         from pandas.io.formats.format import get_format_timedelta64
 
         # Relies on TimeDelta._repr_base
-        formatter = get_format_timedelta64(self._ndarray, na_rep)
+        formatter = get_format_timedelta64(self, na_rep)
         # equiv: np.array([formatter(x) for x in self._ndarray])
         #  but independent of dimension
         return np.frompyfunc(formatter, 1, 1)(self._ndarray)
@@ -854,7 +854,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     --------
     For Series:
 
-    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='S'))
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='s'))
     >>> ser
     0   0 days 00:00:01
     1   0 days 00:00:02
@@ -868,7 +868,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     For TimedeltaIndex:
 
-    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='S')
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='s')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:01', '0 days 00:00:02', '0 days 00:00:03'],
                    dtype='timedelta64[ns]', freq=None)
@@ -888,7 +888,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     --------
     For Series:
 
-    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='U'))
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='us'))
     >>> ser
     0   0 days 00:00:00.000001
     1   0 days 00:00:00.000002
@@ -902,7 +902,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     For TimedeltaIndex:
 
-    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='U')
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='us')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:00.000001', '0 days 00:00:00.000002',
                     '0 days 00:00:00.000003'],
@@ -923,7 +923,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     --------
     For Series:
 
-    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='N'))
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='ns'))
     >>> ser
     0   0 days 00:00:00.000000001
     1   0 days 00:00:00.000000002
@@ -937,7 +937,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     For TimedeltaIndex:
 
-    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='N')
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='ns')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:00.000000001', '0 days 00:00:00.000000002',
                     '0 days 00:00:00.000000003'],

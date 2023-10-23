@@ -22,6 +22,10 @@ from pandas.core.arrays import (
     StringArray,
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
@@ -234,7 +238,7 @@ def decimal_number_check(request, parser, numeric_decimal, thousands, float_prec
     # GH#31920
     value = numeric_decimal[0]
     if thousands is None and value in ("1_,", "1_234,56", "1_234,56e0"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason=f"thousands={thousands} and sep is in {value}")
         )
     df = parser.read_csv(
@@ -575,3 +579,20 @@ NVDA,20230301181139587,2023552585717889827,2023552585717263361"""
     assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263359, "ID_DEAL"]) == 1
     assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263360, "ID_DEAL"]) == 2
     assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263361, "ID_DEAL"]) == 2
+
+
+def test_dtypes_with_usecols(all_parsers):
+    # GH#54868
+
+    parser = all_parsers
+    data = """a,b,c
+1,2,3
+4,5,6"""
+
+    result = parser.read_csv(StringIO(data), usecols=["a", "c"], dtype={"a": object})
+    if parser.engine == "pyarrow":
+        values = [1, 4]
+    else:
+        values = ["1", "4"]
+    expected = DataFrame({"a": pd.Series(values, dtype=object), "c": [3, 6]})
+    tm.assert_frame_equal(result, expected)

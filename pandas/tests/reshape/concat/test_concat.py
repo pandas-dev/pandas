@@ -30,8 +30,8 @@ from pandas.tests.extension.decimal import to_decimal
 class TestConcatenate:
     def test_append_concat(self):
         # GH#1815
-        d1 = date_range("12/31/1990", "12/31/1999", freq="A-DEC")
-        d2 = date_range("12/31/2000", "12/31/2009", freq="A-DEC")
+        d1 = date_range("12/31/1990", "12/31/1999", freq="Y-DEC")
+        d2 = date_range("12/31/2000", "12/31/2009", freq="Y-DEC")
 
         s1 = Series(np.random.default_rng(2).standard_normal(10), d1)
         s2 = Series(np.random.default_rng(2).standard_normal(10), d2)
@@ -272,7 +272,7 @@ class TestConcatenate:
         # G2385
 
         # axis 1
-        index = date_range("01-Jan-2013", periods=10, freq="H")
+        index = date_range("01-Jan-2013", periods=10, freq="h")
         arr = np.arange(10, dtype="int64")
         s1 = Series(arr, index=index)
         s2 = Series(arr, index=index)
@@ -857,6 +857,15 @@ def test_concat_multiindex_with_category():
         }
     )
     expected = expected.set_index(["c1", "c2"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_ea_upcast():
+    # GH#54848
+    df1 = DataFrame(["a"], dtype="string")
+    df2 = DataFrame([1], dtype="Int64")
+    result = concat([df1, df2])
+    expected = DataFrame(["a", 1], index=[0, 0])
     tm.assert_frame_equal(result, expected)
 
 

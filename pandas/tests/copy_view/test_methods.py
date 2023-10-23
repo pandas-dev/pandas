@@ -1311,7 +1311,7 @@ def test_rename_axis(using_copy_on_write, kwargs):
 def test_tz_convert_localize(using_copy_on_write, func, tz):
     # GH 49473
     ser = Series(
-        [1, 2], index=date_range(start="2014-08-01 09:00", freq="H", periods=2, tz=tz)
+        [1, 2], index=date_range(start="2014-08-01 09:00", freq="h", periods=2, tz=tz)
     )
     ser_orig = ser.copy()
     ser2 = getattr(ser, func)("US/Central")
@@ -1541,10 +1541,10 @@ def test_chained_where_mask(using_copy_on_write, func):
 def test_asfreq_noop(using_copy_on_write):
     df = DataFrame(
         {"a": [0.0, None, 2.0, 3.0]},
-        index=date_range("1/1/2000", periods=4, freq="T"),
+        index=date_range("1/1/2000", periods=4, freq="min"),
     )
     df_orig = df.copy()
-    df2 = df.asfreq(freq="T")
+    df2 = df.asfreq(freq="min")
 
     if using_copy_on_write:
         assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))

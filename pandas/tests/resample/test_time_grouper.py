@@ -24,7 +24,7 @@ def test_series():
 
 
 def test_apply(test_series):
-    grouper = Grouper(freq="A", label="right", closed="right")
+    grouper = Grouper(freq="Y", label="right", closed="right")
 
     grouped = test_series.groupby(grouper)
 
@@ -44,18 +44,18 @@ def test_count(test_series):
 
     expected = test_series.groupby(lambda x: x.year).count()
 
-    grouper = Grouper(freq="A", label="right", closed="right")
+    grouper = Grouper(freq="Y", label="right", closed="right")
     result = test_series.groupby(grouper).count()
     expected.index = result.index
     tm.assert_series_equal(result, expected)
 
-    result = test_series.resample("A").count()
+    result = test_series.resample("Y").count()
     expected.index = result.index
     tm.assert_series_equal(result, expected)
 
 
 def test_numpy_reduction(test_series):
-    result = test_series.resample("A", closed="right").prod()
+    result = test_series.resample("Y", closed="right").prod()
 
     msg = "using SeriesGroupBy.prod"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -70,7 +70,7 @@ def test_apply_iteration():
     N = 1000
     ind = date_range(start="2000-01-01", freq="D", periods=N)
     df = DataFrame({"open": 1, "close": 2}, index=ind)
-    tg = Grouper(freq="M")
+    tg = Grouper(freq="ME")
 
     grouper, _ = tg._get_grouper(df)
 
@@ -273,7 +273,7 @@ def test_aggregate_with_nat_size():
 
 def test_repr():
     # GH18203
-    result = repr(Grouper(key="A", freq="H"))
+    result = repr(Grouper(key="A", freq="h"))
     expected = (
         "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
         "closed='left', label='left', how='mean', "
@@ -281,7 +281,7 @@ def test_repr():
     )
     assert result == expected
 
-    result = repr(Grouper(key="A", freq="H", origin="2000-01-01"))
+    result = repr(Grouper(key="A", freq="h", origin="2000-01-01"))
     expected = (
         "TimeGrouper(key='A', freq=<Hour>, axis=0, sort=True, dropna=True, "
         "closed='left', label='left', how='mean', "
@@ -304,11 +304,11 @@ def test_repr():
     ],
 )
 def test_upsample_sum(method, method_args, expected_values):
-    s = Series(1, index=date_range("2017", periods=2, freq="H"))
-    resampled = s.resample("30T")
+    s = Series(1, index=date_range("2017", periods=2, freq="h"))
+    resampled = s.resample("30min")
     index = pd.DatetimeIndex(
         ["2017-01-01T00:00:00", "2017-01-01T00:30:00", "2017-01-01T01:00:00"],
-        freq="30T",
+        freq="30min",
     )
     result = methodcaller(method, **method_args)(resampled)
     expected = Series(expected_values, index=index)
@@ -323,12 +323,14 @@ def test_groupby_resample_interpolate():
 
     df["week_starting"] = date_range("01/01/2018", periods=3, freq="W")
 
-    result = (
-        df.set_index("week_starting")
-        .groupby("volume")
-        .resample("1D")
-        .interpolate(method="linear")
-    )
+    msg = "DataFrameGroupBy.resample operated on the grouping columns"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = (
+            df.set_index("week_starting")
+            .groupby("volume")
+            .resample("1D")
+            .interpolate(method="linear")
+        )
 
     expected_ind = pd.MultiIndex.from_tuples(
         [

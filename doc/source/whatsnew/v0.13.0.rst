@@ -669,9 +669,16 @@ Enhancements
   Period conversions in the range of seconds and below were reworked and extended
   up to nanoseconds. Periods in the nanosecond range are now available.
 
-  .. ipython:: python
+  .. code-block:: python
 
-     pd.date_range('2013-01-01', periods=5, freq='5N')
+     In [79]: pd.date_range('2013-01-01', periods=5, freq='5N')
+     Out[79]:
+     DatetimeIndex([          '2013-01-01 00:00:00',
+                    '2013-01-01 00:00:00.000000005',
+                    '2013-01-01 00:00:00.000000010',
+                    '2013-01-01 00:00:00.000000015',
+                    '2013-01-01 00:00:00.000000020'],
+                   dtype='datetime64[ns]', freq='5N')
 
   or with frequency as offset
 

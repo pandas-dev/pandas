@@ -15,13 +15,15 @@ import weakref
 
 import numpy as np
 
-from pandas._config import using_copy_on_write
+from pandas._config import (
+    get_option,
+    using_copy_on_write,
+)
 
 from pandas._libs import (
     NaT,
     internals as libinternals,
     lib,
-    writers,
 )
 from pandas._libs.internals import (
     BlockPlacement,
@@ -58,7 +60,6 @@ from pandas.core.dtypes.cast import (
     np_can_hold_element,
 )
 from pandas.core.dtypes.common import (
-    ensure_platform_int,
     is_1d_only_ea_dtype,
     is_float_dtype,
     is_integer_dtype,
@@ -72,7 +73,6 @@ from pandas.core.dtypes.dtypes import (
     IntervalDtype,
     NumpyEADtype,
     PeriodDtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -119,6 +119,7 @@ from pandas.core.construction import (
     extract_array,
 )
 from pandas.core.indexers import check_setitem_lengths
+from pandas.core.indexes.base import get_values_for_csv
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -457,6 +458,12 @@ class Block(PandasObject, libinternals.Block):
         and will receive the same block
         """
         new_dtype = find_result_type(self.values.dtype, other)
+        if new_dtype == self.dtype:
+            # GH#52927 avoid RecursionError
+            raise AssertionError(
+                "Something has gone wrong, please report a bug at "
+                "https://github.com/pandas-dev/pandas/issues"
+            )
 
         # In a future version of pandas, the default will be that
         # setting `nan` into an integer series won't raise.
@@ -495,7 +502,11 @@ class Block(PandasObject, libinternals.Block):
 
     @final
     def _maybe_downcast(
-        self, blocks: list[Block], downcast=None, using_cow: bool = False
+        self,
+        blocks: list[Block],
+        downcast,
+        using_cow: bool,
+        caller: str,
     ) -> list[Block]:
         if downcast is False:
             return blocks
@@ -507,14 +518,63 @@ class Block(PandasObject, libinternals.Block):
             #  but ATM it breaks too much existing code.
             # split and convert the blocks
 
-            return extend_blocks(
+            if caller == "fillna" and get_option("future.no_silent_downcasting"):
+                return blocks
+
+            nbs = extend_blocks(
                 [blk.convert(using_cow=using_cow, copy=not using_cow) for blk in blocks]
             )
+            if caller == "fillna":
+                if len(nbs) != len(blocks) or not all(
+                    x.dtype == y.dtype for x, y in zip(nbs, blocks)
+                ):
+                    # GH#54261
+                    warnings.warn(
+                        "Downcasting object dtype arrays on .fillna, .ffill, .bfill "
+                        "is deprecated and will change in a future version. "
+                        "Call result.infer_objects(copy=False) instead. "
+                        "To opt-in to the future "
+                        "behavior, set "
+                        "`pd.set_option('future.no_silent_downcasting', True)`",
+                        FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
-        if downcast is None:
+            return nbs
+
+        elif downcast is None:
             return blocks
+        elif caller == "where" and get_option("future.no_silent_downcasting") is True:
+            return blocks
+        else:
+            nbs = extend_blocks([b._downcast_2d(downcast, using_cow) for b in blocks])
 
-        return extend_blocks([b._downcast_2d(downcast, using_cow) for b in blocks])
+        # When _maybe_downcast is called with caller="where", it is either
+        #  a) with downcast=False, which is a no-op (the desired future behavior)
+        #  b) with downcast="infer", which is _not_ passed by the user.
+        # In the latter case the future behavior is to stop doing inference,
+        #  so we issue a warning if and only if some inference occurred.
+        if caller == "where":
+            # GH#53656
+            if len(blocks) != len(nbs) or any(
+                left.dtype != right.dtype for left, right in zip(blocks, nbs)
+            ):
+                # In this case _maybe_downcast was _not_ a no-op, so the behavior
+                #  will change, so we issue a warning.
+                warnings.warn(
+                    "Downcasting behavior in Series and DataFrame methods 'where', "
+                    "'mask', and 'clip' is deprecated. In a future "
+                    "version this will not infer object dtypes or cast all-round "
+                    "floats to integers. Instead call "
+                    "result.infer_objects(copy=False) for object inference, "
+                    "or cast round floats explicitly. To opt-in to the future "
+                    "behavior, set "
+                    "`pd.set_option('future.no_silent_downcasting', True)`",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+        return nbs
 
     @final
     @maybe_split
@@ -630,9 +690,18 @@ class Block(PandasObject, libinternals.Block):
         return newb
 
     @final
-    def to_native_types(self, na_rep: str = "nan", quoting=None, **kwargs) -> Block:
+    def get_values_for_csv(
+        self, *, float_format, date_format, decimal, na_rep: str = "nan", quoting=None
+    ) -> Block:
         """convert to our native types format"""
-        result = to_native_types(self.values, na_rep=na_rep, quoting=quoting, **kwargs)
+        result = get_values_for_csv(
+            self.values,
+            na_rep=na_rep,
+            quoting=quoting,
+            float_format=float_format,
+            date_format=date_format,
+            decimal=decimal,
+        )
         return self.make_block(result)
 
     @final
@@ -729,7 +798,23 @@ class Block(PandasObject, libinternals.Block):
             if not (self.is_object and value is None):
                 # if the user *explicitly* gave None, we keep None, otherwise
                 #  may downcast to NaN
-                blocks = blk.convert(copy=False, using_cow=using_cow)
+                if get_option("future.no_silent_downcasting") is True:
+                    blocks = [blk]
+                else:
+                    blocks = blk.convert(copy=False, using_cow=using_cow)
+                    if len(blocks) > 1 or blocks[0].dtype != blk.dtype:
+                        warnings.warn(
+                            # GH#54710
+                            "Downcasting behavior in `replace` is deprecated and "
+                            "will be removed in a future version. To retain the old "
+                            "behavior, explicitly call "
+                            "`result.infer_objects(copy=False)`. "
+                            "To opt-in to the future "
+                            "behavior, set "
+                            "`pd.set_option('future.no_silent_downcasting', True)`",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
             else:
                 blocks = [blk]
             return blocks
@@ -804,7 +889,21 @@ class Block(PandasObject, libinternals.Block):
 
         replace_regex(block.values, rx, value, mask)
 
-        return block.convert(copy=False, using_cow=using_cow)
+        nbs = block.convert(copy=False, using_cow=using_cow)
+        opt = get_option("future.no_silent_downcasting")
+        if (len(nbs) > 1 or nbs[0].dtype != block.dtype) and not opt:
+            warnings.warn(
+                # GH#54710
+                "Downcasting behavior in `replace` is deprecated and "
+                "will be removed in a future version. To retain the old "
+                "behavior, explicitly call `result.infer_objects(copy=False)`. "
+                "To opt-in to the future "
+                "behavior, set "
+                "`pd.set_option('future.no_silent_downcasting', True)`",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        return nbs
 
     @final
     def replace_list(
@@ -870,6 +969,7 @@ class Block(PandasObject, libinternals.Block):
         else:
             rb = [self if inplace else self.copy()]
 
+        opt = get_option("future.no_silent_downcasting")
         for i, ((src, dest), mask) in enumerate(zip(pairs, masks)):
             convert = i == src_len  # only convert once at the end
             new_rb: list[Block] = []
@@ -907,14 +1007,33 @@ class Block(PandasObject, libinternals.Block):
                             b.refs.referenced_blocks.index(ref)
                         )
 
-                if convert and blk.is_object and not all(x is None for x in dest_list):
+                if (
+                    not opt
+                    and convert
+                    and blk.is_object
+                    and not all(x is None for x in dest_list)
+                ):
                     # GH#44498 avoid unwanted cast-back
-                    result = extend_blocks(
-                        [
-                            b.convert(copy=True and not using_cow, using_cow=using_cow)
-                            for b in result
-                        ]
-                    )
+                    nbs = []
+                    for res_blk in result:
+                        converted = res_blk.convert(
+                            copy=True and not using_cow, using_cow=using_cow
+                        )
+                        if len(converted) > 1 or converted[0].dtype != res_blk.dtype:
+                            warnings.warn(
+                                # GH#54710
+                                "Downcasting behavior in `replace` is deprecated "
+                                "and will be removed in a future version. To "
+                                "retain the old behavior, explicitly call "
+                                "`result.infer_objects(copy=False)`. "
+                                "To opt-in to the future "
+                                "behavior, set "
+                                "`pd.set_option('future.no_silent_downcasting', True)`",
+                                FutureWarning,
+                                stacklevel=find_stack_level(),
+                            )
+                        nbs.extend(converted)
+                    result = nbs
                 new_rb.extend(result)
             rb = new_rb
         return rb
@@ -1308,7 +1427,7 @@ class Block(PandasObject, libinternals.Block):
                 block = self.coerce_to_target_dtype(other)
                 blocks = block.where(orig_other, cond, using_cow=using_cow)
                 return self._maybe_downcast(
-                    blocks, downcast=_downcast, using_cow=using_cow
+                    blocks, downcast=_downcast, using_cow=using_cow, caller="where"
                 )
 
             else:
@@ -1404,7 +1523,9 @@ class Block(PandasObject, libinternals.Block):
             else:
                 # GH#45423 consistent downcasting on no-ops.
                 nb = self.copy(deep=not using_cow)
-                nbs = nb._maybe_downcast([nb], downcast=downcast, using_cow=using_cow)
+                nbs = nb._maybe_downcast(
+                    [nb], downcast=downcast, using_cow=using_cow, caller="fillna"
+                )
                 return nbs
 
         if limit is not None:
@@ -1422,7 +1543,9 @@ class Block(PandasObject, libinternals.Block):
         #  different behavior in _maybe_downcast.
         return extend_blocks(
             [
-                blk._maybe_downcast([blk], downcast=downcast, using_cow=using_cow)
+                blk._maybe_downcast(
+                    [blk], downcast=downcast, using_cow=using_cow, caller="fillna"
+                )
                 for blk in nbs
             ]
         )
@@ -1451,7 +1574,7 @@ class Block(PandasObject, libinternals.Block):
         vals = cast(NumpyExtensionArray, self.array_values)
         if axis == 1:
             vals = vals.T
-        new_values = vals.pad_or_backfill(
+        new_values = vals._pad_or_backfill(
             method=method,
             limit=limit,
             limit_area=limit_area,
@@ -1463,7 +1586,7 @@ class Block(PandasObject, libinternals.Block):
         data = extract_array(new_values, extract_numpy=True)
 
         nb = self.make_block_same_class(data, refs=refs)
-        return nb._maybe_downcast([nb], downcast, using_cow)
+        return nb._maybe_downcast([nb], downcast, using_cow, caller="fillna")
 
     @final
     def interpolate(
@@ -1516,7 +1639,7 @@ class Block(PandasObject, libinternals.Block):
         data = extract_array(new_values, extract_numpy=True)
 
         nb = self.make_block_same_class(data, refs=refs)
-        return nb._maybe_downcast([nb], downcast, using_cow)
+        return nb._maybe_downcast([nb], downcast, using_cow, caller="interpolate")
 
     @final
     def diff(self, n: int) -> list[Block]:
@@ -1805,7 +1928,7 @@ class EABackedBlock(Block):
                     blk = self.coerce_to_target_dtype(orig_other)
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
                     return self._maybe_downcast(
-                        nbs, downcast=_downcast, using_cow=using_cow
+                        nbs, downcast=_downcast, using_cow=using_cow, caller="where"
                     )
 
                 elif isinstance(self, NDArrayBackedExtensionBlock):
@@ -1814,7 +1937,7 @@ class EABackedBlock(Block):
                     blk = self.coerce_to_target_dtype(orig_other)
                     nbs = blk.where(orig_other, orig_cond, using_cow=using_cow)
                     return self._maybe_downcast(
-                        nbs, downcast=_downcast, using_cow=using_cow
+                        nbs, downcast=_downcast, using_cow=using_cow, caller="where"
                     )
 
                 else:
@@ -1948,9 +2071,9 @@ class EABackedBlock(Block):
 
         if values.ndim == 2 and axis == 1:
             # NDArrayBackedExtensionArray.fillna assumes axis=0
-            new_values = values.T.pad_or_backfill(method=method, limit=limit).T
+            new_values = values.T._pad_or_backfill(method=method, limit=limit).T
         else:
-            new_values = values.pad_or_backfill(method=method, limit=limit)
+            new_values = values._pad_or_backfill(method=method, limit=limit)
         return [self.make_block_same_class(new_values)]
 
 
@@ -2013,7 +2136,7 @@ class ExtensionBlock(EABackedBlock):
                 )
 
         nb = self.make_block_same_class(new_values, refs=refs)
-        return nb._maybe_downcast([nb], downcast, using_cow=using_cow)
+        return nb._maybe_downcast([nb], downcast, using_cow=using_cow, caller="fillna")
 
     @cache_readonly
     def shape(self) -> Shape:
@@ -2126,8 +2249,9 @@ class ExtensionBlock(EABackedBlock):
         """Extension arrays are never treated as views."""
         return False
 
+    # error: Cannot override writeable attribute with read-only property
     @cache_readonly
-    def is_numeric(self):
+    def is_numeric(self) -> bool:  # type: ignore[override]
         return self.values.dtype._is_numeric
 
     def _slice(
@@ -2474,93 +2598,6 @@ def ensure_block_shape(values: ArrayLike, ndim: int = 1) -> ArrayLike:
             values = values.reshape(1, -1)
 
     return values
-
-
-def to_native_types(
-    values: ArrayLike,
-    *,
-    na_rep: str = "nan",
-    quoting=None,
-    float_format=None,
-    decimal: str = ".",
-    **kwargs,
-) -> npt.NDArray[np.object_]:
-    """convert to our native types format"""
-    if isinstance(values, Categorical) and values.categories.dtype.kind in "Mm":
-        # GH#40754 Convert categorical datetimes to datetime array
-        values = algos.take_nd(
-            values.categories._values,
-            ensure_platform_int(values._codes),
-            fill_value=na_rep,
-        )
-
-    values = ensure_wrapped_if_datetimelike(values)
-
-    if isinstance(values, (DatetimeArray, TimedeltaArray)):
-        if values.ndim == 1:
-            result = values._format_native_types(na_rep=na_rep, **kwargs)
-            result = result.astype(object, copy=False)
-            return result
-
-        # GH#21734 Process every column separately, they might have different formats
-        results_converted = []
-        for i in range(len(values)):
-            result = values[i, :]._format_native_types(na_rep=na_rep, **kwargs)
-            results_converted.append(result.astype(object, copy=False))
-        return np.vstack(results_converted)
-
-    elif values.dtype.kind == "f" and not isinstance(values.dtype, SparseDtype):
-        # see GH#13418: no special formatting is desired at the
-        # output (important for appropriate 'quoting' behaviour),
-        # so do not pass it through the FloatArrayFormatter
-        if float_format is None and decimal == ".":
-            mask = isna(values)
-
-            if not quoting:
-                values = values.astype(str)
-            else:
-                values = np.array(values, dtype="object")
-
-            values[mask] = na_rep
-            values = values.astype(object, copy=False)
-            return values
-
-        from pandas.io.formats.format import FloatArrayFormatter
-
-        formatter = FloatArrayFormatter(
-            values,
-            na_rep=na_rep,
-            float_format=float_format,
-            decimal=decimal,
-            quoting=quoting,
-            fixed_width=False,
-        )
-        res = formatter.get_result_as_array()
-        res = res.astype(object, copy=False)
-        return res
-
-    elif isinstance(values, ExtensionArray):
-        mask = isna(values)
-
-        new_values = np.asarray(values.astype(object))
-        new_values[mask] = na_rep
-        return new_values
-
-    else:
-        mask = isna(values)
-        itemsize = writers.word_len(na_rep)
-
-        if values.dtype != _dtype_obj and not quoting and itemsize:
-            values = values.astype(str)
-            if values.dtype.itemsize / np.dtype("U1").itemsize < itemsize:
-                # enlarge for the na_rep
-                values = values.astype(f"<U{itemsize}")
-        else:
-            values = np.array(values, dtype="object")
-
-        values[mask] = na_rep
-        values = values.astype(object, copy=False)
-        return values
 
 
 def external_values(values: ArrayLike) -> ArrayLike:
