@@ -13,10 +13,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-# TODO(1.4): Change these to xfails whenever parse_dates support(which was
-# intentionally disable to keep small PR sizes) is added back
-# pytestmark = pytest.mark.usefixtures("pyarrow_skip")
-
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
