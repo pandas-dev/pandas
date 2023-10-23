@@ -761,7 +761,7 @@ class TestDatetimeArray:
         )
 
         expected = pd.date_range("1/1/2000", periods=4, freq=freq)
-        with tm.assert_produces_warning(UserWarning, match=depr_msg):
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 

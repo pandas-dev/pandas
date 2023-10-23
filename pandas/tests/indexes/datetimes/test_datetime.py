@@ -2,7 +2,6 @@ import datetime as dt
 from datetime import date
 import re
 
-import dateutil
 import numpy as np
 import pytest
 
@@ -21,36 +20,6 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
-    def test_sub_datetime_preserves_freq(self, tz_naive_fixture):
-        # GH#48818
-        dti = date_range("2016-01-01", periods=12, tz=tz_naive_fixture)
-
-        res = dti - dti[0]
-        expected = pd.timedelta_range("0 Days", "11 Days")
-        tm.assert_index_equal(res, expected)
-        assert res.freq == expected.freq
-
-    @pytest.mark.xfail(
-        reason="The inherited freq is incorrect bc dti.freq is incorrect "
-        "https://github.com/pandas-dev/pandas/pull/48818/files#r982793461"
-    )
-    def test_sub_datetime_preserves_freq_across_dst(self):
-        # GH#48818
-        ts = Timestamp("2016-03-11", tz="US/Pacific")
-        dti = date_range(ts, periods=4)
-
-        res = dti - dti[0]
-        expected = pd.TimedeltaIndex(
-            [
-                pd.Timedelta(days=0),
-                pd.Timedelta(days=1),
-                pd.Timedelta(days=2),
-                pd.Timedelta(days=2, hours=23),
-            ]
-        )
-        tm.assert_index_equal(res, expected)
-        assert res.freq == expected.freq
-
     def test_time_overflow_for_32bit_machines(self):
         # GH8943.  On some machines NumPy defaults to np.int32 (for example,
         # 32-bit Linux machines).  In the function _generate_regular_range
@@ -96,51 +65,12 @@ class TestDatetimeIndex:
         result = rng.append(idx)
         assert isinstance(result[0], Timestamp)
 
-    def test_iteration_preserves_tz(self):
-        # see gh-8890
-        index = date_range("2012-01-01", periods=3, freq="h", tz="US/Eastern")
-
-        for i, ts in enumerate(index):
-            result = ts
-            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
-            assert result == expected
-
-        index = date_range(
-            "2012-01-01", periods=3, freq="h", tz=dateutil.tz.tzoffset(None, -28800)
-        )
-
-        for i, ts in enumerate(index):
-            result = ts
-            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
-            assert result._repr_base == expected._repr_base
-            assert result == expected
-
-        # 9100
-        index = DatetimeIndex(
-            ["2014-12-01 03:32:39.987000-08:00", "2014-12-01 04:12:34.987000-08:00"]
-        )
-        for i, ts in enumerate(index):
-            result = ts
-            expected = index[i]  # pylint: disable=unnecessary-list-index-lookup
-            assert result._repr_base == expected._repr_base
-            assert result == expected
-
-    @pytest.mark.parametrize("periods", [0, 9999, 10000, 10001])
-    def test_iteration_over_chunksize(self, periods):
-        # GH21012
-
-        index = date_range("2000-01-01 00:00:00", periods=periods, freq="min")
-        num = 0
-        for stamp in index:
-            assert index[num] == stamp
-            num += 1
-        assert num == len(index)
-
     def test_misc_coverage(self):
         rng = date_range("1/1/2000", periods=5)
         result = rng.groupby(rng.day)
         assert isinstance(next(iter(result.values()))[0], Timestamp)
 
+    # TODO: belongs in frame groupby tests?
     def test_groupby_function_tuple_1677(self):
         df = DataFrame(
             np.random.default_rng(2).random(100),

@@ -251,6 +251,6 @@ class TestAsFreq:
         index = date_range("1/1/2000", periods=4, freq=f"{freq[1:]}")
         df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
         expected = df.asfreq(freq=freq)
-        with tm.assert_produces_warning(UserWarning, match=depr_msg):
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             result = df.asfreq(freq=freq_depr)
         tm.assert_frame_equal(result, expected)
