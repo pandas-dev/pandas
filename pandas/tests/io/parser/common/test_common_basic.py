@@ -34,7 +34,6 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_override_set_noconvert_columns():
@@ -515,8 +514,6 @@ b\n"""
     tm.assert_frame_equal(result, expected)
 
 
-# Skip for now, actually only one test fails though, but its tricky to xfail
-@skip_pyarrow
 @pytest.mark.parametrize(
     "sep,skip_blank_lines,exp_data",
     [
@@ -536,7 +533,7 @@ b\n"""
         ),
     ],
 )
-def test_empty_lines(all_parsers, sep, skip_blank_lines, exp_data):
+def test_empty_lines(all_parsers, sep, skip_blank_lines, exp_data, request):
     parser = all_parsers
     data = """\
 A,B,C
@@ -550,6 +547,12 @@ A,B,C
 
     if sep == r"\s+":
         data = data.replace(",", "  ")
+        if parser.engine == "pyarrow":
+            mark = pytest.mark.xfail(
+                raises=ValueError,
+                reason="the 'pyarrow' engine does not support regex separators",
+            )
+            request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), sep=sep, skip_blank_lines=skip_blank_lines)
     expected = DataFrame(exp_data, columns=["A", "B", "C"])

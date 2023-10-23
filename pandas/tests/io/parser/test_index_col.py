@@ -19,8 +19,7 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
-# TODO(1.4): Change me to xfails at release time
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
 @pytest.mark.parametrize("with_header", [True, False])
@@ -77,7 +76,7 @@ def test_index_col_is_true(all_parsers):
         parser.read_csv(StringIO(data), index_col=True)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # CSV parse error: Expected 3 columns, got 4
 def test_infer_index_col(all_parsers):
     data = """A,B,C
 foo,1,2,3
@@ -95,7 +94,7 @@ baz,7,8,9
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "index_col,kwargs",
     [
@@ -144,7 +143,7 @@ def test_index_col_empty_data(all_parsers, index_col, kwargs):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_index_col_false(all_parsers):
     # see gh-10413
     data = "x,y"
@@ -155,7 +154,6 @@ def test_empty_with_index_col_false(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize(
     "index_names",
     [
@@ -166,8 +164,12 @@ def test_empty_with_index_col_false(all_parsers):
         ["NotReallyUnnamed", "Unnamed: 0"],
     ],
 )
-def test_multi_index_naming(all_parsers, index_names):
+def test_multi_index_naming(all_parsers, index_names, request):
     parser = all_parsers
+
+    if parser.engine == "pyarrow" and "" in index_names:
+        mark = pytest.mark.xfail(reason="One case raises, others are wrong")
+        request.applymarker(mark)
 
     # We don't want empty index names being replaced with "Unnamed: 0"
     data = ",".join(index_names + ["col\na,c,1\na,d,2\nb,c,3\nb,d,4"])
@@ -180,7 +182,7 @@ def test_multi_index_naming(all_parsers, index_names):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_multi_index_naming_not_all_at_beginning(all_parsers):
     parser = all_parsers
     data = ",Unnamed: 2,\na,c,1\na,d,2\nb,c,3\nb,d,4"
@@ -195,7 +197,7 @@ def test_multi_index_naming_not_all_at_beginning(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: Found non-unique column index
 def test_no_multi_index_level_names_empty(all_parsers):
     # GH 10984
     parser = all_parsers
@@ -211,7 +213,7 @@ def test_no_multi_index_level_names_empty(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # TypeError: an integer is required
 def test_header_with_index_col(all_parsers):
     # GH 33476
     parser = all_parsers
@@ -257,7 +259,7 @@ def test_index_col_large_csv(all_parsers, monkeypatch):
     tm.assert_frame_equal(result, df.set_index("a"))
 
 
-@skip_pyarrow
+@xfail_pyarrow  # TypeError: an integer is required
 def test_index_col_multiindex_columns_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
@@ -274,7 +276,7 @@ def test_index_col_multiindex_columns_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # TypeError: an integer is required
 def test_index_col_header_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
@@ -287,7 +289,7 @@ def test_index_col_header_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # TypeError: an integer is required
 def test_multiindex_columns_no_data(all_parsers):
     # GH#38292
     parser = all_parsers
@@ -298,7 +300,7 @@ def test_multiindex_columns_no_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # TypeError: an integer is required
 def test_multiindex_columns_index_col_with_data(all_parsers):
     # GH#38292
     parser = all_parsers
@@ -315,7 +317,7 @@ def test_multiindex_columns_index_col_with_data(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # CSV parse error: Empty CSV file or block
 def test_infer_types_boolean_sum(all_parsers):
     # GH#44079
     parser = all_parsers
@@ -353,7 +355,7 @@ def test_specify_dtype_for_index_col(all_parsers, dtype, val, request):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # TypeError: an integer is required
 def test_multiindex_columns_not_leading_index_col(all_parsers):
     # GH#38549
     parser = all_parsers
