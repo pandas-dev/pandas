@@ -128,7 +128,7 @@ class TestDateRanges:
         depr_msg = "'M' will be deprecated, please use 'ME' instead."
 
         expected = date_range("1/1/2000", periods=4, freq="2ME")
-        with tm.assert_produces_warning(UserWarning, match=depr_msg):
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             result = date_range("1/1/2000", periods=4, freq="2M")
         tm.assert_index_equal(result, expected)
 

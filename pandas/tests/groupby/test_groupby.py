@@ -2550,6 +2550,8 @@ def test_groupby_column_index_name_lost(func):
 )
 def test_groupby_duplicate_columns(infer_string):
     # GH: 31735
+    if infer_string:
+        pytest.importorskip("pyarrow")
     df = DataFrame(
         {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
     ).astype(object)
