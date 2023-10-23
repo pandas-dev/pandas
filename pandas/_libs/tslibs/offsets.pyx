@@ -4731,7 +4731,7 @@ cpdef to_offset(freq, bint is_period=False):
                     warnings.warn(
                         f"\'{name}\' will be deprecated, please use "
                         f"\'{c_OFFSET_DEPR_FREQSTR.get(name)}\' instead.",
-                        UserWarning,
+                        FutureWarning,
                         stacklevel=find_stack_level(),
                     )
                     name = c_OFFSET_DEPR_FREQSTR[name]
