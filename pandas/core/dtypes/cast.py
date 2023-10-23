@@ -1816,7 +1816,8 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
             if not isinstance(tipo, np.dtype):
                 # i.e. nullable IntegerDtype; we can put this into an ndarray
                 #  losslessly iff it has no NAs
-                if element._hasna:
+                arr = element._values if isinstance(element, ABCSeries) else element
+                if arr._hasna:
                     raise LossySetitemError
                 return element
 

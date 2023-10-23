@@ -761,6 +761,17 @@ class TestDataFrameSetItem:
         df[col_name] = df[[col_name]]
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_ea_dtype(self):
+        # GH#55604
+        df = DataFrame({"a": np.array([10], dtype="i8")})
+        df.loc[:, "a"] = Series([11], dtype="Int64")
+        expected = DataFrame({"a": np.array([11], dtype="i8")})
+        tm.assert_frame_equal(df, expected)
+
+        df = DataFrame({"a": np.array([10], dtype="i8")})
+        df.iloc[:, 0] = Series([11], dtype="Int64")
+        tm.assert_frame_equal(df, expected)
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
