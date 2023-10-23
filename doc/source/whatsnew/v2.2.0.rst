@@ -350,6 +350,7 @@ Other enhancements
 - Improved error message that appears in :meth:`DatetimeIndex.to_period` with frequencies which are not supported as period frequencies, such as ``"BMS"`` (:issue:`56243`)
 - Improved error message when constructing :class:`Period` with invalid offsets such as ``"QS"`` (:issue:`55785`)
 - The dtypes ``string[pyarrow]`` and ``string[pyarrow_numpy]`` now both utilize the ``large_string`` type from PyArrow to avoid overflow for long columns (:issue:`56259`)
+- :func:`read_stata` now returns ``datetime64`` resolutions better matching those natively stored in the stata format (:issue:`??`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.notable_bug_fixes:
