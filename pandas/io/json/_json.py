@@ -1326,7 +1326,7 @@ class Parser:
                     warnings.filterwarnings(
                         "ignore",
                         ".*parsing datetimes with mixed time "
-                        "zones will raise a warning",
+                        "zones will raise an error",
                         category=FutureWarning,
                     )
                     new_data = to_datetime(new_data, errors="raise", unit=date_unit)

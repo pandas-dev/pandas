@@ -3449,10 +3449,9 @@ def _result_dtype(arr):
     # when the list of values is empty.
     from pandas.core.arrays.string_ import StringDtype
 
-    if isinstance(arr.dtype, StringDtype):
+    if isinstance(arr.dtype, (ArrowDtype, StringDtype)):
         return arr.dtype
-    else:
-        return object
+    return object
 
 
 def _get_single_group_name(regex: re.Pattern) -> Hashable:

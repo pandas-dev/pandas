@@ -53,7 +53,7 @@ def base_delta_code_pair(request):
 freqs = (
     [f"Q-{month}" for month in MONTHS]
     + [f"{annual}-{month}" for annual in ["Y", "BY"] for month in MONTHS]
-    + ["ME", "BM", "BMS"]
+    + ["ME", "BME", "BMS"]
     + [f"WOM-{count}{day}" for count in range(1, 5) for day in DAYS]
     + [f"W-{day}" for day in DAYS]
 )
@@ -229,10 +229,11 @@ def test_infer_freq_index(freq, expected):
         }.items()
     ),
 )
-def test_infer_freq_tz(tz_naive_fixture, expected, dates):
-    # see gh-7310
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+def test_infer_freq_tz(tz_naive_fixture, expected, dates, unit):
+    # see gh-7310, GH#55609
     tz = tz_naive_fixture
-    idx = DatetimeIndex(dates, tz=tz)
+    idx = DatetimeIndex(dates, tz=tz).as_unit(unit)
     assert idx.inferred_freq == expected
 
 

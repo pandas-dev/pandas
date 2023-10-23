@@ -461,7 +461,7 @@ of those specified will not be generated:
 
 .. ipython:: python
 
-   pd.date_range(start, end, freq="BM")
+   pd.date_range(start, end, freq="BME")
 
    pd.date_range(start, end, freq="W")
 
@@ -557,7 +557,7 @@ intelligent functionality like selection, slicing, etc.
 
 .. ipython:: python
 
-   rng = pd.date_range(start, end, freq="BM")
+   rng = pd.date_range(start, end, freq="BME")
    ts = pd.Series(np.random.randn(len(rng)), index=rng)
    ts.index
    ts[:5].index
@@ -884,9 +884,9 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.LastWeekOfMonth`, ``'LWOM'``, "the x-th day of the last week of each month"
     :class:`~pandas.tseries.offsets.MonthEnd`, ``'ME'``, "calendar month end"
     :class:`~pandas.tseries.offsets.MonthBegin`, ``'MS'``, "calendar month begin"
-    :class:`~pandas.tseries.offsets.BMonthEnd` or :class:`~pandas.tseries.offsets.BusinessMonthEnd`, ``'BM'``, "business month end"
+    :class:`~pandas.tseries.offsets.BMonthEnd` or :class:`~pandas.tseries.offsets.BusinessMonthEnd`, ``'BME'``, "business month end"
     :class:`~pandas.tseries.offsets.BMonthBegin` or :class:`~pandas.tseries.offsets.BusinessMonthBegin`, ``'BMS'``, "business month begin"
-    :class:`~pandas.tseries.offsets.CBMonthEnd` or :class:`~pandas.tseries.offsets.CustomBusinessMonthEnd`, ``'CBM'``, "custom business month end"
+    :class:`~pandas.tseries.offsets.CBMonthEnd` or :class:`~pandas.tseries.offsets.CustomBusinessMonthEnd`, ``'CBME'``, "custom business month end"
     :class:`~pandas.tseries.offsets.CBMonthBegin` or :class:`~pandas.tseries.offsets.CustomBusinessMonthBegin`, ``'CBMS'``, "custom business month begin"
     :class:`~pandas.tseries.offsets.SemiMonthEnd`, ``'SM'``, "15th (or other day_of_month) and calendar month end"
     :class:`~pandas.tseries.offsets.SemiMonthBegin`, ``'SMS'``, "15th (or other day_of_month) and calendar month begin"
@@ -1248,8 +1248,8 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "W", "weekly frequency"
     "ME", "month end frequency"
     "SM", "semi-month end frequency (15th and end of month)"
-    "BM", "business month end frequency"
-    "CBM", "custom business month end frequency"
+    "BME", "business month end frequency"
+    "CBME", "custom business month end frequency"
     "MS", "month start frequency"
     "SMS", "semi-month start frequency (1st and 15th)"
     "BMS", "business month start frequency"
@@ -1586,7 +1586,7 @@ rather than changing the alignment of the data and the index:
 
    ts.shift(5, freq="D")
    ts.shift(5, freq=pd.offsets.BDay())
-   ts.shift(5, freq="BM")
+   ts.shift(5, freq="BME")
 
 Note that with when ``freq`` is specified, the leading entry is no longer NaN
 because the data is not being realigned.
@@ -1692,7 +1692,7 @@ the end of the interval.
 .. warning::
 
     The default values for ``label`` and ``closed`` is '**left**' for all
-    frequency offsets except for 'ME', 'Y', 'Q', 'BM', 'BY', 'BQ', and 'W'
+    frequency offsets except for 'ME', 'Y', 'Q', 'BME', 'BY', 'BQ', and 'W'
     which all have a default of 'right'.
 
     This might unintendedly lead to looking ahead, where the value for a later
