@@ -181,9 +181,7 @@ class TestStata:
         expected["monthly_date"] = expected["monthly_date"].astype("M8[s]")
         expected["quarterly_date"] = expected["quarterly_date"].astype("M8[s]")
         expected["half_yearly_date"] = expected["half_yearly_date"].astype("M8[s]")
-        expected["yearly_date"] = (
-            expected["yearly_date"].astype("Period[s]").array.view("M8[s]")
-        )
+        expected["yearly_date"] = expected["yearly_date"].astype("M8[s]")
 
         path1 = datapath("io", "data", "stata", "stata2_114.dta")
         path2 = datapath("io", "data", "stata", "stata2_115.dta")
