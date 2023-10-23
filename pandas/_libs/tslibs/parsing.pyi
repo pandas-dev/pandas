@@ -23,11 +23,6 @@ def try_parse_dates(
     values: npt.NDArray[np.object_],  # object[:]
     parser,
 ) -> npt.NDArray[np.object_]: ...
-def try_parse_year_month_day(
-    years: npt.NDArray[np.object_],  # object[:]
-    months: npt.NDArray[np.object_],  # object[:]
-    days: npt.NDArray[np.object_],  # object[:]
-) -> npt.NDArray[np.object_]: ...
 def guess_datetime_format(
     dt_str,
     dayfirst: bool | None = ...,
