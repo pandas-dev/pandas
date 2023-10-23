@@ -2266,7 +2266,8 @@ def _sequence_to_dt64ns(
 
     elif lib.is_np_dtype(data_dtype, "M"):
         # tz-naive DatetimeArray or ndarray[datetime64]
-        data = getattr(data, "_ndarray", data)
+        if isinstance(data, DatetimeArray):
+            data = data._ndarray
         new_dtype = data.dtype
         data_unit = get_unit_from_dtype(new_dtype)
         if not is_supported_unit(data_unit):
