@@ -16,7 +16,7 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas.compat import (
-    pa_version_under7p0,
+    pa_version_under10p1,
     pa_version_under13p0,
 )
 from pandas.util._exceptions import find_stack_level
@@ -42,7 +42,7 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-if not pa_version_under7p0:
+if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -66,8 +66,8 @@ ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
 def _chk_pyarrow_available() -> None:
-    if pa_version_under7p0:
-        msg = "pyarrow>=7.0.0 is required for PyArrow backed ArrowExtensionArray."
+    if pa_version_under10p1:
+        msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
 
 
@@ -336,14 +336,40 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
             result[isna(result)] = bool(na)
         return result
 
-    def _str_startswith(self, pat: str, na=None):
-        result = pc.starts_with(self._pa_array, pattern=pat)
+    def _str_startswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
+        if isinstance(pat, str):
+            result = pc.starts_with(self._pa_array, pattern=pat)
+        else:
+            if len(pat) == 0:
+                # mimic existing behaviour of string extension array
+                # and python string method
+                result = pa.array(
+                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
+                )
+            else:
+                result = pc.starts_with(self._pa_array, pattern=pat[0])
+
+                for p in pat[1:]:
+                    result = pc.or_(result, pc.starts_with(self._pa_array, pattern=p))
         if not isna(na):
             result = result.fill_null(na)
         return self._result_converter(result)
 
-    def _str_endswith(self, pat: str, na=None):
-        result = pc.ends_with(self._pa_array, pattern=pat)
+    def _str_endswith(self, pat: str | tuple[str, ...], na: Scalar | None = None):
+        if isinstance(pat, str):
+            result = pc.ends_with(self._pa_array, pattern=pat)
+        else:
+            if len(pat) == 0:
+                # mimic existing behaviour of string extension array
+                # and python string method
+                result = pa.array(
+                    np.zeros(len(self._pa_array), dtype=bool), mask=isna(self._pa_array)
+                )
+            else:
+                result = pc.ends_with(self._pa_array, pattern=pat[0])
+
+                for p in pat[1:]:
+                    result = pc.or_(result, pc.ends_with(self._pa_array, pattern=p))
         if not isna(na):
             result = result.fill_null(na)
         return self._result_converter(result)

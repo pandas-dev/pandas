@@ -2665,6 +2665,8 @@ def maybe_convert_objects(ndarray[object] objects,
             else:
                 seen.object_ = True
                 break
+        elif val is C_NA:
+            seen.object_ = True
         else:
             seen.object_ = True
             break
