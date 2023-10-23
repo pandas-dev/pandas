@@ -5,7 +5,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
+from pandas.compat import pa_version_under10p1
 from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
@@ -2557,7 +2557,9 @@ def test_groupby_column_index_name_lost(func):
         False,
         pytest.param(
             True,
-            marks=pytest.mark.skipif(pa_version_under7p0, reason="arrow not installed"),
+            marks=pytest.mark.skipif(
+                pa_version_under10p1, reason="arrow not installed"
+            ),
         ),
     ],
 )
@@ -2800,7 +2802,9 @@ def test_rolling_wrong_param_min_period():
         object,
         pytest.param(
             "string[pyarrow_numpy]",
-            marks=pytest.mark.skipif(pa_version_under7p0, reason="arrow not installed"),
+            marks=pytest.mark.skipif(
+                pa_version_under10p1, reason="arrow not installed"
+            ),
         ),
     ],
 )

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import numpy as np
 import pytest
 
@@ -682,7 +684,15 @@ def test_first_multi_key_groupby_categorical():
 @pytest.mark.parametrize("method", ["first", "last", "nth"])
 def test_groupby_last_first_nth_with_none(method, nulls_fixture):
     # GH29645
-    expected = Series(["y"])
+    if nulls_fixture is not pd.NA and (
+        nulls_fixture is pd.NaT
+        or isinstance(nulls_fixture, Decimal)
+        and Decimal.is_nan(nulls_fixture)
+    ):
+        dtype = object
+    else:
+        dtype = None
+    expected = Series(["y"], dtype=dtype)
     data = Series(
         [nulls_fixture, nulls_fixture, nulls_fixture, "y", nulls_fixture],
         index=[0, 0, 0, 0, 0],

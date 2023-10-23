@@ -338,13 +338,17 @@ def test_apply(ordered):
     tm.assert_series_equal(result, expected)
 
 
-def test_observed(observed):
+def test_observed(observed, using_infer_string, request):
     # multiple groupers, don't re-expand the output space
     # of the grouper
     # gh-14942 (implement)
     # gh-10132 (back-compat)
     # gh-8138 (back-compat)
     # gh-8869
+
+    if not observed and using_infer_string:
+        mark = pytest.mark.xfail(reason="fill_value=0 invalid for string dtype")
+        request.applymarker(mark)
 
     cat1 = Categorical(["a", "a", "b", "b"], categories=["a", "b", "z"], ordered=True)
     cat2 = Categorical(["c", "d", "c", "d"], categories=["c", "d", "y"], ordered=True)

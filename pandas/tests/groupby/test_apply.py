@@ -1265,9 +1265,7 @@ def test_apply_dropna_with_indexed_same(dropna):
     [
         [
             False,
-            DataFrame(
-                [[1, 1, 1], [2, 2, 1]], columns=Index(["a", "b", None], dtype=object)
-            ),
+            DataFrame([[1, 1, 1], [2, 2, 1]], columns=Index(["a", "b", None])),
         ],
         [
             True,

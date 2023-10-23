@@ -9,7 +9,7 @@ from itertools import product
 import numpy as np
 import pytest
 
-from pandas.compat import pa_version_under7p0
+from pandas.compat import pa_version_under10p1
 
 from pandas import (
     Categorical,
@@ -377,11 +377,15 @@ def test_against_frame_and_seriesgroupby(
         object,
         pytest.param(
             "string[pyarrow_numpy]",
-            marks=pytest.mark.skipif(pa_version_under7p0, reason="arrow not installed"),
+            marks=pytest.mark.skipif(
+                pa_version_under10p1, reason="arrow not installed"
+            ),
         ),
         pytest.param(
             "string[pyarrow]",
-            marks=pytest.mark.skipif(pa_version_under7p0, reason="arrow not installed"),
+            marks=pytest.mark.skipif(
+                pa_version_under10p1, reason="arrow not installed"
+            ),
         ),
     ],
 )

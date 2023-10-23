@@ -803,7 +803,7 @@ class TestGrouping:
         # check name
         assert s.groupby(s).grouper.names == ["name"]
 
-    def test_groupby_level_index_value_all_na(self):
+    def test_groupby_level_index_value_all_na(self, using_infer_string):
         # issue 20519
         df = DataFrame(
             [["x", np.nan, 10], [None, np.nan, 20]], columns=["A", "B", "C"]
@@ -819,7 +819,7 @@ class TestGrouping:
             columns=["C"],
             dtype="int64",
         )
-        tm.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected, check_index_type=not using_infer_string)
 
     def test_groupby_multiindex_level_empty(self):
         # https://github.com/pandas-dev/pandas/issues/31670
