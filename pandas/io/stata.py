@@ -256,7 +256,7 @@ def _stata_elapsed_date_to_datetime_vec(dates: Series, fmt: str) -> Series:
     >>> dates = pd.Series([52])
     >>> _stata_elapsed_date_to_datetime_vec(dates , "%tw")
     0   1961-01-01
-    dtype: datetime64[ns]
+    dtype: datetime64[s]
 
     Notes
     -----
