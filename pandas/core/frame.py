@@ -3084,7 +3084,7 @@ class DataFrame(NDFrame, OpsMixin):
             (e.g. via builtin open function). If path is None,
             a bytes object is returned.
         engine : {'pyarrow'}, default 'pyarrow'
-            ORC library to use. Pyarrow must be >= 7.0.0.
+            ORC library to use.
         index : bool, optional
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -10090,6 +10090,9 @@ class DataFrame(NDFrame, OpsMixin):
             - nogil (release the GIL inside the JIT compiled function)
             - parallel (try to apply the function in parallel over the DataFrame)
 
+              Note: Due to limitations within numba/how pandas interfaces with numba,
+              you should only use this if raw=True
+
             Note: The numba compiler only supports a subset of
             valid Python/numpy operations.
 
@@ -10098,8 +10101,6 @@ class DataFrame(NDFrame, OpsMixin):
             and `supported numpy features
             <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
             in numba to learn what you can or cannot use in the passed function.
-
-            As of right now, the numba engine can only be used with raw=True.
 
             .. versionadded:: 2.2.0
 

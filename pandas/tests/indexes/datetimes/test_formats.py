@@ -59,6 +59,15 @@ def test_get_values_for_csv():
 
 
 class TestDatetimeIndexRendering:
+    @pytest.mark.parametrize("tzstr", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_dti_with_timezone_repr(self, tzstr):
+        rng = pd.date_range("4/13/2010", "5/6/2010")
+
+        rng_eastern = rng.tz_localize(tzstr)
+
+        rng_repr = repr(rng_eastern)
+        assert "2010-04-13 00:00:00" in rng_repr
+
     def test_dti_repr_dates(self):
         text = str(pd.to_datetime([datetime(2013, 1, 1), datetime(2014, 1, 1)]))
         assert "['2013-01-01'," in text
