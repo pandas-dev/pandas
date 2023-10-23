@@ -210,8 +210,8 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-Deprecate alias ``M`` in favour of ``ME`` for offsets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecate aliases ``M`` and ``Q`` in favour of ``ME`` and ``QE`` for offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The alias ``M`` is deprecated in favour of ``ME`` for offsets, please use ``ME`` for "month end" instead of ``M`` (:issue:`9586`)
 
@@ -231,9 +231,6 @@ For example:
 .. ipython:: python
 
     pd.date_range('2020-01-01', periods=3, freq='ME')
-
-Deprecate alias ``Q`` in favour of ``QE`` for offsets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The alias ``Q`` is deprecated in favour of ``QE`` for offsets, please use ``QE`` for "quarter end" instead of ``Q`` (:issue:`9586`)
 
