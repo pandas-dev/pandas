@@ -154,7 +154,7 @@ cdef dict _parse_code_table = {"y": 0,
                                "u": 22}
 
 
-cdef class ParseState:
+cdef class DatetimeParseState:
     def __cinit__(self):
         self.found_tz = False
         self.found_naive = False
@@ -217,7 +217,7 @@ def array_strptime(
         NPY_DATETIMEUNIT out_bestunit
         int out_local = 0, out_tzoffset = 0
         bint string_to_dts_succeeded = 0
-        ParseState state = ParseState()
+        DatetimeParseState state = DatetimeParseState()
 
     assert is_raise or is_ignore or is_coerce
 

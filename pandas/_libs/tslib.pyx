@@ -47,7 +47,7 @@ import_pandas_datetime()
 
 
 from pandas._libs.tslibs.strptime cimport (
-    ParseState,
+    DatetimeParseState,
     parse_today_now,
 )
 from pandas._libs.util cimport (
@@ -458,7 +458,7 @@ cpdef array_to_datetime(
         tzinfo tz_out = None
         cnp.flatiter it = cnp.PyArray_IterNew(values)
         NPY_DATETIMEUNIT creso = NPY_FR_ns
-        ParseState state = ParseState()
+        DatetimeParseState state = DatetimeParseState()
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce

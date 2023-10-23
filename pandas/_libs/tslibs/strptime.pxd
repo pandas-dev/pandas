@@ -8,7 +8,7 @@ from numpy cimport int64_t
 cdef bint parse_today_now(str val, int64_t* iresult, bint utc)
 
 
-cdef class ParseState:
+cdef class DatetimeParseState:
     cdef:
         bint found_tz
         bint found_naive
