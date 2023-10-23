@@ -150,7 +150,7 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
                 max_row_len = len(table_row)
 
             row_repeat = self._get_row_repeat(sheet_row)
-            if self._is_empty_row(sheet_row):
+            if len(table_row) == 0:
                 empty_rows += row_repeat
             else:
                 # add blank rows to our table
@@ -181,16 +181,6 @@ class ODFReader(BaseExcelReader["OpenDocument"]):
         from odf.namespaces import TABLENS
 
         return int(cell.attributes.get((TABLENS, "number-columns-repeated"), 1))
-
-    def _is_empty_row(self, row) -> bool:
-        """
-        Helper function to find empty rows
-        """
-        for column in row.childNodes:
-            if len(column.childNodes) > 0:
-                return False
-
-        return True
 
     def _get_cell_value(self, cell) -> Scalar | NaTType:
         from odf.namespaces import OFFICENS

@@ -32,23 +32,23 @@ class TestAsFreq:
                     datetime(2009, 11, 30),
                     datetime(2009, 12, 31),
                 ],
-                freq="BM",
+                freq="BME",
             ),
         )
 
         daily_ts = ts.asfreq("B")
-        monthly_ts = daily_ts.asfreq("BM")
+        monthly_ts = daily_ts.asfreq("BME")
         tm.assert_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq("B", method="pad")
-        monthly_ts = daily_ts.asfreq("BM")
+        monthly_ts = daily_ts.asfreq("BME")
         tm.assert_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq(offsets.BDay())
         monthly_ts = daily_ts.asfreq(offsets.BMonthEnd())
         tm.assert_equal(monthly_ts, ts)
 
-        result = ts[:0].asfreq("M")
+        result = ts[:0].asfreq("ME")
         assert len(result) == 0
         assert result is not ts
 
@@ -63,8 +63,8 @@ class TestAsFreq:
     def test_asfreq_datetimeindex_empty(self, frame_or_series):
         # GH#14320
         index = DatetimeIndex(["2016-09-29 11:00"])
-        expected = frame_or_series(index=index, dtype=object).asfreq("H")
-        result = frame_or_series([3], index=index.copy()).asfreq("H")
+        expected = frame_or_series(index=index, dtype=object).asfreq("h")
+        result = frame_or_series([3], index=index.copy()).asfreq("h")
         tm.assert_index_equal(expected.index, result.index)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
@@ -104,7 +104,7 @@ class TestAsFreq:
         assert index_name == obj.asfreq("10D").index.name
 
     def test_asfreq_ts(self, frame_or_series):
-        index = period_range(freq="A", start="1/1/2001", end="12/31/2010")
+        index = period_range(freq="Y", start="1/1/2001", end="12/31/2010")
         obj = DataFrame(
             np.random.default_rng(2).standard_normal((len(index), 3)), index=index
         )
@@ -140,12 +140,12 @@ class TestAsFreq:
     def test_asfreq_empty(self, datetime_frame):
         # test does not blow up on length-0 DataFrame
         zero_length = datetime_frame.reindex([])
-        result = zero_length.asfreq("BM")
+        result = zero_length.asfreq("BME")
         assert result is not zero_length
 
     def test_asfreq(self, datetime_frame):
         offset_monthly = datetime_frame.asfreq(offsets.BMonthEnd())
-        rule_monthly = datetime_frame.asfreq("BM")
+        rule_monthly = datetime_frame.asfreq("BME")
 
         tm.assert_frame_equal(offset_monthly, rule_monthly)
 
@@ -194,8 +194,8 @@ class TestAsFreq:
         ts2 = ts.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts2.asfreq("4H", method="ffill")
-        expected = ts.asfreq("4H", method="ffill")
+        result = ts2.asfreq("4h", method="ffill")
+        expected = ts.asfreq("4h", method="ffill")
         tm.assert_equal(result, expected)
 
     def test_asfreq_with_unsorted_index(self, frame_or_series):
@@ -221,11 +221,11 @@ class TestAsFreq:
     @pytest.mark.parametrize(
         "freq, freq_half",
         [
-            ("2M", "M"),
+            ("2ME", "ME"),
             (MonthEnd(2), MonthEnd(1)),
         ],
     )
-    def test_asfreq_2M(self, freq, freq_half):
+    def test_asfreq_2ME(self, freq, freq_half):
         index = date_range("1/1/2000", periods=6, freq=freq_half)
         df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], index=index)})
         expected = df.asfreq(freq=freq)
@@ -233,3 +233,13 @@ class TestAsFreq:
         index = date_range("1/1/2000", periods=3, freq=freq)
         result = DataFrame({"s": Series([0.0, 2.0, 4.0], index=index)})
         tm.assert_frame_equal(result, expected)
+
+    def test_asfreq_frequency_M_deprecated(self):
+        depr_msg = "'M' will be deprecated, please use 'ME' instead."
+
+        index = date_range("1/1/2000", periods=4, freq="ME")
+        df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
+        expected = df.asfreq(freq="5ME")
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = df.asfreq(freq="5M")
+            tm.assert_frame_equal(result, expected)

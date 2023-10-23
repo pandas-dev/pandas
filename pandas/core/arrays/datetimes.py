@@ -39,7 +39,10 @@ from pandas._libs.tslibs import (
     tz_convert_from_utc,
     tzconversion,
 )
-from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
+from pandas._libs.tslibs.dtypes import (
+    abbrev_to_npy_unit,
+    freq_to_period_freqstr,
+)
 from pandas.errors import PerformanceWarning
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_inclusive
@@ -74,6 +77,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         DateTimeErrorChoices,
+        DtypeObj,
         IntervalClosedType,
         Self,
         TimeAmbiguous,
@@ -262,6 +266,14 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     _dtype: np.dtype[np.datetime64] | DatetimeTZDtype
     _freq: BaseOffset | None = None
     _default_dtype = DT64NS_DTYPE  # used in TimeLikeOps.__init__
+
+    @classmethod
+    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
+        if lib.infer_dtype(scalars, skipna=True) not in ["datetime", "datetime64"]:
+            # TODO: require any NAs be valid-for-DTA
+            # TODO: if dtype is passed, check for tzawareness compat?
+            raise ValueError
+        return cls._from_sequence(scalars, dtype=dtype)
 
     @classmethod
     def _validate_dtype(cls, values, dtype):
@@ -732,12 +744,12 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     def _format_native_types(
         self, *, na_rep: str | float = "NaT", date_format=None, **kwargs
     ) -> npt.NDArray[np.object_]:
-        from pandas.io.formats.format import get_format_datetime64_from_values
-
-        fmt = get_format_datetime64_from_values(self, date_format)
+        if date_format is None and self._is_dates_only:
+            # Only dates and no timezone: provide a default format
+            date_format = "%Y-%m-%d"
 
         return tslib.format_array_from_datetime(
-            self.asi8, tz=self.tz, format=fmt, na_rep=na_rep, reso=self._creso
+            self.asi8, tz=self.tz, format=date_format, na_rep=na_rep, reso=self._creso
         )
 
     # -----------------------------------------------------------------
@@ -787,7 +799,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             values = self
 
         try:
-            result = offset._apply_array(values).view(values.dtype)
+            result = offset._apply_array(values)
+            if result.dtype.kind == "i":
+                result = result.view(values.dtype)
         except NotImplementedError:
             warnings.warn(
                 "Non-vectorized DateOffset being applied to Series or DatetimeIndex.",
@@ -795,6 +809,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                 stacklevel=find_stack_level(),
             )
             result = self.astype("O") + offset
+            # TODO(GH#55564): as_unit will be unnecessary
             result = type(self)._from_sequence(result).as_unit(self.unit)
             if not len(self):
                 # GH#30336 _from_sequence won't be able to infer self.tz
@@ -854,37 +869,37 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         to other time zones:
 
         >>> dti = pd.date_range(start='2014-08-01 09:00',
-        ...                     freq='H', periods=3, tz='Europe/Berlin')
+        ...                     freq='h', periods=3, tz='Europe/Berlin')
 
         >>> dti
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
                        '2014-08-01 10:00:00+02:00',
                        '2014-08-01 11:00:00+02:00'],
-                      dtype='datetime64[ns, Europe/Berlin]', freq='H')
+                      dtype='datetime64[ns, Europe/Berlin]', freq='h')
 
         >>> dti.tz_convert('US/Central')
         DatetimeIndex(['2014-08-01 02:00:00-05:00',
                        '2014-08-01 03:00:00-05:00',
                        '2014-08-01 04:00:00-05:00'],
-                      dtype='datetime64[ns, US/Central]', freq='H')
+                      dtype='datetime64[ns, US/Central]', freq='h')
 
         With the ``tz=None``, we can remove the timezone (after converting
         to UTC if necessary):
 
-        >>> dti = pd.date_range(start='2014-08-01 09:00', freq='H',
+        >>> dti = pd.date_range(start='2014-08-01 09:00', freq='h',
         ...                     periods=3, tz='Europe/Berlin')
 
         >>> dti
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
                        '2014-08-01 10:00:00+02:00',
                        '2014-08-01 11:00:00+02:00'],
-                        dtype='datetime64[ns, Europe/Berlin]', freq='H')
+                        dtype='datetime64[ns, Europe/Berlin]', freq='h')
 
         >>> dti.tz_convert(None)
         DatetimeIndex(['2014-08-01 07:00:00',
                        '2014-08-01 08:00:00',
                        '2014-08-01 09:00:00'],
-                        dtype='datetime64[ns]', freq='H')
+                        dtype='datetime64[ns]', freq='h')
         """
         tz = timezones.maybe_get_tz(tz)
 
@@ -1039,7 +1054,7 @@ default 'raise'
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
 
-        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
+        >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
         0   2015-03-29 03:30:00+02:00
         1   2015-03-29 03:30:00+02:00
         dtype: datetime64[ns, Europe/Warsaw]
@@ -1129,13 +1144,13 @@ default 'raise'
 
         Examples
         --------
-        >>> idx = pd.date_range(start='2014-08-01 10:00', freq='H',
+        >>> idx = pd.date_range(start='2014-08-01 10:00', freq='h',
         ...                     periods=3, tz='Asia/Calcutta')
         >>> idx
         DatetimeIndex(['2014-08-01 10:00:00+05:30',
                        '2014-08-01 11:00:00+05:30',
                        '2014-08-01 12:00:00+05:30'],
-                        dtype='datetime64[ns, Asia/Calcutta]', freq='H')
+                        dtype='datetime64[ns, Asia/Calcutta]', freq='h')
         >>> idx.normalize()
         DatetimeIndex(['2014-08-01 00:00:00+05:30',
                        '2014-08-01 00:00:00+05:30',
@@ -1207,6 +1222,8 @@ default 'raise'
 
         if freq is None:
             freq = self.freqstr or self.inferred_freq
+            if isinstance(self.freq, BaseOffset):
+                freq = freq_to_period_freqstr(self.freq.n, self.freq.name)
 
             if freq is None:
                 raise ValueError(
@@ -1220,7 +1237,6 @@ default 'raise'
                 res = freq
 
             freq = res
-
         return PeriodArray._from_datetime64(self._ndarray, freq, tz=self.tz)
 
     # -----------------------------------------------------------------
@@ -1245,7 +1261,7 @@ default 'raise'
 
         Examples
         --------
-        >>> s = pd.Series(pd.date_range(start='2018-01', freq='M', periods=3))
+        >>> s = pd.Series(pd.date_range(start='2018-01', freq='ME', periods=3))
         >>> s
         0   2018-01-31
         1   2018-02-28
@@ -1257,10 +1273,10 @@ default 'raise'
         2       March
         dtype: object
 
-        >>> idx = pd.date_range(start='2018-01', freq='M', periods=3)
+        >>> idx = pd.date_range(start='2018-01', freq='ME', periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
-                      dtype='datetime64[ns]', freq='M')
+                      dtype='datetime64[ns]', freq='ME')
         >>> idx.month_name()
         Index(['January', 'February', 'March'], dtype='object')
 
@@ -1268,11 +1284,11 @@ default 'raise'
         for example: ``idx.month_name(locale='pt_BR.utf8')`` will return month
         names in Brazilian Portuguese language.
 
-        >>> idx = pd.date_range(start='2018-01', freq='M', periods=3)
+        >>> idx = pd.date_range(start='2018-01', freq='ME', periods=3)
         >>> idx
         DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31'],
-                      dtype='datetime64[ns]', freq='M')
-        >>> idx.month_name(locale='pt_BR.utf8') # doctest: +SKIP
+                      dtype='datetime64[ns]', freq='ME')
+        >>> idx.month_name(locale='pt_BR.utf8')  # doctest: +SKIP
         Index(['Janeiro', 'Fevereiro', 'Março'], dtype='object')
         """
         values = self._local_timestamps()
@@ -1520,7 +1536,7 @@ default 'raise'
         Examples
         --------
         >>> datetime_series = pd.Series(
-        ...     pd.date_range("2000-01-01", periods=3, freq="M")
+        ...     pd.date_range("2000-01-01", periods=3, freq="ME")
         ... )
         >>> datetime_series
         0   2000-01-31
@@ -2038,7 +2054,7 @@ default 'raise'
         >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
         >>> idx
         DatetimeIndex(['2012-12-31', '2013-12-31', '2014-12-31'],
-                      dtype='datetime64[ns]', freq='A-DEC')
+                      dtype='datetime64[ns]', freq='Y-DEC')
         >>> idx.is_leap_year
         array([ True, False, False])
 
@@ -2250,7 +2266,8 @@ def _sequence_to_dt64ns(
 
     elif lib.is_np_dtype(data_dtype, "M"):
         # tz-naive DatetimeArray or ndarray[datetime64]
-        data = getattr(data, "_ndarray", data)
+        if isinstance(data, DatetimeArray):
+            data = data._ndarray
         new_dtype = data.dtype
         data_unit = get_unit_from_dtype(new_dtype)
         if not is_supported_unit(data_unit):

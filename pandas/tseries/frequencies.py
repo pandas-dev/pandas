@@ -19,6 +19,10 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS,
     int_to_weekday,
 )
+from pandas._libs.tslibs.dtypes import (
+    OFFSET_TO_PERIOD_FREQSTR,
+    freq_to_period_freqstr,
+)
 from pandas._libs.tslibs.fields import (
     build_field_sarray,
     month_position_check,
@@ -52,59 +56,30 @@ if TYPE_CHECKING:
         TimedeltaIndex,
     )
     from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
-# ---------------------------------------------------------------------
-# Offset names ("time rules") and related functions
+# --------------------------------------------------------------------
+# Offset related functions
 
-_offset_to_period_map = {
-    "WEEKDAY": "D",
-    "EOM": "M",
-    "BM": "M",
-    "BQS": "Q",
-    "QS": "Q",
-    "BQ": "Q",
-    "BA": "A",
-    "AS": "A",
-    "BAS": "A",
-    "MS": "M",
-    "D": "D",
-    "B": "B",
-    "min": "min",
-    "s": "s",
-    "ms": "ms",
-    "us": "us",
-    "ns": "ns",
-    "H": "H",
-    "Q": "Q",
-    "A": "A",
-    "W": "W",
-    "M": "M",
-    "Y": "A",
-    "BY": "A",
-    "YS": "A",
-    "BYS": "A",
-}
-
-_need_suffix = ["QS", "BQ", "BQS", "YS", "AS", "BY", "BA", "BYS", "BAS"]
+_need_suffix = ["QS", "BQ", "BQS", "YS", "BY", "BYS"]
 
 for _prefix in _need_suffix:
     for _m in MONTHS:
         key = f"{_prefix}-{_m}"
-        _offset_to_period_map[key] = _offset_to_period_map[_prefix]
+        OFFSET_TO_PERIOD_FREQSTR[key] = OFFSET_TO_PERIOD_FREQSTR[_prefix]
 
-for _prefix in ["A", "Q"]:
+for _prefix in ["Y", "Q"]:
     for _m in MONTHS:
         _alias = f"{_prefix}-{_m}"
-        _offset_to_period_map[_alias] = _alias
+        OFFSET_TO_PERIOD_FREQSTR[_alias] = _alias
 
 for _d in DAYS:
-    _offset_to_period_map[f"W-{_d}"] = f"W-{_d}"
+    OFFSET_TO_PERIOD_FREQSTR[f"W-{_d}"] = f"W-{_d}"
 
 
 def get_period_alias(offset_str: str) -> str | None:
     """
     Alias to closest period strings BQ->Q etc.
     """
-    return _offset_to_period_map.get(offset_str, None)
+    return OFFSET_TO_PERIOD_FREQSTR.get(offset_str, None)
 
 
 # ---------------------------------------------------------------------
@@ -254,7 +229,7 @@ class _FrequencyInferer:
 
         # Business hourly, maybe. 17: one day / 65: one weekend
         if self.hour_deltas in ([1, 17], [1, 65], [1, 17, 65]):
-            return "BH"
+            return "bh"
 
         # Possibly intraday frequency.  Here we use the
         # original .asi8 values as the modified values
@@ -268,7 +243,7 @@ class _FrequencyInferer:
         pps = ppm // 60
         if _is_multiple(delta, pph):
             # Hours
-            return _maybe_add_count("H", delta / pph)
+            return _maybe_add_count("h", delta / pph)
         elif _is_multiple(delta, ppm):
             # Minutes
             return _maybe_add_count("min", delta / ppm)
@@ -301,7 +276,7 @@ class _FrequencyInferer:
 
     @cache_readonly
     def rep_stamp(self) -> Timestamp:
-        return Timestamp(self.i8values[0])
+        return Timestamp(self.i8values[0], unit=self.index.unit)
 
     def month_position_check(self) -> str | None:
         return month_position_check(self.fields, self.index.dayofweek)
@@ -370,7 +345,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "AS", "bs": "BAS", "ce": "A", "be": "BA"}.get(pos_check)
+            return {"cs": "YS", "bs": "BYS", "ce": "Y", "be": "BY"}.get(pos_check)
 
     def _get_quarterly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
@@ -394,7 +369,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "MS", "bs": "BMS", "ce": "M", "be": "BM"}.get(pos_check)
+            return {"cs": "MS", "bs": "BMS", "ce": "ME", "be": "BME"}.get(pos_check)
 
     def _is_business_daily(self) -> bool:
         # quick check: cannot be business daily
@@ -482,21 +457,21 @@ def is_subperiod(source, target) -> bool:
             return _quarter_months_conform(
                 get_rule_month(source), get_rule_month(target)
             )
-        return source in {"D", "C", "B", "M", "H", "min", "s", "ms", "us", "ns"}
+        return source in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_quarterly(target):
-        return source in {"D", "C", "B", "M", "H", "min", "s", "ms", "us", "ns"}
+        return source in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_monthly(target):
-        return source in {"D", "C", "B", "H", "min", "s", "ms", "us", "ns"}
+        return source in {"D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif _is_weekly(target):
-        return source in {target, "D", "C", "B", "H", "min", "s", "ms", "us", "ns"}
+        return source in {target, "D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif target == "B":
-        return source in {"B", "H", "min", "s", "ms", "us", "ns"}
+        return source in {"B", "h", "min", "s", "ms", "us", "ns"}
     elif target == "C":
-        return source in {"C", "H", "min", "s", "ms", "us", "ns"}
+        return source in {"C", "h", "min", "s", "ms", "us", "ns"}
     elif target == "D":
-        return source in {"D", "H", "min", "s", "ms", "us", "ns"}
-    elif target == "H":
-        return source in {"H", "min", "s", "ms", "us", "ns"}
+        return source in {"D", "h", "min", "s", "ms", "us", "ns"}
+    elif target == "h":
+        return source in {"h", "min", "s", "ms", "us", "ns"}
     elif target == "min":
         return source in {"min", "s", "ms", "us", "ns"}
     elif target == "s":
@@ -540,21 +515,21 @@ def is_superperiod(source, target) -> bool:
             smonth = get_rule_month(source)
             tmonth = get_rule_month(target)
             return _quarter_months_conform(smonth, tmonth)
-        return target in {"D", "C", "B", "M", "H", "min", "s", "ms", "us", "ns"}
+        return target in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_quarterly(source):
-        return target in {"D", "C", "B", "M", "H", "min", "s", "ms", "us", "ns"}
+        return target in {"D", "C", "B", "M", "h", "min", "s", "ms", "us", "ns"}
     elif _is_monthly(source):
-        return target in {"D", "C", "B", "H", "min", "s", "ms", "us", "ns"}
+        return target in {"D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif _is_weekly(source):
-        return target in {source, "D", "C", "B", "H", "min", "s", "ms", "us", "ns"}
+        return target in {source, "D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif source == "B":
-        return target in {"D", "C", "B", "H", "min", "s", "ms", "us", "ns"}
+        return target in {"D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif source == "C":
-        return target in {"D", "C", "B", "H", "min", "s", "ms", "us", "ns"}
+        return target in {"D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
     elif source == "D":
-        return target in {"D", "C", "B", "H", "min", "s", "ms", "us", "ns"}
-    elif source == "H":
-        return target in {"H", "min", "s", "ms", "us", "ns"}
+        return target in {"D", "C", "B", "h", "min", "s", "ms", "us", "ns"}
+    elif source == "h":
+        return target in {"h", "min", "s", "ms", "us", "ns"}
     elif source == "min":
         return target in {"min", "s", "ms", "us", "ns"}
     elif source == "s":
@@ -584,8 +559,8 @@ def _maybe_coerce_freq(code) -> str:
     """
     assert code is not None
     if isinstance(code, DateOffset):
-        code = code.rule_code
-    if code in {"min", "s", "ms", "us", "ns"}:
+        code = freq_to_period_freqstr(1, code.name)
+    if code in {"h", "min", "s", "ms", "us", "ns"}:
         return code
     else:
         return code.upper()
@@ -599,7 +574,7 @@ def _quarter_months_conform(source: str, target: str) -> bool:
 
 def _is_annual(rule: str) -> bool:
     rule = rule.upper()
-    return rule == "A" or rule.startswith("A-")
+    return rule == "Y" or rule.startswith("Y-")
 
 
 def _is_quarterly(rule: str) -> bool:

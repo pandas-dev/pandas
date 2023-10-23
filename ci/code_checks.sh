@@ -63,16 +63,6 @@ if [[ -z "$CHECK" || "$CHECK" == "docstrings" ]]; then
 
     MSG='Partially validate docstrings (EX03)' ;  echo $MSG
     $BASE_DIR/scripts/validate_docstrings.py --format=actions --errors=EX03 --ignore_functions \
-        pandas.Series.loc \
-        pandas.Series.iloc \
-        pandas.Series.pop \
-        pandas.Series.describe \
-        pandas.Series.skew \
-        pandas.Series.var \
-        pandas.Series.last \
-        pandas.Series.tz_convert \
-        pandas.Series.tz_localize \
-        pandas.Series.dt.month_name \
         pandas.Series.dt.day_name \
         pandas.Series.str.len \
         pandas.Series.cat.set_categories \
@@ -186,9 +176,8 @@ fi
 
 ### SINGLE-PAGE DOCS ###
 if [[ -z "$CHECK" || "$CHECK" == "single-docs" ]]; then
-    python doc/make.py --warnings-are-errors --single pandas.Series.value_counts
-    python doc/make.py --warnings-are-errors --single pandas.Series.str.split
-    python doc/make.py clean
+    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.value_counts
+    python doc/make.py --warnings-are-errors --no-browser --single pandas.Series.str.split
 fi
 
 exit $RET

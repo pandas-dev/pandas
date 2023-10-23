@@ -256,26 +256,78 @@ Partial string indexing on ``DatetimeIndex`` when part of a ``MultiIndex``
 
 Partial string indexing now matches on ``DateTimeIndex`` when part of a ``MultiIndex`` (:issue:`10331`)
 
-.. ipython:: python
+.. code-block:: ipython
 
-   dft2 = pd.DataFrame(
-       np.random.randn(20, 1),
-       columns=["A"],
-       index=pd.MultiIndex.from_product(
-           [pd.date_range("20130101", periods=10, freq="12H"), ["a", "b"]]
-       ),
-   )
-   dft2
-   dft2.loc["2013-01-05"]
+   In [20]: dft2 = pd.DataFrame(
+      ....:     np.random.randn(20, 1),
+      ....:     columns=["A"],
+      ....:     index=pd.MultiIndex.from_product(
+      ....:         [pd.date_range("20130101", periods=10, freq="12H"), ["a", "b"]]
+      ....:     ),
+      ....: )
+      ....:
+
+   In [21]: dft2
+   Out[21]:
+                                 A
+   2013-01-01 00:00:00 a  0.469112
+                       b -0.282863
+   2013-01-01 12:00:00 a -1.509059
+                       b -1.135632
+   2013-01-02 00:00:00 a  1.212112
+   ...                         ...
+   2013-01-04 12:00:00 b  0.271860
+   2013-01-05 00:00:00 a -0.424972
+                       b  0.567020
+   2013-01-05 12:00:00 a  0.276232
+                       b -1.087401
+
+   [20 rows x 1 columns]
+
+   In [22]: dft2.loc["2013-01-05"]
+   Out[22]:
+                                 A
+   2013-01-05 00:00:00 a -0.424972
+                       b  0.567020
+   2013-01-05 12:00:00 a  0.276232
+                       b -1.087401
+
+   [4 rows x 1 columns]
 
 On other levels
 
-.. ipython:: python
+.. code-block:: ipython
 
-   idx = pd.IndexSlice
-   dft2 = dft2.swaplevel(0, 1).sort_index()
-   dft2
-   dft2.loc[idx[:, "2013-01-05"], :]
+   In [26]: idx = pd.IndexSlice
+
+   In [27]: dft2 = dft2.swaplevel(0, 1).sort_index()
+
+   In [28]: dft2
+   Out[28]:
+                                 A
+   a 2013-01-01 00:00:00  0.469112
+     2013-01-01 12:00:00 -1.509059
+     2013-01-02 00:00:00  1.212112
+     2013-01-02 12:00:00  0.119209
+     2013-01-03 00:00:00 -0.861849
+   ...                         ...
+   b 2013-01-03 12:00:00  1.071804
+     2013-01-04 00:00:00 -0.706771
+     2013-01-04 12:00:00  0.271860
+     2013-01-05 00:00:00  0.567020
+     2013-01-05 12:00:00 -1.087401
+
+   [20 rows x 1 columns]
+
+   In [29]: dft2.loc[idx[:, "2013-01-05"], :]
+   Out[29]:
+                                 A
+   a 2013-01-05 00:00:00 -0.424972
+     2013-01-05 12:00:00  0.276232
+   b 2013-01-05 00:00:00  0.567020
+     2013-01-05 12:00:00 -1.087401
+
+   [4 rows x 1 columns]
 
 .. _whatsnew_0181.enhancements.assembling:
 
