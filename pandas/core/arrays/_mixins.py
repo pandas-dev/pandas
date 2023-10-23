@@ -221,7 +221,7 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
     def _concat_same_type(
         cls,
         to_concat: Sequence[Self],
-        axis: AxisInt = 0,
+        axis: AxisInt = 1,
     ) -> Self:
         if not lib.dtypes_all_equal([x.dtype for x in to_concat]):
             dtypes = {str(x.dtype) for x in to_concat}
