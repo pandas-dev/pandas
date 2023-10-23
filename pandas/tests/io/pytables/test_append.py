@@ -772,7 +772,7 @@ because its data contents are not [string] but [mixed] object dtype"""
             "dtype->bytes24,kind->string,shape->(1, 30)] "
             "vs current table "
             "[name->values_block_1,cname->values_block_1,"
-            "dtype->datetime64,kind->datetime64,shape->None]"
+            "dtype->datetime64[s],kind->datetime64[s],shape->None]"
         )
         with pytest.raises(ValueError, match=msg):
             store.append("df", df)

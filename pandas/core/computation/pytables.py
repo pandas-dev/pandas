@@ -217,7 +217,7 @@ class BinOp(ops.BinOp):
 
         kind = ensure_decoded(self.kind)
         meta = ensure_decoded(self.meta)
-        if kind in ("datetime64", "datetime"):
+        if kind == "datetime" or (kind and kind.startswith("datetime64")):
             if isinstance(v, (int, float)):
                 v = stringify(v)
             v = ensure_decoded(v)
