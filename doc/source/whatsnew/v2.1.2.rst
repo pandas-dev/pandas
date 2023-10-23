@@ -13,7 +13,6 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
-- Fixed bug where PDEP-6 warning about setting an item of an incompatible dtype was being shown when creating a new conditional column (:issue:`55025`)
 - Fixed regression in :meth:`DataFrame.join` where result has missing values and dtype is arrow backed string (:issue:`55348`)
 - Fixed regression in :meth:`DataFrame.resample` which was extrapolating back to ``origin`` when ``origin`` was outside its bounds (:issue:`55064`)
 - Fixed regression in :meth:`DataFrame.sort_index` which was not sorting correctly when the index was a sliced :class:`MultiIndex` (:issue:`55379`)
@@ -34,6 +33,7 @@ Bug fixes
 - Fixed bug in :meth:`Series.floordiv` for :class:`ArrowDtype` (:issue:`55561`)
 - Fixed bug in :meth:`Series.rank` for ``string[pyarrow_numpy]`` dtype (:issue:`55362`)
 - Fixed bug in :meth:`Series.str.extractall` for :class:`ArrowDtype` dtype being converted to object (:issue:`53846`)
+- Fixed bug where PDEP-6 warning about setting an item of an incompatible dtype was being shown when creating a new conditional column (:issue:`55025`)
 - Silence ``Period[B]`` warnings introduced by :issue:`53446` during normal plotting activity (:issue:`55138`)
 
 .. ---------------------------------------------------------------------------
