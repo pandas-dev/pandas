@@ -16,7 +16,7 @@ from pandas._libs import (
     missing as libmissing,
 )
 from pandas.compat import (
-    pa_version_under7p0,
+    pa_version_under10p1,
     pa_version_under13p0,
 )
 from pandas.util._exceptions import find_stack_level
@@ -42,7 +42,7 @@ from pandas.core.arrays.string_ import (
 )
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
-if not pa_version_under7p0:
+if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -66,8 +66,8 @@ ArrowStringScalarOrNAT = Union[str, libmissing.NAType]
 
 
 def _chk_pyarrow_available() -> None:
-    if pa_version_under7p0:
-        msg = "pyarrow>=7.0.0 is required for PyArrow backed ArrowExtensionArray."
+    if pa_version_under10p1:
+        msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
         raise ImportError(msg)
 
 
@@ -501,6 +501,17 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _convert_int_dtype(self, result):
         return Int64Dtype().__from_arrow__(result)
+
+    def _reduce(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
+        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if name in ("argmin", "argmax") and isinstance(result, pa.Array):
+            return self._convert_int_dtype(result)
+        elif isinstance(result, pa.Array):
+            return type(self)(result)
+        else:
+            return result
 
     def _rank(
         self,

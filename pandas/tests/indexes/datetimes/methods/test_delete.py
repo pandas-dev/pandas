@@ -40,28 +40,29 @@ class TestDelete:
             # either depending on numpy version
             idx.delete(5)
 
-        for tz in [None, "Asia/Tokyo", "US/Pacific"]:
-            idx = date_range(
-                start="2000-01-01 09:00", periods=10, freq="h", name="idx", tz=tz
-            )
+    @pytest.mark.parametrize("tz", [None, "Asia/Tokyo", "US/Pacific"])
+    def test_delete2(self, tz):
+        idx = date_range(
+            start="2000-01-01 09:00", periods=10, freq="h", name="idx", tz=tz
+        )
 
-            expected = date_range(
-                start="2000-01-01 10:00", periods=9, freq="h", name="idx", tz=tz
-            )
-            result = idx.delete(0)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freqstr == "h"
-            assert result.tz == expected.tz
+        expected = date_range(
+            start="2000-01-01 10:00", periods=9, freq="h", name="idx", tz=tz
+        )
+        result = idx.delete(0)
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+        assert result.freqstr == "h"
+        assert result.tz == expected.tz
 
-            expected = date_range(
-                start="2000-01-01 09:00", periods=9, freq="h", name="idx", tz=tz
-            )
-            result = idx.delete(-1)
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freqstr == "h"
-            assert result.tz == expected.tz
+        expected = date_range(
+            start="2000-01-01 09:00", periods=9, freq="h", name="idx", tz=tz
+        )
+        result = idx.delete(-1)
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+        assert result.freqstr == "h"
+        assert result.tz == expected.tz
 
     def test_delete_slice(self):
         idx = date_range(start="2000-01-01", periods=10, freq="D", name="idx")
@@ -101,38 +102,40 @@ class TestDelete:
             assert result.name == expected.name
             assert result.freq == expected.freq
 
-        for tz in [None, "Asia/Tokyo", "US/Pacific"]:
-            ts = Series(
-                1,
-                index=date_range(
-                    "2000-01-01 09:00", periods=10, freq="h", name="idx", tz=tz
-                ),
-            )
-            # preserve freq
-            result = ts.drop(ts.index[:5]).index
-            expected = date_range(
-                "2000-01-01 14:00", periods=5, freq="h", name="idx", tz=tz
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-            assert result.tz == expected.tz
+    # TODO: belongs in Series.drop tests?
+    @pytest.mark.parametrize("tz", [None, "Asia/Tokyo", "US/Pacific"])
+    def test_delete_slice2(self, tz):
+        ts = Series(
+            1,
+            index=date_range(
+                "2000-01-01 09:00", periods=10, freq="h", name="idx", tz=tz
+            ),
+        )
+        # preserve freq
+        result = ts.drop(ts.index[:5]).index
+        expected = date_range(
+            "2000-01-01 14:00", periods=5, freq="h", name="idx", tz=tz
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+        assert result.freq == expected.freq
+        assert result.tz == expected.tz
 
-            # reset freq to None
-            result = ts.drop(ts.index[[1, 3, 5, 7, 9]]).index
-            expected = DatetimeIndex(
-                [
-                    "2000-01-01 09:00",
-                    "2000-01-01 11:00",
-                    "2000-01-01 13:00",
-                    "2000-01-01 15:00",
-                    "2000-01-01 17:00",
-                ],
-                freq=None,
-                name="idx",
-                tz=tz,
-            )
-            tm.assert_index_equal(result, expected)
-            assert result.name == expected.name
-            assert result.freq == expected.freq
-            assert result.tz == expected.tz
+        # reset freq to None
+        result = ts.drop(ts.index[[1, 3, 5, 7, 9]]).index
+        expected = DatetimeIndex(
+            [
+                "2000-01-01 09:00",
+                "2000-01-01 11:00",
+                "2000-01-01 13:00",
+                "2000-01-01 15:00",
+                "2000-01-01 17:00",
+            ],
+            freq=None,
+            name="idx",
+            tz=tz,
+        )
+        tm.assert_index_equal(result, expected)
+        assert result.name == expected.name
+        assert result.freq == expected.freq
+        assert result.tz == expected.tz

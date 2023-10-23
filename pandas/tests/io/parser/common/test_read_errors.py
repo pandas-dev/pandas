@@ -148,7 +148,12 @@ def test_suppress_error_output(all_parsers):
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = DataFrame({"a": [1, 4]})
 
-    with tm.assert_produces_warning(None):
+    warn = None
+    if parser.engine == "pyarrow":
+        warn = DeprecationWarning
+    msg = "Passing a BlockManager to DataFrame"
+
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
 
@@ -174,11 +179,13 @@ def test_warn_bad_lines(all_parsers):
     expected = DataFrame({"a": [1, 4]})
     match_msg = "Skipping line"
 
+    expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 1 columns, but found 3: 1,2,3"
+        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
-        ParserWarning, match=match_msg, check_stacklevel=False
+        expected_warning, match=match_msg, check_stacklevel=False
     ):
         result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
@@ -210,7 +217,7 @@ def test_null_byte_char(request, all_parsers):
 
     if parser.engine == "c" or (parser.engine == "python" and PY311):
         if parser.engine == "python" and PY311:
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason="In Python 3.11, this is read as an empty character not null"
                 )
@@ -230,7 +237,7 @@ def test_open_file(request, all_parsers):
     # GH 39024
     parser = all_parsers
     if parser.engine == "c":
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=f"{parser.engine} engine does not support sep=None "
                 f"with delim_whitespace=False"
@@ -282,11 +289,13 @@ a,b
     expected = DataFrame({"1": "a", "2": ["b"] * 2})
     match_msg = "Skipping line"
 
+    expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 2 columns, but found 3: a,b,c"
+        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
-        ParserWarning, match=match_msg, check_stacklevel=False
+        expected_warning, match=match_msg, check_stacklevel=False
     ):
         result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)

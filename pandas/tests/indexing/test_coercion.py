@@ -442,8 +442,8 @@ class TestWhereCoercion(CoercionBase):
         "fill_val,exp_dtype",
         [(1, object), (1.1, object), (1 + 1j, object), (True, np.bool_)],
     )
-    def test_where_series_bool(self, fill_val, exp_dtype):
-        klass = pd.Series  # TODO: use index_or_series once we have Index[bool]
+    def test_where_series_bool(self, index_or_series, fill_val, exp_dtype):
+        klass = index_or_series
 
         obj = klass([True, False, True, False])
         assert obj.dtype == np.bool_
