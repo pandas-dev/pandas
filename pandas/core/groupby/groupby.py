@@ -5810,20 +5810,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if axis == 1:
             try:
-                if self.obj.ndim == 1:
-                    result = self._op_via_apply(how, skipna=skipna)
-                else:
 
-                    def func(df):
-                        method = getattr(df, how)
-                        return method(
-                            axis=axis, skipna=skipna, numeric_only=numeric_only
-                        )
+                def func(df):
+                    method = getattr(df, how)
+                    return method(axis=axis, skipna=skipna, numeric_only=numeric_only)
 
-                    func.__name__ = how
-                    result = self._python_apply_general(
-                        func, self._obj_with_exclusions, not_indexed_same=True
-                    )
+                func.__name__ = how
+                result = self._python_apply_general(
+                    func, self._obj_with_exclusions, not_indexed_same=True
+                )
             except ValueError as err:
                 name = "argmax" if how == "idxmax" else "argmin"
                 if f"attempt to get {name} of an empty sequence" in str(err):
