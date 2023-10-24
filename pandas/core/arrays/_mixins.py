@@ -128,17 +128,31 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         dtype = pandas_dtype(dtype)
         arr = self._ndarray
 
-        if isinstance(dtype, (PeriodDtype, DatetimeTZDtype)):
+        if isinstance(dtype, PeriodDtype):
             cls = dtype.construct_array_type()
             return cls(arr.view("i8"), dtype=dtype)
+        elif isinstance(dtype, DatetimeTZDtype):
+            # error: Incompatible types in assignment (expression has type
+            # "type[DatetimeArray]", variable has type "type[PeriodArray]")
+            cls = dtype.construct_array_type()  # type: ignore[assignment]
+            dt64_values = arr.view(f"M8[{dtype.unit}]")
+            return cls(dt64_values, dtype=dtype)
         elif dtype == "M8[ns]":
             from pandas.core.arrays import DatetimeArray
 
-            return DatetimeArray(arr.view("i8"), dtype=dtype)
+            # error: Argument 1 to "view" of "ndarray" has incompatible type
+            # "ExtensionDtype | dtype[Any]"; expected "dtype[Any] | type[Any]
+            # | _SupportsDType[dtype[Any]]"
+            dt64_values = arr.view(dtype)  # type: ignore[arg-type]
+            return DatetimeArray(dt64_values, dtype=dtype)
         elif dtype == "m8[ns]":
             from pandas.core.arrays import TimedeltaArray
 
-            return TimedeltaArray(arr.view("i8"), dtype=dtype)
+            # error: Argument 1 to "view" of "ndarray" has incompatible type
+            # "ExtensionDtype | dtype[Any]"; expected "dtype[Any] | type[Any]
+            # | _SupportsDType[dtype[Any]]"
+            td64_values = arr.view(dtype)  # type: ignore[arg-type]
+            return TimedeltaArray(td64_values, dtype=dtype)
 
         # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
         # type "Union[ExtensionDtype, dtype[Any]]"; expected "Union[dtype[Any], None,
