@@ -48,10 +48,7 @@ from numpy cimport (
 )
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.conversion cimport (
-    convert_timezone,
-    get_datetime64_nanos,
-)
+from pandas._libs.tslibs.conversion cimport get_datetime64_nanos
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_nat_strings as nat_strings,
@@ -73,6 +70,7 @@ import_pandas_datetime()
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 from pandas._libs.util cimport (
     is_float_object,
     is_integer_object,
@@ -156,6 +154,37 @@ cdef dict _parse_code_table = {"y": 0,
                                "u": 22}
 
 
+cdef class DatetimeParseState:
+    def __cinit__(self):
+        self.found_tz = False
+        self.found_naive = False
+
+    cdef tzinfo process_datetime(self, datetime dt, tzinfo tz, bint utc_convert):
+        if dt.tzinfo is not None:
+            self.found_tz = True
+        else:
+            self.found_naive = True
+
+        if dt.tzinfo is not None:
+            if utc_convert:
+                pass
+            elif self.found_naive:
+                raise ValueError("Tz-aware datetime.datetime "
+                                 "cannot be converted to "
+                                 "datetime64 unless utc=True")
+            elif tz is not None and not tz_compare(tz, dt.tzinfo):
+                raise ValueError("Tz-aware datetime.datetime "
+                                 "cannot be converted to "
+                                 "datetime64 unless utc=True")
+            else:
+                tz = dt.tzinfo
+        else:
+            if self.found_tz and not utc_convert:
+                raise ValueError("Cannot mix tz-aware with "
+                                 "tz-naive values")
+        return tz
+
+
 def array_strptime(
     ndarray[object] values,
     str fmt,
@@ -183,13 +212,12 @@ def array_strptime(
         bint is_raise = errors=="raise"
         bint is_ignore = errors=="ignore"
         bint is_coerce = errors=="coerce"
-        bint found_naive = False
-        bint found_tz = False
         tzinfo tz_out = None
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT out_bestunit
         int out_local = 0, out_tzoffset = 0
         bint string_to_dts_succeeded = 0
+        DatetimeParseState state = DatetimeParseState()
 
     assert is_raise or is_ignore or is_coerce
 
@@ -276,17 +304,7 @@ def array_strptime(
                 iresult[i] = NPY_NAT
                 continue
             elif PyDateTime_Check(val):
-                if val.tzinfo is not None:
-                    found_tz = True
-                else:
-                    found_naive = True
-                tz_out = convert_timezone(
-                    val.tzinfo,
-                    tz_out,
-                    found_naive,
-                    found_tz,
-                    utc,
-                )
+                tz_out = state.process_datetime(val, tz_out, utc)
                 if isinstance(val, _Timestamp):
                     iresult[i] = val.tz_localize(None).as_unit("ns")._value
                 else:

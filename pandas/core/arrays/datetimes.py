@@ -2308,6 +2308,7 @@ def _sequence_to_dt64ns(
         # assume this data are epoch timestamps
         if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
+            copy = False
         result = data.view(out_dtype)
 
     if copy:
