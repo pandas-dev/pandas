@@ -48,10 +48,7 @@ from numpy cimport (
 )
 
 from pandas._libs.missing cimport checknull_with_nat_and_na
-from pandas._libs.tslibs.conversion cimport (
-    convert_timezone,
-    get_datetime64_nanos,
-)
+from pandas._libs.tslibs.conversion cimport get_datetime64_nanos
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_nat_strings as nat_strings,
@@ -73,6 +70,7 @@ import_pandas_datetime()
 from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 from pandas._libs.util cimport (
     is_float_object,
     is_integer_object,
@@ -156,6 +154,37 @@ cdef dict _parse_code_table = {"y": 0,
                                "u": 22}
 
 
+cdef class DatetimeParseState:
+    def __cinit__(self):
+        self.found_tz = False
+        self.found_naive = False
+
+    cdef tzinfo process_datetime(self, datetime dt, tzinfo tz, bint utc_convert):
+        if dt.tzinfo is not None:
+            self.found_tz = True
+        else:
+            self.found_naive = True
+
+        if dt.tzinfo is not None:
+            if utc_convert:
+                pass
+            elif self.found_naive:
+                raise ValueError("Tz-aware datetime.datetime "
+                                 "cannot be converted to "
+                                 "datetime64 unless utc=True")
+            elif tz is not None and not tz_compare(tz, dt.tzinfo):
+                raise ValueError("Tz-aware datetime.datetime "
+                                 "cannot be converted to "
+                                 "datetime64 unless utc=True")
+            else:
+                tz = dt.tzinfo
+        else:
+            if self.found_tz and not utc_convert:
+                raise ValueError("Cannot mix tz-aware with "
+                                 "tz-naive values")
+        return tz
+
+
 def array_strptime(
     ndarray[object] values,
     str fmt,
@@ -179,21 +208,16 @@ def array_strptime(
         npy_datetimestruct dts
         int64_t[::1] iresult
         object[::1] result_timezone
-        int year, month, day, minute, hour, second, weekday, julian
-        int week_of_year, week_of_year_start, parse_code, ordinal
-        int iso_week, iso_year
-        int64_t us, ns
-        object val, group_key, ampm, found, tz
+        object val, tz
         bint is_raise = errors=="raise"
         bint is_ignore = errors=="ignore"
         bint is_coerce = errors=="coerce"
-        bint found_naive = False
-        bint found_tz = False
         tzinfo tz_out = None
         bint iso_format = format_is_iso(fmt)
         NPY_DATETIMEUNIT out_bestunit
         int out_local = 0, out_tzoffset = 0
         bint string_to_dts_succeeded = 0
+        DatetimeParseState state = DatetimeParseState()
 
     assert is_raise or is_ignore or is_coerce
 
@@ -280,17 +304,7 @@ def array_strptime(
                 iresult[i] = NPY_NAT
                 continue
             elif PyDateTime_Check(val):
-                if val.tzinfo is not None:
-                    found_tz = True
-                else:
-                    found_naive = True
-                tz_out = convert_timezone(
-                    val.tzinfo,
-                    tz_out,
-                    found_naive,
-                    found_tz,
-                    utc,
-                )
+                tz_out = state.process_datetime(val, tz_out, utc)
                 if isinstance(val, _Timestamp):
                     iresult[i] = val.tz_localize(None).as_unit("ns")._value
                 else:
@@ -351,173 +365,9 @@ def array_strptime(
             if not string_to_dts_succeeded and fmt == "ISO8601":
                 raise ValueError(f"Time data {val} is not ISO8601 format")
 
-            # exact matching
-            if exact:
-                found = format_regex.match(val)
-                if not found:
-                    raise ValueError(
-                        f"time data \"{val}\" doesn't match format \"{fmt}\""
-                    )
-                if len(val) != found.end():
-                    raise ValueError(
-                        "unconverted data remains when parsing with "
-                        f"format \"{fmt}\": \"{val[found.end():]}\""
-                    )
-
-            # search
-            else:
-                found = format_regex.search(val)
-                if not found:
-                    raise ValueError(
-                        f"time data \"{val}\" doesn't match format \"{fmt}\""
-                    )
-
-            iso_year = -1
-            year = 1900
-            month = day = 1
-            hour = minute = second = ns = us = 0
-            tz = None
-            # Default to -1 to signify that values not known; not critical to have,
-            # though
-            iso_week = week_of_year = -1
-            week_of_year_start = -1
-            # weekday and julian defaulted to -1 so as to signal need to calculate
-            # values
-            weekday = julian = -1
-            found_dict = found.groupdict()
-            for group_key in found_dict.iterkeys():
-                # Directives not explicitly handled below:
-                #   c, x, X
-                #      handled by making out of other directives
-                #   U, W
-                #      worthless without day of the week
-                parse_code = _parse_code_table[group_key]
-
-                if parse_code == 0:
-                    year = int(found_dict["y"])
-                    # Open Group specification for strptime() states that a %y
-                    # value in the range of [00, 68] is in the century 2000, while
-                    # [69,99] is in the century 1900
-                    if year <= 68:
-                        year += 2000
-                    else:
-                        year += 1900
-                elif parse_code == 1:
-                    year = int(found_dict["Y"])
-                elif parse_code == 2:
-                    month = int(found_dict["m"])
-                # elif group_key == 'B':
-                elif parse_code == 3:
-                    month = locale_time.f_month.index(found_dict["B"].lower())
-                # elif group_key == 'b':
-                elif parse_code == 4:
-                    month = locale_time.a_month.index(found_dict["b"].lower())
-                # elif group_key == 'd':
-                elif parse_code == 5:
-                    day = int(found_dict["d"])
-                # elif group_key == 'H':
-                elif parse_code == 6:
-                    hour = int(found_dict["H"])
-                elif parse_code == 7:
-                    hour = int(found_dict["I"])
-                    ampm = found_dict.get("p", "").lower()
-                    # If there was no AM/PM indicator, we'll treat this like AM
-                    if ampm in ("", locale_time.am_pm[0]):
-                        # We're in AM so the hour is correct unless we're
-                        # looking at 12 midnight.
-                        # 12 midnight == 12 AM == hour 0
-                        if hour == 12:
-                            hour = 0
-                    elif ampm == locale_time.am_pm[1]:
-                        # We're in PM so we need to add 12 to the hour unless
-                        # we're looking at 12 noon.
-                        # 12 noon == 12 PM == hour 12
-                        if hour != 12:
-                            hour += 12
-                elif parse_code == 8:
-                    minute = int(found_dict["M"])
-                elif parse_code == 9:
-                    second = int(found_dict["S"])
-                elif parse_code == 10:
-                    s = found_dict["f"]
-                    # Pad to always return nanoseconds
-                    s += "0" * (9 - len(s))
-                    us = long(s)
-                    ns = us % 1000
-                    us = us // 1000
-                elif parse_code == 11:
-                    weekday = locale_time.f_weekday.index(found_dict["A"].lower())
-                elif parse_code == 12:
-                    weekday = locale_time.a_weekday.index(found_dict["a"].lower())
-                elif parse_code == 13:
-                    weekday = int(found_dict["w"])
-                    if weekday == 0:
-                        weekday = 6
-                    else:
-                        weekday -= 1
-                elif parse_code == 14:
-                    julian = int(found_dict["j"])
-                elif parse_code == 15 or parse_code == 16:
-                    week_of_year = int(found_dict[group_key])
-                    if group_key == "U":
-                        # U starts week on Sunday.
-                        week_of_year_start = 6
-                    else:
-                        # W starts week on Monday.
-                        week_of_year_start = 0
-                elif parse_code == 17:
-                    tz = pytz.timezone(found_dict["Z"])
-                elif parse_code == 19:
-                    tz = parse_timezone_directive(found_dict["z"])
-                elif parse_code == 20:
-                    iso_year = int(found_dict["G"])
-                elif parse_code == 21:
-                    iso_week = int(found_dict["V"])
-                elif parse_code == 22:
-                    weekday = int(found_dict["u"])
-                    weekday -= 1
-
-            # If we know the wk of the year and what day of that wk, we can figure
-            # out the Julian day of the year.
-            if julian == -1 and weekday != -1:
-                if week_of_year != -1:
-                    week_starts_Mon = week_of_year_start == 0
-                    julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
-                                                      week_starts_Mon)
-                elif iso_year != -1 and iso_week != -1:
-                    year, julian = _calc_julian_from_V(iso_year, iso_week,
-                                                       weekday + 1)
-            # Cannot pre-calculate date() since can change in Julian
-            # calculation and thus could have different value for the day of the wk
-            # calculation.
-            if julian == -1:
-                # Need to add 1 to result since first day of the year is 1, not
-                # 0.
-                ordinal = date(year, month, day).toordinal()
-                julian = ordinal - date(year, 1, 1).toordinal() + 1
-            else:
-                # Assume that if they bothered to include Julian day it will
-                # be accurate.
-                datetime_result = date.fromordinal(
-                    (julian - 1) + date(year, 1, 1).toordinal())
-                year = datetime_result.year
-                month = datetime_result.month
-                day = datetime_result.day
-            if weekday == -1:
-                weekday = date(year, month, day).weekday()
-
-            dts.year = year
-            dts.month = month
-            dts.day = day
-            dts.hour = hour
-            dts.min = minute
-            dts.sec = second
-            dts.us = us
-            dts.ps = ns * 1000
-
-            iresult[i] = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
-            check_dts_bounds(&dts)
-
+            tz = _parse_with_format(
+                val, fmt, exact, format_regex, locale_time, &iresult[i]
+            )
             result_timezone[i] = tz
 
         except (ValueError, OutOfBoundsDatetime) as ex:
@@ -538,6 +388,190 @@ def array_strptime(
             return values, []
 
     return result, result_timezone.base
+
+
+cdef tzinfo _parse_with_format(
+    str val, str fmt, bint exact, format_regex, locale_time, int64_t* iresult
+):
+    cdef:
+        npy_datetimestruct dts
+        int year, month, day, minute, hour, second, weekday, julian
+        int week_of_year, week_of_year_start, parse_code, ordinal
+        int iso_week, iso_year
+        int64_t us, ns
+        object found
+        tzinfo tz
+        dict found_dict
+        str group_key, ampm
+
+    if exact:
+        # exact matching
+        found = format_regex.match(val)
+        if not found:
+            raise ValueError(
+                f"time data \"{val}\" doesn't match format \"{fmt}\""
+            )
+        if len(val) != found.end():
+            raise ValueError(
+                "unconverted data remains when parsing with "
+                f"format \"{fmt}\": \"{val[found.end():]}\""
+            )
+
+    else:
+        # search
+        found = format_regex.search(val)
+        if not found:
+            raise ValueError(
+                f"time data \"{val}\" doesn't match format \"{fmt}\""
+            )
+
+    iso_year = -1
+    year = 1900
+    month = day = 1
+    hour = minute = second = ns = us = 0
+    tz = None
+    # Default to -1 to signify that values not known; not critical to have,
+    # though
+    iso_week = week_of_year = -1
+    week_of_year_start = -1
+    # weekday and julian defaulted to -1 so as to signal need to calculate
+    # values
+    weekday = julian = -1
+    found_dict = found.groupdict()
+    for group_key in found_dict.iterkeys():
+        # Directives not explicitly handled below:
+        #   c, x, X
+        #      handled by making out of other directives
+        #   U, W
+        #      worthless without day of the week
+        parse_code = _parse_code_table[group_key]
+
+        if parse_code == 0:
+            year = int(found_dict["y"])
+            # Open Group specification for strptime() states that a %y
+            # value in the range of [00, 68] is in the century 2000, while
+            # [69,99] is in the century 1900
+            if year <= 68:
+                year += 2000
+            else:
+                year += 1900
+        elif parse_code == 1:
+            year = int(found_dict["Y"])
+        elif parse_code == 2:
+            month = int(found_dict["m"])
+        # elif group_key == 'B':
+        elif parse_code == 3:
+            month = locale_time.f_month.index(found_dict["B"].lower())
+        # elif group_key == 'b':
+        elif parse_code == 4:
+            month = locale_time.a_month.index(found_dict["b"].lower())
+        # elif group_key == 'd':
+        elif parse_code == 5:
+            day = int(found_dict["d"])
+        # elif group_key == 'H':
+        elif parse_code == 6:
+            hour = int(found_dict["H"])
+        elif parse_code == 7:
+            hour = int(found_dict["I"])
+            ampm = found_dict.get("p", "").lower()
+            # If there was no AM/PM indicator, we'll treat this like AM
+            if ampm in ("", locale_time.am_pm[0]):
+                # We're in AM so the hour is correct unless we're
+                # looking at 12 midnight.
+                # 12 midnight == 12 AM == hour 0
+                if hour == 12:
+                    hour = 0
+            elif ampm == locale_time.am_pm[1]:
+                # We're in PM so we need to add 12 to the hour unless
+                # we're looking at 12 noon.
+                # 12 noon == 12 PM == hour 12
+                if hour != 12:
+                    hour += 12
+        elif parse_code == 8:
+            minute = int(found_dict["M"])
+        elif parse_code == 9:
+            second = int(found_dict["S"])
+        elif parse_code == 10:
+            s = found_dict["f"]
+            # Pad to always return nanoseconds
+            s += "0" * (9 - len(s))
+            us = long(s)
+            ns = us % 1000
+            us = us // 1000
+        elif parse_code == 11:
+            weekday = locale_time.f_weekday.index(found_dict["A"].lower())
+        elif parse_code == 12:
+            weekday = locale_time.a_weekday.index(found_dict["a"].lower())
+        elif parse_code == 13:
+            weekday = int(found_dict["w"])
+            if weekday == 0:
+                weekday = 6
+            else:
+                weekday -= 1
+        elif parse_code == 14:
+            julian = int(found_dict["j"])
+        elif parse_code == 15 or parse_code == 16:
+            week_of_year = int(found_dict[group_key])
+            if group_key == "U":
+                # U starts week on Sunday.
+                week_of_year_start = 6
+            else:
+                # W starts week on Monday.
+                week_of_year_start = 0
+        elif parse_code == 17:
+            tz = pytz.timezone(found_dict["Z"])
+        elif parse_code == 19:
+            tz = parse_timezone_directive(found_dict["z"])
+        elif parse_code == 20:
+            iso_year = int(found_dict["G"])
+        elif parse_code == 21:
+            iso_week = int(found_dict["V"])
+        elif parse_code == 22:
+            weekday = int(found_dict["u"])
+            weekday -= 1
+
+    # If we know the wk of the year and what day of that wk, we can figure
+    # out the Julian day of the year.
+    if julian == -1 and weekday != -1:
+        if week_of_year != -1:
+            week_starts_Mon = week_of_year_start == 0
+            julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
+                                              week_starts_Mon)
+        elif iso_year != -1 and iso_week != -1:
+            year, julian = _calc_julian_from_V(iso_year, iso_week,
+                                               weekday + 1)
+    # Cannot pre-calculate date() since can change in Julian
+    # calculation and thus could have different value for the day of the wk
+    # calculation.
+    if julian == -1:
+        # Need to add 1 to result since first day of the year is 1, not
+        # 0.
+        ordinal = date(year, month, day).toordinal()
+        julian = ordinal - date(year, 1, 1).toordinal() + 1
+    else:
+        # Assume that if they bothered to include Julian day it will
+        # be accurate.
+        datetime_result = date.fromordinal(
+            (julian - 1) + date(year, 1, 1).toordinal())
+        year = datetime_result.year
+        month = datetime_result.month
+        day = datetime_result.day
+    if weekday == -1:
+        weekday = date(year, month, day).weekday()
+
+    dts.year = year
+    dts.month = month
+    dts.day = day
+    dts.hour = hour
+    dts.min = minute
+    dts.sec = second
+    dts.us = us
+    dts.ps = ns * 1000
+
+    iresult[0] = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
+    check_dts_bounds(&dts)
+
+    return tz
 
 
 class TimeRE(_TimeRE):

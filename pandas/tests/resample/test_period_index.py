@@ -106,7 +106,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("meth", ["ffill", "bfill"])
     @pytest.mark.parametrize("conv", ["start", "end"])
     @pytest.mark.parametrize(
-        ("offset", "period"), [("D", "D"), ("B", "B"), ("ME", "M")]
+        ("offset", "period"), [("D", "D"), ("B", "B"), ("ME", "M"), ("QE", "Q")]
     )
     def test_annual_upsample_cases(
         self, offset, period, conv, meth, month, simple_period_range_series
@@ -137,7 +137,7 @@ class TestPeriodIndex:
         "rule,expected_error_msg",
         [
             ("y-dec", "<YearEnd: month=12>"),
-            ("q-mar", "<QuarterEnd: startingMonth=3>"),
+            ("qe-mar", "<QuarterEnd: startingMonth=3>"),
             ("M", "<MonthEnd>"),
             ("w-thu", "<Week: weekday=3>"),
         ],
@@ -370,7 +370,7 @@ class TestPeriodIndex:
         # GH2073
         s = Series(
             np.arange(9, dtype="int64"),
-            index=date_range("2010-01-01", periods=9, freq="Q"),
+            index=date_range("2010-01-01", periods=9, freq="QE"),
         )
         last = s.resample("ME").ffill()
         both = s.resample("ME").ffill().resample("ME").last().astype("int64")
@@ -654,7 +654,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "from_freq, to_freq", [("D", "ME"), ("Q", "Y"), ("ME", "Q"), ("D", "W")]
+        "from_freq, to_freq", [("D", "ME"), ("QE", "Y"), ("ME", "QE"), ("D", "W")]
     )
     def test_default_right_closed_label(self, from_freq, to_freq):
         idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
@@ -667,7 +667,7 @@ class TestPeriodIndex:
 
     @pytest.mark.parametrize(
         "from_freq, to_freq",
-        [("D", "MS"), ("Q", "YS"), ("ME", "QS"), ("h", "D"), ("min", "h")],
+        [("D", "MS"), ("QE", "YS"), ("ME", "QS"), ("h", "D"), ("min", "h")],
     )
     def test_default_left_closed_label(self, from_freq, to_freq):
         idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
@@ -943,9 +943,11 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
 
-def test_resample_frequency_ME_error_message(series_and_frame):
-    msg = "Invalid frequency: 2ME"
+@pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2QE-FEB"])
+def test_resample_frequency_ME_QE_error_message(series_and_frame, freq_depr):
+    # GH#9586
+    msg = f"Invalid frequency: {freq_depr}"
 
     obj = series_and_frame
     with pytest.raises(ValueError, match=msg):
-        obj.resample("2ME")
+        obj.resample(freq_depr)

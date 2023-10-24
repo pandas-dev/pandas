@@ -278,8 +278,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     @classmethod
     def _validate_dtype(cls, values, dtype):
         # used in TimeLikeOps.__init__
-        _validate_dt64_dtype(values.dtype)
         dtype = _validate_dt64_dtype(dtype)
+        _validate_dt64_dtype(values.dtype)
+        if isinstance(dtype, np.dtype):
+            if values.dtype != dtype:
+                raise ValueError("Values resolution does not match dtype.")
+        else:
+            vunit = np.datetime_data(values.dtype)[0]
+            if vunit != dtype.unit:
+                raise ValueError("Values resolution does not match dtype.")
         return dtype
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
@@ -799,7 +806,9 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
             values = self
 
         try:
-            result = offset._apply_array(values).view(values.dtype)
+            result = offset._apply_array(values)
+            if result.dtype.kind == "i":
+                result = result.view(values.dtype)
         except NotImplementedError:
             warnings.warn(
                 "Non-vectorized DateOffset being applied to Series or DatetimeIndex.",
@@ -807,6 +816,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
                 stacklevel=find_stack_level(),
             )
             result = self.astype("O") + offset
+            # TODO(GH#55564): as_unit will be unnecessary
             result = type(self)._from_sequence(result).as_unit(self.unit)
             if not len(self):
                 # GH#30336 _from_sequence won't be able to infer self.tz
@@ -2263,7 +2273,8 @@ def _sequence_to_dt64ns(
 
     elif lib.is_np_dtype(data_dtype, "M"):
         # tz-naive DatetimeArray or ndarray[datetime64]
-        data = getattr(data, "_ndarray", data)
+        if isinstance(data, DatetimeArray):
+            data = data._ndarray
         new_dtype = data.dtype
         data_unit = get_unit_from_dtype(new_dtype)
         if not is_supported_unit(data_unit):
@@ -2304,6 +2315,7 @@ def _sequence_to_dt64ns(
         # assume this data are epoch timestamps
         if data.dtype != INT64_DTYPE:
             data = data.astype(np.int64, copy=False)
+            copy = False
         result = data.view(out_dtype)
 
     if copy:

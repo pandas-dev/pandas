@@ -867,3 +867,14 @@ def test_concat_ea_upcast():
     result = concat([df1, df2])
     expected = DataFrame(["a", 1], index=[0, 0])
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_none_with_timezone_timestamp():
+    # GH#52093
+    df1 = DataFrame([{"A": None}])
+    df2 = DataFrame([{"A": pd.Timestamp("1990-12-20 00:00:00+00:00")}])
+    msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = concat([df1, df2], ignore_index=True)
+    expected = DataFrame({"A": [None, pd.Timestamp("1990-12-20 00:00:00+00:00")]})
+    tm.assert_frame_equal(result, expected)
