@@ -364,8 +364,8 @@ class TestDatetimeIndexSetOps:
         tm.assert_attr_equal("freq", idx_diff, expected)
 
     def test_datetimeindex_diff(self, sort):
-        dti1 = date_range(freq="Q-JAN", start=datetime(1997, 12, 31), periods=100)
-        dti2 = date_range(freq="Q-JAN", start=datetime(1997, 12, 31), periods=98)
+        dti1 = date_range(freq="QE-JAN", start=datetime(1997, 12, 31), periods=100)
+        dti2 = date_range(freq="QE-JAN", start=datetime(1997, 12, 31), periods=98)
         assert len(dti1.difference(dti2, sort)) == 2
 
     @pytest.mark.parametrize("tz", [None, "Asia/Tokyo", "US/Eastern"])
@@ -414,7 +414,7 @@ class TestDatetimeIndexSetOps:
                 "2019-12-31",
                 "2020-03-31",
             ],
-            freq="Q-DEC",
+            freq="QE-DEC",
         )
         result = dti[::2].intersection(dti[1::2])
         expected = dti[:0]

@@ -10,7 +10,7 @@ from pandas import date_range
     "freq,expected",
     [
         ("Y", "day"),
-        ("Q", "day"),
+        ("QE", "day"),
         ("ME", "day"),
         ("D", "day"),
         ("h", "hour"),

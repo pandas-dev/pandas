@@ -284,7 +284,7 @@ class DatetimeProperties(Properties):
     2    2
     dtype: int32
 
-    >>> quarters_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="q"))
+    >>> quarters_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="QE"))
     >>> quarters_series
     0   2000-03-31
     1   2000-06-30

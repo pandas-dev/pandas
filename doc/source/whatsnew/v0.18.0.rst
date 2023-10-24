@@ -808,11 +808,19 @@ Upsampling operations take you from a lower frequency to a higher frequency. The
 performed with the ``Resampler`` objects with :meth:`~Resampler.backfill`,
 :meth:`~Resampler.ffill`, :meth:`~Resampler.fillna` and :meth:`~Resampler.asfreq` methods.
 
-.. ipython:: python
+.. code-block:: ipython
 
-   s = pd.Series(np.arange(5, dtype='int64'),
+   In [89]: s = pd.Series(np.arange(5, dtype='int64'),
                  index=pd.date_range('2010-01-01', periods=5, freq='Q'))
-   s
+
+   In [90]: s
+   Out[90]:
+   2010-03-31    0
+   2010-06-30    1
+   2010-09-30    2
+   2010-12-31    3
+   2011-03-31    4
+   Freq: Q-DEC, Length: 5, dtype: int64
 
 Previously
 

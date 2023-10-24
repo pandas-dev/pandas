@@ -392,7 +392,7 @@ def test_quarterly_finder(year_span):
         pytest.skip("the quarterly finder is only invoked if the span is >= 45")
     nyears = span / 4
     (min_anndef, maj_anndef) = converter._get_default_annual_spacing(nyears)
-    result = converter._quarterly_finder(vmin, vmax, to_offset("Q"))
+    result = converter._quarterly_finder(vmin, vmax, to_offset("QE"))
     quarters = PeriodIndex(
         arrays.PeriodArray(np.array([x[0] for x in result]), dtype="period[Q]")
     )

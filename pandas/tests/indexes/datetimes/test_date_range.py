@@ -1018,7 +1018,7 @@ class TestGenRangeGeneration:
     def test_precision_finer_than_offset(self):
         # GH#9907
         result1 = date_range(
-            start="2015-04-15 00:00:03", end="2016-04-22 00:00:00", freq="Q"
+            start="2015-04-15 00:00:03", end="2016-04-22 00:00:00", freq="QE"
         )
         result2 = date_range(
             start="2015-04-15 00:00:03", end="2015-06-22 00:00:04", freq="W"
@@ -1042,7 +1042,7 @@ class TestGenRangeGeneration:
             "2015-06-21 00:00:03",
         ]
         expected1 = DatetimeIndex(
-            expected1_list, dtype="datetime64[ns]", freq="Q-DEC", tz=None
+            expected1_list, dtype="datetime64[ns]", freq="QE-DEC", tz=None
         )
         expected2 = DatetimeIndex(
             expected2_list, dtype="datetime64[ns]", freq="W-SUN", tz=None

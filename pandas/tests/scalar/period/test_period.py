@@ -68,15 +68,15 @@ class TestPeriodConstruction:
         assert i1 == i2
         assert i1 == i3
 
+        # GH#54105 - Period can be confusingly instantiated with lowercase freq
+        # TODO: raise in the future an error when passing lowercase freq
         i4 = Period("2005", freq="M")
         assert i1 != i4
 
         i1 = Period.now(freq="Q")
         i2 = Period(datetime.now(), freq="Q")
-        i3 = Period.now("q")
 
         assert i1 == i2
-        assert i1 == i3
 
         # Pass in freq as a keyword argument sometimes as a test for
         # https://github.com/pandas-dev/pandas/issues/53369

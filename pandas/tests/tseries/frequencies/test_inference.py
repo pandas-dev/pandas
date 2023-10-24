@@ -51,7 +51,7 @@ def base_delta_code_pair(request):
 
 
 freqs = (
-    [f"Q-{month}" for month in MONTHS]
+    [f"QE-{month}" for month in MONTHS]
     + [f"{annual}-{month}" for annual in ["Y", "BY"] for month in MONTHS]
     + ["ME", "BME", "BMS"]
     + [f"WOM-{count}{day}" for count in range(1, 5) for day in DAYS]
@@ -67,28 +67,28 @@ def test_infer_freq_range(periods, freq):
     gen = date_range("1/1/2000", periods=periods, freq=freq)
     index = DatetimeIndex(gen.values)
 
-    if not freq.startswith("Q-"):
+    if not freq.startswith("QE-"):
         assert frequencies.infer_freq(index) == gen.freqstr
     else:
         inf_freq = frequencies.infer_freq(index)
-        is_dec_range = inf_freq == "Q-DEC" and gen.freqstr in (
-            "Q",
-            "Q-DEC",
-            "Q-SEP",
-            "Q-JUN",
-            "Q-MAR",
+        is_dec_range = inf_freq == "QE-DEC" and gen.freqstr in (
+            "QE",
+            "QE-DEC",
+            "QE-SEP",
+            "QE-JUN",
+            "QE-MAR",
         )
-        is_nov_range = inf_freq == "Q-NOV" and gen.freqstr in (
-            "Q-NOV",
-            "Q-AUG",
-            "Q-MAY",
-            "Q-FEB",
+        is_nov_range = inf_freq == "QE-NOV" and gen.freqstr in (
+            "QE-NOV",
+            "QE-AUG",
+            "QE-MAY",
+            "QE-FEB",
         )
-        is_oct_range = inf_freq == "Q-OCT" and gen.freqstr in (
-            "Q-OCT",
-            "Q-JUL",
-            "Q-APR",
-            "Q-JAN",
+        is_oct_range = inf_freq == "QE-OCT" and gen.freqstr in (
+            "QE-OCT",
+            "QE-JUL",
+            "QE-APR",
+            "QE-JAN",
         )
         assert is_dec_range or is_nov_range or is_oct_range
 
@@ -202,7 +202,7 @@ def test_infer_freq_custom(base_delta_code_pair, constructor):
 
 
 @pytest.mark.parametrize(
-    "freq,expected", [("Q", "Q-DEC"), ("Q-NOV", "Q-NOV"), ("Q-OCT", "Q-OCT")]
+    "freq,expected", [("Q", "QE-DEC"), ("Q-NOV", "QE-NOV"), ("Q-OCT", "QE-OCT")]
 )
 def test_infer_freq_index(freq, expected):
     rng = period_range("1959Q2", "2009Q3", freq=freq)
@@ -216,7 +216,7 @@ def test_infer_freq_index(freq, expected):
     list(
         {
             "YS-JAN": ["2009-01-01", "2010-01-01", "2011-01-01", "2012-01-01"],
-            "Q-OCT": ["2009-01-31", "2009-04-30", "2009-07-31", "2009-10-31"],
+            "QE-OCT": ["2009-01-31", "2009-04-30", "2009-07-31", "2009-10-31"],
             "ME": ["2010-11-30", "2010-12-31", "2011-01-31", "2011-02-28"],
             "W-SAT": ["2010-12-25", "2011-01-01", "2011-01-08", "2011-01-15"],
             "D": ["2011-01-01", "2011-01-02", "2011-01-03", "2011-01-04"],
@@ -477,9 +477,9 @@ def test_series_datetime_index(freq):
         "W@FRI",
         "W@SAT",
         "W@SUN",
-        "Q@JAN",
-        "Q@FEB",
-        "Q@MAR",
+        "QE@JAN",
+        "QE@FEB",
+        "QE@MAR",
         "Y@JAN",
         "Y@FEB",
         "Y@MAR",

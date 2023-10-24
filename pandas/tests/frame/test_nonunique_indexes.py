@@ -29,7 +29,7 @@ class TestDataFrameNonuniqueIndexes:
         check(df, expected)
 
     def test_setattr_columns_vs_construct_with_columns_datetimeindx(self):
-        idx = date_range("20130101", periods=4, freq="Q-NOV")
+        idx = date_range("20130101", periods=4, freq="QE-NOV")
         df = DataFrame(
             [[1, 1, 1, 5], [1, 1, 2, 5], [2, 1, 3, 5]], columns=["a", "a", "a", "a"]
         )

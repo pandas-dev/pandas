@@ -336,7 +336,7 @@ class TestGroupBy:
             )
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("freq", ["D", "ME", "Y", "Q-APR"])
+    @pytest.mark.parametrize("freq", ["D", "ME", "Y", "QE-APR"])
     def test_timegrouper_with_reg_groups_freq(self, freq):
         # GH 6764 multiple grouping with/without sort
         df = DataFrame(
