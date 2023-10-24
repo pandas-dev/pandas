@@ -26,6 +26,7 @@ from pandas._libs.internals import (
     BlockPlacement,
     BlockValuesRefs,
 )
+from pandas._libs.tslibs import Timestamp
 from pandas.errors import PerformanceWarning
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -2304,8 +2305,10 @@ def _preprocess_slice_or_indexer(
 def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
     if isinstance(dtype, DatetimeTZDtype):
         # NB: exclude e.g. pyarrow[dt64tz] dtypes
-        i8values = np.full(shape, fill_value._value)
-        return DatetimeArray(i8values, dtype=dtype)
+        ts = Timestamp(fill_value).as_unit(dtype.unit)
+        i8values = np.full(shape, ts._value)
+        dt64values = i8values.view(f"M8[{dtype.unit}]")
+        return DatetimeArray(dt64values, dtype=dtype)
 
     elif is_1d_only_ea_dtype(dtype):
         dtype = cast(ExtensionDtype, dtype)

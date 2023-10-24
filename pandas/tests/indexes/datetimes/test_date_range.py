@@ -128,7 +128,7 @@ class TestDateRanges:
         depr_msg = "'M' will be deprecated, please use 'ME' instead."
 
         expected = date_range("1/1/2000", periods=4, freq="2ME")
-        with tm.assert_produces_warning(UserWarning, match=depr_msg):
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
             result = date_range("1/1/2000", periods=4, freq="2M")
         tm.assert_index_equal(result, expected)
 
@@ -1018,7 +1018,7 @@ class TestGenRangeGeneration:
     def test_precision_finer_than_offset(self):
         # GH#9907
         result1 = date_range(
-            start="2015-04-15 00:00:03", end="2016-04-22 00:00:00", freq="Q"
+            start="2015-04-15 00:00:03", end="2016-04-22 00:00:00", freq="QE"
         )
         result2 = date_range(
             start="2015-04-15 00:00:03", end="2015-06-22 00:00:04", freq="W"
@@ -1042,7 +1042,7 @@ class TestGenRangeGeneration:
             "2015-06-21 00:00:03",
         ]
         expected1 = DatetimeIndex(
-            expected1_list, dtype="datetime64[ns]", freq="Q-DEC", tz=None
+            expected1_list, dtype="datetime64[ns]", freq="QE-DEC", tz=None
         )
         expected2 = DatetimeIndex(
             expected2_list, dtype="datetime64[ns]", freq="W-SUN", tz=None

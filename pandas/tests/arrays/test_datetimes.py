@@ -468,7 +468,7 @@ class TestDatetimeArray:
         repeated = arr.repeat([1, 1])
 
         # preserves tz and values, but not freq
-        expected = DatetimeArray(arr.asi8, freq=None, dtype=arr.dtype)
+        expected = DatetimeArray._from_sequence(arr.asi8, dtype=arr.dtype)
         tm.assert_equal(repeated, expected)
 
     def test_value_counts_preserves_tz(self):
@@ -745,6 +745,25 @@ class TestDatetimeArray:
         right2 = dta.astype(object)[2]
         assert str(left) == str(right2)
         assert left.utcoffset() == right2.utcoffset()
+
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2ME", "2M"),
+            ("2QE", "2Q"),
+            ("2QE-SEP", "2Q-SEP"),
+        ],
+    )
+    def test_date_range_frequency_M_Q_deprecated(self, freq, freq_depr):
+        # GH#9586
+        depr_msg = (
+            f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
+        )
+
+        expected = pd.date_range("1/1/2000", periods=4, freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = pd.date_range("1/1/2000", periods=4, freq=freq_depr)
+        tm.assert_index_equal(result, expected)
 
 
 def test_factorize_sort_without_freq():

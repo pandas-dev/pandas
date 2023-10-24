@@ -13,7 +13,10 @@ from pandas.errors import ParserWarning
 from pandas import DataFrame
 import pandas._testing as tm
 
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
 @pytest.fixture
@@ -30,6 +33,7 @@ def custom_dialect():
     return dialect_name, dialect_kwargs
 
 
+@xfail_pyarrow  # ValueError: The 'dialect' option is not supported
 def test_dialect(all_parsers):
     parser = all_parsers
     data = """\
@@ -52,6 +56,7 @@ index2,b,d,f
     tm.assert_frame_equal(df, exp)
 
 
+@xfail_pyarrow  # ValueError: The 'dialect' option is not supported
 def test_dialect_str(all_parsers):
     dialect_name = "mydialect"
     parser = all_parsers
@@ -79,6 +84,7 @@ def test_invalid_dialect(all_parsers):
         parser.read_csv(StringIO(data), dialect=InvalidDialect)
 
 
+@xfail_pyarrow  # ValueError: The 'dialect' option is not supported
 @pytest.mark.parametrize(
     "arg",
     [None, "doublequote", "escapechar", "skipinitialspace", "quotechar", "quoting"],
@@ -118,6 +124,7 @@ def test_dialect_conflict_except_delimiter(all_parsers, custom_dialect, arg, val
         tm.assert_frame_equal(result, expected)
 
 
+@xfail_pyarrow  # ValueError: The 'dialect' option is not supported
 @pytest.mark.parametrize(
     "kwargs,warning_klass",
     [
