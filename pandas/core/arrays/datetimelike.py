@@ -2250,7 +2250,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     def _concat_same_type(
         cls,
         to_concat: Sequence[Self],
-        axis: AxisInt = 0,
+        axis: AxisInt = 1,
     ) -> Self:
         new_obj = super()._concat_same_type(to_concat, axis)
 
