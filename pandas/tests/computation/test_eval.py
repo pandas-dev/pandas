@@ -917,12 +917,9 @@ class TestAlignment:
         m1 = 5
         m2 = 2 * m1
 
-        index_name = np.random.default_rng(2).choice(["index", "columns"])
-        obj_name = np.random.default_rng(2).choice(["df", "df2"])
-
         df = tm.makeCustomDataframe(m1, n, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
         df2 = tm.makeCustomDataframe(m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
-        index = getattr(locals().get(obj_name), index_name)
+        index = df2.columns
         ser = Series(np.random.default_rng(2).standard_normal(n), index[:n])
 
         if r2 == "dt" or c2 == "dt":
