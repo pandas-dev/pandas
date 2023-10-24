@@ -182,7 +182,7 @@ class IndexingMixin:
         --------
         >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
         ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
-        ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
+        ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000}]
         >>> df = pd.DataFrame(mydict)
         >>> df
               a     b     c     d
@@ -323,7 +323,7 @@ class IndexingMixin:
         DataFrame.at : Access a single value for a row/column label pair.
         DataFrame.iloc : Access group of rows and columns by integer position(s).
         DataFrame.xs : Returns a cross-section (row(s) or column(s)) from the
-            Series/DataFrame.
+                       Series/DataFrame.
         Series.loc : Access group of values using labels.
 
         Examples
@@ -331,8 +331,8 @@ class IndexingMixin:
         **Getting values**
 
         >>> df = pd.DataFrame([[1, 2], [4, 5], [7, 8]],
-        ...      index=['cobra', 'viper', 'sidewinder'],
-        ...      columns=['max_speed', 'shield'])
+        ...                   index=['cobra', 'viper', 'sidewinder'],
+        ...                   columns=['max_speed', 'shield'])
         >>> df
                     max_speed  shield
         cobra               1       2
@@ -375,8 +375,8 @@ class IndexingMixin:
         Alignable boolean Series:
 
         >>> df.loc[pd.Series([False, True, False],
-        ...        index=['viper', 'sidewinder', 'cobra'])]
-                    max_speed  shield
+        ...                  index=['viper', 'sidewinder', 'cobra'])]
+                             max_speed  shield
         sidewinder          7       8
 
         Index (same behavior as ``df.reindex``)
@@ -402,7 +402,7 @@ class IndexingMixin:
         Multiple conditional using ``&`` that returns a boolean Series
 
         >>> df.loc[(df['max_speed'] > 1) & (df['shield'] < 8)]
-               max_speed  shield
+                    max_speed  shield
         viper          4       5
 
         Multiple conditional using ``|`` that returns a boolean Series
@@ -491,7 +491,7 @@ class IndexingMixin:
         Another example using integers for the index
 
         >>> df = pd.DataFrame([[1, 2], [4, 5], [7, 8]],
-        ...      index=[7, 8, 9], columns=['max_speed', 'shield'])
+        ...                   index=[7, 8, 9], columns=['max_speed', 'shield'])
         >>> df
            max_speed  shield
         7          1       2
@@ -512,13 +512,13 @@ class IndexingMixin:
         A number of examples using a DataFrame with a MultiIndex
 
         >>> tuples = [
-        ...    ('cobra', 'mark i'), ('cobra', 'mark ii'),
-        ...    ('sidewinder', 'mark i'), ('sidewinder', 'mark ii'),
-        ...    ('viper', 'mark ii'), ('viper', 'mark iii')
+        ...     ('cobra', 'mark i'), ('cobra', 'mark ii'),
+        ...     ('sidewinder', 'mark i'), ('sidewinder', 'mark ii'),
+        ...     ('viper', 'mark ii'), ('viper', 'mark iii')
         ... ]
         >>> index = pd.MultiIndex.from_tuples(tuples)
         >>> values = [[12, 2], [0, 4], [10, 20],
-        ...         [1, 4], [7, 1], [16, 36]]
+        ...           [1, 4], [7, 1], [16, 36]]
         >>> df = pd.DataFrame(values, columns=['max_speed', 'shield'], index=index)
         >>> df
                              max_speed  shield

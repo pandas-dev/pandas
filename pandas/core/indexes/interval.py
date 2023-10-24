@@ -843,25 +843,6 @@ class IntervalIndex(ExtensionIndex):
         return Index(self._data.length, copy=False)
 
     # --------------------------------------------------------------------
-    # Rendering Methods
-    # __repr__ associated methods are based on MultiIndex
-
-    def _format_with_header(self, header: list[str], na_rep: str) -> list[str]:
-        # matches base class except for whitespace padding
-        return header + list(self._format_native_types(na_rep=na_rep))
-
-    def _format_native_types(
-        self, *, na_rep: str = "NaN", quoting=None, **kwargs
-    ) -> npt.NDArray[np.object_]:
-        # GH 28210: use base method but with different default na_rep
-        return super()._format_native_types(na_rep=na_rep, quoting=quoting, **kwargs)
-
-    def _format_data(self, name=None) -> str:
-        # TODO: integrate with categorical and make generic
-        # name argument is unused here; just for compat with base / categorical
-        return f"{self._data._format_data()},{self._format_space()}"
-
-    # --------------------------------------------------------------------
     # Set Operations
 
     def _intersection(self, other, sort):
@@ -1039,8 +1020,9 @@ def interval_range(
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
     ...                   end=pd.Timestamp('2017-01-04'))
-    IntervalIndex([(2017-01-01, 2017-01-02], (2017-01-02, 2017-01-03],
-                   (2017-01-03, 2017-01-04]],
+    IntervalIndex([(2017-01-01 00:00:00, 2017-01-02 00:00:00],
+                   (2017-01-02 00:00:00, 2017-01-03 00:00:00],
+                   (2017-01-03 00:00:00, 2017-01-04 00:00:00]],
                   dtype='interval[datetime64[ns], right]')
 
     The ``freq`` parameter specifies the frequency between the left and right.
@@ -1056,8 +1038,9 @@ def interval_range(
 
     >>> pd.interval_range(start=pd.Timestamp('2017-01-01'),
     ...                   periods=3, freq='MS')
-    IntervalIndex([(2017-01-01, 2017-02-01], (2017-02-01, 2017-03-01],
-                   (2017-03-01, 2017-04-01]],
+    IntervalIndex([(2017-01-01 00:00:00, 2017-02-01 00:00:00],
+                   (2017-02-01 00:00:00, 2017-03-01 00:00:00],
+                   (2017-03-01 00:00:00, 2017-04-01 00:00:00]],
                   dtype='interval[datetime64[ns], right]')
 
     Specify ``start``, ``end``, and ``periods``; the frequency is generated

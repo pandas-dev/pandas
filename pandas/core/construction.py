@@ -203,7 +203,7 @@ def array(
     ['2015-01-01 00:00:00', '2016-01-01 00:00:00']
     Length: 2, dtype: datetime64[ns]
 
-    >>> pd.array(["1H", "2H"], dtype='timedelta64[ns]')
+    >>> pd.array(["1h", "2h"], dtype='timedelta64[ns]')
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
@@ -540,6 +540,7 @@ def sanitize_array(
     -------
     np.ndarray or ExtensionArray
     """
+    original_dtype = dtype
     if isinstance(data, ma.MaskedArray):
         data = sanitize_masked_array(data)
 
@@ -562,7 +563,16 @@ def sanitize_array(
     if not is_list_like(data):
         if index is None:
             raise ValueError("index must be specified when data is not list-like")
+        if (
+            isinstance(data, str)
+            and using_pyarrow_string_dtype()
+            and original_dtype is None
+        ):
+            from pandas.core.arrays.string_ import StringDtype
+
+            dtype = StringDtype("pyarrow_numpy")
         data = construct_1d_arraylike_from_scalar(data, len(index), dtype)
+
         return data
 
     elif isinstance(data, ABCExtensionArray):

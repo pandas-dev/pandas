@@ -1952,7 +1952,7 @@ def test_pivot_table_values_key_error():
     # This test is designed to replicate the error in issue #14938
     df = DataFrame(
         {
-            "eventDate": date_range(datetime.today(), periods=20, freq="M").tolist(),
+            "eventDate": date_range(datetime.today(), periods=20, freq="ME").tolist(),
             "thename": range(20),
         }
     )
@@ -2001,21 +2001,9 @@ def test_pivot_table_values_key_error():
 @pytest.mark.parametrize(
     "op", ["idxmax", "idxmin", "min", "max", "sum", "prod", "skew"]
 )
-def test_empty_groupby(
-    columns, keys, values, method, op, request, using_array_manager, dropna
-):
+def test_empty_groupby(columns, keys, values, method, op, using_array_manager, dropna):
     # GH8093 & GH26411
     override_dtype = None
-
-    if (
-        isinstance(values, Categorical)
-        and len(keys) == 1
-        and op in ["idxmax", "idxmin"]
-    ):
-        mark = pytest.mark.xfail(
-            raises=ValueError, match="attempt to get arg(min|max) of an empty sequence"
-        )
-        request.node.add_marker(mark)
 
     if isinstance(values, BooleanArray) and op in ["sum", "prod"]:
         # We expect to get Int64 back for these
@@ -2061,12 +2049,21 @@ def test_empty_groupby(
     is_dt64 = df.dtypes.iloc[0].kind == "M"
     is_cat = isinstance(values, Categorical)
 
-    if isinstance(values, Categorical) and not values.ordered and op in ["min", "max"]:
-        msg = f"Cannot perform {op} with non-ordered Categorical"
-        with pytest.raises(TypeError, match=msg):
+    if (
+        isinstance(values, Categorical)
+        and not values.ordered
+        and op in ["min", "max", "idxmin", "idxmax"]
+    ):
+        if op in ["min", "max"]:
+            msg = f"Cannot perform {op} with non-ordered Categorical"
+            klass = TypeError
+        else:
+            msg = f"Can't get {op} of an empty group due to unobserved categories"
+            klass = ValueError
+        with pytest.raises(klass, match=msg):
             get_result()
 
-        if isinstance(columns, list):
+        if op in ["min", "max"] and isinstance(columns, list):
             # i.e. DataframeGroupBy, not SeriesGroupBy
             result = get_result(numeric_only=True)
             expected = get_categorical_invalid_expected()
@@ -2540,13 +2537,23 @@ def test_groupby_column_index_name_lost(func):
     tm.assert_index_equal(result, expected)
 
 
-def test_groupby_duplicate_columns():
+@pytest.mark.parametrize(
+    "infer_string",
+    [
+        False,
+        True,
+    ],
+)
+def test_groupby_duplicate_columns(infer_string):
     # GH: 31735
+    if infer_string:
+        pytest.importorskip("pyarrow")
     df = DataFrame(
         {"A": ["f", "e", "g", "h"], "B": ["a", "b", "c", "d"], "C": [1, 2, 3, 4]}
     ).astype(object)
     df.columns = ["A", "B", "B"]
-    result = df.groupby([0, 0, 0, 0]).min()
+    with pd.option_context("future.infer_string", infer_string):
+        result = df.groupby([0, 0, 0, 0]).min()
     expected = DataFrame(
         [["e", "a", 1]], index=np.array([0]), columns=["A", "B", "B"], dtype=object
     )
@@ -3004,12 +3011,12 @@ def test_groupby_reduce_period():
 
     res = gb.max()
     expected = ser[-10:]
-    expected.index = Index(range(10), dtype=np.int_)
+    expected.index = Index(range(10), dtype=int)
     tm.assert_series_equal(res, expected)
 
     res = gb.min()
     expected = ser[:10]
-    expected.index = Index(range(10), dtype=np.int_)
+    expected.index = Index(range(10), dtype=int)
     tm.assert_series_equal(res, expected)
 
 
@@ -3245,3 +3252,12 @@ def test_get_group_axis_1():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_ffill_with_duplicated_index():
+    # GH#43412
+    df = DataFrame({"a": [1, 2, 3, 4, np.nan, np.nan]}, index=[0, 1, 2, 0, 1, 2])
+
+    result = df.groupby(level=0).ffill()
+    expected = DataFrame({"a": [1, 2, 3, 4, 2, 3]}, index=[0, 1, 2, 0, 1, 2])
+    tm.assert_frame_equal(result, expected, check_dtype=False)

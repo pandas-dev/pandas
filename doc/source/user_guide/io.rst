@@ -2247,6 +2247,7 @@ For line-delimited json files, pandas can also return an iterator which reads in
 Line-limited json can also be read using the pyarrow reader by specifying ``engine="pyarrow"``.
 
 .. ipython:: python
+   :okwarning:
 
    from io import BytesIO
    df = pd.read_json(BytesIO(jsonl.encode()), lines=True, engine="pyarrow")
@@ -2332,7 +2333,7 @@ A few notes on the generated table schema:
 
   .. ipython:: python
 
-     s_per = pd.Series(1, index=pd.period_range("2016", freq="A-DEC", periods=4))
+     s_per = pd.Series(1, index=pd.period_range("2016", freq="Y-DEC", periods=4))
      build_table_schema(s_per)
 
 * Categoricals use the ``any`` type and an ``enum`` constraint listing
@@ -2701,7 +2702,7 @@ in the method ``to_string`` described above.
 .. note::
 
    Not all of the possible options for ``DataFrame.to_html`` are shown here for
-   brevity's sake. See :func:`~pandas.core.frame.DataFrame.to_html` for the
+   brevity's sake. See :func:`.DataFrame.to_html` for the
    full set of options.
 
 .. note::
@@ -5554,6 +5555,7 @@ Read from an orc file.
 Read only certain columns of an orc file.
 
 .. ipython:: python
+   :okwarning:
 
    result = pd.read_orc(
        "example_pa.orc",
@@ -6020,7 +6022,7 @@ Stata format
 Writing to stata format
 '''''''''''''''''''''''
 
-The method :func:`~pandas.core.frame.DataFrame.to_stata` will write a DataFrame
+The method :func:`.DataFrame.to_stata` will write a DataFrame
 into a .dta file. The format version of this file is always 115 (Stata 12).
 
 .. ipython:: python
@@ -6060,7 +6062,7 @@ outside of this range, the variable is cast to ``int16``.
 .. warning::
 
   :class:`~pandas.io.stata.StataWriter` and
-  :func:`~pandas.core.frame.DataFrame.to_stata` only support fixed width
+  :func:`.DataFrame.to_stata` only support fixed width
   strings containing up to 244 characters, a limitation imposed by the version
   115 dta file format. Attempting to write *Stata* dta files with strings
   longer than 244 characters raises a ``ValueError``.

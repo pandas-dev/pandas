@@ -151,7 +151,7 @@ def test_add_2d(dtype, request, arrow_string_storage):
     if dtype.storage in arrow_string_storage:
         reason = "Failed: DID NOT RAISE <class 'ValueError'>"
         mark = pytest.mark.xfail(raises=None, reason=reason)
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     a = pd.array(["a", "b", "c"], dtype=dtype)
     b = np.array([["a", "b", "c"]], dtype=object)
@@ -180,7 +180,7 @@ def test_mul(dtype, request, arrow_string_storage):
     if dtype.storage in arrow_string_storage:
         reason = "unsupported operand type(s) for *: 'ArrowStringArray' and 'int'"
         mark = pytest.mark.xfail(raises=NotImplementedError, reason=reason)
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     a = pd.array(["a", "b", None], dtype=dtype)
     result = a * 2
@@ -446,7 +446,7 @@ def test_min_max_numpy(method, box, dtype, request, arrow_string_storage):
         else:
             reason = "'ArrowStringArray' object has no attribute 'max'"
         mark = pytest.mark.xfail(raises=TypeError, reason=reason)
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     arr = box(["a", "b", "c", None], dtype=dtype)
     result = getattr(np, method)(arr)
@@ -497,7 +497,9 @@ def test_arrow_roundtrip(dtype, string_storage2):
     table = pa.table(df)
     assert table.field("a").type == "string"
     with pd.option_context("string_storage", string_storage2):
-        result = table.to_pandas()
+        msg = "Passing a BlockManager to DataFrame is deprecated"
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
     expected = df.astype(f"string[{string_storage2}]")
     tm.assert_frame_equal(result, expected)
@@ -516,7 +518,9 @@ def test_arrow_load_from_zero_chunks(dtype, string_storage2):
     # Instantiate the same table with no chunks at all
     table = pa.table([pa.chunked_array([], type=pa.string())], schema=table.schema)
     with pd.option_context("string_storage", string_storage2):
-        result = table.to_pandas()
+        msg = "Passing a BlockManager to DataFrame is deprecated"
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
+            result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.StringDtype)
     expected = df.astype(f"string[{string_storage2}]")
     tm.assert_frame_equal(result, expected)

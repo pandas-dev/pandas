@@ -576,7 +576,7 @@ cdef datetime _parse_dateabbr_string(str date_string, datetime default,
             # e.g. if "Q" is not in date_string and .index raised
             pass
 
-    if date_len == 6 and freq == "M":
+    if date_len == 6 and freq == "ME":
         year = int(date_string[:4])
         month = int(date_string[4:6])
         try:
@@ -716,7 +716,7 @@ cdef datetime dateutil_parse(
         elif res.tzoffset:
             ret = ret.replace(tzinfo=tzoffset(res.tzname, res.tzoffset))
 
-            # dateutil can return a datetime with a tzoffset outside of (-24H, 24H)
+            # dateutil can return a datetime with a tzoffset outside of (-24h, 24h)
             #  bounds, which is invalid (can be constructed, but raises if we call
             #  str(ret)).  Check that and raise here if necessary.
             try:
@@ -762,25 +762,6 @@ def try_parse_dates(object[:] values, parser) -> np.ndarray:
             result[i] = np.nan
         else:
             result[i] = parser(values[i])
-
-    return result.base  # .base to access underlying ndarray
-
-
-def try_parse_year_month_day(
-    object[:] years, object[:] months, object[:] days
-) -> np.ndarray:
-    cdef:
-        Py_ssize_t i, n
-        object[::1] result
-
-    n = len(years)
-    # TODO(cython3): Use len instead of `shape[0]`
-    if months.shape[0] != n or days.shape[0] != n:
-        raise ValueError("Length of years/months/days must all be equal")
-    result = np.empty(n, dtype="O")
-
-    for i in range(n):
-        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
 
     return result.base  # .base to access underlying ndarray
 
