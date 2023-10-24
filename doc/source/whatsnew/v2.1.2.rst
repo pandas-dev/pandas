@@ -1,6 +1,6 @@
 .. _whatsnew_212:
 
-What's new in 2.1.2 (October ??, 2023)
+What's new in 2.1.2 (October 25, 2023)
 ---------------------------------------
 
 These are the changes in pandas 2.1.2. See :ref:`release` for a full changelog
@@ -35,6 +35,7 @@ Bug fixes
 - Fixed bug in :meth:`Series.str.extractall` for :class:`ArrowDtype` dtype being converted to object (:issue:`53846`)
 - Fixed bug where PDEP-6 warning about setting an item of an incompatible dtype was being shown when creating a new conditional column (:issue:`55025`)
 - Silence ``Period[B]`` warnings introduced by :issue:`53446` during normal plotting activity (:issue:`55138`)
+- Fixed bug in :class:`Series` constructor not inferring string dtype when ``NA`` is the first value and ``infer_string`` is set (:issue:` 55655`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_212.other:
