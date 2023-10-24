@@ -251,6 +251,7 @@ def create_and_load_postgres_datetz(conn):
         Table,
         insert,
     )
+    from sqlalchemy.engine import Engine
 
     metadata = MetaData()
     datetz = Table("datetz", metadata, Column("DateColWithTz", DateTime(timezone=True)))
@@ -263,10 +264,17 @@ def create_and_load_postgres_datetz(conn):
         },
     ]
     stmt = insert(datetz).values(datetz_data)
-    with conn.begin():
-        datetz.drop(conn, checkfirst=True)
-        datetz.create(bind=conn)
-        conn.execute(stmt)
+    if isinstance(conn, Engine):
+        with conn.connect() as conn:
+            with conn.begin():
+                datetz.drop(conn, checkfirst=True)
+                datetz.create(bind=conn)
+                conn.execute(stmt)
+    else:
+        with conn.begin():
+            datetz.drop(conn, checkfirst=True)
+            datetz.create(bind=conn)
+            conn.execute(stmt)
 
     # "2000-01-01 00:00:00-08:00" should convert to
     # "2000-01-01 08:00:00"
