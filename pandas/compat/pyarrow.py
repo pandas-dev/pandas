@@ -16,10 +16,6 @@ try:
     pa_version_under14p0 = _palv < Version("14.0.0")
 except ImportError:
     pa_installed = False
-    pa_version_under7p0 = True
-    pa_version_under8p0 = True
-    pa_version_under9p0 = True
-    pa_version_under10p0 = True
     pa_version_under10p1 = True
     pa_version_under11p0 = True
     pa_version_under12p0 = True
