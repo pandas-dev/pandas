@@ -63,6 +63,7 @@ libs_sources = {
     # numpy include dir is implicitly included
     'algos': {'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper, _khash_primitive_helper]},
     'arrays': {'sources': ['arrays.pyx']},
+    'buffer': {'sources': ['buffer.pyx']},
     'groupby': {'sources': ['groupby.pyx']},
     'hashing': {'sources': ['hashing.pyx']},
     'hashtable': {'sources': ['hashtable.pyx', _khash_primitive_helper, _hashtable_class_helper, _hashtable_func_helper]},

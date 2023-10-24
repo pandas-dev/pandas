@@ -1,4 +1,5 @@
 from datetime import datetime
+import sys
 
 import numpy as np
 import pytest
@@ -340,3 +341,30 @@ def test_interchange_from_non_pandas_tz_aware(request):
         dtype="datetime64[us, Asia/Kathmandu]",
     )
     tm.assert_frame_equal(expected, result)
+
+
+@pytest.mark.parametrize(
+    "data,dtype,expected",
+    [
+        ([True, False, True], np.bool_, bytearray(b"\x01\x00\x01")),
+        ([0, 1, 42], np.uint8, bytearray(b"\x00\x01\x2a")),
+        ([-42, 0, 42], np.int8, bytearray(b"\xd6\x00\x2a")),
+        (
+            [-42, 0, 42],
+            np.int32,
+            bytearray(b"\xd6\xff\xff\xff\x00\x00\x00\x00\x2a\x00\x00\x00")
+            if sys.byteorder == "little"
+            else bytearray(b"\xff\xff\xff\xd6\x00\x00\x00\x00\x00\x00\x00\x2a"),
+        ),
+        (
+            ["foo", "bar", "baz"],
+            "string",
+            bytearray(b"\x66\x6f\x6f\x62\x61\x72\x62\x61\x7a"),
+        ),
+    ],
+)
+def test_buffer_buffer_protocol(data, dtype, expected):
+    df = pd.DataFrame({"col": data}, dtype=dtype)
+    col = df.__dataframe__().get_column_by_name("col")
+    result = bytearray(memoryview(col.get_buffers()["data"][0]))
+    assert result == expected

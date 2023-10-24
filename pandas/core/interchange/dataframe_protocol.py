@@ -21,6 +21,8 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+from pandas._libs.buffer import CBuffer
+
 
 class DlpackDeviceType(enum.IntEnum):
     """Integer enum for device type codes matching DLPack."""
@@ -118,7 +120,7 @@ class CategoricalDescription(TypedDict):
     categories: Column | None
 
 
-class Buffer(ABC):
+class Buffer(ABC, CBuffer):
     """
     Data in the buffer is guaranteed to be contiguous in memory.
 
