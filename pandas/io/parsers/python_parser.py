@@ -615,8 +615,8 @@ class PythonParser(ParserBase):
                 ]
                 if missing_usecols:
                     raise ParserError(
-                        "Defining usecols without of bounds indices is not allowed. "
-                        f"{missing_usecols} are out of bounds.",
+                        "Defining usecols with out-of-bounds indices is not allowed. "
+                        f"{missing_usecols} are out-of-bounds.",
                     )
                 col_indices = self.usecols
 

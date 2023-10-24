@@ -993,7 +993,7 @@ cdef class TextReader:
             missing_usecols = [col for col in self.usecols if col >= num_cols]
             if missing_usecols:
                 raise ParserError(
-                    "Defining usecols without of bounds indices is not allowed. "
+                    "Defining usecols with out-of-bounds indices is not allowed. "
                     f"{missing_usecols} are out of bounds.",
                 )
 
