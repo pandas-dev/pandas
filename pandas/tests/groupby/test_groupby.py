@@ -5,11 +5,11 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_installed
 from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
 )
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -2542,10 +2542,7 @@ def test_groupby_column_index_name_lost(func):
     "infer_string",
     [
         False,
-        pytest.param(
-            True,
-            marks=pytest.mark.skipif(not pa_installed, reason="arrow not installed"),
-        ),
+        pytest.param(True, marks=td.skip_if_no("pyarrow")),
     ],
 )
 def test_groupby_duplicate_columns(infer_string):
@@ -2781,10 +2778,7 @@ def test_rolling_wrong_param_min_period():
     "dtype",
     [
         object,
-        pytest.param(
-            "string[pyarrow_numpy]",
-            marks=pytest.mark.skipif(not pa_installed, reason="arrow not installed"),
-        ),
+        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
     ],
 )
 def test_by_column_values_with_same_starting_value(dtype):
