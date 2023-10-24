@@ -25,6 +25,7 @@ cdef extern from "Python.h":
 from numpy cimport (
     float64_t,
     int64_t,
+    is_timedelta64_object,
 )
 
 
@@ -51,7 +52,7 @@ cdef inline int64_t get_nat() noexcept:
 # --------------------------------------------------------------------
 # Type Checking
 
-cdef inline bint is_integer_object(object obj) noexcept nogil:
+cdef inline bint is_integer_object(object obj) noexcept:
     """
     Cython equivalent of
 
@@ -121,38 +122,8 @@ cdef inline bint is_bool_object(object obj) noexcept nogil:
             PyObject_TypeCheck(obj, &PyBoolArrType_Type))
 
 
-cdef inline bint is_real_number_object(object obj) noexcept nogil:
+cdef inline bint is_real_number_object(object obj) noexcept:
     return is_bool_object(obj) or is_integer_object(obj) or is_float_object(obj)
-
-
-cdef inline bint is_timedelta64_object(object obj) noexcept nogil:
-    """
-    Cython equivalent of `isinstance(val, np.timedelta64)`
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    is_timedelta64 : bool
-    """
-    return PyObject_TypeCheck(obj, &PyTimedeltaArrType_Type)
-
-
-cdef inline bint is_datetime64_object(object obj) noexcept nogil:
-    """
-    Cython equivalent of `isinstance(val, np.datetime64)`
-
-    Parameters
-    ----------
-    val : object
-
-    Returns
-    -------
-    is_datetime64 : bool
-    """
-    return PyObject_TypeCheck(obj, &PyDatetimeArrType_Type)
 
 
 cdef inline bint is_array(object val) noexcept:

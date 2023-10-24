@@ -34,7 +34,6 @@ pytestmark = pytest.mark.filterwarnings(
 )
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_override_set_noconvert_columns():
@@ -97,7 +96,9 @@ def test_read_csv_local(all_parsers, csv1):
 
     with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = parser.read_csv(fname, index_col=0, parse_dates=True)
-
+    # TODO: make unit check more specific
+    if parser.engine == "pyarrow":
+        result.index = result.index.as_unit("ns")
     expected = DataFrame(
         [
             [0.980269, 3.685731, -0.364216805298, -1.159738],
@@ -188,7 +189,9 @@ def test_read_csv_low_memory_no_rows_with_index(all_parsers):
 def test_read_csv_dataframe(all_parsers, csv1):
     parser = all_parsers
     result = parser.read_csv(csv1, index_col=0, parse_dates=True)
-
+    # TODO: make unit check more specific
+    if parser.engine == "pyarrow":
+        result.index = result.index.as_unit("ns")
     expected = DataFrame(
         [
             [0.980269, 3.685731, -0.364216805298, -1.159738],
@@ -511,8 +514,6 @@ b\n"""
     tm.assert_frame_equal(result, expected)
 
 
-# Skip for now, actually only one test fails though, but its tricky to xfail
-@skip_pyarrow
 @pytest.mark.parametrize(
     "sep,skip_blank_lines,exp_data",
     [
@@ -532,7 +533,7 @@ b\n"""
         ),
     ],
 )
-def test_empty_lines(all_parsers, sep, skip_blank_lines, exp_data):
+def test_empty_lines(all_parsers, sep, skip_blank_lines, exp_data, request):
     parser = all_parsers
     data = """\
 A,B,C
@@ -546,6 +547,12 @@ A,B,C
 
     if sep == r"\s+":
         data = data.replace(",", "  ")
+        if parser.engine == "pyarrow":
+            mark = pytest.mark.xfail(
+                raises=ValueError,
+                reason="the 'pyarrow' engine does not support regex separators",
+            )
+            request.applymarker(mark)
 
     result = parser.read_csv(StringIO(data), sep=sep, skip_blank_lines=skip_blank_lines)
     expected = DataFrame(exp_data, columns=["A", "B", "C"])

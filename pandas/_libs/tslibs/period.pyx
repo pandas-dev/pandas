@@ -1821,7 +1821,7 @@ cdef class _Period(PeriodMixin):
                                         f"Period(freq={self.freqstr})")
 
         if (
-            util.is_timedelta64_object(other) and
+            cnp.is_timedelta64_object(other) and
             get_timedelta64_value(other) == NPY_NAT
         ):
             # i.e. np.timedelta64("nat")
@@ -2810,7 +2810,7 @@ class Period(_Period):
                 raise ValueError("Must supply freq for datetime value")
             if isinstance(dt, Timestamp):
                 nanosecond = dt.nanosecond
-        elif util.is_datetime64_object(value):
+        elif cnp.is_datetime64_object(value):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError("Must supply freq for datetime value")

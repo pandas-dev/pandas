@@ -33,6 +33,17 @@ from pandas.core.arrays import (
 )
 
 
+class TestNaTFormatting:
+    def test_repr(self):
+        assert repr(NaT) == "NaT"
+
+    def test_str(self):
+        assert str(NaT) == "NaT"
+
+    def test_isoformat(self):
+        assert NaT.isoformat() == "NaT"
+
+
 @pytest.mark.parametrize(
     "nat,idx",
     [
@@ -529,6 +540,8 @@ def test_to_numpy_alias():
             marks=pytest.mark.xfail(
                 not np_version_gte1p24p3,
                 reason="td64 doesn't return NotImplemented, see numpy#17017",
+                # When this xfail is fixed, test_nat_comparisons_numpy
+                #  can be removed.
             ),
         ),
         Timestamp(0),
