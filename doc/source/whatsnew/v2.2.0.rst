@@ -210,8 +210,8 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-Deprecate alias ``M`` in favour of ``ME`` for offsets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecate aliases ``M`` and ``Q`` in favour of ``ME`` and ``QE`` for offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The alias ``M`` is deprecated in favour of ``ME`` for offsets, please use ``ME`` for "month end" instead of ``M`` (:issue:`9586`)
 
@@ -231,6 +231,25 @@ For example:
 .. ipython:: python
 
     pd.date_range('2020-01-01', periods=3, freq='ME')
+
+The alias ``Q`` is deprecated in favour of ``QE`` for offsets, please use ``QE`` for "quarter end" instead of ``Q`` (:issue:`9586`)
+
+For example:
+
+*Previous behavior*:
+
+.. code-block:: ipython
+
+    In [8]: pd.date_range('2020-01-01', periods=3, freq='Q-NOV')
+    Out[8]:
+    DatetimeIndex(['2020-02-29', '2020-05-31', '2020-08-31'],
+                  dtype='datetime64[ns]', freq='Q-NOV')
+
+*Future behavior*:
+
+.. ipython:: python
+
+    pd.date_range('2020-01-01', periods=3, freq='QE-NOV')
 
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
@@ -301,6 +320,7 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
+- Bug in :func:`concat` raising ``AttributeError`` when concatenating all-NA DataFrame with :class:`DatetimeTZDtype` dtype DataFrame. (:issue:`52093`)
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
 - Bug in :meth:`Tick.delta` with very large ticks raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
 - Bug in adding or subtracting a :class:`Week` offset to a ``datetime64`` :class:`Series`, :class:`Index`, or :class:`DataFrame` column with non-nanosecond resolution returning incorrect results (:issue:`55583`)
@@ -332,7 +352,7 @@ Conversion
 Strings
 ^^^^^^^
 - Bug in :func:`pandas.api.types.is_string_dtype` while checking object array with no elements is of the string dtype (:issue:`54661`)
--
+- Bug in :meth:`Series.str.startswith` and :meth:`Series.str.endswith` with arguments of type ``tuple[str, ...]`` for ``string[pyarrow]`` (:issue:`54942`)
 -
 
 Interval
@@ -345,9 +365,9 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :meth:`DataFrame.loc` when setting :class:`Series` with extension dtype into NumPy dtype (:issue:`55604`)
 - Bug in :meth:`Index.difference` not returning a unique set of values when ``other`` is empty or ``other`` is considered non-comparable (:issue:`55113`)
 - Bug in setting :class:`Categorical` values into a :class:`DataFrame` with numpy dtypes raising ``RecursionError`` (:issue:`52927`)
--
 
 Missing
 ^^^^^^^
@@ -365,8 +385,10 @@ I/O
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` where ``usecols`` wasn't working with a csv with no headers (:issue:`54459`)
 - Bug in :func:`read_excel`, with ``engine="xlrd"`` (``xls`` files) erroring when file contains NaNs/Infs (:issue:`54564`)
 - Bug in :func:`to_excel`, with ``OdsWriter`` (``ods`` files) writing boolean/string value (:issue:`54994`)
+- Bug in :meth:`DataFrame.to_hdf` and :func:`read_hdf` with ``datetime64`` dtypes with non-nanosecond resolution failing to round-trip correctly (:issue:`55622`)
 - Bug in :meth:`pandas.read_excel` with an ODS file without cached formatted cell for float values (:issue:`55219`)
 - Bug where :meth:`DataFrame.to_json` would raise an ``OverflowError`` instead of a ``TypeError`` with unsupported NumPy types (:issue:`55403`)
+-
 
 Period
 ^^^^^^
