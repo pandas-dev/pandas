@@ -2463,16 +2463,8 @@ def _get_timestamp_range_edges(
     """
     if isinstance(freq, Tick):
         index_tz = first.tz
-
-        if isinstance(origin, Timestamp) and origin.tz != index_tz:
+        if isinstance(origin, Timestamp) and (origin.tz is None) != (index_tz is None):
             raise ValueError("The origin must have the same timezone as the index.")
-
-        elif isinstance(origin, Timestamp):
-            if origin <= first:
-                first = origin
-            elif origin >= last:
-                last = origin
-
         if origin == "epoch":
             # set the epoch based on the timezone to have similar bins results when
             # resampling on the same kind of indexes on different timezones
@@ -2494,9 +2486,6 @@ def _get_timestamp_range_edges(
             first = first.tz_localize(index_tz)
             last = last.tz_localize(index_tz)
     else:
-        if isinstance(origin, Timestamp):
-            first = origin
-
         first = first.normalize()
         last = last.normalize()
 
