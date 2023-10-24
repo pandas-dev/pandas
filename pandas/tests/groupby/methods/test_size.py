@@ -117,6 +117,7 @@ def test_size_series_masked_type_returns_Int64(dtype):
     ],
 )
 def test_size_strings(dtype):
+    # GH#55627
     df = DataFrame({"a": ["a", "a", "b"], "b": "a"}, dtype=dtype)
     result = df.groupby("a")["b"].size()
     exp_dtype = "Int64" if dtype == "string[pyarrow]" else "int64"
