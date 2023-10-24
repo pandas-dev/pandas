@@ -838,7 +838,7 @@ class TestOffsetAliases:
             "NOV",
             "DEC",
         ]
-        base_lst = ["Y", "YS", "BY", "BYS", "Q", "QS", "BQ", "BQS"]
+        base_lst = ["Y", "YS", "BY", "BYS", "QE", "QS", "BQ", "BQS"]
         for base in base_lst:
             for v in suffix_lst:
                 alias = "-".join([base, v])
@@ -857,7 +857,7 @@ def test_freq_offsets():
 class TestReprNames:
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
-        month_prefixes = ["Y", "YS", "BY", "BYS", "Q", "BQ", "BQS", "QS"]
+        month_prefixes = ["Y", "YS", "BY", "BYS", "QE", "BQ", "BQS", "QS"]
         names = [
             prefix + "-" + month
             for prefix in month_prefixes
@@ -1120,7 +1120,7 @@ def test_dateoffset_operations_on_dataframes():
 def test_is_yqm_start_end():
     freq_m = to_offset("ME")
     bm = to_offset("BME")
-    qfeb = to_offset("Q-FEB")
+    qfeb = to_offset("QE-FEB")
     qsfeb = to_offset("QS-FEB")
     bq = to_offset("BQ")
     bqs_apr = to_offset("BQS-APR")
