@@ -49,7 +49,7 @@ def test_table_index_incompatible_dtypes(setup_path):
 
     with ensure_clean_store(setup_path) as store:
         store.put("frame", df1, format="table")
-        msg = re.escape("incompatible kind in col [integer - datetime64]")
+        msg = re.escape("incompatible kind in col [integer - datetime64[ns]]")
         with pytest.raises(TypeError, match=msg):
             store.put("frame", df2, format="table", append=True)
 

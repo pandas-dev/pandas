@@ -307,6 +307,14 @@ class TestPeriodIndex:
         series = Series(1, index=index)
         assert isinstance(series, Series)
 
+    @pytest.mark.parametrize("freq_depr", ["2ME", "2QE"])
+    def test_period_index_frequency_error_message(self, freq_depr):
+        # GH#9586
+        msg = f"Invalid frequency: {freq_depr}"
+
+        with pytest.raises(ValueError, match=msg):
+            period_range("2020-01", "2020-05", freq=freq_depr)
+
 
 def test_maybe_convert_timedelta():
     pi = PeriodIndex(["2000", "2001"], freq="D")
