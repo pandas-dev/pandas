@@ -11,10 +11,7 @@ from pandas import (
     to_timedelta,
 )
 import pandas._testing as tm
-from pandas.core.arrays.timedeltas import (
-    TimedeltaArray,
-    sequence_to_td64ns,
-)
+from pandas.core.arrays.timedeltas import TimedeltaArray
 
 
 class TestTimedeltaIndex:
@@ -35,9 +32,6 @@ class TestTimedeltaIndex:
 
         with pytest.raises(TypeError, match=msg):
             TimedeltaArray._from_sequence(arr)
-
-        with pytest.raises(TypeError, match=msg):
-            sequence_to_td64ns(arr)
 
         with pytest.raises(TypeError, match=msg):
             to_timedelta(arr)
