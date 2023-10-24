@@ -33,20 +33,39 @@ class TestTimedeltaArrayConstructor:
             TimedeltaArray([1, 2, 3])
 
     def test_other_type_raises(self):
-        with pytest.raises(ValueError, match="dtype bool cannot be converted"):
+        msg = "dtype 'bool' is invalid, should be np.timedelta64 dtype"
+        with pytest.raises(ValueError, match=msg):
             TimedeltaArray(np.array([1, 2, 3], dtype="bool"))
 
     def test_incorrect_dtype_raises(self):
-        # TODO: why TypeError for 'category' but ValueError for i8?
-        with pytest.raises(
-            ValueError, match=r"category cannot be converted to timedelta64\[ns\]"
-        ):
+        msg = "dtype 'category' is invalid, should be np.timedelta64 dtype"
+        with pytest.raises(ValueError, match=msg):
             TimedeltaArray(np.array([1, 2, 3], dtype="i8"), dtype="category")
 
-        with pytest.raises(
-            ValueError, match=r"dtype int64 cannot be converted to timedelta64\[ns\]"
-        ):
+        msg = "dtype 'int64' is invalid, should be np.timedelta64 dtype"
+        with pytest.raises(ValueError, match=msg):
             TimedeltaArray(np.array([1, 2, 3], dtype="i8"), dtype=np.dtype("int64"))
+
+        msg = r"dtype 'datetime64\[ns\]' is invalid, should be np.timedelta64 dtype"
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaArray(np.array([1, 2, 3], dtype="i8"), dtype=np.dtype("M8[ns]"))
+
+        msg = (
+            r"dtype 'datetime64\[us, UTC\]' is invalid, should be np.timedelta64 dtype"
+        )
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaArray(np.array([1, 2, 3], dtype="i8"), dtype="M8[us, UTC]")
+
+        msg = "Supported timedelta64 resolutions are 's', 'ms', 'us', 'ns'"
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaArray(np.array([1, 2, 3], dtype="i8"), dtype=np.dtype("m8[Y]"))
+
+    def test_mismatched_values_dtype_units(self):
+        arr = np.array([1, 2, 3], dtype="m8[s]")
+        dtype = np.dtype("m8[ns]")
+        msg = r"Values resolution does not match dtype"
+        with pytest.raises(ValueError, match=msg):
+            TimedeltaArray(arr, dtype=dtype)
 
     def test_copy(self):
         data = np.array([1, 2, 3], dtype="m8[ns]")
@@ -58,6 +77,6 @@ class TestTimedeltaArrayConstructor:
         assert arr._ndarray.base is not data
 
     def test_from_sequence_dtype(self):
-        msg = "dtype .*object.* cannot be converted to timedelta64"
+        msg = "dtype 'object' is invalid, should be np.timedelta64 dtype"
         with pytest.raises(ValueError, match=msg):
             TimedeltaArray._from_sequence([], dtype=object)

@@ -112,6 +112,24 @@ class TestDatetimeArrayConstructor:
         with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
             DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="category")
 
+        with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
+            DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="m8[s]")
+
+        with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
+            DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="M8[D]")
+
+    def test_mismatched_values_dtype_units(self):
+        arr = np.array([1, 2, 3], dtype="M8[s]")
+        dtype = np.dtype("M8[ns]")
+        msg = "Values resolution does not match dtype."
+
+        with pytest.raises(ValueError, match=msg):
+            DatetimeArray(arr, dtype=dtype)
+
+        dtype2 = DatetimeTZDtype(tz="UTC", unit="ns")
+        with pytest.raises(ValueError, match=msg):
+            DatetimeArray(arr, dtype=dtype2)
+
     def test_freq_infer_raises(self):
         with pytest.raises(ValueError, match="Frequency inference"):
             DatetimeArray(np.array([1, 2, 3], dtype="i8"), freq="infer")

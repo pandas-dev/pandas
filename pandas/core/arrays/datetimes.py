@@ -278,8 +278,15 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     @classmethod
     def _validate_dtype(cls, values, dtype):
         # used in TimeLikeOps.__init__
-        _validate_dt64_dtype(values.dtype)
         dtype = _validate_dt64_dtype(dtype)
+        _validate_dt64_dtype(values.dtype)
+        if isinstance(dtype, np.dtype):
+            if values.dtype != dtype:
+                raise ValueError("Values resolution does not match dtype.")
+        else:
+            vunit = np.datetime_data(values.dtype)[0]
+            if vunit != dtype.unit:
+                raise ValueError("Values resolution does not match dtype.")
         return dtype
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"

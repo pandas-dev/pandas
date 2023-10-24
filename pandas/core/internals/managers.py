@@ -2307,7 +2307,8 @@ def make_na_array(dtype: DtypeObj, shape: Shape, fill_value) -> ArrayLike:
         # NB: exclude e.g. pyarrow[dt64tz] dtypes
         ts = Timestamp(fill_value).as_unit(dtype.unit)
         i8values = np.full(shape, ts._value)
-        return DatetimeArray(i8values, dtype=dtype)
+        dt64values = i8values.view(f"M8[{dtype.unit}]")
+        return DatetimeArray(dt64values, dtype=dtype)
 
     elif is_1d_only_ea_dtype(dtype):
         dtype = cast(ExtensionDtype, dtype)

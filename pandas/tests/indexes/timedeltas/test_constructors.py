@@ -240,7 +240,7 @@ class TestTimedeltaIndex:
             pd.Index(["2000"], dtype="timedelta64")
 
     def test_constructor_wrong_precision_raises(self):
-        msg = r"dtype timedelta64\[D\] cannot be converted to timedelta64\[ns\]"
+        msg = "Supported timedelta64 resolutions are 's', 'ms', 'us', 'ns'"
         with pytest.raises(ValueError, match=msg):
             TimedeltaIndex(["2000"], dtype="timedelta64[D]")
 
