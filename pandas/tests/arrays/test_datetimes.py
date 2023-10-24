@@ -468,7 +468,7 @@ class TestDatetimeArray:
         repeated = arr.repeat([1, 1])
 
         # preserves tz and values, but not freq
-        expected = DatetimeArray(arr.asi8, freq=None, dtype=arr.dtype)
+        expected = DatetimeArray._from_sequence(arr.asi8, dtype=arr.dtype)
         tm.assert_equal(repeated, expected)
 
     def test_value_counts_preserves_tz(self):
