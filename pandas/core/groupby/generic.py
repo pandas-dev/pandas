@@ -242,6 +242,7 @@ class SeriesGroupBy(GroupBy[Series]):
                 # (if engine is None, the called function will handle the case where
                 # numba is requested via the global option)
                 kwargs["engine"] = engine
+            if engine_kwargs is not None:
                 kwargs["engine_kwargs"] = engine_kwargs
             return getattr(self, func)(*args, **kwargs)
 
