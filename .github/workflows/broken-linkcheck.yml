@@ -25,7 +25,6 @@ jobs:
 
         - name: Build Pandas
           uses: ./.github/actions/build_pandas
-
         - name: Run linkcheck script
           working-directory: ./doc
           run: |
