@@ -155,6 +155,7 @@ from pandas.core import (
     nanops,
     sample,
 )
+from pandas.core.accessor import CachedAccessor
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
 from pandas.core.axis_ops import AxisOps
@@ -846,7 +847,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     def droplevel(self, level: IndexLabel, axis: Axis = 0) -> Self:
         warnings.warn(
             f"{type(self).__name__}.droplevel is deprecated and will be "
-            "removed in a future version. Use obj.axis_ops.droplevel instead",
+            "removed in a future version. Use obj.axis_ops.drop_level instead",
             FutureWarning,
             stacklevel=find_stack_level(),
         )
@@ -11164,10 +11165,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             nonexistent=nonexistent,
         )
 
-    @property
-    @Appender(AxisOps.__doc__)
-    def axis_ops(self) -> AxisOps:
-        return AxisOps(self)
+    axis_ops = CachedAccessor("axis_ops", AxisOps)
 
     # ----------------------------------------------------------------------
     # Numeric Methods
