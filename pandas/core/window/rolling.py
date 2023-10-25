@@ -1890,8 +1890,12 @@ class Rolling(RollingAndExpandingMixin):
                     self._on.freq.nanos / self._on.freq.n
                 )
             else:
-                unit = dtype_to_unit(self._on.dtype)
-                self._win_freq_i8 = Timedelta(freq).as_unit(unit)._value
+                try:
+                    unit = dtype_to_unit(self._on.dtype)
+                except TypeError:
+                    # if not a datetime dtype, eg for empty dataframes
+                    unit = "ns"
+                self._win_freq_i8 = Timedelta(freq.nanos).as_unit(unit)._value
 
             # min_periods must be an integer
             if self.min_periods is None:
