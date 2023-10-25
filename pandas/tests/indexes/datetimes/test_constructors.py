@@ -74,10 +74,7 @@ class TestDatetimeIndex:
         with pytest.raises(ValueError, match=msg):
             DatetimeIndex([], dtype="M8[ns, UTC]", tz=None)
 
-    @pytest.mark.parametrize(
-        "dt_cls", [DatetimeIndex, DatetimeArray._from_sequence_not_strict]
-    )
-    def test_freq_validation_with_nat(self, dt_cls):
+    def test_freq_validation_with_nat(self):
         # GH#11587 make sure we get a useful error message when generate_range
         #  raises
         msg = (
@@ -85,9 +82,9 @@ class TestDatetimeIndex:
             "to passed frequency D"
         )
         with pytest.raises(ValueError, match=msg):
-            dt_cls([pd.NaT, Timestamp("2011-01-01")], freq="D")
+            DatetimeIndex([pd.NaT, Timestamp("2011-01-01")], freq="D")
         with pytest.raises(ValueError, match=msg):
-            dt_cls([pd.NaT, Timestamp("2011-01-01")._value], freq="D")
+            DatetimeIndex([pd.NaT, Timestamp("2011-01-01")._value], freq="D")
 
     # TODO: better place for tests shared by DTI/TDI?
     @pytest.mark.parametrize(
@@ -1104,7 +1101,8 @@ class TestTimeSeries:
         assert (index.asi8[50:100] != -1).all()
 
     @pytest.mark.parametrize(
-        "freq", ["ME", "Q", "Y", "D", "B", "bh", "min", "s", "ms", "us", "h", "ns", "C"]
+        "freq",
+        ["ME", "QE", "Y", "D", "B", "bh", "min", "s", "ms", "us", "h", "ns", "C"],
     )
     def test_from_freq_recreate_from_data(self, freq):
         org = date_range(start="2001/02/01 09:00", freq=freq, periods=1)
