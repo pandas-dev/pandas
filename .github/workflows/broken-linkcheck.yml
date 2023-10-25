@@ -18,7 +18,7 @@ jobs:
         - name: Checkout
           uses: actions/checkout@v4
           with:
-                fetch-depth: 0
+            fetch-depth: 0
 
         - name: Set up Conda
           uses: ./.github/actions/setup-conda
