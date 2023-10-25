@@ -6,11 +6,12 @@ requires = [
     "meson==1.2.1",
     "wheel",
     "Cython>=0.29.33,<3",  # Note: sync with setup.py, environment.yml and asv.conf.json
-    # Note: numpy 1.25 has a backwards compatible C API by default
-    # we don't want to force users to compile with 1.25 though
-    # (Ideally, in the future, though, oldest-supported-numpy can be dropped when our min numpy is 1.25.x)
-    "oldest-supported-numpy>=2022.8.16; python_version<'3.12'",
-    "numpy>=1.26.0,<2; python_version>='3.12'",
+    # Any NumPy version should be fine for compiling.  Users are unlikely
+    # to get a NumPy<1.25 so the result will be compatible with all relevant
+    # NumPy versions (if not it is presumably compatible with their version).
+    # Pin <2.0 for releases until tested against an RC.  But explicitly allow
+    # testing the `.dev0` nightlies (which require the extra index).
+    "numpy>1.22.4,<=2.0.0.dev0",
     "versioneer[toml]"
 ]
 

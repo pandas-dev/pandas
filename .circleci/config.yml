@@ -49,7 +49,12 @@ jobs:
           no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
             pip3 install cibuildwheel==2.15.0
+            # When this is a nightly wheel build, allow picking up NumPy 2.0 dev wheels:
+            if [[ "$IS_SCHEDULE_DISPATCH" == "true" || "$IS_PUSH" != 'true' ]]; then
+                export CIBW_ENVIRONMENT="PIP_EXTRA_INDEX_URL=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
+            fi
             cibuildwheel --prerelease-pythons --output-dir wheelhouse
+
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
 
