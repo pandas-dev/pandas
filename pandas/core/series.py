@@ -172,6 +172,7 @@ if TYPE_CHECKING:
         IndexKeyFunc,
         IndexLabel,
         Level,
+        Manager,
         MutableMappingT,
         NaPosition,
         NumpySorter,
@@ -574,6 +575,27 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self.name = name
         self._set_axis(0, index)
 
+    @classmethod
+    def _from_mgr(cls, mgr: Manager, axes: list[Index]) -> Self:
+        """
+        Construct a new Series from a Manager object and axes.
+
+        Parameters
+        ----------
+        mgr : Manager
+            Must have the same ndim as cls.
+        axes : list[Index]
+
+        Notes
+        -----
+        The axes must match mgr.axes, but are required for future-proofing
+        in the event that axes are refactored out of the Manager objects.
+        """
+        obj = cls.__new__(cls)
+        NDFrame.__init__(obj, mgr)
+        object.__setattr__(obj, "_name", None)
+        return obj
+
     def _init_dict(
         self, data, index: Index | None = None, dtype: DtypeObj | None = None
     ):
@@ -633,7 +655,6 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
 
     def _constructor_from_mgr(self, mgr, axes):
         ser = self._from_mgr(mgr, axes=axes)
-        ser._name = None  # caller is responsible for setting real name
         if type(self) is Series:
             # fastpath avoiding constructor call
             return ser
