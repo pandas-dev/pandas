@@ -2153,54 +2153,37 @@ class _AsOfMerge(_OrderedMerge):
         if self.left_by is not None:
             # remove 'on' parameter from values if one existed
             if self.left_index and self.right_index:
-                left_by_values = self.left_join_keys
-                right_by_values = self.right_join_keys
+                left_join_keys = self.left_join_keys
+                right_join_keys = self.right_join_keys
             else:
-                left_by_values = self.left_join_keys[0:-1]
-                right_by_values = self.right_join_keys[0:-1]
+                left_join_keys = self.left_join_keys[0:-1]
+                right_join_keys = self.right_join_keys[0:-1]
 
-            # get tuple representation of values if more than one
-            if len(left_by_values) == 1:
-                lbv = left_by_values[0]
-                rbv = right_by_values[0]
+            mapped = [
+                _factorize_keys(
+                    left_join_keys[n],
+                    right_join_keys[n],
+                    sort=False,
+                    how="left",
+                )
+                for n in range(len(left_join_keys))
+            ]
 
-                # TODO: conversions for EAs that can be no-copy.
-                lbv = np.asarray(lbv)
-                rbv = np.asarray(rbv)
-                if needs_i8_conversion(lbv.dtype):
-                    lbv = lbv.view("i8")
-                if needs_i8_conversion(rbv.dtype):
-                    rbv = rbv.view("i8")
+            if len(left_join_keys) == 1:
+                left_by_values = mapped[0][0]
+                right_by_values = mapped[0][1]
             else:
-                # We get here with non-ndarrays in test_merge_by_col_tz_aware
-                #  and test_merge_groupby_multiple_column_with_categorical_column
-                mapped = [
-                    _factorize_keys(
-                        left_by_values[n],
-                        right_by_values[n],
-                        sort=False,
-                        how="left",
-                    )
-                    for n in range(len(left_by_values))
-                ]
                 arrs = [np.concatenate(m[:2]) for m in mapped]
                 shape = tuple(m[2] for m in mapped)
                 group_index = get_group_index(
                     arrs, shape=shape, sort=False, xnull=False
                 )
-                left_len = len(left_by_values[0])
-                lbv = group_index[:left_len]
-                rbv = group_index[left_len:]
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ndarray[Any, dtype[Any]], ndarray[Any, dtype[object_]]]",
-            # variable has type "List[Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]]")
-            right_by_values = rbv  # type: ignore[assignment]
-            # error: Incompatible types in assignment (expression has type
-            # "Union[ndarray[Any, dtype[Any]], ndarray[Any, dtype[object_]]]",
-            # variable has type "List[Union[Union[ExtensionArray,
-            # ndarray[Any, Any]], Index, Series]]")
-            left_by_values = lbv  # type: ignore[assignment]
+                left_len = len(left_join_keys[0])
+                left_by_values = group_index[:left_len]
+                right_by_values = group_index[left_len:]
+
+            left_by_values = ensure_int64(left_by_values)
+            right_by_values = ensure_int64(right_by_values)
 
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
