@@ -2182,6 +2182,9 @@ class _AsOfMerge(_OrderedMerge):
                 left_by_values = group_index[:left_len]
                 right_by_values = group_index[left_len:]
 
+            left_by_values = ensure_int64(left_by_values)
+            right_by_values = ensure_int64(right_by_values)
+
             # choose appropriate function by type
             func = _asof_by_function(self.direction)
             return func(
