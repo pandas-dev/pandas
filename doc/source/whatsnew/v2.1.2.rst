@@ -17,6 +17,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrame.resample` which was extrapolating back to ``origin`` when ``origin`` was outside its bounds (:issue:`55064`)
 - Fixed regression in :meth:`DataFrame.sort_index` which was not sorting correctly when the index was a sliced :class:`MultiIndex` (:issue:`55379`)
 - Fixed performance regression with wide DataFrames, typically involving methods where all columns were accessed individually (:issue:`55256`, :issue:`55245`)
+- Fixed regression in :func:`merge_asof` raising ``TypeError`` for ``by`` with datetime and timedelta dtypes (:issue:`55453`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_212.bug_fixes:
