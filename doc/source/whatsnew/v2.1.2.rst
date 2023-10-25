@@ -31,6 +31,7 @@ Bug fixes
 - Fixed bug in :meth:`Index.insert` raising when inserting ``None`` into :class:`Index` with ``dtype="string[pyarrow_numpy]"`` (:issue:`55365`)
 - Fixed bug in :meth:`Series.all`  and :meth:`Series.any` not treating missing values correctly for ``dtype="string[pyarrow_numpy]"`` (:issue:`55367`)
 - Fixed bug in :meth:`Series.floordiv` for :class:`ArrowDtype` (:issue:`55561`)
+- Fixed bug in :meth:`Series.mode` not sorting values for arrow backed string dtype (:issue:`55621`)
 - Fixed bug in :meth:`Series.rank` for ``string[pyarrow_numpy]`` dtype (:issue:`55362`)
 - Fixed bug in :meth:`Series.str.extractall` for :class:`ArrowDtype` dtype being converted to object (:issue:`53846`)
 - Fixed bug where PDEP-6 warning about setting an item of an incompatible dtype was being shown when creating a new conditional column (:issue:`55025`)

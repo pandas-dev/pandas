@@ -1333,7 +1333,7 @@ def test_quantile(data, interpolation, quantile, request):
 
 @pytest.mark.parametrize(
     "take_idx, exp_idx",
-    [[[0, 0, 2, 2, 4, 4], [0, 4]], [[0, 0, 0, 2, 4, 4], [0]]],
+    [[[0, 0, 2, 2, 4, 4], [4, 0]], [[0, 0, 0, 2, 4, 4], [0]]],
     ids=["multi_mode", "single_mode"],
 )
 def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx):
@@ -1351,7 +1351,7 @@ def test_mode_dropna_false_mode_na(data):
     expected = pd.Series([None], dtype=data.dtype)
     tm.assert_series_equal(result, expected)
 
-    expected = pd.Series([None, data[0]], dtype=data.dtype)
+    expected = pd.Series([data[0], None], dtype=data.dtype)
     result = expected.mode(dropna=False)
     tm.assert_series_equal(result, expected)
 

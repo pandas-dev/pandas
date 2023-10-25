@@ -9,6 +9,7 @@ from pandas.errors import (
     PerformanceWarning,
     SpecificationError,
 )
+import pandas.util._test_decorators as td
 
 import pandas as pd
 from pandas import (
@@ -2541,7 +2542,7 @@ def test_groupby_column_index_name_lost(func):
     "infer_string",
     [
         False,
-        True,
+        pytest.param(True, marks=td.skip_if_no("pyarrow")),
     ],
 )
 def test_groupby_duplicate_columns(infer_string):
@@ -2773,13 +2774,20 @@ def test_rolling_wrong_param_min_period():
         test_df.groupby("name")["val"].rolling(window=2, min_period=1).sum()
 
 
-def test_by_column_values_with_same_starting_value():
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        object,
+        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_by_column_values_with_same_starting_value(dtype):
     # GH29635
     df = DataFrame(
         {
             "Name": ["Thomas", "Thomas", "Thomas John"],
             "Credit": [1200, 1300, 900],
-            "Mood": ["sad", "happy", "happy"],
+            "Mood": Series(["sad", "happy", "happy"], dtype=dtype),
         }
     )
     aggregate_details = {"Mood": Series.mode, "Credit": "sum"}
