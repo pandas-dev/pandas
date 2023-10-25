@@ -12,6 +12,7 @@ from pandas import (
     timedelta_range,
 )
 import pandas._testing as tm
+from pandas.core.arrays import TimedeltaArray
 
 
 class TestTimedeltaIndex:
@@ -94,6 +95,56 @@ class TestTimedeltaIndex:
         result = idx.astype("timedelta64[ns]", copy=False)
         tm.assert_index_equal(result, idx)
         assert result is idx
+
+    def test_astype_to_td64d_raises(self, index_or_series):
+        # We don't support "D" reso
+        scalar = Timedelta(days=31)
+        td = index_or_series(
+            [scalar, scalar, scalar + timedelta(minutes=5, seconds=3), NaT],
+            dtype="m8[ns]",
+        )
+        msg = (
+            r"Cannot convert from timedelta64\[ns\] to timedelta64\[D\]. "
+            "Supported resolutions are 's', 'ms', 'us', 'ns'"
+        )
+        with pytest.raises(ValueError, match=msg):
+            td.astype("timedelta64[D]")
+
+    def test_astype_ms_to_s(self, index_or_series):
+        scalar = Timedelta(days=31)
+        td = index_or_series(
+            [scalar, scalar, scalar + timedelta(minutes=5, seconds=3), NaT],
+            dtype="m8[ns]",
+        )
+
+        exp_values = np.asarray(td).astype("m8[s]")
+        exp_tda = TimedeltaArray._simple_new(exp_values, dtype=exp_values.dtype)
+        expected = index_or_series(exp_tda)
+        assert expected.dtype == "m8[s]"
+        result = td.astype("timedelta64[s]")
+        tm.assert_equal(result, expected)
+
+    def test_astype_freq_conversion(self):
+        # pre-2.0 td64 astype converted to float64. now for supported units
+        #  (s, ms, us, ns) this converts to the requested dtype.
+        # This matches TDA and Series
+        tdi = timedelta_range("1 Day", periods=30)
+
+        res = tdi.astype("m8[s]")
+        exp_values = np.asarray(tdi).astype("m8[s]")
+        exp_tda = TimedeltaArray._simple_new(
+            exp_values, dtype=exp_values.dtype, freq=tdi.freq
+        )
+        expected = Index(exp_tda)
+        assert expected.dtype == "m8[s]"
+        tm.assert_index_equal(res, expected)
+
+        # check this matches Series and TimedeltaArray
+        res = tdi._data.astype("m8[s]")
+        tm.assert_equal(res, expected._values)
+
+        res = tdi.to_series().astype("m8[s]")
+        tm.assert_equal(res._values, expected._values._with_freq(None))
 
     @pytest.mark.parametrize("dtype", [float, "datetime64", "datetime64[ns]"])
     def test_astype_raises(self, dtype):

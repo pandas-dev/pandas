@@ -24,7 +24,6 @@ import pandas.util._test_decorators as td
 import pandas as pd
 from pandas import (
     DataFrame,
-    DatetimeTZDtype,
     Index,
     MultiIndex,
     Series,
@@ -86,17 +85,18 @@ def sql_strings():
     }
 
 
-def iris_table_metadata(dialect: str):
+def iris_table_metadata():
+    import sqlalchemy
     from sqlalchemy import (
-        REAL,
         Column,
+        Double,
         Float,
         MetaData,
         String,
         Table,
     )
 
-    dtype = Float if dialect == "postgresql" else REAL
+    dtype = Double if Version(sqlalchemy.__version__) >= Version("2.0.0") else Float
     metadata = MetaData()
     iris = Table(
         "iris",
@@ -127,11 +127,11 @@ def create_and_load_iris_sqlite3(conn: sqlite3.Connection, iris_file: Path):
         cur.executemany(stmt, reader)
 
 
-def create_and_load_iris(conn, iris_file: Path, dialect: str):
+def create_and_load_iris(conn, iris_file: Path):
     from sqlalchemy import insert
     from sqlalchemy.engine import Engine
 
-    iris = iris_table_metadata(dialect)
+    iris = iris_table_metadata()
 
     with iris_file.open(newline=None, encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile)
@@ -198,8 +198,6 @@ def types_table_metadata(dialect: str):
         Column("IntColWithNull", Integer),
         Column("BoolColWithNull", bool_type),
     )
-    if dialect == "postgresql":
-        types.append_column(Column("DateColWithTz", DateTime(timezone=True)))
     return types
 
 
@@ -243,6 +241,51 @@ def create_and_load_types(conn, types_data: list[dict], dialect: str):
             types.drop(conn, checkfirst=True)
             types.create(bind=conn)
             conn.execute(stmt)
+
+
+def create_and_load_postgres_datetz(conn):
+    from sqlalchemy import (
+        Column,
+        DateTime,
+        MetaData,
+        Table,
+        insert,
+    )
+    from sqlalchemy.engine import Engine
+
+    metadata = MetaData()
+    datetz = Table("datetz", metadata, Column("DateColWithTz", DateTime(timezone=True)))
+    datetz_data = [
+        {
+            "DateColWithTz": "2000-01-01 00:00:00-08:00",
+        },
+        {
+            "DateColWithTz": "2000-06-01 00:00:00-07:00",
+        },
+    ]
+    stmt = insert(datetz).values(datetz_data)
+    if isinstance(conn, Engine):
+        with conn.connect() as conn:
+            with conn.begin():
+                datetz.drop(conn, checkfirst=True)
+                datetz.create(bind=conn)
+                conn.execute(stmt)
+    else:
+        with conn.begin():
+            datetz.drop(conn, checkfirst=True)
+            datetz.create(bind=conn)
+            conn.execute(stmt)
+
+    # "2000-01-01 00:00:00-08:00" should convert to
+    # "2000-01-01 08:00:00"
+    # "2000-06-01 00:00:00-07:00" should convert to
+    # "2000-06-01 07:00:00"
+    # GH 6415
+    expected_data = [
+        Timestamp("2000-01-01 08:00:00", tz="UTC"),
+        Timestamp("2000-06-01 07:00:00", tz="UTC"),
+    ]
+    return Series(expected_data, name="DateColWithTz")
 
 
 def check_iris_frame(frame: DataFrame):
@@ -295,7 +338,6 @@ def types_data():
             "BoolCol": False,
             "IntColWithNull": 1,
             "BoolColWithNull": False,
-            "DateColWithTz": "2000-01-01 00:00:00-08:00",
         },
         {
             "TextCol": "first",
@@ -307,7 +349,6 @@ def types_data():
             "BoolCol": False,
             "IntColWithNull": None,
             "BoolColWithNull": None,
-            "DateColWithTz": "2000-06-01 00:00:00-07:00",
         },
     ]
 
@@ -429,7 +470,7 @@ def drop_view(
 
 
 @pytest.fixture
-def mysql_pymysql_engine(iris_path, types_data):
+def mysql_pymysql_engine():
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pymysql = pytest.importorskip("pymysql")
     engine = sqlalchemy.create_engine(
@@ -437,15 +478,6 @@ def mysql_pymysql_engine(iris_path, types_data):
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
         poolclass=sqlalchemy.pool.NullPool,
     )
-    insp = sqlalchemy.inspect(engine)
-    if not insp.has_table("iris"):
-        create_and_load_iris(engine, iris_path, "mysql")
-    if not insp.has_table("types"):
-        for entry in types_data:
-            entry.pop("DateColWithTz")
-        create_and_load_types(engine, types_data, "mysql")
-    if not insp.has_table("iris_view"):
-        create_and_load_iris_view(engine)
     yield engine
     for view in get_all_views(engine):
         drop_view(view, engine)
@@ -455,32 +487,63 @@ def mysql_pymysql_engine(iris_path, types_data):
 
 
 @pytest.fixture
-def mysql_pymysql_conn(iris_path, mysql_pymysql_engine):
+def mysql_pymysql_engine_iris(mysql_pymysql_engine, iris_path):
+    create_and_load_iris(mysql_pymysql_engine, iris_path)
+    create_and_load_iris_view(mysql_pymysql_engine)
+    yield mysql_pymysql_engine
+
+
+@pytest.fixture
+def mysql_pymysql_engine_types(mysql_pymysql_engine, types_data):
+    create_and_load_types(mysql_pymysql_engine, types_data, "mysql")
+    yield mysql_pymysql_engine
+
+
+@pytest.fixture
+def mysql_pymysql_conn(mysql_pymysql_engine):
     with mysql_pymysql_engine.connect() as conn:
         yield conn
 
 
 @pytest.fixture
-def postgresql_psycopg2_engine(iris_path, types_data):
+def mysql_pymysql_conn_iris(mysql_pymysql_engine_iris):
+    with mysql_pymysql_engine_iris.connect() as conn:
+        yield conn
+
+
+@pytest.fixture
+def mysql_pymysql_conn_types(mysql_pymysql_engine_types):
+    with mysql_pymysql_engine_types.connect() as conn:
+        yield conn
+
+
+@pytest.fixture
+def postgresql_psycopg2_engine():
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pytest.importorskip("psycopg2")
     engine = sqlalchemy.create_engine(
         "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas",
         poolclass=sqlalchemy.pool.NullPool,
     )
-    insp = sqlalchemy.inspect(engine)
-    if not insp.has_table("iris"):
-        create_and_load_iris(engine, iris_path, "postgresql")
-    if not insp.has_table("types"):
-        create_and_load_types(engine, types_data, "postgresql")
-    if not insp.has_table("iris_view"):
-        create_and_load_iris_view(engine)
     yield engine
     for view in get_all_views(engine):
         drop_view(view, engine)
     for tbl in get_all_tables(engine):
         drop_table(tbl, engine)
     engine.dispose()
+
+
+@pytest.fixture
+def postgresql_psycopg2_engine_iris(postgresql_psycopg2_engine, iris_path):
+    create_and_load_iris(postgresql_psycopg2_engine, iris_path)
+    create_and_load_iris_view(postgresql_psycopg2_engine)
+    yield postgresql_psycopg2_engine
+
+
+@pytest.fixture
+def postgresql_psycopg2_engine_types(postgresql_psycopg2_engine, types_data):
+    create_and_load_types(postgresql_psycopg2_engine, types_data, "postgres")
+    yield postgresql_psycopg2_engine
 
 
 @pytest.fixture
@@ -490,27 +553,28 @@ def postgresql_psycopg2_conn(postgresql_psycopg2_engine):
 
 
 @pytest.fixture
-def sqlite_str():
-    pytest.importorskip("sqlalchemy")
-    with tm.ensure_clean() as name:
-        yield "sqlite:///" + name
+def postgresql_psycopg2_conn_iris(postgresql_psycopg2_engine_iris):
+    with postgresql_psycopg2_engine_iris.connect() as conn:
+        yield conn
 
 
 @pytest.fixture
-def sqlite_engine(sqlite_str, iris_path, types_data):
+def postgresql_psycopg2_conn_types(postgresql_psycopg2_engine_types):
+    with postgresql_psycopg2_engine_types.connect() as conn:
+        yield conn
+
+
+@pytest.fixture
+def sqlite_str():
+    pytest.importorskip("sqlalchemy")
+    with tm.ensure_clean() as name:
+        yield f"sqlite:///{name}"
+
+
+@pytest.fixture
+def sqlite_engine(sqlite_str):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     engine = sqlalchemy.create_engine(sqlite_str, poolclass=sqlalchemy.pool.NullPool)
-
-    insp = sqlalchemy.inspect(engine)
-    if not insp.has_table("iris"):
-        create_and_load_iris(engine, iris_path, "sqlite")
-    if not insp.has_table("iris_view"):
-        create_and_load_iris_view(engine)
-    if not insp.has_table("types"):
-        for entry in types_data:
-            entry.pop("DateColWithTz")
-        create_and_load_types(engine, types_data, "sqlite")
-
     yield engine
     for view in get_all_views(engine):
         drop_view(view, engine)
@@ -526,74 +590,68 @@ def sqlite_conn(sqlite_engine):
 
 
 @pytest.fixture
-def sqlite_iris_str(sqlite_str, iris_path, types_data):
+def sqlite_str_iris(sqlite_str, iris_path):
     sqlalchemy = pytest.importorskip("sqlalchemy")
     engine = sqlalchemy.create_engine(sqlite_str)
-
-    insp = sqlalchemy.inspect(engine)
-    if not insp.has_table("iris"):
-        create_and_load_iris(engine, iris_path, "sqlite")
-    if not insp.has_table("iris_view"):
-        create_and_load_iris_view(engine)
-    if not insp.has_table("types"):
-        for entry in types_data:
-            entry.pop("DateColWithTz")
-        create_and_load_types(engine, types_data, "sqlite")
+    create_and_load_iris(engine, iris_path)
+    create_and_load_iris_view(engine)
     engine.dispose()
     return sqlite_str
 
 
 @pytest.fixture
-def sqlite_iris_engine(sqlite_engine, iris_path):
-    return sqlite_engine
+def sqlite_engine_iris(sqlite_engine, iris_path):
+    create_and_load_iris(sqlite_engine, iris_path)
+    create_and_load_iris_view(sqlite_engine)
+    yield sqlite_engine
 
 
 @pytest.fixture
-def sqlite_iris_conn(sqlite_iris_engine):
-    with sqlite_iris_engine.connect() as conn:
+def sqlite_conn_iris(sqlite_engine_iris):
+    with sqlite_engine_iris.connect() as conn:
+        yield conn
+
+
+@pytest.fixture
+def sqlite_str_types(sqlite_str, types_data):
+    sqlalchemy = pytest.importorskip("sqlalchemy")
+    engine = sqlalchemy.create_engine(sqlite_str)
+    create_and_load_types(engine, types_data, "sqlite")
+    engine.dispose()
+    return sqlite_str
+
+
+@pytest.fixture
+def sqlite_engine_types(sqlite_engine, types_data):
+    create_and_load_types(sqlite_engine, types_data, "sqlite")
+    yield sqlite_engine
+
+
+@pytest.fixture
+def sqlite_conn_types(sqlite_engine_types):
+    with sqlite_engine_types.connect() as conn:
         yield conn
 
 
 @pytest.fixture
 def sqlite_buildin():
     with contextlib.closing(sqlite3.connect(":memory:")) as closing_conn:
-        create_and_load_iris_view(closing_conn)
         with closing_conn as conn:
             yield conn
 
 
 @pytest.fixture
-def sqlite_sqlalchemy_memory_engine(iris_path, types_data):
-    sqlalchemy = pytest.importorskip("sqlalchemy")
-    engine = sqlalchemy.create_engine("sqlite:///:memory:")
-
-    insp = sqlalchemy.inspect(engine)
-    if not insp.has_table("iris"):
-        create_and_load_iris(engine, iris_path, "sqlite")
-    if not insp.has_table("iris_view"):
-        create_and_load_iris_view(engine)
-    if not insp.has_table("types"):
-        for entry in types_data:
-            entry.pop("DateColWithTz")
-        create_and_load_types(engine, types_data, "sqlite")
-
-    yield engine
-    for view in get_all_views(engine):
-        drop_view(view, engine)
-    for tbl in get_all_tables(engine):
-        drop_table(tbl, engine)
+def sqlite_buildin_iris(sqlite_buildin, iris_path):
+    create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
+    create_and_load_iris_view(sqlite_buildin)
+    yield sqlite_buildin
 
 
 @pytest.fixture
-def sqlite_buildin_iris(sqlite_buildin, iris_path, types_data):
-    create_and_load_iris_sqlite3(sqlite_buildin, iris_path)
-
-    for entry in types_data:
-        entry.pop("DateColWithTz")
+def sqlite_buildin_types(sqlite_buildin, types_data):
     types_data = [tuple(entry.values()) for entry in types_data]
-
     create_and_load_types_sqlite3(sqlite_buildin, types_data)
-    return sqlite_buildin
+    yield sqlite_buildin
 
 
 mysql_connectable = [
@@ -601,39 +659,64 @@ mysql_connectable = [
     pytest.param("mysql_pymysql_conn", marks=pytest.mark.db),
 ]
 
+mysql_connectable_iris = [
+    pytest.param("mysql_pymysql_engine_iris", marks=pytest.mark.db),
+    pytest.param("mysql_pymysql_conn_iris", marks=pytest.mark.db),
+]
+
+mysql_connectable_types = [
+    pytest.param("mysql_pymysql_engine_types", marks=pytest.mark.db),
+    pytest.param("mysql_pymysql_conn_types", marks=pytest.mark.db),
+]
 
 postgresql_connectable = [
     pytest.param("postgresql_psycopg2_engine", marks=pytest.mark.db),
     pytest.param("postgresql_psycopg2_conn", marks=pytest.mark.db),
 ]
 
-sqlite_connectable = [
-    pytest.param("sqlite_engine", marks=pytest.mark.db),
-    pytest.param("sqlite_conn", marks=pytest.mark.db),
-    pytest.param("sqlite_str", marks=pytest.mark.db),
+postgresql_connectable_iris = [
+    pytest.param("postgresql_psycopg2_engine_iris", marks=pytest.mark.db),
+    pytest.param("postgresql_psycopg2_conn_iris", marks=pytest.mark.db),
 ]
 
-sqlite_iris_connectable = [
-    pytest.param("sqlite_iris_engine", marks=pytest.mark.db),
-    pytest.param("sqlite_iris_conn", marks=pytest.mark.db),
-    pytest.param("sqlite_iris_str", marks=pytest.mark.db),
+postgresql_connectable_types = [
+    pytest.param("postgresql_psycopg2_engine_types", marks=pytest.mark.db),
+    pytest.param("postgresql_psycopg2_conn_types", marks=pytest.mark.db),
+]
+
+sqlite_connectable = [
+    "sqlite_engine",
+    "sqlite_conn",
+    "sqlite_str",
+]
+
+sqlite_connectable_iris = [
+    "sqlite_engine_iris",
+    "sqlite_conn_iris",
+    "sqlite_str_iris",
+]
+
+sqlite_connectable_types = [
+    "sqlite_engine_types",
+    "sqlite_conn_types",
+    "sqlite_str_types",
 ]
 
 sqlalchemy_connectable = mysql_connectable + postgresql_connectable + sqlite_connectable
 
 sqlalchemy_connectable_iris = (
-    mysql_connectable + postgresql_connectable + sqlite_iris_connectable
+    mysql_connectable_iris + postgresql_connectable_iris + sqlite_connectable_iris
 )
 
-all_connectable = sqlalchemy_connectable + [
-    "sqlite_buildin",
-    "sqlite_sqlalchemy_memory_engine",
-]
+sqlalchemy_connectable_types = (
+    mysql_connectable_types + postgresql_connectable_types + sqlite_connectable_types
+)
 
-all_connectable_iris = sqlalchemy_connectable_iris + [
-    "sqlite_buildin_iris",
-    "sqlite_sqlalchemy_memory_engine",
-]
+all_connectable = sqlalchemy_connectable + ["sqlite_buildin"]
+
+all_connectable_iris = sqlalchemy_connectable_iris + ["sqlite_buildin_iris"]
+
+all_connectable_types = sqlalchemy_connectable_types + ["sqlite_buildin_types"]
 
 
 @pytest.mark.parametrize("conn", all_connectable)
@@ -813,10 +896,10 @@ def test_to_sql_callable(conn, test_frame1, request):
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
-@pytest.mark.parametrize("conn", all_connectable_iris)
+@pytest.mark.parametrize("conn", all_connectable_types)
 def test_default_type_conversion(conn, request):
     conn_name = conn
-    if conn_name == "sqlite_buildin_iris":
+    if conn_name == "sqlite_buildin_types":
         request.applymarker(
             pytest.mark.xfail(
                 reason="sqlite_buildin connection does not implement read_sql_table"
@@ -1093,43 +1176,39 @@ SELECT * FROM groups;
     tm.assert_frame_equal(result, expected)
 
 
-def test_execute_typeerror(sqlite_iris_engine):
+def test_execute_typeerror(sqlite_engine_iris):
     with pytest.raises(TypeError, match="pandas.io.sql.execute requires a connection"):
         with tm.assert_produces_warning(
             FutureWarning,
             match="`pandas.io.sql.execute` is deprecated and "
             "will be removed in the future version.",
         ):
-            sql.execute("select * from iris", sqlite_iris_engine)
+            sql.execute("select * from iris", sqlite_engine_iris)
 
 
-def test_execute_deprecated(sqlite_buildin_iris):
+def test_execute_deprecated(sqlite_conn_iris):
     # GH50185
     with tm.assert_produces_warning(
         FutureWarning,
         match="`pandas.io.sql.execute` is deprecated and "
         "will be removed in the future version.",
     ):
-        sql.execute("select * from iris", sqlite_buildin_iris)
+        sql.execute("select * from iris", sqlite_conn_iris)
 
 
-@pytest.fixture
-def flavor():
-    def func(conn_name):
-        if "postgresql" in conn_name:
-            return "postgresql"
-        elif "sqlite" in conn_name:
-            return "sqlite"
-        elif "mysql" in conn_name:
-            return "mysql"
+def flavor(conn_name):
+    if "postgresql" in conn_name:
+        return "postgresql"
+    elif "sqlite" in conn_name:
+        return "sqlite"
+    elif "mysql" in conn_name:
+        return "mysql"
 
-        raise ValueError(f"unsupported connection: {conn_name}")
-
-    return func
+    raise ValueError(f"unsupported connection: {conn_name}")
 
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
-def test_read_sql_iris_parameter(conn, request, sql_strings, flavor):
+def test_read_sql_iris_parameter(conn, request, sql_strings):
     conn_name = conn
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_parameters"][flavor(conn_name)]
@@ -1141,19 +1220,19 @@ def test_read_sql_iris_parameter(conn, request, sql_strings, flavor):
 
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
-def test_read_sql_iris_named_parameter(conn, request, sql_strings, flavor):
+def test_read_sql_iris_named_parameter(conn, request, sql_strings):
     conn_name = conn
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_named_parameters"][flavor(conn_name)]
     params = {"name": "Iris-setosa", "length": 5.1}
-    pandasSQL = pandasSQL_builder(conn)
-    with pandasSQL.run_transaction():
-        iris_frame = pandasSQL.read_query(query, params=params)
+    with pandasSQL_builder(conn) as pandasSQL:
+        with pandasSQL.run_transaction():
+            iris_frame = pandasSQL.read_query(query, params=params)
     check_iris_frame(iris_frame)
 
 
 @pytest.mark.parametrize("conn", all_connectable_iris)
-def test_read_sql_iris_no_parameter_with_percent(conn, request, sql_strings, flavor):
+def test_read_sql_iris_no_parameter_with_percent(conn, request, sql_strings):
     if "mysql" in conn or "postgresql" in conn:
         request.applymarker(pytest.mark.xfail(reason="broken test"))
 
@@ -1322,7 +1401,7 @@ def test_api_execute_sql(conn, request):
     tm.equalContents(row, [5.1, 3.5, 1.4, 0.2, "Iris-setosa"])
 
 
-@pytest.mark.parametrize("conn", all_connectable_iris)
+@pytest.mark.parametrize("conn", all_connectable_types)
 def test_api_date_parsing(conn, request):
     conn_name = conn
     conn = request.getfixturevalue(conn)
@@ -1378,7 +1457,7 @@ def test_api_date_parsing(conn, request):
     ]
 
 
-@pytest.mark.parametrize("conn", all_connectable_iris)
+@pytest.mark.parametrize("conn", all_connectable_types)
 @pytest.mark.parametrize("error", ["ignore", "raise", "coerce"])
 @pytest.mark.parametrize(
     "read_sql, text, mode",
@@ -1398,7 +1477,7 @@ def test_api_custom_dateparsing_error(
 ):
     conn_name = conn
     conn = request.getfixturevalue(conn)
-    if text == "types" and conn_name == "sqlite_buildin_iris":
+    if text == "types" and conn_name == "sqlite_buildin_types":
         request.applymarker(
             pytest.mark.xfail(reason="failing combination of arguments")
         )
@@ -1414,14 +1493,13 @@ def test_api_custom_dateparsing_error(
     )
     if "postgres" in conn_name:
         # TODO: clean up types_data_frame fixture
-        result = result.drop(columns=["DateColWithTz"])
         result["BoolCol"] = result["BoolCol"].astype(int)
         result["BoolColWithNull"] = result["BoolColWithNull"].astype(float)
 
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("conn", all_connectable_iris)
+@pytest.mark.parametrize("conn", all_connectable_types)
 def test_api_date_and_index(conn, request):
     # Test case where same column appears in parse_date and index_col
     conn = request.getfixturevalue(conn)
@@ -2022,7 +2100,7 @@ def test_query_by_select_obj(conn, request):
         select,
     )
 
-    iris = iris_table_metadata("postgres")
+    iris = iris_table_metadata()
     name_select = select(iris).where(iris.c.Name == bindparam("name"))
     iris_df = sql.read_sql(name_select, conn, params={"name": "Iris-setosa"})
     all_names = set(iris_df["Name"])
@@ -2188,7 +2266,6 @@ def test_roundtrip(conn, request, test_frame1):
 @pytest.mark.parametrize("conn", all_connectable_iris)
 def test_execute_sql(conn, request):
     conn = request.getfixturevalue(conn)
-    pandasSQL = pandasSQL_builder(conn)
     with pandasSQL_builder(conn) as pandasSQL:
         with pandasSQL.run_transaction():
             iris_results = pandasSQL.execute("SELECT * FROM iris")
@@ -2220,7 +2297,7 @@ def test_read_table_absent_raises(conn, request):
         sql.read_sql_table("this_doesnt_exist", con=conn)
 
 
-@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_types)
 def test_sqlalchemy_default_type_conversion(conn, request):
     conn_name = conn
     if conn_name == "sqlite_str":
@@ -2254,7 +2331,7 @@ def test_bigint(conn, request):
     tm.assert_frame_equal(df, result)
 
 
-@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_types)
 def test_default_date_load(conn, request):
     conn_name = conn
     if conn_name == "sqlite_str":
@@ -2270,82 +2347,40 @@ def test_default_date_load(conn, request):
     assert issubclass(df.DateCol.dtype.type, np.datetime64)
 
 
-@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
-def test_datetime_with_timezone(conn, request):
+@pytest.mark.parametrize("conn", postgresql_connectable)
+@pytest.mark.parametrize("parse_dates", [None, ["DateColWithTz"]])
+def test_datetime_with_timezone_query(conn, request, parse_dates):
     # edge case that converts postgresql datetime with time zone types
     # to datetime64[ns,psycopg2.tz.FixedOffsetTimezone..], which is ok
     # but should be more natural, so coerce to datetime64[ns] for now
-
-    def check(col):
-        # check that a column is either datetime64[ns]
-        # or datetime64[ns, UTC]
-        if lib.is_np_dtype(col.dtype, "M"):
-            # "2000-01-01 00:00:00-08:00" should convert to
-            # "2000-01-01 08:00:00"
-            assert col[0] == Timestamp("2000-01-01 08:00:00")
-
-            # "2000-06-01 00:00:00-07:00" should convert to
-            # "2000-06-01 07:00:00"
-            assert col[1] == Timestamp("2000-06-01 07:00:00")
-
-        elif isinstance(col.dtype, DatetimeTZDtype):
-            assert str(col.dt.tz) == "UTC"
-
-            # "2000-01-01 00:00:00-08:00" should convert to
-            # "2000-01-01 08:00:00"
-            # "2000-06-01 00:00:00-07:00" should convert to
-            # "2000-06-01 07:00:00"
-            # GH 6415
-            expected_data = [
-                Timestamp("2000-01-01 08:00:00", tz="UTC"),
-                Timestamp("2000-06-01 07:00:00", tz="UTC"),
-            ]
-            expected = Series(expected_data, name=col.name)
-            tm.assert_series_equal(col, expected)
-
-        else:
-            raise AssertionError(f"DateCol loaded with incorrect type -> {col.dtype}")
+    conn = request.getfixturevalue(conn)
+    expected = create_and_load_postgres_datetz(conn)
 
     # GH11216
+    df = read_sql_query("select * from datetz", conn, parse_dates=parse_dates)
+    col = df.DateColWithTz
+    tm.assert_series_equal(col, expected)
+
+
+@pytest.mark.parametrize("conn", postgresql_connectable)
+def test_datetime_with_timezone_query_chunksize(conn, request):
     conn = request.getfixturevalue(conn)
-    df = read_sql_query("select * from types", conn)
-    if not hasattr(df, "DateColWithTz"):
-        request.applymarker(
-            pytest.mark.xfail(reason="no column with datetime with time zone")
-        )
-
-    # this is parsed on Travis (linux), but not on macosx for some reason
-    # even with the same versions of psycopg2 & sqlalchemy, possibly a
-    # Postgresql server version difference
-    col = df.DateColWithTz
-    assert isinstance(col.dtype, DatetimeTZDtype)
-
-    df = read_sql_query("select * from types", conn, parse_dates=["DateColWithTz"])
-    if not hasattr(df, "DateColWithTz"):
-        request.applymarker(
-            pytest.mark.xfail(reason="no column with datetime with time zone")
-        )
-    col = df.DateColWithTz
-    assert isinstance(col.dtype, DatetimeTZDtype)
-    assert str(col.dt.tz) == "UTC"
-    check(df.DateColWithTz)
+    expected = create_and_load_postgres_datetz(conn)
 
     df = concat(
-        list(read_sql_query("select * from types", conn, chunksize=1)),
+        list(read_sql_query("select * from datetz", conn, chunksize=1)),
         ignore_index=True,
     )
     col = df.DateColWithTz
-    assert isinstance(col.dtype, DatetimeTZDtype)
-    assert str(col.dt.tz) == "UTC"
-    expected = sql.read_sql_table("types", conn)
-    col = expected.DateColWithTz
-    assert isinstance(col.dtype, DatetimeTZDtype)
-    tm.assert_series_equal(df.DateColWithTz, expected.DateColWithTz)
+    tm.assert_series_equal(col, expected)
 
-    # xref #7139
-    # this might or might not be converted depending on the postgres driver
-    df = sql.read_sql_table("types", conn)
-    check(df.DateColWithTz)
+
+@pytest.mark.parametrize("conn", postgresql_connectable)
+def test_datetime_with_timezone_table(conn, request):
+    conn = request.getfixturevalue(conn)
+    expected = create_and_load_postgres_datetz(conn)
+    result = sql.read_sql_table("datetz", conn)
+    tm.assert_frame_equal(result, expected.to_frame())
 
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
@@ -2403,7 +2438,7 @@ def test_naive_datetimeindex_roundtrip(conn, request):
     tm.assert_frame_equal(result, expected, check_names=False)
 
 
-@pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
+@pytest.mark.parametrize("conn", sqlalchemy_connectable_types)
 def test_date_parsing(conn, request):
     # No Parsing
     conn_name = conn
@@ -3235,8 +3270,8 @@ def test_read_sql_dtype(conn, request, func, dtype_backend):
     tm.assert_frame_equal(result, expected)
 
 
-def test_keyword_deprecation(sqlite_sqlalchemy_memory_engine):
-    conn = sqlite_sqlalchemy_memory_engine
+def test_keyword_deprecation(sqlite_engine):
+    conn = sqlite_engine
     # GH 54397
     msg = (
         "Starting with pandas version 3.0 all arguments of to_sql except for the "
@@ -3249,8 +3284,8 @@ def test_keyword_deprecation(sqlite_sqlalchemy_memory_engine):
         df.to_sql("example", conn, None, if_exists="replace")
 
 
-def test_bigint_warning(sqlite_sqlalchemy_memory_engine):
-    conn = sqlite_sqlalchemy_memory_engine
+def test_bigint_warning(sqlite_engine):
+    conn = sqlite_engine
     # test no warning for BIGINT (to support int64) is raised (GH7433)
     df = DataFrame({"a": [1, 2]}, dtype="int64")
     assert df.to_sql(name="test_bigintwarning", con=conn, index=False) == 2
@@ -3259,15 +3294,15 @@ def test_bigint_warning(sqlite_sqlalchemy_memory_engine):
         sql.read_sql_table("test_bigintwarning", conn)
 
 
-def test_valueerror_exception(sqlite_sqlalchemy_memory_engine):
-    conn = sqlite_sqlalchemy_memory_engine
+def test_valueerror_exception(sqlite_engine):
+    conn = sqlite_engine
     df = DataFrame({"col1": [1, 2], "col2": [3, 4]})
     with pytest.raises(ValueError, match="Empty table name specified"):
         df.to_sql(name="", con=conn, if_exists="replace", index=False)
 
 
-def test_row_object_is_named_tuple(sqlite_sqlalchemy_memory_engine):
-    conn = sqlite_sqlalchemy_memory_engine
+def test_row_object_is_named_tuple(sqlite_engine):
+    conn = sqlite_engine
     # GH 40682
     # Test for the is_named_tuple() function
     # Placed here due to its usage of sqlalchemy
@@ -3305,8 +3340,8 @@ def test_row_object_is_named_tuple(sqlite_sqlalchemy_memory_engine):
     assert list(df.columns) == ["id", "string_column"]
 
 
-def test_read_sql_string_inference(sqlite_sqlalchemy_memory_engine):
-    conn = sqlite_sqlalchemy_memory_engine
+def test_read_sql_string_inference(sqlite_engine):
+    conn = sqlite_engine
     # GH#54430
     pytest.importorskip("pyarrow")
     table = "test"
@@ -3324,8 +3359,8 @@ def test_read_sql_string_inference(sqlite_sqlalchemy_memory_engine):
     tm.assert_frame_equal(result, expected)
 
 
-def test_roundtripping_datetimes(sqlite_sqlalchemy_memory_engine):
-    conn = sqlite_sqlalchemy_memory_engine
+def test_roundtripping_datetimes(sqlite_engine):
+    conn = sqlite_engine
     # GH#54877
     df = DataFrame({"t": [datetime(2020, 12, 31, 12)]}, dtype="datetime64[ns]")
     df.to_sql("test", conn, if_exists="replace", index=False)
@@ -3444,8 +3479,8 @@ def test_self_join_date_columns(postgresql_psycopg2_engine):
         pandasSQL.drop_table("person")
 
 
-def test_create_and_drop_table(sqlite_sqlalchemy_memory_engine):
-    conn = sqlite_sqlalchemy_memory_engine
+def test_create_and_drop_table(sqlite_engine):
+    conn = sqlite_engine
     temp_frame = DataFrame({"one": [1.0, 2.0, 3.0, 4.0], "two": [4.0, 3.0, 2.0, 1.0]})
     with sql.SQLDatabase(conn) as pandasSQL:
         with pandasSQL.run_transaction():
@@ -3568,24 +3603,18 @@ def test_sqlite_illegal_names(sqlite_buildin):
         sql.table_exists(c_tbl, conn)
 
 
-# -----------------------------------------------------------------------------
-# -- Old tests from 0.13.1 (before refactor using sqlalchemy)
-
-
-_formatters = {
-    datetime: "'{}'".format,
-    str: "'{}'".format,
-    np.str_: "'{}'".format,
-    bytes: "'{}'".format,
-    float: "{:.8f}".format,
-    int: "{:d}".format,
-    type(None): lambda x: "NULL",
-    np.float64: "{:.10f}".format,
-    bool: "'{!s}'".format,
-}
-
-
 def format_query(sql, *args):
+    _formatters = {
+        datetime: "'{}'".format,
+        str: "'{}'".format,
+        np.str_: "'{}'".format,
+        bytes: "'{}'".format,
+        float: "{:.8f}".format,
+        int: "{:d}".format,
+        type(None): lambda x: "NULL",
+        np.float64: "{:.10f}".format,
+        bool: "'{!s}'".format,
+    }
     processed_args = []
     for arg in args:
         if isinstance(arg, float) and isna(arg):
