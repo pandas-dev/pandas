@@ -739,3 +739,29 @@ class TestDataFrameSubclassing:
         expected = tm.SubclassedDataFrame({"A": [0, 0, 0]})
         assert isinstance(result, tm.SubclassedDataFrame)
         tm.assert_frame_equal(result, expected)
+
+
+class MySubclassWithMetadata(DataFrame):
+    _metadata = ["my_metadata"]
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        my_metadata = kwargs.pop("my_metadata", None)
+        if args and isinstance(args[0], MySubclassWithMetadata):
+            my_metadata = args[0].my_metadata
+        self.my_metadata = my_metadata
+
+    @property
+    def _constructor(self):
+        return MySubclassWithMetadata
+
+
+def test_constructor_with_metadata():
+    # https://github.com/pandas-dev/pandas/pull/54922
+    # https://github.com/pandas-dev/pandas/issues/55120
+    df = MySubclassWithMetadata(
+        np.random.default_rng(2).random((5, 3)), columns=["A", "B", "C"]
+    )
+    subset = df[["A", "B"]]
+    assert isinstance(subset, MySubclassWithMetadata)
