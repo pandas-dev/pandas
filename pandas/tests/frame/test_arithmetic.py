@@ -508,7 +508,7 @@ class TestFrameFlexArithmetic:
             and opname == "pow"
             and "python" in request.node.callspec.id
         ):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="https://github.com/pydata/numexpr/issues/454")
             )
 

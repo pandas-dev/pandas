@@ -64,7 +64,7 @@ def test_union_different_types(index_flat, index_flat2, request):
         mark = pytest.mark.xfail(
             reason="GH#44000 True==1", raises=ValueError, strict=False
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
@@ -89,7 +89,7 @@ def test_union_different_types(index_flat, index_flat2, request):
             raises=AssertionError,
             strict=False,
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)

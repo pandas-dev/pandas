@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections import defaultdict
+import functools
 from functools import partial
 import inspect
 from typing import (
@@ -29,6 +30,7 @@ from pandas._typing import (
     NDFrameT,
     npt,
 )
+from pandas.compat._optional import import_optional_dependency
 from pandas.errors import SpecificationError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -36,7 +38,9 @@ from pandas.util._exceptions import find_stack_level
 from pandas.core.dtypes.cast import is_nested_object
 from pandas.core.dtypes.common import (
     is_dict_like,
+    is_extension_array_dtype,
     is_list_like,
+    is_numeric_dtype,
     is_sequence,
 )
 from pandas.core.dtypes.dtypes import (
@@ -121,6 +125,8 @@ class Apply(metaclass=abc.ABCMeta):
         result_type: str | None,
         *,
         by_row: Literal[False, "compat", "_compat"] = "compat",
+        engine: str = "python",
+        engine_kwargs: dict[str, bool] | None = None,
         args,
         kwargs,
     ) -> None:
@@ -132,6 +138,9 @@ class Apply(metaclass=abc.ABCMeta):
 
         self.args = args or ()
         self.kwargs = kwargs or {}
+
+        self.engine = engine
+        self.engine_kwargs = {} if engine_kwargs is None else engine_kwargs
 
         if result_type not in [None, "reduce", "broadcast", "expand"]:
             raise ValueError(
@@ -601,6 +610,13 @@ class Apply(metaclass=abc.ABCMeta):
         result: Series, DataFrame, or None
             Result when self.func is a list-like or dict-like, None otherwise.
         """
+
+        if self.engine == "numba":
+            raise NotImplementedError(
+                "The 'numba' engine doesn't support list-like/"
+                "dict likes of callables yet."
+            )
+
         if self.axis == 1 and isinstance(self.obj, ABCDataFrame):
             return self.obj.T.apply(self.func, 0, args=self.args, **self.kwargs).T
 
@@ -768,10 +784,16 @@ class FrameApply(NDFrameApply):
     ) -> None:
         if by_row is not False and by_row != "compat":
             raise ValueError(f"by_row={by_row} not allowed")
-        self.engine = engine
-        self.engine_kwargs = engine_kwargs
         super().__init__(
-            obj, func, raw, result_type, by_row=by_row, args=args, kwargs=kwargs
+            obj,
+            func,
+            raw,
+            result_type,
+            by_row=by_row,
+            engine=engine,
+            engine_kwargs=engine_kwargs,
+            args=args,
+            kwargs=kwargs,
         )
 
     # ---------------------------------------------------------------
@@ -791,6 +813,32 @@ class FrameApply(NDFrameApply):
     @abc.abstractmethod
     def series_generator(self) -> Generator[Series, None, None]:
         pass
+
+    @staticmethod
+    @functools.cache
+    @abc.abstractmethod
+    def generate_numba_apply_func(
+        func, nogil=True, nopython=True, parallel=False
+    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+        pass
+
+    @abc.abstractmethod
+    def apply_with_numba(self):
+        pass
+
+    def validate_values_for_numba(self):
+        # Validate column dtyps all OK
+        for colname, dtype in self.obj.dtypes.items():
+            if not is_numeric_dtype(dtype):
+                raise ValueError(
+                    f"Column {colname} must have a numeric dtype. "
+                    f"Found '{dtype}' instead"
+                )
+            if is_extension_array_dtype(dtype):
+                raise ValueError(
+                    f"Column {colname} is backed by an extension array, "
+                    f"which is not supported by the numba engine."
+                )
 
     @abc.abstractmethod
     def wrap_results_for_axis(
@@ -815,13 +863,12 @@ class FrameApply(NDFrameApply):
     def apply(self) -> DataFrame | Series:
         """compute the results"""
 
-        if self.engine == "numba" and not self.raw:
-            raise ValueError(
-                "The numba engine in DataFrame.apply can only be used when raw=True"
-            )
-
         # dispatch to handle list-like or dict-like
         if is_list_like(self.func):
+            if self.engine == "numba":
+                raise NotImplementedError(
+                    "the 'numba' engine doesn't support lists of callables yet"
+                )
             return self.apply_list_or_dict_like()
 
         # all empty
@@ -830,10 +877,20 @@ class FrameApply(NDFrameApply):
 
         # string dispatch
         if isinstance(self.func, str):
+            if self.engine == "numba":
+                raise NotImplementedError(
+                    "the 'numba' engine doesn't support using "
+                    "a string as the callable function"
+                )
             return self.apply_str()
 
         # ufunc
         elif isinstance(self.func, np.ufunc):
+            if self.engine == "numba":
+                raise NotImplementedError(
+                    "the 'numba' engine doesn't support "
+                    "using a numpy ufunc as the callable function"
+                )
             with np.errstate(all="ignore"):
                 results = self.obj._mgr.apply("apply", func=self.func)
             # _constructor will retain self.index and self.columns
@@ -841,6 +898,10 @@ class FrameApply(NDFrameApply):
 
         # broadcasting
         if self.result_type == "broadcast":
+            if self.engine == "numba":
+                raise NotImplementedError(
+                    "the 'numba' engine doesn't support result_type='broadcast'"
+                )
             return self.apply_broadcast(self.obj)
 
         # one axis empty
@@ -997,7 +1058,10 @@ class FrameApply(NDFrameApply):
         return result
 
     def apply_standard(self):
-        results, res_index = self.apply_series_generator()
+        if self.engine == "python":
+            results, res_index = self.apply_series_generator()
+        else:
+            results, res_index = self.apply_series_numba()
 
         # wrap results
         return self.wrap_results(results, res_index)
@@ -1020,6 +1084,19 @@ class FrameApply(NDFrameApply):
                     results[i] = results[i].copy(deep=False)
 
         return results, res_index
+
+    def apply_series_numba(self):
+        if self.engine_kwargs.get("parallel", False):
+            raise NotImplementedError(
+                "Parallel apply is not supported when raw=False and engine='numba'"
+            )
+        if not self.obj.index.is_unique or not self.columns.is_unique:
+            raise NotImplementedError(
+                "The index/columns must be unique when raw=False and engine='numba'"
+            )
+        self.validate_values_for_numba()
+        results = self.apply_with_numba()
+        return results, self.result_index
 
     def wrap_results(self, results: ResType, res_index: Index) -> DataFrame | Series:
         from pandas import Series
@@ -1059,6 +1136,49 @@ class FrameRowApply(FrameApply):
     @property
     def series_generator(self) -> Generator[Series, None, None]:
         return (self.obj._ixs(i, axis=1) for i in range(len(self.columns)))
+
+    @staticmethod
+    @functools.cache
+    def generate_numba_apply_func(
+        func, nogil=True, nopython=True, parallel=False
+    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+        numba = import_optional_dependency("numba")
+        from pandas import Series
+
+        # Import helper from extensions to cast string object -> np strings
+        # Note: This also has the side effect of loading our numba extensions
+        from pandas.core._numba.extensions import maybe_cast_str
+
+        jitted_udf = numba.extending.register_jitable(func)
+
+        # Currently the parallel argument doesn't get passed through here
+        # (it's disabled) since the dicts in numba aren't thread-safe.
+        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        def numba_func(values, col_names, df_index):
+            results = {}
+            for j in range(values.shape[1]):
+                # Create the series
+                ser = Series(
+                    values[:, j], index=df_index, name=maybe_cast_str(col_names[j])
+                )
+                results[j] = jitted_udf(ser)
+            return results
+
+        return numba_func
+
+    def apply_with_numba(self) -> dict[int, Any]:
+        nb_func = self.generate_numba_apply_func(
+            cast(Callable, self.func), **self.engine_kwargs
+        )
+        from pandas.core._numba.extensions import set_numba_data
+
+        # Convert from numba dict to regular dict
+        # Our isinstance checks in the df constructor don't pass for numbas typed dict
+        with set_numba_data(self.obj.index) as index, set_numba_data(
+            self.columns
+        ) as columns:
+            res = dict(nb_func(self.values, columns, index))
+        return res
 
     @property
     def result_index(self) -> Index:
@@ -1142,6 +1262,52 @@ class FrameColumnApply(FrameApply):
                 mgr.set_values(arr)
                 object.__setattr__(ser, "_name", name)
                 yield ser
+
+    @staticmethod
+    @functools.cache
+    def generate_numba_apply_func(
+        func, nogil=True, nopython=True, parallel=False
+    ) -> Callable[[npt.NDArray, Index, Index], dict[int, Any]]:
+        numba = import_optional_dependency("numba")
+        from pandas import Series
+        from pandas.core._numba.extensions import maybe_cast_str
+
+        jitted_udf = numba.extending.register_jitable(func)
+
+        @numba.jit(nogil=nogil, nopython=nopython, parallel=parallel)
+        def numba_func(values, col_names_index, index):
+            results = {}
+            # Currently the parallel argument doesn't get passed through here
+            # (it's disabled) since the dicts in numba aren't thread-safe.
+            for i in range(values.shape[0]):
+                # Create the series
+                # TODO: values corrupted without the copy
+                ser = Series(
+                    values[i].copy(),
+                    index=col_names_index,
+                    name=maybe_cast_str(index[i]),
+                )
+                results[i] = jitted_udf(ser)
+
+            return results
+
+        return numba_func
+
+    def apply_with_numba(self) -> dict[int, Any]:
+        nb_func = self.generate_numba_apply_func(
+            cast(Callable, self.func), **self.engine_kwargs
+        )
+
+        from pandas.core._numba.extensions import set_numba_data
+
+        # Convert from numba dict to regular dict
+        # Our isinstance checks in the df constructor don't pass for numbas typed dict
+        with set_numba_data(self.obj.index) as index, set_numba_data(
+            self.columns
+        ) as columns:
+            res = dict(nb_func(self.values, columns, index))
+
+        return res
 
     @property
     def result_index(self) -> Index:
