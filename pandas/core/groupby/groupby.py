@@ -108,6 +108,10 @@ from pandas.core.arrays import (
     SparseArray,
 )
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringArrayNumpySemantics,
+)
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -2854,7 +2858,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result_series.name = name
             result_series.index = index.set_names(range(len(columns)))
             result_frame = result_series.reset_index()
-            result_frame.columns = columns + [name]
+            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]  # noqa: E501
+            cols = Index(columns, dtype=orig_dtype).insert(len(columns), name)
+            result_frame.columns = cols
             result = result_frame
         return result.__finalize__(self.obj, method="value_counts")
 
@@ -3006,7 +3012,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
         if isinstance(self.obj, Series):
             if isinstance(self.obj.array, ArrowExtensionArray):
-                dtype_backend = "pyarrow"
+                if isinstance(self.obj.array, ArrowStringArrayNumpySemantics):
+                    dtype_backend = None
+                elif isinstance(self.obj.array, ArrowStringArray):
+                    dtype_backend = "numpy_nullable"
+                else:
+                    dtype_backend = "pyarrow"
             elif isinstance(self.obj.array, BaseMaskedArray):
                 dtype_backend = "numpy_nullable"
         # TODO: For DataFrames what if columns are mixed arrow/numpy/masked?

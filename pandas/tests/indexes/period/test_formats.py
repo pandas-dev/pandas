@@ -56,6 +56,15 @@ def test_get_values_for_csv():
 
 
 class TestPeriodIndexRendering:
+    def test_format_empty(self):
+        # GH#35712
+        empty_idx = PeriodIndex([], freq="Y")
+        msg = r"PeriodIndex\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert empty_idx.format() == []
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert empty_idx.format(name=True) == [""]
+
     def test_frame_repr(self):
         df = pd.DataFrame({"A": [1, 2, 3]}, index=pd.date_range("2000", periods=3))
         result = repr(df)

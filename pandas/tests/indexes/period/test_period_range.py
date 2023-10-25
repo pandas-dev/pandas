@@ -20,33 +20,41 @@ class TestPeriodRange:
         with pytest.raises(ValueError, match=msg):
             period_range("2011-1-1", "2012-1-1", "B")
 
-    @pytest.mark.parametrize("freq", ["D", "W", "Q", "Y"])
-    def test_construction_from_string(self, freq):
+    @pytest.mark.parametrize(
+        "freq_offset, freq_period",
+        [
+            ("D", "D"),
+            ("W", "W"),
+            ("QE", "Q"),
+            ("Y", "Y"),
+        ],
+    )
+    def test_construction_from_string(self, freq_offset, freq_period):
         # non-empty
         expected = date_range(
-            start="2017-01-01", periods=5, freq=freq, name="foo"
+            start="2017-01-01", periods=5, freq=freq_offset, name="foo"
         ).to_period()
         start, end = str(expected[0]), str(expected[-1])
 
-        result = period_range(start=start, end=end, freq=freq, name="foo")
+        result = period_range(start=start, end=end, freq=freq_period, name="foo")
         tm.assert_index_equal(result, expected)
 
-        result = period_range(start=start, periods=5, freq=freq, name="foo")
+        result = period_range(start=start, periods=5, freq=freq_period, name="foo")
         tm.assert_index_equal(result, expected)
 
-        result = period_range(end=end, periods=5, freq=freq, name="foo")
+        result = period_range(end=end, periods=5, freq=freq_period, name="foo")
         tm.assert_index_equal(result, expected)
 
         # empty
-        expected = PeriodIndex([], freq=freq, name="foo")
+        expected = PeriodIndex([], freq=freq_period, name="foo")
 
-        result = period_range(start=start, periods=0, freq=freq, name="foo")
+        result = period_range(start=start, periods=0, freq=freq_period, name="foo")
         tm.assert_index_equal(result, expected)
 
-        result = period_range(end=end, periods=0, freq=freq, name="foo")
+        result = period_range(end=end, periods=0, freq=freq_period, name="foo")
         tm.assert_index_equal(result, expected)
 
-        result = period_range(start=end, end=start, freq=freq, name="foo")
+        result = period_range(start=end, end=start, freq=freq_period, name="foo")
         tm.assert_index_equal(result, expected)
 
     def test_construction_from_string_monthly(self):
@@ -89,7 +97,7 @@ class TestPeriodRange:
         # downsampling
         start, end = Period("2017-1", freq="M"), Period("2019-12", freq="M")
         expected = date_range(
-            start="2017-01-31", end="2019-12-31", freq="Q", name="foo"
+            start="2017-01-31", end="2019-12-31", freq="QE", name="foo"
         ).to_period()
         result = period_range(start=start, end=end, freq="Q", name="foo")
         tm.assert_index_equal(result, expected)
