@@ -120,7 +120,7 @@ class CategoricalDescription(TypedDict):
     categories: Column | None
 
 
-class Buffer(ABC, CBuffer):
+class Buffer(CBuffer, ABC):
     """
     Data in the buffer is guaranteed to be contiguous in memory.
 
