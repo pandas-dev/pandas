@@ -296,7 +296,7 @@ Other Deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :func:`concat` with ``axis=1`` and objects with unaligned indexes (:issue:`55084`)
-- Performance improvement in :func:`merge_asof` when ``by`` contains more than one key (:issue:`55580`)
+- Performance improvement in :func:`merge_asof` when ``by`` is not ``None`` (:issue:`55580`, :issue:`55678`)
 - Performance improvement in :func:`read_stata` for files with many variables (:issue:`55515`)
 - Performance improvement in :func:`to_dict` on converting DataFrame to dictionary (:issue:`50990`)
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
@@ -324,6 +324,7 @@ Datetimelike
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
 - Bug in :meth:`Tick.delta` with very large ticks raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
 - Bug in adding or subtracting a :class:`Week` offset to a ``datetime64`` :class:`Series`, :class:`Index`, or :class:`DataFrame` column with non-nanosecond resolution returning incorrect results (:issue:`55583`)
+- Bug in addition or subtraction of :class:`BusinessDay` offset with ``offset`` attribute to non-nanosecond :class:`Index`, :class:`Series`, or :class:`DataFrame` column giving incorrect results (:issue:`55608`)
 - Bug in addition or subtraction of :class:`DateOffset` objects with microsecond components to ``datetime64`` :class:`Index`, :class:`Series`, or :class:`DataFrame` columns with non-nanosecond resolution (:issue:`55595`)
 - Bug in addition or subtraction of very large :class:`Tick` objects with :class:`Timestamp` or :class:`Timedelta` objects raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
 -
@@ -411,6 +412,7 @@ Groupby/resample/rolling
 Reshaping
 ^^^^^^^^^
 - Bug in :func:`concat` ignoring ``sort`` parameter when passed :class:`DatetimeIndex` indexes (:issue:`54769`)
+- Bug in :func:`merge_asof` raising ``TypeError`` when ``by`` dtype is not ``object``, ``int64``, or ``uint64`` (:issue:`22794`)
 - Bug in :func:`merge` returning columns in incorrect order when left and/or right is empty (:issue:`51929`)
 - Bug in :meth:`pandas.DataFrame.melt` where it would not preserve the datetime (:issue:`55254`)
 -
