@@ -16,6 +16,7 @@ from pandas._typing import NDFrameT
 
 from pandas.core.indexes.api import (
     DatetimeIndex,
+    Index,
     MultiIndex,
     PeriodIndex,
 )
@@ -253,7 +254,8 @@ class AxisOps(Generic[NDFrameT]):
             result.columns = result.columns.swaplevel(i, j)
         return result
 
-    def tz_convert(
+    # error: Function is missing a type annotation for one or more arguments
+    def tz_convert(  # type: ignore[no-untyped-def]
         self, tz, axis: Axis = 0, level=None, copy: bool | None = None
     ) -> NDFrameT:
         """
@@ -307,7 +309,8 @@ class AxisOps(Generic[NDFrameT]):
         axis = obj._get_axis_number(axis)
         ax = obj._get_axis(axis)
 
-        def _tz_convert(ax, tz):
+        # error: Function is missing a type annotation for one or more arguments
+        def _tz_convert(ax: Index, tz) -> Index:  # type: ignore[no-untyped-def]
             if not hasattr(ax, "tz_convert"):
                 if len(ax) > 0:
                     ax_name = obj._get_axis_name(axis)
@@ -334,7 +337,8 @@ class AxisOps(Generic[NDFrameT]):
         result = result.set_axis(ax, axis=axis, copy=False)
         return result.__finalize__(obj, method="tz_convert")
 
-    def tz_localize(
+    # error: Function is missing a type annotation for one or more arguments
+    def tz_localize(  # type: ignore[no-untyped-def]
         self,
         tz,
         axis: Axis = 0,
@@ -489,7 +493,10 @@ class AxisOps(Generic[NDFrameT]):
         axis = obj._get_axis_number(axis)
         ax = obj._get_axis(axis)
 
-        def _tz_localize(ax, tz, ambiguous, nonexistent):
+        # error: Function is missing a type annotation for one or more arguments
+        def _tz_localize(  # type: ignore[no-untyped-def]
+            ax: Index, tz, ambiguous: TimeAmbiguous, nonexistent: TimeNonexistent
+        ) -> Index:
             if not hasattr(ax, "tz_localize"):
                 if len(ax) > 0:
                     ax_name = obj._get_axis_name(axis)
@@ -516,7 +523,8 @@ class AxisOps(Generic[NDFrameT]):
         result = result.set_axis(ax, axis=axis, copy=False)
         return result.__finalize__(obj, method="tz_localize")
 
-    def to_timestamp(
+    # error: Function is missing a type annotation for one or more arguments
+    def to_timestamp(  # type: ignore[no-untyped-def]
         self,
         freq=None,
         *,
