@@ -471,7 +471,7 @@ class AxisOps(Generic[NDFrameT]):
         2015-03-29 01:59:59.999999999+01:00    0
         2015-03-29 03:30:00+02:00              1
         dtype: int64
-        >>> ser.axis_ops.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1H'))
+        >>> ser.axis_ops.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
         2015-03-29 03:30:00+02:00    0
         2015-03-29 03:30:00+02:00    1
         dtype: int64
@@ -554,7 +554,7 @@ class AxisOps(Generic[NDFrameT]):
         2023    1
         2024    2
         2025    3
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
 
         The resulting frequency of the Timestamps is `YearBegin`
 
@@ -563,7 +563,7 @@ class AxisOps(Generic[NDFrameT]):
         2023-01-01    1
         2024-01-01    2
         2025-01-01    3
-        Freq: AS-JAN, dtype: int64
+        Freq: YS-JAN, dtype: int64
 
         Using `freq` which is the offset that the Timestamps will have
 
@@ -573,7 +573,7 @@ class AxisOps(Generic[NDFrameT]):
         2023-01-31    1
         2024-01-31    2
         2025-01-31    3
-        Freq: A-JAN, dtype: int64
+        Freq: Y-JAN, dtype: int64
         """
         obj = self.obj
 
@@ -616,12 +616,12 @@ class AxisOps(Generic[NDFrameT]):
         2023    1
         2024    2
         2025    3
-        Freq: A-DEC, dtype: int64
+        Freq: Y-DEC, dtype: int64
 
         Viewing the index
 
         >>> ser.index
-        PeriodIndex(['2023', '2024', '2025'], dtype='period[A-DEC]')
+        PeriodIndex(['2023', '2024', '2025'], dtype='period[Y-DEC]')
         """
         obj = self.obj
 
