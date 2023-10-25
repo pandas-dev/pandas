@@ -1891,7 +1891,7 @@ class Rolling(RollingAndExpandingMixin):
                 )
             else:
                 try:
-                    unit = dtype_to_unit(self._on.dtype)
+                    unit = dtype_to_unit(self._on.dtype)  # type: ignore[arg-type]
                 except TypeError:
                     # if not a datetime dtype, eg for empty dataframes
                     unit = "ns"
