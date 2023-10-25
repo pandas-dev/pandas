@@ -350,7 +350,7 @@ class TestDtypeEnforced:
             index = Index(vals)
             assert isinstance(index, TimedeltaIndex)
 
-    def test_pass_timedeltaIndex_to_index(self):
+    def test_pass_timedeltaindex_to_index(self):
         rng = timedelta_range("1 days", "10 days")
         idx = Index(rng, dtype=object)
 
