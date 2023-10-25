@@ -311,12 +311,10 @@ class AxisOps(Generic[NDFrameT]):
 
         # error: Function is missing a type annotation for one or more arguments
         def _tz_convert(ax: Index, tz) -> Index:  # type: ignore[no-untyped-def]
-            if not hasattr(ax, "tz_convert"):
+            if not isinstance(ax, DatetimeIndex):
                 if len(ax) > 0:
                     ax_name = obj._get_axis_name(axis)
-                    raise TypeError(
-                        f"{ax_name} is not a valid DatetimeIndex or PeriodIndex"
-                    )
+                    raise TypeError(f"{ax_name} is not a valid DatetimeIndex")
                 ax = DatetimeIndex([], tz=tz)
             else:
                 ax = ax.tz_convert(tz)
@@ -497,12 +495,10 @@ class AxisOps(Generic[NDFrameT]):
         def _tz_localize(  # type: ignore[no-untyped-def]
             ax: Index, tz, ambiguous: TimeAmbiguous, nonexistent: TimeNonexistent
         ) -> Index:
-            if not hasattr(ax, "tz_localize"):
+            if not isinstance(ax, DatetimeIndex):
                 if len(ax) > 0:
                     ax_name = obj._get_axis_name(axis)
-                    raise TypeError(
-                        f"{ax_name} is not a valid DatetimeIndex or PeriodIndex"
-                    )
+                    raise TypeError(f"{ax_name} is not a valid DatetimeIndex")
                 ax = DatetimeIndex([], tz=tz)
             else:
                 ax = ax.tz_localize(tz, ambiguous=ambiguous, nonexistent=nonexistent)
