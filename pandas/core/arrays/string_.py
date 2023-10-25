@@ -228,11 +228,17 @@ class StringDtype(StorageExtensionDtype):
                 # pyarrow.ChunkedArray
                 chunks = array.chunks
 
+            results = []
+            for arr in chunks:
+                arr = arr.to_numpy(zero_copy_only=False)
+                arr = ensure_string_array(arr, na_value=libmissing.NA)
+                results.append(arr)
+
         if len(chunks) == 0:
             arr = np.array([], dtype=object)
         else:
-            arr = pyarrow.concat_arrays(chunks).to_numpy(zero_copy_only=False)
-            arr = ensure_string_array(arr, na_value=libmissing.NA)
+            arr = np.concatenate(results)
+
         # Bypass validation inside StringArray constructor, see GH#47781
         new_string_array = StringArray.__new__(StringArray)
         NDArrayBacked.__init__(
