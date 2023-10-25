@@ -350,6 +350,14 @@ class TestDtypeEnforced:
             index = Index(vals)
             assert isinstance(index, TimedeltaIndex)
 
+    def test_pass_timedeltaindex_to_index(self):
+        rng = timedelta_range("1 days", "10 days")
+        idx = Index(rng, dtype=object)
+
+        expected = Index(rng.to_pytimedelta(), dtype=object)
+
+        tm.assert_numpy_array_equal(idx.values, expected.values)
+
 
 class TestIndexConstructorUnwrapping:
     # Test passing different arraylike values to pd.Index
