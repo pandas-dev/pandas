@@ -9,6 +9,14 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
+.. _whatsnew_220.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+- Reverted deprecation of ``fill_method=None`` in :meth:`DataFrame.pct_change`, :meth:`Series.pct_change`, :meth:`DataFrameGroupBy.pct_change`, and :meth:`SeriesGroupBy.pct_change`; the values ``'backfill'``, ``'bfill'``, ``'pad'``, and ``'ffill'`` are still deprecated (:issue:`53491`)
+
+.. ---------------------------------------------------------------------------
 .. _whatsnew_212.regressions:
 
 Fixed regressions
