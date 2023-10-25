@@ -436,14 +436,15 @@ float_precision : {{'high', 'legacy', 'round_trip'}}, optional
 
     .. versionadded:: 1.2
 
-dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+dtype_backend : {{'numpy_nullable', 'pyarrow', 'numpy'}}, default 'numpy'
     Back-end data type applied to the resultant :class:`DataFrame`
     (still experimental). Behaviour is as follows:
 
-    * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
-      (default).
+    * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`.
     * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
       DataFrame.
+    * ``"numpy"``: returns numpy-backed :class:`DataFrame`
+      (default).
 
     .. versionadded:: 2.0
 
@@ -2126,6 +2127,9 @@ def _refine_defaults_read(
         kwds["on_bad_lines"] = on_bad_lines
     else:
         raise ValueError(f"Argument {on_bad_lines} is invalid for on_bad_lines")
+
+    if dtype_backend == "numpy":
+        dtype_backend = lib.no_default
 
     check_dtype_backend(dtype_backend)
 
