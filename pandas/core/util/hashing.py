@@ -82,7 +82,7 @@ def combine_hash_arrays(
 
 def hash_pandas_object(
     obj: Index | DataFrame | Series,
-    index: bool = True,
+    index: bool = False,
     encoding: str = "utf8",
     hash_key: str | None = _default_hash_key,
     categorize: bool = True,

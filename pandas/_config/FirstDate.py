@@ -21,7 +21,7 @@ df = pd.DataFrame({'date': ['04/03/2004', '03/03/2005', '03/03/2007'], 'patients
 df['date'] = pd.to_datetime(df['date'], format='%d/%m/%Y').dt.strftime('%d-%m-%Y')
 
 # Print the DataFrame
-print(df)
+  print(df)
 
 
 
