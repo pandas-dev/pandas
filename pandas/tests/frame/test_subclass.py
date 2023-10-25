@@ -755,7 +755,7 @@ class MySubclassWithMetadata(DataFrame):
 
         my_metadata = kwargs.pop("my_metadata", None)
         if args and isinstance(args[0], MySubclassWithMetadata):
-            my_metadata = args[0].my_metadata
+            my_metadata = args[0].my_metadata  # type: ignore[has-type]
         self.my_metadata = my_metadata
 
     @property
