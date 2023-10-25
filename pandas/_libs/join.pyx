@@ -4,7 +4,6 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
-    int64_t,
     intp_t,
     ndarray,
 )
@@ -683,8 +682,8 @@ from pandas._libs.hashtable cimport Int64HashTable
 
 def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
                                  ndarray[numeric_t] right_values,
-                                 ndarray[int64_t, ndim=1] left_by_values,
-                                 ndarray[int64_t, ndim=1] right_by_values,
+                                 const intp_t[:] left_by_values,
+                                 const intp_t[:] right_by_values,
                                  bint allow_exact_matches=True,
                                  tolerance=None,
                                  bint use_hashtable=True):
@@ -754,8 +753,8 @@ def asof_join_backward_on_X_by_Y(ndarray[numeric_t] left_values,
 
 def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
                                 ndarray[numeric_t] right_values,
-                                ndarray[int64_t, ndim=1] left_by_values,
-                                ndarray[int64_t, ndim=1] right_by_values,
+                                const intp_t[:] left_by_values,
+                                const intp_t[:] right_by_values,
                                 bint allow_exact_matches=1,
                                 tolerance=None,
                                 bint use_hashtable=True):
@@ -826,8 +825,8 @@ def asof_join_forward_on_X_by_Y(ndarray[numeric_t] left_values,
 
 def asof_join_nearest_on_X_by_Y(ndarray[numeric_t] left_values,
                                 ndarray[numeric_t] right_values,
-                                ndarray[int64_t, ndim=1] left_by_values,
-                                ndarray[int64_t, ndim=1] right_by_values,
+                                const intp_t[:] left_by_values,
+                                const intp_t[:] right_by_values,
                                 bint allow_exact_matches=True,
                                 tolerance=None,
                                 bint use_hashtable=True):
