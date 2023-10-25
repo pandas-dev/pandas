@@ -1850,7 +1850,6 @@ cdef class BusinessDay(BusinessMixin):
         res = self._shift_bdays(i8other, reso=reso)
         if self.offset:
             res = res.view(dtarr.dtype) + Timedelta(self.offset)
-            res = res.view("i8")
         return res
 
     def is_on_offset(self, dt: datetime) -> bool:
@@ -2767,7 +2766,7 @@ cdef class QuarterEnd(QuarterOffset):
     Timestamp('2022-03-31 00:00:00')
     """
     _default_starting_month = 3
-    _prefix = "Q"
+    _prefix = "QE"
     _day_opt = "end"
 
     cdef readonly:
@@ -4585,7 +4584,7 @@ prefix_mapping = {
         Second,  # 's'
         Minute,  # 'min'
         Micro,  # 'us'
-        QuarterEnd,  # 'Q'
+        QuarterEnd,  # 'QE'
         QuarterBegin,  # 'QS'
         Milli,  # 'ms'
         Hour,  # 'h'
@@ -4603,7 +4602,7 @@ opattern = re.compile(
 
 _lite_rule_alias = {
     "W": "W-SUN",
-    "Q": "Q-DEC",
+    "QE": "QE-DEC",
 
     "Y": "Y-DEC",      # YearEnd(month=12),
     "YS": "YS-JAN",    # YearBegin(month=1),
@@ -4617,7 +4616,7 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s", "me"}
+_dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s", "me", "qe"}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
