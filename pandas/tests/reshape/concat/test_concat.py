@@ -5,6 +5,7 @@ from collections import (
 from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal
+from itertools import permutations
 
 import numpy as np
 import pytest
@@ -869,15 +870,17 @@ def test_concat_ea_upcast():
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_datetime64_diff_resolution():
+@pytest.mark.parametrize(
+    "dtype1,dtype2",
+    permutations(
+        ["datetime64[s]", "datetime64[ms]", "datetime64[us]", "datetime64[ns]"], 2
+    ),
+)
+def test_concat_different_datetime_resolution(dtype1, dtype2):
     # GH#53640
-    df1 = DataFrame({"a": [0, 1], "b": [4, 5]}, dtype="datetime64[s]")
-    df2 = DataFrame({"a": [2, 3], "b": [6, 7]}, dtype="datetime64[ms]")
+    df1 = DataFrame(np.random.default_rng(2).standard_normal((3, 4)), dtype=dtype1)
+    df2 = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), dtype=dtype2)
     result = concat([df1, df2])
 
-    expected = DataFrame(
-        data={"a": [0, 1000, 2, 3], "b": [4000, 5000, 6, 7]},
-        index=[0, 1, 0, 1],
-        dtype="datetime64[ms]",
-    )
+    expected = DataFrame(np.r_[df1.values, df2.values], index=[0, 1, 2, 0, 1, 2, 3])
     tm.assert_frame_equal(result, expected)
