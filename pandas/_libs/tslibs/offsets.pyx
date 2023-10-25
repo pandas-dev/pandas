@@ -1850,7 +1850,6 @@ cdef class BusinessDay(BusinessMixin):
         res = self._shift_bdays(i8other, reso=reso)
         if self.offset:
             res = res.view(dtarr.dtype) + Timedelta(self.offset)
-            res = res.view("i8")
         return res
 
     def is_on_offset(self, dt: datetime) -> bool:
