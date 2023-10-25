@@ -41,10 +41,6 @@ pytestmark = pytest.mark.filterwarnings(
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
-# GH#43650: Some expected failures with the pyarrow engine can occasionally
-# cause a deadlock instead, so we skip these instead of xfailing
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
-
 
 @xfail_pyarrow
 def test_read_csv_with_custom_date_parser(all_parsers):
@@ -997,20 +993,23 @@ def test_parse_dates_custom_euro_format(all_parsers, kwargs):
             )
 
 
-def test_parse_tz_aware(all_parsers, request):
+def test_parse_tz_aware(all_parsers):
     # See gh-1693
     parser = all_parsers
     data = "Date,x\n2012-06-13T01:39:00Z,0.5"
 
     result = parser.read_csv(StringIO(data), index_col=0, parse_dates=True)
+    # TODO: make unit check more specific
+    if parser.engine == "pyarrow":
+        result.index = result.index.as_unit("ns")
     expected = DataFrame(
         {"x": [0.5]}, index=Index([Timestamp("2012-06-13 01:39:00+00:00")], name="Date")
     )
-    tm.assert_frame_equal(result, expected)
     if parser.engine == "pyarrow":
         expected_tz = pytz.utc
     else:
         expected_tz = timezone.utc
+    tm.assert_frame_equal(result, expected)
     assert result.index.tz is expected_tz
 
 
@@ -1796,7 +1795,7 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # pandas.errors.ParserError: CSV parse error
 @pytest.mark.parametrize(
     "date_string",
     ["32/32/2019", "02/30/2019", "13/13/2019", "13/2019", "a3/11/2018", "10/11/2o17"],
@@ -1812,7 +1811,6 @@ def test_invalid_parse_delimited_date(all_parsers, date_string):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize(
     "date_string,dayfirst,expected",
     [
@@ -1825,17 +1823,28 @@ def test_invalid_parse_delimited_date(all_parsers, date_string):
     ],
 )
 def test_parse_delimited_date_swap_no_warning(
-    all_parsers, date_string, dayfirst, expected
+    all_parsers, date_string, dayfirst, expected, request
 ):
     parser = all_parsers
     expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
+    if parser.engine == "pyarrow":
+        if not dayfirst:
+            mark = pytest.mark.xfail(reason="CSV parse error: Empty CSV file or block")
+            request.applymarker(mark)
+        msg = "The 'dayfirst' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(date_string), header=None, dayfirst=dayfirst, parse_dates=[0]
+            )
+        return
+
     result = parser.read_csv(
         StringIO(date_string), header=None, dayfirst=dayfirst, parse_dates=[0]
     )
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "date_string,dayfirst,expected",
     [
@@ -1886,7 +1895,6 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     return msg, result
 
 
-@skip_pyarrow
 @given(DATETIME_NO_TZ)
 @pytest.mark.parametrize("delimiter", list(" -./"))
 @pytest.mark.parametrize("dayfirst", [True, False])
@@ -1921,7 +1929,7 @@ def test_hypothesis_delimited_date(
     assert result == expected
 
 
-@skip_pyarrow
+@xfail_pyarrow  # KeyErrors
 @pytest.mark.parametrize(
     "names, usecols, parse_dates, missing_cols",
     [
@@ -1954,13 +1962,17 @@ def test_missing_parse_dates_column_raises(
         )
 
 
-@skip_pyarrow
+@xfail_pyarrow  # mismatched shape
 def test_date_parser_and_names(all_parsers):
     # GH#33699
     parser = all_parsers
     data = StringIO("""x,y\n1,2""")
+    warn = UserWarning
+    if parser.engine == "pyarrow":
+        # DeprecationWarning for passing a Manager object
+        warn = (UserWarning, DeprecationWarning)
     result = parser.read_csv_check_warnings(
-        UserWarning,
+        warn,
         "Could not infer format",
         data,
         parse_dates=["B"],
@@ -1970,7 +1982,7 @@ def test_date_parser_and_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # TypeError: an integer is required
 def test_date_parser_multiindex_columns(all_parsers):
     parser = all_parsers
     data = """a,b
@@ -1983,7 +1995,7 @@ def test_date_parser_multiindex_columns(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # TypeError: an integer is required
 @pytest.mark.parametrize(
     "parse_spec, col_name",
     [
@@ -2007,7 +2019,8 @@ def test_date_parser_multiindex_columns_combine_cols(all_parsers, parse_spec, co
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+# ValueError: The 'thousands' option is not supported with the 'pyarrow' engine
+@xfail_pyarrow
 def test_date_parser_usecols_thousands(all_parsers):
     # GH#39365
     data = """A,B,C
@@ -2016,8 +2029,12 @@ def test_date_parser_usecols_thousands(all_parsers):
     """
 
     parser = all_parsers
+    warn = UserWarning
+    if parser.engine == "pyarrow":
+        # DeprecationWarning for passing a Manager object
+        warn = (UserWarning, DeprecationWarning)
     result = parser.read_csv_check_warnings(
-        UserWarning,
+        warn,
         "Could not infer format",
         StringIO(data),
         parse_dates=[1],
@@ -2028,8 +2045,8 @@ def test_date_parser_usecols_thousands(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
-def test_parse_dates_and_keep_orgin_column(all_parsers):
+@xfail_pyarrow  # mismatched shape
+def test_parse_dates_and_keep_original_column(all_parsers):
     # GH#13378
     parser = all_parsers
     data = """A
@@ -2127,7 +2144,7 @@ def test_dayfirst_warnings_no_leading_zero(date_string, dayfirst):
     tm.assert_index_equal(expected, res)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # CSV parse error: Expected 3 columns, got 4
 def test_infer_first_column_as_index(all_parsers):
     # GH#11019
     parser = all_parsers
@@ -2140,7 +2157,7 @@ def test_infer_first_column_as_index(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # pyarrow engine doesn't support passing a dict for na_values
 @pytest.mark.parametrize(
     ("key", "value", "warn"),
     [
@@ -2180,7 +2197,7 @@ def test_replace_nans_before_parsing_dates(all_parsers, key, value, warn):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # string[python] instead of dt64[ns]
 def test_parse_dates_and_string_dtype(all_parsers):
     # GH#34066
     parser = all_parsers
@@ -2243,7 +2260,6 @@ def test_parse_dates_dict_format(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize(
     "key, parse_dates", [("a_b", [[0, 1]]), ("foo", {"foo": [0, 1]})]
 )
@@ -2254,7 +2270,11 @@ def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
 31-,12-2019
 31-,12-2020"""
 
-    with tm.assert_produces_warning(None):
+    warn = None
+    if parser.engine == "pyarrow":
+        warn = DeprecationWarning
+    msg = "Passing a BlockManager to DataFrame is deprecated"
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = parser.read_csv(
             StringIO(data), date_format={key: "%d- %m-%Y"}, parse_dates=parse_dates
         )
@@ -2266,7 +2286,7 @@ def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # object dtype index
 def test_parse_dates_dict_format_index(all_parsers):
     # GH#51240
     parser = all_parsers
@@ -2294,6 +2314,9 @@ def test_parse_dates_arrow_engine(all_parsers):
 2000-01-01 00:00:01,1"""
 
     result = parser.read_csv(StringIO(data), parse_dates=["a"])
+    # TODO: make unit check more specific
+    if parser.engine == "pyarrow":
+        result["a"] = result["a"].dt.as_unit("ns")
     expected = DataFrame(
         {
             "a": [
@@ -2306,7 +2329,7 @@ def test_parse_dates_arrow_engine(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow
+@xfail_pyarrow  # object dtype index
 def test_from_csv_with_mixed_offsets(all_parsers):
     parser = all_parsers
     data = "a\n2020-01-01T00:00:00+01:00\n2020-01-01T00:00:00+00:00"
