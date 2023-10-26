@@ -591,6 +591,9 @@ def test_duplicate_keys_same_frame():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
+)
 @pytest.mark.parametrize(
     "obj",
     [
