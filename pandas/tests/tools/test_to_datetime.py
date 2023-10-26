@@ -1090,21 +1090,6 @@ class TestToDatetime:
             [expected_ds, getattr(Timestamp, attribute)()], dtype="datetime64[ns, UTC]"
         )
         assert (expected - result).max().total_seconds() < 1
-    
-    
-    #CHANGED HERE
-    def test_to_datetime_where_formart_is_list(self):
-        # https://github.com/pandas-dev/pandas/issues/55226
-        
-        data = ['2023-10-12','2023-10-13 14:30:00']
-        all_formats = ['%Y-m-%d','%Y-%m-%d %H:%M:%S']
-        result = to_datetime(data,format=all_formats)
-        expect = DatetimeIndex(
-            [to_datetime(data[0],all_formats[0]),to_datetime(data[1],all_formats[1])], dtype="datetime64[ns]"
-        )
-        
-        tm.assert_index_equal(result,expect)
-    
 
     @pytest.mark.parametrize(
         "dt", [np.datetime64("2000-01-01"), np.datetime64("2000-01-02")]

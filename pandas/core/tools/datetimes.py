@@ -1145,16 +1145,7 @@ def to_datetime(
         if not cache_array.empty:
             result = _convert_and_box_cache(argc, cache_array)
         else:
-            #CHANGED HERE
-            if isinstance(format, (list, tuple)):
-                format = np.array(format, dtype="O")
-                return_list = [] # return list
-                for i, fmt in enumerate(format):
-                    return_temp = convert_listlike(argc[i],fmt) # return object of convert_listlike
-                    return_list.append(return_temp) # add in return list 
-                result = DatetimeIndex(return_list) # transformed object in datetimeindex
-            else:
-                result = convert_listlike(argc, format)
+            result = convert_listlike(argc, format)
     else:
         result = convert_listlike(np.array([arg]), format)[0]
         if isinstance(arg, bool) and isinstance(result, np.bool_):
