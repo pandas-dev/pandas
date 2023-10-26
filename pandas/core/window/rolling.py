@@ -21,6 +21,7 @@ import numpy as np
 
 from pandas._libs.tslibs import (
     BaseOffset,
+    Timedelta,
     to_offset,
 )
 import pandas._libs.window.aggregations as window_aggregations
@@ -111,6 +112,8 @@ if TYPE_CHECKING:
     )
     from pandas.core.generic import NDFrame
     from pandas.core.groupby.ops import BaseGrouper
+
+from pandas.core.arrays.datetimelike import dtype_to_unit
 
 
 class BaseWindow(SelectionMixin):
@@ -1882,7 +1885,12 @@ class Rolling(RollingAndExpandingMixin):
                     self._on.freq.nanos / self._on.freq.n
                 )
             else:
-                self._win_freq_i8 = freq.nanos
+                try:
+                    unit = dtype_to_unit(self._on.dtype)  # type: ignore[arg-type]
+                except TypeError:
+                    # if not a datetime dtype, eg for empty dataframes
+                    unit = "ns"
+                self._win_freq_i8 = Timedelta(freq.nanos).as_unit(unit)._value
 
             # min_periods must be an integer
             if self.min_periods is None:
