@@ -2504,7 +2504,8 @@ default 'raise'
                 fmt = (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
                        f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
                 raise OutOfBoundsDatetime(
-                    f"Out of bounds timestamp: {fmt} with precision {self._creso}"
+                    f"Out of bounds timestamp: {fmt} "
+                    f"with NPY_DATETIMEUNIT {self._creso}"
                 ) from err
             ts.dts = dts
             ts.creso = self._creso
