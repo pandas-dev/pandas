@@ -1145,6 +1145,7 @@ def to_datetime(
         if not cache_array.empty:
             result = _convert_and_box_cache(argc, cache_array)
         else:
+            
             #CHANGED HERE
             if isinstance(format, (list, tuple)):
                 format = np.array(format, dtype="O")
