@@ -40,7 +40,7 @@ class TestMap:
     def test_index_map(self, name):
         # see GH#20990
         count = 6
-        index = date_range("2018-01-01", periods=count, freq="M", name=name).map(
+        index = date_range("2018-01-01", periods=count, freq="ME", name=name).map(
             lambda x: (x.year, x.month)
         )
         exp_index = MultiIndex.from_product(((2018,), range(1, 7)), names=[name, name])

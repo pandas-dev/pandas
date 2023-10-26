@@ -454,6 +454,13 @@ with cf.config_prefix("mode"):
         validator=is_one_of_factory(["block", "array"]),
     )
 
+cf.deprecate_option(
+    # GH#55043
+    "mode.data_manager",
+    "data_manager option is deprecated and will be removed in a future "
+    "version. Only the BlockManager will be available.",
+)
+
 
 # TODO better name?
 copy_on_write_doc = """

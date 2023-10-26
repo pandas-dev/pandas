@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+import pandas.util._test_decorators as td
+
 from pandas.core.dtypes.common import is_integer_dtype
 
 from pandas import (
@@ -39,7 +41,7 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
     if sort:
         expected = expected.sort_index()
     if is_integer_dtype(expected.index.dtype) and not any(x is None for x in by):
-        expected.index = expected.index.astype(np.int_)
+        expected.index = expected.index.astype(int)
 
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -103,4 +105,26 @@ def test_size_series_masked_type_returns_Int64(dtype):
     ser = Series([1, 1, 1], index=["a", "a", "b"], dtype=dtype)
     result = ser.groupby(level=0).size()
     expected = Series([2, 1], dtype="Int64", index=["a", "b"])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        object,
+        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_size_strings(dtype):
+    # GH#55627
+    df = DataFrame({"a": ["a", "a", "b"], "b": "a"}, dtype=dtype)
+    result = df.groupby("a")["b"].size()
+    exp_dtype = "Int64" if dtype == "string[pyarrow]" else "int64"
+    expected = Series(
+        [2, 1],
+        index=Index(["a", "b"], name="a", dtype=dtype),
+        name="b",
+        dtype=exp_dtype,
+    )
     tm.assert_series_equal(result, expected)

@@ -396,7 +396,7 @@ def test_period(request, transform_assert_equal):
     inp = transform(idx)
 
     if not isinstance(inp, Index):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason="Missing PeriodDtype support in to_numeric")
         )
     result = to_numeric(inp)

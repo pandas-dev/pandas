@@ -19,12 +19,12 @@ dependencies:
 
   # required dependencies
   - python-dateutil
-  - numpy
+  - numpy<2
   - pytz
   - pip
 
   - pip:
-    - "tzdata>=2022.1"
+    - "tzdata>=2022.7"
     - "--extra-index-url https://pypi.fury.io/arrow-nightlies/"
     - "--prefer-binary"
     - "--pre"

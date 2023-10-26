@@ -16,7 +16,7 @@ from pandas._libs import (
 )
 from pandas._libs.arrays import NDArrayBacked
 from pandas._libs.lib import ensure_string_array
-from pandas.compat import pa_version_under7p0
+from pandas.compat import pa_version_under10p1
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import doc
 
@@ -56,6 +56,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         AxisInt,
         Dtype,
+        DtypeObj,
         NumpySorter,
         NumpyValueArrayLike,
         Scalar,
@@ -126,9 +127,9 @@ class StringDtype(StorageExtensionDtype):
                 f"Storage must be 'python', 'pyarrow' or 'pyarrow_numpy'. "
                 f"Got {storage} instead."
             )
-        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under7p0:
+        if storage in ("pyarrow", "pyarrow_numpy") and pa_version_under10p1:
             raise ImportError(
-                "pyarrow>=7.0.0 is required for PyArrow backed StringArray."
+                "pyarrow>=10.0.1 is required for PyArrow backed StringArray."
             )
         self.storage = storage
 
@@ -252,6 +253,13 @@ class BaseStringArray(ExtensionArray):
         if self.ndim > 1:
             return [x.tolist() for x in self]
         return list(self.to_numpy())
+
+    @classmethod
+    def _from_scalars(cls, scalars, dtype: DtypeObj) -> Self:
+        if lib.infer_dtype(scalars, skipna=True) != "string":
+            # TODO: require any NAs be valid-for-string
+            raise ValueError
+        return cls._from_sequence(scalars, dtype=dtype)
 
 
 # error: Definition of "_concat_same_type" in base class "NDArrayBacked" is
