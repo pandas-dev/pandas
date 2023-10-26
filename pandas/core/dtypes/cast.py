@@ -699,7 +699,9 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             dtype = np.dtype(np.object_)
 
         elif issubclass(dtype.type, np.integer):
-            if not np.can_cast(fill_value, dtype):
+            try:
+                np_can_hold_element(dtype, fill_value)
+            except (LossySetitemError, NotImplementedError):
                 # upcast to prevent overflow
                 mst = np.min_scalar_type(fill_value)
                 dtype = np.promote_types(dtype, mst)
@@ -1751,9 +1753,14 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
     if dtype.kind in "iu":
         if isinstance(element, range):
-            if _dtype_can_hold_range(element, dtype):
+            if not len(element):
+                return True
+            try:
+                np_can_hold_element(dtype, element.start)
+                np_can_hold_element(dtype, element.stop)
                 return element
-            raise LossySetitemError
+            except (LossySetitemError, NotImplementedError) as err:
+                raise LossySetitemError from err
 
         if is_integer(element) or (is_float(element) and element.is_integer()):
             # e.g. test_setitem_series_int8 if we have a python int 1
@@ -1906,14 +1913,3 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         raise LossySetitemError
 
     raise NotImplementedError(dtype)
-
-
-def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
-    """
-    _maybe_infer_dtype_type infers to int64 (and float64 for very large endpoints),
-    but in many cases a range can be held by a smaller integer dtype.
-    Check if this is one of those cases.
-    """
-    if not len(rng):
-        return True
-    return np.can_cast(rng[0], dtype) and np.can_cast(rng[-1], dtype)
