@@ -575,6 +575,19 @@ def test_groupby_min_max_categorical(func):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_min_empty_string_dtype(func):
+    # GH#55619
+    pytest.importorskip("pyarrow")
+    dtype = "string[pyarrow_numpy]"
+    df = DataFrame({"a": ["a"], "b": "a", "c": "a"}, dtype=dtype).iloc[:0]
+    result = getattr(df.groupby("a"), func)()
+    expected = DataFrame(
+        columns=["b", "c"], dtype=dtype, index=pd.Index([], dtype=dtype, name="a")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_max_nan_bug():
     raw = """,Date,app,File
 -04-23,2013-04-23 00:00:00,,log080001.log
