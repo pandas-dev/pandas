@@ -530,6 +530,7 @@ def test_map_dtype_inference_overflows():
 
 
 def test_view_to_datetimelike():
+    # GH#55710
     idx = Index([1, 2, 3])
     res = idx.view("m8[s]")
     expected = pd.TimedeltaIndex(idx.values.view("m8[s]"))
