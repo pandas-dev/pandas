@@ -1063,7 +1063,7 @@ def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
         expected = expected.to_frame("vals")
 
     msg = (
-        "The 'fill_method' and 'limit' keywords in "
+        "The 'fill_method' keyword being not None and the 'limit' keyword in "
         f"{type(gb).__name__}.pct_change are deprecated"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
