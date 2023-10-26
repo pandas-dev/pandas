@@ -389,7 +389,7 @@ class TestTableOrient:
         result["schema"].pop("pandas_version")
 
         fields = [
-            {"freq": "Q-JAN", "name": "index", "type": "datetime"},
+            {"freq": "QE-JAN", "name": "index", "type": "datetime"},
             {"name": "values", "type": "integer"},
         ]
 
@@ -845,3 +845,14 @@ class TestTableOrientReader:
         expected = DataFrame({"a": [1, 2.0, "s"]})
         result = pd.read_json(StringIO(df_json), orient="table")
         tm.assert_frame_equal(expected, result)
+
+    @pytest.mark.parametrize("freq", ["M", "2M", "Q", "2Q"])
+    def test_read_json_table_orient_period_depr_freq(self, freq, recwarn):
+        # GH#9586
+        df = DataFrame(
+            {"ints": [1, 2]},
+            index=pd.PeriodIndex(["2020-01", "2020-06"], freq=freq),
+        )
+        out = df.to_json(orient="table")
+        result = pd.read_json(out, orient="table")
+        tm.assert_frame_equal(df, result)

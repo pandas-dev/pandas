@@ -766,25 +766,6 @@ def try_parse_dates(object[:] values, parser) -> np.ndarray:
     return result.base  # .base to access underlying ndarray
 
 
-def try_parse_year_month_day(
-    object[:] years, object[:] months, object[:] days
-) -> np.ndarray:
-    cdef:
-        Py_ssize_t i, n
-        object[::1] result
-
-    n = len(years)
-    # TODO(cython3): Use len instead of `shape[0]`
-    if months.shape[0] != n or days.shape[0] != n:
-        raise ValueError("Length of years/months/days must all be equal")
-    result = np.empty(n, dtype="O")
-
-    for i in range(n):
-        result[i] = datetime(int(years[i]), int(months[i]), int(days[i]))
-
-    return result.base  # .base to access underlying ndarray
-
-
 # ----------------------------------------------------------------------
 # Miscellaneous
 
