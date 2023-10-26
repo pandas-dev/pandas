@@ -699,9 +699,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             dtype = np.dtype(np.object_)
 
         elif issubclass(dtype.type, np.integer):
-            try:
-                np_can_hold_element(dtype, fill_value)
-            except (LossySetitemError, NotImplementedError):
+            if not np_can_cast_scalar(fill_value, dtype):
                 # upcast to prevent overflow
                 mst = np.min_scalar_type(fill_value)
                 dtype = np.promote_types(dtype, mst)
@@ -1753,14 +1751,9 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
 
     if dtype.kind in "iu":
         if isinstance(element, range):
-            if not len(element):
-                return True
-            try:
-                np_can_hold_element(dtype, element.start)
-                np_can_hold_element(dtype, element.stop)
+            if _dtype_can_hold_range(element, dtype):
                 return element
-            except (LossySetitemError, NotImplementedError) as err:
-                raise LossySetitemError from err
+            raise LossySetitemError
 
         if is_integer(element) or (is_float(element) and element.is_integer()):
             # e.g. test_setitem_series_int8 if we have a python int 1
@@ -1913,3 +1906,35 @@ def np_can_hold_element(dtype: np.dtype, element: Any) -> Any:
         raise LossySetitemError
 
     raise NotImplementedError(dtype)
+
+
+def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
+    """
+    _maybe_infer_dtype_type infers to int64 (and float64 for very large endpoints),
+    but in many cases a range can be held by a smaller integer dtype.
+    Check if this is one of those cases.
+    """
+    if not len(rng):
+        return True
+    return np_can_cast_scalar(rng.start, dtype) and np_can_cast_scalar(rng.end, dtype)
+
+
+def np_can_cast_scalar(element: Scalar, dtype: np.dtype) -> bool:
+    """
+    np.can_cast pandas-equivalent for pre 2-0 behavior that allowed scalar
+    inference
+
+    Parameters
+    ----------
+    element : Scalar
+    dtype : np.dtype
+
+    Returns
+    -------
+    bool
+    """
+    try:
+        np_can_hold_element(dtype, element)
+        return True
+    except (LossySetitemError, NotImplementedError):
+        return False
