@@ -31,17 +31,17 @@ runs:
           if [[ ${{ inputs.sanitize }} == "true" ]]; then
             CFLAGS="$CFLAGS -fno-sanitize-recover=all" \
               pip install -e . --no-build-isolation -v  \
-              --config-settings=setup-args="-Db_sanitize=address,undefined"
+              --config-settings=setup-args="-Db_sanitize=address,undefined" --no-deps
           else
-            pip install -e . --no-build-isolation -v
+            pip install -e . --no-build-isolation -v  --no-deps
           fi
         else
           if [[ ${{ inputs.sanitize }} == "true" ]]; then
             CFLAGS="$CFLAGS -fno-sanitize-recover=all" \
               pip install . --no-build-isolation -v \
-              --config-settings=setup-args="-Db_sanitize=address,undefined"
+              --config-settings=setup-args="-Db_sanitize=address,undefined" --no-deps
           else
-            pip install . --no-build-isolation -v
+            pip install . --no-build-isolation -v  --no-deps
           fi
         fi
       shell: bash -el {0}

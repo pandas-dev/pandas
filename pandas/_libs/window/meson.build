@@ -16,3 +16,16 @@ py.extension_module(
     subdir: 'pandas/_libs/window',
     install: true
 )
+
+sources_to_install = [
+    '__init__.py',
+    'aggregations.pyi',
+    'indexers.pyi'
+]
+
+foreach source: sources_to_install
+    py.install_sources(
+        source,
+        subdir: 'pandas/_libs/window'
+    )
+endforeach

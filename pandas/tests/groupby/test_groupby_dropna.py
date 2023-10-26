@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pandas.compat.pyarrow import pa_version_under7p0
+from pandas.compat.pyarrow import pa_version_under10p1
 
 from pandas.core.dtypes.missing import na_value_for_dtype
 
@@ -418,7 +418,7 @@ def test_groupby_drop_nan_with_multi_index():
         pytest.param(
             "string[pyarrow]",
             marks=pytest.mark.skipif(
-                pa_version_under7p0, reason="pyarrow is not installed"
+                pa_version_under10p1, reason="pyarrow is not installed"
             ),
         ),
         "datetime64[ns]",
@@ -503,18 +503,7 @@ def test_null_is_null_for_dtype(
 
 
 @pytest.mark.parametrize("index_kind", ["range", "single", "multi"])
-def test_categorical_reducers(
-    request, reduction_func, observed, sort, as_index, index_kind
-):
-    # GH#36327
-    if (
-        reduction_func in ("idxmin", "idxmax")
-        and not observed
-        and index_kind != "multi"
-    ):
-        msg = "GH#10694 - idxmin/max broken for categorical with observed=False"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
-
+def test_categorical_reducers(reduction_func, observed, sort, as_index, index_kind):
     # Ensure there is at least one null value by appending to the end
     values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(
@@ -543,6 +532,17 @@ def test_categorical_reducers(
         # Don't include the grouping columns so we can call reset_index
         args = (args[0].drop(columns=keys),)
         args_filled = (args_filled[0].drop(columns=keys),)
+
+    gb_keepna = df.groupby(
+        keys, dropna=False, observed=observed, sort=sort, as_index=as_index
+    )
+
+    if not observed and reduction_func in ["idxmin", "idxmax"]:
+        with pytest.raises(
+            ValueError, match="empty group due to unobserved categories"
+        ):
+            getattr(gb_keepna, reduction_func)(*args)
+        return
 
     gb_filled = df_filled.groupby(keys, observed=observed, sort=sort, as_index=True)
     expected = getattr(gb_filled, reduction_func)(*args_filled).reset_index()
@@ -573,9 +573,6 @@ def test_categorical_reducers(
         if as_index:
             expected = expected["size"].rename(None)
 
-    gb_keepna = df.groupby(
-        keys, dropna=False, observed=observed, sort=sort, as_index=as_index
-    )
     if as_index or index_kind == "range" or reduction_func == "size":
         warn = None
     else:
@@ -594,7 +591,7 @@ def test_categorical_transformers(
     # GH#36327
     if transformation_func == "fillna":
         msg = "GH#49651 fillna may incorrectly reorders results when dropna=False"
-        request.node.add_marker(pytest.mark.xfail(reason=msg, strict=False))
+        request.applymarker(pytest.mark.xfail(reason=msg, strict=False))
 
     values = np.append(np.random.default_rng(2).choice([1, 2, None], size=19), None)
     df = pd.DataFrame(

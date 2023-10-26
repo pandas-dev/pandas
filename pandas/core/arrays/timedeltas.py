@@ -136,7 +136,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     Examples
     --------
-    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1H', '2H']))
+    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1h', '2h']))
     <TimedeltaArray>
     ['0 days 01:00:00', '0 days 02:00:00']
     Length: 2, dtype: timedelta64[ns]
@@ -205,8 +205,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     @classmethod
     def _validate_dtype(cls, values, dtype):
         # used in TimeLikeOps.__init__
-        _validate_td64_dtype(values.dtype)
         dtype = _validate_td64_dtype(dtype)
+        _validate_td64_dtype(values.dtype)
+        if dtype != values.dtype:
+            raise ValueError("Values resolution does not match dtype.")
         return dtype
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
@@ -471,7 +473,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         from pandas.io.formats.format import get_format_timedelta64
 
         # Relies on TimeDelta._repr_base
-        formatter = get_format_timedelta64(self._ndarray, na_rep)
+        formatter = get_format_timedelta64(self, na_rep)
         # equiv: np.array([formatter(x) for x in self._ndarray])
         #  but independent of dimension
         return np.frompyfunc(formatter, 1, 1)(self._ndarray)
@@ -1202,11 +1204,9 @@ def _validate_td64_dtype(dtype) -> DtypeObj:
         )
         raise ValueError(msg)
 
-    if (
-        not isinstance(dtype, np.dtype)
-        or dtype.kind != "m"
-        or not is_supported_unit(get_unit_from_dtype(dtype))
-    ):
-        raise ValueError(f"dtype {dtype} cannot be converted to timedelta64[ns]")
+    if not lib.is_np_dtype(dtype, "m"):
+        raise ValueError(f"dtype '{dtype}' is invalid, should be np.timedelta64 dtype")
+    elif not is_supported_unit(get_unit_from_dtype(dtype)):
+        raise ValueError("Supported timedelta64 resolutions are 's', 'ms', 'us', 'ns'")
 
     return dtype

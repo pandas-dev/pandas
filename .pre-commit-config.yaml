@@ -20,11 +20,11 @@ ci:
 repos:
 -   repo: https://github.com/hauntsaninja/black-pre-commit-mirror
     # black compiled with mypyc
-    rev: 23.7.0
+    rev: 23.9.1
     hooks:
       - id: black
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.0.287
+    rev: v0.0.291
     hooks:
     -   id: ruff
         args: [--exit-non-zero-on-fix]
@@ -70,21 +70,8 @@ repos:
     -   id: fix-encoding-pragma
         args: [--remove]
     -   id: trailing-whitespace
--   repo: https://github.com/cpplint/cpplint
-    rev: 1.6.1
-    hooks:
-    -   id: cpplint
-        exclude: ^pandas/_libs/include/pandas/vendored/klib
-        args: [
-            --quiet,
-            '--extensions=c,h',
-            '--headers=h',
-            --recursive,
-            --linelength=88,
-            '--filter=-readability/casting,-runtime/int,-build/include_subdir,-readability/fn_size'
-        ]
 -   repo: https://github.com/pylint-dev/pylint
-    rev: v3.0.0a7
+    rev: v3.0.0b0
     hooks:
     -   id: pylint
         stages: [manual]
@@ -107,7 +94,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://github.com/asottile/pyupgrade
-    rev: v3.10.1
+    rev: v3.13.0
     hooks:
     -   id: pyupgrade
         args: [--py39-plus]
@@ -127,6 +114,13 @@ repos:
     rev: v0.6.8
     hooks:
     - id: sphinx-lint
+-   repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: ea59a72
+    hooks:
+    - id: clang-format
+      files: ^pandas/_libs/src|^pandas/_libs/include
+      args: [-i]
+      types_or: [c, c++]
 -   repo: local
     hooks:
     -   id: pyright

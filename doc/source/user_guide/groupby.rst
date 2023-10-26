@@ -458,7 +458,7 @@ Selecting a group
 -----------------
 
 A single group can be selected using
-:meth:`~pandas.core.groupby.DataFrameGroupBy.get_group`:
+:meth:`.DataFrameGroupBy.get_group`:
 
 .. ipython:: python
 
@@ -1213,6 +1213,19 @@ The dimension of the returned result can also change:
 
     grouped.apply(f)
 
+``apply`` on a Series can operate on a returned value from the applied function
+that is itself a series, and possibly upcast the result to a DataFrame:
+
+.. ipython:: python
+
+    def f(x):
+        return pd.Series([x, x ** 2], index=["x", "x^2"])
+
+
+    s = pd.Series(np.random.rand(5))
+    s
+    s.apply(f)
+
 Similar to :ref:`groupby.aggregate.agg`, the resulting dtype will reflect that of the
 apply function. If the results from different groups have different dtypes, then
 a common dtype will be determined in the same way as ``DataFrame`` construction.
@@ -1403,7 +1416,7 @@ Groupby a specific column with the desired frequency. This is like resampling.
 
 .. ipython:: python
 
-   df.groupby([pd.Grouper(freq="1M", key="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="1ME", key="Date"), "Buyer"])[["Quantity"]].sum()
 
 When ``freq`` is specified, the object returned by ``pd.Grouper`` will be an
 instance of ``pandas.api.typing.TimeGrouper``. You have an ambiguous specification
@@ -1413,9 +1426,9 @@ in that you have a named index and a column that could be potential groupers.
 
    df = df.set_index("Date")
    df["Date"] = df.index + pd.offsets.MonthEnd(2)
-   df.groupby([pd.Grouper(freq="6M", key="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="6ME", key="Date"), "Buyer"])[["Quantity"]].sum()
 
-   df.groupby([pd.Grouper(freq="6M", level="Date"), "Buyer"])[["Quantity"]].sum()
+   df.groupby([pd.Grouper(freq="6ME", level="Date"), "Buyer"])[["Quantity"]].sum()
 
 
 Taking the first rows of each group
@@ -1518,7 +1531,7 @@ Enumerate groups
 
 To see the ordering of the groups (as opposed to the order of rows
 within a group given by ``cumcount``) you can use
-:meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`.
+:meth:`.DataFrameGroupBy.ngroup`.
 
 
 
@@ -1647,7 +1660,7 @@ Regroup columns of a DataFrame according to their sum, and sum the aggregated on
 Multi-column factorization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-By using :meth:`~pandas.core.groupby.DataFrameGroupBy.ngroup`, we can extract
+By using :meth:`.DataFrameGroupBy.ngroup`, we can extract
 information about the groups in a way similar to :func:`factorize` (as described
 further in the :ref:`reshaping API <reshaping.factorize>`) but which applies
 naturally to multiple columns of mixed type and different
