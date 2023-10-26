@@ -699,7 +699,7 @@ def _maybe_promote(dtype: np.dtype, fill_value=np.nan):
             dtype = np.dtype(np.object_)
 
         elif issubclass(dtype.type, np.integer):
-            if not np_can_cast_scalar(fill_value, dtype):
+            if not np_can_cast_scalar(fill_value, dtype):  # type: ignore[arg-type]
                 # upcast to prevent overflow
                 mst = np.min_scalar_type(fill_value)
                 dtype = np.promote_types(dtype, mst)
