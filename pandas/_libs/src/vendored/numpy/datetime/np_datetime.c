@@ -73,8 +73,10 @@ _Static_assert(0, "__has_builtin not detected; please try a newer compiler");
 #define PD_CHECK_OVERFLOW(FUNC)                                                \
   do {                                                                         \
     if ((FUNC) != 0) {                                                         \
+      PyGILState_STATE gstate = PyGILState_Ensure();                           \
       PyErr_SetString(PyExc_OverflowError,                                     \
                       "Overflow occurred in npy_datetimestruct_to_datetime");  \
+      PyGILState_Release(gstate);                                              \
       return -1;                                                               \
     }                                                                          \
   } while (0)
@@ -526,8 +528,11 @@ npy_datetime npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT base,
   }
 
   /* Something got corrupted */
+  PyGILState_STATE gstate = PyGILState_Ensure();
   PyErr_SetString(PyExc_ValueError,
                   "NumPy datetime metadata with corrupt unit value");
+  PyGILState_Release(gstate);
+
   return -1;
 }
 
