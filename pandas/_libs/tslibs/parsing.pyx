@@ -868,6 +868,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     Examples
     --------
+    >>> from pandas.tseries.api import guess_datetime_format
     >>> guess_datetime_format('09/13/2023')
     '%m/%d/%Y'
 
