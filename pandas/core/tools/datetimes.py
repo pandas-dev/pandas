@@ -404,6 +404,8 @@ def _convert_listlike_datetimes(
     -------
     Index-like of parsed dates
     """
+           
+    
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype="O")
     elif isinstance(arg, NumpyExtensionArray):
@@ -482,9 +484,9 @@ def _convert_listlike_datetimes(
 
     if format is None:
         format = _guess_datetime_format_for_array(arg, dayfirst=dayfirst)
-
+    
     # `format` could be inferred, or user didn't ask for mixed-format parsing.
-    if format is not None and format != "mixed":
+    if format is not None and format != "mixed": 
         return _array_strptime_with_fallback(arg, name, utc, format, exact, errors)
 
     result, tz_parsed = objects_to_datetime64ns(
@@ -718,13 +720,14 @@ def to_datetime(
     ...
 
 
+#MUDANDO AQUI
 def to_datetime(
     arg: DatetimeScalarOrArrayConvertible | DictConvertible,
     errors: DateTimeErrorChoices = "raise",
     dayfirst: bool = False,
     yearfirst: bool = False,
     utc: bool = False,
-    format: str | None = None,
+    format: str | list[str] | None = None,
     exact: bool | lib.NoDefault = lib.no_default,
     unit: str | None = None,
     infer_datetime_format: lib.NoDefault | bool = lib.no_default,
@@ -1068,7 +1071,9 @@ def to_datetime(
     DatetimeIndex(['2018-10-26 12:00:00+00:00', '2020-01-01 18:00:00+00:00'],
                   dtype='datetime64[ns, UTC]', freq=None)
     """
-    if exact is not lib.no_default and format in {"mixed", "ISO8601"}:
+    
+    
+    if exact is not lib.no_default and format in {"mixed","ISO8601"}:
         raise ValueError("Cannot use 'exact' when 'format' is 'mixed' or 'ISO8601'")
     if infer_datetime_format is not lib.no_default:
         warnings.warn(
@@ -1086,7 +1091,7 @@ def to_datetime(
         arg = _adjust_to_origin(arg, origin, unit)
 
     convert_listlike = partial(
-        _convert_listlike_datetimes,
+        _convert_listlike_datetimes,    
         utc=utc,
         unit=unit,
         dayfirst=dayfirst,
@@ -1096,6 +1101,8 @@ def to_datetime(
     )
     # pylint: disable-next=used-before-assignment
     result: Timestamp | NaTType | Series | Index
+    
+    
 
     if isinstance(arg, Timestamp):
         result = arg
@@ -1128,7 +1135,7 @@ def to_datetime(
             argc = cast(
                 Union[list, tuple, ExtensionArray, np.ndarray, "Series", Index], arg
             )
-            cache_array = _maybe_cache(argc, format, cache, convert_listlike)
+            cache_array = _maybe_cache(argc, format, cache, convert_listlike) # VER TAMBÉM AQUI
         except OutOfBoundsDatetime:
             # caching attempts to create a DatetimeIndex, which may raise
             # an OOB. If that's the desired behavior, then just reraise...
@@ -1141,7 +1148,19 @@ def to_datetime(
         if not cache_array.empty:
             result = _convert_and_box_cache(argc, cache_array)
         else:
-            result = convert_listlike(argc, format)
+            #CHANGED HERE
+            if isinstance(format, (list, tuple)):
+                format = np.array(format, dtype="O")
+                return_list = [] # return list
+                
+                for i, fmt in enumerate(format):
+                    return_temp = convert_listlike(argc[i],fmt) # return object of convert_listlike
+                    return_list.append(return_temp) # add in return list 
+                
+                result = DatetimeIndex(return_list) # transformed object in datetimeindex
+            
+            else:
+                result = convert_listlike(argc, format)
     else:
         result = convert_listlike(np.array([arg]), format)[0]
         if isinstance(arg, bool) and isinstance(result, np.bool_):
