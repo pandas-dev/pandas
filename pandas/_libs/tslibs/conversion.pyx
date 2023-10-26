@@ -41,7 +41,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     convert_reso,
     get_conversion_factor,
     get_datetime64_unit,
-    get_datetime64_value,
     get_implementation_bounds,
     import_pandas_datetime,
     npy_datetime,
@@ -198,7 +197,7 @@ cdef int64_t get_datetime64_nanos(object val, NPY_DATETIMEUNIT reso) except? -1:
         NPY_DATETIMEUNIT unit
         npy_datetime ival
 
-    ival = get_datetime64_value(val)
+    ival = cnp.get_datetime64_value(val)
     if ival == NPY_NAT:
         return NPY_NAT
 
