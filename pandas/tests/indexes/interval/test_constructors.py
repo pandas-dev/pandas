@@ -258,6 +258,7 @@ class TestFromArrays(ConstructorTests):
 
     @pytest.mark.parametrize("interval_cls", [IntervalArray, IntervalIndex])
     def test_from_arrays_mismatched_datetimelike_resos(self, interval_cls):
+        # GH#55714
         left = date_range("2016-01-01", periods=3, unit="s")
         right = date_range("2017-01-01", periods=3, unit="ms")
         result = interval_cls.from_arrays(left, right)

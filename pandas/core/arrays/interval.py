@@ -358,7 +358,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             )
             raise ValueError(msg)
         elif needs_i8_conversion(left.dtype) and left.unit != right.unit:
-            # e.g. m8[s] vs m8[ms], try to cast to a common dtype
+            # e.g. m8[s] vs m8[ms], try to cast to a common dtype GH#55714
             left_arr, right_arr = left._data._ensure_matching_resos(right._data)
             left = ensure_index(left_arr)
             right = ensure_index(right_arr)
