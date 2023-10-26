@@ -28,6 +28,7 @@ Fixed regressions
 - Fixed regression in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg` where if the option ``compute.use_numba`` was set to True, groupby methods not supported by the numba engine would raise a ``TypeError`` (:issue:`55520`)
 - Fixed performance regression with wide DataFrames, typically involving methods where all columns were accessed individually (:issue:`55256`, :issue:`55245`)
 - Fixed regression in :func:`merge_asof` raising ``TypeError`` for ``by`` with datetime and timedelta dtypes (:issue:`55453`)
+- Fixed regression in :func:`read_parquet` when reading a file with a string column consisting of more than 2 GB of string data and using the ``"string"`` dtype (:issue:`55606`)
 - Fixed regression in :meth:`DataFrame.to_sql` not roundtripping datetime columns correctly for sqlite when using ``detect_types`` (:issue:`55554`)
 
 .. ---------------------------------------------------------------------------
