@@ -14,6 +14,7 @@ including other versions of pandas.
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
 - Fixed regression in :meth:`DataFrame.join` where result has missing values and dtype is arrow backed string (:issue:`55348`)
+- Fixed regression in :meth:`~DataFrame.rolling` where non-nanosecond index or ``on`` column would produce incorrect results (:issue:`55026`, :issue:`55106`, :issue:`55299`)
 - Fixed regression in :meth:`DataFrame.resample` which was extrapolating back to ``origin`` when ``origin`` was outside its bounds (:issue:`55064`)
 - Fixed regression in :meth:`DataFrame.sort_index` which was not sorting correctly when the index was a sliced :class:`MultiIndex` (:issue:`55379`)
 - Fixed regression in :meth:`DataFrameGroupBy.agg` and :meth:`SeriesGroupBy.agg` where if the option ``compute.use_numba`` was set to True, groupby methods not supported by the numba engine would raise a ``TypeError`` (:issue:`55520`)
