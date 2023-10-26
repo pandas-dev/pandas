@@ -9,7 +9,7 @@ including other versions of pandas.
 {{ header }}
 
 .. ---------------------------------------------------------------------------
-.. _whatsnew_220.deprecations:
+.. _whatsnew_212.deprecations:
 
 Deprecations
 ~~~~~~~~~~~~
