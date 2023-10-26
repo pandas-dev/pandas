@@ -840,4 +840,11 @@ links = [
     "pandas.zip",
 ]
 
-linkcheck_ignore = [re.escape(link) for link in links]
+# Exclude specific links from the links list
+
+excluded_links = ["^http://$", "^https://$"]
+filtered_links = [link for link in links if link not in excluded_links]
+
+# Apply re.escape() to the filtered links
+
+linkcheck_ignore = [re.escape(link) for link in filtered_links]
