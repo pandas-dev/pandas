@@ -1152,9 +1152,7 @@ def to_datetime(
                 for i, fmt in enumerate(format):
                     return_temp = convert_listlike(argc[i],fmt) # return object of convert_listlike
                     return_list.append(return_temp) # add in return list 
-                
                 result = DatetimeIndex(return_list) # transformed object in datetimeindex
-            
             else:
                 result = convert_listlike(argc, format)
     else:
