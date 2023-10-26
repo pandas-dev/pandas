@@ -230,6 +230,8 @@ class StringDtype(StorageExtensionDtype):
 
             results = []
             for arr in chunks:
+                # convert chunk by chunk to numpy and concatenate then, to avoid
+                # overflow for large string data when concatenating the pyarrow arrays
                 arr = arr.to_numpy(zero_copy_only=False)
                 arr = ensure_string_array(arr, na_value=libmissing.NA)
                 results.append(arr)
