@@ -1,5 +1,4 @@
 from datetime import datetime
-import sys
 
 import numpy as np
 import pytest
@@ -349,6 +348,7 @@ def test_interchange_from_non_pandas_tz_aware(request):
         ([True, False, True], np.bool_, bytearray(b"\x01\x00\x01")),
         ([0, 1, 42], np.uint8, bytearray(b"\x00\x01\x2a")),
         ([-42, 0, 42], np.int8, bytearray(b"\xd6\x00\x2a")),
+        """
         (
             [-42, 0, 42],
             np.int32,
@@ -361,6 +361,7 @@ def test_interchange_from_non_pandas_tz_aware(request):
             "string",
             bytearray(b"\x66\x6f\x6f\x62\x61\x72\x62\x61\x7a"),
         ),
+        """,
     ],
 )
 def test_buffer_buffer_protocol(data, dtype, expected):

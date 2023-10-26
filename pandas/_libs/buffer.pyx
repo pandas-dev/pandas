@@ -14,7 +14,7 @@ cdef class CBuffer:
         buffer.buf = PyLong_AsVoidPtr(self.ptr)
         # assumes sizeof(unsigned char) == sizeof(uint8_t)
         # TODO: use C11 static_assert macro in Cython
-        buffer.format = "@B"
+        buffer.format = "B"
         buffer.itemsize = itemsize
         buffer.len = self.bufsize
         buffer.ndim = 1
