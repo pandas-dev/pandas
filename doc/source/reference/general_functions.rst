@@ -61,7 +61,6 @@ Top-level dealing with datetimelike data
 
 Top-level dealing with Interval data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 .. autosummary::
    :toctree: api/
 
