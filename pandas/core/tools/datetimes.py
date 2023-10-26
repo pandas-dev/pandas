@@ -1149,7 +1149,6 @@ def to_datetime(
             if isinstance(format, (list, tuple)):
                 format = np.array(format, dtype="O")
                 return_list = [] # return list
-                
                 for i, fmt in enumerate(format):
                     return_temp = convert_listlike(argc[i],fmt) # return object of convert_listlike
                     return_list.append(return_temp) # add in return list 
