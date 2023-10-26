@@ -2230,14 +2230,9 @@ def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
 31-,12-2019
 31-,12-2020"""
 
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(
-            StringIO(data), date_format={key: "%d- %m-%Y"}, parse_dates=parse_dates
-        )
+    result = parser.read_csv(
+        StringIO(data), date_format={key: "%d- %m-%Y"}, parse_dates=parse_dates
+    )
     expected = DataFrame(
         {
             key: [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
