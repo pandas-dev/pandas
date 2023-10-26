@@ -1916,7 +1916,7 @@ def _dtype_can_hold_range(rng: range, dtype: np.dtype) -> bool:
     """
     if not len(rng):
         return True
-    return np_can_cast_scalar(rng.start, dtype) and np_can_cast_scalar(rng.end, dtype)
+    return np_can_cast_scalar(rng.start, dtype) and np_can_cast_scalar(rng.stop, dtype)
 
 
 def np_can_cast_scalar(element: Scalar, dtype: np.dtype) -> bool:
