@@ -53,7 +53,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_D,
     astype_overflowsafe,
     check_dts_bounds,
-    get_timedelta64_value,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -1822,7 +1821,7 @@ cdef class _Period(PeriodMixin):
 
         if (
             cnp.is_timedelta64_object(other) and
-            get_timedelta64_value(other) == NPY_NAT
+            cnp.get_timedelta64_value(other) == NPY_NAT
         ):
             # i.e. np.timedelta64("nat")
             return NaT

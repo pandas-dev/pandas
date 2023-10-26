@@ -59,22 +59,6 @@ cdef extern from "pandas/datetime/pd_datetime.h":
 # ----------------------------------------------------------------------
 # numpy object inspection
 
-cdef npy_datetime get_datetime64_value(object obj) noexcept nogil:
-    """
-    returns the int64 value underlying scalar numpy datetime64 object
-
-    Note that to interpret this as a datetime, the corresponding unit is
-    also needed.  That can be found using `get_datetime64_unit`.
-    """
-    return (<PyDatetimeScalarObject*>obj).obval
-
-
-cdef npy_timedelta get_timedelta64_value(object obj) noexcept nogil:
-    """
-    returns the int64 value underlying scalar numpy timedelta64 object
-    """
-    return (<PyTimedeltaScalarObject*>obj).obval
-
 
 cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil:
     """
@@ -277,6 +261,7 @@ cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept:
     dts.hour = dts.min = dts.sec = dts.us = 0
     dts.ps = dts.as = 0
     return
+
 
 cdef int64_t pydate_to_dt64(
     date val, npy_datetimestruct *dts, NPY_DATETIMEUNIT reso=NPY_FR_ns
