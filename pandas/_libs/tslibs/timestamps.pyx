@@ -315,7 +315,10 @@ cdef class _Timestamp(ABCTimestamp):
     def __hash__(_Timestamp self):
         if self.nanosecond:
             return hash(self._value)
-        if not (1 <= self.year <= 9999):
+        if (self.year == 0):
+            year = -1
+            return hash(self._value)
+        if not (-9999 <= self.year <= 9999):
             # out of bounds for pydatetime
             return hash(self._value)
         if self.fold:

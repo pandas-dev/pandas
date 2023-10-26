@@ -1098,6 +1098,9 @@ def to_datetime(
     result: Timestamp | NaTType | Series | Index
 
     if isinstance(arg, Timestamp):
+        if arg.year <= 0:
+            year_ = abs(arg.year-1)
+            return Timestamp(year=year_,month=arg.month,day=arg.day)
         result = arg
         if utc:
             if arg.tz is not None:
