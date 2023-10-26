@@ -104,7 +104,6 @@ To convert a :external+pyarrow:py:class:`pyarrow.Table` to a :class:`DataFrame`,
 :external+pyarrow:py:meth:`pyarrow.Table.to_pandas` method with ``types_mapper=pd.ArrowDtype``.
 
 .. ipython:: python
-   :okwarning:
 
    table = pa.table([pa.array([1, 2, 3], type=pa.int64())], names=["a"])
 
