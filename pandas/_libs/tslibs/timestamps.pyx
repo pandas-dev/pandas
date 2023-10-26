@@ -2500,12 +2500,11 @@ default 'raise'
             try:
                 ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
             except OverflowError as err:
-                # TODO: this is copied from check_dts_bounds, with the thought that
-                # eventually we can get rid of check_dts_bounds
+                # TODO: create shared function to create this format from dts struct
                 fmt = (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
                        f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
                 raise OutOfBoundsDatetime(
-                    f"Out of bounds nanosecond timestamp: {fmt}"
+                    f"Out of bounds timestamp: {fmt} with precision {self._creso}"
                 ) from err
             ts.dts = dts
             ts.creso = self._creso
