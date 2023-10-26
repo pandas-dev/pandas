@@ -875,8 +875,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     dayfirst : bool, default False
         If True parses dates with the day first, eg 20/01/2005
 
-        ..warning::
-
+        .. warning::
             dayfirst=True is not strict, but will prefer to parse
             with day first (this is a known bug).
 
