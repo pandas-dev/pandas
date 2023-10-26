@@ -1095,6 +1095,7 @@ class TestToDatetime:
     #CHANGED HERE
     def test_to_datetime_where_formart_is_list(self):
         # https://github.com/pandas-dev/pandas/issues/55226
+        
         data = ['2023-10-12','2023-10-13 14:30:00']
         all_formats = ['%Y-m-%d','%Y-%m-%d %H:%M:%S']
         result = to_datetime(data,format=all_formats)
