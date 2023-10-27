@@ -279,14 +279,13 @@ class TestMultiIndexSetItem:
         ymd = multiindex_year_month_day_dataframe_random_data
         s = ymd["A"]
 
-        warn = FutureWarning if warn_copy_on_write else None
-        with tm.assert_produces_warning(warn, match="Setting a value on a view"):
+        with tm.assert_cow_warning(warn_copy_on_write):
             s[2000, 3] = np.nan
         assert isna(s.values[42:65]).all()
         assert notna(s.values[:42]).all()
         assert notna(s.values[65:]).all()
 
-        with tm.assert_produces_warning(warn, match="Setting a value on a view"):
+        with tm.assert_cow_warning(warn_copy_on_write):
             s[2000, 3, 10] = np.nan
         assert isna(s.iloc[49])
 
@@ -541,7 +540,7 @@ def test_frame_setitem_copy_raises(
             df["foo"]["one"] = 2
     elif warn_copy_on_write:
         # TODO(CoW-warn) should warn
-        with tm.assert_produces_warning(None):
+        with tm.assert_cow_warning(False):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
@@ -560,7 +559,7 @@ def test_frame_setitem_copy_no_write(
             df["foo"]["one"] = 2
     elif warn_copy_on_write:
         # TODO(CoW-warn) should warn
-        with tm.assert_produces_warning(None):
+        with tm.assert_cow_warning(False):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"

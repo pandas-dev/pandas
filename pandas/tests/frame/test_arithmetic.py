@@ -2036,8 +2036,7 @@ def test_inplace_arithmetic_series_update(using_copy_on_write, warn_copy_on_writ
     series = df["A"]
     vals = series._values
 
-    warn = FutureWarning if warn_copy_on_write else None
-    with tm.assert_produces_warning(warn):
+    with tm.assert_cow_warning(warn_copy_on_write):
         series += 1
     if using_copy_on_write:
         assert series._values is not vals

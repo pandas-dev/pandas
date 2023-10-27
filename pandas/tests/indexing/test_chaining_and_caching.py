@@ -218,10 +218,9 @@ class TestChaining:
                     df["A"][1] = -6
                 tm.assert_frame_equal(df, df_original)
             else:
-                warn = FutureWarning if warn_copy_on_write else None
-                with tm.assert_produces_warning(warn):
+                with tm.assert_cow_warning(warn_copy_on_write):
                     df["A"][0] = -5
-                with tm.assert_produces_warning(warn):
+                with tm.assert_cow_warning(warn_copy_on_write):
                     df["A"][1] = -6
                 tm.assert_frame_equal(df, expected)
 
@@ -246,9 +245,9 @@ class TestChaining:
                 df["A"][1] = -6
             tm.assert_frame_equal(df, df_original)
         elif warn_copy_on_write:
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_cow_warning():
                 df["A"][0] = -5
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_cow_warning():
                 df["A"][1] = np.nan
         elif not using_array_manager:
             with pytest.raises(SettingWithCopyError, match=msg):
@@ -283,8 +282,8 @@ class TestChaining:
             with tm.raises_chained_assignment_error():
                 df.loc[0]["A"] = -5
         elif warn_copy_on_write:
-            # TODO(CoW) should warn
-            with tm.assert_produces_warning(None):
+            # TODO(CoW-warn) should warn
+            with tm.assert_cow_warning(False):
                 df.loc[0]["A"] = -5
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
@@ -308,8 +307,8 @@ class TestChaining:
             with tm.raises_chained_assignment_error():
                 df[indexer]["c"] = 42
         elif warn_copy_on_write:
-            # TODO(CoW) should warn
-            with tm.assert_produces_warning(None):
+            # TODO(CoW-warn) should warn
+            with tm.assert_cow_warning(False):
                 df[indexer]["c"] = 42
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
@@ -333,7 +332,7 @@ class TestChaining:
             tm.assert_frame_equal(df, df_original)
         elif warn_copy_on_write:
             # TODO(CoW-warn) should give different message
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_cow_warning():
                 df["A"][0] = 111
             tm.assert_frame_equal(df, expected)
         elif not using_array_manager:
@@ -463,7 +462,7 @@ class TestChaining:
             tm.assert_frame_equal(df, df_original)
         elif warn_copy_on_write:
             # TODO(CoW-warn) should warn
-            with tm.assert_produces_warning(None):
+            with tm.assert_cow_warning(False):
                 df.iloc[0:5]["group"] = "a"
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
@@ -494,10 +493,10 @@ class TestChaining:
             tm.assert_frame_equal(df, df_original)
         elif warn_copy_on_write:
             # TODO(CoW-warn) should warn
-            with tm.assert_produces_warning(None):
+            with tm.assert_cow_warning(False):
                 df.loc[2]["D"] = "foo"
             # TODO(CoW-warn) should give different message
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_cow_warning():
                 df["C"][2] = "foo"
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
@@ -529,7 +528,7 @@ class TestChaining:
             tm.assert_frame_equal(df, df_original)
         elif warn_copy_on_write:
             # TODO(CoW-warn) should warn
-            with tm.assert_produces_warning(None):
+            with tm.assert_cow_warning(False):
                 df[["c"]][mask] = df[["b"]][mask]
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
@@ -554,7 +553,7 @@ class TestChaining:
             return
         elif warn_copy_on_write:
             # TODO(CoW-warn) should warn
-            with tm.assert_produces_warning(None):
+            with tm.assert_cow_warning(False):
                 df.loc[0]["A"] = 111
             return
 

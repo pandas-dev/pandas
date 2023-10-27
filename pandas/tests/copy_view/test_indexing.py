@@ -907,7 +907,7 @@ def test_column_as_series(
         s[0] = 0
     else:
         if warn_copy_on_write:
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_cow_warning():
                 s[0] = 0
         else:
             warn = SettingWithCopyWarning if dtype_backend == "numpy" else None
@@ -939,8 +939,7 @@ def test_column_as_series_set_with_upcast(
 
     s = df["a"]
     if dtype_backend == "nullable":
-        warn = FutureWarning if warn_copy_on_write else None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_cow_warning(warn_copy_on_write):
             with pytest.raises(TypeError, match="Invalid value"):
                 s[0] = "foo"
         expected = Series([1, 2, 3], name="a")

@@ -1292,8 +1292,7 @@ class TestDataFrameSetitemCopyViewSemantics:
         values = df._mgr.blocks[0].values
 
         if not using_copy_on_write:
-            warn = FutureWarning if warn_copy_on_write else None
-            with tm.assert_produces_warning(warn):
+            with tm.assert_cow_warning(warn_copy_on_write):
                 for label in df.columns:
                     df[label][label] = 1
 

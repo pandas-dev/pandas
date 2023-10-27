@@ -1706,8 +1706,7 @@ def test_xs(
     if using_copy_on_write or is_view:
         result.iloc[0] = 0
     elif warn_copy_on_write:
-        warn = FutureWarning if single_block else None
-        with tm.assert_produces_warning(warn):
+        with tm.assert_cow_warning(single_block):
             result.iloc[0] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):

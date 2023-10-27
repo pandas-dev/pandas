@@ -302,8 +302,7 @@ class TestDataFrameConstructors:
             should_be_view.iloc[0, 0] = 99
             assert df.values[0, 0] == 1
         else:
-            warn = FutureWarning if warn_copy_on_write else None
-            with tm.assert_produces_warning(warn):
+            with tm.assert_cow_warning(warn_copy_on_write):
                 should_be_view[0][0] = 99
             assert df.values[0, 0] == 99
 
@@ -313,8 +312,7 @@ class TestDataFrameConstructors:
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
         if not using_array_manager and not using_copy_on_write:
             should_be_view = DataFrame(df.values, dtype=df[0].dtype)
-            warn = FutureWarning if warn_copy_on_write else None
-            with tm.assert_produces_warning(warn):
+            with tm.assert_cow_warning(warn_copy_on_write):
                 should_be_view[0][0] = 97
             assert df.values[0, 0] == 97
         else:

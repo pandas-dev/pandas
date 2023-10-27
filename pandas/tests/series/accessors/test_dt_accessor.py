@@ -294,9 +294,9 @@ class TestSeriesDatetimeValues:
                 with tm.raises_chained_assignment_error():
                     ser.dt.hour[0] = 5
             elif warn_copy_on_write:
-                # TODO should warn
-                # with tm.assert_produces_warning(FutureWarning):
-                ser.dt.hour[0] = 5
+                # TODO(CoW-warn) should warn
+                with tm.assert_cow_warning(False):
+                    ser.dt.hour[0] = 5
             else:
                 with pytest.raises(SettingWithCopyError, match=msg):
                     ser.dt.hour[0] = 5

@@ -348,7 +348,7 @@ class TestDataFrameBlockInternals:
                 with tm.raises_chained_assignment_error():
                     Y["g"]["c"] = np.nan
             elif warn_copy_on_write:
-                with tm.assert_produces_warning(FutureWarning):
+                with tm.assert_cow_warning():
                     Y["g"]["c"] = np.nan
             else:
                 Y["g"]["c"] = np.nan

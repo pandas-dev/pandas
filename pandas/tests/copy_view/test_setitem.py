@@ -150,9 +150,7 @@ def test_set_column_with_inplace_operator(using_copy_on_write, warn_copy_on_writ
         df["a"] += 1
 
     # when it is not in a chain, then it should produce a warning
-    warn = FutureWarning if warn_copy_on_write else None
-
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     ser = df["a"]
-    with tm.assert_produces_warning(warn):
+    with tm.assert_cow_warning(warn_copy_on_write):
         ser += 1
