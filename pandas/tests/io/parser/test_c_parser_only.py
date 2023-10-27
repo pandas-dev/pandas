@@ -304,7 +304,9 @@ def test_grow_boundary_at_cap(c_parser_only, count):
     tm.assert_frame_equal(df, expected)
 
 
-def test_parse_trim_buffers(c_parser_only):
+@pytest.mark.slow
+@pytest.mark.parametrize("encoding", [None, "utf-8"])
+def test_parse_trim_buffers(c_parser_only, encoding):
     # This test is part of a bugfix for gh-13703. It attempts to
     # to stress the system memory allocator, to cause it to move the
     # stream buffer and either let the OS reclaim the region, or let
@@ -314,6 +316,9 @@ def test_parse_trim_buffers(c_parser_only):
     # `tokenizer.c`. Sometimes the test fails on `segfault`, other
     # times it fails due to memory corruption, which causes the
     # loaded DataFrame to differ from the expected one.
+
+    # Also force 'utf-8' encoding, so that `_string_convert` would take
+    # a different execution branch.
 
     parser = c_parser_only
 
@@ -371,24 +376,15 @@ def test_parse_trim_buffers(c_parser_only):
 
     # Iterate over the CSV file in chunks of `chunksize` lines
     with parser.read_csv(
-        StringIO(csv_data), header=None, dtype=object, chunksize=chunksize
-    ) as chunks_:
-        result = concat(chunks_, axis=0, ignore_index=True)
-
-    # Check for data corruption if there was no segfault
-    tm.assert_frame_equal(result, expected)
-
-    # This extra test was added to replicate the fault in gh-5291.
-    # Force 'utf-8' encoding, so that `_string_convert` would take
-    # a different execution branch.
-    with parser.read_csv(
         StringIO(csv_data),
         header=None,
         dtype=object,
         chunksize=chunksize,
-        encoding="utf_8",
+        encoding=encoding,
     ) as chunks_:
         result = concat(chunks_, axis=0, ignore_index=True)
+
+    # Check for data corruption if there was no segfault
     tm.assert_frame_equal(result, expected)
 
 
