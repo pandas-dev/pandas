@@ -956,14 +956,7 @@ class TestIsin:
         # Anything but object and we get all-False shortcut
 
         dta = date_range("2013-01-01", periods=3)._values
-        if dtype1 == "period[D]":
-            # TODO: fix Series.view to get this on its own
-            arr = dta.to_period("D")
-        elif dtype1 == "M8[ns, UTC]":
-            # TODO: fix Series.view to get this on its own
-            arr = dta.tz_localize("UTC")
-        else:
-            arr = Series(dta.view("i8")).view(dtype1)._values
+        arr = Series(dta.view("i8")).view(dtype1)._values
 
         comps = arr.view("i8").astype(dtype)
 
@@ -1247,13 +1240,6 @@ class TestValueCounts:
             dtype=object,
         )
         exp = Series([3, 2, 1], index=exp_index, name="count")
-        tm.assert_series_equal(res, exp)
-
-        # GH 12424  # TODO: belongs elsewhere
-        msg = "errors='ignore' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
-        exp = Series(["2362-01-01", np.nan], dtype=object)
         tm.assert_series_equal(res, exp)
 
     def test_categorical(self):
