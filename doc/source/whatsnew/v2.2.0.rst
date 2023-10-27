@@ -438,7 +438,6 @@ Styler
 
 Other
 ^^^^^
-- Bug in :class:`Series` constructor raising DeprecationWarning when ``index`` is a list of :class:`Series` (:issue:`55228`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in :func:`infer_freq` and :meth:`DatetimeIndex.inferred_freq` with weekly frequencies and non-nanosecond resolutions (:issue:`55609`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)

@@ -865,13 +865,14 @@ def is_all_arraylike(obj: list) -> bool:
 
     from pandas.core.dtypes.generic import (
         ABCIndex,
+        ABCMultiIndex,
         ABCSeries,
     )
 
     for i in range(n):
         val = obj[i]
-        if not (isinstance(val, (list, ABCSeries, ABCIndex))
-                or util.is_array(val)):
+        if (not (isinstance(val, (list, ABCSeries, ABCIndex)) or util.is_array(val))
+                or isinstance(val, ABCMultiIndex)):
             # TODO: EA?
             # exclude tuples, frozensets as they may be contained in an Index
             all_arrays = False
