@@ -4,10 +4,12 @@ from typing import (
     TYPE_CHECKING,
     Literal,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
+from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.cast import maybe_downcast_numeric
@@ -167,6 +169,15 @@ def to_numeric(
 
     if errors not in ("ignore", "raise", "coerce"):
         raise ValueError("invalid error value specified")
+    if errors == "ignore":
+        # GH#54467
+        warnings.warn(
+            "errors='ignore' is deprecated and will raise in a future version. "
+            "Use to_numeric without passing `errors` and catch exceptions "
+            "explicitly instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
     check_dtype_backend(dtype_backend)
 

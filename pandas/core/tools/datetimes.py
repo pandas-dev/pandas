@@ -1076,6 +1076,16 @@ def to_datetime(
             "You can safely remove this argument.",
             stacklevel=find_stack_level(),
         )
+    if errors == "ignore":
+        # GH#54467
+        warnings.warn(
+            "errors='ignore' is deprecated and will raise in a future version. "
+            "Use to_datetime without passing `errors` and catch exceptions "
+            "explicitly instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if arg is None:
         return None
 
