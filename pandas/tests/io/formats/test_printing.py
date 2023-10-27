@@ -200,6 +200,7 @@ class TestTableSchemaRepr:
             ip.instance(config=ip.config).display_formatter.format(cf)
 
 
+# TODO: this is a test for Series/DataFrame __repr__
 @pytest.mark.parametrize(
     "data,output",
     [
