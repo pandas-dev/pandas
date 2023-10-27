@@ -33,9 +33,10 @@ __all__ = [
     "is_supported_unit",
     "npy_unit_to_abbrev",
     "get_supported_reso",
+    "guess_datetime_format",
 ]
 
-from pandas._libs.tslibs import dtypes
+from pandas._libs.tslibs import dtypes  # pylint: disable=import-self
 from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.dtypes import (
     Resolution,
@@ -63,6 +64,7 @@ from pandas._libs.tslibs.offsets import (
     Tick,
     to_offset,
 )
+from pandas._libs.tslibs.parsing import guess_datetime_format
 from pandas._libs.tslibs.period import (
     IncompatibleFrequency,
     Period,

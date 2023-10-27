@@ -180,19 +180,36 @@ labeled the aggregated group with the end of the interval: the next day).
   DataFrame constructor with no columns specified. The v0.9.0 behavior (names
   ``X0``, ``X1``, ...) can be reproduced by specifying ``prefix='X'``:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-    import io
+    In [6]: import io
 
-    data = """
-    a,b,c
-    1,Yes,2
-    3,No,4
-    """
-    print(data)
-    pd.read_csv(io.StringIO(data), header=None)
-    pd.read_csv(io.StringIO(data), header=None, prefix="X")
+    In [7]: data = """
+      ...: a,b,c
+      ...: 1,Yes,2
+      ...: 3,No,4
+      ...: """
+      ...:
+
+    In [8]: print(data)
+
+        a,b,c
+        1,Yes,2
+        3,No,4
+
+    In [9]: pd.read_csv(io.StringIO(data), header=None)
+    Out[9]:
+           0    1  2
+    0      a    b  c
+    1      1  Yes  2
+    2      3   No  4
+
+    In [10]: pd.read_csv(io.StringIO(data), header=None, prefix="X")
+    Out[10]:
+            X0   X1 X2
+    0       a    b  c
+    1       1  Yes  2
+    2       3   No  4
 
 - Values like ``'Yes'`` and ``'No'`` are not interpreted as boolean by default,
   though this can be controlled by new ``true_values`` and ``false_values``
@@ -226,6 +243,7 @@ labeled the aggregated group with the end of the interval: the next day).
   valid code. You must either specify a fill value or an interpolation method:
 
 .. ipython:: python
+   :okwarning:
 
    s = pd.Series([np.nan, 1.0, 2.0, np.nan, 4])
    s

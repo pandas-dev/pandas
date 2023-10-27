@@ -11,16 +11,7 @@ import pytest
 from pandas._libs.tslibs import NaT
 
 from pandas.core.dtypes.cast import maybe_promote
-from pandas.core.dtypes.common import (
-    is_complex_dtype,
-    is_datetime64_dtype,
-    is_datetime_or_timedelta_dtype,
-    is_float_dtype,
-    is_integer_dtype,
-    is_object_dtype,
-    is_scalar,
-    is_timedelta64_dtype,
-)
+from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from pandas.core.dtypes.missing import isna
 
@@ -330,7 +321,7 @@ def test_maybe_promote_datetime64_with_any(datetime64_dtype, any_numpy_dtype):
     fill_value = np.array([1], dtype=fill_dtype)[0]
 
     # filling datetime with anything but datetime casts to object
-    if is_datetime64_dtype(fill_dtype):
+    if fill_dtype.kind == "M":
         expected_dtype = dtype
         # for datetime dtypes, scalar values get cast to to_datetime64
         exp_val_for_scalar = pd.Timestamp(fill_value).to_datetime64()
@@ -355,7 +346,7 @@ def test_maybe_promote_any_with_datetime64(any_numpy_dtype, fill_value):
     dtype = np.dtype(any_numpy_dtype)
 
     # filling datetime with anything but datetime casts to object
-    if is_datetime64_dtype(dtype):
+    if dtype.kind == "M":
         expected_dtype = dtype
         # for datetime dtypes, scalar values get cast to pd.Timestamp.value
         exp_val_for_scalar = pd.Timestamp(fill_value).to_datetime64()
@@ -374,10 +365,10 @@ def test_maybe_promote_any_with_datetime64(any_numpy_dtype, fill_value):
 @pytest.mark.parametrize(
     "fill_value",
     [
-        pd.Timestamp("now"),
-        np.datetime64("now"),
-        datetime.datetime.now(),
-        datetime.date.today(),
+        pd.Timestamp(2023, 1, 1),
+        np.datetime64("2023-01-01"),
+        datetime.datetime(2023, 1, 1),
+        datetime.date(2023, 1, 1),
     ],
     ids=["pd.Timestamp", "np.datetime64", "datetime.datetime", "datetime.date"],
 )
@@ -404,7 +395,7 @@ def test_maybe_promote_timedelta64_with_any(timedelta64_dtype, any_numpy_dtype):
     fill_value = np.array([1], dtype=fill_dtype)[0]
 
     # filling timedelta with anything but timedelta casts to object
-    if is_timedelta64_dtype(fill_dtype):
+    if fill_dtype.kind == "m":
         expected_dtype = dtype
         # for timedelta dtypes, scalar values get cast to pd.Timedelta.value
         exp_val_for_scalar = pd.Timedelta(fill_value).to_timedelta64()
@@ -420,11 +411,11 @@ def test_maybe_promote_timedelta64_with_any(timedelta64_dtype, any_numpy_dtype):
     [pd.Timedelta(days=1), np.timedelta64(24, "h"), datetime.timedelta(1)],
     ids=["pd.Timedelta", "np.timedelta64", "datetime.timedelta"],
 )
-def test_maybe_promote_any_with_timedelta64(any_numpy_dtype, fill_value, request):
+def test_maybe_promote_any_with_timedelta64(any_numpy_dtype, fill_value):
     dtype = np.dtype(any_numpy_dtype)
 
     # filling anything but timedelta with timedelta casts to object
-    if is_timedelta64_dtype(dtype):
+    if dtype.kind == "m":
         expected_dtype = dtype
         # for timedelta dtypes, scalar values get cast to pd.Timedelta.value
         exp_val_for_scalar = pd.Timedelta(fill_value).to_timedelta64()
@@ -498,8 +489,8 @@ def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype, nulls_fixture):
         # Subject to change, but ATM (When Decimal(NAN) is being added to nulls_fixture)
         #  this is the existing behavior in maybe_promote,
         #  hinges on is_valid_na_for_dtype
-        if dtype.kind in ["i", "u", "f", "c"]:
-            if dtype.kind in ["i", "u"]:
+        if dtype.kind in "iufc":
+            if dtype.kind in "iu":
                 expected_dtype = np.dtype(np.float64)
             else:
                 expected_dtype = dtype
@@ -507,16 +498,16 @@ def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype, nulls_fixture):
         else:
             expected_dtype = np.dtype(object)
             exp_val_for_scalar = fill_value
-    elif is_integer_dtype(dtype) and fill_value is not NaT:
+    elif dtype.kind in "iu" and fill_value is not NaT:
         # integer + other missing value (np.nan / None) casts to float
         expected_dtype = np.float64
         exp_val_for_scalar = np.nan
-    elif is_object_dtype(dtype) and fill_value is NaT:
+    elif dtype == object and fill_value is NaT:
         # inserting into object does not cast the value
         # but *does* cast None to np.nan
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = fill_value
-    elif is_datetime_or_timedelta_dtype(dtype):
+    elif dtype.kind in "mM":
         # datetime / timedelta cast all missing values to dtyped-NaT
         expected_dtype = dtype
         exp_val_for_scalar = dtype.type("NaT", "ns")
@@ -524,7 +515,7 @@ def test_maybe_promote_any_numpy_dtype_with_na(any_numpy_dtype, nulls_fixture):
         # NaT upcasts everything that's not datetime/timedelta to object
         expected_dtype = np.dtype(object)
         exp_val_for_scalar = NaT
-    elif is_float_dtype(dtype) or is_complex_dtype(dtype):
+    elif dtype.kind in "fc":
         # float / complex + missing value (!= NaT) stays the same
         expected_dtype = dtype
         exp_val_for_scalar = np.nan

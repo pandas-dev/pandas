@@ -6,22 +6,26 @@ from pathlib import Path
 import tempfile
 from typing import (
     IO,
+    TYPE_CHECKING,
     Any,
-    Generator,
 )
 import uuid
 
-from pandas._typing import (
-    BaseBuffer,
-    CompressionOptions,
-    FilePath,
-)
 from pandas.compat import PYPY
 from pandas.errors import ChainedAssignmentError
 
 from pandas import set_option
 
 from pandas.io.common import get_handle
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from pandas._typing import (
+        BaseBuffer,
+        CompressionOptions,
+        FilePath,
+    )
 
 
 @contextmanager
@@ -121,9 +125,12 @@ def ensure_clean(
     path.touch()
 
     handle_or_str: str | IO = str(path)
+    encoding = kwargs.pop("encoding", None)
     if return_filelike:
         kwargs.setdefault("mode", "w+b")
-        handle_or_str = open(path, **kwargs)
+        if encoding is None and "b" not in kwargs["mode"]:
+            encoding = "utf-8"
+        handle_or_str = open(path, encoding=encoding, **kwargs)
 
     try:
         yield handle_or_str
@@ -135,23 +142,7 @@ def ensure_clean(
 
 
 @contextmanager
-def ensure_safe_environment_variables() -> Generator[None, None, None]:
-    """
-    Get a context manager to safely set environment variables
-
-    All changes will be undone on close, hence environment variables set
-    within this contextmanager will neither persist nor change global state.
-    """
-    saved_environ = dict(os.environ)
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(saved_environ)
-
-
-@contextmanager
-def with_csv_dialect(name, **kwargs) -> Generator[None, None, None]:
+def with_csv_dialect(name: str, **kwargs) -> Generator[None, None, None]:
     """
     Context manager to temporarily register a CSV dialect for parsing CSV.
 
@@ -202,18 +193,24 @@ def use_numexpr(use, min_elements=None) -> Generator[None, None, None]:
         set_option("compute.use_numexpr", olduse)
 
 
-def raises_chained_assignment_error():
-    if PYPY:
+def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
+    from pandas._testing import assert_produces_warning
+
+    if PYPY and not extra_warnings:
         from contextlib import nullcontext
 
         return nullcontext()
+    elif PYPY and extra_warnings:
+        return assert_produces_warning(
+            extra_warnings,
+            match="|".join(extra_match),
+        )
     else:
-        import pytest
-
-        return pytest.raises(
-            ChainedAssignmentError,
-            match=(
-                "A value is trying to be set on a copy of a DataFrame or Series "
-                "through chained assignment"
-            ),
+        match = (
+            "A value is trying to be set on a copy of a DataFrame or Series "
+            "through chained assignment"
+        )
+        return assert_produces_warning(
+            (ChainedAssignmentError, *extra_warnings),
+            match="|".join((match, *extra_match)),
         )

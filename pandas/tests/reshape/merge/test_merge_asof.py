@@ -4,6 +4,8 @@ import numpy as np
 import pytest
 import pytz
 
+import pandas.util._test_decorators as td
+
 import pandas as pd
 from pandas import (
     Index,
@@ -351,7 +353,8 @@ class TestAsOfMerge:
         result = merge_asof(trades, quotes, on="time", by=["ticker", "exch"])
         tm.assert_frame_equal(result, expected)
 
-    def test_multiby_heterogeneous_types(self):
+    @pytest.mark.parametrize("dtype", ["object", "string"])
+    def test_multiby_heterogeneous_types(self, dtype):
         # GH13936
         trades = pd.DataFrame(
             {
@@ -371,6 +374,7 @@ class TestAsOfMerge:
             },
             columns=["time", "ticker", "exch", "price", "quantity"],
         )
+        trades = trades.astype({"ticker": dtype, "exch": dtype})
 
         quotes = pd.DataFrame(
             {
@@ -391,6 +395,7 @@ class TestAsOfMerge:
             },
             columns=["time", "ticker", "exch", "bid", "ask"],
         )
+        quotes = quotes.astype({"ticker": dtype, "exch": dtype})
 
         expected = pd.DataFrame(
             {
@@ -412,9 +417,38 @@ class TestAsOfMerge:
             },
             columns=["time", "ticker", "exch", "price", "quantity", "bid", "ask"],
         )
+        expected = expected.astype({"ticker": dtype, "exch": dtype})
 
         result = merge_asof(trades, quotes, on="time", by=["ticker", "exch"])
         tm.assert_frame_equal(result, expected)
+
+    def test_mismatched_index_dtype(self):
+        # similar to test_multiby_indexed, but we change the dtype on left.index
+        left = pd.DataFrame(
+            [
+                [to_datetime("20160602"), 1, "a"],
+                [to_datetime("20160602"), 2, "a"],
+                [to_datetime("20160603"), 1, "b"],
+                [to_datetime("20160603"), 2, "b"],
+            ],
+            columns=["time", "k1", "k2"],
+        ).set_index("time")
+        # different dtype for the index
+        left.index = left.index - pd.Timestamp(0)
+
+        right = pd.DataFrame(
+            [
+                [to_datetime("20160502"), 1, "a", 1.0],
+                [to_datetime("20160502"), 2, "a", 2.0],
+                [to_datetime("20160503"), 1, "b", 3.0],
+                [to_datetime("20160503"), 2, "b", 4.0],
+            ],
+            columns=["time", "k1", "k2", "value"],
+        ).set_index("time")
+
+        msg = "incompatible merge keys"
+        with pytest.raises(MergeError, match=msg):
+            merge_asof(left, right, left_index=True, right_index=True, by=["k1", "k2"])
 
     def test_multiby_indexed(self):
         # GH15676
@@ -455,7 +489,7 @@ class TestAsOfMerge:
         tm.assert_frame_equal(expected, result)
 
         with pytest.raises(
-            MergeError, match="left_by and right_by must be same length"
+            MergeError, match="left_by and right_by must be the same length"
         ):
             merge_asof(
                 left,
@@ -1311,6 +1345,34 @@ class TestAsOfMerge:
         expected["value_y"] = np.array([np.nan], dtype=object)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["float64", "int16", "m8[ns]", "M8[us]"])
+    def test_by_dtype(self, dtype):
+        # GH 55453, GH 22794
+        left = pd.DataFrame(
+            {
+                "by_col": np.array([1], dtype=dtype),
+                "on_col": [2],
+                "value": ["a"],
+            }
+        )
+        right = pd.DataFrame(
+            {
+                "by_col": np.array([1], dtype=dtype),
+                "on_col": [1],
+                "value": ["b"],
+            }
+        )
+        result = merge_asof(left, right, by="by_col", on="on_col")
+        expected = pd.DataFrame(
+            {
+                "by_col": np.array([1], dtype=dtype),
+                "on_col": [2],
+                "value_x": ["a"],
+                "value_y": ["b"],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_timedelta_tolerance_nearest(self, unit):
         # GH 27642
         if unit == "s":
@@ -1352,19 +1414,18 @@ class TestAsOfMerge:
 
         tm.assert_frame_equal(result, expected)
 
-    # TODO: any_int_dtype; causes failures in _get_join_indexers
-    def test_int_type_tolerance(self, any_int_numpy_dtype):
+    def test_int_type_tolerance(self, any_int_dtype):
         # GH #28870
 
         left = pd.DataFrame({"a": [0, 10, 20], "left_val": [1, 2, 3]})
         right = pd.DataFrame({"a": [5, 15, 25], "right_val": [1, 2, 3]})
-        left["a"] = left["a"].astype(any_int_numpy_dtype)
-        right["a"] = right["a"].astype(any_int_numpy_dtype)
+        left["a"] = left["a"].astype(any_int_dtype)
+        right["a"] = right["a"].astype(any_int_dtype)
 
         expected = pd.DataFrame(
             {"a": [0, 10, 20], "left_val": [1, 2, 3], "right_val": [np.nan, 1.0, 2.0]}
         )
-        expected["a"] = expected["a"].astype(any_int_numpy_dtype)
+        expected["a"] = expected["a"].astype(any_int_dtype)
 
         result = merge_asof(left, right, on="a", tolerance=10)
         tm.assert_frame_equal(result, expected)
@@ -1488,7 +1549,7 @@ def test_merge_asof_index_behavior(kwargs):
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_asof_numeri_column_in_index():
+def test_merge_asof_numeric_column_in_index():
     # GH#34488
     left = pd.DataFrame({"b": [10, 11, 12]}, index=Index([1, 2, 3], name="a"))
     right = pd.DataFrame({"c": [20, 21, 22]}, index=Index([0, 2, 3], name="a"))
@@ -1498,7 +1559,7 @@ def test_merge_asof_numeri_column_in_index():
     tm.assert_frame_equal(result, expected)
 
 
-def test_merge_asof_numeri_column_in_multiindex():
+def test_merge_asof_numeric_column_in_multiindex():
     # GH#34488
     left = pd.DataFrame(
         {"b": [10, 11, 12]},
@@ -1589,3 +1650,89 @@ def test_merge_asof_raise_for_duplicate_columns():
 
     with pytest.raises(ValueError, match="column label 'a'"):
         merge_asof(left, right, left_on="left_val", right_on="a")
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "Int64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("timestamp[s][pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_merge_asof_extension_dtype(dtype):
+    # GH 52904
+    left = pd.DataFrame(
+        {
+            "join_col": [1, 3, 5],
+            "left_val": [1, 2, 3],
+        }
+    )
+    right = pd.DataFrame(
+        {
+            "join_col": [2, 3, 4],
+            "right_val": [1, 2, 3],
+        }
+    )
+    left = left.astype({"join_col": dtype})
+    right = right.astype({"join_col": dtype})
+    result = merge_asof(left, right, on="join_col")
+    expected = pd.DataFrame(
+        {
+            "join_col": [1, 3, 5],
+            "left_val": [1, 2, 3],
+            "right_val": [np.nan, 2.0, 3.0],
+        }
+    )
+    expected = expected.astype({"join_col": dtype})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_read_only_ndarray():
+    # GH 53513
+    left = pd.Series([2], index=[2], name="left")
+    right = pd.Series([1], index=[1], name="right")
+    # set to read-only
+    left.index.values.flags.writeable = False
+    right.index.values.flags.writeable = False
+    result = merge_asof(left, right, left_index=True, right_index=True)
+    expected = pd.DataFrame({"left": [2], "right": [1]}, index=[2])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_merge_asof_multiby_with_categorical():
+    # GH 43541
+    left = pd.DataFrame(
+        {
+            "c1": pd.Categorical(["a", "a", "b", "b"], categories=["a", "b"]),
+            "c2": ["x"] * 4,
+            "t": [1] * 4,
+            "v": range(4),
+        }
+    )
+    right = pd.DataFrame(
+        {
+            "c1": pd.Categorical(["b", "b"], categories=["b", "a"]),
+            "c2": ["x"] * 2,
+            "t": [1, 2],
+            "v": range(2),
+        }
+    )
+    result = merge_asof(
+        left,
+        right,
+        by=["c1", "c2"],
+        on="t",
+        direction="forward",
+        suffixes=["_left", "_right"],
+    )
+    expected = pd.DataFrame(
+        {
+            "c1": pd.Categorical(["a", "a", "b", "b"], categories=["a", "b"]),
+            "c2": ["x"] * 4,
+            "t": [1] * 4,
+            "v_left": range(4),
+            "v_right": [np.nan, np.nan, 0.0, 0.0],
+        }
+    )
+    tm.assert_frame_equal(result, expected)

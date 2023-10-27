@@ -262,13 +262,17 @@ class Timeseries:
     def setup(self, tz):
         N = 10**6
         halfway = (N // 2) - 1
-        self.s = Series(date_range("20010101", periods=N, freq="T", tz=tz))
+        self.s = Series(date_range("20010101", periods=N, freq="min", tz=tz))
         self.ts = self.s[halfway]
 
         self.s2 = Series(date_range("20010101", periods=N, freq="s", tz=tz))
+        self.ts_different_reso = Timestamp("2001-01-02", tz=tz)
 
     def time_series_timestamp_compare(self, tz):
         self.s <= self.ts
+
+    def time_series_timestamp_different_reso_compare(self, tz):
+        self.s <= self.ts_different_reso
 
     def time_timestamp_series_compare(self, tz):
         self.ts >= self.s
@@ -456,7 +460,7 @@ class OffsetArrayArithmetic:
 
     def setup(self, offset):
         N = 10000
-        rng = date_range(start="1/1/2000", periods=N, freq="T")
+        rng = date_range(start="1/1/2000", periods=N, freq="min")
         self.rng = rng
         self.ser = Series(rng)
 
@@ -475,7 +479,7 @@ class ApplyIndex:
 
     def setup(self, offset):
         N = 10000
-        rng = date_range(start="1/1/2000", periods=N, freq="T")
+        rng = date_range(start="1/1/2000", periods=N, freq="min")
         self.rng = rng
 
     def time_apply_index(self, offset):

@@ -38,7 +38,7 @@ class TestJoin:
         df = tm.makeCustomDataframe(
             3,
             2,
-            data_gen_f=lambda *args: np.random.randint(2),
+            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
             c_idx_type="p",
             r_idx_type="dt",
         )

@@ -1,5 +1,6 @@
 import cmath
 import math
+import warnings
 
 import numpy as np
 
@@ -7,17 +8,19 @@ from numpy cimport import_array
 
 import_array()
 
+from pandas._libs.missing cimport (
+    checknull,
+    is_matching_na,
+)
 from pandas._libs.util cimport (
     is_array,
     is_complex_object,
     is_real_number_object,
 )
 
-from pandas.core.dtypes.common import is_dtype_equal
-from pandas.core.dtypes.missing import (
-    array_equivalent,
-    isna,
-)
+from pandas.util._exceptions import find_stack_level
+
+from pandas.core.dtypes.missing import array_equivalent
 
 
 cdef bint isiterable(obj):
@@ -62,12 +65,8 @@ cpdef assert_almost_equal(a, b,
     b : object
     rtol : float, default 1e-5
         Relative tolerance.
-
-        .. versionadded:: 1.1.0
     atol : float, default 1e-8
         Absolute tolerance.
-
-        .. versionadded:: 1.1.0
     check_dtype: bool, default True
         check dtype if both a and b are np.ndarray.
     obj : str, default None
@@ -83,8 +82,6 @@ cpdef assert_almost_equal(a, b,
         Specify shared index values of objects being compared, internally used
         to show appropriate assertion message.
 
-        .. versionadded:: 1.1.0
-
     """
     cdef:
         double diff = 0.0
@@ -97,6 +94,10 @@ cpdef assert_almost_equal(a, b,
         lobj = a
     if robj is None:
         robj = b
+
+    if isinstance(a, set) or isinstance(b, set):
+        assert a == b, f"{a} != {b}"
+        return True
 
     if isinstance(a, dict) or isinstance(b, dict):
         return assert_dict_equal(a, b)
@@ -133,7 +134,7 @@ cpdef assert_almost_equal(a, b,
                 raise_assert_detail(
                     obj, f"{obj} shapes are different", a.shape, b.shape)
 
-            if check_dtype and not is_dtype_equal(a.dtype, b.dtype):
+            if check_dtype and a.dtype != b.dtype:
                 from pandas._testing import assert_attr_equal
                 assert_attr_equal("dtype", a, b, obj=obj)
 
@@ -181,13 +182,23 @@ cpdef assert_almost_equal(a, b,
         # classes can't be the same, to raise error
         assert_class_equal(a, b, obj=obj)
 
-    if isna(a) and isna(b):
-        # TODO: Should require same-dtype NA?
+    if checknull(a):
         # nan / None comparison
-        return True
-
-    if isna(a) and not isna(b) or not isna(a) and isna(b):
-        # boolean value of pd.NA is ambigous
+        if is_matching_na(a, b, nan_matches_none=False):
+            return True
+        elif checknull(b):
+            # GH#18463
+            warnings.warn(
+                f"Mismatched null-like values {a} and {b} found. In a future "
+                "version, pandas equality-testing functions "
+                "(e.g. assert_frame_equal) will consider these not-matching "
+                "and raise.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return True
+        raise AssertionError(f"{a} != {b}")
+    elif checknull(b):
         raise AssertionError(f"{a} != {b}")
 
     if a == b:
@@ -195,10 +206,6 @@ cpdef assert_almost_equal(a, b,
         return True
 
     if is_real_number_object(a) and is_real_number_object(b):
-        if array_equivalent(a, b, strict_nan=True):
-            # inf comparison
-            return True
-
         fa, fb = a, b
 
         if not math.isclose(fa, fb, rel_tol=rtol, abs_tol=atol):
@@ -207,10 +214,6 @@ cpdef assert_almost_equal(a, b,
         return True
 
     if is_complex_object(a) and is_complex_object(b):
-        if array_equivalent(a, b, strict_nan=True):
-            # inf comparison
-            return True
-
         if not cmath.isclose(a, b, rel_tol=rtol, abs_tol=atol):
             assert False, (f"expected {b:.5f} but got {a:.5f}, "
                            f"with rtol={rtol}, atol={atol}")

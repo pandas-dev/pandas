@@ -4,11 +4,11 @@ from datetime import (
     datetime,
     time,
 )
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from pandas._libs.lib import is_list_like
-from pandas._typing import DateTimeErrorChoices
 
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -16,10 +16,13 @@ from pandas.core.dtypes.generic import (
 )
 from pandas.core.dtypes.missing import notna
 
+if TYPE_CHECKING:
+    from pandas._typing import DateTimeErrorChoices
+
 
 def to_time(
     arg,
-    format=None,
+    format: str | None = None,
     infer_time_format: bool = False,
     errors: DateTimeErrorChoices = "raise",
 ):

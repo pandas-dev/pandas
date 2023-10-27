@@ -1,0 +1,355 @@
+name: Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+      - 2.1.x
+  pull_request:
+    branches:
+      - main
+      - 2.1.x
+    paths-ignore:
+      - "doc/**"
+      - "web/**"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash -el {0}
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml]
+        # Prevent the include jobs from overriding other jobs
+        pattern: [""]
+        include:
+          - name: "Downstream Compat"
+            env_file: actions-311-downstream_compat.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pytest_target: "pandas/tests/test_downstream.py"
+          - name: "Minimum Versions"
+            env_file: actions-39-minimum_versions.yaml
+            pattern: "not slow and not network and not single_cpu"
+          - name: "Locale: it_IT"
+            env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            extra_apt: "language-pack-it"
+            # Use the utf8 version as the default, it has no bad side-effect.
+            lang: "it_IT.utf8"
+            lc_all: "it_IT.utf8"
+            # Also install it_IT (its encoding is ISO8859-1) but do not activate it.
+            # It will be temporarily activated during tests with locale.setlocale
+            extra_loc: "it_IT"
+          - name: "Locale: zh_CN"
+            env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            extra_apt: "language-pack-zh-hans"
+            # Use the utf8 version as the default, it has no bad side-effect.
+            lang: "zh_CN.utf8"
+            lc_all: "zh_CN.utf8"
+            # Also install zh_CN (its encoding is gb2312) but do not activate it.
+            # It will be temporarily activated during tests with locale.setlocale
+            extra_loc: "zh_CN"
+          - name: "Copy-on-Write 3.9"
+            env_file: actions-39.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
+          - name: "Copy-on-Write 3.10"
+            env_file: actions-310.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
+          - name: "Copy-on-Write 3.11"
+            env_file: actions-311.yaml
+            pattern: "not slow and not network and not single_cpu"
+            pandas_copy_on_write: "1"
+          - name: "Pypy"
+            env_file: actions-pypy-39.yaml
+            pattern: "not slow and not network and not single_cpu"
+            test_args: "--max-worker-restart 0"
+          - name: "Numpy Dev"
+            env_file: actions-311-numpydev.yaml
+            pattern: "not slow and not network and not single_cpu"
+            test_args: "-W error::DeprecationWarning -W error::FutureWarning"
+          - name: "Pyarrow Nightly"
+            env_file: actions-311-pyarrownightly.yaml
+            pattern: "not slow and not network and not single_cpu"
+      fail-fast: false
+    name: ${{ matrix.name || format('ubuntu-latest {0}', matrix.env_file) }}
+    env:
+      PATTERN: ${{ matrix.pattern }}
+      EXTRA_APT: ${{ matrix.extra_apt || '' }}
+      LANG: ${{ matrix.lang || 'C.UTF-8' }}
+      LC_ALL: ${{ matrix.lc_all || '' }}
+      PANDAS_COPY_ON_WRITE: ${{ matrix.pandas_copy_on_write || '0' }}
+      PANDAS_CI: ${{ matrix.pandas_ci || '1' }}
+      TEST_ARGS: ${{ matrix.test_args || '' }}
+      PYTEST_WORKERS: 'auto'
+      PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}
+      cancel-in-progress: true
+
+    services:
+      mysql:
+        image: mysql:8.0.33
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_DATABASE: pandas
+        options: >-
+          --health-cmd "mysqladmin ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 3306:3306
+
+      postgres:
+        image: postgres:13
+        env:
+          PGUSER: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pandas
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      moto:
+        image: motoserver/moto:4.1.13
+        env:
+          AWS_ACCESS_KEY_ID: foobar_key
+          AWS_SECRET_ACCESS_KEY: foobar_secret
+        ports:
+          - 5000:5000
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Extra installs
+      # xsel for clipboard tests
+      run: sudo apt-get update && sudo apt-get install -y xsel ${{ env.EXTRA_APT }}
+
+    - name: Generate extra locales
+      # These extra locales will be available for locale.setlocale() calls in tests
+      run: sudo locale-gen ${{ matrix.extra_loc }}
+      if: ${{ matrix.extra_loc }}
+
+    - name: Set up Conda
+      uses: ./.github/actions/setup-conda
+      with:
+        environment-file: ci/deps/${{ matrix.env_file }}
+
+    - name: Build Pandas
+      id: build
+      uses: ./.github/actions/build_pandas
+
+    - name: Test (not single_cpu)
+      uses: ./.github/actions/run-tests
+      if: ${{ matrix.name != 'Pypy' }}
+      env:
+        # Set pattern to not single_cpu if not already set
+        PATTERN: ${{ env.PATTERN == '' && 'not single_cpu' || matrix.pattern }}
+
+    - name: Test (single_cpu)
+      uses: ./.github/actions/run-tests
+      env:
+        PATTERN: 'single_cpu'
+        PYTEST_WORKERS: 0
+      if: ${{ matrix.pattern == '' && (always() && steps.build.outcome == 'success')}}
+
+  macos-windows:
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+        env_file: [actions-39.yaml, actions-310.yaml, actions-311.yaml]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    name: ${{ format('{0} {1}', matrix.os, matrix.env_file) }}
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.os }}
+      cancel-in-progress: true
+    env:
+      PANDAS_CI: 1
+      PYTEST_TARGET: pandas
+      PATTERN: "not slow and not db and not network and not single_cpu"
+      # GH 47443: PYTEST_WORKERS > 0 crashes Windows builds with memory related errors
+      PYTEST_WORKERS: ${{ matrix.os == 'macos-latest' && 'auto' || '0' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Conda
+        uses: ./.github/actions/setup-conda
+        with:
+          environment-file: ci/deps/${{ matrix.env_file }}
+
+      - name: Build Pandas
+        uses: ./.github/actions/build_pandas
+
+      - name: Test
+        uses: ./.github/actions/run-tests
+
+  Linux-32-bit:
+    runs-on: ubuntu-22.04
+    container:
+      image: quay.io/pypa/manylinux2014_i686
+      options: --platform linux/386
+    steps:
+      - name: Checkout pandas Repo
+        # actions/checkout does not work since it requires node
+        run: |
+          git config --global --add safe.directory $PWD
+
+          if [ $GITHUB_EVENT_NAME != pull_request ]; then
+              git clone --recursive --branch=$GITHUB_REF_NAME https://github.com/${GITHUB_REPOSITORY}.git $GITHUB_WORKSPACE
+              git reset --hard $GITHUB_SHA
+          else
+              git clone --recursive https://github.com/${GITHUB_REPOSITORY}.git $GITHUB_WORKSPACE
+              git fetch origin $GITHUB_REF:my_ref_name
+              git checkout $GITHUB_BASE_REF
+              git -c user.email="you@example.com" merge --no-commit my_ref_name
+          fi
+      - name: Build environment and Run Tests
+        # https://github.com/numpy/numpy/issues/24703#issuecomment-1722379388
+        run: |
+          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
+          . ~/virtualenvs/pandas-dev/bin/activate
+          python -m pip install --no-cache-dir -U pip wheel setuptools meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install numpy --config-settings=setup-args="-Dallow-noblas=true"
+          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
+          python -m pip install --no-cache-dir --no-build-isolation -e .
+          python -m pip list --no-cache-dir
+          export PANDAS_CI=1
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-32bit
+      cancel-in-progress: true
+
+  Linux-Musl:
+    runs-on: ubuntu-22.04
+    container:
+      image: quay.io/pypa/musllinux_1_1_x86_64
+    steps:
+      - name: Checkout pandas Repo
+        # actions/checkout does not work since it requires node
+        run: |
+          git config --global --add safe.directory $PWD
+
+          if [ $GITHUB_EVENT_NAME != pull_request ]; then
+              git clone --recursive --branch=$GITHUB_REF_NAME https://github.com/${GITHUB_REPOSITORY}.git $GITHUB_WORKSPACE
+              git reset --hard $GITHUB_SHA
+          else
+              git clone --recursive https://github.com/${GITHUB_REPOSITORY}.git $GITHUB_WORKSPACE
+              git fetch origin $GITHUB_REF:my_ref_name
+              git checkout $GITHUB_BASE_REF
+              git -c user.email="you@example.com" merge --no-commit my_ref_name
+          fi
+      - name: Configure System Packages
+        run: |
+          apk update
+          apk add musl-locales
+      - name: Build environment
+        run: |
+          /opt/python/cp311-cp311/bin/python -m venv ~/virtualenvs/pandas-dev
+          . ~/virtualenvs/pandas-dev/bin/activate
+          python -m pip install --no-cache-dir -U pip wheel setuptools meson-python==0.13.1 meson[ninja]==1.2.1
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil pytz pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-asyncio>=0.17 hypothesis>=6.46.1
+          python -m pip install --no-cache-dir --no-build-isolation -e .
+          python -m pip list --no-cache-dir
+
+      - name: Run Tests
+        run: |
+          . ~/virtualenvs/pandas-dev/bin/activate
+          export PANDAS_CI=1
+          python -m pytest -m 'not slow and not network and not clipboard and not single_cpu' pandas --junitxml=test-data.xml
+    concurrency:
+      # https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-musl
+      cancel-in-progress: true
+
+  python-dev:
+    # This job may or may not run depending on the state of the next
+    # unreleased Python version. DO NOT DELETE IT.
+    #
+    # In general, this will remain frozen(present, but not running) until:
+    #    - The next unreleased Python version has released beta 1
+    #      - This version should be available on GitHub Actions.
+    #    - Our required build/runtime dependencies(numpy, pytz, Cython, python-dateutil)
+    #      support that unreleased Python version.
+    #    To unfreeze, comment out the ``if: false`` condition, and make sure you update
+    #    the name of the workflow and Python version in actions/setup-python ``python-version:``
+    #
+    # After it has been unfrozen, this file should remain unfrozen(present, and running) until:
+    #    - The next Python version has been officially released.
+    #    OR
+    #    - Most/All of our optional dependencies support the next Python version AND
+    #    - The next Python version has released a rc(we are guaranteed a stable ABI).
+    #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
+    #    to the corresponding posix/windows-macos/sdist etc. workflows.
+    # Feel free to modify this comment as necessary.
+    #if: false # Uncomment this to freeze the workflow, comment it to unfreeze
+    defaults:
+      run:
+        shell: bash -eou pipefail {0}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macOS-latest, windows-latest]
+
+    timeout-minutes: 180
+
+    concurrency:
+      #https://github.community/t/concurrecy-not-work-for-push/183068/7
+      group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.os }}-${{ matrix.pytest_target }}-dev
+      cancel-in-progress: true
+
+    env:
+      PYTEST_WORKERS: "auto"
+      PANDAS_CI: 1
+      PATTERN: "not slow and not network and not clipboard and not single_cpu"
+      PYTEST_TARGET: pandas
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python Dev Version
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12-dev'
+
+      - name: Build Environment
+        run: |
+          python --version
+          python -m pip install --upgrade pip setuptools wheel meson[ninja]==1.2.1 meson-python==0.13.1
+          python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
+          python -m pip install versioneer[toml]
+          python -m pip install python-dateutil pytz tzdata cython hypothesis>=6.46.1 pytest>=7.3.2 pytest-xdist>=2.2.0 pytest-cov pytest-asyncio>=0.17
+          python -m pip install -ve . --no-build-isolation --no-index --no-deps
+          python -m pip list
+
+      - name: Run Tests
+        uses: ./.github/actions/run-tests

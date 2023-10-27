@@ -42,7 +42,8 @@ class Constructor:
         pd.Categorical(self.values, self.categories)
 
     def time_fastpath(self):
-        pd.Categorical(self.codes, self.cat_idx, fastpath=True)
+        dtype = pd.CategoricalDtype(categories=self.cat_idx)
+        pd.Categorical._simple_new(self.codes, dtype)
 
     def time_datetimes(self):
         pd.Categorical(self.datetimes)

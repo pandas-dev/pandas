@@ -12,8 +12,9 @@ from io import (
     StringIO,
     TextIOWrapper,
 )
-from typing import Iterator
+from typing import TYPE_CHECKING
 
+import numpy as np
 import pytest
 
 from pandas.errors import (
@@ -27,6 +28,9 @@ from pandas import (
     MultiIndex,
 )
 import pandas._testing as tm
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 def test_default_separator(python_parser_only):
@@ -270,7 +274,7 @@ def test_multi_char_sep_quotes(python_parser_only, quoting):
             parser.read_csv(StringIO(data), quoting=quoting, **kwargs)
 
 
-def test_none_delimiter(python_parser_only, capsys):
+def test_none_delimiter(python_parser_only):
     # see gh-13374 and gh-17465
     parser = python_parser_only
     data = "a,b,c\n0,1,2\n3,4,5,6\n7,8,9"
@@ -279,11 +283,13 @@ def test_none_delimiter(python_parser_only, capsys):
     # We expect the third line in the data to be
     # skipped because it is malformed, but we do
     # not expect any errors to occur.
-    result = parser.read_csv(StringIO(data), header=0, sep=None, on_bad_lines="warn")
+    with tm.assert_produces_warning(
+        ParserWarning, match="Skipping line 3", check_stacklevel=False
+    ):
+        result = parser.read_csv(
+            StringIO(data), header=0, sep=None, on_bad_lines="warn"
+        )
     tm.assert_frame_equal(result, expected)
-
-    captured = capsys.readouterr()
-    assert "Skipping line 3" in captured.err
 
 
 @pytest.mark.parametrize("data", ['a\n1\n"b"a', 'a,b,c\ncat,foo,bar\ndog,foo,"baz'])
@@ -487,4 +493,72 @@ def test_header_int_do_not_infer_multiindex_names_on_different_line(python_parse
         ParserWarning, "Length of header", data, engine="python", index_col=False
     )
     expected = DataFrame({"a": ["a", "c", "f"]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", [{"a": object}, {"a": str, "b": np.int64, "c": np.int64}]
+)
+def test_no_thousand_convert_with_dot_for_non_numeric_cols(python_parser_only, dtype):
+    # GH#50270
+    parser = python_parser_only
+    data = """\
+a;b;c
+0000.7995;16.000;0
+3.03.001.00514;0;4.000
+4923.600.041;23.000;131"""
+    result = parser.read_csv(
+        StringIO(data),
+        sep=";",
+        dtype=dtype,
+        thousands=".",
+    )
+    expected = DataFrame(
+        {
+            "a": ["0000.7995", "3.03.001.00514", "4923.600.041"],
+            "b": [16000, 0, 23000],
+            "c": [0, 4000, 131],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype,expected",
+    [
+        (
+            {"a": str, "b": np.float64, "c": np.int64},
+            DataFrame(
+                {
+                    "b": [16000.1, 0, 23000],
+                    "c": [0, 4001, 131],
+                }
+            ),
+        ),
+        (
+            str,
+            DataFrame(
+                {
+                    "b": ["16,000.1", "0", "23,000"],
+                    "c": ["0", "4,001", "131"],
+                }
+            ),
+        ),
+    ],
+)
+def test_no_thousand_convert_for_non_numeric_cols(python_parser_only, dtype, expected):
+    # GH#50270
+    parser = python_parser_only
+    data = """a;b;c
+0000,7995;16,000.1;0
+3,03,001,00514;0;4,001
+4923,600,041;23,000;131
+"""
+    result = parser.read_csv(
+        StringIO(data),
+        sep=";",
+        dtype=dtype,
+        thousands=",",
+    )
+    expected.insert(0, "a", ["0000,7995", "3,03,001,00514", "4923,600,041"])
     tm.assert_frame_equal(result, expected)

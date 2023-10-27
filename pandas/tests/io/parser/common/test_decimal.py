@@ -9,9 +9,14 @@ import pytest
 from pandas import DataFrame
 import pandas._testing as tm
 
-pytestmark = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
+xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
+@xfail_pyarrow
 @pytest.mark.parametrize(
     "data,thousands,decimal",
     [

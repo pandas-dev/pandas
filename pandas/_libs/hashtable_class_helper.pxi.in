@@ -13,7 +13,7 @@ complex_types = ['complex64',
 }}
 
 {{for name in complex_types}}
-cdef kh{{name}}_t to_kh{{name}}_t({{name}}_t val) nogil:
+cdef kh{{name}}_t to_kh{{name}}_t({{name}}_t val) noexcept nogil:
     cdef kh{{name}}_t res
     res.real = val.real
     res.imag = val.imag
@@ -42,7 +42,7 @@ c_types = ['khcomplex128_t',
 
 {{for c_type in c_types}}
 
-cdef bint is_nan_{{c_type}}({{c_type}} val) nogil:
+cdef bint is_nan_{{c_type}}({{c_type}} val) noexcept nogil:
     {{if c_type in {'khcomplex128_t', 'khcomplex64_t'} }}
     return val.real != val.real or val.imag != val.imag
     {{elif c_type in {'float64_t', 'float32_t'} }}
@@ -55,7 +55,7 @@ cdef bint is_nan_{{c_type}}({{c_type}} val) nogil:
 {{if c_type in {'khcomplex128_t', 'khcomplex64_t', 'float64_t', 'float32_t'} }}
 # are_equivalent_{{c_type}} is cimported via khash.pxd
 {{else}}
-cdef bint are_equivalent_{{c_type}}({{c_type}} val1, {{c_type}} val2) nogil:
+cdef bint are_equivalent_{{c_type}}({{c_type}} val1, {{c_type}} val2) noexcept nogil:
     return val1 == val2
 {{endif}}
 
@@ -141,7 +141,7 @@ ctypedef struct {{name}}VectorData:
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef void append_data_{{dtype}}({{name}}VectorData *data,
-                                       {{c_type}} x) nogil:
+                                       {{c_type}} x) noexcept nogil:
 
     data.data[data.n] = x
     data.n += 1
@@ -163,7 +163,7 @@ ctypedef fused vector_data:
     Complex64VectorData
     StringVectorData
 
-cdef bint needs_resize(vector_data *data) nogil:
+cdef bint needs_resize(vector_data *data) noexcept nogil:
     return data.n == data.m
 
 # ----------------------------------------------------------------------
@@ -241,7 +241,7 @@ cdef class {{name}}Vector(Vector):
         self.external_view_exists = True
         return self.ao
 
-    cdef void append(self, {{c_type}} x):
+    cdef void append(self, {{c_type}} x) noexcept:
 
         if needs_resize(self.data):
             if self.external_view_exists:
@@ -311,7 +311,7 @@ cdef class StringVector(Vector):
         self.data.m = self.data.n
         return ao
 
-    cdef void append(self, char *x):
+    cdef void append(self, char *x) noexcept:
 
         if needs_resize(self.data):
             self.resize()
@@ -648,7 +648,7 @@ cdef class {{name}}HashTable(HashTable):
             UInt8Vector result_mask
             UInt8VectorData *rmd
             bint use_na_value, use_mask, seen_na = False
-            uint8_t[:] mask_values
+            const uint8_t[:] mask_values
 
         if return_inverse:
             labels = np.empty(n, dtype=np.intp)

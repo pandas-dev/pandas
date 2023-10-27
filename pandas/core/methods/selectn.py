@@ -4,10 +4,12 @@ Implementation of nlargest and nsmallest.
 
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
+from collections.abc import (
     Hashable,
     Sequence,
+)
+from typing import (
+    TYPE_CHECKING,
     cast,
     final,
 )
@@ -15,10 +17,6 @@ from typing import (
 import numpy as np
 
 from pandas._libs import algos as libalgos
-from pandas._typing import (
-    DtypeObj,
-    IndexLabel,
-)
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -31,6 +29,11 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import BaseMaskedDtype
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        DtypeObj,
+        IndexLabel,
+    )
+
     from pandas import (
         DataFrame,
         Series,

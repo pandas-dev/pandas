@@ -24,7 +24,7 @@ else:
 import yaml
 
 EXCLUDE = {"python", "c-compiler", "cxx-compiler"}
-REMAP_VERSION = {"tzdata": "2022.1"}
+REMAP_VERSION = {"tzdata": "2022.7"}
 RENAME = {
     "pytables": "tables",
     "psycopg2": "psycopg2-binary",

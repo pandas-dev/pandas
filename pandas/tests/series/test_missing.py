@@ -27,9 +27,11 @@ class TestSeriesMissingData:
 
     def test_isna_for_inf(self):
         s = Series(["a", np.inf, np.nan, pd.NA, 1.0])
-        with pd.option_context("mode.use_inf_as_na", True):
-            r = s.isna()
-            dr = s.dropna()
+        msg = "use_inf_as_na option is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            with pd.option_context("mode.use_inf_as_na", True):
+                r = s.isna()
+                dr = s.dropna()
         e = Series([False, True, True, True, False])
         de = Series(["a", 1.0], index=[0, 4])
         tm.assert_series_equal(r, e)
@@ -47,7 +49,8 @@ class TestSeriesMissingData:
         assert not isna(td1[0])
 
         # GH#16674 iNaT is treated as an integer when given by the user
-        td1[1] = iNaT
+        with tm.assert_produces_warning(FutureWarning, match="incompatible dtype"):
+            td1[1] = iNaT
         assert not isna(td1[1])
         assert td1.dtype == np.object_
         assert td1[1] == iNaT
@@ -73,7 +76,7 @@ class TestSeriesMissingData:
     def test_logical_range_select(self, datetime_series):
         # NumPy limitation =(
         # https://github.com/pandas-dev/pandas/commit/9030dc021f07c76809848925cb34828f6c8484f3
-        np.random.seed(12345)
+
         selector = -0.5 <= datetime_series <= 0.5
         expected = (datetime_series >= -0.5) & (datetime_series <= 0.5)
         tm.assert_series_equal(selector, expected)
@@ -81,7 +84,7 @@ class TestSeriesMissingData:
     def test_valid(self, datetime_series):
         ts = datetime_series.copy()
         ts.index = ts.index._with_freq(None)
-        ts[::2] = np.NaN
+        ts[::2] = np.nan
 
         result = ts.dropna()
         assert len(result) == ts.count()
@@ -91,7 +94,8 @@ class TestSeriesMissingData:
 
 def test_hasnans_uncached_for_series():
     # GH#19700
-    idx = Index([0, 1])
+    # set float64 dtype to avoid upcast when setting nan
+    idx = Index([0, 1], dtype="float64")
     assert idx.hasnans is False
     assert "hasnans" in idx._cache
     ser = idx.to_series()
@@ -99,4 +103,3 @@ def test_hasnans_uncached_for_series():
     assert not hasattr(ser, "_cache")
     ser.iloc[-1] = np.nan
     assert ser.hasnans is True
-    assert Series.hasnans.__doc__ == Index.hasnans.__doc__

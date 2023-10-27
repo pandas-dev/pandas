@@ -5,25 +5,27 @@ from __future__ import annotations
 
 import operator
 import re
+from re import Pattern
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Pattern,
 )
 
 import numpy as np
 
-from pandas._typing import (
-    ArrayLike,
-    Scalar,
-    npt,
-)
-
 from pandas.core.dtypes.common import (
+    is_bool,
     is_re,
     is_re_compilable,
-    is_scalar,
 )
 from pandas.core.dtypes.missing import isna
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Scalar,
+        npt,
+    )
 
 
 def should_use_regex(regex: bool, to_replace: Any) -> bool:
@@ -70,7 +72,7 @@ def compare_or_regex_search(
         Raises an error if the two arrays (a,b) cannot be compared.
         Otherwise, returns the comparison result as expected.
         """
-        if is_scalar(result) and isinstance(a, np.ndarray):
+        if is_bool(result) and isinstance(a, np.ndarray):
             type_names = [type(a).__name__, type(b).__name__]
 
             type_names[0] = f"ndarray(dtype={a.dtype})"

@@ -1,10 +1,11 @@
 import re
+import warnings
 
 import numpy as np
 import pytest
 
 import pandas as pd
-from pandas.core.arrays.sparse import SparseDtype
+from pandas import SparseDtype
 
 
 @pytest.mark.parametrize(
@@ -67,15 +68,22 @@ def test_nans_equal():
     assert b == a
 
 
-@pytest.mark.parametrize(
-    "a, b",
-    [
+with warnings.catch_warnings():
+    msg = "Allowing arbitrary scalar fill_value in SparseDtype is deprecated"
+    warnings.filterwarnings("ignore", msg, category=FutureWarning)
+
+    tups = [
         (SparseDtype("float64"), SparseDtype("float32")),
         (SparseDtype("float64"), SparseDtype("float64", 0)),
         (SparseDtype("float64"), SparseDtype("datetime64[ns]", np.nan)),
         (SparseDtype(int, pd.NaT), SparseDtype(float, pd.NaT)),
         (SparseDtype("float64"), np.dtype("float64")),
-    ],
+    ]
+
+
+@pytest.mark.parametrize(
+    "a, b",
+    tups,
 )
 def test_not_equal(a, b):
     assert a != b
@@ -189,7 +197,7 @@ def test_update_dtype(original, dtype, expected):
         (
             SparseDtype(str, "abc"),
             int,
-            re.escape("invalid literal for int() with base 10: 'abc'"),
+            r"invalid literal for int\(\) with base 10: ('abc'|np\.str_\('abc'\))",
         ),
     ],
 )
@@ -207,3 +215,10 @@ def test_repr():
     result = str(SparseDtype(object, fill_value="0"))
     expected = "Sparse[object, '0']"
     assert result == expected
+
+
+def test_sparse_dtype_subtype_must_be_numpy_dtype():
+    # GH#53160
+    msg = "SparseDtype subtype must be a numpy dtype"
+    with pytest.raises(TypeError, match=msg):
+        SparseDtype("category", fill_value="c")

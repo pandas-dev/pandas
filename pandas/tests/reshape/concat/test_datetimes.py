@@ -46,8 +46,8 @@ class TestDatetimeConcat:
 
     def test_concat_datetime_timezone(self):
         # GH 18523
-        idx1 = date_range("2011-01-01", periods=3, freq="H", tz="Europe/Paris")
-        idx2 = date_range(start=idx1[0], end=idx1[-1], freq="H")
+        idx1 = date_range("2011-01-01", periods=3, freq="h", tz="Europe/Paris")
+        idx2 = date_range(start=idx1[0], end=idx1[-1], freq="h")
         df1 = DataFrame({"a": [1, 2, 3]}, index=idx1)
         df2 = DataFrame({"b": [1, 2, 3]}, index=idx2)
         result = concat([df1, df2], axis=1)
@@ -59,7 +59,7 @@ class TestDatetimeConcat:
                     "2011-01-01 01:00:00+01:00",
                     "2011-01-01 02:00:00+01:00",
                 ],
-                freq="H",
+                freq="h",
             )
             .tz_convert("UTC")
             .tz_convert("Europe/Paris")
@@ -71,29 +71,29 @@ class TestDatetimeConcat:
 
         tm.assert_frame_equal(result, expected)
 
-        idx3 = date_range("2011-01-01", periods=3, freq="H", tz="Asia/Tokyo")
+        idx3 = date_range("2011-01-01", periods=3, freq="h", tz="Asia/Tokyo")
         df3 = DataFrame({"b": [1, 2, 3]}, index=idx3)
         result = concat([df1, df3], axis=1)
 
         exp_idx = DatetimeIndex(
             [
-                "2010-12-31 15:00:00+00:00",
-                "2010-12-31 16:00:00+00:00",
-                "2010-12-31 17:00:00+00:00",
                 "2010-12-31 23:00:00+00:00",
                 "2011-01-01 00:00:00+00:00",
                 "2011-01-01 01:00:00+00:00",
+                "2010-12-31 15:00:00+00:00",
+                "2010-12-31 16:00:00+00:00",
+                "2010-12-31 17:00:00+00:00",
             ]
         )
 
         expected = DataFrame(
             [
-                [np.nan, 1],
-                [np.nan, 2],
-                [np.nan, 3],
                 [1, np.nan],
                 [2, np.nan],
                 [3, np.nan],
+                [np.nan, 1],
+                [np.nan, 2],
+                [np.nan, 3],
             ],
             index=exp_idx,
             columns=["a", "b"],
@@ -102,7 +102,7 @@ class TestDatetimeConcat:
         tm.assert_frame_equal(result, expected)
 
         # GH 13783: Concat after resample
-        result = concat([df1.resample("H").mean(), df2.resample("H").mean()], sort=True)
+        result = concat([df1.resample("h").mean(), df2.resample("h").mean()], sort=True)
         expected = DataFrame(
             {"a": [1, 2, 3] + [np.nan] * 3, "b": [np.nan] * 3 + [1, 2, 3]},
             index=idx1.append(idx1),
@@ -112,7 +112,7 @@ class TestDatetimeConcat:
     def test_concat_datetimeindex_freq(self):
         # GH 3232
         # Monotonic index result
-        dr = date_range("01-Jan-2013", periods=100, freq="50L", tz="UTC")
+        dr = date_range("01-Jan-2013", periods=100, freq="50ms", tz="UTC")
         data = list(range(100))
         expected = DataFrame(data, index=dr)
         result = concat([expected[:50], expected[50:]])
@@ -178,6 +178,7 @@ class TestDatetimeConcat:
         result = concat([y, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
+    def test_concat_NaT_series2(self):
         # without tz
         x = Series(date_range("20151124 08:00", "20151124 09:00", freq="1h"))
         y = Series(date_range("20151124 10:00", "20151124 11:00", freq="1h"))
@@ -216,19 +217,30 @@ class TestDatetimeConcat:
 
     @pytest.mark.parametrize("tz1", [None, "UTC"])
     @pytest.mark.parametrize("tz2", [None, "UTC"])
-    @pytest.mark.parametrize("s", [pd.NaT, Timestamp("20150101")])
-    def test_concat_NaT_dataframes_all_NaT_axis_0(self, tz1, tz2, s):
+    @pytest.mark.parametrize("item", [pd.NaT, Timestamp("20150101")])
+    def test_concat_NaT_dataframes_all_NaT_axis_0(
+        self, tz1, tz2, item, using_array_manager
+    ):
         # GH 12396
 
         # tz-naive
         first = DataFrame([[pd.NaT], [pd.NaT]]).apply(lambda x: x.dt.tz_localize(tz1))
-        second = DataFrame([s]).apply(lambda x: x.dt.tz_localize(tz2))
+        second = DataFrame([item]).apply(lambda x: x.dt.tz_localize(tz2))
 
         result = concat([first, second], axis=0)
-        expected = DataFrame(Series([pd.NaT, pd.NaT, s], index=[0, 1, 0]))
+        expected = DataFrame(Series([pd.NaT, pd.NaT, item], index=[0, 1, 0]))
         expected = expected.apply(lambda x: x.dt.tz_localize(tz2))
         if tz1 != tz2:
             expected = expected.astype(object)
+            if item is pd.NaT and not using_array_manager:
+                # GH#18463
+                # TODO: setting nan here is to keep the test passing as we
+                #  make assert_frame_equal stricter, but is nan really the
+                #  ideal behavior here?
+                if tz1 is not None:
+                    expected.iloc[-1, 0] = np.nan
+                else:
+                    expected.iloc[:-1, 0] = np.nan
 
         tm.assert_frame_equal(result, expected)
 
@@ -287,6 +299,7 @@ class TestTimezoneConcat:
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
+    def test_concat_tz_series2(self):
         # gh-11887: concat tz and object
         x = Series(date_range("20151124 08:00", "20151124 09:00", freq="1h", tz="UTC"))
         y = Series(["a", "b"])
@@ -294,6 +307,7 @@ class TestTimezoneConcat:
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
+    def test_concat_tz_series3(self):
         # see gh-12217 and gh-12306
         # Concatenating two UTC times
         first = DataFrame([[datetime(2016, 1, 1)]])
@@ -305,6 +319,7 @@ class TestTimezoneConcat:
         result = concat([first, second])
         assert result[0].dtype == "datetime64[ns, UTC]"
 
+    def test_concat_tz_series4(self):
         # Concatenating two London times
         first = DataFrame([[datetime(2016, 1, 1)]])
         first[0] = first[0].dt.tz_localize("Europe/London")
@@ -315,6 +330,7 @@ class TestTimezoneConcat:
         result = concat([first, second])
         assert result[0].dtype == "datetime64[ns, Europe/London]"
 
+    def test_concat_tz_series5(self):
         # Concatenating 2+1 London times
         first = DataFrame([[datetime(2016, 1, 1)], [datetime(2016, 1, 2)]])
         first[0] = first[0].dt.tz_localize("Europe/London")
@@ -325,6 +341,7 @@ class TestTimezoneConcat:
         result = concat([first, second])
         assert result[0].dtype == "datetime64[ns, Europe/London]"
 
+    def test_concat_tz_series6(self):
         # Concat'ing 1+2 London times
         first = DataFrame([[datetime(2016, 1, 1)]])
         first[0] = first[0].dt.tz_localize("Europe/London")
@@ -501,6 +518,7 @@ class TestPeriodConcat:
         tm.assert_series_equal(result, expected)
         assert result.dtype == "object"
 
+    def test_concat_period_other_series2(self):
         # non-period
         x = Series(pd.PeriodIndex(["2015-11-01", "2015-12-01"], freq="D"))
         y = Series(DatetimeIndex(["2015-11-01", "2015-12-01"]))
@@ -509,6 +527,7 @@ class TestPeriodConcat:
         tm.assert_series_equal(result, expected)
         assert result.dtype == "object"
 
+    def test_concat_period_other_series3(self):
         x = Series(pd.PeriodIndex(["2015-11-01", "2015-12-01"], freq="D"))
         y = Series(["A", "B"])
         expected = Series([x[0], x[1], y[0], y[1]], dtype="object")
@@ -538,3 +557,42 @@ def test_concat_multiindex_datetime_nat():
         {"a": [1.0, np.nan], "b": 2}, MultiIndex.from_tuples([(1, pd.NaT), (2, pd.NaT)])
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_float_datetime64(using_array_manager):
+    # GH#32934
+    df_time = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
+    df_float = DataFrame({"A": pd.array([1.0], dtype="float64")})
+
+    expected = DataFrame(
+        {
+            "A": [
+                pd.array(["2000"], dtype="datetime64[ns]")[0],
+                pd.array([1.0], dtype="float64")[0],
+            ]
+        },
+        index=[0, 0],
+    )
+    result = concat([df_time, df_float])
+    tm.assert_frame_equal(result, expected)
+
+    expected = DataFrame({"A": pd.array([], dtype="object")})
+    result = concat([df_time.iloc[:0], df_float.iloc[:0]])
+    tm.assert_frame_equal(result, expected)
+
+    expected = DataFrame({"A": pd.array([1.0], dtype="object")})
+    result = concat([df_time.iloc[:0], df_float])
+    tm.assert_frame_equal(result, expected)
+
+    if not using_array_manager:
+        expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")})
+        msg = "The behavior of DataFrame concatenation with empty or all-NA entries"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = concat([df_time, df_float.iloc[:0]])
+        tm.assert_frame_equal(result, expected)
+    else:
+        expected = DataFrame({"A": pd.array(["2000"], dtype="datetime64[ns]")}).astype(
+            {"A": "object"}
+        )
+        result = concat([df_time, df_float.iloc[:0]])
+        tm.assert_frame_equal(result, expected)

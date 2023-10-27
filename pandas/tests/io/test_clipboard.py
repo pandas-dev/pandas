@@ -1,5 +1,4 @@
 import os
-import subprocess
 from textwrap import dedent
 
 import numpy as np
@@ -7,7 +6,6 @@ import pytest
 
 from pandas.compat import (
     is_ci_environment,
-    is_platform_linux,
     is_platform_mac,
 )
 from pandas.errors import (
@@ -64,9 +62,9 @@ def df(request):
     data_type = request.param
 
     if data_type == "delims":
-        return DataFrame({"a": ['"a,\t"b|c', "d\tef´"], "b": ["hi'j", "k''lm"]})
+        return DataFrame({"a": ['"a,\t"b|c', "d\tef`"], "b": ["hi'j", "k''lm"]})
     elif data_type == "utf8":
-        return DataFrame({"a": ["µasd", "Ωœ∑´"], "b": ["øπ∆˚¬", "œ∑´®"]})
+        return DataFrame({"a": ["µasd", "Ωœ∑`"], "b": ["øπ∆˚¬", "œ∑`®"]})
     elif data_type == "utf16":
         return DataFrame(
             {"a": ["\U0001f44d\U0001f44d", "\U0001f44d\U0001f44d"], "b": ["abc", "def"]}
@@ -80,7 +78,7 @@ def df(request):
         return tm.makeCustomDataframe(
             max_rows + 1,
             3,
-            data_gen_f=lambda *args: np.random.randint(2),
+            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
@@ -121,7 +119,7 @@ def df(request):
         return tm.makeCustomDataframe(
             5,
             3,
-            data_gen_f=lambda *args: np.random.randint(2),
+            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
             c_idx_type="s",
             r_idx_type="i",
             c_idx_names=[None],
@@ -318,7 +316,7 @@ class TestClipboard:
         df = read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
-        assert df.iloc[1][1] == "Harry Carney"
+        assert df.iloc[1, 1] == "Harry Carney"
 
         # having diff tab counts doesn't trigger it
         text = dedent(
@@ -404,22 +402,20 @@ class TestClipboard:
         self.check_round_trip_frame(df, encoding=enc)
 
     @pytest.mark.single_cpu
-    @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑´...", "abcd..."])
+    @pytest.mark.parametrize("data", ["\U0001f44d...", "Ωœ∑`...", "abcd..."])
     @pytest.mark.xfail(
-        os.environ.get("DISPLAY") is None and not is_platform_mac(),
-        reason="Cannot be runed if a headless system is not put in place with Xvfb",
-        strict=True,
+        (os.environ.get("DISPLAY") is None and not is_platform_mac())
+        or is_ci_environment(),
+        reason="Cannot pass if a headless system is not put in place with Xvfb",
+        strict=not is_ci_environment(),  # Flaky failures in the CI
     )
     def test_raw_roundtrip(self, data):
         # PR #25040 wide unicode wasn't copied correctly on PY3 on windows
         clipboard_set(data)
         assert data == clipboard_get()
-        if is_ci_environment() and is_platform_linux():
-            # Clipboard can sometimes keep previous param causing flaky CI failures
-            subprocess.run(["xsel", "--delete", "--clipboard"], check=True)
 
     @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_read_clipboard_nullable_dtypes(
+    def test_read_clipboard_dtype_backend(
         self, request, mock_clipboard, string_storage, dtype_backend, engine
     ):
         # GH#50502
@@ -440,10 +436,7 @@ y,2,5.0,,,,,False,"""
         mock_clipboard[request.node.name] = text
 
         with pd.option_context("mode.string_storage", string_storage):
-            with pd.option_context("mode.dtype_backend", dtype_backend):
-                result = read_clipboard(
-                    sep=",", use_nullable_dtypes=True, engine=engine
-                )
+            result = read_clipboard(sep=",", dtype_backend=dtype_backend, engine=engine)
 
         expected = DataFrame(
             {
@@ -471,19 +464,20 @@ y,2,5.0,,,,,False,"""
 
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("engine", ["c", "python"])
-    def test_read_clipboard_nullable_dtypes_option(
-        self, request, mock_clipboard, engine
-    ):
-        # GH#50748
+    def test_invalid_dtype_backend(self):
+        msg = (
+            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
+            "'pyarrow' are allowed."
+        )
+        with pytest.raises(ValueError, match=msg):
+            read_clipboard(dtype_backend="numpy")
 
-        text = """a
-1
-2"""
-        mock_clipboard[request.node.name] = text
-
-        with pd.option_context("mode.nullable_dtypes", True):
-            result = read_clipboard(sep=",", engine=engine)
-
-        expected = DataFrame({"a": Series([1, 2], dtype="Int64")})
-        tm.assert_frame_equal(result, expected)
+    def test_to_clipboard_pos_args_deprecation(self):
+        # GH-54229
+        df = DataFrame({"a": [1, 2, 3]})
+        msg = (
+            r"Starting with pandas version 3.0 all arguments of to_clipboard "
+            r"will be keyword-only."
+        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            df.to_clipboard(True, None)

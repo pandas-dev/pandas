@@ -55,7 +55,7 @@ class TestIteration:
         s = DataFrame(
             {
                 "non_iso8601": ["M1701", "M1802", "M1903", "M2004"],
-                "iso8601": date_range("2000-01-01", periods=4, freq="M"),
+                "iso8601": date_range("2000-01-01", periods=4, freq="ME"),
             }
         )
         for k, v in s.iterrows():
@@ -92,7 +92,8 @@ class TestIteration:
             tm.assert_series_equal(ser, expected)
 
         df = DataFrame(
-            {"floats": np.random.randn(5), "ints": range(5)}, columns=["floats", "ints"]
+            {"floats": np.random.default_rng(2).standard_normal(5), "ints": range(5)},
+            columns=["floats", "ints"],
         )
 
         for tup in df.itertuples(index=False):

@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-import numpy as np
+from typing import TYPE_CHECKING
 
-from pandas._typing import (
-    ArrayLike,
-    Scalar,
-    npt,
-)
-from pandas.compat.numpy import np_percentile_argname
+import numpy as np
 
 from pandas.core.dtypes.missing import (
     isna,
     na_value_for_dtype,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        Scalar,
+        npt,
+    )
 
 
 def quantile_compat(
@@ -146,7 +148,7 @@ def _nanpercentile_1d(
         # error: No overload variant of "percentile" matches argument
         # types "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]"
         # , "Dict[str, str]"  [call-overload]
-        **{np_percentile_argname: interpolation},  # type: ignore[call-overload]
+        method=interpolation,  # type: ignore[call-overload]
     )
 
 
@@ -176,7 +178,7 @@ def _nanpercentile(
     quantiles : scalar or array
     """
 
-    if values.dtype.kind in ["m", "M"]:
+    if values.dtype.kind in "mM":
         # need to cast to integer to avoid rounding errors in numpy
         result = _nanpercentile(
             values.view("i8"),
@@ -220,5 +222,5 @@ def _nanpercentile(
             # error: No overload variant of "percentile" matches argument types
             # "ndarray[Any, Any]", "ndarray[Any, dtype[floating[_64Bit]]]",
             # "int", "Dict[str, str]"  [call-overload]
-            **{np_percentile_argname: interpolation},  # type: ignore[call-overload]
+            method=interpolation,  # type: ignore[call-overload]
         )

@@ -283,30 +283,30 @@ class TestPartialSetting:
             df.iat[4, 2] = 5.0
 
         # row setting where it exists
-        expected = DataFrame(dict({"A": [0, 4, 4], "B": [1, 5, 5]}))
+        expected = DataFrame({"A": [0, 4, 4], "B": [1, 5, 5]})
         df = df_orig.copy()
         df.iloc[1] = df.iloc[2]
         tm.assert_frame_equal(df, expected)
 
-        expected = DataFrame(dict({"A": [0, 4, 4], "B": [1, 5, 5]}))
+        expected = DataFrame({"A": [0, 4, 4], "B": [1, 5, 5]})
         df = df_orig.copy()
         df.loc[1] = df.loc[2]
         tm.assert_frame_equal(df, expected)
 
         # like 2578, partial setting with dtype preservation
-        expected = DataFrame(dict({"A": [0, 2, 4, 4], "B": [1, 3, 5, 5]}))
+        expected = DataFrame({"A": [0, 2, 4, 4], "B": [1, 3, 5, 5]})
         df = df_orig.copy()
         df.loc[3] = df.loc[2]
         tm.assert_frame_equal(df, expected)
 
         # single dtype frame, overwrite
-        expected = DataFrame(dict({"A": [0, 2, 4], "B": [0, 2, 4]}))
+        expected = DataFrame({"A": [0, 2, 4], "B": [0, 2, 4]})
         df = df_orig.copy()
         df.loc[:, "B"] = df.loc[:, "A"]
         tm.assert_frame_equal(df, expected)
 
         # mixed dtype frame, overwrite
-        expected = DataFrame(dict({"A": [0, 2, 4], "B": Series([0.0, 2.0, 4.0])}))
+        expected = DataFrame({"A": [0, 2, 4], "B": Series([0.0, 2.0, 4.0])})
         df = df_orig.copy()
         df["B"] = df["B"].astype(np.float64)
         # as of 2.0, df.loc[:, "B"] = ... attempts (and here succeeds) at
@@ -332,7 +332,9 @@ class TestPartialSetting:
         # GH 8473
         dates = date_range("1/1/2000", periods=8)
         df_orig = DataFrame(
-            np.random.randn(8, 4), index=dates, columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((8, 4)),
+            index=dates,
+            columns=["A", "B", "C", "D"],
         )
 
         expected = pd.concat(
@@ -400,7 +402,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}'\)\] "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.dtype(int)}'\)\] "
             r"are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -481,7 +483,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}', "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.dtype(int)}', "
             r"name='idx'\)\] are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -664,5 +666,14 @@ class TestStringSlicing:
         index = pd.to_datetime(["2012-01-01", "2012-01-02", "2012-01-03", None])
         df = DataFrame(range(len(index)), index=index)
         expected = DataFrame(range(len(index[:3])), index=index[:3])
-        result = df["2012-01-01":"2012-01-04"]
+        with pytest.raises(KeyError, match="non-existing keys is not allowed"):
+            # Upper bound is not in index (which is unordered)
+            # GH53983
+            # GH37819
+            df["2012-01-01":"2012-01-04"]
+        # Need this precision for right bound since the right slice
+        # bound is "rounded" up to the largest timepoint smaller than
+        # the next "resolution"-step of the provided point.
+        # e.g. 2012-01-03 is rounded up to 2012-01-04 - 1ns
+        result = df["2012-01-01":"2012-01-03 00:00:00.000000000"]
         tm.assert_frame_equal(result, expected)

@@ -51,7 +51,7 @@ def test_conversions(data_missing):
     # astype to object series
     df = pd.DataFrame({"A": data_missing})
     result = df["A"].astype("object")
-    expected = pd.Series(np.array([np.nan, 1], dtype=object), name="A")
+    expected = pd.Series(np.array([pd.NA, 1], dtype=object), name="A")
     tm.assert_series_equal(result, expected)
 
     # convert to object ndarray
@@ -233,4 +233,11 @@ def test_to_integer_array(values, to_dtype, result_dtype):
     result = IntegerArray._from_sequence(values, dtype=to_dtype)
     assert result.dtype == result_dtype()
     expected = pd.array(values, dtype=result_dtype())
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_integer_array_from_boolean():
+    # GH31104
+    expected = pd.array(np.array([True, False]), dtype="Int64")
+    result = pd.array(np.array([True, False], dtype=object), dtype="Int64")
     tm.assert_extension_array_equal(result, expected)

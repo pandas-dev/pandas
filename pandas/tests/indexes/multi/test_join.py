@@ -217,7 +217,7 @@ def test_join_multi_with_nan():
     )
     df2 = DataFrame(
         data={"col2": [2.1, 2.2]},
-        index=MultiIndex.from_product([["A"], [np.NaN, 2.0]], names=["id1", "id2"]),
+        index=MultiIndex.from_product([["A"], [np.nan, 2.0]], names=["id1", "id2"]),
     )
     result = df1.join(df2)
     expected = DataFrame(
@@ -256,4 +256,16 @@ def test_join_dtypes_all_nan(any_numeric_ea_dtype):
             [np.nan, np.nan, np.nan, np.nan],
         ]
     )
+    tm.assert_index_equal(result, expected)
+
+
+def test_join_index_levels():
+    # GH#53093
+    midx = midx = MultiIndex.from_tuples([("a", "2019-02-01"), ("a", "2019-02-01")])
+    midx2 = MultiIndex.from_tuples([("a", "2019-01-31")])
+    result = midx.join(midx2, how="outer")
+    expected = MultiIndex.from_tuples(
+        [("a", "2019-01-31"), ("a", "2019-02-01"), ("a", "2019-02-01")]
+    )
+    tm.assert_index_equal(result.levels[1], expected.levels[1])
     tm.assert_index_equal(result, expected)

@@ -1,5 +1,4 @@
 import re
-from warnings import catch_warnings
 
 import numpy as np
 import pytest
@@ -19,7 +18,7 @@ class TestABCClasses:
     categorical = pd.Categorical([1, 2, 3], categories=[2, 3, 1])
     categorical_df = pd.DataFrame({"values": [1, 2, 3]}, index=categorical)
     df = pd.DataFrame({"names": ["a", "b", "c"]}, index=multi_index)
-    sparse_array = pd.arrays.SparseArray(np.random.randn(10))
+    sparse_array = pd.arrays.SparseArray(np.random.default_rng(2).standard_normal(10))
     datetime_array = pd.core.arrays.DatetimeArray(datetime_index)
     timedelta_array = pd.core.arrays.TimedeltaArray(timedelta_index)
 
@@ -29,8 +28,11 @@ class TestABCClasses:
         ("ABCRangeIndex", pd.RangeIndex(3)),
         ("ABCTimedeltaIndex", timedelta_index),
         ("ABCIntervalIndex", pd.interval_range(start=0, end=3)),
-        ("ABCPeriodArray", pd.arrays.PeriodArray([2000, 2001, 2002], freq="D")),
-        ("ABCPandasArray", pd.arrays.PandasArray(np.array([0, 1, 2]))),
+        (
+            "ABCPeriodArray",
+            pd.arrays.PeriodArray([2000, 2001, 2002], dtype="period[D]"),
+        ),
+        ("ABCNumpyExtensionArray", pd.arrays.NumpyExtensionArray(np.array([0, 1, 2]))),
         ("ABCPeriodIndex", period_index),
         ("ABCCategoricalIndex", categorical_df.index),
         ("ABCSeries", pd.Series([1, 2, 3])),
@@ -104,25 +106,22 @@ def test_setattr_warnings():
     }
     df = pd.DataFrame(d)
 
-    with catch_warnings(record=True) as w:
+    with tm.assert_produces_warning(None):
         #  successfully add new column
         #  this should not raise a warning
         df["three"] = df.two + 1
-        assert len(w) == 0
         assert df.three.sum() > df.two.sum()
 
-    with catch_warnings(record=True) as w:
+    with tm.assert_produces_warning(None):
         #  successfully modify column in place
         #  this should not raise a warning
         df.one += 1
-        assert len(w) == 0
         assert df.one.iloc[0] == 2
 
-    with catch_warnings(record=True) as w:
+    with tm.assert_produces_warning(None):
         #  successfully add an attribute to a series
         #  this should not raise a warning
         df.two.not_an_index = [1, 2]
-        assert len(w) == 0
 
     with tm.assert_produces_warning(UserWarning):
         #  warn when setting column to nonexistent name

@@ -4,7 +4,7 @@ from pandas._libs.dtypes cimport (
 )
 
 
-cdef numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) nogil
+cdef numeric_t kth_smallest_c(numeric_t* arr, Py_ssize_t k, Py_ssize_t n) noexcept nogil
 
 cdef enum TiebreakEnumType:
     TIEBREAK_AVERAGE

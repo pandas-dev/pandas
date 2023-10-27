@@ -241,7 +241,7 @@ def test_if_sheet_exists_raises(ext, if_sheet_exists, msg):
     df = DataFrame({"fruit": ["pear"]})
     with tm.ensure_clean(ext) as f:
         with pytest.raises(ValueError, match=re.escape(msg)):
-            df.to_excel(f, "foo", engine="openpyxl")
+            df.to_excel(f, sheet_name="foo", engine="openpyxl")
             with ExcelWriter(
                 f, engine="openpyxl", mode="a", if_sheet_exists=if_sheet_exists
             ) as writer:
@@ -254,7 +254,7 @@ def test_to_excel_with_openpyxl_engine(ext):
         df1 = DataFrame({"A": np.linspace(1, 10, 10)})
         df2 = DataFrame({"B": np.linspace(1, 20, 10)})
         df = pd.concat([df1, df2], axis=1)
-        styled = df.style.applymap(
+        styled = df.style.map(
             lambda val: f"color: {'red' if val < 0 else 'black'}"
         ).highlight_max()
 

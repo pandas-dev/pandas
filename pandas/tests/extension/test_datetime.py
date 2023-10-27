@@ -19,6 +19,7 @@ import pytest
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
+import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
 from pandas.tests.extension import base
 
@@ -80,115 +81,64 @@ def na_cmp():
     return cmp
 
 
-@pytest.fixture
-def na_value():
-    return pd.NaT
-
-
 # ----------------------------------------------------------------------------
-class BaseDatetimeTests:
-    pass
+class TestDatetimeArray(base.ExtensionTests):
+    def _get_expected_exception(self, op_name, obj, other):
+        if op_name in ["__sub__", "__rsub__"]:
+            return None
+        return super()._get_expected_exception(op_name, obj, other)
 
+    def _supports_accumulation(self, ser, op_name: str) -> bool:
+        return op_name in ["cummin", "cummax"]
 
-# ----------------------------------------------------------------------------
-# Tests
-class TestDatetimeDtype(BaseDatetimeTests, base.BaseDtypeTests):
-    pass
+    def _supports_reduction(self, obj, op_name: str) -> bool:
+        return op_name in ["min", "max", "median", "mean", "std", "any", "all"]
 
+    @pytest.mark.parametrize("skipna", [True, False])
+    def test_reduce_series_boolean(self, data, all_boolean_reductions, skipna):
+        meth = all_boolean_reductions
+        msg = f"'{meth}' with datetime64 dtypes is deprecated and will raise in"
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, check_stacklevel=False
+        ):
+            super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
-class TestConstructors(BaseDatetimeTests, base.BaseConstructorsTests):
     def test_series_constructor(self, data):
         # Series construction drops any .freq attr
         data = data._with_freq(None)
         super().test_series_constructor(data)
 
+    @pytest.mark.parametrize("na_action", [None, "ignore"])
+    def test_map(self, data, na_action):
+        result = data.map(lambda x: x, na_action=na_action)
+        tm.assert_extension_array_equal(result, data)
 
-class TestGetitem(BaseDatetimeTests, base.BaseGetitemTests):
-    pass
+    @pytest.mark.parametrize("engine", ["c", "python"])
+    def test_EA_types(self, engine, data):
+        expected_msg = r".*must implement _from_sequence_of_strings.*"
+        with pytest.raises(NotImplementedError, match=expected_msg):
+            super().test_EA_types(engine, data)
 
+    def check_reduce(self, ser: pd.Series, op_name: str, skipna: bool):
+        if op_name in ["median", "mean", "std"]:
+            alt = ser.astype("int64")
 
-class TestIndex(base.BaseIndexTests):
-    pass
+            res_op = getattr(ser, op_name)
+            exp_op = getattr(alt, op_name)
+            result = res_op(skipna=skipna)
+            expected = exp_op(skipna=skipna)
+            if op_name in ["mean", "median"]:
+                # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype"
+                # has no attribute "tz"
+                tz = ser.dtype.tz  # type: ignore[union-attr]
+                expected = pd.Timestamp(expected, tz=tz)
+            else:
+                expected = pd.Timedelta(expected)
+            tm.assert_almost_equal(result, expected)
 
-
-class TestMethods(BaseDatetimeTests, base.BaseMethodsTests):
-    def test_combine_add(self, data_repeated):
-        # Timestamp.__add__(Timestamp) not defined
-        pass
-
-
-class TestInterface(BaseDatetimeTests, base.BaseInterfaceTests):
-    pass
-
-
-class TestArithmeticOps(BaseDatetimeTests, base.BaseArithmeticOpsTests):
-    implements = {"__sub__", "__rsub__"}
-
-    def test_arith_frame_with_scalar(self, data, all_arithmetic_operators):
-        # frame & scalar
-        if all_arithmetic_operators in self.implements:
-            df = pd.DataFrame({"A": data})
-            self.check_opname(df, all_arithmetic_operators, data[0], exc=None)
         else:
-            # ... but not the rest.
-            super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-
-    def test_arith_series_with_scalar(self, data, all_arithmetic_operators):
-        if all_arithmetic_operators in self.implements:
-            ser = pd.Series(data)
-            self.check_opname(ser, all_arithmetic_operators, ser.iloc[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_add_series_with_extension_array(self, data):
-        # Datetime + Datetime not implemented
-        ser = pd.Series(data)
-        msg = "cannot add DatetimeArray and DatetimeArray"
-        with pytest.raises(TypeError, match=msg):
-            ser + data
-
-    def test_arith_series_with_array(self, data, all_arithmetic_operators):
-        if all_arithmetic_operators in self.implements:
-            ser = pd.Series(data)
-            self.check_opname(ser, all_arithmetic_operators, ser.iloc[0], exc=None)
-        else:
-            # ... but not the rest.
-            super().test_arith_series_with_scalar(data, all_arithmetic_operators)
-
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        pass
+            return super().check_reduce(ser, op_name, skipna)
 
 
-class TestCasting(BaseDatetimeTests, base.BaseCastingTests):
-    pass
-
-
-class TestComparisonOps(BaseDatetimeTests, base.BaseComparisonOpsTests):
-    pass
-
-
-class TestMissing(BaseDatetimeTests, base.BaseMissingTests):
-    pass
-
-
-class TestReshaping(BaseDatetimeTests, base.BaseReshapingTests):
-    pass
-
-
-class TestSetitem(BaseDatetimeTests, base.BaseSetitemTests):
-    pass
-
-
-class TestGroupby(BaseDatetimeTests, base.BaseGroupbyTests):
-    pass
-
-
-class TestPrinting(BaseDatetimeTests, base.BasePrintingTests):
-    pass
-
-
-class Test2DCompat(BaseDatetimeTests, base.NDArrayBacked2DTests):
+class Test2DCompat(base.NDArrayBacked2DTests):
     pass

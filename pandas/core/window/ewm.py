@@ -9,15 +9,6 @@ import numpy as np
 
 from pandas._libs.tslibs import Timedelta
 import pandas._libs.window.aggregations as window_aggregations
-from pandas._typing import (
-    Axis,
-    TimedeltaConvertibleTypes,
-)
-
-if TYPE_CHECKING:
-    from pandas import DataFrame, Series
-    from pandas.core.generic import NDFrame
-
 from pandas.util._decorators import doc
 
 from pandas.core.dtypes.common import (
@@ -59,6 +50,18 @@ from pandas.core.window.rolling import (
     BaseWindow,
     BaseWindowGroupby,
 )
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        Axis,
+        TimedeltaConvertibleTypes,
+    )
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+    from pandas.core.generic import NDFrame
 
 
 def get_center_of_mass(
@@ -151,8 +154,6 @@ class ExponentialMovingWindow(BaseWindow):
         observation decays to half its value. Only applicable to ``mean()``,
         and halflife value will not apply to the other functions.
 
-        .. versionadded:: 1.1.0
-
     alpha : float, optional
         Specify smoothing factor :math:`\alpha` directly
 
@@ -206,8 +207,6 @@ class ExponentialMovingWindow(BaseWindow):
 
     times : np.ndarray, Series, default None
 
-        .. versionadded:: 1.1.0
-
         Only applicable to ``mean()``.
 
         Times corresponding to the observations. Must be monotonically increasing and
@@ -228,7 +227,7 @@ class ExponentialMovingWindow(BaseWindow):
 
     Returns
     -------
-    ``ExponentialMovingWindow`` subclass
+    pandas.api.typing.ExponentialMovingWindow
 
     See Also
     --------
@@ -503,7 +502,19 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes.replace("\n", "", 1),
+        numba_notes,
+        create_section_header("Examples"),
+        dedent(
+            """\
+        >>> ser = pd.Series([1, 2, 3, 4])
+        >>> ser.ewm(alpha=.2).mean()
+        0    1.000000
+        1    1.555556
+        2    2.147541
+        3    2.775068
+        dtype: float64
+        """
+        ),
         window_method="ewm",
         aggregation_description="(exponential weighted moment) mean",
         agg_method="mean",
@@ -555,7 +566,19 @@ class ExponentialMovingWindow(BaseWindow):
         create_section_header("See Also"),
         template_see_also,
         create_section_header("Notes"),
-        numba_notes.replace("\n", "", 1),
+        numba_notes,
+        create_section_header("Examples"),
+        dedent(
+            """\
+        >>> ser = pd.Series([1, 2, 3, 4])
+        >>> ser.ewm(alpha=.2).sum()
+        0    1.000
+        1    2.800
+        2    5.240
+        3    8.192
+        dtype: float64
+        """
+        ),
         window_method="ewm",
         aggregation_description="(exponential weighted moment) sum",
         agg_method="sum",
@@ -603,16 +626,28 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         dedent(
-            """
+            """\
         bias : bool, default False
             Use a standard estimation bias correction.
         """
-        ).replace("\n", "", 1),
+        ),
         kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also[:-1],
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """\
+        >>> ser = pd.Series([1, 2, 3, 4])
+        >>> ser.ewm(alpha=.2).std()
+        0         NaN
+        1    0.707107
+        2    0.995893
+        3    1.277320
+        dtype: float64
+        """
+        ),
         window_method="ewm",
         aggregation_description="(exponential weighted moment) standard deviation",
         agg_method="std",
@@ -633,16 +668,28 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         dedent(
-            """
+            """\
         bias : bool, default False
             Use a standard estimation bias correction.
         """
-        ).replace("\n", "", 1),
+        ),
         kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also[:-1],
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """\
+        >>> ser = pd.Series([1, 2, 3, 4])
+        >>> ser.ewm(alpha=.2).var()
+        0         NaN
+        1    0.500000
+        2    0.991803
+        3    1.631547
+        dtype: float64
+        """
+        ),
         window_method="ewm",
         aggregation_description="(exponential weighted moment) variance",
         agg_method="var",
@@ -666,7 +713,7 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         dedent(
-            """
+            """\
         other : Series or DataFrame , optional
             If not supplied then will default to self and produce pairwise
             output.
@@ -680,12 +727,25 @@ class ExponentialMovingWindow(BaseWindow):
         bias : bool, default False
             Use a standard estimation bias correction.
         """
-        ).replace("\n", "", 1),
+        ),
         kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also[:-1],
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """\
+        >>> ser1 = pd.Series([1, 2, 3, 4])
+        >>> ser2 = pd.Series([10, 11, 13, 16])
+        >>> ser1.ewm(alpha=.2).cov(ser2)
+        0         NaN
+        1    0.500000
+        2    1.524590
+        3    3.408836
+        dtype: float64
+        """
+        ),
         window_method="ewm",
         aggregation_description="(exponential weighted moment) sample covariance",
         agg_method="cov",
@@ -730,7 +790,7 @@ class ExponentialMovingWindow(BaseWindow):
                 self.ignore_na,
                 bias,
             )
-            return Series(result, index=x.index, name=x.name)
+            return Series(result, index=x.index, name=x.name, copy=False)
 
         return self._apply_pairwise(
             self._selected_obj, other, pairwise, cov_func, numeric_only
@@ -740,7 +800,7 @@ class ExponentialMovingWindow(BaseWindow):
         template_header,
         create_section_header("Parameters"),
         dedent(
-            """
+            """\
         other : Series or DataFrame, optional
             If not supplied then will default to self and produce pairwise
             output.
@@ -752,12 +812,25 @@ class ExponentialMovingWindow(BaseWindow):
             inputs. In the case of missing elements, only complete pairwise
             observations will be used.
         """
-        ).replace("\n", "", 1),
+        ),
         kwargs_numeric_only,
         create_section_header("Returns"),
         template_returns,
         create_section_header("See Also"),
-        template_see_also[:-1],
+        template_see_also,
+        create_section_header("Examples"),
+        dedent(
+            """\
+        >>> ser1 = pd.Series([1, 2, 3, 4])
+        >>> ser2 = pd.Series([10, 11, 13, 16])
+        >>> ser1.ewm(alpha=.2).corr(ser2)
+        0         NaN
+        1    1.000000
+        2    0.982821
+        3    0.977802
+        dtype: float64
+        """
+        ),
         window_method="ewm",
         aggregation_description="(exponential weighted moment) sample correlation",
         agg_method="corr",
@@ -807,7 +880,7 @@ class ExponentialMovingWindow(BaseWindow):
                 x_var = _cov(x_array, x_array)
                 y_var = _cov(y_array, y_array)
                 result = cov / zsqrt(x_var * y_var)
-            return Series(result, index=x.index, name=x.name)
+            return Series(result, index=x.index, name=x.name, copy=False)
 
         return self._apply_pairwise(
             self._selected_obj, other, pairwise, cov_func, numeric_only

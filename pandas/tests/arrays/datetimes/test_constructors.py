@@ -1,12 +1,13 @@
 import numpy as np
 import pytest
 
+from pandas._libs import iNaT
+
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
-from pandas.core.arrays.datetimes import _sequence_to_dt64ns
 
 
 class TestDatetimeArrayConstructor:
@@ -32,7 +33,7 @@ class TestDatetimeArrayConstructor:
         arr = np.arange(5, dtype=np.int64) * 3600 * 10**9
 
         msg = (
-            "Inferred frequency H from passed values does not "
+            "Inferred frequency h from passed values does not "
             "conform to passed frequency W-SUN"
         )
         with pytest.raises(ValueError, match=msg):
@@ -42,7 +43,6 @@ class TestDatetimeArrayConstructor:
         "meth",
         [
             DatetimeArray._from_sequence,
-            _sequence_to_dt64ns,
             pd.to_datetime,
             pd.DatetimeIndex,
         ],
@@ -68,7 +68,7 @@ class TestDatetimeArrayConstructor:
 
         result = DatetimeArray._from_sequence(arr)._with_freq("infer")
 
-        expected = pd.date_range("1970-01-01", periods=5, freq="H")._data
+        expected = pd.date_range("1970-01-01", periods=5, freq="h")._data
         tm.assert_datetime_array_equal(result, expected)
 
     def test_mismatched_timezone_raises(self):
@@ -103,9 +103,6 @@ class TestDatetimeArrayConstructor:
             DatetimeArray._from_sequence(arr)
 
         with pytest.raises(TypeError, match=msg):
-            _sequence_to_dt64ns(arr)
-
-        with pytest.raises(TypeError, match=msg):
             pd.DatetimeIndex(arr)
 
         with pytest.raises(TypeError, match=msg):
@@ -114,6 +111,24 @@ class TestDatetimeArrayConstructor:
     def test_incorrect_dtype_raises(self):
         with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
             DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="category")
+
+        with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
+            DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="m8[s]")
+
+        with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
+            DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="M8[D]")
+
+    def test_mismatched_values_dtype_units(self):
+        arr = np.array([1, 2, 3], dtype="M8[s]")
+        dtype = np.dtype("M8[ns]")
+        msg = "Values resolution does not match dtype."
+
+        with pytest.raises(ValueError, match=msg):
+            DatetimeArray(arr, dtype=dtype)
+
+        dtype2 = DatetimeTZDtype(tz="UTC", unit="ns")
+        with pytest.raises(ValueError, match=msg):
+            DatetimeArray(arr, dtype=dtype2)
 
     def test_freq_infer_raises(self):
         with pytest.raises(ValueError, match="Frequency inference"):
@@ -127,6 +142,13 @@ class TestDatetimeArrayConstructor:
         arr = DatetimeArray(data, copy=True)
         assert arr._ndarray is not data
 
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_numpy_datetime_unit(self, unit):
+        data = np.array([1, 2, 3], dtype=f"M8[{unit}]")
+        arr = DatetimeArray(data)
+        assert arr.unit == unit
+        assert arr[0].unit == unit
+
 
 class TestSequenceToDT64NS:
     def test_tz_dtype_mismatch_raises(self):
@@ -134,14 +156,12 @@ class TestSequenceToDT64NS:
             ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
         )
         with pytest.raises(TypeError, match="data is already tz-aware"):
-            DatetimeArray._from_sequence_not_strict(
-                arr, dtype=DatetimeTZDtype(tz="UTC")
-            )
+            DatetimeArray._from_sequence(arr, dtype=DatetimeTZDtype(tz="UTC"))
 
     def test_tz_dtype_matches(self):
         dtype = DatetimeTZDtype(tz="US/Central")
         arr = DatetimeArray._from_sequence(["2000"], dtype=dtype)
-        result = DatetimeArray._from_sequence_not_strict(arr, dtype=dtype)
+        result = DatetimeArray._from_sequence(arr, dtype=dtype)
         tm.assert_equal(arr, result)
 
     @pytest.mark.parametrize("order", ["F", "C"])
@@ -151,13 +171,90 @@ class TestSequenceToDT64NS:
         if order == "F":
             arr = arr.T
 
-        res = _sequence_to_dt64ns(arr)
-        expected = _sequence_to_dt64ns(arr.ravel())
-
-        tm.assert_numpy_array_equal(res[0].ravel(), expected[0])
-        assert res[1] == expected[1]
-        assert res[2] == expected[2]
-
         res = DatetimeArray._from_sequence(arr)
         expected = DatetimeArray._from_sequence(arr.ravel()).reshape(arr.shape)
         tm.assert_datetime_array_equal(res, expected)
+
+
+# ----------------------------------------------------------------------------
+# Arrow interaction
+
+
+EXTREME_VALUES = [0, 123456789, None, iNaT, 2**63 - 1, -(2**63) + 1]
+FINE_TO_COARSE_SAFE = [123_000_000_000, None, -123_000_000_000]
+COARSE_TO_FINE_SAFE = [123, None, -123]
+
+
+@pytest.mark.parametrize(
+    ("pa_unit", "pd_unit", "pa_tz", "pd_tz", "data"),
+    [
+        ("s", "s", "UTC", "UTC", EXTREME_VALUES),
+        ("ms", "ms", "UTC", "Europe/Berlin", EXTREME_VALUES),
+        ("us", "us", "US/Eastern", "UTC", EXTREME_VALUES),
+        ("ns", "ns", "US/Central", "Asia/Kolkata", EXTREME_VALUES),
+        ("ns", "s", "UTC", "UTC", FINE_TO_COARSE_SAFE),
+        ("us", "ms", "UTC", "Europe/Berlin", FINE_TO_COARSE_SAFE),
+        ("ms", "us", "US/Eastern", "UTC", COARSE_TO_FINE_SAFE),
+        ("s", "ns", "US/Central", "Asia/Kolkata", COARSE_TO_FINE_SAFE),
+    ],
+)
+def test_from_arrowtest_from_arrow_with_different_units_and_timezones_with_(
+    pa_unit, pd_unit, pa_tz, pd_tz, data
+):
+    pa = pytest.importorskip("pyarrow")
+
+    pa_type = pa.timestamp(pa_unit, tz=pa_tz)
+    arr = pa.array(data, type=pa_type)
+    dtype = DatetimeTZDtype(unit=pd_unit, tz=pd_tz)
+
+    result = dtype.__from_arrow__(arr)
+    expected = DatetimeArray(
+        np.array(data, dtype=f"datetime64[{pa_unit}]").astype(f"datetime64[{pd_unit}]"),
+        dtype=dtype,
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("unit", "tz"),
+    [
+        ("s", "UTC"),
+        ("ms", "Europe/Berlin"),
+        ("us", "US/Eastern"),
+        ("ns", "Asia/Kolkata"),
+        ("ns", "UTC"),
+    ],
+)
+def test_from_arrow_from_empty(unit, tz):
+    pa = pytest.importorskip("pyarrow")
+
+    data = []
+    arr = pa.array(data)
+    dtype = DatetimeTZDtype(unit=unit, tz=tz)
+
+    result = dtype.__from_arrow__(arr)
+    expected = DatetimeArray(np.array(data, dtype=f"datetime64[{unit}]"))
+    expected = expected.tz_localize(tz=tz)
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_from_arrow_from_integers():
+    pa = pytest.importorskip("pyarrow")
+
+    data = [0, 123456789, None, 2**63 - 1, iNaT, -123456789]
+    arr = pa.array(data)
+    dtype = DatetimeTZDtype(unit="ns", tz="UTC")
+
+    result = dtype.__from_arrow__(arr)
+    expected = DatetimeArray(np.array(data, dtype="datetime64[ns]"))
+    expected = expected.tz_localize("UTC")
+    tm.assert_extension_array_equal(result, expected)
+
+    result = dtype.__from_arrow__(pa.chunked_array([arr]))
+    tm.assert_extension_array_equal(result, expected)

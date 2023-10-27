@@ -35,7 +35,10 @@ def test_arrow_roundtrip(data):
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
     assert table.field("a").type == str(data.dtype.numpy_dtype)
-    result = table.to_pandas()
+
+    msg = "Passing a BlockManager to DataFrame is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        result = table.to_pandas()
     assert result["a"].dtype == data.dtype
     tm.assert_frame_equal(result, df)
 
@@ -53,7 +56,9 @@ def test_dataframe_from_arrow_types_mapper():
     record_batch = pa.RecordBatch.from_arrays(
         [bools_array, ints_array, small_ints_array], ["bools", "ints", "small_ints"]
     )
-    result = record_batch.to_pandas(types_mapper=types_mapper)
+    msg = "Passing a BlockManager to DataFrame is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        result = record_batch.to_pandas(types_mapper=types_mapper)
     bools = pd.Series([True, None, False], dtype="boolean")
     ints = pd.Series([1, None, 2], dtype="Int64")
     small_ints = pd.Series([-1, 0, 7], dtype="Int64")
@@ -70,7 +75,9 @@ def test_arrow_load_from_zero_chunks(data):
     table = pa.table(
         [pa.chunked_array([], type=table.field("a").type)], schema=table.schema
     )
-    result = table.to_pandas()
+    msg = "Passing a BlockManager to DataFrame is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        result = table.to_pandas()
     assert result["a"].dtype == data.dtype
     tm.assert_frame_equal(result, df)
 
@@ -91,14 +98,18 @@ def test_arrow_sliced(data):
 
     df = pd.DataFrame({"a": data})
     table = pa.table(df)
-    result = table.slice(2, None).to_pandas()
+    msg = "Passing a BlockManager to DataFrame is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        result = table.slice(2, None).to_pandas()
     expected = df.iloc[2:].reset_index(drop=True)
     tm.assert_frame_equal(result, expected)
 
     # no missing values
     df2 = df.fillna(data[0])
     table = pa.table(df2)
-    result = table.slice(2, None).to_pandas()
+    msg = "Passing a BlockManager to DataFrame is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        result = table.slice(2, None).to_pandas()
     expected = df2.iloc[2:].reset_index(drop=True)
     tm.assert_frame_equal(result, expected)
 
@@ -182,6 +193,15 @@ def test_pyarrow_array_to_numpy_and_mask(np_dtype_to_arrays):
     data, mask = pyarrow_array_to_numpy_and_mask(pa_array_offset, np_dtype)
     tm.assert_numpy_array_equal(data[:3], np_expected_empty)
     tm.assert_numpy_array_equal(mask, mask_expected_empty)
+
+
+@pytest.mark.parametrize(
+    "arr", [pa.nulls(10), pa.chunked_array([pa.nulls(4), pa.nulls(6)])]
+)
+def test_from_arrow_null(data, arr):
+    res = data.dtype.__from_arrow__(arr)
+    assert res.isna().all()
+    assert len(res) == 10
 
 
 def test_from_arrow_type_error(data):

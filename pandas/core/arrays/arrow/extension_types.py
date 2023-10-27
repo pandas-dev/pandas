@@ -1,12 +1,19 @@
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 
 import pyarrow
 
-from pandas._typing import IntervalClosedType
+from pandas.core.dtypes.dtypes import (
+    IntervalDtype,
+    PeriodDtype,
+)
 
 from pandas.core.arrays.interval import VALID_CLOSED
+
+if TYPE_CHECKING:
+    from pandas._typing import IntervalClosedType
 
 
 class ArrowPeriodType(pyarrow.ExtensionType):
@@ -41,10 +48,8 @@ class ArrowPeriodType(pyarrow.ExtensionType):
     def __hash__(self) -> int:
         return hash((str(self), self.freq))
 
-    def to_pandas_dtype(self):
-        import pandas as pd
-
-        return pd.PeriodDtype(freq=self.freq)
+    def to_pandas_dtype(self) -> PeriodDtype:
+        return PeriodDtype(freq=self.freq)
 
 
 # register the type with a dummy instance
@@ -100,10 +105,8 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     def __hash__(self) -> int:
         return hash((str(self), str(self.subtype), self.closed))
 
-    def to_pandas_dtype(self):
-        import pandas as pd
-
-        return pd.IntervalDtype(self.subtype.to_pandas_dtype(), self.closed)
+    def to_pandas_dtype(self) -> IntervalDtype:
+        return IntervalDtype(self.subtype.to_pandas_dtype(), self.closed)
 
 
 # register the type with a dummy instance

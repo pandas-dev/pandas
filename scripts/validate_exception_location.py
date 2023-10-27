@@ -24,7 +24,10 @@ import argparse
 import ast
 import pathlib
 import sys
-from typing import Sequence
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 API_PATH = pathlib.Path("doc/source/reference/testing.rst").resolve()
 ERROR_MESSAGE = (
@@ -36,7 +39,7 @@ ERROR_MESSAGE = (
 
 
 def get_warnings_and_exceptions_from_api_path() -> set[str]:
-    with open(API_PATH) as f:
+    with open(API_PATH, encoding="utf-8") as f:
         doc_errors = {
             line.split(".")[1].strip() for line in f.readlines() if "errors" in line
         }

@@ -18,23 +18,39 @@ import pandas._testing as tm
 from pandas.tests.frame.common import zip_frames
 
 
-def test_apply(float_frame):
+def test_apply(float_frame, engine, request):
+    if engine == "numba":
+        mark = pytest.mark.xfail(reason="numba engine not supporting numpy ufunc yet")
+        request.node.add_marker(mark)
     with np.errstate(all="ignore"):
         # ufunc
         result = np.sqrt(float_frame["A"])
-        expected = float_frame.apply(np.sqrt)["A"]
+        expected = float_frame.apply(np.sqrt, engine=engine)["A"]
         tm.assert_series_equal(result, expected)
 
         # aggregator
-        result = float_frame.apply(np.mean)["A"]
+        result = float_frame.apply(np.mean, engine=engine)["A"]
         expected = np.mean(float_frame["A"])
         assert result == expected
 
         d = float_frame.index[0]
-        result = float_frame.apply(np.mean, axis=1)
+        result = float_frame.apply(np.mean, axis=1, engine=engine)
         expected = np.mean(float_frame.xs(d))
         assert result[d] == expected
         assert result.index is float_frame.index
+
+
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("raw", [True, False])
+def test_apply_args(float_frame, axis, raw, engine, request):
+    if engine == "numba":
+        mark = pytest.mark.xfail(reason="numba engine doesn't support args")
+        request.node.add_marker(mark)
+    result = float_frame.apply(
+        lambda x, y: x + y, axis, args=(1,), raw=raw, engine=engine
+    )
+    expected = float_frame + 1
+    tm.assert_frame_equal(result, expected)
 
 
 def test_apply_categorical_func():
@@ -79,30 +95,30 @@ def test_apply_mixed_datetimelike():
 
 
 @pytest.mark.parametrize("func", [np.sqrt, np.mean])
-def test_apply_empty(func):
+def test_apply_empty(func, engine):
     # empty
     empty_frame = DataFrame()
 
-    result = empty_frame.apply(func)
+    result = empty_frame.apply(func, engine=engine)
     assert result.empty
 
 
-def test_apply_float_frame(float_frame):
+def test_apply_float_frame(float_frame, engine):
     no_rows = float_frame[:0]
-    result = no_rows.apply(lambda x: x.mean())
+    result = no_rows.apply(lambda x: x.mean(), engine=engine)
     expected = Series(np.nan, index=float_frame.columns)
     tm.assert_series_equal(result, expected)
 
     no_cols = float_frame.loc[:, []]
-    result = no_cols.apply(lambda x: x.mean(), axis=1)
+    result = no_cols.apply(lambda x: x.mean(), axis=1, engine=engine)
     expected = Series(np.nan, index=float_frame.index)
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_empty_except_index():
+def test_apply_empty_except_index(engine):
     # GH 2476
     expected = DataFrame(index=["a"])
-    result = expected.apply(lambda x: x["a"], axis=1)
+    result = expected.apply(lambda x: x["a"], axis=1, engine=engine)
     tm.assert_frame_equal(result, expected)
 
 
@@ -227,36 +243,42 @@ def test_apply_broadcast_series_lambda_func(int_frame_const_col):
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_raw_float_frame(float_frame, axis):
+def test_apply_raw_float_frame(float_frame, axis, engine):
+    if engine == "numba":
+        pytest.skip("numba can't handle when UDF returns None.")
+
     def _assert_raw(x):
         assert isinstance(x, np.ndarray)
         assert x.ndim == 1
 
-    float_frame.apply(_assert_raw, axis=axis, raw=True)
+    float_frame.apply(_assert_raw, axis=axis, engine=engine, raw=True)
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_raw_float_frame_lambda(float_frame, axis):
-    result = float_frame.apply(np.mean, axis=axis, raw=True)
+def test_apply_raw_float_frame_lambda(float_frame, axis, engine):
+    result = float_frame.apply(np.mean, axis=axis, engine=engine, raw=True)
     expected = float_frame.apply(lambda x: x.values.mean(), axis=axis)
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_raw_float_frame_no_reduction(float_frame):
+def test_apply_raw_float_frame_no_reduction(float_frame, engine):
     # no reduction
-    result = float_frame.apply(lambda x: x * 2, raw=True)
+    result = float_frame.apply(lambda x: x * 2, engine=engine, raw=True)
     expected = float_frame * 2
     tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_raw_mixed_type_frame(mixed_type_frame, axis):
+def test_apply_raw_mixed_type_frame(mixed_type_frame, axis, engine):
+    if engine == "numba":
+        pytest.skip("isinstance check doesn't work with numba")
+
     def _assert_raw(x):
         assert isinstance(x, np.ndarray)
         assert x.ndim == 1
 
     # Mixed dtype (GH-32423)
-    mixed_type_frame.apply(_assert_raw, axis=axis, raw=True)
+    mixed_type_frame.apply(_assert_raw, axis=axis, engine=engine, raw=True)
 
 
 def test_apply_axis1(float_frame):
@@ -286,22 +308,21 @@ def test_apply_mixed_dtype_corner_indexing():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 @pytest.mark.parametrize("ax", ["index", "columns"])
 @pytest.mark.parametrize(
     "func", [lambda x: x, lambda x: x.mean()], ids=["identity", "mean"]
 )
 @pytest.mark.parametrize("raw", [True, False])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_apply_empty_infer_type(ax, func, raw, axis):
+def test_apply_empty_infer_type(ax, func, raw, axis, engine, request):
     df = DataFrame(**{ax: ["a", "b", "c"]})
 
     with np.errstate(all="ignore"):
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            test_res = func(np.array([], dtype="f8"))
+        test_res = func(np.array([], dtype="f8"))
         is_reduction = not isinstance(test_res, np.ndarray)
 
-        result = df.apply(func, axis=axis, raw=raw)
+        result = df.apply(func, axis=axis, engine=engine, raw=raw)
         if is_reduction:
             agg_axis = df._get_agg_axis(axis)
             assert isinstance(result, Series)
@@ -369,7 +390,7 @@ def test_apply_reduce_to_dict():
 
 
 def test_apply_differently_indexed():
-    df = DataFrame(np.random.randn(20, 10))
+    df = DataFrame(np.random.default_rng(2).standard_normal((20, 10)))
 
     result = df.apply(Series.describe, axis=0)
     expected = DataFrame({i: v.describe() for i, v in df.items()}, columns=df.columns)
@@ -456,9 +477,9 @@ def test_apply_convert_objects():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -526,138 +547,6 @@ def test_apply_dict(df, dicts):
     tm.assert_series_equal(reduce_true, dicts)
     tm.assert_frame_equal(reduce_false, df)
     tm.assert_series_equal(reduce_none, dicts)
-
-
-def test_applymap(float_frame):
-    applied = float_frame.applymap(lambda x: x * 2)
-    tm.assert_frame_equal(applied, float_frame * 2)
-    float_frame.applymap(type)
-
-    # GH 465: function returning tuples
-    result = float_frame.applymap(lambda x: (x, x))["A"][0]
-    assert isinstance(result, tuple)
-
-
-@pytest.mark.parametrize("val", [1, 1.0])
-def test_applymap_float_object_conversion(val):
-    # GH 2909: object conversion to float in constructor?
-    df = DataFrame(data=[val, "a"])
-    result = df.applymap(lambda x: x).dtypes[0]
-    assert result == object
-
-
-def test_applymap_str():
-    # GH 2786
-    df = DataFrame(np.random.random((3, 4)))
-    df2 = df.copy()
-    cols = ["a", "a", "a", "a"]
-    df.columns = cols
-
-    expected = df2.applymap(str)
-    expected.columns = cols
-    result = df.applymap(str)
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "col, val",
-    [["datetime", Timestamp("20130101")], ["timedelta", pd.Timedelta("1 min")]],
-)
-def test_applymap_datetimelike(col, val):
-    # datetime/timedelta
-    df = DataFrame(np.random.random((3, 4)))
-    df[col] = val
-    result = df.applymap(str)
-    assert result.loc[0, col] == str(df.loc[0, col])
-
-
-@pytest.mark.parametrize(
-    "expected",
-    [
-        DataFrame(),
-        DataFrame(columns=list("ABC")),
-        DataFrame(index=list("ABC")),
-        DataFrame({"A": [], "B": [], "C": []}),
-    ],
-)
-@pytest.mark.parametrize("func", [round, lambda x: x])
-def test_applymap_empty(expected, func):
-    # GH 8222
-    result = expected.applymap(func)
-    tm.assert_frame_equal(result, expected)
-
-
-def test_applymap_kwargs():
-    # GH 40652
-    result = DataFrame([[1, 2], [3, 4]]).applymap(lambda x, y: x + y, y=2)
-    expected = DataFrame([[3, 4], [5, 6]])
-    tm.assert_frame_equal(result, expected)
-
-
-def test_applymap_na_ignore(float_frame):
-    # GH 23803
-    strlen_frame = float_frame.applymap(lambda x: len(str(x)))
-    float_frame_with_na = float_frame.copy()
-    mask = np.random.randint(0, 2, size=float_frame.shape, dtype=bool)
-    float_frame_with_na[mask] = pd.NA
-    strlen_frame_na_ignore = float_frame_with_na.applymap(
-        lambda x: len(str(x)), na_action="ignore"
-    )
-    strlen_frame_with_na = strlen_frame.copy()
-    strlen_frame_with_na[mask] = pd.NA
-    tm.assert_frame_equal(strlen_frame_na_ignore, strlen_frame_with_na)
-
-
-def test_applymap_box_timestamps():
-    # GH 2689, GH 2627
-    ser = Series(date_range("1/1/2000", periods=10))
-
-    def func(x):
-        return (x.hour, x.day, x.month)
-
-    # it works!
-    DataFrame(ser).applymap(func)
-
-
-def test_applymap_box():
-    # ufunc will not be boxed. Same test cases as the test_map_box
-    df = DataFrame(
-        {
-            "a": [Timestamp("2011-01-01"), Timestamp("2011-01-02")],
-            "b": [
-                Timestamp("2011-01-01", tz="US/Eastern"),
-                Timestamp("2011-01-02", tz="US/Eastern"),
-            ],
-            "c": [pd.Timedelta("1 days"), pd.Timedelta("2 days")],
-            "d": [
-                pd.Period("2011-01-01", freq="M"),
-                pd.Period("2011-01-02", freq="M"),
-            ],
-        }
-    )
-
-    result = df.applymap(lambda x: type(x).__name__)
-    expected = DataFrame(
-        {
-            "a": ["Timestamp", "Timestamp"],
-            "b": ["Timestamp", "Timestamp"],
-            "c": ["Timedelta", "Timedelta"],
-            "d": ["Period", "Period"],
-        }
-    )
-    tm.assert_frame_equal(result, expected)
-
-
-def test_frame_apply_dont_convert_datetime64():
-    from pandas.tseries.offsets import BDay
-
-    df = DataFrame({"x1": [datetime(1996, 1, 1)]})
-
-    df = df.applymap(lambda x: x + BDay())
-    df = df.applymap(lambda x: x + BDay())
-
-    result = df.x1.dtype
-    assert result == "M8[ns]"
 
 
 def test_apply_non_numpy_dtype():
@@ -733,8 +622,10 @@ def test_apply_function_runs_once():
         assert names == list(df.index)
 
 
-def test_apply_raw_function_runs_once():
+def test_apply_raw_function_runs_once(engine):
     # https://github.com/pandas-dev/pandas/issues/34506
+    if engine == "numba":
+        pytest.skip("appending to list outside of numba func is not supported")
 
     df = DataFrame({"a": [1, 2, 3]})
     values = []  # Save row values function is applied to
@@ -749,26 +640,8 @@ def test_apply_raw_function_runs_once():
     for func in [reducing_function, non_reducing_function]:
         del values[:]
 
-        df.apply(func, raw=True, axis=1)
+        df.apply(func, engine=engine, raw=True, axis=1)
         assert values == list(df.a.to_list())
-
-
-def test_applymap_function_runs_once():
-    df = DataFrame({"a": [1, 2, 3]})
-    values = []  # Save values function is applied to
-
-    def reducing_function(val):
-        values.append(val)
-
-    def non_reducing_function(val):
-        values.append(val)
-        return val
-
-    for func in [reducing_function, non_reducing_function]:
-        del values[:]
-
-        df.applymap(func)
-        assert values == df.a.to_list()
 
 
 def test_apply_with_byte_string():
@@ -781,15 +654,15 @@ def test_apply_with_byte_string():
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("val", ["asd", 12, None, np.NaN])
+@pytest.mark.parametrize("val", ["asd", 12, None, np.nan])
 def test_apply_category_equalness(val):
     # Check if categorical comparisons on apply, GH 21239
-    df_values = ["asd", None, 12, "asd", "cde", np.NaN]
+    df_values = ["asd", None, 12, "asd", "cde", np.nan]
     df = DataFrame({"a": df_values}, dtype="category")
 
     result = df.a.apply(lambda x: x == val)
     expected = Series(
-        [np.NaN if pd.isnull(x) else x == val for x in df_values], name="a"
+        [np.nan if pd.isnull(x) else x == val for x in df_values], name="a"
     )
     tm.assert_series_equal(result, expected)
 
@@ -802,12 +675,56 @@ def test_apply_category_equalness(val):
 def test_infer_row_shape():
     # GH 17437
     # if row shape is changing, infer it
-    df = DataFrame(np.random.rand(10, 2))
+    df = DataFrame(np.random.default_rng(2).random((10, 2)))
     result = df.apply(np.fft.fft, axis=0).shape
     assert result == (10, 2)
 
     result = df.apply(np.fft.rfft, axis=0).shape
     assert result == (6, 2)
+
+
+@pytest.mark.parametrize(
+    "ops, by_row, expected",
+    [
+        ({"a": lambda x: x + 1}, "compat", DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x + 1}, False, DataFrame({"a": [2, 3]})),
+        ({"a": lambda x: x.sum()}, "compat", Series({"a": 3})),
+        ({"a": lambda x: x.sum()}, False, Series({"a": 3})),
+        (
+            {"a": ["sum", np.sum, lambda x: x.sum()]},
+            "compat",
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            {"a": ["sum", np.sum, lambda x: x.sum()]},
+            False,
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        ({"a": lambda x: 1}, "compat", DataFrame({"a": [1, 1]})),
+        ({"a": lambda x: 1}, False, Series({"a": 1})),
+    ],
+)
+def test_dictlike_lambda(ops, by_row, expected):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    result = df.apply(ops, by_row=by_row)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        {"a": lambda x: x + 1},
+        {"a": lambda x: x.sum()},
+        {"a": ["sum", np.sum, lambda x: x.sum()]},
+        {"a": lambda x: 1},
+    ],
+)
+def test_dictlike_lambda_raises(ops):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    with pytest.raises(ValueError, match="by_row=True not allowed"):
+        df.apply(ops, by_row=True)
 
 
 def test_with_dictlike_columns():
@@ -859,13 +776,65 @@ def test_with_dictlike_columns_with_infer():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "ops, by_row, expected",
+    [
+        ([lambda x: x + 1], "compat", DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x + 1], False, DataFrame({("a", "<lambda>"): [2, 3]})),
+        ([lambda x: x.sum()], "compat", DataFrame({"a": [3]}, index=["<lambda>"])),
+        ([lambda x: x.sum()], False, DataFrame({"a": [3]}, index=["<lambda>"])),
+        (
+            ["sum", np.sum, lambda x: x.sum()],
+            "compat",
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            ["sum", np.sum, lambda x: x.sum()],
+            False,
+            DataFrame({"a": [3, 3, 3]}, index=["sum", "sum", "<lambda>"]),
+        ),
+        (
+            [lambda x: x + 1, lambda x: 3],
+            "compat",
+            DataFrame([[2, 3], [3, 3]], columns=[["a", "a"], ["<lambda>", "<lambda>"]]),
+        ),
+        (
+            [lambda x: 2, lambda x: 3],
+            False,
+            DataFrame({"a": [2, 3]}, ["<lambda>", "<lambda>"]),
+        ),
+    ],
+)
+def test_listlike_lambda(ops, by_row, expected):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    result = df.apply(ops, by_row=by_row)
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "ops",
+    [
+        [lambda x: x + 1],
+        [lambda x: x.sum()],
+        ["sum", np.sum, lambda x: x.sum()],
+        [lambda x: x + 1, lambda x: 3],
+    ],
+)
+def test_listlike_lambda_raises(ops):
+    # GH53601
+    df = DataFrame({"a": [1, 2]})
+    with pytest.raises(ValueError, match="by_row=True not allowed"):
+        df.apply(ops, by_row=True)
+
+
 def test_with_listlike_columns():
     # GH 17348
     df = DataFrame(
         {
-            "a": Series(np.random.randn(4)),
+            "a": Series(np.random.default_rng(2).standard_normal(4)),
             "b": ["a", "list", "of", "words"],
-            "ts": date_range("2016-10-01", periods=4, freq="H"),
+            "ts": date_range("2016-10-01", periods=4, freq="h"),
         }
     )
 
@@ -909,7 +878,9 @@ def test_infer_output_shape_columns():
 def test_infer_output_shape_listlike_columns():
     # GH 16353
 
-    df = DataFrame(np.random.randn(6, 3), columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((6, 3)), columns=["A", "B", "C"]
+    )
 
     result = df.apply(lambda x: [1, 2, 3], axis=1)
     expected = Series([[1, 2, 3] for t in df.itertuples()])
@@ -958,7 +929,9 @@ def test_infer_output_shape_listlike_columns_with_timestamp():
 def test_consistent_coerce_for_shapes(lst):
     # we want column names to NOT be propagated
     # just because the shape matches the input shape
-    df = DataFrame(np.random.randn(4, 3), columns=["A", "B", "C"])
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((4, 3)), columns=["A", "B", "C"]
+    )
 
     result = df.apply(lambda x: lst, axis=1)
     expected = Series([lst for t in df.itertuples()])
@@ -1003,45 +976,69 @@ def test_result_type_shorter_list(int_frame_const_col):
     tm.assert_frame_equal(result, expected)
 
 
-def test_result_type_broadcast(int_frame_const_col):
+def test_result_type_broadcast(int_frame_const_col, request, engine):
     # result_type should be consistent no matter which
     # path we take in the code
+    if engine == "numba":
+        mark = pytest.mark.xfail(reason="numba engine doesn't support list return")
+        request.node.add_marker(mark)
     df = int_frame_const_col
     # broadcast result
-    result = df.apply(lambda x: [1, 2, 3], axis=1, result_type="broadcast")
-    expected = df.copy()
-    tm.assert_frame_equal(result, expected)
-
-
-def test_result_type_broadcast_series_func(int_frame_const_col):
-    # result_type should be consistent no matter which
-    # path we take in the code
-    df = int_frame_const_col
-    columns = ["other", "col", "names"]
     result = df.apply(
-        lambda x: Series([1, 2, 3], index=columns), axis=1, result_type="broadcast"
+        lambda x: [1, 2, 3], axis=1, result_type="broadcast", engine=engine
     )
     expected = df.copy()
     tm.assert_frame_equal(result, expected)
 
 
-def test_result_type_series_result(int_frame_const_col):
+def test_result_type_broadcast_series_func(int_frame_const_col, engine, request):
     # result_type should be consistent no matter which
     # path we take in the code
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="numba Series constructor only support ndarrays not list data"
+        )
+        request.node.add_marker(mark)
     df = int_frame_const_col
-    # series result
-    result = df.apply(lambda x: Series([1, 2, 3], index=x.index), axis=1)
+    columns = ["other", "col", "names"]
+    result = df.apply(
+        lambda x: Series([1, 2, 3], index=columns),
+        axis=1,
+        result_type="broadcast",
+        engine=engine,
+    )
     expected = df.copy()
     tm.assert_frame_equal(result, expected)
 
 
-def test_result_type_series_result_other_index(int_frame_const_col):
+def test_result_type_series_result(int_frame_const_col, engine, request):
     # result_type should be consistent no matter which
     # path we take in the code
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="numba Series constructor only support ndarrays not list data"
+        )
+        request.node.add_marker(mark)
+    df = int_frame_const_col
+    # series result
+    result = df.apply(lambda x: Series([1, 2, 3], index=x.index), axis=1, engine=engine)
+    expected = df.copy()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_result_type_series_result_other_index(int_frame_const_col, engine, request):
+    # result_type should be consistent no matter which
+    # path we take in the code
+
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="no support in numba Series constructor for list of columns"
+        )
+        request.node.add_marker(mark)
     df = int_frame_const_col
     # series result with other index
     columns = ["other", "col", "names"]
-    result = df.apply(lambda x: Series([1, 2, 3], index=columns), axis=1)
+    result = df.apply(lambda x: Series([1, 2, 3], index=columns), axis=1, engine=engine)
     expected = df.copy()
     expected.columns = columns
     tm.assert_frame_equal(result, expected)
@@ -1401,17 +1398,26 @@ def test_agg_args_kwargs(axis, args, kwargs):
 
 
 @pytest.mark.parametrize("num_cols", [2, 3, 5])
-def test_frequency_is_original(num_cols):
+def test_frequency_is_original(num_cols, engine, request):
     # GH 22150
+    if engine == "numba":
+        mark = pytest.mark.xfail(reason="numba engine only supports numeric indices")
+        request.node.add_marker(mark)
     index = pd.DatetimeIndex(["1950-06-30", "1952-10-24", "1953-05-29"])
     original = index.copy()
     df = DataFrame(1, index=index, columns=range(num_cols))
-    df.apply(lambda x: x)
+    df.apply(lambda x: x, engine=engine)
     assert index.freq == original.freq
 
 
-def test_apply_datetime_tz_issue():
+def test_apply_datetime_tz_issue(engine, request):
     # GH 29052
+
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="numba engine doesn't support non-numeric indexes"
+        )
+        request.node.add_marker(mark)
 
     timestamps = [
         Timestamp("2019-03-15 12:34:31.909000+0000", tz="UTC"),
@@ -1419,7 +1425,7 @@ def test_apply_datetime_tz_issue():
         Timestamp("2019-03-15 12:34:34.660000+0000", tz="UTC"),
     ]
     df = DataFrame(data=[0, 1, 2], index=timestamps)
-    result = df.apply(lambda x: x.name, axis=1)
+    result = df.apply(lambda x: x.name, axis=1, engine=engine)
     expected = Series(index=timestamps, data=timestamps)
 
     tm.assert_series_equal(result, expected)
@@ -1482,10 +1488,15 @@ def test_apply_empty_list_reduce():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_no_suffix_index():
+def test_apply_no_suffix_index(engine, request):
     # GH36189
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="numba engine doesn't support list-likes/dict-like callables"
+        )
+        request.node.add_marker(mark)
     pdf = DataFrame([[4, 9]] * 3, columns=["A", "B"])
-    result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()])
+    result = pdf.apply(["sum", lambda x: x.sum(), lambda x: x.sum()], engine=engine)
     expected = DataFrame(
         {"A": [12, 12, 12], "B": [27, 27, 27]}, index=["sum", "<lambda>", "<lambda>"]
     )
@@ -1493,10 +1504,12 @@ def test_apply_no_suffix_index():
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_raw_returns_string():
+def test_apply_raw_returns_string(engine):
     # https://github.com/pandas-dev/pandas/issues/35940
+    if engine == "numba":
+        pytest.skip("No object dtype support in numba")
     df = DataFrame({"A": ["aa", "bbb"]})
-    result = df.apply(lambda x: x[0], axis=1, raw=True)
+    result = df.apply(lambda x: x[0], engine=engine, axis=1, raw=True)
     expected = Series(["aa", "bbb"])
     tm.assert_series_equal(result, expected)
 
@@ -1532,10 +1545,17 @@ def test_aggregation_func_column_order():
     tm.assert_frame_equal(result, expected)
 
 
-def test_apply_getitem_axis_1():
+def test_apply_getitem_axis_1(engine, request):
     # GH 13427
+    if engine == "numba":
+        mark = pytest.mark.xfail(
+            reason="numba engine not supporting duplicate index values"
+        )
+        request.node.add_marker(mark)
     df = DataFrame({"a": [0, 1, 2], "b": [1, 2, 3]})
-    result = df[["a", "a"]].apply(lambda x: x[0] + x[1], axis=1)
+    result = df[["a", "a"]].apply(
+        lambda x: x.iloc[0] + x.iloc[1], axis=1, engine=engine
+    )
     expected = Series([0, 2, 4])
     tm.assert_series_equal(result, expected)
 
@@ -1564,14 +1584,6 @@ def test_apply_type():
         index=["a", "b", "c"],
     )
 
-    # applymap
-    result = df.applymap(type)
-    expected = DataFrame(
-        {"col1": [int, str, type], "col2": [float, datetime, float]},
-        index=["a", "b", "c"],
-    )
-    tm.assert_frame_equal(result, expected)
-
     # axis=0
     result = df.apply(type, axis=0)
     expected = Series({"col1": Series, "col2": Series})
@@ -1583,12 +1595,19 @@ def test_apply_type():
     tm.assert_series_equal(result, expected)
 
 
-def test_apply_on_empty_dataframe():
+def test_apply_on_empty_dataframe(engine):
     # GH 39111
     df = DataFrame({"a": [1, 2], "b": [3, 0]})
-    result = df.head(0).apply(lambda x: max(x["a"], x["b"]), axis=1)
+    result = df.head(0).apply(lambda x: max(x["a"], x["b"]), axis=1, engine=engine)
     expected = Series([], dtype=np.float64)
     tm.assert_series_equal(result, expected)
+
+
+def test_apply_return_list():
+    df = DataFrame({"a": [1, 2], "b": [2, 3]})
+    result = df.apply(lambda x: [x.values])
+    expected = DataFrame({"a": [[1, 2]], "b": [[2, 3]]})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -1622,8 +1641,8 @@ def test_any_apply_keyword_non_zero_axis_regression():
     tm.assert_series_equal(result, expected)
 
 
-def test_agg_list_like_func_with_args():
-    # GH 50624
+def test_agg_mapping_func_deprecated():
+    # GH 53325
     df = DataFrame({"x": [1, 2, 3]})
 
     def foo1(x, a=1, c=0):
@@ -1632,13 +1651,48 @@ def test_agg_list_like_func_with_args():
     def foo2(x, b=2, c=0):
         return x + b + c
 
-    msg = r"foo1\(\) got an unexpected keyword argument 'b'"
-    with pytest.raises(TypeError, match=msg):
-        df.agg([foo1, foo2], 0, 3, b=3, c=4)
+    # single func already takes the vectorized path
+    result = df.agg(foo1, 0, 3, c=4)
+    expected = df + 7
+    tm.assert_frame_equal(result, expected)
 
-    result = df.agg([foo1, foo2], 0, 3, c=4)
+    msg = "using .+ in Series.agg cannot aggregate and"
+
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.agg([foo1, foo2], 0, 3, c=4)
     expected = DataFrame(
-        [[8, 8], [9, 9], [10, 10]],
-        columns=MultiIndex.from_tuples([("x", "foo1"), ("x", "foo2")]),
+        [[8, 8], [9, 9], [10, 10]], columns=[["x", "x"], ["foo1", "foo2"]]
     )
     tm.assert_frame_equal(result, expected)
+
+    # TODO: the result below is wrong, should be fixed (GH53325)
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        result = df.agg({"x": foo1}, 0, 3, c=4)
+    expected = DataFrame([2, 3, 4], columns=["x"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_std():
+    df = DataFrame(np.arange(6).reshape(3, 2), columns=["A", "B"])
+
+    with tm.assert_produces_warning(FutureWarning, match="using DataFrame.std"):
+        result = df.agg(np.std)
+    expected = Series({"A": 2.0, "B": 2.0}, dtype=float)
+    tm.assert_series_equal(result, expected)
+
+    with tm.assert_produces_warning(FutureWarning, match="using Series.std"):
+        result = df.agg([np.std])
+    expected = DataFrame({"A": 2.0, "B": 2.0}, index=["std"])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_agg_dist_like_and_nonunique_columns():
+    # GH#51099
+    df = DataFrame(
+        {"A": [None, 2, 3], "B": [1.0, np.nan, 3.0], "C": ["foo", None, "bar"]}
+    )
+    df.columns = ["A", "A", "C"]
+
+    result = df.agg({"A": "count"})
+    expected = df["A"].count()
+    tm.assert_series_equal(result, expected)

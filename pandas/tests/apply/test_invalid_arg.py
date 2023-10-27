@@ -15,7 +15,6 @@ import pytest
 from pandas.errors import SpecificationError
 
 from pandas import (
-    Categorical,
     DataFrame,
     Series,
     date_range,
@@ -44,12 +43,6 @@ def test_apply_invalid_axis_value():
         df.apply(lambda x: x, 2)
 
 
-def test_applymap_invalid_na_action(float_frame):
-    # GH 23803
-    with pytest.raises(ValueError, match="na_action must be .*Got 'abc'"):
-        float_frame.applymap(lambda x: len(str(x)), na_action="abc")
-
-
 def test_agg_raises():
     # GH 26513
     df = DataFrame({"A": [0, 1], "B": [1, 2]})
@@ -76,20 +69,6 @@ def test_map_arg_is_dict_with_invalid_na_action_raises(input_na_action):
         s.map({1: 2}, na_action=input_na_action)
 
 
-def test_map_categorical_na_action():
-    values = Categorical(list("ABBABCD"), categories=list("DCBA"), ordered=True)
-    s = Series(values, name="XX", index=list("abcdefg"))
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        s.map(lambda x: x, na_action="ignore")
-
-
-def test_map_datetimetz_na_action():
-    values = date_range("2011-01-01", "2011-01-02", freq="H").tz_localize("Asia/Tokyo")
-    s = Series(values, name="XX")
-    with pytest.raises(NotImplementedError, match=tm.EMPTY_STRING_PATTERN):
-        s.map(lambda x: x, na_action="ignore")
-
-
 @pytest.mark.parametrize("method", ["apply", "agg", "transform"])
 @pytest.mark.parametrize("func", [{"A": {"B": "sum"}}, {"A": {"B": ["sum"]}}])
 def test_nested_renamer(frame_or_series, method, func):
@@ -113,7 +92,7 @@ def test_series_nested_renamer(renamer):
 
 def test_apply_dict_depr():
     tsdf = DataFrame(
-        np.random.randn(10, 3),
+        np.random.default_rng(2).standard_normal((10, 3)),
         columns=["A", "B", "C"],
         index=date_range("1/1/2000", periods=10),
     )
@@ -210,9 +189,9 @@ def test_apply_modify_traceback():
                 "shiny",
                 "shiny",
             ],
-            "D": np.random.randn(11),
-            "E": np.random.randn(11),
-            "F": np.random.randn(11),
+            "D": np.random.default_rng(2).standard_normal(11),
+            "E": np.random.default_rng(2).standard_normal(11),
+            "F": np.random.default_rng(2).standard_normal(11),
         }
     )
 
@@ -242,8 +221,10 @@ def test_apply_modify_traceback():
 def test_agg_cython_table_raises_frame(df, func, expected, axis):
     # GH 21224
     msg = "can't multiply sequence by non-int of type 'str'"
+    warn = None if isinstance(func, str) else FutureWarning
     with pytest.raises(expected, match=msg):
-        df.agg(func, axis=axis)
+        with tm.assert_produces_warning(warn, match="using DataFrame.cumprod"):
+            df.agg(func, axis=axis)
 
 
 @pytest.mark.parametrize(
@@ -265,9 +246,14 @@ def test_agg_cython_table_raises_frame(df, func, expected, axis):
 def test_agg_cython_table_raises_series(series, func, expected):
     # GH21224
     msg = r"[Cc]ould not convert|can't multiply sequence by non-int of type"
+    if func == "median" or func is np.nanmedian or func is np.median:
+        msg = r"Cannot convert \['a' 'b' 'c'\] to numeric"
+    warn = None if isinstance(func, str) else FutureWarning
+
     with pytest.raises(expected, match=msg):
         # e.g. Series('a b'.split()).cumprod() will raise
-        series.agg(func)
+        with tm.assert_produces_warning(warn, match="is currently using Series.*"):
+            series.agg(func)
 
 
 def test_agg_none_to_type():
@@ -311,6 +297,7 @@ def test_transform_and_agg_err_agg(axis, float_frame):
             float_frame.agg(["max", "sqrt"], axis=axis)
 
 
+@pytest.mark.filterwarnings("ignore::FutureWarning")  # GH53325
 @pytest.mark.parametrize(
     "func, msg",
     [

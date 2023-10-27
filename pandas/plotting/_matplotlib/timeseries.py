@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 import functools
 from typing import (
     TYPE_CHECKING,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -16,7 +16,10 @@ from pandas._libs.tslibs import (
     Period,
     to_offset,
 )
-from pandas._libs.tslibs.dtypes import FreqGroup
+from pandas._libs.tslibs.dtypes import (
+    OFFSET_TO_PERIOD_FREQSTR,
+    FreqGroup,
+)
 
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
@@ -37,6 +40,8 @@ from pandas.tseries.frequencies import (
 )
 
 if TYPE_CHECKING:
+    from datetime import timedelta
+
     from matplotlib.axes import Axes
 
     from pandas import (
@@ -187,7 +192,7 @@ def _get_ax_freq(ax: Axes):
 
 
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
-    freqstr = to_offset(freq).rule_code
+    freqstr = to_offset(freq, is_period=True).rule_code
 
     return get_period_alias(freqstr)
 
@@ -197,7 +202,7 @@ def _get_freq(ax: Axes, series: Series):
     freq = getattr(series.index, "freq", None)
     if freq is None:
         freq = getattr(series.index, "inferred_freq", None)
-        freq = to_offset(freq)
+        freq = to_offset(freq, is_period=True)
 
     ax_freq = _get_ax_freq(ax)
 
@@ -216,9 +221,9 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
 
     if freq is None:  # convert irregular if axes has freq info
         freq = ax_freq
-    else:  # do not use tsplot if irregular was plotted first
-        if (ax_freq is None) and (len(ax.get_lines()) > 0):
-            return False
+    # do not use tsplot if irregular was plotted first
+    elif (ax_freq is None) and (len(ax.get_lines()) > 0):
+        return False
 
     if freq is None:
         return False
@@ -231,7 +236,10 @@ def use_dynamic_x(ax: Axes, data: DataFrame | Series) -> bool:
     # FIXME: hack this for 0.10.1, creating more technical debt...sigh
     if isinstance(data.index, ABCDatetimeIndex):
         # error: "BaseOffset" has no attribute "_period_dtype_code"
-        base = to_offset(freq_str)._period_dtype_code  # type: ignore[attr-defined]
+        freq_str = OFFSET_TO_PERIOD_FREQSTR.get(freq_str, freq_str)
+        base = to_offset(
+            freq_str, is_period=True
+        )._period_dtype_code  # type: ignore[attr-defined]
         x = data.index
         if base <= FreqGroup.FR_DAY.value:
             return x[:1].is_normalized
@@ -275,10 +283,20 @@ def maybe_convert_index(ax: Axes, data):
 
         freq_str = _get_period_alias(freq)
 
-        if isinstance(data.index, ABCDatetimeIndex):
-            data = data.tz_localize(None).to_period(freq=freq_str)
-        elif isinstance(data.index, ABCPeriodIndex):
-            data.index = data.index.asfreq(freq=freq_str)
+        with warnings.catch_warnings():
+            # suppress Period[B] deprecation warning
+            # TODO: need to find an alternative to this before the deprecation
+            #  is enforced!
+            warnings.filterwarnings(
+                "ignore",
+                r"PeriodDtype\[B\] is deprecated",
+                category=FutureWarning,
+            )
+
+            if isinstance(data.index, ABCDatetimeIndex):
+                data = data.tz_localize(None).to_period(freq=freq_str)
+            elif isinstance(data.index, ABCPeriodIndex):
+                data.index = data.index.asfreq(freq=freq_str)
     return data
 
 

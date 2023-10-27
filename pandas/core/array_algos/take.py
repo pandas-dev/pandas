@@ -13,22 +13,23 @@ from pandas._libs import (
     algos as libalgos,
     lib,
 )
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    npt,
-)
 
 from pandas.core.dtypes.cast import maybe_promote
 from pandas.core.dtypes.common import (
     ensure_platform_int,
-    is_1d_only_ea_obj,
+    is_1d_only_ea_dtype,
 )
 from pandas.core.dtypes.missing import na_value_for_dtype
 
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 
 if TYPE_CHECKING:
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        npt,
+    )
+
     from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
     from pandas.core.arrays.base import ExtensionArray
 
@@ -65,8 +66,7 @@ def take_nd(
     """
     Specialized Cython take which sets NaN values in one pass
 
-    This dispatches to ``take`` defined on ExtensionArrays. It does not
-    currently dispatch to ``SparseArray.take`` for sparse ``arr``.
+    This dispatches to ``take`` defined on ExtensionArrays.
 
     Note: this function assumes that the indexer is a valid(ated) indexer with
     no out of bound indices.
@@ -94,7 +94,7 @@ def take_nd(
     """
     if fill_value is lib.no_default:
         fill_value = na_value_for_dtype(arr.dtype, compat=False)
-    elif isinstance(arr.dtype, np.dtype) and arr.dtype.kind in "mM":
+    elif lib.is_np_dtype(arr.dtype, "mM"):
         dtype, fill_value = maybe_promote(arr.dtype, fill_value)
         if arr.dtype != dtype:
             # EA.take is strict about returning a new object of the same type
@@ -104,7 +104,7 @@ def take_nd(
     if not isinstance(arr, np.ndarray):
         # i.e. ExtensionArray,
         # includes for EA to catch DatetimeArray, TimedeltaArray
-        if not is_1d_only_ea_obj(arr):
+        if not is_1d_only_ea_dtype(arr.dtype):
             # i.e. DatetimeArray, TimedeltaArray
             arr = cast("NDArrayBackedExtensionArray", arr)
             return arr.take(
@@ -284,7 +284,7 @@ def take_2d_multi(
     return out
 
 
-@functools.lru_cache(maxsize=128)
+@functools.lru_cache
 def _get_take_nd_function_cached(
     ndim: int, arr_dtype: np.dtype, out_dtype: np.dtype, axis: AxisInt
 ):

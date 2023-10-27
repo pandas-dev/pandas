@@ -116,6 +116,7 @@ Function application, GroupBy & window
    :toctree: api/
 
    DataFrame.apply
+   DataFrame.map
    DataFrame.applymap
    DataFrame.pipe
    DataFrame.agg

@@ -2,22 +2,32 @@
 from __future__ import annotations
 
 import pickle
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
-from pandas._typing import (
-    CompressionOptions,
-    FilePath,
-    ReadPickleBuffer,
-    StorageOptions,
-    WriteBuffer,
-)
 from pandas.compat import pickle_compat as pc
 from pandas.util._decorators import doc
 
 from pandas.core.shared_docs import _shared_docs
 
 from pandas.io.common import get_handle
+
+if TYPE_CHECKING:
+    from pandas._typing import (
+        CompressionOptions,
+        FilePath,
+        ReadPickleBuffer,
+        StorageOptions,
+        WriteBuffer,
+    )
+
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 @doc(
@@ -29,7 +39,7 @@ def to_pickle(
     filepath_or_buffer: FilePath | WriteBuffer[bytes],
     compression: CompressionOptions = "infer",
     protocol: int = pickle.HIGHEST_PROTOCOL,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
 ) -> None:
     """
     Pickle (serialize) object to file.
@@ -110,8 +120,8 @@ def to_pickle(
 def read_pickle(
     filepath_or_buffer: FilePath | ReadPickleBuffer,
     compression: CompressionOptions = "infer",
-    storage_options: StorageOptions = None,
-):
+    storage_options: StorageOptions | None = None,
+) -> DataFrame | Series:
     """
     Load pickled pandas object (or any object) from file.
 

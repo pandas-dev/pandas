@@ -4,14 +4,18 @@ for validating data or function arguments
 """
 from __future__ import annotations
 
-from typing import (
+from collections.abc import (
     Iterable,
     Sequence,
+)
+from typing import (
     TypeVar,
     overload,
 )
 
 import numpy as np
+
+from pandas._libs import lib
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -130,7 +134,7 @@ def _check_for_invalid_keys(fname, kwargs, compat_args):
     diff = set(kwargs) - set(compat_args)
 
     if diff:
-        bad_arg = list(diff)[0]
+        bad_arg = next(iter(diff))
         raise TypeError(f"{fname}() got an unexpected keyword argument '{bad_arg}'")
 
 
@@ -220,7 +224,10 @@ def validate_args_and_kwargs(
 
 
 def validate_bool_kwarg(
-    value: BoolishNoneT, arg_name, none_allowed: bool = True, int_allowed: bool = False
+    value: BoolishNoneT,
+    arg_name: str,
+    none_allowed: bool = True,
+    int_allowed: bool = False,
 ) -> BoolishNoneT:
     """
     Ensure that argument passed in arg_name can be interpreted as boolean.
@@ -248,7 +255,7 @@ def validate_bool_kwarg(
     """
     good_value = is_bool(value)
     if none_allowed:
-        good_value = good_value or value is None
+        good_value = good_value or (value is None)
 
     if int_allowed:
         good_value = good_value or isinstance(value, int)
@@ -258,7 +265,7 @@ def validate_bool_kwarg(
             f'For argument "{arg_name}" expected type bool, received '
             f"type {type(value).__name__}."
         )
-    return value
+    return value  # pyright: ignore[reportGeneralTypeIssues]
 
 
 def validate_fillna_kwargs(value, method, validate_scalar_dict_value: bool = True):
@@ -324,13 +331,13 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     q_arr = np.asarray(q)
     # Don't change this to an f-string. The string formatting
     # is too expensive for cases where we don't need it.
-    msg = "percentiles should all be in the interval [0, 1]. Try {} instead."
+    msg = "percentiles should all be in the interval [0, 1]"
     if q_arr.ndim == 0:
         if not 0 <= q_arr <= 1:
-            raise ValueError(msg.format(q_arr / 100.0))
+            raise ValueError(msg)
     else:
         if not all(0 <= qs <= 1 for qs in q_arr):
-            raise ValueError(msg.format(q_arr / 100.0))
+            raise ValueError(msg)
     return q_arr
 
 
@@ -437,4 +444,13 @@ def validate_insert_loc(loc: int, length: int) -> int:
         loc += length
     if not 0 <= loc <= length:
         raise IndexError(f"loc must be an integer between -{length} and {length}")
-    return loc
+    return loc  # pyright: ignore[reportGeneralTypeIssues]
+
+
+def check_dtype_backend(dtype_backend) -> None:
+    if dtype_backend is not lib.no_default:
+        if dtype_backend not in ["numpy_nullable", "pyarrow"]:
+            raise ValueError(
+                f"dtype_backend {dtype_backend} is invalid, only 'numpy_nullable' and "
+                f"'pyarrow' are allowed.",
+            )

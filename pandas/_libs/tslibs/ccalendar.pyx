@@ -2,7 +2,6 @@
 """
 Cython implementations of functions resembling the stdlib calendar module
 """
-
 cimport cython
 from numpy cimport (
     int32_t,
@@ -19,7 +18,7 @@ cdef int32_t* days_per_month_array = [
     31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
     31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
-cdef int* sakamoto_arr = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4]
+cdef int* em = [0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
 
 # The first 13 entries give the month days elapsed as of the first of month N
 # (or the total number of days in the year for N=13) in non-leap years.
@@ -53,7 +52,7 @@ weekday_to_int = {int_to_weekday[key]: key for key in int_to_weekday}
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
+cpdef int32_t get_days_in_month(int year, Py_ssize_t month) noexcept nogil:
     """
     Return the number of days in the given month of the given year.
 
@@ -76,11 +75,22 @@ cpdef int32_t get_days_in_month(int year, Py_ssize_t month) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-@cython.cdivision
-cdef int dayofweek(int y, int m, int d) nogil:
+@cython.cdivision(True)
+cdef long quot(long a , long b) noexcept nogil:
+    cdef long x
+    x = a/b
+    if (a < 0):
+        x -= (a % b != 0)
+    return x
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.cdivision(True)
+cdef int dayofweek(int y, int m, int d) noexcept nogil:
     """
     Find the day of week for the date described by the Y/M/D triple y, m, d
-    using Sakamoto's method, from wikipedia.
+    using Gauss' method, from wikipedia.
 
     0 represents Monday.  See [1]_.
 
@@ -103,18 +113,29 @@ cdef int dayofweek(int y, int m, int d) nogil:
     [1] https://docs.python.org/3/library/calendar.html#calendar.weekday
 
     [2] https://en.wikipedia.org/wiki/\
-    Determination_of_the_day_of_the_week#Sakamoto.27s_methods
+    Determination_of_the_day_of_the_week#Gauss's_algorithm
     """
+    # Note: this particular implementation comes from
+    # http://berndt-schwerdtfeger.de/wp-content/uploads/pdf/cal.pdf
     cdef:
-        int day
+        long c
+        int g
+        int f
+        int e
 
-    y -= m < 3
-    day = (y + y / 4 - y / 100 + y / 400 + sakamoto_arr[m - 1] + d) % 7
-    # convert to python day
-    return (day + 6) % 7
+    if (m < 3):
+        y -= 1
 
+    c = quot(y, 100)
+    g = y - c * 100
+    f = 5 * (c - quot(c, 4) * 4)
+    e = em[m]
 
-cdef bint is_leapyear(int64_t year) nogil:
+    if (m > 2):
+        e -= 1
+    return (-1 + d + e + f + g + g/4) % 7
+
+cdef bint is_leapyear(int64_t year) noexcept nogil:
     """
     Returns 1 if the given year is a leap year, 0 otherwise.
 
@@ -132,7 +153,7 @@ cdef bint is_leapyear(int64_t year) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
+cpdef int32_t get_week_of_year(int year, int month, int day) noexcept nogil:
     """
     Return the ordinal week-of-year for the given day.
 
@@ -155,7 +176,7 @@ cpdef int32_t get_week_of_year(int year, int month, int day) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
+cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) noexcept nogil:
     """
     Return the year, week, and day of year corresponding to ISO 8601
 
@@ -209,7 +230,7 @@ cpdef iso_calendar_t get_iso_calendar(int year, int month, int day) nogil:
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
+cpdef int32_t get_day_of_year(int year, int month, int day) noexcept nogil:
     """
     Return the ordinal day-of-year for the given day.
 
@@ -243,7 +264,7 @@ cpdef int32_t get_day_of_year(int year, int month, int day) nogil:
 # ---------------------------------------------------------------------
 # Business Helpers
 
-cpdef int get_lastbday(int year, int month) nogil:
+cpdef int get_lastbday(int year, int month) noexcept nogil:
     """
     Find the last day of the month that is a business day.
 
@@ -264,7 +285,7 @@ cpdef int get_lastbday(int year, int month) nogil:
     return days_in_month - max(((wkday + days_in_month - 1) % 7) - 4, 0)
 
 
-cpdef int get_firstbday(int year, int month) nogil:
+cpdef int get_firstbday(int year, int month) noexcept nogil:
     """
     Find the first day of the month that is a business day.
 

@@ -93,9 +93,10 @@ PyArrow type                                    pandas extension type      NumPy
 
 .. note::
 
-    For string types (``pyarrow.string()``, ``string[pyarrow]``), PyArrow support is still facilitated
-    by :class:`arrays.ArrowStringArray` and ``StringDtype("pyarrow")``. See the :ref:`string section <api.arrays.string>`
-    below.
+    Pyarrow-backed string support is provided by both ``pd.StringDtype("pyarrow")`` and ``pd.ArrowDtype(pa.string())``.
+    ``pd.StringDtype("pyarrow")`` is described below in the :ref:`string section <api.arrays.string>`
+    and will be returned if the string alias ``"string[pyarrow]"`` is specified. ``pd.ArrowDtype(pa.string())``
+    generally has better interoperability with :class:`ArrowDtype` of different types.
 
 While individual values in an :class:`arrays.ArrowExtensionArray` are stored as a PyArrow objects, scalars are **returned**
 as Python scalars corresponding to the data type, e.g. a PyArrow int64 will be returned as Python int, or :class:`NA` for missing
@@ -132,12 +133,6 @@ is the missing value for datetime data.
    :toctree: api/
 
    Timestamp
-
-.. autosummary::
-   :toctree: api/
-   :template: autosummary/class_without_autosummary.rst
-
-   NaT
 
 Properties
 ~~~~~~~~~~
@@ -256,12 +251,6 @@ is the missing value for timedelta data.
    :toctree: api/
 
    Timedelta
-
-.. autosummary::
-   :toctree: api/
-   :template: autosummary/class_without_autosummary.rst
-
-   NaT
 
 Properties
 ~~~~~~~~~~
@@ -466,7 +455,6 @@ pandas provides this through :class:`arrays.IntegerArray`.
    UInt16Dtype
    UInt32Dtype
    UInt64Dtype
-   NA
 
 .. _api.arrays.float_na:
 
@@ -485,7 +473,6 @@ Nullable float
 
    Float32Dtype
    Float64Dtype
-   NA
 
 .. _api.arrays.categorical:
 
@@ -622,7 +609,6 @@ with a bool :class:`numpy.ndarray`.
    :template: autosummary/class_without_autosummary.rst
 
    BooleanDtype
-   NA
 
 
 .. Dtype attributes which are manually listed in their docstrings: including

@@ -18,8 +18,10 @@ class TestAtTime:
     def test_localized_at_time(self, tzstr, frame_or_series):
         tz = timezones.maybe_get_tz(tzstr)
 
-        rng = date_range("4/16/2012", "5/1/2012", freq="H")
-        ts = frame_or_series(np.random.randn(len(rng)), index=rng)
+        rng = date_range("4/16/2012", "5/1/2012", freq="h")
+        ts = frame_or_series(
+            np.random.default_rng(2).standard_normal(len(rng)), index=rng
+        )
 
         ts_local = ts.tz_localize(tzstr)
 
@@ -30,7 +32,9 @@ class TestAtTime:
 
     def test_at_time(self, frame_or_series):
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 2)), index=rng
+        )
         ts = tm.get_obj(ts, frame_or_series)
         rs = ts.at_time(rng[1])
         assert (rs.index.hour == rng[1].hour).all()
@@ -44,7 +48,9 @@ class TestAtTime:
     def test_at_time_midnight(self, frame_or_series):
         # midnight, everything
         rng = date_range("1/1/2000", "1/31/2000")
-        ts = DataFrame(np.random.randn(len(rng), 3), index=rng)
+        ts = DataFrame(
+            np.random.default_rng(2).standard_normal((len(rng), 3)), index=rng
+        )
         ts = tm.get_obj(ts, frame_or_series)
 
         result = ts.at_time(time(0, 0))
@@ -53,7 +59,7 @@ class TestAtTime:
     def test_at_time_nonexistent(self, frame_or_series):
         # time doesn't exist
         rng = date_range("1/1/2012", freq="23Min", periods=384)
-        ts = DataFrame(np.random.randn(len(rng)), rng)
+        ts = DataFrame(np.random.default_rng(2).standard_normal(len(rng)), rng)
         ts = tm.get_obj(ts, frame_or_series)
         rs = ts.at_time("16:00")
         assert len(rs) == 0
@@ -63,7 +69,7 @@ class TestAtTime:
     )
     def test_at_time_errors(self, hour):
         # GH#24043
-        dti = date_range("2018", periods=3, freq="H")
+        dti = date_range("2018", periods=3, freq="h")
         df = DataFrame(list(range(len(dti))), index=dti)
         if getattr(hour, "tzinfo", None) is None:
             result = df.at_time(hour)
@@ -75,7 +81,7 @@ class TestAtTime:
 
     def test_at_time_tz(self):
         # GH#24043
-        dti = date_range("2018", periods=3, freq="H", tz="US/Pacific")
+        dti = date_range("2018", periods=3, freq="h", tz="US/Pacific")
         df = DataFrame(list(range(len(dti))), index=dti)
         result = df.at_time(time(4, tzinfo=pytz.timezone("US/Eastern")))
         expected = df.iloc[1:2]
@@ -93,7 +99,7 @@ class TestAtTime:
     def test_at_time_axis(self, axis):
         # issue 8839
         rng = date_range("1/1/2000", "1/5/2000", freq="5min")
-        ts = DataFrame(np.random.randn(len(rng), len(rng)))
+        ts = DataFrame(np.random.default_rng(2).standard_normal((len(rng), len(rng))))
         ts.index, ts.columns = rng, rng
 
         indices = rng[(rng.hour == 9) & (rng.minute == 30) & (rng.second == 0)]
@@ -112,7 +118,9 @@ class TestAtTime:
 
     def test_at_time_datetimeindex(self):
         index = date_range("2012-01-01", "2012-01-05", freq="30min")
-        df = DataFrame(np.random.randn(len(index), 5), index=index)
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((len(index), 5)), index=index
+        )
         akey = time(12, 0, 0)
         ainds = [24, 72, 120, 168]
 

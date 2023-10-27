@@ -7,6 +7,11 @@ from pandas.core.interchange.column import PandasColumn
 from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Iterable,
+        Sequence,
+    )
+
     from pandas import (
         DataFrame,
         Index,
@@ -72,7 +77,7 @@ class PandasDataFrameXchg(DataFrameXchg):
             for name in self._df.columns
         ]
 
-    def select_columns(self, indices) -> PandasDataFrameXchg:
+    def select_columns(self, indices: Sequence[int]) -> PandasDataFrameXchg:
         if not isinstance(indices, abc.Sequence):
             raise ValueError("`indices` is not a sequence")
         if not isinstance(indices, list):
@@ -82,7 +87,7 @@ class PandasDataFrameXchg(DataFrameXchg):
             self._df.iloc[:, indices], self._nan_as_null, self._allow_copy
         )
 
-    def select_columns_by_name(self, names) -> PandasDataFrameXchg:
+    def select_columns_by_name(self, names: list[str]) -> PandasDataFrameXchg:  # type: ignore[override]  # noqa: E501
         if not isinstance(names, abc.Sequence):
             raise ValueError("`names` is not a sequence")
         if not isinstance(names, list):
@@ -92,7 +97,7 @@ class PandasDataFrameXchg(DataFrameXchg):
             self._df.loc[:, names], self._nan_as_null, self._allow_copy
         )
 
-    def get_chunks(self, n_chunks=None):
+    def get_chunks(self, n_chunks: int | None = None) -> Iterable[PandasDataFrameXchg]:
         """
         Return an iterator yielding the chunks.
         """

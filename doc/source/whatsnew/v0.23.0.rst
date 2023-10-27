@@ -236,8 +236,7 @@ array are respected:
    dtype: bool
 
 For more, see the :ref:`extension types <extending.extension-types>`
-documentation. If you build an extension array, publicize it on our
-:ref:`ecosystem page <ecosystem.extensions>`.
+documentation. If you build an extension array, publicize it on `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_.
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest/
 
@@ -300,8 +299,8 @@ For pivoting operations, this behavior is *already* controlled by the ``dropna``
 Rolling/Expanding.apply() accepts ``raw=False`` to pass a ``Series`` to the function
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`,
-:func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` have gained a ``raw=None`` parameter.
+:func:`Series.rolling().apply() <.Rolling.apply>`, :func:`DataFrame.rolling().apply() <.Rolling.apply>`,
+:func:`Series.expanding().apply() <.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <.Expanding.apply>` have gained a ``raw=None`` parameter.
 This is similar to :func:`DataFame.apply`. This parameter, if ``True`` allows one to send a ``np.ndarray`` to the applied function. If ``False`` a ``Series`` will be passed. The
 default is ``None``, which preserves backward compatibility, so this will default to ``True``, sending an ``np.ndarray``.
 In a future version the default will be changed to ``False``, sending a ``Series``. (:issue:`5071`, :issue:`20584`)
@@ -525,7 +524,7 @@ Other enhancements
 - ``Categorical.rename_categories``, ``CategoricalIndex.rename_categories`` and :attr:`Series.cat.rename_categories`
   can now take a callable as their argument (:issue:`18862`)
 - :class:`Interval` and :class:`IntervalIndex` have gained a ``length`` attribute (:issue:`18789`)
-- ``Resampler`` objects now have a functioning :attr:`~pandas.core.resample.Resampler.pipe` method.
+- ``Resampler`` objects now have a functioning :attr:`.Resampler.pipe` method.
   Previously, calls to ``pipe`` were diverted to  the ``mean`` method (:issue:`17905`).
 - :func:`~pandas.api.types.is_scalar` now returns ``True`` for ``DateOffset`` objects (:issue:`18943`).
 - :func:`DataFrame.pivot` now accepts a list for the ``values=`` kwarg (:issue:`17160`).
@@ -537,7 +536,7 @@ Other enhancements
 
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 - :class:`IntervalIndex` and its associated constructor methods (``from_arrays``, ``from_breaks``, ``from_tuples``) have gained a ``dtype`` parameter (:issue:`19262`)
-- Added :func:`pandas.core.groupby.SeriesGroupBy.is_monotonic_increasing` and :func:`pandas.core.groupby.SeriesGroupBy.is_monotonic_decreasing` (:issue:`17015`)
+- Added :func:`.SeriesGroupBy.is_monotonic_increasing` and :func:`.SeriesGroupBy.is_monotonic_decreasing` (:issue:`17015`)
 - For subclassed ``DataFrames``, :func:`DataFrame.apply` will now preserve the ``Series`` subclass (if defined) when passing the data to the applied function (:issue:`19822`)
 - :func:`DataFrame.from_dict` now accepts a ``columns`` argument that can be used to specify the column names when ``orient='index'`` is used (:issue:`18529`)
 - Added option ``display.html.use_mathjax`` so `MathJax <https://www.mathjax.org/>`_ can be disabled when rendering tables in ``Jupyter`` notebooks (:issue:`19856`, :issue:`19824`)
@@ -548,7 +547,7 @@ Other enhancements
   ``SQLAlchemy`` dialects supporting multi-value inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
 - :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
 - :func:`read_html` now reads all ``<tbody>`` elements in a ``<table>``, not just the first. (:issue:`20690`)
-- :meth:`~pandas.core.window.Rolling.quantile` and :meth:`~pandas.core.window.Expanding.quantile` now accept the ``interpolation`` keyword, ``linear`` by default (:issue:`20497`)
+- :meth:`.Rolling.quantile` and :meth:`.Expanding.quantile` now accept the ``interpolation`` keyword, ``linear`` by default (:issue:`20497`)
 - zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
 - :class:`~pandas.tseries.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
 - :class:`DataFrame` and :class:`Series` now support matrix multiplication (``@``) operator (:issue:`10259`) for Python>=3.5
@@ -1053,7 +1052,7 @@ Other API changes
 - :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
 - Constructing a Series from a list of length 1 no longer broadcasts this list when a longer index is specified (:issue:`19714`, :issue:`20391`).
 - :func:`DataFrame.to_dict` with ``orient='index'`` no longer casts int columns to float for a DataFrame with only int and float columns (:issue:`18580`)
-- A user-defined-function that is passed to :func:`Series.rolling().aggregate() <pandas.core.window.Rolling.aggregate>`, :func:`DataFrame.rolling().aggregate() <pandas.core.window.Rolling.aggregate>`, or its expanding cousins, will now *always* be passed a ``Series``, rather than a ``np.array``; ``.apply()`` only has the ``raw`` keyword, see :ref:`here <whatsnew_0230.enhancements.window_raw>`. This is consistent with the signatures of ``.aggregate()`` across pandas (:issue:`20584`)
+- A user-defined-function that is passed to :func:`Series.rolling().aggregate() <.Rolling.aggregate>`, :func:`DataFrame.rolling().aggregate() <.Rolling.aggregate>`, or its expanding cousins, will now *always* be passed a ``Series``, rather than a ``np.array``; ``.apply()`` only has the ``raw`` keyword, see :ref:`here <whatsnew_0230.enhancements.window_raw>`. This is consistent with the signatures of ``.aggregate()`` across pandas (:issue:`20584`)
 - Rolling and Expanding types raise ``NotImplementedError`` upon iteration (:issue:`11704`).
 
 .. _whatsnew_0230.deprecations:
@@ -1085,8 +1084,7 @@ Deprecations
 - ``Index.summary()`` is deprecated and will be removed in a future version (:issue:`18217`)
 - ``NDFrame.get_ftype_counts()`` is deprecated and will be removed in a future version (:issue:`18243`)
 - The ``convert_datetime64`` parameter in :func:`DataFrame.to_records` has been deprecated and will be removed in a future version. The NumPy bug motivating this parameter has been resolved. The default value for this parameter has also changed from ``True`` to ``None`` (:issue:`18160`).
-- :func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`,
-  :func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` have deprecated passing an ``np.array`` by default. One will need to pass the new ``raw`` parameter to be explicit about what is passed (:issue:`20584`)
+- :func:`Series.rolling().apply() <.Rolling.apply>`, :func:`DataFrame.rolling().apply() <.Rolling.apply>`, :func:`Series.expanding().apply() <.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <.Expanding.apply>` have deprecated passing an ``np.array`` by default. One will need to pass the new ``raw`` parameter to be explicit about what is passed (:issue:`20584`)
 - The ``data``, ``base``, ``strides``, ``flags`` and ``itemsize`` properties
   of the ``Series`` and ``Index`` classes have been deprecated and will be
   removed in a future version (:issue:`20419`).
@@ -1160,15 +1158,15 @@ Performance improvements
 - Improved performance of :func:`MultiIndex.remove_unused_levels` when there are no unused levels, at the cost of a reduction in performance when there are (:issue:`19289`)
 - Improved performance of :func:`Index.get_loc` for non-unique indexes (:issue:`19478`)
 - Improved performance of pairwise ``.rolling()`` and ``.expanding()`` with ``.cov()`` and ``.corr()`` operations (:issue:`17917`)
-- Improved performance of :func:`pandas.core.groupby.GroupBy.rank` (:issue:`15779`)
+- Improved performance of :func:`.GroupBy.rank` (:issue:`15779`)
 - Improved performance of variable ``.rolling()`` on ``.min()`` and ``.max()`` (:issue:`19521`)
-- Improved performance of :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` (:issue:`11296`)
-- Improved performance of :func:`pandas.core.groupby.GroupBy.any` and :func:`pandas.core.groupby.GroupBy.all` (:issue:`15435`)
-- Improved performance of :func:`pandas.core.groupby.GroupBy.pct_change` (:issue:`19165`)
+- Improved performance of :func:`.GroupBy.ffill` and :func:`.GroupBy.bfill` (:issue:`11296`)
+- Improved performance of :func:`.GroupBy.any` and :func:`.GroupBy.all` (:issue:`15435`)
+- Improved performance of :func:`.GroupBy.pct_change` (:issue:`19165`)
 - Improved performance of :func:`Series.isin` in the case of categorical dtypes (:issue:`20003`)
 - Improved performance of ``getattr(Series, attr)`` when the Series has certain index types. This manifested in slow printing of large Series with a ``DatetimeIndex`` (:issue:`19764`)
 - Fixed a performance regression for :func:`GroupBy.nth` and :func:`GroupBy.last` with some object columns (:issue:`19283`)
-- Improved performance of :func:`pandas.core.arrays.Categorical.from_codes` (:issue:`18501`)
+- Improved performance of :func:`.Categorical.from_codes` (:issue:`18501`)
 
 .. _whatsnew_0230.docs:
 
@@ -1413,13 +1411,13 @@ GroupBy/resample/rolling
 - Bug in :func:`DataFrame.groupby` where aggregation by ``first``/``last``/``min``/``max`` was causing timestamps to lose precision (:issue:`19526`)
 - Bug in :func:`DataFrame.transform` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
 - Bug in :func:`DataFrame.groupby` passing the ``on=`` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
-- Bug in :func:`DataFrame.resample().aggregate <pandas.core.resample.Resampler.aggregate>` not raising a ``KeyError`` when aggregating a non-existent column (:issue:`16766`, :issue:`19566`)
+- Bug in :func:`DataFrame.resample().aggregate <.Resampler.aggregate>` not raising a ``KeyError`` when aggregating a non-existent column (:issue:`16766`, :issue:`19566`)
 - Bug in :func:`DataFrameGroupBy.cumsum` and :func:`DataFrameGroupBy.cumprod` when ``skipna`` was passed (:issue:`19806`)
 - Bug in :func:`DataFrame.resample` that dropped timezone information (:issue:`13238`)
 - Bug in :func:`DataFrame.groupby` where transformations using ``np.all`` and ``np.any`` were raising a ``ValueError`` (:issue:`20653`)
 - Bug in :func:`DataFrame.resample` where ``ffill``, ``bfill``, ``pad``, ``backfill``, ``fillna``, ``interpolate``, and ``asfreq`` were ignoring ``loffset``. (:issue:`20744`)
 - Bug in :func:`DataFrame.groupby` when applying a function that has mixed data types and the user supplied function can fail on the grouping column (:issue:`20949`)
-- Bug in :func:`DataFrameGroupBy.rolling().apply() <pandas.core.window.Rolling.apply>` where operations performed against the associated :class:`DataFrameGroupBy` object could impact the inclusion of the grouped item(s) in the result (:issue:`14013`)
+- Bug in :func:`DataFrameGroupBy.rolling().apply() <.Rolling.apply>` where operations performed against the associated :class:`DataFrameGroupBy` object could impact the inclusion of the grouped item(s) in the result (:issue:`14013`)
 
 Sparse
 ^^^^^^

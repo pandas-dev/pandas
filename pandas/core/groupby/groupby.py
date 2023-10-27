@@ -8,6 +8,12 @@ expose these user-facing objects to provide specific functionality.
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Hashable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 import datetime
 from functools import (
     partial,
@@ -18,12 +24,7 @@ from textwrap import dedent
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterator,
-    List,
     Literal,
-    Mapping,
-    Sequence,
     TypeVar,
     Union,
     cast,
@@ -68,14 +69,19 @@ from pandas.util._decorators import (
     cache_readonly,
     doc,
 )
+from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.cast import ensure_dtype_can_hold_na
+from pandas.core.dtypes.cast import (
+    coerce_indexer_dtype,
+    ensure_dtype_can_hold_na,
+)
 from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_float_dtype,
     is_hashable,
     is_integer,
     is_integer_dtype,
+    is_list_like,
     is_numeric_dtype,
     is_object_dtype,
     is_scalar,
@@ -83,6 +89,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.missing import (
     isna,
+    na_value_for_dtype,
     notna,
 )
 
@@ -91,14 +98,20 @@ from pandas.core import (
     sample,
 )
 from pandas.core._numba import executor
+from pandas.core.apply import warn_alias_replacement
 from pandas.core.arrays import (
+    ArrowExtensionArray,
     BaseMaskedArray,
-    BooleanArray,
     Categorical,
-    DatetimeArray,
     ExtensionArray,
     FloatingArray,
-    TimedeltaArray,
+    IntegerArray,
+    SparseArray,
+)
+from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringArrayNumpySemantics,
 )
 from pandas.core.base import (
     PandasObject,
@@ -133,6 +146,9 @@ from pandas.core.util.numba_ import (
 )
 
 if TYPE_CHECKING:
+    from typing import Any
+
+    from pandas.core.resample import Resampler
     from pandas.core.window import (
         ExpandingGroupby,
         ExponentialMovingWindowGroupby,
@@ -169,6 +185,19 @@ _apply_docs = {
         A callable that takes a {input} as its first argument, and
         returns a dataframe, a series or a scalar. In addition the
         callable may take positional and keyword arguments.
+    include_groups : bool, default True
+        When True, will attempt to apply ``func`` to the groupings in
+        the case that they are columns of the DataFrame. If this raises a
+        TypeError, the result will be computed with the groupings excluded.
+        When False, the groupings will be excluded when applying ``func``.
+
+        .. versionadded:: 2.2.0
+
+        .. deprecated:: 2.2.0
+
+           Setting include_groups to True is deprecated. Only the value
+           False will be allowed in a future version of pandas.
+
     args, kwargs : tuple and dict
         Optional positional and keyword arguments to pass to ``func``.
 
@@ -261,7 +290,7 @@ _apply_docs = {
     each group together into a Series, including setting the index as
     appropriate:
 
-    >>> g1.apply(lambda x: x.C.max() - x.B.min())
+    >>> g1.apply(lambda x: x.C.max() - x.B.min(), include_groups=False)
     A
     a    5
     b    2
@@ -339,6 +368,50 @@ Returns
 -------
 Series or DataFrame
     Computed {fname} of values within each group.
+
+Examples
+--------
+{example}
+"""
+
+_groupby_agg_method_engine_template = """
+Compute {fname} of group values.
+
+Parameters
+----------
+numeric_only : bool, default {no}
+    Include only float, int, boolean columns.
+
+    .. versionchanged:: 2.0.0
+
+        numeric_only no longer accepts ``None``.
+
+min_count : int, default {mc}
+    The required number of valid values to perform the operation. If fewer
+    than ``min_count`` non-NA values are present the result will be NA.
+
+engine : str, default None {e}
+    * ``'cython'`` : Runs rolling apply through C-extensions from cython.
+    * ``'numba'`` : Runs rolling apply through JIT compiled code from numba.
+        Only available when ``raw`` is set to ``True``.
+    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+engine_kwargs : dict, default None {ek}
+    * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+    * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+        and ``parallel`` dictionary keys. The values must either be ``True`` or
+        ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+        ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
+        applied to both the ``func`` and the ``apply`` groupby aggregation.
+
+Returns
+-------
+Series or DataFrame
+    Computed {fname} of values within each group.
+
+Examples
+--------
+{example}
 """
 
 _pipe_template = """
@@ -418,8 +491,6 @@ f : function, str
 
     If a string is chosen, then it needs to be the name
     of the groupby method you want to use.
-
-    .. versionchanged:: 1.1.0
 *args
     Positional arguments to pass to func.
 engine : str, default None
@@ -427,7 +498,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or the global setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -436,7 +506,6 @@ engine_kwargs : dict, default None
       ``{'nopython': True, 'nogil': False, 'parallel': False}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     Keyword arguments to be passed into func.
 
@@ -490,7 +559,89 @@ Examples
 --------
 %(example)s"""
 
-_agg_template = """
+_agg_template_series = """
+Aggregate using one or more operations over the specified axis.
+
+Parameters
+----------
+func : function, str, list, dict or None
+    Function to use for aggregating the data. If a function, must either
+    work when passed a {klass} or when passed to {klass}.apply.
+
+    Accepted combinations are:
+
+    - function
+    - string function name
+    - list of functions and/or function names, e.g. ``[np.sum, 'mean']``
+    - None, in which case ``**kwargs`` are used with Named Aggregation. Here the
+      output has one column for each element in ``**kwargs``. The name of the
+      column is keyword, whereas the value determines the aggregation used to compute
+      the values in the column.
+
+      Can also accept a Numba JIT function with
+      ``engine='numba'`` specified. Only passing a single function is supported
+      with this engine.
+
+      If the ``'numba'`` engine is chosen, the function must be
+      a user defined function with ``values`` and ``index`` as the
+      first and second arguments respectively in the function signature.
+      Each group's index will be passed to the user defined function
+      and optionally available for use.
+
+    .. deprecated:: 2.1.0
+
+        Passing a dictionary is deprecated and will raise in a future version
+        of pandas. Pass a list of aggregations instead.
+*args
+    Positional arguments to pass to func.
+engine : str, default None
+    * ``'cython'`` : Runs the function through C-extensions from cython.
+    * ``'numba'`` : Runs the function through JIT compiled code from numba.
+    * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
+
+engine_kwargs : dict, default None
+    * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
+    * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
+      and ``parallel`` dictionary keys. The values must either be ``True`` or
+      ``False``. The default ``engine_kwargs`` for the ``'numba'`` engine is
+      ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
+      applied to the function
+
+**kwargs
+    * If ``func`` is None, ``**kwargs`` are used to define the output names and
+      aggregations via Named Aggregation. See ``func`` entry.
+    * Otherwise, keyword arguments to be passed into func.
+
+Returns
+-------
+{klass}
+
+See Also
+--------
+{klass}.groupby.apply : Apply function func group-wise
+    and combine the results together.
+{klass}.groupby.transform : Transforms the Series on each group
+    based on the given function.
+{klass}.aggregate : Aggregate using one or more
+    operations over the specified axis.
+
+Notes
+-----
+When using ``engine='numba'``, there will be no "fall back" behavior internally.
+The group data and group index will be passed as numpy arrays to the JITed
+user defined function, and no alternative execution attempts will be tried.
+
+Functions that mutate the passed object can produce unexpected
+behavior or errors and are not supported. See :ref:`gotchas.udf-mutation`
+for more details.
+
+.. versionchanged:: 1.3.0
+
+    The resulting dtype will reflect the return value of the passed ``func``,
+    see the examples below.
+{examples}"""
+
+_agg_template_frame = """
 Aggregate using one or more operations over the specified axis.
 
 Parameters
@@ -510,17 +661,16 @@ func : function, str, list, dict or None
       column is keyword, whereas the value determines the aggregation used to compute
       the values in the column.
 
-    Can also accept a Numba JIT function with
-    ``engine='numba'`` specified. Only passing a single function is supported
-    with this engine.
+      Can also accept a Numba JIT function with
+      ``engine='numba'`` specified. Only passing a single function is supported
+      with this engine.
 
-    If the ``'numba'`` engine is chosen, the function must be
-    a user defined function with ``values`` and ``index`` as the
-    first and second arguments respectively in the function signature.
-    Each group's index will be passed to the user defined function
-    and optionally available for use.
+      If the ``'numba'`` engine is chosen, the function must be
+      a user defined function with ``values`` and ``index`` as the
+      first and second arguments respectively in the function signature.
+      Each group's index will be passed to the user defined function
+      and optionally available for use.
 
-    .. versionchanged:: 1.1.0
 *args
     Positional arguments to pass to func.
 engine : str, default None
@@ -528,7 +678,6 @@ engine : str, default None
     * ``'numba'`` : Runs the function through JIT compiled code from numba.
     * ``None`` : Defaults to ``'cython'`` or globally setting ``compute.use_numba``
 
-    .. versionadded:: 1.1.0
 engine_kwargs : dict, default None
     * For ``'cython'`` engine, there are no accepted ``engine_kwargs``
     * For ``'numba'`` engine, the engine can accept ``nopython``, ``nogil``
@@ -537,7 +686,6 @@ engine_kwargs : dict, default None
       ``{{'nopython': True, 'nogil': False, 'parallel': False}}`` and will be
       applied to the function
 
-    .. versionadded:: 1.1.0
 **kwargs
     * If ``func`` is None, ``**kwargs`` are used to define the output names and
       aggregations via Named Aggregation. See ``func`` entry.
@@ -587,23 +735,23 @@ class GroupByPlot(PandasObject):
             return self.plot(*args, **kwargs)
 
         f.__name__ = "plot"
-        return self._groupby.apply(f)
+        return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             def f(self):
                 return getattr(self.plot, name)(*args, **kwargs)
 
-            return self._groupby.apply(f)
+            return self._groupby._python_apply_general(f, self._groupby._selected_obj)
 
         return attr
 
 
 _KeysArgType = Union[
     Hashable,
-    List[Hashable],
+    list[Hashable],
     Callable[[Hashable], Hashable],
-    List[Callable[[Hashable], Hashable]],
+    list[Callable[[Hashable], Hashable]],
     Mapping[Hashable, Hashable],
 ]
 
@@ -626,7 +774,8 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     axis: AxisInt
     grouper: ops.BaseGrouper
     keys: _KeysArgType | None = None
-    group_keys: bool | lib.NoDefault
+    level: IndexLabel | None = None
+    group_keys: bool
 
     @final
     def __len__(self) -> int:
@@ -642,6 +791,46 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     def groups(self) -> dict[Hashable, np.ndarray]:
         """
         Dict {group name -> group labels}.
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        dtype: int64
+        >>> ser.groupby(level=0).groups
+        {'a': ['a', 'a'], 'b': ['b']}
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"])
+        >>> df
+           a  b  c
+        0  1  2  3
+        1  1  5  6
+        2  7  8  9
+        >>> df.groupby(by=["a"]).groups
+        {1: [0, 1], 7: [2]}
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').groups
+        {Timestamp('2023-01-01 00:00:00'): 2, Timestamp('2023-02-01 00:00:00'): 4}
         """
         return self.grouper.groups
 
@@ -655,6 +844,48 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
     def indices(self) -> dict[Hashable, npt.NDArray[np.intp]]:
         """
         Dict {group name -> group indices}.
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        dtype: int64
+        >>> ser.groupby(level=0).indices
+        {'a': array([0, 1]), 'b': array([2])}
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["owl", "toucan", "eagle"])
+        >>> df
+                a  b  c
+        owl     1  2  3
+        toucan  1  5  6
+        eagle   7  8  9
+        >>> df.groupby(by=["a"]).indices
+        {1: array([0, 1]), 7: array([2])}
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').indices
+        defaultdict(<class 'list'>, {Timestamp('2023-01-01 00:00:00'): [0, 1],
+        Timestamp('2023-02-01 00:00:00'): [2, 3]})
         """
         return self.grouper.indices
 
@@ -786,18 +1017,98 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
             it is None, the object groupby was called on will
             be used.
 
+            .. deprecated:: 2.1.0
+                The obj is deprecated and will be removed in a future version.
+                Do ``df.iloc[gb.indices.get(name)]``
+                instead of ``gb.get_group(name, obj=df)``.
+
         Returns
         -------
         same type as obj
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        dtype: int64
+        >>> ser.groupby(level=0).get_group("a")
+        a    1
+        a    2
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["owl", "toucan", "eagle"])
+        >>> df
+                a  b  c
+        owl     1  2  3
+        toucan  1  5  6
+        eagle   7  8  9
+        >>> df.groupby(by=["a"]).get_group((1,))
+                a  b  c
+        owl     1  2  3
+        toucan  1  5  6
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').get_group('2023-01-01')
+        2023-01-01    1
+        2023-01-15    2
+        dtype: int64
         """
-        if obj is None:
-            obj = self._selected_obj
+        keys = self.keys
+        level = self.level
+        # mypy doesn't recognize level/keys as being sized when passed to len
+        if (is_list_like(level) and len(level) == 1) or (  # type: ignore[arg-type]
+            is_list_like(keys) and len(keys) == 1  # type: ignore[arg-type]
+        ):
+            # GH#25971
+            if isinstance(name, tuple) and len(name) == 1:
+                # Allow users to pass tuples of length 1 to silence warning
+                name = name[0]
+            elif not isinstance(name, tuple):
+                warnings.warn(
+                    "When grouping with a length-1 list-like, "
+                    "you will need to pass a length-1 tuple to get_group in a future "
+                    "version of pandas. Pass `(name,)` instead of `name` to silence "
+                    "this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
         inds = self._get_index(name)
         if not len(inds):
             raise KeyError(name)
 
-        return obj._take_with_is_copy(inds, axis=self.axis)
+        if obj is None:
+            indexer = inds if self.axis == 0 else (slice(None), inds)
+            return self._selected_obj.iloc[indexer]
+        else:
+            warnings.warn(
+                "obj is deprecated and will be removed in a future version. "
+                "Do ``df.iloc[gb.indices.get(name)]`` "
+                "instead of ``gb.get_group(name, obj=df)``.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+            return obj._take_with_is_copy(inds, axis=self.axis)
 
     @final
     def __iter__(self) -> Iterator[tuple[Hashable, NDFrameT]]:
@@ -808,9 +1119,83 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         -------
         Generator yielding sequence of (name, subsetted object)
         for each group
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        dtype: int64
+        >>> for x, y in ser.groupby(level=0):
+        ...     print(f'{x}\\n{y}\\n')
+        a
+        a    1
+        a    2
+        dtype: int64
+        b
+        b    3
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"])
+        >>> df
+           a  b  c
+        0  1  2  3
+        1  1  5  6
+        2  7  8  9
+        >>> for x, y in df.groupby(by=["a"]):
+        ...     print(f'{x}\\n{y}\\n')
+        (1,)
+           a  b  c
+        0  1  2  3
+        1  1  5  6
+        (7,)
+           a  b  c
+        2  7  8  9
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> for x, y in ser.resample('MS'):
+        ...     print(f'{x}\\n{y}\\n')
+        2023-01-01 00:00:00
+        2023-01-01    1
+        2023-01-15    2
+        dtype: int64
+        2023-02-01 00:00:00
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
         """
         keys = self.keys
+        level = self.level
         result = self.grouper.get_iterator(self._selected_obj, axis=self.axis)
+        # error: Argument 1 to "len" has incompatible type "Hashable"; expected "Sized"
+        if is_list_like(level) and len(level) == 1:  # type: ignore[arg-type]
+            # GH 51583
+            warnings.warn(
+                "Creating a Groupby object with a length-1 list-like "
+                "level parameter will yield indexes as tuples in a future version. "
+                "To keep indexes as scalars, create Groupby objects with "
+                "a scalar level parameter instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
         if isinstance(keys, list) and len(keys) == 1:
             # GH#42795 - when keys is a list, return tuples even when length is 1
             result = (((key,), group) for key, group in result)
@@ -904,8 +1289,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         selection: IndexLabel | None = None,
         as_index: bool = True,
         sort: bool = True,
-        group_keys: bool | lib.NoDefault = True,
-        observed: bool = False,
+        group_keys: bool = True,
+        observed: bool | lib.NoDefault = lib.no_default,
         dropna: bool = True,
     ) -> None:
         self._selection = selection
@@ -922,7 +1307,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         self.keys = keys
         self.sort = sort
         self.group_keys = group_keys
-        self.observed = observed
         self.dropna = dropna
 
         if grouper is None:
@@ -932,9 +1316,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 axis=axis,
                 level=level,
                 sort=sort,
-                observed=observed,
+                observed=False if observed is lib.no_default else observed,
                 dropna=self.dropna,
             )
+
+        if observed is lib.no_default:
+            if any(ping._passed_categorical for ping in grouper.groupings):
+                warnings.warn(
+                    "The default of observed=False is deprecated and will be changed "
+                    "to True in a future version of pandas. Pass observed=False to "
+                    "retain current behavior or observed=True to adopt the future "
+                    "default and silence this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            observed = False
+        self.observed = observed
 
         self.obj = obj
         self.axis = obj._get_axis_number(axis)
@@ -952,10 +1349,43 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
+    def _deprecate_axis(self, axis: int, name: str) -> None:
+        if axis == 1:
+            warnings.warn(
+                f"{type(self).__name__}.{name} with axis=1 is deprecated and "
+                "will be removed in a future version. Operate on the un-grouped "
+                "DataFrame instead",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            warnings.warn(
+                f"The 'axis' keyword in {type(self).__name__}.{name} is deprecated "
+                "and will be removed in a future version. "
+                "Call without passing 'axis' instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+    @final
     def _op_via_apply(self, name: str, *args, **kwargs):
         """Compute the result of an operation by using GroupBy's apply."""
         f = getattr(type(self._obj_with_exclusions), name)
         sig = inspect.signature(f)
+
+        if "axis" in kwargs and kwargs["axis"] is not lib.no_default:
+            axis = self.obj._get_axis_number(kwargs["axis"])
+            self._deprecate_axis(axis, name)
+        elif "axis" in kwargs:
+            # exclude skew here because that was already defaulting to lib.no_default
+            #  before this deprecation was instituted
+            if name == "skew":
+                pass
+            elif name == "fillna":
+                # maintain the behavior from before the deprecation
+                kwargs["axis"] = None
+            else:
+                kwargs["axis"] = 0
 
         # a little trickery for aggregation functions that need an axis
         # argument
@@ -973,7 +1403,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # special case otherwise extra plots are created when catching the
         # exception below
         if name in base.plotting_methods:
-            return self.apply(curried)
+            return self._python_apply_general(curried, self._selected_obj)
 
         is_transform = name in base.transformation_kernels
         result = self._python_apply_general(
@@ -1048,7 +1478,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             result = concat(values, axis=self.axis)
 
-        name = self.obj.name if self.obj.ndim == 1 else self._selection
+        if self.obj.ndim == 1:
+            name = self.obj.name
+        elif is_hashable(self._selection):
+            name = self._selection
+        else:
+            name = None
+
         if isinstance(result, Series) and name is not None:
             result.name = name
 
@@ -1094,8 +1530,21 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ):
             # GH #28549
             # When using .apply(-), name will be in columns already
-            if in_axis and name not in columns:
-                result.insert(0, name, lev)
+            if name not in columns:
+                if in_axis:
+                    result.insert(0, name, lev)
+                else:
+                    msg = (
+                        "A grouping was used that is not in the columns of the "
+                        "DataFrame and so was excluded from the result. This grouping "
+                        "will be included in a future version of pandas. Add the "
+                        "grouping as a column of the DataFrame to silence this warning."
+                    )
+                    warnings.warn(
+                        message=msg,
+                        category=FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
 
         return result
 
@@ -1167,17 +1616,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     @final
     def _numba_prep(self, data: DataFrame):
         ids, _, ngroups = self.grouper.group_info
-        sorted_index = get_group_index_sorter(ids, ngroups)
-        sorted_ids = algorithms.take_nd(ids, sorted_index, allow_fill=False)
+        sorted_index = self.grouper._sort_idx
+        sorted_ids = self.grouper._sorted_ids
 
         sorted_data = data.take(sorted_index, axis=self.axis).to_numpy()
-        if len(self.grouper.groupings) > 1:
-            raise NotImplementedError(
-                "More than 1 grouping labels are not supported with engine='numba'"
-            )
         # GH 46867
         index_data = data.index
         if isinstance(index_data, MultiIndex):
+            if len(self.grouper.groupings) > 1:
+                raise NotImplementedError(
+                    "Grouping with more than 1 grouping labels and "
+                    "a MultiIndex is not supported with engine='numba'"
+                )
             group_key = self.grouper.groupings[0].name
             index_data = index_data.get_level_values(group_key)
         sorted_index_data = index_data.take(sorted_index).to_numpy()
@@ -1193,8 +1643,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _numba_agg_general(
         self,
         func: Callable,
+        dtype_mapping: dict[np.dtype, Any],
         engine_kwargs: dict[str, bool] | None,
-        *aggregator_args,
+        **aggregator_kwargs,
     ):
         """
         Perform groupby with a standard numerical aggregation function (e.g. mean)
@@ -1209,19 +1660,30 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         data = self._obj_with_exclusions
         df = data if data.ndim == 2 else data.to_frame()
-        starts, ends, sorted_index, sorted_data = self._numba_prep(df)
-        aggregator = executor.generate_shared_aggregator(
-            func, **get_jit_arguments(engine_kwargs)
-        )
-        result = aggregator(sorted_data, starts, ends, 0, *aggregator_args)
 
-        index = self.grouper.result_index
+        aggregator = executor.generate_shared_aggregator(
+            func,
+            dtype_mapping,
+            True,  # is_grouped_kernel
+            **get_jit_arguments(engine_kwargs),
+        )
+        # Pass group ids to kernel directly if it can handle it
+        # (This is faster since it doesn't require a sort)
+        ids, _, _ = self.grouper.group_info
+        ngroups = self.grouper.ngroups
+
+        res_mgr = df._mgr.apply(
+            aggregator, labels=ids, ngroups=ngroups, **aggregator_kwargs
+        )
+        res_mgr.axes[1] = self.grouper.result_index
+        result = df._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
+
         if data.ndim == 1:
-            result_kwargs = {"name": data.name}
-            result = result.ravel()
+            result = result.squeeze("columns")
+            result.name = data.name
         else:
-            result_kwargs = {"columns": data.columns}
-        return data._constructor(result, index=index, **result_kwargs)
+            result.columns = data.columns
+        return result
 
     @final
     def _transform_with_numba(self, func, *args, engine_kwargs=None, **kwargs):
@@ -1304,8 +1766,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             input="dataframe", examples=_apply_docs["dataframe_examples"]
         )
     )
-    def apply(self, func, *args, **kwargs) -> NDFrameT:
+    def apply(self, func, *args, include_groups: bool = True, **kwargs) -> NDFrameT:
+        orig_func = func
         func = com.is_builtin_func(func)
+        if orig_func != func:
+            alias = com._builtin_table_alias[orig_func]
+            warn_alias_replacement(self, orig_func, alias)
 
         if isinstance(func, str):
             if hasattr(self, func):
@@ -1324,8 +1790,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
                 @wraps(func)
                 def f(g):
-                    with np.errstate(all="ignore"):
-                        return func(g, *args, **kwargs)
+                    return func(g, *args, **kwargs)
 
             else:
                 raise ValueError(
@@ -1334,10 +1799,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         else:
             f = func
 
+        if not include_groups:
+            return self._python_apply_general(f, self._obj_with_exclusions)
+
         # ignore SettingWithCopy here in case the user mutates
         with option_context("mode.chained_assignment", None):
             try:
                 result = self._python_apply_general(f, self._selected_obj)
+                if (
+                    not isinstance(self.obj, Series)
+                    and self._selection is None
+                    and self._selected_obj.shape != self._obj_with_exclusions.shape
+                ):
+                    warnings.warn(
+                        message=_apply_groupings_depr.format(
+                            type(self).__name__, "apply"
+                        ),
+                        category=FutureWarning,
+                        stacklevel=find_stack_level(),
+                    )
             except TypeError:
                 # gh-20949
                 # try again, with .apply acting as a filtering
@@ -1404,18 +1884,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         min_count: int = -1,
         *,
         alias: str,
-        npfunc: Callable,
+        npfunc: Callable | None = None,
+        **kwargs,
     ):
         result = self._cython_agg_general(
             how=alias,
             alt=npfunc,
             numeric_only=numeric_only,
             min_count=min_count,
+            **kwargs,
         )
         return result.__finalize__(self.obj, method="groupby")
 
     def _agg_py_fallback(
-        self, values: ArrayLike, ndim: int, alt: Callable
+        self, how: str, values: ArrayLike, ndim: int, alt: Callable
     ) -> ArrayLike:
         """
         Fallback to pure-python aggregation if _cython_operation raises
@@ -1426,11 +1908,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         if values.ndim == 1:
             # For DataFrameGroupBy we only get here with ExtensionArray
-            ser = Series(values)
+            ser = Series(values, copy=False)
         else:
             # We only get here with values.dtype == object
-            # TODO: special case not needed with ArrayManager
-            df = DataFrame(values.T)
+            df = DataFrame(values.T, dtype=values.dtype)
             # bc we split object blocks in grouped_reduce, we have only 1 col
             # otherwise we'd have to worry about block-splitting GH#39329
             assert df.shape[1] == 1
@@ -1441,15 +1922,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # We do not get here with UDFs, so we know that our dtype
         #  should always be preserved by the implemented aggregations
         # TODO: Is this exactly right; see WrappedCythonOp get_result_dtype?
-        res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
+        try:
+            res_values = self.grouper.agg_series(ser, alt, preserve_dtype=True)
+        except Exception as err:
+            msg = f"agg function failed [how->{how},dtype->{ser.dtype}]"
+            # preserve the kind of exception that raised
+            raise type(err)(msg) from err
 
-        if isinstance(values, Categorical):
-            # Because we only get here with known dtype-preserving
-            #  reductions, we cast back to Categorical.
-            # TODO: if we ever get "rank" working, exclude it here.
-            res_values = type(values)._from_sequence(res_values, dtype=values.dtype)
-
-        elif ser.dtype == object:
+        if ser.dtype == object:
             res_values = res_values.astype(object, copy=False)
 
         # If we are DataFrameGroupBy and went through a SeriesGroupByPath
@@ -1462,7 +1942,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _cython_agg_general(
         self,
         how: str,
-        alt: Callable,
+        alt: Callable | None = None,
         numeric_only: bool = False,
         min_count: int = -1,
         **kwargs,
@@ -1487,12 +1967,22 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # and non-applicable functions
                 # try to python agg
                 # TODO: shouldn't min_count matter?
-                result = self._agg_py_fallback(values, ndim=data.ndim, alt=alt)
+                # TODO: avoid special casing SparseArray here
+                if how in ["any", "all"] and isinstance(values, SparseArray):
+                    pass
+                elif alt is None or how in ["any", "all", "std", "sem"]:
+                    raise  # TODO: re-raise as TypeError?  should not be reached
+            else:
+                return result
 
+            assert alt is not None
+            result = self._agg_py_fallback(how, values, ndim=data.ndim, alt=alt)
             return result
 
         new_mgr = data.grouped_reduce(array_func)
         res = self._wrap_agged_manager(new_mgr)
+        if how in ["idxmin", "idxmax"]:
+            res = self._wrap_idxmax_idxmin(res)
         out = self._wrap_aggregated_output(res)
         if self.axis == 1:
             out = out.infer_objects(copy=False)
@@ -1505,22 +1995,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     def _transform(self, func, *args, engine=None, engine_kwargs=None, **kwargs):
-        if maybe_use_numba(engine):
-            return self._transform_with_numba(
-                func, *args, engine_kwargs=engine_kwargs, **kwargs
-            )
-
         # optimized transforms
+        orig_func = func
         func = com.get_cython_func(func) or func
+        if orig_func != func:
+            warn_alias_replacement(self, orig_func, func)
 
         if not isinstance(func, str):
-            return self._transform_general(func, *args, **kwargs)
+            return self._transform_general(func, engine, engine_kwargs, *args, **kwargs)
 
         elif func not in base.transform_kernel_allowlist:
             msg = f"'{func}' is not a valid function name for transform(name)"
             raise ValueError(msg)
         elif func in base.cythonized_kernels or func in base.transformation_kernels:
             # cythonized transform or canned "agg+broadcast"
+            if engine is not None:
+                kwargs["engine"] = engine
+                kwargs["engine_kwargs"] = engine_kwargs
             return getattr(self, func)(*args, **kwargs)
 
         else:
@@ -1530,11 +2021,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             # If func is a reduction, we need to broadcast the
             # result to the whole group. Compute func result
             # and deal with possible broadcasting below.
-            # Temporarily set observed for dealing with categoricals.
-            with com.temp_setattr(self, "observed", True):
-                with com.temp_setattr(self, "as_index", True):
-                    # GH#49834 - result needs groups in the index for
-                    # _wrap_transform_fast_result
+            with com.temp_setattr(self, "as_index", True):
+                # GH#49834 - result needs groups in the index for
+                # _wrap_transform_fast_result
+                if func in ["idxmin", "idxmax"]:
+                    func = cast(Literal["idxmin", "idxmax"], func)
+                    result = self._idxmax_idxmin(func, True, *args, **kwargs)
+                else:
+                    if engine is not None:
+                        kwargs["engine"] = engine
+                        kwargs["engine_kwargs"] = engine_kwargs
                     result = getattr(self, func)(*args, **kwargs)
 
             return self._wrap_transform_fast_result(result)
@@ -1637,48 +2133,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return self.obj._constructor
 
     @final
-    def _bool_agg(self, val_test: Literal["any", "all"], skipna: bool):
-        """
-        Shared func to call any / all Cython GroupBy implementations.
-        """
-
-        def objs_to_bool(vals: ArrayLike) -> tuple[np.ndarray, type]:
-            if is_object_dtype(vals.dtype) and skipna:
-                # GH#37501: don't raise on pd.NA when skipna=True
-                mask = isna(vals)
-                if mask.any():
-                    # mask on original values computed separately
-                    vals = vals.copy()
-                    vals[mask] = True
-            elif isinstance(vals, BaseMaskedArray):
-                vals = vals._data
-            vals = vals.astype(bool, copy=False)
-            return vals.view(np.int8), bool
-
-        def result_to_bool(
-            result: np.ndarray,
-            inference: type,
-            nullable: bool = False,
-        ) -> ArrayLike:
-            if nullable:
-                return BooleanArray(result.astype(bool, copy=False), result == -1)
-            else:
-                return result.astype(inference, copy=False)
-
-        return self._get_cythonized_result(
-            libgroupby.group_any_all,
-            numeric_only=False,
-            cython_dtype=np.dtype(np.int8),
-            pre_processing=objs_to_bool,
-            post_processing=result_to_bool,
-            val_test=val_test,
-            skipna=skipna,
-        )
-
-    @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
-    def any(self, skipna: bool = True):
+    @Substitution(see_also=_common_see_also)
+    def any(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if any value in the group is truthful, else False.
 
@@ -1692,13 +2149,49 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             DataFrame or Series of boolean values, where a value is True if any element
             is True within its respective group, False otherwise.
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 0], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    0
+        dtype: int64
+        >>> ser.groupby(level=0).any()
+        a     True
+        b    False
+        dtype: bool
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 0, 3], [1, 0, 6], [7, 1, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["ostrich", "penguin", "parrot"])
+        >>> df
+                 a  b  c
+        ostrich  1  0  3
+        penguin  1  0  6
+        parrot   7  1  9
+        >>> df.groupby(by=["a"]).any()
+               b      c
+        a
+        1  False   True
+        7   True   True
         """
-        return self._bool_agg("any", skipna)
+        return self._cython_agg_general(
+            "any",
+            alt=lambda x: Series(x).any(skipna=skipna),
+            skipna=skipna,
+        )
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
-    def all(self, skipna: bool = True):
+    @Substitution(see_also=_common_see_also)
+    def all(self, skipna: bool = True) -> NDFrameT:
         """
         Return True if all values in the group are truthful, else False.
 
@@ -1712,12 +2205,49 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Series or DataFrame
             DataFrame or Series of boolean values, where a value is True if all elements
             are True within its respective group, False otherwise.
+        %(see_also)s
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 0], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    0
+        dtype: int64
+        >>> ser.groupby(level=0).all()
+        a     True
+        b    False
+        dtype: bool
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 0, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["ostrich", "penguin", "parrot"])
+        >>> df
+                 a  b  c
+        ostrich  1  0  3
+        penguin  1  5  6
+        parrot   7  8  9
+        >>> df.groupby(by=["a"]).all()
+               b      c
+        a
+        1  False   True
+        7   True   True
         """
-        return self._bool_agg("all", skipna)
+        return self._cython_agg_general(
+            "all",
+            alt=lambda x: Series(x).all(skipna=skipna),
+            skipna=skipna,
+        )
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def count(self) -> NDFrameT:
         """
         Compute count of group, excluding missing values.
@@ -1726,6 +2256,53 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Count of values within each group.
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, np.nan], index=lst)
+        >>> ser
+        a    1.0
+        a    2.0
+        b    NaN
+        dtype: float64
+        >>> ser.groupby(level=0).count()
+        a    2
+        b    0
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, np.nan, 3], [1, np.nan, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["cow", "horse", "bull"])
+        >>> df
+                a	  b	c
+        cow     1	NaN	3
+        horse	1	NaN	6
+        bull	7	8.0	9
+        >>> df.groupby("a").count()
+            b   c
+        a
+        1   0   2
+        7   1   1
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 4], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01', '2023-02-15']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        2023-02-15    4
+        dtype: int64
+        >>> ser.resample('MS').count()
+        2023-01-01    2
+        2023-02-01    2
+        Freq: MS, dtype: int64
         """
         data = self._get_data_to_aggregate()
         ids, _, ngroups = self.grouper.group_info
@@ -1742,6 +2319,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 masked = mask & ~isna(bvalues)
 
             counted = lib.count_level_2d(masked, labels=ids, max_bin=ngroups)
+            if isinstance(bvalues, BaseMaskedArray):
+                return IntegerArray(
+                    counted[0], mask=np.zeros(counted.shape[1], dtype=np.bool_)
+                )
+            elif isinstance(bvalues, ArrowExtensionArray) and not isinstance(
+                bvalues.dtype, StringDtype
+            ):
+                return type(bvalues)._from_sequence(counted[0])
             if is_series:
                 assert counted.ndim == 2
                 assert counted.shape[0] == 1
@@ -1766,7 +2351,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def mean(
         self,
         numeric_only: bool = False,
-        engine: str = "cython",
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         """
@@ -1838,9 +2423,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
 
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_mean
+            from pandas.core._numba.kernels import grouped_mean
 
-            return self._numba_agg_general(sliding_mean, engine_kwargs)
+            return self._numba_agg_general(
+                grouped_mean,
+                executor.float_dtype_mapping,
+                engine_kwargs,
+                min_periods=0,
+            )
         else:
             result = self._cython_agg_general(
                 "mean",
@@ -1850,7 +2440,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return result.__finalize__(self.obj, method="groupby")
 
     @final
-    def median(self, numeric_only: bool = False):
+    def median(self, numeric_only: bool = False) -> NDFrameT:
         """
         Compute median of groups, excluding missing values.
 
@@ -1869,6 +2459,58 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Median of values within each group.
+
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
+        >>> ser
+        a     7
+        a     2
+        a     8
+        b     4
+        b     3
+        b     3
+        dtype: int64
+        >>> ser.groupby(level=0).median()
+        a    7.0
+        b    3.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
+        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> df
+                 a  b
+          dog    1  1
+          dog    3  4
+          dog    5  8
+        mouse    7  4
+        mouse    7  4
+        mouse    8  2
+        mouse    3  1
+        >>> df.groupby(level=0).median()
+                 a    b
+        dog    3.0  4.0
+        mouse  7.0  3.0
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3, 3, 4, 5],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').median()
+        2023-01-01    2.0
+        2023-02-01    4.0
+        Freq: MS, dtype: float64
         """
         result = self._cython_agg_general(
             "median",
@@ -1879,11 +2521,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def std(
         self,
         ddof: int = 1,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         numeric_only: bool = False,
     ):
@@ -1927,46 +2569,72 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Standard deviation of values within each group.
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
+        >>> ser
+        a     7
+        a     2
+        a     8
+        b     4
+        b     3
+        b     3
+        dtype: int64
+        >>> ser.groupby(level=0).std()
+        a    3.21455
+        b    0.57735
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
+        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> df
+                 a  b
+          dog    1  1
+          dog    3  4
+          dog    5  8
+        mouse    7  4
+        mouse    7  4
+        mouse    8  2
+        mouse    3  1
+        >>> df.groupby(level=0).std()
+                      a         b
+        dog    2.000000  3.511885
+        mouse  2.217356  1.500000
         """
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import grouped_var
 
-            return np.sqrt(self._numba_agg_general(sliding_var, engine_kwargs, ddof))
-        else:
-
-            def _preprocessing(values):
-                if isinstance(values, BaseMaskedArray):
-                    return values._data, None
-                return values, None
-
-            def _postprocessing(
-                vals, inference, nullable: bool = False, result_mask=None
-            ) -> ArrayLike:
-                if nullable:
-                    if result_mask.ndim == 2:
-                        result_mask = result_mask[:, 0]
-                    return FloatingArray(np.sqrt(vals), result_mask.view(np.bool_))
-                return np.sqrt(vals)
-
-            result = self._get_cythonized_result(
-                libgroupby.group_var,
-                cython_dtype=np.dtype(np.float64),
-                numeric_only=numeric_only,
-                needs_counts=True,
-                pre_processing=_preprocessing,
-                post_processing=_postprocessing,
-                ddof=ddof,
-                how="std",
+            return np.sqrt(
+                self._numba_agg_general(
+                    grouped_var,
+                    executor.float_dtype_mapping,
+                    engine_kwargs,
+                    min_periods=0,
+                    ddof=ddof,
+                )
             )
-            return result
+        else:
+            return self._cython_agg_general(
+                "std",
+                alt=lambda x: Series(x).std(ddof=ddof),
+                numeric_only=numeric_only,
+                ddof=ddof,
+            )
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def var(
         self,
         ddof: int = 1,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
         numeric_only: bool = False,
     ):
@@ -2010,11 +2678,55 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Variance of values within each group.
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
+        >>> ser
+        a     7
+        a     2
+        a     8
+        b     4
+        b     3
+        b     3
+        dtype: int64
+        >>> ser.groupby(level=0).var()
+        a    10.333333
+        b     0.333333
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
+        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> df
+                 a  b
+          dog    1  1
+          dog    3  4
+          dog    5  8
+        mouse    7  4
+        mouse    7  4
+        mouse    8  2
+        mouse    3  1
+        >>> df.groupby(level=0).var()
+                      a          b
+        dog    4.000000  12.333333
+        mouse  4.916667   2.250000
         """
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_var
+            from pandas.core._numba.kernels import grouped_var
 
-            return self._numba_agg_general(sliding_var, engine_kwargs, ddof)
+            return self._numba_agg_general(
+                grouped_var,
+                executor.float_dtype_mapping,
+                engine_kwargs,
+                min_periods=0,
+                ddof=ddof,
+            )
         else:
             return self._cython_agg_general(
                 "var",
@@ -2125,6 +2837,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result_series.index.droplevel(levels),
                 sort=self.sort,
                 dropna=self.dropna,
+                # GH#43999 - deprecation of observed=False
+                observed=False,
             ).transform("sum")
             result_series /= indexed_group_size
 
@@ -2150,12 +2864,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result_series.name = name
             result_series.index = index.set_names(range(len(columns)))
             result_frame = result_series.reset_index()
-            result_frame.columns = columns + [name]
+            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]  # noqa: E501
+            cols = Index(columns, dtype=orig_dtype).insert(len(columns), name)
+            result_frame.columns = cols
             result = result_frame
         return result.__finalize__(self.obj, method="value_counts")
 
     @final
-    def sem(self, ddof: int = 1, numeric_only: bool = False):
+    def sem(self, ddof: int = 1, numeric_only: bool = False) -> NDFrameT:
         """
         Compute standard error of the mean of groups, excluding missing values.
 
@@ -2179,28 +2895,70 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Standard error of the mean of values within each group.
+
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([5, 10, 8, 14], index=lst)
+        >>> ser
+        a     5
+        a    10
+        b     8
+        b    14
+        dtype: int64
+        >>> ser.groupby(level=0).sem()
+        a    2.5
+        b    3.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 12, 11], [1, 15, 2], [2, 5, 8], [2, 6, 12]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tuna", "salmon", "catfish", "goldfish"])
+        >>> df
+                   a   b   c
+            tuna   1  12  11
+          salmon   1  15   2
+         catfish   2   5   8
+        goldfish   2   6  12
+        >>> df.groupby("a").sem()
+              b  c
+        a
+        1    1.5  4.5
+        2    0.5  2.0
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 3, 2, 4, 3, 8],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').sem()
+        2023-01-01    0.577350
+        2023-02-01    1.527525
+        Freq: MS, dtype: float64
         """
         if numeric_only and self.obj.ndim == 1 and not is_numeric_dtype(self.obj.dtype):
             raise TypeError(
                 f"{type(self).__name__}.sem called with "
                 f"numeric_only={numeric_only} and dtype {self.obj.dtype}"
             )
-        result = self.std(ddof=ddof, numeric_only=numeric_only)
-
-        if result.ndim == 1:
-            result /= np.sqrt(self.count())
-        else:
-            cols = result.columns.difference(self.exclusions).unique()
-            counts = self.count()
-            result_ilocs = result.columns.get_indexer_for(cols)
-            count_ilocs = counts.columns.get_indexer_for(cols)
-
-            result.iloc[:, result_ilocs] /= np.sqrt(counts.iloc[:, count_ilocs])
-        return result
+        return self._cython_agg_general(
+            "sem",
+            alt=lambda x: Series(x).sem(ddof=ddof),
+            numeric_only=numeric_only,
+            ddof=ddof,
+        )
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def size(self) -> DataFrame | Series:
         """
         Compute group sizes.
@@ -2210,14 +2968,80 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame or Series
             Number of rows in each group as a Series if as_index is True
             or a DataFrame if as_index is False.
+        %(see_also)s
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([1, 2, 3], index=lst)
+        >>> ser
+        a     1
+        a     2
+        b     3
+        dtype: int64
+        >>> ser.groupby(level=0).size()
+        a    2
+        b    1
+        dtype: int64
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [7, 8, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["owl", "toucan", "eagle"])
+        >>> df
+                a  b  c
+        owl     1  2  3
+        toucan  1  5  6
+        eagle   7  8  9
+        >>> df.groupby("a").size()
+        a
+        1    2
+        7    1
+        dtype: int64
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 2, 3], index=pd.DatetimeIndex(
+        ...                 ['2023-01-01', '2023-01-15', '2023-02-01']))
+        >>> ser
+        2023-01-01    1
+        2023-01-15    2
+        2023-02-01    3
+        dtype: int64
+        >>> ser.resample('MS').size()
+        2023-01-01    2
+        2023-02-01    1
+        Freq: MS, dtype: int64
         """
         result = self.grouper.size()
+        dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
+        if isinstance(self.obj, Series):
+            if isinstance(self.obj.array, ArrowExtensionArray):
+                if isinstance(self.obj.array, ArrowStringArrayNumpySemantics):
+                    dtype_backend = None
+                elif isinstance(self.obj.array, ArrowStringArray):
+                    dtype_backend = "numpy_nullable"
+                else:
+                    dtype_backend = "pyarrow"
+            elif isinstance(self.obj.array, BaseMaskedArray):
+                dtype_backend = "numpy_nullable"
+        # TODO: For DataFrames what if columns are mixed arrow/numpy/masked?
 
         # GH28330 preserve subclassed Series/DataFrames through calls
         if isinstance(self.obj, Series):
             result = self._obj_1d_constructor(result, name=self.obj.name)
         else:
             result = self._obj_1d_constructor(result)
+
+        if dtype_backend is not None:
+            result = result.convert_dtypes(
+                infer_objects=False,
+                convert_string=False,
+                convert_boolean=False,
+                convert_floating=False,
+                dtype_backend=dtype_backend,
+            )
 
         with com.temp_setattr(self, "as_index", True):
             # size already has the desired behavior in GH#49519, but this makes the
@@ -2230,20 +3054,63 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    @doc(_groupby_agg_method_template, fname="sum", no=False, mc=0)
+    @doc(
+        _groupby_agg_method_engine_template,
+        fname="sum",
+        no=False,
+        mc=0,
+        e=None,
+        ek=None,
+        example=dedent(
+            """\
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).sum()
+        a    3
+        b    7
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tiger", "leopard", "cheetah", "lion"])
+        >>> df
+                  a  b  c
+          tiger   1  8  2
+        leopard   1  2  5
+        cheetah   2  5  8
+           lion   2  6  9
+        >>> df.groupby("a").sum()
+             b   c
+        a
+        1   10   7
+        2   11  17"""
+        ),
+    )
     def sum(
         self,
         numeric_only: bool = False,
         min_count: int = 0,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_sum
+            from pandas.core._numba.kernels import grouped_sum
 
             return self._numba_agg_general(
-                sliding_sum,
+                grouped_sum,
+                executor.default_dtype_mapping,
                 engine_kwargs,
+                min_periods=min_count,
             )
         else:
             # If we are grouping on categoricals we want unobserved categories to
@@ -2260,25 +3127,111 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             return self._reindex_output(result, fill_value=0)
 
     @final
-    @doc(_groupby_agg_method_template, fname="prod", no=False, mc=0)
-    def prod(self, numeric_only: bool = False, min_count: int = 0):
+    @doc(
+        _groupby_agg_method_template,
+        fname="prod",
+        no=False,
+        mc=0,
+        example=dedent(
+            """\
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).prod()
+        a    2
+        b   12
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tiger", "leopard", "cheetah", "lion"])
+        >>> df
+                  a  b  c
+          tiger   1  8  2
+        leopard   1  2  5
+        cheetah   2  5  8
+           lion   2  6  9
+        >>> df.groupby("a").prod()
+             b    c
+        a
+        1   16   10
+        2   30   72"""
+        ),
+    )
+    def prod(self, numeric_only: bool = False, min_count: int = 0) -> NDFrameT:
         return self._agg_general(
             numeric_only=numeric_only, min_count=min_count, alias="prod", npfunc=np.prod
         )
 
     @final
-    @doc(_groupby_agg_method_template, fname="min", no=False, mc=-1)
+    @doc(
+        _groupby_agg_method_engine_template,
+        fname="min",
+        no=False,
+        mc=-1,
+        e=None,
+        ek=None,
+        example=dedent(
+            """\
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).min()
+        a    1
+        b    3
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tiger", "leopard", "cheetah", "lion"])
+        >>> df
+                  a  b  c
+          tiger   1  8  2
+        leopard   1  2  5
+        cheetah   2  5  8
+           lion   2  6  9
+        >>> df.groupby("a").min()
+            b  c
+        a
+        1   2  2
+        2   5  8"""
+        ),
+    )
     def min(
         self,
         numeric_only: bool = False,
         min_count: int = -1,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_min_max
+            from pandas.core._numba.kernels import grouped_min_max
 
-            return self._numba_agg_general(sliding_min_max, engine_kwargs, False)
+            return self._numba_agg_general(
+                grouped_min_max,
+                executor.identity_dtype_mapping,
+                engine_kwargs,
+                min_periods=min_count,
+                is_max=False,
+            )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
@@ -2288,18 +3241,65 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    @doc(_groupby_agg_method_template, fname="max", no=False, mc=-1)
+    @doc(
+        _groupby_agg_method_engine_template,
+        fname="max",
+        no=False,
+        mc=-1,
+        e=None,
+        ek=None,
+        example=dedent(
+            """\
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).max()
+        a    2
+        b    4
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tiger", "leopard", "cheetah", "lion"])
+        >>> df
+                  a  b  c
+          tiger   1  8  2
+        leopard   1  2  5
+        cheetah   2  5  8
+           lion   2  6  9
+        >>> df.groupby("a").max()
+            b  c
+        a
+        1   8  5
+        2   6  9"""
+        ),
+    )
     def max(
         self,
         numeric_only: bool = False,
         min_count: int = -1,
-        engine: str | None = None,
+        engine: Literal["cython", "numba"] | None = None,
         engine_kwargs: dict[str, bool] | None = None,
     ):
         if maybe_use_numba(engine):
-            from pandas.core._numba.kernels import sliding_min_max
+            from pandas.core._numba.kernels import grouped_min_max
 
-            return self._numba_agg_general(sliding_min_max, engine_kwargs, True)
+            return self._numba_agg_general(
+                grouped_min_max,
+                executor.identity_dtype_mapping,
+                engine_kwargs,
+                min_periods=min_count,
+                is_max=True,
+            )
         else:
             return self._agg_general(
                 numeric_only=numeric_only,
@@ -2309,7 +3309,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
     @final
-    def first(self, numeric_only: bool = False, min_count: int = -1):
+    def first(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
         """
         Compute the first non-null entry of each column.
 
@@ -2361,7 +3361,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 """Helper function for first item that isn't NA."""
                 arr = x.array[notna(x.array)]
                 if not len(arr):
-                    return np.nan
+                    return x.array.dtype.na_value
                 return arr[0]
 
             if isinstance(obj, DataFrame):
@@ -2379,7 +3379,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def last(self, numeric_only: bool = False, min_count: int = -1):
+    def last(self, numeric_only: bool = False, min_count: int = -1) -> NDFrameT:
         """
         Compute the last non-null entry of each column.
 
@@ -2420,7 +3420,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 """Helper function for last item that isn't NA."""
                 arr = x.array[notna(x.array)]
                 if not len(arr):
-                    return np.nan
+                    return x.array.dtype.na_value
                 return arr[-1]
 
             if isinstance(obj, DataFrame):
@@ -2448,6 +3448,64 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         DataFrame
             Open, high, low and close values within each group.
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['SPX', 'CAC', 'SPX', 'CAC', 'SPX', 'CAC', 'SPX', 'CAC',]
+        >>> ser = pd.Series([3.4, 9.0, 7.2, 5.2, 8.8, 9.4, 0.1, 0.5], index=lst)
+        >>> ser
+        SPX     3.4
+        CAC     9.0
+        SPX     7.2
+        CAC     5.2
+        SPX     8.8
+        CAC     9.4
+        SPX     0.1
+        CAC     0.5
+        dtype: float64
+        >>> ser.groupby(level=0).ohlc()
+             open  high  low  close
+        CAC   9.0   9.4  0.5    0.5
+        SPX   3.4   8.8  0.1    0.1
+
+        For DataFrameGroupBy:
+
+        >>> data = {2022: [1.2, 2.3, 8.9, 4.5, 4.4, 3, 2 , 1],
+        ...         2023: [3.4, 9.0, 7.2, 5.2, 8.8, 9.4, 8.2, 1.0]}
+        >>> df = pd.DataFrame(data, index=['SPX', 'CAC', 'SPX', 'CAC',
+        ...                   'SPX', 'CAC', 'SPX', 'CAC'])
+        >>> df
+             2022  2023
+        SPX   1.2   3.4
+        CAC   2.3   9.0
+        SPX   8.9   7.2
+        CAC   4.5   5.2
+        SPX   4.4   8.8
+        CAC   3.0   9.4
+        SPX   2.0   8.2
+        CAC   1.0   1.0
+        >>> df.groupby(level=0).ohlc()
+            2022                 2023
+            open high  low close open high  low close
+        CAC  2.3  4.5  1.0   1.0  9.0  9.4  1.0   1.0
+        SPX  1.2  8.9  1.2   2.0  3.4  8.8  3.4   8.2
+
+        For Resampler:
+
+        >>> ser = pd.Series([1, 3, 2, 4, 3, 5],
+        ...                 index=pd.DatetimeIndex(['2023-01-01',
+        ...                                         '2023-01-10',
+        ...                                         '2023-01-15',
+        ...                                         '2023-02-01',
+        ...                                         '2023-02-10',
+        ...                                         '2023-02-15']))
+        >>> ser.resample('MS').ohlc()
+                    open  high  low  close
+        2023-01-01     1     3    1      2
+        2023-02-01     4     5    3      5
         """
         if self.obj.ndim == 1:
             obj = self._selected_obj
@@ -2508,7 +3566,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         return result
 
     @final
-    def resample(self, rule, *args, **kwargs):
+    def resample(self, rule, *args, include_groups: bool = True, **kwargs) -> Resampler:
         """
         Provide resampling when using a TimeGrouper.
 
@@ -2522,14 +3580,33 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         rule : str or DateOffset
             The offset string or object representing target grouper conversion.
-        *args, **kwargs
+        *args
+            Possible arguments are `how`, `fill_method`, `limit`, `kind` and
+            `on`, and other arguments of `TimeGrouper`.
+        include_groups : bool, default True
+            When True, will attempt to include the groupings in the operation in
+            the case that they are columns of the DataFrame. If this raises a
+            TypeError, the result will be computed with the groupings excluded.
+            When False, the groupings will be excluded when applying ``func``.
+
+            .. versionadded:: 2.2.0
+
+            .. deprecated:: 2.2.0
+
+               Setting include_groups to True is deprecated. Only the value
+               False will be allowed in a future version of pandas.
+
+        **kwargs
             Possible arguments are `how`, `fill_method`, `limit`, `kind` and
             `on`, and other arguments of `TimeGrouper`.
 
         Returns
         -------
-        Grouper
-            Return a new grouper with our resampler appended.
+        pandas.api.typing.DatetimeIndexResamplerGroupby,
+        pandas.api.typing.PeriodIndexResamplerGroupby, or
+        pandas.api.typing.TimedeltaIndexResamplerGroupby
+            Return a new groupby object, with type depending on the data
+            being resampled.
 
         See Also
         --------
@@ -2540,7 +3617,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Examples
         --------
-        >>> idx = pd.date_range('1/1/2000', periods=4, freq='T')
+        >>> idx = pd.date_range('1/1/2000', periods=4, freq='min')
         >>> df = pd.DataFrame(data=4 * [range(2)],
         ...                   index=idx,
         ...                   columns=['a', 'b'])
@@ -2555,59 +3632,71 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Downsample the DataFrame into 3 minute bins and sum the values of
         the timestamps falling into a bin.
 
-        >>> df.groupby('a').resample('3T').sum()
-                                 a  b
+        >>> df.groupby('a').resample('3min', include_groups=False).sum()
+                                 b
         a
-        0   2000-01-01 00:00:00  0  2
-            2000-01-01 00:03:00  0  1
-        5   2000-01-01 00:00:00  5  1
+        0   2000-01-01 00:00:00  2
+            2000-01-01 00:03:00  1
+        5   2000-01-01 00:00:00  1
 
         Upsample the series into 30 second bins.
 
-        >>> df.groupby('a').resample('30S').sum()
-                            a  b
+        >>> df.groupby('a').resample('30s', include_groups=False).sum()
+                            b
         a
-        0   2000-01-01 00:00:00  0  1
-            2000-01-01 00:00:30  0  0
-            2000-01-01 00:01:00  0  1
-            2000-01-01 00:01:30  0  0
-            2000-01-01 00:02:00  0  0
-            2000-01-01 00:02:30  0  0
-            2000-01-01 00:03:00  0  1
-        5   2000-01-01 00:02:00  5  1
+        0   2000-01-01 00:00:00  1
+            2000-01-01 00:00:30  0
+            2000-01-01 00:01:00  1
+            2000-01-01 00:01:30  0
+            2000-01-01 00:02:00  0
+            2000-01-01 00:02:30  0
+            2000-01-01 00:03:00  1
+        5   2000-01-01 00:02:00  1
 
         Resample by month. Values are assigned to the month of the period.
 
-        >>> df.groupby('a').resample('M').sum()
-                    a  b
+        >>> df.groupby('a').resample('ME', include_groups=False).sum()
+                    b
         a
-        0   2000-01-31  0  3
-        5   2000-01-31  5  1
+        0   2000-01-31  3
+        5   2000-01-31  1
 
         Downsample the series into 3 minute bins as above, but close the right
         side of the bin interval.
 
-        >>> df.groupby('a').resample('3T', closed='right').sum()
-                                 a  b
+        >>> (
+        ...     df.groupby('a')
+        ...     .resample('3min', closed='right', include_groups=False)
+        ...     .sum()
+        ... )
+                                 b
         a
-        0   1999-12-31 23:57:00  0  1
-            2000-01-01 00:00:00  0  2
-        5   2000-01-01 00:00:00  5  1
+        0   1999-12-31 23:57:00  1
+            2000-01-01 00:00:00  2
+        5   2000-01-01 00:00:00  1
 
         Downsample the series into 3 minute bins and close the right side of
         the bin interval, but label each bin using the right edge instead of
         the left.
 
-        >>> df.groupby('a').resample('3T', closed='right', label='right').sum()
-                                 a  b
+        >>> (
+        ...     df.groupby('a')
+        ...     .resample('3min', closed='right', label='right', include_groups=False)
+        ...     .sum()
+        ... )
+                                 b
         a
-        0   2000-01-01 00:00:00  0  1
-            2000-01-01 00:03:00  0  2
-        5   2000-01-01 00:03:00  5  1
+        0   2000-01-01 00:00:00  1
+            2000-01-01 00:03:00  2
+        5   2000-01-01 00:03:00  1
         """
         from pandas.core.resample import get_resampler_for_grouping
 
-        return get_resampler_for_grouping(self, rule, *args, **kwargs)
+        # mypy flags that include_groups could be specified via `*args` or `**kwargs`
+        # GH#54961 would resolve.
+        return get_resampler_for_grouping(  # type: ignore[misc]
+            self, rule, *args, include_groups=include_groups, **kwargs
+        )
 
     @final
     def rolling(self, *args, **kwargs) -> RollingGroupby:
@@ -2677,7 +3766,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             If ``'left'``, the last point in the window is excluded from calculations.
 
-            If ``'both'``, the no points in the window are excluded from calculations.
+            If ``'both'``, no points in the window are excluded from calculations.
 
             If ``'neither'``, the first and last points in the window are excluded
             from calculations.
@@ -2693,7 +3782,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Returns
         -------
-        RollingGroupby
+        pandas.api.typing.RollingGroupby
             Return a new grouper with our rolling appended.
 
         See Also
@@ -2756,6 +3845,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         """
         Return an expanding grouper, providing expanding
         functionality per group.
+
+        Returns
+        -------
+        pandas.api.typing.ExpandingGroupby
         """
         from pandas.core.window import ExpandingGroupby
 
@@ -2772,6 +3865,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def ewm(self, *args, **kwargs) -> ExponentialMovingWindowGroupby:
         """
         Return an ewm grouper, providing ewm functionality per group.
+
+        Returns
+        -------
+        pandas.api.typing.ExponentialMovingWindowGroupby
         """
         from pandas.core.window import ExponentialMovingWindowGroupby
 
@@ -2783,7 +3880,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _fill(self, direction: Literal["ffill", "bfill"], limit=None):
+    def _fill(self, direction: Literal["ffill", "bfill"], limit: int | None = None):
         """
         Shared function for `pad` and `backfill` to call Cython method.
 
@@ -2819,7 +3916,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             libgroupby.group_fillna_indexer,
             labels=ids,
             sorted_labels=sorted_labels,
-            direction=direction,
             limit=limit,
             dropna=self.dropna,
         )
@@ -2834,11 +3930,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 # We broadcast algorithms.take_nd analogous to
                 #  np.take_along_axis
-
-                # Note: we only get here with backfill/pad,
-                #  so if we have a dtype that cannot hold NAs,
-                #  then there will be no -1s in indexer, so we can use
-                #  the original dtype (no need to ensure_dtype_can_hold_na)
                 if isinstance(values, np.ndarray):
                     dtype = values.dtype
                     if self.grouper.has_dropped_na:
@@ -2846,6 +3937,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                         dtype = ensure_dtype_can_hold_na(values.dtype)
                     out = np.empty(values.shape, dtype=dtype)
                 else:
+                    # Note: we only get here with backfill/pad,
+                    #  so if we have a dtype that cannot hold NAs,
+                    #  then there will be no -1s in indexer, so we can use
+                    #  the original dtype (no need to ensure_dtype_can_hold_na)
                     out = type(values)._empty(values.shape, dtype=values.dtype)
 
                 for i, value_element in enumerate(values):
@@ -2870,7 +3965,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    def ffill(self, limit=None):
+    def ffill(self, limit: int | None = None):
         """
         Forward fill the values.
 
@@ -2890,12 +3985,80 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame.ffill: Object with missing values filled or None if inplace=True.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> key = [0, 0, 1, 1]
+        >>> ser = pd.Series([np.nan, 2, 3, np.nan], index=key)
+        >>> ser
+        0    NaN
+        0    2.0
+        1    3.0
+        1    NaN
+        dtype: float64
+        >>> ser.groupby(level=0).ffill()
+        0    NaN
+        0    2.0
+        1    3.0
+        1    3.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "key": [0, 0, 1, 1, 1],
+        ...         "A": [np.nan, 2, np.nan, 3, np.nan],
+        ...         "B": [2, 3, np.nan, np.nan, np.nan],
+        ...         "C": [np.nan, np.nan, 2, np.nan, np.nan],
+        ...     }
+        ... )
+        >>> df
+           key    A    B   C
+        0    0  NaN  2.0 NaN
+        1    0  2.0  3.0 NaN
+        2    1  NaN  NaN 2.0
+        3    1  3.0  NaN NaN
+        4    1  NaN  NaN NaN
+
+        Propagate non-null values forward or backward within each group along columns.
+
+        >>> df.groupby("key").ffill()
+             A    B   C
+        0  NaN  2.0 NaN
+        1  2.0  3.0 NaN
+        2  NaN  NaN 2.0
+        3  3.0  NaN 2.0
+        4  3.0  NaN 2.0
+
+        Propagate non-null values forward or backward within each group along rows.
+
+        >>> df.T.groupby(np.array([0, 0, 1, 1])).ffill().T
+           key    A    B    C
+        0  0.0  0.0  2.0  2.0
+        1  0.0  2.0  3.0  3.0
+        2  1.0  1.0  NaN  2.0
+        3  1.0  3.0  NaN  NaN
+        4  1.0  1.0  NaN  NaN
+
+        Only replace the first NaN element within a group along rows.
+
+        >>> df.groupby("key").ffill(limit=1)
+             A    B    C
+        0  NaN  2.0  NaN
+        1  2.0  3.0  NaN
+        2  NaN  NaN  2.0
+        3  3.0  NaN  2.0
+        4  3.0  NaN  NaN
         """
         return self._fill("ffill", limit=limit)
 
     @final
     @Substitution(name="groupby")
-    def bfill(self, limit=None):
+    def bfill(self, limit: int | None = None):
         """
         Backward fill the values.
 
@@ -2915,6 +4078,61 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         DataFrame.bfill:  Backward fill the missing values in the dataset.
         Series.fillna: Fill NaN values of a Series.
         DataFrame.fillna: Fill NaN values of a DataFrame.
+
+        Examples
+        --------
+
+        With Series:
+
+        >>> index = ['Falcon', 'Falcon', 'Parrot', 'Parrot', 'Parrot']
+        >>> s = pd.Series([None, 1, None, None, 3], index=index)
+        >>> s
+        Falcon    NaN
+        Falcon    1.0
+        Parrot    NaN
+        Parrot    NaN
+        Parrot    3.0
+        dtype: float64
+        >>> s.groupby(level=0).bfill()
+        Falcon    1.0
+        Falcon    1.0
+        Parrot    3.0
+        Parrot    3.0
+        Parrot    3.0
+        dtype: float64
+        >>> s.groupby(level=0).bfill(limit=1)
+        Falcon    1.0
+        Falcon    1.0
+        Parrot    NaN
+        Parrot    3.0
+        Parrot    3.0
+        dtype: float64
+
+        With DataFrame:
+
+        >>> df = pd.DataFrame({'A': [1, None, None, None, 4],
+        ...                    'B': [None, None, 5, None, 7]}, index=index)
+        >>> df
+                  A	    B
+        Falcon	1.0	  NaN
+        Falcon	NaN	  NaN
+        Parrot	NaN	  5.0
+        Parrot	NaN	  NaN
+        Parrot	4.0	  7.0
+        >>> df.groupby(level=0).bfill()
+                  A	    B
+        Falcon	1.0	  NaN
+        Falcon	NaN	  NaN
+        Parrot	4.0	  5.0
+        Parrot	4.0	  7.0
+        Parrot	4.0	  7.0
+        >>> df.groupby(level=0).bfill(limit=1)
+                  A	    B
+        Falcon	1.0	  NaN
+        Falcon	NaN	  NaN
+        Parrot	NaN	  5.0
+        Parrot	4.0	  7.0
+        Parrot	4.0	  7.0
         """
         return self._fill("bfill", limit=limit)
 
@@ -3043,10 +4261,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # old behaviour, but with all and any support for DataFrames.
         # modified in GH 7559 to have better perf
         n = cast(int, n)
-        dropped = self.obj.dropna(how=dropna, axis=self.axis)
+        dropped = self._selected_obj.dropna(how=dropna, axis=self.axis)
 
         # get a new grouper for our dropped obj
-        if self.keys is None and self.level is None:
+        grouper: np.ndarray | Index | ops.BaseGrouper
+        if len(dropped) == len(self._selected_obj):
+            # Nothing was dropped, can use the same grouper
+            grouper = self.grouper
+        else:
             # we don't have the grouper info available
             # (e.g. we have selected out
             # a column that is not in the current object)
@@ -3060,20 +4282,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 values = np.where(nulls, NA, grouper)  # type: ignore[call-overload]
                 grouper = Index(values, dtype="Int64")
 
+        if self.axis == 1:
+            grb = dropped.T.groupby(grouper, as_index=self.as_index, sort=self.sort)
         else:
-            # create a grouper with the original parameters, but on dropped
-            # object
-            grouper, _, _ = get_grouper(
-                dropped,
-                key=self.keys,
-                axis=self.axis,
-                level=self.level,
-                sort=self.sort,
-            )
-
-        grb = dropped.groupby(
-            grouper, as_index=self.as_index, sort=self.sort, axis=self.axis
-        )
+            grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
         return grb.nth(n)
 
     @final
@@ -3124,9 +4336,19 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         a    2.0
         b    3.0
         """
+        mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name="quantile")
+        obj = self._wrap_agged_manager(mgr)
+        if self.axis == 1:
+            splitter = self.grouper._get_splitter(obj.T, axis=self.axis)
+            sdata = splitter._sorted_data.T
+        else:
+            splitter = self.grouper._get_splitter(obj, axis=self.axis)
+            sdata = splitter._sorted_data
+
+        starts, ends = lib.generate_slices(splitter._slabels, splitter.ngroups)
 
         def pre_processor(vals: ArrayLike) -> tuple[np.ndarray, DtypeObj | None]:
-            if is_object_dtype(vals):
+            if is_object_dtype(vals.dtype):
                 raise TypeError(
                     "'quantile' cannot be performed against 'object' dtypes!"
                 )
@@ -3143,6 +4365,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 inference = np.dtype(np.int64)
             elif is_bool_dtype(vals.dtype) and isinstance(vals, ExtensionArray):
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
+            elif is_bool_dtype(vals.dtype):
+                # GH#51424 deprecate to match Series/DataFrame behavior
+                warnings.warn(
+                    f"Allowing bool dtype in {type(self).__name__}.quantile is "
+                    "deprecated and will raise in a future version, matching "
+                    "the Series/DataFrame behavior. Cast to uint8 dtype before "
+                    "calling quantile instead.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+                out = np.asarray(vals)
             elif needs_i8_conversion(vals.dtype):
                 inference = vals.dtype
                 # In this case we need to delay the casting until after the
@@ -3152,7 +4385,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # ExtensionDtype]]", expected "Tuple[ndarray[Any, Any],
                 # Optional[Union[dtype[Any], ExtensionDtype]]]")
                 return vals, inference  # type: ignore[return-value]
-            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals):
+            elif isinstance(vals, ExtensionArray) and is_float_dtype(vals.dtype):
                 inference = np.dtype(np.float64)
                 out = vals.to_numpy(dtype=float, na_value=np.nan)
             else:
@@ -3210,27 +4443,23 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return vals
 
-        orig_scalar = is_scalar(q)
-        if orig_scalar:
-            # error: Incompatible types in assignment (expression has type "List[
-            # Union[float, ExtensionArray, ndarray[Any, Any], Index, Series]]",
-            # variable has type "Union[float, Union[Union[ExtensionArray, ndarray[
-            # Any, Any]], Index, Series]]")
-            q = [q]  # type: ignore[assignment]
-
         qs = np.array(q, dtype=np.float64)
+        pass_qs: np.ndarray | None = qs
+        if is_scalar(q):
+            qs = np.array([q], dtype=np.float64)
+            pass_qs = None
+
         ids, _, ngroups = self.grouper.group_info
         nqs = len(qs)
 
         func = partial(
-            libgroupby.group_quantile, labels=ids, qs=qs, interpolation=interpolation
+            libgroupby.group_quantile,
+            labels=ids,
+            qs=qs,
+            interpolation=interpolation,
+            starts=starts,
+            ends=ends,
         )
-
-        # Put '-1' (NaN) labels as the last group so it does not interfere
-        # with the calculations. Note: length check avoids failure on empty
-        # labels. In that case, the value doesn't matter
-        na_label_for_sorting = ids.max() + 1 if len(ids) > 0 else 0
-        labels_for_lexsort = np.where(ids == -1, na_label_for_sorting, ids)
 
         def blk_func(values: ArrayLike) -> ArrayLike:
             orig_vals = values
@@ -3248,35 +4477,30 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             ncols = 1
             if vals.ndim == 2:
                 ncols = vals.shape[0]
-                shaped_labels = np.broadcast_to(
-                    labels_for_lexsort, (ncols, len(labels_for_lexsort))
-                )
-            else:
-                shaped_labels = labels_for_lexsort
 
             out = np.empty((ncols, ngroups, nqs), dtype=np.float64)
 
-            # Get an index of values sorted by values and then labels
-            order = (vals, shaped_labels)
-            sort_arr = np.lexsort(order).astype(np.intp, copy=False)
-
             if is_datetimelike:
-                # This casting needs to happen after the lexsort in order
-                #  to ensure that NaTs are placed at the end and not the front
-                vals = vals.view("i8").astype(np.float64)
+                vals = vals.view("i8")
 
             if vals.ndim == 1:
-                # Ea is always 1d
+                # EA is always 1d
                 func(
                     out[0],
                     values=vals,
                     mask=mask,
-                    sort_indexer=sort_arr,
                     result_mask=result_mask,
+                    is_datetimelike=is_datetimelike,
                 )
             else:
                 for i in range(ncols):
-                    func(out[i], values=vals[i], mask=mask[i], sort_indexer=sort_arr[i])
+                    func(
+                        out[i],
+                        values=vals[i],
+                        mask=mask[i],
+                        result_mask=None,
+                        is_datetimelike=is_datetimelike,
+                    )
 
             if vals.ndim == 1:
                 out = out.ravel("K")
@@ -3284,17 +4508,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     result_mask = result_mask.ravel("K")
             else:
                 out = out.reshape(ncols, ngroups * nqs)
+
             return post_processor(out, inference, result_mask, orig_vals)
 
-        data = self._get_data_to_aggregate(numeric_only=numeric_only, name="quantile")
-        res_mgr = data.grouped_reduce(blk_func)
+        res_mgr = sdata._mgr.grouped_reduce(blk_func)
 
         res = self._wrap_agged_manager(res_mgr)
-
-        if orig_scalar:
-            # Avoid expensive MultiIndex construction
-            return self._wrap_aggregated_output(res)
-        return self._wrap_aggregated_output(res, qs=qs)
+        return self._wrap_aggregated_output(res, qs=pass_qs)
 
     @final
     @Substitution(name="groupby")
@@ -3448,7 +4668,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ascending: bool = True,
         na_option: str = "keep",
         pct: bool = False,
-        axis: AxisInt = 0,
+        axis: AxisInt | lib.NoDefault = lib.no_default,
     ) -> NDFrameT:
         """
         Provide the rank of values within each group.
@@ -3471,6 +4691,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             Compute percentage rank of data within each group.
         axis : int, default 0
             The axis of the object over which to compute the rank.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
 
         Returns
         -------
@@ -3515,6 +4739,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
 
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "rank")
+        else:
+            axis = 0
+
         kwargs = {
             "ties_method": method,
             "ascending": ascending,
@@ -3539,16 +4769,59 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
-    def cumprod(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
+    @Substitution(see_also=_common_see_also)
+    def cumprod(
+        self, axis: Axis | lib.NoDefault = lib.no_default, *args, **kwargs
+    ) -> NDFrameT:
         """
         Cumulative product for each group.
 
         Returns
         -------
         Series or DataFrame
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([6, 2, 0], index=lst)
+        >>> ser
+        a    6
+        a    2
+        b    0
+        dtype: int64
+        >>> ser.groupby(level=0).cumprod()
+        a    6
+        a   12
+        b    0
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["cow", "horse", "bull"])
+        >>> df
+                a   b   c
+        cow     1   8   2
+        horse   1   2   5
+        bull    2   6   9
+        >>> df.groupby("a").groups
+        {1: ['cow', 'horse'], 2: ['bull']}
+        >>> df.groupby("a").cumprod()
+                b   c
+        cow     8   2
+        horse  16  10
+        bull    6   9
         """
         nv.validate_groupby_func("cumprod", args, kwargs, ["numeric_only", "skipna"])
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "cumprod")
+        else:
+            axis = 0
+
         if axis != 0:
             f = lambda x: x.cumprod(axis=axis, **kwargs)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
@@ -3557,16 +4830,59 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
-    def cumsum(self, axis: Axis = 0, *args, **kwargs) -> NDFrameT:
+    @Substitution(see_also=_common_see_also)
+    def cumsum(
+        self, axis: Axis | lib.NoDefault = lib.no_default, *args, **kwargs
+    ) -> NDFrameT:
         """
         Cumulative sum for each group.
 
         Returns
         -------
         Series or DataFrame
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b']
+        >>> ser = pd.Series([6, 2, 0], index=lst)
+        >>> ser
+        a    6
+        a    2
+        b    0
+        dtype: int64
+        >>> ser.groupby(level=0).cumsum()
+        a    6
+        a    8
+        b    0
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 2, 5], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["fox", "gorilla", "lion"])
+        >>> df
+                  a   b   c
+        fox       1   8   2
+        gorilla   1   2   5
+        lion      2   6   9
+        >>> df.groupby("a").groups
+        {1: ['fox', 'gorilla'], 2: ['lion']}
+        >>> df.groupby("a").cumsum()
+                  b   c
+        fox       8   2
+        gorilla  10   7
+        lion      6   9
         """
         nv.validate_groupby_func("cumsum", args, kwargs, ["numeric_only", "skipna"])
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "cumsum")
+        else:
+            axis = 0
+
         if axis != 0:
             f = lambda x: x.cumsum(axis=axis, **kwargs)
             return self._python_apply_general(f, self._selected_obj, is_transform=True)
@@ -3575,9 +4891,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def cummin(
-        self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
+        self,
+        axis: AxisInt | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
+        **kwargs,
     ) -> NDFrameT:
         """
         Cumulative min for each group.
@@ -3585,8 +4904,55 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([1, 6, 2, 3, 0, 4], index=lst)
+        >>> ser
+        a    1
+        a    6
+        a    2
+        b    3
+        b    0
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).cummin()
+        a    1
+        a    1
+        a    1
+        b    3
+        b    0
+        b    0
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 0, 2], [1, 1, 5], [6, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["snake", "rabbit", "turtle"])
+        >>> df
+                a   b   c
+        snake   1   0   2
+        rabbit  1   1   5
+        turtle  6   6   9
+        >>> df.groupby("a").groups
+        {1: ['snake', 'rabbit'], 6: ['turtle']}
+        >>> df.groupby("a").cummin()
+                b   c
+        snake   0   2
+        rabbit  0   2
+        turtle  6   9
         """
         skipna = kwargs.get("skipna", True)
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "cummin")
+        else:
+            axis = 0
+
         if axis != 0:
             f = lambda x: np.minimum.accumulate(x, axis)
             obj = self._selected_obj
@@ -3600,9 +4966,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def cummax(
-        self, axis: AxisInt = 0, numeric_only: bool = False, **kwargs
+        self,
+        axis: AxisInt | lib.NoDefault = lib.no_default,
+        numeric_only: bool = False,
+        **kwargs,
     ) -> NDFrameT:
         """
         Cumulative max for each group.
@@ -3610,8 +4979,55 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Returns
         -------
         Series or DataFrame
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([1, 6, 2, 3, 1, 4], index=lst)
+        >>> ser
+        a    1
+        a    6
+        a    2
+        b    3
+        b    1
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).cummax()
+        a    1
+        a    6
+        a    6
+        b    3
+        b    3
+        b    4
+        dtype: int64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 8, 2], [1, 1, 0], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["cow", "horse", "bull"])
+        >>> df
+                a   b   c
+        cow     1   8   2
+        horse   1   1   0
+        bull    2   6   9
+        >>> df.groupby("a").groups
+        {1: ['cow', 'horse'], 2: ['bull']}
+        >>> df.groupby("a").cummax()
+                b   c
+        cow     8   2
+        horse   8   2
+        bull    6   9
         """
         skipna = kwargs.get("skipna", True)
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "cummax")
+        else:
+            axis = 0
+
         if axis != 0:
             f = lambda x: np.maximum.accumulate(x, axis)
             obj = self._selected_obj
@@ -3624,145 +5040,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _get_cythonized_result(
-        self,
-        base_func: Callable,
-        cython_dtype: np.dtype,
-        numeric_only: bool = False,
-        needs_counts: bool = False,
-        pre_processing=None,
-        post_processing=None,
-        how: str = "any_all",
-        **kwargs,
-    ):
-        """
-        Get result for Cythonized functions.
-
-        Parameters
-        ----------
-        base_func : callable, Cythonized function to be called
-        cython_dtype : np.dtype
-            Type of the array that will be modified by the Cython call.
-        numeric_only : bool, default False
-            Whether only numeric datatypes should be computed
-        needs_counts : bool, default False
-            Whether the counts should be a part of the Cython call
-        pre_processing : function, default None
-            Function to be applied to `values` prior to passing to Cython.
-            Function should return a tuple where the first element is the
-            values to be passed to Cython and the second element is an optional
-            type which the values should be converted to after being returned
-            by the Cython operation. This function is also responsible for
-            raising a TypeError if the values have an invalid type. Raises
-            if `needs_values` is False.
-        post_processing : function, default None
-            Function to be applied to result of Cython function. Should accept
-            an array of values as the first argument and type inferences as its
-            second argument, i.e. the signature should be
-            (ndarray, Type). If `needs_nullable=True`, a third argument should be
-            `nullable`, to allow for processing specific to nullable values.
-        how : str, default any_all
-            Determines if any/all cython interface or std interface is used.
-        **kwargs : dict
-            Extra arguments to be passed back to Cython funcs
-
-        Returns
-        -------
-        `Series` or `DataFrame`  with filled values
-        """
-        if post_processing and not callable(post_processing):
-            raise ValueError("'post_processing' must be a callable!")
-        if pre_processing and not callable(pre_processing):
-            raise ValueError("'pre_processing' must be a callable!")
-
-        grouper = self.grouper
-
-        ids, _, ngroups = grouper.group_info
-
-        base_func = partial(base_func, labels=ids)
-
-        def blk_func(values: ArrayLike) -> ArrayLike:
-            values = values.T
-            ncols = 1 if values.ndim == 1 else values.shape[1]
-
-            result: ArrayLike
-            result = np.zeros(ngroups * ncols, dtype=cython_dtype)
-            result = result.reshape((ngroups, ncols))
-
-            func = partial(base_func, out=result)
-
-            inferences = None
-
-            if needs_counts:
-                counts = np.zeros(ngroups, dtype=np.int64)
-                func = partial(func, counts=counts)
-
-            is_datetimelike = values.dtype.kind in ["m", "M"]
-            vals = values
-            if is_datetimelike and how == "std":
-                vals = vals.view("i8")
-            if pre_processing:
-                vals, inferences = pre_processing(vals)
-
-            vals = vals.astype(cython_dtype, copy=False)
-            if vals.ndim == 1:
-                vals = vals.reshape((-1, 1))
-            func = partial(func, values=vals)
-
-            if how != "std" or isinstance(values, BaseMaskedArray):
-                mask = isna(values).view(np.uint8)
-                if mask.ndim == 1:
-                    mask = mask.reshape(-1, 1)
-                func = partial(func, mask=mask)
-
-            if how != "std":
-                is_nullable = isinstance(values, BaseMaskedArray)
-                func = partial(func, nullable=is_nullable)
-
-            elif isinstance(values, BaseMaskedArray):
-                result_mask = np.zeros(result.shape, dtype=np.bool_)
-                func = partial(func, result_mask=result_mask)
-
-            # Call func to modify result in place
-            if how == "std":
-                func(**kwargs, is_datetimelike=is_datetimelike)
-            else:
-                func(**kwargs)
-
-            if values.ndim == 1:
-                assert result.shape[1] == 1, result.shape
-                result = result[:, 0]
-
-            if post_processing:
-                pp_kwargs: dict[str, bool | np.ndarray] = {}
-                pp_kwargs["nullable"] = isinstance(values, BaseMaskedArray)
-                if how == "std" and pp_kwargs["nullable"]:
-                    pp_kwargs["result_mask"] = result_mask
-
-                result = post_processing(result, inferences, **pp_kwargs)
-
-            if how == "std" and is_datetimelike:
-                values = cast("DatetimeArray | TimedeltaArray", values)
-                unit = values.unit
-                with warnings.catch_warnings():
-                    # suppress "RuntimeWarning: invalid value encountered in cast"
-                    warnings.filterwarnings("ignore")
-                    result = result.astype(np.int64, copy=False)
-                result = result.view(f"m8[{unit}]")
-
-            return result.T
-
-        # Operate block-wise instead of column-by-column
-        mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
-
-        res_mgr = mgr.grouped_reduce(blk_func)
-
-        out = self._wrap_agged_manager(res_mgr)
-        return self._wrap_aggregated_output(out)
-
-    @final
     @Substitution(name="groupby")
-    def shift(self, periods: int = 1, freq=None, axis: Axis = 0, fill_value=None):
+    def shift(
+        self,
+        periods: int | Sequence[int] = 1,
+        freq=None,
+        axis: Axis | lib.NoDefault = lib.no_default,
+        fill_value=lib.no_default,
+        suffix: str | None = None,
+    ):
         """
         Shift each group by periods observations.
 
@@ -3770,14 +5056,27 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         Parameters
         ----------
-        periods : int, default 1
-            Number of periods to shift.
+        periods : int | Sequence[int], default 1
+            Number of periods to shift. If a list of values, shift each group by
+            each period.
         freq : str, optional
             Frequency string.
         axis : axis to shift, default 0
             Shift direction.
+
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         fill_value : optional
             The scalar value to use for newly introduced missing values.
+
+            .. versionchanged:: 2.1.0
+                Will raise a ``ValueError`` if ``freq`` is provided too.
+
+        suffix : str, optional
+            A string to add to each shifted column if there are multiple periods.
+            Ignored otherwise.
 
         Returns
         -------
@@ -3787,29 +5086,122 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         See Also
         --------
         Index.shift : Shift values of Index.
+
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).shift(1)
+        a    NaN
+        a    1.0
+        b    NaN
+        b    3.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tuna", "salmon", "catfish", "goldfish"])
+        >>> df
+                   a  b  c
+            tuna   1  2  3
+          salmon   1  5  6
+         catfish   2  5  8
+        goldfish   2  6  9
+        >>> df.groupby("a").shift(1)
+                      b    c
+            tuna    NaN  NaN
+          salmon    2.0  3.0
+         catfish    NaN  NaN
+        goldfish    5.0  8.0
         """
-        if freq is not None or axis != 0:
-            f = lambda x: x.shift(periods, freq, axis, fill_value)
-            return self._python_apply_general(f, self._selected_obj, is_transform=True)
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "shift")
+        else:
+            axis = 0
 
-        ids, _, ngroups = self.grouper.group_info
-        res_indexer = np.zeros(len(ids), dtype=np.int64)
+        if is_list_like(periods):
+            if axis == 1:
+                raise ValueError(
+                    "If `periods` contains multiple shifts, `axis` cannot be 1."
+                )
+            periods = cast(Sequence, periods)
+            if len(periods) == 0:
+                raise ValueError("If `periods` is an iterable, it cannot be empty.")
+            from pandas.core.reshape.concat import concat
 
-        libgroupby.group_shift_indexer(res_indexer, ids, ngroups, periods)
+            add_suffix = True
+        else:
+            if not is_integer(periods):
+                raise TypeError(
+                    f"Periods must be integer, but {periods} is {type(periods)}."
+                )
+            if suffix:
+                raise ValueError("Cannot specify `suffix` if `periods` is an int.")
+            periods = [cast(int, periods)]
+            add_suffix = False
 
-        obj = self._obj_with_exclusions
+        shifted_dataframes = []
+        for period in periods:
+            if not is_integer(period):
+                raise TypeError(
+                    f"Periods must be integer, but {period} is {type(period)}."
+                )
+            period = cast(int, period)
+            if freq is not None or axis != 0:
+                f = lambda x: x.shift(
+                    period, freq, axis, fill_value  # pylint: disable=cell-var-from-loop
+                )
+                shifted = self._python_apply_general(
+                    f, self._selected_obj, is_transform=True
+                )
+            else:
+                if fill_value is lib.no_default:
+                    fill_value = None
+                ids, _, ngroups = self.grouper.group_info
+                res_indexer = np.zeros(len(ids), dtype=np.int64)
 
-        res = obj._reindex_with_indexers(
-            {self.axis: (obj.axes[self.axis], res_indexer)},
-            fill_value=fill_value,
-            allow_dups=True,
+                libgroupby.group_shift_indexer(res_indexer, ids, ngroups, period)
+
+                obj = self._obj_with_exclusions
+
+                shifted = obj._reindex_with_indexers(
+                    {self.axis: (obj.axes[self.axis], res_indexer)},
+                    fill_value=fill_value,
+                    allow_dups=True,
+                )
+
+            if add_suffix:
+                if isinstance(shifted, Series):
+                    shifted = cast(NDFrameT, shifted.to_frame())
+                shifted = shifted.add_suffix(
+                    f"{suffix}_{period}" if suffix else f"_{period}"
+                )
+            shifted_dataframes.append(cast(Union[Series, DataFrame], shifted))
+
+        return (
+            shifted_dataframes[0]
+            if len(shifted_dataframes) == 1
+            else concat(shifted_dataframes, axis=1)
         )
-        return res
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
-    def diff(self, periods: int = 1, axis: AxisInt = 0) -> NDFrameT:
+    @Substitution(see_also=_common_see_also)
+    def diff(
+        self, periods: int = 1, axis: AxisInt | lib.NoDefault = lib.no_default
+    ) -> NDFrameT:
         """
         First discrete difference of element.
 
@@ -3823,16 +5215,73 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         axis : axis to shift, default 0
             Take difference over rows (0) or columns (1).
 
+            .. deprecated:: 2.1.0
+                For axis=1, operate on the underlying object instead. Otherwise
+                the axis keyword is not necessary.
+
         Returns
         -------
         Series or DataFrame
             First differences.
+        %(see_also)s
+        Examples
+        --------
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([7, 2, 8, 4, 3, 3], index=lst)
+        >>> ser
+        a     7
+        a     2
+        a     8
+        b     4
+        b     3
+        b     3
+        dtype: int64
+        >>> ser.groupby(level=0).diff()
+        a    NaN
+        a   -5.0
+        a    6.0
+        b    NaN
+        b   -1.0
+        b    0.0
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = {'a': [1, 3, 5, 7, 7, 8, 3], 'b': [1, 4, 8, 4, 4, 2, 1]}
+        >>> df = pd.DataFrame(data, index=['dog', 'dog', 'dog',
+        ...                   'mouse', 'mouse', 'mouse', 'mouse'])
+        >>> df
+                 a  b
+          dog    1  1
+          dog    3  4
+          dog    5  8
+        mouse    7  4
+        mouse    7  4
+        mouse    8  2
+        mouse    3  1
+        >>> df.groupby(level=0).diff()
+                 a    b
+          dog  NaN  NaN
+          dog  2.0  3.0
+          dog  2.0  4.0
+        mouse  NaN  NaN
+        mouse  0.0  0.0
+        mouse  1.0 -2.0
+        mouse -5.0 -1.0
         """
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "diff")
+        else:
+            axis = 0
+
         if axis != 0:
             return self.apply(lambda x: x.diff(periods=periods, axis=axis))
 
         obj = self._obj_with_exclusions
-        shifted = self.shift(periods=periods, axis=axis)
+        shifted = self.shift(periods=periods)
 
         # GH45562 - to retain existing behavior and match behavior of Series.diff(),
         # int8 and int16 are coerced to float32 rather than float64.
@@ -3849,14 +5298,14 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
     @final
     @Substitution(name="groupby")
-    @Appender(_common_see_also)
+    @Substitution(see_also=_common_see_also)
     def pct_change(
         self,
         periods: int = 1,
-        fill_method: FillnaOptions = "ffill",
-        limit=None,
+        fill_method: FillnaOptions | None | lib.NoDefault = lib.no_default,
+        limit: int | None | lib.NoDefault = lib.no_default,
         freq=None,
-        axis: Axis = 0,
+        axis: Axis | lib.NoDefault = lib.no_default,
     ):
         """
         Calculate pct_change of each value to previous entry in group.
@@ -3865,7 +5314,79 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         -------
         Series or DataFrame
             Percentage changes within each group.
+        %(see_also)s
+        Examples
+        --------
+
+        For SeriesGroupBy:
+
+        >>> lst = ['a', 'a', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 3, 4], index=lst)
+        >>> ser
+        a    1
+        a    2
+        b    3
+        b    4
+        dtype: int64
+        >>> ser.groupby(level=0).pct_change()
+        a         NaN
+        a    1.000000
+        b         NaN
+        b    0.333333
+        dtype: float64
+
+        For DataFrameGroupBy:
+
+        >>> data = [[1, 2, 3], [1, 5, 6], [2, 5, 8], [2, 6, 9]]
+        >>> df = pd.DataFrame(data, columns=["a", "b", "c"],
+        ...                   index=["tuna", "salmon", "catfish", "goldfish"])
+        >>> df
+                   a  b  c
+            tuna   1  2  3
+          salmon   1  5  6
+         catfish   2  5  8
+        goldfish   2  6  9
+        >>> df.groupby("a").pct_change()
+                    b  c
+            tuna    NaN    NaN
+          salmon    1.5  1.000
+         catfish    NaN    NaN
+        goldfish    0.2  0.125
         """
+        # GH#53491
+        if fill_method not in (lib.no_default, None) or limit is not lib.no_default:
+            warnings.warn(
+                "The 'fill_method' keyword being not None and the 'limit' keyword in "
+                f"{type(self).__name__}.pct_change are deprecated and will be removed "
+                "in a future version. Either fill in any non-leading NA values prior "
+                "to calling pct_change or specify 'fill_method=None' to not fill NA "
+                "values.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        if fill_method is lib.no_default:
+            if limit is lib.no_default and any(
+                grp.isna().values.any() for _, grp in self
+            ):
+                warnings.warn(
+                    "The default fill_method='ffill' in "
+                    f"{type(self).__name__}.pct_change is deprecated and will "
+                    "be removed in a future version. Either fill in any "
+                    "non-leading NA values prior to calling pct_change or "
+                    "specify 'fill_method=None' to not fill NA values.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            fill_method = "ffill"
+        if limit is lib.no_default:
+            limit = None
+
+        if axis is not lib.no_default:
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, "pct_change")
+        else:
+            axis = 0
+
         # TODO(GH#23918): Remove this conditional for SeriesGroupBy when
         #  GH#23918 is fixed
         if freq is not None or axis != 0:
@@ -3882,10 +5403,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             fill_method = "ffill"
             limit = 0
         filled = getattr(self, fill_method)(limit=limit)
-        fill_grp = filled.groupby(
-            self.grouper.codes, axis=self.axis, group_keys=self.group_keys
-        )
-        shifted = fill_grp.shift(periods=periods, freq=freq, axis=self.axis)
+        if self.axis == 0:
+            fill_grp = filled.groupby(self.grouper.codes, group_keys=self.group_keys)
+        else:
+            fill_grp = filled.T.groupby(self.grouper.codes, group_keys=self.group_keys)
+        shifted = fill_grp.shift(periods=periods, freq=freq)
+        if self.axis == 1:
+            shifted = shifted.T
         return (filled / shifted) - 1
 
     @final
@@ -3996,7 +5520,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def _reindex_output(
         self,
         output: OutputFrameOrSeries,
-        fill_value: Scalar = np.NaN,
+        fill_value: Scalar = np.nan,
         qs: npt.NDArray[np.float64] | None = None,
     ) -> OutputFrameOrSeries:
         """
@@ -4014,7 +5538,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         ----------
         output : Series or DataFrame
             Object resulting from grouping and applying an operation.
-        fill_value : scalar, default np.NaN
+        fill_value : scalar, default np.nan
             Value to use for unobserved categories if self.observed is False.
         qs : np.ndarray[float64] or None, default None
             quantile values, only relevant for quantile.
@@ -4071,9 +5595,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # reindex `output`, and then reset the in-axis grouper columns.
 
         # Select in-axis groupers
-        in_axis_grps = list(
+        in_axis_grps = [
             (i, ping.name) for (i, ping) in enumerate(groupings) if ping.in_axis
-        )
+        ]
         if len(in_axis_grps) > 0:
             g_nums, g_names = zip(*in_axis_grps)
             output = output.drop(labels=list(g_names), axis=1)
@@ -4103,8 +5627,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         Return a random sample of items from each group.
 
         You can use `random_state` for reproducibility.
-
-        .. versionadded:: 1.1.0
 
         Parameters
         ----------
@@ -4185,7 +5707,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         5  black  5
         2   blue  2
         0    red  0
-        """  # noqa:E501
+        """  # noqa: E501
         if self._selected_obj.empty:
             # GH48459 prevent ValueError when object is empty
             return self._selected_obj
@@ -4221,6 +5743,140 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         sampled_indices = np.concatenate(sampled_indices)
         return self._selected_obj.take(sampled_indices, axis=self.axis)
 
+    def _idxmax_idxmin(
+        self,
+        how: Literal["idxmax", "idxmin"],
+        ignore_unobserved: bool = False,
+        axis: Axis | None | lib.NoDefault = lib.no_default,
+        skipna: bool = True,
+        numeric_only: bool = False,
+    ) -> NDFrameT:
+        """Compute idxmax/idxmin.
+
+        Parameters
+        ----------
+        how : {'idxmin', 'idxmax'}
+            Whether to compute idxmin or idxmax.
+        axis : {{0 or 'index', 1 or 'columns'}}, default None
+            The axis to use. 0 or 'index' for row-wise, 1 or 'columns' for column-wise.
+            If axis is not provided, grouper's axis is used.
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+        skipna : bool, default True
+            Exclude NA/null values. If an entire row/column is NA, the result
+            will be NA.
+        ignore_unobserved : bool, default False
+            When True and an unobserved group is encountered, do not raise. This used
+            for transform where unobserved groups do not play an impact on the result.
+
+        Returns
+        -------
+        Series or DataFrame
+            idxmax or idxmin for the groupby operation.
+        """
+        if axis is not lib.no_default:
+            if axis is None:
+                axis = self.axis
+            axis = self.obj._get_axis_number(axis)
+            self._deprecate_axis(axis, how)
+        else:
+            axis = self.axis
+
+        if not self.observed and any(
+            ping._passed_categorical for ping in self.grouper.groupings
+        ):
+            expected_len = np.prod(
+                [len(ping.group_index) for ping in self.grouper.groupings]
+            )
+            if len(self.grouper.groupings) == 1:
+                result_len = len(self.grouper.groupings[0].grouping_vector.unique())
+            else:
+                # result_index only contains observed groups in this case
+                result_len = len(self.grouper.result_index)
+            assert result_len <= expected_len
+            has_unobserved = result_len < expected_len
+
+            raise_err: bool | np.bool_ = not ignore_unobserved and has_unobserved
+            # Only raise an error if there are columns to compute; otherwise we return
+            # an empty DataFrame with an index (possibly including unobserved) but no
+            # columns
+            data = self._obj_with_exclusions
+            if raise_err and isinstance(data, DataFrame):
+                if numeric_only:
+                    data = data._get_numeric_data()
+                raise_err = len(data.columns) > 0
+
+            if raise_err:
+                raise ValueError(
+                    f"Can't get {how} of an empty group due to unobserved categories. "
+                    "Specify observed=True in groupby instead."
+                )
+        elif not skipna:
+            if self._obj_with_exclusions.isna().any(axis=None):
+                warnings.warn(
+                    f"The behavior of {type(self).__name__}.{how} with all-NA "
+                    "values, or any-NA and skipna=False, is deprecated. In a future "
+                    "version this will raise ValueError",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+
+        if axis == 1:
+            try:
+
+                def func(df):
+                    method = getattr(df, how)
+                    return method(axis=axis, skipna=skipna, numeric_only=numeric_only)
+
+                func.__name__ = how
+                result = self._python_apply_general(
+                    func, self._obj_with_exclusions, not_indexed_same=True
+                )
+            except ValueError as err:
+                name = "argmax" if how == "idxmax" else "argmin"
+                if f"attempt to get {name} of an empty sequence" in str(err):
+                    raise ValueError(
+                        f"Can't get {how} of an empty group due to unobserved "
+                        "categories. Specify observed=True in groupby instead."
+                    ) from None
+                raise
+            return result
+
+        result = self._agg_general(
+            numeric_only=numeric_only,
+            min_count=1,
+            alias=how,
+            skipna=skipna,
+        )
+        return result
+
+    def _wrap_idxmax_idxmin(self, res: NDFrameT) -> NDFrameT:
+        index = self.obj._get_axis(self.axis)
+        if res.size == 0:
+            result = res.astype(index.dtype)
+        else:
+            if isinstance(index, MultiIndex):
+                index = index.to_flat_index()
+            values = res._values
+            assert isinstance(values, np.ndarray)
+            na_value = na_value_for_dtype(index.dtype, compat=False)
+            if isinstance(res, Series):
+                # mypy: expression has type "Series", variable has type "NDFrameT"
+                result = res._constructor(  # type: ignore[assignment]
+                    index.array.take(values, allow_fill=True, fill_value=na_value),
+                    index=res.index,
+                    name=res.name,
+                )
+            else:
+                data = {}
+                for k, column_values in enumerate(values.T):
+                    data[k] = index.array.take(
+                        column_values, allow_fill=True, fill_value=na_value
+                    )
+                result = self.obj._constructor(data, index=res.index)
+                result.columns = res.columns
+        return result
+
 
 @doc(GroupBy)
 def get_groupby(
@@ -4228,7 +5884,7 @@ def get_groupby(
     by: _KeysArgType | None = None,
     axis: AxisInt = 0,
     grouper: ops.BaseGrouper | None = None,
-    group_keys: bool | lib.NoDefault = True,
+    group_keys: bool = True,
 ) -> GroupBy:
     klass: type[GroupBy]
     if isinstance(obj, Series):
@@ -4267,13 +5923,29 @@ def _insert_quantile_level(idx: Index, qs: npt.NDArray[np.float64]) -> MultiInde
     MultiIndex
     """
     nqs = len(qs)
+    lev_codes, lev = Index(qs).factorize()
+    lev_codes = coerce_indexer_dtype(lev_codes, lev)
 
     if idx._is_multi:
         idx = cast(MultiIndex, idx)
-        lev_codes, lev = Index(qs).factorize()
         levels = list(idx.levels) + [lev]
         codes = [np.repeat(x, nqs) for x in idx.codes] + [np.tile(lev_codes, len(idx))]
         mi = MultiIndex(levels=levels, codes=codes, names=idx.names + [None])
     else:
-        mi = MultiIndex.from_product([idx, qs])
+        nidx = len(idx)
+        idx_codes = coerce_indexer_dtype(np.arange(nidx), idx)
+        levels = [idx, lev]
+        codes = [np.repeat(idx_codes, nqs), np.tile(lev_codes, nidx)]
+        mi = MultiIndex(levels=levels, codes=codes, names=[idx.name, None])
+
     return mi
+
+
+# GH#7155
+_apply_groupings_depr = (
+    "{}.{} operated on the grouping columns. This behavior is deprecated, "
+    "and in a future version of pandas the grouping columns will be excluded "
+    "from the operation. Either pass `include_groups=False` to exclude the "
+    "groupings or explicitly select the grouping columns after groupby to silence "
+    "this warning."
+)

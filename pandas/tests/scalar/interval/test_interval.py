@@ -80,8 +80,8 @@ class TestInterval:
             (-np.inf, np.inf, np.inf),
             (Timedelta("0 days"), Timedelta("5 days"), Timedelta("5 days")),
             (Timedelta("10 days"), Timedelta("10 days"), Timedelta("0 days")),
-            (Timedelta("1H10min"), Timedelta("5H5min"), Timedelta("3H55min")),
-            (Timedelta("5S"), Timedelta("1H"), Timedelta("59min55S")),
+            (Timedelta("1h10min"), Timedelta("5h5min"), Timedelta("3h55min")),
+            (Timedelta("5s"), Timedelta("1h"), Timedelta("59min55s")),
         ],
     )
     def test_length(self, left, right, expected):

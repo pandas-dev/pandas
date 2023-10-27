@@ -60,7 +60,7 @@ Now users can access your methods using the ``geo`` namespace:
 
 This can be a convenient way to extend pandas objects without subclassing them.
 If you write a custom accessor, make a pull request adding it to our
-:ref:`ecosystem` page.
+`ecosystem <https://pandas.pydata.org/community/ecosystem.html>`_ page.
 
 We highly recommend validating the data in your accessor's ``__init__``.
 In our ``GeoAccessor``, we validate that the data contains the expected columns,
@@ -91,7 +91,7 @@ objects). Many methods like :func:`pandas.isna` will dispatch to the extension
 type's implementation.
 
 If you're building a library that implements the interface, please publicize it
-on :ref:`ecosystem.extensions`.
+on `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html>`_.
 
 The interface consists of two classes.
 
@@ -450,7 +450,7 @@ Below is an example to define two original properties, "internal_cache" as a tem
 Plotting backends
 -----------------
 
-Starting in 0.25 pandas can be extended with third-party plotting backends. The
+pandas can be extended with third-party plotting backends. The
 main idea is letting users select a plotting backend different than the provided
 one based on Matplotlib. For example:
 
@@ -488,3 +488,49 @@ registers the default "matplotlib" backend as follows.
 
 More information on how to implement a third-party plotting backend can be found at
 https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1.
+
+.. _extending.pandas_priority:
+
+Arithmetic with 3rd party types
+-------------------------------
+
+In order to control how arithmetic works between a custom type and a pandas type,
+implement ``__pandas_priority__``.  Similar to numpy's ``__array_priority__``
+semantics, arithmetic methods on :class:`DataFrame`, :class:`Series`, and :class:`Index`
+objects will delegate to ``other``, if it has an attribute ``__pandas_priority__`` with a higher value.
+
+By default, pandas objects try to operate with other objects, even if they are not types known to pandas:
+
+.. code-block:: python
+
+    >>> pd.Series([1, 2]) + [10, 20]
+    0    11
+    1    22
+    dtype: int64
+
+In the example above, if ``[10, 20]`` was a custom type that can be understood as a list, pandas objects will still operate with it in the same way.
+
+In some cases, it is useful to delegate to the other type the operation. For example, consider I implement a
+custom list object, and I want the result of adding my custom list with a pandas :class:`Series` to be an instance of my list
+and not a :class:`Series` as seen in the previous example. This is now possible by defining the ``__pandas_priority__`` attribute
+of my custom list, and setting it to a higher value, than the priority of the pandas objects I want to operate with.
+
+The ``__pandas_priority__`` of :class:`DataFrame`, :class:`Series`, and :class:`Index` are ``4000``, ``3000``, and ``2000`` respectively.  The base ``ExtensionArray.__pandas_priority__`` is ``1000``.
+
+.. code-block:: python
+
+    class CustomList(list):
+        __pandas_priority__ = 5000
+
+        def __radd__(self, other):
+            # return `self` and not the addition for simplicity
+            return self
+
+    custom = CustomList()
+    series = pd.Series([1, 2, 3])
+
+    # Series refuses to add custom, since it's an unknown type with higher priority
+    assert series.__add__(custom) is NotImplemented
+
+    # This will cause the custom class `__radd__` being used instead
+    assert series + custom is custom

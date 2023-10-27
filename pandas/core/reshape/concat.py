@@ -7,31 +7,28 @@ from collections import abc
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
-    Iterable,
     Literal,
-    Mapping,
     cast,
     overload,
 )
+import warnings
 
 import numpy as np
 
 from pandas._config import using_copy_on_write
 
-from pandas._typing import (
-    Axis,
-    AxisInt,
-    HashableT,
-)
 from pandas.util._decorators import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.common import (
+    is_bool,
+    is_iterator,
+)
 from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.inference import is_bool
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.arrays.categorical import (
@@ -51,11 +48,22 @@ from pandas.core.indexes.api import (
 from pandas.core.internals import concatenate_managers
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Mapping,
+    )
+
+    from pandas._typing import (
+        Axis,
+        AxisInt,
+        HashableT,
+    )
+
     from pandas import (
         DataFrame,
         Series,
     )
-    from pandas.core.generic import NDFrame
 
 # ---------------------------------------------------------------------
 # Concatenate DataFrame objects
@@ -68,9 +76,9 @@ def concat(
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
-    keys=...,
+    keys: Iterable[Hashable] | None = ...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -85,9 +93,9 @@ def concat(
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
-    keys=...,
+    keys: Iterable[Hashable] | None = ...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -97,14 +105,14 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
     *,
     axis: Literal[0, "index"] = ...,
     join: str = ...,
     ignore_index: bool = ...,
-    keys=...,
+    keys: Iterable[Hashable] | None = ...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -114,14 +122,14 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
     *,
     axis: Literal[1, "columns"],
     join: str = ...,
     ignore_index: bool = ...,
-    keys=...,
+    keys: Iterable[Hashable] | None = ...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -131,14 +139,14 @@ def concat(
 
 @overload
 def concat(
-    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
     *,
     axis: Axis = ...,
     join: str = ...,
     ignore_index: bool = ...,
-    keys=...,
+    keys: Iterable[Hashable] | None = ...,
     levels=...,
-    names=...,
+    names: list[HashableT] | None = ...,
     verify_integrity: bool = ...,
     sort: bool = ...,
     copy: bool | None = ...,
@@ -147,14 +155,14 @@ def concat(
 
 
 def concat(
-    objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+    objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
     *,
     axis: Axis = 0,
     join: str = "outer",
     ignore_index: bool = False,
-    keys=None,
+    keys: Iterable[Hashable] | None = None,
     levels=None,
-    names=None,
+    names: list[HashableT] | None = None,
     verify_integrity: bool = False,
     sort: bool = False,
     copy: bool | None = None,
@@ -366,6 +374,8 @@ def concat(
             copy = False
         else:
             copy = True
+    elif copy and using_copy_on_write():
+        copy = False
 
     op = _Concatenator(
         objs,
@@ -388,14 +398,16 @@ class _Concatenator:
     Orchestrates a concatenation operation for BlockManagers
     """
 
+    sort: bool
+
     def __init__(
         self,
-        objs: Iterable[NDFrame] | Mapping[HashableT, NDFrame],
+        objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
         axis: Axis = 0,
         join: str = "outer",
-        keys=None,
+        keys: Iterable[Hashable] | None = None,
         levels=None,
-        names=None,
+        names: list[HashableT] | None = None,
         ignore_index: bool = False,
         verify_integrity: bool = False,
         copy: bool = True,
@@ -416,39 +428,54 @@ class _Concatenator:
                 "Only can inner (intersect) or outer (union) join the other axis"
             )
 
-        if isinstance(objs, abc.Mapping):
-            if keys is None:
-                keys = list(objs.keys())
-            objs = [objs[k] for k in keys]
+        if not is_bool(sort):
+            raise ValueError(
+                f"The 'sort' keyword only accepts boolean values; {sort} was passed."
+            )
+        # Incompatible types in assignment (expression has type "Union[bool, bool_]",
+        # variable has type "bool")
+        self.sort = sort  # type: ignore[assignment]
+
+        self.ignore_index = ignore_index
+        self.verify_integrity = verify_integrity
+        self.copy = copy
+
+        objs, keys = self._clean_keys_and_objs(objs, keys)
+
+        # figure out what our result ndim is going to be
+        ndims = self._get_ndims(objs)
+        sample, objs = self._get_sample_object(objs, ndims, keys, names, levels)
+
+        # Standardize axis parameter to int
+        if sample.ndim == 1:
+            from pandas import DataFrame
+
+            axis = DataFrame._get_axis_number(axis)
+            self._is_frame = False
+            self._is_series = True
         else:
-            objs = list(objs)
+            axis = sample._get_axis_number(axis)
+            self._is_frame = True
+            self._is_series = False
 
-        if len(objs) == 0:
-            raise ValueError("No objects to concatenate")
+            # Need to flip BlockManager axis in the DataFrame special case
+            axis = sample._get_block_manager_axis(axis)
 
-        if keys is None:
-            objs = list(com.not_none(*objs))
-        else:
-            # #1649
-            clean_keys = []
-            clean_objs = []
-            for k, v in zip(keys, objs):
-                if v is None:
-                    continue
-                clean_keys.append(k)
-                clean_objs.append(v)
-            objs = clean_objs
+        # if we have mixed ndims, then convert to highest ndim
+        # creating column numbers as needed
+        if len(ndims) > 1:
+            objs, sample = self._sanitize_mixed_ndim(objs, sample, ignore_index, axis)
 
-            if isinstance(keys, MultiIndex):
-                # TODO: retain levels?
-                keys = type(keys).from_tuples(clean_keys, names=keys.names)
-            else:
-                name = getattr(keys, "name", None)
-                keys = Index(clean_keys, name=name)
+        self.objs = objs
 
-        if len(objs) == 0:
-            raise ValueError("All objects passed were None")
+        # note: this is the BlockManager axis (since DataFrame is transposed)
+        self.bm_axis = axis
+        self.axis = 1 - self.bm_axis if self._is_frame else 0
+        self.keys = keys
+        self.names = names or getattr(keys, "names", None)
+        self.levels = levels
 
+    def _get_ndims(self, objs: list[Series | DataFrame]) -> set[int]:
         # figure out what our result ndim is going to be
         ndims = set()
         for obj in objs:
@@ -460,11 +487,71 @@ class _Concatenator:
                 raise TypeError(msg)
 
             ndims.add(obj.ndim)
+        return ndims
 
+    def _clean_keys_and_objs(
+        self,
+        objs: Iterable[Series | DataFrame] | Mapping[HashableT, Series | DataFrame],
+        keys,
+    ) -> tuple[list[Series | DataFrame], Index | None]:
+        if isinstance(objs, abc.Mapping):
+            if keys is None:
+                keys = list(objs.keys())
+            objs_list = [objs[k] for k in keys]
+        else:
+            objs_list = list(objs)
+
+        if len(objs_list) == 0:
+            raise ValueError("No objects to concatenate")
+
+        if keys is None:
+            objs_list = list(com.not_none(*objs_list))
+        else:
+            # GH#1649
+            clean_keys = []
+            clean_objs = []
+            if is_iterator(keys):
+                keys = list(keys)
+            if len(keys) != len(objs_list):
+                # GH#43485
+                warnings.warn(
+                    "The behavior of pd.concat with len(keys) != len(objs) is "
+                    "deprecated. In a future version this will raise instead of "
+                    "truncating to the smaller of the two sequences",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
+            for k, v in zip(keys, objs_list):
+                if v is None:
+                    continue
+                clean_keys.append(k)
+                clean_objs.append(v)
+            objs_list = clean_objs
+
+            if isinstance(keys, MultiIndex):
+                # TODO: retain levels?
+                keys = type(keys).from_tuples(clean_keys, names=keys.names)
+            else:
+                name = getattr(keys, "name", None)
+                keys = Index(clean_keys, name=name, dtype=getattr(keys, "dtype", None))
+
+        if len(objs_list) == 0:
+            raise ValueError("All objects passed were None")
+
+        return objs_list, keys
+
+    def _get_sample_object(
+        self,
+        objs: list[Series | DataFrame],
+        ndims: set[int],
+        keys,
+        names,
+        levels,
+    ) -> tuple[Series | DataFrame, list[Series | DataFrame]]:
         # get the sample
         # want the highest ndim that we have, and must be non-empty
         # unless all objs are empty
-        sample: NDFrame | None = None
+        sample: Series | DataFrame | None = None
         if len(ndims) > 1:
             max_ndim = max(ndims)
             for obj in objs:
@@ -475,9 +562,7 @@ class _Concatenator:
         else:
             # filter out the empties if we have not multi-index possibilities
             # note to keep empty Series as it affect to result columns / name
-            non_empties = [
-                obj for obj in objs if sum(obj.shape) > 0 or isinstance(obj, ABCSeries)
-            ]
+            non_empties = [obj for obj in objs if sum(obj.shape) > 0 or obj.ndim == 1]
 
             if len(non_empties) and (
                 keys is None and names is None and levels is None and not self.intersect
@@ -487,78 +572,48 @@ class _Concatenator:
 
         if sample is None:
             sample = objs[0]
-        self.objs = objs
+        return sample, objs
 
-        # Standardize axis parameter to int
-        if isinstance(sample, ABCSeries):
-            from pandas import DataFrame
-
-            axis = DataFrame._get_axis_number(axis)
-        else:
-            axis = sample._get_axis_number(axis)
-
-        # Need to flip BlockManager axis in the DataFrame special case
-        self._is_frame = isinstance(sample, ABCDataFrame)
-        if self._is_frame:
-            axis = sample._get_block_manager_axis(axis)
-
-        self._is_series = isinstance(sample, ABCSeries)
-        if not 0 <= axis <= sample.ndim:
-            raise AssertionError(
-                f"axis must be between 0 and {sample.ndim}, input was {axis}"
-            )
-
+    def _sanitize_mixed_ndim(
+        self,
+        objs: list[Series | DataFrame],
+        sample: Series | DataFrame,
+        ignore_index: bool,
+        axis: AxisInt,
+    ) -> tuple[list[Series | DataFrame], Series | DataFrame]:
         # if we have mixed ndims, then convert to highest ndim
         # creating column numbers as needed
-        if len(ndims) > 1:
-            current_column = 0
-            max_ndim = sample.ndim
-            self.objs, objs = [], self.objs
-            for obj in objs:
-                ndim = obj.ndim
-                if ndim == max_ndim:
-                    pass
 
-                elif ndim != max_ndim - 1:
-                    raise ValueError(
-                        "cannot concatenate unaligned mixed "
-                        "dimensional NDFrame objects"
-                    )
+        new_objs = []
 
-                else:
-                    name = getattr(obj, "name", None)
-                    if ignore_index or name is None:
-                        name = current_column
-                        current_column += 1
+        current_column = 0
+        max_ndim = sample.ndim
+        for obj in objs:
+            ndim = obj.ndim
+            if ndim == max_ndim:
+                pass
 
-                    # doing a row-wise concatenation so need everything
-                    # to line up
-                    if self._is_frame and axis == 1:
-                        name = 0
-                    # mypy needs to know sample is not an NDFrame
-                    sample = cast("DataFrame | Series", sample)
-                    obj = sample._constructor({name: obj}, copy=False)
+            elif ndim != max_ndim - 1:
+                raise ValueError(
+                    "cannot concatenate unaligned mixed dimensional NDFrame objects"
+                )
 
-                self.objs.append(obj)
+            else:
+                name = getattr(obj, "name", None)
+                if ignore_index or name is None:
+                    name = current_column
+                    current_column += 1
 
-        # note: this is the BlockManager axis (since DataFrame is transposed)
-        self.bm_axis = axis
-        self.axis = 1 - self.bm_axis if self._is_frame else 0
-        self.keys = keys
-        self.names = names or getattr(keys, "names", None)
-        self.levels = levels
+                # doing a row-wise concatenation so need everything
+                # to line up
+                if self._is_frame and axis == 1:
+                    name = 0
 
-        if not is_bool(sort):
-            raise ValueError(
-                f"The 'sort' keyword only accepts boolean values; {sort} was passed."
-            )
-        self.sort = sort
+                obj = sample._constructor({name: obj}, copy=False)
 
-        self.ignore_index = ignore_index
-        self.verify_integrity = verify_integrity
-        self.copy = copy
+            new_objs.append(obj)
 
-        self.new_axes = self._get_new_axes()
+        return new_objs, sample
 
     def get_result(self):
         cons: Callable[..., DataFrame | Series]
@@ -576,7 +631,18 @@ class _Concatenator:
                 arrs = [ser._values for ser in self.objs]
 
                 res = concat_compat(arrs, axis=0)
-                result = cons(res, index=self.new_axes[0], name=name, dtype=res.dtype)
+
+                new_index: Index
+                if self.ignore_index:
+                    # We can avoid surprisingly-expensive _get_concat_axis
+                    new_index = default_index(len(res))
+                else:
+                    new_index = self.new_axes[0]
+
+                mgr = type(sample._mgr).from_array(res, index=new_index)
+
+                result = sample._constructor_from_mgr(mgr, axes=mgr.axes)
+                result._name = name
                 return result.__finalize__(self, method="concat")
 
             # combine as columns in a frame
@@ -617,8 +683,8 @@ class _Concatenator:
             if not self.copy and not using_copy_on_write():
                 new_data._consolidate_inplace()
 
-            cons = sample._constructor
-            return cons(new_data).__finalize__(self, method="concat")
+            out = sample._constructor_from_mgr(new_data, axes=new_data.axes)
+            return out.__finalize__(self, method="concat")
 
     def _get_result_dim(self) -> int:
         if self._is_series and self.bm_axis == 1:
@@ -626,7 +692,8 @@ class _Concatenator:
         else:
             return self.objs[0].ndim
 
-    def _get_new_axes(self) -> list[Index]:
+    @cache_readonly
+    def new_axes(self) -> list[Index]:
         ndim = self._get_result_dim()
         return [
             self._get_concat_axis if i == self.bm_axis else self._get_comb_axis(i)
@@ -659,7 +726,7 @@ class _Concatenator:
                 num = 0
                 has_names = False
                 for i, x in enumerate(self.objs):
-                    if not isinstance(x, ABCSeries):
+                    if x.ndim != 1:
                         raise TypeError(
                             f"Cannot concatenate type 'Series' with "
                             f"object of type '{type(x).__name__}'"
@@ -741,15 +808,19 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
 
         for hlevel, level in zip(zipped, levels):
             to_concat = []
-            for key, index in zip(hlevel, indexes):
-                # Find matching codes, include matching nan values as equal.
-                mask = (isna(level) & isna(key)) | (level == key)
-                if not mask.any():
-                    raise ValueError(f"Key {key} not in level {level}")
-                i = np.nonzero(mask)[0][0]
+            if isinstance(hlevel, Index) and hlevel.equals(level):
+                lens = [len(idx) for idx in indexes]
+                codes_list.append(np.repeat(np.arange(len(hlevel)), lens))
+            else:
+                for key, index in zip(hlevel, indexes):
+                    # Find matching codes, include matching nan values as equal.
+                    mask = (isna(level) & isna(key)) | (level == key)
+                    if not mask.any():
+                        raise ValueError(f"Key {key} not in level {level}")
+                    i = np.nonzero(mask)[0][0]
 
-                to_concat.append(np.repeat(i, len(index)))
-            codes_list.append(np.concatenate(to_concat))
+                    to_concat.append(np.repeat(i, len(index)))
+                codes_list.append(np.concatenate(to_concat))
 
         concat_index = _concat_indexes(indexes)
 
