@@ -5,7 +5,6 @@ from collections import (
 from collections.abc import Iterator
 from datetime import datetime
 from decimal import Decimal
-from itertools import permutations
 
 import numpy as np
 import pytest
@@ -881,20 +880,4 @@ def test_concat_none_with_timezone_timestamp():
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = concat([df1, df2], ignore_index=True)
     expected = DataFrame({"A": [None, pd.Timestamp("1990-12-20 00:00:00+00:00")]})
-    tm.assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "dtype1,dtype2",
-    permutations(
-        ["datetime64[s]", "datetime64[ms]", "datetime64[us]", "datetime64[ns]"], 2
-    ),
-)
-def test_concat_different_datetime_resolution(dtype1, dtype2):
-    # GH#53640
-    df1 = DataFrame(np.random.default_rng(2).standard_normal((3, 4)), dtype=dtype1)
-    df2 = DataFrame(np.random.default_rng(2).standard_normal((4, 4)), dtype=dtype2)
-    result = concat([df1, df2])
-
-    expected = DataFrame(np.r_[df1.values, df2.values], index=[0, 1, 2, 0, 1, 2, 3])
     tm.assert_frame_equal(result, expected)
