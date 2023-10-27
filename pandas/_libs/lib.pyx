@@ -102,7 +102,7 @@ cdef extern from "pandas/parser/pd_parser.h":
 PandasParser_IMPORT
 
 from pandas._libs cimport util
-from pandas._libs.dtypes cimport bool_numeric_object_t
+from pandas._libs.dtypes cimport numeric_object_t
 from pandas._libs.util cimport (
     INT64_MAX,
     INT64_MIN,
@@ -2883,7 +2883,7 @@ def _map_infer_mask(
         ndarray[object] arr,
         object f,
         const uint8_t[:] mask,
-        bool_numeric_object_t[:] dummy,
+        numeric_object_t[:] dummy,
         bint convert=True,
         object na_value=no_default,
         cnp.dtype dtype=np.dtype(object)
@@ -2911,7 +2911,7 @@ def _map_infer_mask(
     """
     cdef:
         Py_ssize_t i, n
-        ndarray[bool_numeric_object_t] result
+        ndarray[numeric_object_t] result
         object val
 
     n = len(arr)

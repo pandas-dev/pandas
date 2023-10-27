@@ -9,7 +9,6 @@ from numpy cimport (
     int16_t,
     int32_t,
     int64_t,
-    npy_bool,
     uint8_t,
     uint16_t,
     uint32_t,
@@ -33,11 +32,5 @@ ctypedef fused numeric_t:
 
 # All numeric types + object, doesn't include complex
 ctypedef fused numeric_object_t:
-    numeric_t
-    object
-
-# bool + all numeric types + object, doesn't include complex
-ctypedef fused bool_numeric_object_t:
-    npy_bool
     numeric_t
     object
