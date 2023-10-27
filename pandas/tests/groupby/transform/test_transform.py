@@ -1649,7 +1649,7 @@ def test_idxmin_idxmax_transform_args(how, skipna, numeric_only):
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = gb.transform(how, 0, skipna, numeric_only)
     warn = None if skipna else FutureWarning
-    msg = f"The behavior of DataFrame.{how} with .* any-NA and skipna=False"
+    msg = f"The behavior of DataFrameGroupBy.{how} with .* any-NA and skipna=False"
     with tm.assert_produces_warning(warn, match=msg):
         expected = gb.transform(how, skipna=skipna, numeric_only=numeric_only)
     tm.assert_frame_equal(result, expected)
