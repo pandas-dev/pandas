@@ -508,7 +508,7 @@ class TestFrameFlexArithmetic:
             and opname == "pow"
             and "python" in request.node.callspec.id
         ):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="https://github.com/pydata/numexpr/issues/454")
             )
 
@@ -2083,6 +2083,9 @@ def test_frame_sub_nullable_int(any_int_ea_dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
+)
 def test_frame_op_subclass_nonclass_constructor():
     # GH#43201 subclass._constructor is a function, not the subclass itself
 

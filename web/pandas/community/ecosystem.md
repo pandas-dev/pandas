@@ -345,25 +345,27 @@ which pandas excels.
 
 ## IO
 
-### [NTV-pandas](https://github.com/loco-philippe/ntv-pandas)*: A semantic, compact and reversible JSON-pandas converter*
+### [NTV-pandas](https://github.com/loco-philippe/ntv-pandas)
 
 NTV-pandas provides a JSON converter with more data types than the ones supported by pandas directly.
 
 It supports the following data types:
+
 - pandas data types
 - data types defined in the [NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
 - data types defined in [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats)
 
 The interface is always reversible (conversion round trip) with two formats (JSON-NTV and JSON-TableSchema).
 
-*example*
+Example:
+
 ```python
 import ntv_pandas as npd
 
-jsn = df.npd.to_json(table=False) # save df as a JSON-value (format Table Schema if table is True else format NTV )
-df  = npd.read_json(jsn)  # load a JSON-value as a DataFrame
+jsn = df.npd.to_json(table=False)  # save df as a JSON-value (format Table Schema if table is True else format NTV )
+df  = npd.read_json(jsn)  # load a JSON-value as a `DataFrame`
 
-df.equals(npd.read_json(df.npd.to_json(df))) # True in any case, whether table=True or not
+df.equals(npd.read_json(df.npd.to_json(df)))  # `True` in any case, whether `table=True` or not
 ```
 
 ### [BCPandas](https://github.com/yehoshuadimarsky/bcpandas)
@@ -509,6 +511,21 @@ wasted).
 
 - ``vaex.from_pandas``
 - ``vaex.to_pandas_df``
+
+### [Hail Query](https://hail.is/)
+
+An out-of-core, preemptible-safe, distributed, dataframe library serving
+the genetics community. Hail Query ships with on-disk data formats,
+in-memory data formats, an expression compiler, a query planner, and a
+distributed sort algorithm all designed to accelerate queries on large
+matrices of genome sequencing data.
+
+It is often easiest to use pandas to manipulate the summary statistics or
+other small aggregates produced by Hail. For this reason, Hail provides
+native import to and export from pandas DataFrames:
+
+- [`Table.from_pandas`](https://hail.is/docs/latest/hail.Table.html#hail.Table.from_pandas)
+- [`Table.to_pandas`](https://hail.is/docs/latest/hail.Table.html#hail.Table.to_pandas)
 
 ## Data cleaning and validation
 

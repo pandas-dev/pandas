@@ -118,7 +118,6 @@ def _new_DatetimeIndex(cls, d):
         "tzinfo",
         "dtype",
         "to_pydatetime",
-        "_format_native_types",
         "date",
         "time",
         "timetz",
@@ -418,8 +417,10 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     # --------------------------------------------------------------------
     # Rendering Methods
 
-    @property
+    @cache_readonly
     def _formatter_func(self):
+        # Note this is equivalent to the DatetimeIndexOpsMixin method but
+        #  uses the maybe-cached self._is_dates_only instead of re-computing it.
         from pandas.io.formats.format import get_format_datetime64
 
         formatter = get_format_datetime64(is_dates_only=self._is_dates_only)
@@ -992,11 +993,11 @@ def date_range(
 
     **Specify a unit**
 
-    >>> pd.date_range(start="2017-01-01", periods=10, freq="100AS", unit="s")
+    >>> pd.date_range(start="2017-01-01", periods=10, freq="100YS", unit="s")
     DatetimeIndex(['2017-01-01', '2117-01-01', '2217-01-01', '2317-01-01',
                    '2417-01-01', '2517-01-01', '2617-01-01', '2717-01-01',
                    '2817-01-01', '2917-01-01'],
-                  dtype='datetime64[s]', freq='100AS-JAN')
+                  dtype='datetime64[s]', freq='100YS-JAN')
     """
     if freq is None and com.any_none(periods, start, end):
         freq = "D"

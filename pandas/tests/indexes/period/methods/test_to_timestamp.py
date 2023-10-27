@@ -49,7 +49,7 @@ class TestToTimestamp:
     def test_to_timestamp_freq(self):
         idx = period_range("2017", periods=12, freq="Y-DEC")
         result = idx.to_timestamp()
-        expected = date_range("2017", periods=12, freq="AS-JAN")
+        expected = date_range("2017", periods=12, freq="YS-JAN")
         tm.assert_index_equal(result, expected)
 
     def test_to_timestamp_pi_nat(self):

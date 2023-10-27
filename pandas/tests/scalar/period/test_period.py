@@ -68,15 +68,15 @@ class TestPeriodConstruction:
         assert i1 == i2
         assert i1 == i3
 
+        # GH#54105 - Period can be confusingly instantiated with lowercase freq
+        # TODO: raise in the future an error when passing lowercase freq
         i4 = Period("2005", freq="M")
         assert i1 != i4
 
         i1 = Period.now(freq="Q")
         i2 = Period(datetime.now(), freq="Q")
-        i3 = Period.now("q")
 
         assert i1 == i2
-        assert i1 == i3
 
         # Pass in freq as a keyword argument sometimes as a test for
         # https://github.com/pandas-dev/pandas/issues/53369
@@ -1182,6 +1182,26 @@ class TestPeriodComparisons:
 
 
 class TestArithmetic:
+    def test_add_overflow_raises(self):
+        # GH#55503
+        per = Timestamp.max.to_period("ns")
+
+        msg = "|".join(
+            [
+                "Python int too large to convert to C long",
+                # windows, 32bit linux builds
+                "int too big to convert",
+            ]
+        )
+        with pytest.raises(OverflowError, match=msg):
+            per + 1
+
+        msg = "value too large"
+        with pytest.raises(OverflowError, match=msg):
+            per + Timedelta(1)
+        with pytest.raises(OverflowError, match=msg):
+            per + offsets.Nano(1)
+
     @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s", "m"])
     def test_add_sub_td64_nat(self, unit):
         # GH#47196

@@ -203,7 +203,7 @@ def test_transform_axis_1_reducer(request, reduction_func):
         "nth",
     ):
         marker = pytest.mark.xfail(reason="transform incorrectly fails - GH#45986")
-        request.node.add_marker(marker)
+        request.applymarker(marker)
 
     df = DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]}, index=["x", "y"])
     msg = "DataFrame.groupby with axis=1 is deprecated"
@@ -1071,7 +1071,7 @@ def test_pct_change(frame_or_series, freq, periods, fill_method, limit):
         expected = expected.to_frame("vals")
 
     msg = (
-        "The 'fill_method' and 'limit' keywords in "
+        "The 'fill_method' keyword being not None and the 'limit' keyword in "
         f"{type(gb).__name__}.pct_change are deprecated"
     )
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -1455,7 +1455,7 @@ def test_null_group_str_reducer(request, dropna, reduction_func):
     # GH 17093
     if reduction_func == "corrwith":
         msg = "incorrectly raises"
-        request.node.add_marker(pytest.mark.xfail(reason=msg))
+        request.applymarker(pytest.mark.xfail(reason=msg))
 
     index = [1, 2, 3, 4]  # test transform preserves non-standard index
     df = DataFrame({"A": [1, 1, np.nan, np.nan], "B": [1, 2, 2, 3]}, index=index)
@@ -1649,7 +1649,7 @@ def test_idxmin_idxmax_transform_args(how, skipna, numeric_only):
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = gb.transform(how, 0, skipna, numeric_only)
     warn = None if skipna else FutureWarning
-    msg = f"The behavior of DataFrame.{how} with .* any-NA and skipna=False"
+    msg = f"The behavior of DataFrameGroupBy.{how} with .* any-NA and skipna=False"
     with tm.assert_produces_warning(warn, match=msg):
         expected = gb.transform(how, skipna=skipna, numeric_only=numeric_only)
     tm.assert_frame_equal(result, expected)

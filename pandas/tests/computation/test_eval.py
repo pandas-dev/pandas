@@ -194,7 +194,7 @@ class TestEval:
                 reason="Looks like expected is negative, unclear whether "
                 "expected is incorrect or result is incorrect"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         skip_these = ["in", "not in"]
         ex = f"~(lhs {op} rhs)"
 
@@ -860,7 +860,7 @@ class TestAlignment:
                 f"parser={parser}, index_name={index_name}, "
                 f"r_idx_type={r_idx_type}, c_idx_type={c_idx_type}"
             )
-            request.node.add_marker(pytest.mark.xfail(reason=reason, strict=False))
+            request.applymarker(pytest.mark.xfail(reason=reason, strict=False))
         df = tm.makeCustomDataframe(
             10, 7, data_gen_f=f, r_idx_type=r_idx_type, c_idx_type=c_idx_type
         )
@@ -917,12 +917,9 @@ class TestAlignment:
         m1 = 5
         m2 = 2 * m1
 
-        index_name = np.random.default_rng(2).choice(["index", "columns"])
-        obj_name = np.random.default_rng(2).choice(["df", "df2"])
-
         df = tm.makeCustomDataframe(m1, n, data_gen_f=f, r_idx_type=r1, c_idx_type=c1)
         df2 = tm.makeCustomDataframe(m2, n, data_gen_f=f, r_idx_type=r2, c_idx_type=c2)
-        index = getattr(locals().get(obj_name), index_name)
+        index = df2.columns
         ser = Series(np.random.default_rng(2).standard_normal(n), index[:n])
 
         if r2 == "dt" or c2 == "dt":
@@ -1883,7 +1880,7 @@ def test_negate_lt_eq_le(engine, parser):
 def test_eval_no_support_column_name(request, column):
     # GH 44603
     if column in ["True", "False", "inf", "Inf"]:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 raises=KeyError,
                 reason=f"GH 47859 DataFrame eval not supported with {column}",
