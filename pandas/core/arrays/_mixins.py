@@ -13,6 +13,10 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.arrays import NDArrayBacked
+from pandas._libs.tslibs import (
+    get_unit_from_dtype,
+    is_supported_unit,
+)
 from pandas._typing import (
     ArrayLike,
     AxisInt,
@@ -137,21 +141,19 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
             cls = dtype.construct_array_type()  # type: ignore[assignment]
             dt64_values = arr.view(f"M8[{dtype.unit}]")
             return cls(dt64_values, dtype=dtype)
-        elif dtype == "M8[ns]":
+        elif lib.is_np_dtype(dtype, "M") and is_supported_unit(
+            get_unit_from_dtype(dtype)
+        ):
             from pandas.core.arrays import DatetimeArray
 
-            # error: Argument 1 to "view" of "ndarray" has incompatible type
-            # "ExtensionDtype | dtype[Any]"; expected "dtype[Any] | type[Any]
-            # | _SupportsDType[dtype[Any]]"
-            dt64_values = arr.view(dtype)  # type: ignore[arg-type]
+            dt64_values = arr.view(dtype)
             return DatetimeArray(dt64_values, dtype=dtype)
-        elif dtype == "m8[ns]":
+        elif lib.is_np_dtype(dtype, "m") and is_supported_unit(
+            get_unit_from_dtype(dtype)
+        ):
             from pandas.core.arrays import TimedeltaArray
 
-            # error: Argument 1 to "view" of "ndarray" has incompatible type
-            # "ExtensionDtype | dtype[Any]"; expected "dtype[Any] | type[Any]
-            # | _SupportsDType[dtype[Any]]"
-            td64_values = arr.view(dtype)  # type: ignore[arg-type]
+            td64_values = arr.view(dtype)
             return TimedeltaArray(td64_values, dtype=dtype)
 
         # error: Argument "dtype" to "view" of "_ArrayOrScalarCommon" has incompatible
