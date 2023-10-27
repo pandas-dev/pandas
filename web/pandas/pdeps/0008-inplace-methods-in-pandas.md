@@ -255,7 +255,7 @@ Summarizing for the `inplace` keyword, we propose to:
   (group 4) or only update the object (group 3, "object-inplace", which can be emulated
   with reassigning).
 
-### Open Questions
+### Other design questions
 
 #### With `inplace=True`, should we silently copy or raise an error if the data has references?
 
@@ -290,12 +290,13 @@ lazy copy" to be triggered under Copy-on-Write. It is also hard to fix, adding a
 with `inplace=True` might actually be worse than triggering the copy under the hood. We would only copy columns that
 share data with another object, not the whole object like `.copy()` would.
 
-There is another possible variant, which would be to trigger the copy (like the first option), but have an option to
-raise a warning whenever this happens.
+**Therefore, we propose to silently copy when needed.** The `inplace=True` option would thus mean "try inplace whenever possible", and not guarantee it is actually done inplace.
+
+In the future, if there is demand for it, it could still be possible to add to option to raise a warning whenever this happens.
 This would be useful in an IPython shell/Jupyter Notebook setting, where the user would have the opportunity to delete
 unused references that are causing the copying to be triggered.
 
-For example,
+For example:
 
     :::ipython
     In [1]: import pandas as pd
@@ -334,16 +335,16 @@ was not inplace, since it is possible to go out of memory because of this.
 
 #### Return the calling object (`self`) also when using `inplace=True`?
 
-The downsides of keeping the `inplace=True` option for certain methods, are that the return type of those methods will
-now depend on the value of `inplace`, and that method chaining will no longer work.
-
-One way around this is to have the method return the original object that was operated on inplace when `inplace=True`.
+One of the downsides of the `inplace=True` option is that the return type of those methods
+depends on the value of `inplace`, and that method chaining does not work.
+Those downsides are still relevant for the cases where we keep `inplace=True`.
+To address this, we can have those methods return the object that was operated on
+inplace when `inplace=True`.
 
 Advantages:
 
 - It enables to use inplace operations in a method chain
 - It simplifies type annotations
-- It enables to change the default for `inplace` to True under Copy-on-Write
 
 Disadvantages:
 
@@ -352,8 +353,11 @@ Disadvantages:
   returned (`df2 = df.method(inplace=True); assert df2 is df`)
 - It would change the behaviour of the current `inplace=True`
 
-Given that `inplace` is already widely used by the pandas community, we would like to collect feedback about what the
-expected return type should be. Therefore, we will defer a decision on this until a later revision of this PDEP.
+We generally assume that changing to return `self` should not give much problems for
+existing usage (typically, the current return value of `None` is not actively used).
+Further, we think the advantages of simplifing return types and enabling methods chains
+outweighs the special case of returning an identical object.
+**Therefore, we propose that for those methods with an `inplace=True` option, the calling object (`self`) gets returned.**
 
 ## Backward compatibility
 
