@@ -25,7 +25,7 @@ import pandas._testing as tm
 import pandas.io.formats.format as fmt
 
 
-class TestDataFrameReprInfoEtc:
+class TestDataFrameRepr:
     def test_repr_bytes_61_lines(self):
         # GH#12857
         lets = list("ACDEFGHIJKLMNOP")
