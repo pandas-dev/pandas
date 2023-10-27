@@ -2064,7 +2064,7 @@ def test_empty_groupby(columns, keys, values, method, op, using_array_manager, d
         with pytest.raises(klass, match=msg):
             get_result()
 
-        if op in ["min", "max"] and isinstance(columns, list):
+        if op in ["min", "max", "idxmin", "idxmax"] and isinstance(columns, list):
             # i.e. DataframeGroupBy, not SeriesGroupBy
             result = get_result(numeric_only=True)
             expected = get_categorical_invalid_expected()
