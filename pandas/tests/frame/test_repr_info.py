@@ -29,12 +29,7 @@ class TestDataFrameReprInfoEtc:
     def test_repr_bytes_61_lines(self):
         # GH#12857
         lets = list("ACDEFGHIJKLMNOP")
-        slen = 50
-        nseqs = 1000
-        words = [
-            [np.random.default_rng(2).choice(lets) for x in range(slen)]
-            for _ in range(nseqs)
-        ]
+        words = np.random.default_rng(2).choice(lets, (1000, 50))
         df = DataFrame(words).astype("U1")
         assert (df.dtypes == object).all()
 
