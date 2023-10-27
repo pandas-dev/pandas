@@ -146,20 +146,6 @@ def has_expanded_repr(df):
 
 
 class TestDataFrameFormatting:
-    def test_eng_float_formatter(self, float_frame):
-        df = float_frame
-        df.loc[5] = 0
-
-        fmt.set_eng_float_format()
-        repr(df)
-
-        fmt.set_eng_float_format(use_eng_prefix=True)
-        repr(df)
-
-        fmt.set_eng_float_format(accuracy=0)
-        repr(df)
-        tm.reset_display_options()
-
     @pytest.mark.parametrize(
         "row, columns, show_counts, result",
         [
@@ -3106,71 +3092,6 @@ class TestFloatArrayFormatter:
             assert str(df) == "            x\n0  1.2346e+04\n1  2.0000e+06"
 
 
-class TestRepr_timedelta64:
-    def test_none(self):
-        delta_1d = pd.to_timedelta(1, unit="D")
-        delta_0d = pd.to_timedelta(0, unit="D")
-        delta_1s = pd.to_timedelta(1, unit="s")
-        delta_500ms = pd.to_timedelta(500, unit="ms")
-
-        drepr = lambda x: x._repr_base()
-        assert drepr(delta_1d) == "1 days"
-        assert drepr(-delta_1d) == "-1 days"
-        assert drepr(delta_0d) == "0 days"
-        assert drepr(delta_1s) == "0 days 00:00:01"
-        assert drepr(delta_500ms) == "0 days 00:00:00.500000"
-        assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
-        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
-        assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
-        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
-
-    def test_sub_day(self):
-        delta_1d = pd.to_timedelta(1, unit="D")
-        delta_0d = pd.to_timedelta(0, unit="D")
-        delta_1s = pd.to_timedelta(1, unit="s")
-        delta_500ms = pd.to_timedelta(500, unit="ms")
-
-        drepr = lambda x: x._repr_base(format="sub_day")
-        assert drepr(delta_1d) == "1 days"
-        assert drepr(-delta_1d) == "-1 days"
-        assert drepr(delta_0d) == "00:00:00"
-        assert drepr(delta_1s) == "00:00:01"
-        assert drepr(delta_500ms) == "00:00:00.500000"
-        assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
-        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
-        assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
-        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
-
-    def test_long(self):
-        delta_1d = pd.to_timedelta(1, unit="D")
-        delta_0d = pd.to_timedelta(0, unit="D")
-        delta_1s = pd.to_timedelta(1, unit="s")
-        delta_500ms = pd.to_timedelta(500, unit="ms")
-
-        drepr = lambda x: x._repr_base(format="long")
-        assert drepr(delta_1d) == "1 days 00:00:00"
-        assert drepr(-delta_1d) == "-1 days +00:00:00"
-        assert drepr(delta_0d) == "0 days 00:00:00"
-        assert drepr(delta_1s) == "0 days 00:00:01"
-        assert drepr(delta_500ms) == "0 days 00:00:00.500000"
-        assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
-        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
-        assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
-        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
-
-    def test_all(self):
-        delta_1d = pd.to_timedelta(1, unit="D")
-        delta_0d = pd.to_timedelta(0, unit="D")
-        delta_1ns = pd.to_timedelta(1, unit="ns")
-
-        drepr = lambda x: x._repr_base(format="all")
-        assert drepr(delta_1d) == "1 days 00:00:00.000000000"
-        assert drepr(-delta_1d) == "-1 days +00:00:00.000000000"
-        assert drepr(delta_0d) == "0 days 00:00:00.000000000"
-        assert drepr(delta_1ns) == "0 days 00:00:00.000000001"
-        assert drepr(-delta_1d + delta_1ns) == "-1 days +00:00:00.000000001"
-
-
 class TestTimedelta64Formatter:
     def test_days(self):
         x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
@@ -3307,53 +3228,57 @@ class TestDatetime64Formatter:
         assert result[1].strip() == "2999-01-02 00:00:00-08:00"
 
 
-@pytest.mark.parametrize(
-    "percentiles, expected",
-    [
-        (
-            [0.01999, 0.02001, 0.5, 0.666666, 0.9999],
-            ["1.999%", "2.001%", "50%", "66.667%", "99.99%"],
-        ),
-        (
-            [0, 0.5, 0.02001, 0.5, 0.666666, 0.9999],
-            ["0%", "50%", "2.0%", "50%", "66.67%", "99.99%"],
-        ),
-        ([0.281, 0.29, 0.57, 0.58], ["28.1%", "29%", "57%", "58%"]),
-        ([0.28, 0.29, 0.57, 0.58], ["28%", "29%", "57%", "58%"]),
-    ],
-)
-def test_format_percentiles(percentiles, expected):
-    result = fmt.format_percentiles(percentiles)
-    assert result == expected
+class TestFormatPercentiles:
+    @pytest.mark.parametrize(
+        "percentiles, expected",
+        [
+            (
+                [0.01999, 0.02001, 0.5, 0.666666, 0.9999],
+                ["1.999%", "2.001%", "50%", "66.667%", "99.99%"],
+            ),
+            (
+                [0, 0.5, 0.02001, 0.5, 0.666666, 0.9999],
+                ["0%", "50%", "2.0%", "50%", "66.67%", "99.99%"],
+            ),
+            ([0.281, 0.29, 0.57, 0.58], ["28.1%", "29%", "57%", "58%"]),
+            ([0.28, 0.29, 0.57, 0.58], ["28%", "29%", "57%", "58%"]),
+        ],
+    )
+    def test_format_percentiles(self, percentiles, expected):
+        result = fmt.format_percentiles(percentiles)
+        assert result == expected
 
+    @pytest.mark.parametrize(
+        "percentiles",
+        [
+            ([0.1, np.nan, 0.5]),
+            ([-0.001, 0.1, 0.5]),
+            ([2, 0.1, 0.5]),
+            ([0.1, 0.5, "a"]),
+        ],
+    )
+    def test_error_format_percentiles(self, percentiles):
+        msg = r"percentiles should all be in the interval \[0,1\]"
+        with pytest.raises(ValueError, match=msg):
+            fmt.format_percentiles(percentiles)
 
-@pytest.mark.parametrize(
-    "percentiles",
-    [([0.1, np.nan, 0.5]), ([-0.001, 0.1, 0.5]), ([2, 0.1, 0.5]), ([0.1, 0.5, "a"])],
-)
-def test_error_format_percentiles(percentiles):
-    msg = r"percentiles should all be in the interval \[0,1\]"
-    with pytest.raises(ValueError, match=msg):
-        fmt.format_percentiles(percentiles)
-
-
-def test_format_percentiles_integer_idx():
-    # Issue #26660
-    result = fmt.format_percentiles(np.linspace(0, 1, 10 + 1))
-    expected = [
-        "0%",
-        "10%",
-        "20%",
-        "30%",
-        "40%",
-        "50%",
-        "60%",
-        "70%",
-        "80%",
-        "90%",
-        "100%",
-    ]
-    assert result == expected
+    def test_format_percentiles_integer_idx(self):
+        # Issue #26660
+        result = fmt.format_percentiles(np.linspace(0, 1, 10 + 1))
+        expected = [
+            "0%",
+            "10%",
+            "20%",
+            "30%",
+            "40%",
+            "50%",
+            "60%",
+            "70%",
+            "80%",
+            "90%",
+            "100%",
+        ]
+        assert result == expected
 
 
 def test_repr_html_ipython_config(ip):
