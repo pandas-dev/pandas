@@ -1506,9 +1506,13 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             arity = op._cython_arity.get(op.how, 1)
             result_mask = np.tile(result_mask, (arity, 1)).T
 
-        # res_values should already have the correct dtype, we just need to
-        #  wrap in a MaskedArray
-        return self._maybe_mask_result(res_values, result_mask)
+        if op.how in ["idxmin", "idxmax"]:
+            # Result values are indexes to take, keep as ndarray
+            return res_values
+        else:
+            # res_values should already have the correct dtype, we just need to
+            #  wrap in a MaskedArray
+            return self._maybe_mask_result(res_values, result_mask)
 
 
 def transpose_homogeneous_masked_arrays(

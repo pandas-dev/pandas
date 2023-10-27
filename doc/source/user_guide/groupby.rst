@@ -517,8 +517,8 @@ listed below, those with a ``*`` do *not* have a Cython-optimized implementation
         :meth:`~.DataFrameGroupBy.count`;Compute the number of non-NA values in the groups
         :meth:`~.DataFrameGroupBy.cov` * ;Compute the covariance of the groups
         :meth:`~.DataFrameGroupBy.first`;Compute the first occurring value in each group
-        :meth:`~.DataFrameGroupBy.idxmax` *;Compute the index of the maximum value in each group
-        :meth:`~.DataFrameGroupBy.idxmin` *;Compute the index of the minimum value in each group
+        :meth:`~.DataFrameGroupBy.idxmax`;Compute the index of the maximum value in each group
+        :meth:`~.DataFrameGroupBy.idxmin`;Compute the index of the minimum value in each group
         :meth:`~.DataFrameGroupBy.last`;Compute the last occurring value in each group
         :meth:`~.DataFrameGroupBy.max`;Compute the maximum value in each group
         :meth:`~.DataFrameGroupBy.mean`;Compute the mean of each group

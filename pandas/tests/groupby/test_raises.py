@@ -568,7 +568,7 @@ def test_groupby_raises_category_on_category(
             assert not hasattr(gb, "corrwith")
             return
 
-    empty_groups = any(group.empty for group in gb.groups.values())
+    empty_groups = not observed and any(group.empty for group in gb.groups.values())
     if (
         not observed
         and how != "transform"
@@ -579,6 +579,9 @@ def test_groupby_raises_category_on_category(
         assert not empty_groups
         # TODO: empty_groups should be true due to unobserved categorical combinations
         empty_groups = True
+    if how == "transform":
+        # empty groups will be ignored
+        empty_groups = False
 
     klass, msg = {
         "all": (None, ""),

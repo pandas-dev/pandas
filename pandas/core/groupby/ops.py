@@ -134,6 +134,8 @@ class WrappedCythonOp:
             "all": functools.partial(libgroupby.group_any_all, val_test="all"),
             "sum": "group_sum",
             "prod": "group_prod",
+            "idxmin": functools.partial(libgroupby.group_idxmin_idxmax, name="idxmin"),
+            "idxmax": functools.partial(libgroupby.group_idxmin_idxmax, name="idxmax"),
             "min": "group_min",
             "max": "group_max",
             "mean": "group_mean",
@@ -188,7 +190,7 @@ class WrappedCythonOp:
                     f"function is not implemented for this dtype: "
                     f"[how->{how},dtype->{dtype_str}]"
                 )
-            elif how in ["std", "sem"]:
+            elif how in ["std", "sem", "idxmin", "idxmax"]:
                 # We have a partial object that does not have __signatures__
                 return f
             elif how == "skew":
@@ -269,6 +271,10 @@ class WrappedCythonOp:
 
         if how == "rank":
             out_dtype = "float64"
+        elif how in ["idxmin", "idxmax"]:
+            # The Cython implementation only produces the row number; we'll take
+            # from the index using this in post processing
+            out_dtype = "intp"
         else:
             if dtype.kind in "iufcb":
                 out_dtype = f"{dtype.kind}{dtype.itemsize}"
@@ -400,7 +406,16 @@ class WrappedCythonOp:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            if self.how in ["min", "max", "mean", "last", "first", "sum"]:
+            if self.how in [
+                "idxmin",
+                "idxmax",
+                "min",
+                "max",
+                "mean",
+                "last",
+                "first",
+                "sum",
+            ]:
                 func(
                     out=result,
                     counts=counts,
@@ -464,10 +479,10 @@ class WrappedCythonOp:
                 **kwargs,
             )
 
-        if self.kind == "aggregate":
+        if self.kind == "aggregate" and self.how not in ["idxmin", "idxmax"]:
             # i.e. counts is defined.  Locations where count<min_count
             # need to have the result set to np.nan, which may require casting,
-            # see GH#40767
+            # see GH#40767. For idxmin/idxmax is handled specially via post-processing
             if result.dtype.kind in "iu" and not is_datetimelike:
                 # if the op keeps the int dtypes, we have to use 0
                 cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)
