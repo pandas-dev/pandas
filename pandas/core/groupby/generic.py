@@ -973,6 +973,14 @@ class SeriesGroupBy(GroupBy[Series]):
         mouse  0.0
         dtype: float64
         """
+        warnings.warn(
+            f"{type(self).__name__}.fillna is deprecated and "
+            "will be removed in a future version. Use obj.ffill() or obj.bfill() "
+            "for forward or backward filling instead. If you want to fill with a "
+            f"single value, use {type(self.obj).__name__}.fillna instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         result = self._op_via_apply(
             "fillna",
             value=value,
@@ -2516,14 +2524,14 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  3.0  NaN  2.0
         4  3.0  NaN  NaN
         """
-        if method is not None:
-            warnings.warn(
-                f"{type(self).__name__}.fillna with 'method' is deprecated and "
-                "will raise in a future version. Use obj.ffill() or obj.bfill() "
-                "instead.",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
+        warnings.warn(
+            f"{type(self).__name__}.fillna is deprecated and "
+            "will be removed in a future version. Use obj.ffill() or obj.bfill() "
+            "for forward or backward filling instead. If you want to fill with a "
+            f"single value, use {type(self.obj).__name__}.fillna instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
 
         result = self._op_via_apply(
             "fillna",
