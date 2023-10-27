@@ -276,7 +276,7 @@ class _FrequencyInferer:
 
     @cache_readonly
     def rep_stamp(self) -> Timestamp:
-        return Timestamp(self.i8values[0])
+        return Timestamp(self.i8values[0], unit=self.index.unit)
 
     def month_position_check(self) -> str | None:
         return month_position_check(self.fields, self.index.dayofweek)
@@ -359,7 +359,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "QS", "bs": "BQS", "ce": "Q", "be": "BQ"}.get(pos_check)
+            return {"cs": "QS", "bs": "BQS", "ce": "QE", "be": "BQ"}.get(pos_check)
 
     def _get_monthly_rule(self) -> str | None:
         if len(self.mdiffs) > 1:
@@ -369,7 +369,7 @@ class _FrequencyInferer:
         if pos_check is None:
             return None
         else:
-            return {"cs": "MS", "bs": "BMS", "ce": "ME", "be": "BM"}.get(pos_check)
+            return {"cs": "MS", "bs": "BMS", "ce": "ME", "be": "BME"}.get(pos_check)
 
     def _is_business_daily(self) -> bool:
         # quick check: cannot be business daily

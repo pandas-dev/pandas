@@ -1362,7 +1362,7 @@ class TestSeriesConstructors:
                 reason="Construction from dict goes through "
                 "maybe_convert_objects which casts to nano"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         d = {"a": ea_scalar}
         result = Series(d, index=["a"])
         expected = Series(ea_scalar, index=["a"], dtype=ea_dtype)
@@ -1688,7 +1688,7 @@ class TestSeriesConstructors:
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         with pytest.raises(ValueError, match=msg):
             Series([], dtype=dtype)
@@ -2121,6 +2121,22 @@ class TestSeriesConstructors:
         expected = Series(["a", "b"], dtype="string[pyarrow_numpy]")
         with pd.option_context("future.infer_string", True):
             result = Series(["a", "b"], dtype="string")
+        tm.assert_series_equal(result, expected)
+
+    def test_series_constructor_infer_string_scalar(self):
+        # GH#55537
+        with pd.option_context("future.infer_string", True):
+            ser = Series("a", index=[1, 2], dtype="string[python]")
+        expected = Series(["a", "a"], index=[1, 2], dtype="string[python]")
+        tm.assert_series_equal(ser, expected)
+        assert ser.dtype.storage == "python"
+
+    def test_series_string_inference_na_first(self):
+        # GH#55655
+        pytest.importorskip("pyarrow")
+        expected = Series([pd.NA, "b"], dtype="string[pyarrow_numpy]")
+        with pd.option_context("future.infer_string", True):
+            result = Series([pd.NA, "b"])
         tm.assert_series_equal(result, expected)
 
 

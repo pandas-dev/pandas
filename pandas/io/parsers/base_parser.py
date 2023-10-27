@@ -1147,7 +1147,7 @@ def _make_date_converter(
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore",
-                    ".*parsing datetimes with mixed time zones will raise a warning",
+                    ".*parsing datetimes with mixed time zones will raise an error",
                     category=FutureWarning,
                 )
                 result = tools.to_datetime(
@@ -1169,7 +1169,7 @@ def _make_date_converter(
                     warnings.filterwarnings(
                         "ignore",
                         ".*parsing datetimes with mixed time zones "
-                        "will raise a warning",
+                        "will raise an error",
                         category=FutureWarning,
                     )
                     result = tools.to_datetime(
@@ -1187,7 +1187,7 @@ def _make_date_converter(
                     warnings.filterwarnings(
                         "ignore",
                         ".*parsing datetimes with mixed time zones "
-                        "will raise a warning",
+                        "will raise an error",
                         category=FutureWarning,
                     )
                     return tools.to_datetime(

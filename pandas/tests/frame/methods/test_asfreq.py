@@ -32,16 +32,16 @@ class TestAsFreq:
                     datetime(2009, 11, 30),
                     datetime(2009, 12, 31),
                 ],
-                freq="BM",
+                freq="BME",
             ),
         )
 
         daily_ts = ts.asfreq("B")
-        monthly_ts = daily_ts.asfreq("BM")
+        monthly_ts = daily_ts.asfreq("BME")
         tm.assert_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq("B", method="pad")
-        monthly_ts = daily_ts.asfreq("BM")
+        monthly_ts = daily_ts.asfreq("BME")
         tm.assert_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq(offsets.BDay())
@@ -140,12 +140,12 @@ class TestAsFreq:
     def test_asfreq_empty(self, datetime_frame):
         # test does not blow up on length-0 DataFrame
         zero_length = datetime_frame.reindex([])
-        result = zero_length.asfreq("BM")
+        result = zero_length.asfreq("BME")
         assert result is not zero_length
 
     def test_asfreq(self, datetime_frame):
         offset_monthly = datetime_frame.asfreq(offsets.BMonthEnd())
-        rule_monthly = datetime_frame.asfreq("BM")
+        rule_monthly = datetime_frame.asfreq("BME")
 
         tm.assert_frame_equal(offset_monthly, rule_monthly)
 
@@ -234,12 +234,23 @@ class TestAsFreq:
         result = DataFrame({"s": Series([0.0, 2.0, 4.0], index=index)})
         tm.assert_frame_equal(result, expected)
 
-    def test_asfreq_frequency_M_deprecated(self):
-        depr_msg = "'M' will be deprecated, please use 'ME' instead."
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2ME", "2M"),
+            ("2QE", "2Q"),
+            ("2QE-SEP", "2Q-SEP"),
+        ],
+    )
+    def test_asfreq_frequency_M_Q_deprecated(self, freq, freq_depr):
+        # GH#9586
+        depr_msg = (
+            f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
+        )
 
-        index = date_range("1/1/2000", periods=4, freq="ME")
+        index = date_range("1/1/2000", periods=4, freq=f"{freq[1:]}")
         df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
-        expected = df.asfreq(freq="5ME")
-        with tm.assert_produces_warning(UserWarning, match=depr_msg):
-            result = df.asfreq(freq="5M")
-            tm.assert_frame_equal(result, expected)
+        expected = df.asfreq(freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = df.asfreq(freq=freq_depr)
+        tm.assert_frame_equal(result, expected)

@@ -73,6 +73,13 @@ Top-level evaluation
 
    eval
 
+Datetime formats
+~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: api/
+
+   tseries.api.guess_datetime_format
+
 Hashing
 ~~~~~~~
 .. autosummary::

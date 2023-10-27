@@ -32,8 +32,6 @@ from pandas._libs.tslibs.nattype cimport (
 )
 from pandas._libs.tslibs.np_datetime cimport (
     get_datetime64_unit,
-    get_datetime64_value,
-    get_timedelta64_value,
     import_pandas_datetime,
 )
 
@@ -120,18 +118,18 @@ cpdef bint is_matching_na(object left, object right, bint nan_matches_none=False
             and util.is_complex_object(right)
             and util.is_nan(right)
         )
-    elif util.is_datetime64_object(left):
+    elif cnp.is_datetime64_object(left):
         return (
-            get_datetime64_value(left) == NPY_NAT
-            and util.is_datetime64_object(right)
-            and get_datetime64_value(right) == NPY_NAT
+            cnp.get_datetime64_value(left) == NPY_NAT
+            and cnp.is_datetime64_object(right)
+            and cnp.get_datetime64_value(right) == NPY_NAT
             and get_datetime64_unit(left) == get_datetime64_unit(right)
         )
-    elif util.is_timedelta64_object(left):
+    elif cnp.is_timedelta64_object(left):
         return (
-            get_timedelta64_value(left) == NPY_NAT
-            and util.is_timedelta64_object(right)
-            and get_timedelta64_value(right) == NPY_NAT
+            cnp.get_timedelta64_value(left) == NPY_NAT
+            and cnp.is_timedelta64_object(right)
+            and cnp.get_timedelta64_value(right) == NPY_NAT
             and get_datetime64_unit(left) == get_datetime64_unit(right)
         )
     elif is_decimal_na(left):
@@ -169,10 +167,10 @@ cpdef bint checknull(object val, bint inf_as_na=False):
         elif inf_as_na:
             return val == INF or val == NEGINF
         return False
-    elif util.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
-    elif util.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
+    elif cnp.is_timedelta64_object(val):
+        return cnp.get_timedelta64_value(val) == NPY_NAT
+    elif cnp.is_datetime64_object(val):
+        return cnp.get_datetime64_value(val) == NPY_NAT
     else:
         return is_decimal_na(val)
 

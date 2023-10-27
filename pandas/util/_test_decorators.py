@@ -31,7 +31,6 @@ from typing import (
     Callable,
 )
 
-import numpy as np
 import pytest
 
 from pandas._config import get_option
@@ -178,18 +177,6 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-def skip_if_np_lt(
-    ver_str: str, *args, reason: str | None = None
-) -> pytest.MarkDecorator:
-    if reason is None:
-        reason = f"NumPy {ver_str} or greater required"
-    return pytest.mark.skipif(
-        Version(np.__version__) < Version(ver_str),
-        *args,
-        reason=reason,
-    )
-
-
 def parametrize_fixture_doc(*args) -> Callable[[F], F]:
     """
     Intended for use as a decorator for parametrized fixture,
@@ -229,7 +216,7 @@ def async_mark():
 
 def mark_array_manager_not_yet_implemented(request) -> None:
     mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
-    request.node.add_marker(mark)
+    request.applymarker(mark)
 
 
 skip_array_manager_not_yet_implemented = pytest.mark.xfail(

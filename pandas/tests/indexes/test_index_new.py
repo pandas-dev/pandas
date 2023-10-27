@@ -146,7 +146,7 @@ class TestIndexConstructorInference:
         if nulls_fixture is NA:
             expected = Index([NA, NaT])
             mark = pytest.mark.xfail(reason="Broken with np.NaT ctor; see GH 31884")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
             # GH#35942 numpy will emit a DeprecationWarning within the
             #  assert_index_equal calls.  Since we can't do anything
             #  about it until GH#31884 is fixed, we suppress that warning.
@@ -349,6 +349,14 @@ class TestDtypeEnforced:
         else:
             index = Index(vals)
             assert isinstance(index, TimedeltaIndex)
+
+    def test_pass_timedeltaindex_to_index(self):
+        rng = timedelta_range("1 days", "10 days")
+        idx = Index(rng, dtype=object)
+
+        expected = Index(rng.to_pytimedelta(), dtype=object)
+
+        tm.assert_numpy_array_equal(idx.values, expected.values)
 
 
 class TestIndexConstructorUnwrapping:

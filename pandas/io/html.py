@@ -57,6 +57,7 @@ if TYPE_CHECKING:
         BaseBuffer,
         DtypeBackend,
         FilePath,
+        HTMLFlavors,
         ReadBuffer,
         StorageOptions,
     )
@@ -889,13 +890,13 @@ _valid_parsers = {
 }
 
 
-def _parser_dispatch(flavor: str | None) -> type[_HtmlFrameParser]:
+def _parser_dispatch(flavor: HTMLFlavors | None) -> type[_HtmlFrameParser]:
     """
     Choose the parser based on the input flavor.
 
     Parameters
     ----------
-    flavor : str
+    flavor : {{"lxml", "html5lib", "bs4"}} or None
         The type of parser to use. This must be a valid backend.
 
     Returns
@@ -1033,7 +1034,7 @@ def read_html(
     io: FilePath | ReadBuffer[str],
     *,
     match: str | Pattern = ".+",
-    flavor: str | Sequence[str] | None = None,
+    flavor: HTMLFlavors | Sequence[HTMLFlavors] | None = None,
     header: int | Sequence[int] | None = None,
     index_col: int | Sequence[int] | None = None,
     skiprows: int | Sequence[int] | slice | None = None,
@@ -1074,7 +1075,7 @@ def read_html(
         This value is converted to a regular expression so that there is
         consistent behavior between Beautiful Soup and lxml.
 
-    flavor : str or list-like, optional
+    flavor : {{"lxml", "html5lib", "bs4"}} or list-like, optional
         The parsing engine (or list of parsing engines) to use. 'bs4' and
         'html5lib' are synonymous with each other, they are both there for
         backwards compatibility. The default of ``None`` tries to use ``lxml``
