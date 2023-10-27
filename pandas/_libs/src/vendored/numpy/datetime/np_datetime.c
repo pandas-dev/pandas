@@ -23,7 +23,6 @@ This file is derived from NumPy 1.7. See NUMPY_LICENSE.txt
 #endif // NPY_NO_DEPRECATED_API
 
 #include <Python.h>
-#include <stdbool.h>
 
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
 #include <numpy/arrayobject.h>
