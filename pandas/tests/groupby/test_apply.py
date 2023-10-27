@@ -70,7 +70,7 @@ def test_apply_index_date():
                 1.40649,
             ],
         },
-        index=Index(pd.to_datetime(ts, name="date_time")),
+        index=Index(pd.to_datetime(ts), name="date_time"),
     )
     expected = df.groupby(df.index.date).idxmax()
     result = df.groupby(df.index.date).apply(lambda x: x.idxmax())
