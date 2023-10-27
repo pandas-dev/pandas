@@ -22,7 +22,6 @@ from pandas import DataFrame
 import pandas._testing as tm
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
 def test_empty_decimal_marker(all_parsers):
@@ -44,7 +43,6 @@ def test_empty_decimal_marker(all_parsers):
         parser.read_csv(StringIO(data), decimal="")
 
 
-@skip_pyarrow
 def test_bad_stream_exception(all_parsers, csv_dir_path):
     # see gh-13652
     #
@@ -65,7 +63,7 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
             parser.read_csv(stream)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: The 'comment' option is not supported
 def test_malformed(all_parsers):
     # see gh-6607
     parser = all_parsers
@@ -80,7 +78,7 @@ A,B,C
         parser.read_csv(StringIO(data), header=1, comment="#")
 
 
-@skip_pyarrow
+@xfail_pyarrow  # ValueError: The 'iterator' option is not supported
 @pytest.mark.parametrize("nrows", [5, 3, None])
 def test_malformed_chunks(all_parsers, nrows):
     data = """ignore
@@ -100,7 +98,7 @@ skip
             reader.read(nrows)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # does not raise
 def test_catch_too_many_names(all_parsers):
     # see gh-5156
     data = """\
@@ -115,12 +113,17 @@ def test_catch_too_many_names(all_parsers):
         else "Number of passed names did not match "
         "number of header fields in the file"
     )
+    depr_msg = "Passing a BlockManager to DataFrame is deprecated"
+    warn = None
+    if parser.engine == "pyarrow":
+        warn = DeprecationWarning
 
-    with pytest.raises(ValueError, match=msg):
-        parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
+    with tm.assert_produces_warning(warn, match=depr_msg, check_stacklevel=False):
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), header=0, names=["a", "b", "c", "d"])
 
 
-@skip_pyarrow
+@xfail_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize("nrows", [0, 1, 2, 3, 4, 5])
 def test_raise_on_no_columns(all_parsers, nrows):
     parser = all_parsers
@@ -148,7 +151,12 @@ def test_suppress_error_output(all_parsers):
     data = "a\n1\n1,2,3\n4\n5,6,7"
     expected = DataFrame({"a": [1, 4]})
 
-    with tm.assert_produces_warning(None):
+    warn = None
+    if parser.engine == "pyarrow":
+        warn = DeprecationWarning
+    msg = "Passing a BlockManager to DataFrame"
+
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         result = parser.read_csv(StringIO(data), on_bad_lines="skip")
     tm.assert_frame_equal(result, expected)
 
@@ -174,11 +182,13 @@ def test_warn_bad_lines(all_parsers):
     expected = DataFrame({"a": [1, 4]})
     match_msg = "Skipping line"
 
+    expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 1 columns, but found 3: 1,2,3"
+        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
-        ParserWarning, match=match_msg, check_stacklevel=False
+        expected_warning, match=match_msg, check_stacklevel=False
     ):
         result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)
@@ -201,7 +211,6 @@ def test_read_csv_wrong_num_columns(all_parsers):
         parser.read_csv(StringIO(data))
 
 
-@skip_pyarrow
 def test_null_byte_char(request, all_parsers):
     # see gh-2741
     data = "\x00,foo"
@@ -219,12 +228,19 @@ def test_null_byte_char(request, all_parsers):
         out = parser.read_csv(StringIO(data), names=names)
         tm.assert_frame_equal(out, expected)
     else:
-        msg = "NULL byte detected"
+        if parser.engine == "pyarrow":
+            msg = (
+                "CSV parse error: Empty CSV file or block: "
+                "cannot infer number of columns"
+            )
+        else:
+            msg = "NULL byte detected"
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data), names=names)
 
 
-@skip_pyarrow
+# ValueError: the 'pyarrow' engine does not support sep=None with delim_whitespace=False
+@xfail_pyarrow
 @pytest.mark.filterwarnings("always::ResourceWarning")
 def test_open_file(request, all_parsers):
     # GH 39024
@@ -282,11 +298,13 @@ a,b
     expected = DataFrame({"1": "a", "2": ["b"] * 2})
     match_msg = "Skipping line"
 
+    expected_warning = ParserWarning
     if parser.engine == "pyarrow":
         match_msg = "Expected 2 columns, but found 3: a,b,c"
+        expected_warning = (ParserWarning, DeprecationWarning)
 
     with tm.assert_produces_warning(
-        ParserWarning, match=match_msg, check_stacklevel=False
+        expected_warning, match=match_msg, check_stacklevel=False
     ):
         result = parser.read_csv(StringIO(data), on_bad_lines="warn")
     tm.assert_frame_equal(result, expected)

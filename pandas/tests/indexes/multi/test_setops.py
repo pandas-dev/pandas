@@ -204,7 +204,6 @@ def test_difference_sort_special():
 
 
 def test_difference_sort_special_true():
-    # TODO(GH#25151): decide on True behaviour
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     result = idx.difference([], sort=True)
     expected = MultiIndex.from_product([[0, 1], ["a", "b"]])
@@ -366,8 +365,6 @@ def test_union_sort_other_empty(slice_):
 
 
 def test_union_sort_other_empty_sort():
-    # TODO(GH#25151): decide on True behaviour
-    # # sort=True
     idx = MultiIndex.from_product([[1, 0], ["a", "b"]])
     other = idx[:0]
     result = idx.union(other, sort=True)

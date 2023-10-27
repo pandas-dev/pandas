@@ -53,7 +53,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_D,
     astype_overflowsafe,
     check_dts_bounds,
-    get_timedelta64_value,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
@@ -1821,8 +1820,8 @@ cdef class _Period(PeriodMixin):
                                         f"Period(freq={self.freqstr})")
 
         if (
-            util.is_timedelta64_object(other) and
-            get_timedelta64_value(other) == NPY_NAT
+            cnp.is_timedelta64_object(other) and
+            cnp.get_timedelta64_value(other) == NPY_NAT
         ):
             # i.e. np.timedelta64("nat")
             return NaT
@@ -2810,7 +2809,7 @@ class Period(_Period):
                 raise ValueError("Must supply freq for datetime value")
             if isinstance(dt, Timestamp):
                 nanosecond = dt.nanosecond
-        elif util.is_datetime64_object(value):
+        elif cnp.is_datetime64_object(value):
             dt = Timestamp(value)
             if freq is None:
                 raise ValueError("Must supply freq for datetime value")
