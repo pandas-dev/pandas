@@ -1,6 +1,7 @@
 from cpython cimport (
     Py_buffer,
     PyLong_AsVoidPtr,
+    PyLong_Check,
 )
 from libc.stdint cimport uint8_t
 
@@ -11,7 +12,10 @@ cdef class CBuffer:
         cdef Py_ssize_t[1] shape = tuple((self.bufsize // itemsize,))
         cdef Py_ssize_t[1] strides = tuple((itemsize,))
 
-        buffer.buf = PyLong_AsVoidPtr(self.ptr)
+        if PyLong_Check(self.ptr):
+            buffer.buf = PyLong_AsVoidPtr(self.ptr)
+        else:
+            raise TypeError("self.ptr must be an integer")
         # assumes sizeof(unsigned char) == sizeof(uint8_t)
         # TODO: use C11 static_assert macro in Cython
         buffer.format = "B"
