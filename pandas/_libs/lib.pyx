@@ -102,6 +102,7 @@ cdef extern from "pandas/parser/pd_parser.h":
 PandasParser_IMPORT
 
 from pandas._libs cimport util
+from pandas._libs.dtypes cimport bool_numeric_object_t
 from pandas._libs.util cimport (
     INT64_MAX,
     INT64_MIN,
@@ -2855,12 +2856,34 @@ no_default = _NoDefault.no_default  # Sentinel indicating the default value.
 NoDefault = Literal[_NoDefault.no_default]
 
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def map_infer_mask(
         ndarray[object] arr,
         object f,
         const uint8_t[:] mask,
+        bint convert=True,
+        object na_value=no_default,
+        cnp.dtype dtype=np.dtype(object)
+) -> np.ndarray:
+    dummy = np.empty(0, dtype=dtype)
+    result = _map_infer_mask(
+        arr,
+        f,
+        mask,
+        dummy,
+        convert,
+        na_value,
+        dtype,
+    )
+    return result
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _map_infer_mask(
+        ndarray[object] arr,
+        object f,
+        const uint8_t[:] mask,
+        bool_numeric_object_t[:] dummy,
         bint convert=True,
         object na_value=no_default,
         cnp.dtype dtype=np.dtype(object)
@@ -2888,7 +2911,7 @@ def map_infer_mask(
     """
     cdef:
         Py_ssize_t i, n
-        ndarray result
+        ndarray[bool_numeric_object_t] result
         object val
 
     n = len(arr)
