@@ -287,7 +287,8 @@ def test_tokenize_CR_with_quoting(c_parser_only):
 
 
 @pytest.mark.slow
-def test_grow_boundary_at_cap(c_parser_only):
+@pytest.mark.parametrize("count", [3 * 2**n for n in range(6)])
+def test_grow_boundary_at_cap(c_parser_only, count):
     # See gh-12494
     #
     # Cause of error was that the C parser
@@ -296,16 +297,13 @@ def test_grow_boundary_at_cap(c_parser_only):
     # to capacity, which would later cause a
     # buffer overflow error when checking the
     # EOF terminator of the CSV stream.
+    # 3 * 2^n commas was observed to break the parser
     parser = c_parser_only
 
-    def test_empty_header_read(count):
-        with StringIO("," * count) as s:
-            expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
-            df = parser.read_csv(s)
-        tm.assert_frame_equal(df, expected)
-
-    for cnt in range(1, 101):
-        test_empty_header_read(cnt)
+    with StringIO("," * count) as s:
+        expected = DataFrame(columns=[f"Unnamed: {i}" for i in range(count + 1)])
+        df = parser.read_csv(s)
+    tm.assert_frame_equal(df, expected)
 
 
 def test_parse_trim_buffers(c_parser_only):
