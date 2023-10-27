@@ -46,7 +46,7 @@ Generally, we assume that people use the keyword for the following reasons:
 
 For the first reason: efficiency is an important aspect. However, in practice it is not always the case
 that `inplace=True` improves anything. Some of the methods with an `inplace` keyword can actually work inplace, but
-others still make a copy under the hood anyway. In addition, with the introduction of Copy-on-Write, there are now other
+others still make a copy under the hood anyway. In addition, with the introduction of Copy-on-Write ([PDEP-7](^1)), there are now other
 ways to avoid making unnecessary copies by default (without needing to specify a keyword). The next section gives a
 detailed overview of those different cases.
 
@@ -63,12 +63,12 @@ Finally, there are also methods that have a `copy` keyword instead of an `inplac
 the data when `copy=False`, but returns a new object referencing the same data instead of updating the calling object),
 adding to the inconsistencies. This keyword is also redundant now with the introduction of Copy-on-Write.
 
-Given the above reasons, we are convinced that there is no need for neither the `inplace` nor the `copy` keyword (except
-for a small subset of methods that can actually update data inplace). Removing those keywords will give a more
+Given the above reasons, we are convinced that there is no need for neither the `inplace` nor the `copy` keyword, except
+for a small subset of methods that can actually update data inplace. Removing those keywords will give a more
 consistent and less confusing API. Removing the `copy` keyword is covered by PDEP-7 about Copy-on-Write,
 and this PDEP will focus on the `inplace` keyword.
 
-Thus, in this PDEP, we aim to standardize behavior across methods to make control of inplace-ness of operations
+Thus, in this PDEP, we aim to standardize behavior across methods to make control of inplace-ness of methods
 consistent, and compatible with Copy-on-Write.
 
 Note: there are also operations (not methods) that work inplace in pandas, such as indexing (
@@ -101,8 +101,12 @@ for this PDEP, we can distinguish two kinds of "inplace" operations:
   As illustration, an example of such an object-inplace operation without using a method:
 
     :::python
-    # we replace the Index on `df` inplace, but without actually updating any existing array
+    # we replace the Index on `df` inplace, but without actually
+    # updating any existing array
     df.index = pd.Index(...)
+    # we update the DataFrame inplace, but by completely replacing a column,
+    # not by mutating the existing column's underlying array
+    df["col"] = new_values
 
   Object-inplace operations, while not actually modifying existing column values, keep
   (a subset of) those columns and thus can avoid copying the data of those existing columns.
@@ -142,7 +146,7 @@ it will not change any existing values inplace; rather it will remove the values
 | ``bfill``       |
 | ``clip``        |
 
-These methods don't operate inplace by default, but can be done inplace with `inplace=True` if the dtypes are compatible
+These methods don't operate inplace by default, but can be done inplace with `inplace=True` _if_ the dtypes are compatible
 (e.g. the values replacing the old values can be stored in the original array without an astype). All those methods leave
 the structure of the DataFrame or Series intact (shape, row/column labels), but can mutate some elements of the data of
 the DataFrame or Series.
@@ -180,7 +184,7 @@ return a new object referencing the same data.
 | `eval`                 |
 | `query`                |
 
-Although these methods have the `inplace` keyword, they can never operate inplace because the nature of the
+Although these methods have the `inplace` keyword, they can never operate inplace, in neither meaning, because the nature of the
 operation requires copying (such as reordering or dropping rows). For those methods, `inplace=True` is essentially just
 syntactic sugar for reassigning the new result to the calling DataFrame/Series.
 
@@ -191,16 +195,21 @@ implementation detail for the purpose of this PDEP.
 
 ### Proposed changes and reasoning
 
-The methods from group 1 won't change behavior, and will remain always inplace.
+The methods from **group 1 (always inplace, no keyword)** won't change behavior, and will remain always inplace.
 
-Methods in groups 3 and 4 will lose their `inplace` keyword. Under Copy-on-Write, every operation will
-potentially return a shallow copy of the input object, if the performed operation does not require a copy of the data. This is
-equivalent to the behavior with `inplace=True` for those methods. If users want to make a hard
-copy, they can call the `copy()` method on the result of the operation.
+For methods from **group 3 (object-inplace)**, the `inplace=True` keyword can currently be
+used to avoid a copy. However, with the introduction of Copy-on-Write, every operation
+will potentially return a shallow copy of the input object by default (if the performed
+operation does not require a copy of the data). This future default is therefore
+equivalent to the behavior with `inplace=True` for those methods (minus the return
+value), and therefore we propose to remove the `inplace` keyword for this group of
+methods.
 
-Therefore, there is no benefit of keeping the keyword around for these methods.
+For methods from **group 4 (never inplace)**, the `inplace` keyword has no actual effect
+(except for re-assigning to the calling variable) and is effectively syntactic sugar for
+manually re-assigning. For this group, we propose to remove the `inplace` keyword.
 
-To emulate behavior of the `inplace` keyword, we can reassign the result of an operation to the same variable:
+For the above reasoning, we think there is no benefit of keeping the keyword around for these methods. To emulate behavior of the `inplace` keyword, we can reassign the result of an operation to the same variable:
 
     :::python
     df = pd.DataFrame({"foo": [1, 2, 3]})
@@ -208,9 +217,9 @@ To emulate behavior of the `inplace` keyword, we can reassign the result of an o
     df.iloc[0, 1] = ...
 
 All references to the original object will go out of scope when the result of the `reset_index` operation is assigned
-to `df`. As a consequence, `iloc` will continue to operate inplace, and the underlying data will not be copied.
+to `df`. As a consequence, `iloc` will continue to operate inplace, and the underlying data will not be copied (with Copy-on-Write).
 
-Group 2 methods differ, though, since they only modify the underlying data, and therefore can be inplace.
+**Group 2 (values-inplace)** methods differ, though, since they only modify the underlying data, and therefore can be inplace.
 
     :::python
     df = pd.DataFrame({"foo": [1, 2, 3]})
@@ -220,8 +229,9 @@ If we follow the rules of Copy-on-Write[^1] where "any subset or returned series
 the original, and thus never modifies the original", then there is no way of doing this operation inplace by default.
 The original object would be modified before the reference goes out of scope.
 
-To avoid triggering a copy when a value would actually get replaced, we will keep the `inplace` argument for those
-methods.
+For this case, an `inplace=True` option can have an actual benefit, i.e. allowing to
+avoid triggering a copy when a value would get replaced. Therefore, we propose to keep
+the `inplace` argument for those methods.
 
 ### Open Questions
 
@@ -329,7 +339,7 @@ Removing the `inplace` keyword is a breaking change, but since the affected beha
 behaviour when not specifying the keyword (i.e. `inplace=False`) will not change and the keyword itself can first be
 deprecated before it is removed.
 
-## Rejected ideas
+## Rejected alternatives
 
 ### Remove the `inplace` keyword altogether
 
