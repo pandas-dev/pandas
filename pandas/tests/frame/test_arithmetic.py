@@ -22,7 +22,6 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.computation import expressions as expr
-from pandas.core.computation.expressions import _MIN_ELEMENTS
 from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
@@ -30,7 +29,7 @@ from pandas.tests.frame.common import (
 from pandas.util.version import Version
 
 
-@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
+@pytest.fixture(autouse=True, params=[0, 100], ids=["numexpr", "python"])
 def switch_numexpr_min_elements(request, monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(expr, "_MIN_ELEMENTS", request.param)
@@ -500,7 +499,9 @@ class TestFrameFlexArithmetic:
         tm.assert_frame_equal(result2, expected)
 
     @pytest.mark.parametrize("opname", ["floordiv", "pow"])
-    def test_floordiv_axis0_numexpr_path(self, opname, request):
+    def test_floordiv_axis0_numexpr_path(
+        self, opname, request, switch_numexpr_min_elements
+    ):
         # case that goes through numexpr and has to fall back to masked_arith_op
         ne = pytest.importorskip("numexpr")
         if (
@@ -514,7 +515,12 @@ class TestFrameFlexArithmetic:
 
         op = getattr(operator, opname)
 
-        arr = np.arange(_MIN_ELEMENTS + 100).reshape(_MIN_ELEMENTS // 100 + 1, -1) * 100
+        arr = (
+            np.arange(switch_numexpr_min_elements + 10).reshape(
+                switch_numexpr_min_elements // 10 + 1, -1
+            )
+            * 100
+        )
         df = DataFrame(arr)
         df["C"] = 1.0
 
