@@ -14,6 +14,25 @@ from pandas import (
 import pandas._testing as tm
 
 
+class TestDataFrameToString:
+    def test_to_string_masked_ea_with_formatter(self):
+        # GH#39336
+        df = DataFrame(
+            {
+                "a": Series([0.123456789, 1.123456789], dtype="Float64"),
+                "b": Series([1, 2], dtype="Int64"),
+            }
+        )
+        result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
+        expected = dedent(
+            """\
+                  a     b
+            0  0.12  1.00
+            1  1.12  2.00"""
+        )
+        assert result == expected
+
+
 def test_repr_embedded_ndarray():
     arr = np.empty(10, dtype=[("err", object)])
     for i in range(len(arr)):
