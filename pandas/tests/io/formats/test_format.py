@@ -1,5 +1,6 @@
 """
-Test output formatting for Series/DataFrame, including to_string & reprs
+Tests for the file pandas.io.formats.format, *not* tests for general formatting
+of pandas objects.
 """
 from datetime import (
     datetime,
@@ -144,29 +145,6 @@ def has_expanded_repr(df):
 
 
 class TestDataFrameFormatting:
-    @pytest.mark.parametrize(
-        "row, columns, show_counts, result",
-        [
-            [20, 20, None, True],
-            [20, 20, True, True],
-            [20, 20, False, False],
-            [5, 5, None, False],
-            [5, 5, True, False],
-            [5, 5, False, False],
-        ],
-    )
-    def test_show_counts(self, row, columns, show_counts, result):
-        # Explicit cast to float to avoid implicit cast when setting nan
-        df = DataFrame(1, columns=range(10), index=range(10)).astype({1: "float"})
-        df.iloc[1, 1] = np.nan
-
-        with option_context(
-            "display.max_info_rows", row, "display.max_info_columns", columns
-        ):
-            with StringIO() as buf:
-                df.info(buf=buf, show_counts=show_counts)
-                assert ("non-null" in buf.getvalue()) is result
-
     def test_repr_truncation(self):
         max_len = 20
         with option_context("display.max_colwidth", max_len):
