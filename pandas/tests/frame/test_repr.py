@@ -25,7 +25,7 @@ import pandas._testing as tm
 import pandas.io.formats.format as fmt
 
 
-class TestDataFrameReprInfoEtc:
+class TestDataFrameRepr:
     def test_repr_bytes_61_lines(self):
         # GH#12857
         lets = list("ACDEFGHIJKLMNOP")
@@ -141,11 +141,8 @@ NaT   4"""
         repr(frame)
 
     def test_repr_mixed(self, float_string_frame):
-        buf = StringIO()
-
         # mixed
         repr(float_string_frame)
-        float_string_frame.info(verbose=False, buf=buf)
 
     @pytest.mark.slow
     def test_repr_mixed_big(self):
@@ -162,25 +159,10 @@ NaT   4"""
 
         repr(biggie)
 
-    def test_repr(self, float_frame):
-        buf = StringIO()
-
-        # small one
-        repr(float_frame)
-        float_frame.info(verbose=False, buf=buf)
-
-        # even smaller
-        float_frame.reindex(columns=["A"]).info(verbose=False, buf=buf)
-        float_frame.reindex(columns=["A", "B"]).info(verbose=False, buf=buf)
-
-        # exhausting cases in DataFrame.info
-
+    def test_repr(self):
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])
         repr(no_index)
-
-        # no columns or index
-        DataFrame().info(buf=buf)
 
         df = DataFrame(["a\n\r\tb"], columns=["a\n\r\td"], index=["a\n\r\tf"])
         assert "\t" not in repr(df)
@@ -204,7 +186,7 @@ NaT   4"""
         biggie = DataFrame(np.zeros((200, 4)), columns=range(4), index=range(200))
         repr(biggie)
 
-    def test_repr_unsortable(self, float_frame):
+    def test_repr_unsortable(self):
         # columns are not sortable
 
         unsortable = DataFrame(
@@ -217,6 +199,9 @@ NaT   4"""
             index=np.arange(50),
         )
         repr(unsortable)
+
+    def test_repr_float_frame_options(self, float_frame):
+        repr(float_frame)
 
         fmt.set_option("display.precision", 3)
         repr(float_frame)
@@ -257,7 +242,7 @@ NaT   4"""
         with pytest.raises(TypeError, match=msg):
             bytes(df)
 
-    def test_very_wide_info_repr(self):
+    def test_very_wide_repr(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 20)),
             columns=np.array(["a" * 10] * 20, dtype=object),
