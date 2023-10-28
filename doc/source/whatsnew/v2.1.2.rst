@@ -1,6 +1,6 @@
 .. _whatsnew_212:
 
-What's new in 2.1.2 (October 25, 2023)
+What's new in 2.1.2 (October 26, 2023)
 ---------------------------------------
 
 These are the changes in pandas 2.1.2. See :ref:`release` for a full changelog
