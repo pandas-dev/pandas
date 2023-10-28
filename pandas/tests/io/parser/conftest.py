@@ -123,6 +123,7 @@ def all_parsers(request):
         import pyarrow
 
         pyarrow.set_cpu_count(1)
+        pyarrow.set_io_thread_count(1)
     return parser
 
 
