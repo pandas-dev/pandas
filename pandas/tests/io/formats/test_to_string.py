@@ -129,6 +129,208 @@ class TestDataFrameToStringFormatters:
         assert result == expected
 
 
+class TestDataFrameToStringColSpace:
+    def test_to_string_with_column_specific_col_space_raises(self):
+        df = DataFrame(
+            np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
+        )
+
+        msg = (
+            "Col_space length\\(\\d+\\) should match "
+            "DataFrame number of columns\\(\\d+\\)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            df.to_string(col_space=[30, 40])
+
+        with pytest.raises(ValueError, match=msg):
+            df.to_string(col_space=[30, 40, 50, 60])
+
+        msg = "unknown column"
+        with pytest.raises(ValueError, match=msg):
+            df.to_string(col_space={"a": "foo", "b": 23, "d": 34})
+
+    def test_to_string_with_column_specific_col_space(self):
+        df = DataFrame(
+            np.random.default_rng(2).random(size=(3, 3)), columns=["a", "b", "c"]
+        )
+
+        result = df.to_string(col_space={"a": 10, "b": 11, "c": 12})
+        # 3 separating space + each col_space for (id, a, b, c)
+        assert len(result.split("\n")[1]) == (3 + 1 + 10 + 11 + 12)
+
+        result = df.to_string(col_space=[10, 11, 12])
+        assert len(result.split("\n")[1]) == (3 + 1 + 10 + 11 + 12)
+
+    def test_to_string_with_col_space(self):
+        df = DataFrame(np.random.default_rng(2).random(size=(1, 3)))
+        c10 = len(df.to_string(col_space=10).split("\n")[1])
+        c20 = len(df.to_string(col_space=20).split("\n")[1])
+        c30 = len(df.to_string(col_space=30).split("\n")[1])
+        assert c10 < c20 < c30
+
+        # GH#8230
+        # col_space wasn't being applied with header=False
+        with_header = df.to_string(col_space=20)
+        with_header_row1 = with_header.splitlines()[1]
+        no_header = df.to_string(col_space=20, header=False)
+        assert len(with_header_row1) == len(no_header)
+
+    def test_to_string_repr_tuples(self):
+        buf = StringIO()
+
+        df = DataFrame({"tups": list(zip(range(10), range(10)))})
+        repr(df)
+        df.to_string(col_space=10, buf=buf)
+
+
+class TestDataFrameToStringHeader:
+    def test_to_string_header_false(self):
+        # GH#49230
+        df = DataFrame([1, 2])
+        df.index.name = "a"
+        s = df.to_string(header=False)
+        expected = "a   \n0  1\n1  2"
+        assert s == expected
+
+        df = DataFrame([[1, 2], [3, 4]])
+        df.index.name = "a"
+        s = df.to_string(header=False)
+        expected = "a      \n0  1  2\n1  3  4"
+        assert s == expected
+
+    def test_to_string_multindex_header(self):
+        # GH#16718
+        df = DataFrame({"a": [0], "b": [1], "c": [2], "d": [3]}).set_index(["a", "b"])
+        res = df.to_string(header=["r1", "r2"])
+        exp = "    r1 r2\na b      \n0 1  2  3"
+        assert res == exp
+
+    def test_to_string_no_header(self):
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+
+        df_s = df.to_string(header=False)
+        expected = "0  1  4\n1  2  5\n2  3  6"
+
+        assert df_s == expected
+
+    def test_to_string_specified_header(self):
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+
+        df_s = df.to_string(header=["X", "Y"])
+        expected = "   X  Y\n0  1  4\n1  2  5\n2  3  6"
+
+        assert df_s == expected
+
+        msg = "Writing 2 cols but got 1 aliases"
+        with pytest.raises(ValueError, match=msg):
+            df.to_string(header=["X"])
+
+
+class TestDataFrameToStringLineWidth:
+    def test_to_string_line_width(self):
+        df = DataFrame(123, index=range(10, 15), columns=range(30))
+        lines = df.to_string(line_width=80)
+        assert max(len(line) for line in lines.split("\n")) == 80
+
+    def test_to_string_line_width_no_index(self):
+        # GH#13998, GH#22505
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = " x  \\\n 1   \n 2   \n 3   \n\n y  \n 4  \n 5  \n 6  "
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = " x  \\\n11   \n22   \n33   \n\n y  \n 4  \n 5  \n 6  "
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1, index=False)
+        expected = "  x  \\\n 11   \n 22   \n-33   \n\n y  \n 4  \n 5  \n-6  "
+
+        assert df_s == expected
+
+    def test_to_string_line_width_no_header(self):
+        # GH#53054
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, header=False)
+        expected = "0  1  \\\n1  2   \n2  3   \n\n0  4  \n1  5  \n2  6  "
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, header=False)
+        expected = "0  11  \\\n1  22   \n2  33   \n\n0  4  \n1  5  \n2  6  "
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1, header=False)
+        expected = "0  11  \\\n1  22   \n2 -33   \n\n0  4  \n1  5  \n2 -6  "
+
+        assert df_s == expected
+
+    def test_to_string_line_width_with_both_index_and_header(self):
+        # GH#53054
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1)
+        expected = (
+            "   x  \\\n0  1   \n1  2   \n2  3   \n\n   y  \n0  4  \n1  5  \n2  6  "
+        )
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1)
+        expected = (
+            "    x  \\\n0  11   \n1  22   \n2  33   \n\n   y  \n0  4  \n1  5  \n2  6  "
+        )
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1)
+        expected = (
+            "    x  \\\n0  11   \n1  22   \n2 -33   \n\n   y  \n0  4  \n1  5  \n2 -6  "
+        )
+
+        assert df_s == expected
+
+    def test_to_string_line_width_no_index_no_header(self):
+        # GH#53054
+        df = DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False, header=False)
+        expected = "1  \\\n2   \n3   \n\n4  \n5  \n6  "
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, 33], "y": [4, 5, 6]})
+
+        df_s = df.to_string(line_width=1, index=False, header=False)
+        expected = "11  \\\n22   \n33   \n\n4  \n5  \n6  "
+
+        assert df_s == expected
+
+        df = DataFrame({"x": [11, 22, -33], "y": [4, 5, -6]})
+
+        df_s = df.to_string(line_width=1, index=False, header=False)
+        expected = " 11  \\\n 22   \n-33   \n\n 4  \n 5  \n-6  "
+
+        assert df_s == expected
+
+
 def test_repr_embedded_ndarray():
     arr = np.empty(10, dtype=[("err", object)])
     for i in range(len(arr)):
@@ -138,14 +340,6 @@ def test_repr_embedded_ndarray():
     repr(df["err"])
     repr(df)
     df.to_string()
-
-
-def test_repr_tuples():
-    buf = StringIO()
-
-    df = DataFrame({"tups": list(zip(range(10), range(10)))})
-    repr(df)
-    df.to_string(col_space=10, buf=buf)
 
 
 def test_to_string_truncate():
