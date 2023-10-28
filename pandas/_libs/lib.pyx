@@ -2864,6 +2864,28 @@ def map_infer_mask(
         object na_value=no_default,
         cnp.dtype dtype=np.dtype(object)
 ) -> np.ndarray:
+    """
+    Substitute for np.vectorize with pandas-friendly dtype inference.
+
+    Parameters
+    ----------
+    arr : ndarray
+    f : function
+    mask : ndarray
+        uint8 dtype ndarray indicating values not to apply `f` to.
+    convert : bool, default True
+        Whether to call `maybe_convert_objects` on the resulting ndarray.
+    na_value : Any, optional
+        The result value to use for masked values. By default, the
+        input value is used.
+    dtype : numpy.dtype
+        The numpy dtype to use for the result ndarray.
+
+    Returns
+    -------
+    np.ndarray
+    """
+    # Passed so we can use infused types depending on the result dtype
     dummy = np.empty(0, dtype=dtype)
     result = _map_infer_mask(
         arr,
@@ -2874,7 +2896,10 @@ def map_infer_mask(
         na_value,
         dtype,
     )
-    return result
+    if convert:
+        return maybe_convert_objects(result)
+    else:
+        return result
 
 
 @cython.boundscheck(False)
@@ -2889,7 +2914,7 @@ def _map_infer_mask(
         cnp.dtype dtype=np.dtype(object)
 ) -> np.ndarray:
     """
-    Substitute for np.vectorize with pandas-friendly dtype inference.
+    Helper for map_infer_mask, split off to use fused types based on the result.
 
     Parameters
     ----------
@@ -2897,11 +2922,11 @@ def _map_infer_mask(
     f : function
     mask : ndarray
         uint8 dtype ndarray indicating values not to apply `f` to.
-    convert : bool, default True
-        Whether to call `maybe_convert_objects` on the resulting ndarray
+    dummy : ndarray
+        Unused. Has the same dtype as the result to allow using fused types.
     na_value : Any, optional
         The result value to use for masked values. By default, the
-        input value is used
+        input value is used.
     dtype : numpy.dtype
         The numpy dtype to use for the result ndarray.
 
@@ -2931,10 +2956,7 @@ def _map_infer_mask(
 
         result[i] = val
 
-    if convert:
-        return maybe_convert_objects(result)
-    else:
-        return result
+    return result
 
 
 @cython.boundscheck(False)
