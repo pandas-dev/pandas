@@ -1620,20 +1620,6 @@ class TestDataFrameFormatting:
         expected = "    x\n0 -15\n1  20\n2  25\n3 -35"
         assert output == expected
 
-    def test_to_string_index_formatter(self):
-        df = DataFrame([range(5), range(5, 10), range(10, 15)])
-
-        rs = df.to_string(formatters={"__index__": lambda x: "abc"[x]})
-
-        xp = """\
-    0   1   2   3   4
-a   0   1   2   3   4
-b   5   6   7   8   9
-c  10  11  12  13  14\
-"""
-
-        assert rs == xp
-
     def test_to_string_left_justify_cols(self):
         tm.reset_display_options()
         df = DataFrame({"x": [3234, 0.253]})
@@ -1985,17 +1971,6 @@ c  10  11  12  13  14\
             min_rows=min_rows,
         )
         result = formatter.max_rows_fitted
-        assert result == expected
-
-    def test_no_extra_space(self):
-        # GH 52690: Check that no extra space is given
-        col1 = "TEST"
-        col2 = "PANDAS"
-        col3 = "to_string"
-        expected = f"{col1:<6s} {col2:<7s} {col3:<10s}"
-        df = DataFrame([{"col1": "TEST", "col2": "PANDAS", "col3": "to_string"}])
-        d = {"col1": "{:<6s}".format, "col2": "{:<7s}".format, "col3": "{:<10s}".format}
-        result = df.to_string(index=False, header=False, formatters=d)
         assert result == expected
 
 
