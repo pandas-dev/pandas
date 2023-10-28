@@ -32,7 +32,7 @@ def test_repr_binary_type():
     assert res == b
 
 
-class TestFormattBase:
+class TestFormatBase:
     def test_adjoin(self):
         data = [["a", "b", "c"], ["dd", "ee", "ff"], ["ggg", "hhh", "iii"]]
         expected = "a  dd  ggg\nb  ee  hhh\nc  ff  iii"
@@ -200,17 +200,7 @@ class TestTableSchemaRepr:
             ip.instance(config=ip.config).display_formatter.format(cf)
 
 
-def test_multiindex_long_element():
-    # Non-regression test towards GH #52960
-    data = pd.MultiIndex.from_tuples([("c" * 62,)])
-
-    expected = (
-        "MultiIndex([('cccccccccccccccccccccccccccccccccccccccc"
-        "cccccccccccccccccccccc',)],\n           )"
-    )
-    assert str(data) == expected
-
-
+# TODO: this is a test for Series/DataFrame __repr__
 @pytest.mark.parametrize(
     "data,output",
     [

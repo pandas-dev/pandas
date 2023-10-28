@@ -71,6 +71,7 @@ def test_info_categorical_column_smoke_test():
         "float_frame",
         "datetime_frame",
         "duplicate_columns_frame",
+        "float_string_frame",
     ],
 )
 def test_info_smoke_test(fixture_func_name, request):
@@ -79,6 +80,19 @@ def test_info_smoke_test(fixture_func_name, request):
     frame.info(buf=buf)
     result = buf.getvalue().splitlines()
     assert len(result) > 10
+
+    buf = StringIO()
+    frame.info(buf=buf, verbose=False)
+
+
+def test_info_smoke_test2(float_frame):
+    # pretty useless test, used to be mixed into the repr tests
+    buf = StringIO()
+    float_frame.reindex(columns=["A"]).info(verbose=False, buf=buf)
+    float_frame.reindex(columns=["A", "B"]).info(verbose=False, buf=buf)
+
+    # no columns or index
+    DataFrame().info(buf=buf)
 
 
 @pytest.mark.parametrize(
