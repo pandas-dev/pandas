@@ -63,7 +63,7 @@ def test_read_unempty_cells():
 
 def test_read_cell_annotation():
     expected = pd.DataFrame(
-        ["test"],
+        ["test", np.nan, "test 3"],
         columns=["Column 1"],
     )
 
