@@ -155,9 +155,21 @@ cdef dict _parse_code_table = {"y": 0,
 
 
 cdef class DatetimeParseState:
-    def __cinit__(self):
+    def __cinit__(self, NPY_DATETIMEUNIT creso=NPY_DATETIMEUNIT.NPY_FR_GENERIC):
         self.found_tz = False
         self.found_naive = False
+        self.creso = creso
+        self.creso_changed = False
+
+    cdef bint update_creso(self, NPY_DATETIMEUNIT item_reso):
+        # Return a bool to indicate we bumped to a higher resolution
+        if self.creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+            self.creso = item_reso
+        elif item_reso > self.creso:
+            self.creso = item_reso
+            self.creso_changed = True
+            return True
+        return False
 
     cdef tzinfo process_datetime(self, datetime dt, tzinfo tz, bint utc_convert):
         if dt.tzinfo is not None:
