@@ -2,10 +2,7 @@
 Tests for the file pandas.io.formats.format, *not* tests for general formatting
 of pandas objects.
 """
-from datetime import (
-    datetime,
-    timedelta,
-)
+from datetime import datetime
 from io import StringIO
 from pathlib import Path
 import re
@@ -1810,37 +1807,6 @@ class TestSeriesFormatting:
         a.name = "title1"
         repr(a)
 
-    def test_to_string(self):
-        ts = tm.makeTimeSeries()
-        buf = StringIO()
-
-        s = ts.to_string()
-
-        retval = ts.to_string(buf=buf)
-        assert retval is None
-        assert buf.getvalue().strip() == s
-
-        # pass float_format
-        format = "%.4f".__mod__
-        result = ts.to_string(float_format=format)
-        result = [x.split()[1] for x in result.split("\n")[:-1]]
-        expected = [format(x) for x in ts]
-        assert result == expected
-
-        # empty string
-        result = ts[:0].to_string()
-        assert result == "Series([], Freq: B)"
-
-        result = ts[:0].to_string(length=0)
-        assert result == "Series([], Freq: B)"
-
-        # name and length
-        cp = ts.copy()
-        cp.name = "foo"
-        result = cp.to_string(length=True, name=True, dtype=True)
-        last_line = result.split("\n")[-1].strip()
-        assert last_line == (f"Freq: B, Name: foo, Length: {len(cp)}, dtype: float64")
-
     def test_freq_name_separation(self):
         s = Series(
             np.random.default_rng(2).standard_normal(10),
@@ -1880,13 +1846,6 @@ class TestSeriesFormatting:
             "3   -3.0000\n"
             "4       NaN"
         )
-        assert result == expected
-
-    def test_to_string_without_index(self):
-        # GH 11729 Test index=False option
-        s = Series([1, 2, 3, 4])
-        result = s.to_string(index=False)
-        expected = "\n".join(["1", "2", "3", "4"])
         assert result == expected
 
     def test_unicode_name_in_footer(self):
@@ -2137,16 +2096,16 @@ class TestSeriesFormatting:
             else:
                 assert "+10" in line
 
-    def test_datetimeindex(self):
+    def test_to_string_with_datetimeindex(self):
         index = date_range("20130102", periods=6)
-        s = Series(1, index=index)
-        result = s.to_string()
+        ser = Series(1, index=index)
+        result = ser.to_string()
         assert "2013-01-02" in result
 
         # nat in index
         s2 = Series(2, index=[Timestamp("20130111"), NaT])
-        s = pd.concat([s2, s])
-        result = s.to_string()
+        ser = pd.concat([s2, ser])
+        result = ser.to_string()
         assert "NaT" in result
 
         # nat in summary
@@ -2176,63 +2135,6 @@ class TestSeriesFormatting:
         s2 = Series(3, index=dti)
         result = str(s2.index)
         assert start_date in result
-
-    def test_timedelta64(self):
-        Series(np.array([1100, 20], dtype="timedelta64[ns]")).to_string()
-
-        s = Series(date_range("2012-1-1", periods=3, freq="D"))
-
-        # GH2146
-
-        # adding NaTs
-        y = s - s.shift(1)
-        result = y.to_string()
-        assert "1 days" in result
-        assert "00:00:00" not in result
-        assert "NaT" in result
-
-        # with frac seconds
-        o = Series([datetime(2012, 1, 1, microsecond=150)] * 3)
-        y = s - o
-        result = y.to_string()
-        assert "-1 days +23:59:59.999850" in result
-
-        # rounding?
-        o = Series([datetime(2012, 1, 1, 1)] * 3)
-        y = s - o
-        result = y.to_string()
-        assert "-1 days +23:00:00" in result
-        assert "1 days 23:00:00" in result
-
-        o = Series([datetime(2012, 1, 1, 1, 1)] * 3)
-        y = s - o
-        result = y.to_string()
-        assert "-1 days +22:59:00" in result
-        assert "1 days 22:59:00" in result
-
-        o = Series([datetime(2012, 1, 1, 1, 1, microsecond=150)] * 3)
-        y = s - o
-        result = y.to_string()
-        assert "-1 days +22:58:59.999850" in result
-        assert "0 days 22:58:59.999850" in result
-
-        # neg time
-        td = timedelta(minutes=5, seconds=3)
-        s2 = Series(date_range("2012-1-1", periods=3, freq="D")) + td
-        y = s - s2
-        result = y.to_string()
-        assert "-1 days +23:54:57" in result
-
-        td = timedelta(microseconds=550)
-        s2 = Series(date_range("2012-1-1", periods=3, freq="D")) + td
-        y = s - td
-        result = y.to_string()
-        assert "2012-01-01 23:59:59.999450" in result
-
-        # no boxing of the actual elements
-        td = Series(pd.timedelta_range("1 days", periods=3))
-        result = td.to_string()
-        assert result == "0   1 days\n1   2 days\n2   3 days"
 
     def test_mixed_datetime64(self):
         df = DataFrame({"A": [1, 2], "B": ["2012-01-01", "2012-01-02"]})
@@ -2438,60 +2340,6 @@ class TestSeriesFormatting:
         with option_context("display.max_rows", None, "display.min_rows", 12):
             # max_rows of None -> never truncate
             assert ".." not in repr(s)
-
-    def test_to_string_name(self):
-        s = Series(range(100), dtype="int64")
-        s.name = "myser"
-        res = s.to_string(max_rows=2, name=True)
-        exp = "0      0\n      ..\n99    99\nName: myser"
-        assert res == exp
-        res = s.to_string(max_rows=2, name=False)
-        exp = "0      0\n      ..\n99    99"
-        assert res == exp
-
-    def test_to_string_dtype(self):
-        s = Series(range(100), dtype="int64")
-        res = s.to_string(max_rows=2, dtype=True)
-        exp = "0      0\n      ..\n99    99\ndtype: int64"
-        assert res == exp
-        res = s.to_string(max_rows=2, dtype=False)
-        exp = "0      0\n      ..\n99    99"
-        assert res == exp
-
-    def test_to_string_length(self):
-        s = Series(range(100), dtype="int64")
-        res = s.to_string(max_rows=2, length=True)
-        exp = "0      0\n      ..\n99    99\nLength: 100"
-        assert res == exp
-
-    def test_to_string_na_rep(self):
-        s = Series(index=range(100), dtype=np.float64)
-        res = s.to_string(na_rep="foo", max_rows=2)
-        exp = "0    foo\n      ..\n99   foo"
-        assert res == exp
-
-    def test_to_string_float_format(self):
-        s = Series(range(10), dtype="float64")
-        res = s.to_string(float_format=lambda x: f"{x:2.1f}", max_rows=2)
-        exp = "0   0.0\n     ..\n9   9.0"
-        assert res == exp
-
-    def test_to_string_header(self):
-        s = Series(range(10), dtype="int64")
-        s.index.name = "foo"
-        res = s.to_string(header=True, max_rows=2)
-        exp = "foo\n0    0\n    ..\n9    9"
-        assert res == exp
-        res = s.to_string(header=False, max_rows=2)
-        exp = "0    0\n    ..\n9    9"
-        assert res == exp
-
-    def test_to_string_empty_col(self):
-        # GH 13653
-        s = Series(["", "Hello", "World", "", "", "Mooooo", "", ""])
-        res = s.to_string(index=False)
-        exp = "      \n Hello\n World\n      \n      \nMooooo\n      \n      "
-        assert re.match(exp, res)
 
 
 class TestGenericArrayFormatter:
