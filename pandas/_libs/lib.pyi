@@ -112,7 +112,7 @@ def maybe_convert_numeric(
     convert_empty: bool = ...,
     coerce_numeric: bool = ...,
     convert_to_masked_nullable: Literal[False] = ...,
-    thousands: str = ...,
+    thousands: str = ..., # 
     decimal: str = ...,
 ) -> tuple[np.ndarray, None]: ...
 @overload

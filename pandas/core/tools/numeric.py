@@ -240,6 +240,8 @@ def to_numeric(
     else:
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
+        if(decimal != '.'):
+            
         try:
             values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]  # noqa: E501
                 values,
@@ -247,8 +249,8 @@ def to_numeric(
                 coerce_numeric=coerce_numeric,
                 convert_to_masked_nullable=dtype_backend is not lib.no_default
                 or isinstance(values_dtype, StringDtype),
-                thousands=thousands,
-                decimal=decimal
+                thousands=thousands,#ord(thousands),
+                decimal=decimal#ord(decimal)
             )
         except (ValueError, TypeError):
             if errors == "raise":
