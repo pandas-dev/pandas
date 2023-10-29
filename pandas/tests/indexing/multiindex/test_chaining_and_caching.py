@@ -78,6 +78,6 @@ def test_indexer_caching(monkeypatch):
         str(s)
 
         # setitem
-        expected = Series(np.ones(size_cutoff), index=index)
         s[s == 0] = 1
-        tm.assert_series_equal(s, expected)
+    expected = Series(np.ones(size_cutoff), index=index)
+    tm.assert_series_equal(s, expected)
