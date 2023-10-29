@@ -7,7 +7,6 @@ from io import StringIO
 from pathlib import Path
 import re
 from shutil import get_terminal_size
-import sys
 
 import numpy as np
 import pytest
@@ -498,17 +497,7 @@ class TestDataFrameFormatting:
                 with option_context("display.max_columns", 0):
                     assert has_horizontally_truncated_repr(df)
 
-    def test_to_string_repr_unicode(self):
-        buf = StringIO()
-
-        unicode_values = ["\u03c3"] * 10
-        unicode_values = np.array(unicode_values, dtype=object)
-        df = DataFrame({"unicode": unicode_values})
-        df.to_string(col_space=10, buf=buf)
-
-        # it works!
-        repr(df)
-
+    def test_to_string_repr_unicode2(self):
         idx = Index(["abc", "\u03c3a", "aegdvg"])
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         rs = repr(ser).split("\n")
@@ -520,14 +509,6 @@ class TestDataFrameFormatting:
                 pass
             if not line.startswith("dtype:"):
                 assert len(line) == line_len
-
-        # it works even if sys.stdin in None
-        _stdin = sys.stdin
-        try:
-            sys.stdin = None
-            repr(df)
-        finally:
-            sys.stdin = _stdin
 
     def test_east_asian_unicode_false(self):
         # not aligned properly because of east asian width
@@ -1027,10 +1008,6 @@ class TestDataFrameFormatting:
         df = DataFrame({"A": range(5)}, index=dti)
         result = str(df.index)
         assert start_date in result
-
-    def test_unicode_problem_decoding_as_ascii(self):
-        dm = DataFrame({"c/\u03c3": Series({"test": np.nan})})
-        str(dm.to_string())
 
     def test_string_repr_encoding(self, datapath):
         filepath = datapath("io", "parser", "data", "unicode_series.csv")

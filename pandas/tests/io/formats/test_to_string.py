@@ -4,6 +4,7 @@ from datetime import (
 )
 from io import StringIO
 import re
+import sys
 from textwrap import dedent
 
 import numpy as np
@@ -935,6 +936,28 @@ class TestDataFrameToString:
         rep_str = df.to_string()
         lines = rep_str.split("\n")
         assert len(lines[1]) == len(lines[2])
+
+    def test_unicode_problem_decoding_as_ascii(self):
+        df = DataFrame({"c/\u03c3": Series({"test": np.nan})})
+        str(df.to_string())
+
+    def test_to_string_repr_unicode(self):
+        buf = StringIO()
+
+        unicode_values = ["\u03c3"] * 10
+        unicode_values = np.array(unicode_values, dtype=object)
+        df = DataFrame({"unicode": unicode_values})
+        df.to_string(col_space=10, buf=buf)
+
+        # it works!
+        repr(df)
+        # it works even if sys.stdin in None
+        _stdin = sys.stdin
+        try:
+            sys.stdin = None
+            repr(df)
+        finally:
+            sys.stdin = _stdin
 
 
 class TestSeriesToString:
