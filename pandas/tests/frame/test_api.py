@@ -315,6 +315,15 @@ class TestDataFrameMisc:
         result = df.rename(columns=str)
         assert result.attrs == {"version": 1}
 
+    def test_attrs_deepcopy(self):
+        df = DataFrame({"A": [2, 3]})
+        assert df.attrs == {}
+        df.attrs["tags"] = {"spam", "ham"}
+
+        result = df.rename(columns=str)
+        assert result.attrs == df.attrs
+        assert result.attrs["tags"] is not df.attrs["tags"]
+
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(
         self, allows_duplicate_labels, frame_or_series, using_copy_on_write

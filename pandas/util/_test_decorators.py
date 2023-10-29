@@ -31,13 +31,15 @@ from typing import (
     Callable,
 )
 
-import numpy as np
 import pytest
 
 from pandas._config import get_option
 
 if TYPE_CHECKING:
     from pandas._typing import F
+
+from pandas._config.config import _get_option
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -175,18 +177,6 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-def skip_if_np_lt(
-    ver_str: str, *args, reason: str | None = None
-) -> pytest.MarkDecorator:
-    if reason is None:
-        reason = f"NumPy {ver_str} or greater required"
-    return pytest.mark.skipif(
-        Version(np.__version__) < Version(ver_str),
-        *args,
-        reason=reason,
-    )
-
-
 def parametrize_fixture_doc(*args) -> Callable[[F], F]:
     """
     Intended for use as a decorator for parametrized fixture,
@@ -226,16 +216,16 @@ def async_mark():
 
 def mark_array_manager_not_yet_implemented(request) -> None:
     mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
-    request.node.add_marker(mark)
+    request.applymarker(mark)
 
 
 skip_array_manager_not_yet_implemented = pytest.mark.xfail(
-    get_option("mode.data_manager") == "array",
+    _get_option("mode.data_manager", silent=True) == "array",
     reason="Not yet implemented for ArrayManager",
 )
 
 skip_array_manager_invalid_test = pytest.mark.skipif(
-    get_option("mode.data_manager") == "array",
+    _get_option("mode.data_manager", silent=True) == "array",
     reason="Test that relies on BlockManager internals or specific behaviour",
 )
 

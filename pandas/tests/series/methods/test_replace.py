@@ -76,7 +76,9 @@ class TestSeriesReplace:
         ser[20:30] = "bar"
 
         # replace list with a single value
-        rs = ser.replace([np.nan, "foo", "bar"], -1)
+        msg = "Downcasting behavior in `replace`"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = ser.replace([np.nan, "foo", "bar"], -1)
 
         assert (rs[:5] == -1).all()
         assert (rs[6:10] == -1).all()
@@ -84,7 +86,8 @@ class TestSeriesReplace:
         assert (pd.isna(ser[:5])).all()
 
         # replace with different values
-        rs = ser.replace({np.nan: -1, "foo": -2, "bar": -3})
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = ser.replace({np.nan: -1, "foo": -2, "bar": -3})
 
         assert (rs[:5] == -1).all()
         assert (rs[6:10] == -2).all()
@@ -92,11 +95,13 @@ class TestSeriesReplace:
         assert (pd.isna(ser[:5])).all()
 
         # replace with different values with 2 lists
-        rs2 = ser.replace([np.nan, "foo", "bar"], [-1, -2, -3])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs2 = ser.replace([np.nan, "foo", "bar"], [-1, -2, -3])
         tm.assert_series_equal(rs, rs2)
 
         # replace inplace
-        return_value = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            return_value = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
         assert return_value is None
 
         assert (ser[:5] == -1).all()
@@ -294,7 +299,9 @@ class TestSeriesReplace:
         ser[20:30] = "bar"
 
         # replace list with a single value
-        rs = ser.replace([np.nan, "foo", "bar"], -1)
+        msg = "Downcasting behavior in `replace`"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = ser.replace([np.nan, "foo", "bar"], -1)
 
         assert (rs[:5] == -1).all()
         assert (rs[6:10] == -1).all()
@@ -302,7 +309,8 @@ class TestSeriesReplace:
         assert (pd.isna(ser[:5])).all()
 
         # replace with different values
-        rs = ser.replace({np.nan: -1, "foo": -2, "bar": -3})
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs = ser.replace({np.nan: -1, "foo": -2, "bar": -3})
 
         assert (rs[:5] == -1).all()
         assert (rs[6:10] == -2).all()
@@ -310,11 +318,13 @@ class TestSeriesReplace:
         assert (pd.isna(ser[:5])).all()
 
         # replace with different values with 2 lists
-        rs2 = ser.replace([np.nan, "foo", "bar"], [-1, -2, -3])
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            rs2 = ser.replace([np.nan, "foo", "bar"], [-1, -2, -3])
         tm.assert_series_equal(rs, rs2)
 
         # replace inplace
-        return_value = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            return_value = ser.replace([np.nan, "foo", "bar"], -1, inplace=True)
         assert return_value is None
         assert (ser[:5] == -1).all()
         assert (ser[6:10] == -1).all()
@@ -373,7 +383,9 @@ class TestSeriesReplace:
     def test_replace_mixed_types_with_string(self):
         # Testing mixed
         s = pd.Series([1, 2, 3, "4", 4, 5])
-        result = s.replace([2, "4"], np.nan)
+        msg = "Downcasting behavior in `replace`"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = s.replace([2, "4"], np.nan)
         expected = pd.Series([1, np.nan, 3, np.nan, 4, 5])
         tm.assert_series_equal(expected, result)
 
@@ -387,7 +399,9 @@ class TestSeriesReplace:
     def test_replace_categorical(self, categorical, numeric):
         # GH 24971, GH#23305
         ser = pd.Series(categorical)
-        result = ser.replace({"A": 1, "B": 2})
+        msg = "Downcasting behavior in `replace`"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = ser.replace({"A": 1, "B": 2})
         expected = pd.Series(numeric).astype("category")
         if 2 not in expected.cat.categories:
             # i.e. categories should be [1, 2] even if there are no "B"s present
@@ -710,7 +724,9 @@ class TestSeriesReplace:
         # GH-48644
         series = pd.Series(["0"])
         expected = pd.Series([1])
-        result = series.replace(to_replace="0", value=1, regex=regex)
+        msg = "Downcasting behavior in `replace`"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = series.replace(to_replace="0", value=1, regex=regex)
         tm.assert_series_equal(result, expected)
 
     def test_replace_different_int_types(self, any_int_numpy_dtype):

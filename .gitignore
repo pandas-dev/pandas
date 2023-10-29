@@ -39,7 +39,7 @@
 .mesonpy-native-file.ini
 MANIFEST
 compile_commands.json
-debug
+.debug
 
 # Python files #
 ################

@@ -43,6 +43,7 @@ from pandas._config import (
     get_option,
     using_copy_on_write,
 )
+from pandas._config.config import _get_option
 
 from pandas._libs import (
     algos as libalgos,
@@ -67,7 +68,10 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_warning,
+)
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -229,6 +233,7 @@ if TYPE_CHECKING:
         Level,
         MergeHow,
         MergeValidate,
+        MutableMappingT,
         NaAction,
         NaPosition,
         NsmallestNlargestKeep,
@@ -239,6 +244,7 @@ if TYPE_CHECKING:
         Renamer,
         Scalar,
         Self,
+        SequenceNotStr,
         SortKind,
         StorageOptions,
         Suffixes,
@@ -640,14 +646,12 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrame
 
     def _constructor_from_mgr(self, mgr, axes):
-        df = self._from_mgr(mgr, axes=axes)
-
-        if type(self) is DataFrame:
-            # fastpath avoiding constructor call
-            return df
+        if self._constructor is DataFrame:
+            # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
+            return self._from_mgr(mgr, axes=axes)
         else:
             assert axes is mgr.axes
-            return self._constructor(df, copy=False)
+            return self._constructor(mgr)
 
     _constructor_sliced: Callable[..., Series] = Series
 
@@ -655,13 +659,12 @@ class DataFrame(NDFrame, OpsMixin):
         return Series._from_mgr(mgr, axes)
 
     def _constructor_sliced_from_mgr(self, mgr, axes):
-        ser = self._sliced_from_mgr(mgr, axes=axes)
-        ser._name = None  # caller is responsible for setting real name
-        if type(self) is DataFrame:
-            # fastpath avoiding constructor call
+        if self._constructor_sliced is Series:
+            ser = self._sliced_from_mgr(mgr, axes)
+            ser._name = None  # caller is responsible for setting real name
             return ser
         assert axes is mgr.axes
-        return self._constructor_sliced(ser, copy=False)
+        return self._constructor_sliced(mgr)
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -674,17 +677,29 @@ class DataFrame(NDFrame, OpsMixin):
         dtype: Dtype | None = None,
         copy: bool | None = None,
     ) -> None:
+        allow_mgr = False
         if dtype is not None:
             dtype = self._validate_dtype(dtype)
 
         if isinstance(data, DataFrame):
             data = data._mgr
+            allow_mgr = True
             if not copy:
                 # if not copying data, ensure to still return a shallow copy
                 # to avoid the result sharing the same Manager
                 data = data.copy(deep=False)
 
         if isinstance(data, (BlockManager, ArrayManager)):
+            if not allow_mgr:
+                # GH#52419
+                warnings.warn(
+                    f"Passing a {type(data).__name__} to {type(self).__name__} "
+                    "is deprecated and will raise in a future version. "
+                    "Use public APIs instead.",
+                    DeprecationWarning,
+                    stacklevel=find_stack_level(),
+                )
+
             if using_copy_on_write():
                 data = data.copy(deep=False)
             # first check if a Manager is passed without any other arguments
@@ -694,7 +709,7 @@ class DataFrame(NDFrame, OpsMixin):
                 NDFrame.__init__(self, data)
                 return
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
 
         # GH47215
         if isinstance(index, set):
@@ -1186,7 +1201,7 @@ class DataFrame(NDFrame, OpsMixin):
         buf: None = ...,
         columns: Axes | None = ...,
         col_space: int | list[int] | dict[Hashable, int] | None = ...,
-        header: bool | list[str] = ...,
+        header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
         formatters: fmt.FormattersType | None = ...,
@@ -1211,7 +1226,7 @@ class DataFrame(NDFrame, OpsMixin):
         buf: FilePath | WriteBuffer[str],
         columns: Axes | None = ...,
         col_space: int | list[int] | dict[Hashable, int] | None = ...,
-        header: bool | list[str] = ...,
+        header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
         formatters: fmt.FormattersType | None = ...,
@@ -1249,7 +1264,7 @@ class DataFrame(NDFrame, OpsMixin):
         buf: FilePath | WriteBuffer[str] | None = None,
         columns: Axes | None = None,
         col_space: int | list[int] | dict[Hashable, int] | None = None,
-        header: bool | list[str] = True,
+        header: bool | SequenceNotStr[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
         formatters: fmt.FormattersType | None = None,
@@ -1319,6 +1334,25 @@ class DataFrame(NDFrame, OpsMixin):
                 encoding=encoding,
                 line_width=line_width,
             )
+
+    def _get_values_for_csv(
+        self,
+        *,
+        float_format: FloatFormatType | None,
+        date_format: str | None,
+        decimal: str,
+        na_rep: str,
+        quoting,  # int csv.QUOTE_FOO from stdlib
+    ) -> Self:
+        # helper used by to_csv
+        mgr = self._mgr.get_values_for_csv(
+            float_format=float_format,
+            date_format=date_format,
+            decimal=decimal,
+            na_rep=na_rep,
+            quoting=quoting,
+        )
+        return self._constructor_from_mgr(mgr, axes=mgr.axes)
 
     # ----------------------------------------------------------------------
 
@@ -1925,6 +1959,27 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(
         self,
         orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
+        *,
+        into: type[MutableMappingT] | MutableMappingT,
+        index: bool = ...,
+    ) -> MutableMappingT:
+        ...
+
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["records"],
+        *,
+        into: type[MutableMappingT] | MutableMappingT,
+        index: bool = ...,
+    ) -> list[MutableMappingT]:
+        ...
+
+    @overload
+    def to_dict(
+        self,
+        orient: Literal["dict", "list", "series", "split", "tight", "index"] = ...,
+        *,
         into: type[dict] = ...,
         index: bool = ...,
     ) -> dict:
@@ -1934,11 +1989,14 @@ class DataFrame(NDFrame, OpsMixin):
     def to_dict(
         self,
         orient: Literal["records"],
+        *,
         into: type[dict] = ...,
         index: bool = ...,
     ) -> list[dict]:
         ...
 
+    # error: Incompatible default for argument "into" (default has type "type
+    # [dict[Any, Any]]", argument has type "type[MutableMappingT] | MutableMappingT")
     @deprecate_nonkeyword_arguments(
         version="3.0", allowed_args=["self", "orient"], name="to_dict"
     )
@@ -1947,9 +2005,10 @@ class DataFrame(NDFrame, OpsMixin):
         orient: Literal[
             "dict", "list", "series", "split", "tight", "records", "index"
         ] = "dict",
-        into: type[dict] = dict,
+        into: type[MutableMappingT]
+        | MutableMappingT = dict,  # type: ignore[assignment]
         index: bool = True,
-    ) -> dict | list[dict]:
+    ) -> MutableMappingT | list[MutableMappingT]:
         """
         Convert the DataFrame to a dictionary.
 
@@ -1977,7 +2036,7 @@ class DataFrame(NDFrame, OpsMixin):
                 'tight' as an allowed value for the ``orient`` argument
 
         into : class, default dict
-            The collections.abc.Mapping subclass used for all Mappings
+            The collections.abc.MutableMapping subclass used for all Mappings
             in the return value.  Can be the actual class or an empty
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
@@ -1991,9 +2050,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         Returns
         -------
-        dict, list or collections.abc.Mapping
-            Return a collections.abc.Mapping object representing the DataFrame.
-            The resulting transformation depends on the `orient` parameter.
+        dict, list or collections.abc.MutableMapping
+            Return a collections.abc.MutableMapping object representing the
+            DataFrame. The resulting transformation depends on the `orient`
+            parameter.
 
         See Also
         --------
@@ -2052,7 +2112,7 @@ class DataFrame(NDFrame, OpsMixin):
         """
         from pandas.core.methods.to_dict import to_dict
 
-        return to_dict(self, orient, into, index)
+        return to_dict(self, orient, into=into, index=index)
 
     @deprecate_nonkeyword_arguments(
         version="3.0", allowed_args=["self", "destination_table"], name="to_gbq"
@@ -2411,10 +2471,10 @@ class DataFrame(NDFrame, OpsMixin):
 
             columns = columns.drop(exclude)
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
         mgr = arrays_to_mgr(arrays, columns, result_index, typ=manager)
 
-        return cls(mgr)
+        return cls._from_mgr(mgr, axes=mgr.axes)
 
     def to_records(
         self, index: bool = True, column_dtypes=None, index_dtypes=None
@@ -2612,7 +2672,7 @@ class DataFrame(NDFrame, OpsMixin):
         if dtype is not None:
             dtype = pandas_dtype(dtype)
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
         columns = ensure_index(columns)
         if len(columns) != len(arrays):
             raise ValueError("len(columns) must match len(arrays)")
@@ -2624,7 +2684,7 @@ class DataFrame(NDFrame, OpsMixin):
             verify_integrity=verify_integrity,
             typ=manager,
         )
-        return cls(mgr)
+        return cls._from_mgr(mgr, axes=mgr.axes)
 
     @doc(
         storage_options=_shared_docs["storage_options"],
@@ -3025,7 +3085,7 @@ class DataFrame(NDFrame, OpsMixin):
             (e.g. via builtin open function). If path is None,
             a bytes object is returned.
         engine : {'pyarrow'}, default 'pyarrow'
-            ORC library to use. Pyarrow must be >= 7.0.0.
+            ORC library to use.
         index : bool, optional
             If ``True``, include the dataframe's index(es) in the file output.
             If ``False``, they will not be written to the file.
@@ -3237,7 +3297,7 @@ class DataFrame(NDFrame, OpsMixin):
         ... </table>'''
         >>> assert html_string == df.to_html()
         """
-        if justify is not None and justify not in fmt._VALID_JUSTIFY_PARAMETERS:
+        if justify is not None and justify not in fmt.VALID_JUSTIFY_PARAMETERS:
             raise ValueError("Invalid value for justify parameter")
 
         formatter = fmt.DataFrameFormatter(
@@ -3270,6 +3330,55 @@ class DataFrame(NDFrame, OpsMixin):
             render_links=render_links,
         )
 
+    @overload
+    def to_xml(
+        self,
+        path_or_buffer: None = ...,
+        *,
+        index: bool = ...,
+        root_name: str | None = ...,
+        row_name: str | None = ...,
+        na_rep: str | None = ...,
+        attr_cols: list[str] | None = ...,
+        elem_cols: list[str] | None = ...,
+        namespaces: dict[str | None, str] | None = ...,
+        prefix: str | None = ...,
+        encoding: str = ...,
+        xml_declaration: bool | None = ...,
+        pretty_print: bool | None = ...,
+        parser: XMLParsers | None = ...,
+        stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = ...,
+        compression: CompressionOptions = ...,
+        storage_options: StorageOptions | None = ...,
+    ) -> str:
+        ...
+
+    @overload
+    def to_xml(
+        self,
+        path_or_buffer: FilePath | WriteBuffer[bytes] | WriteBuffer[str],
+        *,
+        index: bool = ...,
+        root_name: str | None = ...,
+        row_name: str | None = ...,
+        na_rep: str | None = ...,
+        attr_cols: list[str] | None = ...,
+        elem_cols: list[str] | None = ...,
+        namespaces: dict[str | None, str] | None = ...,
+        prefix: str | None = ...,
+        encoding: str = ...,
+        xml_declaration: bool | None = ...,
+        pretty_print: bool | None = ...,
+        parser: XMLParsers | None = ...,
+        stylesheet: FilePath | ReadBuffer[str] | ReadBuffer[bytes] | None = ...,
+        compression: CompressionOptions = ...,
+        storage_options: StorageOptions | None = ...,
+    ) -> None:
+        ...
+
+    @deprecate_nonkeyword_arguments(
+        version="3.0", allowed_args=["self", "path_or_buffer"], name="to_xml"
+    )
     @doc(
         storage_options=_shared_docs["storage_options"],
         compression_options=_shared_docs["compression_options"] % "path_or_buffer",
@@ -4915,7 +5024,9 @@ class DataFrame(NDFrame, OpsMixin):
         column : str, number, or hashable object
             Label of the inserted column.
         value : Scalar, Series, or array-like
+            Content of the inserted column.
         allow_duplicates : bool, optional, default lib.no_default
+            Allow duplicate column labels to be created.
 
         See Also
         --------
@@ -5069,12 +5180,7 @@ class DataFrame(NDFrame, OpsMixin):
 
     @property
     def _series(self):
-        return {
-            item: Series(
-                self._mgr.iget(idx), index=self.index, name=item, fastpath=True
-            )
-            for idx, item in enumerate(self.columns)
-        }
+        return {item: self._ixs(idx, axis=1) for idx, item in enumerate(self.columns)}
 
     # ----------------------------------------------------------------------
     # Reindexing and alignment
@@ -9405,39 +9511,26 @@ class DataFrame(NDFrame, OpsMixin):
         dog  weight  kg    3.0
              height  m     4.0
         dtype: float64
-
-        **Dropping missing values**
-
-        >>> df_multi_level_cols3 = pd.DataFrame([[None, 1.0], [2.0, 3.0]],
-        ...                                     index=['cat', 'dog'],
-        ...                                     columns=multicol2)
-
-        Note that rows where all values are missing are dropped by
-        default but this behaviour can be controlled via the dropna
-        keyword parameter:
-
-        >>> df_multi_level_cols3
-            weight height
-                kg      m
-        cat    NaN    1.0
-        dog    2.0    3.0
-        >>> df_multi_level_cols3.stack(dropna=False)
-                weight  height
-        cat kg     NaN     NaN
-            m      NaN     1.0
-        dog kg     2.0     NaN
-            m      NaN     3.0
-        >>> df_multi_level_cols3.stack(dropna=True)
-                weight  height
-        cat m      NaN     1.0
-        dog kg     2.0     NaN
-            m      NaN     3.0
         """
         if not future_stack:
             from pandas.core.reshape.reshape import (
                 stack,
                 stack_multiple,
             )
+
+            if (
+                dropna is not lib.no_default
+                or sort is not lib.no_default
+                or self.columns.nlevels > 1
+            ):
+                warnings.warn(
+                    "The previous implementation of stack is deprecated and will be "
+                    "removed in a future version of pandas. See the What's New notes "
+                    "for pandas 2.1.0 for details. Specify future_stack=True to adopt "
+                    "the new implementation and silence this warning.",
+                    FutureWarning,
+                    stacklevel=find_stack_level(),
+                )
 
             if dropna is lib.no_default:
                 dropna = True
@@ -9829,11 +9922,11 @@ class DataFrame(NDFrame, OpsMixin):
     --------
     DataFrame.apply : Perform any type of operations.
     DataFrame.transform : Perform transformation type operations.
-    pandas.core.groupby.GroupBy : Perform operations over groups.
-    pandas.core.resample.Resampler : Perform operations over resampled bins.
-    pandas.core.window.Rolling : Perform operations over rolling window.
-    pandas.core.window.Expanding : Perform operations over expanding window.
-    pandas.core.window.ExponentialMovingWindow : Perform operation over exponential
+    pandas.DataFrame.groupby : Perform operations over groups.
+    pandas.DataFrame.resample : Perform operations over resampled bins.
+    pandas.DataFrame.rolling : Perform operations over rolling window.
+    pandas.DataFrame.expanding : Perform operations over expanding window.
+    pandas.core.window.ewm.ExponentialMovingWindow : Perform operation over exponential
         weighted window.
     """
     )
@@ -9998,6 +10091,9 @@ class DataFrame(NDFrame, OpsMixin):
             - nogil (release the GIL inside the JIT compiled function)
             - parallel (try to apply the function in parallel over the DataFrame)
 
+              Note: Due to limitations within numba/how pandas interfaces with numba,
+              you should only use this if raw=True
+
             Note: The numba compiler only supports a subset of
             valid Python/numpy operations.
 
@@ -10006,8 +10102,6 @@ class DataFrame(NDFrame, OpsMixin):
             and `supported numpy features
             <https://numba.pydata.org/numba-doc/dev/reference/numpysupported.html>`_
             in numba to learn what you can or cannot use in the passed function.
-
-            As of right now, the numba engine can only be used with raw=True.
 
             .. versionadded:: 2.2.0
 
@@ -10560,9 +10654,9 @@ class DataFrame(NDFrame, OpsMixin):
         self,
         right: DataFrame | Series,
         how: MergeHow = "inner",
-        on: IndexLabel | None = None,
-        left_on: IndexLabel | None = None,
-        right_on: IndexLabel | None = None,
+        on: IndexLabel | AnyArrayLike | None = None,
+        left_on: IndexLabel | AnyArrayLike | None = None,
+        right_on: IndexLabel | AnyArrayLike | None = None,
         left_index: bool = False,
         right_index: bool = False,
         sort: bool = False,
@@ -11278,7 +11372,20 @@ class DataFrame(NDFrame, OpsMixin):
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
                     ser = Series(arr, index=col_index, copy=False)
-                    result = ser.groupby(row_index).agg(name, **kwds)
+                    # GroupBy will raise a warning with SeriesGroupBy as the object,
+                    # likely confusing users
+                    with rewrite_warning(
+                        target_message=(
+                            f"The behavior of SeriesGroupBy.{name} with all-NA values"
+                        ),
+                        target_category=FutureWarning,
+                        new_message=(
+                            f"The behavior of {type(self).__name__}.{name} with all-NA "
+                            "values, or any-NA and skipna=False, is deprecated. In "
+                            "a future version this will raise ValueError"
+                        ),
+                    ):
+                        result = ser.groupby(row_index).agg(name, **kwds)
                     result.index = df.index
                     if not skipna and name not in ("any", "all"):
                         mask = df.isna().to_numpy(dtype=np.bool_).any(axis=1)
@@ -12064,7 +12171,7 @@ class DataFrame(NDFrame, OpsMixin):
         For the yearly frequency
 
         >>> idx.to_period("Y")
-        PeriodIndex(['2001', '2002', '2003'], dtype='period[A-DEC]')
+        PeriodIndex(['2001', '2002', '2003'], dtype='period[Y-DEC]')
         """
         new_obj = self.copy(deep=copy and not using_copy_on_write())
 

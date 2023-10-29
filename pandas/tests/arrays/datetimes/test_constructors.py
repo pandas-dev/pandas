@@ -8,7 +8,6 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import DatetimeArray
-from pandas.core.arrays.datetimes import _sequence_to_dt64ns
 
 
 class TestDatetimeArrayConstructor:
@@ -34,7 +33,7 @@ class TestDatetimeArrayConstructor:
         arr = np.arange(5, dtype=np.int64) * 3600 * 10**9
 
         msg = (
-            "Inferred frequency H from passed values does not "
+            "Inferred frequency h from passed values does not "
             "conform to passed frequency W-SUN"
         )
         with pytest.raises(ValueError, match=msg):
@@ -44,7 +43,6 @@ class TestDatetimeArrayConstructor:
         "meth",
         [
             DatetimeArray._from_sequence,
-            _sequence_to_dt64ns,
             pd.to_datetime,
             pd.DatetimeIndex,
         ],
@@ -70,7 +68,7 @@ class TestDatetimeArrayConstructor:
 
         result = DatetimeArray._from_sequence(arr)._with_freq("infer")
 
-        expected = pd.date_range("1970-01-01", periods=5, freq="H")._data
+        expected = pd.date_range("1970-01-01", periods=5, freq="h")._data
         tm.assert_datetime_array_equal(result, expected)
 
     def test_mismatched_timezone_raises(self):
@@ -105,9 +103,6 @@ class TestDatetimeArrayConstructor:
             DatetimeArray._from_sequence(arr)
 
         with pytest.raises(TypeError, match=msg):
-            _sequence_to_dt64ns(arr)
-
-        with pytest.raises(TypeError, match=msg):
             pd.DatetimeIndex(arr)
 
         with pytest.raises(TypeError, match=msg):
@@ -116,6 +111,24 @@ class TestDatetimeArrayConstructor:
     def test_incorrect_dtype_raises(self):
         with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
             DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="category")
+
+        with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
+            DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="m8[s]")
+
+        with pytest.raises(ValueError, match="Unexpected value for 'dtype'."):
+            DatetimeArray(np.array([1, 2, 3], dtype="i8"), dtype="M8[D]")
+
+    def test_mismatched_values_dtype_units(self):
+        arr = np.array([1, 2, 3], dtype="M8[s]")
+        dtype = np.dtype("M8[ns]")
+        msg = "Values resolution does not match dtype."
+
+        with pytest.raises(ValueError, match=msg):
+            DatetimeArray(arr, dtype=dtype)
+
+        dtype2 = DatetimeTZDtype(tz="UTC", unit="ns")
+        with pytest.raises(ValueError, match=msg):
+            DatetimeArray(arr, dtype=dtype2)
 
     def test_freq_infer_raises(self):
         with pytest.raises(ValueError, match="Frequency inference"):
@@ -143,14 +156,12 @@ class TestSequenceToDT64NS:
             ["2000"], dtype=DatetimeTZDtype(tz="US/Central")
         )
         with pytest.raises(TypeError, match="data is already tz-aware"):
-            DatetimeArray._from_sequence_not_strict(
-                arr, dtype=DatetimeTZDtype(tz="UTC")
-            )
+            DatetimeArray._from_sequence(arr, dtype=DatetimeTZDtype(tz="UTC"))
 
     def test_tz_dtype_matches(self):
         dtype = DatetimeTZDtype(tz="US/Central")
         arr = DatetimeArray._from_sequence(["2000"], dtype=dtype)
-        result = DatetimeArray._from_sequence_not_strict(arr, dtype=dtype)
+        result = DatetimeArray._from_sequence(arr, dtype=dtype)
         tm.assert_equal(arr, result)
 
     @pytest.mark.parametrize("order", ["F", "C"])
@@ -159,13 +170,6 @@ class TestSequenceToDT64NS:
         arr = np.array(dti, dtype=object).reshape(3, 2)
         if order == "F":
             arr = arr.T
-
-        res = _sequence_to_dt64ns(arr)
-        expected = _sequence_to_dt64ns(arr.ravel())
-
-        tm.assert_numpy_array_equal(res[0].ravel(), expected[0])
-        assert res[1] == expected[1]
-        assert res[2] == expected[2]
 
         res = DatetimeArray._from_sequence(arr)
         expected = DatetimeArray._from_sequence(arr.ravel()).reshape(arr.shape)

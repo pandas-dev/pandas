@@ -64,7 +64,7 @@ def test_union_different_types(index_flat, index_flat2, request):
         mark = pytest.mark.xfail(
             reason="GH#44000 True==1", raises=ValueError, strict=False
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     common_dtype = find_common_type([idx1.dtype, idx2.dtype])
 
@@ -89,7 +89,7 @@ def test_union_different_types(index_flat, index_flat2, request):
             raises=AssertionError,
             strict=False,
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     any_uint64 = np.uint64 in (idx1.dtype, idx2.dtype)
     idx1_signed = is_signed_integer_dtype(idx1.dtype)
@@ -796,11 +796,21 @@ class TestSetOpsUnsorted:
             assert result.name == expected
 
     def test_difference_empty_arg(self, index, sort):
-        first = index[5:20]
+        first = index.copy()
+        first = first[5:20]
         first.name = "name"
         result = first.difference([], sort)
+        expected = index[5:20].unique()
+        expected.name = "name"
+        tm.assert_index_equal(result, expected)
 
-        tm.assert_index_equal(result, first)
+    def test_difference_should_not_compare(self):
+        # GH 55113
+        left = Index([1, 1])
+        right = Index([True])
+        result = left.difference(right)
+        expected = Index([1])
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("index", ["string"], indirect=True)
     def test_difference_identity(self, index, sort):

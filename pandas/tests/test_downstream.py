@@ -23,8 +23,6 @@ from pandas.core.arrays import (
     DatetimeArray,
     TimedeltaArray,
 )
-from pandas.core.arrays.datetimes import _sequence_to_dt64ns
-from pandas.core.arrays.timedeltas import sequence_to_td64ns
 
 
 @pytest.fixture
@@ -175,7 +173,9 @@ def test_pandas_datareader():
 def test_pyarrow(df):
     pyarrow = pytest.importorskip("pyarrow")
     table = pyarrow.Table.from_pandas(df)
-    result = table.to_pandas()
+    msg = "Passing a BlockManager to DataFrame is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        result = table.to_pandas()
     tm.assert_frame_equal(result, df)
 
 
@@ -313,11 +313,6 @@ def test_from_obscure_array(dtype, array_likes):
     expected = cls(arr)
     result = cls._from_sequence(data)
     tm.assert_extension_array_equal(result, expected)
-
-    func = {"M8[ns]": _sequence_to_dt64ns, "m8[ns]": sequence_to_td64ns}[dtype]
-    result = func(arr)[0]
-    expected = func(data)[0]
-    tm.assert_equal(result, expected)
 
     if not isinstance(data, memoryview):
         # FIXME(GH#44431) these raise on memoryview and attempted fix

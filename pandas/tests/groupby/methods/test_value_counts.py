@@ -4,10 +4,11 @@ with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
 
-from itertools import product
 
 import numpy as np
 import pytest
+
+import pandas.util._test_decorators as td
 
 from pandas import (
     Categorical,
@@ -44,7 +45,6 @@ def tests_value_counts_index_names_category_column():
     tm.assert_series_equal(result, expected)
 
 
-# our starting frame
 def seed_df(seed_nans, n, m):
     days = date_range("2015-08-24", periods=10)
 
@@ -68,29 +68,32 @@ def seed_df(seed_nans, n, m):
     return frame
 
 
-# create input df, keys, and the bins
-binned = []
-ids = []
-for seed_nans in [True, False]:
-    for n, m in product((100, 1000), (5, 20)):
-        df = seed_df(seed_nans, n, m)
-        bins = None, np.arange(0, max(5, df["3rd"].max()) + 1, 2)
-        keys = "1st", "2nd", ["1st", "2nd"]
-        for k, b in product(keys, bins):
-            binned.append((df, k, b, n, m))
-            ids.append(f"{k}-{n}-{m}")
-
-
 @pytest.mark.slow
-@pytest.mark.parametrize("df, keys, bins, n, m", binned, ids=ids)
+@pytest.mark.parametrize("seed_nans", [True, False])
+@pytest.mark.parametrize("num_rows", [10, 50])
+@pytest.mark.parametrize("max_int", [5, 20])
+@pytest.mark.parametrize("keys", ["1st", "2nd", ["1st", "2nd"]], ids=repr)
+@pytest.mark.parametrize("bins", [None, [0, 5]], ids=repr)
 @pytest.mark.parametrize("isort", [True, False])
 @pytest.mark.parametrize("normalize, name", [(True, "proportion"), (False, "count")])
 @pytest.mark.parametrize("sort", [True, False])
 @pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("dropna", [True, False])
 def test_series_groupby_value_counts(
-    df, keys, bins, n, m, isort, normalize, name, sort, ascending, dropna
+    seed_nans,
+    num_rows,
+    max_int,
+    keys,
+    bins,
+    isort,
+    normalize,
+    name,
+    sort,
+    ascending,
+    dropna,
 ):
+    df = seed_df(seed_nans, num_rows, max_int)
+
     def rebuild_index(df):
         arr = list(map(df.index.get_level_values, range(df.index.nlevels)))
         df.index = MultiIndex.from_arrays(arr, names=df.index.names)
@@ -249,7 +252,7 @@ def test_bad_subset(education_df):
 def test_basic(education_df, request):
     # gh43564
     if Version(np.__version__) >= Version("1.25"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=(
                     "pandas default unstable sorting of duplicates"
@@ -306,7 +309,7 @@ def test_against_frame_and_seriesgroupby(
     #   - apply with :meth:`~DataFrame.value_counts`
     #   - `~SeriesGroupBy.value_counts`
     if Version(np.__version__) >= Version("1.25") and frame and sort and normalize:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=(
                     "pandas default unstable sorting of duplicates"
@@ -369,6 +372,14 @@ def test_against_frame_and_seriesgroupby(
             tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        object,
+        pytest.param("string[pyarrow_numpy]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
 @pytest.mark.parametrize("normalize", [True, False])
 @pytest.mark.parametrize(
     "sort, ascending, expected_rows, expected_count, expected_group_size",
@@ -386,7 +397,10 @@ def test_compound(
     expected_rows,
     expected_count,
     expected_group_size,
+    dtype,
 ):
+    education_df = education_df.astype(dtype)
+    education_df.columns = education_df.columns.astype(dtype)
     # Multiple groupby keys and as_index=False
     gp = education_df.groupby(["country", "gender"], as_index=False, sort=False)
     result = gp["education"].value_counts(
@@ -395,11 +409,17 @@ def test_compound(
     expected = DataFrame()
     for column in ["country", "gender", "education"]:
         expected[column] = [education_df[column][row] for row in expected_rows]
+        expected = expected.astype(dtype)
+        expected.columns = expected.columns.astype(dtype)
     if normalize:
         expected["proportion"] = expected_count
         expected["proportion"] /= expected_group_size
+        if dtype == "string[pyarrow]":
+            expected["proportion"] = expected["proportion"].convert_dtypes()
     else:
         expected["count"] = expected_count
+        if dtype == "string[pyarrow]":
+            expected["count"] = expected["count"].convert_dtypes()
     tm.assert_frame_equal(result, expected)
 
 
@@ -482,7 +502,7 @@ def test_dropna_combinations(
     nulls_df, group_dropna, count_dropna, expected_rows, expected_values, request
 ):
     if Version(np.__version__) >= Version("1.25") and not group_dropna:
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=(
                     "pandas default unstable sorting of duplicates"
@@ -586,7 +606,7 @@ def test_categorical_single_grouper_with_only_observed_categories(
     # Test single categorical grouper with only observed grouping categories
     # when non-groupers are also categorical
     if Version(np.__version__) >= Version("1.25"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=(
                     "pandas default unstable sorting of duplicates"
@@ -695,7 +715,7 @@ def test_categorical_single_grouper_observed_true(
     # GH#46357
 
     if Version(np.__version__) >= Version("1.25"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=(
                     "pandas default unstable sorting of duplicates"
@@ -776,7 +796,7 @@ def test_categorical_single_grouper_observed_false(
     # GH#46357
 
     if Version(np.__version__) >= Version("1.25"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=(
                     "pandas default unstable sorting of duplicates"
@@ -929,7 +949,7 @@ def test_categorical_non_groupers(
     # regardless of `observed`
 
     if Version(np.__version__) >= Version("1.25"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(
                 reason=(
                     "pandas default unstable sorting of duplicates"
@@ -996,7 +1016,7 @@ def test_mixed_groupings(normalize, expected_label, expected_values):
     result = gp.value_counts(sort=True, normalize=normalize)
     expected = DataFrame(
         {
-            "level_0": np.array([4, 4, 5], dtype=np.int_),
+            "level_0": np.array([4, 4, 5], dtype=int),
             "A": [1, 1, 2],
             "level_2": [8, 8, 7],
             "B": [1, 3, 2],
@@ -1146,3 +1166,14 @@ def test_value_counts_time_grouper(utc):
     )
     expected = Series(1, index=index, name="count")
     tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_integer_columns():
+    # GH#55627
+    df = DataFrame({1: ["a", "a", "a"], 2: ["a", "a", "d"], 3: ["a", "b", "c"]})
+    gp = df.groupby([1, 2], as_index=False, sort=False)
+    result = gp[3].value_counts()
+    expected = DataFrame(
+        {1: ["a", "a", "a"], 2: ["a", "a", "d"], 3: ["a", "b", "c"], "count": 1}
+    )
+    tm.assert_frame_equal(result, expected)

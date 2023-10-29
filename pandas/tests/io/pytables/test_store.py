@@ -303,8 +303,10 @@ def test_store_dropna(tmp_path, setup_path):
     tm.assert_frame_equal(df_without_missing, reloaded)
 
 
-def test_keyword_deprecation():
+def test_keyword_deprecation(tmp_path, setup_path):
     # GH 54229
+    path = tmp_path / setup_path
+
     msg = (
         "Starting with pandas version 3.0 all arguments of to_hdf except for the "
         "argument 'path_or_buf' will be keyword-only."
@@ -312,7 +314,7 @@ def test_keyword_deprecation():
     df = DataFrame([{"A": 1, "B": 2, "C": 3}, {"A": 1, "B": 2, "C": 3}])
 
     with tm.assert_produces_warning(FutureWarning, match=msg):
-        df.to_hdf("example", "key")
+        df.to_hdf(path, "key")
 
 
 def test_to_hdf_with_min_itemsize(tmp_path, setup_path):
@@ -539,16 +541,22 @@ def test_store_index_name(setup_path):
         tm.assert_frame_equal(recons, df)
 
 
+@pytest.mark.parametrize("tz", [None, "US/Pacific"])
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
 @pytest.mark.parametrize("table_format", ["table", "fixed"])
-def test_store_index_name_numpy_str(tmp_path, table_format, setup_path):
+def test_store_index_name_numpy_str(tmp_path, table_format, setup_path, unit, tz):
     # GH #13492
     idx = Index(
         pd.to_datetime([dt.date(2000, 1, 1), dt.date(2000, 1, 2)]),
         name="cols\u05d2",
-    )
-    idx1 = Index(
-        pd.to_datetime([dt.date(2010, 1, 1), dt.date(2010, 1, 2)]),
-        name="rows\u05d0",
+    ).tz_localize(tz)
+    idx1 = (
+        Index(
+            pd.to_datetime([dt.date(2010, 1, 1), dt.date(2010, 1, 2)]),
+            name="rows\u05d0",
+        )
+        .as_unit(unit)
+        .tz_localize(tz)
     )
     df = DataFrame(np.arange(4).reshape(2, 2), columns=idx, index=idx1)
 

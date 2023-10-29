@@ -22,22 +22,17 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.computation import expressions as expr
-from pandas.core.computation.expressions import (
-    _MIN_ELEMENTS,
-    NUMEXPR_INSTALLED,
-)
 from pandas.tests.frame.common import (
     _check_mixed_float,
     _check_mixed_int,
 )
 
 
-@pytest.fixture(autouse=True, params=[0, 1000000], ids=["numexpr", "python"])
-def switch_numexpr_min_elements(request):
-    _MIN_ELEMENTS = expr._MIN_ELEMENTS
-    expr._MIN_ELEMENTS = request.param
-    yield request.param
-    expr._MIN_ELEMENTS = _MIN_ELEMENTS
+@pytest.fixture(autouse=True, params=[0, 100], ids=["numexpr", "python"])
+def switch_numexpr_min_elements(request, monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(expr, "_MIN_ELEMENTS", request.param)
+        yield request.param
 
 
 class DummyElement:
@@ -500,25 +495,6 @@ class TestFrameFlexArithmetic:
         tm.assert_frame_equal(result, expected)
 
         result2 = df.floordiv(ser.values, axis=0)
-        tm.assert_frame_equal(result2, expected)
-
-    @pytest.mark.skipif(not NUMEXPR_INSTALLED, reason="numexpr not installed")
-    @pytest.mark.parametrize("opname", ["floordiv", "pow"])
-    def test_floordiv_axis0_numexpr_path(self, opname):
-        # case that goes through numexpr and has to fall back to masked_arith_op
-        op = getattr(operator, opname)
-
-        arr = np.arange(_MIN_ELEMENTS + 100).reshape(_MIN_ELEMENTS // 100 + 1, -1) * 100
-        df = DataFrame(arr)
-        df["C"] = 1.0
-
-        ser = df[0]
-        result = getattr(df, opname)(ser, axis=0)
-
-        expected = DataFrame({col: op(df[col], ser) for col in df.columns})
-        tm.assert_frame_equal(result, expected)
-
-        result2 = getattr(df, opname)(ser.values, axis=0)
         tm.assert_frame_equal(result2, expected)
 
     def test_df_add_td64_columnwise(self):
@@ -1074,7 +1050,7 @@ class TestFrameArithmetic:
         ],
         ids=lambda x: x.__name__,
     )
-    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements, request):
+    def test_binop_other(self, op, value, dtype, switch_numexpr_min_elements):
         skip = {
             (operator.truediv, "bool"),
             (operator.pow, "bool"),
@@ -1217,7 +1193,7 @@ def test_frame_single_columns_object_sum_axis_1():
 
 class TestFrameArithmeticUnsorted:
     def test_frame_add_tz_mismatch_converts_to_utc(self):
-        rng = pd.date_range("1/1/2011", periods=10, freq="H", tz="US/Eastern")
+        rng = pd.date_range("1/1/2011", periods=10, freq="h", tz="US/Eastern")
         df = DataFrame(
             np.random.default_rng(2).standard_normal(len(rng)), index=rng, columns=["a"]
         )
@@ -1230,7 +1206,7 @@ class TestFrameArithmeticUnsorted:
         assert result.index.tz is timezone.utc
 
     def test_align_frame(self):
-        rng = pd.period_range("1/1/2000", "1/1/2010", freq="A")
+        rng = pd.period_range("1/1/2000", "1/1/2010", freq="Y")
         ts = DataFrame(
             np.random.default_rng(2).standard_normal((len(rng), 3)), index=rng
         )
@@ -1254,7 +1230,9 @@ class TestFrameArithmeticUnsorted:
 
         # since filling converts dtypes from object, changed expected to be
         # object
-        filled = df.fillna(np.nan)
+        msg = "Downcasting object dtype arrays"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            filled = df.fillna(np.nan)
         result = op(df, 3)
         expected = op(filled, 3).astype(object)
         expected[pd.isna(expected)] = np.nan
@@ -1265,10 +1243,14 @@ class TestFrameArithmeticUnsorted:
         expected[pd.isna(expected)] = np.nan
         tm.assert_frame_equal(result, expected)
 
-        result = op(df, df.fillna(7))
+        msg = "Downcasting object dtype arrays"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = op(df, df.fillna(7))
         tm.assert_frame_equal(result, expected)
 
-        result = op(df.fillna(7), df)
+        msg = "Downcasting object dtype arrays"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = op(df.fillna(7), df)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("op,res", [("__eq__", False), ("__ne__", True)])
@@ -2071,6 +2053,9 @@ def test_frame_sub_nullable_int(any_int_ea_dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
+)
 def test_frame_op_subclass_nonclass_constructor():
     # GH#43201 subclass._constructor is a function, not the subclass itself
 

@@ -416,7 +416,8 @@ def assert_attr_equal(attr: str, left, right, obj: str = "Attributes") -> None:
 
 
 def assert_is_valid_plot_return_object(objs) -> None:
-    import matplotlib.pyplot as plt
+    from matplotlib.artist import Artist
+    from matplotlib.axes import Axes
 
     if isinstance(objs, (Series, np.ndarray)):
         for el in objs.ravel():
@@ -424,14 +425,14 @@ def assert_is_valid_plot_return_object(objs) -> None:
                 "one of 'objs' is not a matplotlib Axes instance, "
                 f"type encountered {repr(type(el).__name__)}"
             )
-            assert isinstance(el, (plt.Axes, dict)), msg
+            assert isinstance(el, (Axes, dict)), msg
     else:
         msg = (
             "objs is neither an ndarray of Artist instances nor a single "
             "ArtistArtist instance, tuple, or dict, 'objs' is a "
             f"{repr(type(objs).__name__)}"
         )
-        assert isinstance(objs, (plt.Artist, tuple, dict)), msg
+        assert isinstance(objs, (Artist, tuple, dict)), msg
 
 
 def assert_is_sorted(seq) -> None:
@@ -439,7 +440,10 @@ def assert_is_sorted(seq) -> None:
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
-    assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    if isinstance(seq, np.ndarray):
+        assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    else:
+        assert_extension_array_equal(seq, seq[seq.argsort()])
 
 
 def assert_categorical_equal(
