@@ -226,26 +226,6 @@ class TestDataFrameFormatting:
                 "3  40.0  0.000000e+00"
             )
 
-    def test_repr_obeys_max_seq_limit(self):
-        with option_context("display.max_seq_items", 2000):
-            assert len(printing.pprint_thing(list(range(1000)))) > 1000
-
-        with option_context("display.max_seq_items", 5):
-            assert len(printing.pprint_thing(list(range(1000)))) < 100
-
-        with option_context("display.max_seq_items", 1):
-            assert len(printing.pprint_thing(list(range(1000)))) < 9
-
-    def test_repr_set(self):
-        assert printing.pprint_thing({1}) == "{1}"
-
-    def test_repr_is_valid_construction_code(self):
-        # for the case of Index, where the repr is traditional rather than
-        # stylized
-        idx = Index(["a", "b"])
-        res = eval("pd." + repr(idx))
-        tm.assert_series_equal(Series(res), Series(idx))
-
     def test_repr_should_return_str(self):
         # https://docs.python.org/3/reference/datamodel.html#object.__repr__
         # "...The return value must be a string object."
@@ -913,6 +893,7 @@ class TestDataFrameFormatting:
             result = str(s)
             assert "object" in result
 
+    def test_truncate_with_different_dtypes2(self):
         # 12045
         df = DataFrame({"text": ["some words"] + [None] * 9})
 
