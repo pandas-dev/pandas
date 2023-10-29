@@ -10,6 +10,7 @@ import pytest
 from pandas import (
     NA,
     Categorical,
+    CategoricalIndex,
     DataFrame,
     MultiIndex,
     NaT,
@@ -26,6 +27,21 @@ import pandas.io.formats.format as fmt
 
 
 class TestDataFrameRepr:
+    def test_repr_should_return_str(self):
+        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
+        # "...The return value must be a string object."
+
+        # (str on py2.x, str (unicode) on py3)
+
+        data = [8, 5, 3, 5]
+        index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
+        cols = ["\u03c8"]
+        df = DataFrame(data, columns=cols, index=index1)
+        assert type(df.__repr__()) is str  # noqa: E721
+
+        ser = df[cols[0]]
+        assert type(ser.__repr__()) is str  # noqa: E721
+
     def test_repr_bytes_61_lines(self):
         # GH#12857
         lets = list("ACDEFGHIJKLMNOP")
@@ -290,6 +306,12 @@ NaT   4"""
 
         # GH 12182
         assert df._repr_latex_() is None
+
+    def test_repr_with_categorical_index(self):
+        df = DataFrame({"A": [1, 2, 3]}, index=CategoricalIndex(["a", "b", "c"]))
+        result = repr(df)
+        expected = "   A\na  1\nb  2\nc  3"
+        assert result == expected
 
     def test_repr_categorical_dates_periods(self):
         # normal DataFrame

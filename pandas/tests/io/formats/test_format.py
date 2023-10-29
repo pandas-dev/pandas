@@ -226,18 +226,6 @@ class TestDataFrameFormatting:
                 "3  40.0  0.000000e+00"
             )
 
-    def test_repr_should_return_str(self):
-        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
-        # "...The return value must be a string object."
-
-        # (str on py2.x, str (unicode) on py3)
-
-        data = [8, 5, 3, 5]
-        index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
-        cols = ["\u03c8"]
-        df = DataFrame(data, columns=cols, index=index1)
-        assert isinstance(df.__repr__(), str)
-
     def test_repr_no_backslash(self):
         with option_context("mode.sim_interactive", True):
             df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
@@ -1382,14 +1370,6 @@ def gen_series_formatting():
 
 
 class TestSeriesFormatting:
-    def test_repr_unicode(self):
-        s = Series(["\u03c3"] * 10)
-        repr(s)
-
-        a = Series(["\u05d0"] * 1000)
-        a.name = "title1"
-        repr(a)
-
     def test_freq_name_separation(self):
         s = Series(
             np.random.default_rng(2).standard_normal(10),
