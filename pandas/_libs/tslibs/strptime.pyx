@@ -80,6 +80,7 @@ from pandas._libs.tslibs.timestamps import Timestamp
 
 cnp.import_array()
 
+
 cdef bint format_is_iso(f: str):
     """
     Does format match the iso8601 set that can be handled by the C parser?
@@ -154,6 +155,77 @@ cdef dict _parse_code_table = {"y": 0,
                                "u": 22}
 
 
+cdef _validate_fmt(str fmt):
+    if "%W" in fmt or "%U" in fmt:
+        if "%Y" not in fmt and "%y" not in fmt:
+            raise ValueError("Cannot use '%W' or '%U' without day and year")
+        if "%A" not in fmt and "%a" not in fmt and "%w" not in fmt:
+            raise ValueError("Cannot use '%W' or '%U' without day and year")
+    elif "%Z" in fmt and "%z" in fmt:
+        raise ValueError("Cannot parse both %Z and %z")
+    elif "%j" in fmt and "%G" in fmt:
+        raise ValueError("Day of the year directive '%j' is not "
+                         "compatible with ISO year directive '%G'. "
+                         "Use '%Y' instead.")
+    elif "%G" in fmt and (
+        "%V" not in fmt
+        or not (
+            "%A" in fmt
+            or "%a" in fmt
+            or "%w" in fmt
+            or "%u" in fmt
+        )
+    ):
+        raise ValueError("ISO year directive '%G' must be used with "
+                         "the ISO week directive '%V' and a weekday "
+                         "directive '%A', '%a', '%w', or '%u'.")
+    elif "%V" in fmt and "%Y" in fmt:
+        raise ValueError("ISO week directive '%V' is incompatible with "
+                         "the year directive '%Y'. Use the ISO year "
+                         "'%G' instead.")
+    elif "%V" in fmt and (
+        "%G" not in fmt
+        or not (
+            "%A" in fmt
+            or "%a" in fmt
+            or "%w" in fmt
+            or "%u" in fmt
+        )
+    ):
+        raise ValueError("ISO week directive '%V' must be used with "
+                         "the ISO year directive '%G' and a weekday "
+                         "directive '%A', '%a', '%w', or '%u'.")
+
+
+cdef _get_format_regex(str fmt):
+    global _TimeRE_cache, _regex_cache
+    with _cache_lock:
+        if _getlang() != _TimeRE_cache.locale_time.lang:
+            _TimeRE_cache = TimeRE()
+            _regex_cache.clear()
+        if len(_regex_cache) > _CACHE_MAX_SIZE:
+            _regex_cache.clear()
+        locale_time = _TimeRE_cache.locale_time
+        format_regex = _regex_cache.get(fmt)
+        if not format_regex:
+            try:
+                format_regex = _TimeRE_cache.compile(fmt)
+            except KeyError, err:
+                # KeyError raised when a bad format is found; can be specified as
+                # \\, in which case it was a stray % but with a space after it
+                bad_directive = err.args[0]
+                if bad_directive == "\\":
+                    bad_directive = "%"
+                del err
+                raise ValueError(f"'{bad_directive}' is a bad directive "
+                                 f"in format '{fmt}'")
+            except IndexError:
+                # IndexError only occurs when the format string is "%"
+                raise ValueError(f"stray % in format '{fmt}'")
+            _regex_cache[fmt] = format_regex
+    return format_regex, locale_time
+
+
 cdef class DatetimeParseState:
     def __cinit__(self):
         self.found_tz = False
@@ -221,71 +293,8 @@ def array_strptime(
 
     assert is_raise or is_ignore or is_coerce
 
-    if "%W" in fmt or "%U" in fmt:
-        if "%Y" not in fmt and "%y" not in fmt:
-            raise ValueError("Cannot use '%W' or '%U' without day and year")
-        if "%A" not in fmt and "%a" not in fmt and "%w" not in fmt:
-            raise ValueError("Cannot use '%W' or '%U' without day and year")
-    elif "%Z" in fmt and "%z" in fmt:
-        raise ValueError("Cannot parse both %Z and %z")
-    elif "%j" in fmt and "%G" in fmt:
-        raise ValueError("Day of the year directive '%j' is not "
-                         "compatible with ISO year directive '%G'. "
-                         "Use '%Y' instead.")
-    elif "%G" in fmt and (
-        "%V" not in fmt
-        or not (
-            "%A" in fmt
-            or "%a" in fmt
-            or "%w" in fmt
-            or "%u" in fmt
-        )
-    ):
-        raise ValueError("ISO year directive '%G' must be used with "
-                         "the ISO week directive '%V' and a weekday "
-                         "directive '%A', '%a', '%w', or '%u'.")
-    elif "%V" in fmt and "%Y" in fmt:
-        raise ValueError("ISO week directive '%V' is incompatible with "
-                         "the year directive '%Y'. Use the ISO year "
-                         "'%G' instead.")
-    elif "%V" in fmt and (
-        "%G" not in fmt
-        or not (
-            "%A" in fmt
-            or "%a" in fmt
-            or "%w" in fmt
-            or "%u" in fmt
-        )
-    ):
-        raise ValueError("ISO week directive '%V' must be used with "
-                         "the ISO year directive '%G' and a weekday "
-                         "directive '%A', '%a', '%w', or '%u'.")
-
-    global _TimeRE_cache, _regex_cache
-    with _cache_lock:
-        if _getlang() != _TimeRE_cache.locale_time.lang:
-            _TimeRE_cache = TimeRE()
-            _regex_cache.clear()
-        if len(_regex_cache) > _CACHE_MAX_SIZE:
-            _regex_cache.clear()
-        locale_time = _TimeRE_cache.locale_time
-        format_regex = _regex_cache.get(fmt)
-        if not format_regex:
-            try:
-                format_regex = _TimeRE_cache.compile(fmt)
-            # KeyError raised when a bad format is found; can be specified as
-            # \\, in which case it was a stray % but with a space after it
-            except KeyError, err:
-                bad_directive = err.args[0]
-                if bad_directive == "\\":
-                    bad_directive = "%"
-                del err
-                raise ValueError(f"'{bad_directive}' is a bad directive "
-                                 f"in format '{fmt}'")
-            # IndexError only occurs when the format string is "%"
-            except IndexError:
-                raise ValueError(f"stray % in format '{fmt}'")
-            _regex_cache[fmt] = format_regex
+    _validate_fmt(fmt)
+    format_regex, locale_time = _get_format_regex(fmt)
 
     result = np.empty(n, dtype="M8[ns]")
     iresult = result.view("i8")
@@ -366,8 +375,10 @@ def array_strptime(
                 raise ValueError(f"Time data {val} is not ISO8601 format")
 
             tz = _parse_with_format(
-                val, fmt, exact, format_regex, locale_time, &iresult[i]
+                val, fmt, exact, format_regex, locale_time, &dts
             )
+            iresult[i] = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
+            check_dts_bounds(&dts)
             result_timezone[i] = tz
 
         except (ValueError, OutOfBoundsDatetime) as ex:
@@ -391,10 +402,10 @@ def array_strptime(
 
 
 cdef tzinfo _parse_with_format(
-    str val, str fmt, bint exact, format_regex, locale_time, int64_t* iresult
+    str val, str fmt, bint exact, format_regex, locale_time, npy_datetimestruct* dts
 ):
+    # Based on https://github.com/python/cpython/blob/main/Lib/_strptime.py#L293
     cdef:
-        npy_datetimestruct dts
         int year, month, day, minute, hour, second, weekday, julian
         int week_of_year, week_of_year_start, parse_code, ordinal
         int iso_week, iso_year
@@ -452,24 +463,32 @@ cdef tzinfo _parse_with_format(
             # value in the range of [00, 68] is in the century 2000, while
             # [69,99] is in the century 1900
             if year <= 68:
+                # e.g. val='May 04'; fmt='%b %y'
                 year += 2000
             else:
                 year += 1900
+                # TODO: not reached in tests 2023-10-28
         elif parse_code == 1:
+            # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             year = int(found_dict["Y"])
         elif parse_code == 2:
+            # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             month = int(found_dict["m"])
         # elif group_key == 'B':
         elif parse_code == 3:
+            # e.g. val='30/December/2011'; fmt='%d/%B/%Y'
             month = locale_time.f_month.index(found_dict["B"].lower())
         # elif group_key == 'b':
         elif parse_code == 4:
+            # e.g. val='30/Dec/2011 00:00:00'; fmt='%d/%b/%Y %H:%M:%S'
             month = locale_time.a_month.index(found_dict["b"].lower())
         # elif group_key == 'd':
         elif parse_code == 5:
+            # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             day = int(found_dict["d"])
         # elif group_key == 'H':
         elif parse_code == 6:
+            # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             hour = int(found_dict["H"])
         elif parse_code == 7:
             hour = int(found_dict["I"])
@@ -481,17 +500,27 @@ cdef tzinfo _parse_with_format(
                 # 12 midnight == 12 AM == hour 0
                 if hour == 12:
                     hour = 0
+                    # TODO: not reached in tests 2023-10-28; the implicit `else`
+                    #  branch is tested with e.g.
+                    #  val='Tuesday 24 Aug 2021 01:30:48 AM'
+                    #  fmt='%A %d %b %Y %I:%M:%S %p'
             elif ampm == locale_time.am_pm[1]:
                 # We're in PM so we need to add 12 to the hour unless
                 # we're looking at 12 noon.
                 # 12 noon == 12 PM == hour 12
                 if hour != 12:
+                    # e.g. val='01/10/2010 08:14 PM'; fmt='%m/%d/%Y %I:%M %p'
                     hour += 12
+                    # TODO: the implicit `else` branch is not tested 2023-10-28
+            # TODO: the implicit `else` branch is not reached 2023-10-28; possible?
         elif parse_code == 8:
+            # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             minute = int(found_dict["M"])
         elif parse_code == 9:
+            # e.g. val='17-10-2010 07:15:30'; fmt='%d-%m-%Y %H:%M:%S'
             second = int(found_dict["S"])
         elif parse_code == 10:
+            # e.g. val='10:10:10.100'; fmt='%H:%M:%S.%f'
             s = found_dict["f"]
             # Pad to always return nanoseconds
             s += "0" * (9 - len(s))
@@ -499,34 +528,46 @@ cdef tzinfo _parse_with_format(
             ns = us % 1000
             us = us // 1000
         elif parse_code == 11:
+            # e.g val='Tuesday 24 Aug 2021 01:30:48 AM'; fmt='%A %d %b %Y %I:%M:%S %p'
             weekday = locale_time.f_weekday.index(found_dict["A"].lower())
         elif parse_code == 12:
+            # e.g. val='Tue 24 Aug 2021 01:30:48 AM'; fmt='%a %d %b %Y %I:%M:%S %p'
             weekday = locale_time.a_weekday.index(found_dict["a"].lower())
         elif parse_code == 13:
             weekday = int(found_dict["w"])
             if weekday == 0:
+                # e.g. val='2013020'; fmt='%Y%U%w'
                 weekday = 6
             else:
+                # e.g. val='2009324'; fmt='%Y%W%w'
                 weekday -= 1
         elif parse_code == 14:
+            # e.g. val='2009164202000'; fmt='%Y%j%H%M%S'
             julian = int(found_dict["j"])
         elif parse_code == 15 or parse_code == 16:
             week_of_year = int(found_dict[group_key])
             if group_key == "U":
+                # e.g. val='2013020'; fmt='%Y%U%w'
                 # U starts week on Sunday.
                 week_of_year_start = 6
             else:
+                # e.g. val='2009324'; fmt='%Y%W%w'
                 # W starts week on Monday.
                 week_of_year_start = 0
         elif parse_code == 17:
+            # e.g. val='2011-12-30T00:00:00.000000UTC'; fmt='%Y-%m-%dT%H:%M:%S.%f%Z'
             tz = pytz.timezone(found_dict["Z"])
         elif parse_code == 19:
+            # e.g. val='March 1, 2018 12:00:00+0400'; fmt='%B %d, %Y %H:%M:%S%z'
             tz = parse_timezone_directive(found_dict["z"])
         elif parse_code == 20:
+            # e.g. val='2015-1-7'; fmt='%G-%V-%u'
             iso_year = int(found_dict["G"])
         elif parse_code == 21:
+            # e.g. val='2015-1-7'; fmt='%G-%V-%u'
             iso_week = int(found_dict["V"])
         elif parse_code == 22:
+            # e.g. val='2015-1-7'; fmt='%G-%V-%u'
             weekday = int(found_dict["u"])
             weekday -= 1
 
@@ -534,18 +575,26 @@ cdef tzinfo _parse_with_format(
     # out the Julian day of the year.
     if julian == -1 and weekday != -1:
         if week_of_year != -1:
+            # e.g. val='2013020'; fmt='%Y%U%w'
             week_starts_Mon = week_of_year_start == 0
             julian = _calc_julian_from_U_or_W(year, week_of_year, weekday,
                                               week_starts_Mon)
         elif iso_year != -1 and iso_week != -1:
+            # e.g. val='2015-1-7'; fmt='%G-%V-%u'
             year, julian = _calc_julian_from_V(iso_year, iso_week,
                                                weekday + 1)
+        # else:
+        #    # e.g. val='Thu Sep 25 2003'; fmt='%a %b %d %Y'
+        #    pass
+
     # Cannot pre-calculate date() since can change in Julian
     # calculation and thus could have different value for the day of the wk
     # calculation.
     if julian == -1:
         # Need to add 1 to result since first day of the year is 1, not
         # 0.
+        # We don't actually need ordinal/julian here, but need to raise
+        #  on e.g. val='2015-04-31'; fmt='%Y-%m-%d'
         ordinal = date(year, month, day).toordinal()
         julian = ordinal - date(year, 1, 1).toordinal() + 1
     else:
@@ -557,6 +606,9 @@ cdef tzinfo _parse_with_format(
         month = datetime_result.month
         day = datetime_result.day
     if weekday == -1:
+        # We don't actually use weekday here, but need to do this in order to
+        #  raise on y/m/d combinations
+        # TODO: not reached in tests 2023-10-28; necessary?
         weekday = date(year, month, day).weekday()
 
     dts.year = year
@@ -567,10 +619,6 @@ cdef tzinfo _parse_with_format(
     dts.sec = second
     dts.us = us
     dts.ps = ns * 1000
-
-    iresult[0] = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts)
-    check_dts_bounds(&dts)
-
     return tz
 
 
