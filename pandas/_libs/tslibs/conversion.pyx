@@ -666,7 +666,6 @@ cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
 cdef int64_t parse_pydatetime(
     datetime val,
     npy_datetimestruct *dts,
-    bint utc_convert,
     NPY_DATETIMEUNIT creso,
 ) except? -1:
     """
@@ -678,8 +677,6 @@ cdef int64_t parse_pydatetime(
         Element being processed.
     dts : *npy_datetimestruct
         Needed to use in pydatetime_to_dt64, which writes to it.
-    utc_convert : bool
-        Whether to convert/localize to UTC.
     creso : NPY_DATETIMEUNIT
         Resolution to store the the result.
 
@@ -692,12 +689,8 @@ cdef int64_t parse_pydatetime(
         int64_t result
 
     if val.tzinfo is not None:
-        if utc_convert:
-            _ts = convert_datetime_to_tsobject(val, None, nanos=0, reso=creso)
-            result = _ts.value
-        else:
-            _ts = convert_datetime_to_tsobject(val, None, nanos=0, reso=creso)
-            result = _ts.value
+        _ts = convert_datetime_to_tsobject(val, None, nanos=0, reso=creso)
+        result = _ts.value
     else:
         if isinstance(val, _Timestamp):
             result = (<_Timestamp>val)._as_creso(creso, round_ok=False)._value

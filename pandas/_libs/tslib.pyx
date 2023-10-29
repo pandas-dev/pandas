@@ -477,7 +477,7 @@ cpdef array_to_datetime(
 
             elif PyDateTime_Check(val):
                 tz_out = state.process_datetime(val, tz_out, utc_convert)
-                iresult[i] = parse_pydatetime(val, &dts, utc_convert, creso=creso)
+                iresult[i] = parse_pydatetime(val, &dts, creso=creso)
 
             elif PyDate_Check(val):
                 iresult[i] = pydate_to_dt64(val, &dts)
@@ -519,10 +519,6 @@ cpdef array_to_datetime(
                     # store the UTC offsets in seconds instead
                     nsecs = tz.utcoffset(None).total_seconds()
                     out_tzoffset_vals.add(nsecs)
-                    # need to set seen_datetime_offset *after* the
-                    #  potentially-raising timezone(timedelta(...)) call,
-                    #  otherwise we can go down the is_same_offsets path
-                    #  bc len(out_tzoffset_vals) == 0
                     seen_datetime_offset = True
                 else:
                     # Add a marker for naive string, to track if we are
