@@ -68,7 +68,10 @@ from pandas.util._decorators import (
     deprecate_nonkeyword_arguments,
     doc,
 )
-from pandas.util._exceptions import find_stack_level
+from pandas.util._exceptions import (
+    find_stack_level,
+    rewrite_warning,
+)
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
@@ -642,13 +645,12 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrame
 
     def _constructor_from_mgr(self, mgr, axes):
-        df = self._from_mgr(mgr, axes=axes)
-        if type(self) is DataFrame:
-            # fastpath avoiding constructor call
-            return df
+        if self._constructor is DataFrame:
+            # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
+            return self._from_mgr(mgr, axes=axes)
         else:
             assert axes is mgr.axes
-            return self._constructor(df, copy=False)
+            return self._constructor(mgr)
 
     _constructor_sliced: Callable[..., Series] = Series
 
@@ -656,13 +658,12 @@ class DataFrame(NDFrame, OpsMixin):
         return Series._from_mgr(mgr, axes)
 
     def _constructor_sliced_from_mgr(self, mgr, axes):
-        ser = self._sliced_from_mgr(mgr, axes=axes)
-        ser._name = None  # caller is responsible for setting real name
-        if type(self) is DataFrame:
-            # fastpath avoiding constructor call
+        if self._constructor_sliced is Series:
+            ser = self._sliced_from_mgr(mgr, axes)
+            ser._name = None  # caller is responsible for setting real name
             return ser
         assert axes is mgr.axes
-        return self._constructor_sliced(ser, copy=False)
+        return self._constructor_sliced(mgr)
 
     # ----------------------------------------------------------------------
     # Constructors
@@ -11257,7 +11258,20 @@ class DataFrame(NDFrame, OpsMixin):
                     row_index = np.tile(np.arange(nrows), ncols)
                     col_index = np.repeat(np.arange(ncols), nrows)
                     ser = Series(arr, index=col_index, copy=False)
-                    result = ser.groupby(row_index).agg(name, **kwds)
+                    # GroupBy will raise a warning with SeriesGroupBy as the object,
+                    # likely confusing users
+                    with rewrite_warning(
+                        target_message=(
+                            f"The behavior of SeriesGroupBy.{name} with all-NA values"
+                        ),
+                        target_category=FutureWarning,
+                        new_message=(
+                            f"The behavior of {type(self).__name__}.{name} with all-NA "
+                            "values, or any-NA and skipna=False, is deprecated. In "
+                            "a future version this will raise ValueError"
+                        ),
+                    ):
+                        result = ser.groupby(row_index).agg(name, **kwds)
                     result.index = df.index
                     if not skipna and name not in ("any", "all"):
                         mask = df.isna().to_numpy(dtype=np.bool_).any(axis=1)

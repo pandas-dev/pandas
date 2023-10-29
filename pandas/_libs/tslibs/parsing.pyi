@@ -24,7 +24,7 @@ def try_parse_dates(
     parser,
 ) -> npt.NDArray[np.object_]: ...
 def guess_datetime_format(
-    dt_str,
+    dt_str: str,
     dayfirst: bool | None = ...,
 ) -> str | None: ...
 def concat_date_cols(

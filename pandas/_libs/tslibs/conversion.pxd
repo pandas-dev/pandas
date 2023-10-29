@@ -51,6 +51,5 @@ cdef maybe_localize_tso(_TSObject obj, tzinfo tz, NPY_DATETIMEUNIT reso)
 cdef int64_t parse_pydatetime(
     datetime val,
     npy_datetimestruct *dts,
-    bint utc_convert,
     NPY_DATETIMEUNIT creso,
 ) except? -1
