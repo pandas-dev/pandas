@@ -70,6 +70,11 @@ def to_numeric(
         - If 'raise', then invalid parsing will raise an exception.
         - If 'coerce', then invalid parsing will be set as NaN.
         - If 'ignore', then invalid parsing will return the input.
+
+        .. versionchanged:: 2.2
+
+        "ignore" is deprecated. Catch exceptions explicitly instead.
+
     downcast : str, default None
         Can be 'integer', 'signed', 'unsigned', or 'float'.
         If not None, and if the data has been successfully cast to a
@@ -136,12 +141,6 @@ def to_numeric(
     2   -3
     dtype: int8
     >>> s = pd.Series(['apple', '1.0', '2', -3])
-    >>> pd.to_numeric(s, errors='ignore')
-    0    apple
-    1      1.0
-    2        2
-    3       -3
-    dtype: object
     >>> pd.to_numeric(s, errors='coerce')
     0    NaN
     1    1.0
