@@ -6,12 +6,10 @@ from datetime import (
     timedelta,
 )
 from io import StringIO
-import itertools
 from pathlib import Path
 import re
 from shutil import get_terminal_size
 import sys
-import textwrap
 
 import numpy as np
 import pytest
@@ -146,20 +144,6 @@ def has_expanded_repr(df):
 
 
 class TestDataFrameFormatting:
-    def test_eng_float_formatter(self, float_frame):
-        df = float_frame
-        df.loc[5] = 0
-
-        fmt.set_eng_float_format()
-        repr(df)
-
-        fmt.set_eng_float_format(use_eng_prefix=True)
-        repr(df)
-
-        fmt.set_eng_float_format(accuracy=0)
-        repr(df)
-        tm.reset_display_options()
-
     @pytest.mark.parametrize(
         "row, columns, show_counts, result",
         [
@@ -1843,145 +1827,6 @@ c  10  11  12  13  14\
             assert "5 rows" not in str(df)
             assert "5 rows" not in df._repr_html_()
 
-    def test_repr_html(self, float_frame):
-        df = float_frame
-        df._repr_html_()
-
-        with option_context("display.max_rows", 1, "display.max_columns", 1):
-            df._repr_html_()
-
-        with option_context("display.notebook_repr_html", False):
-            df._repr_html_()
-
-        tm.reset_display_options()
-
-        df = DataFrame([[1, 2], [3, 4]])
-        with option_context("display.show_dimensions", True):
-            assert "2 rows" in df._repr_html_()
-        with option_context("display.show_dimensions", False):
-            assert "2 rows" not in df._repr_html_()
-
-        tm.reset_display_options()
-
-    def test_repr_html_mathjax(self):
-        df = DataFrame([[1, 2], [3, 4]])
-        assert "tex2jax_ignore" not in df._repr_html_()
-
-        with option_context("display.html.use_mathjax", False):
-            assert "tex2jax_ignore" in df._repr_html_()
-
-    def test_repr_html_wide(self):
-        max_cols = 20
-        df = DataFrame([["a" * 25] * (max_cols - 1)] * 10)
-        with option_context("display.max_rows", 60, "display.max_columns", 20):
-            assert "..." not in df._repr_html_()
-
-        wide_df = DataFrame([["a" * 25] * (max_cols + 1)] * 10)
-        with option_context("display.max_rows", 60, "display.max_columns", 20):
-            assert "..." in wide_df._repr_html_()
-
-    def test_repr_html_wide_multiindex_cols(self):
-        max_cols = 20
-
-        mcols = MultiIndex.from_product(
-            [np.arange(max_cols // 2), ["foo", "bar"]], names=["first", "second"]
-        )
-        df = DataFrame([["a" * 25] * len(mcols)] * 10, columns=mcols)
-        reg_repr = df._repr_html_()
-        assert "..." not in reg_repr
-
-        mcols = MultiIndex.from_product(
-            (np.arange(1 + (max_cols // 2)), ["foo", "bar"]), names=["first", "second"]
-        )
-        df = DataFrame([["a" * 25] * len(mcols)] * 10, columns=mcols)
-        with option_context("display.max_rows", 60, "display.max_columns", 20):
-            assert "..." in df._repr_html_()
-
-    def test_repr_html_long(self):
-        with option_context("display.max_rows", 60):
-            max_rows = get_option("display.max_rows")
-            h = max_rows - 1
-            df = DataFrame({"A": np.arange(1, 1 + h), "B": np.arange(41, 41 + h)})
-            reg_repr = df._repr_html_()
-            assert ".." not in reg_repr
-            assert str(41 + max_rows // 2) in reg_repr
-
-            h = max_rows + 1
-            df = DataFrame({"A": np.arange(1, 1 + h), "B": np.arange(41, 41 + h)})
-            long_repr = df._repr_html_()
-            assert ".." in long_repr
-            assert str(41 + max_rows // 2) not in long_repr
-            assert f"{h} rows " in long_repr
-            assert "2 columns" in long_repr
-
-    def test_repr_html_float(self):
-        with option_context("display.max_rows", 60):
-            max_rows = get_option("display.max_rows")
-            h = max_rows - 1
-            df = DataFrame(
-                {
-                    "idx": np.linspace(-10, 10, h),
-                    "A": np.arange(1, 1 + h),
-                    "B": np.arange(41, 41 + h),
-                }
-            ).set_index("idx")
-            reg_repr = df._repr_html_()
-            assert ".." not in reg_repr
-            assert f"<td>{40 + h}</td>" in reg_repr
-
-            h = max_rows + 1
-            df = DataFrame(
-                {
-                    "idx": np.linspace(-10, 10, h),
-                    "A": np.arange(1, 1 + h),
-                    "B": np.arange(41, 41 + h),
-                }
-            ).set_index("idx")
-            long_repr = df._repr_html_()
-            assert ".." in long_repr
-            assert "<td>31</td>" not in long_repr
-            assert f"{h} rows " in long_repr
-            assert "2 columns" in long_repr
-
-    def test_repr_html_long_multiindex(self):
-        max_rows = 60
-        max_L1 = max_rows // 2
-
-        tuples = list(itertools.product(np.arange(max_L1), ["foo", "bar"]))
-        idx = MultiIndex.from_tuples(tuples, names=["first", "second"])
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal((max_L1 * 2, 2)),
-            index=idx,
-            columns=["A", "B"],
-        )
-        with option_context("display.max_rows", 60, "display.max_columns", 20):
-            reg_repr = df._repr_html_()
-        assert "..." not in reg_repr
-
-        tuples = list(itertools.product(np.arange(max_L1 + 1), ["foo", "bar"]))
-        idx = MultiIndex.from_tuples(tuples, names=["first", "second"])
-        df = DataFrame(
-            np.random.default_rng(2).standard_normal(((max_L1 + 1) * 2, 2)),
-            index=idx,
-            columns=["A", "B"],
-        )
-        long_repr = df._repr_html_()
-        assert "..." in long_repr
-
-    def test_repr_html_long_and_wide(self):
-        max_cols = 20
-        max_rows = 60
-
-        h, w = max_rows - 1, max_cols - 1
-        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
-        with option_context("display.max_rows", 60, "display.max_columns", 20):
-            assert "..." not in df._repr_html_()
-
-        h, w = max_rows + 1, max_cols + 1
-        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
-        with option_context("display.max_rows", 60, "display.max_columns", 20):
-            assert "..." in df._repr_html_()
-
     def test_info_repr(self):
         # GH#21746 For tests inside a terminal (i.e. not CI) we need to detect
         # the terminal size to ensure that we try to print something "too big"
@@ -2028,42 +1873,9 @@ c  10  11  12  13  14\
         ):
             assert not has_non_verbose_info_repr(df)
 
+        # FIXME: don't leave commented-out
         # test verbose overrides
         # set_option('display.max_info_columns', 4)  # exceeded
-
-    def test_info_repr_html(self):
-        max_rows = 60
-        max_cols = 20
-        # Long
-        h, w = max_rows + 1, max_cols - 1
-        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
-        assert r"&lt;class" not in df._repr_html_()
-        with option_context("display.large_repr", "info"):
-            assert r"&lt;class" in df._repr_html_()
-
-        # Wide
-        h, w = max_rows - 1, max_cols + 1
-        df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
-        assert "<class" not in df._repr_html_()
-        with option_context(
-            "display.large_repr", "info", "display.max_columns", max_cols
-        ):
-            assert "&lt;class" in df._repr_html_()
-
-    def test_fake_qtconsole_repr_html(self, float_frame):
-        df = float_frame
-
-        def get_ipython():
-            return {"config": {"KernelApp": {"parent_appname": "ipython-qtconsole"}}}
-
-        repstr = df._repr_html_()
-        assert repstr is not None
-
-        with option_context("display.max_rows", 5, "display.max_columns", 2):
-            repstr = df._repr_html_()
-
-        assert "class" in repstr  # info fallback
-        tm.reset_display_options()
 
     def test_pprint_pathological_object(self):
         """
@@ -3106,71 +2918,6 @@ class TestFloatArrayFormatter:
             assert str(df) == "            x\n0  1.2346e+04\n1  2.0000e+06"
 
 
-class TestRepr_timedelta64:
-    def test_none(self):
-        delta_1d = pd.to_timedelta(1, unit="D")
-        delta_0d = pd.to_timedelta(0, unit="D")
-        delta_1s = pd.to_timedelta(1, unit="s")
-        delta_500ms = pd.to_timedelta(500, unit="ms")
-
-        drepr = lambda x: x._repr_base()
-        assert drepr(delta_1d) == "1 days"
-        assert drepr(-delta_1d) == "-1 days"
-        assert drepr(delta_0d) == "0 days"
-        assert drepr(delta_1s) == "0 days 00:00:01"
-        assert drepr(delta_500ms) == "0 days 00:00:00.500000"
-        assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
-        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
-        assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
-        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
-
-    def test_sub_day(self):
-        delta_1d = pd.to_timedelta(1, unit="D")
-        delta_0d = pd.to_timedelta(0, unit="D")
-        delta_1s = pd.to_timedelta(1, unit="s")
-        delta_500ms = pd.to_timedelta(500, unit="ms")
-
-        drepr = lambda x: x._repr_base(format="sub_day")
-        assert drepr(delta_1d) == "1 days"
-        assert drepr(-delta_1d) == "-1 days"
-        assert drepr(delta_0d) == "00:00:00"
-        assert drepr(delta_1s) == "00:00:01"
-        assert drepr(delta_500ms) == "00:00:00.500000"
-        assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
-        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
-        assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
-        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
-
-    def test_long(self):
-        delta_1d = pd.to_timedelta(1, unit="D")
-        delta_0d = pd.to_timedelta(0, unit="D")
-        delta_1s = pd.to_timedelta(1, unit="s")
-        delta_500ms = pd.to_timedelta(500, unit="ms")
-
-        drepr = lambda x: x._repr_base(format="long")
-        assert drepr(delta_1d) == "1 days 00:00:00"
-        assert drepr(-delta_1d) == "-1 days +00:00:00"
-        assert drepr(delta_0d) == "0 days 00:00:00"
-        assert drepr(delta_1s) == "0 days 00:00:01"
-        assert drepr(delta_500ms) == "0 days 00:00:00.500000"
-        assert drepr(delta_1d + delta_1s) == "1 days 00:00:01"
-        assert drepr(-delta_1d + delta_1s) == "-1 days +00:00:01"
-        assert drepr(delta_1d + delta_500ms) == "1 days 00:00:00.500000"
-        assert drepr(-delta_1d + delta_500ms) == "-1 days +00:00:00.500000"
-
-    def test_all(self):
-        delta_1d = pd.to_timedelta(1, unit="D")
-        delta_0d = pd.to_timedelta(0, unit="D")
-        delta_1ns = pd.to_timedelta(1, unit="ns")
-
-        drepr = lambda x: x._repr_base(format="all")
-        assert drepr(delta_1d) == "1 days 00:00:00.000000000"
-        assert drepr(-delta_1d) == "-1 days +00:00:00.000000000"
-        assert drepr(delta_0d) == "0 days 00:00:00.000000000"
-        assert drepr(delta_1ns) == "0 days 00:00:00.000000001"
-        assert drepr(-delta_1d + delta_1ns) == "-1 days +00:00:00.000000001"
-
-
 class TestTimedelta64Formatter:
     def test_days(self):
         x = pd.to_timedelta(list(range(5)) + [NaT], unit="D")._values
@@ -3307,69 +3054,57 @@ class TestDatetime64Formatter:
         assert result[1].strip() == "2999-01-02 00:00:00-08:00"
 
 
-@pytest.mark.parametrize(
-    "percentiles, expected",
-    [
-        (
-            [0.01999, 0.02001, 0.5, 0.666666, 0.9999],
-            ["1.999%", "2.001%", "50%", "66.667%", "99.99%"],
-        ),
-        (
-            [0, 0.5, 0.02001, 0.5, 0.666666, 0.9999],
-            ["0%", "50%", "2.0%", "50%", "66.67%", "99.99%"],
-        ),
-        ([0.281, 0.29, 0.57, 0.58], ["28.1%", "29%", "57%", "58%"]),
-        ([0.28, 0.29, 0.57, 0.58], ["28%", "29%", "57%", "58%"]),
-    ],
-)
-def test_format_percentiles(percentiles, expected):
-    result = fmt.format_percentiles(percentiles)
-    assert result == expected
-
-
-@pytest.mark.parametrize(
-    "percentiles",
-    [([0.1, np.nan, 0.5]), ([-0.001, 0.1, 0.5]), ([2, 0.1, 0.5]), ([0.1, 0.5, "a"])],
-)
-def test_error_format_percentiles(percentiles):
-    msg = r"percentiles should all be in the interval \[0,1\]"
-    with pytest.raises(ValueError, match=msg):
-        fmt.format_percentiles(percentiles)
-
-
-def test_format_percentiles_integer_idx():
-    # Issue #26660
-    result = fmt.format_percentiles(np.linspace(0, 1, 10 + 1))
-    expected = [
-        "0%",
-        "10%",
-        "20%",
-        "30%",
-        "40%",
-        "50%",
-        "60%",
-        "70%",
-        "80%",
-        "90%",
-        "100%",
-    ]
-    assert result == expected
-
-
-def test_repr_html_ipython_config(ip):
-    code = textwrap.dedent(
-        """\
-    from pandas import DataFrame
-    df = DataFrame({"A": [1, 2]})
-    df._repr_html_()
-
-    cfg = get_ipython().config
-    cfg['IPKernelApp']['parent_appname']
-    df._repr_html_()
-    """
+class TestFormatPercentiles:
+    @pytest.mark.parametrize(
+        "percentiles, expected",
+        [
+            (
+                [0.01999, 0.02001, 0.5, 0.666666, 0.9999],
+                ["1.999%", "2.001%", "50%", "66.667%", "99.99%"],
+            ),
+            (
+                [0, 0.5, 0.02001, 0.5, 0.666666, 0.9999],
+                ["0%", "50%", "2.0%", "50%", "66.67%", "99.99%"],
+            ),
+            ([0.281, 0.29, 0.57, 0.58], ["28.1%", "29%", "57%", "58%"]),
+            ([0.28, 0.29, 0.57, 0.58], ["28%", "29%", "57%", "58%"]),
+        ],
     )
-    result = ip.run_cell(code, silent=True)
-    assert not result.error_in_exec
+    def test_format_percentiles(self, percentiles, expected):
+        result = fmt.format_percentiles(percentiles)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "percentiles",
+        [
+            ([0.1, np.nan, 0.5]),
+            ([-0.001, 0.1, 0.5]),
+            ([2, 0.1, 0.5]),
+            ([0.1, 0.5, "a"]),
+        ],
+    )
+    def test_error_format_percentiles(self, percentiles):
+        msg = r"percentiles should all be in the interval \[0,1\]"
+        with pytest.raises(ValueError, match=msg):
+            fmt.format_percentiles(percentiles)
+
+    def test_format_percentiles_integer_idx(self):
+        # Issue #26660
+        result = fmt.format_percentiles(np.linspace(0, 1, 10 + 1))
+        expected = [
+            "0%",
+            "10%",
+            "20%",
+            "30%",
+            "40%",
+            "50%",
+            "60%",
+            "70%",
+            "80%",
+            "90%",
+            "100%",
+        ]
+        assert result == expected
 
 
 @pytest.mark.parametrize("method", ["to_string", "to_html", "to_latex"])
