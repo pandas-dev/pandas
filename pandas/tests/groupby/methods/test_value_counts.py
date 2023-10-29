@@ -4,7 +4,6 @@ with different size combinations. This is to ensure stability of the sorting
 and proper parameter handling
 """
 
-from itertools import product
 
 import numpy as np
 import pytest
@@ -46,7 +45,6 @@ def tests_value_counts_index_names_category_column():
     tm.assert_series_equal(result, expected)
 
 
-# our starting frame
 def seed_df(seed_nans, n, m):
     days = date_range("2015-08-24", periods=10)
 
@@ -70,29 +68,32 @@ def seed_df(seed_nans, n, m):
     return frame
 
 
-# create input df, keys, and the bins
-binned = []
-ids = []
-for seed_nans in [True, False]:
-    for n, m in product((100, 1000), (5, 20)):
-        df = seed_df(seed_nans, n, m)
-        bins = None, np.arange(0, max(5, df["3rd"].max()) + 1, 2)
-        keys = "1st", "2nd", ["1st", "2nd"]
-        for k, b in product(keys, bins):
-            binned.append((df, k, b, n, m))
-            ids.append(f"{k}-{n}-{m}")
-
-
 @pytest.mark.slow
-@pytest.mark.parametrize("df, keys, bins, n, m", binned, ids=ids)
+@pytest.mark.parametrize("seed_nans", [True, False])
+@pytest.mark.parametrize("num_rows", [10, 50])
+@pytest.mark.parametrize("max_int", [5, 20])
+@pytest.mark.parametrize("keys", ["1st", "2nd", ["1st", "2nd"]], ids=repr)
+@pytest.mark.parametrize("bins", [None, [0, 5]], ids=repr)
 @pytest.mark.parametrize("isort", [True, False])
 @pytest.mark.parametrize("normalize, name", [(True, "proportion"), (False, "count")])
 @pytest.mark.parametrize("sort", [True, False])
 @pytest.mark.parametrize("ascending", [True, False])
 @pytest.mark.parametrize("dropna", [True, False])
 def test_series_groupby_value_counts(
-    df, keys, bins, n, m, isort, normalize, name, sort, ascending, dropna
+    seed_nans,
+    num_rows,
+    max_int,
+    keys,
+    bins,
+    isort,
+    normalize,
+    name,
+    sort,
+    ascending,
+    dropna,
 ):
+    df = seed_df(seed_nans, num_rows, max_int)
+
     def rebuild_index(df):
         arr = list(map(df.index.get_level_values, range(df.index.nlevels)))
         df.index = MultiIndex.from_arrays(arr, names=df.index.names)

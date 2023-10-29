@@ -2186,7 +2186,7 @@ Thu,Lunch,Yes,51.51,17"""
         with monkeypatch.context() as m:
             m.setattr(reshape_lib, "_Unstacker", MockUnstacker)
             df = DataFrame(
-                np.random.default_rng(2).standard_normal((2**16, 2)),
+                np.zeros((2**16, 2)),
                 index=[np.arange(2**16), np.arange(2**16)],
             )
             msg = "The following operation may generate"
