@@ -33,8 +33,6 @@ cdef extern from "numpy/arrayobject.h":
     PyTypeObject PyFloatingArrType_Type
 
 cdef extern from "numpy/ndarrayobject.h":
-    PyTypeObject PyTimedeltaArrType_Type
-    PyTypeObject PyDatetimeArrType_Type
     PyTypeObject PyComplexFloatingArrType_Type
     PyTypeObject PyBoolArrType_Type
 
