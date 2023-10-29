@@ -422,20 +422,6 @@ NaT   4"""
                 result = repr(df)
         assert result == expected
 
-    def test_masked_ea_with_formatter(self):
-        # GH#39336
-        df = DataFrame(
-            {
-                "a": Series([0.123456789, 1.123456789], dtype="Float64"),
-                "b": Series([1, 2], dtype="Int64"),
-            }
-        )
-        result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
-        expected = """      a     b
-0  0.12  1.00
-1  1.12  2.00"""
-        assert result == expected
-
     def test_repr_ea_columns(self, any_string_dtype):
         # GH#54797
         pytest.importorskip("pyarrow")
@@ -446,3 +432,39 @@ NaT   4"""
 1                 2     5
 2                 3     6"""
         assert repr(df) == expected
+
+
+@pytest.mark.parametrize(
+    "data,output",
+    [
+        ([2, complex("nan"), 1], [" 2.0+0.0j", " NaN+0.0j", " 1.0+0.0j"]),
+        ([2, complex("nan"), -1], [" 2.0+0.0j", " NaN+0.0j", "-1.0+0.0j"]),
+        ([-2, complex("nan"), -1], ["-2.0+0.0j", " NaN+0.0j", "-1.0+0.0j"]),
+        ([-1.23j, complex("nan"), -1], ["-0.00-1.23j", "  NaN+0.00j", "-1.00+0.00j"]),
+        ([1.23j, complex("nan"), 1.23], [" 0.00+1.23j", "  NaN+0.00j", " 1.23+0.00j"]),
+        (
+            [-1.23j, complex(np.nan, np.nan), 1],
+            ["-0.00-1.23j", "  NaN+ NaNj", " 1.00+0.00j"],
+        ),
+        (
+            [-1.23j, complex(1.2, np.nan), 1],
+            ["-0.00-1.23j", " 1.20+ NaNj", " 1.00+0.00j"],
+        ),
+        (
+            [-1.23j, complex(np.nan, -1.2), 1],
+            ["-0.00-1.23j", "  NaN-1.20j", " 1.00+0.00j"],
+        ),
+    ],
+)
+@pytest.mark.parametrize("as_frame", [True, False])
+def test_repr_with_complex_nans(data, output, as_frame):
+    # GH#53762, GH#53841
+    obj = Series(np.array(data))
+    if as_frame:
+        obj = obj.to_frame(name="val")
+        reprs = [f"{i} {val}" for i, val in enumerate(output)]
+        expected = f"{'val': >{len(reprs[0])}}\n" + "\n".join(reprs)
+    else:
+        reprs = [f"{i}   {val}" for i, val in enumerate(output)]
+        expected = "\n".join(reprs) + "\ndtype: complex128"
+    assert str(obj) == expected, f"\n{str(obj)}\n\n{expected}"
