@@ -409,44 +409,22 @@ cdef _TSObject convert_datetime_to_tsobject(
     return obj
 
 
-cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
-                                                int tzoffset, tzinfo tz=None,
-                                                NPY_DATETIMEUNIT reso=NPY_FR_ns):
+cdef _adjust_tsobject_tz_using_offset(_TSObject obj, tzinfo tz):
     """
-    Convert a datetimestruct `dts`, along with initial timezone offset
-    `tzoffset` to a _TSObject (with timezone object `tz` - optional).
+    Convert a datetimestruct `obj.dts`, with an attached tzinfo to a new
+    user-provided tz.
 
     Parameters
     ----------
-    dts : npy_datetimestruct
-    tzoffset : int
-    tz : tzinfo or None
-        timezone for the timezone-aware output.
-    reso : NPY_DATETIMEUNIT, default NPY_FR_ns
-
-    Returns
-    -------
     obj : _TSObject
+    tz : tzinfo
+        timezone for the timezone-aware output.
     """
     cdef:
-        _TSObject obj = _TSObject()
-        int64_t value  # numpy dt64
         datetime dt
         Py_ssize_t pos
-
-    value = npy_datetimestruct_to_datetime(reso, &dts)
-    obj.dts = dts
-    obj.tzinfo = timezone(timedelta(minutes=tzoffset))
-    obj.value = tz_localize_to_utc_single(
-        value, obj.tzinfo, ambiguous=None, nonexistent=None, creso=reso
-    )
-    obj.creso = reso
-    if tz is None:
-        check_overflows(obj, reso)
-        return obj
-
-    cdef:
-        Localizer info = Localizer(tz, reso)
+        int64_t ps = obj.dts.ps
+        Localizer info = Localizer(tz, obj.creso)
 
     # Infer fold from offset-adjusted obj.value
     # see PEP 495 https://www.python.org/dev/peps/pep-0495/#the-fold-attribute
@@ -462,10 +440,15 @@ cdef _TSObject _create_tsobject_tz_using_offset(npy_datetimestruct dts,
     dt = datetime(obj.dts.year, obj.dts.month, obj.dts.day,
                   obj.dts.hour, obj.dts.min, obj.dts.sec,
                   obj.dts.us, obj.tzinfo, fold=obj.fold)
-    obj = convert_datetime_to_tsobject(
-        dt, tz, nanos=obj.dts.ps // 1000)
-    obj.ensure_reso(reso)  # TODO: more performant to get reso right up front?
-    return obj
+
+    # The rest here is similar to the 2-tz path in convert_datetime_to_tsobject
+    #  but avoids re-calculating obj.value
+    dt = dt.astimezone(tz)
+    pydatetime_to_dtstruct(dt, &obj.dts)
+    obj.tzinfo = dt.tzinfo
+    obj.dts.ps = ps
+    check_dts_bounds(&obj.dts, obj.creso)
+    check_overflows(obj, obj.creso)
 
 
 cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
@@ -502,6 +485,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
         datetime dt
         int64_t ival
         NPY_DATETIMEUNIT out_bestunit, reso
+        _TSObject obj
 
     if len(ts) == 0 or ts in nat_strings:
         obj = _TSObject()
@@ -525,21 +509,28 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
         if not string_to_dts_failed:
             reso = get_supported_reso(out_bestunit)
             check_dts_bounds(&dts, reso)
+            obj = _TSObject()
+            obj.dts = dts
+            obj.creso = reso
+            ival = npy_datetimestruct_to_datetime(reso, &dts)
+
             if out_local == 1:
-                return _create_tsobject_tz_using_offset(
-                    dts, out_tzoffset, tz, reso
+                obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))
+                obj.value = tz_localize_to_utc_single(
+                    ival, obj.tzinfo, ambiguous="raise", nonexistent=None, creso=reso
                 )
+                if tz is None:
+                    check_overflows(obj, reso)
+                    return obj
+                _adjust_tsobject_tz_using_offset(obj, tz)
+                return  obj
             else:
-                ival = npy_datetimestruct_to_datetime(reso, &dts)
                 if tz is not None:
                     # shift for _localize_tso
                     ival = tz_localize_to_utc_single(
                         ival, tz, ambiguous="raise", nonexistent=None, creso=reso
                     )
-                obj = _TSObject()
-                obj.dts = dts
                 obj.value = ival
-                obj.creso = reso
                 maybe_localize_tso(obj, tz, obj.creso)
                 return obj
 
