@@ -1454,6 +1454,20 @@ class TestMixedIntIndex:
         assert index._is_strictly_monotonic_increasing is False
         assert index._is_strictly_monotonic_decreasing is False
 
+    @pytest.mark.parametrize("dtype", ["f8", "m8[ns]", "M8[us]"])
+    @pytest.mark.parametrize("unique_first", [True, False])
+    def test_is_monotonic_unique_na(self, dtype, unique_first):
+        # GH 55755
+        index = Index([None, 1, 1], dtype=dtype)
+        if unique_first:
+            assert index.is_unique is False
+            assert index.is_monotonic_increasing is False
+            assert index.is_monotonic_decreasing is False
+        else:
+            assert index.is_monotonic_increasing is False
+            assert index.is_monotonic_decreasing is False
+            assert index.is_unique is False
+
     def test_int_name_format(self, frame_or_series):
         index = Index(["a", "b", "c"], name=0)
         result = frame_or_series(list(range(3)), index=index)
