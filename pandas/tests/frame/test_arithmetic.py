@@ -2103,3 +2103,13 @@ def test_enum_column_equality():
     expected = Series([True, True, True], name=Cols.col1)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_mixed_col_index_dtype():
+    # GH 47382
+    df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
+    df2 = DataFrame(columns=list("abc"), data=0.0, index=[0])
+    df1.columns = df2.columns.astype("string")
+    result = df1 + df2
+    expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
+    tm.assert_frame_equal(result, expected)
