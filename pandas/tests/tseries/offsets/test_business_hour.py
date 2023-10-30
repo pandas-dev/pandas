@@ -984,9 +984,17 @@ class TestBusinessHour:
         expected4 = DatetimeIndex(["2014-07-01 10:00"], freq="bh")
         tm.assert_index_equal(idx4, expected4)
 
-    def test_bday_ignores_timedeltas(self):
-        idx = date_range("2010/02/01", "2010/02/10", freq="12h")
-        t1 = idx + BDay(offset=Timedelta(3, unit="h"))
+    @pytest.mark.parametrize("td_unit", ["s", "ms", "us", "ns"])
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    def test_bday_ignores_timedeltas(self, unit, td_unit):
+        # GH#55608
+        idx = date_range("2010/02/01", "2010/02/10", freq="12h", unit=unit)
+        td = Timedelta(3, unit="h").as_unit(td_unit)
+        off = BDay(offset=td)
+        t1 = idx + off
+
+        exp_reso = max(td._creso, idx._data._creso)
+        exp_unit = {7: "s", 8: "ms", 9: "us", 10: "ns"}[exp_reso]
 
         expected = DatetimeIndex(
             [
@@ -1011,8 +1019,21 @@ class TestBusinessHour:
                 "2010-02-11 03:00:00",
             ],
             freq=None,
-        )
+        ).as_unit(exp_unit)
         tm.assert_index_equal(t1, expected)
+
+        # TODO(GH#55564): as_unit will be unnecessary
+        pointwise = DatetimeIndex([x + off for x in idx]).as_unit(exp_unit)
+        tm.assert_index_equal(pointwise, expected)
+
+    def test_add_bday_offset_nanos(self):
+        # GH#55608
+        idx = date_range("2010/02/01", "2010/02/10", freq="12h", unit="ns")
+        off = BDay(offset=Timedelta(3, unit="ns"))
+
+        result = idx + off
+        expected = DatetimeIndex([x + off for x in idx])
+        tm.assert_index_equal(result, expected)
 
 
 class TestOpeningTimes:

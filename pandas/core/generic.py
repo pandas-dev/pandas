@@ -30,6 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     using_copy_on_write,
+    warn_copy_on_write,
 )
 
 from pandas._libs import lib
@@ -829,7 +830,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if not using_copy_on_write() and copy is not False:
                 new_mgr = new_mgr.copy(deep=True)
 
-            return self._constructor(new_mgr).__finalize__(self, method="swapaxes")
+            out = self._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
+            return out.__finalize__(self, method="swapaxes")
 
         return self._constructor(
             new_values,
@@ -4396,7 +4398,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         df.iloc[0:5]['group'] = 'a'
 
         """
-        if using_copy_on_write():
+        if using_copy_on_write() or warn_copy_on_write():
             return
 
         # return early if the check is not needed
@@ -8784,6 +8786,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         3     -1      6
         4      5     -4
 
+        Clips using specific lower and upper thresholds per column:
+
+        >>> df.clip([-2, -1], [4,5])
+            col_0  col_1
+        0      4     -1
+        1     -2     -1
+        2      0      5
+        3     -1      5
+        4      4     -1
+
         Clips using specific lower and upper thresholds per column element:
 
         >>> t = pd.Series([2, -4, -1, 6, 3])
@@ -11712,6 +11724,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             How to handle NAs **before** computing percent changes.
 
             .. deprecated:: 2.1
+                All options of `fill_method` are deprecated except `fill_method=None`.
 
         limit : int, default None
             The number of consecutive NAs to fill before stopping.
@@ -11818,32 +11831,33 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         APPL -0.252395 -0.011860   NaN
         """
         # GH#53491
-        if fill_method is not lib.no_default or limit is not lib.no_default:
+        if fill_method not in (lib.no_default, None) or limit is not lib.no_default:
             warnings.warn(
-                "The 'fill_method' and 'limit' keywords in "
-                f"{type(self).__name__}.pct_change are deprecated and will be "
-                "removed in a future version. Call "
-                f"{'bfill' if fill_method in ('backfill', 'bfill') else 'ffill'} "
-                "before calling pct_change instead.",
+                "The 'fill_method' keyword being not None and the 'limit' keyword in "
+                f"{type(self).__name__}.pct_change are deprecated and will be removed "
+                "in a future version. Either fill in any non-leading NA values prior "
+                "to calling pct_change or specify 'fill_method=None' to not fill NA "
+                "values.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
         if fill_method is lib.no_default:
-            cols = self.items() if self.ndim == 2 else [(None, self)]
-            for _, col in cols:
-                mask = col.isna().values
-                mask = mask[np.argmax(~mask) :]
-                if mask.any():
-                    warnings.warn(
-                        "The default fill_method='pad' in "
-                        f"{type(self).__name__}.pct_change is deprecated and will be "
-                        "removed in a future version. Call ffill before calling "
-                        "pct_change to retain current behavior and silence this "
-                        "warning.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    break
+            if limit is lib.no_default:
+                cols = self.items() if self.ndim == 2 else [(None, self)]
+                for _, col in cols:
+                    mask = col.isna().values
+                    mask = mask[np.argmax(~mask) :]
+                    if mask.any():
+                        warnings.warn(
+                            "The default fill_method='pad' in "
+                            f"{type(self).__name__}.pct_change is deprecated and will "
+                            "be removed in a future version. Either fill in any "
+                            "non-leading NA values prior to calling pct_change or "
+                            "specify 'fill_method=None' to not fill NA values.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                        break
             fill_method = "pad"
         if limit is lib.no_default:
             limit = None
@@ -12378,6 +12392,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Wrap arithmetic method to operate inplace.
         """
+        warn = True
+        if not PYPY and warn_copy_on_write():
+            if sys.getrefcount(self) <= 5:
+                # we are probably in an inplace setitem context (e.g. df['a'] += 1)
+                warn = False
+
         result = op(self, other)
 
         if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
@@ -12385,7 +12405,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
             # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"
             self._mgr.setitem_inplace(  # type: ignore[union-attr]
-                slice(None), result._values
+                slice(None), result._values, warn=warn
             )
             return self
 

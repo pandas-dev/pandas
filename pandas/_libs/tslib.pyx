@@ -23,6 +23,7 @@ import_datetime()
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    is_datetime64_object,
     ndarray,
 )
 
@@ -45,9 +46,11 @@ from pandas._libs.tslibs.np_datetime cimport (
 import_pandas_datetime()
 
 
-from pandas._libs.tslibs.strptime cimport parse_today_now
+from pandas._libs.tslibs.strptime cimport (
+    DatetimeParseState,
+    parse_today_now,
+)
 from pandas._libs.util cimport (
-    is_datetime64_object,
     is_float_object,
     is_integer_object,
 )
@@ -58,10 +61,10 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
     convert_str_to_tsobject,
-    convert_timezone,
     get_datetime64_nanos,
     parse_pydatetime,
 )
+from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -275,6 +278,7 @@ def array_with_unit_to_datetime(
         result, tz = array_to_datetime(
             values.astype(object, copy=False),
             errors=errors,
+            creso=NPY_FR_ns,
         )
         return result, tz
 
@@ -406,6 +410,7 @@ cpdef array_to_datetime(
     bint dayfirst=False,
     bint yearfirst=False,
     bint utc=False,
+    NPY_DATETIMEUNIT creso=NPY_FR_ns,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:
@@ -432,6 +437,7 @@ cpdef array_to_datetime(
          yearfirst parsing behavior when encountering datetime strings
     utc : bool, default False
          indicator whether the dates should be UTC
+    creso : NPY_DATETIMEUNIT, default NPY_FR_ns
 
     Returns
     -------
@@ -454,13 +460,15 @@ cpdef array_to_datetime(
         float tz_offset
         set out_tzoffset_vals = set()
         tzinfo tz_out = None
-        bint found_tz = False, found_naive = False
         cnp.flatiter it = cnp.PyArray_IterNew(values)
+        DatetimeParseState state = DatetimeParseState()
+        str reso_str
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
-    result = np.empty((<object>values).shape, dtype="M8[ns]")
+    reso_str = npy_unit_to_abbrev(creso)
+    result = np.empty((<object>values).shape, dtype=f"M8[{reso_str}]")
     iresult = result.view("i8").ravel()
 
     for i in range(n):
@@ -473,25 +481,15 @@ cpdef array_to_datetime(
                 iresult[i] = NPY_NAT
 
             elif PyDateTime_Check(val):
-                if val.tzinfo is not None:
-                    found_tz = True
-                else:
-                    found_naive = True
-                tz_out = convert_timezone(
-                    val.tzinfo,
-                    tz_out,
-                    found_naive,
-                    found_tz,
-                    utc_convert,
-                )
-                iresult[i] = parse_pydatetime(val, &dts, utc_convert)
+                tz_out = state.process_datetime(val, tz_out, utc_convert)
+                iresult[i] = parse_pydatetime(val, &dts, creso=creso)
 
             elif PyDate_Check(val):
-                iresult[i] = pydate_to_dt64(val, &dts)
-                check_dts_bounds(&dts)
+                iresult[i] = pydate_to_dt64(val, &dts, reso=creso)
+                check_dts_bounds(&dts, creso)
 
             elif is_datetime64_object(val):
-                iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
+                iresult[i] = get_datetime64_nanos(val, creso)
 
             elif is_integer_object(val) or is_float_object(val):
                 # these must be ns unit by-definition
@@ -500,7 +498,7 @@ cpdef array_to_datetime(
                     iresult[i] = NPY_NAT
                 else:
                     # we now need to parse this as if unit='ns'
-                    iresult[i] = cast_from_unit(val, "ns")
+                    iresult[i] = cast_from_unit(val, "ns", out_reso=creso)
 
             elif isinstance(val, str):
                 # string
@@ -508,7 +506,7 @@ cpdef array_to_datetime(
                     # GH#32264 np.str_ object
                     val = str(val)
 
-                if parse_today_now(val, &iresult[i], utc):
+                if parse_today_now(val, &iresult[i], utc, creso):
                     # We can't _quite_ dispatch this to convert_str_to_tsobject
                     #  bc there isn't a nice way to pass "utc"
                     continue
@@ -516,7 +514,7 @@ cpdef array_to_datetime(
                 _ts = convert_str_to_tsobject(
                     val, None, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst
                 )
-                _ts.ensure_reso(NPY_FR_ns, val)
+                _ts.ensure_reso(creso, val)
 
                 iresult[i] = _ts.value
 
@@ -526,10 +524,6 @@ cpdef array_to_datetime(
                     # store the UTC offsets in seconds instead
                     nsecs = tz.utcoffset(None).total_seconds()
                     out_tzoffset_vals.add(nsecs)
-                    # need to set seen_datetime_offset *after* the
-                    #  potentially-raising timezone(timedelta(...)) call,
-                    #  otherwise we can go down the is_same_offsets path
-                    #  bc len(out_tzoffset_vals) == 0
                     seen_datetime_offset = True
                 else:
                     # Add a marker for naive string, to track if we are
@@ -667,7 +661,7 @@ cdef _array_to_datetime_object(
     if len(unique_timezones) > 1:
         warnings.warn(
             "In a future version of pandas, parsing datetimes with mixed time "
-            "zones will raise a warning unless `utc=True`. "
+            "zones will raise an error unless `utc=True`. "
             "Please specify `utc=True` to opt in to the new behaviour "
             "and silence this warning. To create a `Series` with mixed offsets and "
             "`object` dtype, please use `apply` and `datetime.datetime.strptime`",

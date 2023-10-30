@@ -19,7 +19,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
-skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
@@ -34,7 +37,7 @@ def test_bytes_io_input(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
+@xfail_pyarrow  # CSV parse error: Empty CSV file or block
 def test_read_csv_unicode(all_parsers):
     parser = all_parsers
     data = BytesIO("\u0141aski, Jan;1".encode())
@@ -177,12 +180,15 @@ def test_binary_mode_file_buffers(all_parsers, file_path, encoding, datapath):
     tm.assert_frame_equal(expected, result)
 
 
-@skip_pyarrow
 @pytest.mark.parametrize("pass_encoding", [True, False])
 def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding):
     # see gh-24130
     parser = all_parsers
     encoding = encoding_fmt.format(utf_value)
+
+    if parser.engine == "pyarrow" and pass_encoding is True and utf_value in [16, 32]:
+        # FIXME: this is bad!
+        pytest.skip("These cases freeze")
 
     expected = DataFrame({"foo": ["bar"]})
 
@@ -194,7 +200,6 @@ def test_encoding_temp_file(all_parsers, utf_value, encoding_fmt, pass_encoding)
         tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow
 def test_encoding_named_temp_file(all_parsers):
     # see gh-31819
     parser = all_parsers

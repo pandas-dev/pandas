@@ -198,14 +198,17 @@ class TestXSWithMultiIndex:
         tm.assert_frame_equal(result, expected)
 
     def test_xs_setting_with_copy_error(
-        self, multiindex_dataframe_random_data, using_copy_on_write
+        self,
+        multiindex_dataframe_random_data,
+        using_copy_on_write,
+        warn_copy_on_write,
     ):
         # this is a copy in 0.14
         df = multiindex_dataframe_random_data
         df_orig = df.copy()
         result = df.xs("two", level="second")
 
-        if using_copy_on_write:
+        if using_copy_on_write or warn_copy_on_write:
             result[:] = 10
         else:
             # setting this will give a SettingWithCopyError
@@ -216,14 +219,14 @@ class TestXSWithMultiIndex:
         tm.assert_frame_equal(df, df_orig)
 
     def test_xs_setting_with_copy_error_multiple(
-        self, four_level_index_dataframe, using_copy_on_write
+        self, four_level_index_dataframe, using_copy_on_write, warn_copy_on_write
     ):
         # this is a copy in 0.14
         df = four_level_index_dataframe
         df_orig = df.copy()
         result = df.xs(("a", 4), level=["one", "four"])
 
-        if using_copy_on_write:
+        if using_copy_on_write or warn_copy_on_write:
             result[:] = 10
         else:
             # setting this will give a SettingWithCopyError
