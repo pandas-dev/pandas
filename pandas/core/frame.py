@@ -659,7 +659,7 @@ class DataFrame(NDFrame, OpsMixin):
         return Series._from_mgr(mgr, axes)
 
     def _constructor_sliced_from_mgr(self, mgr, axes):
-        if self._constructor_sliced is Series:
+        if type(self) is DataFrame:
             ser = self._sliced_from_mgr(mgr, axes)
             ser._name = None  # caller is responsible for setting real name
             return ser
