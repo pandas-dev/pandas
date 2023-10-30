@@ -407,8 +407,13 @@ class TestIntNumericIndex:
         any_unsigned_int_numpy_dtype,
     ):
         # see gh-15832
-        msg = "Trying to coerce negative values to unsigned integers"
-
+        msg = "|".join(
+            [
+                "Trying to coerce negative values to unsigned integers",
+                "The elements provided in the data cannot all be casted "
+                "to the dtype uint8",
+            ]
+        )
         with pytest.raises(OverflowError, match=msg):
             Index([-1], dtype=any_unsigned_int_numpy_dtype)
 
