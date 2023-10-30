@@ -382,7 +382,12 @@ class TestAstype:
             ["2017-01-01", "2017-01-02", "2017-02-03"],
         ]
         df = DataFrame(vals, dtype=object)
-        with pytest.raises(TypeError, match="Cannot cast"):
+        msg = (
+            rf"Unexpected value for 'dtype': 'datetime64\[{unit}\]'. "
+            r"Must be 'datetime64\[s\]', 'datetime64\[ms\]', 'datetime64\[us\]', "
+            r"'datetime64\[ns\]' or DatetimeTZDtype"
+        )
+        with pytest.raises(ValueError, match=msg):
             df.astype(f"M8[{unit}]")
 
     @pytest.mark.parametrize("unit", ["Y", "M", "W", "D", "h", "m"])

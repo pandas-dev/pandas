@@ -31,6 +31,7 @@ from pandas._libs.tslibs import (
     timezones as libtimezones,
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
+from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
@@ -550,7 +551,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             tz_parsed = None
 
         elif arg.dtype.kind == "f":
-            mult, _ = precision_from_unit(unit)
+            mult, _ = precision_from_unit(abbrev_to_npy_unit(unit))
 
             mask = np.isnan(arg) | (arg == iNaT)
             fvalues = (arg * mult).astype("f8", copy=False)

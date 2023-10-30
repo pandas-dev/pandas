@@ -1013,6 +1013,40 @@ class TestDatetimeIndex:
         dr2 = DatetimeIndex(list(dr), name="foo", freq="D")
         tm.assert_index_equal(dr, dr2)
 
+    def test_dti_constructor_with_non_nano_dtype(self):
+        # GH#55756
+        ts = Timestamp("2999-01-01")
+        dtype = "M8[us]"
+        # NB: the 2500 is interpreted as nanoseconds and rounded *down*
+        # to 2 microseconds
+        vals = [ts, "2999-01-02 03:04:05.678910", 2500]
+        result = DatetimeIndex(vals, dtype=dtype)
+        exp_arr = np.array([ts.asm8, vals[1], 2], dtype=dtype)
+        expected = DatetimeIndex(exp_arr, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        result2 = DatetimeIndex(np.array(vals, dtype=object), dtype=dtype)
+        tm.assert_index_equal(result2, expected)
+
+    def test_dti_constructor_with_non_nano_now_today(self):
+        # GH#55756
+        now = Timestamp.now()
+        today = Timestamp.today()
+        result = DatetimeIndex(["now", "today"], dtype="M8[s]")
+        assert result.dtype == "M8[s]"
+
+        # result may not exactly match [now, today] so we'll test it up to a tolerance.
+        #  (it *may* match exactly due to rounding)
+        tolerance = pd.Timedelta(microseconds=1)
+
+        diff0 = result[0] - now.as_unit("s")
+        assert diff0 >= pd.Timedelta(0)
+        assert diff0 < tolerance
+
+        diff1 = result[1] - today.as_unit("s")
+        assert diff1 >= pd.Timedelta(0)
+        assert diff1 < tolerance
+
 
 class TestTimeSeries:
     def test_dti_constructor_preserve_dti_freq(self):

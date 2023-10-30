@@ -111,22 +111,27 @@ def _test_format_is_iso(f: str) -> bool:
     return format_is_iso(f)
 
 
-cdef bint parse_today_now(str val, int64_t* iresult, bint utc):
+cdef bint parse_today_now(
+    str val, int64_t* iresult, bint utc, NPY_DATETIMEUNIT creso
+):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
+    cdef:
+        _Timestamp ts
 
-    # Multiply by 1000 to convert to nanos, since these methods naturally have
-    #  microsecond resolution
     if val == "now":
         if utc:
-            iresult[0] = Timestamp.utcnow()._value * 1000
+            ts = <_Timestamp>Timestamp.utcnow()
+            iresult[0] = ts._as_creso(creso)._value
         else:
             # GH#18705 make sure to_datetime("now") matches Timestamp("now")
             # Note using Timestamp.now() is faster than Timestamp("now")
-            iresult[0] = Timestamp.now()._value * 1000
+            ts = <_Timestamp>Timestamp.now()
+            iresult[0] = ts._as_creso(creso)._value
         return True
     elif val == "today":
-        iresult[0] = Timestamp.today()._value * 1000
+        ts = <_Timestamp>Timestamp.today()
+        iresult[0] = ts._as_creso(creso)._value
         return True
     return False
 
@@ -363,7 +368,7 @@ def array_strptime(
                 check_dts_bounds(&dts)
                 continue
 
-            if parse_today_now(val, &iresult[i], utc):
+            if parse_today_now(val, &iresult[i], utc, NPY_FR_ns):
                 continue
 
             # Some ISO formats can't be parsed by string_to_dts
