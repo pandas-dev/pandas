@@ -19,6 +19,22 @@ from pandas import (
 )
 import pandas._testing as tm
 
+UNITS = ["s", "ms", "us", "ns"]
+
+
+@pytest.fixture(params=UNITS)
+def unit(request):
+    return request.param
+
+
+unit2 = unit
+
+
+def _get_finer_unit(unit, unit2):
+    if UNITS.index(unit) >= UNITS.index(unit2):
+        return unit
+    return unit2
+
 
 class TestDatetimeConcat:
     def test_concat_datetime64_block(self):
@@ -307,50 +323,58 @@ class TestTimezoneConcat:
         result = concat([x, y], ignore_index=True)
         tm.assert_series_equal(result, expected)
 
-    def test_concat_tz_series3(self):
+    def test_concat_tz_series3(self, unit, unit2):
         # see gh-12217 and gh-12306
         # Concatenating two UTC times
-        first = DataFrame([[datetime(2016, 1, 1)]])
+        first = DataFrame([[datetime(2016, 1, 1)]], dtype=f"M8[{unit}]")
         first[0] = first[0].dt.tz_localize("UTC")
 
-        second = DataFrame([[datetime(2016, 1, 2)]])
+        second = DataFrame([[datetime(2016, 1, 2)]], dtype=f"M8[{unit2}]")
         second[0] = second[0].dt.tz_localize("UTC")
 
         result = concat([first, second])
-        assert result[0].dtype == "datetime64[ns, UTC]"
+        exp_unit = _get_finer_unit(unit, unit2)
+        assert result[0].dtype == f"datetime64[{exp_unit}, UTC]"
 
-    def test_concat_tz_series4(self):
+    def test_concat_tz_series4(self, unit, unit2):
         # Concatenating two London times
-        first = DataFrame([[datetime(2016, 1, 1)]])
+        first = DataFrame([[datetime(2016, 1, 1)]], dtype=f"M8[{unit}]")
         first[0] = first[0].dt.tz_localize("Europe/London")
 
-        second = DataFrame([[datetime(2016, 1, 2)]])
+        second = DataFrame([[datetime(2016, 1, 2)]], dtype=f"M8[{unit2}]")
         second[0] = second[0].dt.tz_localize("Europe/London")
 
         result = concat([first, second])
-        assert result[0].dtype == "datetime64[ns, Europe/London]"
+        exp_unit = _get_finer_unit(unit, unit2)
+        assert result[0].dtype == f"datetime64[{exp_unit}, Europe/London]"
 
-    def test_concat_tz_series5(self):
+    def test_concat_tz_series5(self, unit, unit2):
         # Concatenating 2+1 London times
-        first = DataFrame([[datetime(2016, 1, 1)], [datetime(2016, 1, 2)]])
+        first = DataFrame(
+            [[datetime(2016, 1, 1)], [datetime(2016, 1, 2)]], dtype=f"M8[{unit}]"
+        )
         first[0] = first[0].dt.tz_localize("Europe/London")
 
-        second = DataFrame([[datetime(2016, 1, 3)]])
+        second = DataFrame([[datetime(2016, 1, 3)]], dtype=f"M8[{unit2}]")
         second[0] = second[0].dt.tz_localize("Europe/London")
 
         result = concat([first, second])
-        assert result[0].dtype == "datetime64[ns, Europe/London]"
+        exp_unit = _get_finer_unit(unit, unit2)
+        assert result[0].dtype == f"datetime64[{exp_unit}, Europe/London]"
 
-    def test_concat_tz_series6(self):
-        # Concat'ing 1+2 London times
-        first = DataFrame([[datetime(2016, 1, 1)]])
+    def test_concat_tz_series6(self, unit, unit2):
+        # Concatenating 1+2 London times
+        first = DataFrame([[datetime(2016, 1, 1)]], dtype=f"M8[{unit}]")
         first[0] = first[0].dt.tz_localize("Europe/London")
 
-        second = DataFrame([[datetime(2016, 1, 2)], [datetime(2016, 1, 3)]])
+        second = DataFrame(
+            [[datetime(2016, 1, 2)], [datetime(2016, 1, 3)]], dtype=f"M8[{unit2}]"
+        )
         second[0] = second[0].dt.tz_localize("Europe/London")
 
         result = concat([first, second])
-        assert result[0].dtype == "datetime64[ns, Europe/London]"
+        exp_unit = _get_finer_unit(unit, unit2)
+        assert result[0].dtype == f"datetime64[{exp_unit}, Europe/London]"
 
     def test_concat_tz_series_tzlocal(self):
         # see gh-13583
