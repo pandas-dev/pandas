@@ -2238,7 +2238,7 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
-    char* thousands='0',
+    char* thousands='',
     char* decimal='.',
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
