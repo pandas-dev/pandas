@@ -108,7 +108,7 @@ class TestAstypeAPI:
 
 class TestAstype:
     def test_astype_object_to_dt64_non_nano(self):
-        # GH#???
+        # GH#55756
         ts = Timestamp("2999-01-01")
         dtype = "M8[us]"
         # NB: the 2500 is interpreted as nanoseconds and rounded *down*

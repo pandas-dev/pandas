@@ -1014,6 +1014,7 @@ class TestDatetimeIndex:
         tm.assert_index_equal(dr, dr2)
 
     def test_dti_constructor_with_non_nano_dtype(self):
+        # GH#55756
         ts = Timestamp("2999-01-01")
         dtype = "M8[us]"
         # NB: the 2500 is interpreted as nanoseconds and rounded *down*
@@ -1028,6 +1029,7 @@ class TestDatetimeIndex:
         tm.assert_index_equal(result2, expected)
 
     def test_dti_constructor_with_non_nano_now_today(self):
+        # GH#55756
         now = Timestamp.now()
         today = Timestamp.today()
         result = DatetimeIndex(["now", "today"], dtype="M8[s]")
