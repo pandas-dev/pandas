@@ -512,6 +512,21 @@ wasted).
 - ``vaex.from_pandas``
 - ``vaex.to_pandas_df``
 
+### [Hail Query](https://hail.is/)
+
+An out-of-core, preemptible-safe, distributed, dataframe library serving
+the genetics community. Hail Query ships with on-disk data formats,
+in-memory data formats, an expression compiler, a query planner, and a
+distributed sort algorithm all designed to accelerate queries on large
+matrices of genome sequencing data.
+
+It is often easiest to use pandas to manipulate the summary statistics or
+other small aggregates produced by Hail. For this reason, Hail provides
+native import to and export from pandas DataFrames:
+
+- [`Table.from_pandas`](https://hail.is/docs/latest/hail.Table.html#hail.Table.from_pandas)
+- [`Table.to_pandas`](https://hail.is/docs/latest/hail.Table.html#hail.Table.to_pandas)
+
 ## Data cleaning and validation
 
 ### [pyjanitor](https://github.com/pyjanitor-devs/pyjanitor)

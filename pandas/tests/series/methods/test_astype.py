@@ -107,6 +107,20 @@ class TestAstypeAPI:
 
 
 class TestAstype:
+    def test_astype_object_to_dt64_non_nano(self):
+        # GH#55756
+        ts = Timestamp("2999-01-01")
+        dtype = "M8[us]"
+        # NB: the 2500 is interpreted as nanoseconds and rounded *down*
+        # to 2 microseconds
+        vals = [ts, "2999-01-02 03:04:05.678910", 2500]
+        ser = Series(vals, dtype=object)
+        result = ser.astype(dtype)
+
+        exp_arr = np.array([ts.asm8, vals[1], 2], dtype=dtype)
+        expected = Series(exp_arr, dtype=dtype)
+        tm.assert_series_equal(result, expected)
+
     def test_astype_mixed_object_to_dt64tz(self):
         # pre-2.0 this raised ValueError bc of tz mismatch
         # xref GH#32581
