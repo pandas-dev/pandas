@@ -157,6 +157,6 @@ class TestDatetimeIndexShift:
 
     def test_shift_empty(self):
         # GH#14811
-        dti = date_range(start="2016-10-21", end="2016-10-21", freq="BM")
+        dti = date_range(start="2016-10-21", end="2016-10-21", freq="BME")
         result = dti.shift(1)
         tm.assert_index_equal(result, dti)

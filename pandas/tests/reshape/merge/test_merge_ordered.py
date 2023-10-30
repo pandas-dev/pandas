@@ -70,6 +70,9 @@ class TestMergeOrdered:
         result = merge_ordered(left, right, on="key", left_by="group")
         assert result["group"].notna().all()
 
+    @pytest.mark.filterwarnings(
+        "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
+    )
     def test_merge_type(self, left, right):
         class NotADataFrame(DataFrame):
             @property

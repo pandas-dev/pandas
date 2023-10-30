@@ -25,16 +25,11 @@ import pandas._testing as tm
 import pandas.io.formats.format as fmt
 
 
-class TestDataFrameReprInfoEtc:
+class TestDataFrameRepr:
     def test_repr_bytes_61_lines(self):
         # GH#12857
         lets = list("ACDEFGHIJKLMNOP")
-        slen = 50
-        nseqs = 1000
-        words = [
-            [np.random.default_rng(2).choice(lets) for x in range(slen)]
-            for _ in range(nseqs)
-        ]
+        words = np.random.default_rng(2).choice(lets, (1000, 50))
         df = DataFrame(words).astype("U1")
         assert (df.dtypes == object).all()
 
@@ -146,11 +141,8 @@ NaT   4"""
         repr(frame)
 
     def test_repr_mixed(self, float_string_frame):
-        buf = StringIO()
-
         # mixed
         repr(float_string_frame)
-        float_string_frame.info(verbose=False, buf=buf)
 
     @pytest.mark.slow
     def test_repr_mixed_big(self):
@@ -167,25 +159,10 @@ NaT   4"""
 
         repr(biggie)
 
-    def test_repr(self, float_frame):
-        buf = StringIO()
-
-        # small one
-        repr(float_frame)
-        float_frame.info(verbose=False, buf=buf)
-
-        # even smaller
-        float_frame.reindex(columns=["A"]).info(verbose=False, buf=buf)
-        float_frame.reindex(columns=["A", "B"]).info(verbose=False, buf=buf)
-
-        # exhausting cases in DataFrame.info
-
+    def test_repr(self):
         # columns but no index
         no_index = DataFrame(columns=[0, 1, 3])
         repr(no_index)
-
-        # no columns or index
-        DataFrame().info(buf=buf)
 
         df = DataFrame(["a\n\r\tb"], columns=["a\n\r\td"], index=["a\n\r\tf"])
         assert "\t" not in repr(df)
@@ -209,7 +186,7 @@ NaT   4"""
         biggie = DataFrame(np.zeros((200, 4)), columns=range(4), index=range(200))
         repr(biggie)
 
-    def test_repr_unsortable(self, float_frame):
+    def test_repr_unsortable(self):
         # columns are not sortable
 
         unsortable = DataFrame(
@@ -222,6 +199,9 @@ NaT   4"""
             index=np.arange(50),
         )
         repr(unsortable)
+
+    def test_repr_float_frame_options(self, float_frame):
+        repr(float_frame)
 
         fmt.set_option("display.precision", 3)
         repr(float_frame)
@@ -262,7 +242,7 @@ NaT   4"""
         with pytest.raises(TypeError, match=msg):
             bytes(df)
 
-    def test_very_wide_info_repr(self):
+    def test_very_wide_repr(self):
         df = DataFrame(
             np.random.default_rng(2).standard_normal((10, 20)),
             columns=np.array(["a" * 10] * 20, dtype=object),
@@ -411,7 +391,7 @@ NaT   4"""
     def test_to_records_with_inf_as_na_record(self):
         # GH 48526
         expected = """   NaN  inf         record
-0  NaN    b    [0, inf, b]
+0  inf    b    [0, inf, b]
 1  NaN  NaN  [1, nan, nan]
 2    e    f      [2, e, f]"""
         msg = "use_inf_as_na option is deprecated"
@@ -442,20 +422,6 @@ NaT   4"""
                 result = repr(df)
         assert result == expected
 
-    def test_masked_ea_with_formatter(self):
-        # GH#39336
-        df = DataFrame(
-            {
-                "a": Series([0.123456789, 1.123456789], dtype="Float64"),
-                "b": Series([1, 2], dtype="Int64"),
-            }
-        )
-        result = df.to_string(formatters=["{:.2f}".format, "{:.2f}".format])
-        expected = """      a     b
-0  0.12  1.00
-1  1.12  2.00"""
-        assert result == expected
-
     def test_repr_ea_columns(self, any_string_dtype):
         # GH#54797
         pytest.importorskip("pyarrow")
@@ -466,3 +432,39 @@ NaT   4"""
 1                 2     5
 2                 3     6"""
         assert repr(df) == expected
+
+
+@pytest.mark.parametrize(
+    "data,output",
+    [
+        ([2, complex("nan"), 1], [" 2.0+0.0j", " NaN+0.0j", " 1.0+0.0j"]),
+        ([2, complex("nan"), -1], [" 2.0+0.0j", " NaN+0.0j", "-1.0+0.0j"]),
+        ([-2, complex("nan"), -1], ["-2.0+0.0j", " NaN+0.0j", "-1.0+0.0j"]),
+        ([-1.23j, complex("nan"), -1], ["-0.00-1.23j", "  NaN+0.00j", "-1.00+0.00j"]),
+        ([1.23j, complex("nan"), 1.23], [" 0.00+1.23j", "  NaN+0.00j", " 1.23+0.00j"]),
+        (
+            [-1.23j, complex(np.nan, np.nan), 1],
+            ["-0.00-1.23j", "  NaN+ NaNj", " 1.00+0.00j"],
+        ),
+        (
+            [-1.23j, complex(1.2, np.nan), 1],
+            ["-0.00-1.23j", " 1.20+ NaNj", " 1.00+0.00j"],
+        ),
+        (
+            [-1.23j, complex(np.nan, -1.2), 1],
+            ["-0.00-1.23j", "  NaN-1.20j", " 1.00+0.00j"],
+        ),
+    ],
+)
+@pytest.mark.parametrize("as_frame", [True, False])
+def test_repr_with_complex_nans(data, output, as_frame):
+    # GH#53762, GH#53841
+    obj = Series(np.array(data))
+    if as_frame:
+        obj = obj.to_frame(name="val")
+        reprs = [f"{i} {val}" for i, val in enumerate(output)]
+        expected = f"{'val': >{len(reprs[0])}}\n" + "\n".join(reprs)
+    else:
+        reprs = [f"{i}   {val}" for i, val in enumerate(output)]
+        expected = "\n".join(reprs) + "\ndtype: complex128"
+    assert str(obj) == expected, f"\n{str(obj)}\n\n{expected}"

@@ -16,6 +16,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    is_datetime64_object,
     ndarray,
     uint8_t,
 )
@@ -65,7 +66,6 @@ from pandas._libs.tslibs.dtypes cimport (
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
-    is_datetime64_object,
     is_integer_object,
 )
 
@@ -88,7 +88,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar,
     convert_reso,
     get_datetime64_unit,
-    get_datetime64_value,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -107,7 +106,7 @@ from pandas._libs.tslibs.np_datetime import (
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
-    delta_to_nanoseconds,
+    get_unit_for_round,
     is_any_td_scalar,
 )
 
@@ -307,7 +306,7 @@ cdef class _Timestamp(ABCTimestamp):
             NPY_DATETIMEUNIT reso
 
         reso = get_datetime64_unit(dt64)
-        value = get_datetime64_value(dt64)
+        value = cnp.get_datetime64_value(dt64)
         return cls._from_value_and_reso(value, reso, None)
 
     # -----------------------------------------------------------------
@@ -1896,16 +1895,13 @@ class Timestamp(_Timestamp):
             int64_t nanos
 
         freq = to_offset(freq, is_period=False)
-        freq.nanos  # raises on non-fixed freq
-        nanos = delta_to_nanoseconds(freq, self._creso)
+        nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             if freq.nanos == 0:
                 raise ValueError("Division by zero in rounding")
 
             # e.g. self.unit == "s" and sub-second freq
             return self
-
-        # TODO: problem if nanos==0
 
         if self.tz is not None:
             value = self.tz_localize(None)._value

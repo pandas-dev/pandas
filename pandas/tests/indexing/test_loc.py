@@ -12,6 +12,7 @@ from dateutil.tz import gettz
 import numpy as np
 import pytest
 
+from pandas._libs import index as libindex
 from pandas.errors import IndexingError
 import pandas.util._test_decorators as td
 
@@ -1124,7 +1125,7 @@ class TestLocBaseIndependent:
 
         if not using_copy_on_write:
             mark = pytest.mark.xfail(reason="accidental fix reverted - GH37497")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         x = DataFrame(zip(range(3), range(3)), columns=["a", "b"])
 
         y = x.copy()
@@ -1974,12 +1975,14 @@ class TestLocWithMultiIndex:
 
 
 class TestLocSetitemWithExpansion:
-    @pytest.mark.slow
-    def test_loc_setitem_with_expansion_large_dataframe(self):
+    def test_loc_setitem_with_expansion_large_dataframe(self, monkeypatch):
         # GH#10692
-        result = DataFrame({"x": range(10**6)}, dtype="int64")
-        result.loc[len(result)] = len(result) + 1
-        expected = DataFrame({"x": range(10**6 + 1)}, dtype="int64")
+        size_cutoff = 50
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+            result = DataFrame({"x": range(size_cutoff)}, dtype="int64")
+            result.loc[size_cutoff] = size_cutoff
+        expected = DataFrame({"x": range(size_cutoff + 1)}, dtype="int64")
         tm.assert_frame_equal(result, expected)
 
     def test_loc_setitem_empty_series(self):

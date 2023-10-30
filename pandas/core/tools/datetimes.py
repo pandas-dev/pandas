@@ -28,8 +28,6 @@ from pandas._libs.tslibs import (
     get_unit_from_dtype,
     iNaT,
     is_supported_unit,
-    nat_strings,
-    parsing,
     timezones as libtimezones,
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
@@ -42,7 +40,6 @@ from pandas._typing import (
     AnyArrayLike,
     ArrayLike,
     DateTimeErrorChoices,
-    npt,
 )
 from pandas.util._exceptions import find_stack_level
 
@@ -62,14 +59,12 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import notna
 
 from pandas.arrays import (
     DatetimeArray,
     IntegerArray,
     NumpyExtensionArray,
 )
-from pandas.core import algorithms
 from pandas.core.algorithms import unique
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import ExtensionArray
@@ -342,6 +337,8 @@ def _return_parsed_timezone_results(
     tz_results = np.empty(len(result), dtype=object)
     non_na_timezones = set()
     for zone in unique(timezones):
+        # GH#50168 looping over unique timezones is faster than
+        #  operating pointwise.
         mask = timezones == zone
         dta = DatetimeArray(result[mask]).tz_localize(zone)
         if utc:
@@ -356,7 +353,7 @@ def _return_parsed_timezone_results(
     if len(non_na_timezones) > 1:
         warnings.warn(
             "In a future version of pandas, parsing datetimes with mixed time "
-            "zones will raise a warning unless `utc=True`. Please specify `utc=True` "
+            "zones will raise an error unless `utc=True`. Please specify `utc=True` "
             "to opt in to the new behaviour and silence this warning. "
             "To create a `Series` with mixed offsets and `object` dtype, "
             "please use `apply` and `datetime.datetime.strptime`",
@@ -499,7 +496,9 @@ def _convert_listlike_datetimes(
     if tz_parsed is not None:
         # We can take a shortcut since the datetime64 numpy array
         # is in UTC
-        dta = DatetimeArray(result, dtype=tz_to_dtype(tz_parsed))
+        dtype = cast(DatetimeTZDtype, tz_to_dtype(tz_parsed))
+        dt64_values = result.view(f"M8[{dtype.unit}]")
+        dta = DatetimeArray(dt64_values, dtype=dtype)
         return DatetimeIndex._simple_new(dta, name=name)
 
     return _box_as_indexlike(result, utc=utc, name=name)
@@ -788,7 +787,7 @@ def to_datetime(
         .. warning::
 
             In a future version of pandas, parsing datetimes with mixed time
-            zones will raise a warning unless `utc=True`.
+            zones will raise an error unless `utc=True`.
             Please specify `utc=True` to opt in to the new behaviour
             and silence this warning. To create a `Series` with mixed offsets and
             `object` dtype, please use `apply` and `datetime.datetime.strptime`.
@@ -1023,7 +1022,7 @@ def to_datetime(
     >>> pd.to_datetime(['2020-10-25 02:00 +0200',
     ...                 '2020-10-25 04:00 +0100'])  # doctest: +SKIP
     FutureWarning: In a future version of pandas, parsing datetimes with mixed
-    time zones will raise a warning unless `utc=True`. Please specify `utc=True`
+    time zones will raise an error unless `utc=True`. Please specify `utc=True`
     to opt in to the new behaviour and silence this warning. To create a `Series`
     with mixed offsets and `object` dtype, please use `apply` and
     `datetime.datetime.strptime`.
@@ -1037,7 +1036,7 @@ def to_datetime(
     >>> pd.to_datetime(["2020-01-01 01:00:00-01:00",
     ...                 datetime(2020, 1, 1, 3, 0)])  # doctest: +SKIP
     FutureWarning: In a future version of pandas, parsing datetimes with mixed
-    time zones will raise a warning unless `utc=True`. Please specify `utc=True`
+    time zones will raise an error unless `utc=True`. Please specify `utc=True`
     to opt in to the new behaviour and silence this warning. To create a `Series`
     with mixed offsets and `object` dtype, please use `apply` and
     `datetime.datetime.strptime`.
@@ -1271,58 +1270,6 @@ def _assemble_from_unit_mappings(arg, errors: DateTimeErrorChoices, utc: bool):
                     f"cannot assemble the datetimes [{value}]: {err}"
                 ) from err
     return values
-
-
-def _attempt_YYYYMMDD(arg: npt.NDArray[np.object_], errors: str) -> np.ndarray | None:
-    """
-    try to parse the YYYYMMDD/%Y%m%d format, try to deal with NaT-like,
-    arg is a passed in as an object dtype, but could really be ints/strings
-    with nan-like/or floats (e.g. with nan)
-
-    Parameters
-    ----------
-    arg : np.ndarray[object]
-    errors : {'raise','ignore','coerce'}
-    """
-
-    def calc(carg):
-        # calculate the actual result
-        carg = carg.astype(object, copy=False)
-        parsed = parsing.try_parse_year_month_day(
-            carg / 10000, carg / 100 % 100, carg % 100
-        )
-        return tslib.array_to_datetime(parsed, errors=errors)[0]
-
-    def calc_with_mask(carg, mask):
-        result = np.empty(carg.shape, dtype="M8[ns]")
-        iresult = result.view("i8")
-        iresult[~mask] = iNaT
-
-        masked_result = calc(carg[mask].astype(np.float64).astype(np.int64))
-        result[mask] = masked_result.astype("M8[ns]")
-        return result
-
-    # try intlike / strings that are ints
-    try:
-        return calc(arg.astype(np.int64))
-    except (ValueError, OverflowError, TypeError):
-        pass
-
-    # a float with actual np.nan
-    try:
-        carg = arg.astype(np.float64)
-        return calc_with_mask(carg, notna(carg))
-    except (ValueError, OverflowError, TypeError):
-        pass
-
-    # string with NaN-like
-    try:
-        mask = ~algorithms.isin(arg, list(nat_strings))
-        return calc_with_mask(arg, mask)
-    except (ValueError, OverflowError, TypeError):
-        pass
-
-    return None
 
 
 __all__ = [

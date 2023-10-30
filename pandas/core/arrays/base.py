@@ -86,6 +86,7 @@ if TYPE_CHECKING:
         AstypeArg,
         AxisInt,
         Dtype,
+        DtypeObj,
         FillnaOptions,
         InterpolateOptions,
         NumpySorter,
@@ -292,6 +293,38 @@ class ExtensionArray:
         Length: 2, dtype: Int64
         """
         raise AbstractMethodError(cls)
+
+    @classmethod
+    def _from_scalars(cls, scalars, *, dtype: DtypeObj) -> Self:
+        """
+        Strict analogue to _from_sequence, allowing only sequences of scalars
+        that should be specifically inferred to the given dtype.
+
+        Parameters
+        ----------
+        scalars : sequence
+        dtype : ExtensionDtype
+
+        Raises
+        ------
+        TypeError or ValueError
+
+        Notes
+        -----
+        This is called in a try/except block when casting the result of a
+        pointwise operation.
+        """
+        try:
+            return cls._from_sequence(scalars, dtype=dtype, copy=False)
+        except (ValueError, TypeError):
+            raise
+        except Exception:
+            warnings.warn(
+                "_from_scalars should only raise ValueError or TypeError. "
+                "Consider overriding _from_scalars where appropriate.",
+                stacklevel=find_stack_level(),
+            )
+            raise
 
     @classmethod
     def _from_sequence_of_strings(
@@ -1663,7 +1696,14 @@ class ExtensionArray:
             self, self._formatter(), indent_for_name=False
         ).rstrip(", \n")
         class_name = f"<{type(self).__name__}>\n"
-        return f"{class_name}{data}\nLength: {len(self)}, dtype: {self.dtype}"
+        footer = self._get_repr_footer()
+        return f"{class_name}{data}\n{footer}"
+
+    def _get_repr_footer(self) -> str:
+        # GH#24278
+        if self.ndim > 1:
+            return f"Shape: {self.shape}, dtype: {self.dtype}"
+        return f"Length: {len(self)}, dtype: {self.dtype}"
 
     def _repr_2d(self) -> str:
         from pandas.io.formats.printing import format_object_summary
@@ -1679,7 +1719,8 @@ class ExtensionArray:
         ]
         data = ",\n".join(lines)
         class_name = f"<{type(self).__name__}>"
-        return f"{class_name}\n[\n{data}\n]\nShape: {self.shape}, dtype: {self.dtype}"
+        footer = self._get_repr_footer()
+        return f"{class_name}\n[\n{data}\n]\n{footer}"
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         """
@@ -2311,6 +2352,9 @@ class ExtensionArray:
         # GH#43682
         if isinstance(self.dtype, StringDtype):
             # StringArray
+            if op.how not in ["any", "all"]:
+                # Fail early to avoid conversion to object
+                op._get_cython_function(op.kind, op.how, np.dtype(object), False)
             npvalues = self.to_numpy(object, na_value=np.nan)
         else:
             raise NotImplementedError(

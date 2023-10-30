@@ -30,6 +30,7 @@ from pandas._libs import (
     algos as libalgos,
     index as libindex,
     lib,
+    writers,
 )
 from pandas._libs.internals import BlockValuesRefs
 import pandas._libs.join as libjoin
@@ -37,7 +38,6 @@ from pandas._libs.lib import (
     is_datetime_array,
     no_default,
 )
-from pandas._libs.missing import is_float_nan
 from pandas._libs.tslibs import (
     IncompatibleFrequency,
     OutOfBoundsDatetime,
@@ -98,7 +98,6 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_ea_or_datetimelike_dtype,
     is_float,
-    is_float_dtype,
     is_hashable,
     is_integer,
     is_iterator,
@@ -120,6 +119,7 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     IntervalDtype,
     PeriodDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -127,6 +127,7 @@ from pandas.core.dtypes.generic import (
     ABCIntervalIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
+    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -152,7 +153,9 @@ from pandas.core.arrays import (
     ArrowExtensionArray,
     BaseMaskedArray,
     Categorical,
+    DatetimeArray,
     ExtensionArray,
+    TimedeltaArray,
 )
 from pandas.core.arrays.string_ import StringArray
 from pandas.core.base import (
@@ -200,7 +203,10 @@ if TYPE_CHECKING:
         MultiIndex,
         Series,
     )
-    from pandas.core.arrays import PeriodArray
+    from pandas.core.arrays import (
+        IntervalArray,
+        PeriodArray,
+    )
 
 __all__ = ["Index"]
 
@@ -993,17 +999,14 @@ class Index(IndexOpsMixin, PandasObject):
                 dtype = pandas_dtype(cls)
 
             if needs_i8_conversion(dtype):
-                if dtype.kind == "m" and dtype != "m8[ns]":
-                    # e.g. m8[s]
-                    return self._data.view(cls)
-
                 idx_cls = self._dtype_to_subclass(dtype)
-                # NB: we only get here for subclasses that override
-                #  _data_cls such that it is a type and not a tuple
-                #  of types.
-                arr_cls = idx_cls._data_cls
-                arr = arr_cls(self._data.view("i8"), dtype=dtype)
-                return idx_cls._simple_new(arr, name=self.name, refs=self._references)
+                arr = self.array.view(dtype)
+                if isinstance(arr, ExtensionArray):
+                    # here we exclude non-supported dt64/td64 dtypes
+                    return idx_cls._simple_new(
+                        arr, name=self.name, refs=self._references
+                    )
+                return arr
 
             result = self._data.view(cls)
         else:
@@ -1287,11 +1290,6 @@ class Index(IndexOpsMixin, PandasObject):
         attrs_str = [f"{k}={v}" for k, v in attrs]
         prepr = ", ".join(attrs_str)
 
-        # no data provided, just attributes
-        if data is None:
-            # i.e. RangeIndex
-            data = ""
-
         return f"{klass_name}({data}{prepr})"
 
     @property
@@ -1301,6 +1299,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return default_pprint
 
+    @final
     def _format_data(self, name=None) -> str_t:
         """
         Return the formatted data as a unicode string.
@@ -1314,6 +1313,9 @@ class Index(IndexOpsMixin, PandasObject):
             self = cast("CategoricalIndex", self)
             if is_object_dtype(self.categories.dtype):
                 is_justify = False
+        elif isinstance(self, ABCRangeIndex):
+            # We will do the relevant formatting via attrs
+            return ""
 
         return format_object_summary(
             self,
@@ -1370,6 +1372,14 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Render a string representation of the Index.
         """
+        warnings.warn(
+            # GH#55413
+            f"{type(self).__name__}.format is deprecated and will be removed "
+            "in a future version. Convert using index.astype(str) or "
+            "index.map(formatter) instead.",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
         header = []
         if name:
             header.append(
@@ -1383,28 +1393,53 @@ class Index(IndexOpsMixin, PandasObject):
 
         return self._format_with_header(header=header, na_rep=na_rep)
 
+    _default_na_rep = "NaN"
+
+    @final
+    def _format_flat(
+        self,
+        *,
+        include_name: bool,
+        formatter: Callable | None = None,
+    ) -> list[str_t]:
+        """
+        Render a string representation of the Index.
+        """
+        header = []
+        if include_name:
+            header.append(
+                pprint_thing(self.name, escape_chars=("\t", "\r", "\n"))
+                if self.name is not None
+                else ""
+            )
+
+        if formatter is not None:
+            return header + list(self.map(formatter))
+
+        return self._format_with_header(header=header, na_rep=self._default_na_rep)
+
     def _format_with_header(self, *, header: list[str_t], na_rep: str_t) -> list[str_t]:
         from pandas.io.formats.format import format_array
 
         values = self._values
 
-        if is_object_dtype(values.dtype) or is_string_dtype(values.dtype):
-            values = np.asarray(values)
-            values = lib.maybe_convert_objects(values, safe=True)
-
-            result = [pprint_thing(x, escape_chars=("\t", "\r", "\n")) for x in values]
-
-            # could have nans
-            mask = is_float_nan(values)
-            if mask.any():
-                result_arr = np.array(result)
-                result_arr[mask] = na_rep
-                result = result_arr.tolist()
+        if (
+            is_object_dtype(values.dtype)
+            or is_string_dtype(values.dtype)
+            or isinstance(self.dtype, (IntervalDtype, CategoricalDtype))
+        ):
+            # TODO: why do we need different justify for these cases?
+            justify = "all"
         else:
-            result = trim_front(format_array(values, None, justify="left"))
+            justify = "left"
+        # passing leading_space=False breaks test_format_missing,
+        #  test_index_repr_in_frame_with_nan, but would otherwise make
+        #  trim_front unnecessary
+        formatted = format_array(values, None, justify=justify)
+        result = trim_front(formatted)
         return header + result
 
-    def _format_native_types(
+    def _get_values_for_csv(
         self,
         *,
         na_rep: str_t = "",
@@ -1413,30 +1448,14 @@ class Index(IndexOpsMixin, PandasObject):
         date_format=None,
         quoting=None,
     ) -> npt.NDArray[np.object_]:
-        """
-        Actually format specific types of the index.
-        """
-        from pandas.io.formats.format import FloatArrayFormatter
-
-        if is_float_dtype(self.dtype) and not isinstance(self.dtype, ExtensionDtype):
-            formatter = FloatArrayFormatter(
-                self._values,
-                na_rep=na_rep,
-                float_format=float_format,
-                decimal=decimal,
-                quoting=quoting,
-                fixed_width=False,
-            )
-            return formatter.get_result_as_array()
-
-        mask = isna(self)
-        if self.dtype != object and not quoting:
-            values = np.asarray(self).astype(str)
-        else:
-            values = np.array(self, dtype=object, copy=True)
-
-        values[mask] = na_rep
-        return values
+        return get_values_for_csv(
+            self._values,
+            na_rep=na_rep,
+            decimal=decimal,
+            float_format=float_format,
+            date_format=date_format,
+            quoting=quoting,
+        )
 
     def _summary(self, name=None) -> str_t:
         """
@@ -6939,6 +6958,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[~mask]
         return self.delete(indexer)
 
+    @final
     def infer_objects(self, copy: bool = True) -> Index:
         """
         If we have an object dtype, try to infer a non-object dtype.
@@ -6970,6 +6990,7 @@ class Index(IndexOpsMixin, PandasObject):
             result._references.add_index_reference(result)
         return result
 
+    @final
     def diff(self, periods: int = 1) -> Self:
         """
         Computes the difference between consecutive values in the Index object.
@@ -6998,6 +7019,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return self._constructor(self.to_series().diff(periods))
 
+    @final
     def round(self, decimals: int = 0) -> Self:
         """
         Round each value in the Index to the given number of decimals.
@@ -7630,3 +7652,113 @@ def _maybe_try_sort(result: Index | ArrayLike, sort: bool | None):
                 stacklevel=find_stack_level(),
             )
     return result
+
+
+def get_values_for_csv(
+    values: ArrayLike,
+    *,
+    date_format,
+    na_rep: str = "nan",
+    quoting=None,
+    float_format=None,
+    decimal: str = ".",
+) -> npt.NDArray[np.object_]:
+    """
+    Convert to types which can be consumed by the standard library's
+    csv.writer.writerows.
+    """
+    if isinstance(values, Categorical) and values.categories.dtype.kind in "Mm":
+        # GH#40754 Convert categorical datetimes to datetime array
+        values = algos.take_nd(
+            values.categories._values,
+            ensure_platform_int(values._codes),
+            fill_value=na_rep,
+        )
+
+    values = ensure_wrapped_if_datetimelike(values)
+
+    if isinstance(values, (DatetimeArray, TimedeltaArray)):
+        if values.ndim == 1:
+            result = values._format_native_types(na_rep=na_rep, date_format=date_format)
+            result = result.astype(object, copy=False)
+            return result
+
+        # GH#21734 Process every column separately, they might have different formats
+        results_converted = []
+        for i in range(len(values)):
+            result = values[i, :]._format_native_types(
+                na_rep=na_rep, date_format=date_format
+            )
+            results_converted.append(result.astype(object, copy=False))
+        return np.vstack(results_converted)
+
+    elif isinstance(values.dtype, PeriodDtype):
+        # TODO: tests that get here in column path
+        values = cast("PeriodArray", values)
+        res = values._format_native_types(na_rep=na_rep, date_format=date_format)
+        return res
+
+    elif isinstance(values.dtype, IntervalDtype):
+        # TODO: tests that get here in column path
+        values = cast("IntervalArray", values)
+        mask = values.isna()
+        if not quoting:
+            result = np.asarray(values).astype(str)
+        else:
+            result = np.array(values, dtype=object, copy=True)
+
+        result[mask] = na_rep
+        return result
+
+    elif values.dtype.kind == "f" and not isinstance(values.dtype, SparseDtype):
+        # see GH#13418: no special formatting is desired at the
+        # output (important for appropriate 'quoting' behaviour),
+        # so do not pass it through the FloatArrayFormatter
+        if float_format is None and decimal == ".":
+            mask = isna(values)
+
+            if not quoting:
+                values = values.astype(str)
+            else:
+                values = np.array(values, dtype="object")
+
+            values[mask] = na_rep
+            values = values.astype(object, copy=False)
+            return values
+
+        from pandas.io.formats.format import FloatArrayFormatter
+
+        formatter = FloatArrayFormatter(
+            values,
+            na_rep=na_rep,
+            float_format=float_format,
+            decimal=decimal,
+            quoting=quoting,
+            fixed_width=False,
+        )
+        res = formatter.get_result_as_array()
+        res = res.astype(object, copy=False)
+        return res
+
+    elif isinstance(values, ExtensionArray):
+        mask = isna(values)
+
+        new_values = np.asarray(values.astype(object))
+        new_values[mask] = na_rep
+        return new_values
+
+    else:
+        mask = isna(values)
+        itemsize = writers.word_len(na_rep)
+
+        if values.dtype != _dtype_obj and not quoting and itemsize:
+            values = values.astype(str)
+            if values.dtype.itemsize / np.dtype("U1").itemsize < itemsize:
+                # enlarge for the na_rep
+                values = values.astype(f"<U{itemsize}")
+        else:
+            values = np.array(values, dtype="object")
+
+        values[mask] = na_rep
+        values = values.astype(object, copy=False)
+        return values

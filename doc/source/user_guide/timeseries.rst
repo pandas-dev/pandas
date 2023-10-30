@@ -461,7 +461,7 @@ of those specified will not be generated:
 
 .. ipython:: python
 
-   pd.date_range(start, end, freq="BM")
+   pd.date_range(start, end, freq="BME")
 
    pd.date_range(start, end, freq="W")
 
@@ -557,7 +557,7 @@ intelligent functionality like selection, slicing, etc.
 
 .. ipython:: python
 
-   rng = pd.date_range(start, end, freq="BM")
+   rng = pd.date_range(start, end, freq="BME")
    ts = pd.Series(np.random.randn(len(rng)), index=rng)
    ts.index
    ts[:5].index
@@ -884,21 +884,21 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.LastWeekOfMonth`, ``'LWOM'``, "the x-th day of the last week of each month"
     :class:`~pandas.tseries.offsets.MonthEnd`, ``'ME'``, "calendar month end"
     :class:`~pandas.tseries.offsets.MonthBegin`, ``'MS'``, "calendar month begin"
-    :class:`~pandas.tseries.offsets.BMonthEnd` or :class:`~pandas.tseries.offsets.BusinessMonthEnd`, ``'BM'``, "business month end"
+    :class:`~pandas.tseries.offsets.BMonthEnd` or :class:`~pandas.tseries.offsets.BusinessMonthEnd`, ``'BME'``, "business month end"
     :class:`~pandas.tseries.offsets.BMonthBegin` or :class:`~pandas.tseries.offsets.BusinessMonthBegin`, ``'BMS'``, "business month begin"
-    :class:`~pandas.tseries.offsets.CBMonthEnd` or :class:`~pandas.tseries.offsets.CustomBusinessMonthEnd`, ``'CBM'``, "custom business month end"
+    :class:`~pandas.tseries.offsets.CBMonthEnd` or :class:`~pandas.tseries.offsets.CustomBusinessMonthEnd`, ``'CBME'``, "custom business month end"
     :class:`~pandas.tseries.offsets.CBMonthBegin` or :class:`~pandas.tseries.offsets.CustomBusinessMonthBegin`, ``'CBMS'``, "custom business month begin"
     :class:`~pandas.tseries.offsets.SemiMonthEnd`, ``'SM'``, "15th (or other day_of_month) and calendar month end"
     :class:`~pandas.tseries.offsets.SemiMonthBegin`, ``'SMS'``, "15th (or other day_of_month) and calendar month begin"
-    :class:`~pandas.tseries.offsets.QuarterEnd`, ``'Q'``, "calendar quarter end"
+    :class:`~pandas.tseries.offsets.QuarterEnd`, ``'QE'``, "calendar quarter end"
     :class:`~pandas.tseries.offsets.QuarterBegin`, ``'QS'``, "calendar quarter begin"
     :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQ``, "business quarter end"
     :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
     :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
     :class:`~pandas.tseries.offsets.YearEnd`, ``'Y'``, "calendar year end"
-    :class:`~pandas.tseries.offsets.YearBegin`, ``'AS'`` or ``'BYS'``,"calendar year begin"
-    :class:`~pandas.tseries.offsets.BYearEnd`, ``'BA'``, "business year end"
-    :class:`~pandas.tseries.offsets.BYearBegin`, ``'BAS'``, "business year begin"
+    :class:`~pandas.tseries.offsets.YearBegin`, ``'YS'`` or ``'BYS'``,"calendar year begin"
+    :class:`~pandas.tseries.offsets.BYearEnd`, ``'BY'``, "business year end"
+    :class:`~pandas.tseries.offsets.BYearBegin`, ``'BYS'``, "business year begin"
     :class:`~pandas.tseries.offsets.FY5253`, ``'RE'``, "retail (aka 52-53 week) year"
     :class:`~pandas.tseries.offsets.Easter`, None, "Easter holiday"
     :class:`~pandas.tseries.offsets.BusinessHour`, ``'bh'``, "business hour"
@@ -1248,20 +1248,20 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "W", "weekly frequency"
     "ME", "month end frequency"
     "SM", "semi-month end frequency (15th and end of month)"
-    "BM", "business month end frequency"
-    "CBM", "custom business month end frequency"
+    "BME", "business month end frequency"
+    "CBME", "custom business month end frequency"
     "MS", "month start frequency"
     "SMS", "semi-month start frequency (1st and 15th)"
     "BMS", "business month start frequency"
     "CBMS", "custom business month start frequency"
-    "Q", "quarter end frequency"
+    "QE", "quarter end frequency"
     "BQ", "business quarter end frequency"
     "QS", "quarter start frequency"
     "BQS", "business quarter start frequency"
     "Y", "year end frequency"
-    "BA, BY", "business year end frequency"
-    "AS, YS", "year start frequency"
-    "BAS, BYS", "business year start frequency"
+    "BY", "business year end frequency"
+    "YS", "year start frequency"
+    "BYS", "business year start frequency"
     "h", "hourly frequency"
     "bh", "business hour frequency"
     "cbh", "custom business hour frequency"
@@ -1373,18 +1373,18 @@ For some frequencies you can specify an anchoring suffix:
     "W\-THU", "weekly frequency (Thursdays)"
     "W\-FRI", "weekly frequency (Fridays)"
     "W\-SAT", "weekly frequency (Saturdays)"
-    "(B)Q(S)\-DEC", "quarterly frequency, year ends in December. Same as 'Q'"
-    "(B)Q(S)\-JAN", "quarterly frequency, year ends in January"
-    "(B)Q(S)\-FEB", "quarterly frequency, year ends in February"
-    "(B)Q(S)\-MAR", "quarterly frequency, year ends in March"
-    "(B)Q(S)\-APR", "quarterly frequency, year ends in April"
-    "(B)Q(S)\-MAY", "quarterly frequency, year ends in May"
-    "(B)Q(S)\-JUN", "quarterly frequency, year ends in June"
-    "(B)Q(S)\-JUL", "quarterly frequency, year ends in July"
-    "(B)Q(S)\-AUG", "quarterly frequency, year ends in August"
-    "(B)Q(S)\-SEP", "quarterly frequency, year ends in September"
-    "(B)Q(S)\-OCT", "quarterly frequency, year ends in October"
-    "(B)Q(S)\-NOV", "quarterly frequency, year ends in November"
+    "(B)Q(E)(S)\-DEC", "quarterly frequency, year ends in December. Same as 'QE'"
+    "(B)Q(E)(S)\-JAN", "quarterly frequency, year ends in January"
+    "(B)Q(E)(S)\-FEB", "quarterly frequency, year ends in February"
+    "(B)Q(E)(S)\-MAR", "quarterly frequency, year ends in March"
+    "(B)Q(E)(S)\-APR", "quarterly frequency, year ends in April"
+    "(B)Q(E)(S)\-MAY", "quarterly frequency, year ends in May"
+    "(B)Q(E)(S)\-JUN", "quarterly frequency, year ends in June"
+    "(B)Q(E)(S)\-JUL", "quarterly frequency, year ends in July"
+    "(B)Q(E)(S)\-AUG", "quarterly frequency, year ends in August"
+    "(B)Q(E)(S)\-SEP", "quarterly frequency, year ends in September"
+    "(B)Q(E)(S)\-OCT", "quarterly frequency, year ends in October"
+    "(B)Q(E)(S)\-NOV", "quarterly frequency, year ends in November"
     "(B)Y(S)\-DEC", "annual frequency, anchored end of December. Same as 'Y'"
     "(B)Y(S)\-JAN", "annual frequency, anchored end of January"
     "(B)Y(S)\-FEB", "annual frequency, anchored end of February"
@@ -1586,7 +1586,7 @@ rather than changing the alignment of the data and the index:
 
    ts.shift(5, freq="D")
    ts.shift(5, freq=pd.offsets.BDay())
-   ts.shift(5, freq="BM")
+   ts.shift(5, freq="BME")
 
 Note that with when ``freq`` is specified, the leading entry is no longer NaN
 because the data is not being realigned.
@@ -1692,7 +1692,7 @@ the end of the interval.
 .. warning::
 
     The default values for ``label`` and ``closed`` is '**left**' for all
-    frequency offsets except for 'ME', 'Y', 'Q', 'BM', 'BA', 'BQ', and 'W'
+    frequency offsets except for 'ME', 'Y', 'QE', 'BME', 'BY', 'BQ', and 'W'
     which all have a default of 'right'.
 
     This might unintendedly lead to looking ahead, where the value for a later
