@@ -570,7 +570,7 @@ _shared_docs[
         .. deprecated:: 2.1.0
     regex : bool or same types as `to_replace`, default False
         Whether to interpret `to_replace` and/or `value` as regular
-        expressions. If this is ``True`` then `to_replace` *must* be a
+        expressions. If this is ``True`` and value is not ``None``, then `to_replace` *must* be a
         string. Alternatively, this could be a regular expression or a
         list, dict, or array of regular expressions in which case
         `to_replace` must be ``None``.
