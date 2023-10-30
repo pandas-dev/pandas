@@ -2251,6 +2251,7 @@ def _sequence_to_dt64ns(
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
                 allow_object=False,
+                out_unit=out_unit or "ns",
             )
             copy = False
             if tz and inferred_tz:
@@ -2258,11 +2259,11 @@ def _sequence_to_dt64ns(
                 assert converted.dtype == "i8"
                 # GH#42505
                 # by convention, these are _already_ UTC, e.g
-                result = converted.view(DT64NS_DTYPE)
+                result = converted.view(out_dtype)
 
             elif inferred_tz:
                 tz = inferred_tz
-                result = converted.view(DT64NS_DTYPE)
+                result = converted.view(out_dtype)
 
             else:
                 result, _ = _construct_from_dt64_naive(
@@ -2360,6 +2361,7 @@ def objects_to_datetime64ns(
     utc: bool = False,
     errors: DateTimeErrorChoices = "raise",
     allow_object: bool = False,
+    out_unit: str = "ns",
 ):
     """
     Convert data to array of timestamps.
@@ -2375,6 +2377,7 @@ def objects_to_datetime64ns(
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
+    out_unit : str, default "ns"
 
     Returns
     -------
@@ -2399,6 +2402,7 @@ def objects_to_datetime64ns(
         utc=utc,
         dayfirst=dayfirst,
         yearfirst=yearfirst,
+        creso=abbrev_to_npy_unit(out_unit),
     )
 
     if tz_parsed is not None:
