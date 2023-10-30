@@ -293,23 +293,27 @@ class TestDataFrameConstructors:
         new_df["col1"] = 200.0
         assert orig_df["col1"][0] == 1.0
 
-    def test_constructor_dtype_nocast_view_dataframe(self, using_copy_on_write):
+    def test_constructor_dtype_nocast_view_dataframe(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         df = DataFrame([[1, 2]])
         should_be_view = DataFrame(df, dtype=df[0].dtype)
         if using_copy_on_write:
             should_be_view.iloc[0, 0] = 99
             assert df.values[0, 0] == 1
         else:
-            should_be_view[0][0] = 99
+            with tm.assert_cow_warning(warn_copy_on_write):
+                should_be_view[0][0] = 99
             assert df.values[0, 0] == 99
 
     def test_constructor_dtype_nocast_view_2d_array(
-        self, using_array_manager, using_copy_on_write
+        self, using_array_manager, using_copy_on_write, warn_copy_on_write
     ):
         df = DataFrame([[1, 2], [3, 4]], dtype="int64")
         if not using_array_manager and not using_copy_on_write:
             should_be_view = DataFrame(df.values, dtype=df[0].dtype)
-            should_be_view[0][0] = 97
+            with tm.assert_cow_warning(warn_copy_on_write):
+                should_be_view[0][0] = 97
             assert df.values[0, 0] == 97
         else:
             # INFO(ArrayManager) DataFrame(ndarray) doesn't necessarily preserve
