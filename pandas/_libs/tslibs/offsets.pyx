@@ -4656,9 +4656,7 @@ def _get_offset(name: str) -> BaseOffset:
     --------
     _get_offset('EOM') --> BMonthEnd(1)
     """
-    if name.upper() != name:
-        name = name.lower()
-    if name not in _dont_uppercase:
+    if name.lower() not in _dont_uppercase:
         name = name.upper()
         name = _lite_rule_alias.get(name, name)
         name = _lite_rule_alias.get(name.lower(), name)
