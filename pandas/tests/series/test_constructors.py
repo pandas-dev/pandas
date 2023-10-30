@@ -887,12 +887,14 @@ class TestSeriesConstructors:
         with pytest.raises(IntCastingNaNError, match=msg):
             Series(np.array(vals), dtype=any_int_numpy_dtype)
 
-    def test_constructor_dtype_no_cast(self, using_copy_on_write):
+    def test_constructor_dtype_no_cast(self, using_copy_on_write, warn_copy_on_write):
         # see gh-1572
         s = Series([1, 2, 3])
         s2 = Series(s, dtype=np.int64)
 
-        s2[1] = 5
+        warn = FutureWarning if warn_copy_on_write else None
+        with tm.assert_produces_warning(warn):
+            s2[1] = 5
         if using_copy_on_write:
             assert s[1] == 2
         else:
@@ -2121,6 +2123,22 @@ class TestSeriesConstructors:
         expected = Series(["a", "b"], dtype="string[pyarrow_numpy]")
         with pd.option_context("future.infer_string", True):
             result = Series(["a", "b"], dtype="string")
+        tm.assert_series_equal(result, expected)
+
+    def test_series_constructor_infer_string_scalar(self):
+        # GH#55537
+        with pd.option_context("future.infer_string", True):
+            ser = Series("a", index=[1, 2], dtype="string[python]")
+        expected = Series(["a", "a"], index=[1, 2], dtype="string[python]")
+        tm.assert_series_equal(ser, expected)
+        assert ser.dtype.storage == "python"
+
+    def test_series_string_inference_na_first(self):
+        # GH#55655
+        pytest.importorskip("pyarrow")
+        expected = Series([pd.NA, "b"], dtype="string[pyarrow_numpy]")
+        with pd.option_context("future.infer_string", True):
+            result = Series([pd.NA, "b"])
         tm.assert_series_equal(result, expected)
 
 

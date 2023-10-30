@@ -21,10 +21,6 @@ from numpy cimport int64_t
 cnp.import_array()
 
 cimport pandas._libs.tslibs.util as util
-from pandas._libs.tslibs.np_datetime cimport (
-    get_datetime64_value,
-    get_timedelta64_value,
-)
 
 # ----------------------------------------------------------------------
 # Constants
@@ -1439,7 +1435,7 @@ cdef bint is_dt64nat(object val):
     Is this a np.datetime64 object np.datetime64("NaT").
     """
     if cnp.is_datetime64_object(val):
-        return get_datetime64_value(val) == NPY_NAT
+        return cnp.get_datetime64_value(val) == NPY_NAT
     return False
 
 
@@ -1448,5 +1444,5 @@ cdef bint is_td64nat(object val):
     Is this a np.timedelta64 object np.timedelta64("NaT").
     """
     if cnp.is_timedelta64_object(val):
-        return get_timedelta64_value(val) == NPY_NAT
+        return cnp.get_timedelta64_value(val) == NPY_NAT
     return False
