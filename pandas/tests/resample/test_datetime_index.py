@@ -1,6 +1,5 @@
 from datetime import datetime
 from functools import partial
-from io import StringIO
 
 import numpy as np
 import pytest
@@ -271,34 +270,30 @@ def test_resample_rounding(unit):
     # GH 8371
     # odd results when rounding is needed
 
-    data = """date,time,value
-11-08-2014,00:00:01.093,1
-11-08-2014,00:00:02.159,1
-11-08-2014,00:00:02.667,1
-11-08-2014,00:00:03.175,1
-11-08-2014,00:00:07.058,1
-11-08-2014,00:00:07.362,1
-11-08-2014,00:00:08.324,1
-11-08-2014,00:00:08.830,1
-11-08-2014,00:00:08.982,1
-11-08-2014,00:00:09.815,1
-11-08-2014,00:00:10.540,1
-11-08-2014,00:00:11.061,1
-11-08-2014,00:00:11.617,1
-11-08-2014,00:00:13.607,1
-11-08-2014,00:00:14.535,1
-11-08-2014,00:00:15.525,1
-11-08-2014,00:00:17.960,1
-11-08-2014,00:00:20.674,1
-11-08-2014,00:00:21.191,1"""
-
-    df = pd.read_csv(
-        StringIO(data),
-        parse_dates={"timestamp": ["date", "time"]},
-        index_col="timestamp",
-    )
+    ts = [
+        "2014-11-08 00:00:01",
+        "2014-11-08 00:00:02",
+        "2014-11-08 00:00:02",
+        "2014-11-08 00:00:03",
+        "2014-11-08 00:00:07",
+        "2014-11-08 00:00:07",
+        "2014-11-08 00:00:08",
+        "2014-11-08 00:00:08",
+        "2014-11-08 00:00:08",
+        "2014-11-08 00:00:09",
+        "2014-11-08 00:00:10",
+        "2014-11-08 00:00:11",
+        "2014-11-08 00:00:11",
+        "2014-11-08 00:00:13",
+        "2014-11-08 00:00:14",
+        "2014-11-08 00:00:15",
+        "2014-11-08 00:00:17",
+        "2014-11-08 00:00:20",
+        "2014-11-08 00:00:21",
+    ]
+    df = DataFrame({"value": [1] * 19}, index=pd.to_datetime(ts))
     df.index = df.index.as_unit(unit)
-    df.index.name = None
+
     result = df.resample("6s").sum()
     expected = DataFrame(
         {"value": [4, 9, 4, 2]},
@@ -516,7 +511,7 @@ def test_upsample_with_limit(unit):
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq", ["5D", "10h", "5Min", "10s"])
+@pytest.mark.parametrize("freq", ["1D", "10h", "5Min", "10s"])
 @pytest.mark.parametrize("rule", ["Y", "3ME", "15D", "30h", "15Min", "30s"])
 def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
     # GH 33939
