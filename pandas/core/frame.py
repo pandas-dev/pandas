@@ -646,7 +646,7 @@ class DataFrame(NDFrame, OpsMixin):
         return DataFrame
 
     def _constructor_from_mgr(self, mgr, axes):
-        if self._constructor is DataFrame:
+        if type(self) is DataFrame:
             # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
             return self._from_mgr(mgr, axes=axes)
         else:
