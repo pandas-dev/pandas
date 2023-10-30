@@ -9,7 +9,7 @@ from pandas import (
 )
 import pandas._testing as tm
 
-pytestmark = td.skip_if_no("numba")
+pytestmark = [td.skip_if_no("numba"), pytest.mark.single_cpu]
 
 
 def test_numba_vs_python_noop(float_frame, apply_axis):

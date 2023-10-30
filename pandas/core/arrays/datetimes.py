@@ -2246,21 +2246,30 @@ def _sequence_to_dt64ns(
         else:
             # data comes back here as either i8 to denote UTC timestamps
             #  or M8[ns] to denote wall times
-            data, inferred_tz = objects_to_datetime64ns(
+            converted, inferred_tz = objects_to_datetime64ns(
                 data,
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
                 allow_object=False,
+                out_unit=out_unit or "ns",
             )
+            copy = False
             if tz and inferred_tz:
                 #  two timezones: convert to intended from base UTC repr
-                assert data.dtype == "i8"
+                assert converted.dtype == "i8"
                 # GH#42505
                 # by convention, these are _already_ UTC, e.g
-                return data.view(DT64NS_DTYPE), tz, None
+                result = converted.view(out_dtype)
 
             elif inferred_tz:
                 tz = inferred_tz
+                result = converted.view(out_dtype)
+
+            else:
+                result, _ = _construct_from_dt64_naive(
+                    converted, tz=tz, copy=copy, ambiguous=ambiguous
+                )
+            return result, tz, None
 
         data_dtype = data.dtype
 
@@ -2275,40 +2284,10 @@ def _sequence_to_dt64ns(
         # tz-naive DatetimeArray or ndarray[datetime64]
         if isinstance(data, DatetimeArray):
             data = data._ndarray
-        new_dtype = data.dtype
-        data_unit = get_unit_from_dtype(new_dtype)
-        if not is_supported_unit(data_unit):
-            # Cast to the nearest supported unit, generally "s"
-            new_reso = get_supported_reso(data_unit)
-            new_unit = npy_unit_to_abbrev(new_reso)
-            new_dtype = np.dtype(f"M8[{new_unit}]")
-            data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
-            data_unit = get_unit_from_dtype(new_dtype)
-            copy = False
 
-        if data.dtype.byteorder == ">":
-            # TODO: better way to handle this?  non-copying alternative?
-            #  without this, test_constructor_datetime64_bigendian fails
-            data = data.astype(data.dtype.newbyteorder("<"))
-            new_dtype = data.dtype
-            copy = False
-
-        if tz is not None:
-            # Convert tz-naive to UTC
-            # TODO: if tz is UTC, are there situations where we *don't* want a
-            #  copy?  tz_localize_to_utc always makes one.
-            shape = data.shape
-            if data.ndim > 1:
-                data = data.ravel()
-
-            data = tzconversion.tz_localize_to_utc(
-                data.view("i8"), tz, ambiguous=ambiguous, creso=data_unit
-            )
-            data = data.view(new_dtype)
-            data = data.reshape(shape)
-
-        assert data.dtype == new_dtype, data.dtype
-        result = data
+        result, copy = _construct_from_dt64_naive(
+            data, tz=tz, copy=copy, ambiguous=ambiguous
+        )
 
     else:
         # must be integer dtype otherwise
@@ -2328,6 +2307,53 @@ def _sequence_to_dt64ns(
     return result, tz, inferred_freq
 
 
+def _construct_from_dt64_naive(
+    data: np.ndarray, *, tz: tzinfo | None, copy: bool, ambiguous: TimeAmbiguous
+) -> tuple[np.ndarray, bool]:
+    """
+    Convert datetime64 data to a supported dtype, localizing if necessary.
+    """
+    # Caller is responsible for ensuring
+    #  lib.is_np_dtype(data.dtype)
+
+    new_dtype = data.dtype
+    data_unit = get_unit_from_dtype(new_dtype)
+    if not is_supported_unit(data_unit):
+        # Cast to the nearest supported unit, generally "s"
+        new_reso = get_supported_reso(data_unit)
+        new_unit = npy_unit_to_abbrev(new_reso)
+        new_dtype = np.dtype(f"M8[{new_unit}]")
+        data = astype_overflowsafe(data, dtype=new_dtype, copy=False)
+        data_unit = get_unit_from_dtype(new_dtype)
+        copy = False
+
+    if data.dtype.byteorder == ">":
+        # TODO: better way to handle this?  non-copying alternative?
+        #  without this, test_constructor_datetime64_bigendian fails
+        data = data.astype(data.dtype.newbyteorder("<"))
+        new_dtype = data.dtype
+        copy = False
+
+    if tz is not None:
+        # Convert tz-naive to UTC
+        # TODO: if tz is UTC, are there situations where we *don't* want a
+        #  copy?  tz_localize_to_utc always makes one.
+        shape = data.shape
+        if data.ndim > 1:
+            data = data.ravel()
+
+        data = tzconversion.tz_localize_to_utc(
+            data.view("i8"), tz, ambiguous=ambiguous, creso=data_unit
+        )
+        data = data.view(new_dtype)
+        data = data.reshape(shape)
+
+    assert data.dtype == new_dtype, data.dtype
+    result = data
+
+    return result, copy
+
+
 def objects_to_datetime64ns(
     data: np.ndarray,
     dayfirst,
@@ -2335,6 +2361,7 @@ def objects_to_datetime64ns(
     utc: bool = False,
     errors: DateTimeErrorChoices = "raise",
     allow_object: bool = False,
+    out_unit: str = "ns",
 ):
     """
     Convert data to array of timestamps.
@@ -2350,6 +2377,7 @@ def objects_to_datetime64ns(
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
+    out_unit : str, default "ns"
 
     Returns
     -------
@@ -2374,6 +2402,7 @@ def objects_to_datetime64ns(
         utc=utc,
         dayfirst=dayfirst,
         yearfirst=yearfirst,
+        creso=abbrev_to_npy_unit(out_unit),
     )
 
     if tz_parsed is not None:
