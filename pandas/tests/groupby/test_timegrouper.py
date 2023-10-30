@@ -5,7 +5,6 @@ from datetime import (
     datetime,
     timedelta,
 )
-from io import StringIO
 
 import numpy as np
 import pytest
@@ -607,14 +606,26 @@ class TestGroupBy:
 
     def test_groupby_multi_timezone(self):
         # combining multiple / different timezones yields UTC
+        df = DataFrame(
+            {
+                "value": range(5),
+                "date": [
+                    "2000-01-28 16:47:00",
+                    "2000-01-29 16:48:00",
+                    "2000-01-30 16:49:00",
+                    "2000-01-31 16:50:00",
+                    "2000-01-01 16:50:00",
+                ],
+                "tz": [
+                    "America/Chicago",
+                    "America/Chicago",
+                    "America/Los_Angeles",
+                    "America/Chicago",
+                    "America/New_York",
+                ],
+            }
+        )
 
-        data = """0,2000-01-28 16:47:00,America/Chicago
-1,2000-01-29 16:48:00,America/Chicago
-2,2000-01-30 16:49:00,America/Los_Angeles
-3,2000-01-31 16:50:00,America/Chicago
-4,2000-01-01 16:50:00,America/New_York"""
-
-        df = pd.read_csv(StringIO(data), header=None, names=["value", "date", "tz"])
         result = df.groupby("tz", group_keys=False).date.apply(
             lambda x: pd.to_datetime(x).dt.tz_localize(x.name)
         )
