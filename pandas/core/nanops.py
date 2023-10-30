@@ -778,7 +778,7 @@ def nanmedian(values, *, axis: AxisInt | None = None, skipna: bool = True, mask=
         return res
 
     dtype = values.dtype
-    values, mask = _get_values(values, skipna, mask=mask, fill_value=0)
+    values, mask = _get_values(values, skipna, mask=mask, fill_value=None)
     if values.dtype.kind != "f":
         if values.dtype == object:
             # GH#34671 avoid casting strings to numeric
