@@ -570,8 +570,11 @@ _shared_docs[
         .. deprecated:: 2.1.0
     regex : bool or same types as `to_replace`, default False
         Whether to interpret `to_replace` and/or `value` as regular
-        expressions. If this is ``True`` and value is not ``None``, then `to_replace` *must* be a
-        string. Alternatively, this could be a regular expression or a
+        expressions. If this is ``True``, `value` is not ``None`` and `to_replace` is a string,
+        then the replacement will be applied in all columns of the DataFrame.
+        If `value` is not ``None`` and `to_replace` is a dictionary, the dictionary keys will be 
+        the DataFrame columns that the replacement will be applied.
+        Alternatively, this could be a regular expression or a
         list, dict, or array of regular expressions in which case
         `to_replace` must be ``None``.
     method : {{'pad', 'ffill', 'bfill'}}
