@@ -25,11 +25,6 @@ cdef extern from "numpy/arrayscalars.h":
         npy_datetime obval
         PyArray_DatetimeMetaData obmeta
 
-    ctypedef struct PyTimedeltaScalarObject:
-        # PyObject_HEAD
-        npy_timedelta obval
-        PyArray_DatetimeMetaData obmeta
-
 cdef extern from "numpy/ndarraytypes.h":
     ctypedef struct npy_datetimestruct:
         int64_t year
@@ -96,8 +91,6 @@ cdef int64_t pydate_to_dt64(
 )
 cdef void pydate_to_dtstruct(date val, npy_datetimestruct *dts) noexcept
 
-cdef npy_datetime get_datetime64_value(object obj) noexcept nogil
-cdef npy_timedelta get_timedelta64_value(object obj) noexcept nogil
 cdef NPY_DATETIMEUNIT get_datetime64_unit(object obj) noexcept nogil
 
 cdef int string_to_dts(

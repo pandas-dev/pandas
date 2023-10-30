@@ -2,7 +2,6 @@ from datetime import (
     date,
     datetime,
 )
-from io import StringIO
 
 import numpy as np
 import pytest
@@ -38,39 +37,80 @@ def test_apply_func_that_appends_group_to_list_without_copy():
     tm.assert_frame_equal(groups[0], expected_value)
 
 
-def test_apply_issues():
+def test_apply_index_date():
     # GH 5788
-
-    s = """2011.05.16,00:00,1.40893
-2011.05.16,01:00,1.40760
-2011.05.16,02:00,1.40750
-2011.05.16,03:00,1.40649
-2011.05.17,02:00,1.40893
-2011.05.17,03:00,1.40760
-2011.05.17,04:00,1.40750
-2011.05.17,05:00,1.40649
-2011.05.18,02:00,1.40893
-2011.05.18,03:00,1.40760
-2011.05.18,04:00,1.40750
-2011.05.18,05:00,1.40649"""
-
-    df = pd.read_csv(
-        StringIO(s),
-        header=None,
-        names=["date", "time", "value"],
-        parse_dates=[["date", "time"]],
+    ts = [
+        "2011-05-16 00:00",
+        "2011-05-16 01:00",
+        "2011-05-16 02:00",
+        "2011-05-16 03:00",
+        "2011-05-17 02:00",
+        "2011-05-17 03:00",
+        "2011-05-17 04:00",
+        "2011-05-17 05:00",
+        "2011-05-18 02:00",
+        "2011-05-18 03:00",
+        "2011-05-18 04:00",
+        "2011-05-18 05:00",
+    ]
+    df = DataFrame(
+        {
+            "value": [
+                1.40893,
+                1.40760,
+                1.40750,
+                1.40649,
+                1.40893,
+                1.40760,
+                1.40750,
+                1.40649,
+                1.40893,
+                1.40760,
+                1.40750,
+                1.40649,
+            ],
+        },
+        index=Index(pd.to_datetime(ts), name="date_time"),
     )
-    df = df.set_index("date_time")
-
     expected = df.groupby(df.index.date).idxmax()
     result = df.groupby(df.index.date).apply(lambda x: x.idxmax())
     tm.assert_frame_equal(result, expected)
 
+
+def test_apply_index_date_object():
     # GH 5789
     # don't auto coerce dates
-    df = pd.read_csv(StringIO(s), header=None, names=["date", "time", "value"])
+    ts = [
+        "2011-05-16 00:00",
+        "2011-05-16 01:00",
+        "2011-05-16 02:00",
+        "2011-05-16 03:00",
+        "2011-05-17 02:00",
+        "2011-05-17 03:00",
+        "2011-05-17 04:00",
+        "2011-05-17 05:00",
+        "2011-05-18 02:00",
+        "2011-05-18 03:00",
+        "2011-05-18 04:00",
+        "2011-05-18 05:00",
+    ]
+    df = DataFrame([row.split() for row in ts], columns=["date", "time"])
+    df["value"] = [
+        1.40893,
+        1.40760,
+        1.40750,
+        1.40649,
+        1.40893,
+        1.40760,
+        1.40750,
+        1.40649,
+        1.40893,
+        1.40760,
+        1.40750,
+        1.40649,
+    ]
     exp_idx = Index(
-        ["2011.05.16", "2011.05.17", "2011.05.18"], dtype=object, name="date"
+        ["2011-05-16", "2011-05-17", "2011-05-18"], dtype=object, name="date"
     )
     expected = Series(["00:00", "02:00", "02:00"], index=exp_idx)
     msg = "DataFrameGroupBy.apply operated on the grouping columns"

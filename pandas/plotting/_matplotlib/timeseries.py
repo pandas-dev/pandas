@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -281,8 +282,6 @@ def maybe_convert_index(ax: Axes, data):
             raise ValueError("Could not get frequency alias for plotting")
 
         freq_str = _get_period_alias(freq)
-
-        import warnings
 
         with warnings.catch_warnings():
             # suppress Period[B] deprecation warning

@@ -155,9 +155,11 @@ usecols : str, list-like, or callable, default None
     Returns a subset of the columns according to behavior above.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
-    Use `object` to preserve data as stored in Excel and not interpret dtype.
+    Use `object` to preserve data as stored in Excel and not interpret dtype,
+    which will necessarily result in `object` dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
+    If you use `None`, it will infer the dtype of each column based on the data.
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
     Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", "calamine".
