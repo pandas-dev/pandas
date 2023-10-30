@@ -332,16 +332,13 @@ timedelta-like}
     # Shift the delta_idx by if the UTC offset of
     # the target tz is greater than 0 and we're moving forward
     # or vice versa
+    delta_idx_offset = 0
     if len(info.deltas):
         first_delta = info.deltas[0]
-    else:
-        first_delta = 0
-    if (shift_forward or shift_delta > 0) and first_delta > 0:
-        delta_idx_offset = 1
-    elif (shift_backward or shift_delta < 0) and first_delta < 0:
-        delta_idx_offset = 1
-    else:
-        delta_idx_offset = 0
+        if (shift_forward or shift_delta > 0) and first_delta > 0:
+            delta_idx_offset = 1
+        elif (shift_backward or shift_delta < 0) and first_delta < 0:
+            delta_idx_offset = 1
 
     for i in range(n):
         val = vals[i]
