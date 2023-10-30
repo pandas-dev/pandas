@@ -248,7 +248,7 @@ class TestSeriesFillNA:
             ]
         )
         td = ser.diff()
-        obj = frame_or_series(td)
+        obj = frame_or_series(td).copy()
 
         # reg fillna
         result = obj.fillna(Timedelta(seconds=0))
@@ -321,7 +321,7 @@ class TestSeriesFillNA:
 
         # ffill
         td[2] = np.nan
-        obj = frame_or_series(td)
+        obj = frame_or_series(td).copy()
         result = obj.ffill()
         expected = td.fillna(Timedelta(seconds=0))
         expected[0] = np.nan

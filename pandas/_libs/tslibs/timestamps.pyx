@@ -88,7 +88,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar,
     convert_reso,
     get_datetime64_unit,
-    get_datetime64_value,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -307,7 +306,7 @@ cdef class _Timestamp(ABCTimestamp):
             NPY_DATETIMEUNIT reso
 
         reso = get_datetime64_unit(dt64)
-        value = get_datetime64_value(dt64)
+        value = cnp.get_datetime64_value(dt64)
         return cls._from_value_and_reso(value, reso, None)
 
     # -----------------------------------------------------------------
