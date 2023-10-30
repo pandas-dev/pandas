@@ -230,11 +230,11 @@ skip_array_manager_invalid_test = pytest.mark.skipif(
 )
 
 skip_copy_on_write_not_yet_implemented = pytest.mark.xfail(
-    get_option("mode.copy_on_write"),
+    get_option("mode.copy_on_write") is True,
     reason="Not yet implemented/adapted for Copy-on-Write mode",
 )
 
 skip_copy_on_write_invalid_test = pytest.mark.skipif(
-    get_option("mode.copy_on_write"),
+    get_option("mode.copy_on_write") is True,
     reason="Test not valid for Copy-on-Write mode",
 )

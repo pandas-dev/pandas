@@ -201,7 +201,7 @@ class TestChaining:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.arm_slow
-    def test_detect_chained_assignment(self, using_copy_on_write):
+    def test_detect_chained_assignment(self, using_copy_on_write, warn_copy_on_write):
         with option_context("chained_assignment", "raise"):
             # work with the chain
             expected = DataFrame([[-5, 1], [-6, 3]], columns=list("AB"))
@@ -218,13 +218,15 @@ class TestChaining:
                     df["A"][1] = -6
                 tm.assert_frame_equal(df, df_original)
             else:
-                df["A"][0] = -5
-                df["A"][1] = -6
+                with tm.assert_cow_warning(warn_copy_on_write):
+                    df["A"][0] = -5
+                with tm.assert_cow_warning(warn_copy_on_write):
+                    df["A"][1] = -6
                 tm.assert_frame_equal(df, expected)
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_raises(
-        self, using_array_manager, using_copy_on_write
+        self, using_array_manager, using_copy_on_write, warn_copy_on_write
     ):
         # test with the chaining
         df = DataFrame(
@@ -242,6 +244,11 @@ class TestChaining:
             with tm.raises_chained_assignment_error():
                 df["A"][1] = -6
             tm.assert_frame_equal(df, df_original)
+        elif warn_copy_on_write:
+            with tm.assert_cow_warning():
+                df["A"][0] = -5
+            with tm.assert_cow_warning():
+                df["A"][1] = np.nan
         elif not using_array_manager:
             with pytest.raises(SettingWithCopyError, match=msg):
                 df["A"][0] = -5
@@ -260,7 +267,9 @@ class TestChaining:
             tm.assert_frame_equal(df, expected)
 
     @pytest.mark.arm_slow
-    def test_detect_chained_assignment_fails(self, using_copy_on_write):
+    def test_detect_chained_assignment_fails(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # Using a copy (the chain), fails
         df = DataFrame(
             {
@@ -272,12 +281,18 @@ class TestChaining:
         if using_copy_on_write:
             with tm.raises_chained_assignment_error():
                 df.loc[0]["A"] = -5
+        elif warn_copy_on_write:
+            # TODO(CoW-warn) should warn
+            with tm.assert_cow_warning(False):
+                df.loc[0]["A"] = -5
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
                 df.loc[0]["A"] = -5
 
     @pytest.mark.arm_slow
-    def test_detect_chained_assignment_doc_example(self, using_copy_on_write):
+    def test_detect_chained_assignment_doc_example(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # Doc example
         df = DataFrame(
             {
@@ -287,24 +302,27 @@ class TestChaining:
         )
         assert df._is_copy is None
 
+        indexer = df.a.str.startswith("o")
         if using_copy_on_write:
-            indexer = df.a.str.startswith("o")
             with tm.raises_chained_assignment_error():
+                df[indexer]["c"] = 42
+        elif warn_copy_on_write:
+            # TODO(CoW-warn) should warn
+            with tm.assert_cow_warning(False):
                 df[indexer]["c"] = 42
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
-                indexer = df.a.str.startswith("o")
                 df[indexer]["c"] = 42
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_object_dtype(
-        self, using_array_manager, using_copy_on_write
+        self, using_array_manager, using_copy_on_write, warn_copy_on_write
     ):
         expected = DataFrame({"A": [111, "bbb", "ccc"], "B": [1, 2, 3]})
         df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
         df_original = df.copy()
 
-        if not using_copy_on_write:
+        if not using_copy_on_write and not warn_copy_on_write:
             with pytest.raises(SettingWithCopyError, match=msg):
                 df.loc[0]["A"] = 111
 
@@ -312,6 +330,11 @@ class TestChaining:
             with tm.raises_chained_assignment_error():
                 df["A"][0] = 111
             tm.assert_frame_equal(df, df_original)
+        elif warn_copy_on_write:
+            # TODO(CoW-warn) should give different message
+            with tm.assert_cow_warning():
+                df["A"][0] = 111
+            tm.assert_frame_equal(df, expected)
         elif not using_array_manager:
             with pytest.raises(SettingWithCopyError, match=msg):
                 df["A"][0] = 111
@@ -367,8 +390,10 @@ class TestChaining:
         df["letters"] = df["letters"].apply(str.lower)
 
     @pytest.mark.arm_slow
-    def test_detect_chained_assignment_implicit_take2(self, using_copy_on_write):
-        if using_copy_on_write:
+    def test_detect_chained_assignment_implicit_take2(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
+        if using_copy_on_write or warn_copy_on_write:
             pytest.skip("_is_copy is not always set for CoW")
         # Implicitly take 2
         df = random_text(100000)
@@ -422,7 +447,9 @@ class TestChaining:
         str(df)
 
     @pytest.mark.arm_slow
-    def test_detect_chained_assignment_undefined_column(self, using_copy_on_write):
+    def test_detect_chained_assignment_undefined_column(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # from SO:
         # https://stackoverflow.com/questions/24054495/potential-bug-setting-value-for-undefined-column-using-iloc
         df = DataFrame(np.arange(0, 9), columns=["count"])
@@ -433,13 +460,17 @@ class TestChaining:
             with tm.raises_chained_assignment_error():
                 df.iloc[0:5]["group"] = "a"
             tm.assert_frame_equal(df, df_original)
+        elif warn_copy_on_write:
+            # TODO(CoW-warn) should warn
+            with tm.assert_cow_warning(False):
+                df.iloc[0:5]["group"] = "a"
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
                 df.iloc[0:5]["group"] = "a"
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_changing_dtype(
-        self, using_array_manager, using_copy_on_write
+        self, using_array_manager, using_copy_on_write, warn_copy_on_write
     ):
         # Mixed type setting but same dtype & changing dtype
         df = DataFrame(
@@ -460,8 +491,14 @@ class TestChaining:
             with tm.raises_chained_assignment_error(extra_warnings=(FutureWarning,)):
                 df["C"][2] = "foo"
             tm.assert_frame_equal(df, df_original)
-
-        if not using_copy_on_write:
+        elif warn_copy_on_write:
+            # TODO(CoW-warn) should warn
+            with tm.assert_cow_warning(False):
+                df.loc[2]["D"] = "foo"
+            # TODO(CoW-warn) should give different message
+            with tm.assert_cow_warning():
+                df["C"][2] = "foo"
+        else:
             with pytest.raises(SettingWithCopyError, match=msg):
                 df.loc[2]["D"] = "foo"
 
@@ -477,7 +514,7 @@ class TestChaining:
                 df["C"][2] = "foo"
                 assert df.loc[2, "C"] == "foo"
 
-    def test_setting_with_copy_bug(self, using_copy_on_write):
+    def test_setting_with_copy_bug(self, using_copy_on_write, warn_copy_on_write):
         # operating on a copy
         df = DataFrame(
             {"a": list(range(4)), "b": list("ab.."), "c": ["a", "b", np.nan, "d"]}
@@ -489,6 +526,10 @@ class TestChaining:
             with tm.raises_chained_assignment_error():
                 df[["c"]][mask] = df[["b"]][mask]
             tm.assert_frame_equal(df, df_original)
+        elif warn_copy_on_write:
+            # TODO(CoW-warn) should warn
+            with tm.assert_cow_warning(False):
+                df[["c"]][mask] = df[["b"]][mask]
         else:
             with pytest.raises(SettingWithCopyError, match=msg):
                 df[["c"]][mask] = df[["b"]][mask]
@@ -502,10 +543,17 @@ class TestChaining:
         # this should not raise
         df2["y"] = ["g", "h", "i"]
 
-    def test_detect_chained_assignment_warnings_errors(self, using_copy_on_write):
+    def test_detect_chained_assignment_warnings_errors(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         df = DataFrame({"A": ["aaa", "bbb", "ccc"], "B": [1, 2, 3]})
         if using_copy_on_write:
             with tm.raises_chained_assignment_error():
+                df.loc[0]["A"] = 111
+            return
+        elif warn_copy_on_write:
+            # TODO(CoW-warn) should warn
+            with tm.assert_cow_warning(False):
                 df.loc[0]["A"] = 111
             return
 
@@ -519,14 +567,14 @@ class TestChaining:
 
     @pytest.mark.parametrize("rhs", [3, DataFrame({0: [1, 2, 3, 4]})])
     def test_detect_chained_assignment_warning_stacklevel(
-        self, rhs, using_copy_on_write
+        self, rhs, using_copy_on_write, warn_copy_on_write
     ):
         # GH#42570
         df = DataFrame(np.arange(25).reshape(5, 5))
         df_original = df.copy()
         chained = df.loc[:3]
         with option_context("chained_assignment", "warn"):
-            if not using_copy_on_write:
+            if not using_copy_on_write and not warn_copy_on_write:
                 with tm.assert_produces_warning(SettingWithCopyWarning) as t:
                     chained[2] = rhs
                     assert t[0].filename == __file__

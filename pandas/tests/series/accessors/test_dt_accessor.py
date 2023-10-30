@@ -281,7 +281,7 @@ class TestSeriesDatetimeValues:
         expected = Series(exp_values, name="xxx")
         tm.assert_series_equal(ser, expected)
 
-    def test_dt_accessor_not_writeable(self, using_copy_on_write):
+    def test_dt_accessor_not_writeable(self, using_copy_on_write, warn_copy_on_write):
         # no setting allowed
         ser = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         with pytest.raises(ValueError, match="modifications"):
@@ -292,6 +292,10 @@ class TestSeriesDatetimeValues:
         with pd.option_context("chained_assignment", "raise"):
             if using_copy_on_write:
                 with tm.raises_chained_assignment_error():
+                    ser.dt.hour[0] = 5
+            elif warn_copy_on_write:
+                # TODO(CoW-warn) should warn
+                with tm.assert_cow_warning(False):
                     ser.dt.hour[0] = 5
             else:
                 with pytest.raises(SettingWithCopyError, match=msg):

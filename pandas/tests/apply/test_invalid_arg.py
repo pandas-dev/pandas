@@ -147,6 +147,8 @@ def test_transform_axis_1_raises():
         Series([1]).transform("sum", axis=1)
 
 
+# TODO(CoW-warn) should not need to warn
+@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
 def test_apply_modify_traceback():
     data = DataFrame(
         {

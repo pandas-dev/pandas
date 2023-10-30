@@ -288,7 +288,7 @@ class TestDataFrameIndexing:
         df.foobar = 5
         assert (df.foobar == 5).all()
 
-    def test_setitem(self, float_frame, using_copy_on_write):
+    def test_setitem(self, float_frame, using_copy_on_write, warn_copy_on_write):
         # not sure what else to do here
         series = float_frame["A"][::2]
         float_frame["col5"] = series
@@ -324,7 +324,7 @@ class TestDataFrameIndexing:
         smaller = float_frame[:2]
 
         msg = r"\nA value is trying to be set on a copy of a slice from a DataFrame"
-        if using_copy_on_write:
+        if using_copy_on_write or warn_copy_on_write:
             # With CoW, adding a new column doesn't raise a warning
             smaller["col10"] = ["1", "2"]
         else:
@@ -1295,7 +1295,7 @@ class TestDataFrameIndexing:
     ):
         # GH#44514 don't cast mismatched nulls to pd.NA
         df = DataFrame({"A": [1, 2, 3]}, dtype=any_numeric_ea_dtype)
-        ser = df["A"]
+        ser = df["A"].copy()
         arr = ser._values
 
         msg = "|".join(

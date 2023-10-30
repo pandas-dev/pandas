@@ -88,6 +88,7 @@ from pandas._testing.compat import (
     get_obj,
 )
 from pandas._testing.contexts import (
+    assert_cow_warning,
     decompress_file,
     ensure_clean,
     raises_chained_assignment_error,
@@ -1097,6 +1098,7 @@ __all__ = [
     "assert_series_equal",
     "assert_sp_array_equal",
     "assert_timedelta_array_equal",
+    "assert_cow_warning",
     "at",
     "BOOL_DTYPES",
     "box_expected",

@@ -1651,7 +1651,7 @@ def test_isetitem_frame(using_copy_on_write):
 
 
 @pytest.mark.parametrize("key", ["a", ["a"]])
-def test_get(using_copy_on_write, key):
+def test_get(using_copy_on_write, warn_copy_on_write, key):
     df = DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df_orig = df.copy()
 
@@ -1665,7 +1665,12 @@ def test_get(using_copy_on_write, key):
     else:
         # for non-CoW it depends on whether we got a Series or DataFrame if it
         # is a view or copy or triggers a warning or not
-        warn = SettingWithCopyWarning if isinstance(key, list) else None
+        # TODO(CoW) should warn
+        warn = (
+            (None if warn_copy_on_write else SettingWithCopyWarning)
+            if isinstance(key, list)
+            else None
+        )
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(warn):
                 result.iloc[0] = 0
@@ -1680,7 +1685,9 @@ def test_get(using_copy_on_write, key):
 @pytest.mark.parametrize(
     "dtype", ["int64", "float64"], ids=["single-block", "mixed-block"]
 )
-def test_xs(using_copy_on_write, using_array_manager, axis, key, dtype):
+def test_xs(
+    using_copy_on_write, warn_copy_on_write, using_array_manager, axis, key, dtype
+):
     single_block = (dtype == "int64") and not using_array_manager
     is_view = single_block or (using_array_manager and axis == 1)
     df = DataFrame(
@@ -1695,8 +1702,12 @@ def test_xs(using_copy_on_write, using_array_manager, axis, key, dtype):
     elif using_copy_on_write:
         assert result._mgr._has_no_reference(0)
 
+    # TODO(CoW) should warn in case of is_view
     if using_copy_on_write or is_view:
         result.iloc[0] = 0
+    elif warn_copy_on_write:
+        with tm.assert_cow_warning(single_block):
+            result.iloc[0] = 0
     else:
         with pd.option_context("chained_assignment", "warn"):
             with tm.assert_produces_warning(SettingWithCopyWarning):
@@ -1710,7 +1721,9 @@ def test_xs(using_copy_on_write, using_array_manager, axis, key, dtype):
 
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("key, level", [("l1", 0), (2, 1)])
-def test_xs_multiindex(using_copy_on_write, using_array_manager, key, level, axis):
+def test_xs_multiindex(
+    using_copy_on_write, warn_copy_on_write, using_array_manager, key, level, axis
+):
     arr = np.arange(18).reshape(6, 3)
     index = MultiIndex.from_product([["l1", "l2"], [1, 2, 3]], names=["lev1", "lev2"])
     df = DataFrame(arr, index=index, columns=list("abc"))
@@ -1725,8 +1738,9 @@ def test_xs_multiindex(using_copy_on_write, using_array_manager, key, level, axi
             get_array(df, df.columns[0]), get_array(result, result.columns[0])
         )
 
+    # TODO(CoW) should warn
     warn = (
-        SettingWithCopyWarning
+        (None if warn_copy_on_write else SettingWithCopyWarning)
         if not using_copy_on_write and not using_array_manager
         else None
     )
