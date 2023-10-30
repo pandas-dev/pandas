@@ -2238,8 +2238,8 @@ def maybe_convert_numeric(
     bint convert_empty=True,
     bint coerce_numeric=False,
     bint convert_to_masked_nullable=False,
-    str thousands='0',
-    str decimal='.',
+    char* thousands='0',
+    char* decimal='.',
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """
     Convert object array to a numeric array if possible.
@@ -2290,6 +2290,14 @@ def maybe_convert_numeric(
                 return (maybe_ints, None)
         except (ValueError, OverflowError, TypeError):
             pass
+
+    # Validate separators
+    if len(thousands) > 1:
+        raise ValueError("Thousands separator must have length 1")
+    if len(decimal) > 1:
+        raise ValueError("Decimal separator must have length 1")
+    if thousands == decimal:
+        raise ValueError("Decimal and thousand separators must not be the same")
 
     # Otherwise, iterate and do full inference.
     cdef:
@@ -2390,8 +2398,8 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                print(val, decimal, thousands)
-                floatify(val, &fval, &maybe_int, decimal, thousands)
+                #print(val, decimal, thousands)
+                floatify(val, &fval, &maybe_int, decimal[0], thousands[0])
 
                 if fval in na_values:
                     seen.saw_null()
