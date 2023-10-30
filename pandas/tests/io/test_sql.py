@@ -688,6 +688,11 @@ def postgresql_adbc_conn():
     uri = "postgresql://postgres:postgres@localhost:5432/pandas"
     with dbapi.connect(uri) as conn:
         yield conn
+        for view in get_all_views(conn):
+            drop_view(view, conn)
+        for tbl in get_all_tables(conn):
+            drop_table(tbl, conn)
+        conn.commit()
 
 
 @pytest.fixture
@@ -707,11 +712,6 @@ def postgresql_adbc_iris(postgresql_adbc_conn, iris_path):
         conn.rollback()
         create_and_load_iris_view(conn)
     yield conn
-    for view in get_all_views(conn):
-        drop_view(view, conn)
-    for tbl in get_all_tables(conn):
-        drop_table(tbl, conn)
-    conn.commit()
 
 
 @pytest.fixture
@@ -739,11 +739,6 @@ def postgresql_adbc_types(postgresql_adbc_conn, types_data):
         create_and_load_types_postgresql(conn, new_data)
 
     yield conn
-    for view in get_all_views(conn):
-        drop_view(view, conn)
-    for tbl in get_all_tables(conn):
-        drop_table(tbl, conn)
-    conn.commit()
 
 
 @pytest.fixture
@@ -836,6 +831,11 @@ def sqlite_adbc_conn():
         uri = f"file:{name}"
         with dbapi.connect(uri) as conn:
             yield conn
+            for view in get_all_views(conn):
+                drop_view(view, conn)
+            for tbl in get_all_tables(conn):
+                drop_table(tbl, conn)
+            conn.commit()
 
 
 @pytest.fixture
@@ -854,11 +854,6 @@ def sqlite_adbc_iris(sqlite_adbc_conn, iris_path):
         conn.rollback()
         create_and_load_iris_view(conn)
     yield conn
-    for view in get_all_views(conn):
-        drop_view(view, conn)
-    for tbl in get_all_tables(conn):
-        drop_table(tbl, conn)
-    conn.commit()
 
 
 @pytest.fixture
@@ -881,11 +876,6 @@ def sqlite_adbc_types(sqlite_adbc_conn, types_data):
         conn.commit()
 
     yield conn
-    for view in get_all_views(conn):
-        drop_view(view, conn)
-    for tbl in get_all_tables(conn):
-        drop_table(tbl, conn)
-    conn.commit()
 
 
 @pytest.fixture
