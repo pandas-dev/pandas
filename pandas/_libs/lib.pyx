@@ -2398,7 +2398,6 @@ def maybe_convert_numeric(
             seen.float_ = True
         else:
             try:
-                #print(val, decimal, thousands)
                 floatify(val, &fval, &maybe_int, decimal[0], thousands[0])
 
                 if fval in na_values:
