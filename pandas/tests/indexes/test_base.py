@@ -1,6 +1,5 @@
 from collections import defaultdict
 from datetime import datetime
-from io import StringIO
 import math
 import operator
 import re
@@ -1174,13 +1173,21 @@ class TestIndex:
     def test_equals_op_multiindex(self, mi, expected):
         # GH9785
         # test comparisons of multiindex
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         result = df.index == mi
         tm.assert_numpy_array_equal(result, expected)
 
     def test_equals_op_multiindex_identify(self):
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         result = df.index == df.index
         expected = np.array([True, True])
@@ -1194,7 +1201,11 @@ class TestIndex:
         ],
     )
     def test_equals_op_mismatched_multiindex_raises(self, index):
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         with pytest.raises(ValueError, match="Lengths must match"):
             df.index == index
