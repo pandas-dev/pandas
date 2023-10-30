@@ -387,7 +387,14 @@ class BaseBlockManager(DataManager):
         if isinstance(indexer, np.ndarray) and indexer.ndim > self.ndim:
             raise ValueError(f"Cannot set values with ndim > {self.ndim}")
 
-        if using_copy_on_write() and not self._has_no_reference(0):
+        if warn_copy_on_write() and not self._has_no_reference(0):
+            warnings.warn(
+                "Setting a value on a view",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+
+        elif using_copy_on_write() and not self._has_no_reference(0):
             # this method is only called if there is a single block -> hardcoded 0
             # Split blocks to only copy the columns we want to modify
             if self.ndim == 2 and isinstance(indexer, tuple):
@@ -1951,9 +1958,15 @@ class SingleBlockManager(BaseBlockManager, SingleDataManager):
             return type(self)(blk.copy(deep=False), self.index)
         array = blk.values[indexer]
 
+        if isinstance(indexer, np.ndarray) and indexer.dtype.kind == "b":
+            # boolean indexing always gives a copy with numpy
+            refs = None
+        else:
+            # TODO(CoW) in theory only need to track reference if new_array is a view
+            refs = blk.refs
+
         bp = BlockPlacement(slice(0, len(array)))
-        # TODO(CoW) in theory only need to track reference if new_array is a view
-        block = type(blk)(array, placement=bp, ndim=1, refs=blk.refs)
+        block = type(blk)(array, placement=bp, ndim=1, refs=refs)
 
         new_idx = self.index[indexer]
         return type(self)(block, new_idx)

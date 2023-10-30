@@ -6572,6 +6572,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: self.items handles duplicate column names
             results = [ser.astype(dtype, copy=copy) for _, ser in self.items()]
+            # if warn_copy_on_write():
+            #     self._clear_item_cache()
 
         else:
             # else, only a single dtype is given
@@ -12392,7 +12394,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         warn = True
         if not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self) <= 5:
+            if sys.getrefcount(self) <= 4:
                 # we are probably in an inplace setitem context (e.g. df['a'] += 1)
                 warn = False
 
