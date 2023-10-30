@@ -31,6 +31,7 @@ from pandas._libs.tslibs import (
     timezones as libtimezones,
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
+from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.parsing import (
     DateParseError,
     guess_datetime_format,
@@ -337,6 +338,8 @@ def _return_parsed_timezone_results(
     tz_results = np.empty(len(result), dtype=object)
     non_na_timezones = set()
     for zone in unique(timezones):
+        # GH#50168 looping over unique timezones is faster than
+        #  operating pointwise.
         mask = timezones == zone
         dta = DatetimeArray(result[mask]).tz_localize(zone)
         if utc:
@@ -548,7 +551,7 @@ def _to_datetime_with_unit(arg, unit, name, utc: bool, errors: str) -> Index:
             tz_parsed = None
 
         elif arg.dtype.kind == "f":
-            mult, _ = precision_from_unit(unit)
+            mult, _ = precision_from_unit(abbrev_to_npy_unit(unit))
 
             mask = np.isnan(arg) | (arg == iNaT)
             fvalues = (arg * mult).astype("f8", copy=False)
