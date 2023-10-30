@@ -69,6 +69,7 @@ from pandas._libs.tslibs.conversion cimport (
     get_datetime64_nanos,
     parse_pydatetime,
 )
+from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -469,6 +470,7 @@ cpdef array_to_datetime(
         NPY_DATETIMEUNIT item_reso
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         DatetimeParseState state = DatetimeParseState(creso)
+        str abbrev
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
@@ -498,7 +500,7 @@ cpdef array_to_datetime(
                 if infer_reso:
                     creso = state.creso
                 tz_out = state.process_datetime(val, tz_out, utc_convert)
-                iresult[i] = parse_pydatetime(val, &dts, utc_convert, creso=creso)
+                iresult[i] = parse_pydatetime(val, &dts, creso=creso)
 
             elif PyDate_Check(val):
                 item_reso = NPY_DATETIMEUNIT.NPY_FR_s
@@ -534,7 +536,7 @@ cpdef array_to_datetime(
                     # GH#32264 np.str_ object
                     val = str(val)
 
-                if parse_today_now(val, &iresult[i], utc):
+                if parse_today_now(val, &iresult[i], utc, creso):
                     # We can't _quite_ dispatch this to convert_str_to_tsobject
                     #  bc there isn't a nice way to pass "utc"
                     item_reso = NPY_DATETIMEUNIT.NPY_FR_us
@@ -550,6 +552,7 @@ cpdef array_to_datetime(
                 state.update_creso(item_reso)
                 if infer_reso:
                     creso = state.creso
+
                 _ts.ensure_reso(creso, val)
 
                 iresult[i] = _ts.value
@@ -560,10 +563,6 @@ cpdef array_to_datetime(
                     # store the UTC offsets in seconds instead
                     nsecs = tz.utcoffset(None).total_seconds()
                     out_tzoffset_vals.add(nsecs)
-                    # need to set seen_datetime_offset *after* the
-                    #  potentially-raising timezone(timedelta(...)) call,
-                    #  otherwise we can go down the is_same_offsets path
-                    #  bc len(out_tzoffset_vals) == 0
                     seen_datetime_offset = True
                 else:
                     # Add a marker for naive string, to track if we are
