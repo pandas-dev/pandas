@@ -2042,7 +2042,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         obj = self._obj_with_exclusions
 
         # for each col, reshape to size of original frame by take operation
-        ids = self.grouper.result_index_and_codes[1]
+        ids = self.grouper.ids
         result = result.reindex(self.grouper.result_index, axis=self.axis, copy=False)
 
         if self.obj.ndim == 1:
@@ -4439,6 +4439,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             pass_qs = None
 
         ids, ngroups = self.grouper.group_info
+        # TODO: Is this hit?
         ids = ids[ids >= 0]
         nqs = len(qs)
 

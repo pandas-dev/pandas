@@ -579,6 +579,7 @@ class BaseGrouper:
         groupings: Sequence[grouper.Grouping],
         sort: bool = True,
         dropna: bool = True,
+        # TODO: Is this still needed?
         observed: bool = True,
     ) -> None:
         assert isinstance(axis, Index), axis
@@ -616,8 +617,8 @@ class BaseGrouper:
         for each group
         """
         splitter = self._get_splitter(data, axis=axis)
-        # TODO: Skip unobserved for transform?
-        keys = self.result_index_and_codes[0]
+        # TODO: Would be more efficient to skip unobserved for transforms
+        keys = self.result_index
         yield from zip(keys, splitter)
 
     @final
@@ -628,7 +629,6 @@ class BaseGrouper:
         Generator yielding subsetted objects
         """
         ids, ngroups = self.group_info
-        ids = self.result_index_and_codes[1]
         return _get_splitter(
             data,
             ids,
@@ -656,15 +656,15 @@ class BaseGrouper:
         # Original indices are where group_index would go via sorting.
         # But when dropna is true, we need to remove null values while accounting for
         # any gaps that then occur because of them.
-        group_index = self.result_index_and_codes[1]
+        ids = self.ids
 
         if self.has_dropped_na:
-            mask = np.where(group_index >= 0)
+            mask = np.where(ids >= 0)
             # Count how many gaps are caused by previous null values for each position
-            null_gaps = np.cumsum(group_index == -1)[mask]
-            group_index = group_index[mask]
+            null_gaps = np.cumsum(ids == -1)[mask]
+            ids = ids[mask]
 
-        result = get_group_index_sorter(group_index, self.ngroups)
+        result = get_group_index_sorter(ids, self.ngroups)
 
         if self.has_dropped_na:
             # Shift by the number of prior null gaps
@@ -705,13 +705,11 @@ class BaseGrouper:
     def groups(self) -> dict[Hashable, Index]:
         """dict {group name -> group labels}"""
         if len(self.groupings) == 1:
-            result = self.groupings[0].groups
-            return result
-
+            return self.groupings[0].groups
         if len(self.result_index) == 0:
             index = self.result_index
         else:
-            index = self.result_index.take(self.result_index_and_codes[1])
+            index = self.result_index.take(self.ids)
         categories = (
             self.result_index._values
             if isinstance(self.result_index, MultiIndex)
@@ -735,13 +733,13 @@ class BaseGrouper:
         """
         Whether grouper has null value(s) that are dropped.
         """
-        return bool((self.result_index_and_codes[1] < 0).any())
+        return bool((self.ids < 0).any())
 
     @cache_readonly
     def group_info(self) -> tuple[npt.NDArray[np.intp], int]:
-        result_index, codes = self.result_index_and_codes
+        result_index, ids = self.result_index_and_ids
         ngroups = len(result_index)
-        return codes, ngroups
+        return ids, ngroups
 
     @cache_readonly
     def codes_info(self) -> npt.NDArray[np.intp]:
@@ -756,10 +754,14 @@ class BaseGrouper:
 
     @property
     def result_index(self) -> Index:
-        return self.result_index_and_codes[0]
+        return self.result_index_and_ids[0]
+
+    @property
+    def ids(self) -> np.ndarray:
+        return self.result_index_and_ids[1]
 
     @cache_readonly
-    def result_index_and_codes(self) -> tuple[Index, np.ndarray]:
+    def result_index_and_ids(self) -> tuple[Index, np.ndarray]:
         from pandas.core.sorting import (
             compress_group_index,
             decons_obs_group_ids,
@@ -782,7 +784,6 @@ class BaseGrouper:
         obs = [
             ping._observed or not ping._passed_categorical for ping in self.groupings
         ]
-        ob_indices = [k for k, e in enumerate(obs) if e]
 
         if len(self.groupings) == 1:
             result_index: AnyArrayLike = levels[0]
@@ -863,7 +864,7 @@ class BaseGrouper:
     def get_group_levels(self) -> list[Index]:
         # Note: only called from _insert_inaxis_grouper, which
         #  is only called for BaseGrouper, never for BinGrouper
-        result_index = self.result_index_and_codes[0]
+        result_index = self.result_index
         if len(self.groupings) == 1:
             return [result_index]
         return [
@@ -891,14 +892,12 @@ class BaseGrouper:
 
         cy_op = WrappedCythonOp(kind=kind, how=how, has_dropped_na=self.has_dropped_na)
 
-        _, ids = self.result_index_and_codes
-        ngroups = self.ngroups
         return cy_op.cython_operation(
             values=values,
             axis=axis,
             min_count=min_count,
-            comp_ids=ids,
-            ngroups=ngroups,
+            comp_ids=self.ids,
+            ngroups=self.ngroups,
             **kwargs,
         )
 
@@ -1011,8 +1010,7 @@ class BaseGrouper:
     @final
     @property
     def _sorted_ids(self) -> npt.NDArray[np.intp]:
-        ids = self.result_index_and_codes[1]
-        result = ids.take(self.result_ilocs)
+        result = self.ids.take(self.result_ilocs)
         if getattr(self, "dropna", True):
             result = result[result >= 0]
         return result
@@ -1154,7 +1152,7 @@ class BinGrouper(BaseGrouper):
         return [self.group_info[0]]
 
     @cache_readonly
-    def result_index_and_codes(self):
+    def result_index_and_ids(self):
         return self.result_index, self.group_info[0]
 
     @property
