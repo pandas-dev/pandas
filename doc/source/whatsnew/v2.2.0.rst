@@ -323,6 +323,7 @@ Datetimelike
 ^^^^^^^^^^^^
 - Bug in :func:`concat` raising ``AttributeError`` when concatenating all-NA DataFrame with :class:`DatetimeTZDtype` dtype DataFrame. (:issue:`52093`)
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
+- Bug in :meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` always caching :meth:`Index.is_unique` as ``True`` when first value in index is ``NaT`` (:issue:`55755`)
 - Bug in :meth:`Index.view` to a datetime64 dtype with non-supported resolution incorrectly raising (:issue:`55710`)
 - Bug in :meth:`Tick.delta` with very large ticks raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
 - Bug in adding or subtracting a :class:`Week` offset to a ``datetime64`` :class:`Series`, :class:`Index`, or :class:`DataFrame` column with non-nanosecond resolution returning incorrect results (:issue:`55583`)
