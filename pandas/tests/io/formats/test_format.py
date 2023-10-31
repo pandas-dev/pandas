@@ -171,7 +171,7 @@ class TestDataFrameFormatting:
         with option_context("display.max_colwidth", max_len + 2):
             assert "..." not in repr(df)
 
-    def test_repr_truncation_preserver_na(self):
+    def test_repr_truncation_preserves_na(self):
         # https://github.com/pandas-dev/pandas/issues/55630
         with option_context("display.max_rows", 10):
             df = DataFrame(
