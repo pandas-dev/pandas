@@ -1020,8 +1020,8 @@ class FrameApply(NDFrameApply):
                 wrap_function(self.func),
                 self.axis,
                 self.values,
-                *self.args,
-                **self.kwargs,
+                *self.args,#Added args
+                **self.kwargs,#Added kwargs
             )
 
         # TODO: mixed type case
