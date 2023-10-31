@@ -175,7 +175,7 @@ class TestMultiIndexSetItem:
         )
 
         expected = df_orig.copy()
-        expected.iloc[[0, 2, 3]] *= 2
+        expected.iloc[[0, 1, 3]] *= 2
 
         idx = pd.IndexSlice
         df = df_orig.copy()

@@ -64,6 +64,7 @@ from pandas._libs.tslibs.conversion cimport (
     get_datetime64_nanos,
     parse_pydatetime,
 )
+from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -277,6 +278,7 @@ def array_with_unit_to_datetime(
         result, tz = array_to_datetime(
             values.astype(object, copy=False),
             errors=errors,
+            creso=NPY_FR_ns,
         )
         return result, tz
 
@@ -408,6 +410,7 @@ cpdef array_to_datetime(
     bint dayfirst=False,
     bint yearfirst=False,
     bint utc=False,
+    NPY_DATETIMEUNIT creso=NPY_FR_ns,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:
@@ -434,6 +437,7 @@ cpdef array_to_datetime(
          yearfirst parsing behavior when encountering datetime strings
     utc : bool, default False
          indicator whether the dates should be UTC
+    creso : NPY_DATETIMEUNIT, default NPY_FR_ns
 
     Returns
     -------
@@ -457,13 +461,14 @@ cpdef array_to_datetime(
         set out_tzoffset_vals = set()
         tzinfo tz_out = None
         cnp.flatiter it = cnp.PyArray_IterNew(values)
-        NPY_DATETIMEUNIT creso = NPY_FR_ns
         DatetimeParseState state = DatetimeParseState()
+        str reso_str
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
-    result = np.empty((<object>values).shape, dtype="M8[ns]")
+    reso_str = npy_unit_to_abbrev(creso)
+    result = np.empty((<object>values).shape, dtype=f"M8[{reso_str}]")
     iresult = result.view("i8").ravel()
 
     for i in range(n):
@@ -480,11 +485,11 @@ cpdef array_to_datetime(
                 iresult[i] = parse_pydatetime(val, &dts, creso=creso)
 
             elif PyDate_Check(val):
-                iresult[i] = pydate_to_dt64(val, &dts)
-                check_dts_bounds(&dts)
+                iresult[i] = pydate_to_dt64(val, &dts, reso=creso)
+                check_dts_bounds(&dts, creso)
 
             elif is_datetime64_object(val):
-                iresult[i] = get_datetime64_nanos(val, NPY_FR_ns)
+                iresult[i] = get_datetime64_nanos(val, creso)
 
             elif is_integer_object(val) or is_float_object(val):
                 # these must be ns unit by-definition
@@ -493,7 +498,7 @@ cpdef array_to_datetime(
                     iresult[i] = NPY_NAT
                 else:
                     # we now need to parse this as if unit='ns'
-                    iresult[i] = cast_from_unit(val, "ns")
+                    iresult[i] = cast_from_unit(val, "ns", out_reso=creso)
 
             elif isinstance(val, str):
                 # string
@@ -501,7 +506,7 @@ cpdef array_to_datetime(
                     # GH#32264 np.str_ object
                     val = str(val)
 
-                if parse_today_now(val, &iresult[i], utc):
+                if parse_today_now(val, &iresult[i], utc, creso):
                     # We can't _quite_ dispatch this to convert_str_to_tsobject
                     #  bc there isn't a nice way to pass "utc"
                     continue
@@ -509,7 +514,7 @@ cpdef array_to_datetime(
                 _ts = convert_str_to_tsobject(
                     val, None, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst
                 )
-                _ts.ensure_reso(NPY_FR_ns, val)
+                _ts.ensure_reso(creso, val)
 
                 iresult[i] = _ts.value
 
