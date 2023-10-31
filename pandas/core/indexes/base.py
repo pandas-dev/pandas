@@ -7017,11 +7017,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
 
         """
-        diff = self.to_series().diff(periods)
-        if diff.dtype != self.dtype:
-            # e.g. DTI.diff -> TDI
-            return Index(diff)
-        return self._constructor(diff)
+        return Index(self.to_series().diff(periods))
 
     @final
     def round(self, decimals: int = 0) -> Self:
