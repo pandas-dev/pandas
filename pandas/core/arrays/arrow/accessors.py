@@ -17,6 +17,8 @@ if not pa_version_under10p1:
     from pandas.core.dtypes.dtypes import ArrowDtype
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pandas import (
         DataFrame,
         Series,
@@ -163,6 +165,9 @@ class ListAccessor(_ArrowAccessor):
             return Series(sliced, dtype=ArrowDtype(sliced.type))
         else:
             raise ValueError(f"key must be an int or slice, got {type(key).__name__}")
+
+    def __iter__(self) -> Iterator:
+        raise TypeError(f"'{type(self).__name__}' object is not iterable")
 
     def flatten(self) -> Series:
         """

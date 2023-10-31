@@ -102,3 +102,12 @@ def test_list_getitem_invalid_index(list_dtype):
         ser.list[5]
     with pytest.raises(ValueError, match="key must be an int or slice, got str"):
         ser.list["abc"]
+
+
+def test_list_accessor_not_iterable():
+    ser = Series(
+        [[1, 2, 3], [4, None], None],
+        dtype=ArrowDtype(pa.list_(pa.int64())),
+    )
+    with pytest.raises(TypeError, match="'ListAccessor' object is not iterable"):
+        iter(ser.list)
