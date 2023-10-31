@@ -21,7 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Fixed bug in :meth:`DataFrame.resample` changing index type to :class:`MultiIndex` when the dataframe is empty and using an upsample method (:issue:`55572`)
 -
 
 .. ---------------------------------------------------------------------------
