@@ -3675,9 +3675,16 @@ def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
 
 def test_to_datetime_with_empty_str_utc_false_format_mixed():
     # GH 50887
-    result = to_datetime(["2020-01-01 00:00+00:00", ""], format="mixed")
-    expected = Index([Timestamp("2020-01-01 00:00+00:00"), "NaT"], dtype=object)
+    vals = ["2020-01-01 00:00+00:00", ""]
+    result = to_datetime(vals, format="mixed")
+    expected = Index([Timestamp("2020-01-01 00:00+00:00"), "NaT"], dtype="M8[ns, UTC]")
     tm.assert_index_equal(result, expected)
+
+    # Check that a couple of other similar paths work the same way
+    alt = to_datetime(vals)
+    tm.assert_index_equal(alt, expected)
+    alt2 = DatetimeIndex(vals)
+    tm.assert_index_equal(alt2, expected)
 
 
 def test_to_datetime_with_empty_str_utc_false_offsets_and_format_mixed():
