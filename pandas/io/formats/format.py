@@ -698,7 +698,9 @@ class DataFrameFormatter:
         if row_num >= 1:
             _len = len(self.tr_frame)
             rows = np.arange(_len)
-            self.tr_frame = self.tr_frame.iloc[(rows < row_num) | (rows >= _len - row_num)]
+            self.tr_frame = self.tr_frame.iloc[
+                (rows < row_num) | (rows >= _len - row_num)
+            ]
         else:
             row_num = cast(int, self.max_rows)
             self.tr_frame = self.tr_frame.iloc[:row_num, :]
