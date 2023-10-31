@@ -6,12 +6,14 @@ from libc.stdint cimport (
 
 
 cdef class CBuffer:
+    cdef intptr_t bufaddr
+
     def __getbuffer__(self, Py_buffer *buffer, int flags):
         cdef Py_ssize_t itemsize = sizeof(uint8_t)
         cdef Py_ssize_t[1] shape = tuple((self.bufsize // itemsize,))
         cdef Py_ssize_t[1] strides = tuple((itemsize,))
-        cdef intptr_t bufaddr = self.ptr
-        buffer.buf = <void*>bufaddr
+        self.bufaddr = self.ptr
+        buffer.buf = <void*>self.bufaddr
         # assumes sizeof(unsigned char) == sizeof(uint8_t)
         # TODO: use C11 static_assert macro in Cython
         buffer.format = "B"
