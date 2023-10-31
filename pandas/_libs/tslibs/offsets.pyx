@@ -4616,7 +4616,28 @@ _lite_rule_alias = {
     "ns": "ns",
 }
 
-_dont_uppercase = {"h", "bh", "cbh", "MS", "ms", "s", "me", "qe"}
+_dont_uppercase = {
+    "h",
+    "bh",
+    "cbh",
+    "MS",
+    "ms",
+    "s",
+    "me",
+    "qe",
+    "qe-dec",
+    "qe-jan",
+    "qe-feb",
+    "qe-mar",
+    "qe-apr",
+    "qe-may",
+    "qe-jun",
+    "qe-jul",
+    "qe-aug",
+    "qe-sep",
+    "qe-oct",
+    "qe-nov",
+}
 
 
 INVALID_FREQ_ERR_MSG = "Invalid frequency: {0}"
@@ -4635,7 +4656,7 @@ def _get_offset(name: str) -> BaseOffset:
     --------
     _get_offset('EOM') --> BMonthEnd(1)
     """
-    if name not in _dont_uppercase:
+    if name.lower() not in _dont_uppercase:
         name = name.upper()
         name = _lite_rule_alias.get(name, name)
         name = _lite_rule_alias.get(name.lower(), name)
