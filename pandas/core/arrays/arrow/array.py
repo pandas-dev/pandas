@@ -21,9 +21,7 @@ from pandas._libs.tslibs import (
     timezones,
 )
 from pandas.compat import (
-    pa_version_under7p0,
-    pa_version_under8p0,
-    pa_version_under9p0,
+    pa_version_under10p1,
     pa_version_under11p0,
     pa_version_under13p0,
 )
@@ -69,7 +67,7 @@ from pandas.core.strings.base import BaseStringArrayMethods
 from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
 
-if not pa_version_under7p0:
+if not pa_version_under10p1:
     import pyarrow as pa
     import pyarrow.compute as pc
 
@@ -119,7 +117,8 @@ if not pa_version_under7p0:
     ) -> pa.ChunkedArray:
         # Ensure int // int -> int mirroring Python/Numpy behavior
         # as pc.floor(pc.divide_checked(int, int)) -> float
-        result = pc.floor(pc.divide(left, right))
+        converted_left = cast_for_truediv(left, right)
+        result = pc.floor(pc.divide(converted_left, right))
         if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
             result = result.cast(left.type)
         return result
@@ -255,8 +254,8 @@ class ArrowExtensionArray(
     _dtype: ArrowDtype
 
     def __init__(self, values: pa.Array | pa.ChunkedArray) -> None:
-        if pa_version_under7p0:
-            msg = "pyarrow>=7.0.0 is required for PyArrow backed ArrowExtensionArray."
+        if pa_version_under10p1:
+            msg = "pyarrow>=10.0.1 is required for PyArrow backed ArrowExtensionArray."
             raise ImportError(msg)
         if isinstance(values, pa.Array):
             self._pa_array = pa.chunked_array([values])
@@ -1627,6 +1626,15 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
+        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if isinstance(result, pa.Array):
+            return type(self)(result)
+        else:
+            return result
+
+    def _reduce_calc(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         pa_result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
 
         if keepdims:
@@ -1637,7 +1645,7 @@ class ArrowExtensionArray(
                     [pa_result],
                     type=to_pyarrow_type(infer_dtype_from_scalar(pa_result)[0]),
                 )
-            return type(self)(result)
+            return result
 
         if pc.is_null(pa_result).as_py():
             return self.dtype.na_value
@@ -1756,7 +1764,7 @@ class ArrowExtensionArray(
         ascending: bool = True,
         pct: bool = False,
     ):
-        if pa_version_under9p0 or axis != 0:
+        if axis != 0:
             ranked = super()._rank(
                 axis=axis,
                 method=method,
@@ -1911,6 +1919,7 @@ class ArrowExtensionArray(
         if pa.types.is_temporal(pa_type):
             most_common = most_common.cast(pa_type)
 
+        most_common = most_common.take(pc.array_sort_indices(most_common))
         return type(self)(most_common)
 
     def _maybe_convert_setitem_value(self, value):
@@ -1993,16 +2002,6 @@ class ArrowExtensionArray(
         if isinstance(replacements, pa.ChunkedArray):
             # replacements must be array or scalar, not ChunkedArray
             replacements = replacements.combine_chunks()
-        if pa_version_under8p0:
-            # pc.replace_with_mask seems to be a bit unreliable for versions < 8.0:
-            #  version <= 7: segfaults with various types
-            #  version <= 6: fails to replace nulls
-            if isinstance(replacements, pa.Array):
-                indices = np.full(len(values), None)
-                indices[mask] = np.arange(len(replacements))
-                indices = pa.array(indices, type=pa.int64())
-                replacements = replacements.take(indices)
-            return cls._if_else(mask, replacements, values)
         if isinstance(values, pa.ChunkedArray) and pa.types.is_boolean(values.type):
             # GH#52059 replace_with_mask segfaults for chunked array
             # https://github.com/apache/arrow/issues/34634
@@ -2526,7 +2525,7 @@ class ArrowExtensionArray(
             raise ValueError(f"Must specify a valid frequency: {freq}")
         pa_supported_unit = {
             "Y": "year",
-            "AS": "year",
+            "YS": "year",
             "Q": "quarter",
             "QS": "quarter",
             "M": "month",

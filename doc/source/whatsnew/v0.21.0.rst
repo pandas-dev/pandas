@@ -306,7 +306,7 @@ Other enhancements
 New functions or methods
 """"""""""""""""""""""""
 
-- :meth:`~pandas.core.resample.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
+- :meth:`.Resampler.nearest` is added to support nearest-neighbor upsampling (:issue:`17496`).
 - :class:`~pandas.Index` has added support for a ``to_frame`` method (:issue:`15230`).
 
 New keywords
