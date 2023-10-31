@@ -1024,8 +1024,11 @@ class TestDatetimeIndex:
         # to 2 microseconds
         vals = [ts, "2999-01-02 03:04:05.678910", 2500]
         result = DatetimeIndex(vals, dtype=dtype)
-        exp_arr = np.array([ts.asm8, vals[1], 2], dtype="M8[us]")
-        expected = DatetimeIndex(exp_arr, dtype="M8[us]").tz_localize(tz)
+        exp_vals = [Timestamp(x, tz=tz).as_unit("us").asm8 for x in vals]
+        exp_arr = np.array(exp_vals, dtype="M8[us]")
+        expected = DatetimeIndex(exp_arr, dtype="M8[us]")
+        if tz is not None:
+            expected = expected.tz_localize("UTC").tz_convert(tz)
         tm.assert_index_equal(result, expected)
 
         result2 = DatetimeIndex(np.array(vals, dtype=object), dtype=dtype)
@@ -1049,6 +1052,14 @@ class TestDatetimeIndex:
         diff1 = result[1] - today.as_unit("s")
         assert diff1 >= pd.Timedelta(0)
         assert diff1 < tolerance
+
+    def test_dti_constructor_object_float_matches_float_dtype(self):
+        arr = np.array([0, np.nan], dtype=np.float64)
+        arr2 = arr.astype(object)
+
+        dti1 = DatetimeIndex(arr, tz="CET")
+        dti2 = DatetimeIndex(arr2, tz="CET")
+        tm.assert_index_equal(dti1, dti2)
 
 
 class TestTimeSeries:
