@@ -64,10 +64,30 @@ DataFrame. (:issue:`54938`)
     )
     series.struct.explode()
 
-.. _whatsnew_220.enhancements.enhancement2:
+.. _whatsnew_220.enhancements.list_accessor:
 
-enhancement2
-^^^^^^^^^^^^
+Series.list accessor for PyArrow list data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``Series.list`` accessor provides attributes and methods for processing
+data with ``list[pyarrow]`` dtype Series. For example,
+:meth:`Series.list.__getitem__` allows indexing pyarrow lists in
+a Series. (:issue:`55323`)
+
+.. ipython:: python
+
+    import pyarrow as pa
+    series = pd.Series(
+        [
+            [1, 2, 3],
+            [4, 5],
+            [6],
+        ],
+        dtype=pd.ArrowDtype(
+            pa.list_(pa.int64())
+        ),
+    )
+    series.list[0]
 
 .. _whatsnew_220.enhancements.other:
 
