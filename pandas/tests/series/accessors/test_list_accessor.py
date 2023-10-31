@@ -19,7 +19,7 @@ pa = pytest.importorskip("pyarrow")
         pa.large_list(pa.int64()),
     ),
 )
-def test_list_getitem(list_dtype: pa.DataType):
+def test_list_getitem(list_dtype):
     ser = Series(
         [[1, 2, 3], [4, None, 5], None],
         dtype=ArrowDtype(list_dtype),
@@ -91,7 +91,7 @@ def test_list_accessor_non_list_dtype():
         pa.large_list(pa.int64()),
     ),
 )
-def test_list_getitem_invalid_index(list_dtype: pa.DataType):
+def test_list_getitem_invalid_index(list_dtype):
     ser = Series(
         [[1, 2, 3], [4, None, 5], None],
         dtype=ArrowDtype(list_dtype),
