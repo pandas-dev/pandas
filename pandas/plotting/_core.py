@@ -962,9 +962,9 @@ class PlotAccessor(PandasObject):
 
         if kind not in self._all_kinds:
             raise ValueError(
-                    f"{kind} is not a valid plot kind "
-                    f"Valid plot kinds: {self._all_kinds}"
-                )
+                f"{kind} is not a valid plot kind "
+                f"Valid plot kinds: {self._all_kinds}"
+            )
 
         # The original data structured can be transformed before passed to the
         # backend. For example, for DataFrame is common to set the index as the
