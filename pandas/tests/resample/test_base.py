@@ -287,6 +287,33 @@ def test_resample_size_empty_dataframe(freq, empty_frame_dti):
     tm.assert_series_equal(result, expected)
 
 
+@all_ts
+@pytest.mark.parametrize("freq", ["ME", "D", "h"])
+@pytest.mark.parametrize(
+    "method", ["ffill", "bfill", "nearest", "asfreq", "interpolate"]
+)
+def test_resample_upsample_empty_dataframe(freq, method, empty_frame_dti):
+    # GH#55572
+    if freq == "ME" and isinstance(empty_frame_dti.index, TimedeltaIndex):
+        msg = (
+            "Resampling on a TimedeltaIndex requires fixed-duration `freq`, "
+            "e.g. '24h' or '3D', not <MonthEnd>"
+        )
+        with pytest.raises(ValueError, match=msg):
+            empty_frame_dti.resample(freq)
+        return
+    elif freq == "ME" and isinstance(empty_frame_dti.index, PeriodIndex):
+        # index is PeriodIndex, so convert to corresponding Period freq
+        freq = "M"
+    rs = empty_frame_dti.resample(freq)
+    result = getattr(rs, method)()
+
+    index = _asfreq_compat(empty_frame_dti.index, freq)
+    expected = DataFrame([], index=index)
+
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
 @pytest.mark.parametrize("index", tm.all_timeseries_index_generator(0))
 @pytest.mark.parametrize("dtype", [float, int, object, "datetime64[ns]"])
