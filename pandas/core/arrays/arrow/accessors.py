@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 
 
 class ArrowAccessor(metaclass=ABCMeta):
+    @abstractmethod
     def __init__(self, data) -> None:
         self._data = data
         self._validate(data)
