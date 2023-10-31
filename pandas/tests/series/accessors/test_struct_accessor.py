@@ -14,12 +14,28 @@ from pandas.core.arrays.arrow.accessors import StructAccessor
 pa = pytest.importorskip("pyarrow")
 
 
-def test_list_getitem():
+def test_struct_accessor_dtypes():
     ser = Series(
-        [[1, 2, 3], [4, None], None],
-        dtype=ArrowDtype(pa.list_(pa.int64())),
+        [],
+        dtype=ArrowDtype(
+            pa.struct(
+                [
+                    ("int_col", pa.int64()),
+                    ("string_col", pa.string()),
+                    (
+                        "struct_col",
+                        pa.struct(
+                            [
+                                ("int_col", pa.int64()),
+                                ("float_col", pa.float64()),
+                            ]
+                        ),
+                    ),
+                ]
+            )
+        ),
     )
-    actual = ser.list[1]
+    actual = ser.struct.dtypes
     expected = Series(
         [
             ArrowDtype(pa.int64()),
