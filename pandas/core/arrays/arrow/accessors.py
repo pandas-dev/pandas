@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from abc import (
+    ABCMeta,
+    abstractmethod,
+)
 from typing import TYPE_CHECKING
 
 from pandas.compat import pa_version_under10p1
@@ -19,7 +23,90 @@ if TYPE_CHECKING:
     )
 
 
-class StructAccessor:
+class ArrowAccessor(metaclass=ABCMeta):
+    def __init__(self, data) -> None:
+        self._data = data
+        self._validate(data)
+
+    @abstractmethod
+    def _is_valid_pyarrow_dtype(self, pyarrow_dtype: pa.DataType) -> bool:
+        pass
+
+    @property
+    @abstractmethod
+    def _validation_msg(self) -> str:
+        pass
+
+    def _validate(self, data):
+        dtype = data.dtype
+        if not isinstance(dtype, ArrowDtype):
+            # Raise AttributeError so that inspect can handle non-struct Series.
+            raise AttributeError(self._validation_msg.format(dtype=dtype))
+
+        if not self._is_valid_pyarrow_dtype(dtype.pyarrow_dtype):
+            # Raise AttributeError so that inspect can handle invalid Series.
+            raise AttributeError(self._validation_msg.format(dtype=dtype))
+
+    @property
+    def _pa_array(self) -> pa.Array:
+        return self._data.array._pa_array
+
+
+class ListAccessor(ArrowAccessor):
+    _validation_msg = (
+        "Can only use the '.list' accessor with 'list[pyarrow]' dtype, not {dtype}."
+    )
+
+    def __init__(self, data=None) -> None:
+        super().__init__(data)
+
+    def _is_valid_pyarrow_dtype(self, pyarrow_dtype: pa.DataType) -> bool:
+        return (
+            pa.types.is_list(pyarrow_dtype)
+            or pa.types.is_fixed_size_list(pyarrow_dtype)
+            or pa.types.is_large_list(pyarrow_dtype)
+        )
+
+    def len(self) -> Series:
+        from pandas import Series
+
+        value_lengths = pc.list_value_length(self._pa_array)
+        return Series(value_lengths, dtype=ArrowDtype(value_lengths.type))
+
+    def __getitem__(self, key: int) -> Series:
+        from pandas import Series
+
+        if isinstance(key, int):
+            # TODO: Support negative key but pyarrow does not allow
+            # element index to be an array.
+            # if key < 0:
+            #     key = pc.add(key, pc.list_value_length(self._pa_array))
+            element = pc.list_element(self._pa_array, key)
+            return Series(element, dtype=ArrowDtype(element.type))
+        elif isinstance(key, slice):
+            # TODO: Support negative start/stop/step, ideally this would be added
+            # upstream in pyarrow.
+            start, stop, step = key.start, key.stop, key.step
+            if start is None:
+                # TODO: When adding negative step support
+                #  this should be setto last element of array
+                # when step is negative.
+                start = 0
+            if step is None:
+                step = 1
+            sliced = pc.list_slice(self._pa_array, start, stop, step)
+            return Series(sliced, dtype=ArrowDtype(sliced.type))
+        else:
+            raise ValueError(f"key must be an int or slice, got {type(key).__name__}")
+
+    def flatten(self) -> Series:
+        from pandas import Series
+
+        flattened = pc.list_flatten(self._pa_array)
+        return Series(flattened, dtype=ArrowDtype(flattened.type))
+
+
+class StructAccessor(ArrowAccessor):
     """
     Accessor object for structured data properties of the Series values.
 
@@ -34,18 +121,10 @@ class StructAccessor:
     )
 
     def __init__(self, data=None) -> None:
-        self._parent = data
-        self._validate(data)
+        super().__init__(data)
 
-    def _validate(self, data):
-        dtype = data.dtype
-        if not isinstance(dtype, ArrowDtype):
-            # Raise AttributeError so that inspect can handle non-struct Series.
-            raise AttributeError(self._validation_msg.format(dtype=dtype))
-
-        if not pa.types.is_struct(dtype.pyarrow_dtype):
-            # Raise AttributeError so that inspect can handle non-struct Series.
-            raise AttributeError(self._validation_msg.format(dtype=dtype))
+    def _is_valid_pyarrow_dtype(self, pyarrow_dtype: pa.DataType) -> bool:
+        return pa.types.is_struct(pyarrow_dtype)
 
     @property
     def dtypes(self) -> Series:
@@ -80,7 +159,7 @@ class StructAccessor:
             Series,
         )
 
-        pa_type = self._parent.dtype.pyarrow_dtype
+        pa_type = self._data.dtype.pyarrow_dtype
         types = [ArrowDtype(struct.type) for struct in pa_type]
         names = [struct.name for struct in pa_type]
         return Series(types, index=Index(names))
@@ -135,7 +214,7 @@ class StructAccessor:
         """
         from pandas import Series
 
-        pa_arr = self._parent.array._pa_array
+        pa_arr = self._data.array._pa_array
         if isinstance(name_or_index, int):
             index = name_or_index
         elif isinstance(name_or_index, str):
@@ -151,7 +230,7 @@ class StructAccessor:
         return Series(
             field_arr,
             dtype=ArrowDtype(field_arr.type),
-            index=self._parent.index,
+            index=self._data.index,
             name=pa_field.name,
         )
 
@@ -190,7 +269,7 @@ class StructAccessor:
         """
         from pandas import concat
 
-        pa_type = self._parent.dtype.pyarrow_dtype
+        pa_type = self._data.dtype.pyarrow_dtype
         return concat(
             [self.field(i) for i in range(pa_type.num_fields)], axis="columns"
         )
