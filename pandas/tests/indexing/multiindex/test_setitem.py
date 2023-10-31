@@ -273,16 +273,20 @@ class TestMultiIndexSetItem:
             new_vals = np.arange(df2.shape[0])
             df.loc[name, "new_col"] = new_vals
 
-    def test_series_setitem(self, multiindex_year_month_day_dataframe_random_data):
+    def test_series_setitem(
+        self, multiindex_year_month_day_dataframe_random_data, warn_copy_on_write
+    ):
         ymd = multiindex_year_month_day_dataframe_random_data
         s = ymd["A"]
 
-        s[2000, 3] = np.nan
+        with tm.assert_cow_warning(warn_copy_on_write):
+            s[2000, 3] = np.nan
         assert isna(s.values[42:65]).all()
         assert notna(s.values[:42]).all()
         assert notna(s.values[65:]).all()
 
-        s[2000, 3, 10] = np.nan
+        with tm.assert_cow_warning(warn_copy_on_write):
+            s[2000, 3, 10] = np.nan
         assert isna(s.iloc[49])
 
         with pytest.raises(KeyError, match="49"):
@@ -527,12 +531,16 @@ def test_frame_setitem_view_direct(
 
 
 def test_frame_setitem_copy_raises(
-    multiindex_dataframe_random_data, using_copy_on_write
+    multiindex_dataframe_random_data, using_copy_on_write, warn_copy_on_write
 ):
     # will raise/warn as its chained assignment
     df = multiindex_dataframe_random_data.T
     if using_copy_on_write:
         with tm.raises_chained_assignment_error():
+            df["foo"]["one"] = 2
+    elif warn_copy_on_write:
+        # TODO(CoW-warn) should warn
+        with tm.assert_cow_warning(False):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"
@@ -541,13 +549,17 @@ def test_frame_setitem_copy_raises(
 
 
 def test_frame_setitem_copy_no_write(
-    multiindex_dataframe_random_data, using_copy_on_write
+    multiindex_dataframe_random_data, using_copy_on_write, warn_copy_on_write
 ):
     frame = multiindex_dataframe_random_data.T
     expected = frame
     df = frame.copy()
     if using_copy_on_write:
         with tm.raises_chained_assignment_error():
+            df["foo"]["one"] = 2
+    elif warn_copy_on_write:
+        # TODO(CoW-warn) should warn
+        with tm.assert_cow_warning(False):
             df["foo"]["one"] = 2
     else:
         msg = "A value is trying to be set on a copy of a slice from a DataFrame"

@@ -334,7 +334,7 @@ class TestDataFrameBlockInternals:
         assert not float_frame._is_mixed_type
         assert float_string_frame._is_mixed_type
 
-    def test_stale_cached_series_bug_473(self, using_copy_on_write):
+    def test_stale_cached_series_bug_473(self, using_copy_on_write, warn_copy_on_write):
         # this is chained, but ok
         with option_context("chained_assignment", None):
             Y = DataFrame(
@@ -347,6 +347,9 @@ class TestDataFrameBlockInternals:
             if using_copy_on_write:
                 with tm.raises_chained_assignment_error():
                     Y["g"]["c"] = np.nan
+            elif warn_copy_on_write:
+                with tm.assert_cow_warning():
+                    Y["g"]["c"] = np.nan
             else:
                 Y["g"]["c"] = np.nan
             repr(Y)
@@ -357,13 +360,16 @@ class TestDataFrameBlockInternals:
             else:
                 assert pd.isna(Y["g"]["c"])
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_strange_column_corruption_issue(self, using_copy_on_write):
         # TODO(wesm): Unclear how exactly this is related to internal matters
         df = DataFrame(index=[0, 1])
         df[0] = np.nan
         wasCol = {}
 
-        with tm.assert_produces_warning(PerformanceWarning):
+        with tm.assert_produces_warning(
+            PerformanceWarning, raise_on_extra_warnings=False
+        ):
             for i, dt in enumerate(df.index):
                 for col in range(100, 200):
                     if col not in wasCol:

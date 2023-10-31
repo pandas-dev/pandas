@@ -1999,14 +1999,15 @@ def test_arith_list_of_arraylike_raise(to_add):
         to_add + df
 
 
-def test_inplace_arithmetic_series_update(using_copy_on_write):
+def test_inplace_arithmetic_series_update(using_copy_on_write, warn_copy_on_write):
     # https://github.com/pandas-dev/pandas/issues/36373
     df = DataFrame({"A": [1, 2, 3]})
     df_orig = df.copy()
     series = df["A"]
     vals = series._values
 
-    series += 1
+    with tm.assert_cow_warning(warn_copy_on_write):
+        series += 1
     if using_copy_on_write:
         assert series._values is not vals
         tm.assert_frame_equal(df, df_orig)
