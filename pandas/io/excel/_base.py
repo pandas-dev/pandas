@@ -80,6 +80,7 @@ if TYPE_CHECKING:
         IntStrT,
         ReadBuffer,
         Self,
+        SequenceNotStr,
         StorageOptions,
         WriteExcelBuffer,
     )
@@ -154,9 +155,11 @@ usecols : str, list-like, or callable, default None
     Returns a subset of the columns according to behavior above.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
-    Use `object` to preserve data as stored in Excel and not interpret dtype.
+    Use `object` to preserve data as stored in Excel and not interpret dtype,
+    which will necessarily result in `object` dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
+    If you use `None`, it will infer the dtype of each column based on the data.
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
     Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", "calamine".
@@ -387,7 +390,7 @@ def read_excel(
     sheet_name: str | int = ...,
     *,
     header: int | Sequence[int] | None = ...,
-    names: list[str] | None = ...,
+    names: SequenceNotStr[Hashable] | range | None = ...,
     index_col: int | Sequence[int] | None = ...,
     usecols: int
     | str
@@ -426,7 +429,7 @@ def read_excel(
     sheet_name: list[IntStrT] | None,
     *,
     header: int | Sequence[int] | None = ...,
-    names: list[str] | None = ...,
+    names: SequenceNotStr[Hashable] | range | None = ...,
     index_col: int | Sequence[int] | None = ...,
     usecols: int
     | str
@@ -465,7 +468,7 @@ def read_excel(
     sheet_name: str | int | list[IntStrT] | None = 0,
     *,
     header: int | Sequence[int] | None = 0,
-    names: list[str] | None = None,
+    names: SequenceNotStr[Hashable] | range | None = None,
     index_col: int | Sequence[int] | None = None,
     usecols: int
     | str
@@ -730,7 +733,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
         header: int | Sequence[int] | None = 0,
-        names=None,
+        names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
         dtype: DtypeArg | None = None,
@@ -1589,7 +1592,7 @@ class ExcelFile:
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
         header: int | Sequence[int] | None = 0,
-        names=None,
+        names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
         converters=None,

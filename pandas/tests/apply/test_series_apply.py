@@ -188,13 +188,13 @@ def test_apply_box():
 
 
 def test_apply_datetimetz(by_row):
-    values = pd.date_range("2011-01-01", "2011-01-02", freq="H").tz_localize(
+    values = pd.date_range("2011-01-01", "2011-01-02", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     s = Series(values, name="XX")
 
     result = s.apply(lambda x: x + pd.offsets.Day(), by_row=by_row)
-    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="H").tz_localize(
+    exp_values = pd.date_range("2011-01-02", "2011-01-03", freq="h").tz_localize(
         "Asia/Tokyo"
     )
     exp = Series(exp_values, name="XX")
@@ -213,7 +213,7 @@ def test_apply_datetimetz(by_row):
         exp = Series(["Asia/Tokyo"] * 25, name="XX")
         tm.assert_series_equal(result, exp)
     else:
-        result == "Asia/Tokyo"
+        assert result == "Asia/Tokyo"
 
 
 def test_apply_categorical(by_row):
@@ -321,7 +321,7 @@ def test_transform(string_series, by_row):
 def test_transform_partial_failure(op, request):
     # GH 35964
     if op in ("ffill", "bfill", "pad", "backfill", "shift"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason=f"{op} is successful on any dtype")
         )
 

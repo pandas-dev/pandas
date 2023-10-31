@@ -397,7 +397,10 @@ class TestBlockManager:
 
     def test_pickle(self, mgr):
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
         # GH2431
         assert hasattr(mgr2, "_is_consolidated")
@@ -411,16 +414,25 @@ class TestBlockManager:
     def test_non_unique_pickle(self, mgr_string):
         mgr = create_mgr(mgr_string)
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
     def test_categorical_block_pickle(self):
         mgr = create_mgr("a: category")
         mgr2 = tm.round_trip_pickle(mgr)
-        tm.assert_frame_equal(DataFrame(mgr), DataFrame(mgr2))
+        tm.assert_frame_equal(
+            DataFrame._from_mgr(mgr, axes=mgr.axes),
+            DataFrame._from_mgr(mgr2, axes=mgr2.axes),
+        )
 
         smgr = create_single_mgr("category")
         smgr2 = tm.round_trip_pickle(smgr)
-        tm.assert_series_equal(Series(smgr), Series(smgr2))
+        tm.assert_series_equal(
+            Series()._constructor_from_mgr(smgr, axes=smgr.axes),
+            Series()._constructor_from_mgr(smgr2, axes=smgr2.axes),
+        )
 
     def test_iget(self):
         cols = Index(list("abc"))
@@ -468,7 +480,7 @@ class TestBlockManager:
             np.random.default_rng(2).standard_normal(N).astype(int),
         )
         idx = mgr2.items.get_loc("quux")
-        assert mgr2.iget(idx).dtype == np.int_
+        assert mgr2.iget(idx).dtype == np.dtype(int)
 
         mgr2.iset(
             mgr2.items.get_loc("quux"), np.random.default_rng(2).standard_normal(N)
@@ -1335,13 +1347,13 @@ class TestCanHoldElement:
         assert not blk._can_hold_element(elem)
 
     def test_period_can_hold_element_emptylist(self):
-        pi = period_range("2016", periods=3, freq="A")
+        pi = period_range("2016", periods=3, freq="Y")
         blk = new_block(pi._data.reshape(1, 3), BlockPlacement([1]), ndim=2)
 
         assert blk._can_hold_element([])
 
     def test_period_can_hold_element(self, element):
-        pi = period_range("2016", periods=3, freq="A")
+        pi = period_range("2016", periods=3, freq="Y")
 
         elem = element(pi)
         self.check_series_setitem(elem, pi, True)

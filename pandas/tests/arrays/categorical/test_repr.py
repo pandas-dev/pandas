@@ -148,7 +148,7 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
         assert repr(c) == exp
 
     def test_categorical_repr_datetime(self):
-        idx = date_range("2011-01-01 09:00", freq="H", periods=5)
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5)
         c = Categorical(idx)
 
         exp = (
@@ -176,7 +176,7 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
 
         assert repr(c) == exp
 
-        idx = date_range("2011-01-01 09:00", freq="H", periods=5, tz="US/Eastern")
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
         c = Categorical(idx)
         exp = (
             "[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, "
@@ -210,7 +210,7 @@ Categories (20, int64): [0 < 1 < 2 < 3 ... 16 < 17 < 18 < 19]"""
         assert repr(c) == exp
 
     def test_categorical_repr_datetime_ordered(self):
-        idx = date_range("2011-01-01 09:00", freq="H", periods=5)
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5)
         c = Categorical(idx, ordered=True)
         exp = """[2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00, 2011-01-01 12:00:00, 2011-01-01 13:00:00]
 Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
@@ -225,7 +225,7 @@ Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 201
 
         assert repr(c) == exp
 
-        idx = date_range("2011-01-01 09:00", freq="H", periods=5, tz="US/Eastern")
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
         c = Categorical(idx, ordered=True)
         exp = """[2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00, 2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00, 2011-01-01 13:00:00-05:00]
 Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
@@ -254,17 +254,17 @@ Categories (2, int64): [1, 2]"""
         assert repr(s) == s_exp
 
     def test_categorical_repr_period(self):
-        idx = period_range("2011-01-01 09:00", freq="H", periods=5)
+        idx = period_range("2011-01-01 09:00", freq="h", periods=5)
         c = Categorical(idx)
         exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
-Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
+Categories (5, period[h]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
                             2011-01-01 13:00]"""  # noqa: E501
 
         assert repr(c) == exp
 
         c = Categorical(idx.append(idx), categories=idx)
         exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00, 2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
-Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
+Categories (5, period[h]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
                             2011-01-01 13:00]"""  # noqa: E501
 
         assert repr(c) == exp
@@ -283,17 +283,17 @@ Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""  # n
         assert repr(c) == exp
 
     def test_categorical_repr_period_ordered(self):
-        idx = period_range("2011-01-01 09:00", freq="H", periods=5)
+        idx = period_range("2011-01-01 09:00", freq="h", periods=5)
         c = Categorical(idx, ordered=True)
         exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
-Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
+Categories (5, period[h]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
                             2011-01-01 13:00]"""  # noqa: E501
 
         assert repr(c) == exp
 
         c = Categorical(idx.append(idx), categories=idx, ordered=True)
         exp = """[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00, 2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00, 2011-01-01 13:00]
-Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
+Categories (5, period[h]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
                             2011-01-01 13:00]"""  # noqa: E501
 
         assert repr(c) == exp
@@ -396,7 +396,7 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         assert repr(i) == exp
 
     def test_categorical_index_repr_datetime(self):
-        idx = date_range("2011-01-01 09:00", freq="H", periods=5)
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5)
         i = CategoricalIndex(Categorical(idx))
         exp = """CategoricalIndex(['2011-01-01 09:00:00', '2011-01-01 10:00:00',
                   '2011-01-01 11:00:00', '2011-01-01 12:00:00',
@@ -405,7 +405,7 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         assert repr(i) == exp
 
-        idx = date_range("2011-01-01 09:00", freq="H", periods=5, tz="US/Eastern")
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
         i = CategoricalIndex(Categorical(idx))
         exp = """CategoricalIndex(['2011-01-01 09:00:00-05:00', '2011-01-01 10:00:00-05:00',
                   '2011-01-01 11:00:00-05:00', '2011-01-01 12:00:00-05:00',
@@ -415,7 +415,7 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         assert repr(i) == exp
 
     def test_categorical_index_repr_datetime_ordered(self):
-        idx = date_range("2011-01-01 09:00", freq="H", periods=5)
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5)
         i = CategoricalIndex(Categorical(idx, ordered=True))
         exp = """CategoricalIndex(['2011-01-01 09:00:00', '2011-01-01 10:00:00',
                   '2011-01-01 11:00:00', '2011-01-01 12:00:00',
@@ -424,7 +424,7 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
         assert repr(i) == exp
 
-        idx = date_range("2011-01-01 09:00", freq="H", periods=5, tz="US/Eastern")
+        idx = date_range("2011-01-01 09:00", freq="h", periods=5, tz="US/Eastern")
         i = CategoricalIndex(Categorical(idx, ordered=True))
         exp = """CategoricalIndex(['2011-01-01 09:00:00-05:00', '2011-01-01 10:00:00-05:00',
                   '2011-01-01 11:00:00-05:00', '2011-01-01 12:00:00-05:00',
@@ -445,22 +445,22 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
 
     def test_categorical_index_repr_period(self):
         # test all length
-        idx = period_range("2011-01-01 09:00", freq="H", periods=1)
+        idx = period_range("2011-01-01 09:00", freq="h", periods=1)
         i = CategoricalIndex(Categorical(idx))
         exp = """CategoricalIndex(['2011-01-01 09:00'], categories=[2011-01-01 09:00], ordered=False, dtype='category')"""  # noqa: E501
         assert repr(i) == exp
 
-        idx = period_range("2011-01-01 09:00", freq="H", periods=2)
+        idx = period_range("2011-01-01 09:00", freq="h", periods=2)
         i = CategoricalIndex(Categorical(idx))
         exp = """CategoricalIndex(['2011-01-01 09:00', '2011-01-01 10:00'], categories=[2011-01-01 09:00, 2011-01-01 10:00], ordered=False, dtype='category')"""  # noqa: E501
         assert repr(i) == exp
 
-        idx = period_range("2011-01-01 09:00", freq="H", periods=3)
+        idx = period_range("2011-01-01 09:00", freq="h", periods=3)
         i = CategoricalIndex(Categorical(idx))
         exp = """CategoricalIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00'], categories=[2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00], ordered=False, dtype='category')"""  # noqa: E501
         assert repr(i) == exp
 
-        idx = period_range("2011-01-01 09:00", freq="H", periods=5)
+        idx = period_range("2011-01-01 09:00", freq="h", periods=5)
         i = CategoricalIndex(Categorical(idx))
         exp = """CategoricalIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00',
                   '2011-01-01 12:00', '2011-01-01 13:00'],
@@ -483,7 +483,7 @@ Categories (20, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01
         assert repr(i) == exp
 
     def test_categorical_index_repr_period_ordered(self):
-        idx = period_range("2011-01-01 09:00", freq="H", periods=5)
+        idx = period_range("2011-01-01 09:00", freq="h", periods=5)
         i = CategoricalIndex(Categorical(idx, ordered=True))
         exp = """CategoricalIndex(['2011-01-01 09:00', '2011-01-01 10:00', '2011-01-01 11:00',
                   '2011-01-01 12:00', '2011-01-01 13:00'],

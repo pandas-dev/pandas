@@ -339,9 +339,7 @@ class TestSelectDtypes:
         expected = df3.reindex(columns=[])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype", [str, "str", np.bytes_, "S1", "unicode", np.str_, "U1"]
-    )
+    @pytest.mark.parametrize("dtype", [str, "str", np.bytes_, "S1", np.str_, "U1"])
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg):
         df = DataFrame(

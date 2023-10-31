@@ -1,6 +1,5 @@
 from collections import defaultdict
 from datetime import datetime
-from io import StringIO
 import math
 import operator
 import re
@@ -457,7 +456,7 @@ class TestIndex:
         ["string", "int64", "int32", "uint64", "uint32", "float64", "float32"],
         indirect=True,
     )
-    @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
+    @pytest.mark.parametrize("dtype", [int, np.bool_])
     def test_empty_fancy(self, index, dtype):
         empty_arr = np.array([], dtype=dtype)
         empty_index = type(index)([], dtype=index.dtype)
@@ -666,13 +665,17 @@ class TestIndex:
         # include us since the default for Timestamp shows these but Index
         # formatting does not we are skipping)
         now = datetime.now()
+        msg = r"Index\.format is deprecated"
+
         if not str(now).endswith("000"):
             index = Index([now])
-            formatted = index.format()
+            with tm.assert_produces_warning(FutureWarning, match=msg):
+                formatted = index.format()
             expected = [str(index[0])]
             assert formatted == expected
 
-        Index([]).format()
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            Index([]).format()
 
     @pytest.mark.parametrize("vals", [[1, 2.0 + 3.0j, 4.0], ["a", "b", "c"]])
     def test_format_missing(self, vals, nulls_fixture):
@@ -682,7 +685,9 @@ class TestIndex:
         index = Index(vals, dtype=object)
         # TODO: case with complex dtype?
 
-        formatted = index.format()
+        msg = r"Index\.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            formatted = index.format()
         null_repr = "NaN" if isinstance(nulls_fixture, float) else str(nulls_fixture)
         expected = [str(index[0]), str(index[1]), str(index[2]), null_repr]
 
@@ -980,7 +985,7 @@ class TestIndex:
             Index(range(5)),
             tm.makeDateIndex(10),
             MultiIndex.from_tuples([("foo", "1"), ("bar", "3")]),
-            period_range(start="2000", end="2010", freq="A"),
+            period_range(start="2000", end="2010", freq="Y"),
         ],
     )
     def test_str_attribute_raises(self, index):
@@ -1168,13 +1173,21 @@ class TestIndex:
     def test_equals_op_multiindex(self, mi, expected):
         # GH9785
         # test comparisons of multiindex
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         result = df.index == mi
         tm.assert_numpy_array_equal(result, expected)
 
     def test_equals_op_multiindex_identify(self):
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         result = df.index == df.index
         expected = np.array([True, True])
@@ -1188,7 +1201,11 @@ class TestIndex:
         ],
     )
     def test_equals_op_mismatched_multiindex_raises(self, index):
-        df = pd.read_csv(StringIO("a,b,c\n1,2,3\n4,5,6"), index_col=[0, 1])
+        df = DataFrame(
+            [3, 6],
+            columns=["c"],
+            index=MultiIndex.from_arrays([[1, 4], [2, 5]], names=["a", "b"]),
+        )
 
         with pytest.raises(ValueError, match="Lengths must match"):
             df.index == index
@@ -1447,6 +1464,20 @@ class TestMixedIntIndex:
         assert index.is_monotonic_decreasing is False
         assert index._is_strictly_monotonic_increasing is False
         assert index._is_strictly_monotonic_decreasing is False
+
+    @pytest.mark.parametrize("dtype", ["f8", "m8[ns]", "M8[us]"])
+    @pytest.mark.parametrize("unique_first", [True, False])
+    def test_is_monotonic_unique_na(self, dtype, unique_first):
+        # GH 55755
+        index = Index([None, 1, 1], dtype=dtype)
+        if unique_first:
+            assert index.is_unique is False
+            assert index.is_monotonic_increasing is False
+            assert index.is_monotonic_decreasing is False
+        else:
+            assert index.is_monotonic_increasing is False
+            assert index.is_monotonic_decreasing is False
+            assert index.is_unique is False
 
     def test_int_name_format(self, frame_or_series):
         index = Index(["a", "b", "c"], name=0)
