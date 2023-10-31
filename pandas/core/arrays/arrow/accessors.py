@@ -29,7 +29,7 @@ class ArrowAccessor(metaclass=ABCMeta):
         self._validate(data)
 
     @abstractmethod
-    def _is_valid_pyarrow_dtype(self, pyarrow_dtype: pa.DataType) -> bool:
+    def _is_valid_pyarrow_dtype(self, pyarrow_dtype) -> bool:
         pass
 
     @property
@@ -53,6 +53,15 @@ class ArrowAccessor(metaclass=ABCMeta):
 
 
 class ListAccessor(ArrowAccessor):
+    """
+    Accessor object for list data properties of the Series values.
+
+    Parameters
+    ----------
+    data : Series
+        Series containing Arrow list data.
+    """
+
     _validation_msg = (
         "Can only use the '.list' accessor with 'list[pyarrow]' dtype, not {dtype}."
     )
@@ -60,7 +69,7 @@ class ListAccessor(ArrowAccessor):
     def __init__(self, data=None) -> None:
         super().__init__(data)
 
-    def _is_valid_pyarrow_dtype(self, pyarrow_dtype: pa.DataType) -> bool:
+    def _is_valid_pyarrow_dtype(self, pyarrow_dtype) -> bool:
         return (
             pa.types.is_list(pyarrow_dtype)
             or pa.types.is_fixed_size_list(pyarrow_dtype)
@@ -68,12 +77,62 @@ class ListAccessor(ArrowAccessor):
         )
 
     def len(self) -> Series:
+        """
+        Return the length of each list in the Series.
+
+        Returns
+        -------
+        pandas.Series
+            The length of each list.
+
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> s = pd.Series(
+        ...     [
+        ...         [1, 2, 3],
+        ...         [3],
+        ...     ],
+        ...     dtype=pd.ArrowDtype(pa.list_(
+        ...         pa.int64()
+        ...     ))
+        ... )
+        >>> s.list.len()
+        0    3
+        1    1
+        dtype: int32[pyarrow]
+        """
         from pandas import Series
 
         value_lengths = pc.list_value_length(self._pa_array)
         return Series(value_lengths, dtype=ArrowDtype(value_lengths.type))
 
     def __getitem__(self, key: int) -> Series:
+        """
+        Index or slice lists in the Series.
+
+        Returns
+        -------
+        pandas.Series
+            The list at requested index.
+
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> s = pd.Series(
+        ...     [
+        ...         [1, 2, 3],
+        ...         [3],
+        ...     ],
+        ...     dtype=pd.ArrowDtype(pa.list_(
+        ...         pa.int64()
+        ...     ))
+        ... )
+        >>> s.list[0]
+        0    1
+        1    3
+        dtype: int64[pyarrow]
+        """
         from pandas import Series
 
         if isinstance(key, int):
@@ -100,6 +159,33 @@ class ListAccessor(ArrowAccessor):
             raise ValueError(f"key must be an int or slice, got {type(key).__name__}")
 
     def flatten(self) -> Series:
+        """
+        Flatten list values.
+
+        Returns
+        -------
+        pandas.Series
+            The data from all lists in the series flattened.
+
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> s = pd.Series(
+        ...     [
+        ...         [1, 2, 3],
+        ...         [3],
+        ...     ],
+        ...     dtype=pd.ArrowDtype(pa.list_(
+        ...         pa.int64()
+        ...     ))
+        ... )
+        >>> s.list.flatten()
+        0    1
+        1    2
+        2    3
+        3    3
+        dtype: int64[pyarrow]
+        """
         from pandas import Series
 
         flattened = pc.list_flatten(self._pa_array)
@@ -123,7 +209,7 @@ class StructAccessor(ArrowAccessor):
     def __init__(self, data=None) -> None:
         super().__init__(data)
 
-    def _is_valid_pyarrow_dtype(self, pyarrow_dtype: pa.DataType) -> bool:
+    def _is_valid_pyarrow_dtype(self, pyarrow_dtype) -> bool:
         return pa.types.is_struct(pyarrow_dtype)
 
     @property
