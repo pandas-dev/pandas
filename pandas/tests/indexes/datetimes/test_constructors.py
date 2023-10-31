@@ -1013,16 +1013,19 @@ class TestDatetimeIndex:
         dr2 = DatetimeIndex(list(dr), name="foo", freq="D")
         tm.assert_index_equal(dr, dr2)
 
-    def test_dti_constructor_with_non_nano_dtype(self):
-        # GH#55756
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+    def test_dti_constructor_with_non_nano_dtype(self, tz):
+        # GH#55756, GH#54620
         ts = Timestamp("2999-01-01")
         dtype = "M8[us]"
+        if tz is not None:
+            dtype = f"M8[us, {tz}]"
         # NB: the 2500 is interpreted as nanoseconds and rounded *down*
         # to 2 microseconds
         vals = [ts, "2999-01-02 03:04:05.678910", 2500]
         result = DatetimeIndex(vals, dtype=dtype)
-        exp_arr = np.array([ts.asm8, vals[1], 2], dtype=dtype)
-        expected = DatetimeIndex(exp_arr, dtype=dtype)
+        exp_arr = np.array([ts.asm8, vals[1], 2], dtype="M8[us]")
+        expected = DatetimeIndex(exp_arr, dtype="M8[us]").tz_localize(tz)
         tm.assert_index_equal(result, expected)
 
         result2 = DatetimeIndex(np.array(vals, dtype=object), dtype=dtype)

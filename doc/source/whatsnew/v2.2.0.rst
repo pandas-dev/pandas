@@ -330,6 +330,7 @@ Datetimelike
 - Bug in addition or subtraction of :class:`BusinessDay` offset with ``offset`` attribute to non-nanosecond :class:`Index`, :class:`Series`, or :class:`DataFrame` column giving incorrect results (:issue:`55608`)
 - Bug in addition or subtraction of :class:`DateOffset` objects with microsecond components to ``datetime64`` :class:`Index`, :class:`Series`, or :class:`DataFrame` columns with non-nanosecond resolution (:issue:`55595`)
 - Bug in addition or subtraction of very large :class:`Tick` objects with :class:`Timestamp` or :class:`Timedelta` objects raising ``OverflowError`` instead of ``OutOfBoundsTimedelta`` (:issue:`55503`)
+- Bug in creating a :class:`Index`, :class:`Series`, or :class:`DataFrame` with a non-nanosecond :class:`DatetimeTZDtype` and inputs that would be out of bounds with nanosecond resolution incorrectly raising ``OutOfBoundsDatetime`` (:issue:`54620`)
 - Bug in creating a :class:`Index`, :class:`Series`, or :class:`DataFrame` with a non-nanosecond ``datetime64`` dtype and inputs that would be out of bounds for a ``datetime64[ns]`` incorrectly raising ``OutOfBoundsDatetime`` (:issue:`55756`)
 -
 
