@@ -171,6 +171,17 @@ class TestDataFrameFormatting:
         with option_context("display.max_colwidth", max_len + 2):
             assert "..." not in repr(df)
 
+    def test_repr_truncation_preserver_na(self):
+        # https://github.com/pandas-dev/pandas/issues/55630
+        with option_context("display.max_rows", 10):
+            df = DataFrame(
+                {"A" : [pd.NA for _ in range(100)]}
+            )
+
+            r = repr(df)
+            for row in r.split("\n")[1:-2]:
+                assert row.endswith("<NA>") or row.endswith("...")
+
     def test_max_colwidth_negative_int_raises(self):
         # Deprecation enforced from:
         # https://github.com/pandas-dev/pandas/issues/31532
