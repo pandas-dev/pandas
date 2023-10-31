@@ -107,6 +107,23 @@ class TestAstypeAPI:
 
 
 class TestAstype:
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+    def test_astype_object_to_dt64_non_nano(self, tz):
+        # GH#55756, GH#54620
+        ts = Timestamp("2999-01-01")
+        dtype = "M8[us]"
+        if tz is not None:
+            dtype = f"M8[us, {tz}]"
+        # NB: the 2500 is interpreted as nanoseconds and rounded *down*
+        # to 2 microseconds
+        vals = [ts, "2999-01-02 03:04:05.678910", 2500]
+        ser = Series(vals, dtype=object)
+        result = ser.astype(dtype)
+
+        exp_arr = np.array([ts.asm8, vals[1], 2], dtype="M8[us]")
+        expected = Series(exp_arr, dtype="M8[us]").dt.tz_localize(tz)
+        tm.assert_series_equal(result, expected)
+
     def test_astype_mixed_object_to_dt64tz(self):
         # pre-2.0 this raised ValueError bc of tz mismatch
         # xref GH#32581

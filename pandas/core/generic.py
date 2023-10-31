@@ -30,6 +30,7 @@ import numpy as np
 from pandas._config import (
     config,
     using_copy_on_write,
+    warn_copy_on_write,
 )
 
 from pandas._libs import lib
@@ -4397,7 +4398,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         df.iloc[0:5]['group'] = 'a'
 
         """
-        if using_copy_on_write():
+        if using_copy_on_write() or warn_copy_on_write():
             return
 
         # return early if the check is not needed
@@ -9308,8 +9309,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         bucket ``2000-01-01 00:03:00`` contains the value 3, but the summed
         value in the resampled bucket with the label ``2000-01-01 00:03:00``
         does not include 3 (if it did, the summed value would be 6, not 3).
-        To include this value close the right side of the bin interval as
-        illustrated in the example below this one.
 
         >>> series.resample('3min', label='right').sum()
         2000-01-01 00:03:00     3
@@ -9317,8 +9316,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-01-01 00:09:00    21
         Freq: 3min, dtype: int64
 
-        Downsample the series into 3 minute bins as above, but close the right
-        side of the bin interval.
+        To include this value close the right side of the bin interval,
+        as shown below.
 
         >>> series.resample('3min', label='right', closed='right').sum()
         2000-01-01 00:00:00     0
@@ -12391,6 +12390,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         Wrap arithmetic method to operate inplace.
         """
+        warn = True
+        if not PYPY and warn_copy_on_write():
+            if sys.getrefcount(self) <= 5:
+                # we are probably in an inplace setitem context (e.g. df['a'] += 1)
+                warn = False
+
         result = op(self, other)
 
         if self.ndim == 1 and result._indexed_same(self) and result.dtype == self.dtype:
@@ -12398,7 +12403,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # Item "ArrayManager" of "Union[ArrayManager, SingleArrayManager,
             # BlockManager, SingleBlockManager]" has no attribute "setitem_inplace"
             self._mgr.setitem_inplace(  # type: ignore[union-attr]
-                slice(None), result._values
+                slice(None), result._values, warn=warn
             )
             return self
 
