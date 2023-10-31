@@ -773,3 +773,21 @@ def test_constructor_with_metadata():
     )
     subset = df[["A", "B"]]
     assert isinstance(subset, MySubclassWithMetadata)
+
+
+class SimpleSubClass(DataFrame):
+    """A subclass of DataFrame that does not define a constructor."""
+
+
+class TestSubclassWithoutConstructor:
+    def test_copy(self):
+        expected = DataFrame({"a": [1, 2, 3]})
+        result = SimpleSubClass(expected).copy()
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_groupby(self):
+        df = SimpleSubClass(DataFrame({"a": [1, 2, 3]}))
+
+        for _, v in df.groupby("a"):
+            assert isinstance(v, DataFrame)
