@@ -159,3 +159,11 @@ class TestDatetimeLike:
 
         result = index.where(mask, ["foo"])
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("unit", ["ns", "us", "ms", "s"])
+    def test_diff(self, unit):
+        # GH 55080
+        dti = pd.to_datetime([10, 20, 30], unit=unit).as_unit(unit)
+        result = dti.diff(1)
+        expected = pd.TimedeltaIndex([pd.NaT, 10, 10], unit=unit).as_unit(unit)
+        tm.assert_index_equal(result, expected)
