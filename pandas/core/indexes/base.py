@@ -6991,7 +6991,7 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     @final
-    def diff(self, periods: int = 1) -> Self:
+    def diff(self, periods: int = 1) -> Index:
         """
         Computes the difference between consecutive values in the Index object.
 
@@ -7017,7 +7017,7 @@ class Index(IndexOpsMixin, PandasObject):
         Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
 
         """
-        return self._constructor(self.to_series().diff(periods))
+        return Index(self.to_series().diff(periods))
 
     @final
     def round(self, decimals: int = 0) -> Self:
