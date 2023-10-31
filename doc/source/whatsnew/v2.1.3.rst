@@ -21,6 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
+- Bug in :meth:`DatetimeIndex.diff` raising ``TypeError`` (:issue:`55080`)
 - Fixed bug in :meth:`DatetimeArray._generate_range` where ``inclusive`` argument behavior did not match interval notation (:issue:`55293`,:issue:`46331`)
 -
 
