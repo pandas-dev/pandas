@@ -589,6 +589,6 @@ class NumpyExtensionArray(  # type: ignore[misc]
 
         # Note: without the "str" here, the f-string rendering raises in
         #  py38 builds.
-        if isinstance(value, str):
+        if lib.infer_dtype(value)!=self.dtype:
             raise TypeError(f"Invalid value '{str(value)}' for dtype {self.dtype}")
 
