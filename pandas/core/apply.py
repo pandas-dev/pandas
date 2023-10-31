@@ -1015,6 +1015,7 @@ class FrameApply(NDFrameApply):
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
         else:
+            #55753 Added the comments for this Fix
             result = np.apply_along_axis(
                 wrap_function(self.func),
                 self.axis,
