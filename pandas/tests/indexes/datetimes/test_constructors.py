@@ -1054,6 +1054,7 @@ class TestDatetimeIndex:
         assert diff1 < tolerance
 
     def test_dti_constructor_object_float_matches_float_dtype(self):
+        # GH#55780
         arr = np.array([0, np.nan], dtype=np.float64)
         arr2 = arr.astype(object)
 

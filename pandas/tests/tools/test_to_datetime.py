@@ -604,7 +604,7 @@ class TestToDatetime:
         tm.assert_index_equal(res, expected)
 
     def test_to_datetime_mixed_string_and_numeric(self):
-        # np.array(vals) would incorrectly cast the number to str
+        # GH#55780 np.array(vals) would incorrectly cast the number to str
         vals = ["2016-01-01", 0]
         expected = DatetimeIndex([Timestamp(x) for x in vals])
         result = to_datetime(vals, format="mixed")
