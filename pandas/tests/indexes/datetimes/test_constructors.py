@@ -1043,6 +1043,43 @@ class TestDatetimeIndex:
         with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
             DatetimeIndex([dtobj], tz=tz2)
 
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+    def test_dti_constructor_with_non_nano_dtype(self, tz):
+        # GH#55756, GH#54620
+        ts = Timestamp("2999-01-01")
+        dtype = "M8[us]"
+        if tz is not None:
+            dtype = f"M8[us, {tz}]"
+        # NB: the 2500 is interpreted as nanoseconds and rounded *down*
+        # to 2 microseconds
+        vals = [ts, "2999-01-02 03:04:05.678910", 2500]
+        result = DatetimeIndex(vals, dtype=dtype)
+        exp_arr = np.array([ts.asm8, vals[1], 2], dtype="M8[us]")
+        expected = DatetimeIndex(exp_arr, dtype="M8[us]").tz_localize(tz)
+        tm.assert_index_equal(result, expected)
+
+        result2 = DatetimeIndex(np.array(vals, dtype=object), dtype=dtype)
+        tm.assert_index_equal(result2, expected)
+
+    def test_dti_constructor_with_non_nano_now_today(self):
+        # GH#55756
+        now = Timestamp.now()
+        today = Timestamp.today()
+        result = DatetimeIndex(["now", "today"], dtype="M8[s]")
+        assert result.dtype == "M8[s]"
+
+        # result may not exactly match [now, today] so we'll test it up to a tolerance.
+        #  (it *may* match exactly due to rounding)
+        tolerance = pd.Timedelta(microseconds=1)
+
+        diff0 = result[0] - now.as_unit("s")
+        assert diff0 >= pd.Timedelta(0)
+        assert diff0 < tolerance
+
+        diff1 = result[1] - today.as_unit("s")
+        assert diff1 >= pd.Timedelta(0)
+        assert diff1 < tolerance
+
 
 class TestTimeSeries:
     def test_dti_constructor_preserve_dti_freq(self):
