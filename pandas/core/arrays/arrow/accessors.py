@@ -108,9 +108,14 @@ class ListAccessor(_ArrowAccessor):
         value_lengths = pc.list_value_length(self._pa_array)
         return Series(value_lengths, dtype=ArrowDtype(value_lengths.type))
 
-    def __getitem__(self, key: int) -> Series:
+    def __getitem__(self, key: int | slice) -> Series:
         """
         Index or slice lists in the Series.
+
+        Parameters
+        ----------
+        key : int | slice
+            Index or slice of indices to access from each list.
 
         Returns
         -------
