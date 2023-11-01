@@ -1013,6 +1013,36 @@ class TestDatetimeIndex:
         dr2 = DatetimeIndex(list(dr), name="foo", freq="D")
         tm.assert_index_equal(dr, dr2)
 
+    def test_dti_ambiguous_matches_timestamp(self):
+        # GH#47471 check that we get the same raising behavior in the DTI
+        # constructor and Timestamp constructor
+        dtstr = "2013-11-03 01:59:59.999999"
+        dtobj = Timestamp(dtstr).to_pydatetime()
+
+        tz = pytz.timezone("US/Eastern")
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            Timestamp(dtstr, tz=tz)
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            Timestamp(dtobj, tz=tz)
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            DatetimeIndex([dtstr], tz=tz)
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            DatetimeIndex([dtobj], tz=tz)
+
+        tz2 = gettz("US/Eastern")
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            Timestamp(dtstr, tz=tz2)
+        # FIXME: The Timestamp constructor here behaves differently than all
+        #  the other cases bc with dateutil/zoneinfo tzinfos we implicitly
+        #  get fold=0. Having this raise is not important, but having the
+        #  behavior be consistent across cases is.
+        # with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+        #    Timestamp(dtobj, tz=tz2)
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            DatetimeIndex([dtstr], tz=tz2)
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            DatetimeIndex([dtobj], tz=tz2)
+
     @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
     def test_dti_constructor_with_non_nano_dtype(self, tz):
         # GH#55756, GH#54620

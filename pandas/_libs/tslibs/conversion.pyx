@@ -645,7 +645,8 @@ cdef datetime _localize_pydatetime(datetime dt, tzinfo tz):
     """
     try:
         # datetime.replace with pytz may be incorrect result
-        return tz.localize(dt)
+        # TODO: try to respect `fold` attribute
+        return tz.localize(dt, is_dst=None)
     except AttributeError:
         return dt.replace(tzinfo=tz)
 
