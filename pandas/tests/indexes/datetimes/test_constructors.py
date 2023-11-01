@@ -1013,16 +1013,49 @@ class TestDatetimeIndex:
         dr2 = DatetimeIndex(list(dr), name="foo", freq="D")
         tm.assert_index_equal(dr, dr2)
 
-    def test_dti_constructor_with_non_nano_dtype(self):
-        # GH#55756
+    def test_dti_ambiguous_matches_timestamp(self):
+        # GH#47471 check that we get the same raising behavior in the DTI
+        # constructor and Timestamp constructor
+        dtstr = "2013-11-03 01:59:59.999999"
+        dtobj = Timestamp(dtstr).to_pydatetime()
+
+        tz = pytz.timezone("US/Eastern")
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            Timestamp(dtstr, tz=tz)
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            Timestamp(dtobj, tz=tz)
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            DatetimeIndex([dtstr], tz=tz)
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            DatetimeIndex([dtobj], tz=tz)
+
+        tz2 = gettz("US/Eastern")
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            Timestamp(dtstr, tz=tz2)
+        # FIXME: The Timestamp constructor here behaves differently than all
+        #  the other cases bc with dateutil/zoneinfo tzinfos we implicitly
+        #  get fold=0. Having this raise is not important, but having the
+        #  behavior be consistent across cases is.
+        # with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+        #    Timestamp(dtobj, tz=tz2)
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            DatetimeIndex([dtstr], tz=tz2)
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            DatetimeIndex([dtobj], tz=tz2)
+
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+    def test_dti_constructor_with_non_nano_dtype(self, tz):
+        # GH#55756, GH#54620
         ts = Timestamp("2999-01-01")
         dtype = "M8[us]"
+        if tz is not None:
+            dtype = f"M8[us, {tz}]"
         # NB: the 2500 is interpreted as nanoseconds and rounded *down*
         # to 2 microseconds
         vals = [ts, "2999-01-02 03:04:05.678910", 2500]
         result = DatetimeIndex(vals, dtype=dtype)
-        exp_arr = np.array([ts.asm8, vals[1], 2], dtype=dtype)
-        expected = DatetimeIndex(exp_arr, dtype=dtype)
+        exp_arr = np.array([ts.asm8, vals[1], 2], dtype="M8[us]")
+        expected = DatetimeIndex(exp_arr, dtype="M8[us]").tz_localize(tz)
         tm.assert_index_equal(result, expected)
 
         result2 = DatetimeIndex(np.array(vals, dtype=object), dtype=dtype)
