@@ -372,7 +372,7 @@ class StructAccessor(_ArrowAccessor):
         """
         from pandas import concat
 
-        pa_type = self._data.dtype.pyarrow_dtype
+        pa_type = self._pa_array.type
         return concat(
             [self.field(i) for i in range(pa_type.num_fields)], axis="columns"
         )
