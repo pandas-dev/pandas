@@ -769,9 +769,9 @@ class BaseGrouper:
 
         codes = [e[0] for e in codes_and_uniques]
         levels = [e[1] for e in codes_and_uniques]
-        # TODO: Modify in Grouping.groups instead?
         for k, (ping, level) in enumerate(zip(self.groupings, levels)):
             if ping._passed_categorical:
+                # TODO: Modify in Grouping.groups instead?
                 # set_categories is dynamically added
                 levels[k] = level.set_categories(  # type: ignore[union-attr]
                     ping._orig_cats
