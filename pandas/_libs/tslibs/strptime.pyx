@@ -241,7 +241,7 @@ cdef class DatetimeParseState:
         self.found_tz = False
         self.found_naive = False
         self.creso = creso
-        self.creso_changed = False
+        self.creso_ever_changed = False
 
     cdef bint update_creso(self, NPY_DATETIMEUNIT item_reso) noexcept:
         # Return a bool indicating whether we bumped to a higher resolution
@@ -249,7 +249,7 @@ cdef class DatetimeParseState:
             self.creso = item_reso
         elif item_reso > self.creso:
             self.creso = item_reso
-            self.creso_changed = True
+            self.creso_ever_changed = True
             return True
         return False
 
@@ -446,7 +446,7 @@ def array_strptime(
             return values, []
 
     if infer_reso:
-        if state.creso_changed:
+        if state.creso_ever_changed:
             # We encountered mismatched resolutions, need to re-parse with
             #  the correct one.
             return array_strptime(
