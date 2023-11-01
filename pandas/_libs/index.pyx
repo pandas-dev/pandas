@@ -42,6 +42,8 @@ from pandas._libs.missing cimport (
     is_matching_na,
 )
 
+from decimal import InvalidOperation
+
 # Defines shift of MultiIndex codes to avoid negative codes (missing values)
 multiindex_nulls_shift = 2
 
@@ -284,7 +286,7 @@ cdef class IndexEngine:
                 values = self.values
                 self.monotonic_inc, self.monotonic_dec, is_strict_monotonic = \
                     self._call_monotonic(values)
-            except TypeError:
+            except (TypeError, InvalidOperation):
                 self.monotonic_inc = 0
                 self.monotonic_dec = 0
                 is_strict_monotonic = 0
