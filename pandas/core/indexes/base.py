@@ -325,12 +325,12 @@ class Index(IndexOpsMixin, PandasObject):
     Parameters
     ----------
     data : array-like (1-dimensional)
-    dtype : NumPy dtype (default: object)
-        If dtype is None, we find the dtype that best fits the data.
-        If an actual dtype is provided, we coerce to that dtype if it's safe.
-        Otherwise, an error will be raised.
-    copy : bool
-        Make a copy of input ndarray.
+    dtype : str, numpy.dtype, or ExtensionDtype, optional
+        Data type for the output Index. If not specified, this will be
+        inferred from `data`.
+        See the :ref:`user guide <basics.dtypes>` for more usages.
+    copy : bool, default False
+        Copy input data.
     name : object
         Name to be stored in the index.
     tupleize_cols : bool (default: True)
