@@ -774,7 +774,7 @@ cdef int get_anchor_month(int freq, int freq_group) noexcept nogil:
 # specifically _dont_ use cdvision or else ordinals near -1 are assigned to
 # incorrect dates GH#19643
 @cython.cdivision(False)
-cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) except? -1:
+cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) except? -1 nogil:
     """
     Generate an ordinal in period space
 
@@ -803,24 +803,15 @@ cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) except? -1:
         return dts_to_qtr_ordinal(dts, fmonth)
 
     elif freq_group == FR_WK:
-        try:
-            unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
-        except OverflowError as err:
-            raise OutOfBoundsDatetime from err
+        unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
         return unix_date_to_week(unix_date, freq - FR_WK)
 
     elif freq == FR_BUS:
-        try:
-            unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
-        except OverflowError as err:
-            raise OutOfBoundsDatetime from err
+        unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, dts)
         return DtoB(dts, 0, unix_date)
 
     unit = freq_group_code_to_npy_unit(freq)
-    try:
-        unix_date = npy_datetimestruct_to_datetime(unit, dts)
-    except OverflowError as err:
-        raise OutOfBoundsDatetime from err
+    unix_date = npy_datetimestruct_to_datetime(unit, dts)
 
     return unix_date
 
