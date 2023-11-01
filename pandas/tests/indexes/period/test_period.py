@@ -297,7 +297,7 @@ class TestPeriodIndex:
     )
     def test_a_deprecated_from_time_series(self, freq_depr, freq):
         # GH#52536
-        freq_msg = freq_depr[freq_depr.index("A"):]
+        freq_msg = freq_depr[freq_depr.index("A") :]
         msg = f"'{freq_msg}' will be deprecated, please use 'Y{freq_msg[1:]}' instead."
 
         with tm.assert_produces_warning(FutureWarning, match=msg):

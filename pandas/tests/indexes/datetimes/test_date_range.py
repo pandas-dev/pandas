@@ -878,13 +878,11 @@ class TestDateRanges:
             ("YE-MAY", "Y-MAY"),
         ],
     )
-    def test_frequencies_A_deprecated_Y_renamed(self, freq, freq_depr): 
+    def test_frequencies_A_deprecated_Y_renamed(self, freq, freq_depr):
         # GH#9586, GH#52536
         freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
         freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
-        msg = (
-            f"'{freq_depr_msg}' will be deprecated, please use '{freq_msg}' instead."
-        )
+        msg = f"'{freq_depr_msg}' will be deprecated, please use '{freq_msg}' instead."
 
         expected = date_range("1/1/2000", periods=2, freq=freq)
         with tm.assert_produces_warning(FutureWarning, match=msg):

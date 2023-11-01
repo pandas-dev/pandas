@@ -448,7 +448,9 @@ class TestPivotTable:
             index=Grouper(freq="YE"), columns=Grouper(key="dt", freq="ME")
         )
         exp = DataFrame(
-            [3.0], index=pd.DatetimeIndex(["2011-12-31"], freq="YE"), columns=exp_columns
+            [3.0],
+            index=pd.DatetimeIndex(["2011-12-31"], freq="YE"),
+            columns=exp_columns,
         )
         tm.assert_frame_equal(res, exp)
 
