@@ -735,10 +735,6 @@ class Grouping:
                         codes = np.where(codes >= na_code, codes + 1, codes)
                         codes = np.where(na_mask, na_code, codes)
 
-            # TODO: Can this be removed?
-            if not self._observed:
-                uniques = uniques.reorder_categories(self._orig_cats)
-
             return codes, uniques
 
         elif isinstance(self.grouping_vector, ops.BaseGrouper):
@@ -998,9 +994,7 @@ def get_grouper(
         groupings.append(Grouping(Index([], dtype="int"), np.array([], dtype=np.intp)))
 
     # create the internals grouper
-    grouper = ops.BaseGrouper(
-        group_axis, groupings, sort=sort, dropna=dropna, observed=observed
-    )
+    grouper = ops.BaseGrouper(group_axis, groupings, sort=sort, dropna=dropna)
     return grouper, frozenset(exclusions), obj
 
 

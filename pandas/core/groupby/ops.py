@@ -579,8 +579,6 @@ class BaseGrouper:
         groupings: Sequence[grouper.Grouping],
         sort: bool = True,
         dropna: bool = True,
-        # TODO: Is this still needed?
-        observed: bool = True,
     ) -> None:
         assert isinstance(axis, Index), axis
 
@@ -588,7 +586,6 @@ class BaseGrouper:
         self._groupings: list[grouper.Grouping] = list(groupings)
         self._sort = sort
         self.dropna = dropna
-        self.observed = observed
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
@@ -859,7 +856,6 @@ class BaseGrouper:
 
         return result_index, ids
 
-    # TODO: How is this different from .levels?
     @final
     def get_group_levels(self) -> list[Index]:
         # Note: only called from _insert_inaxis_grouper, which
