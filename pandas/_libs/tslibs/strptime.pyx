@@ -253,7 +253,6 @@ cdef class DatetimeParseState:
         #  datetime.
         self.found_naive_str = False
         self.found_other = False
-
         self.creso = creso
         self.creso_ever_changed = False
 
