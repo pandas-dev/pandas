@@ -519,7 +519,12 @@ cpdef array_to_datetime(
                 iresult[i] = _ts.value
 
                 tz = _ts.tzinfo
-                if tz is not None:
+                if _ts.value == NPY_NAT:
+                    # e.g. "NaT" string or empty string, we do not consider
+                    #  this as either tzaware or tznaive. See
+                    #  test_to_datetime_with_empty_str_utc_false_format_mixed
+                    pass
+                elif tz is not None:
                     # dateutil timezone objects cannot be hashed, so
                     # store the UTC offsets in seconds instead
                     nsecs = tz.utcoffset(None).total_seconds()
@@ -610,7 +615,6 @@ cdef _array_to_datetime_object(
     # 1) NaT or NaT-like values
     # 2) datetime strings, which we return as datetime.datetime
     # 3) special strings - "now" & "today"
-    unique_timezones = set()
     for i in range(n):
         # Analogous to: val = values[i]
         val = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -640,7 +644,6 @@ cdef _array_to_datetime_object(
                     tzinfo=tsobj.tzinfo,
                     fold=tsobj.fold,
                 )
-                unique_timezones.add(tsobj.tzinfo)
 
             except (ValueError, OverflowError) as ex:
                 ex.args = (f"{ex}, at position {i}", )
@@ -658,20 +661,19 @@ cdef _array_to_datetime_object(
 
         cnp.PyArray_MultiIter_NEXT(mi)
 
-    if len(unique_timezones) > 1:
-        warnings.warn(
-            "In a future version of pandas, parsing datetimes with mixed time "
-            "zones will raise an error unless `utc=True`. "
-            "Please specify `utc=True` to opt in to the new behaviour "
-            "and silence this warning. To create a `Series` with mixed offsets and "
-            "`object` dtype, please use `apply` and `datetime.datetime.strptime`",
-            FutureWarning,
-            stacklevel=find_stack_level(),
-        )
+    warnings.warn(
+        "In a future version of pandas, parsing datetimes with mixed time "
+        "zones will raise an error unless `utc=True`. "
+        "Please specify `utc=True` to opt in to the new behaviour "
+        "and silence this warning. To create a `Series` with mixed offsets and "
+        "`object` dtype, please use `apply` and `datetime.datetime.strptime`",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
     return oresult_nd, None
 
 
-def array_to_datetime_with_tz(ndarray values, tzinfo tz):
+def array_to_datetime_with_tz(ndarray values, tzinfo tz, NPY_DATETIMEUNIT creso):
     """
     Vectorized analogue to pd.Timestamp(value, tz=tz)
 
@@ -707,7 +709,7 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz):
                 else:
                     # datetime64, tznaive pydatetime, int, float
                     ts = ts.tz_localize(tz)
-                ts = ts.as_unit("ns")
+                ts = (<_Timestamp>ts)._as_creso(creso)
                 ival = ts._value
 
         # Analogous to: result[i] = ival

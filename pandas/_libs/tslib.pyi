@@ -29,5 +29,5 @@ def array_to_datetime(
 # returned ndarray may be object dtype or datetime64[ns]
 
 def array_to_datetime_with_tz(
-    values: npt.NDArray[np.object_], tz: tzinfo
+    values: npt.NDArray[np.object_], tz: tzinfo, creso: int
 ) -> npt.NDArray[np.int64]: ...
