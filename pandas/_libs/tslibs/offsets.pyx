@@ -75,7 +75,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     pandas_datetime_to_datetimestruct,
     pydate_to_dtstruct,
 )
-from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 import_pandas_datetime()
 
@@ -3077,56 +3076,54 @@ cdef class SemiMonthOffset(SingleConstructorOffset):
             NPY_DATETIMEUNIT reso = get_unit_from_dtype(dtarr.dtype)
             cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, i8other)
 
-        for i in range(count):
-            # Analogous to: val = i8other[i]
-            val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+        with nogil:
+            for i in range(count):
+                # Analogous to: val = i8other[i]
+                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-            if val == NPY_NAT:
-                res_val = NPY_NAT
-
-            else:
-                pandas_datetime_to_datetimestruct(val, reso, &dts)
-                day = dts.day
-
-                # Adjust so that we are always looking at self.day_of_month,
-                #  incrementing/decrementing n if necessary.
-                nadj = roll_convention(day, n, anchor_dom)
-
-                days_in_month = get_days_in_month(dts.year, dts.month)
-                # For SemiMonthBegin on other.day == 1 and
-                #  SemiMonthEnd on other.day == days_in_month,
-                #  shifting `other` to `self.day_of_month` _always_ requires
-                #  incrementing/decrementing `n`, regardless of whether it is
-                #  initially positive.
-                if is_start and (n <= 0 and day == 1):
-                    nadj -= 1
-                elif (not is_start) and (n > 0 and day == days_in_month):
-                    nadj += 1
-
-                if is_start:
-                    # See also: SemiMonthBegin._apply
-                    months = nadj // 2 + nadj % 2
-                    to_day = 1 if nadj % 2 else anchor_dom
+                if val == NPY_NAT:
+                    res_val = NPY_NAT
 
                 else:
-                    # See also: SemiMonthEnd._apply
-                    months = nadj // 2
-                    to_day = 31 if nadj % 2 else anchor_dom
+                    pandas_datetime_to_datetimestruct(val, reso, &dts)
+                    day = dts.day
 
-                dts.year = year_add_months(dts, months)
-                dts.month = month_add_months(dts, months)
-                days_in_month = get_days_in_month(dts.year, dts.month)
-                dts.day = min(to_day, days_in_month)
+                    # Adjust so that we are always looking at self.day_of_month,
+                    #  incrementing/decrementing n if necessary.
+                    nadj = roll_convention(day, n, anchor_dom)
 
-                try:
+                    days_in_month = get_days_in_month(dts.year, dts.month)
+                    # For SemiMonthBegin on other.day == 1 and
+                    #  SemiMonthEnd on other.day == days_in_month,
+                    #  shifting `other` to `self.day_of_month` _always_ requires
+                    #  incrementing/decrementing `n`, regardless of whether it is
+                    #  initially positive.
+                    if is_start and (n <= 0 and day == 1):
+                        nadj -= 1
+                    elif (not is_start) and (n > 0 and day == days_in_month):
+                        nadj += 1
+
+                    if is_start:
+                        # See also: SemiMonthBegin._apply
+                        months = nadj // 2 + nadj % 2
+                        to_day = 1 if nadj % 2 else anchor_dom
+
+                    else:
+                        # See also: SemiMonthEnd._apply
+                        months = nadj // 2
+                        to_day = 31 if nadj % 2 else anchor_dom
+
+                    dts.year = year_add_months(dts, months)
+                    dts.month = month_add_months(dts, months)
+                    days_in_month = get_days_in_month(dts.year, dts.month)
+                    dts.day = min(to_day, days_in_month)
+
                     res_val = npy_datetimestruct_to_datetime(reso, &dts)
-                except OverflowError as e:
-                    raise OutOfBoundsDatetime from e
 
-            # Analogous to: out[i] = res_val
-            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                # Analogous to: out[i] = res_val
+                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
-            cnp.PyArray_MultiIter_NEXT(mi)
+                cnp.PyArray_MultiIter_NEXT(mi)
 
         return out
 
@@ -4902,32 +4899,30 @@ cdef ndarray shift_quarters(
         npy_datetimestruct dts
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(out, dtindex)
 
-    for i in range(count):
-        # Analogous to: val = dtindex[i]
-        val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+    with nogil:
+        for i in range(count):
+            # Analogous to: val = dtindex[i]
+            val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        if val == NPY_NAT:
-            res_val = NPY_NAT
-        else:
-            pandas_datetime_to_datetimestruct(val, reso, &dts)
-            n = quarters
+            if val == NPY_NAT:
+                res_val = NPY_NAT
+            else:
+                pandas_datetime_to_datetimestruct(val, reso, &dts)
+                n = quarters
 
-            months_since = (dts.month - q1start_month) % modby
-            n = _roll_qtrday(&dts, n, months_since, day_opt)
+                months_since = (dts.month - q1start_month) % modby
+                n = _roll_qtrday(&dts, n, months_since, day_opt)
 
-            dts.year = year_add_months(dts, modby * n - months_since)
-            dts.month = month_add_months(dts, modby * n - months_since)
-            dts.day = get_day_of_month(&dts, day_opt)
+                dts.year = year_add_months(dts, modby * n - months_since)
+                dts.month = month_add_months(dts, modby * n - months_since)
+                dts.day = get_day_of_month(&dts, day_opt)
 
-            try:
                 res_val = npy_datetimestruct_to_datetime(reso, &dts)
-            except OverflowError as err:
-                raise OutOfBoundsDatetime from err
 
-        # Analogous to: out[i] = res_val
-        (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+            # Analogous to: out[i] = res_val
+            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
-        cnp.PyArray_MultiIter_NEXT(mi)
+            cnp.PyArray_MultiIter_NEXT(mi)
 
     return out
 
@@ -4967,55 +4962,51 @@ def shift_months(
 
     if day_opt is None:
         # TODO: can we combine this with the non-None case?
-        for i in range(count):
-            # Analogous to: val = i8other[i]
-            val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+        with nogil:
+            for i in range(count):
+                # Analogous to: val = i8other[i]
+                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-            if val == NPY_NAT:
-                res_val = NPY_NAT
-            else:
-                pandas_datetime_to_datetimestruct(val, reso, &dts)
-                dts.year = year_add_months(dts, months)
-                dts.month = month_add_months(dts, months)
+                if val == NPY_NAT:
+                    res_val = NPY_NAT
+                else:
+                    pandas_datetime_to_datetimestruct(val, reso, &dts)
+                    dts.year = year_add_months(dts, months)
+                    dts.month = month_add_months(dts, months)
 
-                dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
-                try:
+                    dts.day = min(dts.day, get_days_in_month(dts.year, dts.month))
                     res_val = npy_datetimestruct_to_datetime(reso, &dts)
-                except OverflowError as err:
-                    raise OutOfBoundsDatetime from err
 
-            # Analogous to: out[i] = res_val
-            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                # Analogous to: out[i] = res_val
+                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
-            cnp.PyArray_MultiIter_NEXT(mi)
+                cnp.PyArray_MultiIter_NEXT(mi)
 
     else:
-        for i in range(count):
+        with nogil:
+            for i in range(count):
 
-            # Analogous to: val = i8other[i]
-            val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
+                # Analogous to: val = i8other[i]
+                val = (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-            if val == NPY_NAT:
-                res_val = NPY_NAT
-            else:
-                pandas_datetime_to_datetimestruct(val, reso, &dts)
-                months_to_roll = months
+                if val == NPY_NAT:
+                    res_val = NPY_NAT
+                else:
+                    pandas_datetime_to_datetimestruct(val, reso, &dts)
+                    months_to_roll = months
 
-                months_to_roll = _roll_qtrday(&dts, months_to_roll, 0, day_opt)
+                    months_to_roll = _roll_qtrday(&dts, months_to_roll, 0, day_opt)
 
-                dts.year = year_add_months(dts, months_to_roll)
-                dts.month = month_add_months(dts, months_to_roll)
-                dts.day = get_day_of_month(&dts, day_opt)
+                    dts.year = year_add_months(dts, months_to_roll)
+                    dts.month = month_add_months(dts, months_to_roll)
+                    dts.day = get_day_of_month(&dts, day_opt)
 
-                try:
                     res_val = npy_datetimestruct_to_datetime(reso, &dts)
-                except OverflowError as err:
-                    raise OutOfBoundsDatetime from err
 
-            # Analogous to: out[i] = res_val
-            (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
+                # Analogous to: out[i] = res_val
+                (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = res_val
 
-            cnp.PyArray_MultiIter_NEXT(mi)
+                cnp.PyArray_MultiIter_NEXT(mi)
 
     return out
 
