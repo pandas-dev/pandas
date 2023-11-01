@@ -601,7 +601,7 @@ cpdef array_to_datetime(
             tz_out = timezone(timedelta(seconds=tz_offset))
 
     if infer_reso:
-        if state.creso_changed:
+        if state.creso_ever_changed:
             # We encountered mismatched resolutions, need to re-parse with
             #  the correct one.
             return array_to_datetime(
