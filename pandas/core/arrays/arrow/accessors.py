@@ -68,9 +68,11 @@ class ListAccessor(_ArrowAccessor):
         Series containing Arrow list data.
     """
 
-    _validation_msg = (
-        "Can only use the '.list' accessor with 'list[pyarrow]' dtype, not {dtype}."
-    )
+    @property
+    def _validation_msg(self) -> str:
+        return (
+            "Can only use the '.list' accessor with 'list[pyarrow]' dtype, not {dtype}."
+        )
 
     def __init__(self, data=None) -> None:
         super().__init__(data)
@@ -221,9 +223,11 @@ class StructAccessor(_ArrowAccessor):
         Series containing Arrow struct data.
     """
 
-    _validation_msg = (
-        "Can only use the '.struct' accessor with 'struct[pyarrow]' dtype, not {dtype}."
-    )
+    @property
+    def _validation_msg(self) -> str:
+        return (
+            "Can only use the '.list' accessor with 'list[pyarrow]' dtype, not {dtype}."
+        )
 
     def __init__(self, data=None) -> None:
         super().__init__(data)
