@@ -570,7 +570,7 @@ cdef class _Timestamp(ABCTimestamp):
 
     # -----------------------------------------------------------------
 
-    cdef int64_t _maybe_convert_value_to_local(self):
+    cdef int64_t _maybe_convert_value_to_local(self) except? -1:
         """Convert UTC i8 value to local i8 value if tz exists"""
         cdef:
             int64_t val
