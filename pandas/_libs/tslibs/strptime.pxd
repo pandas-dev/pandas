@@ -14,5 +14,7 @@ cdef class DatetimeParseState:
     cdef:
         bint found_tz
         bint found_naive
+        bint found_naive_str
+        bint found_other
 
     cdef tzinfo process_datetime(self, datetime dt, tzinfo tz, bint utc_convert)

@@ -235,6 +235,8 @@ cdef class DatetimeParseState:
     def __cinit__(self):
         self.found_tz = False
         self.found_naive = False
+        self.found_naive_str = False
+        self.found_other = False
 
     cdef tzinfo process_datetime(self, datetime dt, tzinfo tz, bint utc_convert):
         if dt.tzinfo is not None:
