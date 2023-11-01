@@ -38,11 +38,6 @@ class _ArrowAccessor(metaclass=ABCMeta):
     def _is_valid_pyarrow_dtype(self, pyarrow_dtype) -> bool:
         pass
 
-    @property
-    @abstractmethod
-    def _validation_msg(self) -> str:
-        pass
-
     def _validate(self, data):
         dtype = data.dtype
         if not isinstance(dtype, ArrowDtype):
@@ -68,11 +63,9 @@ class ListAccessor(_ArrowAccessor):
         Series containing Arrow list data.
     """
 
-    @property
-    def _validation_msg(self) -> str:
-        return (
-            "Can only use the '.list' accessor with 'list[pyarrow]' dtype, not {dtype}."
-        )
+    _validation_msg = (
+        "Can only use the '.list' accessor with 'list[pyarrow]' dtype, not {dtype}."
+    )
 
     def __init__(self, data=None) -> None:
         super().__init__(data)
@@ -223,11 +216,9 @@ class StructAccessor(_ArrowAccessor):
         Series containing Arrow struct data.
     """
 
-    @property
-    def _validation_msg(self) -> str:
-        return (
-            "Can only use the '.list' accessor with 'list[pyarrow]' dtype, not {dtype}."
-        )
+    _validation_msg = (
+        "Can only use the '.list' accessor with 'list[pyarrow]' dtype, not {dtype}."
+    )
 
     def __init__(self, data=None) -> None:
         super().__init__(data)
