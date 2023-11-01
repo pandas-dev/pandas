@@ -1513,7 +1513,7 @@ default 'raise'
 
     year = _field_accessor(
         "year",
-        "YE",
+        "Y",
         """
         The year of the datetime.
 
@@ -1536,7 +1536,7 @@ default 'raise'
     )
     month = _field_accessor(
         "month",
-        "ME",
+        "M",
         """
         The month as January=1, December=12.
 
