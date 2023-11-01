@@ -95,6 +95,8 @@ class TestToPeriod:
             ("2ME", "2M"),
             ("2QE", "2Q"),
             ("2QE-SEP", "2Q-SEP"),
+            ("1YE", "1Y"),
+            ("2YE-MAR", "2Y-MAR"),
         ],
     )
     def test_to_period_freq_deprecated(self, freq, freq_depr):

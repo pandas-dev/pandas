@@ -2011,9 +2011,11 @@ def test_resample_empty_series_with_tz():
         ("2ME", "2M"),
         ("2QE", "2Q"),
         ("2QE-SEP", "2Q-SEP"),
+        ("1YE", "1Y"),
+        ("2YE-MAR", "2Y-MAR"),
     ],
 )
-def test_resample_M_Q_deprecated(freq, freq_depr):
+def test_resample_M_Q_Y_deprecated(freq, freq_depr):
     # GH#9586
     depr_msg = f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
 
