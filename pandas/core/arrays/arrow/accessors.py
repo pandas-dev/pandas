@@ -30,8 +30,9 @@ if TYPE_CHECKING:
 
 class _ArrowAccessor(metaclass=ABCMeta):
     @abstractmethod
-    def __init__(self, data) -> None:
+    def __init__(self, data: Series, validation_msg: str) -> None:
         self._data = data
+        self._validation_msg = validation_msg
         self._validate(data)
 
     @abstractmethod
@@ -63,12 +64,12 @@ class ListAccessor(_ArrowAccessor):
         Series containing Arrow list data.
     """
 
-    _validation_msg = (
-        "Can only use the '.list' accessor with 'list[pyarrow]' dtype, not {dtype}."
-    )
-
     def __init__(self, data=None) -> None:
-        super().__init__(data)
+        super().__init__(
+            data,
+            validation_msg="Can only use the '.list' accessor with "
+            "'list[pyarrow]' dtype, not {dtype}.",
+        )
 
     def _is_valid_pyarrow_dtype(self, pyarrow_dtype) -> bool:
         return (
@@ -216,12 +217,14 @@ class StructAccessor(_ArrowAccessor):
         Series containing Arrow struct data.
     """
 
-    _validation_msg = (
-        "Can only use the '.list' accessor with 'list[pyarrow]' dtype, not {dtype}."
-    )
-
     def __init__(self, data=None) -> None:
-        super().__init__(data)
+        super().__init__(
+            data,
+            validation_msg=(
+                "Can only use the '.struct' accessor with 'struct[pyarrow]' "
+                "dtype, not {dtype}."
+            ),
+        )
 
     def _is_valid_pyarrow_dtype(self, pyarrow_dtype) -> bool:
         return pa.types.is_struct(pyarrow_dtype)
