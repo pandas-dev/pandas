@@ -10,6 +10,8 @@ import pandas._testing as tm
 
 pa = pytest.importorskip("pyarrow")
 
+from pandas.compat import pa_version_under11p0
+
 
 @pytest.mark.parametrize(
     "list_dtype",
@@ -34,9 +36,17 @@ def test_list_getitem_slice():
         [[1, 2, 3], [4, None, 5], None],
         dtype=ArrowDtype(pa.list_(pa.int64())),
     )
-    actual = ser.list[1:None:None]
-    expected = Series([[2, 3], [None, 5], None], dtype=ArrowDtype(pa.list_(pa.int64())))
-    tm.assert_series_equal(actual, expected)
+    if pa_version_under11p0:
+        with pytest.raises(
+            NotImplementedError, match="List slice not supported by pyarrow "
+        ):
+            ser.list[1:None:None]
+    else:
+        actual = ser.list[1:None:None]
+        expected = Series(
+            [[2, 3], [None, 5], None], dtype=ArrowDtype(pa.list_(pa.int64()))
+        )
+        tm.assert_series_equal(actual, expected)
 
 
 def test_list_len():

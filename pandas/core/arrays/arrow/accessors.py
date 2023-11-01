@@ -8,7 +8,10 @@ from abc import (
 )
 from typing import TYPE_CHECKING
 
-from pandas.compat import pa_version_under10p1
+from pandas.compat import (
+    pa_version_under10p1,
+    pa_version_under11p0,
+)
 
 if not pa_version_under10p1:
     import pyarrow as pa
@@ -151,6 +154,11 @@ class ListAccessor(_ArrowAccessor):
             element = pc.list_element(self._pa_array, key)
             return Series(element, dtype=ArrowDtype(element.type))
         elif isinstance(key, slice):
+            if pa_version_under11p0:
+                raise NotImplementedError(
+                    f"List slice not supported by pyarrow {pa.__version__}."
+                )
+
             # TODO: Support negative start/stop/step, ideally this would be added
             # upstream in pyarrow.
             start, stop, step = key.start, key.stop, key.step
