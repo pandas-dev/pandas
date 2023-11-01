@@ -793,9 +793,9 @@ _shared_docs[
     When `Regex`is ``True``, `value` is not ``None`` and `to_replace` is a string,
     the replacement will be applied in all columns of the DataFrame.
 
-    >>> df = pd.DataFrame({'A': [0, 1, 2, 3, 4],
+    >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
                    'B': ['a', 'b', 'c', 'd', 'e'],
-                   'C': ['f', 'g', 'h', 'i', 'j']})
+                   'C': ['f', 'g', 'h', 'i', 'j']}})
                    
     >>> df.replace(to_replace='^[a-g]', value = 'e', regex=True)
         A  B  C
@@ -808,7 +808,7 @@ _shared_docs[
     If `value` is not ``None`` and `to_replace` is a dictionary, the dictionary keys will be 
         the DataFrame columns that the replacement will be applied.
 
-    >>> df.replace(to_replace={'B': '^[a-c]', 'C': '^[h-j]'}, value = 'e', regex=True)
+    >>> df.replace(to_replace={{'B': '^[a-c]', 'C': '^[h-j]'}}, value = 'e', regex=True)
         A  B  C
     0  0  e  f
     1  1  e  g
