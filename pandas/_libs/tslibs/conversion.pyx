@@ -408,10 +408,7 @@ cdef _TSObject convert_datetime_to_tsobject(
     if nanos:
         obj.dts.ps = nanos * 1000
 
-    try:
-        obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
-    except OverflowError as err:
-        raise OutOfBoundsDatetime("Out of bounds nanosecond timestamp") from err
+    obj.value = npy_datetimestruct_to_datetime(reso, &obj.dts)
 
     if obj.tzinfo is not None and not is_utc(obj.tzinfo):
         offset = get_utcoffset(obj.tzinfo, ts)
@@ -526,10 +523,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz, str unit,
             obj = _TSObject()
             obj.dts = dts
             obj.creso = reso
-            try:
-                ival = npy_datetimestruct_to_datetime(reso, &dts)
-            except OverflowError as err:
-                raise OutOfBoundsDatetime from err
+            ival = npy_datetimestruct_to_datetime(reso, &dts)
 
             if out_local == 1:
                 obj.tzinfo = timezone(timedelta(minutes=out_tzoffset))

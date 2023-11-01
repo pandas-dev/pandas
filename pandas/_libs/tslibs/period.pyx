@@ -733,9 +733,7 @@ cdef int64_t unix_date_from_ymd(int year, int month, int day) except? -1 nogil:
     dts.year = year
     dts.month = month
     dts.day = day
-
     unix_date = npy_datetimestruct_to_datetime(NPY_FR_D, &dts)
-
     return unix_date
 
 
@@ -749,7 +747,6 @@ cdef int64_t dts_to_year_ordinal(npy_datetimestruct *dts, int to_end) except? -1
         int64_t result
 
     result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_Y, dts)
-
     if dts.month > to_end:
         return result + 1
     else:
@@ -777,7 +774,7 @@ cdef int get_anchor_month(int freq, int freq_group) noexcept nogil:
 # specifically _dont_ use cdvision or else ordinals near -1 are assigned to
 # incorrect dates GH#19643
 @cython.cdivision(False)
-cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq):
+cdef int64_t get_period_ordinal(npy_datetimestruct *dts, int freq) except? -1:
     """
     Generate an ordinal in period space
 

@@ -412,10 +412,7 @@ cpdef ndarray astype_overflowsafe(
                 else:
                     raise
             else:
-                try:
-                    new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
-                except OverflowError as err:
-                    raise OutOfBoundsDatetime from err
+                new_value = npy_datetimestruct_to_datetime(to_unit, &dts)
 
         # Analogous to: iresult[i] = new_value
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = new_value
