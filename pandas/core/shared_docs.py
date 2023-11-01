@@ -794,8 +794,8 @@ _shared_docs[
     the replacement will be applied in all columns of the DataFrame.
 
     >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
-    ...                    'B': [a, b, c, d, e],
-    ...                    'C': [f, g, h, i, j]}})
+    ...                    'B': ['a', 'b', 'c', 'd', 'e'],
+    ...                    'C': ['f', 'g', 'h', 'i', 'j']}})
 
     >>> df.replace(to_replace='^[a-g]', value = 'e', regex=True)
         A  B  C
