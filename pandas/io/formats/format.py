@@ -15,6 +15,7 @@ from csv import QUOTE_NONE
 from decimal import Decimal
 from functools import partial
 from io import StringIO
+from itertools import chain
 import math
 import re
 from shutil import get_terminal_size
@@ -697,9 +698,8 @@ class DataFrameFormatter:
         row_num = self.max_rows_fitted // 2
         if row_num >= 1:
             _len = len(self.tr_frame)
-            rows = np.arange(_len)
             self.tr_frame = self.tr_frame.iloc[
-                (rows < row_num) | (rows >= _len - row_num)
+                chain(range(row_num), range(_len - row_num, _len))
             ]
         else:
             row_num = cast(int, self.max_rows)
