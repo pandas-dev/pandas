@@ -3698,7 +3698,8 @@ def test_to_datetime_with_empty_str_utc_false_offsets_and_format_mixed():
 
 
 def test_to_datetime_mixed_tzs_mixed_types():
-    # GH#55693 mismatched tzs but one is str and other is datetime object
+    # GH#55793, GH#55693 mismatched tzs but one is str and other is
+    #  datetime object
     ts = Timestamp("2016-01-02 03:04:05", tz="US/Pacific")
     dtstr = "2023-10-30 15:06+01"
     arr = [ts, dtstr]
@@ -3716,6 +3717,7 @@ def test_to_datetime_mixed_tzs_mixed_types():
 
 
 def test_to_datetime_mixed_types_matching_tzs():
+    # GH#55793
     dtstr = "2023-11-01 09:22:03-07:00"
     ts = Timestamp(dtstr)
     arr = [ts, dtstr]
@@ -3750,7 +3752,7 @@ ts = Timestamp(dtstr)
 def test_to_datetime_mixed_awareness_mixed_types(
     aware_val, naive_val, naive_first, request
 ):
-    # GH#55693
+    # GH#55793, GH#55693
     # Empty string parses to NaT
     vals = [aware_val, naive_val, ""]
 
