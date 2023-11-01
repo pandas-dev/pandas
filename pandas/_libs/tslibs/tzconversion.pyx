@@ -332,6 +332,9 @@ timedelta-like}
     # Shift the delta_idx by if the UTC offset of
     # the target tz is greater than 0 and we're moving forward
     # or vice versa
+    # TODO: delta_idx_offset and info.deltas are needed for zoneinfo timezones,
+    # but are not applicable for all timezones. Setting the former to 0 and
+    # length checking the latter avoids UB, but this could use a larger refactor
     delta_idx_offset = 0
     if len(info.deltas):
         first_delta = info.deltas[0]
