@@ -262,6 +262,19 @@ OFFSET_DEPR_FREQSTR: dict[str, str]= {
     "Y-SEP": "YE-SEP",
     "Y-OCT": "YE-OCT",
     "Y-NOV": "YE-NOV",
+    "A": "YE",
+    "A-DEC": "YE-DEC",
+    "A-JAN": "YE-JAN",
+    "A-FEB": "YE-FEB",
+    "A-MAR": "YE-MAR",
+    "A-APR": "YE-APR",
+    "A-MAY": "YE-MAY",
+    "A-JUN": "YE-JUN",
+    "A-JUL": "YE-JUL",
+    "A-AUG": "YE-AUG",
+    "A-SEP": "YE-SEP",
+    "A-OCT": "YE-OCT",
+    "A-NOV": "YE-NOV",
 }
 cdef dict c_OFFSET_TO_PERIOD_FREQSTR = OFFSET_TO_PERIOD_FREQSTR
 cdef dict c_OFFSET_DEPR_FREQSTR = OFFSET_DEPR_FREQSTR

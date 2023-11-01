@@ -9,7 +9,7 @@ from pandas import date_range
 @pytest.mark.parametrize(
     "freq,expected",
     [
-        ("Y", "day"),
+        ("YE", "day"),
         ("QE", "day"),
         ("ME", "day"),
         ("D", "day"),

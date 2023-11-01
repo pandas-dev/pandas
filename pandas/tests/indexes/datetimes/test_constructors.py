@@ -764,7 +764,7 @@ class TestDatetimeIndex:
             DatetimeIndex([1, 2], dtype=dtype)
 
     def test_constructor_name(self):
-        idx = date_range(start="2000-01-01", periods=1, freq="Y", name="TEST")
+        idx = date_range(start="2000-01-01", periods=1, freq="YE", name="TEST")
         assert idx.name == "TEST"
 
     def test_000constructor_resolution(self):
@@ -851,7 +851,7 @@ class TestDatetimeIndex:
             tz="Australia/Melbourne",
         )
         test = pd.DataFrame({"data": range(len(index))}, index=index)
-        test = test.resample("Y").mean()
+        test = test.resample("YE").mean()
         result = DatetimeIndex([x.replace(month=6, day=1) for x in test.index])
         expected = DatetimeIndex(
             [
@@ -1077,8 +1077,8 @@ class TestTimeSeries:
         rng2 = date_range("2014", "2015", freq="MS", tz=tz)
         expected2 = date_range("2014-01-01", "2015-01-01", freq="MS", tz=tz)
 
-        rng3 = date_range("2014", "2020", freq="Y", tz=tz)
-        expected3 = date_range("2014-12-31", "2019-12-31", freq="Y", tz=tz)
+        rng3 = date_range("2014", "2020", freq="YE", tz=tz)
+        expected3 = date_range("2014-12-31", "2019-12-31", freq="YE", tz=tz)
 
         rng4 = date_range("2014", "2020", freq="YS", tz=tz)
         expected4 = date_range("2014-01-01", "2020-01-01", freq="YS", tz=tz)
@@ -1136,7 +1136,7 @@ class TestTimeSeries:
 
     @pytest.mark.parametrize(
         "freq",
-        ["ME", "QE", "Y", "D", "B", "bh", "min", "s", "ms", "us", "h", "ns", "C"],
+        ["ME", "QE", "YE", "D", "B", "bh", "min", "s", "ms", "us", "h", "ns", "C"],
     )
     def test_from_freq_recreate_from_data(self, freq):
         org = date_range(start="2001/02/01 09:00", freq=freq, periods=1)

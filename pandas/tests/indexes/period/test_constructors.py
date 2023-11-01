@@ -418,7 +418,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize(
         "freq_offset, freq_period",
         [
-            ("Y", "Y"),
+            ("YE", "Y"),
             ("ME", "M"),
             ("D", "D"),
             ("min", "min"),

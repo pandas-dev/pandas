@@ -4741,6 +4741,13 @@ cpdef to_offset(freq, bint is_period=False):
                         f"instead of \'{name}\'"
                     )
                 elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
+                    if name.startswith("A"):
+                        warnings.warn(
+                            f"\'{name}\' will be deprecated, please use "
+                            f"\'{c_DEPR_ABBREVS.get(name)}\' instead.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     name = c_OFFSET_DEPR_FREQSTR.get(name)
 
                 if sep != "" and not sep.isspace():
