@@ -805,8 +805,6 @@ _shared_docs[
     3  3  e  i
     4  4  e  j
 
-
-
     If `value` is not ``None`` and `to_replace` is a dictionary, the dictionary keys will be 
         the DataFrame columns that the replacement will be applied.
 
