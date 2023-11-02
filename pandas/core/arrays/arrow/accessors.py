@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     )
 
 
-class _ArrowAccessor(metaclass=ABCMeta):
+class ArrowAccessor(metaclass=ABCMeta):
     @abstractmethod
     def __init__(self, data: Series, validation_msg: str) -> None:
         self._data = data
@@ -54,7 +54,7 @@ class _ArrowAccessor(metaclass=ABCMeta):
         return self._data.array._pa_array
 
 
-class ListAccessor(_ArrowAccessor):
+class ListAccessor(ArrowAccessor):
     """
     Accessor object for list data properties of the Series values.
 
@@ -207,7 +207,7 @@ class ListAccessor(_ArrowAccessor):
         return Series(flattened, dtype=ArrowDtype(flattened.type))
 
 
-class StructAccessor(_ArrowAccessor):
+class StructAccessor(ArrowAccessor):
     """
     Accessor object for structured data properties of the Series values.
 
