@@ -50,7 +50,7 @@ class ArrowAccessor(metaclass=ABCMeta):
             raise AttributeError(self._validation_msg.format(dtype=dtype))
 
     @property
-    def _pa_array(self) -> pa.Array:
+    def _pa_array(self):
         return self._data.array._pa_array
 
 
