@@ -30,7 +30,7 @@ if TYPE_CHECKING:
 
 class ArrowAccessor(metaclass=ABCMeta):
     @abstractmethod
-    def __init__(self, data: Series, validation_msg: str) -> None:
+    def __init__(self, data, validation_msg: str) -> None:
         self._data = data
         self._validation_msg = validation_msg
         self._validate(data)
