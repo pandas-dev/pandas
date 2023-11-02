@@ -321,7 +321,9 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
+- Bug in :class:`DatetimeIndex` when passing an object-dtype ndarray of float objects and a ``tz`` incorrectly localizing the result (:issue:`55780`)
 - Bug in :func:`concat` raising ``AttributeError`` when concatenating all-NA DataFrame with :class:`DatetimeTZDtype` dtype DataFrame. (:issue:`52093`)
+- Bug in :func:`to_datetime` and :class:`DatetimeIndex` when passing a list of mixed-string-and-numeric types incorrectly raising (:issue:`55780`)
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
 - Bug in :meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` always caching :meth:`Index.is_unique` as ``True`` when first value in index is ``NaT`` (:issue:`55755`)
 - Bug in :meth:`Index.view` to a datetime64 dtype with non-supported resolution incorrectly raising (:issue:`55710`)
@@ -342,6 +344,7 @@ Timedelta
 Timezones
 ^^^^^^^^^
 - Bug in :class:`AbstractHolidayCalendar` where timezone data was not propagated when computing holiday observances (:issue:`54580`)
+- Bug in :class:`Timestamp` construction with an ambiguous value and a ``pytz`` timezone failing to raise ``pytz.AmbiguousTimeError`` (:issue:`55657`)
 -
 
 Numeric
