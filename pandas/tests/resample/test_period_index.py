@@ -931,7 +931,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2QE-FEB"])
+@pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2QE-FEB", "2YE"])
 def test_resample_frequency_ME_QE_error_message(series_and_frame, freq_depr):
     # GH#9586
     msg = f"Invalid frequency: {freq_depr}"

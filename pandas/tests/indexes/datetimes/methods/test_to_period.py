@@ -97,9 +97,11 @@ class TestToPeriod:
             ("2QE-SEP", "2Q-SEP"),
             ("1YE", "1Y"),
             ("2YE-MAR", "2Y-MAR"),
+            ("1YE", "1A"),
+            ("2YE-MAR", "2A-MAR"),
         ],
     )
-    def test_to_period_freq_deprecated(self, freq, freq_depr):
+    def test_to_period_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
         # GH#9586
         msg = f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
 

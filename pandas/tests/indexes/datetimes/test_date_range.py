@@ -879,7 +879,7 @@ class TestDateRanges:
         ],
     )
     def test_frequencies_A_deprecated_Y_renamed(self, freq, freq_depr):
-        # GH#9586, GH#52536
+        # GH#9586, GH#54275
         freq_msg = re.split("[0-9]*", freq, maxsplit=1)[1]
         freq_depr_msg = re.split("[0-9]*", freq_depr, maxsplit=1)[1]
         msg = f"'{freq_depr_msg}' will be deprecated, please use '{freq_msg}' instead."

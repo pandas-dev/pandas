@@ -252,7 +252,7 @@ For example:
 
     pd.date_range('2020-01-01', periods=3, freq='QE-NOV')
 
-The alias ``Y`` is deprecated in favour of ``YE`` for offsets, please use ``YE`` for "year end" instead of ``Y`` (:issue:`9586`)
+The alias ``Y`` is deprecated in favour of ``YE`` for offsets, please use ``YE`` for "year end" instead of ``Y`` (:issue:`54275`)
 
 For example:
 
