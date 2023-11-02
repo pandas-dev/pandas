@@ -2917,24 +2917,6 @@ def _map_infer_mask(
 ):
     """
     Helper for map_infer_mask, split off to use fused types based on the result.
-
-    Parameters
-    ----------
-    out : ndarray[uint8_int64_object_t]
-        Values to which this method will write its results.
-    arr : ndarray
-    f : function
-    mask : ndarray
-        uint8 dtype ndarray indicating values not to apply `f` to.
-    na_value : Any, optional
-        The result value to use for masked values. By default, the
-        input value is used.
-    dtype : numpy.dtype
-        The numpy dtype to use for the result ndarray.
-
-    Returns
-    -------
-    np.ndarray
     """
     cdef:
         Py_ssize_t i, n
