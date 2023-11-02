@@ -603,6 +603,20 @@ class TestToDatetime:
         expected = to_datetime([d1, d2]).tz_convert(timezone(timedelta(minutes=-60)))
         tm.assert_index_equal(res, expected)
 
+    def test_to_datetime_mixed_string_and_numeric(self):
+        # GH#55780 np.array(vals) would incorrectly cast the number to str
+        vals = ["2016-01-01", 0]
+        expected = DatetimeIndex([Timestamp(x) for x in vals])
+        result = to_datetime(vals, format="mixed")
+        result2 = to_datetime(vals[::-1], format="mixed")[::-1]
+        result3 = DatetimeIndex(vals)
+        result4 = DatetimeIndex(vals[::-1])[::-1]
+
+        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result2, expected)
+        tm.assert_index_equal(result3, expected)
+        tm.assert_index_equal(result4, expected)
+
     @pytest.mark.parametrize(
         "format", ["%Y-%m-%d", "%Y-%d-%m"], ids=["ISO8601", "non-ISO8601"]
     )

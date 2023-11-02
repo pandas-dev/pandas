@@ -120,8 +120,11 @@ class TestAstype:
         ser = Series(vals, dtype=object)
         result = ser.astype(dtype)
 
-        exp_arr = np.array([ts.asm8, vals[1], 2], dtype="M8[us]")
-        expected = Series(exp_arr, dtype="M8[us]").dt.tz_localize(tz)
+        exp_vals = [Timestamp(x, tz=tz).as_unit("us").asm8 for x in vals]
+        exp_arr = np.array(exp_vals, dtype="M8[us]")
+        expected = Series(exp_arr, dtype="M8[us]")
+        if tz is not None:
+            expected = expected.dt.tz_localize("UTC").dt.tz_convert(tz)
         tm.assert_series_equal(result, expected)
 
     def test_astype_mixed_object_to_dt64tz(self):

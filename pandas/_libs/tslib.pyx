@@ -700,15 +700,15 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz, NPY_DATETIMEUNIT creso)
             ival = NPY_NAT
 
         else:
-            ts = Timestamp(item)
+            if PyDateTime_Check(item) and item.tzinfo is not None:
+                # We can't call Timestamp constructor with a tz arg, have to
+                #  do 2-step
+                ts = Timestamp(item).tz_convert(tz)
+            else:
+                ts = Timestamp(item, tz=tz)
             if ts is NaT:
                 ival = NPY_NAT
             else:
-                if ts.tzinfo is not None:
-                    ts = ts.tz_convert(tz)
-                else:
-                    # datetime64, tznaive pydatetime, int, float
-                    ts = ts.tz_localize(tz)
                 ts = (<_Timestamp>ts)._as_creso(creso)
                 ival = ts._value
 
