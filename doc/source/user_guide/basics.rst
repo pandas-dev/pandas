@@ -2261,23 +2261,6 @@ non-conforming elements intermixed that you want to represent as missing:
     m = ["apple", pd.Timedelta("1day")]
     pd.to_timedelta(m, errors="coerce")
 
-The ``errors`` parameter has a third option of ``errors='ignore'``, which will simply return the passed in data if it
-encounters any errors with the conversion to a desired data type:
-
-.. ipython:: python
-    :okwarning:
-
-    import datetime
-
-    m = ["apple", datetime.datetime(2016, 3, 2)]
-    pd.to_datetime(m, errors="ignore")
-
-    m = ["apple", 2, 3]
-    pd.to_numeric(m, errors="ignore")
-
-    m = ["apple", pd.Timedelta("1day")]
-    pd.to_timedelta(m, errors="ignore")
-
 In addition to object conversion, :meth:`~pandas.to_numeric` provides another argument ``downcast``, which gives the
 option of downcasting the newly (or already) numeric data to a smaller dtype, which can conserve memory:
 

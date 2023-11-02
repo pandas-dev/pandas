@@ -57,6 +57,10 @@ PARSING_ERR_MSG = (
     r"alongside this."
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:errors='ignore' is deprecated:FutureWarning"
+)
+
 
 @pytest.fixture(params=[True, False])
 def cache(request):
@@ -1228,7 +1232,9 @@ class TestToDatetime:
         with pytest.raises(ValueError, match=msg):
             to_datetime(arr, cache=cache)
 
-        result = to_datetime(arr, cache=cache, errors="ignore")
+        depr_msg = "errors='ignore' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = to_datetime(arr, cache=cache, errors="ignore")
         expected = Index(
             [
                 Timestamp("2013-01-01 13:00:00-08:00"),
@@ -1474,11 +1480,15 @@ class TestToDatetime:
             warn = UserWarning
         else:
             warn = None
-        with tm.assert_produces_warning(warn, match="Could not infer format"):
+        with tm.assert_produces_warning(
+            warn, match="Could not infer format", raise_on_extra_warnings=False
+        ):
             res = to_datetime(values, errors="ignore", format=format)
         tm.assert_index_equal(res, Index(values))
 
-        with tm.assert_produces_warning(warn, match="Could not infer format"):
+        with tm.assert_produces_warning(
+            warn, match="Could not infer format", raise_on_extra_warnings=False
+        ):
             res = to_datetime(values, errors="coerce", format=format)
         tm.assert_index_equal(res, DatetimeIndex([NaT] * len(values)))
 
@@ -1493,7 +1503,9 @@ class TestToDatetime:
             ]
         )
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(warn, match="Could not infer format"):
+            with tm.assert_produces_warning(
+                warn, match="Could not infer format", raise_on_extra_warnings=False
+            ):
                 to_datetime(values, errors="raise", format=format)
 
     @pytest.mark.parametrize("utc", [True, None])
@@ -1662,7 +1674,9 @@ class TestToDatetime:
         # GH 28299
         # GH 48633
         ts_strings = ["200622-12-31", "111111-24-11"]
-        with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
+        with tm.assert_produces_warning(
+            UserWarning, match="Could not infer format", raise_on_extra_warnings=False
+        ):
             result = to_datetime(ts_strings, errors=errors)
         tm.assert_index_equal(result, expected)
 

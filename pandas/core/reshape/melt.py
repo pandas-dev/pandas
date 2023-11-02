@@ -498,7 +498,11 @@ def wide_to_long(
         newdf[j] = newdf[j].str.replace(re.escape(stub + sep), "", regex=True)
 
         # GH17627 Cast numerics suffixes to int/float
-        newdf[j] = to_numeric(newdf[j], errors="ignore")
+        try:
+            newdf[j] = to_numeric(newdf[j])
+        except (TypeError, ValueError, OverflowError):
+            # TODO: anything else to catch?
+            pass
 
         return newdf.set_index(i + [j])
 
