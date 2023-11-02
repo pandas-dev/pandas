@@ -160,11 +160,6 @@ class TestSeriesRepr:
         s = Series([], dtype=np.int64, name=name)
         assert repr(s) == expected
 
-    def test_tidy_repr(self):
-        a = Series(["\u05d0"] * 1000)
-        a.name = "title1"
-        repr(a)  # should not raise exception
-
     def test_repr_bool_fails(self, capsys):
         s = Series(
             [
@@ -188,17 +183,6 @@ class TestSeriesRepr:
         s.name = ("\u05d0",) * 2
         repr(s)
 
-    def test_repr_should_return_str(self):
-        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
-        # ...The return value must be a string object.
-
-        # (str on py2.x, str (unicode) on py3)
-
-        data = [8, 5, 3, 5]
-        index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
-        df = Series(data, index=index1)
-        assert type(df.__repr__() == str)  # both py2 / 3
-
     def test_repr_max_rows(self):
         # GH 6863
         with option_context("display.max_rows", None):
@@ -207,6 +191,13 @@ class TestSeriesRepr:
     def test_unicode_string_with_unicode(self):
         df = Series(["\u05d0"], name="\u05d1")
         str(df)
+
+        ser = Series(["\u03c3"] * 10)
+        repr(ser)
+
+        ser2 = Series(["\u05d0"] * 1000)
+        ser2.name = "title1"
+        repr(ser2)
 
     def test_str_to_bytes_raises(self):
         # GH 26447

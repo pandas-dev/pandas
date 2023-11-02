@@ -387,8 +387,6 @@ class TestRename:
         # TODO: can we construct this without merge?
         k = merge(df4, df5, how="inner", left_index=True, right_index=True)
         result = k.rename(columns={"TClose_x": "TClose", "TClose_y": "QT_Close"})
-        str(result)
-        result.dtypes
 
         expected = DataFrame(
             [[0.0454, 22.02, 0.0422, 20130331, 600809, "饡驦", 30.01]],

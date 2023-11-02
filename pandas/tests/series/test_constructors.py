@@ -412,8 +412,6 @@ class TestSeriesConstructors:
         s = Series(factor, name="A")
         assert s.dtype == "category"
         assert len(s) == len(factor)
-        str(s.values)
-        str(s)
 
         # in a frame
         df = DataFrame({"A": factor})
@@ -422,15 +420,11 @@ class TestSeriesConstructors:
         result = df.iloc[:, 0]
         tm.assert_series_equal(result, s)
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
         df = DataFrame({"A": s})
         result = df["A"]
         tm.assert_series_equal(result, s)
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
         # multiples
         df = DataFrame({"A": s, "B": s, "C": 1})
@@ -440,8 +434,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result2, s, check_names=False)
         assert result2.name == "B"
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
     def test_constructor_categorical_with_coercion2(self):
         # GH8623

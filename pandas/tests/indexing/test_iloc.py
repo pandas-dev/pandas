@@ -229,17 +229,12 @@ class TestiLocBaseIndependent:
         tm.assert_series_equal(result, expected)
 
         # doc example
-        def check(result, expected):
-            str(result)
-            result.dtypes
-            tm.assert_frame_equal(result, expected)
-
         dfl = DataFrame(
             np.random.default_rng(2).standard_normal((5, 2)), columns=list("AB")
         )
-        check(dfl.iloc[:, 2:3], DataFrame(index=dfl.index, columns=[]))
-        check(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
-        check(dfl.iloc[4:6], dfl.iloc[[4]])
+        tm.assert_frame_equal(dfl.iloc[:, 2:3], DataFrame(index=dfl.index, columns=[]))
+        tm.assert_frame_equal(dfl.iloc[:, 1:3], dfl.iloc[:, [1]])
+        tm.assert_frame_equal(dfl.iloc[4:6], dfl.iloc[[4]])
 
         msg = "positional indexers are out-of-bounds"
         with pytest.raises(IndexError, match=msg):
@@ -644,8 +639,6 @@ class TestiLocBaseIndependent:
         df.describe()
 
         result = df.iloc[3:5, 0:2]
-        str(result)
-        result.dtypes
 
         expected = DataFrame(arr[3:5, 0:2], index=index[3:5], columns=columns[0:2])
         tm.assert_frame_equal(result, expected)
@@ -653,8 +646,6 @@ class TestiLocBaseIndependent:
         # for dups
         df.columns = list("aaaa")
         result = df.iloc[3:5, 0:2]
-        str(result)
-        result.dtypes
 
         expected = DataFrame(arr[3:5, 0:2], index=index[3:5], columns=list("aa"))
         tm.assert_frame_equal(result, expected)
@@ -668,8 +659,6 @@ class TestiLocBaseIndependent:
         if not using_array_manager:
             df._mgr.blocks[0].mgr_locs
         result = df.iloc[1:5, 2:4]
-        str(result)
-        result.dtypes
         expected = DataFrame(arr[1:5, 2:4], index=index[1:5], columns=columns[2:4])
         tm.assert_frame_equal(result, expected)
 
@@ -795,8 +784,8 @@ class TestiLocBaseIndependent:
                     else:
                         accessor = df
                     answer = str(bin(accessor[mask]["nums"].sum()))
-                except (ValueError, IndexingError, NotImplementedError) as e:
-                    answer = str(e)
+                except (ValueError, IndexingError, NotImplementedError) as err:
+                    answer = str(err)
 
                 key = (
                     idx,

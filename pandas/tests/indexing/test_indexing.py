@@ -250,8 +250,6 @@ class TestFancy:
     def test_dups_fancy_indexing_across_dtypes(self):
         # across dtypes
         df = DataFrame([[1, 2, 1.0, 2.0, 3.0, "foo", "bar"]], columns=list("aaaaaaa"))
-        df.head()
-        str(df)
         result = DataFrame([[1, 2, 1.0, 2.0, 3.0, "foo", "bar"]])
         result.columns = list("aaaaaaa")  # GH#3468
 

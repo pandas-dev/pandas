@@ -37,7 +37,6 @@ class TestBusinessDatetimeIndex:
 
     def test_copy(self, rng):
         cp = rng.copy()
-        repr(cp)
         tm.assert_index_equal(cp, rng)
 
     def test_identical(self, rng):

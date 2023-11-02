@@ -34,7 +34,6 @@ class TestJoin:
             r_idx_type="i",
             c_idx_type="td",
         )
-        str(df)
 
         cols = df.columns.join(df.index, how="outer")
         joined = cols.join(df.columns)

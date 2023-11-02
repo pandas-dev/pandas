@@ -44,9 +44,6 @@ class TestCaching:
             # caches a reference to the 'bb' series
             df["bb"]
 
-            # repr machinery triggers consolidation
-            repr(df)
-
             # Assignment to wrong series
             if using_copy_on_write:
                 with tm.raises_chained_assignment_error():

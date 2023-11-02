@@ -8,6 +8,13 @@ import pandas._testing as tm
 
 
 class TestIndexRendering:
+    def test_repr_is_valid_construction_code(self):
+        # for the case of Index, where the repr is traditional rather than
+        # stylized
+        idx = Index(["a", "b"])
+        res = eval(repr(idx))
+        tm.assert_index_equal(res, idx)
+
     @pytest.mark.parametrize(
         "index,expected",
         [

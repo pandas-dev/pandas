@@ -511,7 +511,6 @@ class TestDataFrameIndexing:
             float_frame.loc[:, None], float_frame["A"], check_names=False
         )
         tm.assert_series_equal(float_frame[None], float_frame["A"], check_names=False)
-        repr(float_frame)
 
     def test_loc_setitem_boolean_mask_allfalse(self):
         # GH 9596
