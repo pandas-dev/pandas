@@ -271,37 +271,16 @@ class TestDatetimeIndexRendering:
             result = idx._summary()
             assert result == expected
 
-    def test_dti_business_repr(self):
+    @pytest.mark.parametrize("tz", [None, pytz.utc, dateutil.tz.tzutc()])
+    @pytest.mark.parametrize("freq", ["B", "C"])
+    def test_dti_business_repr_etc_smoke(self, tz, freq):
         # only really care that it works
-        repr(pd.bdate_range(datetime(2009, 1, 1), datetime(2010, 1, 1)))
-
-    def test_dti_business_summary(self):
-        rng = pd.bdate_range(datetime(2009, 1, 1), datetime(2010, 1, 1))
-        rng._summary()
-        rng[2:2]._summary()
-
-    def test_dti_business_summary_pytz(self):
-        pd.bdate_range("1/1/2005", "1/1/2009", tz=pytz.utc)._summary()
-
-    def test_dti_business_summary_dateutil(self):
-        pd.bdate_range("1/1/2005", "1/1/2009", tz=dateutil.tz.tzutc())._summary()
-
-    def test_dti_custom_business_repr(self):
-        # only really care that it works
-        repr(pd.bdate_range(datetime(2009, 1, 1), datetime(2010, 1, 1), freq="C"))
-
-    def test_dti_custom_business_summary(self):
-        rng = pd.bdate_range(datetime(2009, 1, 1), datetime(2010, 1, 1), freq="C")
-        rng._summary()
-        rng[2:2]._summary()
-
-    def test_dti_custom_business_summary_pytz(self):
-        pd.bdate_range("1/1/2005", "1/1/2009", freq="C", tz=pytz.utc)._summary()
-
-    def test_dti_custom_business_summary_dateutil(self):
-        pd.bdate_range(
-            "1/1/2005", "1/1/2009", freq="C", tz=dateutil.tz.tzutc()
-        )._summary()
+        dti = pd.bdate_range(
+            datetime(2009, 1, 1), datetime(2010, 1, 1), tz=tz, freq=freq
+        )
+        repr(dti)
+        dti._summary()
+        dti[2:2]._summary()
 
 
 class TestFormat:
