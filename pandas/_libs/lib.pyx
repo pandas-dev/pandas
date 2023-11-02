@@ -102,7 +102,7 @@ cdef extern from "pandas/parser/pd_parser.h":
 PandasParser_IMPORT
 
 from pandas._libs cimport util
-from pandas._libs.dtypes cimport numeric_object_t
+from pandas._libs.dtypes cimport uint8_int64_object_t
 from pandas._libs.util cimport (
     INT64_MAX,
     INT64_MIN,
@@ -2885,13 +2885,14 @@ def map_infer_mask(
     -------
     np.ndarray
     """
-    # Passed so we can use infused types depending on the result dtype
-    dummy = np.empty(0, dtype=dtype)
-    result = _map_infer_mask(
+    cdef Py_ssize_t n = len(arr)
+    result = np.empty(n, dtype=dtype)
+
+    _map_infer_mask(
+        result,
         arr,
         f,
         mask,
-        dummy,
         convert,
         na_value,
         dtype,
@@ -2905,25 +2906,25 @@ def map_infer_mask(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def _map_infer_mask(
+        ndarray[uint8_int64_object_t] out,
         ndarray[object] arr,
         object f,
         const uint8_t[:] mask,
-        numeric_object_t[:] dummy,
         bint convert=True,
         object na_value=no_default,
         cnp.dtype dtype=np.dtype(object)
-) -> np.ndarray:
+):
     """
     Helper for map_infer_mask, split off to use fused types based on the result.
 
     Parameters
     ----------
+    out : ndarray[uint8_int64_object_t]
+        Values to which this method will write its results.
     arr : ndarray
     f : function
     mask : ndarray
         uint8 dtype ndarray indicating values not to apply `f` to.
-    dummy : ndarray
-        Unused. Has the same dtype as the result to allow using fused types.
     na_value : Any, optional
         The result value to use for masked values. By default, the
         input value is used.
@@ -2936,11 +2937,9 @@ def _map_infer_mask(
     """
     cdef:
         Py_ssize_t i, n
-        ndarray[numeric_object_t] result
         object val
 
     n = len(arr)
-    result = np.empty(n, dtype=dtype)
     for i in range(n):
         if mask[i]:
             if na_value is no_default:
@@ -2954,9 +2953,7 @@ def _map_infer_mask(
                 # unbox 0-dim arrays, GH#690
                 val = val.item()
 
-        result[i] = val
-
-    return result
+        out[i] = val
 
 
 @cython.boundscheck(False)
