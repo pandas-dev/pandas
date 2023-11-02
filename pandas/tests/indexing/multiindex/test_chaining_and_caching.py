@@ -75,10 +75,9 @@ def test_indexer_caching():
     # make sure that indexers are in the _internal_names_set
     n = 1000001
     index = MultiIndex.from_arrays([np.arange(n), np.arange(n)])
-    s = Series(np.zeros(n), index=index)
-    str(s)
+    ser = Series(np.zeros(n), index=index)
 
     # setitem
     expected = Series(np.ones(n), index=index)
-    s[s == 0] = 1
-    tm.assert_series_equal(s, expected)
+    ser[ser == 0] = 1
+    tm.assert_series_equal(ser, expected)
