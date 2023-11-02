@@ -16,5 +16,8 @@ cdef class DatetimeParseState:
         bint found_naive
         bint found_naive_str
         bint found_other
+        bint creso_ever_changed
+        NPY_DATETIMEUNIT creso
 
     cdef tzinfo process_datetime(self, datetime dt, tzinfo tz, bint utc_convert)
+    cdef bint update_creso(self, NPY_DATETIMEUNIT item_reso) noexcept

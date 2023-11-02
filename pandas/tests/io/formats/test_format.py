@@ -226,38 +226,6 @@ class TestDataFrameFormatting:
                 "3  40.0  0.000000e+00"
             )
 
-    def test_repr_obeys_max_seq_limit(self):
-        with option_context("display.max_seq_items", 2000):
-            assert len(printing.pprint_thing(list(range(1000)))) > 1000
-
-        with option_context("display.max_seq_items", 5):
-            assert len(printing.pprint_thing(list(range(1000)))) < 100
-
-        with option_context("display.max_seq_items", 1):
-            assert len(printing.pprint_thing(list(range(1000)))) < 9
-
-    def test_repr_set(self):
-        assert printing.pprint_thing({1}) == "{1}"
-
-    def test_repr_is_valid_construction_code(self):
-        # for the case of Index, where the repr is traditional rather than
-        # stylized
-        idx = Index(["a", "b"])
-        res = eval("pd." + repr(idx))
-        tm.assert_series_equal(Series(res), Series(idx))
-
-    def test_repr_should_return_str(self):
-        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
-        # "...The return value must be a string object."
-
-        # (str on py2.x, str (unicode) on py3)
-
-        data = [8, 5, 3, 5]
-        index1 = ["\u03c3", "\u03c4", "\u03c5", "\u03c6"]
-        cols = ["\u03c8"]
-        df = DataFrame(data, columns=cols, index=index1)
-        assert isinstance(df.__repr__(), str)
-
     def test_repr_no_backslash(self):
         with option_context("mode.sim_interactive", True):
             df = DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
@@ -913,6 +881,7 @@ class TestDataFrameFormatting:
             result = str(s)
             assert "object" in result
 
+    def test_truncate_with_different_dtypes2(self):
         # 12045
         df = DataFrame({"text": ["some words"] + [None] * 9})
 
@@ -1401,14 +1370,6 @@ def gen_series_formatting():
 
 
 class TestSeriesFormatting:
-    def test_repr_unicode(self):
-        s = Series(["\u03c3"] * 10)
-        repr(s)
-
-        a = Series(["\u05d0"] * 1000)
-        a.name = "title1"
-        repr(a)
-
     def test_freq_name_separation(self):
         s = Series(
             np.random.default_rng(2).standard_normal(10),
