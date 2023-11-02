@@ -263,7 +263,7 @@ For example:
     In [9]: pd.date_range('2020-01-01', periods=3, freq='Y-MAR')
     Out[9]:
     DatetimeIndex(['2020-03-31', '2021-03-31', '2022-03-31'],
-                  dtype='datetime64[ns]', freq='YE-MAR')
+                  dtype='datetime64[ns]', freq='Y-MAR')
 
 *Future behavior*:
 
