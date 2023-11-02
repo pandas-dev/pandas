@@ -1278,7 +1278,9 @@ class TestValueCounts:
         tm.assert_series_equal(res, exp)
 
         # GH 12424  # TODO: belongs elsewhere
-        res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
+        msg = "errors='ignore' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
         exp = Series(["2362-01-01", np.nan], dtype=object)
         tm.assert_series_equal(res, exp)
 
