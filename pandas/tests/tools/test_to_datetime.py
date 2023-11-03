@@ -3777,9 +3777,7 @@ ts = Timestamp(dtstr)
     ids=lambda x: type(x).__name__,
 )
 @pytest.mark.parametrize("naive_first", [True, False])
-def test_to_datetime_mixed_awareness_mixed_types(
-    aware_val, naive_val, naive_first, request
-):
+def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_first):
     # GH#55793, GH#55693
     # Empty string parses to NaT
     vals = [aware_val, naive_val, ""]
@@ -3792,14 +3790,8 @@ def test_to_datetime_mixed_awareness_mixed_types(
     # both_strs-> paths that were previously already deprecated with warning
     #  issued in _array_to_datetime_object
     both_strs = isinstance(aware_val, str) and isinstance(naive_val, str)
-    either_str = isinstance(aware_val, str) or isinstance(naive_val, str)
+    isinstance(aware_val, str) or isinstance(naive_val, str)
     has_numeric = isinstance(naive_val, (int, float))
-
-    if has_numeric and either_str:
-        # np.array in ensure_arraylike_for_datetimelike incorrectly casts to
-        # string
-        mark = pytest.mark.xfail(reason="Regex pattern does not match")
-        request.applymarker(mark)
 
     depr_msg = "In a future version of pandas, parsing datetimes with mixed time zones"
 
