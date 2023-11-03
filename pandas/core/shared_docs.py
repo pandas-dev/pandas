@@ -790,7 +790,7 @@ _shared_docs[
         .. versionchanged:: 1.4.0
             Previously the explicit ``None`` was silently ignored.
 
-    When `Regex`is ``True``, `value` is not ``None`` and `to_replace` is a string,
+    When ``regex=True``, ``value`` is not ``None`` and `to_replace` is a string,
     the replacement will be applied in all columns of the DataFrame.
 
     >>> df = pd.DataFrame({{'A': [0, 1, 2, 3, 4],
