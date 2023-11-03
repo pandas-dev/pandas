@@ -120,10 +120,10 @@ def all_parsers(request):
         pytest.importorskip("pyarrow", VERSIONS["pyarrow"])
         # Try finding a way to disable threads all together
         # for more stable CI runs
-        import pyarrow
+        # import pyarrow
 
-        pyarrow.set_cpu_count(1)
-        pyarrow.set_io_thread_count(1)
+        # pyarrow.set_cpu_count(1)
+        # pyarrow.set_io_thread_count(1)
     return parser
 
 
