@@ -76,19 +76,12 @@ class TestResetIndex:
 
         expected = DataFrame(
             {
-                "idx": [
-                    datetime(2011, 1, 1),
-                    datetime(2011, 1, 2),
-                    datetime(2011, 1, 3),
-                    datetime(2011, 1, 4),
-                    datetime(2011, 1, 5),
-                ],
+                "idx": idx,
                 "a": range(5),
                 "b": ["A", "B", "C", "D", "E"],
             },
             columns=["idx", "a", "b"],
         )
-        expected["idx"] = expected["idx"].apply(lambda d: Timestamp(d, tz=tz))
         tm.assert_frame_equal(df.reset_index(), expected)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
