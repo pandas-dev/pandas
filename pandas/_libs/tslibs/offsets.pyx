@@ -2810,6 +2810,14 @@ cdef class QuarterBegin(QuarterOffset):
     _from_name_starting_month = 1
     _prefix = "QS"
     _day_opt = "start"
+    cdef readonly:
+        int _period_dtype_code
+
+    def __init__(self, n=1, normalize=False, startingMonth=None):
+        # Because QuarterBegin can be the freq for a Period, define its
+        #  _period_dtype_code at construction for performance
+        QuarterOffset.__init__(self, n, normalize, startingMonth)
+        self._period_dtype_code = PeriodDtypeCode.Q_JAN + self.startingMonth % 12
 
 
 # ----------------------------------------------------------------------
