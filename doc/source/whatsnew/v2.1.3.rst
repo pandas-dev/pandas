@@ -22,7 +22,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`DatetimeIndex.diff` raising ``TypeError`` (:issue:`55080`)
--
+- Bug in :func:`testing.assert_extension_array_equal` that could use the wrong datatype when calculating time units (:issue:`55730`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_213.other:
