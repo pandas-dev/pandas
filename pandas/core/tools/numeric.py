@@ -44,8 +44,8 @@ def to_numeric(
     errors: DateTimeErrorChoices = "raise",
     downcast: Literal["integer", "signed", "unsigned", "float"] | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
-    thousands = "\0",
-    decimal = "."
+    thousands: str = "\0",
+    decimal: str = "."
 ):
     """
     Convert argument to a numeric type.
@@ -100,7 +100,7 @@ def to_numeric(
           DataFrame.
 
         .. versionadded:: 2.0
-    thousands: str, default ','
+    thousands: str, default '\0'
         character used to seperate thousands, eg '.' for european data
         must only be 1 character long
     decimal: str, default '.'
