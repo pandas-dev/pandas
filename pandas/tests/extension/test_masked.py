@@ -22,6 +22,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+from pandas.compat.numpy import np_version_gt2
 
 import pandas as pd
 import pandas._testing as tm
@@ -42,7 +43,7 @@ from pandas.core.arrays.integer import (
 )
 from pandas.tests.extension import base
 
-is_windows_or_32bit = is_platform_windows() or not IS64
+is_windows_or_32bit = (is_platform_windows() and not np_version_gt2) or not IS64
 
 pytestmark = [
     pytest.mark.filterwarnings(
@@ -312,7 +313,7 @@ class TestMaskedArrays(base.ExtensionTests):
         # overwrite to ensure pd.NA is tested instead of np.nan
         # https://github.com/pandas-dev/pandas/issues/30958
         length = 64
-        if not IS64 or is_platform_windows():
+        if is_windows_or_32bit:
             # Item "ExtensionDtype" of "Union[dtype[Any], ExtensionDtype]" has
             # no attribute "itemsize"
             if not ser.dtype.itemsize == 8:  # type: ignore[union-attr]
