@@ -352,8 +352,9 @@ class TestDataFrameQuantile:
         )
         tm.assert_frame_equal(result, expected)
 
-    def test_quantile_datetime(self):
-        df = DataFrame({"a": pd.to_datetime(["2010", "2011"]), "b": [0, 5]})
+    def test_quantile_datetime(self, unit):
+        dti = pd.to_datetime(["2010", "2011"]).as_unit(unit)
+        df = DataFrame({"a": dti, "b": [0, 5]})
 
         # exclude datetime
         result = df.quantile(0.5, numeric_only=True)
@@ -370,17 +371,20 @@ class TestDataFrameQuantile:
         # datetime w/ multi
         result = df.quantile([0.5], numeric_only=False)
         expected = DataFrame(
-            [[Timestamp("2010-07-02 12:00:00"), 2.5]], index=[0.5], columns=["a", "b"]
+            {"a": Timestamp("2010-07-02 12:00:00").as_unit(unit), "b": 2.5},
+            index=[0.5],
         )
+        # expected["a"] = expected["a"].dt.as_unit(unit)
         tm.assert_frame_equal(result, expected)
 
         # axis = 1
-        df["c"] = pd.to_datetime(["2011", "2012"])
+        df["c"] = pd.to_datetime(["2011", "2012"]).as_unit(unit)
         result = df[["a", "c"]].quantile(0.5, axis=1, numeric_only=False)
         expected = Series(
             [Timestamp("2010-07-02 12:00:00"), Timestamp("2011-07-02 12:00:00")],
             index=[0, 1],
             name=0.5,
+            dtype=f"M8[{unit}]",
         )
         tm.assert_series_equal(result, expected)
 
@@ -389,6 +393,7 @@ class TestDataFrameQuantile:
             [[Timestamp("2010-07-02 12:00:00"), Timestamp("2011-07-02 12:00:00")]],
             index=[0.5],
             columns=[0, 1],
+            dtype=f"M8[{unit}]",
         )
         tm.assert_frame_equal(result, expected)
 

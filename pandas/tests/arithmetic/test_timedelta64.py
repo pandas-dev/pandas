@@ -336,17 +336,17 @@ class TestTimedelta64ArithmeticUnsorted:
 
         result = tdi - td
         expected = TimedeltaIndex(["0 days", NaT, "1 days"], name="foo")
-        tm.assert_index_equal(result, expected, check_names=False)
+        tm.assert_index_equal(result, expected)
 
         result = td - tdi
         expected = TimedeltaIndex(["0 days", NaT, "-1 days"], name="foo")
-        tm.assert_index_equal(result, expected, check_names=False)
+        tm.assert_index_equal(result, expected)
 
         result = dti - td
         expected = DatetimeIndex(
             ["20121231", "20130101", "20130102"], freq="D", name="bar"
         )
-        tm.assert_index_equal(result, expected, check_names=False)
+        tm.assert_index_equal(result, expected)
 
         result = dt - tdi
         expected = DatetimeIndex(["20121231", NaT, "20121230"], name="foo")

@@ -1295,6 +1295,14 @@ def utc_fixture(request):
 utc_fixture2 = utc_fixture
 
 
+@pytest.fixture(params=["s", "ms", "us", "ns"])
+def unit(request):
+    """
+    datetime64 units we support.
+    """
+    return request.param
+
+
 # ----------------------------------------------------------------
 # Dtypes
 # ----------------------------------------------------------------

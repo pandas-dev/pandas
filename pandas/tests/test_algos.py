@@ -721,59 +721,31 @@ class TestUnique:
         result = pd.unique(ci)
         tm.assert_index_equal(result, expected)
 
-    def test_datetime64tz_aware(self):
+    def test_datetime64tz_aware(self, unit):
         # GH 15939
 
-        result = Series(
-            Index(
-                [
-                    Timestamp("20160101", tz="US/Eastern"),
-                    Timestamp("20160101", tz="US/Eastern"),
-                ]
-            )
-        ).unique()
-        expected = DatetimeArray._from_sequence(
-            np.array([Timestamp("2016-01-01 00:00:00-0500", tz="US/Eastern")])
-        )
-        tm.assert_extension_array_equal(result, expected)
-
-        result = Index(
+        dti = Index(
             [
                 Timestamp("20160101", tz="US/Eastern"),
                 Timestamp("20160101", tz="US/Eastern"),
             ]
-        ).unique()
-        expected = DatetimeIndex(
-            ["2016-01-01 00:00:00"], dtype="datetime64[ns, US/Eastern]", freq=None
-        )
-        tm.assert_index_equal(result, expected)
+        ).as_unit(unit)
+        ser = Series(dti)
 
-        result = pd.unique(
-            Series(
-                Index(
-                    [
-                        Timestamp("20160101", tz="US/Eastern"),
-                        Timestamp("20160101", tz="US/Eastern"),
-                    ]
-                )
-            )
-        )
-        expected = DatetimeArray._from_sequence(
-            np.array([Timestamp("2016-01-01", tz="US/Eastern")])
-        )
+        result = ser.unique()
+        expected = dti[:1]._data
         tm.assert_extension_array_equal(result, expected)
 
-        result = pd.unique(
-            Index(
-                [
-                    Timestamp("20160101", tz="US/Eastern"),
-                    Timestamp("20160101", tz="US/Eastern"),
-                ]
-            )
-        )
-        expected = DatetimeIndex(
-            ["2016-01-01 00:00:00"], dtype="datetime64[ns, US/Eastern]", freq=None
-        )
+        result = dti.unique()
+        expected = dti[:1]
+        tm.assert_index_equal(result, expected)
+
+        result = pd.unique(ser)
+        expected = dti[:1]._data
+        tm.assert_extension_array_equal(result, expected)
+
+        result = pd.unique(dti)
+        expected = dti[:1]
         tm.assert_index_equal(result, expected)
 
     def test_order_of_appearance(self):
