@@ -2894,9 +2894,7 @@ def map_infer_mask(
         arr,
         f,
         mask,
-        convert,
         na_value,
-        dtype,
     )
     if convert:
         return maybe_convert_objects(result)
@@ -2911,10 +2909,8 @@ def _map_infer_mask(
         ndarray[object] arr,
         object f,
         const uint8_t[:] mask,
-        bint convert=True,
         object na_value=no_default,
-        cnp.dtype dtype=np.dtype(object)
-):
+) -> None:
     """
     Helper for map_infer_mask, split off to use fused types based on the result.
     """
