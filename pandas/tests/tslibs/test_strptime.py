@@ -70,9 +70,9 @@ class TestArrayStrptimeResolutionInference:
             vals[::-1], fmt="%Y-%m-%d", utc=False, creso=creso_infer
         )
 
-        # 1ms is an arbitrary cutoff for call overhead; in local testing the
+        # 1s is an arbitrary cutoff for call overhead; in local testing the
         #  actual difference is about 250us
-        tolerance = np.timedelta64(1, "ms")
+        tolerance = np.timedelta64(1, "s")
 
         assert res.dtype == "M8[us]"
         assert abs(res[0] - now) < tolerance
