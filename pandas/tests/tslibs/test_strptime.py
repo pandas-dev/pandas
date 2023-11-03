@@ -59,3 +59,39 @@ class TestArrayStrptimeResolutionInference:
         fmt = "ISO8601"
         res, _ = array_strptime(arr, fmt=fmt, utc=False, creso=creso_infer)
         tm.assert_numpy_array_equal(res, expected)
+
+    def test_array_strptime_resolution_todaynow(self):
+        # specifically case where today/now is the *first* item
+        vals = np.array(["today", np.datetime64("2017-01-01", "us")], dtype=object)
+
+        now = Timestamp("now").asm8
+        res, _ = array_strptime(vals, fmt="%Y-%m-%d", utc=False, creso=creso_infer)
+        res2, _ = array_strptime(
+            vals[::-1], fmt="%Y-%m-%d", utc=False, creso=creso_infer
+        )
+
+        # 1s is an arbitrary cutoff for call overhead; in local testing the
+        #  actual difference is about 250us
+        tolerance = np.timedelta64(1, "s")
+
+        assert res.dtype == "M8[us]"
+        assert abs(res[0] - now) < tolerance
+        assert res[1] == vals[1]
+
+        assert res2.dtype == "M8[us]"
+        assert abs(res2[1] - now) < tolerance * 2
+        assert res2[0] == vals[1]
+
+    def test_array_strptime_str_outside_nano_range(self):
+        vals = np.array(["2401-09-15"], dtype=object)
+        expected = np.array(["2401-09-15"], dtype="M8[s]")
+        fmt = "ISO8601"
+        res, _ = array_strptime(vals, fmt=fmt, creso=creso_infer)
+        tm.assert_numpy_array_equal(res, expected)
+
+        # non-iso -> different path
+        vals2 = np.array(["Sep 15, 2401"], dtype=object)
+        expected2 = np.array(["2401-09-15"], dtype="M8[s]")
+        fmt2 = "%b %d, %Y"
+        res2, _ = array_strptime(vals2, fmt=fmt2, creso=creso_infer)
+        tm.assert_numpy_array_equal(res2, expected2)
