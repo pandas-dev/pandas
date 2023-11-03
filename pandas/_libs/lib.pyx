@@ -2293,10 +2293,12 @@ def maybe_convert_numeric(
 
     # Validate separators
     if len(thousands) > 1:
-        raise ValueError("Thousands separator must have length 1")
+        raise ValueError("Thousands separator must not exceed length 1")
     if len(decimal) > 1:
         raise ValueError("Decimal separator must have length 1")
     if thousands == decimal:
+        if thousands == '.':
+            raise ValueError("To use '.' as thousand separator please specify a different decimal separator")
         raise ValueError("Decimal and thousand separators must not be the same")
 
     # Otherwise, iterate and do full inference.
