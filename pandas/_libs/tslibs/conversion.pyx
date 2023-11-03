@@ -235,10 +235,14 @@ cdef class _TSObject:
         self.fold = 0
         self.creso = NPY_FR_ns  # default value
 
-    cdef int64_t ensure_reso(self, NPY_DATETIMEUNIT creso, str val=None) except? -1:
+    cdef int64_t ensure_reso(
+        self, NPY_DATETIMEUNIT creso, val=None, bint round_ok=False
+    ) except? -1:
         if self.creso != creso:
             try:
-                self.value = convert_reso(self.value, self.creso, creso, False)
+                self.value = convert_reso(
+                    self.value, self.creso, creso, round_ok=round_ok
+                )
             except OverflowError as err:
                 if val is not None:
                     raise OutOfBoundsDatetime(
@@ -283,6 +287,11 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
         obj.value = get_datetime64_nanos(ts, reso)
         if obj.value != NPY_NAT:
             pandas_datetime_to_datetimestruct(obj.value, reso, &obj.dts)
+            if tz is not None:
+                # GH#24559, GH#42288 We treat np.datetime64 objects as *wall* times
+                obj.value = tz_localize_to_utc_single(
+                    obj.value, tz, ambiguous="raise", nonexistent=None, creso=reso
+                )
     elif is_integer_object(ts):
         try:
             ts = <int64_t>ts

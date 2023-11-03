@@ -61,6 +61,7 @@ from pandas._libs.tslibs.conversion cimport (
     _TSObject,
     cast_from_unit,
     convert_str_to_tsobject,
+    convert_to_tsobject,
     get_datetime64_nanos,
     parse_pydatetime,
 )
@@ -673,7 +674,9 @@ cdef _array_to_datetime_object(
     return oresult_nd, None
 
 
-def array_to_datetime_with_tz(ndarray values, tzinfo tz, NPY_DATETIMEUNIT creso):
+def array_to_datetime_with_tz(
+    ndarray values, tzinfo tz, bint dayfirst, bint yearfirst, NPY_DATETIMEUNIT creso
+):
     """
     Vectorized analogue to pd.Timestamp(value, tz=tz)
 
@@ -689,7 +692,7 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz, NPY_DATETIMEUNIT creso)
         Py_ssize_t i, n = values.size
         object item
         int64_t ival
-        datetime ts
+        _TSObject tsobj
 
     for i in range(n):
         # Analogous to `item = values[i]`
@@ -700,17 +703,12 @@ def array_to_datetime_with_tz(ndarray values, tzinfo tz, NPY_DATETIMEUNIT creso)
             ival = NPY_NAT
 
         else:
-            if PyDateTime_Check(item) and item.tzinfo is not None:
-                # We can't call Timestamp constructor with a tz arg, have to
-                #  do 2-step
-                ts = Timestamp(item).tz_convert(tz)
-            else:
-                ts = Timestamp(item, tz=tz)
-            if ts is NaT:
-                ival = NPY_NAT
-            else:
-                ts = (<_Timestamp>ts)._as_creso(creso)
-                ival = ts._value
+            tsobj = convert_to_tsobject(
+                item, tz=tz, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst, nanos=0
+            )
+            if tsobj.value != NPY_NAT:
+                tsobj.ensure_reso(creso, item, round_ok=True)
+            ival = tsobj.value
 
         # Analogous to: result[i] = ival
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ival

@@ -24,7 +24,9 @@ cdef class _TSObject:
         bint fold
         NPY_DATETIMEUNIT creso
 
-    cdef int64_t ensure_reso(self, NPY_DATETIMEUNIT creso, str val=*) except? -1
+    cdef int64_t ensure_reso(
+        self, NPY_DATETIMEUNIT creso, val=*, bint round_ok=*
+    ) except? -1
 
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
