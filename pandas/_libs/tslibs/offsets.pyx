@@ -2811,7 +2811,7 @@ cdef class QuarterBegin(QuarterOffset):
     _prefix = "QS"
     _day_opt = "start"
    
-   cdef readonly:
+    cdef readonly:
         int _period_dtype_code
 
     def __init__(self, n=1, normalize=False, startingMonth=None):
