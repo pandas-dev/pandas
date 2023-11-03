@@ -1543,7 +1543,7 @@ def get_engine(engine: str) -> BaseEngine:
     raise ValueError("engine must be one of 'auto', 'sqlalchemy'")
 
 
-class SQLDatabase(PandasSQL):
+class SQLDatabase(PandasSQL,**connect_kwargs):
     """
     This class enables conversion between DataFrame and SQL databases
     using SQLAlchemy to handle DataBase abstraction.

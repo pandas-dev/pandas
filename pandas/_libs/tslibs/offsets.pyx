@@ -2811,7 +2811,7 @@ cdef class QuarterBegin(QuarterOffset):
     _prefix = "QS"
     _day_opt = "start"
     _period_dtype_code = PeriodDtypeCode.Q_DEC#55785 Fix for QuaterBegin
-
+    print (_period_dtype_code)
 
 # ----------------------------------------------------------------------
 # Month-Based Offset Classes
