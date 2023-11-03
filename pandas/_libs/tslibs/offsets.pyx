@@ -2810,6 +2810,7 @@ cdef class QuarterBegin(QuarterOffset):
     _from_name_starting_month = 1
     _prefix = "QS"
     _day_opt = "start"
+    _period_dtype_code = PeriodDtypeCode.Q_DEC
 
 
 # ----------------------------------------------------------------------
