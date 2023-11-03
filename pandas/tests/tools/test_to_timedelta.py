@@ -92,6 +92,7 @@ class TestTimedeltas:
         "arg", [np.arange(10).reshape(2, 5), pd.DataFrame(np.arange(10).reshape(2, 5))]
     )
     @pytest.mark.parametrize("errors", ["ignore", "raise", "coerce"])
+    @pytest.mark.filterwarnings("ignore:errors='ignore' is deprecated:FutureWarning")
     def test_to_timedelta_dataframe(self, arg, errors):
         # GH 11776
         with pytest.raises(TypeError, match="1-d array"):
@@ -137,22 +138,29 @@ class TestTimedeltas:
 
     def test_to_timedelta_invalid_errors_ignore(self):
         # gh-13613: these should not error because errors='ignore'
+        msg = "errors='ignore' is deprecated"
         invalid_data = "apple"
-        assert invalid_data == to_timedelta(invalid_data, errors="ignore")
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(invalid_data, errors="ignore")
+        assert invalid_data == result
 
         invalid_data = ["apple", "1 days"]
-        tm.assert_numpy_array_equal(
-            np.array(invalid_data, dtype=object),
-            to_timedelta(invalid_data, errors="ignore"),
-        )
+        expected = np.array(invalid_data, dtype=object)
+
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(invalid_data, errors="ignore")
+        tm.assert_numpy_array_equal(expected, result)
 
         invalid_data = pd.Index(["apple", "1 days"])
-        tm.assert_index_equal(invalid_data, to_timedelta(invalid_data, errors="ignore"))
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(invalid_data, errors="ignore")
+        tm.assert_index_equal(invalid_data, result)
 
         invalid_data = Series(["apple", "1 days"])
-        tm.assert_series_equal(
-            invalid_data, to_timedelta(invalid_data, errors="ignore")
-        )
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(invalid_data, errors="ignore")
+        tm.assert_series_equal(invalid_data, result)
 
     @pytest.mark.parametrize(
         "val, errors",
@@ -239,7 +247,9 @@ class TestTimedeltas:
 
     def test_to_timedelta_ignore_strings_unit(self):
         arr = np.array([1, 2, "error"], dtype=object)
-        result = to_timedelta(arr, unit="ns", errors="ignore")
+        msg = "errors='ignore' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = to_timedelta(arr, unit="ns", errors="ignore")
         tm.assert_numpy_array_equal(result, arr)
 
     @pytest.mark.parametrize(
