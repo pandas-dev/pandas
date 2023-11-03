@@ -241,7 +241,6 @@ def test_rangeindex_fallback_coercion_bug():
     )
     df.index.names = ["fizz", "buzz"]
 
-    str(df)
     expected = pd.DataFrame(
         {"df2": np.arange(100), "df1": np.arange(100)},
         index=MultiIndex.from_product([range(10), range(10)], names=["fizz", "buzz"]),
