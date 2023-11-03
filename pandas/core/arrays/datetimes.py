@@ -2240,10 +2240,13 @@ def _sequence_to_dt64(
         if lib.infer_dtype(data, skipna=False) == "integer":
             data = data.astype(np.int64)
         elif tz is not None and ambiguous == "raise":
-            # TODO: yearfirst/dayfirst/etc?
             obj_data = np.asarray(data, dtype=object)
             i8data = tslib.array_to_datetime_with_tz(
-                obj_data, tz, abbrev_to_npy_unit(out_unit)
+                obj_data,
+                tz=tz,
+                dayfirst=dayfirst,
+                yearfirst=yearfirst,
+                creso=abbrev_to_npy_unit(out_unit),
             )
             return i8data.view(out_dtype), tz, None
         else:
