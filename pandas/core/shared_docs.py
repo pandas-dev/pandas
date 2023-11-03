@@ -805,7 +805,7 @@ _shared_docs[
     3  3  e  i
     4  4  e  j
 
-    If `value` is not ``None`` and `to_replace` is a dictionary, the dictionary
+    If ``value`` is not ``None`` and `to_replace` is a dictionary, the dictionary
     keys will be the DataFrame columns that the replacement will be applied.
 
     >>> df.replace(to_replace={{'B': '^[a-c]', 'C': '^[h-j]'}}, value = 'e', regex=True)
