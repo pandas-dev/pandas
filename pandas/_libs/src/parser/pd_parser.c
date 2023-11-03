@@ -27,7 +27,6 @@ static int floatify(PyObject *str, double *result, int *maybe_int, char dec, cha
   char *data;
   PyObject *tmp = NULL;
   const char sci = 'E';
-  //const char dec = '.';
 
   if (PyBytes_Check(str)) {
     data = PyBytes_AS_STRING(str);
