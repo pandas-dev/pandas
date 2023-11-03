@@ -16,7 +16,7 @@ import sys
 from sysconfig import get_config_vars
 
 from setuptools import setup
- from Cython.Build import cythonize
+from Cython.Build import cythonize
 
 setup(
     ext_modules = cythonize("C:\Users\harik\Documents\GitHub\pandas\pandas\_libs\tslibs\offsets.pyx")
