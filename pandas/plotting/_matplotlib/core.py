@@ -909,7 +909,6 @@ class MPLPlot(ABC):
             args = (x, y, style) if style is not None else (x, y)
             return ax.plot(*args, **kwds)
 
-    @final
     def _get_custom_index_name(self):
         """Specify whether xlabel/ylabel should be used to override index name"""
         return self.xlabel
