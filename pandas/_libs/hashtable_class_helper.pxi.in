@@ -1145,7 +1145,6 @@ cdef class StringHashTable(HashTable):
                     v = get_c_string(<str>val)
                 except UnicodeEncodeError:
                     rval = <str>repr(val)
-                    keep_rval_refs.append(rval)
                     v = get_c_string(rval)
                 vecs[i] = v
 
