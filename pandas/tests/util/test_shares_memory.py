@@ -17,6 +17,7 @@ def test_shares_memory_interval():
 
 @td.skip_if_no("pyarrow")
 def test_shares_memory_string():
+    # GH#55822
     import pyarrow as pa
 
     obj = pd.array(["a", "b"], dtype="string[pyarrow]")
