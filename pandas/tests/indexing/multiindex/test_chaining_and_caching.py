@@ -78,7 +78,6 @@ def test_indexer_caching(monkeypatch):
         monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
         index = MultiIndex.from_arrays([np.arange(size_cutoff), np.arange(size_cutoff)])
         s = Series(np.zeros(size_cutoff), index=index)
-        str(s)
 
         # setitem
         s[s == 0] = 1
