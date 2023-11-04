@@ -96,7 +96,7 @@ jobs:
       TEST_ARGS: ${{ matrix.test_args || '' }}
       PYTEST_WORKERS: 'auto'
       PYTEST_TARGET: ${{ matrix.pytest_target || 'pandas' }}
-      NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'legacy' || 'weak' }}
+      NPY_PROMOTION_STATE: ${{ matrix.env_file == 'actions-311-numpydev.yaml' && 'weak' || 'legacy' }}
     concurrency:
       # https://github.community/t/concurrecy-not-work-for-push/183068/7
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-${{ matrix.env_file }}-${{ matrix.pattern }}-${{ matrix.extra_apt || '' }}-${{ matrix.pandas_copy_on_write || '' }}
