@@ -9,19 +9,25 @@ import pandas._testing as tm
 
 
 class TestDelete:
-    def test_delete(self):
-        idx = date_range(start="2000-01-01", periods=5, freq="ME", name="idx")
+    def test_delete(self, unit):
+        idx = date_range(
+            start="2000-01-01", periods=5, freq="ME", name="idx", unit=unit
+        )
 
         # preserve freq
-        expected_0 = date_range(start="2000-02-01", periods=4, freq="ME", name="idx")
-        expected_4 = date_range(start="2000-01-01", periods=4, freq="ME", name="idx")
+        expected_0 = date_range(
+            start="2000-02-01", periods=4, freq="ME", name="idx", unit=unit
+        )
+        expected_4 = date_range(
+            start="2000-01-01", periods=4, freq="ME", name="idx", unit=unit
+        )
 
         # reset freq to None
         expected_1 = DatetimeIndex(
             ["2000-01-31", "2000-03-31", "2000-04-30", "2000-05-31"],
             freq=None,
             name="idx",
-        )
+        ).as_unit(unit)
 
         cases = {
             0: expected_0,
@@ -64,12 +70,18 @@ class TestDelete:
         assert result.freqstr == "h"
         assert result.tz == expected.tz
 
-    def test_delete_slice(self):
-        idx = date_range(start="2000-01-01", periods=10, freq="D", name="idx")
+    def test_delete_slice(self, unit):
+        idx = date_range(
+            start="2000-01-01", periods=10, freq="D", name="idx", unit=unit
+        )
 
         # preserve freq
-        expected_0_2 = date_range(start="2000-01-04", periods=7, freq="D", name="idx")
-        expected_7_9 = date_range(start="2000-01-01", periods=7, freq="D", name="idx")
+        expected_0_2 = date_range(
+            start="2000-01-04", periods=7, freq="D", name="idx", unit=unit
+        )
+        expected_7_9 = date_range(
+            start="2000-01-01", periods=7, freq="D", name="idx", unit=unit
+        )
 
         # reset freq to None
         expected_3_5 = DatetimeIndex(
@@ -84,7 +96,7 @@ class TestDelete:
             ],
             freq=None,
             name="idx",
-        )
+        ).as_unit(unit)
 
         cases = {
             (0, 1, 2): expected_0_2,

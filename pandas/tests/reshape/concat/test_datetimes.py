@@ -19,22 +19,6 @@ from pandas import (
 )
 import pandas._testing as tm
 
-UNITS = ["s", "ms", "us", "ns"]
-
-
-@pytest.fixture(params=UNITS)
-def unit(request):
-    return request.param
-
-
-unit2 = unit
-
-
-def _get_finer_unit(unit, unit2):
-    if UNITS.index(unit) >= UNITS.index(unit2):
-        return unit
-    return unit2
-
 
 class TestDatetimeConcat:
     def test_concat_datetime64_block(self):
@@ -333,7 +317,7 @@ class TestTimezoneConcat:
         second[0] = second[0].dt.tz_localize("UTC")
 
         result = concat([first, second])
-        exp_unit = _get_finer_unit(unit, unit2)
+        exp_unit = tm.get_finest_unit(unit, unit2)
         assert result[0].dtype == f"datetime64[{exp_unit}, UTC]"
 
     def test_concat_tz_series4(self, unit, unit2):
@@ -345,7 +329,7 @@ class TestTimezoneConcat:
         second[0] = second[0].dt.tz_localize("Europe/London")
 
         result = concat([first, second])
-        exp_unit = _get_finer_unit(unit, unit2)
+        exp_unit = tm.get_finest_unit(unit, unit2)
         assert result[0].dtype == f"datetime64[{exp_unit}, Europe/London]"
 
     def test_concat_tz_series5(self, unit, unit2):
@@ -359,7 +343,7 @@ class TestTimezoneConcat:
         second[0] = second[0].dt.tz_localize("Europe/London")
 
         result = concat([first, second])
-        exp_unit = _get_finer_unit(unit, unit2)
+        exp_unit = tm.get_finest_unit(unit, unit2)
         assert result[0].dtype == f"datetime64[{exp_unit}, Europe/London]"
 
     def test_concat_tz_series6(self, unit, unit2):
@@ -373,7 +357,7 @@ class TestTimezoneConcat:
         second[0] = second[0].dt.tz_localize("Europe/London")
 
         result = concat([first, second])
-        exp_unit = _get_finer_unit(unit, unit2)
+        exp_unit = tm.get_finest_unit(unit, unit2)
         assert result[0].dtype == f"datetime64[{exp_unit}, Europe/London]"
 
     def test_concat_tz_series_tzlocal(self):

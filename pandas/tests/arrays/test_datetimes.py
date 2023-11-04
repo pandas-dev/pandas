@@ -15,10 +15,7 @@ except ImportError:
 import numpy as np
 import pytest
 
-from pandas._libs.tslibs import (
-    npy_unit_to_abbrev,
-    tz_compare,
-)
+from pandas._libs.tslibs import tz_compare
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -235,8 +232,7 @@ class TestNonNano:
         dta, dti = dta_dti
 
         td = pd.Timedelta(scalar)
-        exp_reso = max(dta._creso, td._creso)
-        exp_unit = npy_unit_to_abbrev(exp_reso)
+        exp_unit = tm.get_finest_unit(dta.unit, td.unit)
 
         expected = (dti + td)._data.as_unit(exp_unit)
         result = dta + scalar

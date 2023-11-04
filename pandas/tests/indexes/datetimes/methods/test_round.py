@@ -71,6 +71,8 @@ class TestDatetimeIndexRound:
         with pytest.raises(ValueError, match=msg):
             elt.round(freq="ME")
 
+    def test_round2(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         # GH#14440 & GH#15578
         index = DatetimeIndex(["2016-10-17 12:00:00.0015"], tz=tz)
         result = index.round("ms")
@@ -80,11 +82,14 @@ class TestDatetimeIndexRound:
         for freq in ["us", "ns"]:
             tm.assert_index_equal(index, index.round(freq))
 
+    def test_round3(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         index = DatetimeIndex(["2016-10-17 12:00:00.00149"], tz=tz)
         result = index.round("ms")
         expected = DatetimeIndex(["2016-10-17 12:00:00.001000"], tz=tz)
         tm.assert_index_equal(result, expected)
 
+    def test_round4(self, tz_naive_fixture):
         index = DatetimeIndex(["2016-10-17 12:00:00.001501031"])
         result = index.round("10ns")
         expected = DatetimeIndex(["2016-10-17 12:00:00.001501030"])
