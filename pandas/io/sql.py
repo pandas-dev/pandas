@@ -2090,7 +2090,7 @@ class SQLiteTable(SQLTable):
         # Python 3.12+ doesn't auto-register adapters for us anymore
 
         adapt_date_iso = lambda val: val.isoformat()
-        adapt_datetime_iso = lambda val: val.isoformat()
+        adapt_datetime_iso = lambda val: val.isoformat(" ")
 
         sqlite3.register_adapter(time, _adapt_time)
 
@@ -2098,11 +2098,9 @@ class SQLiteTable(SQLTable):
         sqlite3.register_adapter(datetime, adapt_datetime_iso)
 
         convert_date = lambda val: date.fromisoformat(val.decode())
-        convert_datetime = lambda val: datetime.fromisoformat(val.decode())
-        convert_timestamp = lambda val: datetime.fromtimestamp(int(val))
+        convert_timestamp = lambda val: datetime.fromisoformat(val.decode())
 
         sqlite3.register_converter("date", convert_date)
-        sqlite3.register_converter("datetime", convert_datetime)
         sqlite3.register_converter("timestamp", convert_timestamp)
 
     def sql_schema(self) -> str:

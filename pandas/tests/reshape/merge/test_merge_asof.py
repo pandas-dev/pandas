@@ -1341,6 +1341,34 @@ class TestAsOfMerge:
         expected["value_y"] = np.array([np.nan], dtype=object)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("dtype", ["m8[ns]", "M8[us]"])
+    def test_by_datelike(self, dtype):
+        # GH 55453
+        left = pd.DataFrame(
+            {
+                "by_col": np.array([1], dtype=dtype),
+                "on_col": [2],
+                "value": ["a"],
+            }
+        )
+        right = pd.DataFrame(
+            {
+                "by_col": np.array([1], dtype=dtype),
+                "on_col": [1],
+                "value": ["b"],
+            }
+        )
+        result = merge_asof(left, right, by="by_col", on="on_col")
+        expected = pd.DataFrame(
+            {
+                "by_col": np.array([1], dtype=dtype),
+                "on_col": [2],
+                "value_x": ["a"],
+                "value_y": ["b"],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_timedelta_tolerance_nearest(self, unit):
         # GH 27642
         if unit == "s":

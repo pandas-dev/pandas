@@ -116,7 +116,8 @@ if not pa_version_under7p0:
     ) -> pa.ChunkedArray:
         # Ensure int // int -> int mirroring Python/Numpy behavior
         # as pc.floor(pc.divide_checked(int, int)) -> float
-        result = pc.floor(pc.divide(left, right))
+        converted_left = cast_for_truediv(left, right)
+        result = pc.floor(pc.divide(converted_left, right))
         if pa.types.is_integer(left.type) and pa.types.is_integer(right.type):
             result = result.cast(left.type)
         return result
@@ -1596,6 +1597,15 @@ class ArrowExtensionArray(
         ------
         TypeError : subclass does not define reductions
         """
+        result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
+        if isinstance(result, pa.Array):
+            return type(self)(result)
+        else:
+            return result
+
+    def _reduce_calc(
+        self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
+    ):
         pa_result = self._reduce_pyarrow(name, skipna=skipna, **kwargs)
 
         if keepdims:
@@ -1606,7 +1616,7 @@ class ArrowExtensionArray(
                     [pa_result],
                     type=to_pyarrow_type(infer_dtype_from_scalar(pa_result)[0]),
                 )
-            return type(self)(result)
+            return result
 
         if pc.is_null(pa_result).as_py():
             return self.dtype.na_value
@@ -1712,7 +1722,7 @@ class ArrowExtensionArray(
             data = pa.chunked_array([data])
         self._pa_array = data
 
-    def _rank(
+    def _rank_calc(
         self,
         *,
         axis: AxisInt = 0,
@@ -1721,9 +1731,6 @@ class ArrowExtensionArray(
         ascending: bool = True,
         pct: bool = False,
     ):
-        """
-        See Series.rank.__doc__.
-        """
         if pa_version_under9p0 or axis != 0:
             ranked = super()._rank(
                 axis=axis,
@@ -1738,7 +1745,7 @@ class ArrowExtensionArray(
             else:
                 pa_type = pa.uint64()
             result = pa.array(ranked, type=pa_type, from_pandas=True)
-            return type(self)(result)
+            return result
 
         data = self._pa_array.combine_chunks()
         sort_keys = "ascending" if ascending else "descending"
@@ -1777,7 +1784,29 @@ class ArrowExtensionArray(
                 divisor = pc.count(result)
             result = pc.divide(result, divisor)
 
-        return type(self)(result)
+        return result
+
+    def _rank(
+        self,
+        *,
+        axis: AxisInt = 0,
+        method: str = "average",
+        na_option: str = "keep",
+        ascending: bool = True,
+        pct: bool = False,
+    ):
+        """
+        See Series.rank.__doc__.
+        """
+        return type(self)(
+            self._rank_calc(
+                axis=axis,
+                method=method,
+                na_option=na_option,
+                ascending=ascending,
+                pct=pct,
+            )
+        )
 
     def _quantile(self, qs: npt.NDArray[np.float64], interpolation: str) -> Self:
         """
@@ -1857,6 +1886,7 @@ class ArrowExtensionArray(
         if pa.types.is_temporal(pa_type):
             most_common = most_common.cast(pa_type)
 
+        most_common = most_common.take(pc.array_sort_indices(most_common))
         return type(self)(most_common)
 
     def _maybe_convert_setitem_value(self, value):

@@ -207,12 +207,12 @@ class Grouper:
     2000-10-02 00:26:00    24
     Freq: 17T, dtype: int64
 
-    >>> ts.groupby(pd.Grouper(freq='17W', origin='2000-01-01')).sum()
-    2000-01-02      0
-    2000-04-30      0
-    2000-08-27      0
-    2000-12-24    108
-    Freq: 17W-SUN, dtype: int64
+    >>> ts.groupby(pd.Grouper(freq='17min', origin='2000-01-01')).sum()
+    2000-10-01 23:24:00     3
+    2000-10-01 23:41:00    15
+    2000-10-01 23:58:00    45
+    2000-10-02 00:15:00    45
+    Freq: 17T, dtype: int64
 
     If you want to adjust the start of the bins with an `offset` Timedelta, the two
     following lines are equivalent:

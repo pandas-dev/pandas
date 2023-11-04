@@ -1474,7 +1474,7 @@ def test_quantile(data, interpolation, quantile, request):
 
 @pytest.mark.parametrize(
     "take_idx, exp_idx",
-    [[[0, 0, 2, 2, 4, 4], [0, 4]], [[0, 0, 0, 2, 4, 4], [0]]],
+    [[[0, 0, 2, 2, 4, 4], [4, 0]], [[0, 0, 0, 2, 4, 4], [0]]],
     ids=["multi_mode", "single_mode"],
 )
 def test_mode_dropna_true(data_for_grouping, take_idx, exp_idx):
@@ -1492,7 +1492,7 @@ def test_mode_dropna_false_mode_na(data):
     expected = pd.Series([None], dtype=data.dtype)
     tm.assert_series_equal(result, expected)
 
-    expected = pd.Series([None, data[0]], dtype=data.dtype)
+    expected = pd.Series([data[0], None], dtype=data.dtype)
     result = expected.mode(dropna=False)
     tm.assert_series_equal(result, expected)
 
@@ -3091,3 +3091,12 @@ def test_factorize_chunked_dictionary():
     exp_uniques = pd.Index(ArrowExtensionArray(pa_array.combine_chunks()))
     tm.assert_numpy_array_equal(res_indices, exp_indicies)
     tm.assert_index_equal(res_uniques, exp_uniques)
+
+
+def test_arrow_floordiv():
+    # GH 55561
+    a = pd.Series([-7], dtype="int64[pyarrow]")
+    b = pd.Series([4], dtype="int64[pyarrow]")
+    expected = pd.Series([-2], dtype="int64[pyarrow]")
+    result = a // b
+    tm.assert_series_equal(result, expected)

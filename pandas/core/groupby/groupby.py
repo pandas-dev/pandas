@@ -108,6 +108,10 @@ from pandas.core.arrays import (
     SparseArray,
 )
 from pandas.core.arrays.string_ import StringDtype
+from pandas.core.arrays.string_arrow import (
+    ArrowStringArray,
+    ArrowStringArrayNumpySemantics,
+)
 from pandas.core.base import (
     PandasObject,
     SelectionMixin,
@@ -1855,8 +1859,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             ser = Series(values, copy=False)
         else:
             # We only get here with values.dtype == object
-            # TODO: special case not needed with ArrayManager
-            df = DataFrame(values.T)
+            df = DataFrame(values.T, dtype=values.dtype)
             # bc we split object blocks in grouped_reduce, we have only 1 col
             # otherwise we'd have to worry about block-splitting GH#39329
             assert df.shape[1] == 1
@@ -2804,7 +2807,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result_series.name = name
             result_series.index = index.set_names(range(len(columns)))
             result_frame = result_series.reset_index()
-            result_frame.columns = columns + [name]
+            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]  # noqa: E501
+            cols = Index(columns, dtype=orig_dtype).insert(len(columns), name)
+            result_frame.columns = cols
             result = result_frame
         return result.__finalize__(self.obj, method="value_counts")
 
@@ -2956,7 +2961,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         dtype_backend: None | Literal["pyarrow", "numpy_nullable"] = None
         if isinstance(self.obj, Series):
             if isinstance(self.obj.array, ArrowExtensionArray):
-                dtype_backend = "pyarrow"
+                if isinstance(self.obj.array, ArrowStringArrayNumpySemantics):
+                    dtype_backend = None
+                elif isinstance(self.obj.array, ArrowStringArray):
+                    dtype_backend = "numpy_nullable"
+                else:
+                    dtype_backend = "pyarrow"
             elif isinstance(self.obj.array, BaseMaskedArray):
                 dtype_backend = "numpy_nullable"
         # TODO: For DataFrames what if columns are mixed arrow/numpy/masked?
@@ -5207,7 +5217,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     def pct_change(
         self,
         periods: int = 1,
-        fill_method: FillnaOptions | lib.NoDefault = lib.no_default,
+        fill_method: FillnaOptions | None | lib.NoDefault = lib.no_default,
         limit: int | None | lib.NoDefault = lib.no_default,
         freq=None,
         axis: Axis | lib.NoDefault = lib.no_default,
@@ -5259,23 +5269,26 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         goldfish    0.2  0.125
         """
         # GH#53491
-        if fill_method is not lib.no_default or limit is not lib.no_default:
+        if fill_method not in (lib.no_default, None) or limit is not lib.no_default:
             warnings.warn(
-                "The 'fill_method' and 'limit' keywords in "
-                f"{type(self).__name__}.pct_change are deprecated and will be "
-                "removed in a future version. Call "
-                f"{'bfill' if fill_method in ('backfill', 'bfill') else 'ffill'} "
-                "before calling pct_change instead.",
+                "The 'fill_method' keyword being not None and the 'limit' keyword in "
+                f"{type(self).__name__}.pct_change are deprecated and will be removed "
+                "in a future version. Either fill in any non-leading NA values prior "
+                "to calling pct_change or specify 'fill_method=None' to not fill NA "
+                "values.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
         if fill_method is lib.no_default:
-            if any(grp.isna().values.any() for _, grp in self):
+            if limit is lib.no_default and any(
+                grp.isna().values.any() for _, grp in self
+            ):
                 warnings.warn(
                     "The default fill_method='ffill' in "
-                    f"{type(self).__name__}.pct_change is deprecated and will be "
-                    "removed in a future version. Call ffill before calling "
-                    "pct_change to retain current behavior and silence this warning.",
+                    f"{type(self).__name__}.pct_change is deprecated and will "
+                    "be removed in a future version. Either fill in any "
+                    "non-leading NA values prior to calling pct_change or "
+                    "specify 'fill_method=None' to not fill NA values.",
                     FutureWarning,
                     stacklevel=find_stack_level(),
                 )

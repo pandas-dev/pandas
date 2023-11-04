@@ -10,6 +10,10 @@ from pandas import (
 )
 import pandas._testing as tm
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
+)
+
 
 @pytest.fixture()
 def gpd_style_subclass_df():
@@ -734,8 +738,36 @@ class TestDataFrameSubclassing:
         # https://github.com/pandas-dev/pandas/pull/46018
         df = tm.SubclassedDataFrame({"A": [0, 1, 2]})
         msg = "The 'method' keyword in SubclassedDataFrame.replace is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(
+            FutureWarning, match=msg, raise_on_extra_warnings=False
+        ):
             result = df.replace([1, 2], method="ffill")
         expected = tm.SubclassedDataFrame({"A": [0, 0, 0]})
         assert isinstance(result, tm.SubclassedDataFrame)
         tm.assert_frame_equal(result, expected)
+
+
+class MySubclassWithMetadata(DataFrame):
+    _metadata = ["my_metadata"]
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        my_metadata = kwargs.pop("my_metadata", None)
+        if args and isinstance(args[0], MySubclassWithMetadata):
+            my_metadata = args[0].my_metadata  # type: ignore[has-type]
+        self.my_metadata = my_metadata
+
+    @property
+    def _constructor(self):
+        return MySubclassWithMetadata
+
+
+def test_constructor_with_metadata():
+    # https://github.com/pandas-dev/pandas/pull/54922
+    # https://github.com/pandas-dev/pandas/issues/55120
+    df = MySubclassWithMetadata(
+        np.random.default_rng(2).random((5, 3)), columns=["A", "B", "C"]
+    )
+    subset = df[["A", "B"]]
+    assert isinstance(subset, MySubclassWithMetadata)

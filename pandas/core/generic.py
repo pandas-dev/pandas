@@ -9097,6 +9097,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
 
             .. versionadded:: 1.3.0
 
+            .. note::
+
+                Only takes effect for Tick-frequencies (i.e. fixed frequencies like
+                days, hours, and minutes, rather than months or quarters).
         offset : Timedelta or str, default is None
             An offset timedelta added to the origin.
 
@@ -9367,12 +9371,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-10-02 00:26:00    24
         Freq: 17T, dtype: int64
 
-        >>> ts.resample('17W', origin='2000-01-01').sum()
-        2000-01-02      0
-        2000-04-30      0
-        2000-08-27      0
-        2000-12-24    108
-        Freq: 17W-SUN, dtype: int64
+        >>> ts.resample('17min', origin='2000-01-01').sum()
+        2000-10-01 23:24:00     3
+        2000-10-01 23:41:00    15
+        2000-10-01 23:58:00    45
+        2000-10-02 00:15:00    45
+        Freq: 17T, dtype: int64
 
         If you want to adjust the start of the bins with an `offset` Timedelta, the two
         following lines are equivalent:
@@ -11575,6 +11579,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             How to handle NAs **before** computing percent changes.
 
             .. deprecated:: 2.1
+                All options of `fill_method` are deprecated except `fill_method=None`.
 
         limit : int, default None
             The number of consecutive NAs to fill before stopping.
@@ -11681,32 +11686,33 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         APPL -0.252395 -0.011860   NaN
         """
         # GH#53491
-        if fill_method is not lib.no_default or limit is not lib.no_default:
+        if fill_method not in (lib.no_default, None) or limit is not lib.no_default:
             warnings.warn(
-                "The 'fill_method' and 'limit' keywords in "
-                f"{type(self).__name__}.pct_change are deprecated and will be "
-                "removed in a future version. Call "
-                f"{'bfill' if fill_method in ('backfill', 'bfill') else 'ffill'} "
-                "before calling pct_change instead.",
+                "The 'fill_method' keyword being not None and the 'limit' keyword in "
+                f"{type(self).__name__}.pct_change are deprecated and will be removed "
+                "in a future version. Either fill in any non-leading NA values prior "
+                "to calling pct_change or specify 'fill_method=None' to not fill NA "
+                "values.",
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
         if fill_method is lib.no_default:
-            cols = self.items() if self.ndim == 2 else [(None, self)]
-            for _, col in cols:
-                mask = col.isna().values
-                mask = mask[np.argmax(~mask) :]
-                if mask.any():
-                    warnings.warn(
-                        "The default fill_method='pad' in "
-                        f"{type(self).__name__}.pct_change is deprecated and will be "
-                        "removed in a future version. Call ffill before calling "
-                        "pct_change to retain current behavior and silence this "
-                        "warning.",
-                        FutureWarning,
-                        stacklevel=find_stack_level(),
-                    )
-                    break
+            if limit is lib.no_default:
+                cols = self.items() if self.ndim == 2 else [(None, self)]
+                for _, col in cols:
+                    mask = col.isna().values
+                    mask = mask[np.argmax(~mask) :]
+                    if mask.any():
+                        warnings.warn(
+                            "The default fill_method='pad' in "
+                            f"{type(self).__name__}.pct_change is deprecated and will "
+                            "be removed in a future version. Either fill in any "
+                            "non-leading NA values prior to calling pct_change or "
+                            "specify 'fill_method=None' to not fill NA values.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
+                        break
             fill_method = "pad"
         if limit is lib.no_default:
             limit = None
