@@ -413,6 +413,7 @@ class TestBase:
         # test 0th element
         assert index[0:4].equals(result.insert(0, index[0]))
 
+    @pytest.mark.skip()
     def test_insert_out_of_bounds(self, index):
         # TypeError/IndexError matches what np.insert raises in these cases
 

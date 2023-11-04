@@ -2009,6 +2009,14 @@ def using_copy_on_write() -> bool:
 
 
 @pytest.fixture
+def using_infer_string() -> bool:
+    """
+    Fixture to check if Copy-on-Write is enabled.
+    """
+    return pd.options.future.infer_string is True
+
+
+@pytest.fixture
 def warn_copy_on_write() -> bool:
     """
     Fixture to check if Copy-on-Write is enabled.
