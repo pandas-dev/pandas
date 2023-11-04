@@ -420,7 +420,7 @@ def array_strptime(
                     seen_datetime_offset = True
                     tz = timezone(timedelta(minutes=out_tzoffset))
                     value = tz_localize_to_utc_single(
-                        value, tz, ambiguous="raise", nonexistent=None, creso=NPY_FR_ns
+                        value, tz, ambiguous="raise", nonexistent=None, creso=creso
                     )
                 else:
                     tz = None
@@ -458,11 +458,14 @@ def array_strptime(
                 iresult[i] = tz_localize_to_utc_single(
                     ival, tz, ambiguous="raise", nonexistent=None, creso=creso
                 )
-                nsecs = (ival - iresult[i])  # FIXME: need to cast to creso
+                nsecs = (ival - iresult[i])
                 if creso == NPY_FR_ns:
                     nsecs = nsecs // 10**9
-                else:
-                    raise NotImplementedError(creso)
+                elif creso == NPY_DATETIMEUNIT.NPY_FR_us:
+                    nsecs = nsecs // 10**6
+                elif creso == NPY_DATETIMEUNIT.NPY_FR_ms:
+                    nsecs = nsecs // 10**3
+
                 out_tzoffset_vals.add(nsecs)
                 seen_datetime_offset = True
             else:
