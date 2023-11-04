@@ -1128,7 +1128,6 @@ cdef class StringHashTable(HashTable):
         use_na_value = na_value is not None
 
         # assign pointers and pre-filter out missing (if ignore_na)
-        keep_rval_refs = []
         vecs = <const char **>malloc(n * sizeof(char *))
         for i in range(n):
             val = values[i]
