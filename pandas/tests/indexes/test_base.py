@@ -10,6 +10,7 @@ import pytest
 
 from pandas.compat import IS64
 from pandas.errors import InvalidIndexError
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
@@ -914,6 +915,14 @@ class TestIndex:
 
         result = index.isin(empty)
         tm.assert_numpy_array_equal(expected, result)
+
+    @td.skip_if_no("pyarrow")
+    def test_isin_arrow_string_null(self):
+        # GH#55821
+        index = Index(["a", "b"], dtype="string[pyarrow_numpy]")
+        result = index.isin([None])
+        expected = np.array([False, False])
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize(
         "values",
