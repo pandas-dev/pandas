@@ -24,7 +24,7 @@ from pandas._config.localization import (
     set_locale,
 )
 
-from pandas.compat import pa_version_under7p0
+from pandas.compat import pa_version_under10p1
 
 from pandas.core.dtypes.common import (
     is_float_dtype,
@@ -88,6 +88,7 @@ from pandas._testing.compat import (
     get_obj,
 )
 from pandas._testing.contexts import (
+    assert_cow_warning,
     decompress_file,
     ensure_clean,
     raises_chained_assignment_error,
@@ -210,7 +211,7 @@ NP_NAT_OBJECTS = [
     ]
 ]
 
-if not pa_version_under7p0:
+if not pa_version_under10p1:
     import pyarrow as pa
 
     UNSIGNED_INT_PYARROW_DTYPES = [pa.uint8(), pa.uint16(), pa.uint32(), pa.uint64()]
@@ -1097,6 +1098,7 @@ __all__ = [
     "assert_series_equal",
     "assert_sp_array_equal",
     "assert_timedelta_array_equal",
+    "assert_cow_warning",
     "at",
     "BOOL_DTYPES",
     "box_expected",

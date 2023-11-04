@@ -272,15 +272,6 @@ class TestPeriodIndex:
         exp = Index([x.ordinal for x in index])
         tm.assert_index_equal(result, exp)
 
-    def test_format_empty(self):
-        # GH35712
-        empty_idx = PeriodIndex([], freq="Y")
-        msg = r"PeriodIndex\.format is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format() == []
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            assert empty_idx.format(name=True) == [""]
-
     def test_period_index_frequency_ME_error_message(self):
         msg = "Invalid frequency: 2ME"
 
@@ -306,6 +297,14 @@ class TestPeriodIndex:
             index = period_range(freq=freq, start="1/1/2001", end="12/1/2009")
         series = Series(1, index=index)
         assert isinstance(series, Series)
+
+    @pytest.mark.parametrize("freq_depr", ["2ME", "2QE"])
+    def test_period_index_frequency_error_message(self, freq_depr):
+        # GH#9586
+        msg = f"Invalid frequency: {freq_depr}"
+
+        with pytest.raises(ValueError, match=msg):
+            period_range("2020-01", "2020-05", freq=freq_depr)
 
 
 def test_maybe_convert_timedelta():

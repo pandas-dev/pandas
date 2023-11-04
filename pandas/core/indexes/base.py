@@ -127,6 +127,7 @@ from pandas.core.dtypes.generic import (
     ABCIntervalIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
+    ABCRangeIndex,
     ABCSeries,
     ABCTimedeltaIndex,
 )
@@ -324,12 +325,12 @@ class Index(IndexOpsMixin, PandasObject):
     Parameters
     ----------
     data : array-like (1-dimensional)
-    dtype : NumPy dtype (default: object)
-        If dtype is None, we find the dtype that best fits the data.
-        If an actual dtype is provided, we coerce to that dtype if it's safe.
-        Otherwise, an error will be raised.
-    copy : bool
-        Make a copy of input ndarray.
+    dtype : str, numpy.dtype, or ExtensionDtype, optional
+        Data type for the output Index. If not specified, this will be
+        inferred from `data`.
+        See the :ref:`user guide <basics.dtypes>` for more usages.
+    copy : bool, default False
+        Copy input data.
     name : object
         Name to be stored in the index.
     tupleize_cols : bool (default: True)
@@ -998,17 +999,14 @@ class Index(IndexOpsMixin, PandasObject):
                 dtype = pandas_dtype(cls)
 
             if needs_i8_conversion(dtype):
-                if dtype.kind == "m" and dtype != "m8[ns]":
-                    # e.g. m8[s]
-                    return self._data.view(cls)
-
                 idx_cls = self._dtype_to_subclass(dtype)
-                # NB: we only get here for subclasses that override
-                #  _data_cls such that it is a type and not a tuple
-                #  of types.
-                arr_cls = idx_cls._data_cls
-                arr = arr_cls(self._data.view("i8"), dtype=dtype)
-                return idx_cls._simple_new(arr, name=self.name, refs=self._references)
+                arr = self.array.view(dtype)
+                if isinstance(arr, ExtensionArray):
+                    # here we exclude non-supported dt64/td64 dtypes
+                    return idx_cls._simple_new(
+                        arr, name=self.name, refs=self._references
+                    )
+                return arr
 
             result = self._data.view(cls)
         else:
@@ -1292,11 +1290,6 @@ class Index(IndexOpsMixin, PandasObject):
         attrs_str = [f"{k}={v}" for k, v in attrs]
         prepr = ", ".join(attrs_str)
 
-        # no data provided, just attributes
-        if data is None:
-            # i.e. RangeIndex
-            data = ""
-
         return f"{klass_name}({data}{prepr})"
 
     @property
@@ -1306,6 +1299,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return default_pprint
 
+    @final
     def _format_data(self, name=None) -> str_t:
         """
         Return the formatted data as a unicode string.
@@ -1319,6 +1313,9 @@ class Index(IndexOpsMixin, PandasObject):
             self = cast("CategoricalIndex", self)
             if is_object_dtype(self.categories.dtype):
                 is_justify = False
+        elif isinstance(self, ABCRangeIndex):
+            # We will do the relevant formatting via attrs
+            return ""
 
         return format_object_summary(
             self,
@@ -6961,6 +6958,7 @@ class Index(IndexOpsMixin, PandasObject):
             indexer = indexer[~mask]
         return self.delete(indexer)
 
+    @final
     def infer_objects(self, copy: bool = True) -> Index:
         """
         If we have an object dtype, try to infer a non-object dtype.
@@ -6992,7 +6990,8 @@ class Index(IndexOpsMixin, PandasObject):
             result._references.add_index_reference(result)
         return result
 
-    def diff(self, periods: int = 1) -> Self:
+    @final
+    def diff(self, periods: int = 1) -> Index:
         """
         Computes the difference between consecutive values in the Index object.
 
@@ -7018,8 +7017,9 @@ class Index(IndexOpsMixin, PandasObject):
         Index([nan, 10.0, 10.0, 10.0, 10.0], dtype='float64')
 
         """
-        return self._constructor(self.to_series().diff(periods))
+        return Index(self.to_series().diff(periods))
 
+    @final
     def round(self, decimals: int = 0) -> Self:
         """
         Round each value in the Index to the given number of decimals.

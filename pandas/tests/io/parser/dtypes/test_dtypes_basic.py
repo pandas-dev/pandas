@@ -22,6 +22,10 @@ from pandas.core.arrays import (
     StringArray,
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 
 @pytest.mark.parametrize("dtype", [str, object])
 @pytest.mark.parametrize("check_orig", [True, False])
@@ -234,7 +238,7 @@ def decimal_number_check(request, parser, numeric_decimal, thousands, float_prec
     # GH#31920
     value = numeric_decimal[0]
     if thousands is None and value in ("1_,", "1_234,56", "1_234,56e0"):
-        request.node.add_marker(
+        request.applymarker(
             pytest.mark.xfail(reason=f"thousands={thousands} and sep is in {value}")
         )
     df = parser.read_csv(

@@ -174,7 +174,7 @@ def skip_numpy_object(dtype, request):
     """
     if dtype == "object":
         mark = pytest.mark.xfail(reason="Fails for object dtype")
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
 
 skip_nested = pytest.mark.usefixtures("skip_numpy_object")
@@ -203,7 +203,7 @@ class TestConstructors(BaseNumPyTests, base.BaseConstructorsTests):
 class TestDtype(BaseNumPyTests, base.BaseDtypeTests):
     def test_check_dtype(self, data, request):
         if data.dtype.numpy_dtype == "object":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(
                     reason=f"NumpyExtensionArray expectedly clashes with a "
                     f"NumPy name: {data.dtype.numpy_dtype}"
@@ -266,7 +266,7 @@ class TestMethods(BaseNumPyTests, base.BaseMethodsTests):
     def test_insert(self, data, request):
         if data.dtype.numpy_dtype == object:
             mark = pytest.mark.xfail(reason="Dimension mismatch in np.concatenate")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         super().test_insert(data)
 
@@ -331,7 +331,9 @@ class TestArithmetics(BaseNumPyTests, base.BaseArithmeticOpsTests):
         opname = all_arithmetic_operators
         if data.dtype.numpy_dtype == object and opname not in ["__add__", "__radd__"]:
             mark = pytest.mark.xfail(reason="Fails for object dtype")
+            # TODO: check that we shouldn't use applymarker here instead
             request.node.add_marker(mark)
+        # TODO: check that the request=request parameter is needed
         super().test_arith_series_with_array(
             data, all_arithmetic_operators, request=request
         )
