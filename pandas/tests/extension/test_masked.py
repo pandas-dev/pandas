@@ -280,7 +280,7 @@ class TestMaskedArrays(base.ExtensionTests):
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
-    def _get_expected_reduction_dtype(self, arr, op_name: str):
+    def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         if tm.is_float_dtype(arr.dtype):
             cmp_dtype = arr.dtype.name
         elif op_name in ["mean", "median", "var", "std", "skew"]:
@@ -290,16 +290,32 @@ class TestMaskedArrays(base.ExtensionTests):
         elif arr.dtype in ["Int64", "UInt64"]:
             cmp_dtype = arr.dtype.name
         elif tm.is_signed_integer_dtype(arr.dtype):
-            cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
+            # TODO: Why does Window Numpy 2.0 dtype depend on skipna?
+            cmp_dtype = (
+                "Int32"
+                if (is_platform_windows() and (not np_version_gt2 or not skipna))
+                or not IS64
+                else "Int64"
+            )
         elif tm.is_unsigned_integer_dtype(arr.dtype):
-            cmp_dtype = "UInt32" if is_windows_or_32bit else "UInt64"
+            cmp_dtype = (
+                "UInt32"
+                if (is_platform_windows() and (not np_version_gt2 or not skipna))
+                or not IS64
+                else "UInt64"
+            )
         elif arr.dtype.kind == "b":
             if op_name in ["mean", "median", "var", "std", "skew"]:
                 cmp_dtype = "Float64"
             elif op_name in ["min", "max"]:
                 cmp_dtype = "boolean"
             elif op_name in ["sum", "prod"]:
-                cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
+                cmp_dtype = (
+                    "Int32"
+                    if (is_platform_windows() and (not np_version_gt2 or not skipna))
+                    or not IS64
+                    else "Int64"
+                )
             else:
                 raise TypeError("not supposed to reach this")
         else:
