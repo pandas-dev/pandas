@@ -209,7 +209,7 @@ class TestBase:
             1 // idx
 
     def test_logical_compat(self, simple_index):
-        if simple_index.dtype == object:
+        if simple_index.dtype in (object, "string"):
             pytest.skip("Tested elsewhere.")
         idx = simple_index
         if idx.dtype.kind in "iufcbm":
@@ -295,7 +295,7 @@ class TestBase:
                 tm.assert_numpy_array_equal(
                     index._values._ndarray, result._values._ndarray, check_same="same"
                 )
-            elif index.dtype == "string[pyarrow]":
+            elif index.dtype in ("string[pyarrow]", "string[pyarrow_numpy]"):
                 assert tm.shares_memory(result._values, index._values)
             else:
                 raise NotImplementedError(index.dtype)

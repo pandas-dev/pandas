@@ -836,9 +836,12 @@ class TestIndex:
         result = index.isin(values)
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_isin_nan_common_object(self, nulls_fixture, nulls_fixture2):
+    def test_isin_nan_common_object(
+        self, nulls_fixture, nulls_fixture2, using_infer_string
+    ):
         # Test cartesian product of null fixtures and ensure that we don't
         # mangle the various types (save a corner case with PyPy)
+        idx = Index(["a", nulls_fixture])
 
         # all nans are the same
         if (
@@ -848,19 +851,25 @@ class TestIndex:
             and math.isnan(nulls_fixture2)
         ):
             tm.assert_numpy_array_equal(
-                Index(["a", nulls_fixture]).isin([nulls_fixture2]),
+                idx.isin([nulls_fixture2]),
                 np.array([False, True]),
             )
 
         elif nulls_fixture is nulls_fixture2:  # should preserve NA type
             tm.assert_numpy_array_equal(
-                Index(["a", nulls_fixture]).isin([nulls_fixture2]),
+                idx.isin([nulls_fixture2]),
+                np.array([False, True]),
+            )
+
+        elif using_infer_string and idx.dtype == "string":
+            tm.assert_numpy_array_equal(
+                idx.isin([nulls_fixture2]),
                 np.array([False, True]),
             )
 
         else:
             tm.assert_numpy_array_equal(
-                Index(["a", nulls_fixture]).isin([nulls_fixture2]),
+                idx.isin([nulls_fixture2]),
                 np.array([False, False]),
             )
 
@@ -1136,7 +1145,7 @@ class TestIndex:
     def test_reindex_preserves_type_if_target_is_empty_list_or_array(self, labels):
         # GH7774
         index = Index(list("abc"))
-        assert index.reindex(labels)[0].dtype.type == np.object_
+        assert index.reindex(labels)[0].dtype.type == index.dtype.type
 
     @pytest.mark.parametrize(
         "labels,dtype",
