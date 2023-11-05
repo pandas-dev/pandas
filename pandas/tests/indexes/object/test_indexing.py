@@ -183,6 +183,17 @@ class TestSliceLocs:
         expected = Index(list(expected), dtype=dtype)
         tm.assert_index_equal(result, expected)
 
+    @td.skip_if_no("pyarrow")
+    def test_slice_locs_negative_step_oob(self):
+        index = Index(list("bcdxy"), dtype="string[pyarrow_numpy]")
+
+        result = index[-10:5:1]
+        tm.assert_index_equal(result, index)
+
+        result = index[4:-10:-1]
+        expected = Index(list("yxdcb"), dtype="string[pyarrow_numpy]")
+        tm.assert_index_equal(result, expected)
+
     def test_slice_locs_dup(self):
         index = Index(["a", "a", "b", "c", "d", "d"])
         assert index.slice_locs("a", "d") == (0, 6)
