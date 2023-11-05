@@ -556,9 +556,9 @@ class ArrowExtensionArray(
         if isinstance(item, slice):
             if item.start == item.stop:
                 pass
-            elif item.start <= -len(self) - 1:
+            elif item.start < -len(self):
                 item = slice(None, item.stop, item.step)
-            elif item.stop <= -len(self) - 1:
+            elif item.stop < -len(self):
                 item = slice(item.start, None, item.step)
 
         value = self._pa_array[item]
