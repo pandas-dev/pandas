@@ -29,6 +29,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
+from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.fields import (
     get_timedelta_days,
     get_timedelta_field,
@@ -205,8 +206,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     @classmethod
     def _validate_dtype(cls, values, dtype):
         # used in TimeLikeOps.__init__
-        _validate_td64_dtype(values.dtype)
         dtype = _validate_td64_dtype(dtype)
+        _validate_td64_dtype(values.dtype)
+        if dtype != values.dtype:
+            raise ValueError("Values resolution does not match dtype.")
         return dtype
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
@@ -1076,7 +1079,7 @@ def sequence_to_td64ns(
         else:
             mask = np.isnan(data)
         # The next few lines are effectively a vectorized 'cast_from_unit'
-        m, p = precision_from_unit(unit or "ns")
+        m, p = precision_from_unit(abbrev_to_npy_unit(unit or "ns"))
         with warnings.catch_warnings():
             # Suppress RuntimeWarning about All-NaN slice
             warnings.filterwarnings(
@@ -1202,11 +1205,9 @@ def _validate_td64_dtype(dtype) -> DtypeObj:
         )
         raise ValueError(msg)
 
-    if (
-        not isinstance(dtype, np.dtype)
-        or dtype.kind != "m"
-        or not is_supported_unit(get_unit_from_dtype(dtype))
-    ):
-        raise ValueError(f"dtype {dtype} cannot be converted to timedelta64[ns]")
+    if not lib.is_np_dtype(dtype, "m"):
+        raise ValueError(f"dtype '{dtype}' is invalid, should be np.timedelta64 dtype")
+    elif not is_supported_unit(get_unit_from_dtype(dtype)):
+        raise ValueError("Supported timedelta64 resolutions are 's', 'ms', 'us', 'ns'")
 
     return dtype

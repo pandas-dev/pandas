@@ -137,11 +137,24 @@ jobs:
         shell: bash -el {0}
         run: echo "sdist_name=$(cd ./dist && ls -d */)" >> "$GITHUB_ENV"
 
-      - name: Build wheels
+      - name: Build normal wheels
+        if: ${{ (env.IS_SCHEDULE_DISPATCH != 'true' || env.IS_PUSH == 'true') }}
         uses: pypa/cibuildwheel@v2.16.2
         with:
          package-dir: ./dist/${{ matrix.buildplat[1] == 'macosx_*' && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
         env:
+          CIBW_PRERELEASE_PYTHONS: True
+          CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
+
+      - name: Build nightly wheels (with NumPy pre-release)
+        if: ${{ (env.IS_SCHEDULE_DISPATCH == 'true' && env.IS_PUSH != 'true') }}
+        uses: pypa/cibuildwheel@v2.16.2
+        with:
+         package-dir: ./dist/${{ matrix.buildplat[1] == 'macosx_*' && env.sdist_name || needs.build_sdist.outputs.sdist_file }}
+        env:
+          # The nightly wheels should be build witht he NumPy 2.0 pre-releases
+          # which requires the additional URL.
+          CIBW_ENVIRONMENT: PIP_EXTRA_INDEX_URL=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple
           CIBW_PRERELEASE_PYTHONS: True
           CIBW_BUILD: ${{ matrix.python[0] }}-${{ matrix.buildplat[1] }}
 
