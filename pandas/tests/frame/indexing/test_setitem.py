@@ -868,8 +868,6 @@ class TestDataFrameSetItemWithExpansion:
 
         # setting with a Categorical
         df["D"] = cat
-        str(df)
-
         result = df.dtypes
         expected = Series(
             [np.dtype("int32"), CategoricalDtype(categories=labels, ordered=False)],
@@ -879,8 +877,6 @@ class TestDataFrameSetItemWithExpansion:
 
         # setting with a Series
         df["E"] = ser
-        str(df)
-
         result = df.dtypes
         expected = Series(
             [

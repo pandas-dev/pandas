@@ -689,8 +689,6 @@ class TestFrameFlexArithmetic:
         df.columns = ["A", "A"]
         result = getattr(df, op)(df)
         tm.assert_frame_equal(result, expected)
-        str(result)
-        result.dtypes
 
     @pytest.mark.parametrize("level", [0, None])
     def test_broadcast_multiindex(self, level):
