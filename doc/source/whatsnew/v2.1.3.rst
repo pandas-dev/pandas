@@ -22,7 +22,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`DatetimeIndex.diff` raising ``TypeError`` (:issue:`55080`)
--
+- Bug in :meth:`Index.__getitem__` returning wrong result for Arrow dtypes and negative stepsize (:issue:`55832`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_213.other:
