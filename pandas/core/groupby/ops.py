@@ -771,7 +771,7 @@ class BaseGrouper:
         codes_and_uniques = [ping._codes_and_uniques for ping in self.groupings]
 
         codes = [e[0] for e in codes_and_uniques]
-        levels = [e[1] for e in codes_and_uniques]
+        levels = [Index._with_infer(e[1]) for e in codes_and_uniques]
         # TODO: Modify in Grouping.groups instead?
         for k, (ping, level) in enumerate(zip(self.groupings, levels)):
             if ping._passed_categorical:

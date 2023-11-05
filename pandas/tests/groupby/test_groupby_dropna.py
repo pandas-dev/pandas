@@ -494,7 +494,7 @@ def test_null_is_null_for_dtype(
     obj = df["a"] if test_series else df
     gb = obj.groupby(groups, dropna=False, sort=sort)
     result = gb.sum()
-    index = pd.Index([na_value_for_dtype(groups.dtype)], dtype=groups.dtype)
+    index = pd.Index([na_value_for_dtype(groups.dtype)])
     expected = pd.DataFrame({"a": [3]}, index=index)
     if test_series:
         tm.assert_series_equal(result, expected["a"])

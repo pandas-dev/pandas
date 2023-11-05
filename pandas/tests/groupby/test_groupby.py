@@ -141,7 +141,7 @@ def test_groupby_nonobject_dtype(mframe, df_mixed_floats):
 
     expected = mframe.groupby(key.astype("O")).sum()
     assert result.index.dtype == np.int8
-    assert expected.index.dtype == object
+    assert expected.index.dtype == np.int64
     tm.assert_frame_equal(result, expected, check_index_type=False)
 
     # GH 3911, mixed frame non-conversion
