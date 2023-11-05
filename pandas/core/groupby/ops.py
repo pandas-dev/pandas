@@ -766,7 +766,7 @@ class BaseGrouper:
 
         codes_and_uniques = [ping._codes_and_uniques for ping in self.groupings]
 
-        codes = [e[0].astype("intp", copy=False) for e in codes_and_uniques]
+        codes = [e[0] for e in codes_and_uniques]
         levels = [Index._with_infer(e[1]) for e in codes_and_uniques]
         for k, (ping, level) in enumerate(zip(self.groupings, levels)):
             if ping._passed_categorical:
@@ -810,6 +810,7 @@ class BaseGrouper:
 
             shape = tuple(len(level) for level in unob_levels)
             unob_ids = get_group_index(unob_codes, shape, sort=True, xnull=True)
+            unob_ids = ensure_platform_int(unob_ids)
 
             unob_index = MultiIndex.from_product(unob_levels, names=unob_names)
 
