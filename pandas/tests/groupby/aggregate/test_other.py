@@ -513,8 +513,8 @@ def test_agg_timezone_round_trip():
 
 
 def test_sum_uint64_overflow():
-    # see gh-14758
-    # Convert to uint64 and don't overflow
+    # GH#14758
+    # Don't coerce object to more specific dtype
     df = DataFrame([[1, 2], [3, 4], [5, 6]], dtype=object)
     df = df + 9223372036854775807
 

@@ -579,8 +579,6 @@ class BaseGrouper:
         groupings: Sequence[grouper.Grouping],
         sort: bool = True,
         dropna: bool = True,
-        # TODO: Is this still needed?
-        observed: bool = True,
     ) -> None:
         assert isinstance(axis, Index), axis
 
@@ -588,7 +586,6 @@ class BaseGrouper:
         self._groupings: list[grouper.Grouping] = list(groupings)
         self._sort = sort
         self.dropna = dropna
-        self.observed = observed
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
@@ -772,9 +769,9 @@ class BaseGrouper:
 
         codes = [e[0] for e in codes_and_uniques]
         levels = [Index._with_infer(e[1]) for e in codes_and_uniques]
-        # TODO: Modify in Grouping.groups instead?
         for k, (ping, level) in enumerate(zip(self.groupings, levels)):
             if ping._passed_categorical:
+                # TODO: Modify in Grouping.groups instead?
                 # set_categories is dynamically added
                 levels[k] = level.set_categories(  # type: ignore[union-attr]
                     ping._orig_cats
@@ -859,7 +856,6 @@ class BaseGrouper:
 
         return result_index, ids
 
-    # TODO: How is this different from .levels?
     @final
     def get_group_levels(self) -> list[Index]:
         # Note: only called from _insert_inaxis_grouper, which

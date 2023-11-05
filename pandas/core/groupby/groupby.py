@@ -4439,13 +4439,13 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             pass_qs = None
 
         ids, ngroups = self.grouper.group_info
-        # TODO: Is this hit?
-        ids = ids[ids >= 0]
+        if self.dropna:
+            ids = ids[ids >= 0]
         nqs = len(qs)
 
         func = partial(
             libgroupby.group_quantile,
-            labels=ids[ids >= 0],
+            labels=ids,
             qs=qs,
             interpolation=interpolation,
             starts=starts,
