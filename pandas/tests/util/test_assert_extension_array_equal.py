@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
 
-from pandas import array, Timestamp
+from pandas import (
+    Timestamp,
+    array,
+)
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
 
