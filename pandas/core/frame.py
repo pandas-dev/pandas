@@ -8860,8 +8860,8 @@ class DataFrame(NDFrame, OpsMixin):
         indexes_intersection = self.index.intersection(other.index)
 
         for col in self.columns.intersection(other.columns):
-            this = self.loc[indexes_intersection, col]
-            that = other.loc[indexes_intersection, col]
+            this = self.loc[indexes_intersection, col]._values
+            that = other.loc[indexes_intersection, col]._values
 
             if filter_func is not None:
                 mask = ~filter_func(this) | isna(that)
