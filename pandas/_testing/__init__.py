@@ -1019,6 +1019,17 @@ def iat(x):
 
 # -----------------------------------------------------------------------------
 
+_UNITS = ["s", "ms", "us", "ns"]
+
+
+def get_finest_unit(left: str, right: str):
+    """
+    Find the higher of two datetime64 units.
+    """
+    if _UNITS.index(left) >= _UNITS.index(right):
+        return left
+    return right
+
 
 def shares_memory(left, right) -> bool:
     """
@@ -1121,6 +1132,7 @@ __all__ = [
     "getitem",
     "get_locales",
     "getMixedTypeDict",
+    "get_finest_unit",
     "get_obj",
     "get_op_from_name",
     "getPeriodData",

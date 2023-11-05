@@ -1247,6 +1247,21 @@ class TestTimeSeries:
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
 
+    def test_dti_constructor_object_dtype_dayfirst_yearfirst_with_tz(self):
+        # GH#55813
+        val = "5/10/16"
+
+        dfirst = Timestamp(2016, 10, 5, tz="US/Pacific")
+        yfirst = Timestamp(2005, 10, 16, tz="US/Pacific")
+
+        result1 = DatetimeIndex([val], tz="US/Pacific", dayfirst=True)
+        expected1 = DatetimeIndex([dfirst])
+        tm.assert_index_equal(result1, expected1)
+
+        result2 = DatetimeIndex([val], tz="US/Pacific", yearfirst=True)
+        expected2 = DatetimeIndex([yfirst])
+        tm.assert_index_equal(result2, expected2)
+
     def test_pass_datetimeindex_to_index(self):
         # Bugs in #1396
         rng = date_range("1/1/2000", "3/1/2000")
