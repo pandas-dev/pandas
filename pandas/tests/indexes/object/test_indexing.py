@@ -172,7 +172,7 @@ class TestSliceLocs:
 
         s_start, s_stop = index.slice_locs(in_slice.start, in_slice.stop, in_slice.step)
         result = index[s_start : s_stop : in_slice.step]
-        expected = Index(list(expected))
+        expected = Index(list(expected), dtype=result.dtype)
         tm.assert_index_equal(result, expected)
 
     def test_slice_locs_dup(self):

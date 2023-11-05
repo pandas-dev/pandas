@@ -691,7 +691,7 @@ class TestBase:
             pytest.skip("See test_map.py")
         idx = simple_index
         result = idx.map(str)
-        expected = Index([str(x) for x in idx], dtype=object)
+        expected = Index([str(x) for x in idx])
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("copy", [True, False])
@@ -827,7 +827,7 @@ class TestBase:
         alt = index.take(list(range(N)) * 2)
         tm.assert_index_equal(result, alt, check_exact=True)
 
-    def test_inv(self, simple_index):
+    def test_inv(self, simple_index, using_infer_string):
         idx = simple_index
 
         if idx.dtype.kind in ["i", "u"]:
@@ -840,14 +840,21 @@ class TestBase:
             tm.assert_series_equal(res2, Series(expected))
         else:
             if idx.dtype.kind == "f":
+                err = TypeError
                 msg = "ufunc 'invert' not supported for the input types"
+            elif using_infer_string and idx.dtype == "string":
+                import pyarrow as pa
+
+                err = pa.lib.ArrowNotImplementedError
+                msg = "has no kernel"
             else:
+                err = TypeError
                 msg = "bad operand"
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(err, match=msg):
                 ~idx
 
             # check that we get the same behavior with Series
-            with pytest.raises(TypeError, match=msg):
+            with pytest.raises(err, match=msg):
                 ~Series(idx)
 
     def test_is_boolean_is_deprecated(self, simple_index):
