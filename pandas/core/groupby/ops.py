@@ -772,10 +772,7 @@ class BaseGrouper:
         for k, (ping, level) in enumerate(zip(self.groupings, levels)):
             if ping._passed_categorical:
                 # TODO: Modify in Grouping.groups instead?
-                # set_categories is dynamically added
-                levels[k] = level.set_categories(  # type: ignore[union-attr]
-                    ping._orig_cats
-                )
+                levels[k] = level.set_categories(ping._orig_cats)
         names = self.names
 
         obs = [
@@ -784,10 +781,7 @@ class BaseGrouper:
 
         if len(self.groupings) == 1:
             result_index: AnyArrayLike = levels[0]
-            if not isinstance(result_index, Index):
-                result_index = Index(levels[0], name=names[0])
-            else:
-                result_index.name = names[0]
+            result_index.name = names[0]
             ids = codes[0].astype("intp")
             return result_index, ids
         elif any(obs):

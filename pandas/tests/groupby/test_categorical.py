@@ -1466,7 +1466,6 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
 
     missing_fillin = _results_for_groupbys_with_missing_categories[reduction_func]
 
-    # TODO: Clean this up.. zero_or_nan can be bool and 1
     for idx in unobserved:
         val = result.loc[idx]
         assert (pd.isna(missing_fillin) and pd.isna(val)) or (val == missing_fillin)
@@ -1479,7 +1478,7 @@ def test_series_groupby_on_2_categoricals_unobserved_zeroes_or_nans(
         if reduction_func in ["count", "nunique", "size"]:
             assert np.issubdtype(result.dtype, np.integer)
         else:
-            assert reduction_func in ["sum", "any", "all"]
+            assert reduction_func in ["sum", "any"]
 
 
 def test_dataframe_groupby_on_2_categoricals_when_observed_is_true(reduction_func):
