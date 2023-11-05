@@ -24,7 +24,6 @@ from pandas._libs import (
 )
 import pandas._libs.groupby as libgroupby
 from pandas._typing import (
-    AnyArrayLike,
     ArrayLike,
     AxisInt,
     NDFrameT,
@@ -767,7 +766,7 @@ class BaseGrouper:
 
         codes_and_uniques = [ping._codes_and_uniques for ping in self.groupings]
 
-        codes = [e[0] for e in codes_and_uniques]
+        codes = [e[0].astype("intp", copy=False) for e in codes_and_uniques]
         levels = [Index._with_infer(e[1]) for e in codes_and_uniques]
         for k, (ping, level) in enumerate(zip(self.groupings, levels)):
             if ping._passed_categorical:
@@ -780,9 +779,9 @@ class BaseGrouper:
         ]
 
         if len(self.groupings) == 1:
-            result_index: AnyArrayLike = levels[0]
+            result_index = levels[0]
             result_index.name = names[0]
-            ids = codes[0].astype("intp")
+            ids = codes[0]
             return result_index, ids
         elif any(obs):
             ob_codes = [e for e, o in zip(codes, obs) if o]
