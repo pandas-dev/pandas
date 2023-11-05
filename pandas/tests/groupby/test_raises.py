@@ -543,7 +543,6 @@ def test_groupby_raises_category_np(
 
 @pytest.mark.parametrize("how", ["method", "agg", "transform"])
 def test_groupby_raises_category_on_category(
-    request,
     how,
     by,
     groupby_series,

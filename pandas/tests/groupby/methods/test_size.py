@@ -42,14 +42,12 @@ def test_size_axis_1(df, axis_1, by, sort, dropna):
         expected = expected.sort_index()
     if is_integer_dtype(expected.index.dtype) and not any(x is None for x in by):
         expected.index = expected.index.astype(int)
-    if any(x is None for x in by):
-        expected.index = expected.index.astype(object)
+
     msg = "DataFrame.groupby with axis=1 is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
         grouped = df.groupby(by=by, axis=axis_1, sort=sort, dropna=dropna)
     result = grouped.size()
-    # TODO: Comes through as int-nan; expects float-nan
-    tm.assert_series_equal(result, expected, check_index_type=False)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("by", ["A", "B", ["A", "B"]])
