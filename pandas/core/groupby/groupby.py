@@ -4440,6 +4440,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
         ids, ngroups = self.grouper.group_info
         if self.dropna:
+            # splitter drops NA groups, we need to do the same
             ids = ids[ids >= 0]
         nqs = len(qs)
 

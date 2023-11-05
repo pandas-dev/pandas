@@ -717,8 +717,6 @@ def crosstab(
         margins=margins,
         margins_name=margins_name,
         dropna=dropna,
-        # TODO: Not sure if this is okay
-        observed=dropna,
         **kwargs,  # type: ignore[arg-type]
     )
 

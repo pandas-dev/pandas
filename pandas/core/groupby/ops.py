@@ -998,10 +998,11 @@ class BaseGrouper:
     # Methods for sorting subsets of our GroupBy's object
 
     @final
-    @property
+    @cache_readonly
     def _sorted_ids(self) -> npt.NDArray[np.intp]:
         result = self.ids.take(self.result_ilocs)
         if getattr(self, "dropna", True):
+            # BinGrouper has no dropna
             result = result[result >= 0]
         return result
 
