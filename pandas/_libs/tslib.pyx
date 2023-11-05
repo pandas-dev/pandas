@@ -693,6 +693,8 @@ def array_to_datetime_with_tz(
         object item
         int64_t ival
         _TSObject tsobj
+        bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
+        DatetimeParseState state = DatetimeParseState(creso)
 
     for i in range(n):
         # Analogous to `item = values[i]`
@@ -707,6 +709,9 @@ def array_to_datetime_with_tz(
                 item, tz=tz, unit="ns", dayfirst=dayfirst, yearfirst=yearfirst, nanos=0
             )
             if tsobj.value != NPY_NAT:
+                state.update_creso(tsobj.creso)
+                if infer_reso:
+                    creso = state.creso
                 tsobj.ensure_reso(creso, item, round_ok=True)
             ival = tsobj.value
 
@@ -715,4 +720,20 @@ def array_to_datetime_with_tz(
 
         cnp.PyArray_MultiIter_NEXT(mi)
 
+    if infer_reso:
+        if state.creso_ever_changed:
+            # We encountered mismatched resolutions, need to re-parse with
+            #  the correct one.
+            return array_to_datetime_with_tz(values, tz=tz, creso=creso)
+
+        # Otherwise we can use the single reso that we encountered and avoid
+        #  a second pass.
+        abbrev = npy_unit_to_abbrev(creso)
+        result = result.view(f"M8[{abbrev}]")
+    elif creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
+        # We didn't find any non-NaT to infer from, default to "ns"
+        result = result.view("M8[ns]")
+    else:
+        abbrev = npy_unit_to_abbrev(creso)
+        result = result.view(f"M8[{abbrev}]")
     return result
