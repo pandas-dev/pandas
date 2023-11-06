@@ -150,7 +150,7 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
     def __new__(
         cls,
         data=None,
-        unit=None,
+        unit=lib.no_default,
         freq=lib.no_default,
         closed=lib.no_default,
         dtype=None,
@@ -165,6 +165,18 @@ class TimedeltaIndex(DatetimeTimedeltaMixin):
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
+
+        if unit is not lib.no_default:
+            # GH#55499
+            warnings.warn(
+                f"The 'unit' keyword in {cls.__name__} construction is "
+                "deprecated and will be removed in a future version. "
+                "Use pd.to_timedelta instead.",
+                FutureWarning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            unit = None
 
         name = maybe_extract_name(name, data, cls)
 

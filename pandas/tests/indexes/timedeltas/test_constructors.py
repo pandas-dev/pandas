@@ -39,8 +39,10 @@ class TestTimedeltaIndex:
     @pytest.mark.parametrize("unit", ["Y", "y", "M"])
     def test_unit_m_y_raises(self, unit):
         msg = "Units 'M', 'Y', and 'y' are no longer supported"
+        depr_msg = "The 'unit' keyword in TimedeltaIndex construction is deprecated"
         with pytest.raises(ValueError, match=msg):
-            TimedeltaIndex([1, 3, 7], unit)
+            with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+                TimedeltaIndex([1, 3, 7], unit)
 
     def test_int64_nocopy(self):
         # GH#23539 check that a copy isn't made when we pass int64 data
@@ -120,7 +122,7 @@ class TestTimedeltaIndex:
 
     def test_float64_unit_conversion(self):
         # GH#23539
-        tdi = TimedeltaIndex([1.5, 2.25], unit="D")
+        tdi = to_timedelta([1.5, 2.25], unit="D")
         expected = TimedeltaIndex([Timedelta(days=1.5), Timedelta(days=2.25)])
         tm.assert_index_equal(tdi, expected)
 
@@ -133,6 +135,9 @@ class TestTimedeltaIndex:
         tm.assert_index_equal(pd.Index(arr), TimedeltaIndex(arr))
         tm.assert_index_equal(pd.Index(np.array(arr)), TimedeltaIndex(np.array(arr)))
 
+    @pytest.mark.filterwarnings(
+        "ignore:The 'unit' keyword in TimedeltaIndex construction:FutureWarning"
+    )
     def test_constructor(self):
         expected = TimedeltaIndex(
             [
@@ -157,15 +162,18 @@ class TestTimedeltaIndex:
         expected = TimedeltaIndex(
             ["0 days 00:00:00", "0 days 00:00:01", "0 days 00:00:02"]
         )
-        tm.assert_index_equal(TimedeltaIndex(range(3), unit="s"), expected)
+        result = TimedeltaIndex(range(3), unit="s")
+        tm.assert_index_equal(result, expected)
         expected = TimedeltaIndex(
             ["0 days 00:00:00", "0 days 00:00:05", "0 days 00:00:09"]
         )
-        tm.assert_index_equal(TimedeltaIndex([0, 5, 9], unit="s"), expected)
+        result = TimedeltaIndex([0, 5, 9], unit="s")
+        tm.assert_index_equal(result, expected)
         expected = TimedeltaIndex(
             ["0 days 00:00:00.400", "0 days 00:00:00.450", "0 days 00:00:01.200"]
         )
-        tm.assert_index_equal(TimedeltaIndex([400, 450, 1200], unit="ms"), expected)
+        result = TimedeltaIndex([400, 450, 1200], unit="ms")
+        tm.assert_index_equal(result, expected)
 
     def test_constructor_iso(self):
         # GH #21877
