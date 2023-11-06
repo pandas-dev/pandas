@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_sequence,
     is_signed_integer_dtype,
+    is_string_dtype,
     is_unsigned_integer_dtype,
     pandas_dtype,
 )
@@ -1055,10 +1056,18 @@ def shares_memory(left, right) -> bool:
     if isinstance(left, pd.core.arrays.IntervalArray):
         return shares_memory(left._left, right) or shares_memory(left._right, right)
 
-    if isinstance(left, ExtensionArray) and left.dtype == "string[pyarrow]":
+    if (
+        isinstance(left, ExtensionArray)
+        and is_string_dtype(left.dtype)
+        and left.dtype.storage in ("pyarrow", "pyarrow_numpy")  # type: ignore[attr-defined]  # noqa: E501
+    ):
         # https://github.com/pandas-dev/pandas/pull/43930#discussion_r736862669
         left = cast("ArrowExtensionArray", left)
-        if isinstance(right, ExtensionArray) and right.dtype == "string[pyarrow]":
+        if (
+            isinstance(right, ExtensionArray)
+            and is_string_dtype(right.dtype)
+            and right.dtype.storage in ("pyarrow", "pyarrow_numpy")  # type: ignore[attr-defined]  # noqa: E501
+        ):
             right = cast("ArrowExtensionArray", right)
             left_pa_data = left._pa_array
             right_pa_data = right._pa_array
