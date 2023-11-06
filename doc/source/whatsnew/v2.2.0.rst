@@ -324,8 +324,10 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
 - Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`)
 - Performance improvement in :meth:`Index.difference` (:issue:`55108`)
+- Performance improvement in :meth:`MultiIndex.get_indexer` when ``method`` is not ``None`` (:issue:`55839`)
 - Performance improvement in :meth:`Series.duplicated` for pyarrow dtypes (:issue:`55255`)
 - Performance improvement in :meth:`SeriesGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`DataFrameGroupBy.idxmin` (:issue:`54234`)
+- Performance improvement when indexing into a non-unique index (:issue:`55816`)
 - Performance improvement when indexing with more than 4 keys (:issue:`54550`)
 - Performance improvement when localizing time to UTC (:issue:`55241`)
 
@@ -346,6 +348,7 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` construction when passing both a ``tz`` and either ``dayfirst`` or ``yearfirst`` ignoring dayfirst/yearfirst (:issue:`55813`)
 - Bug in :class:`DatetimeIndex` when passing an object-dtype ndarray of float objects and a ``tz`` incorrectly localizing the result (:issue:`55780`)
 - Bug in :func:`concat` raising ``AttributeError`` when concatenating all-NA DataFrame with :class:`DatetimeTZDtype` dtype DataFrame. (:issue:`52093`)
+- Bug in :func:`testing.assert_extension_array_equal` that could use the wrong unit when comparing resolutions (:issue:`55730`)
 - Bug in :func:`to_datetime` and :class:`DatetimeIndex` when passing a list of mixed-string-and-numeric types incorrectly raising (:issue:`55780`)
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
 - Bug in :meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` always caching :meth:`Index.is_unique` as ``True`` when first value in index is ``NaT`` (:issue:`55755`)
