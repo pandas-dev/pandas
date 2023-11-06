@@ -1696,8 +1696,8 @@ class TestDatetime64OverflowHandling:
         tm.assert_series_equal(res, -expected)
 
     def test_datetimeindex_sub_timestamp_overflow(self):
-        dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max])
-        dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min])
+        dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max]).as_unit("ns")
+        dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min]).as_unit("ns")
 
         tsneg = Timestamp("1950-01-01").as_unit("ns")
         ts_neg_variants = [
@@ -1735,11 +1735,11 @@ class TestDatetime64OverflowHandling:
 
     def test_datetimeindex_sub_datetimeindex_overflow(self):
         # GH#22492, GH#22508
-        dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max])
-        dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min])
+        dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max]).as_unit("ns")
+        dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min]).as_unit("ns")
 
-        ts_neg = pd.to_datetime(["1950-01-01", "1950-01-01"])
-        ts_pos = pd.to_datetime(["1980-01-01", "1980-01-01"])
+        ts_neg = pd.to_datetime(["1950-01-01", "1950-01-01"]).as_unit("ns")
+        ts_pos = pd.to_datetime(["1980-01-01", "1980-01-01"]).as_unit("ns")
 
         # General tests
         expected = Timestamp.max._value - ts_pos[1]._value
@@ -1815,12 +1815,16 @@ class TestTimestampSeriesArithmetic:
         td1 + dt1
         dt1 + td1
 
-    def test_dt64ser_sub_datetime_dtype(self):
+    def test_dt64ser_sub_datetime_dtype(self, unit):
         ts = Timestamp(datetime(1993, 1, 7, 13, 30, 00))
         dt = datetime(1993, 6, 22, 13, 30)
-        ser = Series([ts])
-        result = pd.to_timedelta(np.abs(ser - dt))
-        assert result.dtype == "timedelta64[ns]"
+        ser = Series([ts], dtype=f"M8[{unit}]")
+        result = ser - dt
+
+        # the expected unit is the max of `unit` and the unit imputed to `dt`,
+        #  which is "us"
+        exp_unit = tm.get_finest_unit(unit, "us")
+        assert result.dtype == f"timedelta64[{exp_unit}]"
 
     # -------------------------------------------------------------
     # TODO: This next block of tests came from tests.series.test_operators,
@@ -1899,10 +1903,8 @@ class TestTimestampSeriesArithmetic:
         # see GH#14088
         ser = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), NaT]).dt.as_unit(unit)
         dt = datetime(2016, 8, 22, 12, tzinfo=pytz.utc)
-        exp_unit = unit
-        if unit in ["s", "ms"]:
-            # The datetime object has "us" so we upcast
-            exp_unit = "us"
+        # The datetime object has "us" so we upcast lower units
+        exp_unit = tm.get_finest_unit(unit, "us")
         exp = Series([Timedelta("1 days"), NaT]).dt.as_unit(exp_unit)
         result = ser - dt
         tm.assert_series_equal(result, exp)
