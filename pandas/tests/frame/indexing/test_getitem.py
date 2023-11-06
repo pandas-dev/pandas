@@ -42,9 +42,6 @@ class TestGetitem:
         ts = df[rng[0]]
         tm.assert_series_equal(ts, df.iloc[:, 0])
 
-        # GH#1211; smoketest unrelated to the rest of this test
-        repr(df)
-
         ts = df["1/1/2000"]
         tm.assert_series_equal(ts, df.iloc[:, 0])
 
@@ -372,8 +369,6 @@ class TestGetitemBooleanMask:
         result = df[df.C > 6]
 
         tm.assert_frame_equal(result, expected)
-        result.dtypes
-        str(result)
 
     def test_getitem_boolean_frame_with_duplicate_columns(self, df_dup_cols):
         # where
@@ -388,8 +383,6 @@ class TestGetitemBooleanMask:
         result = df[df > 6]
 
         tm.assert_frame_equal(result, expected)
-        result.dtypes
-        str(result)
 
     def test_getitem_empty_frame_with_boolean(self):
         # Test for issue GH#11859

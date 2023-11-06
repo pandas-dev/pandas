@@ -1919,6 +1919,7 @@ class ArrowExtensionArray(
         if pa.types.is_temporal(pa_type):
             most_common = most_common.cast(pa_type)
 
+        most_common = most_common.take(pc.array_sort_indices(most_common))
         return type(self)(most_common)
 
     def _maybe_convert_setitem_value(self, value):

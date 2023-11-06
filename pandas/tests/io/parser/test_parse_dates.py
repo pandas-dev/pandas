@@ -32,6 +32,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas._testing._hypothesis import DATETIME_NO_TZ
 from pandas.core.indexes.datetimes import date_range
+from pandas.core.tools.datetimes import start_caching_at
 
 from pandas.io.parsers import read_csv
 
@@ -1285,7 +1286,7 @@ def test_bad_date_parse(all_parsers, cache_dates, value):
     # if we have an invalid date make sure that we handle this with
     # and w/o the cache properly
     parser = all_parsers
-    s = StringIO((f"{value},\n") * 50000)
+    s = StringIO((f"{value},\n") * (start_caching_at + 1))
 
     warn = None
     msg = "Passing a BlockManager to DataFrame"
@@ -1890,8 +1891,8 @@ def _helper_hypothesis_delimited_date(call, date_string, **kwargs):
     msg, result = None, None
     try:
         result = call(date_string, **kwargs)
-    except ValueError as er:
-        msg = str(er)
+    except ValueError as err:
+        msg = str(err)
     return msg, result
 
 

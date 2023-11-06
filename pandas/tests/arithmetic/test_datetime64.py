@@ -987,13 +987,13 @@ class TestDatetime64Arithmetic:
         tm.assert_equal(ser - ts, expected)
         tm.assert_equal(ts - ser, -expected)
 
-    def test_dt64arr_sub_NaT(self, box_with_array):
+    def test_dt64arr_sub_NaT(self, box_with_array, unit):
         # GH#18808
-        dti = DatetimeIndex([NaT, Timestamp("19900315")])
+        dti = DatetimeIndex([NaT, Timestamp("19900315")]).as_unit(unit)
         ser = tm.box_expected(dti, box_with_array)
 
         result = ser - NaT
-        expected = Series([NaT, NaT], dtype="timedelta64[ns]")
+        expected = Series([NaT, NaT], dtype=f"timedelta64[{unit}]")
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(result, expected)
 
@@ -1001,7 +1001,7 @@ class TestDatetime64Arithmetic:
         ser_tz = tm.box_expected(dti_tz, box_with_array)
 
         result = ser_tz - NaT
-        expected = Series([NaT, NaT], dtype="timedelta64[ns]")
+        expected = Series([NaT, NaT], dtype=f"timedelta64[{unit}]")
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(result, expected)
 
@@ -1696,8 +1696,8 @@ class TestDatetime64OverflowHandling:
         tm.assert_series_equal(res, -expected)
 
     def test_datetimeindex_sub_timestamp_overflow(self):
-        dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max])
-        dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min])
+        dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max]).as_unit("ns")
+        dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min]).as_unit("ns")
 
         tsneg = Timestamp("1950-01-01").as_unit("ns")
         ts_neg_variants = [
@@ -1735,11 +1735,11 @@ class TestDatetime64OverflowHandling:
 
     def test_datetimeindex_sub_datetimeindex_overflow(self):
         # GH#22492, GH#22508
-        dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max])
-        dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min])
+        dtimax = pd.to_datetime(["2021-12-28 17:19", Timestamp.max]).as_unit("ns")
+        dtimin = pd.to_datetime(["2021-12-28 17:19", Timestamp.min]).as_unit("ns")
 
-        ts_neg = pd.to_datetime(["1950-01-01", "1950-01-01"])
-        ts_pos = pd.to_datetime(["1980-01-01", "1980-01-01"])
+        ts_neg = pd.to_datetime(["1950-01-01", "1950-01-01"]).as_unit("ns")
+        ts_pos = pd.to_datetime(["1980-01-01", "1980-01-01"]).as_unit("ns")
 
         # General tests
         expected = Timestamp.max._value - ts_pos[1]._value
@@ -1815,12 +1815,16 @@ class TestTimestampSeriesArithmetic:
         td1 + dt1
         dt1 + td1
 
-    def test_dt64ser_sub_datetime_dtype(self):
+    def test_dt64ser_sub_datetime_dtype(self, unit):
         ts = Timestamp(datetime(1993, 1, 7, 13, 30, 00))
         dt = datetime(1993, 6, 22, 13, 30)
-        ser = Series([ts])
-        result = pd.to_timedelta(np.abs(ser - dt))
-        assert result.dtype == "timedelta64[ns]"
+        ser = Series([ts], dtype=f"M8[{unit}]")
+        result = ser - dt
+
+        # the expected unit is the max of `unit` and the unit imputed to `dt`,
+        #  which is "us"
+        exp_unit = tm.get_finest_unit(unit, "us")
+        assert result.dtype == f"timedelta64[{exp_unit}]"
 
     # -------------------------------------------------------------
     # TODO: This next block of tests came from tests.series.test_operators,
@@ -1872,15 +1876,15 @@ class TestTimestampSeriesArithmetic:
             # Smoke test
             op(arg2)
 
-    def test_sub_single_tz(self):
+    def test_sub_single_tz(self, unit):
         # GH#12290
-        s1 = Series([Timestamp("2016-02-10", tz="America/Sao_Paulo")])
-        s2 = Series([Timestamp("2016-02-08", tz="America/Sao_Paulo")])
+        s1 = Series([Timestamp("2016-02-10", tz="America/Sao_Paulo")]).dt.as_unit(unit)
+        s2 = Series([Timestamp("2016-02-08", tz="America/Sao_Paulo")]).dt.as_unit(unit)
         result = s1 - s2
-        expected = Series([Timedelta("2days")])
+        expected = Series([Timedelta("2days")]).dt.as_unit(unit)
         tm.assert_series_equal(result, expected)
         result = s2 - s1
-        expected = Series([Timedelta("-2days")])
+        expected = Series([Timedelta("-2days")]).dt.as_unit(unit)
         tm.assert_series_equal(result, expected)
 
     def test_dt64tz_series_sub_dtitz(self):
@@ -1895,13 +1899,17 @@ class TestTimestampSeriesArithmetic:
         res = ser - dti
         tm.assert_series_equal(res, expected)
 
-    def test_sub_datetime_compat(self):
+    def test_sub_datetime_compat(self, unit):
         # see GH#14088
-        s = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), NaT])
+        ser = Series([datetime(2016, 8, 23, 12, tzinfo=pytz.utc), NaT]).dt.as_unit(unit)
         dt = datetime(2016, 8, 22, 12, tzinfo=pytz.utc)
-        exp = Series([Timedelta("1 days"), NaT])
-        tm.assert_series_equal(s - dt, exp)
-        tm.assert_series_equal(s - Timestamp(dt), exp)
+        # The datetime object has "us" so we upcast lower units
+        exp_unit = tm.get_finest_unit(unit, "us")
+        exp = Series([Timedelta("1 days"), NaT]).dt.as_unit(exp_unit)
+        result = ser - dt
+        tm.assert_series_equal(result, exp)
+        result2 = ser - Timestamp(dt)
+        tm.assert_series_equal(result2, exp)
 
     def test_dt64_series_add_mixed_tick_DateOffset(self):
         # GH#4532
@@ -1922,11 +1930,11 @@ class TestTimestampSeriesArithmetic:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_datetime64_ops_nat(self):
+    def test_datetime64_ops_nat(self, unit):
         # GH#11349
-        datetime_series = Series([NaT, Timestamp("19900315")])
-        nat_series_dtype_timestamp = Series([NaT, NaT], dtype="datetime64[ns]")
-        single_nat_dtype_datetime = Series([NaT], dtype="datetime64[ns]")
+        datetime_series = Series([NaT, Timestamp("19900315")]).dt.as_unit(unit)
+        nat_series_dtype_timestamp = Series([NaT, NaT], dtype=f"datetime64[{unit}]")
+        single_nat_dtype_datetime = Series([NaT], dtype=f"datetime64[{unit}]")
 
         # subtraction
         tm.assert_series_equal(-NaT + datetime_series, nat_series_dtype_timestamp)
@@ -2097,16 +2105,16 @@ class TestDatetimeIndexArithmetic:
         with pytest.raises(TypeError, match=msg):
             tdi.values - dti
 
-    def test_dti_isub_tdi(self, tz_naive_fixture):
+    def test_dti_isub_tdi(self, tz_naive_fixture, unit):
         # GH#17558
         tz = tz_naive_fixture
-        dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
-        tdi = pd.timedelta_range("0 days", periods=10)
-        expected = date_range("2017-01-01", periods=10, tz=tz, freq="-1D")
+        dti = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10).as_unit(unit)
+        tdi = pd.timedelta_range("0 days", periods=10, unit=unit)
+        expected = date_range("2017-01-01", periods=10, tz=tz, freq="-1D", unit=unit)
         expected = expected._with_freq(None)
 
         # isub with TimedeltaIndex
-        result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
+        result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10).as_unit(unit)
         result -= tdi
         tm.assert_index_equal(result, expected)
 
@@ -2124,7 +2132,7 @@ class TestDatetimeIndexArithmetic:
             tdi -= dti
 
         # isub with timedelta64 array
-        result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10)
+        result = DatetimeIndex([Timestamp("2017-01-01", tz=tz)] * 10).as_unit(unit)
         result -= tdi.values
         tm.assert_index_equal(result, expected)
 
@@ -2158,13 +2166,13 @@ class TestDatetimeIndexArithmetic:
         expected = dti - tdi
         tm.assert_index_equal(result, expected)
 
-    def test_sub_dti_dti(self):
+    def test_sub_dti_dti(self, unit):
         # previously performed setop (deprecated in 0.16.0), now changed to
         # return subtraction -> TimeDeltaIndex (GH ...)
 
-        dti = date_range("20130101", periods=3)
-        dti_tz = date_range("20130101", periods=3).tz_localize("US/Eastern")
-        expected = TimedeltaIndex([0, 0, 0])
+        dti = date_range("20130101", periods=3, unit=unit)
+        dti_tz = date_range("20130101", periods=3, unit=unit).tz_localize("US/Eastern")
+        expected = TimedeltaIndex([0, 0, 0]).as_unit(unit)
 
         result = dti - dti
         tm.assert_index_equal(result, expected)
@@ -2183,16 +2191,16 @@ class TestDatetimeIndexArithmetic:
         tm.assert_index_equal(dti, expected)
 
         # different length raises ValueError
-        dti1 = date_range("20130101", periods=3)
-        dti2 = date_range("20130101", periods=4)
+        dti1 = date_range("20130101", periods=3, unit=unit)
+        dti2 = date_range("20130101", periods=4, unit=unit)
         msg = "cannot add indices of unequal length"
         with pytest.raises(ValueError, match=msg):
             dti1 - dti2
 
         # NaN propagation
-        dti1 = DatetimeIndex(["2012-01-01", np.nan, "2012-01-03"])
-        dti2 = DatetimeIndex(["2012-01-02", "2012-01-03", np.nan])
-        expected = TimedeltaIndex(["1 days", np.nan, np.nan])
+        dti1 = DatetimeIndex(["2012-01-01", np.nan, "2012-01-03"]).as_unit(unit)
+        dti2 = DatetimeIndex(["2012-01-02", "2012-01-03", np.nan]).as_unit(unit)
+        expected = TimedeltaIndex(["1 days", np.nan, np.nan]).as_unit(unit)
         result = dti2 - dti1
         tm.assert_index_equal(result, expected)
 
@@ -2295,17 +2303,17 @@ class TestDatetimeIndexArithmetic:
             nat_series_dtype_timestamp,
         )
 
-    def test_ufunc_coercions(self):
-        idx = date_range("2011-01-01", periods=3, freq="2D", name="x")
+    def test_ufunc_coercions(self, unit):
+        idx = date_range("2011-01-01", periods=3, freq="2D", name="x", unit=unit)
 
         delta = np.timedelta64(1, "D")
-        exp = date_range("2011-01-02", periods=3, freq="2D", name="x")
+        exp = date_range("2011-01-02", periods=3, freq="2D", name="x", unit=unit)
         for result in [idx + delta, np.add(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
             tm.assert_index_equal(result, exp)
             assert result.freq == "2D"
 
-        exp = date_range("2010-12-31", periods=3, freq="2D", name="x")
+        exp = date_range("2010-12-31", periods=3, freq="2D", name="x", unit=unit)
 
         for result in [idx - delta, np.subtract(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
@@ -2318,13 +2326,17 @@ class TestDatetimeIndexArithmetic:
         delta = np.array(
             [np.timedelta64(1, "D"), np.timedelta64(2, "D"), np.timedelta64(3, "D")]
         )
-        exp = DatetimeIndex(["2011-01-02", "2011-01-05", "2011-01-08"], name="x")
+        exp = DatetimeIndex(
+            ["2011-01-02", "2011-01-05", "2011-01-08"], name="x"
+        ).as_unit(unit)
 
         for result in [idx + delta, np.add(idx, delta)]:
             tm.assert_index_equal(result, exp)
             assert result.freq == exp.freq
 
-        exp = DatetimeIndex(["2010-12-31", "2011-01-01", "2011-01-02"], name="x")
+        exp = DatetimeIndex(
+            ["2010-12-31", "2011-01-01", "2011-01-02"], name="x"
+        ).as_unit(unit)
         for result in [idx - delta, np.subtract(idx, delta)]:
             assert isinstance(result, DatetimeIndex)
             tm.assert_index_equal(result, exp)
