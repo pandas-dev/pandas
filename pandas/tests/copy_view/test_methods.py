@@ -1695,6 +1695,7 @@ def test_xs(
     using_copy_on_write, warn_copy_on_write, using_array_manager, axis, key, dtype
 ):
     single_block = (dtype == "int64") and not using_array_manager
+    is_view = single_block or (using_array_manager and axis == 1)
     df = DataFrame(
         {"a": [1, 2, 3], "b": [4, 5, 6], "c": np.array([7, 8, 9], dtype=dtype)}
     )
@@ -1707,7 +1708,7 @@ def test_xs(
     elif using_copy_on_write:
         assert result._mgr._has_no_reference(0)
 
-    if using_copy_on_write:
+    if using_copy_on_write or (is_view and not warn_copy_on_write):
         result.iloc[0] = 0
     elif warn_copy_on_write:
         with tm.assert_cow_warning(single_block or axis == 1):
