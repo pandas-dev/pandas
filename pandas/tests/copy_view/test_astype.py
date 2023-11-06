@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import pytest
 
@@ -128,6 +130,15 @@ def test_astype_string_and_object_update_original(
 
     df.iloc[0, 0] = "x"
     tm.assert_frame_equal(df2, df_orig)
+
+
+def test_astype_string_copy_on_pickle_roundrip():
+    # https://github.com/pandas-dev/pandas/issues/54654
+    # ensure_string_array may alter array inplace
+    base = Series(np.array([(1, 2), None, 1], dtype="object"))
+    base_copy = pickle.loads(pickle.dumps(base))
+    base_copy.astype(str)
+    tm.assert_series_equal(base, base_copy)
 
 
 def test_astype_dict_dtypes(using_copy_on_write):

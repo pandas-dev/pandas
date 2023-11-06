@@ -1013,6 +1013,85 @@ class TestDatetimeIndex:
         dr2 = DatetimeIndex(list(dr), name="foo", freq="D")
         tm.assert_index_equal(dr, dr2)
 
+    @pytest.mark.parametrize(
+        "tz",
+        [
+            pytz.timezone("US/Eastern"),
+            gettz("US/Eastern"),
+        ],
+    )
+    @pytest.mark.parametrize("use_str", [True, False])
+    @pytest.mark.parametrize("box_cls", [Timestamp, DatetimeIndex])
+    def test_dti_ambiguous_matches_timestamp(self, tz, use_str, box_cls, request):
+        # GH#47471 check that we get the same raising behavior in the DTI
+        # constructor and Timestamp constructor
+        dtstr = "2013-11-03 01:59:59.999999"
+        item = dtstr
+        if not use_str:
+            item = Timestamp(dtstr).to_pydatetime()
+        if box_cls is not Timestamp:
+            item = [item]
+
+        if not use_str and isinstance(tz, dateutil.tz.tzfile):
+            # FIXME: The Timestamp constructor here behaves differently than all
+            #  the other cases bc with dateutil/zoneinfo tzinfos we implicitly
+            #  get fold=0. Having this raise is not important, but having the
+            #  behavior be consistent across cases is.
+            mark = pytest.mark.xfail(reason="We implicitly get fold=0.")
+            request.applymarker(mark)
+
+        with pytest.raises(pytz.AmbiguousTimeError, match=dtstr):
+            box_cls(item, tz=tz)
+
+    @pytest.mark.parametrize("tz", [None, "UTC", "US/Pacific"])
+    def test_dti_constructor_with_non_nano_dtype(self, tz):
+        # GH#55756, GH#54620
+        ts = Timestamp("2999-01-01")
+        dtype = "M8[us]"
+        if tz is not None:
+            dtype = f"M8[us, {tz}]"
+        # NB: the 2500 is interpreted as nanoseconds and rounded *down*
+        # to 2 microseconds
+        vals = [ts, "2999-01-02 03:04:05.678910", 2500]
+        result = DatetimeIndex(vals, dtype=dtype)
+        exp_vals = [Timestamp(x, tz=tz).as_unit("us").asm8 for x in vals]
+        exp_arr = np.array(exp_vals, dtype="M8[us]")
+        expected = DatetimeIndex(exp_arr, dtype="M8[us]")
+        if tz is not None:
+            expected = expected.tz_localize("UTC").tz_convert(tz)
+        tm.assert_index_equal(result, expected)
+
+        result2 = DatetimeIndex(np.array(vals, dtype=object), dtype=dtype)
+        tm.assert_index_equal(result2, expected)
+
+    def test_dti_constructor_with_non_nano_now_today(self):
+        # GH#55756
+        now = Timestamp.now()
+        today = Timestamp.today()
+        result = DatetimeIndex(["now", "today"], dtype="M8[s]")
+        assert result.dtype == "M8[s]"
+
+        # result may not exactly match [now, today] so we'll test it up to a tolerance.
+        #  (it *may* match exactly due to rounding)
+        tolerance = pd.Timedelta(microseconds=1)
+
+        diff0 = result[0] - now.as_unit("s")
+        assert diff0 >= pd.Timedelta(0)
+        assert diff0 < tolerance
+
+        diff1 = result[1] - today.as_unit("s")
+        assert diff1 >= pd.Timedelta(0)
+        assert diff1 < tolerance
+
+    def test_dti_constructor_object_float_matches_float_dtype(self):
+        # GH#55780
+        arr = np.array([0, np.nan], dtype=np.float64)
+        arr2 = arr.astype(object)
+
+        dti1 = DatetimeIndex(arr, tz="CET")
+        dti2 = DatetimeIndex(arr2, tz="CET")
+        tm.assert_index_equal(dti1, dti2)
+
 
 class TestTimeSeries:
     def test_dti_constructor_preserve_dti_freq(self):
@@ -1167,6 +1246,21 @@ class TestTimeSeries:
         )
         assert len(idx1) == len(idx2)
         assert idx1.freq == idx2.freq
+
+    def test_dti_constructor_object_dtype_dayfirst_yearfirst_with_tz(self):
+        # GH#55813
+        val = "5/10/16"
+
+        dfirst = Timestamp(2016, 10, 5, tz="US/Pacific")
+        yfirst = Timestamp(2005, 10, 16, tz="US/Pacific")
+
+        result1 = DatetimeIndex([val], tz="US/Pacific", dayfirst=True)
+        expected1 = DatetimeIndex([dfirst])
+        tm.assert_index_equal(result1, expected1)
+
+        result2 = DatetimeIndex([val], tz="US/Pacific", yearfirst=True)
+        expected2 = DatetimeIndex([yfirst])
+        tm.assert_index_equal(result2, expected2)
 
     def test_pass_datetimeindex_to_index(self):
         # Bugs in #1396
