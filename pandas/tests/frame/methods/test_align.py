@@ -410,10 +410,10 @@ class TestDataFrameAlign:
             [slice(0), slice(0)],
         ],
     )
+    @pytest.mark.parametrize("limit", [1, None])
     def test_align_fill_method(
-        self, how, method, axis, fill_axis, float_frame, left_slice, right_slice
+        self, how, method, axis, fill_axis, float_frame, left_slice, right_slice, limit
     ):
-        limit = 1
         frame = float_frame
         left = frame.iloc[left_slice[0], left_slice[1]]
         right = frame.iloc[right_slice[0], right_slice[1]]
