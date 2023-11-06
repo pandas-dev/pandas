@@ -51,6 +51,7 @@ class TestTimedeltaIndexRendering:
                 result = getattr(idx, method)()
                 assert result == expected
 
+    # TODO: this is a Series.__repr__ test
     def test_representation_to_series(self):
         idx1 = TimedeltaIndex([], freq="D")
         idx2 = TimedeltaIndex(["1 days"], freq="D")

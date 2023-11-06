@@ -147,14 +147,10 @@ class TestEmptyFrameSetitemExpansion:
 
         df = DataFrame(columns=["A", "B"])
         df[0] = Series(1, index=range(4))
-        df.dtypes
-        str(df)
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame(columns=["A", "B"])
         df.loc[:, 0] = Series(1, index=range(4))
-        df.dtypes
-        str(df)
         tm.assert_frame_equal(df, expected)
 
     def test_partial_set_empty_frame_row(self):

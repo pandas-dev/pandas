@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from collections.abc import Collection
 
     from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
 
     from pandas._typing import MatplotlibColor
@@ -177,7 +178,7 @@ class BoxPlot(LinePlot):
         if not self.kwds.get("capprops"):
             setp(bp["caps"], color=caps, alpha=1)
 
-    def _make_plot(self) -> None:
+    def _make_plot(self, fig: Figure) -> None:
         if self.subplots:
             self._return_obj = pd.Series(dtype=object)
 
