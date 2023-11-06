@@ -211,5 +211,5 @@ class TestDataFrameUpdate:
         # GH#55509
         df = DataFrame({"a": [True, True]}, index=[1, 2])
         other = DataFrame({"a": [False, False]}, index=[1, 1])
-        with pytest.raises(ValueError, match="duplicate argument index"):
+        with pytest.raises(ValueError, match="duplicate index"):
             df.update(other)
