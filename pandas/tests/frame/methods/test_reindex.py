@@ -12,6 +12,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+from pandas.compat.numpy import np_version_gt2
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -131,7 +132,7 @@ class TestDataFrameSelectReindex:
     # test_indexing
 
     @pytest.mark.xfail(
-        not IS64 or is_platform_windows(),
+        not IS64 or (is_platform_windows() and not np_version_gt2),
         reason="Passes int32 values to DatetimeArray in make_na_array on "
         "windows, 32bit linux builds",
     )
