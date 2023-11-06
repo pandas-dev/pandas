@@ -39,6 +39,7 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
     from pandas._typing import PlottingOrientation
 
@@ -113,7 +114,7 @@ class HistPlot(LinePlot):
         cls._update_stacker(ax, stacking_id, n)
         return patches
 
-    def _make_plot(self) -> None:
+    def _make_plot(self, fig: Figure) -> None:
         colors = self._get_colors()
         stacking_id = self._get_stacking_id()
 
