@@ -3,6 +3,8 @@ from itertools import product
 import numpy as np
 import pytest
 
+from pandas._libs import lib
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -125,7 +127,25 @@ import pandas._testing as tm
         ),
         (["a", "b"], pd.CategoricalDtype(), pd.CategoricalDtype(), {}),
         (
-            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]),
+            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]).as_unit("s"),
+            pd.DatetimeTZDtype(tz="UTC"),
+            pd.DatetimeTZDtype(tz="UTC"),
+            {},
+        ),
+        (
+            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]).as_unit("ms"),
+            pd.DatetimeTZDtype(tz="UTC"),
+            pd.DatetimeTZDtype(tz="UTC"),
+            {},
+        ),
+        (
+            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]).as_unit("us"),
+            pd.DatetimeTZDtype(tz="UTC"),
+            pd.DatetimeTZDtype(tz="UTC"),
+            {},
+        ),
+        (
+            pd.to_datetime(["2020-01-14 10:00", "2020-01-15 11:11"]).as_unit("ns"),
             pd.DatetimeTZDtype(tz="UTC"),
             pd.DatetimeTZDtype(tz="UTC"),
             {},
@@ -170,7 +190,7 @@ class TestSeriesConvertDtypes:
         data, maindtype, expected_default, expected_other = test_cases
         if (
             hasattr(data, "dtype")
-            and data.dtype == "M8[ns]"
+            and lib.is_np_dtype(data.dtype, "M")
             and isinstance(maindtype, pd.DatetimeTZDtype)
         ):
             # this astype is deprecated in favor of tz_localize
