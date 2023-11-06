@@ -270,7 +270,7 @@ class MPLPlot(ABC):
     def _validate_sharex(self, sharex: bool | None, ax, by) -> bool:
         if sharex is None:
             # if by is defined, subplots are used and sharex should be False
-            if ax is None and by is None:
+            if ax is None and by is None:  # pylint: disable=simplifiable-if-statement
                 sharex = True
             else:
                 # if we get an axis, the users should do the visibility
