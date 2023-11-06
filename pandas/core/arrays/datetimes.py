@@ -2241,14 +2241,14 @@ def _sequence_to_dt64(
             data = data.astype(np.int64)
         elif tz is not None and ambiguous == "raise":
             obj_data = np.asarray(data, dtype=object)
-            i8data = tslib.array_to_datetime_with_tz(
+            result = tslib.array_to_datetime_with_tz(
                 obj_data,
                 tz=tz,
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
                 creso=abbrev_to_npy_unit(out_unit),
             )
-            return i8data.view(out_dtype), tz, None
+            return result, tz, None
         else:
             # data comes back here as either i8 to denote UTC timestamps
             #  or M8[ns] to denote wall times
