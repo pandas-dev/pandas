@@ -455,7 +455,6 @@ class MPLPlot(ABC):
         self.plt.draw_if_interactive()
 
     def generate(self) -> None:
-        self._args_adjust()
         self._compute_plot_data()
         fig = self._setup_subplots()
         self._make_plot(fig)
@@ -466,10 +465,6 @@ class MPLPlot(ABC):
         for ax in self.axes:
             self._post_plot_logic_common(ax, self.data)
             self._post_plot_logic(ax, self.data)
-
-    @abstractmethod
-    def _args_adjust(self) -> None:
-        pass
 
     def _has_plotted_object(self, ax: Axes) -> bool:
         """check whether ax has data"""
@@ -1299,9 +1294,6 @@ class ScatterPlot(PlanePlot):
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values, linestyle="none", **err_kwds)
 
-    def _args_adjust(self) -> None:
-        pass
-
 
 class HexBinPlot(PlanePlot):
     @property
@@ -1332,9 +1324,6 @@ class HexBinPlot(PlanePlot):
             self._plot_colorbar(ax, fig=fig)
 
     def _make_legend(self) -> None:
-        pass
-
-    def _args_adjust(self) -> None:
         pass
 
 
@@ -1495,9 +1484,6 @@ class LinePlot(MPLPlot):
         elif (values <= 0).all():
             ax._stacker_neg_prior[stacking_id] += values
 
-    def _args_adjust(self) -> None:
-        pass
-
     def _post_plot_logic(self, ax: Axes, data) -> None:
         from matplotlib.ticker import FixedLocator
 
@@ -1607,9 +1593,6 @@ class AreaPlot(LinePlot):
         res = [rect]
         return res
 
-    def _args_adjust(self) -> None:
-        pass
-
     def _post_plot_logic(self, ax: Axes, data) -> None:
         LinePlot._post_plot_logic(self, ax, data)
 
@@ -1642,8 +1625,14 @@ class BarPlot(MPLPlot):
         kwargs.setdefault("align", "center")
         self.tick_pos = np.arange(len(data))
 
-        self.bottom = kwargs.pop("bottom", 0)
-        self.left = kwargs.pop("left", 0)
+        bottom = kwargs.pop("bottom", 0)
+        left = kwargs.pop("left", 0)
+        if is_list_like(bottom):
+            bottom = np.array(bottom)
+        if is_list_like(left):
+            left = np.array(left)
+        self.bottom = bottom
+        self.left = left
 
         self.log = kwargs.pop("log", False)
         MPLPlot.__init__(self, data, **kwargs)
@@ -1663,12 +1652,6 @@ class BarPlot(MPLPlot):
             self.lim_offset = 0
 
         self.ax_pos = self.tick_pos - self.tickoffset
-
-    def _args_adjust(self) -> None:
-        if is_list_like(self.bottom):
-            self.bottom = np.array(self.bottom)
-        if is_list_like(self.left):
-            self.left = np.array(self.left)
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
@@ -1840,8 +1823,6 @@ class PiePlot(MPLPlot):
         if (data < 0).any().any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
-
-    def _args_adjust(self) -> None:
         self.grid = False
         self.logy = False
         self.logx = False
