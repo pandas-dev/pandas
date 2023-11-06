@@ -20,6 +20,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+from pandas.compat.numpy import np_version_gt2
 
 import pandas as pd
 import pandas._testing as tm
@@ -40,7 +41,7 @@ from pandas.core.arrays.integer import (
 )
 from pandas.tests.extension import base
 
-is_windows_or_32bit = is_platform_windows() or not IS64
+is_windows_or_32bit = (is_platform_windows() and not np_version_gt2) or not IS64
 
 pytestmark = [
     pytest.mark.filterwarnings(
@@ -325,7 +326,7 @@ class TestReduce(base.BaseReduceTests):
                 expected = pd.NA
         tm.assert_almost_equal(result, expected)
 
-    def _get_expected_reduction_dtype(self, arr, op_name: str):
+    def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         if tm.is_float_dtype(arr.dtype):
             cmp_dtype = arr.dtype.name
         elif op_name in ["mean", "median", "var", "std", "skew"]:
@@ -335,16 +336,32 @@ class TestReduce(base.BaseReduceTests):
         elif arr.dtype in ["Int64", "UInt64"]:
             cmp_dtype = arr.dtype.name
         elif tm.is_signed_integer_dtype(arr.dtype):
-            cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
+            # TODO: Why does Window Numpy 2.0 dtype depend on skipna?
+            cmp_dtype = (
+                "Int32"
+                if (is_platform_windows() and (not np_version_gt2 or not skipna))
+                or not IS64
+                else "Int64"
+            )
         elif tm.is_unsigned_integer_dtype(arr.dtype):
-            cmp_dtype = "UInt32" if is_windows_or_32bit else "UInt64"
+            cmp_dtype = (
+                "UInt32"
+                if (is_platform_windows() and (not np_version_gt2 or not skipna))
+                or not IS64
+                else "UInt64"
+            )
         elif arr.dtype.kind == "b":
             if op_name in ["mean", "median", "var", "std", "skew"]:
                 cmp_dtype = "Float64"
             elif op_name in ["min", "max"]:
                 cmp_dtype = "boolean"
             elif op_name in ["sum", "prod"]:
-                cmp_dtype = "Int32" if is_windows_or_32bit else "Int64"
+                cmp_dtype = (
+                    "Int32"
+                    if (is_platform_windows() and (not np_version_gt2 or not skipna))
+                    or not IS64
+                    else "Int64"
+                )
             else:
                 raise TypeError("not supposed to reach this")
         else:
@@ -360,7 +377,7 @@ class TestAccumulation(base.BaseAccumulateTests):
         # overwrite to ensure pd.NA is tested instead of np.nan
         # https://github.com/pandas-dev/pandas/issues/30958
         length = 64
-        if not IS64 or is_platform_windows():
+        if is_windows_or_32bit:
             # Item "ExtensionDtype" of "Union[dtype[Any], ExtensionDtype]" has
             # no attribute "itemsize"
             if not ser.dtype.itemsize == 8:  # type: ignore[union-attr]

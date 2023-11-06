@@ -11,6 +11,7 @@ _nlv = Version(_np_version)
 np_version_gte1p24 = _nlv >= Version("1.24")
 np_version_gte1p24p3 = _nlv >= Version("1.24.3")
 np_version_gte1p25 = _nlv >= Version("1.25")
+np_version_gt2 = _nlv >= Version("2.0.0.dev0")
 is_numpy_dev = _nlv.dev is not None
 _min_numpy_ver = "1.22.4"
 
@@ -26,7 +27,7 @@ if _nlv < Version(_min_numpy_ver):
 np_long: type
 np_ulong: type
 
-if _nlv >= Version("2.0.0.dev0"):
+if np_version_gt2:
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings(
