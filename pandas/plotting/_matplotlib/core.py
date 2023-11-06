@@ -12,6 +12,7 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Literal,
+    final,
 )
 import warnings
 
@@ -24,6 +25,7 @@ from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
+    is_bool,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -129,7 +131,7 @@ class MPLPlot(ABC):
         kind=None,
         by: IndexLabel | None = None,
         subplots: bool | Sequence[Sequence[str]] = False,
-        sharex=None,
+        sharex: bool | None = None,
         sharey: bool = False,
         use_index: bool = True,
         figsize: tuple[float, float] | None = None,
@@ -190,17 +192,7 @@ class MPLPlot(ABC):
 
         self.subplots = self._validate_subplots_kwarg(subplots)
 
-        if sharex is None:
-            # if by is defined, subplots are used and sharex should be False
-            if ax is None and by is None:
-                self.sharex = True
-            else:
-                # if we get an axis, the users should do the visibility
-                # setting...
-                self.sharex = False
-        else:
-            self.sharex = sharex
-
+        self.sharex = self._validate_sharex(sharex, ax, by)
         self.sharey = sharey
         self.figsize = figsize
         self.layout = layout
@@ -273,6 +265,20 @@ class MPLPlot(ABC):
         self.kwds = kwds
 
         self._validate_color_args()
+
+    @final
+    def _validate_sharex(self, sharex: bool | None, ax, by) -> bool:
+        if sharex is None:
+            # if by is defined, subplots are used and sharex should be False
+            if ax is None and by is None:
+                sharex = True
+            else:
+                # if we get an axis, the users should do the visibility
+                # setting...
+                sharex = False
+        elif not is_bool(sharex):
+            raise TypeError("sharex must be a bool or None")
+        return sharex
 
     def _validate_subplots_kwarg(
         self, subplots: bool | Sequence[Sequence[str]]
