@@ -278,7 +278,7 @@ class MPLPlot(ABC):
                 sharex = False
         elif not is_bool(sharex):
             raise TypeError("sharex must be a bool or None")
-        return sharex
+        return bool(sharex)
 
     def _validate_subplots_kwarg(
         self, subplots: bool | Sequence[Sequence[str]]
