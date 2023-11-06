@@ -8859,10 +8859,22 @@ class DataFrame(NDFrame, OpsMixin):
             other = DataFrame(other)
 
         indexes_intersection = self.index.intersection(other.index)
+        if not len(indexes_intersection):
+            raise ValueError(
+                "Can't update dataframe when other has no element in common."
+            )
 
         for col in self.columns.intersection(other.columns):
-            this = self.loc[indexes_intersection, col]._values
-            that = other.loc[indexes_intersection, col]._values
+            this = self.loc[indexes_intersection, col]
+            that = other.loc[indexes_intersection, col]
+
+            if this.index.has_duplicates or that.index.has_duplicates:
+                raise ValueError(
+                    "Update not allowed with duplicate indexes on dataframe or other."
+                )
+
+            this = this._values
+            that = that._values
 
             if filter_func is not None:
                 mask = ~filter_func(this) | isna(that)
