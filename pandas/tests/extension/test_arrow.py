@@ -543,7 +543,7 @@ class TestReduce(base.BaseReduceTests):
 
         return super().test_reduce_series_boolean(data, all_boolean_reductions, skipna)
 
-    def _get_expected_reduction_dtype(self, arr, op_name: str):
+    def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
         if op_name in ["max", "min"]:
             cmp_dtype = arr.dtype
         elif arr.dtype.name == "decimal128(7, 3)[pyarrow]":

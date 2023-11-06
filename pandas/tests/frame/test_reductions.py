@@ -10,6 +10,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+from pandas.compat.numpy import np_version_gt2
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -32,6 +33,7 @@ from pandas.core import (
     nanops,
 )
 
+is_windows_np2_or_is32 = (is_platform_windows() and not np_version_gt2) or not IS64
 is_windows_or_is32 = is_platform_windows() or not IS64
 
 
@@ -1766,13 +1768,13 @@ class TestEmptyDataFrameReductions:
     @pytest.mark.parametrize(
         "opname, dtype, exp_value, exp_dtype",
         [
-            ("sum", "Int8", 0, ("Int32" if is_windows_or_is32 else "Int64")),
-            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
-            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
+            ("sum", "Int8", 0, ("Int32" if is_windows_np2_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
             ("sum", "Int64", 0, "Int64"),
             ("prod", "Int64", 1, "Int64"),
-            ("sum", "UInt8", 0, ("UInt32" if is_windows_or_is32 else "UInt64")),
-            ("prod", "UInt8", 1, ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("sum", "UInt8", 0, ("UInt32" if is_windows_np2_or_is32 else "UInt64")),
+            ("prod", "UInt8", 1, ("UInt32" if is_windows_np2_or_is32 else "UInt64")),
             ("sum", "UInt64", 0, "UInt64"),
             ("prod", "UInt64", 1, "UInt64"),
             ("sum", "Float32", 0, "Float32"),
@@ -1787,6 +1789,8 @@ class TestEmptyDataFrameReductions:
         expected = Series([exp_value, exp_value], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
 
+    # TODO: why does min_count=1 impact the resulting Windows dtype
+    # differently than min_count=0?
     @pytest.mark.parametrize(
         "opname, dtype, exp_dtype",
         [
