@@ -2750,11 +2750,10 @@ class Period(_Period):
             freq = cls._maybe_convert_freq(freq)
         nanosecond = 0
 
-        for depr_offsets in PERIOD_DEPR_OFFSETS:
-            if isinstance(freq, depr_offsets):
-                raise ValueError(
-                    f"{(type(freq).__name__)} is not supported as period frequency"
-                )
+        if freq.__class__ in PERIOD_DEPR_OFFSETS:
+            raise ValueError(
+                f"{(type(freq).__name__)} is not supported as period frequency"
+            )
 
         if ordinal is not None and value is not None:
             raise ValueError("Only value or ordinal but not both should be "
