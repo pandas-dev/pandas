@@ -303,18 +303,16 @@ cdef object ensure_td64ns(object ts):
     cdef:
         NPY_DATETIMEUNIT td64_unit
         int64_t td64_value, mult
-        str unitstr
 
     td64_unit = get_datetime64_unit(ts)
     if (
         td64_unit != NPY_DATETIMEUNIT.NPY_FR_ns
         and td64_unit != NPY_DATETIMEUNIT.NPY_FR_GENERIC
     ):
-        unitstr = npy_unit_to_abbrev(td64_unit)
 
         td64_value = cnp.get_timedelta64_value(ts)
 
-        mult = precision_from_unit(unitstr)[0]
+        mult = precision_from_unit(td64_unit)[0]
         try:
             # NB: cython#1381 this cannot be *=
             td64_value = td64_value * mult
