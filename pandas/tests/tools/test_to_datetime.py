@@ -2046,7 +2046,6 @@ class TestToDatetimeUnit:
         expected = DatetimeIndex(["1970-01-01 00:00:01"], tz="UTC")
         tm.assert_index_equal(result, expected)
 
-    # TODO: this is moved from tests.series.test_timeseries, may be redundant
     @pytest.mark.parametrize("dtype", [int, float])
     def test_to_datetime_unit(self, dtype):
         epoch = 1370745748
