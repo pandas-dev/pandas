@@ -116,7 +116,7 @@ def _test_format_is_iso(f: str) -> bool:
 
 
 cdef bint parse_today_now(
-    str val, int64_t* iresult, bint utc, NPY_DATETIMEUNIT creso
+    str val, int64_t* iresult, bint utc, NPY_DATETIMEUNIT creso, bint infer_reso = False
 ):
     # We delay this check for as long as possible
     # because it catches relatively rare cases
@@ -124,6 +124,8 @@ cdef bint parse_today_now(
         _Timestamp ts
 
     if val == "now":
+        if infer_reso:
+            creso = NPY_DATETIMEUNIT.NPY_FR_us
         if utc:
             ts = <_Timestamp>Timestamp.utcnow()
             iresult[0] = ts._as_creso(creso)._value
@@ -134,6 +136,8 @@ cdef bint parse_today_now(
             iresult[0] = ts._as_creso(creso)._value
         return True
     elif val == "today":
+        if infer_reso:
+            creso = NPY_DATETIMEUNIT.NPY_FR_us
         ts = <_Timestamp>Timestamp.today()
         iresult[0] = ts._as_creso(creso)._value
         return True
@@ -347,25 +351,31 @@ def array_strptime(
                 else:
                     item_reso = NPY_DATETIMEUNIT.NPY_FR_us
                 state.update_creso(item_reso)
+                if infer_reso:
+                    creso = state.creso
                 tz_out = state.process_datetime(val, tz_out, utc)
                 if isinstance(val, _Timestamp):
-                    val = (<_Timestamp>val)._as_creso(state.creso)
+                    val = (<_Timestamp>val)._as_creso(creso)
                     iresult[i] = val.tz_localize(None)._value
                 else:
                     iresult[i] = pydatetime_to_dt64(
-                        val.replace(tzinfo=None), &dts, reso=state.creso
+                        val.replace(tzinfo=None), &dts, reso=creso
                     )
                 result_timezone[i] = val.tzinfo
                 continue
             elif PyDate_Check(val):
                 item_reso = NPY_DATETIMEUNIT.NPY_FR_s
                 state.update_creso(item_reso)
-                iresult[i] = pydate_to_dt64(val, &dts, reso=state.creso)
+                if infer_reso:
+                    creso = state.creso
+                iresult[i] = pydate_to_dt64(val, &dts, reso=creso)
                 continue
             elif is_datetime64_object(val):
                 item_reso = get_supported_reso(get_datetime64_unit(val))
                 state.update_creso(item_reso)
-                iresult[i] = get_datetime64_nanos(val, state.creso)
+                if infer_reso:
+                    creso = state.creso
+                iresult[i] = get_datetime64_nanos(val, creso)
                 continue
             elif (
                     (is_integer_object(val) or is_float_object(val))
@@ -391,8 +401,10 @@ def array_strptime(
                 # where we left off
                 item_reso = get_supported_reso(out_bestunit)
                 state.update_creso(item_reso)
+                if infer_reso:
+                    creso = state.creso
                 try:
-                    value = npy_datetimestruct_to_datetime(state.creso, &dts)
+                    value = npy_datetimestruct_to_datetime(creso, &dts)
                 except OverflowError as err:
                     raise OutOfBoundsDatetime(
                         f"Out of bounds nanosecond timestamp: {val}"
@@ -408,9 +420,11 @@ def array_strptime(
                 iresult[i] = value
                 continue
 
-            if parse_today_now(val, &iresult[i], utc, state.creso):
+            if parse_today_now(val, &iresult[i], utc, creso, infer_reso=infer_reso):
                 item_reso = NPY_DATETIMEUNIT.NPY_FR_us
                 state.update_creso(item_reso)
+                if infer_reso:
+                    creso = state.creso
                 continue
 
             # Some ISO formats can't be parsed by string_to_dts
@@ -426,8 +440,10 @@ def array_strptime(
             )
 
             state.update_creso(item_reso)
+            if infer_reso:
+                creso = state.creso
             try:
-                iresult[i] = npy_datetimestruct_to_datetime(state.creso, &dts)
+                iresult[i] = npy_datetimestruct_to_datetime(creso, &dts)
             except OverflowError as err:
                 raise OutOfBoundsDatetime(
                     f"Out of bounds nanosecond timestamp: {val}"
