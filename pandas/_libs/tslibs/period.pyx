@@ -117,11 +117,33 @@ from pandas._libs.tslibs.offsets cimport (
 from pandas._libs.tslibs.offsets import (
     INVALID_FREQ_ERR_MSG,
     BDay,
+    BQuarterBegin,
+    BQuarterEnd,
+    BusinessMonthBegin,
+    BusinessMonthEnd,
+    BYearBegin,
+    BYearEnd,
+    MonthBegin,
+    QuarterBegin,
+    YearBegin,
 )
 
 cdef:
     enum:
         INT32_MIN = -2_147_483_648LL
+
+# following offsets classes are not supported as period frequencies
+PERIOD_DEPR_OFFSETS = {
+    YearBegin,
+    BYearBegin,
+    BYearEnd,
+    QuarterBegin,
+    BQuarterBegin,
+    BQuarterEnd,
+    MonthBegin,
+    BusinessMonthBegin,
+    BusinessMonthEnd,
+}
 
 
 ctypedef struct asfreq_info:
@@ -2727,6 +2749,12 @@ class Period(_Period):
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)
         nanosecond = 0
+
+        for depr_offsets in PERIOD_DEPR_OFFSETS:
+            if isinstance(freq, depr_offsets):
+                raise ValueError(
+                    f"{(type(freq).__name__)} is not supported as period frequency"
+                )
 
         if ordinal is not None and value is not None:
             raise ValueError("Only value or ordinal but not both should be "
