@@ -4023,7 +4023,7 @@ class Index(IndexOpsMixin, PandasObject):
         if self._is_multi:
             if not (self.is_monotonic_increasing or self.is_monotonic_decreasing):
                 raise ValueError("index must be monotonic increasing or decreasing")
-            encoded = self.append(target)._engine.values
+            encoded = self.append(target)._engine.values  # type: ignore[union-attr]
             self_encoded = Index(encoded[: len(self)])
             target_encoded = Index(encoded[len(self) :])
             return self_encoded._get_fill_indexer(
