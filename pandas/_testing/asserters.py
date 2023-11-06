@@ -745,7 +745,7 @@ def assert_extension_array_equal(
             else:
                 l_unit = np.datetime_data(left.dtype)[0]
             if not isinstance(right.dtype, np.dtype):
-                r_unit = cast(DatetimeTZDtype, left.dtype).unit
+                r_unit = cast(DatetimeTZDtype, right.dtype).unit
             else:
                 r_unit = np.datetime_data(right.dtype)[0]
             if (
