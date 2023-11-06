@@ -1208,17 +1208,22 @@ class TestValueCounts:
 
         msg = "pandas.value_counts is deprecated"
 
-        for s in [td, dt]:
+        for ser in [td, dt]:
             with tm.assert_produces_warning(FutureWarning, match=msg):
-                vc = algos.value_counts(s)
-                vc_with_na = algos.value_counts(s, dropna=False)
+                vc = algos.value_counts(ser)
+                vc_with_na = algos.value_counts(ser, dropna=False)
             assert len(vc) == 1
             assert len(vc_with_na) == 2
 
         exp_dt = Series({Timestamp("2014-01-01 00:00:00"): 1}, name="count")
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            tm.assert_series_equal(algos.value_counts(dt), exp_dt)
-        # TODO same for (timedelta)
+            result_dt = algos.value_counts(dt)
+        tm.assert_series_equal(result_dt, exp_dt)
+
+        exp_td = Series({np.timedelta64(10000): 1}, name="count")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result_td = algos.value_counts(td)
+        tm.assert_series_equal(result_td, exp_td)
 
     def test_value_counts_datetime_outofbounds(self):
         # GH 13663
