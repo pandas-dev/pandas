@@ -2864,7 +2864,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result_series.name = name
             result_series.index = index.set_names(range(len(columns)))
             result_frame = result_series.reset_index()
-            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]  # noqa: E501
+            orig_dtype = self.grouper.groupings[0].obj.columns.dtype  # type: ignore[union-attr]
             cols = Index(columns, dtype=orig_dtype).insert(len(columns), name)
             result_frame.columns = cols
             result = result_frame

@@ -5374,7 +5374,7 @@ class Index(IndexOpsMixin, PandasObject):
         result = type(self)._simple_new(res, name=self._name, refs=self._references)
         if "_engine" in self._cache:
             reverse = slobj.step is not None and slobj.step < 0
-            result._engine._update_from_sliced(self._engine, reverse=reverse)  # type: ignore[union-attr]  # noqa: E501
+            result._engine._update_from_sliced(self._engine, reverse=reverse)  # type: ignore[union-attr]
 
         return result
 

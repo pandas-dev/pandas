@@ -1786,7 +1786,7 @@ class Block(PandasObject, libinternals.Block):
             else:
                 # No overload variant of "__getitem__" of "ExtensionArray" matches
                 # argument type "Tuple[slice, slice]"
-                values = self.values[previous_loc + 1 : idx, :]  # type: ignore[call-overload]  # noqa: E501
+                values = self.values[previous_loc + 1 : idx, :]  # type: ignore[call-overload]
                 locs = mgr_locs_arr[previous_loc + 1 : idx]
                 nb = type(self)(
                     values, placement=BlockPlacement(locs), ndim=self.ndim, refs=refs
