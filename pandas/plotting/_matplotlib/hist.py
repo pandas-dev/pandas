@@ -56,11 +56,15 @@ class HistPlot(LinePlot):
         data,
         bins: int | np.ndarray | list[np.ndarray] = 10,
         bottom: int | np.ndarray = 0,
+        *,
+        range=None,
         **kwargs,
     ) -> None:
         if is_list_like(bottom):
             bottom = np.array(bottom)
         self.bottom = bottom
+
+        self._bin_range = range
 
         self.xlabel = kwargs.get("xlabel")
         self.ylabel = kwargs.get("ylabel")
@@ -85,7 +89,7 @@ class HistPlot(LinePlot):
         values = np.ravel(nd_values)
         values = values[~isna(values)]
 
-        hist, bins = np.histogram(values, bins=bins, range=self.kwds.get("range", None))
+        hist, bins = np.histogram(values, bins=bins, range=self._bin_range)
         return bins
 
     # error: Signature of "_plot" incompatible with supertype "LinePlot"
