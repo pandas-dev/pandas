@@ -624,6 +624,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
             na_value_is_na = isna(na_value)
             if na_value_is_na:
                 na_value = 1
+            elif dtype == np.dtype("bool"):
+                na_value = bool(na_value)
             result = lib.map_infer_mask(
                 arr,
                 f,
