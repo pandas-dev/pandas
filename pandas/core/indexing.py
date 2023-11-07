@@ -1151,7 +1151,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         # GH53533
         if self.name == "iloc" and callable(key) and isinstance(maybe_callable, tuple):
             warnings.warn(
-                "Returning a tuple from a callable in iLocation indexing "
+                "Returning a tuple from a callable with iloc "
                 "is deprecated and will be removed in a future version",
                 FutureWarning,
                 stacklevel=find_stack_level(),
