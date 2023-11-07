@@ -6036,12 +6036,13 @@ class Index(IndexOpsMixin, PandasObject):
 
         # Note: _maybe_downcast_for_indexing ensures we never get here
         #  with MultiIndex self and non-Multi target
-        tgt_values = target._get_engine_target()
         if self._is_multi and target._is_multi:
             engine = self._engine
             # Item "IndexEngine" of "Union[IndexEngine, ExtensionEngine]" has
             # no attribute "_extract_level_codes"
             tgt_values = engine._extract_level_codes(target)  # type: ignore[union-attr]
+        else:
+            tgt_values = target._get_engine_target()
 
         indexer, missing = self._engine.get_indexer_non_unique(tgt_values)
         return ensure_platform_int(indexer), ensure_platform_int(missing)
