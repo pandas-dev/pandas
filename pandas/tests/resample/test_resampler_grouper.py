@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from pandas.compat import is_platform_windows
-from pandas.util._test_decorators import async_mark
 
 import pandas as pd
 from pandas import (
@@ -26,8 +25,7 @@ def test_frame():
     )
 
 
-@async_mark()
-async def test_tab_complete_ipython6_warning(ip):
+def test_tab_complete_ipython6_warning(ip):
     from IPython.core.completer import provisionalcompleter
 
     code = dedent(
@@ -37,7 +35,7 @@ async def test_tab_complete_ipython6_warning(ip):
     rs = s.resample("D")
     """
     )
-    await ip.run_code(code)
+    ip.run_cell(code)
 
     # GH 31324 newer jedi version raises Deprecation warning;
     #  appears resolved 2021-02-02
