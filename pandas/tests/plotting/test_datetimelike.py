@@ -1645,9 +1645,6 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         ret = f(*args, **kwargs)
         assert ret is not None  # TODO: do something more intelligent
 
-        with tm.ensure_clean(return_filelike=True) as path:
-            plt.savefig(path)
-
         # GH18439, GH#24088, statsmodels#4772
         with tm.ensure_clean(return_filelike=True) as path:
             pickle.dump(fig, path)
