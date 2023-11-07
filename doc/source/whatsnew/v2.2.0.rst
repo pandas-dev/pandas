@@ -64,10 +64,30 @@ DataFrame. (:issue:`54938`)
     )
     series.struct.explode()
 
-.. _whatsnew_220.enhancements.enhancement2:
+.. _whatsnew_220.enhancements.list_accessor:
 
-enhancement2
-^^^^^^^^^^^^
+Series.list accessor for PyArrow list data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``Series.list`` accessor provides attributes and methods for processing
+data with ``list[pyarrow]`` dtype Series. For example,
+:meth:`Series.list.__getitem__` allows indexing pyarrow lists in
+a Series. (:issue:`55323`)
+
+.. ipython:: python
+
+    import pyarrow as pa
+    series = pd.Series(
+        [
+            [1, 2, 3],
+            [4, 5],
+            [6],
+        ],
+        dtype=pd.ArrowDtype(
+            pa.list_(pa.int64())
+        ),
+    )
+    series.list[0]
 
 .. _whatsnew_220.enhancements.other:
 
@@ -83,6 +103,7 @@ Other enhancements
 - :meth:`ExtensionArray.duplicated` added to allow extension type implementations of the ``duplicated`` method (:issue:`55255`)
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
 - Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
+- Improved error message when constructing :class:`Period` with invalid offsets such as "QS" (:issue:`55785`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.notable_bug_fixes:
@@ -304,8 +325,11 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
 - Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`)
 - Performance improvement in :meth:`Index.difference` (:issue:`55108`)
+- Performance improvement in :meth:`MultiIndex.get_indexer` when ``method`` is not ``None`` (:issue:`55839`)
 - Performance improvement in :meth:`Series.duplicated` for pyarrow dtypes (:issue:`55255`)
+- Performance improvement in :meth:`Series.str` methods (:issue:`55736`)
 - Performance improvement in :meth:`SeriesGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`DataFrameGroupBy.idxmin` (:issue:`54234`)
+- Performance improvement when indexing into a non-unique index (:issue:`55816`)
 - Performance improvement when indexing with more than 4 keys (:issue:`54550`)
 - Performance improvement when localizing time to UTC (:issue:`55241`)
 
@@ -323,8 +347,10 @@ Categorical
 
 Datetimelike
 ^^^^^^^^^^^^
+- Bug in :class:`DatetimeIndex` construction when passing both a ``tz`` and either ``dayfirst`` or ``yearfirst`` ignoring dayfirst/yearfirst (:issue:`55813`)
 - Bug in :class:`DatetimeIndex` when passing an object-dtype ndarray of float objects and a ``tz`` incorrectly localizing the result (:issue:`55780`)
 - Bug in :func:`concat` raising ``AttributeError`` when concatenating all-NA DataFrame with :class:`DatetimeTZDtype` dtype DataFrame. (:issue:`52093`)
+- Bug in :func:`testing.assert_extension_array_equal` that could use the wrong unit when comparing resolutions (:issue:`55730`)
 - Bug in :func:`to_datetime` and :class:`DatetimeIndex` when passing a list of mixed-string-and-numeric types incorrectly raising (:issue:`55780`)
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
 - Bug in :meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` always caching :meth:`Index.is_unique` as ``True`` when first value in index is ``NaT`` (:issue:`55755`)
@@ -402,7 +428,6 @@ I/O
 - Bug in :meth:`pandas.read_excel` with ``engine="odf"`` (``ods`` files) when string contains annotation (:issue:`55200`)
 - Bug in :meth:`pandas.read_excel` with an ODS file without cached formatted cell for float values (:issue:`55219`)
 - Bug where :meth:`DataFrame.to_json` would raise an ``OverflowError`` instead of a ``TypeError`` with unsupported NumPy types (:issue:`55403`)
--
 
 Period
 ^^^^^^
@@ -448,6 +473,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :func:`DataFrame.describe` when formatting percentiles in the resulting percentile 99.999% is rounded to 100% (:issue:`55765`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in :func:`infer_freq` and :meth:`DatetimeIndex.inferred_freq` with weekly frequencies and non-nanosecond resolutions (:issue:`55609`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)

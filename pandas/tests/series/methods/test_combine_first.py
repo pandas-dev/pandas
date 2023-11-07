@@ -69,14 +69,14 @@ class TestCombineFirst:
         ser.index = ser.index.astype("O")
         tm.assert_series_equal(ser, result)
 
-    def test_combine_first_dt64(self):
-        s0 = to_datetime(Series(["2010", np.nan]))
-        s1 = to_datetime(Series([np.nan, "2011"]))
+    def test_combine_first_dt64(self, unit):
+        s0 = to_datetime(Series(["2010", np.nan])).dt.as_unit(unit)
+        s1 = to_datetime(Series([np.nan, "2011"])).dt.as_unit(unit)
         rs = s0.combine_first(s1)
-        xp = to_datetime(Series(["2010", "2011"]))
+        xp = to_datetime(Series(["2010", "2011"])).dt.as_unit(unit)
         tm.assert_series_equal(rs, xp)
 
-        s0 = to_datetime(Series(["2010", np.nan]))
+        s0 = to_datetime(Series(["2010", np.nan])).dt.as_unit(unit)
         s1 = Series([np.nan, "2011"])
         rs = s0.combine_first(s1)
 
