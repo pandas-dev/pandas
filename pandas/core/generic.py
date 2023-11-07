@@ -6572,8 +6572,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             # GH 18099/22869: columnwise conversion to extension dtype
             # GH 24704: self.items handles duplicate column names
             results = [ser.astype(dtype, copy=copy) for _, ser in self.items()]
-            # if warn_copy_on_write():
-            #     self._clear_item_cache()
 
         else:
             # else, only a single dtype is given
