@@ -559,7 +559,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
     # error: Return type "Union[dtype, DatetimeTZDtype]" of "dtype"
     # incompatible with return type "ExtensionDtype" in supertype
     # "ExtensionArray"
-    def dtype(self) -> np.dtype[np.datetime64] | DatetimeTZDtype:  # type: ignore[override]  # noqa: E501
+    def dtype(self) -> np.dtype[np.datetime64] | DatetimeTZDtype:  # type: ignore[override]
         """
         The dtype for the DatetimeArray.
 

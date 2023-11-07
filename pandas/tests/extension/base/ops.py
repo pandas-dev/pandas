@@ -259,7 +259,7 @@ class BaseUnaryOpsTests(BaseOpsUtil):
             with pytest.raises(TypeError):
                 ~data
         else:
-            # Note we do not re-use the pointwise result to construct expected
+            # Note we do not reuse the pointwise result to construct expected
             #  because python semantics for negating bools are weird see GH#54569
             result = ~ser
             expected = pd.Series(~data, name="name")

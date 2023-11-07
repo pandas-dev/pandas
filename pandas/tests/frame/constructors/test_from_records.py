@@ -110,7 +110,7 @@ class TestFromRecords:
             columns=df.columns
         )
 
-        # list of tupels (no dtype info)
+        # list of tuples (no dtype info)
         result4 = DataFrame.from_records(lists, columns=columns).reindex(
             columns=df.columns
         )

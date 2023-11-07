@@ -1390,13 +1390,13 @@ class _MergeOperation:
                 ):
                     ct = find_common_type([lk.dtype, rk.dtype])
                     if is_extension_array_dtype(ct):
-                        rk = ct.construct_array_type()._from_sequence(rk)  # type: ignore[union-attr]  # noqa: E501
+                        rk = ct.construct_array_type()._from_sequence(rk)  # type: ignore[union-attr]
                     else:
                         rk = rk.astype(ct)  # type: ignore[arg-type]
                 elif is_extension_array_dtype(rk.dtype):
                     ct = find_common_type([lk.dtype, rk.dtype])
                     if is_extension_array_dtype(ct):
-                        lk = ct.construct_array_type()._from_sequence(lk)  # type: ignore[union-attr]  # noqa: E501
+                        lk = ct.construct_array_type()._from_sequence(lk)  # type: ignore[union-attr]
                     else:
                         lk = lk.astype(ct)  # type: ignore[arg-type]
 

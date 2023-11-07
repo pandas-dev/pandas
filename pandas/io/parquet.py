@@ -166,7 +166,7 @@ class PyArrowImpl(BaseImpl):
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401,E501
+        import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401
 
         self.api = pyarrow
 
@@ -255,7 +255,7 @@ class PyArrowImpl(BaseImpl):
             mapping = _arrow_dtype_mapping()
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa: E501
+            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
         elif using_pyarrow_string_dtype():
             to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 

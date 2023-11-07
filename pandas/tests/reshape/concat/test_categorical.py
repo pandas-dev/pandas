@@ -220,7 +220,7 @@ class TestCategoricalConcat:
 
     def test_categorical_index_upcast(self):
         # GH 17629
-        # test upcasting to object when concatinating on categorical indexes
+        # test upcasting to object when concatenating on categorical indexes
         # with non-identical categories
 
         a = DataFrame({"foo": [1, 2]}, index=Categorical(["foo", "bar"]))

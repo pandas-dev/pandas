@@ -72,7 +72,7 @@ or UTF-16 surrogate pairs
 The extra 2 bytes are for the quotes around the string
 
 */
-#define RESERVE_STRING(_len) (2 + ((_len)*6))
+#define RESERVE_STRING(_len) (2 + ((_len) * 6))
 
 static const double g_pow10[] = {1,
                                  10,

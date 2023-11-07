@@ -950,7 +950,7 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
             # the offset is separated into two tokens, ex. ['+', '0900’].
             # This separation will prevent subsequent processing
             # from correctly parsing the time zone format.
-            # So in addition to the format nomalization, we rejoin them here.
+            # So in addition to the format normalization, we rejoin them here.
             try:
                 tokens[offset_index] = parsed_datetime.strftime("%z")
             except ValueError:

@@ -1229,7 +1229,7 @@ cdef class _Timedelta(timedelta):
             return cmp_scalar(self._value, ots._value, op)
         return self._compare_mismatched_resos(ots, op)
 
-    # TODO: re-use/share with Timestamp
+    # TODO: reuse/share with Timestamp
     cdef bint _compare_mismatched_resos(self, _Timedelta other, op):
         # Can't just dispatch to numpy as they silently overflow and get it wrong
         cdef:

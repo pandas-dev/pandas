@@ -30,7 +30,7 @@ from pandas.core.groupby.ops import BinGrouper
 def frame_for_truncated_bingrouper():
     """
     DataFrame used by groupby_with_truncated_bingrouper, made into
-    a separate fixture for easier re-use in
+    a separate fixture for easier reuse in
     test_groupby_apply_timegrouper_with_nat_apply_squeeze
     """
     df = DataFrame(
