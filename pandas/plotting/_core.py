@@ -961,7 +961,10 @@ class PlotAccessor(PandasObject):
             return plot_backend.plot(self._parent, x=x, y=y, kind=kind, **kwargs)
 
         if kind not in self._all_kinds:
-            raise ValueError(f"{kind} is not a valid plot kind")
+            raise ValueError(
+                f"{kind} is not a valid plot kind "
+                f"Valid plot kinds: {self._all_kinds}"
+            )
 
         # The original data structured can be transformed before passed to the
         # backend. For example, for DataFrame is common to set the index as the
@@ -1573,7 +1576,7 @@ class PlotAccessor(PandasObject):
             ...     'signups': [5, 5, 6, 12, 14, 13],
             ...     'visits': [20, 42, 28, 62, 81, 50],
             ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
-            ...                        freq='M'))
+            ...                        freq='ME'))
             >>> ax = df.plot.area()
 
         Area plots are stacked by default. To produce an unstacked plot,

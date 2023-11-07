@@ -10,6 +10,7 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
+from pandas.compat.numpy import np_version_gt2
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -32,6 +33,7 @@ from pandas.core import (
     nanops,
 )
 
+is_windows_np2_or_is32 = (is_platform_windows() and not np_version_gt2) or not IS64
 is_windows_or_is32 = is_platform_windows() or not IS64
 
 
@@ -725,7 +727,7 @@ class TestDataFrameAnalytics:
             mark = pytest.mark.xfail(
                 reason="GH#51446: Incorrect type inference on NaT in reduction result"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         df = DataFrame({"a": to_datetime(values)})
         result = df.std(skipna=skipna)
         if not skipna or all(value is pd.NaT for value in values):
@@ -752,7 +754,7 @@ class TestDataFrameAnalytics:
             tm.makeDateIndex(0),
             tm.makeNumericIndex(0, dtype=int),
             tm.makeNumericIndex(0, dtype=float),
-            tm.makeDateIndex(0, freq="M"),
+            tm.makeDateIndex(0, freq="ME"),
             tm.makePeriodIndex(0),
         ],
     )
@@ -908,7 +910,7 @@ class TestDataFrameAnalytics:
                 "A": np.arange(3),
                 "B": date_range("2016-01-01", periods=3),
                 "C": pd.timedelta_range("1D", periods=3),
-                "D": pd.period_range("2016", periods=3, freq="A"),
+                "D": pd.period_range("2016", periods=3, freq="Y"),
             }
         )
         result = df.mean(numeric_only=True)
@@ -933,7 +935,7 @@ class TestDataFrameAnalytics:
         tm.assert_series_equal(result, expected)
 
         # mean of period is not allowed
-        df["D"] = pd.period_range("2016", periods=3, freq="A")
+        df["D"] = pd.period_range("2016", periods=3, freq="Y")
 
         with pytest.raises(TypeError, match="mean is not implemented for Period"):
             df.mean(numeric_only=False)
@@ -1056,6 +1058,28 @@ class TestDataFrameAnalytics:
             expected = Series([1, 0, 1], index=["a", "b", "c"])
         tm.assert_series_equal(result, expected)
 
+    def test_idxmax_arrow_types(self):
+        # GH#55368
+        pytest.importorskip("pyarrow")
+
+        df = DataFrame({"a": [2, 3, 1], "b": [2, 1, 1]}, dtype="int64[pyarrow]")
+        result = df.idxmax()
+        expected = Series([1, 0], index=["a", "b"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin()
+        expected = Series([2, 1], index=["a", "b"])
+        tm.assert_series_equal(result, expected)
+
+        df = DataFrame({"a": ["b", "c", "a"]}, dtype="string[pyarrow]")
+        result = df.idxmax(numeric_only=False)
+        expected = Series([1], index=["a"])
+        tm.assert_series_equal(result, expected)
+
+        result = df.idxmin(numeric_only=False)
+        expected = Series([2], index=["a"])
+        tm.assert_series_equal(result, expected)
+
     def test_idxmax_axis_2(self, float_frame):
         frame = float_frame
         msg = "No axis named 2 for object type DataFrame"
@@ -1155,6 +1179,7 @@ class TestDataFrameAnalytics:
     def test_any_all_bool_with_na(self, opname, axis, bool_frame_with_na):
         getattr(bool_frame_with_na, opname)(axis=axis, bool_only=False)
 
+    @pytest.mark.filterwarnings("ignore:Downcasting object dtype arrays:FutureWarning")
     @pytest.mark.parametrize("opname", ["any", "all"])
     def test_any_all_bool_frame(self, opname, bool_frame_with_na):
         # GH#12863: numpy gives back non-boolean data for object type
@@ -1567,7 +1592,7 @@ class TestDataFrameReductions:
         self, request, frame_or_series, all_reductions
     ):
         if all_reductions == "count":
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="Count does not accept skipna")
             )
         obj = frame_or_series([1, 2, 3])
@@ -1744,13 +1769,13 @@ class TestEmptyDataFrameReductions:
     @pytest.mark.parametrize(
         "opname, dtype, exp_value, exp_dtype",
         [
-            ("sum", "Int8", 0, ("Int32" if is_windows_or_is32 else "Int64")),
-            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
-            ("prod", "Int8", 1, ("Int32" if is_windows_or_is32 else "Int64")),
+            ("sum", "Int8", 0, ("Int32" if is_windows_np2_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
+            ("prod", "Int8", 1, ("Int32" if is_windows_np2_or_is32 else "Int64")),
             ("sum", "Int64", 0, "Int64"),
             ("prod", "Int64", 1, "Int64"),
-            ("sum", "UInt8", 0, ("UInt32" if is_windows_or_is32 else "UInt64")),
-            ("prod", "UInt8", 1, ("UInt32" if is_windows_or_is32 else "UInt64")),
+            ("sum", "UInt8", 0, ("UInt32" if is_windows_np2_or_is32 else "UInt64")),
+            ("prod", "UInt8", 1, ("UInt32" if is_windows_np2_or_is32 else "UInt64")),
             ("sum", "UInt64", 0, "UInt64"),
             ("prod", "UInt64", 1, "UInt64"),
             ("sum", "Float32", 0, "Float32"),
@@ -1765,6 +1790,8 @@ class TestEmptyDataFrameReductions:
         expected = Series([exp_value, exp_value], dtype=exp_dtype)
         tm.assert_series_equal(result, expected)
 
+    # TODO: why does min_count=1 impact the resulting Windows dtype
+    # differently than min_count=0?
     @pytest.mark.parametrize(
         "opname, dtype, exp_dtype",
         [
@@ -1795,7 +1822,7 @@ def test_sum_timedelta64_skipna_false(using_array_manager, request):
         mark = pytest.mark.xfail(
             reason="Incorrect type inference on NaT in reduction result"
         )
-        request.node.add_marker(mark)
+        request.applymarker(mark)
 
     arr = np.arange(8).astype(np.int64).view("m8[s]").reshape(4, 2)
     arr[-1, -1] = "Nat"

@@ -383,7 +383,7 @@ def ndarray_to_mgr(
             new_block(
                 dtype.construct_array_type()._from_sequence(data, dtype=dtype),
                 BlockPlacement(slice(i, i + 1)),
-                ndim=1,
+                ndim=2,
             )
             for i, data in enumerate(obj_columns)
         ]
@@ -550,7 +550,7 @@ def _prep_ndarraylike(values, copy: bool = True) -> np.ndarray:
 
     if len(values) == 0:
         # TODO: check for length-zero range, in which case return int64 dtype?
-        # TODO: re-use anything in try_cast?
+        # TODO: reuse anything in try_cast?
         return np.empty((0, 0), dtype=object)
     elif isinstance(values, range):
         arr = range_to_ndarray(values)

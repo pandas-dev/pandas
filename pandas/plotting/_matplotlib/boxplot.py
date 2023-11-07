@@ -35,9 +35,28 @@ if TYPE_CHECKING:
     from collections.abc import Collection
 
     from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
 
     from pandas._typing import MatplotlibColor
+
+
+def _set_ticklabels(ax: Axes, labels: list[str], is_vertical: bool, **kwargs) -> None:
+    """Set the tick labels of a given axis.
+
+    Due to https://github.com/matplotlib/matplotlib/pull/17266, we need to handle the
+    case of repeated ticks (due to `FixedLocator`) and thus we duplicate the number of
+    labels.
+    """
+    ticks = ax.get_xticks() if is_vertical else ax.get_yticks()
+    if len(ticks) != len(labels):
+        i, remainder = divmod(len(ticks), len(labels))
+        assert remainder == 0, remainder
+        labels *= i
+    if is_vertical:
+        ax.set_xticklabels(labels, **kwargs)
+    else:
+        ax.set_yticklabels(labels, **kwargs)
 
 
 class BoxPlot(LinePlot):
@@ -62,7 +81,6 @@ class BoxPlot(LinePlot):
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
-    def _args_adjust(self) -> None:
         if self.subplots:
             # Disable label ax sharing. Otherwise, all subplots shows last
             # column label
@@ -159,7 +177,7 @@ class BoxPlot(LinePlot):
         if not self.kwds.get("capprops"):
             setp(bp["caps"], color=caps, alpha=1)
 
-    def _make_plot(self) -> None:
+    def _make_plot(self, fig: Figure) -> None:
         if self.subplots:
             self._return_obj = pd.Series(dtype=object)
 
@@ -193,7 +211,9 @@ class BoxPlot(LinePlot):
                 )
                 self.maybe_color_bp(bp)
                 self._return_obj[label] = ret
-                self._set_ticklabels(ax, ticklabels)
+                _set_ticklabels(
+                    ax=ax, labels=ticklabels, is_vertical=self.orientation == "vertical"
+                )
         else:
             y = self.data.values.T
             ax = self._get_ax(0)
@@ -209,13 +229,9 @@ class BoxPlot(LinePlot):
             labels = [pprint_thing(left) for left in labels]
             if not self.use_index:
                 labels = [pprint_thing(key) for key in range(len(labels))]
-            self._set_ticklabels(ax, labels)
-
-    def _set_ticklabels(self, ax: Axes, labels: list[str]) -> None:
-        if self.orientation == "vertical":
-            ax.set_xticklabels(labels)
-        else:
-            ax.set_yticklabels(labels)
+            _set_ticklabels(
+                ax=ax, labels=labels, is_vertical=self.orientation == "vertical"
+            )
 
     def _make_legend(self) -> None:
         pass
@@ -382,16 +398,9 @@ def boxplot(
             ax.tick_params(axis="both", labelsize=fontsize)
 
         # GH 45465: x/y are flipped when "vert" changes
-        is_vertical = kwds.get("vert", True)
-        ticks = ax.get_xticks() if is_vertical else ax.get_yticks()
-        if len(ticks) != len(keys):
-            i, remainder = divmod(len(ticks), len(keys))
-            assert remainder == 0, remainder
-            keys *= i
-        if is_vertical:
-            ax.set_xticklabels(keys, rotation=rot)
-        else:
-            ax.set_yticklabels(keys, rotation=rot)
+        _set_ticklabels(
+            ax=ax, labels=keys, is_vertical=kwds.get("vert", True), rotation=rot
+        )
         maybe_color_bp(bp, **kwds)
 
         # Return axes in multiplot case, maybe revisit later # 985

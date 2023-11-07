@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 from collections.abc import (
     Hashable,
     Iterable,
@@ -81,6 +80,7 @@ if TYPE_CHECKING:
         IntStrT,
         ReadBuffer,
         Self,
+        SequenceNotStr,
         StorageOptions,
         WriteExcelBuffer,
     )
@@ -155,18 +155,22 @@ usecols : str, list-like, or callable, default None
     Returns a subset of the columns according to behavior above.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {{'a': np.float64, 'b': np.int32}}
-    Use `object` to preserve data as stored in Excel and not interpret dtype.
+    Use `object` to preserve data as stored in Excel and not interpret dtype,
+    which will necessarily result in `object` dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
+    If you use `None`, it will infer the dtype of each column based on the data.
 engine : str, default None
     If io is not a buffer or path, this must be set to identify io.
-    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb".
+    Supported engines: "xlrd", "openpyxl", "odf", "pyxlsb", "calamine".
     Engine compatibility :
 
     - "xlrd" supports old-style Excel files (.xls).
     - "openpyxl" supports newer Excel file formats.
     - "odf" supports OpenDocument file formats (.odf, .ods, .odt).
     - "pyxlsb" supports Binary Excel files.
+    - "calamine" supports Excel (.xls, .xlsx, .xlsm, .xlsb)
+      and OpenDocument (.ods) file formats.
 
     .. versionchanged:: 1.2.0
         The engine `xlrd <https://xlrd.readthedocs.io/en/latest/>`_
@@ -386,8 +390,8 @@ def read_excel(
     sheet_name: str | int = ...,
     *,
     header: int | Sequence[int] | None = ...,
-    names: list[str] | None = ...,
-    index_col: int | Sequence[int] | None = ...,
+    names: SequenceNotStr[Hashable] | range | None = ...,
+    index_col: int | str | Sequence[int] | None = ...,
     usecols: int
     | str
     | Sequence[int]
@@ -395,7 +399,7 @@ def read_excel(
     | Callable[[str], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
-    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
+    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
@@ -425,8 +429,8 @@ def read_excel(
     sheet_name: list[IntStrT] | None,
     *,
     header: int | Sequence[int] | None = ...,
-    names: list[str] | None = ...,
-    index_col: int | Sequence[int] | None = ...,
+    names: SequenceNotStr[Hashable] | range | None = ...,
+    index_col: int | str | Sequence[int] | None = ...,
     usecols: int
     | str
     | Sequence[int]
@@ -434,7 +438,7 @@ def read_excel(
     | Callable[[str], bool]
     | None = ...,
     dtype: DtypeArg | None = ...,
-    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = ...,
+    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = ...,
     converters: dict[str, Callable] | dict[int, Callable] | None = ...,
     true_values: Iterable[Hashable] | None = ...,
     false_values: Iterable[Hashable] | None = ...,
@@ -464,8 +468,8 @@ def read_excel(
     sheet_name: str | int | list[IntStrT] | None = 0,
     *,
     header: int | Sequence[int] | None = 0,
-    names: list[str] | None = None,
-    index_col: int | Sequence[int] | None = None,
+    names: SequenceNotStr[Hashable] | range | None = None,
+    index_col: int | str | Sequence[int] | None = None,
     usecols: int
     | str
     | Sequence[int]
@@ -473,7 +477,7 @@ def read_excel(
     | Callable[[str], bool]
     | None = None,
     dtype: DtypeArg | None = None,
-    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb"] | None = None,
+    engine: Literal["xlrd", "openpyxl", "odf", "pyxlsb", "calamine"] | None = None,
     converters: dict[str, Callable] | dict[int, Callable] | None = None,
     true_values: Iterable[Hashable] | None = None,
     false_values: Iterable[Hashable] | None = None,
@@ -549,7 +553,7 @@ def read_excel(
 _WorkbookT = TypeVar("_WorkbookT")
 
 
-class BaseExcelReader(Generic[_WorkbookT], metaclass=abc.ABCMeta):
+class BaseExcelReader(Generic[_WorkbookT]):
     book: _WorkbookT
 
     def __init__(
@@ -589,13 +593,11 @@ class BaseExcelReader(Generic[_WorkbookT], metaclass=abc.ABCMeta):
             )
 
     @property
-    @abc.abstractmethod
     def _workbook_class(self) -> type[_WorkbookT]:
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def load_workbook(self, filepath_or_buffer, engine_kwargs) -> _WorkbookT:
-        pass
+        raise NotImplementedError
 
     def close(self) -> None:
         if hasattr(self, "book"):
@@ -611,21 +613,17 @@ class BaseExcelReader(Generic[_WorkbookT], metaclass=abc.ABCMeta):
         self.handles.close()
 
     @property
-    @abc.abstractmethod
     def sheet_names(self) -> list[str]:
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def get_sheet_by_name(self, name: str):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def get_sheet_by_index(self, index: int):
-        pass
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def get_sheet_data(self, sheet, rows: int | None = None):
-        pass
+        raise NotImplementedError
 
     def raise_if_bad_sheet_by_index(self, index: int) -> None:
         n_sheets = len(self.sheet_names)
@@ -683,7 +681,7 @@ class BaseExcelReader(Generic[_WorkbookT], metaclass=abc.ABCMeta):
         ----------
         header : int, list of int, or None
             See read_excel docstring.
-        index_col : int, list of int, or None
+        index_col : int, str, list of int, or None
             See read_excel docstring.
         skiprows : list-like, int, callable, or None
             See read_excel docstring.
@@ -735,7 +733,7 @@ class BaseExcelReader(Generic[_WorkbookT], metaclass=abc.ABCMeta):
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
         header: int | Sequence[int] | None = 0,
-        names=None,
+        names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
         dtype: DtypeArg | None = None,
@@ -940,7 +938,7 @@ class BaseExcelReader(Generic[_WorkbookT], metaclass=abc.ABCMeta):
 
 
 @doc(storage_options=_shared_docs["storage_options"])
-class ExcelWriter(Generic[_WorkbookT], metaclass=abc.ABCMeta):
+class ExcelWriter(Generic[_WorkbookT]):
     """
     Class for writing DataFrame objects into excel sheets.
 
@@ -1178,20 +1176,19 @@ class ExcelWriter(Generic[_WorkbookT], metaclass=abc.ABCMeta):
         return self._engine
 
     @property
-    @abc.abstractmethod
     def sheets(self) -> dict[str, Any]:
         """Mapping of sheet names to sheet objects."""
+        raise NotImplementedError
 
     @property
-    @abc.abstractmethod
     def book(self) -> _WorkbookT:
         """
         Book instance. Class type will depend on the engine used.
 
         This attribute can be used to access engine-specific features.
         """
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def _write_cells(
         self,
         cells,
@@ -1214,12 +1211,13 @@ class ExcelWriter(Generic[_WorkbookT], metaclass=abc.ABCMeta):
         freeze_panes: int tuple of length 2
             contains the bottom-most row and right-most column to freeze
         """
+        raise NotImplementedError
 
-    @abc.abstractmethod
     def _save(self) -> None:
         """
         Save workbook to disk.
         """
+        raise NotImplementedError
 
     def __init__(
         self,
@@ -1463,13 +1461,15 @@ class ExcelFile:
         .xls, .xlsx, .xlsb, .xlsm, .odf, .ods, or .odt file.
     engine : str, default None
         If io is not a buffer or path, this must be set to identify io.
-        Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``
+        Supported engines: ``xlrd``, ``openpyxl``, ``odf``, ``pyxlsb``, ``calamine``
         Engine compatibility :
 
         - ``xlrd`` supports old-style Excel files (.xls).
         - ``openpyxl`` supports newer Excel file formats.
         - ``odf`` supports OpenDocument file formats (.odf, .ods, .odt).
         - ``pyxlsb`` supports Binary Excel files.
+        - ``calamine`` supports Excel (.xls, .xlsx, .xlsm, .xlsb)
+          and OpenDocument (.ods) file formats.
 
         .. versionchanged:: 1.2.0
 
@@ -1505,6 +1505,7 @@ class ExcelFile:
     ...     df1 = pd.read_excel(xls, "Sheet1")  # doctest: +SKIP
     """
 
+    from pandas.io.excel._calamine import CalamineReader
     from pandas.io.excel._odfreader import ODFReader
     from pandas.io.excel._openpyxl import OpenpyxlReader
     from pandas.io.excel._pyxlsb import PyxlsbReader
@@ -1515,6 +1516,7 @@ class ExcelFile:
         "openpyxl": OpenpyxlReader,
         "odf": ODFReader,
         "pyxlsb": PyxlsbReader,
+        "calamine": CalamineReader,
     }
 
     def __init__(
@@ -1590,7 +1592,7 @@ class ExcelFile:
         self,
         sheet_name: str | int | list[int] | list[str] | None = 0,
         header: int | Sequence[int] | None = 0,
-        names=None,
+        names: SequenceNotStr[Hashable] | range | None = None,
         index_col: int | Sequence[int] | None = None,
         usecols=None,
         converters=None,

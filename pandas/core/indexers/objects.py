@@ -262,7 +262,9 @@ class VariableOffsetWindowIndexer(BaseIndexer):
             # end bound is previous end
             # or current index
             end_diff = (self.index[end[i - 1]] - end_bound) * index_growth_sign
-            if end_diff <= zero:
+            if end_diff == zero and not right_closed:
+                end[i] = end[i - 1] + 1
+            elif end_diff <= zero:
                 end[i] = i + 1
             else:
                 end[i] = end[i - 1]
