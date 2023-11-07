@@ -44,7 +44,6 @@ from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.computation.expressions import (
     NUMEXPR_INSTALLED,
@@ -202,16 +201,6 @@ def parametrize_fixture_doc(*args) -> Callable[[F], F]:
         return fixture
 
     return documented_fixture
-
-
-def async_mark():
-    try:
-        import_optional_dependency("pytest_asyncio")
-        async_mark = pytest.mark.asyncio
-    except ImportError:
-        async_mark = pytest.mark.skip(reason="Missing dependency pytest-asyncio")
-
-    return async_mark
 
 
 def mark_array_manager_not_yet_implemented(request) -> None:
