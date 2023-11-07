@@ -415,7 +415,6 @@ MultiIndex
 
 I/O
 ^^^
-- Bug in :func:`DataFrame.describe` when formatting percentiles in the resulting percentile 99.999% is rounded to 100% (:issue:`55765`)
 - Bug in :func:`read_csv` where ``on_bad_lines="warn"`` would write to ``stderr`` instead of raise a Python warning. This now yields a :class:`.errors.ParserWarning` (:issue:`54296`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` where ``usecols`` wasn't working with a csv with no headers (:issue:`54459`)
 - Bug in :func:`read_excel`, with ``engine="xlrd"`` (``xls`` files) erroring when file contains NaNs/Infs (:issue:`54564`)
@@ -469,6 +468,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :func:`DataFrame.describe` when formatting percentiles in the resulting percentile 99.999% is rounded to 100% (:issue:`55765`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in :func:`infer_freq` and :meth:`DatetimeIndex.inferred_freq` with weekly frequencies and non-nanosecond resolutions (:issue:`55609`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)
