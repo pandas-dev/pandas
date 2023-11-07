@@ -153,7 +153,7 @@ class IndexingMixin:
         """
         Purely integer-location based indexing for selection by position.
 
-        .. deprecated:: 2.1.0
+        .. deprecated:: 2.2.0
 
            Returning a tuple from a callable is deprecated.
 
