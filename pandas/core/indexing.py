@@ -985,7 +985,7 @@ class _LocationIndexer(NDFrameIndexerBase):
         This is only called after a failed call to _getitem_lowerdim.
         """
         retval = self.obj
-        # Selecting columns before rows is signficiantly faster
+        # Selecting columns before rows is significantly faster
         start_val = (self.ndim - len(tup)) + 1
         for i, key in enumerate(reversed(tup)):
             i = self.ndim - i - start_val
