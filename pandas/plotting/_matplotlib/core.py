@@ -579,7 +579,8 @@ class MPLPlot(ABC):
                 return self.axes[0]
 
     @final
-    def _convert_to_ndarray(self, data):
+    @staticmethod
+    def _convert_to_ndarray(data):
         # GH31357: categorical columns are processed separately
         if isinstance(data.dtype, CategoricalDtype):
             return data
@@ -1476,7 +1477,9 @@ class LinePlot(MPLPlot):
 
         lines = self._plot(ax, data.index, data.values, style=style, **kwds)
         # set date formatter, locators and rescale limits
-        format_dateaxis(ax, ax.freq, data.index)
+        # error: Argument 3 to "format_dateaxis" has incompatible type "Index";
+        # expected "DatetimeIndex | PeriodIndex"
+        format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type]
         return lines
 
     @final
