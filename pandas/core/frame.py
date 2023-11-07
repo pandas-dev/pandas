@@ -2133,6 +2133,8 @@ class DataFrame(NDFrame, OpsMixin):
         """
         Write a DataFrame to a Google BigQuery table.
 
+        .. deprecated:: 2.2.0
+
         This function requires the `pandas-gbq package
         <https://pandas-gbq.readthedocs.io>`__.
 
