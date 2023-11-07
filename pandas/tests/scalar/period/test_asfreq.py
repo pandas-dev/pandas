@@ -825,7 +825,8 @@ class TestFreqConversion:
         with pytest.raises(ValueError, match=msg):
             initial.asfreq(freq="MS", how="S")
 
-        with pytest.raises(ValueError, match=msg):
+        msg = "MonthBegin is not supported as period frequency"
+        with pytest.raises(TypeError, match=msg):
             Period("2013-01", "MS")
 
         assert _period_code_map.get("MS") is None
