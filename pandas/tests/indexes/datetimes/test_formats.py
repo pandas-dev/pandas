@@ -14,6 +14,11 @@ from pandas import (
 import pandas._testing as tm
 
 
+@pytest.fixture(params=["s", "ms", "us", "ns"])
+def unit(request):
+    return request.param
+
+
 def test_get_values_for_csv():
     index = pd.date_range(freq="1D", periods=3, start="2017-01-01")
 
@@ -116,14 +121,13 @@ class TestDatetimeIndexRendering:
             ),
         ],
     )
-    def test_dti_repr_time_midnight(self, dates, freq, expected_repr):
+    def test_dti_repr_time_midnight(self, dates, freq, expected_repr, unit):
         # GH53634
-        dti = DatetimeIndex(dates, freq)
+        dti = DatetimeIndex(dates, freq).as_unit(unit)
         actual_repr = repr(dti)
-        assert actual_repr == expected_repr
+        assert actual_repr == expected_repr.replace("[ns]", f"[{unit}]")
 
-    @pytest.mark.parametrize("method", ["__repr__", "__str__"])
-    def test_dti_representation(self, method):
+    def test_dti_representation(self, unit):
         idxs = []
         idxs.append(DatetimeIndex([], freq="D"))
         idxs.append(DatetimeIndex(["2011-01-01"], freq="D"))
@@ -174,11 +178,16 @@ class TestDatetimeIndexRendering:
         )
 
         with pd.option_context("display.width", 300):
-            for indx, expected in zip(idxs, exp):
-                result = getattr(indx, method)()
+            for index, expected in zip(idxs, exp):
+                index = index.as_unit(unit)
+                expected = expected.replace("[ns", f"[{unit}")
+                result = repr(index)
+                assert result == expected
+                result = str(index)
                 assert result == expected
 
-    def test_dti_representation_to_series(self):
+    # TODO: this is a Series.__repr__ test
+    def test_dti_representation_to_series(self, unit):
         idx1 = DatetimeIndex([], freq="D")
         idx2 = DatetimeIndex(["2011-01-01"], freq="D")
         idx3 = DatetimeIndex(["2011-01-01", "2011-01-02"], freq="D")
@@ -231,8 +240,9 @@ class TestDatetimeIndexRendering:
                 [idx1, idx2, idx3, idx4, idx5, idx6, idx7],
                 [exp1, exp2, exp3, exp4, exp5, exp6, exp7],
             ):
-                result = repr(Series(idx))
-                assert result == expected
+                ser = Series(idx.as_unit(unit))
+                result = repr(ser)
+                assert result == expected.replace("[ns", f"[{unit}")
 
     def test_dti_summary(self):
         # GH#9116
