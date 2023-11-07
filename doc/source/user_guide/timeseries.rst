@@ -2013,7 +2013,7 @@ frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` 
    p == pd.Period("2012-01", freq="3M")
 
 
-If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``, ``N``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherwise, ``ValueError`` will be raised.
+If ``Period`` freq is daily or higher (``D``, ``h``, ``min``, ``s``, ``ms``, ``us``, and ``ns``), ``offsets`` and ``timedelta``-like can be added if the result can have the same freq. Otherwise, ``ValueError`` will be raised.
 
 .. ipython:: python
 
