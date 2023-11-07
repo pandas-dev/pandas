@@ -19,6 +19,7 @@ import pytz
 
 from pandas._libs.tslibs import parsing
 from pandas._libs.tslibs.parsing import py_parse_datetime_string
+from pandas.compat import is_ci_environment
 
 import pandas as pd
 from pandas import (
@@ -1796,13 +1797,21 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # pandas.errors.ParserError: CSV parse error
 @pytest.mark.parametrize(
     "date_string",
     ["32/32/2019", "02/30/2019", "13/13/2019", "13/2019", "a3/11/2018", "10/11/2o17"],
 )
-def test_invalid_parse_delimited_date(all_parsers, date_string):
+def test_invalid_parse_delimited_date(all_parsers, date_string, request):
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        if is_ci_environment():
+            pytest.skip(f"Can hang in CI environment with {parser.engine=}")
+        else:
+            mark = pytest.mark.xfail(
+                reason="CSV parse error: Empty CSV file or block: "
+                "cannot infer number of columns"
+            )
+            request.applymarker(mark)
     expected = DataFrame({0: [date_string]}, dtype="object")
     result = parser.read_csv(
         StringIO(date_string),
