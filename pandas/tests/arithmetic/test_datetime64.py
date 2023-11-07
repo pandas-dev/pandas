@@ -1079,21 +1079,17 @@ class TestDatetime64Arithmetic:
     @pytest.mark.parametrize("freq", ["h", "D", "W", "2ME", "MS", "QE", "B", None])
     @pytest.mark.parametrize("dtype", [None, "uint8"])
     def test_dt64arr_addsub_intlike(
-        self, request, dtype, box_with_array, freq, tz_naive_fixture
+        self, request, dtype, index_or_series_or_array, freq, tz_naive_fixture
     ):
         # GH#19959, GH#19123, GH#19012
         tz = tz_naive_fixture
-        if box_with_array is pd.DataFrame:
-            request.applymarker(
-                pytest.mark.xfail(raises=ValueError, reason="Axis alignment fails")
-            )
 
         if freq is None:
             dti = DatetimeIndex(["NaT", "2017-04-05 06:07:08"], tz=tz)
         else:
             dti = date_range("2016-01-01", periods=2, freq=freq, tz=tz)
 
-        obj = box_with_array(dti)
+        obj = index_or_series_or_array(dti)
         other = np.array([4, -1])
         if dtype is not None:
             other = other.astype(dtype)
