@@ -56,11 +56,15 @@ class HistPlot(LinePlot):
         data,
         bins: int | np.ndarray | list[np.ndarray] = 10,
         bottom: int | np.ndarray = 0,
+        *,
+        range=None,
         **kwargs,
     ) -> None:
         if is_list_like(bottom):
             bottom = np.array(bottom)
         self.bottom = bottom
+
+        self._bin_range = range
 
         self.xlabel = kwargs.get("xlabel")
         self.ylabel = kwargs.get("ylabel")
@@ -85,7 +89,7 @@ class HistPlot(LinePlot):
         values = np.ravel(nd_values)
         values = values[~isna(values)]
 
-        hist, bins = np.histogram(values, bins=bins, range=self.kwds.get("range", None))
+        hist, bins = np.histogram(values, bins=bins, range=self._bin_range)
         return bins
 
     # error: Signature of "_plot" incompatible with supertype "LinePlot"
@@ -209,8 +213,9 @@ class KdePlot(HistPlot):
         self.bw_method = bw_method
         self.ind = ind
 
-    def _get_ind(self, y):
-        if self.ind is None:
+    @staticmethod
+    def _get_ind(y, ind):
+        if ind is None:
             # np.nanmax() and np.nanmin() ignores the missing values
             sample_range = np.nanmax(y) - np.nanmin(y)
             ind = np.linspace(
@@ -218,15 +223,13 @@ class KdePlot(HistPlot):
                 np.nanmax(y) + 0.5 * sample_range,
                 1000,
             )
-        elif is_integer(self.ind):
+        elif is_integer(ind):
             sample_range = np.nanmax(y) - np.nanmin(y)
             ind = np.linspace(
                 np.nanmin(y) - 0.5 * sample_range,
                 np.nanmax(y) + 0.5 * sample_range,
-                self.ind,
+                ind,
             )
-        else:
-            ind = self.ind
         return ind
 
     @classmethod
@@ -252,7 +255,7 @@ class KdePlot(HistPlot):
 
     def _make_plot_keywords(self, kwds, y):
         kwds["bw_method"] = self.bw_method
-        kwds["ind"] = self._get_ind(y)
+        kwds["ind"] = self._get_ind(y, ind=self.ind)
         return kwds
 
     def _post_plot_logic(self, ax, data) -> None:
