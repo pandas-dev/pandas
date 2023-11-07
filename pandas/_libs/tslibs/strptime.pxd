@@ -14,6 +14,7 @@ cdef bint parse_today_now(
 
 cdef class DatetimeParseState:
     cdef:
+        # See comments describing these attributes in the __cinit__ method
         bint found_tz
         bint found_naive
         bint found_naive_str

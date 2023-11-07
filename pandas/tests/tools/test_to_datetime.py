@@ -3787,7 +3787,6 @@ def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_fir
     # both_strs-> paths that were previously already deprecated with warning
     #  issued in _array_to_datetime_object
     both_strs = isinstance(aware_val, str) and isinstance(naive_val, str)
-    isinstance(aware_val, str) or isinstance(naive_val, str)
     has_numeric = isinstance(naive_val, (int, float))
 
     depr_msg = "In a future version of pandas, parsing datetimes with mixed time zones"
