@@ -696,9 +696,9 @@ class DataFrameFormatter:
         assert self.max_rows_fitted is not None
         row_num = self.max_rows_fitted // 2
         if row_num >= 1:
-            head = self.tr_frame.iloc[:row_num, :]
-            tail = self.tr_frame.iloc[-row_num:, :]
-            self.tr_frame = concat((head, tail))
+            _len = len(self.tr_frame)
+            _slice = np.hstack([np.arange(row_num), np.arange(_len - row_num, _len)])
+            self.tr_frame = self.tr_frame.iloc[_slice]
         else:
             row_num = cast(int, self.max_rows)
             self.tr_frame = self.tr_frame.iloc[:row_num, :]
