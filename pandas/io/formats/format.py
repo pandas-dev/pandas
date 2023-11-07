@@ -1609,7 +1609,7 @@ def format_percentiles(
     return [i + "%" for i in out]
 
 
-def get_precision(array: (np.ndarray | Sequence[float])) -> int:
+def get_precision(array: np.ndarray | Sequence[float]) -> int:
     to_begin = array[0] if array[0] > 0 else None
     to_end = 100 - array[-1] if array[-1] < 100 else None
     diff = np.ediff1d(array, to_begin=to_begin, to_end=to_end)
