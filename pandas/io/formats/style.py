@@ -2722,7 +2722,7 @@ class Styler(StylerRenderer):
              - Boolean
              - ValueError: cannot supply ``subset`` and ``level`` simultaneously.
 
-        Note this method only hides the identifed elements so can be chained to hide
+        Note this method only hides the identified elements so can be chained to hide
         multiple elements in sequence.
 
         Examples
