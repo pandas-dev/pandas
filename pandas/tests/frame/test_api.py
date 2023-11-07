@@ -7,8 +7,6 @@ import pytest
 
 from pandas._config.config import option_context
 
-from pandas.util._test_decorators import async_mark
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -288,8 +286,7 @@ class TestDataFrameMisc:
         f = lambda x: x.rename({1: "foo"}, inplace=True)
         _check_f(d.copy(), f)
 
-    @async_mark()
-    async def test_tab_complete_warning(self, ip, frame_or_series):
+    def test_tab_complete_warning(self, ip, frame_or_series):
         # GH 16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
@@ -299,8 +296,7 @@ class TestDataFrameMisc:
         else:
             code = "from pandas import Series; obj = Series(dtype=object)"
 
-        await ip.run_code(code)
-
+        ip.run_cell(code)
         # GH 31324 newer jedi version raises Deprecation warning;
         #  appears resolved 2021-02-02
         with tm.assert_produces_warning(None, raise_on_extra_warnings=False):
