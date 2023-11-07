@@ -554,17 +554,20 @@ class TestPeriodIndex:
         tm.assert_index_equal(res, expected)
 
     @pytest.mark.parametrize(
-        "freq",
+        "freq, freq_msg",
         [
-            offsets.BYearBegin(),
-            offsets.YearBegin(2),
-            offsets.QuarterBegin(startingMonth=12),
-            offsets.BusinessMonthEnd(2),
+            (offsets.BYearBegin(), "<BYearBegin: month=1>"),
+            (offsets.YearBegin(2), r"<2 \* YearBegins: month=1>"),
+            (
+                offsets.QuarterBegin(startingMonth=12),
+                "<QuarterBegin: startingMonth=12>",
+            ),
+            (offsets.BusinessMonthEnd(2), r"<2 \* BusinessMonthEnds>"),
         ],
     )
-    def test_offsets_not_supported(self, freq):
+    def test_offsets_not_supported(self, freq, freq_msg):
         # GH#55785
-        msg = f"{type(freq).__name__} is not supported as period frequency"
+        msg = f"{freq_msg} is not supported as period frequency"
         with pytest.raises(ValueError, match=msg):
             Period(year=2014, freq=freq)
 
