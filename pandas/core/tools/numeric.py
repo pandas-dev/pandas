@@ -229,7 +229,7 @@ def to_numeric(
         values = ensure_object(values)
         coerce_numeric = errors not in ("ignore", "raise")
         try:
-            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]  # noqa: E501
+            values, new_mask = lib.maybe_convert_numeric(  # type: ignore[call-overload]
                 values,
                 set(),
                 coerce_numeric=coerce_numeric,
