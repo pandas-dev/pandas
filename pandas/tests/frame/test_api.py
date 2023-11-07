@@ -217,10 +217,8 @@ class TestDataFrameMisc:
 
     def test_deepcopy(self, float_frame):
         cp = deepcopy(float_frame)
-        series = cp["A"]
-        series[:] = 10
-        for idx, value in series.items():
-            assert float_frame["A"][idx] != value
+        cp.loc[0, "A"] = 10
+        assert not float_frame.equals(cp)
 
     def test_inplace_return_self(self):
         # GH 1893
