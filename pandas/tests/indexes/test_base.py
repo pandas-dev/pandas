@@ -9,7 +9,7 @@ import pytest
 
 from pandas.compat import IS64
 from pandas.errors import InvalidIndexError
-from pandas.util._test_decorators import async_mark
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_any_real_numeric_dtype,
@@ -921,6 +921,14 @@ class TestIndex:
         result = index.isin(empty)
         tm.assert_numpy_array_equal(expected, result)
 
+    @td.skip_if_no("pyarrow")
+    def test_isin_arrow_string_null(self):
+        # GH#55821
+        index = Index(["a", "b"], dtype="string[pyarrow_numpy]")
+        result = index.isin([None])
+        expected = np.array([False, False])
+        tm.assert_numpy_array_equal(result, expected)
+
     @pytest.mark.parametrize(
         "values",
         [
@@ -1235,14 +1243,13 @@ class TestIndex:
         with pytest.raises(AttributeError, match="Can't set attribute"):
             index.is_unique = False
 
-    @async_mark()
-    async def test_tab_complete_warning(self, ip):
+    def test_tab_complete_warning(self, ip):
         # https://github.com/pandas-dev/pandas/issues/16409
         pytest.importorskip("IPython", minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
         code = "import pandas as pd; idx = pd.Index([1, 2])"
-        await ip.run_code(code)
+        ip.run_cell(code)
 
         # GH 31324 newer jedi version raises Deprecation warning;
         #  appears resolved 2021-02-02

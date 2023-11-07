@@ -38,7 +38,7 @@ bday_msg = "Period with BDay freq is deprecated"
 class TestPeriodConstruction:
     def test_custom_business_day_freq_raises(self):
         # GH#52534
-        msg = "CustomBusinessDay cannot be used with Period or PeriodDtype"
+        msg = "CustomBusinessDay is not supported as period frequency"
         with pytest.raises(TypeError, match=msg):
             Period("2023-04-10", freq="C")
         with pytest.raises(TypeError, match=msg):
@@ -1628,8 +1628,8 @@ def test_negone_ordinals():
 
 
 def test_invalid_frequency_error_message():
-    msg = "Invalid frequency: <WeekOfMonth: week=0, weekday=0>"
-    with pytest.raises(ValueError, match=msg):
+    msg = "WeekOfMonth is not supported as period frequency"
+    with pytest.raises(TypeError, match=msg):
         Period("2012-01-02", freq="WOM-1MON")
 
 

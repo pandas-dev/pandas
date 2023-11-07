@@ -35,6 +35,7 @@ if TYPE_CHECKING:
     from collections.abc import Collection
 
     from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
 
     from pandas._typing import MatplotlibColor
@@ -80,7 +81,6 @@ class BoxPlot(LinePlot):
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
-    def _args_adjust(self) -> None:
         if self.subplots:
             # Disable label ax sharing. Otherwise, all subplots shows last
             # column label
@@ -177,7 +177,7 @@ class BoxPlot(LinePlot):
         if not self.kwds.get("capprops"):
             setp(bp["caps"], color=caps, alpha=1)
 
-    def _make_plot(self) -> None:
+    def _make_plot(self, fig: Figure) -> None:
         if self.subplots:
             self._return_obj = pd.Series(dtype=object)
 

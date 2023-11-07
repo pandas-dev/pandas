@@ -993,8 +993,7 @@ class TestBusinessHour:
         off = BDay(offset=td)
         t1 = idx + off
 
-        exp_reso = max(td._creso, idx._data._creso)
-        exp_unit = {7: "s", 8: "ms", 9: "us", 10: "ns"}[exp_reso]
+        exp_unit = tm.get_finest_unit(td.unit, idx.unit)
 
         expected = DatetimeIndex(
             [
