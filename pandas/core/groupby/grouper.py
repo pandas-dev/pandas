@@ -969,7 +969,7 @@ def get_grouper(
     def is_in_obj(gpr) -> bool:
         if not hasattr(gpr, "name"):
             return False
-        if using_copy_on_write or warn_copy_on_write():
+        if using_copy_on_write() or warn_copy_on_write():
             # For the CoW case, we check the references to determine if the
             # series is part of the object
             try:
