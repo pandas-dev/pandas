@@ -432,6 +432,7 @@ I/O
 Period
 ^^^^^^
 - Bug in :class:`Period` addition silently wrapping around instead of raising ``OverflowError`` (:issue:`55503`)
+- Bug in incorrectly allowing construction of :class:`Period` with certain offsets which don't have an attribute _period_dtype_code (:issue:`55785`)
 -
 
 Plotting

@@ -117,7 +117,6 @@ from pandas._libs.tslibs.offsets cimport (
 from pandas._libs.tslibs.offsets import (
     INVALID_FREQ_ERR_MSG,
     BDay,
-    CustomBusinessDay,
 )
 
 cdef:
