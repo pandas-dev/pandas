@@ -309,7 +309,7 @@ def _format_coord(freq, t, y) -> str:
     return f"t = {time_period}  y = {y:8f}"
 
 
-def format_dateaxis(subplot, freq, index) -> None:
+def format_dateaxis(subplot, freq: BaseOffset, index) -> None:
     """
     Pretty-formats the date axis (x-axis).
 

@@ -90,6 +90,8 @@ if TYPE_CHECKING:
         npt,
     )
 
+    from pandas import Series
+
 
 def _color_in_style(style: str) -> bool:
     """
@@ -471,7 +473,8 @@ class MPLPlot(ABC):
             self._post_plot_logic(ax, self.data)
 
     @final
-    def _has_plotted_object(self, ax: Axes) -> bool:
+    @staticmethod
+    def _has_plotted_object(ax: Axes) -> bool:
         """check whether ax has data"""
         return len(ax.lines) != 0 or len(ax.artists) != 0 or len(ax.containers) != 0
 
@@ -767,6 +770,7 @@ class MPLPlot(ABC):
                 if fontsize is not None:
                     label.set_fontsize(fontsize)
 
+    @final
     @property
     def legend_title(self) -> str | None:
         if not isinstance(self.data.columns, ABCMultiIndex):
@@ -836,7 +840,8 @@ class MPLPlot(ABC):
                     ax.legend(loc="best")
 
     @final
-    def _get_ax_legend(self, ax: Axes):
+    @staticmethod
+    def _get_ax_legend(ax: Axes):
         """
         Take in axes and return ax and legend under different scenarios
         """
@@ -1454,7 +1459,7 @@ class LinePlot(MPLPlot):
         return lines
 
     @final
-    def _ts_plot(self, ax: Axes, x, data, style=None, **kwds):
+    def _ts_plot(self, ax: Axes, x, data: Series, style=None, **kwds):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
@@ -1475,7 +1480,7 @@ class LinePlot(MPLPlot):
         return lines
 
     @final
-    def _get_stacking_id(self):
+    def _get_stacking_id(self) -> int | None:
         if self.stacked:
             return id(self.data)
         else:
