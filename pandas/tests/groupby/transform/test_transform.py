@@ -101,6 +101,8 @@ def test_transform_fast():
     result = grp.transform("mean")
     tm.assert_series_equal(result, expected)
 
+
+def test_transform_fast2():
     # GH 12737
     df = DataFrame(
         {
@@ -130,6 +132,8 @@ def test_transform_fast():
     expected = expected[["f", "i"]]
     tm.assert_frame_equal(result, expected)
 
+
+def test_transform_fast3():
     # dup columns
     df = DataFrame([[1, 2, 3], [4, 5, 6]], columns=["g", "a", "a"])
     result = df.groupby("g").transform("first")

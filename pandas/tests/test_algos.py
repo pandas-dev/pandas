@@ -1,5 +1,4 @@
 from datetime import datetime
-from itertools import permutations
 import struct
 
 import numpy as np
@@ -956,14 +955,7 @@ class TestIsin:
         # Anything but object and we get all-False shortcut
 
         dta = date_range("2013-01-01", periods=3)._values
-        if dtype1 == "period[D]":
-            # TODO: fix Series.view to get this on its own
-            arr = dta.to_period("D")
-        elif dtype1 == "M8[ns, UTC]":
-            # TODO: fix Series.view to get this on its own
-            arr = dta.tz_localize("UTC")
-        else:
-            arr = Series(dta.view("i8")).view(dtype1)._values
+        arr = Series(dta.view("i8")).view(dtype1)._values
 
         comps = arr.view("i8").astype(dtype)
 
@@ -1216,17 +1208,22 @@ class TestValueCounts:
 
         msg = "pandas.value_counts is deprecated"
 
-        for s in [td, dt]:
+        for ser in [td, dt]:
             with tm.assert_produces_warning(FutureWarning, match=msg):
-                vc = algos.value_counts(s)
-                vc_with_na = algos.value_counts(s, dropna=False)
+                vc = algos.value_counts(ser)
+                vc_with_na = algos.value_counts(ser, dropna=False)
             assert len(vc) == 1
             assert len(vc_with_na) == 2
 
         exp_dt = Series({Timestamp("2014-01-01 00:00:00"): 1}, name="count")
         with tm.assert_produces_warning(FutureWarning, match=msg):
-            tm.assert_series_equal(algos.value_counts(dt), exp_dt)
-        # TODO same for (timedelta)
+            result_dt = algos.value_counts(dt)
+        tm.assert_series_equal(result_dt, exp_dt)
+
+        exp_td = Series({np.timedelta64(10000): 1}, name="count")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result_td = algos.value_counts(td)
+        tm.assert_series_equal(result_td, exp_td)
 
     def test_value_counts_datetime_outofbounds(self):
         # GH 13663
@@ -1247,13 +1244,6 @@ class TestValueCounts:
             dtype=object,
         )
         exp = Series([3, 2, 1], index=exp_index, name="count")
-        tm.assert_series_equal(res, exp)
-
-        # GH 12424  # TODO: belongs elsewhere
-        msg = "errors='ignore' is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
-            res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
-        exp = Series(["2362-01-01", np.nan], dtype=object)
         tm.assert_series_equal(res, exp)
 
     def test_categorical(self):
@@ -1785,161 +1775,6 @@ class TestRank:
         values = np.arange(2**25 + 2).reshape(2**24 + 1, 2)
         result = algos.rank(values, pct=True).max()
         assert result == 1
-
-
-def test_pad_backfill_object_segfault():
-    old = np.array([], dtype="O")
-    new = np.array([datetime(2010, 12, 31)], dtype="O")
-
-    result = libalgos.pad["object"](old, new)
-    expected = np.array([-1], dtype=np.intp)
-    tm.assert_numpy_array_equal(result, expected)
-
-    result = libalgos.pad["object"](new, old)
-    expected = np.array([], dtype=np.intp)
-    tm.assert_numpy_array_equal(result, expected)
-
-    result = libalgos.backfill["object"](old, new)
-    expected = np.array([-1], dtype=np.intp)
-    tm.assert_numpy_array_equal(result, expected)
-
-    result = libalgos.backfill["object"](new, old)
-    expected = np.array([], dtype=np.intp)
-    tm.assert_numpy_array_equal(result, expected)
-
-
-class TestTseriesUtil:
-    def test_backfill(self):
-        old = Index([1, 5, 10])
-        new = Index(list(range(12)))
-
-        filler = libalgos.backfill["int64_t"](old.values, new.values)
-
-        expect_filler = np.array([0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(filler, expect_filler)
-
-        # corner case
-        old = Index([1, 4])
-        new = Index(list(range(5, 10)))
-        filler = libalgos.backfill["int64_t"](old.values, new.values)
-
-        expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(filler, expect_filler)
-
-    def test_pad(self):
-        old = Index([1, 5, 10])
-        new = Index(list(range(12)))
-
-        filler = libalgos.pad["int64_t"](old.values, new.values)
-
-        expect_filler = np.array([-1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2], dtype=np.intp)
-        tm.assert_numpy_array_equal(filler, expect_filler)
-
-        # corner case
-        old = Index([5, 10])
-        new = Index(np.arange(5, dtype=np.int64))
-        filler = libalgos.pad["int64_t"](old.values, new.values)
-        expect_filler = np.array([-1, -1, -1, -1, -1], dtype=np.intp)
-        tm.assert_numpy_array_equal(filler, expect_filler)
-
-
-def test_is_lexsorted():
-    failure = [
-        np.array(
-            ([3] * 32) + ([2] * 32) + ([1] * 32) + ([0] * 32),
-            dtype="int64",
-        ),
-        np.array(
-            list(range(31))[::-1] * 4,
-            dtype="int64",
-        ),
-    ]
-
-    assert not libalgos.is_lexsorted(failure)
-
-
-def test_groupsort_indexer():
-    a = np.random.default_rng(2).integers(0, 1000, 100).astype(np.intp)
-    b = np.random.default_rng(2).integers(0, 1000, 100).astype(np.intp)
-
-    result = libalgos.groupsort_indexer(a, 1000)[0]
-
-    # need to use a stable sort
-    # np.argsort returns int, groupsort_indexer
-    # always returns intp
-    expected = np.argsort(a, kind="mergesort")
-    expected = expected.astype(np.intp)
-
-    tm.assert_numpy_array_equal(result, expected)
-
-    # compare with lexsort
-    # np.lexsort returns int, groupsort_indexer
-    # always returns intp
-    key = a * 1000 + b
-    result = libalgos.groupsort_indexer(key, 1000000)[0]
-    expected = np.lexsort((b, a))
-    expected = expected.astype(np.intp)
-
-    tm.assert_numpy_array_equal(result, expected)
-
-
-def test_infinity_sort():
-    # GH 13445
-    # numpy's argsort can be unhappy if something is less than
-    # itself.  Instead, let's give our infinities a self-consistent
-    # ordering, but outside the float extended real line.
-
-    Inf = libalgos.Infinity()
-    NegInf = libalgos.NegInfinity()
-
-    ref_nums = [NegInf, float("-inf"), -1e100, 0, 1e100, float("inf"), Inf]
-
-    assert all(Inf >= x for x in ref_nums)
-    assert all(Inf > x or x is Inf for x in ref_nums)
-    assert Inf >= Inf and Inf == Inf
-    assert not Inf < Inf and not Inf > Inf
-    assert libalgos.Infinity() == libalgos.Infinity()
-    assert not libalgos.Infinity() != libalgos.Infinity()
-
-    assert all(NegInf <= x for x in ref_nums)
-    assert all(NegInf < x or x is NegInf for x in ref_nums)
-    assert NegInf <= NegInf and NegInf == NegInf
-    assert not NegInf < NegInf and not NegInf > NegInf
-    assert libalgos.NegInfinity() == libalgos.NegInfinity()
-    assert not libalgos.NegInfinity() != libalgos.NegInfinity()
-
-    for perm in permutations(ref_nums):
-        assert sorted(perm) == ref_nums
-
-    # smoke tests
-    np.array([libalgos.Infinity()] * 32).argsort()
-    np.array([libalgos.NegInfinity()] * 32).argsort()
-
-
-def test_infinity_against_nan():
-    Inf = libalgos.Infinity()
-    NegInf = libalgos.NegInfinity()
-
-    assert not Inf > np.nan
-    assert not Inf >= np.nan
-    assert not Inf < np.nan
-    assert not Inf <= np.nan
-    assert not Inf == np.nan
-    assert Inf != np.nan
-
-    assert not NegInf > np.nan
-    assert not NegInf >= np.nan
-    assert not NegInf < np.nan
-    assert not NegInf <= np.nan
-    assert not NegInf == np.nan
-    assert NegInf != np.nan
-
-
-def test_ensure_platform_int():
-    arr = np.arange(100, dtype=np.intp)
-
-    result = libalgos.ensure_platform_int(arr)
-    assert result is arr
 
 
 def test_int64_add_overflow():
