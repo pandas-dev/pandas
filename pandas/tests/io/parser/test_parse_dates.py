@@ -1808,8 +1808,10 @@ def test_invalid_parse_delimited_date(all_parsers, date_string, request):
             pytest.skip(f"Can hang in CI environment with {parser.engine=}")
         else:
             mark = pytest.mark.xfail(
-                reason="CSV parse error: Empty CSV file or block: "
-                "cannot infer number of columns"
+                reason=(
+                    "CSV parse error: Empty CSV file or block: "
+                    "cannot infer number of columns"
+                )
             )
             request.applymarker(mark)
     expected = DataFrame({0: [date_string]}, dtype="object")
