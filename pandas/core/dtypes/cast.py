@@ -357,7 +357,10 @@ def maybe_downcast_numeric(
             # if we don't have any elements, just astype it
             return trans(result).astype(dtype)
 
-        element = result[0]
+        if isinstance(result, np.ndarray):
+            element = result[0]
+        else:
+            element = result.iloc[0]
         if isinstance(element, np.ndarray):
             element = element.ravel()[0]
         if not isinstance(element, (np.integer, np.floating, int, float, bool)):
