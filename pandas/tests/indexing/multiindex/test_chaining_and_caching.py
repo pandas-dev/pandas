@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas._libs import index as libindex
 from pandas.errors import SettingWithCopyError
 import pandas.util._test_decorators as td
 
@@ -69,15 +70,16 @@ def test_cache_updating(using_copy_on_write):
     assert result == 2
 
 
-@pytest.mark.slow
-def test_indexer_caching():
+def test_indexer_caching(monkeypatch):
     # GH5727
     # make sure that indexers are in the _internal_names_set
-    n = 1000001
-    index = MultiIndex.from_arrays([np.arange(n), np.arange(n)])
-    ser = Series(np.zeros(n), index=index)
+    size_cutoff = 20
+    with monkeypatch.context():
+        monkeypatch.setattr(libindex, "_SIZE_CUTOFF", size_cutoff)
+        index = MultiIndex.from_arrays([np.arange(size_cutoff), np.arange(size_cutoff)])
+        s = Series(np.zeros(size_cutoff), index=index)
 
-    # setitem
-    expected = Series(np.ones(n), index=index)
-    ser[ser == 0] = 1
-    tm.assert_series_equal(ser, expected)
+        # setitem
+        s[s == 0] = 1
+    expected = Series(np.ones(size_cutoff), index=index)
+    tm.assert_series_equal(s, expected)

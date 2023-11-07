@@ -18,7 +18,7 @@ def int_frame_const_col():
     return df
 
 
-@pytest.fixture(params=["python", "numba"])
+@pytest.fixture(params=["python", pytest.param("numba", marks=pytest.mark.single_cpu)])
 def engine(request):
     if request.param == "numba":
         pytest.importorskip("numba")

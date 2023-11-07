@@ -10,6 +10,8 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+from __future__ import annotations
+
 from array import array
 import bz2
 import datetime
@@ -22,6 +24,7 @@ from pathlib import Path
 import pickle
 import shutil
 import tarfile
+from typing import Any
 import uuid
 import zipfile
 
@@ -50,12 +53,6 @@ from pandas.tseries.offsets import (
     Day,
     MonthEnd,
 )
-
-
-@pytest.fixture
-def current_pickle_data():
-    # our current version pickle data
-    return create_pickle_data()
 
 
 # ---------------------
@@ -173,6 +170,15 @@ def python_unpickler(path):
         return pickle.load(fh)
 
 
+def flatten(data: dict) -> list[tuple[str, Any]]:
+    """Flatten create_pickle_data"""
+    return [
+        (typ, example)
+        for typ, examples in data.items()
+        for example in examples.values()
+    ]
+
+
 @pytest.mark.parametrize(
     "pickle_writer",
     [
@@ -190,29 +196,27 @@ def python_unpickler(path):
     ],
 )
 @pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
-def test_round_trip_current(current_pickle_data, pickle_writer, writer):
-    data = current_pickle_data
-    for typ, dv in data.items():
-        for dt, expected in dv.items():
-            with tm.ensure_clean() as path:
-                # test writing with each pickler
-                pickle_writer(expected, path)
+@pytest.mark.parametrize("typ, expected", flatten(create_pickle_data()))
+def test_round_trip_current(typ, expected, pickle_writer, writer):
+    with tm.ensure_clean() as path:
+        # test writing with each pickler
+        pickle_writer(expected, path)
 
-                # test reading with each unpickler
-                result = pd.read_pickle(path)
-                compare_element(result, expected, typ)
+        # test reading with each unpickler
+        result = pd.read_pickle(path)
+        compare_element(result, expected, typ)
 
-                result = python_unpickler(path)
-                compare_element(result, expected, typ)
+        result = python_unpickler(path)
+        compare_element(result, expected, typ)
 
-                # and the same for file objects (GH 35679)
-                with open(path, mode="wb") as handle:
-                    writer(expected, path)
-                    handle.seek(0)  # shouldn't close file handle
-                with open(path, mode="rb") as handle:
-                    result = pd.read_pickle(handle)
-                    handle.seek(0)  # shouldn't close file handle
-                compare_element(result, expected, typ)
+        # and the same for file objects (GH 35679)
+        with open(path, mode="wb") as handle:
+            writer(expected, path)
+            handle.seek(0)  # shouldn't close file handle
+        with open(path, mode="rb") as handle:
+            result = pd.read_pickle(handle)
+            handle.seek(0)  # shouldn't close file handle
+        compare_element(result, expected, typ)
 
 
 def test_pickle_path_pathlib():
