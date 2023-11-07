@@ -59,6 +59,7 @@ def test_cache_updating(using_copy_on_write, warn_copy_on_write):
             df.loc[0]["z"].iloc[0] = 1.0
         assert df.loc[(0, 0), "z"] == df_original.loc[0, "z"]
     else:
+        # TODO(CoW-warn) should raise custom warning message about chaining?
         with tm.assert_cow_warning(warn_copy_on_write):
             df.loc[0]["z"].iloc[0] = 1.0
         result = df.loc[(0, 0), "z"]

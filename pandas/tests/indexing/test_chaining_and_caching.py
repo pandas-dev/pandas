@@ -108,6 +108,7 @@ class TestCaching:
                 with tm.raises_chained_assignment_error():
                     out[row["C"]][six:eix] = v
             else:
+                # TODO(CoW-warn) custom warning message
                 with tm.assert_cow_warning(warn_copy_on_write):
                     out[row["C"]][six:eix] = v
 
@@ -202,6 +203,7 @@ class TestChaining:
                 df["A"].iloc[0] = np.nan
             expected = DataFrame({"A": ["foo", "bar", "bah", "foo", "bar"]})
         else:
+            # TODO(CoW-warn) custom warning message
             with tm.assert_cow_warning(warn_copy_on_write):
                 df["A"].iloc[0] = np.nan
             expected = DataFrame({"A": [np.nan, "bar", "bah", "foo", "bar"]})
@@ -671,6 +673,7 @@ class TestChaining:
                 with tm.raises_chained_assignment_error():
                     df["bb"].iloc[0] = 0.13
             else:
+                # TODO(CoW-warn) custom warning message
                 with tm.assert_cow_warning(warn_copy_on_write):
                     df["bb"].iloc[0] = 0.13
 
@@ -681,6 +684,7 @@ class TestChaining:
                 with tm.raises_chained_assignment_error():
                     df["bb"].iloc[0] = 0.15
             else:
+                # TODO(CoW-warn) custom warning message
                 with tm.assert_cow_warning(warn_copy_on_write):
                     df["bb"].iloc[0] = 0.15
 

@@ -100,6 +100,15 @@ if TYPE_CHECKING:
     from pandas.api.extensions import ExtensionArray
 
 
+COW_WARNING_GENERAL_MSG = """\
+Setting a value on a view: behaviour will change in pandas 3.0.
+You are mutating a Series or DataFrame object, and currently this mutation will
+also have effect on other Series or DataFrame objects that share data with this
+object. In pandas 3.0 (with Copy-on-Write), updating one Series or DataFrame object
+will never modify another.
+"""
+
+
 COW_WARNING_SETITEM_MSG = """\
 Setting a value on a view: behaviour will change in pandas 3.0.
 Currently, the mutation will also have effect on the object that shares data
@@ -389,7 +398,7 @@ class BaseBlockManager(DataManager):
 
         if warn_copy_on_write() and not self._has_no_reference(0):
             warnings.warn(
-                "Setting a value on a view",
+                COW_WARNING_GENERAL_MSG,
                 FutureWarning,
                 stacklevel=find_stack_level(),
             )
