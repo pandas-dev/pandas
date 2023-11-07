@@ -7,6 +7,7 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Callable,
+    Literal,
     cast,
 )
 
@@ -449,7 +450,7 @@ def _generate_marginal_results_without_values(
             return (margins_name,) + ("",) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[rows].groupby(rows, observed=observed).apply(aggfunc)
+            margin = data.groupby(rows, observed=observed)[rows].apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -467,7 +468,7 @@ def _generate_marginal_results_without_values(
         margin_keys = table.columns
 
     if len(cols):
-        row_margin = data[cols].groupby(cols, observed=observed).apply(aggfunc)
+        row_margin = data.groupby(cols, observed=observed)[cols].apply(aggfunc)
     else:
         row_margin = Series(np.nan, index=result.columns)
 
@@ -569,7 +570,7 @@ def crosstab(
     margins: bool = False,
     margins_name: Hashable = "All",
     dropna: bool = True,
-    normalize: bool = False,
+    normalize: bool | Literal[0, 1, "all", "index", "columns"] = False,
 ) -> DataFrame:
     """
     Compute a simple cross tabulation of two (or more) factors.

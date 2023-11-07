@@ -136,7 +136,7 @@ Also, you can use :class:`Grouper` for ``index`` and ``columns`` keywords. For d
 
 .. ipython:: python
 
-   pd.pivot_table(df, values="D", index=pd.Grouper(freq="M", key="F"), columns="C")
+   pd.pivot_table(df, values="D", index=pd.Grouper(freq="ME", key="F"), columns="C")
 
 .. _reshaping.pivot.margins:
 
@@ -480,7 +480,7 @@ The values can be cast to a different type using the ``dtype`` argument.
 
 .. versionadded:: 1.5.0
 
-:func:`~pandas.from_dummies` coverts the output of :func:`~pandas.get_dummies` back into
+:func:`~pandas.from_dummies` converts the output of :func:`~pandas.get_dummies` back into
 a :class:`Series` of categorical values from indicator values.
 
 .. ipython:: python

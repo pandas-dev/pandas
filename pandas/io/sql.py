@@ -105,6 +105,12 @@ def _handle_date_column(
         # Format can take on custom to_datetime argument values such as
         # {"errors": "coerce"} or {"dayfirst": True}
         error: DateTimeErrorChoices = format.pop("errors", None) or "ignore"
+        if error == "ignore":
+            try:
+                return to_datetime(col, **format)
+            except (TypeError, ValueError):
+                # TODO: not reached 2023-10-27; needed?
+                return col
         return to_datetime(col, errors=error, **format)
     else:
         # Allow passing of formatting string for integers
@@ -138,7 +144,7 @@ def _parse_date_columns(data_frame, parse_dates):
         if isinstance(df_col.dtype, DatetimeTZDtype) or col_name in parse_dates:
             try:
                 fmt = parse_dates[col_name]
-            except TypeError:
+            except (KeyError, TypeError):
                 fmt = None
             data_frame.isetitem(i, _handle_date_column(df_col, format=fmt))
 
@@ -963,8 +969,12 @@ class SQLTable(PandasObject):
         from sqlalchemy import insert
 
         data = [dict(zip(keys, row)) for row in data_iter]
-        stmt = insert(self.table).values(data)
-        result = conn.execute(stmt)
+        stmt = insert(self.table)
+        # conn.execute is used here to ensure compatibility with Oracle.
+        # Using stmt.values(data) would produce a multi row insert that
+        # isn't supported by Oracle.
+        # see: https://docs.sqlalchemy.org/en/20/core/dml.html#sqlalchemy.sql.expression.Insert.values
+        result = conn.execute(stmt, data)
         return result.rowcount
 
     def insert_data(self) -> tuple[list[str], list[np.ndarray]]:
@@ -2090,7 +2100,7 @@ class SQLiteTable(SQLTable):
         # Python 3.12+ doesn't auto-register adapters for us anymore
 
         adapt_date_iso = lambda val: val.isoformat()
-        adapt_datetime_iso = lambda val: val.isoformat()
+        adapt_datetime_iso = lambda val: val.isoformat(" ")
 
         sqlite3.register_adapter(time, _adapt_time)
 
@@ -2098,11 +2108,9 @@ class SQLiteTable(SQLTable):
         sqlite3.register_adapter(datetime, adapt_datetime_iso)
 
         convert_date = lambda val: date.fromisoformat(val.decode())
-        convert_datetime = lambda val: datetime.fromisoformat(val.decode())
-        convert_timestamp = lambda val: datetime.fromtimestamp(int(val))
+        convert_timestamp = lambda val: datetime.fromisoformat(val.decode())
 
         sqlite3.register_converter("date", convert_date)
-        sqlite3.register_converter("datetime", convert_datetime)
         sqlite3.register_converter("timestamp", convert_timestamp)
 
     def sql_schema(self) -> str:

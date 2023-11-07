@@ -31,18 +31,19 @@ from typing import (
     Callable,
 )
 
-import numpy as np
 import pytest
 
 from pandas._config import get_option
 
 if TYPE_CHECKING:
     from pandas._typing import F
+
+from pandas._config.config import _get_option
+
 from pandas.compat import (
     IS64,
     is_platform_windows,
 )
-from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.computation.expressions import (
     NUMEXPR_INSTALLED,
@@ -175,18 +176,6 @@ skip_if_no_ne = pytest.mark.skipif(
 )
 
 
-def skip_if_np_lt(
-    ver_str: str, *args, reason: str | None = None
-) -> pytest.MarkDecorator:
-    if reason is None:
-        reason = f"NumPy {ver_str} or greater required"
-    return pytest.mark.skipif(
-        Version(np.__version__) < Version(ver_str),
-        *args,
-        reason=reason,
-    )
-
-
 def parametrize_fixture_doc(*args) -> Callable[[F], F]:
     """
     Intended for use as a decorator for parametrized fixture,
@@ -214,37 +203,27 @@ def parametrize_fixture_doc(*args) -> Callable[[F], F]:
     return documented_fixture
 
 
-def async_mark():
-    try:
-        import_optional_dependency("pytest_asyncio")
-        async_mark = pytest.mark.asyncio
-    except ImportError:
-        async_mark = pytest.mark.skip(reason="Missing dependency pytest-asyncio")
-
-    return async_mark
-
-
 def mark_array_manager_not_yet_implemented(request) -> None:
     mark = pytest.mark.xfail(reason="Not yet implemented for ArrayManager")
-    request.node.add_marker(mark)
+    request.applymarker(mark)
 
 
 skip_array_manager_not_yet_implemented = pytest.mark.xfail(
-    get_option("mode.data_manager") == "array",
+    _get_option("mode.data_manager", silent=True) == "array",
     reason="Not yet implemented for ArrayManager",
 )
 
 skip_array_manager_invalid_test = pytest.mark.skipif(
-    get_option("mode.data_manager") == "array",
+    _get_option("mode.data_manager", silent=True) == "array",
     reason="Test that relies on BlockManager internals or specific behaviour",
 )
 
 skip_copy_on_write_not_yet_implemented = pytest.mark.xfail(
-    get_option("mode.copy_on_write"),
+    get_option("mode.copy_on_write") is True,
     reason="Not yet implemented/adapted for Copy-on-Write mode",
 )
 
 skip_copy_on_write_invalid_test = pytest.mark.skipif(
-    get_option("mode.copy_on_write"),
+    get_option("mode.copy_on_write") is True,
     reason="Test not valid for Copy-on-Write mode",
 )

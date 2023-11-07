@@ -13,6 +13,7 @@ import warnings
 from warnings import catch_warnings
 
 from pandas._config import using_pyarrow_string_dtype
+from pandas._config.config import _get_option
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
@@ -165,7 +166,7 @@ class PyArrowImpl(BaseImpl):
         import pyarrow.parquet
 
         # import utils to register the pyarrow extension types
-        import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401,E501
+        import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401
 
         self.api = pyarrow
 
@@ -254,11 +255,11 @@ class PyArrowImpl(BaseImpl):
             mapping = _arrow_dtype_mapping()
             to_pandas_kwargs["types_mapper"] = mapping.get
         elif dtype_backend == "pyarrow":
-            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]  # noqa: E501
+            to_pandas_kwargs["types_mapper"] = pd.ArrowDtype  # type: ignore[assignment]
         elif using_pyarrow_string_dtype():
             to_pandas_kwargs["types_mapper"] = arrow_string_types_mapper()
 
-        manager = get_option("mode.data_manager")
+        manager = _get_option("mode.data_manager", silent=True)
         if manager == "array":
             to_pandas_kwargs["split_blocks"] = True  # type: ignore[assignment]
 

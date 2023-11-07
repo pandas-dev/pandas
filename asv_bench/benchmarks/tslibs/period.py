@@ -72,7 +72,7 @@ class PeriodUnaryMethods:
         self.per.now(freq)
 
     def time_asfreq(self, freq):
-        self.per.asfreq("A")
+        self.per.asfreq("Y")
 
     def time_str(self, freq):
         str(self.per)

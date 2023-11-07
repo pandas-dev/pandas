@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
@@ -50,6 +50,20 @@ import pandas.core.common as com
 
 
 class TestFactorize:
+    def test_factorize_complex(self):
+        # GH#17927
+        array = [1, 2, 2 + 1j]
+        msg = "factorize with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            labels, uniques = algos.factorize(array)
+
+        expected_labels = np.array([0, 1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(labels, expected_labels)
+
+        # Should return a complex dtype in the future
+        expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=object)
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
+
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
@@ -707,59 +721,31 @@ class TestUnique:
         result = pd.unique(ci)
         tm.assert_index_equal(result, expected)
 
-    def test_datetime64tz_aware(self):
+    def test_datetime64tz_aware(self, unit):
         # GH 15939
 
-        result = Series(
-            Index(
-                [
-                    Timestamp("20160101", tz="US/Eastern"),
-                    Timestamp("20160101", tz="US/Eastern"),
-                ]
-            )
-        ).unique()
-        expected = DatetimeArray._from_sequence(
-            np.array([Timestamp("2016-01-01 00:00:00-0500", tz="US/Eastern")])
-        )
-        tm.assert_extension_array_equal(result, expected)
-
-        result = Index(
+        dti = Index(
             [
                 Timestamp("20160101", tz="US/Eastern"),
                 Timestamp("20160101", tz="US/Eastern"),
             ]
-        ).unique()
-        expected = DatetimeIndex(
-            ["2016-01-01 00:00:00"], dtype="datetime64[ns, US/Eastern]", freq=None
-        )
-        tm.assert_index_equal(result, expected)
+        ).as_unit(unit)
+        ser = Series(dti)
 
-        result = pd.unique(
-            Series(
-                Index(
-                    [
-                        Timestamp("20160101", tz="US/Eastern"),
-                        Timestamp("20160101", tz="US/Eastern"),
-                    ]
-                )
-            )
-        )
-        expected = DatetimeArray._from_sequence(
-            np.array([Timestamp("2016-01-01", tz="US/Eastern")])
-        )
+        result = ser.unique()
+        expected = dti[:1]._data
         tm.assert_extension_array_equal(result, expected)
 
-        result = pd.unique(
-            Index(
-                [
-                    Timestamp("20160101", tz="US/Eastern"),
-                    Timestamp("20160101", tz="US/Eastern"),
-                ]
-            )
-        )
-        expected = DatetimeIndex(
-            ["2016-01-01 00:00:00"], dtype="datetime64[ns, US/Eastern]", freq=None
-        )
+        result = dti.unique()
+        expected = dti[:1]
+        tm.assert_index_equal(result, expected)
+
+        result = pd.unique(ser)
+        expected = dti[:1]._data
+        tm.assert_extension_array_equal(result, expected)
+
+        result = pd.unique(dti)
+        expected = dti[:1]
         tm.assert_index_equal(result, expected)
 
     def test_order_of_appearance(self):
@@ -1182,7 +1168,7 @@ class TestValueCounts:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = algos.value_counts(factor)
         breaks = [-1.606, -1.018, -0.431, 0.155, 0.741]
-        index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
+        index = IntervalIndex.from_breaks(breaks).astype(CategoricalDtype(ordered=True))
         expected = Series([1, 0, 2, 1], index=index, name="count")
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
@@ -1264,7 +1250,9 @@ class TestValueCounts:
         tm.assert_series_equal(res, exp)
 
         # GH 12424  # TODO: belongs elsewhere
-        res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
+        msg = "errors='ignore' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
         exp = Series(["2362-01-01", np.nan], dtype=object)
         tm.assert_series_equal(res, exp)
 
