@@ -840,6 +840,7 @@ linkcheck_ignore = [
             "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm",
             "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm",
             "https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/",
+            "https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022",
             "pandas.zip",
         ]
     ],
