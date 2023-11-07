@@ -2727,10 +2727,13 @@ class Period(_Period):
 
         if freq is not None:
             freq = cls._maybe_convert_freq(freq)
-            if (not isinstance(freq, CustomBusinessDay) and
-                    not hasattr(freq, "_period_dtype_code")):
-                raise ValueError(
-                    f"{freq} is not supported as period frequency"
+            try:
+                period_dtype_code = freq._period_dtype_code
+            except (AttributeError, TypeError):
+                # AttributeError: _period_dtype_code might not exist
+                # TypeError: _period_dtype_code might intentionally raise
+                raise TypeError(
+                    f"{(type(freq).__name__)} is not supported as period frequency"
                 )
         nanosecond = 0
 
@@ -2764,7 +2767,7 @@ class Period(_Period):
 
         elif is_period_object(value):
             other = value
-            if freq is None or freq._period_dtype_code == other._dtype._dtype_code:
+            if freq is None or period_dtype_code == other._dtype._dtype_code:
                 ordinal = other.ordinal
                 freq = other.freq
             else:
