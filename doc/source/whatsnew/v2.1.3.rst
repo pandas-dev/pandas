@@ -21,7 +21,7 @@ Fixed regressions
 
 Bug fixes
 ~~~~~~~~~
--
+- Bug in :meth:`DatetimeIndex.diff` raising ``TypeError`` (:issue:`55080`)
 -
 
 .. ---------------------------------------------------------------------------
