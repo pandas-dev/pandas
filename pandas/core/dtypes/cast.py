@@ -357,18 +357,11 @@ def maybe_downcast_numeric(
             # if we don't have any elements, just astype it
             return trans(result).astype(dtype)
 
-        r = result.ravel()
-
-        if isna(r[0]):
-            # do a test on the first element, if it fails then we are done
-            return result
-
-        elif not isinstance(r[0], (np.integer, np.floating, int, float, bool)):
+        element = result[0]
+        if isinstance(element, np.ndarray):
+            element = element.ravel()[0]
+        if not isinstance(element, (np.integer, np.floating, int, float, bool)):
             # a comparable, e.g. a Decimal may slip in here
-            return result
-
-        if isna(r).any():
-            # if we have any nulls, then we are done
             return result
 
         if (
