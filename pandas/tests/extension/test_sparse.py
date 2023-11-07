@@ -27,10 +27,11 @@ from pandas.tests.extension import base
 
 
 def make_data(fill_value):
+    rng = np.random.default_rng(2)
     if np.isnan(fill_value):
-        data = np.random.uniform(size=100)
+        data = rng.uniform(size=100)
     else:
-        data = np.random.randint(1, 100, size=100)
+        data = rng.integers(1, 100, size=100, dtype=int)
         if data[0] == data[1]:
             data[0] += 1
 
@@ -83,11 +84,6 @@ def data_missing_for_sorting(request):
 
 
 @pytest.fixture
-def na_value():
-    return np.nan
-
-
-@pytest.fixture
 def na_cmp():
     return lambda left, right: pd.isna(left) and pd.isna(right)
 
@@ -107,10 +103,6 @@ class BaseSparseTests:
         if data.dtype == SparseDtype(int, 0):
             pytest.skip("Can't store nan in int array.")
 
-    @pytest.mark.xfail(reason="SparseArray does not support setitem")
-    def test_ravel(self, data):
-        super().test_ravel(data)
-
 
 class TestDtype(BaseSparseTests, base.BaseDtypeTests):
     def test_array_type_with_arg(self, data, dtype):
@@ -118,13 +110,7 @@ class TestDtype(BaseSparseTests, base.BaseDtypeTests):
 
 
 class TestInterface(BaseSparseTests, base.BaseInterfaceTests):
-    def test_copy(self, data):
-        # __setitem__ does not work, so we only have a smoke-test
-        data.copy()
-
-    def test_view(self, data):
-        # __setitem__ does not work, so we only have a smoke-test
-        data.view()
+    pass
 
 
 class TestConstructors(BaseSparseTests, base.BaseConstructorsTests):
@@ -145,8 +131,11 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
         expected = pd.concat(
             [x.apply(lambda s: np.asarray(s).astype(object)) for x in dfs]
         )
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(
+        "ignore:The previous implementation of stack is deprecated"
+    )
     @pytest.mark.parametrize(
         "columns",
         [
@@ -156,36 +145,33 @@ class TestReshaping(BaseSparseTests, base.BaseReshapingTests):
             ),
         ],
     )
-    def test_stack(self, data, columns):
-        super().test_stack(data, columns)
+    @pytest.mark.parametrize("future_stack", [True, False])
+    def test_stack(self, data, columns, future_stack):
+        super().test_stack(data, columns, future_stack)
 
-    def test_concat_columns(self, data, na_value):
+    def test_concat_columns(self, data):
         self._check_unsupported(data)
-        super().test_concat_columns(data, na_value)
+        super().test_concat_columns(data)
 
-    def test_concat_extension_arrays_copy_false(self, data, na_value):
+    def test_concat_extension_arrays_copy_false(self, data):
         self._check_unsupported(data)
-        super().test_concat_extension_arrays_copy_false(data, na_value)
+        super().test_concat_extension_arrays_copy_false(data)
 
-    def test_align(self, data, na_value):
+    def test_align(self, data):
         self._check_unsupported(data)
-        super().test_align(data, na_value)
+        super().test_align(data)
 
-    def test_align_frame(self, data, na_value):
+    def test_align_frame(self, data):
         self._check_unsupported(data)
-        super().test_align_frame(data, na_value)
+        super().test_align_frame(data)
 
-    def test_align_series_frame(self, data, na_value):
+    def test_align_series_frame(self, data):
         self._check_unsupported(data)
-        super().test_align_series_frame(data, na_value)
+        super().test_align_series_frame(data)
 
-    def test_merge(self, data, na_value):
+    def test_merge(self, data):
         self._check_unsupported(data)
-        super().test_merge(data, na_value)
-
-    @pytest.mark.xfail(reason="SparseArray does not support setitem")
-    def test_transpose(self, data):
-        super().test_transpose(data)
+        super().test_merge(data)
 
 
 class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
@@ -197,12 +183,13 @@ class TestGetitem(BaseSparseTests, base.BaseGetitemTests):
             assert ser.get(4) == ser.iloc[2]
         assert ser.get(2) == ser.iloc[1]
 
-    def test_reindex(self, data, na_value):
+    def test_reindex(self, data):
         self._check_unsupported(data)
-        super().test_reindex(data, na_value)
+        super().test_reindex(data)
 
 
-# Skipping TestSetitem, since we don't implement it.
+class TestSetitem(BaseSparseTests, base.BaseSetitemTests):
+    pass
 
 
 class TestIndex(base.BaseIndexTests):
@@ -221,12 +208,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
         sarr = sarr.fillna(0)
         expected_dtype = SparseDtype(bool, pd.isna(data_missing.dtype.fill_value))
         expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
-        self.assert_equal(sarr.isna(), expected)
-
-    def test_fillna_limit_pad(self, data_missing):
-        warns = (PerformanceWarning, FutureWarning)
-        with tm.assert_produces_warning(warns, check_stacklevel=False):
-            super().test_fillna_limit_pad(data_missing)
+        tm.assert_equal(sarr.isna(), expected)
 
     def test_fillna_limit_backfill(self, data_missing):
         warns = (PerformanceWarning, FutureWarning)
@@ -235,19 +217,16 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
 
     def test_fillna_no_op_returns_copy(self, data, request):
         if np.isnan(data.fill_value):
-            request.node.add_marker(
+            request.applymarker(
                 pytest.mark.xfail(reason="returns array with different fill value")
             )
-        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
-            super().test_fillna_no_op_returns_copy(data)
-
-    def test_fillna_series_method(self, data_missing, fillna_method):
-        with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
-            super().test_fillna_series_method(data_missing, fillna_method)
+        super().test_fillna_no_op_returns_copy(data)
 
     @pytest.mark.xfail(reason="Unsupported")
-    def test_fillna_series(self):
+    def test_fillna_series(self, data_missing):
         # this one looks doable.
+        # TODO: this fails bc we do not pass through data_missing. If we did,
+        #  the 0-fill case would xpass
         super().test_fillna_series()
 
     def test_fillna_frame(self, data_missing):
@@ -268,7 +247,7 @@ class TestMissing(BaseSparseTests, base.BaseMissingTests):
             }
         )
 
-        self.assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
 
 class TestMethods(BaseSparseTests, base.BaseMethodsTests):
@@ -306,7 +285,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
-    def test_where_series(self, data, na_value):
+    def test_where_series(self, data):
         assert data[0] != data[1]
         cls = type(data)
         a, b = data[:2]
@@ -317,19 +296,17 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         result = ser.where(cond)
 
         new_dtype = SparseDtype("float", 0.0)
+        na_value = data.dtype.na_value
         expected = pd.Series(
             cls._from_sequence([a, a, na_value, na_value], dtype=new_dtype)
         )
-        self.assert_series_equal(result, expected)
+        tm.assert_series_equal(result, expected)
 
         other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
         cond = np.array([True, False, True, True])
         result = ser.where(cond, other)
         expected = pd.Series(cls._from_sequence([a, b, b, b], dtype=data.dtype))
-        self.assert_series_equal(result, expected)
-
-    def test_combine_first(self, data, request):
-        super().test_combine_first(data)
+        tm.assert_series_equal(result, expected)
 
     def test_searchsorted(self, data_for_sorting, as_series):
         with tm.assert_produces_warning(PerformanceWarning, check_stacklevel=False):
@@ -343,15 +320,15 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         assert result._sparse_values[0] != result._sparse_values[1]
 
     @pytest.mark.parametrize("method", ["argmax", "argmin"])
-    def test_argmin_argmax_all_na(self, method, data, na_value):
+    def test_argmin_argmax_all_na(self, method, data):
         # overriding because Sparse[int64, 0] cannot handle na_value
         self._check_unsupported(data)
-        super().test_argmin_argmax_all_na(method, data, na_value)
+        super().test_argmin_argmax_all_na(method, data)
 
     @pytest.mark.parametrize("box", [pd.array, pd.Series, pd.DataFrame])
-    def test_equals(self, data, na_value, as_series, box):
+    def test_equals(self, data, as_series, box):
         self._check_unsupported(data)
-        super().test_equals(data, na_value, as_series, box)
+        super().test_equals(data, as_series, box)
 
     @pytest.mark.parametrize(
         "func, na_action, expected",
@@ -366,7 +343,7 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
         # GH52096
         data = SparseArray([1, np.nan])
         result = data.map(func, na_action=na_action)
-        self.assert_extension_array_equal(result, expected)
+        tm.assert_extension_array_equal(result, expected)
 
     @pytest.mark.parametrize("na_action", [None, "ignore"])
     def test_map_raises(self, data, na_action):
@@ -377,15 +354,10 @@ class TestMethods(BaseSparseTests, base.BaseMethodsTests):
 
 
 class TestCasting(BaseSparseTests, base.BaseCastingTests):
-    def test_astype_str(self, data):
-        # pre-2.0 this would give a SparseDtype even if the user asked
-        #  for a non-sparse dtype.
-        result = pd.Series(data[:5]).astype(str)
-        expected = pd.Series([str(x) for x in data[:5]], dtype=object)
-        self.assert_series_equal(result, expected)
-
     @pytest.mark.xfail(raises=TypeError, reason="no sparse StringDtype")
-    def test_astype_string(self, data):
+    def test_astype_string(self, data, nullable_string_dtype):
+        # TODO: this fails bc we do not pass through nullable_string_dtype;
+        #  If we did, the 0-cases would xpass
         super().test_astype_string(data)
 
 
@@ -423,12 +395,8 @@ class TestArithmeticOps(BaseSparseTests, base.BaseArithmeticOpsTests):
             "rmod",
         ]:
             mark = pytest.mark.xfail(reason="result dtype.fill_value mismatch")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-
-    def _check_divmod_op(self, ser, op, other, exc=NotImplementedError):
-        # We implement divmod
-        super()._check_divmod_op(ser, op, other, exc=None)
 
 
 class TestComparisonOps(BaseSparseTests):
@@ -487,6 +455,4 @@ class TestParsing(BaseSparseTests, base.BaseParsingTests):
 
 
 class TestNoNumericAccumulations(base.BaseAccumulateTests):
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_accumulate_series(self, data, all_numeric_accumulations, skipna):
-        pass
+    pass

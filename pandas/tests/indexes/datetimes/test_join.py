@@ -26,7 +26,9 @@ class TestJoin:
         df = tm.makeCustomDataframe(
             10,
             10,
-            data_gen_f=lambda *args, **kwargs: np.random.randn(),
+            data_gen_f=lambda *args, **kwargs: np.random.default_rng(
+                2
+            ).standard_normal(),
             r_idx_type="i",
             c_idx_type="dt",
         )
@@ -45,7 +47,7 @@ class TestJoin:
         df = tm.makeCustomDataframe(
             10,
             10,
-            data_gen_f=lambda *args: np.random.randint(2),
+            data_gen_f=lambda *args: np.random.default_rng(2).integers(2),
             c_idx_type="p",
             r_idx_type="dt",
         )
@@ -63,7 +65,7 @@ class TestJoin:
         assert isinstance(result[0], Timestamp)
 
     def test_join_utc_convert(self, join_type):
-        rng = date_range("1/1/2011", periods=100, freq="H", tz="utc")
+        rng = date_range("1/1/2011", periods=100, freq="h", tz="utc")
 
         left = rng.tz_convert("US/Eastern")
         right = rng.tz_convert("Europe/Berlin")

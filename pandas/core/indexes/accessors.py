@@ -227,7 +227,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
         )
         return cast(ArrowExtensionArray, self._parent.array)._dt_to_pydatetime()
 
-    def isocalendar(self):
+    def isocalendar(self) -> DataFrame:
         from pandas import DataFrame
 
         result = (
@@ -284,7 +284,7 @@ class DatetimeProperties(Properties):
     2    2
     dtype: int32
 
-    >>> quarters_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="q"))
+    >>> quarters_series = pd.Series(pd.date_range("2000-01-01", periods=3, freq="QE"))
     >>> quarters_series
     0   2000-03-31
     1   2000-06-30
@@ -414,7 +414,7 @@ class TimedeltaProperties(Properties):
     Examples
     --------
     >>> seconds_series = pd.Series(
-    ...     pd.timedelta_range(start="1 second", periods=3, freq="S")
+    ...     pd.timedelta_range(start="1 second", periods=3, freq="s")
     ... )
     >>> seconds_series
     0   0 days 00:00:01
@@ -528,7 +528,7 @@ class PeriodProperties(Properties):
     1    2000-01-01 00:00:01
     2    2000-01-01 00:00:02
     3    2000-01-01 00:00:03
-    dtype: period[S]
+    dtype: period[s]
     >>> seconds_series.dt.second
     0    0
     1    1
@@ -544,7 +544,7 @@ class PeriodProperties(Properties):
     1    2000-01-01 01:00
     2    2000-01-01 02:00
     3    2000-01-01 03:00
-    dtype: period[H]
+    dtype: period[h]
     >>> hours_series.dt.hour
     0    0
     1    1
@@ -573,7 +573,7 @@ class PeriodProperties(Properties):
 class CombinedDatetimelikeProperties(
     DatetimeProperties, TimedeltaProperties, PeriodProperties
 ):
-    def __new__(cls, data: Series):
+    def __new__(cls, data: Series):  # pyright: ignore[reportInconsistentConstructor]
         # CombinedDatetimelikeProperties isn't really instantiated. Instead
         # we need to choose which parent (datetime or timedelta) is
         # appropriate. Since we're checking the dtypes anyway, we'll just

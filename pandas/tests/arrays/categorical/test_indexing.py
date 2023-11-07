@@ -105,9 +105,9 @@ class TestCategoricalIndexingWithFactor:
     def test_setitem_listlike(self):
         # GH#9469
         # properly coerce the input indexers
-        np.random.seed(1)
+
         cat = Categorical(
-            np.random.randint(0, 5, size=150000).astype(np.int8)
+            np.random.default_rng(2).integers(0, 5, size=150000).astype(np.int8)
         ).add_categories([-1000])
         indexer = np.array([100000]).astype(np.int64)
         cat[indexer] = -1000
@@ -131,15 +131,18 @@ class TestCategoricalIndexing:
     def test_getitem_listlike(self):
         # GH 9469
         # properly coerce the input indexers
-        np.random.seed(1)
-        c = Categorical(np.random.randint(0, 5, size=150000).astype(np.int8))
+
+        c = Categorical(
+            np.random.default_rng(2).integers(0, 5, size=150000).astype(np.int8)
+        )
         result = c.codes[np.array([100000]).astype(np.int64)]
         expected = c[np.array([100000]).astype(np.int64)].codes
         tm.assert_numpy_array_equal(result, expected)
 
     def test_periodindex(self):
         idx1 = PeriodIndex(
-            ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"], freq="M"
+            ["2014-01", "2014-01", "2014-02", "2014-02", "2014-03", "2014-03"],
+            freq="M",
         )
 
         cat1 = Categorical(idx1)
@@ -150,7 +153,8 @@ class TestCategoricalIndexing:
         tm.assert_index_equal(cat1.categories, exp_idx)
 
         idx2 = PeriodIndex(
-            ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"], freq="M"
+            ["2014-03", "2014-03", "2014-02", "2014-01", "2014-03", "2014-01"],
+            freq="M",
         )
         cat2 = Categorical(idx2, ordered=True)
         str(cat2)

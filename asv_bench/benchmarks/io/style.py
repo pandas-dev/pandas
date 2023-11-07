@@ -66,7 +66,7 @@ class Render:
         self.st = self.df.style.apply(_apply_func, axis=1)
 
     def _style_classes(self):
-        classes = self.df.applymap(lambda v: ("cls-1" if v > 0 else ""))
+        classes = self.df.map(lambda v: ("cls-1" if v > 0 else ""))
         classes.index, classes.columns = self.df.index, self.df.columns
         self.st = self.df.style.set_td_classes(classes)
 
@@ -80,7 +80,7 @@ class Render:
         )
 
     def _style_apply_format_hide(self):
-        self.st = self.df.style.applymap(lambda v: "color: red;")
+        self.st = self.df.style.map(lambda v: "color: red;")
         self.st.format("{:.3f}")
         self.st.hide(self.st.index[1:], axis=0)
         self.st.hide(self.st.columns[1:], axis=1)

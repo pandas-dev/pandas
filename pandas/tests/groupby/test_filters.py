@@ -191,9 +191,8 @@ def test_filter_pdna_is_false():
 
 
 def test_filter_against_workaround():
-    np.random.seed(0)
     # Series of ints
-    s = Series(np.random.randint(0, 100, 1000))
+    s = Series(np.random.default_rng(2).integers(0, 100, 1000))
     grouper = s.apply(lambda x: np.round(x, -1))
     grouped = s.groupby(grouper)
     f = lambda x: x.mean() > 10
@@ -203,7 +202,7 @@ def test_filter_against_workaround():
     tm.assert_series_equal(new_way.sort_values(), old_way.sort_values())
 
     # Series of floats
-    s = 100 * Series(np.random.random(1000))
+    s = 100 * Series(np.random.default_rng(2).random(1000))
     grouper = s.apply(lambda x: np.round(x, -1))
     grouped = s.groupby(grouper)
     f = lambda x: x.mean() > 10
@@ -214,11 +213,13 @@ def test_filter_against_workaround():
     # Set up DataFrame of ints, floats, strings.
     letters = np.array(list(ascii_lowercase))
     N = 1000
-    random_letters = letters.take(np.random.randint(0, 26, N))
+    random_letters = letters.take(
+        np.random.default_rng(2).integers(0, 26, N, dtype=int)
+    )
     df = DataFrame(
         {
-            "ints": Series(np.random.randint(0, 100, N)),
-            "floats": N / 10 * Series(np.random.random(N)),
+            "ints": Series(np.random.default_rng(2).integers(0, 100, N)),
+            "floats": N / 10 * Series(np.random.default_rng(2).random(N)),
             "letters": Series(random_letters),
         }
     )
@@ -607,7 +608,7 @@ def test_filter_non_bool_raises():
 
 def test_filter_dropna_with_empty_groups():
     # GH 10780
-    data = Series(np.random.rand(9), index=np.repeat([1, 2, 3], 3))
+    data = Series(np.random.default_rng(2).random(9), index=np.repeat([1, 2, 3], 3))
     grouped = data.groupby(level=0)
     result_false = grouped.filter(lambda x: x.mean() > 1, dropna=False)
     expected_false = Series([np.nan] * 9, index=np.repeat([1, 2, 3], 3))

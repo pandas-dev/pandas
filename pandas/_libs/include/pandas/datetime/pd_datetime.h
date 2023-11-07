@@ -19,12 +19,12 @@ See NUMPY_LICENSE.txt for the license.
 
 #ifndef NPY_NO_DEPRECATED_API
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#endif  // NPY_NO_DEPRECATED_API
+#endif // NPY_NO_DEPRECATED_API
 
-#include <numpy/ndarraytypes.h>
+#include "pandas/datetime/date_conversions.h"
 #include "pandas/vendored/numpy/datetime/np_datetime.h"
 #include "pandas/vendored/numpy/datetime/np_datetime_strings.h"
-#include "pandas/datetime/date_conversions.h"
+#include <numpy/ndarraytypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,7 +34,7 @@ typedef struct {
   npy_datetime (*npy_datetimestruct_to_datetime)(NPY_DATETIMEUNIT,
                                                  const npy_datetimestruct *);
   int (*scaleNanosecToUnit)(npy_int64 *, NPY_DATETIMEUNIT);
-  char *(*int64ToIso)(int64_t, NPY_DATETIMEUNIT, size_t *);
+  char *(*int64ToIso)(int64_t, NPY_DATETIMEUNIT, NPY_DATETIMEUNIT, size_t *);
   npy_datetime (*NpyDateTimeToEpoch)(npy_datetime, NPY_DATETIMEUNIT);
   char *(*PyDateTimeToIso)(PyObject *, NPY_DATETIMEUNIT, size_t *);
   npy_datetime (*PyDateTimeToEpoch)(PyObject *, NPY_DATETIMEUNIT);
@@ -73,8 +73,8 @@ static PandasDateTime_CAPI *PandasDateTimeAPI = NULL;
                                                     (npy_datetimestruct))
 #define scaleNanosecToUnit(value, unit)                                        \
   PandasDateTimeAPI->scaleNanosecToUnit((value), (unit))
-#define int64ToIso(value, base, len)                                           \
-  PandasDateTimeAPI->int64ToIso((value), (base), (len))
+#define int64ToIso(value, valueUnit, base, len)                                \
+  PandasDateTimeAPI->int64ToIso((value), (valueUnit), (base), (len))
 #define NpyDateTimeToEpoch(dt, base)                                           \
   PandasDateTimeAPI->NpyDateTimeToEpoch((dt), (base))
 #define PyDateTimeToIso(obj, base, len)                                        \

@@ -99,7 +99,9 @@ def test_series_from_series_with_reindex(using_copy_on_write):
 def test_series_from_array(using_copy_on_write, idx, dtype, fastpath, arr):
     if idx is None or dtype is not None:
         fastpath = False
-    ser = Series(arr, dtype=dtype, index=idx, fastpath=fastpath)
+    msg = "The 'fastpath' keyword in pd.Series is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        ser = Series(arr, dtype=dtype, index=idx, fastpath=fastpath)
     ser_orig = ser.copy()
     data = getattr(arr, "_data", arr)
     if using_copy_on_write:
@@ -157,7 +159,9 @@ def test_series_from_index_different_dtypes(using_copy_on_write):
 def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
     ser = Series([1, 2, 3], dtype="int64")
     ser_orig = ser.copy()
-    ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
+    msg = "The 'fastpath' keyword in pd.Series is deprecated"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        ser2 = Series(ser._mgr, dtype=dtype, fastpath=fastpath, index=idx)
     assert np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert not ser2._mgr._has_no_reference(0)
@@ -172,19 +176,29 @@ def test_series_from_block_manager(using_copy_on_write, idx, dtype, fastpath):
 
 def test_series_from_block_manager_different_dtype(using_copy_on_write):
     ser = Series([1, 2, 3], dtype="int64")
-    ser2 = Series(ser._mgr, dtype="int32")
+    msg = "Passing a SingleBlockManager to Series"
+    with tm.assert_produces_warning(DeprecationWarning, match=msg):
+        ser2 = Series(ser._mgr, dtype="int32")
     assert not np.shares_memory(get_array(ser), get_array(ser2))
     if using_copy_on_write:
         assert ser2._mgr._has_no_reference(0)
 
 
-@pytest.mark.parametrize("func", [lambda x: x, lambda x: x._mgr])
+@pytest.mark.parametrize("use_mgr", [True, False])
 @pytest.mark.parametrize("columns", [None, ["a"]])
-def test_dataframe_constructor_mgr_or_df(using_copy_on_write, columns, func):
+def test_dataframe_constructor_mgr_or_df(using_copy_on_write, columns, use_mgr):
     df = DataFrame({"a": [1, 2, 3]})
     df_orig = df.copy()
 
-    new_df = DataFrame(func(df))
+    if use_mgr:
+        data = df._mgr
+        warn = DeprecationWarning
+    else:
+        data = df
+        warn = None
+    msg = "Passing a BlockManager to DataFrame"
+    with tm.assert_produces_warning(warn, match=msg):
+        new_df = DataFrame(data)
 
     assert np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))
     new_df.iloc[0] = 100

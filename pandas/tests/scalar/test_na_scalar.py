@@ -103,9 +103,9 @@ def test_comparison_ops(comparison_op, other):
         False,
         np.bool_(False),
         np.int_(0),
-        np.float_(0),
+        np.float64(0),
         np.int_(-0),
-        np.float_(-0),
+        np.float64(-0),
     ],
 )
 @pytest.mark.parametrize("asarray", [True, False])
@@ -123,7 +123,7 @@ def test_pow_special(value, asarray):
 
 
 @pytest.mark.parametrize(
-    "value", [1, 1.0, True, np.bool_(True), np.int_(1), np.float_(1)]
+    "value", [1, 1.0, True, np.bool_(True), np.int_(1), np.float64(1)]
 )
 @pytest.mark.parametrize("asarray", [True, False])
 def test_rpow_special(value, asarray):
@@ -133,14 +133,14 @@ def test_rpow_special(value, asarray):
 
     if asarray:
         result = result[0]
-    elif not isinstance(value, (np.float_, np.bool_, np.int_)):
+    elif not isinstance(value, (np.float64, np.bool_, np.int_)):
         # this assertion isn't possible with asarray=True
         assert isinstance(result, type(value))
 
     assert result == value
 
 
-@pytest.mark.parametrize("value", [-1, -1.0, np.int_(-1), np.float_(-1)])
+@pytest.mark.parametrize("value", [-1, -1.0, np.int_(-1), np.float64(-1)])
 @pytest.mark.parametrize("asarray", [True, False])
 def test_rpow_minus_one(value, asarray):
     if asarray:

@@ -253,7 +253,7 @@ class TestSeriesDatetimeValues:
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
 
         # tzaware
-        ser = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
+        ser = Series(date_range("2015-01-01", "2016-01-01", freq="min"), name="xxx")
         ser = ser.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
         results = get_dir(ser)
         tm.assert_almost_equal(results, sorted(set(ok_for_dt + ok_for_dt_methods)))
@@ -270,18 +270,18 @@ class TestSeriesDatetimeValues:
     def test_dt_accessor_ambiguous_freq_conversions(self):
         # GH#11295
         # ambiguous time error on the conversions
-        ser = Series(date_range("2015-01-01", "2016-01-01", freq="T"), name="xxx")
+        ser = Series(date_range("2015-01-01", "2016-01-01", freq="min"), name="xxx")
         ser = ser.dt.tz_localize("UTC").dt.tz_convert("America/Chicago")
 
         exp_values = date_range(
-            "2015-01-01", "2016-01-01", freq="T", tz="UTC"
+            "2015-01-01", "2016-01-01", freq="min", tz="UTC"
         ).tz_convert("America/Chicago")
         # freq not preserved by tz_localize above
         exp_values = exp_values._with_freq(None)
         expected = Series(exp_values, name="xxx")
         tm.assert_series_equal(ser, expected)
 
-    def test_dt_accessor_not_writeable(self, using_copy_on_write):
+    def test_dt_accessor_not_writeable(self, using_copy_on_write, warn_copy_on_write):
         # no setting allowed
         ser = Series(date_range("20130101", periods=5, freq="D"), name="xxx")
         with pytest.raises(ValueError, match="modifications"):
@@ -292,6 +292,10 @@ class TestSeriesDatetimeValues:
         with pd.option_context("chained_assignment", "raise"):
             if using_copy_on_write:
                 with tm.raises_chained_assignment_error():
+                    ser.dt.hour[0] = 5
+            elif warn_copy_on_write:
+                # TODO(CoW-warn) should warn
+                with tm.assert_cow_warning(False):
                     ser.dt.hour[0] = 5
             else:
                 with pytest.raises(SettingWithCopyError, match=msg):
@@ -345,30 +349,30 @@ class TestSeriesDatetimeValues:
         )
         df1["date"] = df1["date"].dt.tz_convert("Europe/Madrid")
         # infer
-        result = getattr(df1.date.dt, method)("H", ambiguous="infer")
+        result = getattr(df1.date.dt, method)("h", ambiguous="infer")
         expected = df1["date"]
         tm.assert_series_equal(result, expected)
 
         # bool-array
-        result = getattr(df1.date.dt, method)("H", ambiguous=[True, False, False])
+        result = getattr(df1.date.dt, method)("h", ambiguous=[True, False, False])
         tm.assert_series_equal(result, expected)
 
         # NaT
-        result = getattr(df1.date.dt, method)("H", ambiguous="NaT")
+        result = getattr(df1.date.dt, method)("h", ambiguous="NaT")
         expected = df1["date"].copy()
         expected.iloc[0:2] = pd.NaT
         tm.assert_series_equal(result, expected)
 
         # raise
         with tm.external_error_raised(pytz.AmbiguousTimeError):
-            getattr(df1.date.dt, method)("H", ambiguous="raise")
+            getattr(df1.date.dt, method)("h", ambiguous="raise")
 
     @pytest.mark.parametrize(
         "method, ts_str, freq",
         [
             ["ceil", "2018-03-11 01:59:00-0600", "5min"],
             ["round", "2018-03-11 01:59:00-0600", "5min"],
-            ["floor", "2018-03-11 03:01:00-0500", "2H"],
+            ["floor", "2018-03-11 03:01:00-0500", "2h"],
         ],
     )
     def test_dt_round_tz_nonexistent(self, method, ts_str, freq):
@@ -385,7 +389,7 @@ class TestSeriesDatetimeValues:
         with pytest.raises(pytz.NonExistentTimeError, match="2018-03-11 02:00:00"):
             getattr(ser.dt, method)(freq, nonexistent="raise")
 
-    @pytest.mark.parametrize("freq", ["ns", "U", "1000U"])
+    @pytest.mark.parametrize("freq", ["ns", "us", "1000us"])
     def test_dt_round_nonnano_higher_resolution_no_op(self, freq):
         # GH 52761
         ser = Series(
@@ -499,7 +503,7 @@ class TestSeriesDatetimeValues:
         ser = pd.concat([ser, Series([pd.NaT])])
         assert np.isnan(ser.dt.day_name(locale=time_locale).iloc[-1])
 
-        ser = Series(date_range(freq="M", start="2012", end="2013"))
+        ser = Series(date_range(freq="ME", start="2012", end="2013"))
         result = ser.dt.month_name(locale=time_locale)
         expected = Series([month.capitalize() for month in expected_months])
 
@@ -598,7 +602,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
     def test_strftime_period_hours(self):
-        ser = Series(period_range("20130101", periods=4, freq="H"))
+        ser = Series(period_range("20130101", periods=4, freq="h"))
         result = ser.dt.strftime("%Y/%m/%d %H:%M:%S")
         expected = Series(
             [
@@ -611,7 +615,7 @@ class TestSeriesDatetimeValues:
         tm.assert_series_equal(result, expected)
 
     def test_strftime_period_minutes(self):
-        ser = Series(period_range("20130101", periods=4, freq="L"))
+        ser = Series(period_range("20130101", periods=4, freq="ms"))
         result = ser.dt.strftime("%Y/%m/%d %H:%M:%S.%l")
         expected = Series(
             [
@@ -689,7 +693,12 @@ class TestSeriesDatetimeValues:
         assert isinstance(ser.dt, DatetimeProperties)
 
     @pytest.mark.parametrize(
-        "ser", [Series(np.arange(5)), Series(list("abcde")), Series(np.random.randn(5))]
+        "ser",
+        [
+            Series(np.arange(5)),
+            Series(list("abcde")),
+            Series(np.random.default_rng(2).standard_normal(5)),
+        ],
     )
     def test_dt_accessor_invalid(self, ser):
         # GH#9322 check that series with incorrect dtypes don't have attr
@@ -734,9 +743,9 @@ class TestSeriesDatetimeValues:
         "input_series, expected_output",
         [
             [["2020-01-01"], [[2020, 1, 3]]],
-            [[pd.NaT], [[np.NaN, np.NaN, np.NaN]]],
+            [[pd.NaT], [[np.nan, np.nan, np.nan]]],
             [["2019-12-31", "2019-12-29"], [[2020, 1, 2], [2019, 52, 7]]],
-            [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.NaN, np.NaN, np.NaN]]],
+            [["2010-01-01", pd.NaT], [[2009, 53, 5], [np.nan, np.nan, np.nan]]],
             # see GH#36032
             [["2016-01-08", "2016-01-04"], [[2016, 1, 5], [2016, 1, 1]]],
             [["2016-01-07", "2016-01-01"], [[2016, 1, 4], [2015, 53, 5]]],
@@ -771,16 +780,16 @@ class TestSeriesPeriodValuesDtAccessor:
             [Period("2016-01", freq="M"), Period("2016-02", freq="M")],
             [Period("2016-01-01", freq="D"), Period("2016-01-02", freq="D")],
             [
-                Period("2016-01-01 00:00:00", freq="H"),
-                Period("2016-01-01 01:00:00", freq="H"),
+                Period("2016-01-01 00:00:00", freq="h"),
+                Period("2016-01-01 01:00:00", freq="h"),
             ],
             [
                 Period("2016-01-01 00:00:00", freq="M"),
                 Period("2016-01-01 00:01:00", freq="M"),
             ],
             [
-                Period("2016-01-01 00:00:00", freq="S"),
-                Period("2016-01-01 00:00:01", freq="S"),
+                Period("2016-01-01 00:00:00", freq="s"),
+                Period("2016-01-01 00:00:01", freq="s"),
             ],
         ],
     )

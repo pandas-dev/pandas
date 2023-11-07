@@ -12,9 +12,7 @@ from typing import (
     Any,
     Callable,
     Generic,
-    Hashable,
     Literal,
-    Mapping,
     TypeVar,
     overload,
 )
@@ -24,8 +22,8 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.json import (
-    dumps,
-    loads,
+    ujson_dumps,
+    ujson_loads,
 )
 from pandas._libs.tslibs import iNaT
 from pandas.compat._optional import import_optional_dependency
@@ -69,6 +67,10 @@ from pandas.io.json._table_schema import (
 from pandas.io.parsers.readers import validate_integer
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Mapping,
+    )
     from types import TracebackType
 
     from pandas._typing import (
@@ -80,6 +82,7 @@ if TYPE_CHECKING:
         JSONEngine,
         JSONSerializable,
         ReadBuffer,
+        Self,
         StorageOptions,
         WriteBuffer,
     )
@@ -143,7 +146,7 @@ def to_json(
     compression: CompressionOptions = "infer",
     index: bool | None = None,
     indent: int = 0,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     mode: Literal["a", "w"] = "w",
 ) -> str | None:
     if orient in ["records", "values"] and index is True:
@@ -172,7 +175,7 @@ def to_json(
 
     if mode == "a" and (not lines or orient != "records"):
         msg = (
-            "mode='a' (append) is only supported when"
+            "mode='a' (append) is only supported when "
             "lines is True and orient is 'records'"
         )
         raise ValueError(msg)
@@ -253,7 +256,7 @@ class Writer(ABC):
 
     def write(self) -> str:
         iso_dates = self.date_format == "iso"
-        return dumps(
+        return ujson_dumps(
             self.obj_to_write,
             orient=self.orient,
             double_precision=self.double_precision,
@@ -516,7 +519,7 @@ def read_json(
     chunksize: int | None = None,
     compression: CompressionOptions = "infer",
     nrows: int | None = None,
-    storage_options: StorageOptions = None,
+    storage_options: StorageOptions | None = None,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     engine: JSONEngine = "ujson",
 ) -> DataFrame | Series | JsonReader:
@@ -660,13 +663,14 @@ def read_json(
 
         .. versionadded:: 1.2.0
 
-    dtype_backend : {{"numpy_nullable", "pyarrow"}}, defaults to NumPy backed DataFrames
-        Which dtype_backend to use, e.g. whether a DataFrame should have NumPy
-        arrays, nullable dtypes are used for all dtypes that have a nullable
-        implementation when "numpy_nullable" is set, pyarrow is used for all
-        dtypes if "pyarrow" is set.
+    dtype_backend : {{'numpy_nullable', 'pyarrow'}}, default 'numpy_nullable'
+        Back-end data type applied to the resultant :class:`DataFrame`
+        (still experimental). Behaviour is as follows:
 
-        The dtype_backends are still experimential.
+        * ``"numpy_nullable"``: returns nullable-dtype-backed :class:`DataFrame`
+          (default).
+        * ``"pyarrow"``: returns pyarrow-backed nullable :class:`ArrowDtype`
+          DataFrame.
 
         .. versionadded:: 2.0
 
@@ -826,7 +830,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         chunksize: int | None,
         compression: CompressionOptions,
         nrows: int | None,
-        storage_options: StorageOptions = None,
+        storage_options: StorageOptions | None = None,
         encoding_errors: str | None = "strict",
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
         engine: JSONEngine = "ujson",
@@ -1053,7 +1057,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         if self.handles is not None:
             self.handles.close()
 
-    def __iter__(self: JsonReader[FrameSeriesStrT]) -> JsonReader[FrameSeriesStrT]:
+    def __iter__(self) -> Self:
         return self
 
     @overload
@@ -1096,7 +1100,7 @@ class JsonReader(abc.Iterator, Generic[FrameSeriesStrT]):
         else:
             return obj
 
-    def __enter__(self) -> JsonReader[FrameSeriesStrT]:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(
@@ -1213,7 +1217,16 @@ class Parser:
             if not self.dtype:
                 if all(notna(data)):
                     return data, False
-                return data.fillna(np.nan), True
+
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        "Downcasting object dtype arrays",
+                        category=FutureWarning,
+                    )
+                    filled = data.fillna(np.nan)
+
+                return filled, True
 
             elif self.dtype is True:
                 pass
@@ -1309,7 +1322,14 @@ class Parser:
         date_units = (self.date_unit,) if self.date_unit else self._STAMP_UNITS
         for date_unit in date_units:
             try:
-                new_data = to_datetime(new_data, errors="raise", unit=date_unit)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        ".*parsing datetimes with mixed time "
+                        "zones will raise an error",
+                        category=FutureWarning,
+                    )
+                    new_data = to_datetime(new_data, errors="raise", unit=date_unit)
             except (ValueError, OverflowError, TypeError):
                 continue
             return new_data, True
@@ -1324,7 +1344,7 @@ class SeriesParser(Parser):
     _split_keys = ("name", "index", "data")
 
     def _parse(self) -> None:
-        data = loads(self.json, precise_float=self.precise_float)
+        data = ujson_loads(self.json, precise_float=self.precise_float)
 
         if self.orient == "split":
             decoded = {str(k): v for k, v in data.items()}
@@ -1353,12 +1373,12 @@ class FrameParser(Parser):
 
         if orient == "columns":
             self.obj = DataFrame(
-                loads(json, precise_float=self.precise_float), dtype=None
+                ujson_loads(json, precise_float=self.precise_float), dtype=None
             )
         elif orient == "split":
             decoded = {
                 str(k): v
-                for k, v in loads(json, precise_float=self.precise_float).items()
+                for k, v in ujson_loads(json, precise_float=self.precise_float).items()
             }
             self.check_keys_split(decoded)
             orig_names = [
@@ -1372,7 +1392,7 @@ class FrameParser(Parser):
             self.obj = DataFrame(dtype=None, **decoded)
         elif orient == "index":
             self.obj = DataFrame.from_dict(
-                loads(json, precise_float=self.precise_float),
+                ujson_loads(json, precise_float=self.precise_float),
                 dtype=None,
                 orient="index",
             )
@@ -1380,7 +1400,7 @@ class FrameParser(Parser):
             self.obj = parse_table_schema(json, precise_float=self.precise_float)
         else:
             self.obj = DataFrame(
-                loads(json, precise_float=self.precise_float), dtype=None
+                ujson_loads(json, precise_float=self.precise_float), dtype=None
             )
 
     def _process_converter(self, f, filt=None) -> None:

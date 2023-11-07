@@ -110,10 +110,10 @@ class TestValidator:
         base_path = "scripts.tests.test_validate_docstrings"
 
         if klass:
-            base_path = ".".join([base_path, klass])
+            base_path = f"{base_path}.{klass}"
 
         if func:
-            base_path = ".".join([base_path, func])
+            base_path = f"{base_path}.{func}"
 
         return base_path
 

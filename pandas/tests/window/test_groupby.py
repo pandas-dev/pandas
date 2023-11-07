@@ -99,7 +99,9 @@ class TestRolling:
         r = g.rolling(window=4)
 
         result = getattr(r, f)()
-        expected = g.apply(lambda x: getattr(x.rolling(4), f)())
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(lambda x: getattr(x.rolling(4), f)())
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
@@ -113,7 +115,9 @@ class TestRolling:
         r = g.rolling(window=4)
 
         result = getattr(r, f)(ddof=1)
-        expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(lambda x: getattr(x.rolling(4), f)(ddof=1))
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
@@ -129,9 +133,11 @@ class TestRolling:
         r = g.rolling(window=4)
 
         result = r.quantile(0.4, interpolation=interpolation)
-        expected = g.apply(
-            lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
-        )
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(
+                lambda x: x.rolling(4).quantile(0.4, interpolation=interpolation)
+            )
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
@@ -174,7 +180,9 @@ class TestRolling:
         def func(x):
             return getattr(x.rolling(4), f)(roll_frame)
 
-        expected = g.apply(func)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(func)
         # GH 39591: The grouped column should be all np.nan
         # (groupby.apply inserts 0s for cov)
         expected["A"] = np.nan
@@ -190,7 +198,9 @@ class TestRolling:
         def func(x):
             return getattr(x.B.rolling(4), f)(pairwise=True)
 
-        expected = g.apply(func)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(func)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -235,7 +245,9 @@ class TestRolling:
 
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
-        expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
@@ -466,20 +478,23 @@ class TestRolling:
         # GH 35549
         df = DataFrame(
             {
-                "column1": range(6),
-                "column2": range(6),
-                "group": 3 * ["A", "B"],
-                "date": [Timestamp("2019-01-01")] * 6,
+                "column1": range(8),
+                "column2": range(8),
+                "group": ["A"] * 4 + ["B"] * 4,
+                "date": [
+                    Timestamp(date)
+                    for date in ["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02"]
+                ]
+                * 2,
             }
         )
         result = (
             df.groupby("group").rolling("1D", on="date", closed="left")["column1"].sum()
         )
         expected = Series(
-            [np.nan, 0.0, 2.0, np.nan, 1.0, 4.0],
-            index=MultiIndex.from_tuples(
-                [("A", Timestamp("2019-01-01"))] * 3
-                + [("B", Timestamp("2019-01-01"))] * 3,
+            [np.nan, np.nan, 1.0, 1.0, np.nan, np.nan, 9.0, 9.0],
+            index=MultiIndex.from_frame(
+                df[["group", "date"]],
                 names=["group", "date"],
             ),
             name="column1",
@@ -490,10 +505,14 @@ class TestRolling:
         # GH 35549
         df = DataFrame(
             {
-                "column1": range(6),
-                "column2": range(6),
-                "group": 3 * ["A", "B"],
-                "date": [Timestamp("2019-01-01")] * 6,
+                "column1": range(8),
+                "column2": range(8),
+                "group": ["A"] * 4 + ["B"] * 4,
+                "date": [
+                    Timestamp(date)
+                    for date in ["2019-01-01", "2019-01-01", "2019-01-02", "2019-01-02"]
+                ]
+                * 2,
             }
         )
 
@@ -503,10 +522,9 @@ class TestRolling:
             .sum()
         )
         expected = Series(
-            [np.nan, 0.0, 2.0, np.nan, 1.0, 4.0],
-            index=MultiIndex.from_tuples(
-                [("A", Timestamp("2019-01-01"))] * 3
-                + [("B", Timestamp("2019-01-01"))] * 3,
+            [np.nan, np.nan, 1.0, 1.0, np.nan, np.nan, 9.0, 9.0],
+            index=MultiIndex.from_frame(
+                df[["group", "date"]],
                 names=["group", "date"],
             ),
             name="column1",
@@ -778,9 +796,13 @@ class TestRolling:
     def test_groupby_rolling_object_doesnt_affect_groupby_apply(self, roll_frame):
         # GH 39732
         g = roll_frame.groupby("A", group_keys=False)
-        expected = g.apply(lambda x: x.rolling(4).sum()).index
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(lambda x: x.rolling(4).sum()).index
         _ = g.rolling(window=4)
-        result = g.apply(lambda x: x.rolling(4).sum()).index
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = g.apply(lambda x: x.rolling(4).sum()).index
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize(
@@ -954,11 +976,13 @@ class TestRolling:
         df["date"] = to_datetime(df["date"])
         df = df.sort_values("date")
 
-        expected = (
-            df.set_index("date")
-            .groupby("name")
-            .apply(lambda x: x.rolling("180D")["amount"].sum())
-        )
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = (
+                df.set_index("date")
+                .groupby("name")
+                .apply(lambda x: x.rolling("180D")["amount"].sum())
+            )
         result = df.groupby("name").rolling("180D", on="date")["amount"].sum()
         tm.assert_series_equal(result, expected)
 
@@ -977,9 +1001,13 @@ class TestRolling:
             }
         )
 
-        expected = (
-            df.set_index("B").groupby("A").apply(lambda x: x.rolling("4s")["C"].mean())
-        )
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = (
+                df.set_index("B")
+                .groupby("A")
+                .apply(lambda x: x.rolling("4s")["C"].mean())
+            )
         result = df.groupby("A").rolling("4s", on="B").C.mean()
         tm.assert_series_equal(result, expected)
 
@@ -1009,7 +1037,9 @@ class TestExpanding:
         r = g.expanding()
 
         result = getattr(r, f)()
-        expected = g.apply(lambda x: getattr(x.expanding(), f)())
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(lambda x: getattr(x.expanding(), f)())
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
@@ -1023,7 +1053,9 @@ class TestExpanding:
         r = g.expanding()
 
         result = getattr(r, f)(ddof=0)
-        expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(lambda x: getattr(x.expanding(), f)(ddof=0))
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
@@ -1039,9 +1071,11 @@ class TestExpanding:
         r = g.expanding()
 
         result = r.quantile(0.4, interpolation=interpolation)
-        expected = g.apply(
-            lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
-        )
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(
+                lambda x: x.expanding().quantile(0.4, interpolation=interpolation)
+            )
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
@@ -1059,7 +1093,9 @@ class TestExpanding:
         def func_0(x):
             return getattr(x.expanding(), f)(frame)
 
-        expected = g.apply(func_0)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(func_0)
         # GH 39591: groupby.apply returns 1 instead of nan for windows
         # with all nan values
         null_idx = list(range(20, 61)) + list(range(72, 113))
@@ -1074,7 +1110,9 @@ class TestExpanding:
         def func_1(x):
             return getattr(x.B.expanding(), f)(pairwise=True)
 
-        expected = g.apply(func_1)
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(func_1)
         tm.assert_series_equal(result, expected)
 
     def test_expanding_apply(self, raw, frame):
@@ -1083,7 +1121,11 @@ class TestExpanding:
 
         # reduction
         result = r.apply(lambda x: x.sum(), raw=raw)
-        expected = g.apply(lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw))
+        msg = "DataFrameGroupBy.apply operated on the grouping columns"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            expected = g.apply(
+                lambda x: x.expanding().apply(lambda y: y.sum(), raw=raw)
+            )
         # groupby.apply doesn't drop the grouped-by column
         expected = expected.drop("A", axis=1)
         # GH 39732
@@ -1197,15 +1239,15 @@ class TestEWM:
         df = DataFrame(
             {
                 "id": ["a", "a", "b", "b", "b"],
-                "timestamp": date_range("2021-9-1", periods=5, freq="H"),
+                "timestamp": date_range("2021-9-1", periods=5, freq="h"),
                 "y": range(5),
             }
         )
-        grp = df.groupby("id").rolling("1H", on="timestamp")
+        grp = df.groupby("id").rolling("1h", on="timestamp")
         result = grp.count()
         expected_df = DataFrame(
             {
-                "timestamp": date_range("2021-9-1", periods=5, freq="H"),
+                "timestamp": date_range("2021-9-1", periods=5, freq="h"),
                 "y": [1.0] * 5,
             },
             index=MultiIndex.from_arrays(
@@ -1220,7 +1262,7 @@ class TestEWM:
             index=MultiIndex.from_arrays(
                 [
                     ["a", "a", "b", "b", "b"],
-                    date_range("2021-9-1", periods=5, freq="H"),
+                    date_range("2021-9-1", periods=5, freq="h"),
                 ],
                 names=["id", "timestamp"],
             ),
@@ -1230,3 +1272,47 @@ class TestEWM:
         # This is the key test
         result = grp.count()
         tm.assert_frame_equal(result, expected_df)
+
+
+def test_rolling_corr_with_single_integer_in_index():
+    # GH 44078
+    df = DataFrame({"a": [(1,), (1,), (1,)], "b": [4, 5, 6]})
+    gb = df.groupby(["a"])
+    result = gb.rolling(2).corr(other=df)
+    index = MultiIndex.from_tuples([((1,), 0), ((1,), 1), ((1,), 2)], names=["a", None])
+    expected = DataFrame(
+        {"a": [np.nan, np.nan, np.nan], "b": [np.nan, 1.0, 1.0]}, index=index
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_rolling_corr_with_tuples_in_index():
+    # GH 44078
+    df = DataFrame(
+        {
+            "a": [
+                (
+                    1,
+                    2,
+                ),
+                (
+                    1,
+                    2,
+                ),
+                (
+                    1,
+                    2,
+                ),
+            ],
+            "b": [4, 5, 6],
+        }
+    )
+    gb = df.groupby(["a"])
+    result = gb.rolling(2).corr(other=df)
+    index = MultiIndex.from_tuples(
+        [((1, 2), 0), ((1, 2), 1), ((1, 2), 2)], names=["a", None]
+    )
+    expected = DataFrame(
+        {"a": [np.nan, np.nan, np.nan], "b": [np.nan, 1.0, 1.0]}, index=index
+    )
+    tm.assert_frame_equal(result, expected)

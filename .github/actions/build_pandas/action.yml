@@ -12,13 +12,21 @@ runs:
       run: |
         micromamba info
         micromamba list
+        pip list --pre
+      shell: bash -el {0}
+
+    - name: Uninstall existing Pandas installation
+      run: |
+        if pip show pandas 1>/dev/null; then
+          pip uninstall -y pandas
+        fi
       shell: bash -el {0}
 
     - name: Build Pandas
       run: |
         if [[ ${{ inputs.editable }} == "true" ]]; then
-          pip install -e . --no-build-isolation -v
+          pip install -e . --no-build-isolation -v --no-deps
         else
-          pip install . --no-build-isolation -v
+          pip install . --no-build-isolation -v --no-deps
         fi
       shell: bash -el {0}

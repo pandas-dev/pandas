@@ -11,6 +11,10 @@ from pandas import (
 import pandas._testing as tm
 from pandas.tests.groupby import get_groupby_method_args
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
+)
+
 
 @pytest.mark.parametrize(
     "obj",
@@ -63,7 +67,11 @@ def test_groupby_preserves_metadata():
         assert hasattr(group, "testattr")
         return group.testattr
 
-    result = custom_df.groupby("c").apply(func)
+    msg = "DataFrameGroupBy.apply operated on the grouping columns"
+    with tm.assert_produces_warning(
+        FutureWarning, match=msg, raise_on_extra_warnings=False
+    ):
+        result = custom_df.groupby("c").apply(func)
     expected = tm.SubclassedSeries(["hello"] * 3, index=Index([7, 8, 9], name="c"))
     tm.assert_series_equal(result, expected)
 
@@ -101,5 +109,9 @@ def test_groupby_resample_preserves_subclass(obj):
     df = df.set_index("Date")
 
     # Confirm groupby.resample() preserves dataframe type
-    result = df.groupby("Buyer").resample("5D").sum()
+    msg = "DataFrameGroupBy.resample operated on the grouping columns"
+    with tm.assert_produces_warning(
+        FutureWarning, match=msg, raise_on_extra_warnings=False
+    ):
+        result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)

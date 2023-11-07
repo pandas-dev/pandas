@@ -15,42 +15,42 @@ if TYPE_CHECKING:
 # Update install.rst & setup.cfg when updating versions!
 
 VERSIONS = {
-    "bs4": "4.11.1",
-    "blosc": "1.21.0",
-    "bottleneck": "1.3.4",
-    "brotli": "0.7.0",
-    "fastparquet": "0.8.1",
-    "fsspec": "2022.05.0",
+    "bs4": "4.11.2",
+    "blosc": "1.21.3",
+    "bottleneck": "1.3.6",
+    "dataframe-api-compat": "0.1.7",
+    "fastparquet": "2022.12.0",
+    "fsspec": "2022.11.0",
     "html5lib": "1.1",
     "hypothesis": "6.46.1",
-    "gcsfs": "2022.05.0",
+    "gcsfs": "2022.11.0",
     "jinja2": "3.1.2",
-    "lxml.etree": "4.8.0",
-    "matplotlib": "3.6.1",
-    "numba": "0.55.2",
-    "numexpr": "2.8.0",
+    "lxml.etree": "4.9.2",
+    "matplotlib": "3.6.3",
+    "numba": "0.56.4",
+    "numexpr": "2.8.4",
     "odfpy": "1.4.1",
-    "openpyxl": "3.0.10",
-    "pandas_gbq": "0.17.5",
-    "psycopg2": "2.9.3",  # (dt dec pq3 ext lo64)
+    "openpyxl": "3.1.0",
+    "pandas_gbq": "0.19.0",
+    "psycopg2": "2.9.6",  # (dt dec pq3 ext lo64)
     "pymysql": "1.0.2",
-    "pyarrow": "7.0.0",
-    "pyreadstat": "1.1.5",
+    "pyarrow": "10.0.1",
+    "pyreadstat": "1.2.0",
     "pytest": "7.3.2",
-    "pyxlsb": "1.0.9",
-    "s3fs": "2022.05.0",
-    "scipy": "1.8.1",
-    "snappy": "0.6.1",
-    "sqlalchemy": "1.4.36",
-    "tables": "3.7.0",
-    "tabulate": "0.8.10",
-    "xarray": "2022.03.0",
+    "python-calamine": "0.1.6",
+    "pyxlsb": "1.0.10",
+    "s3fs": "2022.11.0",
+    "scipy": "1.10.0",
+    "sqlalchemy": "2.0.0",
+    "tables": "3.8.0",
+    "tabulate": "0.9.0",
+    "xarray": "2022.12.0",
     "xlrd": "2.0.1",
-    "xlsxwriter": "3.0.3",
-    "zstandard": "0.17.0",
-    "tzdata": "2022.1",
-    "qtpy": "2.2.0",
-    "pyqt5": "5.15.6",
+    "xlsxwriter": "3.0.5",
+    "zstandard": "0.19.0",
+    "tzdata": "2022.7",
+    "qtpy": "2.3.0",
+    "pyqt5": "5.15.8",
 }
 
 # A mapping from import name to package name (on PyPI) for packages where
@@ -59,12 +59,11 @@ VERSIONS = {
 INSTALL_MAPPING = {
     "bs4": "beautifulsoup4",
     "bottleneck": "Bottleneck",
-    "brotli": "brotlipy",
     "jinja2": "Jinja2",
     "lxml.etree": "lxml",
     "odf": "odfpy",
     "pandas_gbq": "pandas-gbq",
-    "snappy": "python-snappy",
+    "python_calamine": "python-calamine",
     "sqlalchemy": "SQLAlchemy",
     "tables": "pytables",
 }
@@ -74,13 +73,6 @@ def get_version(module: types.ModuleType) -> str:
     version = getattr(module, "__version__", None)
 
     if version is None:
-        if module.__name__ == "brotli":
-            # brotli doesn't contain attributes to confirm it's version
-            return ""
-        if module.__name__ == "snappy":
-            # snappy doesn't contain attributes to confirm it's version
-            # See https://github.com/andrix/python-snappy/pull/119
-            return ""
         raise ImportError(f"Can't determine version for {module.__name__}")
     if module.__name__ == "psycopg2":
         # psycopg2 appends " (dt dec pq3 ext lo64)" to it's version

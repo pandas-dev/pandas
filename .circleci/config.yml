@@ -46,9 +46,15 @@ jobs:
             fi
       - run:
           name: Build aarch64 wheels
+          no_output_timeout: 30m # Sometimes the tests won't generate any output, make sure the job doesn't get killed by that
           command: |
-            pip3 install cibuildwheel==2.12.1
-            cibuildwheel --output-dir wheelhouse
+            pip3 install cibuildwheel==2.15.0
+            # When this is a nightly wheel build, allow picking up NumPy 2.0 dev wheels:
+            if [[ "$IS_SCHEDULE_DISPATCH" == "true" || "$IS_PUSH" != 'true' ]]; then
+                export CIBW_ENVIRONMENT="PIP_EXTRA_INDEX_URL=https://pypi.anaconda.org/scientific-python-nightly-wheels/simple"
+            fi
+            cibuildwheel --prerelease-pythons --output-dir wheelhouse
+
           environment:
             CIBW_BUILD: << parameters.cibw-build >>
 
@@ -91,4 +97,4 @@ workflows:
               only: /^v.*/
           matrix:
             parameters:
-              cibw-build: ["cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64"]
+              cibw-build: ["cp39-manylinux_aarch64", "cp310-manylinux_aarch64", "cp311-manylinux_aarch64", "cp312-manylinux_aarch64"]

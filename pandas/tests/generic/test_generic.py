@@ -46,7 +46,7 @@ def construct(box, shape, value=None, dtype=None, **kwargs):
 
             arr = np.repeat(arr, new_shape).reshape(shape)
     else:
-        arr = np.random.randn(*shape)
+        arr = np.random.default_rng(2).standard_normal(shape)
     return box(arr, dtype=dtype, **kwargs)
 
 
@@ -307,7 +307,7 @@ class TestGeneric:
     def test_data_deprecated(self, frame_or_series):
         obj = frame_or_series()
         msg = "(Series|DataFrame)._data is deprecated"
-        with tm.assert_produces_warning(FutureWarning, match=msg):
+        with tm.assert_produces_warning(DeprecationWarning, match=msg):
             mgr = obj._data
         assert mgr is obj._mgr
 

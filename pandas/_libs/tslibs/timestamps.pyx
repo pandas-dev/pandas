@@ -16,6 +16,7 @@ import numpy as np
 cimport numpy as cnp
 from numpy cimport (
     int64_t,
+    is_datetime64_object,
     ndarray,
     uint8_t,
 )
@@ -65,7 +66,6 @@ from pandas._libs.tslibs.dtypes cimport (
 )
 from pandas._libs.tslibs.util cimport (
     is_array,
-    is_datetime64_object,
     is_integer_object,
 )
 
@@ -88,7 +88,6 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_scalar,
     convert_reso,
     get_datetime64_unit,
-    get_datetime64_value,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -107,7 +106,7 @@ from pandas._libs.tslibs.np_datetime import (
 from pandas._libs.tslibs.offsets cimport to_offset
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
-    delta_to_nanoseconds,
+    get_unit_for_round,
     is_any_td_scalar,
 )
 
@@ -307,7 +306,7 @@ cdef class _Timestamp(ABCTimestamp):
             NPY_DATETIMEUNIT reso
 
         reso = get_datetime64_unit(dt64)
-        value = get_datetime64_value(dt64)
+        value = cnp.get_datetime64_value(dt64)
         return cls._from_value_and_reso(value, reso, None)
 
     # -----------------------------------------------------------------
@@ -1078,18 +1077,6 @@ cdef class _Timestamp(ABCTimestamp):
 
         return result
 
-    @property
-    def _short_repr(self) -> str:
-        # format a Timestamp with only _date_repr if possible
-        # otherwise _repr_base
-        if (self.hour == 0 and
-                self.minute == 0 and
-                self.second == 0 and
-                self.microsecond == 0 and
-                self.nanosecond == 0):
-            return self._date_repr
-        return self._repr_base
-
     # -----------------------------------------------------------------
     # Conversion Methods
 
@@ -1204,7 +1191,16 @@ cdef class _Timestamp(ABCTimestamp):
 
     cpdef to_datetime64(self):
         """
-        Return a numpy.datetime64 object with 'ns' precision.
+        Return a numpy.datetime64 object with same precision.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp(year=2023, month=1, day=1,
+        ...                   hour=10, second=15)
+        >>> ts
+        Timestamp('2023-01-01 10:00:15')
+        >>> ts.to_datetime64()
+        numpy.datetime64('2023-01-01T10:00:15.000000')
         """
         # TODO: find a way to construct dt64 directly from _reso
         abbrev = npy_unit_to_abbrev(self._creso)
@@ -1252,7 +1248,7 @@ cdef class _Timestamp(ABCTimestamp):
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
         >>> # Year end frequency
         >>> ts.to_period(freq='Y')
-        Period('2020', 'A-DEC')
+        Period('2020', 'Y-DEC')
 
         >>> # Month end frequency
         >>> ts.to_period(freq='M')
@@ -1634,6 +1630,81 @@ class Timestamp(_Timestamp):
         """
         return super().utctimetuple()
 
+    def time(self):
+        """
+        Return time object with same time but with tzinfo=None.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.time()
+        datetime.time(10, 0)
+        """
+        return super().time()
+
+    def timetuple(self):
+        """
+        Return time tuple, compatible with time.localtime().
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00')
+        >>> ts.timetuple()
+        time.struct_time(tm_year=2023, tm_mon=1, tm_mday=1,
+        tm_hour=10, tm_min=0, tm_sec=0, tm_wday=6, tm_yday=1, tm_isdst=-1)
+        """
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "timetuple not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+            ) from err
+        return _dt.timetuple()
+
+    def timetz(self):
+        """
+        Return time object with same time and tzinfo.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:00', tz='Europe/Brussels')
+        >>> ts
+        Timestamp('2023-01-01 10:00:00+0100', tz='Europe/Brussels')
+        >>> ts.timetz()
+        datetime.time(10, 0, tzinfo=<DstTzInfo 'Europe/Brussels' CET+1:00:00 STD>)
+        """
+        return super().timetz()
+
+    def toordinal(self):
+        """
+        Return proleptic Gregorian ordinal. January 1 of year 1 is day 1.
+
+        Examples
+        --------
+        >>> ts = pd.Timestamp('2023-01-01 10:00:50')
+        >>> ts
+        Timestamp('2023-01-01 10:00:50')
+        >>> ts.toordinal()
+        738521
+        """
+        try:
+            _dt = datetime(self.year, self.month, self.day,
+                           self.hour, self.minute, self.second,
+                           self.microsecond, self.tzinfo, fold=self.fold)
+        except ValueError as err:
+            raise NotImplementedError(
+                "toordinal not yet supported on Timestamps which "
+                "are outside the range of Python's standard library. "
+            ) from err
+        return _dt.toordinal()
+
     # Issue 25016.
     @classmethod
     def strptime(cls, date_string, format):
@@ -1802,10 +1873,6 @@ class Timestamp(_Timestamp):
                              "the tz parameter. Use tz_convert instead.")
 
         tzobj = maybe_get_tz(tz)
-        if tzobj is not None and is_datetime64_object(ts_input):
-            # GH#24559, GH#42288 As of 2.0 we treat datetime64 as
-            #  wall-time (consistent with DatetimeIndex)
-            return cls(ts_input).tz_localize(tzobj)
 
         if nanosecond is None:
             nanosecond = 0
@@ -1823,17 +1890,14 @@ class Timestamp(_Timestamp):
         cdef:
             int64_t nanos
 
-        freq = to_offset(freq)
-        freq.nanos  # raises on non-fixed freq
-        nanos = delta_to_nanoseconds(freq, self._creso)
+        freq = to_offset(freq, is_period=False)
+        nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             if freq.nanos == 0:
                 raise ValueError("Division by zero in rounding")
 
             # e.g. self.unit == "s" and sub-second freq
             return self
-
-        # TODO: problem if nanos==0
 
         if self.tz is not None:
             value = self.tz_localize(None)._value
@@ -1910,26 +1974,26 @@ timedelta}, default 'raise'
 
         A timestamp can be rounded using multiple frequency units:
 
-        >>> ts.round(freq='H') # hour
+        >>> ts.round(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.round(freq='T') # minute
+        >>> ts.round(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.round(freq='S') # seconds
+        >>> ts.round(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.round(freq='L') # milliseconds
+        >>> ts.round(freq='ms') # milliseconds
         Timestamp('2020-03-14 15:32:52.193000')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.round(freq='5T')
+        >>> ts.round(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.round(freq='1H30T')
+        >>> ts.round(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -1942,10 +2006,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.round("H", ambiguous=False)
+        >>> ts_tz.round("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.round("H", ambiguous=True)
+        >>> ts_tz.round("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(
@@ -2001,26 +2065,26 @@ timedelta}, default 'raise'
 
         A timestamp can be floored using multiple frequency units:
 
-        >>> ts.floor(freq='H') # hour
+        >>> ts.floor(freq='h') # hour
         Timestamp('2020-03-14 15:00:00')
 
-        >>> ts.floor(freq='T') # minute
+        >>> ts.floor(freq='min') # minute
         Timestamp('2020-03-14 15:32:00')
 
-        >>> ts.floor(freq='S') # seconds
+        >>> ts.floor(freq='s') # seconds
         Timestamp('2020-03-14 15:32:52')
 
-        >>> ts.floor(freq='N') # nanoseconds
+        >>> ts.floor(freq='ns') # nanoseconds
         Timestamp('2020-03-14 15:32:52.192548651')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.floor(freq='5T')
+        >>> ts.floor(freq='5min')
         Timestamp('2020-03-14 15:30:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.floor(freq='1H30T')
+        >>> ts.floor(freq='1h30min')
         Timestamp('2020-03-14 15:00:00')
 
         Analogous for ``pd.NaT``:
@@ -2033,10 +2097,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 03:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.floor("2H", ambiguous=False)
+        >>> ts_tz.floor("2h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.floor("2H", ambiguous=True)
+        >>> ts_tz.floor("2h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.MINUS_INFTY, ambiguous, nonexistent)
@@ -2090,26 +2154,26 @@ timedelta}, default 'raise'
 
         A timestamp can be ceiled using multiple frequency units:
 
-        >>> ts.ceil(freq='H') # hour
+        >>> ts.ceil(freq='h') # hour
         Timestamp('2020-03-14 16:00:00')
 
-        >>> ts.ceil(freq='T') # minute
+        >>> ts.ceil(freq='min') # minute
         Timestamp('2020-03-14 15:33:00')
 
-        >>> ts.ceil(freq='S') # seconds
+        >>> ts.ceil(freq='s') # seconds
         Timestamp('2020-03-14 15:32:53')
 
-        >>> ts.ceil(freq='U') # microseconds
+        >>> ts.ceil(freq='us') # microseconds
         Timestamp('2020-03-14 15:32:52.192549')
 
-        ``freq`` can also be a multiple of a single unit, like '5T' (i.e.  5 minutes):
+        ``freq`` can also be a multiple of a single unit, like '5min' (i.e.  5 minutes):
 
-        >>> ts.ceil(freq='5T')
+        >>> ts.ceil(freq='5min')
         Timestamp('2020-03-14 15:35:00')
 
-        or a combination of multiple units, like '1H30T' (i.e. 1 hour and 30 minutes):
+        or a combination of multiple units, like '1h30min' (i.e. 1 hour and 30 minutes):
 
-        >>> ts.ceil(freq='1H30T')
+        >>> ts.ceil(freq='1h30min')
         Timestamp('2020-03-14 16:30:00')
 
         Analogous for ``pd.NaT``:
@@ -2122,10 +2186,10 @@ timedelta}, default 'raise'
 
         >>> ts_tz = pd.Timestamp("2021-10-31 01:30:00").tz_localize("Europe/Amsterdam")
 
-        >>> ts_tz.ceil("H", ambiguous=False)
+        >>> ts_tz.ceil("h", ambiguous=False)
         Timestamp('2021-10-31 02:00:00+0100', tz='Europe/Amsterdam')
 
-        >>> ts_tz.ceil("H", ambiguous=True)
+        >>> ts_tz.ceil("h", ambiguous=True)
         Timestamp('2021-10-31 02:00:00+0200', tz='Europe/Amsterdam')
         """
         return self._round(freq, RoundTo.PLUS_INFTY, ambiguous, nonexistent)

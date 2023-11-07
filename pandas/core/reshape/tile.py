@@ -17,10 +17,8 @@ from pandas._libs import (
     Timestamp,
     lib,
 )
-from pandas._libs.lib import infer_dtype
 
 from pandas.core.dtypes.common import (
-    DT64NS_DTYPE,
     ensure_platform_int,
     is_bool_dtype,
     is_integer,
@@ -43,7 +41,6 @@ from pandas import (
     to_datetime,
     to_timedelta,
 )
-from pandas.core import nanops
 import pandas.core.algorithms as algos
 
 if TYPE_CHECKING:
@@ -243,66 +240,33 @@ def cut(
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
     original = x
-    x = _preprocess_for_cut(x)
-    x, dtype = _coerce_to_type(x)
+    x_idx = _preprocess_for_cut(x)
+    x_idx, _ = _coerce_to_type(x_idx)
 
     if not np.iterable(bins):
-        if is_scalar(bins) and bins < 1:
-            raise ValueError("`bins` should be a positive integer.")
-
-        sz = x.size
-
-        if sz == 0:
-            raise ValueError("Cannot cut empty array")
-
-        rng = (nanops.nanmin(x), nanops.nanmax(x))
-        mn, mx = (mi + 0.0 for mi in rng)
-
-        if np.isinf(mn) or np.isinf(mx):
-            # GH 24314
-            raise ValueError(
-                "cannot specify integer `bins` when input data contains infinity"
-            )
-        if mn == mx:  # adjust end points before binning
-            mn -= 0.001 * abs(mn) if mn != 0 else 0.001
-            mx += 0.001 * abs(mx) if mx != 0 else 0.001
-            bins = np.linspace(mn, mx, bins + 1, endpoint=True)
-        else:  # adjust end points after binning
-            bins = np.linspace(mn, mx, bins + 1, endpoint=True)
-            adj = (mx - mn) * 0.001  # 0.1% of the range
-            if right:
-                bins[0] -= adj
-            else:
-                bins[-1] += adj
+        bins = _nbins_to_bins(x_idx, bins, right)
 
     elif isinstance(bins, IntervalIndex):
         if bins.is_overlapping:
             raise ValueError("Overlapping IntervalIndex is not accepted.")
 
     else:
-        if isinstance(getattr(bins, "dtype", None), DatetimeTZDtype):
-            bins = np.asarray(bins, dtype=DT64NS_DTYPE)
-        else:
-            bins = np.asarray(bins)
-        bins = _convert_bin_to_numeric_type(bins, dtype)
-
-        # GH 26045: cast to float64 to avoid an overflow
-        if (np.diff(bins.astype("float64")) < 0).any():
+        bins = Index(bins)
+        if not bins.is_monotonic_increasing:
             raise ValueError("bins must increase monotonically.")
 
     fac, bins = _bins_to_cuts(
-        x,
+        x_idx,
         bins,
         right=right,
         labels=labels,
         precision=precision,
         include_lowest=include_lowest,
-        dtype=dtype,
         duplicates=duplicates,
         ordered=ordered,
     )
 
-    return _postprocess_for_cut(fac, bins, retbins, dtype, original)
+    return _postprocess_for_cut(fac, bins, retbins, original)
 
 
 def qcut(
@@ -367,36 +331,90 @@ def qcut(
     array([0, 0, 1, 2, 3])
     """
     original = x
-    x = _preprocess_for_cut(x)
-    x, dtype = _coerce_to_type(x)
+    x_idx = _preprocess_for_cut(x)
+    x_idx, _ = _coerce_to_type(x_idx)
 
     quantiles = np.linspace(0, 1, q + 1) if is_integer(q) else q
 
-    x_np = np.asarray(x)
-    x_np = x_np[~np.isnan(x_np)]
-    bins = np.quantile(x_np, quantiles)
+    bins = x_idx.to_series().dropna().quantile(quantiles)
 
     fac, bins = _bins_to_cuts(
-        x,
-        bins,
+        x_idx,
+        Index(bins),
         labels=labels,
         precision=precision,
         include_lowest=True,
-        dtype=dtype,
         duplicates=duplicates,
     )
 
-    return _postprocess_for_cut(fac, bins, retbins, dtype, original)
+    return _postprocess_for_cut(fac, bins, retbins, original)
+
+
+def _nbins_to_bins(x_idx: Index, nbins: int, right: bool) -> Index:
+    """
+    If a user passed an integer N for bins, convert this to a sequence of N
+    equal(ish)-sized bins.
+    """
+    if is_scalar(nbins) and nbins < 1:
+        raise ValueError("`bins` should be a positive integer.")
+
+    if x_idx.size == 0:
+        raise ValueError("Cannot cut empty array")
+
+    rng = (x_idx.min(), x_idx.max())
+    mn, mx = rng
+
+    is_dt_or_td = lib.is_np_dtype(x_idx.dtype, "mM") or isinstance(
+        x_idx.dtype, DatetimeTZDtype
+    )
+
+    if is_numeric_dtype(x_idx.dtype) and (np.isinf(mn) or np.isinf(mx)):
+        # GH#24314
+        raise ValueError(
+            "cannot specify integer `bins` when input data contains infinity"
+        )
+
+    if mn == mx:  # adjust end points before binning
+        if is_dt_or_td:
+            # using seconds=1 is pretty arbitrary here
+            td = Timedelta(seconds=1)
+            # Use DatetimeArray/TimedeltaArray method instead of linspace
+            # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
+            # has no attribute "_generate_range"
+            bins = x_idx._values._generate_range(  # type: ignore[union-attr]
+                start=mn - td, end=mx + td, periods=nbins + 1, freq=None
+            )
+        else:
+            mn -= 0.001 * abs(mn) if mn != 0 else 0.001
+            mx += 0.001 * abs(mx) if mx != 0 else 0.001
+
+            bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
+    else:  # adjust end points after binning
+        if is_dt_or_td:
+            # Use DatetimeArray/TimedeltaArray method instead of linspace
+            # error: Item "ExtensionArray" of "ExtensionArray | ndarray[Any, Any]"
+            # has no attribute "_generate_range"
+            bins = x_idx._values._generate_range(  # type: ignore[union-attr]
+                start=mn, end=mx, periods=nbins + 1, freq=None
+            )
+        else:
+            bins = np.linspace(mn, mx, nbins + 1, endpoint=True)
+        adj = (mx - mn) * 0.001  # 0.1% of the range
+        if right:
+            bins[0] -= adj
+        else:
+            bins[-1] += adj
+
+    return Index(bins)
 
 
 def _bins_to_cuts(
-    x,
-    bins: np.ndarray,
+    x_idx: Index,
+    bins: Index,
     right: bool = True,
     labels=None,
     precision: int = 3,
     include_lowest: bool = False,
-    dtype: DtypeObj | None = None,
     duplicates: str = "raise",
     ordered: bool = True,
 ):
@@ -408,9 +426,11 @@ def _bins_to_cuts(
             "invalid value for 'duplicates' parameter, valid options are: raise, drop"
         )
 
+    result: Categorical | np.ndarray
+
     if isinstance(bins, IntervalIndex):
         # we have a fast-path here
-        ids = bins.get_indexer(x)
+        ids = bins.get_indexer(x_idx)
         cat_dtype = CategoricalDtype(bins, ordered=True)
         result = Categorical.from_codes(ids, dtype=cat_dtype, validate=False)
         return result, bins
@@ -425,12 +445,29 @@ def _bins_to_cuts(
         bins = unique_bins
 
     side: Literal["left", "right"] = "left" if right else "right"
-    ids = ensure_platform_int(bins.searchsorted(x, side=side))
+
+    try:
+        ids = bins.searchsorted(x_idx, side=side)
+    except TypeError as err:
+        # e.g. test_datetime_nan_error if bins are DatetimeArray and x_idx
+        #  is integers
+        if x_idx.dtype.kind == "m":
+            raise ValueError("bins must be of timedelta64 dtype") from err
+        elif x_idx.dtype.kind == bins.dtype.kind == "M":
+            raise ValueError(
+                "Cannot use timezone-naive bins with timezone-aware values, "
+                "or vice-versa"
+            ) from err
+        elif x_idx.dtype.kind == "M":
+            raise ValueError("bins must be of datetime64 dtype") from err
+        else:
+            raise
+    ids = ensure_platform_int(ids)
 
     if include_lowest:
-        ids[np.asarray(x) == bins[0]] = 1
+        ids[x_idx == bins[0]] = 1
 
-    na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
+    na_mask = isna(x_idx) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
 
     if labels is not False:
@@ -442,7 +479,7 @@ def _bins_to_cuts(
 
         if labels is None:
             labels = _format_labels(
-                bins, precision, right=right, include_lowest=include_lowest, dtype=dtype
+                bins, precision, right=right, include_lowest=include_lowest
             )
         elif ordered and len(set(labels)) != len(labels):
             raise ValueError(
@@ -474,7 +511,7 @@ def _bins_to_cuts(
     return result, bins
 
 
-def _coerce_to_type(x):
+def _coerce_to_type(x: Index) -> tuple[Index, DtypeObj | None]:
     """
     if the passed data is of datetime/timedelta, bool or nullable int type,
     this method converts it to numeric so that cut or qcut method can
@@ -498,91 +535,31 @@ def _coerce_to_type(x):
     # https://github.com/pandas-dev/pandas/pull/31290
     # https://github.com/pandas-dev/pandas/issues/31389
     elif isinstance(x.dtype, ExtensionDtype) and is_numeric_dtype(x.dtype):
-        x = x.to_numpy(dtype=np.float64, na_value=np.nan)
+        x_arr = x.to_numpy(dtype=np.float64, na_value=np.nan)
+        x = Index(x_arr)
 
-    if dtype is not None:
-        # GH 19768: force NaT to NaN during integer conversion
-        x = np.where(x.notna(), x.view(np.int64), np.nan)
-
-    return x, dtype
-
-
-def _convert_bin_to_numeric_type(bins, dtype: DtypeObj | None):
-    """
-    if the passed bin is of datetime/timedelta type,
-    this method converts it to integer
-
-    Parameters
-    ----------
-    bins : list-like of bins
-    dtype : dtype of data
-
-    Raises
-    ------
-    ValueError if bins are not of a compat dtype to dtype
-    """
-    bins_dtype = infer_dtype(bins, skipna=False)
-    if lib.is_np_dtype(dtype, "m"):
-        if bins_dtype in ["timedelta", "timedelta64"]:
-            bins = to_timedelta(bins).view(np.int64)
-        else:
-            raise ValueError("bins must be of timedelta64 dtype")
-    elif lib.is_np_dtype(dtype, "M") or isinstance(dtype, DatetimeTZDtype):
-        if bins_dtype in ["datetime", "datetime64"]:
-            bins = to_datetime(bins)
-            if lib.is_np_dtype(bins.dtype, "M"):
-                # As of 2.0, to_datetime may give non-nano, so we need to convert
-                #  here until the rest of this file recognizes non-nano
-                bins = bins.astype("datetime64[ns]", copy=False)
-            bins = bins.view(np.int64)
-        else:
-            raise ValueError("bins must be of datetime64 dtype")
-
-    return bins
-
-
-def _convert_bin_to_datelike_type(bins, dtype: DtypeObj | None):
-    """
-    Convert bins to a DatetimeIndex or TimedeltaIndex if the original dtype is
-    datelike
-
-    Parameters
-    ----------
-    bins : list-like of bins
-    dtype : dtype of data
-
-    Returns
-    -------
-    bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
-           datelike
-    """
-    if isinstance(dtype, DatetimeTZDtype):
-        bins = to_datetime(bins.astype(np.int64), utc=True).tz_convert(dtype.tz)
-    elif lib.is_np_dtype(dtype, "mM"):
-        bins = Index(bins.astype(np.int64), dtype=dtype)
-    return bins
+    return Index(x), dtype
 
 
 def _format_labels(
-    bins,
+    bins: Index,
     precision: int,
     right: bool = True,
     include_lowest: bool = False,
-    dtype: DtypeObj | None = None,
 ):
     """based on the dtype, return our labels"""
     closed: IntervalLeftRight = "right" if right else "left"
 
     formatter: Callable[[Any], Timestamp] | Callable[[Any], Timedelta]
 
-    if isinstance(dtype, DatetimeTZDtype):
-        formatter = lambda x: Timestamp(x, tz=dtype.tz)
+    if isinstance(bins.dtype, DatetimeTZDtype):
+        formatter = lambda x: x
         adjust = lambda x: x - Timedelta("1ns")
-    elif lib.is_np_dtype(dtype, "M"):
-        formatter = Timestamp
+    elif lib.is_np_dtype(bins.dtype, "M"):
+        formatter = lambda x: x
         adjust = lambda x: x - Timedelta("1ns")
-    elif lib.is_np_dtype(dtype, "m"):
-        formatter = Timedelta
+    elif lib.is_np_dtype(bins.dtype, "m"):
+        formatter = lambda x: x
         adjust = lambda x: x - Timedelta("1ns")
     else:
         precision = _infer_precision(precision, bins)
@@ -597,7 +574,7 @@ def _format_labels(
     return IntervalIndex.from_breaks(breaks, closed=closed)
 
 
-def _preprocess_for_cut(x):
+def _preprocess_for_cut(x) -> Index:
     """
     handles preprocessing for cut where we convert passed
     input to array, strip the index information and store it
@@ -611,10 +588,10 @@ def _preprocess_for_cut(x):
     if x.ndim != 1:
         raise ValueError("Input array must be 1 dimensional")
 
-    return x
+    return Index(x)
 
 
-def _postprocess_for_cut(fac, bins, retbins: bool, dtype: DtypeObj | None, original):
+def _postprocess_for_cut(fac, bins, retbins: bool, original):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed
@@ -626,7 +603,8 @@ def _postprocess_for_cut(fac, bins, retbins: bool, dtype: DtypeObj | None, origi
     if not retbins:
         return fac
 
-    bins = _convert_bin_to_datelike_type(bins, dtype)
+    if isinstance(bins, Index) and is_numeric_dtype(bins.dtype):
+        bins = bins._values
 
     return fac, bins
 
@@ -646,7 +624,7 @@ def _round_frac(x, precision: int):
         return np.around(x, digits)
 
 
-def _infer_precision(base_precision: int, bins) -> int:
+def _infer_precision(base_precision: int, bins: Index) -> int:
     """
     Infer an appropriate precision for _round_frac
     """

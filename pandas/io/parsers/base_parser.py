@@ -10,12 +10,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Hashable,
-    Iterable,
-    List,
-    Mapping,
-    Sequence,
-    Tuple,
     cast,
     final,
     overload,
@@ -88,6 +82,13 @@ from pandas.core.tools import datetimes as tools
 from pandas.io.common import is_potential_multi_index
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterable,
+        Mapping,
+        Sequence,
+    )
+
     from pandas._typing import (
         ArrayLike,
         DtypeArg,
@@ -353,7 +354,7 @@ class ParserBase:
     ) -> Sequence[Hashable] | MultiIndex:
         # possibly create a column mi here
         if is_potential_multi_index(columns):
-            list_columns = cast(List[Tuple], columns)
+            list_columns = cast(list[tuple], columns)
             return MultiIndex.from_tuples(list_columns, names=col_names)
         return columns
 
@@ -1143,14 +1144,25 @@ def _make_date_converter(
                 date_format.get(col) if isinstance(date_format, dict) else date_format
             )
 
-            result = tools.to_datetime(
-                ensure_object(strs),
-                format=date_fmt,
-                utc=False,
-                dayfirst=dayfirst,
-                errors="ignore",
-                cache=cache_dates,
-            )
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    ".*parsing datetimes with mixed time zones will raise an error",
+                    category=FutureWarning,
+                )
+                str_objs = ensure_object(strs)
+                try:
+                    result = tools.to_datetime(
+                        str_objs,
+                        format=date_fmt,
+                        utc=False,
+                        dayfirst=dayfirst,
+                        cache=cache_dates,
+                    )
+                except (ValueError, TypeError):
+                    # test_usecols_with_parse_dates4
+                    return str_objs
+
             if isinstance(result, DatetimeIndex):
                 arr = result.to_numpy()
                 arr.flags.writeable = True
@@ -1158,22 +1170,45 @@ def _make_date_converter(
             return result._values
         else:
             try:
-                result = tools.to_datetime(
-                    date_parser(*(unpack_if_single_element(arg) for arg in date_cols)),
-                    errors="ignore",
-                    cache=cache_dates,
-                )
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        ".*parsing datetimes with mixed time zones "
+                        "will raise an error",
+                        category=FutureWarning,
+                    )
+                    pre_parsed = date_parser(
+                        *(unpack_if_single_element(arg) for arg in date_cols)
+                    )
+                    try:
+                        result = tools.to_datetime(
+                            pre_parsed,
+                            cache=cache_dates,
+                        )
+                    except (ValueError, TypeError):
+                        # test_read_csv_with_custom_date_parser
+                        result = pre_parsed
                 if isinstance(result, datetime.datetime):
                     raise Exception("scalar parser")
                 return result
             except Exception:
-                return tools.to_datetime(
-                    parsing.try_parse_dates(
+                # e.g. test_datetime_fractional_seconds
+                with warnings.catch_warnings():
+                    warnings.filterwarnings(
+                        "ignore",
+                        ".*parsing datetimes with mixed time zones "
+                        "will raise an error",
+                        category=FutureWarning,
+                    )
+                    pre_parsed = parsing.try_parse_dates(
                         parsing.concat_date_cols(date_cols),
                         parser=date_parser,
-                    ),
-                    errors="ignore",
-                )
+                    )
+                    try:
+                        return tools.to_datetime(pre_parsed)
+                    except (ValueError, TypeError):
+                        # TODO: not reached in tests 2023-10-27; needed?
+                        return pre_parsed
 
     return converter
 

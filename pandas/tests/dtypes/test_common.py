@@ -34,7 +34,7 @@ def to_numpy_dtypes(dtypes):
     return [getattr(np, dt) for dt in dtypes if isinstance(dt, str)]
 
 
-class TestPandasDtype:
+class TestNumpyEADtype:
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520
     @pytest.mark.parametrize("box", [pd.Timestamp, "pd.Timestamp", list])
@@ -53,6 +53,7 @@ class TestPandasDtype:
             np.float64,
             float,
             np.dtype("float64"),
+            "object_",
         ],
     )
     def test_pandas_dtype_valid(self, dtype):
@@ -93,14 +94,14 @@ class TestPandasDtype:
         [
             "period[D]",
             "period[3M]",
-            "period[U]",
+            "period[us]",
             "Period[D]",
             "Period[3M]",
-            "Period[U]",
+            "Period[us]",
         ],
     )
     def test_period_dtype(self, dtype):
-        assert com.pandas_dtype(dtype) is PeriodDtype(dtype)
+        assert com.pandas_dtype(dtype) is not PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == PeriodDtype(dtype)
         assert com.pandas_dtype(dtype) == dtype
 
@@ -210,11 +211,10 @@ def test_is_sparse(check_scipy):
             assert not com.is_sparse(scipy.sparse.bsr_matrix([1, 2, 3]))
 
 
-@td.skip_if_no_scipy
 def test_is_scipy_sparse():
-    from scipy.sparse import bsr_matrix
+    sp_sparse = pytest.importorskip("scipy.sparse")
 
-    assert com.is_scipy_sparse(bsr_matrix([1, 2, 3]))
+    assert com.is_scipy_sparse(sp_sparse.bsr_matrix([1, 2, 3]))
 
     assert not com.is_scipy_sparse(SparseArray([1, 2, 3]))
 
@@ -274,7 +274,7 @@ def test_is_period_dtype():
         assert not com.is_period_dtype(pd.Period("2017-01-01"))
 
         assert com.is_period_dtype(PeriodDtype(freq="D"))
-        assert com.is_period_dtype(pd.PeriodIndex([], freq="A"))
+        assert com.is_period_dtype(pd.PeriodIndex([], freq="Y"))
 
 
 def test_is_interval_dtype():
@@ -301,14 +301,23 @@ def test_is_categorical_dtype():
         assert com.is_categorical_dtype(pd.CategoricalIndex([1, 2, 3]))
 
 
-def test_is_string_dtype():
-    assert not com.is_string_dtype(int)
-    assert not com.is_string_dtype(pd.Series([1, 2]))
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        (int, False),
+        (pd.Series([1, 2]), False),
+        (str, True),
+        (object, True),
+        (np.array(["a", "b"]), True),
+        (pd.StringDtype(), True),
+        (pd.Index([], dtype="O"), True),
+    ],
+)
+def test_is_string_dtype(dtype, expected):
+    # GH#54661
 
-    assert com.is_string_dtype(str)
-    assert com.is_string_dtype(object)
-    assert com.is_string_dtype(np.array(["a", "b"]))
-    assert com.is_string_dtype(pd.StringDtype())
+    result = com.is_string_dtype(dtype)
+    assert result is expected
 
 
 @pytest.mark.parametrize(
@@ -652,7 +661,7 @@ def test_is_complex_dtype():
     assert not com.is_complex_dtype(pd.Series([1, 2]))
     assert not com.is_complex_dtype(np.array(["a", "b"]))
 
-    assert com.is_complex_dtype(np.complex_)
+    assert com.is_complex_dtype(np.complex128)
     assert com.is_complex_dtype(complex)
     assert com.is_complex_dtype(np.array([1 + 1j, 5]))
 
@@ -782,3 +791,9 @@ def test_pandas_dtype_numpy_warning():
         match="Converting `np.integer` or `np.signedinteger` to a dtype is deprecated",
     ):
         pandas_dtype(np.integer)
+
+
+def test_pandas_dtype_ea_not_instance():
+    # GH 31356 GH 54592
+    with tm.assert_produces_warning(UserWarning):
+        assert pandas_dtype(CategoricalDtype) == CategoricalDtype()

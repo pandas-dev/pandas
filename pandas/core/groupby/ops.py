@@ -13,9 +13,6 @@ from typing import (
     TYPE_CHECKING,
     Callable,
     Generic,
-    Hashable,
-    Iterator,
-    Sequence,
     final,
 )
 
@@ -36,6 +33,7 @@ from pandas._typing import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
+from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.cast import (
     maybe_cast_pointwise_result,
     maybe_downcast_to_dtype,
@@ -71,10 +69,16 @@ from pandas.core.sorting import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+        Sequence,
+    )
+
     from pandas.core.generic import NDFrame
 
 
-def check_result_array(obj, dtype):
+def check_result_array(obj, dtype) -> None:
     # Our operation is supposed to be an aggregation/reduction. If
     #  it returns an ndarray, this likely means an invalid operation has
     #  been passed. See test_apply_without_aggregation, test_agg_must_agg
@@ -130,6 +134,8 @@ class WrappedCythonOp:
             "all": functools.partial(libgroupby.group_any_all, val_test="all"),
             "sum": "group_sum",
             "prod": "group_prod",
+            "idxmin": functools.partial(libgroupby.group_idxmin_idxmax, name="idxmin"),
+            "idxmax": functools.partial(libgroupby.group_idxmin_idxmax, name="idxmax"),
             "min": "group_min",
             "max": "group_max",
             "mean": "group_mean",
@@ -184,7 +190,7 @@ class WrappedCythonOp:
                     f"function is not implemented for this dtype: "
                     f"[how->{how},dtype->{dtype_str}]"
                 )
-            elif how in ["std", "sem"]:
+            elif how in ["std", "sem", "idxmin", "idxmax"]:
                 # We have a partial object that does not have __signatures__
                 return f
             elif how == "skew":
@@ -265,6 +271,10 @@ class WrappedCythonOp:
 
         if how == "rank":
             out_dtype = "float64"
+        elif how in ["idxmin", "idxmax"]:
+            # The Cython implementation only produces the row number; we'll take
+            # from the index using this in post processing
+            out_dtype = "intp"
         else:
             if dtype.kind in "iufcb":
                 out_dtype = f"{dtype.kind}{dtype.itemsize}"
@@ -396,7 +406,16 @@ class WrappedCythonOp:
         result = maybe_fill(np.empty(out_shape, dtype=out_dtype))
         if self.kind == "aggregate":
             counts = np.zeros(ngroups, dtype=np.int64)
-            if self.how in ["min", "max", "mean", "last", "first", "sum"]:
+            if self.how in [
+                "idxmin",
+                "idxmax",
+                "min",
+                "max",
+                "mean",
+                "last",
+                "first",
+                "sum",
+            ]:
                 func(
                     out=result,
                     counts=counts,
@@ -460,10 +479,10 @@ class WrappedCythonOp:
                 **kwargs,
             )
 
-        if self.kind == "aggregate":
+        if self.kind == "aggregate" and self.how not in ["idxmin", "idxmax"]:
             # i.e. counts is defined.  Locations where count<min_count
             # need to have the result set to np.nan, which may require casting,
-            # see GH#40767
+            # see GH#40767. For idxmin/idxmax is handled specially via post-processing
             if result.dtype.kind in "iu" and not is_datetimelike:
                 # if the op keeps the int dtypes, we have to use 0
                 cutoff = max(0 if self.how in ["sum", "prod"] else 1, min_count)
@@ -834,10 +853,8 @@ class BaseGrouper:
         -------
         np.ndarray or ExtensionArray
         """
-        # test_groupby_empty_with_category gets here with self.ngroups == 0
-        #  and len(obj) > 0
 
-        if len(obj) > 0 and not isinstance(obj._values, np.ndarray):
+        if not isinstance(obj._values, np.ndarray):
             # we can preserve a little bit more aggressively with EA dtype
             #  because maybe_cast_pointwise_result will do a try/except
             #  with _from_sequence.  NB we are assuming here that _from_sequence
@@ -846,11 +863,18 @@ class BaseGrouper:
 
         result = self._aggregate_series_pure_python(obj, func)
 
-        npvalues = lib.maybe_convert_objects(result, try_float=False)
-        if preserve_dtype:
-            out = maybe_cast_pointwise_result(npvalues, obj.dtype, numeric_only=True)
+        if len(obj) == 0 and len(result) == 0 and isinstance(obj.dtype, ExtensionDtype):
+            cls = obj.dtype.construct_array_type()
+            out = cls._from_sequence(result)
+
         else:
-            out = npvalues
+            npvalues = lib.maybe_convert_objects(result, try_float=False)
+            if preserve_dtype:
+                out = maybe_cast_pointwise_result(
+                    npvalues, obj.dtype, numeric_only=True
+                )
+            else:
+                out = npvalues
         return out
 
     @final
@@ -992,9 +1016,6 @@ class BinGrouper(BaseGrouper):
             if key is not NaT
         }
         return result
-
-    def __iter__(self) -> Iterator[Hashable]:
-        return iter(self.groupings[0].grouping_vector)
 
     @property
     def nkeys(self) -> int:
@@ -1157,7 +1178,8 @@ class SeriesSplitter(DataSplitter):
     def _chop(self, sdata: Series, slice_obj: slice) -> Series:
         # fastpath equivalent to `sdata.iloc[slice_obj]`
         mgr = sdata._mgr.get_slice(slice_obj)
-        ser = sdata._constructor(mgr, name=sdata.name, fastpath=True)
+        ser = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
+        ser._name = sdata.name
         return ser.__finalize__(sdata, method="groupby")
 
 
@@ -1169,7 +1191,7 @@ class FrameSplitter(DataSplitter):
         # else:
         #     return sdata.iloc[:, slice_obj]
         mgr = sdata._mgr.get_slice(slice_obj, axis=1 - self.axis)
-        df = sdata._constructor(mgr)
+        df = sdata._constructor_from_mgr(mgr, axes=mgr.axes)
         return df.__finalize__(sdata, method="groupby")
 
 

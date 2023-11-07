@@ -4,7 +4,6 @@ from datetime import timedelta
 import operator
 from typing import (
     TYPE_CHECKING,
-    Iterator,
     cast,
 )
 import warnings
@@ -30,6 +29,7 @@ from pandas._libs.tslibs import (
     to_offset,
 )
 from pandas._libs.tslibs.conversion import precision_from_unit
+from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
 from pandas._libs.tslibs.fields import (
     get_timedelta_days,
     get_timedelta_field,
@@ -67,6 +67,8 @@ import pandas.core.common as com
 from pandas.core.ops.common import unpack_zerodim_and_defer
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from pandas._typing import (
         AxisInt,
         DateTimeErrorChoices,
@@ -132,6 +134,13 @@ class TimedeltaArray(dtl.TimelikeOps):
     Methods
     -------
     None
+
+    Examples
+    --------
+    >>> pd.arrays.TimedeltaArray(pd.TimedeltaIndex(['1h', '2h']))
+    <TimedeltaArray>
+    ['0 days 01:00:00', '0 days 02:00:00']
+    Length: 2, dtype: timedelta64[ns]
     """
 
     _typ = "timedeltaarray"
@@ -197,8 +206,10 @@ class TimedeltaArray(dtl.TimelikeOps):
     @classmethod
     def _validate_dtype(cls, values, dtype):
         # used in TimeLikeOps.__init__
-        _validate_td64_dtype(values.dtype)
         dtype = _validate_td64_dtype(dtype)
+        _validate_td64_dtype(values.dtype)
+        if dtype != values.dtype:
+            raise ValueError("Values resolution does not match dtype.")
         return dtype
 
     # error: Signature of "_simple_new" incompatible with supertype "NDArrayBacked"
@@ -210,7 +221,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         dtype: np.dtype[np.timedelta64] = TD64NS_DTYPE,
     ) -> Self:
         # Require td64 dtype, not unit-less, matching values.dtype
-        assert isinstance(dtype, np.dtype) and dtype.kind == "m"
+        assert lib.is_np_dtype(dtype, "m")
         assert not tslibs.is_unitless(dtype)
         assert isinstance(values, np.ndarray), type(values)
         assert dtype == values.dtype
@@ -356,7 +367,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         # DatetimeLikeArrayMixin super call handles other cases
         dtype = pandas_dtype(dtype)
 
-        if isinstance(dtype, np.dtype) and dtype.kind == "m":
+        if lib.is_np_dtype(dtype, "m"):
             if dtype == self.dtype:
                 if copy:
                     return self.copy()
@@ -463,7 +474,7 @@ class TimedeltaArray(dtl.TimelikeOps):
         from pandas.io.formats.format import get_format_timedelta64
 
         # Relies on TimeDelta._repr_base
-        formatter = get_format_timedelta64(self._ndarray, na_rep)
+        formatter = get_format_timedelta64(self, na_rep)
         # equiv: np.array([formatter(x) for x in self._ndarray])
         #  but independent of dimension
         return np.frompyfunc(formatter, 1, 1)(self._ndarray)
@@ -846,7 +857,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     --------
     For Series:
 
-    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='S'))
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='s'))
     >>> ser
     0   0 days 00:00:01
     1   0 days 00:00:02
@@ -860,7 +871,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     For TimedeltaIndex:
 
-    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='S')
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='s')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:01', '0 days 00:00:02', '0 days 00:00:03'],
                    dtype='timedelta64[ns]', freq=None)
@@ -880,7 +891,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     --------
     For Series:
 
-    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='U'))
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='us'))
     >>> ser
     0   0 days 00:00:00.000001
     1   0 days 00:00:00.000002
@@ -894,7 +905,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     For TimedeltaIndex:
 
-    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='U')
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='us')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:00.000001', '0 days 00:00:00.000002',
                     '0 days 00:00:00.000003'],
@@ -915,7 +926,7 @@ class TimedeltaArray(dtl.TimelikeOps):
     --------
     For Series:
 
-    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='N'))
+    >>> ser = pd.Series(pd.to_timedelta([1, 2, 3], unit='ns'))
     >>> ser
     0   0 days 00:00:00.000000001
     1   0 days 00:00:00.000000002
@@ -929,7 +940,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     For TimedeltaIndex:
 
-    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='N')
+    >>> tdelta_idx = pd.to_timedelta([1, 2, 3], unit='ns')
     >>> tdelta_idx
     TimedeltaIndex(['0 days 00:00:00.000000001', '0 days 00:00:00.000000002',
                     '0 days 00:00:00.000000003'],
@@ -1068,7 +1079,7 @@ def sequence_to_td64ns(
         else:
             mask = np.isnan(data)
         # The next few lines are effectively a vectorized 'cast_from_unit'
-        m, p = precision_from_unit(unit or "ns")
+        m, p = precision_from_unit(abbrev_to_npy_unit(unit or "ns"))
         with warnings.catch_warnings():
             # Suppress RuntimeWarning about All-NaN slice
             warnings.filterwarnings(
@@ -1194,11 +1205,9 @@ def _validate_td64_dtype(dtype) -> DtypeObj:
         )
         raise ValueError(msg)
 
-    if (
-        not isinstance(dtype, np.dtype)
-        or dtype.kind != "m"
-        or not is_supported_unit(get_unit_from_dtype(dtype))
-    ):
-        raise ValueError(f"dtype {dtype} cannot be converted to timedelta64[ns]")
+    if not lib.is_np_dtype(dtype, "m"):
+        raise ValueError(f"dtype '{dtype}' is invalid, should be np.timedelta64 dtype")
+    elif not is_supported_unit(get_unit_from_dtype(dtype)):
+        raise ValueError("Supported timedelta64 resolutions are 's', 'ms', 'us', 'ns'")
 
     return dtype

@@ -51,7 +51,7 @@ fix_utcnow = pd.Timestamp("2021-01-01", tz="UTC")
 def test_notna_notnull(notna_f):
     assert notna_f(1.0)
     assert not notna_f(None)
-    assert not notna_f(np.NaN)
+    assert not notna_f(np.nan)
 
     msg = "use_inf_as_na option is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -112,7 +112,7 @@ class TestIsNA:
     def test_isna_isnull(self, isna_f):
         assert not isna_f(1.0)
         assert isna_f(None)
-        assert isna_f(np.NaN)
+        assert isna_f(np.nan)
         assert float("nan")
         assert not isna_f(np.inf)
         assert not isna_f(-np.inf)
@@ -156,7 +156,7 @@ class TestIsNA:
         tm.assert_numpy_array_equal(result, exp)
 
         # GH20675
-        result = isna([np.NaN, "world"])
+        result = isna([np.nan, "world"])
         exp = np.array([True, False])
         tm.assert_numpy_array_equal(result, exp)
 
@@ -418,12 +418,10 @@ def test_array_equivalent(dtype_equal):
     assert not array_equivalent(
         Index([0, np.nan]), Index([1, np.nan]), dtype_equal=dtype_equal
     )
-    assert array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]), dtype_equal=dtype_equal
-    )
-    assert not array_equivalent(
-        DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]), dtype_equal=dtype_equal
-    )
+
+
+@pytest.mark.parametrize("dtype_equal", [True, False])
+def test_array_equivalent_tdi(dtype_equal):
     assert array_equivalent(
         TimedeltaIndex([0, np.nan]),
         TimedeltaIndex([0, np.nan]),
@@ -433,6 +431,16 @@ def test_array_equivalent(dtype_equal):
         TimedeltaIndex([0, np.nan]),
         TimedeltaIndex([1, np.nan]),
         dtype_equal=dtype_equal,
+    )
+
+
+@pytest.mark.parametrize("dtype_equal", [True, False])
+def test_array_equivalent_dti(dtype_equal):
+    assert array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([0, np.nan]), dtype_equal=dtype_equal
+    )
+    assert not array_equivalent(
+        DatetimeIndex([0, np.nan]), DatetimeIndex([1, np.nan]), dtype_equal=dtype_equal
     )
 
     dti1 = DatetimeIndex([0, np.nan], tz="US/Eastern")
@@ -805,7 +813,7 @@ inf_vals = [
     complex("inf"),
     complex("-inf"),
     np.inf,
-    np.NINF,
+    -np.inf,
 ]
 
 int_na_vals = [

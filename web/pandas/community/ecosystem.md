@@ -210,10 +210,11 @@ or may not be compatible with non-HTML Jupyter output formats.)
 See [Options and Settings](https://pandas.pydata.org/docs/user_guide/options.html)
 for pandas `display.` settings.
 
-### [quantopian/qgrid](https://github.com/quantopian/qgrid)
+### [modin-project/modin-spreadsheet](https://github.com/modin-project/modin-spreadsheet)
 
-qgrid is "an interactive grid for sorting and filtering DataFrames in
-IPython Notebook" built with SlickGrid.
+modin-spreadsheet is an interactive grid for sorting and filtering DataFrames in IPython Notebook.
+It is a fork of qgrid and is actively maintained by the modin project.
+modin-spreadsheet provides similar functionality to qgrid and allows for easy data exploration and manipulation in a tabular format.
 
 ### [Spyder](https://www.spyder-ide.org/)
 
@@ -343,6 +344,29 @@ analytics on multi-dimensional arrays, rather than the tabular data for
 which pandas excels.
 
 ## IO
+
+### [NTV-pandas](https://github.com/loco-philippe/ntv-pandas)
+
+NTV-pandas provides a JSON converter with more data types than the ones supported by pandas directly.
+
+It supports the following data types:
+
+- pandas data types
+- data types defined in the [NTV format](https://loco-philippe.github.io/ES/JSON%20semantic%20format%20(JSON-NTV).htm)
+- data types defined in [Table Schema specification](http://dataprotocols.org/json-table-schema/#field-types-and-formats)
+
+The interface is always reversible (conversion round trip) with two formats (JSON-NTV and JSON-TableSchema).
+
+Example:
+
+```python
+import ntv_pandas as npd
+
+jsn = df.npd.to_json(table=False)  # save df as a JSON-value (format Table Schema if table is True else format NTV )
+df  = npd.read_json(jsn)  # load a JSON-value as a `DataFrame`
+
+df.equals(npd.read_json(df.npd.to_json(df)))  # `True` in any case, whether `table=True` or not
+```
 
 ### [BCPandas](https://github.com/yehoshuadimarsky/bcpandas)
 
@@ -488,6 +512,21 @@ wasted).
 - ``vaex.from_pandas``
 - ``vaex.to_pandas_df``
 
+### [Hail Query](https://hail.is/)
+
+An out-of-core, preemptible-safe, distributed, dataframe library serving
+the genetics community. Hail Query ships with on-disk data formats,
+in-memory data formats, an expression compiler, a query planner, and a
+distributed sort algorithm all designed to accelerate queries on large
+matrices of genome sequencing data.
+
+It is often easiest to use pandas to manipulate the summary statistics or
+other small aggregates produced by Hail. For this reason, Hail provides
+native import to and export from pandas DataFrames:
+
+- [`Table.from_pandas`](https://hail.is/docs/latest/hail.Table.html#hail.Table.from_pandas)
+- [`Table.to_pandas`](https://hail.is/docs/latest/hail.Table.html#hail.Table.to_pandas)
+
 ## Data cleaning and validation
 
 ### [pyjanitor](https://github.com/pyjanitor-devs/pyjanitor)
@@ -510,8 +549,15 @@ assumptions about your datasets and check that they're *actually* true.
 
 Pandas provides an interface for defining
 [extension types](https://pandas.pydata.org/docs/development/extending.html#extension-types) to extend NumPy's type system.
-The following librariesimplement that interface to provide types not found in NumPy or pandas,
+The following libraries implement that interface to provide types not found in NumPy or pandas,
 which work well with pandas' data containers.
+
+### [awkward-pandas](https://awkward-pandas.readthedocs.io/)
+
+Awkward-pandas provides an extension type for storing [Awkward
+Arrays](https://awkward-array.org/) inside pandas' Series and
+DataFrame. It also provides an accessor for using awkward functions
+on Series that are of awkward type.
 
 ### [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)
 
@@ -524,6 +570,13 @@ DataFrame.
 Pandas-Genomics provides an extension type and extension array for working
  with genomics data.  It also includes `genomics` accessors for many useful properties
  and methods related to QC and analysis of genomics data.
+
+### [Physipandas](https://github.com/mocquin/physipandas)
+
+Physipandas provides an extension for manipulating physical quantities
+ (like scalar and numpy.ndarray) in association with a physical unit
+ (like meter or joule) and additional features for integration of
+ `physipy` accessors with pandas Series and Dataframe.
 
 ### [Pint-Pandas](https://github.com/hgrecco/pint-pandas)
 
@@ -545,11 +598,13 @@ authors to coordinate on the namespace.
 
   | Library                                                              | Accessor   | Classes               |
   | -------------------------------------------------------------------- | ---------- | --------------------- |
+  | [awkward-pandas](https://awkward-pandas.readthedocs.io/en/latest/)   | `ak`       | `Series`              |
   | [cyberpandas](https://cyberpandas.readthedocs.io/en/latest)          | `ip`       | `Series`              |
   | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
   | [pandas_path](https://github.com/drivendataorg/pandas-path/)         | `path`     | `Index`, `Series`     |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
+  | [physipandas](https://github.com/mocquin/physipandas)                | `physipy`  | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [datatest](https://datatest.readthedocs.io/en/stable/)               | `validate` | `Series`, `DataFrame` |
   | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |

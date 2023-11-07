@@ -339,9 +339,7 @@ class TestSelectDtypes:
         expected = df3.reindex(columns=[])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "dtype", [str, "str", np.string_, "S1", "unicode", np.unicode_, "U1"]
-    )
+    @pytest.mark.parametrize("dtype", [str, "str", np.bytes_, "S1", np.str_, "U1"])
     @pytest.mark.parametrize("arg", ["include", "exclude"])
     def test_select_dtypes_str_raises(self, dtype, arg):
         df = DataFrame(
@@ -380,7 +378,9 @@ class TestSelectDtypes:
 
     def test_select_dtypes_typecodes(self):
         # GH 11990
-        df = tm.makeCustomDataframe(30, 3, data_gen_f=lambda x, y: np.random.random())
+        df = tm.makeCustomDataframe(
+            30, 3, data_gen_f=lambda x, y: np.random.default_rng(2).random()
+        )
         expected = df
         FLOAT_TYPES = list(np.typecodes["AllFloat"])
         tm.assert_frame_equal(df.select_dtypes(FLOAT_TYPES), expected)

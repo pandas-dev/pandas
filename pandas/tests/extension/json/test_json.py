@@ -53,11 +53,6 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def na_value(dtype):
-    return dtype.na_value
-
-
-@pytest.fixture
 def na_cmp():
     return operator.eq
 
@@ -79,45 +74,7 @@ def data_for_grouping():
 
 
 class BaseJSON:
-    # NumPy doesn't handle an array of equal-length UserDicts.
-    # The default assert_series_equal eventually does a
-    # Series.values, which raises. We work around it by
-    # converting the UserDicts to dicts.
-    @classmethod
-    def assert_series_equal(cls, left, right, *args, **kwargs):
-        if left.dtype.name == "json":
-            assert left.dtype == right.dtype
-            left = pd.Series(
-                JSONArray(left.values.astype(object)), index=left.index, name=left.name
-            )
-            right = pd.Series(
-                JSONArray(right.values.astype(object)),
-                index=right.index,
-                name=right.name,
-            )
-        tm.assert_series_equal(left, right, *args, **kwargs)
-
-    @classmethod
-    def assert_frame_equal(cls, left, right, *args, **kwargs):
-        obj_type = kwargs.get("obj", "DataFrame")
-        tm.assert_index_equal(
-            left.columns,
-            right.columns,
-            exact=kwargs.get("check_column_type", "equiv"),
-            check_names=kwargs.get("check_names", True),
-            check_exact=kwargs.get("check_exact", False),
-            check_categorical=kwargs.get("check_categorical", True),
-            obj=f"{obj_type}.columns",
-        )
-
-        jsons = (left.dtypes == "json").index
-
-        for col in jsons:
-            cls.assert_series_equal(left[col], right[col], *args, **kwargs)
-
-        left = left.drop(columns=jsons)
-        right = right.drop(columns=jsons)
-        tm.assert_frame_equal(left, right, *args, **kwargs)
+    pass
 
 
 class TestDtype(BaseJSON, base.BaseDtypeTests):
@@ -125,28 +82,6 @@ class TestDtype(BaseJSON, base.BaseDtypeTests):
 
 
 class TestInterface(BaseJSON, base.BaseInterfaceTests):
-    def test_custom_asserts(self):
-        # This would always trigger the KeyError from trying to put
-        # an array of equal-length UserDicts inside an ndarray.
-        data = JSONArray(
-            [
-                collections.UserDict({"a": 1}),
-                collections.UserDict({"b": 2}),
-                collections.UserDict({"c": 3}),
-            ]
-        )
-        a = pd.Series(data)
-        self.assert_series_equal(a, a)
-        self.assert_frame_equal(a.to_frame(), a.to_frame())
-
-        b = pd.Series(data.take([0, 0, 1]))
-        msg = r"Series are different"
-        with pytest.raises(AssertionError, match=msg):
-            self.assert_series_equal(a, b)
-
-        with pytest.raises(AssertionError, match=msg):
-            self.assert_frame_equal(a.to_frame(), b.to_frame())
-
     @pytest.mark.xfail(
         reason="comparison method not implemented for JSONArray (GH-37867)"
     )
@@ -162,24 +97,24 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
         super().test_from_dtype(data)
 
     @pytest.mark.xfail(reason="RecursionError, GH-33900")
-    def test_series_constructor_no_data_with_index(self, dtype, na_value):
+    def test_series_constructor_no_data_with_index(self, dtype):
         # RecursionError: maximum recursion depth exceeded in comparison
         rec_limit = sys.getrecursionlimit()
         try:
             # Limit to avoid stack overflow on Windows CI
             sys.setrecursionlimit(100)
-            super().test_series_constructor_no_data_with_index(dtype, na_value)
+            super().test_series_constructor_no_data_with_index(dtype)
         finally:
             sys.setrecursionlimit(rec_limit)
 
     @pytest.mark.xfail(reason="RecursionError, GH-33900")
-    def test_series_constructor_scalar_na_with_index(self, dtype, na_value):
+    def test_series_constructor_scalar_na_with_index(self, dtype):
         # RecursionError: maximum recursion depth exceeded in comparison
         rec_limit = sys.getrecursionlimit()
         try:
             # Limit to avoid stack overflow on Windows CI
             sys.setrecursionlimit(100)
-            super().test_series_constructor_scalar_na_with_index(dtype, na_value)
+            super().test_series_constructor_scalar_na_with_index(dtype)
         finally:
             sys.setrecursionlimit(rec_limit)
 
@@ -199,7 +134,7 @@ class TestReshaping(BaseJSON, base.BaseReshapingTests):
     @pytest.mark.xfail(reason="Different definitions of NA")
     def test_stack(self):
         """
-        The test does .astype(object).stack(). If we happen to have
+        The test does .astype(object).stack(future_stack=True). If we happen to have
         any missing values in `data`, then we'll end up with different
         rows since we consider `{}` NA, but `.astype(object)` doesn't.
         """
@@ -235,7 +170,7 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
 unhashable = pytest.mark.xfail(reason="Unhashable")
 
 
-class TestReduce(base.BaseNoReduceTests):
+class TestReduce(base.BaseReduceTests):
     pass
 
 
@@ -269,10 +204,6 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
     def test_combine_le(self, data_repeated):
         super().test_combine_le(data_repeated)
 
-    @pytest.mark.xfail(reason="combine for JSONArray not supported")
-    def test_combine_add(self, data_repeated):
-        super().test_combine_add(data_repeated)
-
     @pytest.mark.xfail(
         reason="combine for JSONArray not supported - "
         "may pass depending on random data",
@@ -283,23 +214,31 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         super().test_combine_first(data)
 
     @pytest.mark.xfail(reason="broadcasting error")
-    def test_where_series(self, data, na_value):
+    def test_where_series(self, data):
         # Fails with
         # *** ValueError: operands could not be broadcast together
         # with shapes (4,) (4,) (0,)
-        super().test_where_series(data, na_value)
+        super().test_where_series(data)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
         super().test_searchsorted(data_for_sorting)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
-    def test_equals(self, data, na_value, as_series):
-        super().test_equals(data, na_value, as_series)
+    def test_equals(self, data, as_series):
+        super().test_equals(data, as_series)
 
     @pytest.mark.skip("fill-value is interpreted as a dict of values")
     def test_fillna_copy_frame(self, data_missing):
         super().test_fillna_copy_frame(data_missing)
+
+    def test_equals_same_data_different_object(
+        self, data, using_copy_on_write, request
+    ):
+        if using_copy_on_write:
+            mark = pytest.mark.xfail(reason="Fails with CoW")
+            request.applymarker(mark)
+        super().test_equals_same_data_different_object(data)
 
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
@@ -356,36 +295,85 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         """
         super().test_groupby_extension_no_sort()
 
-    @pytest.mark.xfail(reason="GH#39098: Converts agg result to object")
-    def test_groupby_agg_extension(self, data_for_grouping):
-        super().test_groupby_agg_extension(data_for_grouping)
-
 
 class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
     def test_arith_frame_with_scalar(self, data, all_arithmetic_operators, request):
         if len(data[0]) != 1:
             mark = pytest.mark.xfail(reason="raises in coercing to Series")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         super().test_arith_frame_with_scalar(data, all_arithmetic_operators)
-
-    def test_add_series_with_extension_array(self, data):
-        ser = pd.Series(data)
-        with pytest.raises(TypeError, match="unsupported"):
-            ser + data
-
-    @pytest.mark.xfail(reason="not implemented")
-    def test_divmod_series_array(self):
-        # GH 23287
-        # skipping because it is not implemented
-        super().test_divmod_series_array()
-
-    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
-        return super()._check_divmod_op(s, op, other, exc=TypeError)
 
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
-    pass
+    def test_compare_array(self, data, comparison_op, request):
+        if comparison_op.__name__ in ["eq", "ne"]:
+            mark = pytest.mark.xfail(reason="Comparison methods not implemented")
+            request.applymarker(mark)
+        super().test_compare_array(data, comparison_op)
 
 
 class TestPrinting(BaseJSON, base.BasePrintingTests):
     pass
+
+
+def custom_assert_series_equal(left, right, *args, **kwargs):
+    # NumPy doesn't handle an array of equal-length UserDicts.
+    # The default assert_series_equal eventually does a
+    # Series.values, which raises. We work around it by
+    # converting the UserDicts to dicts.
+    if left.dtype.name == "json":
+        assert left.dtype == right.dtype
+        left = pd.Series(
+            JSONArray(left.values.astype(object)), index=left.index, name=left.name
+        )
+        right = pd.Series(
+            JSONArray(right.values.astype(object)),
+            index=right.index,
+            name=right.name,
+        )
+    tm.assert_series_equal(left, right, *args, **kwargs)
+
+
+def custom_assert_frame_equal(left, right, *args, **kwargs):
+    obj_type = kwargs.get("obj", "DataFrame")
+    tm.assert_index_equal(
+        left.columns,
+        right.columns,
+        exact=kwargs.get("check_column_type", "equiv"),
+        check_names=kwargs.get("check_names", True),
+        check_exact=kwargs.get("check_exact", False),
+        check_categorical=kwargs.get("check_categorical", True),
+        obj=f"{obj_type}.columns",
+    )
+
+    jsons = (left.dtypes == "json").index
+
+    for col in jsons:
+        custom_assert_series_equal(left[col], right[col], *args, **kwargs)
+
+    left = left.drop(columns=jsons)
+    right = right.drop(columns=jsons)
+    tm.assert_frame_equal(left, right, *args, **kwargs)
+
+
+def test_custom_asserts():
+    # This would always trigger the KeyError from trying to put
+    # an array of equal-length UserDicts inside an ndarray.
+    data = JSONArray(
+        [
+            collections.UserDict({"a": 1}),
+            collections.UserDict({"b": 2}),
+            collections.UserDict({"c": 3}),
+        ]
+    )
+    a = pd.Series(data)
+    custom_assert_series_equal(a, a)
+    custom_assert_frame_equal(a.to_frame(), a.to_frame())
+
+    b = pd.Series(data.take([0, 0, 1]))
+    msg = r"Series are different"
+    with pytest.raises(AssertionError, match=msg):
+        custom_assert_series_equal(a, b)
+
+    with pytest.raises(AssertionError, match=msg):
+        custom_assert_frame_equal(a.to_frame(), b.to_frame())

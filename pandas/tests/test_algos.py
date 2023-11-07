@@ -9,7 +9,6 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
-import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -18,7 +17,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_object_dtype,
 )
-from pandas.core.dtypes.dtypes import CategoricalDtype as CDT
+from pandas.core.dtypes.dtypes import CategoricalDtype
 
 import pandas as pd
 from pandas import (
@@ -35,6 +34,7 @@ from pandas import (
     Series,
     Timedelta,
     Timestamp,
+    cut,
     date_range,
     timedelta_range,
     to_datetime,
@@ -50,6 +50,20 @@ import pandas.core.common as com
 
 
 class TestFactorize:
+    def test_factorize_complex(self):
+        # GH#17927
+        array = [1, 2, 2 + 1j]
+        msg = "factorize with argument that is not not a Series"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            labels, uniques = algos.factorize(array)
+
+        expected_labels = np.array([0, 1, 2], dtype=np.intp)
+        tm.assert_numpy_array_equal(labels, expected_labels)
+
+        # Should return a complex dtype in the future
+        expected_uniques = np.array([(1 + 0j), (2 + 0j), (2 + 1j)], dtype=object)
+        tm.assert_numpy_array_equal(uniques, expected_uniques)
+
     @pytest.mark.parametrize("sort", [True, False])
     def test_factorize(self, index_or_series_obj, sort):
         obj = index_or_series_obj
@@ -148,7 +162,7 @@ class TestFactorize:
         exp = Index([3.14, np.inf, "A", "B"])
         tm.assert_index_equal(uniques, exp)
 
-    def test_datelike(self):
+    def test_factorize_datetime64(self):
         # M8
         v1 = Timestamp("20130101 09:00:00.00004")
         v2 = Timestamp("20130101")
@@ -166,6 +180,7 @@ class TestFactorize:
         exp = DatetimeIndex([v2, v1])
         tm.assert_index_equal(uniques, exp)
 
+    def test_factorize_period(self):
         # period
         v1 = Period("201302", freq="M")
         v2 = Period("201303", freq="M")
@@ -182,6 +197,7 @@ class TestFactorize:
         tm.assert_numpy_array_equal(codes, exp)
         tm.assert_index_equal(uniques, PeriodIndex([v1, v2]))
 
+    def test_factorize_timedelta(self):
         # GH 5986
         v1 = to_timedelta("1 day 1 min")
         v2 = to_timedelta("1 day")
@@ -524,13 +540,13 @@ class TestFactorize:
 
 class TestUnique:
     def test_ints(self):
-        arr = np.random.randint(0, 100, size=50)
+        arr = np.random.default_rng(2).integers(0, 100, size=50)
 
         result = algos.unique(arr)
         assert isinstance(result, np.ndarray)
 
     def test_objects(self):
-        arr = np.random.randint(0, 100, size=50).astype("O")
+        arr = np.random.default_rng(2).integers(0, 100, size=50).astype("O")
 
         result = algos.unique(arr)
         assert isinstance(result, np.ndarray)
@@ -705,59 +721,31 @@ class TestUnique:
         result = pd.unique(ci)
         tm.assert_index_equal(result, expected)
 
-    def test_datetime64tz_aware(self):
+    def test_datetime64tz_aware(self, unit):
         # GH 15939
 
-        result = Series(
-            Index(
-                [
-                    Timestamp("20160101", tz="US/Eastern"),
-                    Timestamp("20160101", tz="US/Eastern"),
-                ]
-            )
-        ).unique()
-        expected = DatetimeArray._from_sequence(
-            np.array([Timestamp("2016-01-01 00:00:00-0500", tz="US/Eastern")])
-        )
-        tm.assert_extension_array_equal(result, expected)
-
-        result = Index(
+        dti = Index(
             [
                 Timestamp("20160101", tz="US/Eastern"),
                 Timestamp("20160101", tz="US/Eastern"),
             ]
-        ).unique()
-        expected = DatetimeIndex(
-            ["2016-01-01 00:00:00"], dtype="datetime64[ns, US/Eastern]", freq=None
-        )
-        tm.assert_index_equal(result, expected)
+        ).as_unit(unit)
+        ser = Series(dti)
 
-        result = pd.unique(
-            Series(
-                Index(
-                    [
-                        Timestamp("20160101", tz="US/Eastern"),
-                        Timestamp("20160101", tz="US/Eastern"),
-                    ]
-                )
-            )
-        )
-        expected = DatetimeArray._from_sequence(
-            np.array([Timestamp("2016-01-01", tz="US/Eastern")])
-        )
+        result = ser.unique()
+        expected = dti[:1]._data
         tm.assert_extension_array_equal(result, expected)
 
-        result = pd.unique(
-            Index(
-                [
-                    Timestamp("20160101", tz="US/Eastern"),
-                    Timestamp("20160101", tz="US/Eastern"),
-                ]
-            )
-        )
-        expected = DatetimeIndex(
-            ["2016-01-01 00:00:00"], dtype="datetime64[ns, US/Eastern]", freq=None
-        )
+        result = dti.unique()
+        expected = dti[:1]
+        tm.assert_index_equal(result, expected)
+
+        result = pd.unique(ser)
+        expected = dti[:1]._data
+        tm.assert_extension_array_equal(result, expected)
+
+        result = pd.unique(dti)
+        expected = dti[:1]
         tm.assert_index_equal(result, expected)
 
     def test_order_of_appearance(self):
@@ -875,7 +863,7 @@ class TestUnique:
 
 def test_nunique_ints(index_or_series_or_array):
     # GH#36327
-    values = index_or_series_or_array(np.random.randint(0, 20, 30))
+    values = index_or_series_or_array(np.random.default_rng(2).integers(0, 20, 30))
     result = algos.nunique_ints(values)
     expected = len(algos.unique(values))
     assert result == expected
@@ -885,7 +873,7 @@ class TestIsin:
     def test_invalid(self):
         msg = (
             r"only list-like objects are allowed to be passed to isin\(\), "
-            r"you passed a \[int\]"
+            r"you passed a `int`"
         )
         with pytest.raises(TypeError, match=msg):
             algos.isin(1, 1)
@@ -1172,19 +1160,16 @@ class TestIsin:
 
 class TestValueCounts:
     def test_value_counts(self):
-        np.random.seed(1234)
-        from pandas.core.reshape.tile import cut
-
-        arr = np.random.randn(4)
+        arr = np.random.default_rng(1234).standard_normal(4)
         factor = cut(arr, 4)
 
         # assert isinstance(factor, n)
         msg = "pandas.value_counts is deprecated"
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = algos.value_counts(factor)
-        breaks = [-1.194, -0.535, 0.121, 0.777, 1.433]
-        index = IntervalIndex.from_breaks(breaks).astype(CDT(ordered=True))
-        expected = Series([1, 1, 1, 1], index=index, name="count")
+        breaks = [-1.606, -1.018, -0.431, 0.155, 0.741]
+        index = IntervalIndex.from_breaks(breaks).astype(CategoricalDtype(ordered=True))
+        expected = Series([1, 0, 2, 1], index=index, name="count")
         tm.assert_series_equal(result.sort_index(), expected.sort_index())
 
     def test_value_counts_bins(self):
@@ -1264,8 +1249,10 @@ class TestValueCounts:
         exp = Series([3, 2, 1], index=exp_index, name="count")
         tm.assert_series_equal(res, exp)
 
-        # GH 12424
-        res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
+        # GH 12424  # TODO: belongs elsewhere
+        msg = "errors='ignore' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
         exp = Series(["2362-01-01", np.nan], dtype=object)
         tm.assert_series_equal(res, exp)
 
@@ -1411,6 +1398,19 @@ class TestValueCounts:
         with tm.assert_produces_warning(FutureWarning, match=msg):
             result = algos.value_counts(arr)
 
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_series(self):
+        # GH#54857
+        values = np.array([3, 1, 2, 3, 4, np.nan])
+        result = Series(values).value_counts(bins=3)
+        expected = Series(
+            [2, 2, 1],
+            index=IntervalIndex.from_tuples(
+                [(0.996, 2.0), (2.0, 3.0), (3.0, 4.0)], dtype="interval[float64, right]"
+            ),
+            name="count",
+        )
         tm.assert_series_equal(result, expected)
 
 
@@ -1731,7 +1731,6 @@ class TestHashTable:
 
 
 class TestRank:
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "arr",
         [
@@ -1740,7 +1739,7 @@ class TestRank:
         ],
     )
     def test_scipy_compat(self, arr):
-        from scipy.stats import rankdata
+        sp_stats = pytest.importorskip("scipy.stats")
 
         arr = np.array(arr)
 
@@ -1748,7 +1747,7 @@ class TestRank:
         arr = arr.copy()
         result = libalgos.rank_1d(arr)
         arr[mask] = np.inf
-        exp = rankdata(arr)
+        exp = sp_stats.rankdata(arr)
         exp[mask] = np.nan
         tm.assert_almost_equal(result, exp)
 
@@ -1847,261 +1846,11 @@ class TestTseriesUtil:
 def test_is_lexsorted():
     failure = [
         np.array(
-            [
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                3,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                2,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                1,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-            ],
+            ([3] * 32) + ([2] * 32) + ([1] * 32) + ([0] * 32),
             dtype="int64",
         ),
         np.array(
-            [
-                30,
-                29,
-                28,
-                27,
-                26,
-                25,
-                24,
-                23,
-                22,
-                21,
-                20,
-                19,
-                18,
-                17,
-                16,
-                15,
-                14,
-                13,
-                12,
-                11,
-                10,
-                9,
-                8,
-                7,
-                6,
-                5,
-                4,
-                3,
-                2,
-                1,
-                0,
-                30,
-                29,
-                28,
-                27,
-                26,
-                25,
-                24,
-                23,
-                22,
-                21,
-                20,
-                19,
-                18,
-                17,
-                16,
-                15,
-                14,
-                13,
-                12,
-                11,
-                10,
-                9,
-                8,
-                7,
-                6,
-                5,
-                4,
-                3,
-                2,
-                1,
-                0,
-                30,
-                29,
-                28,
-                27,
-                26,
-                25,
-                24,
-                23,
-                22,
-                21,
-                20,
-                19,
-                18,
-                17,
-                16,
-                15,
-                14,
-                13,
-                12,
-                11,
-                10,
-                9,
-                8,
-                7,
-                6,
-                5,
-                4,
-                3,
-                2,
-                1,
-                0,
-                30,
-                29,
-                28,
-                27,
-                26,
-                25,
-                24,
-                23,
-                22,
-                21,
-                20,
-                19,
-                18,
-                17,
-                16,
-                15,
-                14,
-                13,
-                12,
-                11,
-                10,
-                9,
-                8,
-                7,
-                6,
-                5,
-                4,
-                3,
-                2,
-                1,
-                0,
-            ],
+            list(range(31))[::-1] * 4,
             dtype="int64",
         ),
     ]
@@ -2110,8 +1859,8 @@ def test_is_lexsorted():
 
 
 def test_groupsort_indexer():
-    a = np.random.randint(0, 1000, 100).astype(np.intp)
-    b = np.random.randint(0, 1000, 100).astype(np.intp)
+    a = np.random.default_rng(2).integers(0, 1000, 100).astype(np.intp)
+    b = np.random.default_rng(2).integers(0, 1000, 100).astype(np.intp)
 
     result = libalgos.groupsort_indexer(a, 1000)[0]
 
