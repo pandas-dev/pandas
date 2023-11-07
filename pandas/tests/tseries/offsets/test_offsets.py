@@ -574,7 +574,10 @@ class TestCommon:
 
         result = (dti + off)._with_freq(None)
 
-        exp_unit = tm.get_finest_unit(dti.unit, Timedelta(off).unit)
+        exp_unit = unit
+        if isinstance(off, Tick) and off._creso > dti._data._creso:
+            # cast to higher reso like we would with Timedelta scalar
+            exp_unit = Timedelta(off).unit
         # TODO(GH#55564): as_unit will be unnecessary
         expected = DatetimeIndex([x + off for x in dti]).as_unit(exp_unit)
 
