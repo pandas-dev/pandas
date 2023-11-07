@@ -57,6 +57,10 @@ PARSING_ERR_MSG = (
     r"alongside this."
 )
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:errors='ignore' is deprecated:FutureWarning"
+)
+
 
 @pytest.fixture(params=[True, False])
 def cache(request):
@@ -94,10 +98,7 @@ class TestTimeConversionFormats:
         values = index_or_series(["1/1/2000", "1/2/2000", "1/3/2000"])
         result = to_datetime(values, format=format, cache=cache)
         expected = index_or_series(expected)
-        if isinstance(expected, Series):
-            tm.assert_series_equal(result, expected)
-        else:
-            tm.assert_index_equal(result, expected)
+        tm.assert_equal(result, expected)
 
     @pytest.mark.parametrize(
         "arg, expected, format",
@@ -602,6 +603,20 @@ class TestToDatetime:
         res = to_datetime(["2020-01-01 17:00 -0100", d2])
         expected = to_datetime([d1, d2]).tz_convert(timezone(timedelta(minutes=-60)))
         tm.assert_index_equal(res, expected)
+
+    def test_to_datetime_mixed_string_and_numeric(self):
+        # GH#55780 np.array(vals) would incorrectly cast the number to str
+        vals = ["2016-01-01", 0]
+        expected = DatetimeIndex([Timestamp(x) for x in vals])
+        result = to_datetime(vals, format="mixed")
+        result2 = to_datetime(vals[::-1], format="mixed")[::-1]
+        result3 = DatetimeIndex(vals)
+        result4 = DatetimeIndex(vals[::-1])[::-1]
+
+        tm.assert_index_equal(result, expected)
+        tm.assert_index_equal(result2, expected)
+        tm.assert_index_equal(result3, expected)
+        tm.assert_index_equal(result4, expected)
 
     @pytest.mark.parametrize(
         "format", ["%Y-%m-%d", "%Y-%d-%m"], ids=["ISO8601", "non-ISO8601"]
@@ -1214,7 +1229,9 @@ class TestToDatetime:
         with pytest.raises(ValueError, match=msg):
             to_datetime(arr, cache=cache)
 
-        result = to_datetime(arr, cache=cache, errors="ignore")
+        depr_msg = "errors='ignore' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = to_datetime(arr, cache=cache, errors="ignore")
         expected = Index(
             [
                 Timestamp("2013-01-01 13:00:00-08:00"),
@@ -1460,11 +1477,15 @@ class TestToDatetime:
             warn = UserWarning
         else:
             warn = None
-        with tm.assert_produces_warning(warn, match="Could not infer format"):
+        with tm.assert_produces_warning(
+            warn, match="Could not infer format", raise_on_extra_warnings=False
+        ):
             res = to_datetime(values, errors="ignore", format=format)
         tm.assert_index_equal(res, Index(values))
 
-        with tm.assert_produces_warning(warn, match="Could not infer format"):
+        with tm.assert_produces_warning(
+            warn, match="Could not infer format", raise_on_extra_warnings=False
+        ):
             res = to_datetime(values, errors="coerce", format=format)
         tm.assert_index_equal(res, DatetimeIndex([NaT] * len(values)))
 
@@ -1479,7 +1500,9 @@ class TestToDatetime:
             ]
         )
         with pytest.raises(ValueError, match=msg):
-            with tm.assert_produces_warning(warn, match="Could not infer format"):
+            with tm.assert_produces_warning(
+                warn, match="Could not infer format", raise_on_extra_warnings=False
+            ):
                 to_datetime(values, errors="raise", format=format)
 
     @pytest.mark.parametrize("utc", [True, None])
@@ -1648,7 +1671,9 @@ class TestToDatetime:
         # GH 28299
         # GH 48633
         ts_strings = ["200622-12-31", "111111-24-11"]
-        with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
+        with tm.assert_produces_warning(
+            UserWarning, match="Could not infer format", raise_on_extra_warnings=False
+        ):
             result = to_datetime(ts_strings, errors=errors)
         tm.assert_index_equal(result, expected)
 
@@ -3675,9 +3700,16 @@ def test_from_numeric_arrow_dtype(any_numeric_ea_dtype):
 
 def test_to_datetime_with_empty_str_utc_false_format_mixed():
     # GH 50887
-    result = to_datetime(["2020-01-01 00:00+00:00", ""], format="mixed")
-    expected = Index([Timestamp("2020-01-01 00:00+00:00"), "NaT"], dtype=object)
+    vals = ["2020-01-01 00:00+00:00", ""]
+    result = to_datetime(vals, format="mixed")
+    expected = Index([Timestamp("2020-01-01 00:00+00:00"), "NaT"], dtype="M8[ns, UTC]")
     tm.assert_index_equal(result, expected)
+
+    # Check that a couple of other similar paths work the same way
+    alt = to_datetime(vals)
+    tm.assert_index_equal(alt, expected)
+    alt2 = DatetimeIndex(vals)
+    tm.assert_index_equal(alt2, expected)
 
 
 def test_to_datetime_with_empty_str_utc_false_offsets_and_format_mixed():

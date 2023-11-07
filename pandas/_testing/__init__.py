@@ -88,6 +88,7 @@ from pandas._testing.compat import (
     get_obj,
 )
 from pandas._testing.contexts import (
+    assert_cow_warning,
     decompress_file,
     ensure_clean,
     raises_chained_assignment_error,
@@ -1018,6 +1019,17 @@ def iat(x):
 
 # -----------------------------------------------------------------------------
 
+_UNITS = ["s", "ms", "us", "ns"]
+
+
+def get_finest_unit(left: str, right: str):
+    """
+    Find the higher of two datetime64 units.
+    """
+    if _UNITS.index(left) >= _UNITS.index(right):
+        return left
+    return right
+
 
 def shares_memory(left, right) -> bool:
     """
@@ -1097,6 +1109,7 @@ __all__ = [
     "assert_series_equal",
     "assert_sp_array_equal",
     "assert_timedelta_array_equal",
+    "assert_cow_warning",
     "at",
     "BOOL_DTYPES",
     "box_expected",
@@ -1119,6 +1132,7 @@ __all__ = [
     "getitem",
     "get_locales",
     "getMixedTypeDict",
+    "get_finest_unit",
     "get_obj",
     "get_op_from_name",
     "getPeriodData",

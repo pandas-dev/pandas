@@ -412,8 +412,6 @@ class TestSeriesConstructors:
         s = Series(factor, name="A")
         assert s.dtype == "category"
         assert len(s) == len(factor)
-        str(s.values)
-        str(s)
 
         # in a frame
         df = DataFrame({"A": factor})
@@ -422,15 +420,11 @@ class TestSeriesConstructors:
         result = df.iloc[:, 0]
         tm.assert_series_equal(result, s)
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
         df = DataFrame({"A": s})
         result = df["A"]
         tm.assert_series_equal(result, s)
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
         # multiples
         df = DataFrame({"A": s, "B": s, "C": 1})
@@ -440,8 +434,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result2, s, check_names=False)
         assert result2.name == "B"
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
     def test_constructor_categorical_with_coercion2(self):
         # GH8623
@@ -887,12 +879,14 @@ class TestSeriesConstructors:
         with pytest.raises(IntCastingNaNError, match=msg):
             Series(np.array(vals), dtype=any_int_numpy_dtype)
 
-    def test_constructor_dtype_no_cast(self, using_copy_on_write):
+    def test_constructor_dtype_no_cast(self, using_copy_on_write, warn_copy_on_write):
         # see gh-1572
         s = Series([1, 2, 3])
         s2 = Series(s, dtype=np.int64)
 
-        s2[1] = 5
+        warn = FutureWarning if warn_copy_on_write else None
+        with tm.assert_produces_warning(warn):
+            s2[1] = 5
         if using_copy_on_write:
             assert s[1] == 2
         else:
