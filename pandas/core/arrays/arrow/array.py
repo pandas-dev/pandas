@@ -1094,8 +1094,7 @@ class ArrowExtensionArray(
         DataFrame.round : Round values of a DataFrame.
         Series.round : Round values of a Series.
         """
-        result = pc.round(self._pa_array, ndigits=decimals)
-        return type(self)(result.cast(self._pa_array.type))
+        return type(self)(pc.round(self._pa_array, ndigits=decimals))
 
     @doc(ExtensionArray.searchsorted)
     def searchsorted(
