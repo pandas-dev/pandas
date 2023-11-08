@@ -1166,12 +1166,12 @@ class MPLPlot(ABC):
         return errors
 
     @final
-    def _get_subplots(self):
+    def _get_subplots(self, fig: Figure):
         from matplotlib.axes import Axes
 
         return [
             ax
-            for ax in self.fig.get_axes()
+            for ax in fig.get_axes()
             if (isinstance(ax, Axes) and ax.get_subplotspec() is not None)
         ]
 
