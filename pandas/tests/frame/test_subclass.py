@@ -799,6 +799,16 @@ class TestSubclassWithoutConstructor:
 
         tm.assert_series_equal(result, expected)
 
+    def test_series_to_frame(self):
+        orig = Series([1, 2, 3])
+        expected = orig.to_frame()
+        result = SimpleSeriesSubClass(orig).to_frame()
+
+        assert (
+            type(result) is DataFrame
+        )  # assert_frame_equal only checks isinstance(lhs, type(rhs))
+        tm.assert_frame_equal(result, expected)
+
     def test_groupby(self):
         df = SimpleDataFrameSubClass(DataFrame({"a": [1, 2, 3]}))
 
