@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    final,
 )
 
 import numpy as np
@@ -59,6 +60,7 @@ class HistPlot(LinePlot):
         bottom: int | np.ndarray = 0,
         *,
         range=None,
+        weights=None,
         **kwargs,
     ) -> None:
         if is_list_like(bottom):
@@ -66,6 +68,7 @@ class HistPlot(LinePlot):
         self.bottom = bottom
 
         self._bin_range = range
+        self.weights = weights
 
         self.xlabel = kwargs.get("xlabel")
         self.ylabel = kwargs.get("ylabel")
@@ -150,21 +153,8 @@ class HistPlot(LinePlot):
                 kwds["label"] = self.columns
                 kwds.pop("color")
 
-            # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
-            # and each sub-array (10,) will be called in each iteration. If users only
-            # provide 1D array, we assume the same weights is used for all iterations
-            weights = kwds.get("weights", None)
-            if weights is not None:
-                if np.ndim(weights) != 1 and np.shape(weights)[-1] != 1:
-                    try:
-                        weights = weights[:, i]
-                    except IndexError as err:
-                        raise ValueError(
-                            "weights must have the same shape as data, "
-                            "or be a single column"
-                        ) from err
-                weights = weights[~isna(y)]
-                kwds["weights"] = weights
+            if self.weights is not None:
+                kwds["weights"] = self._get_column_weights(self.weights, i, y)
 
             y = reformat_hist_y_given_by(y, self.by)
 
@@ -181,6 +171,24 @@ class HistPlot(LinePlot):
         # y is required for KdePlot
         kwds["bottom"] = self.bottom
         kwds["bins"] = self.bins
+
+    @final
+    @staticmethod
+    def _get_column_weights(weights, i: int, y):
+        # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
+        # and each sub-array (10,) will be called in each iteration. If users only
+        # provide 1D array, we assume the same weights is used for all iterations
+        if weights is not None:
+            if np.ndim(weights) != 1 and np.shape(weights)[-1] != 1:
+                try:
+                    weights = weights[:, i]
+                except IndexError as err:
+                    raise ValueError(
+                        "weights must have the same shape as data, "
+                        "or be a single column"
+                    ) from err
+            weights = weights[~isna(y)]
+        return weights
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         if self.orientation == "horizontal":
@@ -207,11 +215,14 @@ class KdePlot(HistPlot):
     def orientation(self) -> Literal["vertical"]:
         return "vertical"
 
-    def __init__(self, data, bw_method=None, ind=None, **kwargs) -> None:
+    def __init__(
+        self, data, bw_method=None, ind=None, *, weights=None, **kwargs
+    ) -> None:
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
         self.bw_method = bw_method
         self.ind = ind
+        self.weights = weights
 
     @staticmethod
     def _get_ind(y, ind):
