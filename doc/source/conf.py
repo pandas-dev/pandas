@@ -247,7 +247,9 @@ html_theme_options = {
         "plausible_analytics_url": "https://views.scientific-python.org/js/script.js",
     },
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
+    "navbar_align": "left",
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
+    "sidebar_includehidden": False,
     "switcher": {
         "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
