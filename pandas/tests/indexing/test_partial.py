@@ -147,14 +147,10 @@ class TestEmptyFrameSetitemExpansion:
 
         df = DataFrame(columns=["A", "B"])
         df[0] = Series(1, index=range(4))
-        df.dtypes
-        str(df)
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame(columns=["A", "B"])
         df.loc[:, 0] = Series(1, index=range(4))
-        df.dtypes
-        str(df)
         tm.assert_frame_equal(df, expected)
 
     def test_partial_set_empty_frame_row(self):
@@ -402,7 +398,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}'\)\] "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.dtype(int)}'\)\] "
             r"are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -483,7 +479,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}', "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.dtype(int)}', "
             r"name='idx'\)\] are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):

@@ -61,12 +61,12 @@ subdir('tslibs')
 libs_sources = {
     # Dict of extension name -> dict of {sources, include_dirs, and deps}
     # numpy include dir is implicitly included
-    'algos': {'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper, _khash_primitive_helper]},
+    'algos': {'sources': ['algos.pyx', _algos_common_helper, _algos_take_helper], 'deps': _khash_primitive_helper_dep},
     'arrays': {'sources': ['arrays.pyx']},
     'groupby': {'sources': ['groupby.pyx']},
     'hashing': {'sources': ['hashing.pyx']},
-    'hashtable': {'sources': ['hashtable.pyx', _khash_primitive_helper, _hashtable_class_helper, _hashtable_func_helper]},
-    'index': {'sources': ['index.pyx', _index_class_helper]},
+    'hashtable': {'sources': ['hashtable.pyx', _hashtable_class_helper, _hashtable_func_helper], 'deps': _khash_primitive_helper_dep},
+    'index': {'sources': ['index.pyx', _index_class_helper], 'deps': _khash_primitive_helper_dep},
     'indexing': {'sources': ['indexing.pyx']},
     'internals': {'sources': ['internals.pyx']},
     'interval': {'sources': ['interval.pyx', _intervaltree_helper],
@@ -101,12 +101,20 @@ libs_sources = {
     'writers': {'sources': ['writers.pyx']}
 }
 
+cython_args = [
+    '--include-dir',
+    meson.current_build_dir(),
+    '-X always_allow_keywords=true'
+]
+if get_option('buildtype') == 'debug'
+    cython_args += ['--gdb']
+endif
 
 foreach ext_name, ext_dict : libs_sources
     py.extension_module(
         ext_name,
         ext_dict.get('sources'),
-        cython_args: ['--include-dir', meson.current_build_dir(), '-X always_allow_keywords=true'],
+        cython_args: cython_args,
         include_directories: [inc_np, inc_pd],
         dependencies: ext_dict.get('deps', ''),
         subdir: 'pandas/_libs',

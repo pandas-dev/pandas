@@ -335,8 +335,8 @@ class TestSeriesConstructors:
         [
             ([1, 2]),
             (["1", "2"]),
-            (list(date_range("1/1/2011", periods=2, freq="H"))),
-            (list(date_range("1/1/2011", periods=2, freq="H", tz="US/Eastern"))),
+            (list(date_range("1/1/2011", periods=2, freq="h"))),
+            (list(date_range("1/1/2011", periods=2, freq="h", tz="US/Eastern"))),
             ([Interval(left=0, right=5)]),
         ],
     )
@@ -412,8 +412,6 @@ class TestSeriesConstructors:
         s = Series(factor, name="A")
         assert s.dtype == "category"
         assert len(s) == len(factor)
-        str(s.values)
-        str(s)
 
         # in a frame
         df = DataFrame({"A": factor})
@@ -422,15 +420,11 @@ class TestSeriesConstructors:
         result = df.iloc[:, 0]
         tm.assert_series_equal(result, s)
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
         df = DataFrame({"A": s})
         result = df["A"]
         tm.assert_series_equal(result, s)
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
         # multiples
         df = DataFrame({"A": s, "B": s, "C": 1})
@@ -440,8 +434,6 @@ class TestSeriesConstructors:
         tm.assert_series_equal(result2, s, check_names=False)
         assert result2.name == "B"
         assert len(df) == len(factor)
-        str(df.values)
-        str(df)
 
     def test_constructor_categorical_with_coercion2(self):
         # GH8623
@@ -887,12 +879,14 @@ class TestSeriesConstructors:
         with pytest.raises(IntCastingNaNError, match=msg):
             Series(np.array(vals), dtype=any_int_numpy_dtype)
 
-    def test_constructor_dtype_no_cast(self, using_copy_on_write):
+    def test_constructor_dtype_no_cast(self, using_copy_on_write, warn_copy_on_write):
         # see gh-1572
         s = Series([1, 2, 3])
         s2 = Series(s, dtype=np.int64)
 
-        s2[1] = 5
+        warn = FutureWarning if warn_copy_on_write else None
+        with tm.assert_produces_warning(warn):
+            s2[1] = 5
         if using_copy_on_write:
             assert s[1] == 2
         else:
@@ -1306,7 +1300,7 @@ class TestSeriesConstructors:
         assert isna(series[2])
 
     def test_constructor_period_incompatible_frequency(self):
-        data = [Period("2000", "D"), Period("2001", "A")]
+        data = [Period("2000", "D"), Period("2001", "Y")]
         result = Series(data)
         assert result.dtype == object
         assert result.tolist() == data
@@ -1362,7 +1356,7 @@ class TestSeriesConstructors:
                 reason="Construction from dict goes through "
                 "maybe_convert_objects which casts to nano"
             )
-            request.node.add_marker(mark)
+            request.applymarker(mark)
         d = {"a": ea_scalar}
         result = Series(d, index=["a"])
         expected = Series(ea_scalar, index=["a"], dtype=ea_dtype)
@@ -1688,7 +1682,7 @@ class TestSeriesConstructors:
 
         if np.dtype(dtype).name not in ["timedelta64", "datetime64"]:
             mark = pytest.mark.xfail(reason="GH#33890 Is assigned ns unit")
-            request.node.add_marker(mark)
+            request.applymarker(mark)
 
         with pytest.raises(ValueError, match=msg):
             Series([], dtype=dtype)
@@ -2123,6 +2117,22 @@ class TestSeriesConstructors:
             result = Series(["a", "b"], dtype="string")
         tm.assert_series_equal(result, expected)
 
+    def test_series_constructor_infer_string_scalar(self):
+        # GH#55537
+        with pd.option_context("future.infer_string", True):
+            ser = Series("a", index=[1, 2], dtype="string[python]")
+        expected = Series(["a", "a"], index=[1, 2], dtype="string[python]")
+        tm.assert_series_equal(ser, expected)
+        assert ser.dtype.storage == "python"
+
+    def test_series_string_inference_na_first(self):
+        # GH#55655
+        pytest.importorskip("pyarrow")
+        expected = Series([pd.NA, "b"], dtype="string[pyarrow_numpy]")
+        with pd.option_context("future.infer_string", True):
+            result = Series([pd.NA, "b"])
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesConstructorIndexCoercion:
     def test_series_constructor_datetimelike_index_coercion(self):
@@ -2158,7 +2168,7 @@ class TestSeriesConstructorInternals:
 
     @td.skip_array_manager_invalid_test
     def test_from_array(self):
-        result = Series(pd.array(["1H", "2H"], dtype="timedelta64[ns]"))
+        result = Series(pd.array(["1h", "2h"], dtype="timedelta64[ns]"))
         assert result._mgr.blocks[0].is_extension is False
 
         result = Series(pd.array(["2015"], dtype="datetime64[ns]"))
@@ -2166,7 +2176,7 @@ class TestSeriesConstructorInternals:
 
     @td.skip_array_manager_invalid_test
     def test_from_list_dtype(self):
-        result = Series(["1H", "2H"], dtype="timedelta64[ns]")
+        result = Series(["1h", "2h"], dtype="timedelta64[ns]")
         assert result._mgr.blocks[0].is_extension is False
 
         result = Series(["2015"], dtype="datetime64[ns]")

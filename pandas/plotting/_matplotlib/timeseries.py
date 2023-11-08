@@ -7,6 +7,7 @@ from typing import (
     TYPE_CHECKING,
     cast,
 )
+import warnings
 
 import numpy as np
 
@@ -47,6 +48,7 @@ if TYPE_CHECKING:
         DataFrame,
         DatetimeIndex,
         Index,
+        PeriodIndex,
         Series,
     )
 
@@ -290,8 +292,6 @@ def maybe_convert_index(ax: Axes, data):
 
         freq_str = _get_period_alias(freq)
 
-        import warnings
-
         with warnings.catch_warnings():
             # suppress Period[B] deprecation warning
             # TODO: need to find an alternative to this before the deprecation
@@ -309,8 +309,7 @@ def maybe_convert_index(ax: Axes, data):
     return data
 
 
-# Patch methods for subplot. Only format_dateaxis is currently used.
-# Do we need the rest for convenience?
+# Patch methods for subplot.
 
 
 def _format_coord(freq, t, y) -> str:
@@ -318,7 +317,9 @@ def _format_coord(freq, t, y) -> str:
     return f"t = {time_period}  y = {y:8f}"
 
 
-def format_dateaxis(subplot, freq, index) -> None:
+def format_dateaxis(
+    subplot, freq: BaseOffset, index: DatetimeIndex | PeriodIndex
+) -> None:
     """
     Pretty-formats the date axis (x-axis).
 
