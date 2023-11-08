@@ -251,7 +251,7 @@ class BoxPlot(LinePlot):
     def _make_legend(self) -> None:
         pass
 
-    def _post_plot_logic(self, ax, data) -> None:
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         # GH 45465: make sure that the boxplot doesn't ignore xlabel/ylabel
         if self.xlabel:
             ax.set_xlabel(pprint_thing(self.xlabel))

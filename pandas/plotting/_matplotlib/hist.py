@@ -269,7 +269,7 @@ class KdePlot(HistPlot):
         kwds["bw_method"] = self.bw_method
         kwds["ind"] = self._get_ind(y, ind=self.ind)
 
-    def _post_plot_logic(self, ax, data) -> None:
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         ax.set_ylabel("Density")
 
 

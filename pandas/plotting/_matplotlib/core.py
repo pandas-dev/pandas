@@ -477,7 +477,7 @@ class MPLPlot(ABC):
         return len(ax.lines) != 0 or len(ax.artists) != 0 or len(ax.containers) != 0
 
     @final
-    def _maybe_right_yaxis(self, ax: Axes, axes_num: int):
+    def _maybe_right_yaxis(self, ax: Axes, axes_num: int) -> Axes:
         if not self.on_right(axes_num):
             # secondary axes may be passed via ax kw
             return self._get_ax_layer(ax)
@@ -666,7 +666,7 @@ class MPLPlot(ABC):
         tools.table(ax, data)
 
     @final
-    def _post_plot_logic_common(self, ax, data):
+    def _post_plot_logic_common(self, ax: Axes, data) -> None:
         """Common post process for each axes"""
         if self.orientation == "vertical" or self.orientation is None:
             self._apply_axis_properties(ax.xaxis, rot=self.rot, fontsize=self.fontsize)
@@ -685,7 +685,7 @@ class MPLPlot(ABC):
             raise ValueError
 
     @abstractmethod
-    def _post_plot_logic(self, ax, data) -> None:
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         """Post process for each axes. Overridden in child classes"""
 
     @final
@@ -1039,7 +1039,7 @@ class MPLPlot(ABC):
         )
 
     @final
-    def _parse_errorbars(self, label, err):
+    def _parse_errorbars(self, label: str, err):
         """
         Look for error keyword arguments and return the actual errorbar data
         or return the error DataFrame/dict
@@ -1835,7 +1835,14 @@ class BarPlot(MPLPlot):
 
         self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
 
-    def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge) -> None:
+    def _decorate_ticks(
+        self,
+        ax: Axes,
+        name: str | None,
+        ticklabels: list[str],
+        start_edge: float,
+        end_edge: float,
+    ) -> None:
         ax.set_xlim((start_edge, end_edge))
 
         if self.xticks is not None:
@@ -1880,7 +1887,14 @@ class BarhPlot(BarPlot):
     def _get_custom_index_name(self):
         return self.ylabel
 
-    def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge) -> None:
+    def _decorate_ticks(
+        self,
+        ax: Axes,
+        name: str | None,
+        ticklabels: list[str],
+        start_edge: float,
+        end_edge: float,
+    ) -> None:
         # horizontal bars
         ax.set_ylim((start_edge, end_edge))
         ax.set_yticks(self.tick_pos)
