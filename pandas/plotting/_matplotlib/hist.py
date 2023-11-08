@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
 )
 
@@ -140,7 +141,7 @@ class HistPlot(LinePlot):
             if style is not None:
                 kwds["style"] = style
 
-            kwds = self._make_plot_keywords(kwds, y)
+            self._make_plot_keywords(kwds, y)
 
             # the bins is multi-dimension array now and each plot need only 1-d and
             # when by is applied, label should be columns that are grouped
@@ -175,12 +176,11 @@ class HistPlot(LinePlot):
 
             self._append_legend_handles_labels(artists[0], label)
 
-    def _make_plot_keywords(self, kwds, y):
+    def _make_plot_keywords(self, kwds: dict[str, Any], y) -> None:
         """merge BoxPlot/KdePlot properties to passed kwds"""
         # y is required for KdePlot
         kwds["bottom"] = self.bottom
         kwds["bins"] = self.bins
-        return kwds
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         if self.orientation == "horizontal":
@@ -254,10 +254,9 @@ class KdePlot(HistPlot):
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
         return lines
 
-    def _make_plot_keywords(self, kwds, y):
+    def _make_plot_keywords(self, kwds: dict[str, Any], y) -> None:
         kwds["bw_method"] = self.bw_method
         kwds["ind"] = self._get_ind(y, ind=self.ind)
-        return kwds
 
     def _post_plot_logic(self, ax, data) -> None:
         ax.set_ylabel("Density")
