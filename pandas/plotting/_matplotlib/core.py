@@ -1448,7 +1448,14 @@ class LinePlot(MPLPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, style=None, column_num=None, stacking_id=None, **kwds
+        cls,
+        ax: Axes,
+        x,
+        y: np.ndarray,
+        style=None,
+        column_num=None,
+        stacking_id=None,
+        **kwds,
     ):
         # column_num is used to get the target column from plotf in line and
         # area plots
@@ -1475,7 +1482,7 @@ class LinePlot(MPLPlot):
             decorate_axes(ax.right_ax, freq, kwds)
         ax._plot_data.append((data, self._kind, kwds))
 
-        lines = self._plot(ax, data.index, data.values, style=style, **kwds)
+        lines = self._plot(ax, data.index, np.asarray(data.values), style=style, **kwds)
         # set date formatter, locators and rescale limits
         # error: Argument 3 to "format_dateaxis" has incompatible type "Index";
         # expected "DatetimeIndex | PeriodIndex"
@@ -1503,7 +1510,9 @@ class LinePlot(MPLPlot):
 
     @final
     @classmethod
-    def _get_stacked_values(cls, ax: Axes, stacking_id, values, label):
+    def _get_stacked_values(
+        cls, ax: Axes, stacking_id: int | None, values: np.ndarray, label
+    ) -> np.ndarray:
         if stacking_id is None:
             return values
         if not hasattr(ax, "_stacker_pos_prior"):
@@ -1523,7 +1532,7 @@ class LinePlot(MPLPlot):
 
     @final
     @classmethod
-    def _update_stacker(cls, ax: Axes, stacking_id, values) -> None:
+    def _update_stacker(cls, ax: Axes, stacking_id: int | None, values) -> None:
         if stacking_id is None:
             return
         if (values >= 0).all():
@@ -1601,7 +1610,7 @@ class AreaPlot(LinePlot):
         cls,
         ax: Axes,
         x,
-        y,
+        y: np.ndarray,
         style=None,
         column_num=None,
         stacking_id=None,
@@ -1727,7 +1736,7 @@ class BarPlot(MPLPlot):
         cls,
         ax: Axes,
         x,
-        y,
+        y: np.ndarray,
         w,
         start: int | npt.NDArray[np.intp] = 0,
         log: bool = False,
@@ -1860,7 +1869,7 @@ class BarhPlot(BarPlot):
         cls,
         ax: Axes,
         x,
-        y,
+        y: np.ndarray,
         w,
         start: int | npt.NDArray[np.intp] = 0,
         log: bool = False,

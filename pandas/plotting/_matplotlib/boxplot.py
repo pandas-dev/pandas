@@ -93,17 +93,18 @@ class BoxPlot(LinePlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, y, column_num=None, return_type: str = "axes", **kwds
+        cls, ax: Axes, y: np.ndarray, column_num=None, return_type: str = "axes", **kwds
     ):
+        ys: np.ndarray | list[np.ndarray]
         if y.ndim == 2:
-            y = [remove_na_arraylike(v) for v in y]
+            ys = [remove_na_arraylike(v) for v in y]
             # Boxplot fails with empty arrays, so need to add a NaN
             #   if any cols are empty
             # GH 8181
-            y = [v if v.size > 0 else np.array([np.nan]) for v in y]
+            ys = [v if v.size > 0 else np.array([np.nan]) for v in ys]
         else:
-            y = remove_na_arraylike(y)
-        bp = ax.boxplot(y, **kwds)
+            ys = remove_na_arraylike(y)
+        bp = ax.boxplot(ys, **kwds)
 
         if return_type == "dict":
             return bp, bp

@@ -101,7 +101,7 @@ class HistPlot(LinePlot):
     def _plot(  # type: ignore[override]
         cls,
         ax: Axes,
-        y,
+        y: np.ndarray,
         style=None,
         bottom: int | np.ndarray = 0,
         column_num: int = 0,
@@ -166,7 +166,7 @@ class HistPlot(LinePlot):
 
             self._append_legend_handles_labels(artists[0], label)
 
-    def _make_plot_keywords(self, kwds: dict[str, Any], y) -> None:
+    def _make_plot_keywords(self, kwds: dict[str, Any], y: np.ndarray) -> None:
         """merge BoxPlot/KdePlot properties to passed kwds"""
         # y is required for KdePlot
         kwds["bottom"] = self.bottom
@@ -225,7 +225,7 @@ class KdePlot(HistPlot):
         self.weights = weights
 
     @staticmethod
-    def _get_ind(y, ind):
+    def _get_ind(y: np.ndarray, ind):
         if ind is None:
             # np.nanmax() and np.nanmin() ignores the missing values
             sample_range = np.nanmax(y) - np.nanmin(y)
@@ -248,12 +248,12 @@ class KdePlot(HistPlot):
     def _plot(  #  type: ignore[override]
         cls,
         ax: Axes,
-        y,
+        y: np.ndarray,
         style=None,
         bw_method=None,
         ind=None,
         column_num=None,
-        stacking_id=None,
+        stacking_id: int | None = None,
         **kwds,
     ):
         from scipy.stats import gaussian_kde
@@ -265,7 +265,7 @@ class KdePlot(HistPlot):
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
         return lines
 
-    def _make_plot_keywords(self, kwds: dict[str, Any], y) -> None:
+    def _make_plot_keywords(self, kwds: dict[str, Any], y: np.ndarray) -> None:
         kwds["bw_method"] = self.bw_method
         kwds["ind"] = self._get_ind(y, ind=self.ind)
 
