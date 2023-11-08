@@ -38,6 +38,10 @@ from pandas import (
 )
 import pandas._testing as tm
 from pandas.core.arrays.datetimes import _generate_range as generate_range
+from pandas.tests.indexes.datetimes.test_timezones import (
+    FixedOffset,
+    fixed_off_no_name,
+)
 
 START, END = datetime(2009, 1, 1), datetime(2010, 1, 1)
 
@@ -760,11 +764,24 @@ class TestDateRanges:
         tm.assert_index_equal(both_boundary, expected_both)
         tm.assert_index_equal(neither_boundary, expected_neither)
 
-    def test_years_only(self):
-        # GH 6961
-        dr = date_range("2014", "2015", freq="ME")
-        assert dr[0] == datetime(2014, 1, 31)
-        assert dr[-1] == datetime(2014, 12, 31)
+    def test_date_range_years_only(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+        # GH#6961
+        rng1 = date_range("2014", "2015", freq="ME", tz=tz)
+        expected1 = date_range("2014-01-31", "2014-12-31", freq="ME", tz=tz)
+        tm.assert_index_equal(rng1, expected1)
+
+        rng2 = date_range("2014", "2015", freq="MS", tz=tz)
+        expected2 = date_range("2014-01-01", "2015-01-01", freq="MS", tz=tz)
+        tm.assert_index_equal(rng2, expected2)
+
+        rng3 = date_range("2014", "2020", freq="Y", tz=tz)
+        expected3 = date_range("2014-12-31", "2019-12-31", freq="Y", tz=tz)
+        tm.assert_index_equal(rng3, expected3)
+
+        rng4 = date_range("2014", "2020", freq="YS", tz=tz)
+        expected4 = date_range("2014-01-01", "2020-01-01", freq="YS", tz=tz)
+        tm.assert_index_equal(rng4, expected4)
 
     def test_freq_divides_end_in_nanos(self):
         # GH 10885
@@ -871,6 +888,33 @@ class TestDateRanges:
             result = date_range("1/1/2000", periods=2, freq=freq_depr)
         tm.assert_index_equal(result, expected)
 
+    def test_date_range_misc(self):
+        sdate = datetime(1999, 12, 25)
+        edate = datetime(2000, 1, 1)
+        idx = date_range(start=sdate, freq="1B", periods=20)
+        assert len(idx) == 20
+        assert idx[0] == sdate + 0 * offsets.BDay()
+        assert idx.freq == "B"
+
+        idx1 = date_range(start=sdate, end=edate, freq="W-SUN")
+        idx2 = date_range(start=sdate, end=edate, freq=offsets.Week(weekday=6))
+        assert len(idx1) == len(idx2)
+        assert idx1.freq == idx2.freq
+
+        idx1 = date_range(start=sdate, end=edate, freq="QS")
+        idx2 = date_range(
+            start=sdate, end=edate, freq=offsets.QuarterBegin(startingMonth=1)
+        )
+        assert len(idx1) == len(idx2)
+        assert idx1.freq == idx2.freq
+
+        idx1 = date_range(start=sdate, end=edate, freq="BQ")
+        idx2 = date_range(
+            start=sdate, end=edate, freq=offsets.BQuarterEnd(startingMonth=12)
+        )
+        assert len(idx1) == len(idx2)
+        assert idx1.freq == idx2.freq
+
 
 class TestDateRangeTZ:
     """Tests for date_range with timezones"""
@@ -904,9 +948,20 @@ class TestDateRangeTZ:
 
         tm.assert_index_equal(result, expected)
 
-    def test_date_range_with_fixedoffset_noname(self):
-        from pandas.tests.indexes.datetimes.test_timezones import fixed_off_no_name
+    def test_date_range_with_fixed_tz(self):
+        off = FixedOffset(420, "+07:00")
+        start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)
+        end = datetime(2012, 6, 11, 5, 0, 0, tzinfo=off)
+        rng = date_range(start=start, end=end)
+        assert off == rng.tz
 
+        rng2 = date_range(start, periods=len(rng), tz=off)
+        tm.assert_index_equal(rng, rng2)
+
+        rng3 = date_range("3/11/2012 05:00:00+07:00", "6/11/2012 05:00:00+07:00")
+        assert (rng.values == rng3.values).all()
+
+    def test_date_range_with_fixedoffset_noname(self):
         off = fixed_off_no_name
         start = datetime(2012, 3, 11, 5, 0, 0, tzinfo=off)
         end = datetime(2012, 6, 11, 5, 0, 0, tzinfo=off)

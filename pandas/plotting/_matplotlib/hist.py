@@ -56,38 +56,40 @@ class HistPlot(LinePlot):
         data,
         bins: int | np.ndarray | list[np.ndarray] = 10,
         bottom: int | np.ndarray = 0,
+        *,
+        range=None,
         **kwargs,
     ) -> None:
-        self.bins = bins  # use mpl default
+        if is_list_like(bottom):
+            bottom = np.array(bottom)
         self.bottom = bottom
+
+        self._bin_range = range
+
         self.xlabel = kwargs.get("xlabel")
         self.ylabel = kwargs.get("ylabel")
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
-    def _args_adjust(self) -> None:
-        # calculate bin number separately in different subplots
-        # where subplots are created based on by argument
-        if is_integer(self.bins):
+        self.bins = self._adjust_bins(bins)
+
+    def _adjust_bins(self, bins: int | np.ndarray | list[np.ndarray]):
+        if is_integer(bins):
             if self.by is not None:
                 by_modified = unpack_single_str_list(self.by)
                 grouped = self.data.groupby(by_modified)[self.columns]
-                self.bins = [self._calculate_bins(group) for key, group in grouped]
+                bins = [self._calculate_bins(group, bins) for key, group in grouped]
             else:
-                self.bins = self._calculate_bins(self.data)
+                bins = self._calculate_bins(self.data, bins)
+        return bins
 
-        if is_list_like(self.bottom):
-            self.bottom = np.array(self.bottom)
-
-    def _calculate_bins(self, data: DataFrame) -> np.ndarray:
+    def _calculate_bins(self, data: DataFrame, bins) -> np.ndarray:
         """Calculate bins given data"""
         nd_values = data.infer_objects(copy=False)._get_numeric_data()
         values = np.ravel(nd_values)
         values = values[~isna(values)]
 
-        hist, bins = np.histogram(
-            values, bins=self.bins, range=self.kwds.get("range", None)
-        )
+        hist, bins = np.histogram(values, bins=bins, range=self._bin_range)
         return bins
 
     # error: Signature of "_plot" incompatible with supertype "LinePlot"
@@ -211,11 +213,9 @@ class KdePlot(HistPlot):
         self.bw_method = bw_method
         self.ind = ind
 
-    def _args_adjust(self) -> None:
-        pass
-
-    def _get_ind(self, y):
-        if self.ind is None:
+    @staticmethod
+    def _get_ind(y, ind):
+        if ind is None:
             # np.nanmax() and np.nanmin() ignores the missing values
             sample_range = np.nanmax(y) - np.nanmin(y)
             ind = np.linspace(
@@ -223,15 +223,13 @@ class KdePlot(HistPlot):
                 np.nanmax(y) + 0.5 * sample_range,
                 1000,
             )
-        elif is_integer(self.ind):
+        elif is_integer(ind):
             sample_range = np.nanmax(y) - np.nanmin(y)
             ind = np.linspace(
                 np.nanmin(y) - 0.5 * sample_range,
                 np.nanmax(y) + 0.5 * sample_range,
-                self.ind,
+                ind,
             )
-        else:
-            ind = self.ind
         return ind
 
     @classmethod
@@ -257,7 +255,7 @@ class KdePlot(HistPlot):
 
     def _make_plot_keywords(self, kwds, y):
         kwds["bw_method"] = self.bw_method
-        kwds["ind"] = self._get_ind(y)
+        kwds["ind"] = self._get_ind(y, ind=self.ind)
         return kwds
 
     def _post_plot_logic(self, ax, data) -> None:

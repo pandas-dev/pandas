@@ -23,7 +23,6 @@ RUN python3 -m pip install \
     meson \
     meson-python \
     pytest \
-    pytest-asyncio \
     python-dateutil \
     pytz \
     versioneer[toml]
