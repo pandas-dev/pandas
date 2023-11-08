@@ -100,7 +100,7 @@ def test_xarray(df):
 def test_xarray_cftimeindex_nearest():
     # https://github.com/pydata/xarray/issues/3751
     cftime = pytest.importorskip("cftime")
-    xarray = pytest.importorskip("xarray", minversion="0.21.0")
+    xarray = pytest.importorskip("xarray")
 
     times = xarray.cftime_range("0001", periods=2)
     key = cftime.DatetimeGregorian(2000, 1, 1)

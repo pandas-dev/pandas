@@ -96,7 +96,7 @@ def s3_base(worker_id, monkeysession):
             yield "http://localhost:5000"
     else:
         requests = pytest.importorskip("requests")
-        pytest.importorskip("moto", minversion="1.3.14")
+        pytest.importorskip("moto")
         pytest.importorskip("flask")  # server mode needs flask too
 
         # Launching moto in server mode, i.e., as a separate process
