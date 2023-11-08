@@ -45,6 +45,8 @@ if TYPE_CHECKING:
 
     from matplotlib.axes import Axes
 
+    from pandas._typing import NDFrameT
+
     from pandas import (
         DataFrame,
         DatetimeIndex,
@@ -265,7 +267,7 @@ def _get_index_freq(index: Index) -> BaseOffset | None:
     return freq
 
 
-def maybe_convert_index(ax: Axes, data):
+def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
