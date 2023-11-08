@@ -689,8 +689,6 @@ class TestFrameFlexArithmetic:
         df.columns = ["A", "A"]
         result = getattr(df, op)(df)
         tm.assert_frame_equal(result, expected)
-        str(result)
-        result.dtypes
 
     @pytest.mark.parametrize("level", [0, None])
     def test_broadcast_multiindex(self, level):
@@ -1906,20 +1904,6 @@ def test_pow_with_realignment():
     tm.assert_frame_equal(result, expected)
 
 
-# TODO: move to tests.arithmetic and parametrize
-def test_pow_nan_with_zero():
-    left = DataFrame({"A": [np.nan, np.nan, np.nan]})
-    right = DataFrame({"A": [0, 0, 0]})
-
-    expected = DataFrame({"A": [1.0, 1.0, 1.0]})
-
-    result = left**right
-    tm.assert_frame_equal(result, expected)
-
-    result = left["A"] ** right["A"]
-    tm.assert_series_equal(result, expected["A"])
-
-
 def test_dataframe_series_extension_dtypes():
     # https://github.com/pandas-dev/pandas/issues/34311
     df = DataFrame(
@@ -2103,3 +2087,13 @@ def test_enum_column_equality():
     expected = Series([True, True, True], name=Cols.col1)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_mixed_col_index_dtype():
+    # GH 47382
+    df1 = DataFrame(columns=list("abc"), data=1.0, index=[0])
+    df2 = DataFrame(columns=list("abc"), data=0.0, index=[0])
+    df1.columns = df2.columns.astype("string")
+    result = df1 + df2
+    expected = DataFrame(columns=list("abc"), data=1.0, index=[0])
+    tm.assert_frame_equal(result, expected)
