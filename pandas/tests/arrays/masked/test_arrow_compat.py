@@ -8,7 +8,7 @@ pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
 
-pa = pytest.importorskip("pyarrow", minversion="1.0.1")
+pa = pytest.importorskip("pyarrow")
 
 from pandas.core.arrays.arrow._arrow_utils import pyarrow_array_to_numpy_and_mask
 
