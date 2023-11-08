@@ -8,6 +8,8 @@ from io import StringIO
 import numpy as np
 import pytest
 
+from pandas.compat import is_ci_environment
+
 from pandas import (
     DataFrame,
     Index,
@@ -94,7 +96,6 @@ baz,7,8,9
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # CSV parse error: Empty CSV file or block
 @pytest.mark.parametrize(
     "index_col,kwargs",
     [
@@ -134,9 +135,20 @@ baz,7,8,9
         ),
     ],
 )
-def test_index_col_empty_data(all_parsers, index_col, kwargs):
+def test_index_col_empty_data(all_parsers, index_col, kwargs, request):
     data = "x,y,z"
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        if is_ci_environment():
+            pytest.skip(f"Can hang in CI environment with {parser.engine=}")
+        else:
+            mark = pytest.mark.xfail(
+                reason=(
+                    "CSV parse error: Empty CSV file or block: "
+                    "cannot infer number of columns"
+                )
+            )
+            request.applymarker(mark)
     result = parser.read_csv(StringIO(data), index_col=index_col)
 
     expected = DataFrame(**kwargs)
