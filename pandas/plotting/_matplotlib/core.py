@@ -126,8 +126,6 @@ class MPLPlot(ABC):
     def orientation(self) -> str | None:
         return None
 
-    axes: np.ndarray  # of Axes objects
-
     def __init__(
         self,
         data,
@@ -236,10 +234,11 @@ class MPLPlot(ABC):
         self.mark_right = kwds.pop("mark_right", True)
         self.stacked = kwds.pop("stacked", False)
 
+        # ax may be an Axes object or (if self.subplots) an ndarray of
+        #  Axes objects
         self.ax = ax
         # TODO: deprecate fig keyword as it is ignored, not passed in tests
         #  as of 2023-11-05
-        self.axes = np.array([], dtype=object)  # "real" version get set in `generate`
 
         # parse errorbar input if given
         xerr = kwds.pop("xerr", None)
@@ -463,7 +462,7 @@ class MPLPlot(ABC):
     @final
     def generate(self) -> None:
         self._compute_plot_data()
-        fig = self._setup_subplots()
+        fig = self.fig
         self._make_plot(fig)
         self._add_table()
         self._make_legend()
@@ -509,7 +508,19 @@ class MPLPlot(ABC):
             return new_ax
 
     @final
-    def _setup_subplots(self) -> Figure:
+    @cache_readonly
+    def fig(self) -> Figure:
+        return self._axes_and_fig[1]
+
+    @final
+    @cache_readonly
+    # TODO: can we annotate this as both a Sequence[Axes] and ndarray[object]?
+    def axes(self) -> Sequence[Axes]:
+        return self._axes_and_fig[0]
+
+    @final
+    @cache_readonly
+    def _axes_and_fig(self) -> tuple[Sequence[Axes], Figure]:
         if self.subplots:
             naxes = (
                 self.nseries if isinstance(self.subplots, bool) else len(self.subplots)
@@ -552,8 +563,7 @@ class MPLPlot(ABC):
         elif self.logy == "sym" or self.loglog == "sym":
             [a.set_yscale("symlog") for a in axes]
 
-        self.axes = axes
-        return fig
+        return axes, fig
 
     @property
     def result(self):
@@ -562,7 +572,8 @@ class MPLPlot(ABC):
         """
         if self.subplots:
             if self.layout is not None and not is_list_like(self.ax):
-                return self.axes.reshape(*self.layout)
+                # error: "Sequence[Any]" has no attribute "reshape"
+                return self.axes.reshape(*self.layout)  # type: ignore[attr-defined]
             else:
                 return self.axes
         else:
@@ -972,7 +983,8 @@ class MPLPlot(ABC):
             i = self._col_idx_to_axis_idx(i)
             ax = self.axes[i]
             ax = self._maybe_right_yaxis(ax, i)
-            self.axes[i] = ax
+            # error: Unsupported target for indexed assignment ("Sequence[Any]")
+            self.axes[i] = ax  # type: ignore[index]
         else:
             ax = self.axes[0]
             ax = self._maybe_right_yaxis(ax, i)
