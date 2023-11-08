@@ -11,6 +11,7 @@ from collections.abc import (
 )
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     final,
 )
@@ -1010,7 +1011,9 @@ class MPLPlot(ABC):
             return self.data.columns[i] in self.secondary_y
 
     @final
-    def _apply_style_colors(self, colors, kwds, col_num, label: str):
+    def _apply_style_colors(
+        self, colors, kwds: dict[str, Any], col_num: int, label: str
+    ):
         """
         Manage style and color based on column number and its label.
         Returns tuple of appropriate style and kwds which "color" may be added.
@@ -1695,17 +1698,26 @@ class BarPlot(MPLPlot):
     def orientation(self) -> PlottingOrientation:
         return "vertical"
 
-    def __init__(self, data, **kwargs) -> None:
+    def __init__(
+        self,
+        data,
+        *,
+        align="center",
+        bottom=0,
+        left=0,
+        width=0.5,
+        position=0.5,
+        log=False,
+        **kwargs,
+    ) -> None:
         # we have to treat a series differently than a
         # 1-column DataFrame w.r.t. color handling
         self._is_series = isinstance(data, ABCSeries)
-        self.bar_width = kwargs.pop("width", 0.5)
-        pos = kwargs.pop("position", 0.5)
-        kwargs.setdefault("align", "center")
+        self.bar_width = width
+        self._align = align
+        self._position = position
         self.tick_pos = np.arange(len(data))
 
-        bottom = kwargs.pop("bottom", 0)
-        left = kwargs.pop("left", 0)
         if is_list_like(bottom):
             bottom = np.array(bottom)
         if is_list_like(left):
@@ -1713,24 +1725,36 @@ class BarPlot(MPLPlot):
         self.bottom = bottom
         self.left = left
 
-        self.log = kwargs.pop("log", False)
+        self.log = log
+
         MPLPlot.__init__(self, data, **kwargs)
 
-        if self.stacked or self.subplots:
-            self.tickoffset = self.bar_width * pos
-            if kwargs["align"] == "edge":
-                self.lim_offset = self.bar_width / 2
-            else:
-                self.lim_offset = 0
-        elif kwargs["align"] == "edge":
-            w = self.bar_width / self.nseries
-            self.tickoffset = self.bar_width * (pos - 0.5) + w * 0.5
-            self.lim_offset = w * 0.5
-        else:
-            self.tickoffset = self.bar_width * pos
-            self.lim_offset = 0
+    @cache_readonly
+    def ax_pos(self) -> np.ndarray:
+        return self.tick_pos - self.tickoffset
 
-        self.ax_pos = self.tick_pos - self.tickoffset
+    @cache_readonly
+    def tickoffset(self):
+        if self.stacked or self.subplots:
+            return self.bar_width * self._position
+        elif self._align == "edge":
+            w = self.bar_width / self.nseries
+            return self.bar_width * (self._position - 0.5) + w * 0.5
+        else:
+            return self.bar_width * self._position
+
+    @cache_readonly
+    def lim_offset(self):
+        if self.stacked or self.subplots:
+            if self._align == "edge":
+                return self.bar_width / 2
+            else:
+                return 0
+        elif self._align == "edge":
+            w = self.bar_width / self.nseries
+            return w * 0.5
+        else:
+            return 0
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
@@ -1781,6 +1805,7 @@ class BarPlot(MPLPlot):
                 start = 1
             start = start + self._start_base
 
+            kwds["align"] = self._align
             if self.subplots:
                 w = self.bar_width / 2
                 rect = self._plot(
