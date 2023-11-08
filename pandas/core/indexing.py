@@ -1454,6 +1454,9 @@ class _LocIndexer(_LocationIndexer):
         if isinstance(key, slice):
             return labels._convert_slice_indexer(key, kind="loc")
 
+        if key is self.obj.index:
+            return slice(None, None, None)
+
         if (
             isinstance(key, tuple)
             and not isinstance(labels, MultiIndex)

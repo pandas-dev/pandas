@@ -1351,3 +1351,11 @@ class TestDataFrameSetitemCopyViewSemantics:
             index=Index([], dtype="datetime64[ns]", name="date"),
         )
         tm.assert_frame_equal(df, expected)
+
+    def test_setitem_frame_with_dataframes_own_index(self):
+        # https://github.com/pandas-dev/pandas/issues/55791
+        df1 = DataFrame({"a": [1]})
+        df2 = DataFrame({"d": [True]})
+        df1.loc[df1.index, df2.columns] = df2
+        expected = DataFrame({"a": [1], "d": [True]})
+        tm.assert_frame_equal(df1, expected)
