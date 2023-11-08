@@ -11,6 +11,7 @@ from collections.abc import (
 )
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     final,
 )
@@ -89,6 +90,8 @@ if TYPE_CHECKING:
         PlottingOrientation,
         npt,
     )
+
+    from pandas import Series
 
 
 def _color_in_style(style: str) -> bool:
@@ -471,7 +474,8 @@ class MPLPlot(ABC):
             self._post_plot_logic(ax, self.data)
 
     @final
-    def _has_plotted_object(self, ax: Axes) -> bool:
+    @staticmethod
+    def _has_plotted_object(ax: Axes) -> bool:
         """check whether ax has data"""
         return len(ax.lines) != 0 or len(ax.artists) != 0 or len(ax.containers) != 0
 
@@ -576,7 +580,8 @@ class MPLPlot(ABC):
                 return self.axes[0]
 
     @final
-    def _convert_to_ndarray(self, data):
+    @staticmethod
+    def _convert_to_ndarray(data):
         # GH31357: categorical columns are processed separately
         if isinstance(data.dtype, CategoricalDtype):
             return data
@@ -767,6 +772,7 @@ class MPLPlot(ABC):
                 if fontsize is not None:
                     label.set_fontsize(fontsize)
 
+    @final
     @property
     def legend_title(self) -> str | None:
         if not isinstance(self.data.columns, ABCMultiIndex):
@@ -836,7 +842,8 @@ class MPLPlot(ABC):
                     ax.legend(loc="best")
 
     @final
-    def _get_ax_legend(self, ax: Axes):
+    @staticmethod
+    def _get_ax_legend(ax: Axes):
         """
         Take in axes and return ax and legend under different scenarios
         """
@@ -992,7 +999,9 @@ class MPLPlot(ABC):
             return self.data.columns[i] in self.secondary_y
 
     @final
-    def _apply_style_colors(self, colors, kwds, col_num, label: str):
+    def _apply_style_colors(
+        self, colors, kwds: dict[str, Any], col_num: int, label: str
+    ):
         """
         Manage style and color based on column number and its label.
         Returns tuple of appropriate style and kwds which "color" may be added.
@@ -1454,7 +1463,7 @@ class LinePlot(MPLPlot):
         return lines
 
     @final
-    def _ts_plot(self, ax: Axes, x, data, style=None, **kwds):
+    def _ts_plot(self, ax: Axes, x, data: Series, style=None, **kwds):
         # accept x to be consistent with normal plot func,
         # x is not passed to tsplot as it uses data.index as x coordinate
         # column_num must be in kwds for stacking purpose
@@ -1471,11 +1480,13 @@ class LinePlot(MPLPlot):
 
         lines = self._plot(ax, data.index, data.values, style=style, **kwds)
         # set date formatter, locators and rescale limits
-        format_dateaxis(ax, ax.freq, data.index)
+        # error: Argument 3 to "format_dateaxis" has incompatible type "Index";
+        # expected "DatetimeIndex | PeriodIndex"
+        format_dateaxis(ax, ax.freq, data.index)  # type: ignore[arg-type]
         return lines
 
     @final
-    def _get_stacking_id(self):
+    def _get_stacking_id(self) -> int | None:
         if self.stacked:
             return id(self.data)
         else:
@@ -1655,17 +1666,26 @@ class BarPlot(MPLPlot):
     def orientation(self) -> PlottingOrientation:
         return "vertical"
 
-    def __init__(self, data, **kwargs) -> None:
+    def __init__(
+        self,
+        data,
+        *,
+        align="center",
+        bottom=0,
+        left=0,
+        width=0.5,
+        position=0.5,
+        log=False,
+        **kwargs,
+    ) -> None:
         # we have to treat a series differently than a
         # 1-column DataFrame w.r.t. color handling
         self._is_series = isinstance(data, ABCSeries)
-        self.bar_width = kwargs.pop("width", 0.5)
-        pos = kwargs.pop("position", 0.5)
-        kwargs.setdefault("align", "center")
+        self.bar_width = width
+        self._align = align
+        self._position = position
         self.tick_pos = np.arange(len(data))
 
-        bottom = kwargs.pop("bottom", 0)
-        left = kwargs.pop("left", 0)
         if is_list_like(bottom):
             bottom = np.array(bottom)
         if is_list_like(left):
@@ -1673,24 +1693,36 @@ class BarPlot(MPLPlot):
         self.bottom = bottom
         self.left = left
 
-        self.log = kwargs.pop("log", False)
+        self.log = log
+
         MPLPlot.__init__(self, data, **kwargs)
 
-        if self.stacked or self.subplots:
-            self.tickoffset = self.bar_width * pos
-            if kwargs["align"] == "edge":
-                self.lim_offset = self.bar_width / 2
-            else:
-                self.lim_offset = 0
-        elif kwargs["align"] == "edge":
-            w = self.bar_width / self.nseries
-            self.tickoffset = self.bar_width * (pos - 0.5) + w * 0.5
-            self.lim_offset = w * 0.5
-        else:
-            self.tickoffset = self.bar_width * pos
-            self.lim_offset = 0
+    @cache_readonly
+    def ax_pos(self) -> np.ndarray:
+        return self.tick_pos - self.tickoffset
 
-        self.ax_pos = self.tick_pos - self.tickoffset
+    @cache_readonly
+    def tickoffset(self):
+        if self.stacked or self.subplots:
+            return self.bar_width * self._position
+        elif self._align == "edge":
+            w = self.bar_width / self.nseries
+            return self.bar_width * (self._position - 0.5) + w * 0.5
+        else:
+            return self.bar_width * self._position
+
+    @cache_readonly
+    def lim_offset(self):
+        if self.stacked or self.subplots:
+            if self._align == "edge":
+                return self.bar_width / 2
+            else:
+                return 0
+        elif self._align == "edge":
+            w = self.bar_width / self.nseries
+            return w * 0.5
+        else:
+            return 0
 
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
@@ -1741,6 +1773,7 @@ class BarPlot(MPLPlot):
                 start = 1
             start = start + self._start_base
 
+            kwds["align"] = self._align
             if self.subplots:
                 w = self.bar_width / 2
                 rect = self._plot(
