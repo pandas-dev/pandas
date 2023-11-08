@@ -11,6 +11,7 @@ from collections.abc import (
 )
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     final,
 )
@@ -998,7 +999,9 @@ class MPLPlot(ABC):
             return self.data.columns[i] in self.secondary_y
 
     @final
-    def _apply_style_colors(self, colors, kwds, col_num, label: str):
+    def _apply_style_colors(
+        self, colors, kwds: dict[str, Any], col_num: int, label: str
+    ):
         """
         Manage style and color based on column number and its label.
         Returns tuple of appropriate style and kwds which "color" may be added.
