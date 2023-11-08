@@ -171,6 +171,12 @@ class TestDataFrameFormatting:
         with option_context("display.max_colwidth", max_len + 2):
             assert "..." not in repr(df)
 
+    def test_repr_truncation_preserves_na(self):
+        # https://github.com/pandas-dev/pandas/issues/55630
+        df = DataFrame({"a": [pd.NA for _ in range(10)]})
+        with option_context("display.max_rows", 2, "display.show_dimensions", False):
+            assert repr(df) == "       a\n0   <NA>\n..   ...\n9   <NA>"
+
     def test_max_colwidth_negative_int_raises(self):
         # Deprecation enforced from:
         # https://github.com/pandas-dev/pandas/issues/31532
@@ -2196,6 +2202,10 @@ class TestFormatPercentiles:
             ),
             ([0.281, 0.29, 0.57, 0.58], ["28.1%", "29%", "57%", "58%"]),
             ([0.28, 0.29, 0.57, 0.58], ["28%", "29%", "57%", "58%"]),
+            (
+                [0.9, 0.99, 0.999, 0.9999, 0.99999],
+                ["90%", "99%", "99.9%", "99.99%", "99.999%"],
+            ),
         ],
     )
     def test_format_percentiles(self, percentiles, expected):
