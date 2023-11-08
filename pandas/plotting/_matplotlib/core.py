@@ -7,6 +7,7 @@ from abc import (
 from collections.abc import (
     Hashable,
     Iterable,
+    Iterator,
     Sequence,
 )
 from typing import (
@@ -431,17 +432,13 @@ class MPLPlot(ABC):
                     )
 
     @final
-    def _iter_data(self, data=None, keep_index: bool = False, fillna=None):
-        if data is None:
-            data = self.data
-        if fillna is not None:
-            data = data.fillna(fillna)
-
+    @staticmethod
+    def _iter_data(data: DataFrame) -> Iterator[tuple[Hashable, np.ndarray]]:
         for col, values in data.items():
-            if keep_index is True:
-                yield col, values
-            else:
-                yield col, values.values
+            # This was originally written to use values.values before EAs
+            #  were implemented; adding np.asarray(...) to keep consistent
+            #  typing.
+            yield col, np.asarray(values.values)
 
     @property
     def nseries(self) -> int:
@@ -1404,14 +1401,14 @@ class LinePlot(MPLPlot):
 
             x = data.index  # dummy, not used
             plotf = self._ts_plot
-            it = self._iter_data(data=data, keep_index=True)
+            it = data.items()
         else:
             x = self._get_xticks(convert_period=True)
             # error: Incompatible types in assignment (expression has type
             # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
             # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
             plotf = self._plot  # type: ignore[assignment]
-            it = self._iter_data()
+            it = self._iter_data(data=self.data)
 
         stacking_id = self._get_stacking_id()
         is_errorbar = com.any_not_none(*self.errors.values())
@@ -1749,7 +1746,8 @@ class BarPlot(MPLPlot):
         pos_prior = neg_prior = np.zeros(len(self.data))
         K = self.nseries
 
-        for i, (label, y) in enumerate(self._iter_data(fillna=0)):
+        data = self.data.fillna(0)
+        for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
             if self._is_series:
@@ -1907,7 +1905,7 @@ class PiePlot(MPLPlot):
         colors = self._get_colors(num_colors=len(self.data), color_kwds="colors")
         self.kwds.setdefault("colors", colors)
 
-        for i, (label, y) in enumerate(self._iter_data()):
+        for i, (label, y) in enumerate(self._iter_data(data=self.data)):
             ax = self._get_ax(i)
             if label is not None:
                 label = pprint_thing(label)

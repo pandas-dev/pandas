@@ -240,8 +240,7 @@ class BoxPlot(LinePlot):
             self.maybe_color_bp(bp)
             self._return_obj = ret
 
-            labels = [left for left, _ in self._iter_data()]
-            labels = [pprint_thing(left) for left in labels]
+            labels = [pprint_thing(left) for left in self.data.columns]
             if not self.use_index:
                 labels = [pprint_thing(key) for key in range(len(labels))]
             _set_ticklabels(

@@ -126,9 +126,7 @@ def reconstruct_data_with_by(
     return data
 
 
-def reformat_hist_y_given_by(
-    y: Series | np.ndarray, by: IndexLabel | None
-) -> Series | np.ndarray:
+def reformat_hist_y_given_by(y: np.ndarray, by: IndexLabel | None) -> np.ndarray:
     """Internal function to reformat y given `by` is applied or not for hist plot.
 
     If by is None, input y is 1-d with NaN removed; and if by is not None, groupby
