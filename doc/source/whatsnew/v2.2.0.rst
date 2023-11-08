@@ -103,6 +103,7 @@ Other enhancements
 - :meth:`ExtensionArray.duplicated` added to allow extension type implementations of the ``duplicated`` method (:issue:`55255`)
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
 - Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
+- Improved error message when constructing :class:`Period` with invalid offsets such as "QS" (:issue:`55785`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.notable_bug_fixes:
@@ -234,26 +235,11 @@ Deprecations
 Deprecate aliases ``M``, ``Q``, and ``Y`` in favour of ``ME``, ``QE``, and ``YE`` for offsets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The alias ``M`` is deprecated in favour of ``ME`` for offsets, please use ``ME`` for "month end" instead of ``M`` (:issue:`9586`)
+Deprecated the following frequency aliases (:issue:`9586`):
 
-For example:
-
-*Previous behavior*:
-
-.. code-block:: ipython
-
-    In [7]: pd.date_range('2020-01-01', periods=3, freq='M')
-    Out [7]:
-    DatetimeIndex(['2020-01-31', '2020-02-29', '2020-03-31'],
-                  dtype='datetime64[ns]', freq='M')
-
-*Future behavior*:
-
-.. ipython:: python
-
-    pd.date_range('2020-01-01', periods=3, freq='ME')
-
-The alias ``Q`` is deprecated in favour of ``QE`` for offsets, please use ``QE`` for "quarter end" instead of ``Q`` (:issue:`9586`)
+- ``M`` (month end) has been renamed ``ME`` for offsets
+- ``Q`` (year end) has been renamed ``QE`` for offsets
+- ``Y`` (year end) has been renamed ``YE`` for offsets
 
 For example:
 
@@ -271,25 +257,6 @@ For example:
 .. ipython:: python
 
     pd.date_range('2020-01-01', periods=3, freq='QE-NOV')
-
-The alias ``Y`` is deprecated in favour of ``YE`` for offsets, please use ``YE`` for "year end" instead of ``Y`` (:issue:`54275`)
-
-For example:
-
-*Previous behavior*:
-
-.. code-block:: ipython
-
-    In [9]: pd.date_range('2020-01-01', periods=3, freq='Y-MAR')
-    Out[9]:
-    DatetimeIndex(['2020-03-31', '2021-03-31', '2022-03-31'],
-                  dtype='datetime64[ns]', freq='Y-MAR')
-
-*Future behavior*:
-
-.. ipython:: python
-
-    pd.date_range('2020-01-01', periods=3, freq='YE-MAR')
 
 Other Deprecations
 ^^^^^^^^^^^^^^^^^^
@@ -446,7 +413,6 @@ I/O
 - Bug in :meth:`pandas.read_excel` with ``engine="odf"`` (``ods`` files) when string contains annotation (:issue:`55200`)
 - Bug in :meth:`pandas.read_excel` with an ODS file without cached formatted cell for float values (:issue:`55219`)
 - Bug where :meth:`DataFrame.to_json` would raise an ``OverflowError`` instead of a ``TypeError`` with unsupported NumPy types (:issue:`55403`)
--
 
 Period
 ^^^^^^
@@ -492,6 +458,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :func:`DataFrame.describe` when formatting percentiles in the resulting percentile 99.999% is rounded to 100% (:issue:`55765`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in :func:`infer_freq` and :meth:`DatetimeIndex.inferred_freq` with weekly frequencies and non-nanosecond resolutions (:issue:`55609`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)

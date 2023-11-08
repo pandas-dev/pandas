@@ -4177,7 +4177,7 @@ cdef class CustomBusinessDay(BusinessDay):
     def _period_dtype_code(self):
         # GH#52534
         raise TypeError(
-            "CustomBusinessDay cannot be used with Period or PeriodDtype"
+            "CustomBusinessDay is not supported as period frequency"
         )
 
     _apply_array = BaseOffset._apply_array

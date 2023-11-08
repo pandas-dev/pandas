@@ -553,6 +553,21 @@ class TestPeriodIndex:
         # lastly, values should compare equal
         tm.assert_index_equal(res, expected)
 
+    @pytest.mark.parametrize(
+        "freq, freq_msg",
+        [
+            (offsets.BYearBegin(), "BYearBegin"),
+            (offsets.YearBegin(2), "YearBegin"),
+            (offsets.QuarterBegin(startingMonth=12), "QuarterBegin"),
+            (offsets.BusinessMonthEnd(2), "BusinessMonthEnd"),
+        ],
+    )
+    def test_offsets_not_supported(self, freq, freq_msg):
+        # GH#55785
+        msg = f"{freq_msg} is not supported as period frequency"
+        with pytest.raises(TypeError, match=msg):
+            Period(year=2014, freq=freq)
+
 
 class TestShallowCopy:
     def test_shallow_copy_empty(self):
