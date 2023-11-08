@@ -14,6 +14,7 @@ import importlib
 import inspect
 import logging
 import os
+import re
 import sys
 import warnings
 
@@ -798,3 +799,49 @@ def setup(app):
     app.add_autodocumenter(AccessorMethodDocumenter)
     app.add_autodocumenter(AccessorCallableDocumenter)
     app.add_directive("autosummary", PandasAutosummary)
+
+
+# Ignore list for broken links,found in CI run checks for broken-linkcheck.yml
+
+linkcheck_ignore = [
+    "^http://$",
+    "^https://$",
+    *[
+        re.escape(link)
+        for link in [
+            "http://scatterci.github.io/pydata/pandas",
+            "http://specs.frictionlessdata.io/json-table-schema/",
+            "https://cloud.google.com/bigquery/docs/access-control#roles",
+            "https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query",
+            "https://crates.io/crates/calamine",
+            "https://devguide.python.org/setup/#macos",
+            "https://en.wikipedia.org/wiki/Imputation_statistics",
+            "https://en.wikipedia.org/wiki/Imputation_(statistics",
+            "https://github.com/noatamir/pandas-dev",
+            "https://github.com/pandas-dev/pandas/blob/main/pandas/plotting/__init__.py#L1",
+            "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/generic.py#L568",
+            "https://github.com/pandas-dev/pandas/blob/v0.20.2/pandas/core/frame.py#L1495",
+            "https://github.com/pandas-dev/pandas/issues/174151",
+            "https://gitpod.io/#https://github.com/USERNAME/pandas",
+            "https://manishamde.github.io/blog/2013/03/07/pandas-and-python-top-10/",
+            "https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.table",
+            "https://nipunbatra.github.io/blog/visualisation/2013/05/01/aggregation-timeseries.html",
+            "https://nbviewer.ipython.org/gist/metakermit/5720498",
+            "https://numpy.org/doc/stable/user/basics.byteswapping.html",
+            "https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-8-0",
+            "https://pandas.pydata.org/pandas-docs/stable/io.html#io-chunking",
+            "https://pandas.pydata.org/pandas-docs/stable/ecosystem.html",
+            "https://sqlalchemy.readthedocs.io/en/latest/dialects/index.html",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245912.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000214639.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002283942.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a000245965.htm",
+            "https://support.sas.com/documentation/cdl/en/imlug/66845/HTML/default/viewer.htm#imlug_langref_sect455.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002284668.htm",
+            "https://support.sas.com/documentation/cdl/en/lrdict/64316/HTML/default/viewer.htm#a002978282.htm",
+            "https://wesmckinney.com/blog/update-on-upcoming-pandas-v0-10-new-file-parser-other-performance-wins/",
+            "https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022",
+            "pandas.zip",
+        ]
+    ],
+]

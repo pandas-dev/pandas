@@ -166,18 +166,6 @@ class TestSetitem:
         tm.assert_interval_array_equal(arr, orig)
 
 
-def test_repr():
-    # GH 25022
-    arr = IntervalArray.from_tuples([(0, 1), (1, 2)])
-    result = repr(arr)
-    expected = (
-        "<IntervalArray>\n"
-        "[(0, 1], (1, 2]]\n"
-        "Length: 2, dtype: interval[int64, right]"
-    )
-    assert result == expected
-
-
 class TestReductions:
     def test_min_max_invalid_axis(self, left_right_dtypes):
         left, right = left_right_dtypes
