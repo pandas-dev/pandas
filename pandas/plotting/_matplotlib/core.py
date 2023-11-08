@@ -13,11 +13,13 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    cast,
     final,
 )
 import warnings
 
 import matplotlib as mpl
+from matplotlib.axes import Axes
 import numpy as np
 
 from pandas.errors import AbstractMethodError
@@ -81,7 +83,6 @@ from pandas.plotting._matplotlib.tools import (
 
 if TYPE_CHECKING:
     from matplotlib.artist import Artist
-    from matplotlib.axes import Axes
     from matplotlib.axis import Axis
     from matplotlib.figure import Figure
 
@@ -563,7 +564,8 @@ class MPLPlot(ABC):
         elif self.logy == "sym" or self.loglog == "sym":
             [a.set_yscale("symlog") for a in axes]
 
-        return axes, fig
+        axes_seq = cast(Sequence[Axes], axes)
+        return axes_seq, fig
 
     @property
     def result(self):
