@@ -10,6 +10,7 @@ import warnings
 from matplotlib.artist import setp
 import numpy as np
 
+from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import is_dict_like
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
     from collections.abc import Collection
 
     from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
     from matplotlib.lines import Line2D
 
     from pandas._typing import MatplotlibColor
@@ -80,7 +82,6 @@ class BoxPlot(LinePlot):
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
 
-    def _args_adjust(self) -> None:
         if self.subplots:
             # Disable label ax sharing. Otherwise, all subplots shows last
             # column label
@@ -132,15 +133,29 @@ class BoxPlot(LinePlot):
         else:
             self.color = None
 
+    @cache_readonly
+    def _color_attrs(self):
         # get standard colors for default
-        colors = get_standard_colors(num_colors=3, colormap=self.colormap, color=None)
         # use 2 colors by default, for box/whisker and median
         # flier colors isn't needed here
         # because it can be specified by ``sym`` kw
-        self._boxes_c = colors[0]
-        self._whiskers_c = colors[0]
-        self._medians_c = colors[2]
-        self._caps_c = colors[0]
+        return get_standard_colors(num_colors=3, colormap=self.colormap, color=None)
+
+    @cache_readonly
+    def _boxes_c(self):
+        return self._color_attrs[0]
+
+    @cache_readonly
+    def _whiskers_c(self):
+        return self._color_attrs[0]
+
+    @cache_readonly
+    def _medians_c(self):
+        return self._color_attrs[2]
+
+    @cache_readonly
+    def _caps_c(self):
+        return self._color_attrs[0]
 
     def _get_colors(
         self,
@@ -177,7 +192,7 @@ class BoxPlot(LinePlot):
         if not self.kwds.get("capprops"):
             setp(bp["caps"], color=caps, alpha=1)
 
-    def _make_plot(self) -> None:
+    def _make_plot(self, fig: Figure) -> None:
         if self.subplots:
             self._return_obj = pd.Series(dtype=object)
 

@@ -1202,6 +1202,14 @@ class TestToDatetime:
         expected = np.datetime64("9999-01-01")
         assert result == expected
 
+    def test_out_of_bounds_errors_ignore2(self):
+        # GH#12424
+        msg = "errors='ignore' is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            res = to_datetime(Series(["2362-01-01", np.nan]), errors="ignore")
+        exp = Series(["2362-01-01", np.nan], dtype=object)
+        tm.assert_series_equal(res, exp)
+
     def test_to_datetime_tz(self, cache):
         # xref 8260
         # uniform returns a DatetimeIndex
@@ -2038,7 +2046,6 @@ class TestToDatetimeUnit:
         expected = DatetimeIndex(["1970-01-01 00:00:01"], tz="UTC")
         tm.assert_index_equal(result, expected)
 
-    # TODO: this is moved from tests.series.test_timeseries, may be redundant
     @pytest.mark.parametrize("dtype", [int, float])
     def test_to_datetime_unit(self, dtype):
         epoch = 1370745748

@@ -140,7 +140,7 @@ class TestAtAndiAT:
         df = DataFrame(arr, columns=["A", "A"])
 
         result = df.at[0, "A"]
-        expected = df.iloc[0]
+        expected = df.iloc[0].copy()
 
         tm.assert_series_equal(result, expected)
 

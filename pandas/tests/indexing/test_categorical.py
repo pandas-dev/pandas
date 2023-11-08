@@ -91,7 +91,7 @@ class TestCategoricalIndex:
         )
         tm.assert_frame_equal(df3, expected3)
 
-        # Settig a new row _and_ new column
+        # Setting a new row _and_ new column
         df4 = df.copy()
         df4.loc["d", "C"] = 10
         expected3 = DataFrame(
