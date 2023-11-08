@@ -27,9 +27,6 @@ class TestDataFrameReindexLike:
         result = df.reindex_like(df, method=method, tolerance=[0, 0, 0, 0])
         tm.assert_frame_equal(df, result)
 
-    @pytest.mark.filterwarnings(
-        "ignore:Passing a BlockManager|Passing a SingleBlockManager:DeprecationWarning"
-    )
     def test_reindex_like_subclass(self):
         # https://github.com/pandas-dev/pandas/issues/31925
         class MyDataFrame(DataFrame):
