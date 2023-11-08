@@ -138,11 +138,10 @@ class TestDatetimeArray(base.ExtensionTests):
 
         else:
             return super().check_reduce(ser, op_name, skipna)
-        
+
     @pytest.mark.skip("DatetimeArray uses a different function signature for round")
     def test_round(self):
         pass
-
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):
