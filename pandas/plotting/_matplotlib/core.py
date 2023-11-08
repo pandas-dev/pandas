@@ -1667,6 +1667,7 @@ class BarPlot(MPLPlot):
         self,
         data,
         *,
+        align="center",
         bottom=0,
         left=0,
         width=0.5,
@@ -1678,8 +1679,7 @@ class BarPlot(MPLPlot):
         # 1-column DataFrame w.r.t. color handling
         self._is_series = isinstance(data, ABCSeries)
         self.bar_width = width
-        kwargs.setdefault("align", "center")
-        self._align = kwargs["align"]
+        self._align = align
         self._position = position
         self.tick_pos = np.arange(len(data))
 
@@ -1770,6 +1770,7 @@ class BarPlot(MPLPlot):
                 start = 1
             start = start + self._start_base
 
+            kwds["align"] = self._align
             if self.subplots:
                 w = self.bar_width / 2
                 rect = self._plot(
