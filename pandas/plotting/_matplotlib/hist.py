@@ -96,7 +96,7 @@ class HistPlot(LinePlot):
     @classmethod
     def _plot(  # type: ignore[override]
         cls,
-        ax,
+        ax: Axes,
         y,
         style=None,
         bottom: int | np.ndarray = 0,
@@ -233,9 +233,10 @@ class KdePlot(HistPlot):
         return ind
 
     @classmethod
-    def _plot(
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
+    def _plot(  #  type: ignore[override]
         cls,
-        ax,
+        ax: Axes,
         y,
         style=None,
         bw_method=None,
