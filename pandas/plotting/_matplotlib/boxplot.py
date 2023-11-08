@@ -93,7 +93,7 @@ class BoxPlot(LinePlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax, y, column_num=None, return_type: str = "axes", **kwds
+        cls, ax: Axes, y, column_num=None, return_type: str = "axes", **kwds
     ):
         if y.ndim == 2:
             y = [remove_na_arraylike(v) for v in y]
