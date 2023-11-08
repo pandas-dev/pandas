@@ -238,7 +238,7 @@ Deprecate aliases ``M``, ``Q``, and ``Y`` in favour of ``ME``, ``QE``, and ``YE`
 Deprecated the following frequency aliases (:issue:`9586`):
 
 - ``M`` (month end) has been renamed ``ME`` for offsets
-- ``Q`` (year end) has been renamed ``QE`` for offsets
+- ``Q`` (quarter end) has been renamed ``QE`` for offsets
 - ``Y`` (year end) has been renamed ``YE`` for offsets
 
 For example:
