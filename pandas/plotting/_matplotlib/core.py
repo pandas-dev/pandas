@@ -640,11 +640,7 @@ class MPLPlot(ABC):
 
         numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
-        try:
-            is_empty = numeric_data.columns.empty
-        except AttributeError:
-            is_empty = not len(numeric_data)
-
+        is_empty = numeric_data.shape[-1] == 0
         # no non-numeric frames or series allowed
         if is_empty:
             raise TypeError("no numeric data to plot")
