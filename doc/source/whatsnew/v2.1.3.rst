@@ -22,7 +22,7 @@ Fixed regressions
 Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`DatetimeIndex.diff` raising ``TypeError`` (:issue:`55080`)
--
+- Bug in :meth:`Index.isin` raising for Arrow backed string and ``None`` value (:issue:`55821`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_213.other:

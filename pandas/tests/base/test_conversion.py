@@ -141,35 +141,41 @@ class TestToIterable:
         result = method(i)[0]
         assert isinstance(result, Timestamp)
 
-    def test_iter_box(self):
+    def test_iter_box_dt64(self, unit):
         vals = [Timestamp("2011-01-01"), Timestamp("2011-01-02")]
-        s = Series(vals)
-        assert s.dtype == "datetime64[ns]"
-        for res, exp in zip(s, vals):
+        ser = Series(vals).dt.as_unit(unit)
+        assert ser.dtype == f"datetime64[{unit}]"
+        for res, exp in zip(ser, vals):
             assert isinstance(res, Timestamp)
             assert res.tz is None
             assert res == exp
+            assert res.unit == unit
 
+    def test_iter_box_dt64tz(self, unit):
         vals = [
             Timestamp("2011-01-01", tz="US/Eastern"),
             Timestamp("2011-01-02", tz="US/Eastern"),
         ]
-        s = Series(vals)
+        ser = Series(vals).dt.as_unit(unit)
 
-        assert s.dtype == "datetime64[ns, US/Eastern]"
-        for res, exp in zip(s, vals):
+        assert ser.dtype == f"datetime64[{unit}, US/Eastern]"
+        for res, exp in zip(ser, vals):
             assert isinstance(res, Timestamp)
             assert res.tz == exp.tz
             assert res == exp
+            assert res.unit == unit
 
+    def test_iter_box_timedelta64(self, unit):
         # timedelta
         vals = [Timedelta("1 days"), Timedelta("2 days")]
-        s = Series(vals)
-        assert s.dtype == "timedelta64[ns]"
-        for res, exp in zip(s, vals):
+        ser = Series(vals).dt.as_unit(unit)
+        assert ser.dtype == f"timedelta64[{unit}]"
+        for res, exp in zip(ser, vals):
             assert isinstance(res, Timedelta)
             assert res == exp
+            assert res.unit == unit
 
+    def test_iter_box_period(self):
         # period
         vals = [pd.Period("2011-01-01", freq="M"), pd.Period("2011-01-02", freq="M")]
         s = Series(vals)
@@ -370,7 +376,7 @@ def test_to_numpy_copy(arr, as_series):
 
 
 @pytest.mark.parametrize("as_series", [True, False])
-def test_to_numpy_dtype(as_series):
+def test_to_numpy_dtype(as_series, unit):
     tz = "US/Eastern"
     obj = pd.DatetimeIndex(["2000", "2001"], tz=tz)
     if as_series:

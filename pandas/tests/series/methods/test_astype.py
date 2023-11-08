@@ -220,8 +220,8 @@ class TestAstype:
         )
         tm.assert_series_equal(result, expected)
 
-    def test_astype_datetime(self):
-        ser = Series(iNaT, dtype="M8[ns]", index=range(5))
+    def test_astype_datetime(self, unit):
+        ser = Series(iNaT, dtype=f"M8[{unit}]", index=range(5))
 
         ser = ser.astype("O")
         assert ser.dtype == np.object_
@@ -231,10 +231,12 @@ class TestAstype:
         ser = ser.astype("O")
         assert ser.dtype == np.object_
 
-        ser = Series([datetime(2001, 1, 2, 0, 0) for i in range(3)])
+        ser = Series(
+            [datetime(2001, 1, 2, 0, 0) for i in range(3)], dtype=f"M8[{unit}]"
+        )
 
         ser[1] = np.nan
-        assert ser.dtype == "M8[ns]"
+        assert ser.dtype == f"M8[{unit}]"
 
         ser = ser.astype("O")
         assert ser.dtype == np.object_

@@ -20,6 +20,12 @@ import pandas._testing as tm
 
 
 class TestDatetimeIndex:
+    def test_is_(self):
+        dti = date_range(start="1/1/2005", end="12/1/2005", freq="ME")
+        assert dti.is_(dti)
+        assert dti.is_(dti.view())
+        assert not dti.is_(dti.copy())
+
     def test_time_overflow_for_32bit_machines(self):
         # GH8943.  On some machines NumPy defaults to np.int32 (for example,
         # 32-bit Linux machines).  In the function _generate_regular_range
