@@ -788,6 +788,9 @@ class TestSubclassWithoutConstructor:
         expected = DataFrame({"a": [1, 2, 3]})
         result = SimpleDataFrameSubClass(expected).copy()
 
+        assert (
+            type(result) is DataFrame
+        )  # assert_frame_equal only checks isinstance(lhs, type(rhs))
         tm.assert_frame_equal(result, expected)
 
     def test_copy_series(self):
@@ -800,4 +803,4 @@ class TestSubclassWithoutConstructor:
         df = SimpleDataFrameSubClass(DataFrame({"a": [1, 2, 3]}))
 
         for _, v in df.groupby("a"):
-            assert isinstance(v, DataFrame)
+            assert type(v) is DataFrame
