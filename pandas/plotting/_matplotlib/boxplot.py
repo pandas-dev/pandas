@@ -10,6 +10,7 @@ import warnings
 from matplotlib.artist import setp
 import numpy as np
 
+from pandas._libs import lib
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -113,26 +114,26 @@ class BoxPlot(LinePlot):
         else:
             return ax, bp
 
-    def _validate_color_args(self):
-        if "color" in self.kwds:
-            if self.colormap is not None:
-                warnings.warn(
-                    "'color' and 'colormap' cannot be used "
-                    "simultaneously. Using 'color'",
-                    stacklevel=find_stack_level(),
-                )
-            self.color = self.kwds.pop("color")
+    def _validate_color_args(self, color, colormap):
+        if color is lib.no_default:
+            return None
 
-            if isinstance(self.color, dict):
-                valid_keys = ["boxes", "whiskers", "medians", "caps"]
-                for key in self.color:
-                    if key not in valid_keys:
-                        raise ValueError(
-                            f"color dict contains invalid key '{key}'. "
-                            f"The key must be either {valid_keys}"
-                        )
-        else:
-            self.color = None
+        if colormap is not None:
+            warnings.warn(
+                "'color' and 'colormap' cannot be used "
+                "simultaneously. Using 'color'",
+                stacklevel=find_stack_level(),
+            )
+
+        if isinstance(color, dict):
+            valid_keys = ["boxes", "whiskers", "medians", "caps"]
+            for key in color:
+                if key not in valid_keys:
+                    raise ValueError(
+                        f"color dict contains invalid key '{key}'. "
+                        f"The key must be either {valid_keys}"
+                    )
+        return color
 
     @cache_readonly
     def _color_attrs(self):
