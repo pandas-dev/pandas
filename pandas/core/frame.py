@@ -8858,23 +8858,26 @@ class DataFrame(NDFrame, OpsMixin):
         if not isinstance(other, DataFrame):
             other = DataFrame(other)
 
-        indexes_intersection = other.index.intersection(self.index) # order is important
+        indexes_intersection = other.index.intersection(
+            self.index
+        )  # order is important
         if not len(indexes_intersection):
             raise ValueError(
-                "Can't update dataframe when other has no index in common with this dataframe."
+                "Can't update dataframe when other has no index in common with "
+                "this dataframe."
             )
-        
+
         if other.index.is_unique:
             indexes_this = indexes_intersection
             if self.index.is_unique:
                 indexes_that = indexes_intersection
-            else:            
-                full_indexes_this = self.index.take(self.index.get_indexer_for(indexes_intersection))
+            else:
+                full_indexes_this = self.index.take(
+                    self.index.get_indexer_for(indexes_intersection)
+                )
                 indexes_that = indexes_intersection.reindex(full_indexes_this)[0]
-        else:        
-            raise ValueError(
-                "Update not allowed with duplicate indexes on other."
-            )
+        else:
+            raise ValueError("Update not allowed with duplicate indexes on other.")
 
         for col in self.columns.intersection(other.columns):
             this = self.loc[indexes_this, col]._values
