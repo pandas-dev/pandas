@@ -1322,29 +1322,7 @@ class ScatterPlot(PlanePlot):
         else:
             c_values = c
 
-        if self.colormap is not None:
-            cmap = mpl.colormaps.get_cmap(self.colormap)
-        # cmap is only used if c_values are integers, otherwise UserWarning.
-        # GH-53908: additionally call isinstance() because is_integer_dtype
-        # returns True for "b" (meaning "blue" and not int8 in this context)
-        elif not isinstance(c_values, str) and is_integer_dtype(c_values):
-            # pandas uses colormap, matplotlib uses cmap.
-            cmap = mpl.colormaps["Greys"]
-        else:
-            cmap = None
-
-        if color_by_categorical:
-            from matplotlib import colors
-
-            n_cats = len(self.data[c].cat.categories)
-            cmap = colors.ListedColormap([cmap(i) for i in range(cmap.N)])
-            bounds = np.linspace(0, n_cats, n_cats + 1)
-            norm = colors.BoundaryNorm(bounds, cmap.N)
-            assert "norm" not in self.kwds
-        else:
-            # TODO: warn if norm is passed and we are silently ignoring it?
-            norm = self.norm
-
+        norm, cmap = self._get_norm_and_cmap(c_values, color_by_categorical)
         cb = self._get_colorbar(c_values, c_is_column)
 
         if self.legend and hasattr(self, "label"):
@@ -1365,6 +1343,7 @@ class ScatterPlot(PlanePlot):
             cbar_label = c if c_is_column else ""
             cbar = self._plot_colorbar(ax, fig=fig, label=cbar_label)
             if color_by_categorical:
+                n_cats = len(self.data[c].cat.categories)
                 cbar.set_ticks(np.linspace(0.5, n_cats - 0.5, n_cats))
                 cbar.ax.set_yticklabels(self.data[c].cat.categories)
 
@@ -1379,6 +1358,32 @@ class ScatterPlot(PlanePlot):
             err_kwds = dict(errors_x, **errors_y)
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values, linestyle="none", **err_kwds)
+
+    def _get_norm_and_cmap(self, c_values, color_by_categorical: bool):
+        c = self.c
+        if self.colormap is not None:
+            cmap = mpl.colormaps.get_cmap(self.colormap)
+        # cmap is only used if c_values are integers, otherwise UserWarning.
+        # GH-53908: additionally call isinstance() because is_integer_dtype
+        # returns True for "b" (meaning "blue" and not int8 in this context)
+        elif not isinstance(c_values, str) and is_integer_dtype(c_values):
+            # pandas uses colormap, matplotlib uses cmap.
+            cmap = mpl.colormaps["Greys"]
+        else:
+            cmap = None
+
+        if color_by_categorical:
+            from matplotlib import colors
+
+            n_cats = len(self.data[c].cat.categories)
+            cmap = colors.ListedColormap([cmap(i) for i in range(cmap.N)])
+            bounds = np.linspace(0, n_cats, n_cats + 1)
+            norm = colors.BoundaryNorm(bounds, cmap.N)
+            # TODO: warn that we are ignoring self.norm if user specified it?
+            #  Doesn't happen in any tests 2023-11-09
+        else:
+            norm = self.norm
+        return norm, cmap
 
     def _get_colorbar(self, c_values, c_is_column: bool) -> bool:
         # plot colorbar if
