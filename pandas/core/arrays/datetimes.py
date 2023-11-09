@@ -603,7 +603,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):  # type: ignore[misc]
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.tz
         datetime.timezone.utc
 
@@ -1045,7 +1045,7 @@ default 'raise'
         4   2018-10-28 02:30:00+01:00
         5   2018-10-28 03:00:00+01:00
         6   2018-10-28 03:30:00+01:00
-        dtype: datetime64[ns, CET]
+        dtype: datetime64[s, CET]
 
         In some cases, inferring the DST is impossible. In such cases, you can
         pass an ndarray to the ambiguous parameter to set the DST explicitly
@@ -1057,7 +1057,7 @@ default 'raise'
         0   2018-10-28 01:20:00+02:00
         1   2018-10-28 02:36:00+02:00
         2   2018-10-28 03:46:00+01:00
-        dtype: datetime64[ns, CET]
+        dtype: datetime64[s, CET]
 
         If the DST transition causes nonexistent times, you can shift these
         dates forward or backwards with a timedelta object or `'shift_forward'`
@@ -1068,17 +1068,17 @@ default 'raise'
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_forward')
         0   2015-03-29 03:00:00+02:00
         1   2015-03-29 03:30:00+02:00
-        dtype: datetime64[ns, Europe/Warsaw]
+        dtype: datetime64[s, Europe/Warsaw]
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent='shift_backward')
         0   2015-03-29 01:59:59.999999999+01:00
         1   2015-03-29 03:30:00+02:00
-        dtype: datetime64[ns, Europe/Warsaw]
+        dtype: datetime64[s, Europe/Warsaw]
 
         >>> s.dt.tz_localize('Europe/Warsaw', nonexistent=pd.Timedelta('1h'))
         0   2015-03-29 03:30:00+02:00
         1   2015-03-29 03:30:00+02:00
-        dtype: datetime64[ns, Europe/Warsaw]
+        dtype: datetime64[s, Europe/Warsaw]
         """
         nonexistent_options = ("raise", "NaT", "shift_forward", "shift_backward")
         if nonexistent not in nonexistent_options and not isinstance(
@@ -1402,7 +1402,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.time
         0    10:00:00
         1    11:00:00
@@ -1439,7 +1439,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.timetz
         0    10:00:00+00:00
         1    11:00:00+00:00
@@ -1473,7 +1473,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.date
         0    2020-01-01
         1    2020-02-01
@@ -1774,7 +1774,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.dayofyear
         0    1
         1   32
@@ -1804,7 +1804,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-04-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.quarter
         0    1
         1    2
@@ -1831,7 +1831,7 @@ default 'raise'
         >>> s
         0   2020-01-01 10:00:00+00:00
         1   2020-02-01 11:00:00+00:00
-        dtype: datetime64[ns, UTC]
+        dtype: datetime64[s, UTC]
         >>> s.dt.daysinmonth
         0    31
         1    29
@@ -2246,9 +2246,11 @@ def _sequence_to_dt64(
     data, copy = maybe_convert_dtype(data, copy, tz=tz)
     data_dtype = getattr(data, "dtype", None)
 
-    if out_unit is None:
-        out_unit = "ns"
-    out_dtype = np.dtype(f"M8[{out_unit}]")
+    out_dtype = DT64NS_DTYPE
+    out_reso = abbrev_to_npy_unit(None)  # NPY_FR_GENERIC
+    if out_unit is not None:
+        out_dtype = np.dtype(f"M8[{out_unit}]")
+        out_reso = abbrev_to_npy_unit(out_unit)
 
     if data_dtype == object or is_string_dtype(data_dtype):
         # TODO: We do not have tests specific to string-dtypes,
@@ -2274,7 +2276,7 @@ def _sequence_to_dt64(
                 dayfirst=dayfirst,
                 yearfirst=yearfirst,
                 allow_object=False,
-                out_unit=out_unit or "ns",
+                out_reso=out_reso,
             )
             copy = False
             if tz and inferred_tz:
@@ -2382,7 +2384,7 @@ def objects_to_datetime64(
     utc: bool = False,
     errors: DateTimeErrorChoices = "raise",
     allow_object: bool = False,
-    out_unit: str = "ns",
+    out_reso: int = 14,
 ) -> tuple[np.ndarray, tzinfo | None]:
     """
     Convert data to array of timestamps.
@@ -2398,7 +2400,9 @@ def objects_to_datetime64(
     allow_object : bool
         Whether to return an object-dtype ndarray instead of raising if the
         data contains more than one timezone.
-    out_unit : str, default "ns"
+    out_reso : int, default 14
+        14 corresponds to NPY_FR_GENERIC, which indicates to infer
+        a resolution.
 
     Returns
     -------
@@ -2425,7 +2429,7 @@ def objects_to_datetime64(
         utc=utc,
         dayfirst=dayfirst,
         yearfirst=yearfirst,
-        creso=abbrev_to_npy_unit(out_unit),
+        creso=out_reso,
     )
 
     if tz_parsed is not None:

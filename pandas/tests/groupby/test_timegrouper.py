@@ -46,6 +46,7 @@ def frame_for_truncated_bingrouper():
             ],
         }
     )
+    df["Date"] = df["Date"].astype("M8[ns]")
     return df
 
 
@@ -91,6 +92,7 @@ class TestGroupBy:
                 ],
             }
         )
+        df_original["Date"] = df_original["Date"].astype("M8[ns]")
 
         # GH 6908 change target column's order
         df_reordered = df_original.sort_values(by="Quantity")
@@ -181,6 +183,7 @@ class TestGroupBy:
                 ],
             }
         ).set_index("Date")
+        df_original.index = df_original.index.as_unit("ns")
 
         df_sorted = df_original.sort_values(by="Quantity", ascending=False)
 
@@ -195,7 +198,9 @@ class TestGroupBy:
                         datetime(2013, 12, 31, 0, 0),
                     ],
                 }
-            ).set_index(["Date", "Buyer"])
+            )
+            expected["Date"] = expected["Date"].astype("M8[ns]")
+            expected = expected.set_index(["Date", "Buyer"])
 
             msg = "The default value of numeric_only"
             result = df.groupby([Grouper(freq="YE"), "Buyer"]).sum(numeric_only=True)
@@ -212,7 +217,9 @@ class TestGroupBy:
                         datetime(2013, 7, 1, 0, 0),
                     ],
                 }
-            ).set_index(["Date", "Buyer"])
+            )
+            expected["Date"] = expected["Date"].astype("M8[ns]")
+            expected = expected.set_index(["Date", "Buyer"])
             result = df.groupby([Grouper(freq="6MS"), "Buyer"]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
@@ -232,7 +239,9 @@ class TestGroupBy:
                     datetime(2013, 10, 2, 14, 0),
                 ],
             }
-        ).set_index("Date")
+        )
+        df_original["Date"] = df_original["Date"].astype("M8[ns]")
+        df_original = df_original.set_index("Date")
 
         df_sorted = df_original.sort_values(by="Quantity", ascending=False)
         for df in [df_original, df_sorted]:
@@ -248,7 +257,9 @@ class TestGroupBy:
                         datetime(2013, 10, 2, 0, 0),
                     ],
                 }
-            ).set_index(["Date", "Buyer"])
+            )
+            expected["Date"] = expected["Date"].astype("M8[ns]")
+            expected = expected.set_index(["Date", "Buyer"])
 
             result = df.groupby([Grouper(freq="1D"), "Buyer"]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
@@ -264,7 +275,9 @@ class TestGroupBy:
                         datetime(2013, 10, 31, 0, 0),
                     ],
                 }
-            ).set_index(["Date", "Buyer"])
+            )
+            expected["Date"] = expected["Date"].astype("M8[ns]")
+            expected = expected.set_index(["Date", "Buyer"])
             tm.assert_frame_equal(result, expected)
 
             # passing the name
@@ -307,7 +320,9 @@ class TestGroupBy:
                         datetime(2013, 11, 30, 0, 0),
                     ],
                 }
-            ).set_index(["Date", "Buyer"])
+            )
+            expected["Date"] = expected["Date"].astype("M8[ns]")
+            expected = expected.set_index(["Date", "Buyer"])
             tm.assert_frame_equal(result, expected)
 
             # error as we have both a level and a name!
@@ -323,7 +338,7 @@ class TestGroupBy:
                 columns=["Quantity"],
                 index=DatetimeIndex(
                     [datetime(2013, 10, 31, 0, 0)], freq=offsets.MonthEnd(), name="Date"
-                ),
+                ).as_unit("ns"),
             )
             result = df.groupby(Grouper(freq="1ME")).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
@@ -572,7 +587,7 @@ class TestGroupBy:
             ],
             tz="US/Pacific",
             name="datetime",
-        )
+        ).as_unit("s")
         exp_idx2 = Index(["a", "b"] * 3, name="label")
         exp_idx = MultiIndex.from_arrays([exp_idx1, exp_idx2])
         expected = DataFrame(

@@ -127,6 +127,7 @@ def test_separator_date_conflict(all_parsers):
     expected = DataFrame(
         [[datetime(2013, 6, 2, 13, 0, 0), 1000.215]], columns=["Date", 2]
     )
+    expected["Date"] = expected["Date"].astype("M8[s]")
 
     depr_msg = (
         "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
@@ -442,6 +443,8 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
             "X8",
         ],
     )
+    expected["X1_X2"] = expected["X1_X2"].astype("M8[s]")
+    expected["X1_X3"] = expected["X1_X3"].astype("M8[s]")
 
     if not keep_date_col:
         expected = expected.drop(["X1", "X2", "X3"], axis=1)
@@ -475,7 +478,7 @@ KORD,19990127 22:00:00, 21:56:00, -0.5900, 1.7100, 5.1000, 0.0000, 290.0000
             datetime(1999, 1, 27, 22, 0),
         ],
         name="X1",
-    )
+    ).as_unit("s")
     expected = DataFrame(
         [
             ["KORD", " 18:56:00", 0.81, 2.81, 7.2, 0.0, 280.0],
@@ -551,6 +554,8 @@ def test_multiple_date_cols_int_cast(all_parsers):
         ],
         columns=["actual", "nominal", 0, 4],
     )
+    expected["actual"] = expected["actual"].astype("M8[s]")
+    expected["nominal"] = expected["nominal"].astype("M8[s]")
 
     # Python can sometimes be flaky about how
     # the aggregated columns are entered, so
@@ -692,6 +697,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000"""
             "WindDir",
         ],
     )
+    expected["nominal"] = expected["nominal"].astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -752,6 +758,9 @@ def test_date_parser_int_bug(all_parsers):
         ),
         raise_on_extra_warnings=False,
     )
+    dti = Index([Timestamp("2012-07-24 04:12:30")], name="posix_timestamp").as_unit(
+        "us"
+    )
     expected = DataFrame(
         [
             [
@@ -783,7 +792,7 @@ def test_date_parser_int_bug(all_parsers):
             "silo",
             "method",
         ],
-        index=Index([Timestamp("2012-07-24 04:12:30")], name="posix_timestamp"),
+        index=dti,
     )
     tm.assert_frame_equal(result, expected)
 
@@ -795,7 +804,7 @@ def test_nat_parse(all_parsers):
     df = DataFrame(
         {
             "A": np.arange(10, dtype="float64"),
-            "B": Timestamp("20010101").as_unit("ns"),
+            "B": Timestamp("20010101"),
         }
     )
     df.iloc[3:6, :] = np.nan
@@ -822,8 +831,10 @@ def test_csv_custom_parser(all_parsers):
         date_parser=lambda x: datetime.strptime(x, "%Y%m%d"),
     )
     expected = parser.read_csv(StringIO(data), parse_dates=True)
+    expected.index = expected.index.as_unit("us")
     tm.assert_frame_equal(result, expected)
     result = parser.read_csv(StringIO(data), date_format="%Y%m%d")
+    expected.index = expected.index.as_unit("s")
     tm.assert_frame_equal(result, expected)
 
 
@@ -851,7 +862,7 @@ def test_parse_dates_string(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), index_col="date", parse_dates=["date"])
     # freq doesn't round-trip
-    index = date_range("1/1/2009", periods=3, name="date")._with_freq(None)
+    index = date_range("1/1/2009", periods=3, name="date", unit="s")._with_freq(None)
 
     expected = DataFrame(
         {"A": ["a", "b", "c"], "B": [1, 3, 4], "C": [2, 4, 5]}, index=index
@@ -899,6 +910,8 @@ def test_parse_dates_column_list(all_parsers, parse_dates):
     expected = DataFrame(
         {"a": [datetime(2010, 1, 1)], "b": [1], "c": [datetime(2010, 2, 15)]}
     )
+    expected["a"] = expected["a"].astype("M8[s]")
+    expected["c"] = expected["c"].astype("M8[s]")
     expected = expected.set_index(["a", "b"])
 
     result = parser.read_csv(
@@ -922,9 +935,10 @@ def test_multi_index_parse_dates(all_parsers, index_col):
 20090103,three,c,4,5
 """
     parser = all_parsers
+    dti = date_range("2009-01-01", periods=3, freq="D", unit="s")
     index = MultiIndex.from_product(
         [
-            (datetime(2009, 1, 1), datetime(2009, 1, 2), datetime(2009, 1, 3)),
+            dti,
             ("one", "two", "three"),
         ],
         names=["index1", "index2"],
@@ -1012,9 +1026,6 @@ def test_parse_tz_aware(all_parsers):
     data = "Date,x\n2012-06-13T01:39:00Z,0.5"
 
     result = parser.read_csv(StringIO(data), index_col=0, parse_dates=True)
-    # TODO: make unit check more specific
-    if parser.engine == "pyarrow":
-        result.index = result.index.as_unit("ns")
     expected = DataFrame(
         {"x": [0.5]}, index=Index([Timestamp("2012-06-13 01:39:00+00:00")], name="Date")
     )
@@ -1117,6 +1128,7 @@ KORD6,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         ],
     )
     expected = expected.set_index("nominal")
+    expected.index = expected.index.as_unit("s")
 
     if not isinstance(parse_dates, dict):
         expected.index.name = "date_NominalTime"
@@ -1212,6 +1224,7 @@ KORD,19990127, 23:00:00, 22:56:00, -0.5900, 1.7100, 4.6000, 0.0000, 280.0000
         columns=["nominal", "ID", "actualTime", "A", "B", "C", "D", "E"],
     )
     expected = expected.set_index("nominal")
+    expected.index = expected.index.as_unit("s")
 
     depr_msg = (
         "Support for nested sequences for 'parse_dates' in pd.read_csv is deprecated"
@@ -1380,6 +1393,7 @@ def test_parse_dates_empty_string(all_parsers):
     expected = DataFrame(
         [[datetime(2012, 1, 1), 1], [pd.NaT, 2]], columns=["Date", "test"]
     )
+    expected["Date"] = expected["Date"].astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -1429,18 +1443,22 @@ def test_parse_dates_date_parser_and_date_format(all_parsers, reader):
         (
             "a\n04.15.2016",
             {"parse_dates": ["a"]},
-            DataFrame([datetime(2016, 4, 15)], columns=["a"]),
+            DataFrame([datetime(2016, 4, 15)], columns=["a"], dtype="M8[s]"),
         ),
         (
             "a\n04.15.2016",
             {"parse_dates": True, "index_col": 0},
-            DataFrame(index=DatetimeIndex(["2016-04-15"], name="a"), columns=[]),
+            DataFrame(
+                index=DatetimeIndex(["2016-04-15"], dtype="M8[s]", name="a"), columns=[]
+            ),
         ),
         (
             "a,b\n04.15.2016,09.16.2013",
             {"parse_dates": ["a", "b"]},
             DataFrame(
-                [[datetime(2016, 4, 15), datetime(2013, 9, 16)]], columns=["a", "b"]
+                [[datetime(2016, 4, 15), datetime(2013, 9, 16)]],
+                dtype="M8[s]",
+                columns=["a", "b"],
             ),
         ),
         (
@@ -1448,7 +1466,13 @@ def test_parse_dates_date_parser_and_date_format(all_parsers, reader):
             {"parse_dates": True, "index_col": [0, 1]},
             DataFrame(
                 index=MultiIndex.from_tuples(
-                    [(datetime(2016, 4, 15), datetime(2013, 9, 16))], names=["a", "b"]
+                    [
+                        (
+                            Timestamp(2016, 4, 15).as_unit("s"),
+                            Timestamp(2013, 9, 16).as_unit("s"),
+                        )
+                    ],
+                    names=["a", "b"],
                 ),
                 columns=[],
             ),
@@ -1486,6 +1510,7 @@ date, time,a,b
         [datetime(2001, 1, 6, 0, 0, 0), 1.0, 11.0],
     ]
     expected = DataFrame(expected_data, columns=["date_time", ("A", "a"), ("B", "b")])
+    expected["date_time"] = expected["date_time"].astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -1576,6 +1601,11 @@ def test_parse_date_time(all_parsers, data, kwargs, expected):
     # the aggregated columns are entered, so
     # this standardizes the order.
     result = result[expected.columns]
+    if "date_time" in expected.columns:
+        expected["date_time"] = expected["date_time"].astype("M8[s]")
+    else:
+        expected["actual"] = expected["actual"].astype("M8[s]")
+        expected["nominal"] = expected["nominal"].astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -1596,6 +1626,7 @@ def test_parse_date_fields(all_parsers):
         [[datetime(2001, 1, 10), 10.0], [datetime(2001, 2, 1), 11.0]],
         columns=["ymd", "a"],
     )
+    expected["ymd"] = expected["ymd"].astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -1633,6 +1664,7 @@ year,month,day,hour,minute,second,a,b
         ],
         columns=["ymdHMS", "a", "b"],
     )
+    expected["ymdHMS"] = expected["ymdHMS"].astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -1670,6 +1702,7 @@ year,month,day,hour,minute,second,a,b
         ],
         columns=["ymdHMS", "a", "b"],
     )
+    # expected["ymdHMS"] = expected["ymdHMS"].astype("M8[us]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -1693,7 +1726,7 @@ def test_generic(all_parsers):
         [[date(2001, 1, 1), 10, 10.0], [date(2001, 2, 1), 1, 11.0]],
         columns=["ym", "day", "a"],
     )
-    expected["ym"] = expected["ym"].astype("datetime64[ns]")
+    expected["ym"] = expected["ym"].astype("datetime64[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -1789,7 +1822,9 @@ def test_parse_timezone(all_parsers):
         end="2018-01-04 09:05:00",
         freq="1min",
         tz=timezone(timedelta(minutes=540)),
+        unit="s",
     )._with_freq(None)
+
     expected_data = {"dt": dti, "val": [23350, 23400, 23400, 23400, 23400]}
 
     expected = DataFrame(expected_data)
@@ -1827,7 +1862,7 @@ def test_parse_delimited_date_swap_no_warning(
     all_parsers, date_string, dayfirst, expected, request
 ):
     parser = all_parsers
-    expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
+    expected = DataFrame({0: [expected]}, dtype="datetime64[s]")
     if parser.engine == "pyarrow":
         if not dayfirst:
             # "CSV parse error: Empty CSV file or block"
@@ -1860,7 +1895,7 @@ def test_parse_delimited_date_swap_with_warning(
     all_parsers, date_string, dayfirst, expected
 ):
     parser = all_parsers
-    expected = DataFrame({0: [expected]}, dtype="datetime64[ns]")
+    expected = DataFrame({0: [expected]}, dtype="datetime64[s]")
     warning_msg = (
         "Parsing dates in .* format when dayfirst=.* was specified. "
         "Pass `dayfirst=.*` or specify a format to silence this warning."
@@ -1960,9 +1995,7 @@ def test_date_parser_multiindex_columns(all_parsers):
 1,2
 2019-12-31,6"""
     result = parser.read_csv(StringIO(data), parse_dates=[("a", "1")], header=[0, 1])
-    expected = DataFrame(
-        {("a", "1"): Timestamp("2019-12-31").as_unit("ns"), ("b", "2"): [6]}
-    )
+    expected = DataFrame({("a", "1"): Timestamp("2019-12-31"), ("b", "2"): [6]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -2027,6 +2060,7 @@ def test_date_parser_usecols_thousands(all_parsers):
         thousands="-",
     )
     expected = DataFrame({"B": [3, 4], "C": [Timestamp("20-09-2001 01:00:00")] * 2})
+    expected["C"] = expected["C"].astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -2046,7 +2080,7 @@ def test_parse_dates_and_keep_original_column(all_parsers):
             StringIO(data), parse_dates={"date": ["A"]}, keep_date_col=True
         )
     expected_data = [Timestamp("2015-09-08"), Timestamp("2015-09-09")]
-    expected = DataFrame({"date": expected_data, "A": expected_data})
+    expected = DataFrame({"date": expected_data, "A": expected_data}, dtype="M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -2056,7 +2090,7 @@ def test_dayfirst_warnings():
     # CASE 1: valid input
     input = "date\n31/12/2014\n10/03/2011"
     expected = DatetimeIndex(
-        ["2014-12-31", "2011-03-10"], dtype="datetime64[ns]", freq=None, name="date"
+        ["2014-12-31", "2011-03-10"], dtype="datetime64[s]", freq=None, name="date"
     )
     warning_msg = (
         "Parsing dates in .* format when dayfirst=.* was specified. "
@@ -2117,7 +2151,7 @@ def test_dayfirst_warnings_no_leading_zero(date_string, dayfirst):
     # GH47880
     initial_value = f"date\n{date_string}"
     expected = DatetimeIndex(
-        ["2014-01-31"], dtype="datetime64[ns]", freq=None, name="date"
+        ["2014-01-31"], dtype="datetime64[s]", freq=None, name="date"
     )
     warning_msg = (
         "Parsing dates in .* format when dayfirst=.* was specified. "
@@ -2181,7 +2215,8 @@ def test_replace_nans_before_parsing_dates(all_parsers, key, value, warn):
                 pd.NaT,
                 Timestamp("2017-09-09"),
             ]
-        }
+        },
+        dtype="M8[s]",
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2196,6 +2231,7 @@ def test_parse_dates_and_string_dtype(all_parsers):
     result = parser.read_csv(StringIO(data), dtype="string", parse_dates=["b"])
     expected = DataFrame({"a": ["1"], "b": [Timestamp("2019-12-31")]})
     expected["a"] = expected["a"].astype("string")
+    expected["b"] = expected["b"].astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 
@@ -2215,7 +2251,7 @@ def test_parse_dot_separated_dates(all_parsers):
     else:
         expected_index = DatetimeIndex(
             ["2003-03-27 14:55:00", "2003-08-03 15:20:00"],
-            dtype="datetime64[ns]",
+            dtype="datetime64[ms]",
             name="a",
         )
         warn = UserWarning
@@ -2248,7 +2284,8 @@ def test_parse_dates_dict_format(all_parsers):
         {
             "a": [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
             "b": [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
-        }
+        },
+        dtype="M8[s]",
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2275,7 +2312,8 @@ def test_parse_dates_dict_format_two_columns(all_parsers, key, parse_dates):
     expected = DataFrame(
         {
             key: [Timestamp("2019-12-31"), Timestamp("2020-12-31")],
-        }
+        },
+        dtype="M8[s]",
     )
     tm.assert_frame_equal(result, expected)
 
@@ -2308,9 +2346,6 @@ def test_parse_dates_arrow_engine(all_parsers):
 2000-01-01 00:00:01,1"""
 
     result = parser.read_csv(StringIO(data), parse_dates=["a"])
-    # TODO: make unit check more specific
-    if parser.engine == "pyarrow":
-        result["a"] = result["a"].dt.as_unit("ns")
     expected = DataFrame(
         {
             "a": [
@@ -2320,6 +2355,7 @@ def test_parse_dates_arrow_engine(all_parsers):
             "b": 1,
         }
     )
+    expected["a"] = expected["a"].astype("M8[s]")
     tm.assert_frame_equal(result, expected)
 
 

@@ -236,7 +236,7 @@ class TestAstype:
         ser = ser.astype("O")
         assert ser.dtype == np.object_
 
-        ser = Series([datetime(2001, 1, 2, 0, 0)])
+        ser = Series([datetime(2001, 1, 2, 0, 0)], dtype="M8[ns]")
 
         ser = ser.astype("O")
         assert ser.dtype == np.object_

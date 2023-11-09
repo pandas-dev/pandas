@@ -614,7 +614,7 @@ def test_store_index_name_numpy_str(tmp_path, table_format, setup_path, unit, tz
     idx = DatetimeIndex(
         [dt.date(2000, 1, 1), dt.date(2000, 1, 2)],
         name="cols\u05d2",
-    ).tz_localize(tz)
+    ).tz_localize(tz).as_unit(unit)
     idx1 = (
         DatetimeIndex(
             [dt.date(2010, 1, 1), dt.date(2010, 1, 2)],

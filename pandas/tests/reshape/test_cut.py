@@ -438,11 +438,18 @@ def test_datetime_bin(conv):
     data = [np.datetime64("2012-12-13"), np.datetime64("2012-12-15")]
     bin_data = ["2012-12-12", "2012-12-14", "2012-12-16"]
 
+    unit = Timestamp(conv(bin_data[0])).unit
     expected = Series(
         IntervalIndex(
             [
-                Interval(Timestamp(bin_data[0]), Timestamp(bin_data[1])),
-                Interval(Timestamp(bin_data[1]), Timestamp(bin_data[2])),
+                Interval(
+                    Timestamp(bin_data[0]).as_unit(unit),
+                    Timestamp(bin_data[1]).as_unit(unit),
+                ),
+                Interval(
+                    Timestamp(bin_data[1]).as_unit(unit),
+                    Timestamp(bin_data[2]).as_unit(unit),
+                ),
             ]
         )
     ).astype(CategoricalDtype(ordered=True))
@@ -514,10 +521,18 @@ def test_datetime_tz_cut_mismatched_tzawareness(box):
     [
         3,
         [
-            Timestamp("2013-01-01 04:57:07.200000", tz="UTC").tz_convert("US/Eastern"),
-            Timestamp("2013-01-01 21:00:00", tz="UTC").tz_convert("US/Eastern"),
-            Timestamp("2013-01-02 13:00:00", tz="UTC").tz_convert("US/Eastern"),
-            Timestamp("2013-01-03 05:00:00", tz="UTC").tz_convert("US/Eastern"),
+            Timestamp("2013-01-01 04:57:07.200000", tz="UTC")
+            .tz_convert("US/Eastern")
+            .as_unit("ns"),
+            Timestamp("2013-01-01 21:00:00", tz="UTC")
+            .tz_convert("US/Eastern")
+            .as_unit("ns"),
+            Timestamp("2013-01-02 13:00:00", tz="UTC")
+            .tz_convert("US/Eastern")
+            .as_unit("ns"),
+            Timestamp("2013-01-03 05:00:00", tz="UTC")
+            .tz_convert("US/Eastern")
+            .as_unit("ns"),
         ],
     ],
 )
@@ -535,16 +550,16 @@ def test_datetime_tz_cut(bins, box):
         IntervalIndex(
             [
                 Interval(
-                    Timestamp("2012-12-31 23:57:07.200000", tz=tz),
-                    Timestamp("2013-01-01 16:00:00", tz=tz),
+                    Timestamp("2012-12-31 23:57:07.200000", tz=tz).as_unit("ns"),
+                    Timestamp("2013-01-01 16:00:00", tz=tz).as_unit("ns"),
                 ),
                 Interval(
-                    Timestamp("2013-01-01 16:00:00", tz=tz),
-                    Timestamp("2013-01-02 08:00:00", tz=tz),
+                    Timestamp("2013-01-01 16:00:00", tz=tz).as_unit("ns"),
+                    Timestamp("2013-01-02 08:00:00", tz=tz).as_unit("ns"),
                 ),
                 Interval(
-                    Timestamp("2013-01-02 08:00:00", tz=tz),
-                    Timestamp("2013-01-03 00:00:00", tz=tz),
+                    Timestamp("2013-01-02 08:00:00", tz=tz).as_unit("ns"),
+                    Timestamp("2013-01-03 00:00:00", tz=tz).as_unit("ns"),
                 ),
             ]
         )

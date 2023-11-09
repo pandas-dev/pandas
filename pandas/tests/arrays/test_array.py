@@ -292,7 +292,7 @@ cet = pytz.timezone("CET")
         ),
         (
             [datetime.datetime(2000, 1, 1), datetime.datetime(2001, 1, 1)],
-            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[ns]"),
+            DatetimeArray._from_sequence(["2000", "2001"], dtype="M8[us]"),
         ),
         (
             np.array([1, 2], dtype="M8[ns]"),
@@ -308,7 +308,7 @@ cet = pytz.timezone("CET")
         (
             [pd.Timestamp("2000", tz="CET"), pd.Timestamp("2001", tz="CET")],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="ns")
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz="CET", unit="s")
             ),
         ),
         (
@@ -317,7 +317,7 @@ cet = pytz.timezone("CET")
                 datetime.datetime(2001, 1, 1, tzinfo=cet),
             ],
             DatetimeArray._from_sequence(
-                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet, unit="ns")
+                ["2000", "2001"], dtype=pd.DatetimeTZDtype(tz=cet, unit="us")
             ),
         ),
         # timedelta

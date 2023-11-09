@@ -579,6 +579,7 @@ class TestRolling:
             ],
             columns=["index", "group", "eventTime"],
         ).set_index("index")
+        df["eventTime"] = df["eventTime"].astype("M8[ns]")
 
         groups = df.groupby("group")
         df["count_to_date"] = groups.cumcount()
@@ -594,6 +595,7 @@ class TestRolling:
             ],
             columns=["index", "group", "eventTime", "count_to_date"],
         ).set_index(["group", "index"])
+        expected["eventTime"] = expected["eventTime"].astype("M8[ns]")
         tm.assert_frame_equal(result, expected)
 
     def test_groupby_rolling_no_sort(self):
@@ -871,10 +873,10 @@ class TestRolling:
                 ["id", "index"],
                 {
                     "date": [
-                        Timestamp("2018-01-01"),
-                        Timestamp("2018-01-02"),
-                        Timestamp("2018-01-01"),
-                        Timestamp("2018-01-02"),
+                        Timestamp("2018-01-01").as_unit("ns"),
+                        Timestamp("2018-01-02").as_unit("ns"),
+                        Timestamp("2018-01-01").as_unit("ns"),
+                        Timestamp("2018-01-02").as_unit("ns"),
                     ],
                     "num": [100.0, 200.0, 150.0, 250.0],
                 },

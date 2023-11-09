@@ -80,7 +80,7 @@ def test_usecols_with_parse_dates2(all_parsers):
             Timestamp("2008-02-07 10:00"),
         ],
         name="date",
-    )
+    )  # .as_unit("ns")
     cols = {"values": [1032.43, 1042.54, 1051.65]}
     expected = DataFrame(cols, index=index)
 
@@ -105,7 +105,7 @@ def test_usecols_with_parse_dates3(all_parsers):
     parse_dates = [0]
 
     cols = {
-        "a": Timestamp("2016-09-21").as_unit("ns"),
+        "a": Timestamp("2016-09-21"),  # .as_unit("ns"),
         "b": [1],
         "c": [1],
         "d": [2],

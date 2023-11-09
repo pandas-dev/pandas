@@ -165,7 +165,7 @@ def test_frame_map_dont_convert_datetime64():
     df = df.map(lambda x: x + BDay())
 
     result = df.x1.dtype
-    assert result == "M8[ns]"
+    assert result == "M8[us]"
 
 
 def test_map_function_runs_once():

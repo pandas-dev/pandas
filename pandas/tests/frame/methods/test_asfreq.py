@@ -31,7 +31,7 @@ class TestAsFreq:
                 ],
                 dtype="M8[ns]",
                 freq="BME",
-            ),
+            ).as_unit("ns"),
         )
 
         daily_ts = ts.asfreq("B")
@@ -203,7 +203,8 @@ class TestAsFreq:
         result = frame_or_series(range(4), index=index)
 
         expected = result.reindex(sorted(index))
-        expected.index = expected.index._with_freq("infer")
+        # TODO: better for asfreq to return "s" and avoid as_unit here?
+        expected.index = expected.index._with_freq("infer").as_unit("ns")
 
         result = result.asfreq("D")
         tm.assert_equal(result, expected)

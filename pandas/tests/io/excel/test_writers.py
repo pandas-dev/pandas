@@ -293,7 +293,9 @@ class TestRoundTrip:
         tm.assert_frame_equal(df2, res)
 
         res = pd.read_excel(tmp_excel, parse_dates=["date_strings"], index_col=0)
-        tm.assert_frame_equal(df, res)
+        expected = df[:]
+        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
+        tm.assert_frame_equal(res, expected)
 
         date_parser = lambda x: datetime.strptime(x, "%m/%d/%Y")
         with tm.assert_produces_warning(
@@ -307,11 +309,16 @@ class TestRoundTrip:
                 date_parser=date_parser,
                 index_col=0,
             )
-        tm.assert_frame_equal(df, res)
+
+        expected = df[:]
+        expected["date_strings"] = expected["date_strings"].astype("M8[us]")
+        tm.assert_frame_equal(expected, res)
+
         res = pd.read_excel(
             tmp_excel, parse_dates=["date_strings"], date_format="%m/%d/%Y", index_col=0
         )
-        tm.assert_frame_equal(df, res)
+        expected["date_strings"] = expected["date_strings"].astype("M8[s]")
+        tm.assert_frame_equal(expected, res)
 
     def test_multiindex_interval_datetimes(self, tmp_excel):
         # GH 30986
@@ -709,7 +716,6 @@ class TestExcelWriter:
         #
         # Excel output format strings
         unit = get_exp_unit(tmp_excel)
-
         df = DataFrame(
             [
                 [date(2014, 1, 31), date(1999, 9, 24)],

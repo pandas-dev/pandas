@@ -551,7 +551,7 @@ class TestPeriodIndex:
         ts_local_naive.index = ts_local_naive.index.tz_localize(None)
 
         exp = ts_local_naive.resample("W").mean().tz_localize("America/Los_Angeles")
-        exp.index = pd.DatetimeIndex(exp.index, freq="W")
+        exp.index = pd.DatetimeIndex(exp.index, freq="W").as_unit("ns")
 
         tm.assert_series_equal(result, exp)
 

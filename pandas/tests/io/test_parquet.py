@@ -668,6 +668,7 @@ class TestBasic(Base):
 
 
 class TestParquetPyArrow(Base):
+    @pytest.mark.xfail(reason="datetime_with_nat unit doesn't round-trip")
     def test_basic(self, pa, df_full):
         df = df_full
 
@@ -703,6 +704,7 @@ class TestParquetPyArrow(Base):
 
         expected = df_full.copy()
         expected.loc[1, "string_with_nan"] = None
+        expected["datetime_with_nat"] = expected["datetime_with_nat"].astype("M8[ms]")
         tm.assert_frame_equal(res, expected)
 
     def test_duplicate_columns(self, pa):
@@ -989,6 +991,10 @@ class TestParquetPyArrow(Base):
             expected["datetime_tz"] = expected["datetime_tz"].astype(
                 pd.ArrowDtype(pyarrow.timestamp(unit="us", tz="Europe/Brussels"))
             )
+        else:
+            expected["datetime_with_nat"] = expected["datetime_with_nat"].astype(
+                "timestamp[ms][pyarrow]"
+            )
 
         check_round_trip(
             df,
@@ -1013,6 +1019,7 @@ class TestParquetPyArrow(Base):
             expected=expected,
         )
 
+    @pytest.mark.xfail(reason="pa.pandas_compat passes 'datetime64' to .astype")
     def test_columns_dtypes_not_invalid(self, pa):
         df = pd.DataFrame({"string": list("abc"), "int": list(range(1, 4))})
 
@@ -1102,9 +1109,11 @@ class TestParquetPyArrow(Base):
     #     df.to_parquet(tmp_path / "test.parquet")
     #     result = read_parquet(tmp_path / "test.parquet")
     #     assert result["strings"].dtype == "string"
+    # FIXME: don't leave commented-out
 
 
 class TestParquetFastParquet(Base):
+    @pytest.mark.xfail(reason="datetime_with_nat gets incorrect values")
     def test_basic(self, fp, df_full):
         df = df_full
 
@@ -1248,6 +1257,25 @@ class TestParquetFastParquet(Base):
                 partition_on=partition_cols,
                 partition_cols=partition_cols,
             )
+
+    def test_empty_dataframe(self, fp):
+        # GH #27339
+        df = pd.DataFrame()
+        expected = df.copy()
+        check_round_trip(df, fp, expected=expected)
+
+    @pytest.mark.xfail(
+        reason="fastparquet passed mismatched values/dtype to DatetimeArray "
+        "constructor, see https://github.com/dask/fastparquet/issues/891"
+    )
+    def test_timezone_aware_index(self, fp, timezone_aware_date_list):
+        idx = 5 * [timezone_aware_date_list]
+
+        df = pd.DataFrame(index=idx, data={"index_as_col": idx})
+
+        expected = df.copy()
+        expected.index.name = "index"
+        check_round_trip(df, fp, expected=expected)
 
     def test_close_file_handle_on_read_error(self):
         with tm.ensure_clean("test.parquet") as path:

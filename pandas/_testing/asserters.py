@@ -1010,6 +1010,9 @@ def assert_series_equal(
 
         # datetimelike may have different objects (e.g. datetime.datetime
         # vs Timestamp) but will compare equal
+        # TODO: this works for object-vs-dt64 but not e.g. dt64[ns] vs dt64[us],
+        #  which AFAICT would have been intended at the time
+        #  check_datetimelike_compat was implemented, xref GH#55638
         if not Index(left._values).equals(Index(right._values)):
             msg = (
                 f"[datetimelike_compat=True] {left._values} "

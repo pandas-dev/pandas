@@ -1032,6 +1032,7 @@ class TestFrameArithmetic:
             {"foo": [pd.Timedelta(0), pd.Timedelta(0)], "bar": [np.nan, np.nan]},
             columns=["bar", "foo"],
         )
+        expected["foo"] = expected["foo"].astype("m8[s]")
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(

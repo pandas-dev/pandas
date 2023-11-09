@@ -262,6 +262,7 @@ def test_read_csv_no_index_name(all_parsers, csv_dir_path):
             ]
         ),
     )
+    expected.index = expected.index.as_unit("s")
     tm.assert_frame_equal(result, expected)
 
 

@@ -67,7 +67,10 @@ from pandas._libs.tslibs.conversion cimport (
     get_datetime64_nanos,
     parse_pydatetime,
 )
-from pandas._libs.tslibs.dtypes cimport npy_unit_to_abbrev
+from pandas._libs.tslibs.dtypes cimport (
+    get_supported_reso,
+    npy_unit_to_abbrev,
+)
 from pandas._libs.tslibs.nattype cimport (
     NPY_NAT,
     c_NaT as NaT,
@@ -410,7 +413,7 @@ cpdef array_to_datetime(
     bint dayfirst=False,
     bint yearfirst=False,
     bint utc=False,
-    NPY_DATETIMEUNIT creso=NPY_FR_ns,
+    NPY_DATETIMEUNIT creso=NPY_DATETIMEUNIT.NPY_FR_GENERIC,
 ):
     """
     Converts a 1D array of date-like values to a numpy array of either:
@@ -437,8 +440,8 @@ cpdef array_to_datetime(
         yearfirst parsing behavior when encountering datetime strings
     utc : bool, default False
         indicator whether the dates should be UTC
-    creso : NPY_DATETIMEUNIT, default NPY_FR_ns
-        Set to NPY_FR_GENERIC to infer a resolution.
+    creso : NPY_DATETIMEUNIT, default NPY_FR_GENERIC
+        If NPY_FR_GENERIC, conduct inference.
 
     Returns
     -------
@@ -710,7 +713,9 @@ def array_to_datetime_with_tz(
         if state.creso_ever_changed:
             # We encountered mismatched resolutions, need to re-parse with
             #  the correct one.
-            return array_to_datetime_with_tz(values, tz=tz, creso=creso)
+            return array_to_datetime_with_tz(
+                values, tz=tz, dayfirst=dayfirst, yearfirst=yearfirst, creso=creso
+            )
         elif creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC:
             # i.e. we never encountered anything non-NaT, default to "s". This
             # ensures that insert and concat-like operations with NaT

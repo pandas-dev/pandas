@@ -266,7 +266,9 @@ def test_categorical_with_nan_consistency():
     )
     expected = hash_array(c, categorize=False)
 
-    c = pd.Categorical.from_codes([-1, 0], categories=[pd.Timestamp("2012-01-01")])
+    c = pd.Categorical.from_codes(
+        [-1, 0], categories=[pd.Timestamp("2012-01-01").as_unit("ns")]
+    )
     result = hash_array(c, categorize=False)
 
     assert result[0] in expected

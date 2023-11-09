@@ -141,14 +141,19 @@ def df_ref(datapath):
 
 
 def get_exp_unit(read_ext: str, engine: str | None) -> str:
-    return "ns"
+    unit = "us"
+    if (read_ext == ".ods") ^ (engine == "calamine"):
+        # TODO: why is .ods & calamine a separate special case?
+        unit = "s"
+    return unit
 
 
-def adjust_expected(expected: DataFrame, read_ext: str, engine: str) -> None:
+def adjust_expected(expected: DataFrame, read_ext: str, engine: str | None) -> None:
     expected.index.name = None
     unit = get_exp_unit(read_ext, engine)
     # error: "Index" has no attribute "as_unit"
     expected.index = expected.index.as_unit(unit)  # type: ignore[attr-defined]
+
 
 
 def xfail_datetimes_with_pyxlsb(engine, request):
@@ -483,6 +488,8 @@ class TestReaders:
                 ),
             },
         )
+        if (read_ext == ".ods") ^ (engine == "calamine"):
+            expected["DateCol"] = expected["DateCol"].astype("M8[s]")
         basename = "test_types"
 
         # should read in correctly and infer types
@@ -1117,13 +1124,12 @@ class TestReaders:
         mi = MultiIndex.from_product([["foo", "bar"], ["a", "b"]], names=["c1", "c2"])
 
         unit = get_exp_unit(read_ext, engine)
-
         expected = DataFrame(
             [
-                [1, 2.5, pd.Timestamp("2015-01-01"), True],
-                [2, 3.5, pd.Timestamp("2015-01-02"), False],
-                [3, 4.5, pd.Timestamp("2015-01-03"), False],
-                [4, 5.5, pd.Timestamp("2015-01-04"), True],
+                [1, 2.5, pd.Timestamp("2015-01-01").as_unit(unit), True],
+                [2, 3.5, pd.Timestamp("2015-01-02").as_unit(unit), False],
+                [3, 4.5, pd.Timestamp("2015-01-03").as_unit(unit), False],
+                [4, 5.5, pd.Timestamp("2015-01-04").as_unit(unit), True],
             ],
             columns=mi,
             index=MultiIndex.from_arrays(
@@ -1675,6 +1681,7 @@ class TestExcelFileRead:
             actual = pd.read_excel(excel, header=[0, 1], index_col=0, engine=engine)
 
         unit = get_exp_unit(read_ext, engine)
+
         dti = pd.DatetimeIndex(["2020-02-29", "2020-03-01"], dtype=f"M8[{unit}]")
         expected_column_index = MultiIndex.from_arrays(
             [dti[:1], dti[1:]],

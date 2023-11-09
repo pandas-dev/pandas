@@ -43,7 +43,7 @@ def test_skip_rows_bug(all_parsers, skiprows):
     )
     index = Index(
         [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)], name=0
-    )
+    ).as_unit("s")
 
     expected = DataFrame(
         np.arange(1.0, 10.0).reshape((3, 3)), columns=[1, 2, 3], index=index
@@ -86,7 +86,7 @@ def test_skip_rows_blank(all_parsers):
     )
     index = Index(
         [datetime(2000, 1, 1), datetime(2000, 1, 2), datetime(2000, 1, 3)], name=0
-    )
+    ).as_unit("s")
 
     expected = DataFrame(
         np.arange(1.0, 10.0).reshape((3, 3)), columns=[1, 2, 3], index=index

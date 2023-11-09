@@ -1800,7 +1800,7 @@ def test_api_custom_dateparsing_error(
             pytest.mark.xfail(reason="failing combination of arguments")
         )
 
-    expected = types_data_frame.astype({"DateCol": "datetime64[ns]"})
+    expected = types_data_frame.astype({"DateCol": "datetime64[s]"})
 
     result = read_sql(
         text,
@@ -2819,7 +2819,7 @@ def test_datetime_with_timezone_roundtrip(conn, request):
     # For dbs that support timestamps with timezones, should get back UTC
     # otherwise naive data should be returned
     expected = DataFrame(
-        {"A": date_range("2013-01-01 09:00:00", periods=3, tz="US/Pacific")}
+        {"A": date_range("2013-01-01 09:00:00", periods=3, tz="US/Pacific", unit="us")}
     )
     assert expected.to_sql(name="test_datetime_tz", con=conn, index=False) == 3
 
@@ -2837,7 +2837,7 @@ def test_datetime_with_timezone_roundtrip(conn, request):
     if "sqlite" in conn_name:
         # read_sql_query does not return datetime type like read_sql_table
         assert isinstance(result.loc[0, "A"], str)
-        result["A"] = to_datetime(result["A"])
+        result["A"] = to_datetime(result["A"]).dt.as_unit("us")
     tm.assert_frame_equal(result, expected)
 
 
@@ -2848,7 +2848,9 @@ def test_out_of_bounds_datetime(conn, request):
     data = DataFrame({"date": datetime(9999, 1, 1)}, index=[0])
     assert data.to_sql(name="test_datetime_obb", con=conn, index=False) == 1
     result = sql.read_sql_table("test_datetime_obb", conn)
-    expected = DataFrame([pd.NaT], columns=["date"])
+    expected = DataFrame(
+        np.array([datetime(9999, 1, 1)], dtype="M8[us]"), columns=["date"]
+    )
     tm.assert_frame_equal(result, expected)
 
 
@@ -2857,7 +2859,7 @@ def test_naive_datetimeindex_roundtrip(conn, request):
     # GH 23510
     # Ensure that a naive DatetimeIndex isn't converted to UTC
     conn = request.getfixturevalue(conn)
-    dates = date_range("2018-01-01", periods=5, freq="6h")._with_freq(None)
+    dates = date_range("2018-01-01", periods=5, freq="6h", unit="us")._with_freq(None)
     expected = DataFrame({"nums": range(5)}, index=dates)
     assert expected.to_sql(name="foo_table", con=conn, index_label="info_date") == 5
     result = sql.read_sql_table("foo_table", conn, index_col="info_date")
@@ -2909,7 +2911,10 @@ def test_datetime(conn, request):
     # with read_table -> type information from schema used
     result = sql.read_sql_table("test_datetime", conn)
     result = result.drop("index", axis=1)
-    tm.assert_frame_equal(result, df)
+
+    expected = df[:]
+    expected["A"] = expected["A"].astype("M8[us]")
+    tm.assert_frame_equal(result, expected)
 
     # with read_sql -> no type information -> sqlite has no native
     result = sql.read_sql_query("SELECT * FROM test_datetime", conn)
@@ -2917,7 +2922,7 @@ def test_datetime(conn, request):
     if "sqlite" in conn_name:
         assert isinstance(result.loc[0, "A"], str)
         result["A"] = to_datetime(result["A"])
-        tm.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, expected)
     else:
         tm.assert_frame_equal(result, df)
 
@@ -2934,14 +2939,16 @@ def test_datetime_NaT(conn, request):
 
     # with read_table -> type information from schema used
     result = sql.read_sql_table("test_datetime", conn)
-    tm.assert_frame_equal(result, df)
+    expected = df[:]
+    expected["A"] = expected["A"].astype("M8[us]")
+    tm.assert_frame_equal(result, expected)
 
     # with read_sql -> no type information -> sqlite has no native
     result = sql.read_sql_query("SELECT * FROM test_datetime", conn)
     if "sqlite" in conn_name:
         assert isinstance(result.loc[0, "A"], str)
         result["A"] = to_datetime(result["A"], errors="coerce")
-        tm.assert_frame_equal(result, df)
+        tm.assert_frame_equal(result, expected)
     else:
         tm.assert_frame_equal(result, df)
 

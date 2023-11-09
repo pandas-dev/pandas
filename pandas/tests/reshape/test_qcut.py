@@ -267,7 +267,7 @@ def test_datetime_tz_qcut(bins):
         ],
         [
             date_range("20180101", periods=3),
-            DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"]),
+            DatetimeIndex(["2018-01-01", "2018-01-02", "2018-01-03"]).as_unit("ns"),
         ],
     ],
 )

@@ -331,7 +331,7 @@ def test_upsample_sum(method, method_args, expected_values):
         ["2017-01-01T00:00:00", "2017-01-01T00:30:00", "2017-01-01T01:00:00"],
         dtype="M8[ns]",
         freq="30min",
-    )
+    ).as_unit("ns")
     result = methodcaller(method, **method_args)(resampled)
     expected = Series(expected_values, index=index)
     tm.assert_series_equal(result, expected)
@@ -361,6 +361,9 @@ def test_groupby_resample_interpolate():
     expected_ind = pd.MultiIndex.from_arrays(
         [volume, week_starting],
         names=["volume", "week_starting"],
+    )
+    expected_ind = expected_ind.set_levels(
+        expected_ind.levels[1].as_unit("ns"), level=1
     )
 
     expected = DataFrame(
