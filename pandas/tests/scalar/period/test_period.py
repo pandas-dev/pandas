@@ -61,15 +61,13 @@ class TestPeriodConstruction:
 
         assert i1 == i2
 
-        i1 = Period("2005", freq="Y")
-        i2 = Period("2005")
-        i3 = Period("2005", freq="y")
-
-        assert i1 == i2
-        assert i1 == i3
-
         # GH#54105 - Period can be confusingly instantiated with lowercase freq
         # TODO: raise in the future an error when passing lowercase freq
+        i1 = Period("2005", freq="Y")
+        i2 = Period("2005")
+
+        assert i1 == i2
+
         i4 = Period("2005", freq="M")
         assert i1 != i4
 

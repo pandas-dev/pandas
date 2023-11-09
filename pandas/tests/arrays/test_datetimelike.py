@@ -30,7 +30,7 @@ from pandas.core.arrays import (
 
 
 # TODO: more freq variants
-@pytest.fixture(params=["D", "B", "W", "ME", "QE", "Y"])
+@pytest.fixture(params=["D", "B", "W", "ME", "QE", "YE"])
 def freqstr(request):
     """Fixture returning parametrized frequency in string format."""
     return request.param

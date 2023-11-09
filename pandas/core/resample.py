@@ -2130,7 +2130,7 @@ class TimeGrouper(Grouper):
         else:
             freq = to_offset(freq)
 
-        end_types = {"ME", "Y", "QE", "BME", "BY", "BQ", "W"}
+        end_types = {"ME", "YE", "QE", "BME", "BY", "BQ", "W"}
         rule = freq.rule_code
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
             if closed is None:
@@ -2330,7 +2330,7 @@ class TimeGrouper(Grouper):
             "BQ",
             "BY",
             "QE",
-            "Y",
+            "YE",
             "W",
         ):
             # If the right end-point is on the last day of the month, roll forwards

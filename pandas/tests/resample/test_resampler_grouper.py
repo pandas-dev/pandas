@@ -450,7 +450,7 @@ def test_resample_groupby_agg():
     )
     df["date"] = pd.to_datetime(df["date"])
 
-    resampled = df.groupby("cat").resample("Y", on="date")
+    resampled = df.groupby("cat").resample("YE", on="date")
     expected = resampled[["num"]].sum()
     result = resampled.agg({"num": "sum"})
 

@@ -430,7 +430,7 @@ def test_resample_frame_basic_cy_funcs(f, unit):
     g._cython_agg_general(f, alt=None, numeric_only=True)
 
 
-@pytest.mark.parametrize("freq", ["Y", "ME"])
+@pytest.mark.parametrize("freq", ["YE", "ME"])
 def test_resample_frame_basic_M_A(freq, unit):
     df = tm.makeTimeDataFrame()
     df.index = df.index.as_unit(unit)
@@ -512,7 +512,7 @@ def test_upsample_with_limit(unit):
 
 
 @pytest.mark.parametrize("freq", ["1D", "10h", "5Min", "10s"])
-@pytest.mark.parametrize("rule", ["Y", "3ME", "15D", "30h", "15Min", "30s"])
+@pytest.mark.parametrize("rule", ["YE", "3ME", "15D", "30h", "15Min", "30s"])
 def test_nearest_upsample_with_limit(tz_aware_fixture, freq, rule, unit):
     # GH 33939
     rng = date_range("1/1/2000", periods=3, freq=freq, tz=tz_aware_fixture).as_unit(
@@ -663,8 +663,8 @@ def test_resample_reresample(unit):
 @pytest.mark.parametrize(
     "freq, expected_kwargs",
     [
-        ["Y-DEC", {"start": "1990", "end": "2000", "freq": "y-dec"}],
-        ["Y-JUN", {"start": "1990", "end": "2000", "freq": "y-jun"}],
+        ["YE-DEC", {"start": "1990", "end": "2000", "freq": "Y-DEC"}],
+        ["YE-JUN", {"start": "1990", "end": "2000", "freq": "Y-JUN"}],
         ["ME", {"start": "1990-01", "end": "2000-01", "freq": "M"}],
     ],
 )
@@ -1966,9 +1966,9 @@ def test_resample_unsigned_int(any_unsigned_int_numpy_dtype, unit):
 
 def test_long_rule_non_nano():
     # https://github.com/pandas-dev/pandas/issues/51024
-    idx = date_range("0300-01-01", "2000-01-01", unit="s", freq="100Y")
+    idx = date_range("0300-01-01", "2000-01-01", unit="s", freq="100YE")
     ser = Series([1, 4, 2, 8, 5, 7, 1, 4, 2, 8, 5, 7, 1, 4, 2, 8, 5], index=idx)
-    result = ser.resample("200Y").mean()
+    result = ser.resample("200YE").mean()
     expected_idx = DatetimeIndex(
         np.array(
             [
@@ -1983,7 +1983,7 @@ def test_long_rule_non_nano():
                 "1900-12-31",
             ]
         ).astype("datetime64[s]"),
-        freq="200Y-DEC",
+        freq="200YE-DEC",
     )
     expected = Series([1.0, 3.0, 6.5, 4.0, 3.0, 6.5, 4.0, 3.0, 6.5], index=expected_idx)
     tm.assert_series_equal(result, expected)
@@ -2011,9 +2011,13 @@ def test_resample_empty_series_with_tz():
         ("2ME", "2M"),
         ("2QE", "2Q"),
         ("2QE-SEP", "2Q-SEP"),
+        ("1YE", "1Y"),
+        ("2YE-MAR", "2Y-MAR"),
+        ("1YE", "1A"),
+        ("2YE-MAR", "2A-MAR"),
     ],
 )
-def test_resample_M_Q_deprecated(freq, freq_depr):
+def test_resample_M_Q_Y_A_deprecated(freq, freq_depr):
     # GH#9586
     depr_msg = f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
 

@@ -9,7 +9,7 @@ from pandas import date_range
 @pytest.mark.parametrize(
     "freq,expected",
     [
-        ("Y", "day"),
+        ("YE", "day"),
         ("QE", "day"),
         ("ME", "day"),
         ("D", "day"),
@@ -22,7 +22,7 @@ from pandas import date_range
 )
 def test_dti_resolution(request, tz_naive_fixture, freq, expected):
     tz = tz_naive_fixture
-    if freq == "Y" and not IS64 and isinstance(tz, tzlocal):
+    if freq == "YE" and not IS64 and isinstance(tz, tzlocal):
         request.applymarker(
             pytest.mark.xfail(reason="OverflowError inside tzlocal past 2038")
         )

@@ -120,20 +120,20 @@ class TestPeriodIndex:
 
     def test_basic_downsample(self, simple_period_range_series):
         ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="M")
-        result = ts.resample("y-dec").mean()
+        result = ts.resample("Y-DEC").mean()
 
         expected = ts.groupby(ts.index.year).mean()
-        expected.index = period_range("1/1/1990", "6/30/1995", freq="y-dec")
+        expected.index = period_range("1/1/1990", "6/30/1995", freq="Y-DEC")
         tm.assert_series_equal(result, expected)
 
         # this is ok
-        tm.assert_series_equal(ts.resample("y-dec").mean(), result)
-        tm.assert_series_equal(ts.resample("y").mean(), result)
+        tm.assert_series_equal(ts.resample("Y-DEC").mean(), result)
+        tm.assert_series_equal(ts.resample("Y").mean(), result)
 
     @pytest.mark.parametrize(
         "rule,expected_error_msg",
         [
-            ("y-dec", "<YearEnd: month=12>"),
+            ("Y-DEC", "<YearEnd: month=12>"),
             ("Q-MAR", "<QuarterEnd: startingMonth=3>"),
             ("M", "<MonthEnd>"),
             ("w-thu", "<Week: weekday=3>"),
@@ -152,7 +152,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("freq", ["D", "2D"])
     def test_basic_upsample(self, freq, simple_period_range_series):
         ts = simple_period_range_series("1/1/1990", "6/30/1995", freq="M")
-        result = ts.resample("y-dec").mean()
+        result = ts.resample("Y-DEC").mean()
 
         resampled = result.resample(freq, convention="end").ffill()
         expected = result.to_timestamp(freq, how="end")
@@ -392,7 +392,7 @@ class TestPeriodIndex:
         ts = simple_period_range_series("1/1/1990", "12/31/1995", freq="M")
 
         result = ts.resample("Y-DEC", kind="timestamp").mean()
-        expected = ts.to_timestamp(how="start").resample("Y-DEC").mean()
+        expected = ts.to_timestamp(how="start").resample("YE-DEC").mean()
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("month", MONTHS)
@@ -432,7 +432,7 @@ class TestPeriodIndex:
 
         stamps = s.to_timestamp()
         filled = s.resample("Y").ffill()
-        expected = stamps.resample("Y").ffill().to_period("Y")
+        expected = stamps.resample("YE").ffill().to_period("Y")
         tm.assert_series_equal(filled, expected)
 
     def test_cant_fill_missing_dups(self):
@@ -537,13 +537,13 @@ class TestPeriodIndex:
         ts["second"] = np.cumsum(np.random.default_rng(2).standard_normal(len(rng)))
         expected = DataFrame(
             {
-                "first": ts.resample("Y").sum()["first"],
-                "second": ts.resample("Y").mean()["second"],
+                "first": ts.resample("YE").sum()["first"],
+                "second": ts.resample("YE").mean()["second"],
             },
             columns=["first", "second"],
         )
         result = (
-            ts.resample("Y")
+            ts.resample("YE")
             .agg({"first": "sum", "second": "mean"})
             .reindex(columns=["first", "second"])
         )
@@ -574,7 +574,7 @@ class TestPeriodIndex:
         ts = Series(np.arange(10), index=rng)
 
         result = ts.resample("Y").mean()
-        exp = ts.to_timestamp().resample("Y").mean().to_period()
+        exp = ts.to_timestamp().resample("YE").mean().to_period()
         tm.assert_series_equal(result, exp)
 
     def test_resample_weekly_bug_1726(self):
@@ -647,7 +647,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize(
-        "from_freq, to_freq", [("D", "ME"), ("QE", "Y"), ("ME", "QE"), ("D", "W")]
+        "from_freq, to_freq", [("D", "ME"), ("QE", "YE"), ("ME", "QE"), ("D", "W")]
     )
     def test_default_right_closed_label(self, from_freq, to_freq):
         idx = date_range(start="8/15/2012", periods=100, freq=from_freq)
@@ -931,7 +931,7 @@ class TestPeriodIndex:
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2QE-FEB"])
+@pytest.mark.parametrize("freq_depr", ["2ME", "2QE", "2QE-FEB", "2YE"])
 def test_resample_frequency_ME_QE_error_message(series_and_frame, freq_depr):
     # GH#9586
     msg = f"Invalid frequency: {freq_depr}"

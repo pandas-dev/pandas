@@ -192,7 +192,7 @@ class TestGroupBy:
             ).set_index(["Date", "Buyer"])
 
             msg = "The default value of numeric_only"
-            result = df.groupby([Grouper(freq="Y"), "Buyer"]).sum(numeric_only=True)
+            result = df.groupby([Grouper(freq="YE"), "Buyer"]).sum(numeric_only=True)
             tm.assert_frame_equal(result, expected)
 
             expected = DataFrame(
@@ -335,7 +335,7 @@ class TestGroupBy:
             )
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("freq", ["D", "ME", "Y", "QE-APR"])
+    @pytest.mark.parametrize("freq", ["D", "ME", "YE", "QE-APR"])
     def test_timegrouper_with_reg_groups_freq(self, freq):
         # GH 6764 multiple grouping with/without sort
         df = DataFrame(
@@ -906,7 +906,7 @@ class TestGroupBy:
 
         # We need to create a GroupBy object with only one non-NaT group,
         #  so use a huge freq so that all non-NaT dates will be grouped together
-        tdg = Grouper(key="Date", freq="100Y")
+        tdg = Grouper(key="Date", freq="100YE")
         gb = df.groupby(tdg)
 
         # check that we will go through the singular_series path

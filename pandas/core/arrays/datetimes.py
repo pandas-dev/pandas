@@ -1520,7 +1520,7 @@ default 'raise'
         Examples
         --------
         >>> datetime_series = pd.Series(
-        ...     pd.date_range("2000-01-01", periods=3, freq="Y")
+        ...     pd.date_range("2000-01-01", periods=3, freq="YE")
         ... )
         >>> datetime_series
         0   2000-12-31
@@ -2058,10 +2058,10 @@ default 'raise'
         This method is available on Series with datetime values under
         the ``.dt`` accessor, and directly on DatetimeIndex.
 
-        >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
+        >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="YE")
         >>> idx
         DatetimeIndex(['2012-12-31', '2013-12-31', '2014-12-31'],
-                      dtype='datetime64[ns]', freq='Y-DEC')
+                      dtype='datetime64[ns]', freq='YE-DEC')
         >>> idx.is_leap_year
         array([ True, False, False])
 

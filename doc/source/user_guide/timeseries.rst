@@ -889,7 +889,7 @@ into ``freq`` keyword arguments. The available date offsets and associated frequ
     :class:`~pandas.tseries.offsets.BQuarterEnd`, ``'BQ``, "business quarter end"
     :class:`~pandas.tseries.offsets.BQuarterBegin`, ``'BQS'``, "business quarter begin"
     :class:`~pandas.tseries.offsets.FY5253Quarter`, ``'REQ'``, "retail (aka 52-53 week) quarter"
-    :class:`~pandas.tseries.offsets.YearEnd`, ``'Y'``, "calendar year end"
+    :class:`~pandas.tseries.offsets.YearEnd`, ``'YE'``, "calendar year end"
     :class:`~pandas.tseries.offsets.YearBegin`, ``'YS'`` or ``'BYS'``,"calendar year begin"
     :class:`~pandas.tseries.offsets.BYearEnd`, ``'BY'``, "business year end"
     :class:`~pandas.tseries.offsets.BYearBegin`, ``'BYS'``, "business year begin"
@@ -1252,7 +1252,7 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "BQ", "business quarter end frequency"
     "QS", "quarter start frequency"
     "BQS", "business quarter start frequency"
-    "Y", "year end frequency"
+    "YE", "year end frequency"
     "BY", "business year end frequency"
     "YS", "year start frequency"
     "BYS", "business year start frequency"
@@ -1379,18 +1379,18 @@ For some frequencies you can specify an anchoring suffix:
     "(B)Q(E)(S)\-SEP", "quarterly frequency, year ends in September"
     "(B)Q(E)(S)\-OCT", "quarterly frequency, year ends in October"
     "(B)Q(E)(S)\-NOV", "quarterly frequency, year ends in November"
-    "(B)Y(S)\-DEC", "annual frequency, anchored end of December. Same as 'Y'"
-    "(B)Y(S)\-JAN", "annual frequency, anchored end of January"
-    "(B)Y(S)\-FEB", "annual frequency, anchored end of February"
-    "(B)Y(S)\-MAR", "annual frequency, anchored end of March"
-    "(B)Y(S)\-APR", "annual frequency, anchored end of April"
-    "(B)Y(S)\-MAY", "annual frequency, anchored end of May"
-    "(B)Y(S)\-JUN", "annual frequency, anchored end of June"
-    "(B)Y(S)\-JUL", "annual frequency, anchored end of July"
-    "(B)Y(S)\-AUG", "annual frequency, anchored end of August"
-    "(B)Y(S)\-SEP", "annual frequency, anchored end of September"
-    "(B)Y(S)\-OCT", "annual frequency, anchored end of October"
-    "(B)Y(S)\-NOV", "annual frequency, anchored end of November"
+    "(B)Y(E)(S)\-DEC", "annual frequency, anchored end of December. Same as 'YE'"
+    "(B)Y(E)(S)\-JAN", "annual frequency, anchored end of January"
+    "(B)Y(E)(S)\-FEB", "annual frequency, anchored end of February"
+    "(B)Y(E)(S)\-MAR", "annual frequency, anchored end of March"
+    "(B)Y(E)(S)\-APR", "annual frequency, anchored end of April"
+    "(B)Y(E)(S)\-MAY", "annual frequency, anchored end of May"
+    "(B)Y(E)(S)\-JUN", "annual frequency, anchored end of June"
+    "(B)Y(E)(S)\-JUL", "annual frequency, anchored end of July"
+    "(B)Y(E)(S)\-AUG", "annual frequency, anchored end of August"
+    "(B)Y(E)(S)\-SEP", "annual frequency, anchored end of September"
+    "(B)Y(E)(S)\-OCT", "annual frequency, anchored end of October"
+    "(B)Y(E)(S)\-NOV", "annual frequency, anchored end of November"
 
 These can be used as arguments to ``date_range``, ``bdate_range``, constructors
 for ``DatetimeIndex``, as well as various other timeseries-related functions
@@ -1686,7 +1686,7 @@ the end of the interval.
 .. warning::
 
     The default values for ``label`` and ``closed`` is '**left**' for all
-    frequency offsets except for 'ME', 'Y', 'QE', 'BME', 'BY', 'BQ', and 'W'
+    frequency offsets except for 'ME', 'YE', 'QE', 'BME', 'BY', 'BQ', and 'W'
     which all have a default of 'right'.
 
     This might unintendedly lead to looking ahead, where the value for a later

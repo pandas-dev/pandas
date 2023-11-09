@@ -81,7 +81,7 @@ class TestVectorizedTimedelta:
     @pytest.mark.parametrize(
         "freq,msg",
         [
-            ("Y", "<YearEnd: month=12> is a non-fixed frequency"),
+            ("YE", "<YearEnd: month=12> is a non-fixed frequency"),
             ("ME", "<MonthEnd> is a non-fixed frequency"),
             ("foobar", "Invalid frequency: foobar"),
         ],

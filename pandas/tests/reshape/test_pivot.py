@@ -445,10 +445,12 @@ class TestPivotTable:
         tm.assert_frame_equal(res, exp)
 
         res = df.pivot_table(
-            index=Grouper(freq="Y"), columns=Grouper(key="dt", freq="ME")
+            index=Grouper(freq="YE"), columns=Grouper(key="dt", freq="ME")
         )
         exp = DataFrame(
-            [3.0], index=pd.DatetimeIndex(["2011-12-31"], freq="Y"), columns=exp_columns
+            [3.0],
+            index=pd.DatetimeIndex(["2011-12-31"], freq="YE"),
+            columns=exp_columns,
         )
         tm.assert_frame_equal(res, exp)
 
@@ -1273,7 +1275,7 @@ class TestPivotTable:
 
         expected = DataFrame(
             np.array([10, 18, 3], dtype="int64").reshape(1, 3),
-            index=pd.DatetimeIndex([datetime(2013, 12, 31)], freq="Y"),
+            index=pd.DatetimeIndex([datetime(2013, 12, 31)], freq="YE"),
             columns="Carl Joe Mark".split(),
         )
         expected.index.name = "Date"
@@ -1281,7 +1283,7 @@ class TestPivotTable:
 
         result = pivot_table(
             df,
-            index=Grouper(freq="Y"),
+            index=Grouper(freq="YE"),
             columns="Buyer",
             values="Quantity",
             aggfunc="sum",
@@ -1291,7 +1293,7 @@ class TestPivotTable:
         result = pivot_table(
             df,
             index="Buyer",
-            columns=Grouper(freq="Y"),
+            columns=Grouper(freq="YE"),
             values="Quantity",
             aggfunc="sum",
         )

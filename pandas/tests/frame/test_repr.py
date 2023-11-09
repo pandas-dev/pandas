@@ -357,7 +357,7 @@ NaT   4"""
         assert result == expected
 
     def test_frame_datetime64_pre1900_repr(self):
-        df = DataFrame({"year": date_range("1/1/1700", periods=50, freq="Y-DEC")})
+        df = DataFrame({"year": date_range("1/1/1700", periods=50, freq="YE-DEC")})
         # it works!
         repr(df)
 

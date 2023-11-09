@@ -96,7 +96,7 @@ def test_raises_on_non_datetimelike_index():
         "but got an instance of 'RangeIndex'"
     )
     with pytest.raises(TypeError, match=msg):
-        xp.resample("Y")
+        xp.resample("YE")
 
 
 @all_ts

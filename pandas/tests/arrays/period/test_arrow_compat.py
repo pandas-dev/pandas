@@ -38,7 +38,7 @@ def test_arrow_extension_type():
     "data, freq",
     [
         (pd.date_range("2017", periods=3), "D"),
-        (pd.date_range("2017", periods=3, freq="Y"), "Y-DEC"),
+        (pd.date_range("2017", periods=3, freq="YE"), "Y-DEC"),
     ],
 )
 def test_arrow_array(data, freq):

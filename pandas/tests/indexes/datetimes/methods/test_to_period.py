@@ -60,7 +60,7 @@ class TestToPeriod:
     def test_to_period_annualish(self, off):
         rng = date_range("01-Jan-2012", periods=8, freq=off)
         prng = rng.to_period()
-        assert prng.freq == "Y-DEC"
+        assert prng.freq == "YE-DEC"
 
     def test_to_period_monthish(self):
         offsets = ["MS", "BME"]
@@ -95,9 +95,13 @@ class TestToPeriod:
             ("2ME", "2M"),
             ("2QE", "2Q"),
             ("2QE-SEP", "2Q-SEP"),
+            ("1YE", "1Y"),
+            ("2YE-MAR", "2Y-MAR"),
+            ("1YE", "1A"),
+            ("2YE-MAR", "2A-MAR"),
         ],
     )
-    def test_to_period_freq_deprecated(self, freq, freq_depr):
+    def test_to_period_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
         # GH#9586
         msg = f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
 
