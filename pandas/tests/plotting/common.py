@@ -535,9 +535,6 @@ def _check_plot_works(f, default_axes=False, **kwargs):
         for ret in gen_plots(f, fig, **kwargs):
             tm.assert_is_valid_plot_return_object(ret)
 
-        with tm.ensure_clean(return_filelike=True) as path:
-            plt.savefig(path)
-
     finally:
         plt.close(fig)
 

@@ -1,4 +1,5 @@
 """ Test cases for misc plot functions """
+import os
 
 import numpy as np
 import pytest
@@ -10,7 +11,9 @@ from pandas import (
     Index,
     Series,
     Timestamp,
+    date_range,
     interval_range,
+    period_range,
     plotting,
 )
 import pandas._testing as tm
@@ -23,6 +26,7 @@ from pandas.tests.plotting.common import (
 )
 
 mpl = pytest.importorskip("matplotlib")
+plt = pytest.importorskip("matplotlib.pyplot")
 cm = pytest.importorskip("matplotlib.cm")
 
 
@@ -67,6 +71,30 @@ def test_get_accessor_args():
     assert y is None
     assert kind == "line"
     assert len(kwargs) == 24
+
+
+@pytest.mark.parametrize("kind", plotting.PlotAccessor._all_kinds)
+@pytest.mark.parametrize(
+    "data", [DataFrame(np.arange(15).reshape(5, 3)), Series(range(5))]
+)
+@pytest.mark.parametrize(
+    "index",
+    [
+        Index(range(5)),
+        date_range("2020-01-01", periods=5),
+        period_range("2020-01-01", periods=5),
+    ],
+)
+def test_savefig(kind, data, index):
+    fig, ax = plt.subplots()
+    data.index = index
+    kwargs = {}
+    if kind in ["hexbin", "scatter", "pie"]:
+        if isinstance(data, Series):
+            pytest.skip(f"{kind} not supported with Series")
+        kwargs = {"x": 0, "y": 1}
+    data.plot(kind=kind, ax=ax, **kwargs)
+    fig.savefig(os.devnull)
 
 
 class TestSeriesPlots:
