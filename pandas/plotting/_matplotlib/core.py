@@ -1179,12 +1179,15 @@ class MPLPlot(ABC):
 
     @final
     def _get_subplots(self, fig: Figure):
-        from matplotlib.axes import Axes
+        if Version(mpl.__version__) < Version("3.8"):
+            from matplotlib.axes import Subplot as Klass
+        else:
+            from matplotlib.axes import Axes as Klass
 
         return [
             ax
             for ax in fig.get_axes()
-            if (isinstance(ax, Axes) and ax.get_subplotspec() is not None)
+            if (isinstance(ax, Klass) and ax.get_subplotspec() is not None)
         ]
 
     @final
