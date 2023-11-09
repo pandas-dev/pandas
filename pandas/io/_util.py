@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable
 
+from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -35,6 +36,9 @@ def arrow_string_types_mapper() -> Callable:
 
 
 def patch_pyarrow():
+    if pa_version_under14p1:
+        return
+
     import pyarrow as pa
 
     if getattr(pa, "_hotfix_installed", False):
