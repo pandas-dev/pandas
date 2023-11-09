@@ -291,7 +291,8 @@ class TestPeriodIndex:
     def test_a_deprecated_from_time_series(self, freq_depr):
         # GH#52536
         freq_msg = freq_depr[freq_depr.index("A") :]
-        msg = f"'{freq_msg}' will be deprecated, please use 'Y{freq_msg[1:]}' instead."
+        msg = f"'{freq_msg}' is deprecated and will be removed in a future version, "
+        f"please use 'Y{freq_msg[1:]}' instead."
 
         with tm.assert_produces_warning(FutureWarning, match=msg):
             index = period_range(freq=freq_depr, start="1/1/2001", end="12/1/2009")
