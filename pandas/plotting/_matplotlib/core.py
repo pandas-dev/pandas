@@ -1341,7 +1341,10 @@ class ScatterPlot(PlanePlot):
 
         if label is not None:
             self._append_legend_handles_labels(
-                scatter, label  # pyright: ignore[reportGeneralTypeIssues]
+                # error: Argument 2 to "_append_legend_handles_labels" of
+                # "MPLPlot" has incompatible type "Hashable"; expected "str"
+                scatter,
+                label,  # pyright: ignore[reportGeneralTypeIssues]  # type: ignore[arg-type]
             )
         else:
             self.legend = False
