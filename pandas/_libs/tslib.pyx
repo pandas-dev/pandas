@@ -72,6 +72,7 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
+from pandas._libs.tslibs.timezones cimport tz_compare
 
 from pandas._libs.tslibs import (
     Resolution,
@@ -488,9 +489,11 @@ cpdef array_to_datetime(
             elif PyDate_Check(val):
                 iresult[i] = pydate_to_dt64(val, &dts, reso=creso)
                 check_dts_bounds(&dts, creso)
+                state.found_other = True
 
             elif is_datetime64_object(val):
                 iresult[i] = get_datetime64_nanos(val, creso)
+                state.found_other = True
 
             elif is_integer_object(val) or is_float_object(val):
                 # these must be ns unit by-definition
@@ -500,6 +503,7 @@ cpdef array_to_datetime(
                 else:
                     # we now need to parse this as if unit='ns'
                     iresult[i] = cast_from_unit(val, "ns", out_reso=creso)
+                    state.found_other = True
 
             elif isinstance(val, str):
                 # string
@@ -535,6 +539,7 @@ cpdef array_to_datetime(
                     # Add a marker for naive string, to track if we are
                     # parsing mixed naive and aware strings
                     out_tzoffset_vals.add("naive")
+                    state.found_naive_str = True
 
             else:
                 raise TypeError(f"{type(val)} is not convertible to datetime")
@@ -558,9 +563,29 @@ cpdef array_to_datetime(
         is_same_offsets = len(out_tzoffset_vals) == 1
         if not is_same_offsets:
             return _array_to_datetime_object(values, errors, dayfirst, yearfirst)
+        elif state.found_naive or state.found_other:
+            # e.g. test_to_datetime_mixed_awareness_mixed_types
+            raise ValueError("Cannot mix tz-aware with tz-naive values")
+        elif tz_out is not None:
+            # GH#55693
+            tz_offset = out_tzoffset_vals.pop()
+            tz_out2 = timezone(timedelta(seconds=tz_offset))
+            if not tz_compare(tz_out, tz_out2):
+                # e.g. test_to_datetime_mixed_tzs_mixed_types
+                raise ValueError(
+                    "Mixed timezones detected. pass utc=True in to_datetime "
+                    "or tz='UTC' in DatetimeIndex to convert to a common timezone."
+                )
+            # e.g. test_to_datetime_mixed_types_matching_tzs
         else:
             tz_offset = out_tzoffset_vals.pop()
             tz_out = timezone(timedelta(seconds=tz_offset))
+    elif not utc_convert:
+        if tz_out and (state.found_other or state.found_naive_str):
+            # found_other indicates a tz-naive int, float, dt64, or date
+            # e.g. test_to_datetime_mixed_awareness_mixed_types
+            raise ValueError("Cannot mix tz-aware with tz-naive values")
+
     return result, tz_out
 
 

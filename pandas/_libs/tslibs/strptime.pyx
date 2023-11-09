@@ -242,8 +242,15 @@ cdef _get_format_regex(str fmt):
 
 cdef class DatetimeParseState:
     def __cinit__(self, NPY_DATETIMEUNIT creso=NPY_DATETIMEUNIT.NPY_FR_ns):
+        # found_tz and found_naive are specifically about datetime/Timestamp
+        #  objects with and without tzinfos attached.
         self.found_tz = False
         self.found_naive = False
+        # found_naive_str refers to a string that was parsed to a timezone-naive
+        #  datetime.
+        self.found_naive_str = False
+        self.found_other = False
+
         self.creso = creso
         self.creso_ever_changed = False
 

@@ -3727,3 +3727,141 @@ def test_to_datetime_with_empty_str_utc_false_offsets_and_format_mixed():
         to_datetime(
             ["2020-01-01 00:00+00:00", "2020-01-01 00:00+02:00", ""], format="mixed"
         )
+
+
+def test_to_datetime_mixed_tzs_mixed_types():
+    # GH#55793, GH#55693 mismatched tzs but one is str and other is
+    #  datetime object
+    ts = Timestamp("2016-01-02 03:04:05", tz="US/Pacific")
+    dtstr = "2023-10-30 15:06+01"
+    arr = [ts, dtstr]
+
+    msg = (
+        "Mixed timezones detected. pass utc=True in to_datetime or tz='UTC' "
+        "in DatetimeIndex to convert to a common timezone"
+    )
+    with pytest.raises(ValueError, match=msg):
+        to_datetime(arr)
+    with pytest.raises(ValueError, match=msg):
+        to_datetime(arr, format="mixed")
+    with pytest.raises(ValueError, match=msg):
+        DatetimeIndex(arr)
+
+
+def test_to_datetime_mixed_types_matching_tzs():
+    # GH#55793
+    dtstr = "2023-11-01 09:22:03-07:00"
+    ts = Timestamp(dtstr)
+    arr = [ts, dtstr]
+    res1 = to_datetime(arr)
+    res2 = to_datetime(arr[::-1])[::-1]
+    res3 = to_datetime(arr, format="mixed")
+    res4 = DatetimeIndex(arr)
+
+    expected = DatetimeIndex([ts, ts])
+    tm.assert_index_equal(res1, expected)
+    tm.assert_index_equal(res2, expected)
+    tm.assert_index_equal(res3, expected)
+    tm.assert_index_equal(res4, expected)
+
+
+dtstr = "2020-01-01 00:00+00:00"
+ts = Timestamp(dtstr)
+
+
+@pytest.mark.filterwarnings("ignore:Could not infer format:UserWarning")
+@pytest.mark.parametrize(
+    "aware_val",
+    [dtstr, Timestamp(dtstr)],
+    ids=lambda x: type(x).__name__,
+)
+@pytest.mark.parametrize(
+    "naive_val",
+    [dtstr[:-6], ts.tz_localize(None), ts.date(), ts.asm8, ts.value, float(ts.value)],
+    ids=lambda x: type(x).__name__,
+)
+@pytest.mark.parametrize("naive_first", [True, False])
+def test_to_datetime_mixed_awareness_mixed_types(aware_val, naive_val, naive_first):
+    # GH#55793, GH#55693
+    # Empty string parses to NaT
+    vals = [aware_val, naive_val, ""]
+
+    vec = vals
+    if naive_first:
+        # alas, the behavior is order-dependent, so we test both ways
+        vec = [naive_val, aware_val, ""]
+
+    # both_strs-> paths that were previously already deprecated with warning
+    #  issued in _array_to_datetime_object
+    both_strs = isinstance(aware_val, str) and isinstance(naive_val, str)
+    has_numeric = isinstance(naive_val, (int, float))
+
+    depr_msg = "In a future version of pandas, parsing datetimes with mixed time zones"
+
+    first_non_null = next(x for x in vec if x != "")
+    # if first_non_null is a not a string, _guess_datetime_format_for_array
+    #  doesn't guess a format so we don't go through array_strptime
+    if not isinstance(first_non_null, str):
+        # that case goes through array_strptime which has different behavior
+        msg = "Cannot mix tz-aware with tz-naive values"
+        if naive_first and isinstance(aware_val, Timestamp):
+            if isinstance(naive_val, Timestamp):
+                msg = "Tz-aware datetime.datetime cannot be converted to datetime64"
+            with pytest.raises(ValueError, match=msg):
+                to_datetime(vec)
+        else:
+            with pytest.raises(ValueError, match=msg):
+                to_datetime(vec)
+
+        # No warning/error with utc=True
+        to_datetime(vec, utc=True)
+
+    elif has_numeric and vec.index(aware_val) < vec.index(naive_val):
+        msg = "time data .* doesn't match format"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(vec)
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(vec, utc=True)
+
+    elif both_strs and vec.index(aware_val) < vec.index(naive_val):
+        msg = r"time data \"2020-01-01 00:00\" doesn't match format"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(vec)
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(vec, utc=True)
+
+    elif both_strs and vec.index(naive_val) < vec.index(aware_val):
+        msg = "unconverted data remains when parsing with format"
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(vec)
+        with pytest.raises(ValueError, match=msg):
+            to_datetime(vec, utc=True)
+
+    else:
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            to_datetime(vec)
+
+        # No warning/error with utc=True
+        to_datetime(vec, utc=True)
+
+    if both_strs:
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            to_datetime(vec, format="mixed")
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            msg = "DatetimeIndex has mixed timezones"
+            with pytest.raises(TypeError, match=msg):
+                DatetimeIndex(vec)
+    else:
+        msg = "Cannot mix tz-aware with tz-naive values"
+        if naive_first and isinstance(aware_val, Timestamp):
+            if isinstance(naive_val, Timestamp):
+                msg = "Tz-aware datetime.datetime cannot be converted to datetime64"
+            with pytest.raises(ValueError, match=msg):
+                to_datetime(vec, format="mixed")
+            with pytest.raises(ValueError, match=msg):
+                DatetimeIndex(vec)
+        else:
+            with pytest.raises(ValueError, match=msg):
+                to_datetime(vec, format="mixed")
+            with pytest.raises(ValueError, match=msg):
+                DatetimeIndex(vec)
