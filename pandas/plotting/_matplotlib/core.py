@@ -1222,13 +1222,6 @@ class PlanePlot(MPLPlot, ABC):
         if is_integer(y) and not self.data.columns._holds_integer():
             y = self.data.columns[y]
 
-        # Scatter plot allows to plot objects data
-        if self._kind == "hexbin":
-            if len(self.data[x]._get_numeric_data()) == 0:
-                raise ValueError(self._kind + " requires x column to be numeric")
-            if len(self.data[y]._get_numeric_data()) == 0:
-                raise ValueError(self._kind + " requires y column to be numeric")
-
         self.x = x
         self.y = y
 
@@ -1405,11 +1398,19 @@ class HexBinPlot(PlanePlot):
     def _kind(self) -> Literal["hexbin"]:
         return "hexbin"
 
-    def __init__(self, data, x, y, C=None, **kwargs) -> None:
+    def __init__(self, data, x, y, C=None, *, colorbar: bool = True, **kwargs) -> None:
         super().__init__(data, x, y, **kwargs)
         if is_integer(C) and not self.data.columns._holds_integer():
             C = self.data.columns[C]
         self.C = C
+
+        self.colorbar = colorbar
+
+        # Scatter plot allows to plot objects data
+        if len(self.data[self.x]._get_numeric_data()) == 0:
+            raise ValueError(self._kind + " requires x column to be numeric")
+        if len(self.data[self.y]._get_numeric_data()) == 0:
+            raise ValueError(self._kind + " requires y column to be numeric")
 
     def _make_plot(self, fig: Figure) -> None:
         x, y, data, C = self.x, self.y, self.data, self.C
@@ -1417,7 +1418,7 @@ class HexBinPlot(PlanePlot):
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or "BuGn"
         cmap = mpl.colormaps.get_cmap(cmap)
-        cb = self.kwds.pop("colorbar", True)
+        cb = self.colorbar
 
         if C is None:
             c_values = None
