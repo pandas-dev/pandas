@@ -1606,7 +1606,7 @@ class TestDatetime64OverflowHandling:
         # GH#12534, fixed by GH#19024
         dt = Timestamp("1700-01-31")
         td = Timedelta("20000 Days")
-        dti = date_range("1949-09-30", freq="100Y", periods=4)
+        dti = date_range("1949-09-30", freq="100YE", periods=4)
         ser = Series(dti)
         msg = "Overflow in int64 addition"
         with pytest.raises(OverflowError, match=msg):
