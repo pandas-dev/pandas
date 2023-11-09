@@ -296,6 +296,7 @@ Other Deprecations
 - Deprecated the option ``mode.data_manager`` and the ``ArrayManager``; only the ``BlockManager`` will be available in future versions (:issue:`55043`)
 - Deprecated the previous implementation of :class:`DataFrame.stack`; specify ``future_stack=True`` to adopt the future version (:issue:`53515`)
 - Deprecating downcasting the results of :meth:`DataFrame.fillna`, :meth:`Series.fillna`, :meth:`DataFrame.ffill`, :meth:`Series.ffill`, :meth:`DataFrame.bfill`, :meth:`Series.bfill` in object-dtype cases. To opt in to the future version, use ``pd.set_option("future.no_silent_downcasting", True)`` (:issue:`54261`)
+- Deprecated the ``kind`` keyword in :meth:`Series.resample` and :meth:`DataFrame.resample`, explicitly cast the object's ``index`` instead (:issue:`??`)
 -
 
 .. ---------------------------------------------------------------------------
