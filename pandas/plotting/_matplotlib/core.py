@@ -157,6 +157,14 @@ class MPLPlot(ABC):
         layout=None,
         include_bool: bool = False,
         column: IndexLabel | None = None,
+        *,
+        logx: bool | None | Literal["sym"] = False,
+        logy: bool | None | Literal["sym"] = False,
+        loglog: bool | None | Literal["sym"] = False,
+        mark_right: bool = True,
+        stacked: bool = False,
+        label: Hashable | None = None,
+        style=None,
         **kwds,
     ) -> None:
         import matplotlib.pyplot as plt
@@ -228,13 +236,13 @@ class MPLPlot(ABC):
         self.legend_handles: list[Artist] = []
         self.legend_labels: list[Hashable] = []
 
-        self.logx = kwds.pop("logx", False)
-        self.logy = kwds.pop("logy", False)
-        self.loglog = kwds.pop("loglog", False)
-        self.label = kwds.pop("label", None)
-        self.style = kwds.pop("style", None)
-        self.mark_right = kwds.pop("mark_right", True)
-        self.stacked = kwds.pop("stacked", False)
+        self.logx = type(self)._validate_log_kwd("logx", logx)
+        self.logy = type(self)._validate_log_kwd("logy", logy)
+        self.loglog = type(self)._validate_log_kwd("loglog", loglog)
+        self.label = label
+        self.style = style
+        self.mark_right = mark_right
+        self.stacked = stacked
 
         self.ax = ax
         # TODO: deprecate fig keyword as it is ignored, not passed in tests
@@ -282,6 +290,22 @@ class MPLPlot(ABC):
         elif not is_bool(sharex):
             raise TypeError("sharex must be a bool or None")
         return bool(sharex)
+
+    @classmethod
+    def _validate_log_kwd(
+        cls,
+        kwd: str,
+        value: bool | None | Literal["sym"],
+    ) -> bool | None | Literal["sym"]:
+        if (
+            value is None
+            or isinstance(value, bool)
+            or (isinstance(value, str) and value == "sym")
+        ):
+            return value
+        raise ValueError(
+            f"keyword '{kwd}' should be bool, None, or 'sym', not '{value}'"
+        )
 
     @final
     def _validate_subplots_kwarg(
@@ -533,14 +557,6 @@ class MPLPlot(ABC):
             axes = self.ax
 
         axes = flatten_axes(axes)
-
-        valid_log = {False, True, "sym", None}
-        input_log = {self.logx, self.logy, self.loglog}
-        if input_log - valid_log:
-            invalid_log = next(iter(input_log - valid_log))
-            raise ValueError(
-                f"Boolean, None and 'sym' are valid options, '{invalid_log}' is given."
-            )
 
         if self.logx is True or self.loglog is True:
             [a.set_xscale("log") for a in axes]
@@ -1303,7 +1319,7 @@ class ScatterPlot(PlanePlot):
         plot_colorbar = self.colormap or c_is_column
         cb = self.kwds.pop("colorbar", is_numeric_dtype(c_values) and plot_colorbar)
 
-        if self.legend and hasattr(self, "label"):
+        if self.legend:
             label = self.label
         else:
             label = None
@@ -1895,10 +1911,21 @@ class PiePlot(MPLPlot):
         if (data < 0).any().any():
             raise ValueError(f"{self._kind} plot doesn't allow negative values")
         MPLPlot.__init__(self, data, kind=kind, **kwargs)
-        self.grid = False
-        self.logy = False
-        self.logx = False
-        self.loglog = False
+
+    @classmethod
+    def _validate_log_kwd(
+        cls,
+        kwd: str,
+        value: bool | None | Literal["sym"],
+    ) -> bool | None | Literal["sym"]:
+        super()._validate_log_kwd(kwd=kwd, value=value)
+        if value is not False:
+            warnings.warn(
+                f"PiePlot ignores the '{kwd}' keyword",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+        return False
 
     def _validate_color_args(self) -> None:
         pass
