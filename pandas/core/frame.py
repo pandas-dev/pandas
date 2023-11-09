@@ -648,7 +648,7 @@ class DataFrame(NDFrame, OpsMixin):
     def _constructor_from_mgr(self, mgr, axes):
         if self._constructor is DataFrame:
             # we are pandas.DataFrame (or a subclass that doesn't override _constructor)
-            return self._from_mgr(mgr, axes=axes)
+            return DataFrame._from_mgr(mgr, axes=axes)
         else:
             assert axes is mgr.axes
             return self._constructor(mgr)
@@ -697,7 +697,7 @@ class DataFrame(NDFrame, OpsMixin):
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=1,  # bump to 2 once pyarrow 15.0 is released with fix
                 )
 
             if using_copy_on_write():
