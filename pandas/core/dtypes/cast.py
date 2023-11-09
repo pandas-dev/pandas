@@ -986,8 +986,9 @@ def convert_dtypes(
     convert_integer: bool = True,
     convert_boolean: bool = True,
     convert_floating: bool = True,
+    convert_pyarrow:bool= True,
     infer_objects: bool = False,
-    dtype_backend: Literal["numpy_nullable", "pyarrow"] = "numpy_nullable",
+    dtype_backend: Literal["numpy_nullable"] = "numpy_nullable",
 ) -> DtypeObj:
     """
     Convert objects to best possible type, and optionally,
@@ -1009,7 +1010,7 @@ def convert_dtypes(
     infer_objects : bool, defaults False
         Whether to also infer objects to float/int if possible. Is only hit if the
         object array contains pd.NA.
-    dtype_backend : {'numpy_nullable', 'pyarrow'}, default 'numpy_nullable'
+    dtype_backend : {'numpy_nullable'}, default 'numpy_nullable'
         Back-end data type applied to the resultant :class:`DataFrame`
         (still experimental). Behaviour is as follows:
 
