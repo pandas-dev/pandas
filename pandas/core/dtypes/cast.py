@@ -358,11 +358,9 @@ def maybe_downcast_numeric(
             return trans(result).astype(dtype)
 
         if isinstance(result, np.ndarray):
-            element = result[0]
+            element = result.item(0)
         else:
             element = result.iloc[0]
-        if isinstance(element, np.ndarray):
-            element = element.ravel()[0]
         if not isinstance(element, (np.integer, np.floating, int, float, bool)):
             # a comparable, e.g. a Decimal may slip in here
             return result
