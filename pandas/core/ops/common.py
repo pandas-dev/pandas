@@ -95,6 +95,8 @@ def get_op_result_name(left, right):
     """
     if isinstance(right, (ABCSeries, ABCIndex)):
         name = _maybe_match_name(left, right)
+    elif name is None:
+        name = left.name
     else:
         name = left.name
     return name
