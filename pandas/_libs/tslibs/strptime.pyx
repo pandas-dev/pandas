@@ -515,7 +515,10 @@ def array_strptime(
     elif not utc:
         if tz_out and (state.found_other or state.found_naive_str):
             # found_other indicates a tz-naive int, float, dt64, or date
-            raise ValueError("Cannot mix tz-aware with tz-naive values")
+            result2 = _array_strptime_object_fallback(
+                values, fmt=fmt, exact=exact, errors=errors, utc=utc
+            )
+            return result2, None
 
     if infer_reso:
         if state.creso_ever_changed:
