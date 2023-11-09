@@ -26,7 +26,7 @@ class TestPeriodRange:
             ("D", "D"),
             ("W", "W"),
             ("QE", "Q"),
-            ("Y", "Y"),
+            ("YE", "Y"),
         ],
     )
     def test_construction_from_string(self, freq_offset, freq_period):

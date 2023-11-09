@@ -7,6 +7,7 @@ from abc import (
 from collections.abc import (
     Hashable,
     Iterable,
+    Iterator,
     Sequence,
 )
 from typing import (
@@ -131,8 +132,6 @@ class MPLPlot(ABC):
     def orientation(self) -> str | None:
         return None
 
-    axes: np.ndarray  # of Axes objects
-
     def __init__(
         self,
         data,
@@ -241,10 +240,11 @@ class MPLPlot(ABC):
         self.mark_right = kwds.pop("mark_right", True)
         self.stacked = kwds.pop("stacked", False)
 
+        # ax may be an Axes object or (if self.subplots) an ndarray of
+        #  Axes objects
         self.ax = ax
         # TODO: deprecate fig keyword as it is ignored, not passed in tests
         #  as of 2023-11-05
-        self.axes = np.array([], dtype=object)  # "real" version get set in `generate`
 
         # parse errorbar input if given
         xerr = kwds.pop("xerr", None)
@@ -439,17 +439,15 @@ class MPLPlot(ABC):
                     )
 
     @final
-    def _iter_data(self, data=None, keep_index: bool = False, fillna=None):
-        if data is None:
-            data = self.data
-        if fillna is not None:
-            data = data.fillna(fillna)
-
+    @staticmethod
+    def _iter_data(
+        data: DataFrame | dict[Hashable, Series | DataFrame]
+    ) -> Iterator[tuple[Hashable, np.ndarray]]:
         for col, values in data.items():
-            if keep_index is True:
-                yield col, values
-            else:
-                yield col, values.values
+            # This was originally written to use values.values before EAs
+            #  were implemented; adding np.asarray(...) to keep consistent
+            #  typing.
+            yield col, np.asarray(values.values)
 
     def _get_nseries(self, data: Series | DataFrame) -> int:
         # When `by` is explicitly assigned, grouped data size will be defined, and
@@ -475,7 +473,7 @@ class MPLPlot(ABC):
     @final
     def generate(self) -> None:
         self._compute_plot_data()
-        fig = self._setup_subplots()
+        fig = self.fig
         self._make_plot(fig)
         self._add_table()
         self._make_legend()
@@ -492,7 +490,7 @@ class MPLPlot(ABC):
         return len(ax.lines) != 0 or len(ax.artists) != 0 or len(ax.containers) != 0
 
     @final
-    def _maybe_right_yaxis(self, ax: Axes, axes_num: int):
+    def _maybe_right_yaxis(self, ax: Axes, axes_num: int) -> Axes:
         if not self.on_right(axes_num):
             # secondary axes may be passed via ax kw
             return self._get_ax_layer(ax)
@@ -521,7 +519,19 @@ class MPLPlot(ABC):
             return new_ax
 
     @final
-    def _setup_subplots(self) -> Figure:
+    @cache_readonly
+    def fig(self) -> Figure:
+        return self._axes_and_fig[1]
+
+    @final
+    @cache_readonly
+    # TODO: can we annotate this as both a Sequence[Axes] and ndarray[object]?
+    def axes(self) -> Sequence[Axes]:
+        return self._axes_and_fig[0]
+
+    @final
+    @cache_readonly
+    def _axes_and_fig(self) -> tuple[Sequence[Axes], Figure]:
         if self.subplots:
             naxes = (
                 self.nseries if isinstance(self.subplots, bool) else len(self.subplots)
@@ -564,8 +574,8 @@ class MPLPlot(ABC):
         elif self.logy == "sym" or self.loglog == "sym":
             [a.set_yscale("symlog") for a in axes]
 
-        self.axes = axes
-        return fig
+        axes_seq = cast(Sequence["Axes"], axes)
+        return axes_seq, fig
 
     @property
     def result(self):
@@ -574,7 +584,8 @@ class MPLPlot(ABC):
         """
         if self.subplots:
             if self.layout is not None and not is_list_like(self.ax):
-                return self.axes.reshape(*self.layout)
+                # error: "Sequence[Any]" has no attribute "reshape"
+                return self.axes.reshape(*self.layout)  # type: ignore[attr-defined]
             else:
                 return self.axes
         else:
@@ -655,11 +666,7 @@ class MPLPlot(ABC):
 
         numeric_data = data.select_dtypes(include=include_type, exclude=exclude_type)
 
-        try:
-            is_empty = numeric_data.columns.empty
-        except AttributeError:
-            is_empty = not len(numeric_data)
-
+        is_empty = numeric_data.shape[-1] == 0
         # no non-numeric frames or series allowed
         if is_empty:
             raise TypeError("no numeric data to plot")
@@ -681,7 +688,7 @@ class MPLPlot(ABC):
         tools.table(ax, data)
 
     @final
-    def _post_plot_logic_common(self, ax, data):
+    def _post_plot_logic_common(self, ax: Axes, data) -> None:
         """Common post process for each axes"""
         if self.orientation == "vertical" or self.orientation is None:
             self._apply_axis_properties(ax.xaxis, rot=self.rot, fontsize=self.fontsize)
@@ -700,7 +707,7 @@ class MPLPlot(ABC):
             raise ValueError
 
     @abstractmethod
-    def _post_plot_logic(self, ax, data) -> None:
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         """Post process for each axes. Overridden in child classes"""
 
     @final
@@ -986,7 +993,8 @@ class MPLPlot(ABC):
             i = self._col_idx_to_axis_idx(i)
             ax = self.axes[i]
             ax = self._maybe_right_yaxis(ax, i)
-            self.axes[i] = ax
+            # error: Unsupported target for indexed assignment ("Sequence[Any]")
+            self.axes[i] = ax  # type: ignore[index]
         else:
             ax = self.axes[0]
             ax = self._maybe_right_yaxis(ax, i)
@@ -1424,14 +1432,14 @@ class LinePlot(MPLPlot):
 
             x = data.index  # dummy, not used
             plotf = self._ts_plot
-            it = self._iter_data(data=data, keep_index=True)
+            it = data.items()
         else:
             x = self._get_xticks(convert_period=True)
             # error: Incompatible types in assignment (expression has type
             # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
             # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
             plotf = self._plot  # type: ignore[assignment]
-            it = self._iter_data()
+            it = self._iter_data(data=self.data)
 
         stacking_id = self._get_stacking_id()
         is_errorbar = com.any_not_none(*self.errors.values())
@@ -1440,7 +1448,12 @@ class LinePlot(MPLPlot):
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
-            style, kwds = self._apply_style_colors(colors, kwds, i, label)
+            style, kwds = self._apply_style_colors(
+                colors,
+                kwds,
+                i,
+                label,  # pyright: ignore[reportGeneralTypeIssues]
+            )
 
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
@@ -1452,7 +1465,7 @@ class LinePlot(MPLPlot):
             newlines = plotf(
                 ax,
                 x,
-                y,
+                y,  # pyright: ignore[reportGeneralTypeIssues]
                 style=style,
                 column_num=i,
                 stacking_id=stacking_id,
@@ -1471,7 +1484,14 @@ class LinePlot(MPLPlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax: Axes, x, y, style=None, column_num=None, stacking_id=None, **kwds
+        cls,
+        ax: Axes,
+        x,
+        y: np.ndarray,
+        style=None,
+        column_num=None,
+        stacking_id=None,
+        **kwds,
     ):
         # column_num is used to get the target column from plotf in line and
         # area plots
@@ -1498,7 +1518,7 @@ class LinePlot(MPLPlot):
             decorate_axes(ax.right_ax, freq, kwds)
         ax._plot_data.append((data, self._kind, kwds))
 
-        lines = self._plot(ax, data.index, data.values, style=style, **kwds)
+        lines = self._plot(ax, data.index, np.asarray(data.values), style=style, **kwds)
         # set date formatter, locators and rescale limits
         # error: Argument 3 to "format_dateaxis" has incompatible type "Index";
         # expected "DatetimeIndex | PeriodIndex"
@@ -1526,7 +1546,9 @@ class LinePlot(MPLPlot):
 
     @final
     @classmethod
-    def _get_stacked_values(cls, ax: Axes, stacking_id, values, label):
+    def _get_stacked_values(
+        cls, ax: Axes, stacking_id: int | None, values: np.ndarray, label
+    ) -> np.ndarray:
         if stacking_id is None:
             return values
         if not hasattr(ax, "_stacker_pos_prior"):
@@ -1546,7 +1568,7 @@ class LinePlot(MPLPlot):
 
     @final
     @classmethod
-    def _update_stacker(cls, ax: Axes, stacking_id, values) -> None:
+    def _update_stacker(cls, ax: Axes, stacking_id: int | None, values) -> None:
         if stacking_id is None:
             return
         if (values >= 0).all():
@@ -1624,7 +1646,7 @@ class AreaPlot(LinePlot):
         cls,
         ax: Axes,
         x,
-        y,
+        y: np.ndarray,
         style=None,
         column_num=None,
         stacking_id=None,
@@ -1750,7 +1772,7 @@ class BarPlot(MPLPlot):
         cls,
         ax: Axes,
         x,
-        y,
+        y: np.ndarray,
         w,
         start: int | npt.NDArray[np.intp] = 0,
         log: bool = False,
@@ -1769,7 +1791,8 @@ class BarPlot(MPLPlot):
         pos_prior = neg_prior = np.zeros(len(self.data))
         K = self.nseries
 
-        for i, (label, y) in enumerate(self._iter_data(fillna=0)):
+        data = self.data.fillna(0)
+        for i, (label, y) in enumerate(self._iter_data(data=data)):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
             if self._is_series:
@@ -1848,7 +1871,14 @@ class BarPlot(MPLPlot):
 
         self._decorate_ticks(ax, self._get_index_name(), str_index, s_edge, e_edge)
 
-    def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge) -> None:
+    def _decorate_ticks(
+        self,
+        ax: Axes,
+        name: str | None,
+        ticklabels: list[str],
+        start_edge: float,
+        end_edge: float,
+    ) -> None:
         ax.set_xlim((start_edge, end_edge))
 
         if self.xticks is not None:
@@ -1882,7 +1912,7 @@ class BarhPlot(BarPlot):
         cls,
         ax: Axes,
         x,
-        y,
+        y: np.ndarray,
         w,
         start: int | npt.NDArray[np.intp] = 0,
         log: bool = False,
@@ -1893,7 +1923,14 @@ class BarhPlot(BarPlot):
     def _get_custom_index_name(self):
         return self.ylabel
 
-    def _decorate_ticks(self, ax: Axes, name, ticklabels, start_edge, end_edge) -> None:
+    def _decorate_ticks(
+        self,
+        ax: Axes,
+        name: str | None,
+        ticklabels: list[str],
+        start_edge: float,
+        end_edge: float,
+    ) -> None:
         # horizontal bars
         ax.set_ylim((start_edge, end_edge))
         ax.set_yticks(self.tick_pos)
@@ -1927,7 +1964,7 @@ class PiePlot(MPLPlot):
         colors = self._get_colors(num_colors=len(self.data), color_kwds="colors")
         self.kwds.setdefault("colors", colors)
 
-        for i, (label, y) in enumerate(self._iter_data()):
+        for i, (label, y) in enumerate(self._iter_data(data=self.data)):
             ax = self._get_ax(i)
             if label is not None:
                 label = pprint_thing(label)
