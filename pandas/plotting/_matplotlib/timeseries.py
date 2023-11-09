@@ -5,6 +5,7 @@ from __future__ import annotations
 import functools
 from typing import (
     TYPE_CHECKING,
+    Any,
     cast,
 )
 import warnings
@@ -44,6 +45,8 @@ if TYPE_CHECKING:
 
     from matplotlib.axes import Axes
 
+    from pandas._typing import NDFrameT
+
     from pandas import (
         DataFrame,
         DatetimeIndex,
@@ -56,7 +59,7 @@ if TYPE_CHECKING:
 # Plotting functions and monkey patches
 
 
-def maybe_resample(series: Series, ax: Axes, kwargs):
+def maybe_resample(series: Series, ax: Axes, kwargs: dict[str, Any]):
     # resample against axes freq if necessary
     freq, ax_freq = _get_freq(ax, series)
 
@@ -99,7 +102,7 @@ def _is_sup(f1: str, f2: str) -> bool:
     )
 
 
-def _upsample_others(ax: Axes, freq, kwargs) -> None:
+def _upsample_others(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None:
     legend = ax.get_legend()
     lines, labels = _replot_ax(ax, freq, kwargs)
     _replot_ax(ax, freq, kwargs)
@@ -122,7 +125,7 @@ def _upsample_others(ax: Axes, freq, kwargs) -> None:
         ax.legend(lines, labels, loc="best", title=title)
 
 
-def _replot_ax(ax: Axes, freq, kwargs):
+def _replot_ax(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]):
     data = getattr(ax, "_plot_data", None)
 
     # clear current axes and data
@@ -152,7 +155,7 @@ def _replot_ax(ax: Axes, freq, kwargs):
     return lines, labels
 
 
-def decorate_axes(ax: Axes, freq, kwargs) -> None:
+def decorate_axes(ax: Axes, freq: BaseOffset, kwargs: dict[str, Any]) -> None:
     """Initialize axes for time-series plotting"""
     if not hasattr(ax, "_plot_data"):
         ax._plot_data = []
@@ -264,7 +267,7 @@ def _get_index_freq(index: Index) -> BaseOffset | None:
     return freq
 
 
-def maybe_convert_index(ax: Axes, data):
+def maybe_convert_index(ax: Axes, data: NDFrameT) -> NDFrameT:
     # tsplot converts automatically, but don't want to convert index
     # over and over for DataFrames
     if isinstance(data.index, (ABCDatetimeIndex, ABCPeriodIndex)):
