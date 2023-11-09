@@ -751,7 +751,8 @@ class TestExcelWriter:
         tm.assert_frame_equal(expected, recons)
 
     def test_to_excel_periodindex(self, tsframe, path):
-        xp = tsframe.resample("ME", kind="period").mean()
+        # xp has a PeriodIndex
+        xp = tsframe.resample("ME").mean().to_period("M")
 
         xp.to_excel(path, sheet_name="sht1")
 
