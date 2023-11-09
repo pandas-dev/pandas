@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed infinite recursion from operations that return a new object on some DataFrame subclasses (:issue:`55763`)
 -
 
 .. ---------------------------------------------------------------------------
