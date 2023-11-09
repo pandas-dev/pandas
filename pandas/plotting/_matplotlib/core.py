@@ -1141,13 +1141,15 @@ class MPLPlot(ABC):
                 err = np.tile(err, (nseries, 1))
 
         elif is_number(err):
-            err = np.tile([err], (nseries, len(data)))
+            err = np.tile(
+                [err], (nseries, len(data))
+            )  # pyright: ignore[reportGeneralTypeIssues]
 
         else:
             msg = f"No valid {label} detected"
             raise ValueError(msg)
 
-        return err, data
+        return err, data  # pyright: ignore[reportGeneralTypeIssues]
 
     @final
     def _get_errorbars(
