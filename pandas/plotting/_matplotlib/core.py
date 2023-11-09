@@ -87,6 +87,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         IndexLabel,
+        NDFrameT,
         PlottingOrientation,
         npt,
     )
@@ -161,8 +162,6 @@ class MPLPlot(ABC):
     ) -> None:
         import matplotlib.pyplot as plt
 
-        self.data = data
-
         # if users assign an empty list or tuple, raise `ValueError`
         # similar to current `df.box` and `df.hist` APIs.
         if by in ([], ()):
@@ -193,9 +192,11 @@ class MPLPlot(ABC):
 
         self.kind = kind
 
-        self.subplots = self._validate_subplots_kwarg(subplots)
+        self.subplots = type(self)._validate_subplots_kwarg(
+            subplots, data, kind=self._kind
+        )
 
-        self.sharex = self._validate_sharex(sharex, ax, by)
+        self.sharex = type(self)._validate_sharex(sharex, ax, by)
         self.sharey = sharey
         self.figsize = figsize
         self.layout = layout
@@ -244,10 +245,11 @@ class MPLPlot(ABC):
         # parse errorbar input if given
         xerr = kwds.pop("xerr", None)
         yerr = kwds.pop("yerr", None)
-        self.errors = {
-            kw: self._parse_errorbars(kw, err)
-            for kw, err in zip(["xerr", "yerr"], [xerr, yerr])
-        }
+        nseries = self._get_nseries(data)
+        xerr, data = type(self)._parse_errorbars("xerr", xerr, data, nseries)
+        yerr, data = type(self)._parse_errorbars("yerr", yerr, data, nseries)
+        self.errors = {"xerr": xerr, "yerr": yerr}
+        self.data = data
 
         if not isinstance(secondary_y, (bool, tuple, list, np.ndarray, ABCIndex)):
             secondary_y = [secondary_y]
@@ -270,7 +272,8 @@ class MPLPlot(ABC):
         self._validate_color_args()
 
     @final
-    def _validate_sharex(self, sharex: bool | None, ax, by) -> bool:
+    @staticmethod
+    def _validate_sharex(sharex: bool | None, ax, by) -> bool:
         if sharex is None:
             # if by is defined, subplots are used and sharex should be False
             if ax is None and by is None:  # pylint: disable=simplifiable-if-statement
@@ -284,8 +287,9 @@ class MPLPlot(ABC):
         return bool(sharex)
 
     @final
+    @staticmethod
     def _validate_subplots_kwarg(
-        self, subplots: bool | Sequence[Sequence[str]]
+        subplots: bool | Sequence[Sequence[str]], data: Series | DataFrame, kind: str
     ) -> bool | list[tuple[int, ...]]:
         """
         Validate the subplots parameter
@@ -322,18 +326,18 @@ class MPLPlot(ABC):
             "area",
             "pie",
         )
-        if self._kind not in supported_kinds:
+        if kind not in supported_kinds:
             raise ValueError(
                 "When subplots is an iterable, kind must be "
-                f"one of {', '.join(supported_kinds)}. Got {self._kind}."
+                f"one of {', '.join(supported_kinds)}. Got {kind}."
             )
 
-        if isinstance(self.data, ABCSeries):
+        if isinstance(data, ABCSeries):
             raise NotImplementedError(
                 "An iterable subplots for a Series is not supported."
             )
 
-        columns = self.data.columns
+        columns = data.columns
         if isinstance(columns, ABCMultiIndex):
             raise NotImplementedError(
                 "An iterable subplots for a DataFrame with a MultiIndex column "
@@ -443,18 +447,22 @@ class MPLPlot(ABC):
             else:
                 yield col, values.values
 
-    @property
-    def nseries(self) -> int:
+    def _get_nseries(self, data: Series | DataFrame) -> int:
         # When `by` is explicitly assigned, grouped data size will be defined, and
         # this will determine number of subplots to have, aka `self.nseries`
-        if self.data.ndim == 1:
+        if data.ndim == 1:
             return 1
         elif self.by is not None and self._kind == "hist":
             return len(self._grouped)
         elif self.by is not None and self._kind == "box":
             return len(self.columns)
         else:
-            return self.data.shape[1]
+            return data.shape[1]
+
+    @final
+    @property
+    def nseries(self) -> int:
+        return self._get_nseries(self.data)
 
     @final
     def draw(self) -> None:
@@ -1041,8 +1049,12 @@ class MPLPlot(ABC):
             color=self.kwds.get(color_kwds),
         )
 
+    # TODO: tighter typing for first return?
     @final
-    def _parse_errorbars(self, label, err):
+    @staticmethod
+    def _parse_errorbars(
+        label: str, err, data: NDFrameT, nseries: int
+    ) -> tuple[Any, NDFrameT]:
         """
         Look for error keyword arguments and return the actual errorbar data
         or return the error DataFrame/dict
@@ -1062,7 +1074,7 @@ class MPLPlot(ABC):
         should be in a ``Mx2xN`` array.
         """
         if err is None:
-            return None
+            return None, data
 
         def match_labels(data, e):
             e = e.reindex(data.index)
@@ -1070,7 +1082,7 @@ class MPLPlot(ABC):
 
         # key-matched DataFrame
         if isinstance(err, ABCDataFrame):
-            err = match_labels(self.data, err)
+            err = match_labels(data, err)
         # key-matched dict
         elif isinstance(err, dict):
             pass
@@ -1078,16 +1090,16 @@ class MPLPlot(ABC):
         # Series of error values
         elif isinstance(err, ABCSeries):
             # broadcast error series across data
-            err = match_labels(self.data, err)
+            err = match_labels(data, err)
             err = np.atleast_2d(err)
-            err = np.tile(err, (self.nseries, 1))
+            err = np.tile(err, (nseries, 1))
 
         # errors are a column in the dataframe
         elif isinstance(err, str):
-            evalues = self.data[err].values
-            self.data = self.data[self.data.columns.drop(err)]
+            evalues = data[err].values
+            data = data[data.columns.drop(err)]
             err = np.atleast_2d(evalues)
-            err = np.tile(err, (self.nseries, 1))
+            err = np.tile(err, (nseries, 1))
 
         elif is_list_like(err):
             if is_iterator(err):
@@ -1099,37 +1111,37 @@ class MPLPlot(ABC):
             err_shape = err.shape
 
             # asymmetrical error bars
-            if isinstance(self.data, ABCSeries) and err_shape[0] == 2:
+            if isinstance(data, ABCSeries) and err_shape[0] == 2:
                 err = np.expand_dims(err, 0)
                 err_shape = err.shape
-                if err_shape[2] != len(self.data):
+                if err_shape[2] != len(data):
                     raise ValueError(
                         "Asymmetrical error bars should be provided "
-                        f"with the shape (2, {len(self.data)})"
+                        f"with the shape (2, {len(data)})"
                     )
-            elif isinstance(self.data, ABCDataFrame) and err.ndim == 3:
+            elif isinstance(data, ABCDataFrame) and err.ndim == 3:
                 if (
-                    (err_shape[0] != self.nseries)
+                    (err_shape[0] != nseries)
                     or (err_shape[1] != 2)
-                    or (err_shape[2] != len(self.data))
+                    or (err_shape[2] != len(data))
                 ):
                     raise ValueError(
                         "Asymmetrical error bars should be provided "
-                        f"with the shape ({self.nseries}, 2, {len(self.data)})"
+                        f"with the shape ({nseries}, 2, {len(data)})"
                     )
 
             # broadcast errors to each data series
             if len(err) == 1:
-                err = np.tile(err, (self.nseries, 1))
+                err = np.tile(err, (nseries, 1))
 
         elif is_number(err):
-            err = np.tile([err], (self.nseries, len(self.data)))
+            err = np.tile([err], (nseries, len(data)))
 
         else:
             msg = f"No valid {label} detected"
             raise ValueError(msg)
 
-        return err
+        return err, data
 
     @final
     def _get_errorbars(
@@ -1203,8 +1215,7 @@ class PlanePlot(MPLPlot, ABC):
         self.y = y
 
     @final
-    @property
-    def nseries(self) -> int:
+    def _get_nseries(self, data: Series | DataFrame) -> int:
         return 1
 
     @final
