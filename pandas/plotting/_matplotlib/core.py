@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    cast,
     final,
 )
 import warnings
@@ -92,7 +93,10 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import Series
+    from pandas import (
+        PeriodIndex,
+        Series,
+    )
 
 
 def _color_in_style(style: str) -> bool:
@@ -880,10 +884,12 @@ class MPLPlot(ABC):
         index = self.data.index
         is_datetype = index.inferred_type in ("datetime", "date", "datetime64", "time")
 
+        x: list[int] | np.ndarray
         if self.use_index:
             if convert_period and isinstance(index, ABCPeriodIndex):
                 self.data = self.data.reindex(index=index.sort_values())
-                x = self.data.index.to_timestamp()._mpl_repr()
+                index = cast("PeriodIndex", self.data.index)
+                x = index.to_timestamp()._mpl_repr()
             elif is_any_real_numeric_dtype(index.dtype):
                 # Matplotlib supports numeric values or datetime objects as
                 # xaxis values. Taking LBYL approach here, by the time

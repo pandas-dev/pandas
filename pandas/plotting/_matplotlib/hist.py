@@ -45,7 +45,10 @@ if TYPE_CHECKING:
 
     from pandas._typing import PlottingOrientation
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 class HistPlot(LinePlot):
@@ -87,7 +90,7 @@ class HistPlot(LinePlot):
                 bins = self._calculate_bins(self.data, bins)
         return bins
 
-    def _calculate_bins(self, data: DataFrame, bins) -> np.ndarray:
+    def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:
         """Calculate bins given data"""
         nd_values = data.infer_objects(copy=False)._get_numeric_data()
         values = np.ravel(nd_values)
