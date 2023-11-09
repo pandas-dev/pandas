@@ -1142,8 +1142,9 @@ class MPLPlot(ABC):
 
         elif is_number(err):
             err = np.tile(
-                [err], (nseries, len(data))
-            )  # pyright: ignore[reportGeneralTypeIssues]
+                [err],  # pyright: ignore[reportGeneralTypeIssues]
+                (nseries, len(data)),
+            )
 
         else:
             msg = f"No valid {label} detected"
