@@ -1435,7 +1435,10 @@ class LinePlot(MPLPlot):
             # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
             # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
             plotf = self._plot  # type: ignore[assignment]
-            it = self._iter_data(data=self.data)
+            # error: Incompatible types in assignment (expression has type
+            # "Iterator[tuple[Hashable, ndarray[Any, Any]]]", variable has
+            # type "Iterable[tuple[Hashable, Series]]")
+            it = self._iter_data(data=self.data)  # type: ignore[assignment]
 
         stacking_id = self._get_stacking_id()
         is_errorbar = com.any_not_none(*self.errors.values())
@@ -1448,7 +1451,9 @@ class LinePlot(MPLPlot):
                 colors,
                 kwds,
                 i,
-                label,  # pyright: ignore[reportGeneralTypeIssues]
+                # error: Argument 4 to "_apply_style_colors" of "MPLPlot" has
+                # incompatible type "Hashable"; expected "str"
+                label,  # type: ignore[arg-type] # pyright: ignore[reportGeneralTypeIssues]
             )
 
             errors = self._get_errorbars(label=label, index=i)
