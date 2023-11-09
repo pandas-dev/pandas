@@ -1309,19 +1309,7 @@ class ScatterPlot(PlanePlot):
         )
 
         color = self.kwds.pop("color", None)
-        if c is not None and color is not None:
-            raise TypeError("Specify exactly one of `c` and `color`")
-        if c is None and color is None:
-            c_values = self.plt.rcParams["patch.facecolor"]
-        elif color is not None:
-            c_values = color
-        elif color_by_categorical:
-            c_values = self.data[c].cat.codes
-        elif c_is_column:
-            c_values = self.data[c].values
-        else:
-            c_values = c
-
+        c_values = self._get_c_values(color, color_by_categorical, c_is_column)
         norm, cmap = self._get_norm_and_cmap(c_values, color_by_categorical)
         cb = self._get_colorbar(c_values, c_is_column)
 
@@ -1358,6 +1346,22 @@ class ScatterPlot(PlanePlot):
             err_kwds = dict(errors_x, **errors_y)
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values, linestyle="none", **err_kwds)
+
+    def _get_c_values(self, color, color_by_categorical: bool, c_is_column: bool):
+        c = self.c
+        if c is not None and color is not None:
+            raise TypeError("Specify exactly one of `c` and `color`")
+        if c is None and color is None:
+            c_values = self.plt.rcParams["patch.facecolor"]
+        elif color is not None:
+            c_values = color
+        elif color_by_categorical:
+            c_values = self.data[c].cat.codes
+        elif c_is_column:
+            c_values = self.data[c].values
+        else:
+            c_values = c
+        return c_values
 
     def _get_norm_and_cmap(self, c_values, color_by_categorical: bool):
         c = self.c
