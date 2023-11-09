@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
+    final,
 )
 
 import numpy as np
@@ -43,7 +45,10 @@ if TYPE_CHECKING:
 
     from pandas._typing import PlottingOrientation
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 class HistPlot(LinePlot):
@@ -58,6 +63,7 @@ class HistPlot(LinePlot):
         bottom: int | np.ndarray = 0,
         *,
         range=None,
+        weights=None,
         **kwargs,
     ) -> None:
         if is_list_like(bottom):
@@ -65,6 +71,7 @@ class HistPlot(LinePlot):
         self.bottom = bottom
 
         self._bin_range = range
+        self.weights = weights
 
         self.xlabel = kwargs.get("xlabel")
         self.ylabel = kwargs.get("ylabel")
@@ -83,7 +90,7 @@ class HistPlot(LinePlot):
                 bins = self._calculate_bins(self.data, bins)
         return bins
 
-    def _calculate_bins(self, data: DataFrame, bins) -> np.ndarray:
+    def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:
         """Calculate bins given data"""
         nd_values = data.infer_objects(copy=False)._get_numeric_data()
         values = np.ravel(nd_values)
@@ -96,8 +103,8 @@ class HistPlot(LinePlot):
     @classmethod
     def _plot(  # type: ignore[override]
         cls,
-        ax,
-        y,
+        ax: Axes,
+        y: np.ndarray,
         style=None,
         bottom: int | np.ndarray = 0,
         column_num: int = 0,
@@ -140,7 +147,7 @@ class HistPlot(LinePlot):
             if style is not None:
                 kwds["style"] = style
 
-            kwds = self._make_plot_keywords(kwds, y)
+            self._make_plot_keywords(kwds, y)
 
             # the bins is multi-dimension array now and each plot need only 1-d and
             # when by is applied, label should be columns that are grouped
@@ -149,21 +156,8 @@ class HistPlot(LinePlot):
                 kwds["label"] = self.columns
                 kwds.pop("color")
 
-            # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
-            # and each sub-array (10,) will be called in each iteration. If users only
-            # provide 1D array, we assume the same weights is used for all iterations
-            weights = kwds.get("weights", None)
-            if weights is not None:
-                if np.ndim(weights) != 1 and np.shape(weights)[-1] != 1:
-                    try:
-                        weights = weights[:, i]
-                    except IndexError as err:
-                        raise ValueError(
-                            "weights must have the same shape as data, "
-                            "or be a single column"
-                        ) from err
-                weights = weights[~isna(y)]
-                kwds["weights"] = weights
+            if self.weights is not None:
+                kwds["weights"] = self._get_column_weights(self.weights, i, y)
 
             y = reformat_hist_y_given_by(y, self.by)
 
@@ -175,12 +169,29 @@ class HistPlot(LinePlot):
 
             self._append_legend_handles_labels(artists[0], label)
 
-    def _make_plot_keywords(self, kwds, y):
+    def _make_plot_keywords(self, kwds: dict[str, Any], y: np.ndarray) -> None:
         """merge BoxPlot/KdePlot properties to passed kwds"""
         # y is required for KdePlot
         kwds["bottom"] = self.bottom
         kwds["bins"] = self.bins
-        return kwds
+
+    @final
+    @staticmethod
+    def _get_column_weights(weights, i: int, y):
+        # We allow weights to be a multi-dimensional array, e.g. a (10, 2) array,
+        # and each sub-array (10,) will be called in each iteration. If users only
+        # provide 1D array, we assume the same weights is used for all iterations
+        if weights is not None:
+            if np.ndim(weights) != 1 and np.shape(weights)[-1] != 1:
+                try:
+                    weights = weights[:, i]
+                except IndexError as err:
+                    raise ValueError(
+                        "weights must have the same shape as data, "
+                        "or be a single column"
+                    ) from err
+            weights = weights[~isna(y)]
+        return weights
 
     def _post_plot_logic(self, ax: Axes, data) -> None:
         if self.orientation == "horizontal":
@@ -207,14 +218,17 @@ class KdePlot(HistPlot):
     def orientation(self) -> Literal["vertical"]:
         return "vertical"
 
-    def __init__(self, data, bw_method=None, ind=None, **kwargs) -> None:
+    def __init__(
+        self, data, bw_method=None, ind=None, *, weights=None, **kwargs
+    ) -> None:
         # Do not call LinePlot.__init__ which may fill nan
         MPLPlot.__init__(self, data, **kwargs)  # pylint: disable=non-parent-init-called
         self.bw_method = bw_method
         self.ind = ind
+        self.weights = weights
 
     @staticmethod
-    def _get_ind(y, ind):
+    def _get_ind(y: np.ndarray, ind):
         if ind is None:
             # np.nanmax() and np.nanmin() ignores the missing values
             sample_range = np.nanmax(y) - np.nanmin(y)
@@ -233,15 +247,16 @@ class KdePlot(HistPlot):
         return ind
 
     @classmethod
-    def _plot(
+    # error: Signature of "_plot" incompatible with supertype "MPLPlot"
+    def _plot(  #  type: ignore[override]
         cls,
-        ax,
-        y,
+        ax: Axes,
+        y: np.ndarray,
         style=None,
         bw_method=None,
         ind=None,
         column_num=None,
-        stacking_id=None,
+        stacking_id: int | None = None,
         **kwds,
     ):
         from scipy.stats import gaussian_kde
@@ -253,12 +268,11 @@ class KdePlot(HistPlot):
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
         return lines
 
-    def _make_plot_keywords(self, kwds, y):
+    def _make_plot_keywords(self, kwds: dict[str, Any], y: np.ndarray) -> None:
         kwds["bw_method"] = self.bw_method
         kwds["ind"] = self._get_ind(y, ind=self.ind)
-        return kwds
 
-    def _post_plot_logic(self, ax, data) -> None:
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         ax.set_ylabel("Density")
 
 

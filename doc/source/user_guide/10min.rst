@@ -763,14 +763,12 @@ Parquet
 Writing to a Parquet file:
 
 .. ipython:: python
-   :okwarning:
 
    df.to_parquet("foo.parquet")
 
 Reading from a Parquet file Store using :func:`read_parquet`:
 
 .. ipython:: python
-   :okwarning:
 
    pd.read_parquet("foo.parquet")
 

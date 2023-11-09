@@ -2518,7 +2518,7 @@ cdef class YearEnd(YearOffset):
     """
 
     _default_month = 12
-    _prefix = "Y"
+    _prefix = "YE"
     _day_opt = "end"
 
     cdef readonly:
@@ -4562,7 +4562,7 @@ prefix_mapping = {
     offset._prefix: offset
     for offset in [
         YearBegin,  # 'YS'
-        YearEnd,  # 'Y'
+        YearEnd,  # 'YE'
         BYearBegin,  # 'BYS'
         BYearEnd,  # 'BY'
         BusinessDay,  # 'B'
@@ -4604,7 +4604,7 @@ _lite_rule_alias = {
     "W": "W-SUN",
     "QE": "QE-DEC",
 
-    "Y": "Y-DEC",      # YearEnd(month=12),
+    "YE": "YE-DEC",      # YearEnd(month=12),
     "YS": "YS-JAN",    # YearBegin(month=1),
     "BY": "BY-DEC",    # BYearEnd(month=12),
     "BYS": "BYS-JAN",  # BYearBegin(month=1),
@@ -4637,6 +4637,7 @@ _dont_uppercase = {
     "qe-sep",
     "qe-oct",
     "qe-nov",
+    "ye",
 }
 
 
@@ -4762,6 +4763,14 @@ cpdef to_offset(freq, bint is_period=False):
                         f"instead of \'{name}\'"
                     )
                 elif is_period is True and name in c_OFFSET_DEPR_FREQSTR:
+                    if name.startswith("A"):
+                        warnings.warn(
+                            f"\'{name}\' is deprecated and will be removed in a future "
+                            f"version, please use \'{c_DEPR_ABBREVS.get(name)}\' "
+                            f"instead.",
+                            FutureWarning,
+                            stacklevel=find_stack_level(),
+                        )
                     name = c_OFFSET_DEPR_FREQSTR.get(name)
 
                 if sep != "" and not sep.isspace():
