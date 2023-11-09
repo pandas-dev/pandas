@@ -70,9 +70,7 @@ def test_orc_reader_empty(dirpath):
         expected[colname] = pd.Series(dtype=dtype)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.emptyFile.orc")
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        got = read_orc(inputfile, columns=columns)
+    got = read_orc(inputfile, columns=columns)
 
     tm.assert_equal(expected, got)
 
@@ -92,9 +90,7 @@ def test_orc_reader_basic(dirpath):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.test1.orc")
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        got = read_orc(inputfile, columns=data.keys())
+    got = read_orc(inputfile, columns=data.keys())
 
     tm.assert_equal(expected, got)
 
@@ -121,9 +117,7 @@ def test_orc_reader_decimal(dirpath):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.decimal.orc")
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        got = read_orc(inputfile).iloc[:10]
+    got = read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
 
@@ -164,9 +158,7 @@ def test_orc_reader_date_low(dirpath):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testDate1900.orc")
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        got = read_orc(inputfile).iloc[:10]
+    got = read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
 
@@ -207,9 +199,7 @@ def test_orc_reader_date_high(dirpath):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testDate2038.orc")
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        got = read_orc(inputfile).iloc[:10]
+    got = read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
 
@@ -250,9 +240,7 @@ def test_orc_reader_snappy_compressed(dirpath):
     expected = pd.DataFrame.from_dict(data)
 
     inputfile = os.path.join(dirpath, "TestOrcFile.testSnappy.orc")
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        got = read_orc(inputfile).iloc[:10]
+    got = read_orc(inputfile).iloc[:10]
 
     tm.assert_equal(expected, got)
 
@@ -277,9 +265,7 @@ def test_orc_roundtrip_file(dirpath):
 
     with tm.ensure_clean() as path:
         expected.to_orc(path)
-        msg = "Passing a BlockManager to DataFrame is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            got = read_orc(path)
+        got = read_orc(path)
 
         tm.assert_equal(expected, got)
 
@@ -303,9 +289,7 @@ def test_orc_roundtrip_bytesio():
     expected = pd.DataFrame.from_dict(data)
 
     bytes = expected.to_orc()
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        got = read_orc(BytesIO(bytes))
+    got = read_orc(BytesIO(bytes))
 
     tm.assert_equal(expected, got)
 
@@ -343,9 +327,7 @@ def test_orc_dtype_backend_pyarrow():
     )
 
     bytes_data = df.copy().to_orc()
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = read_orc(BytesIO(bytes_data), dtype_backend="pyarrow")
+    result = read_orc(BytesIO(bytes_data), dtype_backend="pyarrow")
 
     expected = pd.DataFrame(
         {
@@ -376,9 +358,7 @@ def test_orc_dtype_backend_numpy_nullable():
     )
 
     bytes_data = df.copy().to_orc()
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = read_orc(BytesIO(bytes_data), dtype_backend="numpy_nullable")
+    result = read_orc(BytesIO(bytes_data), dtype_backend="numpy_nullable")
 
     expected = pd.DataFrame(
         {
@@ -407,9 +387,7 @@ def test_orc_uri_path():
     with tm.ensure_clean("tmp.orc") as path:
         expected.to_orc(path)
         uri = pathlib.Path(path).as_uri()
-        msg = "Passing a BlockManager to DataFrame is deprecated"
-        with tm.assert_produces_warning(DeprecationWarning, match=msg):
-            result = read_orc(uri)
+        result = read_orc(uri)
     tm.assert_frame_equal(result, expected)
 
 

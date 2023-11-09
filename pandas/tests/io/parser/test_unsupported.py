@@ -19,6 +19,10 @@ import pandas._testing as tm
 from pandas.io.parsers import read_csv
 import pandas.io.parsers.readers as parsers
 
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
+
 
 @pytest.fixture(params=["python", "python-fwf"], ids=lambda val: val)
 def python_engine(request):
@@ -157,20 +161,15 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
         sio = StringIO("a,b\n1,2")
         bad_lines_func = lambda x: x
         parser = all_parsers
-        warn = None
-        if parser.engine == "pyarrow":
-            warn = DeprecationWarning
-        warn_msg = "Passing a BlockManager"
-        with tm.assert_produces_warning(warn, match=warn_msg, check_stacklevel=False):
-            if all_parsers.engine not in ["python", "pyarrow"]:
-                msg = (
-                    "on_bad_line can only be a callable "
-                    "function if engine='python' or 'pyarrow'"
-                )
-                with pytest.raises(ValueError, match=msg):
-                    parser.read_csv(sio, on_bad_lines=bad_lines_func)
-            else:
+        if all_parsers.engine not in ["python", "pyarrow"]:
+            msg = (
+                "on_bad_line can only be a callable "
+                "function if engine='python' or 'pyarrow'"
+            )
+            with pytest.raises(ValueError, match=msg):
                 parser.read_csv(sio, on_bad_lines=bad_lines_func)
+        else:
+            parser.read_csv(sio, on_bad_lines=bad_lines_func)
 
 
 def test_close_file_handle_on_invalid_usecols(all_parsers):

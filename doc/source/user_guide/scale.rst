@@ -51,7 +51,6 @@ To load the columns we want, we have two options.
 Option 1 loads in all the data and then filters to what we need.
 
 .. ipython:: python
-   :okwarning:
 
    columns = ["id_0", "name_0", "x_0", "y_0"]
 
@@ -60,7 +59,6 @@ Option 1 loads in all the data and then filters to what we need.
 Option 2 only loads the columns we request.
 
 .. ipython:: python
-   :okwarning:
 
    pd.read_parquet("timeseries_wide.parquet", columns=columns)
 
@@ -202,7 +200,6 @@ counts up to this point. As long as each individual file fits in memory, this wi
 work for arbitrary-sized datasets.
 
 .. ipython:: python
-   :okwarning:
 
    %%time
    files = pathlib.Path("data/timeseries/").glob("ts*.parquet")

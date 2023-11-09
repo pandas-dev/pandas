@@ -197,7 +197,7 @@ def test_dataframe_constructor_mgr_or_df(using_copy_on_write, columns, use_mgr):
         data = df
         warn = None
     msg = "Passing a BlockManager to DataFrame"
-    with tm.assert_produces_warning(warn, match=msg):
+    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
         new_df = DataFrame(data)
 
     assert np.shares_memory(get_array(df, "a"), get_array(new_df, "a"))

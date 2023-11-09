@@ -152,7 +152,6 @@ When this keyword is set to ``"pyarrow"``, then these functions will return pyar
 * :meth:`Series.convert_dtypes`
 
 .. ipython:: python
-    :okwarning:
 
     import io
     data = io.StringIO("""a,b,c,d,e,f,g,h,i

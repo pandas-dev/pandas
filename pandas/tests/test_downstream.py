@@ -170,12 +170,11 @@ def test_pandas_datareader():
     pytest.importorskip("pandas_datareader")
 
 
+@pytest.mark.filterwarnings("ignore:Passing a BlockManager:DeprecationWarning")
 def test_pyarrow(df):
     pyarrow = pytest.importorskip("pyarrow")
     table = pyarrow.Table.from_pandas(df)
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = table.to_pandas()
+    result = table.to_pandas()
     tm.assert_frame_equal(result, df)
 
 
