@@ -1118,7 +1118,10 @@ class MPLPlot(ABC):
                 err = np.tile(err, (self.nseries, 1))
 
         elif is_number(err):
-            err = np.tile([err], (self.nseries, len(self.data)))
+            err = np.tile(
+                [err],  # pyright: ignore[reportGeneralTypeIssues]
+                (self.nseries, len(self.data)),
+            )
 
         else:
             msg = f"No valid {label} detected"
@@ -1415,7 +1418,12 @@ class LinePlot(MPLPlot):
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
-            style, kwds = self._apply_style_colors(colors, kwds, i, label)
+            style, kwds = self._apply_style_colors(
+                colors,
+                kwds,
+                i,
+                label,  # pyright: ignore[reportGeneralTypeIssues]
+            )
 
             errors = self._get_errorbars(label=label, index=i)
             kwds = dict(kwds, **errors)
@@ -1427,7 +1435,7 @@ class LinePlot(MPLPlot):
             newlines = plotf(
                 ax,
                 x,
-                y,
+                y,  # pyright: ignore[reportGeneralTypeIssues]
                 style=style,
                 column_num=i,
                 stacking_id=stacking_id,
