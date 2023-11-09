@@ -533,7 +533,7 @@ cpdef array_to_datetime(
                     # GH#32264 np.str_ object
                     val = str(val)
 
-                if parse_today_now(val, &iresult[i], utc, creso):
+                if parse_today_now(val, &iresult[i], utc, creso, infer_reso=infer_reso):
                     # We can't _quite_ dispatch this to convert_str_to_tsobject
                     #  bc there isn't a nice way to pass "utc"
                     item_reso = NPY_DATETIMEUNIT.NPY_FR_us
