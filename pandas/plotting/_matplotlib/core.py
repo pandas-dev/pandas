@@ -1340,7 +1340,9 @@ class ScatterPlot(PlanePlot):
                 cbar.ax.set_yticklabels(self.data[c].cat.categories)
 
         if label is not None:
-            self._append_legend_handles_labels(scatter, label)
+            self._append_legend_handles_labels(
+                scatter, label  # pyright: ignore[reportGeneralTypeIssues]
+            )
         else:
             self.legend = False
 
