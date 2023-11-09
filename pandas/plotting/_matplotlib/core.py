@@ -22,6 +22,7 @@ import warnings
 import matplotlib as mpl
 import numpy as np
 
+from pandas._libs import lib
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
@@ -1269,14 +1270,30 @@ class ScatterPlot(PlanePlot):
     def _kind(self) -> Literal["scatter"]:
         return "scatter"
 
-    def __init__(self, data, x, y, s=None, c=None, **kwargs) -> None:
+    def __init__(
+        self,
+        data,
+        x,
+        y,
+        s=None,
+        c=None,
+        *,
+        colorbar: bool | lib.NoDefault = lib.no_default,
+        norm=None,
+        **kwargs,
+    ) -> None:
         if s is None:
             # hide the matplotlib default for size, in case we want to change
             # the handling of this argument later
             s = 20
         elif is_hashable(s) and s in data.columns:
             s = data[s]
-        super().__init__(data, x, y, s=s, **kwargs)
+        self.s = s
+
+        self.colorbar = colorbar
+        self.norm = norm
+
+        super().__init__(data, x, y, **kwargs)
         if is_integer(c) and not self.data.columns._holds_integer():
             c = self.data.columns[c]
         self.c = c
@@ -1323,13 +1340,12 @@ class ScatterPlot(PlanePlot):
             cmap = colors.ListedColormap([cmap(i) for i in range(cmap.N)])
             bounds = np.linspace(0, n_cats, n_cats + 1)
             norm = colors.BoundaryNorm(bounds, cmap.N)
+            assert "norm" not in self.kwds
         else:
-            norm = self.kwds.pop("norm", None)
-        # plot colorbar if
-        # 1. colormap is assigned, and
-        # 2.`c` is a column containing only numeric values
-        plot_colorbar = self.colormap or c_is_column
-        cb = self.kwds.pop("colorbar", is_numeric_dtype(c_values) and plot_colorbar)
+            # TODO: warn if norm is passed and we are silently ignoring it?
+            norm = self.norm
+
+        cb = self._get_colorbar(c_values, c_is_column)
 
         if self.legend and hasattr(self, "label"):
             label = self.label
@@ -1342,6 +1358,7 @@ class ScatterPlot(PlanePlot):
             label=label,
             cmap=cmap,
             norm=norm,
+            s=self.s,
             **self.kwds,
         )
         if cb:
@@ -1362,6 +1379,16 @@ class ScatterPlot(PlanePlot):
             err_kwds = dict(errors_x, **errors_y)
             err_kwds["ecolor"] = scatter.get_facecolor()[0]
             ax.errorbar(data[x].values, data[y].values, linestyle="none", **err_kwds)
+
+    def _get_colorbar(self, c_values, c_is_column: bool) -> bool:
+        # plot colorbar if
+        # 1. colormap is assigned, and
+        # 2.`c` is a column containing only numeric values
+        plot_colorbar = self.colormap or c_is_column
+        cb = self.colorbar
+        if cb is lib.no_default:
+            return is_numeric_dtype(c_values) and plot_colorbar
+        return cb
 
 
 class HexBinPlot(PlanePlot):
