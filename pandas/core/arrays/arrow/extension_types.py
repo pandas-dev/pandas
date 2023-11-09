@@ -116,6 +116,25 @@ _interval_type = ArrowIntervalType(pyarrow.int64(), "left")
 pyarrow.register_extension_type(_interval_type)
 
 
+_ERROR_MSG = """\
+Disallowed deserialization of 'arrow.py_extension_type':
+storage_type = {storage_type}
+serialized = {serialized}
+pickle disassembly:\n{pickle_disassembly}
+
+Reading of untrusted Parquet or Feather files with a PyExtensionType column
+allows arbitrary code execution.
+If you trust this file, you can enable reading the extension type by one of:
+
+- upgrading to pyarrow >= 14.0.1, and call `pa.PyExtensionType.set_auto_load(True)`
+- install pyarrow-hotfix (`pip install pyarrow-hotfix`) and disable it by running
+  `import pyarrow_hotfix; pyarrow_hotfix.uninstall()`
+
+We strongly recommend updating your Parquet/Feather files to use extension types
+derived from `pyarrow.ExtensionType` instead, and register this type explicitly.
+"""
+
+
 def patch_pyarrow():
     # starting from pyarrow 14.0.1, it has its own mechanism
     if not pa_version_under14p1:
@@ -137,9 +156,11 @@ def patch_pyarrow():
             out = io.StringIO()
             pickletools.dis(serialized, out)
             raise RuntimeError(
-                "forbidden deserialization of 'arrow.py_extension_type': "
-                "storage_type = %s, serialized = %r, "
-                "pickle disassembly:\n%s" % (storage_type, serialized, out.getvalue())
+                _ERROR_MSG.format(
+                    storage_type=storage_type,
+                    serialized=serialized,
+                    pickle_disassembly=out.getvalue(),
+                )
             )
 
     pyarrow.unregister_extension_type("arrow.py_extension_type")
