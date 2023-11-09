@@ -20,3 +20,4 @@ except ImportError:
     pa_version_under12p0 = True
     pa_version_under13p0 = True
     pa_version_under14p0 = True
+    pa_version_under14p1 = True
