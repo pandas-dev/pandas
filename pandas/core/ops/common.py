@@ -93,13 +93,12 @@ def get_op_result_name(left, right):
     name : object
         Usually a string
     """
-    if isinstance(right, (ABCSeries, ABCIndex)):
-        name = _maybe_match_name(left, right)
-    else:
-        name = left.name
-    if name is None:
-        name = left.name
-    return name
+    name = (
+        _maybe_match_name(left, right)
+        if isinstance(right, (ABCSeries, ABCIndex))
+        else left.name
+    )
+    return name if name is not None else left.name
 
 
 def _maybe_match_name(a, b):
