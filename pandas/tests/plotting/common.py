@@ -124,8 +124,7 @@ def _check_patches_all_filled(axes: Axes | Sequence[Axes], filled: bool = True) 
     axes = _flatten_visible(axes)
     for ax in axes:
         for patch in ax.patches:
-            # error: "Artist" has no attribute "fill"
-            assert patch.fill == filled  # type: ignore[attr-defined]
+            assert patch.fill == filled
 
 
 def _get_colors_mapped(series, colors):

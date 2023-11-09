@@ -476,12 +476,7 @@ class MPLPlot(ABC):
     @staticmethod
     def _has_plotted_object(ax: Axes) -> bool:
         """check whether ax has data"""
-        # error: "Axes" has no attribute "containers"
-        return (
-            len(ax.lines) != 0
-            or len(ax.artists) != 0
-            or len(ax.containers) != 0  # type: ignore[attr-defined]
-        )
+        return len(ax.lines) != 0 or len(ax.artists) != 0 or len(ax.containers) != 0
 
     @final
     def _maybe_right_yaxis(self, ax: Axes, axes_num: int) -> Axes:

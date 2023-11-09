@@ -364,10 +364,7 @@ class PandasAutoDateLocator(mdates.AutoDateLocator):
         if abs(tot_sec) < self.minticks:
             self._freq = -1
             locator = MilliSecondLocator(self.tz)
-            # error: Argument 1 to "set_axis" of "TickHelper" has incompatible type
-            # "Axis | _DummyAxis | _AxisWrapper | None"; expected "Axis |
-            # _DummyAxis | None"
-            locator.set_axis(self.axis)  # type: ignore[arg-type]
+            locator.set_axis(self.axis)
 
             # error: Item "None" of "Axis | _DummyAxis | _AxisWrapper | None"
             # has no attribute "get_data_interval"
