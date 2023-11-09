@@ -581,7 +581,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _constructor_from_mgr(self, mgr, axes):
         if self._constructor is Series:
             # we are pandas.Series (or a subclass that doesn't override _constructor)
-            ser = self._from_mgr(mgr, axes=axes)
+            ser = Series._from_mgr(mgr, axes=axes)
             ser._name = None  # caller is responsible for setting real name
             return ser
         else:
