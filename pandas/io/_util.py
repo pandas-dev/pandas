@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Callable
 
-from pandas.compat import pa_version_under14p1
 from pandas.compat._optional import import_optional_dependency
 
 import pandas as pd
@@ -33,37 +32,3 @@ def arrow_string_types_mapper() -> Callable:
         pa.string(): pd.StringDtype(storage="pyarrow_numpy"),
         pa.large_string(): pd.StringDtype(storage="pyarrow_numpy"),
     }.get
-
-
-def patch_pyarrow():
-    if pa_version_under14p1:
-        return
-
-    import pyarrow as pa
-
-    if getattr(pa, "_hotfix_installed", False):
-        return
-
-    class ForbiddenExtensionType(pa.ExtensionType):
-        def __arrow_ext_serialize__(self):
-            return b""
-
-        @classmethod
-        def __arrow_ext_deserialize__(cls, storage_type, serialized):
-            import io
-            import pickletools
-
-            out = io.StringIO()
-            pickletools.dis(serialized, out)
-            raise RuntimeError(
-                "forbidden deserialization of 'arrow.py_extension_type': "
-                "storage_type = %s, serialized = %r, "
-                "pickle disassembly:\n%s" % (storage_type, serialized, out.getvalue())
-            )
-
-    pa.unregister_extension_type("arrow.py_extension_type")
-    pa.register_extension_type(
-        ForbiddenExtensionType(pa.null(), "arrow.py_extension_type")
-    )
-
-    pa._hotfix_installed = True

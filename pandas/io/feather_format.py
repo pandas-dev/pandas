@@ -17,10 +17,7 @@ import pandas as pd
 from pandas.core.api import DataFrame
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io._util import (
-    arrow_string_types_mapper,
-    patch_pyarrow,
-)
+from pandas.io._util import arrow_string_types_mapper
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
@@ -62,8 +59,6 @@ def to_feather(
     """
     import_optional_dependency("pyarrow")
     from pyarrow import feather
-
-    patch_pyarrow()
 
     if not isinstance(df, DataFrame):
         raise ValueError("feather only support IO with DataFrames")
@@ -122,7 +117,8 @@ def read_feather(
     import_optional_dependency("pyarrow")
     from pyarrow import feather
 
-    patch_pyarrow()
+    # import utils to register the pyarrow extension types
+    import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401
 
     check_dtype_backend(dtype_backend)
 

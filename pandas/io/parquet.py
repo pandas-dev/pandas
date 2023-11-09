@@ -29,10 +29,7 @@ from pandas import (
 )
 from pandas.core.shared_docs import _shared_docs
 
-from pandas.io._util import (
-    arrow_string_types_mapper,
-    patch_pyarrow,
-)
+from pandas.io._util import arrow_string_types_mapper
 from pandas.io.common import (
     IOHandles,
     get_handle,
@@ -170,8 +167,6 @@ class PyArrowImpl(BaseImpl):
 
         # import utils to register the pyarrow extension types
         import pandas.core.arrays.arrow.extension_types  # pyright: ignore[reportUnusedImport] # noqa: F401
-
-        patch_pyarrow()
 
         self.api = pyarrow
 
