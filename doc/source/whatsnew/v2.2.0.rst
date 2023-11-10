@@ -94,13 +94,13 @@ a Series. (:issue:`55323`)
 ADBC Driver support in to_sql and read_sql
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-:func:`read_sql` and :meth:`to_sql` now work with `Apache Arrow ADBC
+:func:`read_sql` and :meth:`~DataFrame.to_sql` now work with `Apache Arrow ADBC
 <https://arrow.apache.org/adbc/current/index.html>`_ drivers. Compared to
 traditional drivers used via SQLAlchemy, ADBC drivers should provide
 significant performance improvements, better type support and cleaner
 nullability handling.
 
-.. ipython:: python
+.. code-block:: ipython
 
    import adbc_driver_postgresql.dbapi as pg_dbapi
 
