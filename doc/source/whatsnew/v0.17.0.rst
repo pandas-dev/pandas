@@ -727,10 +727,10 @@ be broadcast:
 
 or it can return False if broadcasting can not be done:
 
-.. ipython:: python
-   :okwarning:
+.. code-block:: ipython
 
-   np.array([1, 2, 3]) == np.array([1, 2])
+   In [11]: np.array([1, 2, 3]) == np.array([1, 2])
+   Out[11]: False
 
 Changes to boolean comparisons vs. None
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
