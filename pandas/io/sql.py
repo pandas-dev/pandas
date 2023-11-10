@@ -589,8 +589,8 @@ def read_sql(
         ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
         library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
-        for engine disposal and connection closure for the SQLAlchemy connectable; str
-        connections are closed automatically. See
+        for engine disposal and connection closure for the ADBC connection and
+        SQLAlchemy connectable; str connections are closed automatically. See
         `here <https://docs.sqlalchemy.org/en/13/core/connections.html>`_.
     index_col : str or list of str, optional, default: None
         Column(s) to set as index(MultiIndex).
