@@ -93,17 +93,18 @@ class BoxPlot(LinePlot):
     # error: Signature of "_plot" incompatible with supertype "MPLPlot"
     @classmethod
     def _plot(  # type: ignore[override]
-        cls, ax, y, column_num=None, return_type: str = "axes", **kwds
+        cls, ax: Axes, y: np.ndarray, column_num=None, return_type: str = "axes", **kwds
     ):
+        ys: np.ndarray | list[np.ndarray]
         if y.ndim == 2:
-            y = [remove_na_arraylike(v) for v in y]
+            ys = [remove_na_arraylike(v) for v in y]
             # Boxplot fails with empty arrays, so need to add a NaN
             #   if any cols are empty
             # GH 8181
-            y = [v if v.size > 0 else np.array([np.nan]) for v in y]
+            ys = [v if v.size > 0 else np.array([np.nan]) for v in ys]
         else:
-            y = remove_na_arraylike(y)
-        bp = ax.boxplot(y, **kwds)
+            ys = remove_na_arraylike(y)
+        bp = ax.boxplot(ys, **kwds)
 
         if return_type == "dict":
             return bp, bp
@@ -240,8 +241,7 @@ class BoxPlot(LinePlot):
             self.maybe_color_bp(bp)
             self._return_obj = ret
 
-            labels = [left for left, _ in self._iter_data()]
-            labels = [pprint_thing(left) for left in labels]
+            labels = [pprint_thing(left) for left in self.data.columns]
             if not self.use_index:
                 labels = [pprint_thing(key) for key in range(len(labels))]
             _set_ticklabels(
@@ -251,7 +251,7 @@ class BoxPlot(LinePlot):
     def _make_legend(self) -> None:
         pass
 
-    def _post_plot_logic(self, ax, data) -> None:
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         # GH 45465: make sure that the boxplot doesn't ignore xlabel/ylabel
         if self.xlabel:
             ax.set_xlabel(pprint_thing(self.xlabel))

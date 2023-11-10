@@ -16,7 +16,7 @@ from pandas import (
 import pandas._testing as tm
 
 
-def _get_with_delta(delta, freq="Y-DEC"):
+def _get_with_delta(delta, freq="YE-DEC"):
     return date_range(
         to_datetime("1/1/2001") + delta,
         to_datetime("12/31/2009") + delta,
@@ -36,7 +36,7 @@ class TestToTimestamp:
         obj["mix"] = "a"
         obj = tm.get_obj(obj, frame_or_series)
 
-        exp_index = date_range("1/1/2001", end="12/31/2009", freq="Y-DEC")
+        exp_index = date_range("1/1/2001", end="12/31/2009", freq="YE-DEC")
         exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "ns")
         result = obj.to_timestamp("D", "end")
         tm.assert_index_equal(result.index, exp_index)
@@ -82,7 +82,7 @@ class TestToTimestamp:
         # columns
         df = df.T
 
-        exp_index = date_range("1/1/2001", end="12/31/2009", freq="Y-DEC")
+        exp_index = date_range("1/1/2001", end="12/31/2009", freq="YE-DEC")
         exp_index = exp_index + Timedelta(1, "D") - Timedelta(1, "ns")
         result = df.to_timestamp("D", "end", axis=1)
         tm.assert_index_equal(result.columns, exp_index)

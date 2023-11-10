@@ -13,7 +13,7 @@ including other versions of pandas.
 
 Fixed regressions
 ~~~~~~~~~~~~~~~~~
--
+- Fixed infinite recursion from operations that return a new object on some DataFrame subclasses (:issue:`55763`)
 -
 
 .. ---------------------------------------------------------------------------
@@ -23,6 +23,7 @@ Bug fixes
 ~~~~~~~~~
 - Bug in :meth:`DatetimeIndex.diff` raising ``TypeError`` (:issue:`55080`)
 - Bug in :meth:`Index.isin` raising for Arrow backed string and ``None`` value (:issue:`55821`)
+- Fix :func:`read_parquet` and :func:`read_feather` for `CVE-2023-47248 <https://www.cve.org/CVERecord?id=CVE-2023-47248>`__ (:issue:`55894`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_213.other:
