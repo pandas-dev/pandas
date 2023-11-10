@@ -231,11 +231,13 @@ html_theme = "pydata_sphinx_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 
-switcher_version = version
 if ".dev" in version:
     switcher_version = "dev"
 elif "rc" in version:
     switcher_version = version.split("rc", maxsplit=1)[0] + " (rc)"
+else:
+    # only keep major.minor version number to match versions.json
+    switcher_version = ".".join(version.split(".")[:2])
 
 html_theme_options = {
     "external_links": [],
