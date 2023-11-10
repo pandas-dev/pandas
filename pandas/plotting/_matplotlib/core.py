@@ -1306,7 +1306,7 @@ class ScatterPlot(PlanePlot):
         norm, cmap = self._get_norm_and_cmap(c_values, color_by_categorical)
         cb = self._get_colorbar(c_values, c_is_column)
 
-        if self.legend and hasattr(self, "label"):
+        if self.legend:
             label = self.label
         else:
             label = None
@@ -1330,8 +1330,6 @@ class ScatterPlot(PlanePlot):
 
         if label is not None:
             self._append_legend_handles_labels(scatter, label)
-        else:
-            self.legend = False
 
         errors_x = self._get_errorbars(label=x, index=0, yerr=False)
         errors_y = self._get_errorbars(label=y, index=0, xerr=False)
