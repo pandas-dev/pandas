@@ -45,15 +45,13 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
+    ABCDatetimeIndex,
     ABCIndex,
     ABCMultiIndex,
     ABCPeriodIndex,
     ABCSeries,
 )
-from pandas.core.dtypes.missing import (
-    isna,
-    notna,
-)
+from pandas.core.dtypes.missing import isna
 
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
@@ -94,10 +92,7 @@ if TYPE_CHECKING:
         npt,
     )
 
-    from pandas import (
-        PeriodIndex,
-        Series,
-    )
+    from pandas import Series
 
 
 def _color_in_style(style: str) -> bool:
@@ -887,26 +882,25 @@ class MPLPlot(ABC):
     _need_to_set_index = False
 
     @final
-    def _get_xticks(self, convert_period: bool = False):
+    def _get_xticks(self):
         index = self.data.index
         is_datetype = index.inferred_type in ("datetime", "date", "datetime64", "time")
 
         x: list[int] | np.ndarray
         if self.use_index:
-            if convert_period and isinstance(index, ABCPeriodIndex):
-                self.data = self.data.reindex(index=index.sort_values())
-                index = cast("PeriodIndex", self.data.index)
+            if isinstance(index, ABCPeriodIndex):
+                # test_mixed_freq_irreg_period
                 x = index.to_timestamp()._mpl_repr()
+                # TODO: why do we need to do to_timestamp() here but not other
+                #  places where we call mpl_repr?
             elif is_any_real_numeric_dtype(index.dtype):
                 # Matplotlib supports numeric values or datetime objects as
                 # xaxis values. Taking LBYL approach here, by the time
                 # matplotlib raises exception when using non numeric/datetime
                 # values for xaxis, several actions are already taken by plt.
                 x = index._mpl_repr()
-            elif is_datetype:
-                self.data = self.data[notna(self.data.index)]
-                self.data = self.data.sort_index()
-                x = self.data.index._mpl_repr()
+            elif isinstance(index, ABCDatetimeIndex) or is_datetype:
+                x = index._mpl_repr()
             else:
                 self._need_to_set_index = True
                 x = list(range(len(index)))
@@ -1434,7 +1428,7 @@ class LinePlot(MPLPlot):
             plotf = self._ts_plot
             it = data.items()
         else:
-            x = self._get_xticks(convert_period=True)
+            x = self._get_xticks()
             # error: Incompatible types in assignment (expression has type
             # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
             # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
