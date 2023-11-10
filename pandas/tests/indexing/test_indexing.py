@@ -515,7 +515,7 @@ class TestFancy:
         for col in ["A", "B"]:
             expected.loc[mask, col] = df["D"]
 
-        df.loc[df["A"] == 0, ["A", "B"]] = df["D"]
+        df.loc[df["A"] == 0, ["A", "B"]] = df["D"].copy()
         tm.assert_frame_equal(df, expected)
 
     def test_setitem_list(self):

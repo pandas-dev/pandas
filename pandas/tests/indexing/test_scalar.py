@@ -246,6 +246,7 @@ def test_at_with_tuple_index_get():
     assert series.at[(1, 2)] == 1
 
 
+@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
 def test_at_with_tuple_index_set():
     # GH 26989
     # DataFrame.at setter works with Index of tuples
@@ -276,6 +277,7 @@ class TestMultiIndexScalar:
         assert series.at[1, 3] == 1
         assert series.loc[1, 3] == 1
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_multiindex_at_set(self):
         # GH 26989
         # DataFrame.at and DataFrame.loc setter works with MultiIndex

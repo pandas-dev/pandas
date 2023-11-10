@@ -519,7 +519,7 @@ class TestDataFrameIndexing:
         )
 
         result = df.copy()
-        result.loc[result.b.isna(), "a"] = result.a
+        result.loc[result.b.isna(), "a"] = result.a.copy()
         tm.assert_frame_equal(result, df)
 
     def test_getitem_fancy_slice_integers_step(self):
@@ -1285,7 +1285,7 @@ class TestDataFrameIndexing:
         df.loc[:] = pd.core.arrays.NumpyExtensionArray(df.values[:, ::-1])
         tm.assert_frame_equal(df, orig)
 
-        df.iloc[:] = df.iloc[:, :]
+        df.iloc[:] = df.iloc[:, :].copy()
         tm.assert_frame_equal(df, orig)
 
     def test_getitem_segfault_with_empty_like_object(self):
@@ -1295,6 +1295,7 @@ class TestDataFrameIndexing:
         # this produces the segfault
         df[[0]]
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize(
         "null", [pd.NaT, pd.NaT.to_numpy("M8[ns]"), pd.NaT.to_numpy("m8[ns]")]
     )
@@ -1460,6 +1461,8 @@ class TestDataFrameIndexing:
         )
         tm.assert_frame_equal(result, expected)
 
+    # TODO(CoW-warn) shouldn't warn, but does because of item cache
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     @pytest.mark.parametrize("indexer", [["a"], "a"])
     @pytest.mark.parametrize("col", [{}, {"b": 1}])
     def test_set_2d_casting_date_to_int(self, col, indexer):

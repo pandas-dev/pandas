@@ -106,7 +106,7 @@ class TestDataFrameCorr:
         pytest.importorskip("scipy")
         float_frame.loc[float_frame.index[:5], "A"] = np.nan
         float_frame.loc[float_frame.index[5:10], "B"] = np.nan
-        float_frame.loc[float_frame.index[:10], "A"] = float_frame["A"][10:20]
+        float_frame.loc[float_frame.index[:10], "A"] = float_frame["A"][10:20].copy()
 
         correls = float_frame.corr(method=method)
         expected = float_frame["A"].corr(float_frame["C"], method=method)
@@ -205,7 +205,7 @@ class TestDataFrameCorr:
         expected = DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_corr_item_cache(self, using_copy_on_write):
+    def test_corr_item_cache(self, using_copy_on_write, warn_copy_on_write):
         # Check that corr does not lead to incorrect entries in item_cache
 
         df = DataFrame({"A": range(10)})
@@ -223,7 +223,8 @@ class TestDataFrameCorr:
             # Check that the corr didn't break link between ser and df
             ser.values[0] = 99
             assert df.loc[0, "A"] == 99
-            assert df["A"] is ser
+            if not warn_copy_on_write:
+                assert df["A"] is ser
             assert df.values[0, 0] == 99
 
     @pytest.mark.parametrize("length", [2, 20, 200, 2000])

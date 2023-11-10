@@ -32,7 +32,9 @@ def random_text(nobs=100):
 
 
 class TestCaching:
-    def test_slice_consolidate_invalidate_item_cache(self, using_copy_on_write):
+    def test_slice_consolidate_invalidate_item_cache(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # this is chained assignment, but will 'work'
         with option_context("chained_assignment", None):
             # #3970
@@ -49,7 +51,9 @@ class TestCaching:
                 with tm.raises_chained_assignment_error():
                     df["bb"].iloc[0] = 0.17
             else:
-                df["bb"].iloc[0] = 0.17
+                # TODO(CoW-warn) custom warning message
+                with tm.assert_cow_warning(warn_copy_on_write):
+                    df["bb"].iloc[0] = 0.17
             df._clear_item_cache()
             if not using_copy_on_write:
                 tm.assert_almost_equal(df["bb"][0], 0.17)
@@ -74,7 +78,9 @@ class TestCaching:
         assert df.loc[0, "c"] == 0.0
         assert df.loc[7, "c"] == 1.0
 
-    def test_setitem_cache_updating_slices(self, using_copy_on_write):
+    def test_setitem_cache_updating_slices(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # GH 7084
         # not updating cache on series setting with slices
         expected = DataFrame(
@@ -102,7 +108,9 @@ class TestCaching:
                 with tm.raises_chained_assignment_error():
                     out[row["C"]][six:eix] = v
             else:
-                out[row["C"]][six:eix] = v
+                # TODO(CoW-warn) custom warning message
+                with tm.assert_cow_warning(warn_copy_on_write):
+                    out[row["C"]][six:eix] = v
 
         if not using_copy_on_write:
             tm.assert_frame_equal(out, expected)
@@ -113,17 +121,23 @@ class TestCaching:
 
         out = DataFrame({"A": [0, 0, 0]}, index=date_range("5/7/2014", "5/9/2014"))
         for ix, row in df.iterrows():
-            out.loc[six:eix, row["C"]] += row["D"]
+            # TODO(CoW-warn) should not warn
+            with tm.assert_produces_warning(
+                FutureWarning if warn_copy_on_write else None
+            ):
+                out.loc[six:eix, row["C"]] += row["D"]
 
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
 
-    def test_altering_series_clears_parent_cache(self, using_copy_on_write):
+    def test_altering_series_clears_parent_cache(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # GH #33675
         df = DataFrame([[1, 2], [3, 4]], index=["a", "b"], columns=["A", "B"])
         ser = df["A"]
 
-        if using_copy_on_write:
+        if using_copy_on_write or warn_copy_on_write:
             assert "A" not in df._item_cache
         else:
             assert "A" in df._item_cache
@@ -138,7 +152,7 @@ class TestCaching:
 
 
 class TestChaining:
-    def test_setitem_chained_setfault(self, using_copy_on_write):
+    def test_setitem_chained_setfault(self, using_copy_on_write, warn_copy_on_write):
         # GH6026
         data = ["right", "left", "left", "left", "right", "left", "timeout"]
         mdata = ["right", "left", "left", "left", "right", "left", "none"]
@@ -150,6 +164,8 @@ class TestChaining:
                 df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": data}))
         else:
+            # TODO(CoW-warn) should warn
+            # with tm.assert_cow_warning(warn_copy_on_write):
             df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": mdata}))
 
@@ -161,6 +177,8 @@ class TestChaining:
                 df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": data}))
         else:
+            # TODO(CoW-warn) should warn
+            # with tm.assert_cow_warning(warn_copy_on_write):
             df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": mdata}))
 
@@ -172,6 +190,8 @@ class TestChaining:
                 df.response[mask] = "none"
             tm.assert_frame_equal(df, df_original)
         else:
+            # TODO(CoW-warn) should warn
+            # with tm.assert_cow_warning(warn_copy_on_write):
             df.response[mask] = "none"
             tm.assert_frame_equal(df, DataFrame({"response": mdata, "response1": data}))
 
@@ -183,7 +203,9 @@ class TestChaining:
                 df["A"].iloc[0] = np.nan
             expected = DataFrame({"A": ["foo", "bar", "bah", "foo", "bar"]})
         else:
-            df["A"].iloc[0] = np.nan
+            # TODO(CoW-warn) custom warning message
+            with tm.assert_cow_warning(warn_copy_on_write):
+                df["A"].iloc[0] = np.nan
             expected = DataFrame({"A": [np.nan, "bar", "bah", "foo", "bar"]})
         result = df.head()
         tm.assert_frame_equal(result, expected)
@@ -193,7 +215,8 @@ class TestChaining:
             with tm.raises_chained_assignment_error():
                 df.A.iloc[0] = np.nan
         else:
-            df.A.iloc[0] = np.nan
+            with tm.assert_cow_warning(warn_copy_on_write):
+                df.A.iloc[0] = np.nan
         result = df.head()
         tm.assert_frame_equal(result, expected)
 
@@ -636,7 +659,9 @@ class TestChaining:
         expected = Series([0, 0, 0, 2, 0], name="f")
         tm.assert_series_equal(df.f, expected)
 
-    def test_iloc_setitem_chained_assignment(self, using_copy_on_write):
+    def test_iloc_setitem_chained_assignment(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # GH#3970
         with option_context("chained_assignment", None):
             df = DataFrame({"aa": range(5), "bb": [2.2] * 5})
@@ -648,7 +673,9 @@ class TestChaining:
                 with tm.raises_chained_assignment_error():
                     df["bb"].iloc[0] = 0.13
             else:
-                df["bb"].iloc[0] = 0.13
+                # TODO(CoW-warn) custom warning message
+                with tm.assert_cow_warning(warn_copy_on_write):
+                    df["bb"].iloc[0] = 0.13
 
             # GH#3970 this lookup used to break the chained setting to 0.15
             df.iloc[ck]
@@ -657,7 +684,9 @@ class TestChaining:
                 with tm.raises_chained_assignment_error():
                     df["bb"].iloc[0] = 0.15
             else:
-                df["bb"].iloc[0] = 0.15
+                # TODO(CoW-warn) custom warning message
+                with tm.assert_cow_warning(warn_copy_on_write):
+                    df["bb"].iloc[0] = 0.15
 
             if not using_copy_on_write:
                 assert df["bb"].iloc[0] == 0.15
