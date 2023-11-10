@@ -1362,6 +1362,7 @@ class TestDataFramePlots:
         assert result[expected][0].get_color() == "C1"
 
     def test_unordered_ts(self):
+        # GH#2609, GH#55906
         index = [date(2012, 10, 1), date(2012, 9, 1), date(2012, 8, 1)]
         values = [3.0, 2.0, 1.0]
         df = DataFrame(
