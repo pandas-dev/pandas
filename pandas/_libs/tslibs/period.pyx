@@ -1168,7 +1168,7 @@ cdef int64_t period_ordinal_to_dt64(int64_t ordinal, int freq) except? -1:
     try:
         result = npy_datetimestruct_to_datetime(NPY_DATETIMEUNIT.NPY_FR_ns, &dts)
     except OverflowError as err:
-        fmt = dts_to_iso_string(dts)
+        fmt = dts_to_iso_string(&dts)
         raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {fmt}") from err
 
     return result

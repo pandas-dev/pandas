@@ -2493,7 +2493,7 @@ default 'raise'
             try:
                 ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
             except OverflowError as err:
-                fmt = dts_to_iso_string(dts)
+                fmt = dts_to_iso_string(&dts)
                 raise OutOfBoundsDatetime(
                     f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
                 ) from err
