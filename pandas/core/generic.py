@@ -9199,11 +9199,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
-            for all frequency offsets except for 'ME', 'Y', 'Q', 'BME',
+            for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
-            for all frequency offsets except for 'ME', 'Y', 'Q', 'BME',
+            for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
@@ -9309,8 +9309,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         bucket ``2000-01-01 00:03:00`` contains the value 3, but the summed
         value in the resampled bucket with the label ``2000-01-01 00:03:00``
         does not include 3 (if it did, the summed value would be 6, not 3).
-        To include this value close the right side of the bin interval as
-        illustrated in the example below this one.
 
         >>> series.resample('3min', label='right').sum()
         2000-01-01 00:03:00     3
@@ -9318,8 +9316,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2000-01-01 00:09:00    21
         Freq: 3min, dtype: int64
 
-        Downsample the series into 3 minute bins as above, but close the right
-        side of the bin interval.
+        To include this value close the right side of the bin interval,
+        as shown below.
 
         >>> series.resample('3min', label='right', closed='right').sum()
         2000-01-01 00:00:00     0

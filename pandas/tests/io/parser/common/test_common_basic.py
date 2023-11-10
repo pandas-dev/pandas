@@ -88,14 +88,7 @@ def test_read_csv_local(all_parsers, csv1):
     parser = all_parsers
 
     fname = prefix + str(os.path.abspath(csv1))
-
-    warn = None
-    if parser.engine == "pyarrow":
-        warn = DeprecationWarning
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-
-    with tm.assert_produces_warning(warn, match=msg, check_stacklevel=False):
-        result = parser.read_csv(fname, index_col=0, parse_dates=True)
+    result = parser.read_csv(fname, index_col=0, parse_dates=True)
     # TODO: make unit check more specific
     if parser.engine == "pyarrow":
         result.index = result.index.as_unit("ns")
@@ -365,7 +358,7 @@ def test_escapechar(all_parsers):
     data = '''SEARCH_TERM,ACTUAL_URL
 "bra tv board","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
 "tv p\xc3\xa5 hjul","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"
-"SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals series","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''  # noqa: E501
+"SLAGBORD, \\"Bergslagen\\", IKEA:s 1700-tals series","http://www.ikea.com/se/sv/catalog/categories/departments/living_room/10475/?se%7cps%7cnonbranded%7cvardagsrum%7cgoogle%7ctv_bord"'''
 
     parser = all_parsers
     result = parser.read_csv(

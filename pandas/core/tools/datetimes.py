@@ -980,16 +980,9 @@ def to_datetime(
 
     **Non-convertible date/times**
 
-    If a date does not meet the `timestamp limitations
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html
-    #timeseries-timestamp-limits>`_, passing ``errors='ignore'``
-    will return the original input instead of raising any exception.
-
     Passing ``errors='coerce'`` will force an out-of-bounds date to :const:`NaT`,
     in addition to forcing non-dates (or non-parseable dates) to :const:`NaT`.
 
-    >>> pd.to_datetime('13000101', format='%Y%m%d', errors='ignore')
-    '13000101'
     >>> pd.to_datetime('13000101', format='%Y%m%d', errors='coerce')
     NaT
 
@@ -1079,6 +1072,16 @@ def to_datetime(
             "You can safely remove this argument.",
             stacklevel=find_stack_level(),
         )
+    if errors == "ignore":
+        # GH#54467
+        warnings.warn(
+            "errors='ignore' is deprecated and will raise in a future version. "
+            "Use to_datetime without passing `errors` and catch exceptions "
+            "explicitly instead",
+            FutureWarning,
+            stacklevel=find_stack_level(),
+        )
+
     if arg is None:
         return None
 
