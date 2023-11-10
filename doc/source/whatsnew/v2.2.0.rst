@@ -89,6 +89,40 @@ a Series. (:issue:`55323`)
     )
     series.list[0]
 
+.. _whatsnew_220.enhancements.adbc_support:
+
+ADBC Driver support in to_sql and read_sql
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_sql` and :meth:`to_sql` now work with `Apache Arrow ADBC
+<https://arrow.apache.org/adbc/current/index.html>`_ drivers. Compared to
+traditional drivers used via SQLAlchemy, ADBC drivers should provide
+significant performance improvements, better type support and cleaner
+nullability handling.
+
+.. ipython:: python
+
+   import adbc_driver_postgresql.dbapi as pg_dbapi
+
+   df = pd.DataFrame(
+       [
+           [1, 2, 3],
+           [4, 5, 6],
+       ],
+       columns=['a', 'b', 'c']
+   )
+   uri = "postgresql://postgres:postgres@localhost/postgres"
+   with pg_dbapi.connect(uri) as conn:
+       df.to_sql("pandas_table", conn, index=False)
+
+   # for roundtripping
+   with pg_dbapi.connect(uri) as conn:
+       df2 = pd.read_sql("pandas_table", conn)
+
+For a full list of ADBC drivers and their development status, see the `ADBC Driver
+Implementation Status <https://arrow.apache.org/adbc/current/driver/status.html>`_
+documentation.
+
 .. _whatsnew_220.enhancements.other:
 
 Other enhancements

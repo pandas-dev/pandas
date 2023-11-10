@@ -5565,9 +5565,16 @@ SQL queries
 -----------
 
 The :mod:`pandas.io.sql` module provides a collection of query wrappers to both
-facilitate data retrieval and to reduce dependency on DB-specific API. Database abstraction
-is provided by SQLAlchemy if installed. In addition you will need a driver library for
-your database. Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
+facilitate data retrieval and to reduce dependency on DB-specific API.
+
+Starting in pandas 2.2 users have the option to use `Apache Arrow ADBC
+<https://arrow.apache.org/adbc/current/index.html>`_ drivers. Where available,
+these drivers should provide the best performance, null handling, and type
+detection.
+
+In earlier versions of pandas and in instances where an ADBC driver is not available,
+users should opt for installing SQLAlchemy alongside their database driver library.
+Examples of such drivers are `psycopg2 <https://www.psycopg.org/>`__
 for PostgreSQL or `pymysql <https://github.com/PyMySQL/PyMySQL>`__ for MySQL.
 For `SQLite <https://docs.python.org/3/library/sqlite3.html>`__ this is
 included in Python's standard library by default.
@@ -5599,6 +5606,18 @@ The key functions are:
 In the following example, we use the `SQlite <https://www.sqlite.org/index.html>`__ SQL database
 engine. You can use a temporary SQLite database where data are stored in
 "memory".
+
+To connect using an ADBC driver you will want to install the ``adbc_driver_sqlite`` using your
+package manager. Once installed, you can use the DBAPI interface provided by the ADBC driver
+to connect to your database.
+
+.. ipython:: python
+
+   import adbc_driver_sqlite.dbapi as sqlite_dbapi
+
+   # Create the connection
+   with sqlite_dbapi.connect("sqlite:///:memory:") as conn:
+       ...
 
 To connect with SQLAlchemy you use the :func:`create_engine` function to create an engine
 object from database URI. You only need to create the engine once per database you are
@@ -5696,7 +5715,9 @@ default ``Text`` type for string columns:
 
     Due to the limited support for timedelta's in the different database
     flavors, columns with type ``timedelta64`` will be written as integer
-    values as nanoseconds to the database and a warning will be raised.
+    values as nanoseconds to the database and a warning will be raised. The only
+    exception to this is when using the ADBC PostgreSQL driver in which case a
+    timedelta will be written to the database as an ``INTERVAL``
 
 .. note::
 
@@ -5711,7 +5732,7 @@ default ``Text`` type for string columns:
 Datetime data types
 '''''''''''''''''''
 
-Using SQLAlchemy, :func:`~pandas.DataFrame.to_sql` is capable of writing
+Using ADBC or SQLAlchemy, :func:`~pandas.DataFrame.to_sql` is capable of writing
 datetime data that is timezone naive or timezone aware. However, the resulting
 data stored in the database ultimately depends on the supported data type
 for datetime data of the database system being used.
@@ -5802,7 +5823,7 @@ table name and optionally a subset of columns to read.
 .. note::
 
     In order to use :func:`~pandas.read_sql_table`, you **must** have the
-    SQLAlchemy optional dependency installed.
+    ADBC driver or SQLAlchemy optional dependency installed.
 
 .. ipython:: python
 
@@ -5810,7 +5831,8 @@ table name and optionally a subset of columns to read.
 
 .. note::
 
-  Note that pandas infers column dtypes from query outputs, and not by looking
+  ADBC drivers will map database types directly back to pandas types. For other drivers
+  note that pandas infers column dtypes from query outputs, and not by looking
   up data types in the physical database schema. For example, assume ``userid``
   is an integer column in a table. Then, intuitively, ``select userid ...`` will
   return integer-valued series, while ``select cast(userid as text) ...`` will

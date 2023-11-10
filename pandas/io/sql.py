@@ -585,7 +585,8 @@ def read_sql(
     ----------
     sql : str or SQLAlchemy Selectable (select or text object)
         SQL query to be executed or a table name.
-    con : SQLAlchemy connectable, str, or sqlite3 connection
+    con : AdbcConnection, SQLAlchemy connectable, str, or sqlite3 connection
+        ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
         library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
         for engine disposal and connection closure for the SQLAlchemy connectable; str
@@ -756,8 +757,9 @@ def to_sql(
     frame : DataFrame, Series
     name : str
         Name of SQL table.
-    con : SQLAlchemy connectable(engine/connection) or database string URI
+    con : AdbcConnection, SQLAlchemy connectable(engine/connection), database string URI
         or sqlite3 DBAPI2 connection
+        ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
@@ -812,7 +814,8 @@ def to_sql(
     Notes
     -----
     The returned rows affected is the sum of the ``rowcount`` attribute of ``sqlite3.Cursor``
-    or SQLAlchemy connectable. The returned value may not reflect the exact number of written
+    or SQLAlchemy connectable. If using ADBC the returned rows are the result
+    of ``Cursor.adbc_ingest``. The returned value may not reflect the exact number of written
     rows as stipulated in the
     `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
     `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__
@@ -851,7 +854,8 @@ def has_table(table_name: str, con, schema: str | None = None) -> bool:
     ----------
     table_name: string
         Name of SQL table.
-    con: SQLAlchemy connectable(engine/connection) or sqlite3 DBAPI2 connection
+    con: AdbcConnection, SQLAlchemy connectable, str, or sqlite3 connection
+        ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
         If a DBAPI2 object, only sqlite3 is supported.
@@ -2898,9 +2902,10 @@ def get_schema(
         name of SQL table
     keys : string or sequence, default: None
         columns to use a primary key
-    con: an open SQL database connection object or a SQLAlchemy connectable
+    con: AdbcConnection, SQLAlchemy connectable, sqlite3 connection, default: None
+        ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
-        library, default: None
+        library
         If a DBAPI2 object, only sqlite3 is supported.
     dtype : dict of column name to SQL type, default None
         Optional specifying the datatype for columns. The SQL type should
