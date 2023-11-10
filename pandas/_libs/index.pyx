@@ -1,4 +1,5 @@
 cimport cython
+from cpython.sequence cimport PySequence_GetItem
 
 import numpy as np
 
@@ -437,7 +438,7 @@ cdef class IndexEngine:
                     d[val].append(i)
 
         for i in range(n_t):
-            val = targets[i]
+            val = PySequence_GetItem(targets, i)
 
             # ensure there are nas in values before looking for a matching na
             if check_na_values and checknull(val):
@@ -996,7 +997,7 @@ cdef class SharedEngine:
 
         # See also IntervalIndex.get_indexer_pointwise
         for i in range(N):
-            val = targets[i]
+            val = PySequence_GetItem(targets, i)
 
             try:
                 locs = self.get_loc(val)
