@@ -15,8 +15,8 @@ if TYPE_CHECKING:
 # Update install.rst & setup.cfg when updating versions!
 
 VERSIONS = {
-    "adbc-driver-postgresql": "0.7.0",
-    "adbc-driver-sqlite": "0.7.0",
+    "adbc-driver-postgresql": "0.8.0",
+    "adbc-driver-sqlite": "0.8.0",
     "bs4": "4.11.2",
     "blosc": "1.21.3",
     "bottleneck": "1.3.6",

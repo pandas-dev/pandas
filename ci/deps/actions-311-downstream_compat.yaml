@@ -73,8 +73,8 @@ dependencies:
   - pyyaml
   - py
   - pip:
-    - adbc-driver-postgresql>=0.7.0
-    - adbc-driver-sqlite>=0.7.0
+    - adbc-driver-postgresql>=0.8.0
+    - adbc-driver-sqlite>=0.8.0
     - dataframe-api-compat>=0.1.7
     - pyqt5>=5.15.8
     - tzdata>=2022.7

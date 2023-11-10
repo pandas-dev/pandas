@@ -274,25 +274,17 @@ def create_and_load_types_sqlite3(conn, types_data: list[dict]):
 
 
 def create_and_load_types_postgresql(conn, types_data: list[dict]):
-    # Boolean support not added until 0.8.0
-    adbc = import_optional_dependency("adbc_driver_manager", errors="ignore")
-
-    if adbc and Version(adbc.__version__) < Version("0.8.0"):
-        bool_type = "INTEGER"
-    else:
-        bool_type = "BOOLEAN"
-
     with conn.cursor() as cur:
-        stmt = f"""CREATE TABLE types (
+        stmt = """CREATE TABLE types (
                         "TextCol" TEXT,
                         "DateCol" TIMESTAMP,
                         "IntDateCol" INTEGER,
                         "IntDateOnlyCol" INTEGER,
                         "FloatCol" DOUBLE PRECISION,
                         "IntCol" INTEGER,
-                        "BoolCol" {bool_type},
+                        "BoolCol" BOOLEAN,
                         "IntColWithNull" INTEGER,
-                        "BoolColWithNull" {bool_type}
+                        "BoolColWithNull" BOOLEAN
                     )"""
         cur.execute(stmt)
 
@@ -724,17 +716,7 @@ def postgresql_adbc_types(postgresql_adbc_conn, types_data):
         conn.adbc_get_table_schema("types")
     except mgr.ProgrammingError:
         conn.rollback()
-        # Boolean support not added until 0.8.0
-        adbc = import_optional_dependency("adbc_driver_manager")
-        if Version(adbc.__version__) < Version("0.8.0"):
-            new_data = []
-            for entry in types_data:
-                entry["BoolCol"] = int(entry["BoolCol"])
-                if entry["BoolColWithNull"] is not None:
-                    entry["BoolColWithNull"] = int(entry["BoolColWithNull"])
-                new_data.append(tuple(entry.values()))
-        else:
-            new_data = [tuple(entry.values()) for entry in types_data]
+        new_data = [tuple(entry.values()) for entry in types_data]
 
         create_and_load_types_postgresql(conn, new_data)
 
@@ -3539,11 +3521,6 @@ def test_read_sql_dtype_backend(
     conn = request.getfixturevalue(conn)
     table = "test"
     df = dtype_backend_data
-    if "adbc" in conn_name:
-        # Boolean support not added until 0.8.0
-        adbc = import_optional_dependency("adbc_driver_manager")
-        if Version(adbc.__version__) < Version("0.8.0"):
-            df = df.drop(columns=["e", "f"])
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
     with pd.option_context("mode.string_storage", string_storage):
@@ -3551,10 +3528,6 @@ def test_read_sql_dtype_backend(
             f"Select * from {table}", conn, dtype_backend=dtype_backend
         )
     expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
-    if "adbc" in conn_name:
-        adbc = import_optional_dependency("adbc_driver_manager")
-        if Version(adbc.__version__) < Version("0.8.0"):
-            expected = expected.drop(columns=["e", "f"])
     tm.assert_frame_equal(result, expected)
 
     if "adbc" in conn_name:
@@ -3598,19 +3571,11 @@ def test_read_sql_dtype_backend_table(
     conn = request.getfixturevalue(conn)
     table = "test"
     df = dtype_backend_data
-    if "adbc" in conn_name:
-        adbc = import_optional_dependency("adbc_driver_manager")
-        if Version(adbc.__version__) < Version("0.8.0"):
-            df = df.drop(columns=["e", "f"])
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
     with pd.option_context("mode.string_storage", string_storage):
         result = getattr(pd, func)(table, conn, dtype_backend=dtype_backend)
     expected = dtype_backend_expected(string_storage, dtype_backend, conn_name)
-    if "adbc" in conn_name:
-        adbc = import_optional_dependency("adbc_driver_manager")
-        if Version(adbc.__version__) < Version("0.8.0"):
-            expected = expected.drop(columns=["e", "f"])
     tm.assert_frame_equal(result, expected)
 
     if "adbc" in conn_name:
@@ -3632,14 +3597,9 @@ def test_read_sql_dtype_backend_table(
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_table", "read_sql_query"])
 def test_read_sql_invalid_dtype_backend_table(conn, request, func, dtype_backend_data):
-    conn_name = conn
     conn = request.getfixturevalue(conn)
     table = "test"
     df = dtype_backend_data
-    if "adbc" in conn_name:
-        adbc = import_optional_dependency("adbc_driver_manager")
-        if Version(adbc.__version__) < Version("0.8.0"):
-            df = df.drop(columns=["e", "f"])
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
     msg = (

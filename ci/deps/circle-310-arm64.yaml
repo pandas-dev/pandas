@@ -58,5 +58,5 @@ dependencies:
   - xlsxwriter>=3.0.5
   - zstandard>=0.19.0
   - pip:
-    - adbc-driver-postgresql>=0.7.0
-    - adbc-driver-sqlite>=0.7.0
+    - adbc-driver-postgresql>=0.8.0
+    - adbc-driver-sqlite>=0.8.0
