@@ -21,7 +21,7 @@ class TestTimestampReplace:
         # GH#50348
         ts = Timestamp("2016-01-01").as_unit("ns")
 
-        msg = "Out of bounds timestamp: 99999-01-01 00:00:00 with NPY_DATETIMEUNIT 10"
+        msg = "Out of bounds timestamp: 99999-01-01 00:00:00 with precision 'ns'"
         with pytest.raises(OutOfBoundsDatetime, match=msg):
             ts.replace(year=99_999)
 

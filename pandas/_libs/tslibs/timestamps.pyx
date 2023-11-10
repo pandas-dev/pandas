@@ -100,6 +100,7 @@ import_pandas_datetime()
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
+    dts_to_iso_string,
 )
 
 from pandas._libs.tslibs.offsets cimport to_offset
@@ -2492,12 +2493,9 @@ default 'raise'
             try:
                 ts.value = npy_datetimestruct_to_datetime(self._creso, &dts)
             except OverflowError as err:
-                # TODO: create shared function to create this format from dts struct
-                fmt = (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
-                       f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
+                fmt = dts_to_iso_string(dts)
                 raise OutOfBoundsDatetime(
-                    f"Out of bounds timestamp: {fmt} "
-                    f"with NPY_DATETIMEUNIT {self._creso}"
+                    f"Out of bounds timestamp: {fmt} with frequency '{self.unit}'"
                 ) from err
             ts.dts = dts
             ts.creso = self._creso

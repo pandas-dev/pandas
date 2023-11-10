@@ -194,6 +194,11 @@ cdef get_implementation_bounds(
         raise NotImplementedError(reso)
 
 
+cdef object dts_to_iso_string(npy_datetimestruct *dts):
+    return (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
+            f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
+
+
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
     """Raises OutOfBoundsDatetime if the given date is outside the range that
     can be represented by nanosecond-resolution 64-bit integers."""
@@ -209,8 +214,7 @@ cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=NPY_FR_ns):
         error = True
 
     if error:
-        fmt = (f"{dts.year}-{dts.month:02d}-{dts.day:02d} "
-               f"{dts.hour:02d}:{dts.min:02d}:{dts.sec:02d}")
+        fmt = dts_to_iso_string(dts)
         # TODO: "nanosecond" in the message assumes NPY_FR_ns
         raise OutOfBoundsDatetime(f"Out of bounds nanosecond timestamp: {fmt}")
 

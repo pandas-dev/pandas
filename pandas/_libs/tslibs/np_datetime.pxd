@@ -80,6 +80,8 @@ cdef inline void import_pandas_datetime() noexcept:
 
 cdef bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1
 
+cdef object dts_to_iso_string(npy_datetimestruct *dts)
+
 cdef check_dts_bounds(npy_datetimestruct *dts, NPY_DATETIMEUNIT unit=?)
 
 cdef int64_t pydatetime_to_dt64(
