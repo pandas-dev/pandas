@@ -86,6 +86,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
+    dts_to_iso_string,
     get_datetime64_unit,
     get_unit_from_dtype,
     import_pandas_datetime,
@@ -100,7 +101,6 @@ import_pandas_datetime()
 from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
-    dts_to_iso_string,
 )
 
 from pandas._libs.tslibs.offsets cimport to_offset

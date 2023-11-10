@@ -43,10 +43,7 @@ from pandas._libs.tslibs.dtypes cimport (
     freq_to_period_freqstr,
 )
 
-from pandas._libs.tslibs.np_datetime import (
-    OutOfBoundsDatetime,
-    dts_to_iso_string,
-)
+from pandas._libs.tslibs.np_datetime import OutOfBoundsDatetime
 
 # import datetime C API
 import_datetime()
@@ -57,6 +54,7 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_DATETIMEUNIT,
     NPY_FR_D,
     astype_overflowsafe,
+    dts_to_iso_string,
     import_pandas_datetime,
     npy_datetimestruct,
     npy_datetimestruct_to_datetime,
