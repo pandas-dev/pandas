@@ -128,6 +128,8 @@ class MPLPlot(ABC):
     def orientation(self) -> str | None:
         return None
 
+    data: DataFrame
+
     def __init__(
         self,
         data,
@@ -270,6 +272,7 @@ class MPLPlot(ABC):
         self.kwds = kwds
 
         self._validate_color_args()
+        self.data = self._ensure_frame(self.data)
 
     @final
     @staticmethod
@@ -619,9 +622,7 @@ class MPLPlot(ABC):
         return data
 
     @final
-    def _compute_plot_data(self):
-        data = self.data
-
+    def _ensure_frame(self, data) -> DataFrame:
         if isinstance(data, ABCSeries):
             label = self.label
             if label is None and data.name is None:
@@ -634,6 +635,11 @@ class MPLPlot(ABC):
         elif self._kind in ("hist", "box"):
             cols = self.columns if self.by is None else self.columns + self.by
             data = data.loc[:, cols]
+        return data
+
+    @final
+    def _compute_plot_data(self):
+        data = self.data
 
         # GH15079 reconstruct data if by is defined
         if self.by is not None:
@@ -887,6 +893,7 @@ class MPLPlot(ABC):
         index = self.data.index
         is_datetype = index.inferred_type in ("datetime", "date", "datetime64", "time")
 
+        # TODO: be stricter about x?
         x: list[int] | np.ndarray
         if self.use_index:
             if isinstance(index, ABCPeriodIndex):
@@ -1468,7 +1475,10 @@ class LinePlot(MPLPlot):
             # "Callable[[Any, Any, Any, Any, Any, Any, KwArg(Any)], Any]", variable has
             # type "Callable[[Any, Any, Any, Any, KwArg(Any)], Any]")
             plotf = self._plot  # type: ignore[assignment]
-            it = self._iter_data(data=self.data)
+            # error: Incompatible types in assignment (expression has type
+            # "Iterator[tuple[Hashable, ndarray[Any, Any]]]", variable has
+            # type "Iterable[tuple[Hashable, Series]]")
+            it = self._iter_data(data=self.data)  # type: ignore[assignment]
 
         stacking_id = self._get_stacking_id()
         is_errorbar = com.any_not_none(*self.errors.values())
@@ -1481,7 +1491,9 @@ class LinePlot(MPLPlot):
                 colors,
                 kwds,
                 i,
-                label,  # pyright: ignore[reportGeneralTypeIssues]
+                # error: Argument 4 to "_apply_style_colors" of "MPLPlot" has
+                # incompatible type "Hashable"; expected "str"
+                label,  # type: ignore[arg-type] # pyright: ignore[reportGeneralTypeIssues]
             )
 
             errors = self._get_errorbars(label=label, index=i)
