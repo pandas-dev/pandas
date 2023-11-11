@@ -838,7 +838,7 @@ class TestOffsetAliases:
             "NOV",
             "DEC",
         ]
-        base_lst = ["Y", "YS", "BY", "BYS", "QE", "QS", "BQ", "BQS"]
+        base_lst = ["YE", "YS", "BY", "BYS", "QE", "QS", "BQ", "BQS"]
         for base in base_lst:
             for v in suffix_lst:
                 alias = "-".join([base, v])
@@ -857,7 +857,7 @@ def test_freq_offsets():
 class TestReprNames:
     def test_str_for_named_is_name(self):
         # look at all the amazing combinations!
-        month_prefixes = ["Y", "YS", "BY", "BYS", "QE", "BQ", "BQS", "QS"]
+        month_prefixes = ["YE", "YS", "BY", "BYS", "QE", "BQ", "BQS", "QS"]
         names = [
             prefix + "-" + month
             for prefix in month_prefixes
