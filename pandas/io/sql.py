@@ -585,7 +585,7 @@ def read_sql(
     ----------
     sql : str or SQLAlchemy Selectable (select or text object)
         SQL query to be executed or a table name.
-    con : AdbcConnection, SQLAlchemy connectable, str, or sqlite3 connection
+    con : ADBC Connection, SQLAlchemy connectable, str, or sqlite3 connection
         ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
         library. If a DBAPI2 object, only sqlite3 is supported. The user is responsible
@@ -757,7 +757,7 @@ def to_sql(
     frame : DataFrame, Series
     name : str
         Name of SQL table.
-    con : AdbcConnection, SQLAlchemy connectable(engine/connection), database string URI
+    con : ADBC Connection, SQLAlchemy connectable, str, or sqlite3 connection
         or sqlite3 DBAPI2 connection
         ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
@@ -854,7 +854,7 @@ def has_table(table_name: str, con, schema: str | None = None) -> bool:
     ----------
     table_name: string
         Name of SQL table.
-    con: AdbcConnection, SQLAlchemy connectable, str, or sqlite3 connection
+    con: ADBC Connection, SQLAlchemy connectable, str, or sqlite3 connection
         ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
         library.
@@ -2902,7 +2902,7 @@ def get_schema(
         name of SQL table
     keys : string or sequence, default: None
         columns to use a primary key
-    con: AdbcConnection, SQLAlchemy connectable, sqlite3 connection, default: None
+    con: ADBC Connection, SQLAlchemy connectable, sqlite3 connection, default: None
         ADBC provides high performance I/O with native type support, where available.
         Using SQLAlchemy makes it possible to use any DB supported by that
         library

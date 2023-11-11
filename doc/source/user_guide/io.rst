@@ -5611,7 +5611,7 @@ To connect using an ADBC driver you will want to install the ``adbc_driver_sqlit
 package manager. Once installed, you can use the DBAPI interface provided by the ADBC driver
 to connect to your database.
 
-.. ipython:: python
+.. code-block:: python
 
    import adbc_driver_sqlite.dbapi as sqlite_dbapi
 
