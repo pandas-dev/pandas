@@ -354,3 +354,52 @@ class TestFormat:
             formatted = dti.format(date_format="%m-%d-%Y", na_rep="UT")
         assert formatted[0] == "02-01-2003"
         assert formatted[1] == "UT"
+
+    def test_format_datetime_tz(self):
+        """Test default `format()` with tz-aware datetime index."""
+        # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
+        dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
+        # Since tz is currently set as utc, we'll see 2012
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert dt.format()[0] == "2012-12-31 23:00:00+00:00"
+        # If we set tz as paris, we'll see 2013
+        dt = dt.tz_convert("Europe/Paris")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert dt.format()[0] == "2013-01-01 00:00:00+01:00"
+
+    def test_format_datetime_tz_explicit(self):
+        """Test `format()` with tz-aware dt and a custom format string."""
+        # Get locale-specific reference
+        am_local, pm_local = get_local_am_pm()
+
+        # This timestamp is in 2013 in Europe/Paris but is 2012 in UTC
+        dt = pd.to_datetime(["2013-01-01 00:00:00+01:00"], utc=True)
+
+        # If tz is currently set as utc, we'll see 2012
+        msg = "DatetimeIndex.format is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert (
+                dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0]
+                == "2012-12-31__foo__23:00:00"
+            )
+        # same with fancy format
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert (
+                dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
+                == f"2012-12-31__foo__11:00:00{pm_local}"
+            )
+
+        # If tz is currently set as paris, we'll see 2013
+        dt = dt.tz_convert("Europe/Paris")
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert (
+                dt.format(date_format="%Y-%m-%d__foo__%H:%M:%S")[0]
+                == "2013-01-01__foo__00:00:00"
+            )
+        # same with fancy format
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            assert (
+                dt.format(date_format="20%y-%m-%d__foo__%I:%M:%S%p")[0]
+                == f"2013-01-01__foo__12:00:00{am_local}"
+            )
