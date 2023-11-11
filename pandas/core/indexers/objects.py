@@ -109,7 +109,7 @@ class FixedWindowIndexer(BaseIndexer):
 
         end = np.arange(1 + offset, num_values + 1 + offset, step, dtype="int64")
         start = end - self.window_size
-        if closed in ["left", "both"]:
+        if closed in ["left", "both"] or self.window_size == 0:
             start -= 1
         if closed in ["left", "neither"]:
             end -= 1
