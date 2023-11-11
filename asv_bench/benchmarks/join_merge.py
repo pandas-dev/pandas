@@ -213,7 +213,7 @@ class JoinNonUnique:
     # GH 6329
     def setup(self):
         date_index = date_range("01-Jan-2013", "23-Jan-2013", freq="min")
-        daily_dates = date_index.to_period("D").to_timestamp("S", "S")
+        daily_dates = date_index.to_period("D").to_timestamp("s", "s")
         self.fracofday = date_index.values - daily_dates.values
         self.fracofday = self.fracofday.astype("timedelta64[ns]")
         self.fracofday = self.fracofday.astype(np.float64) / 86_400_000_000_000

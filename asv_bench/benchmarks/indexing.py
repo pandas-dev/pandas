@@ -232,7 +232,7 @@ class Take:
         N = 100000
         indexes = {
             "int": Index(np.arange(N), dtype=np.int64),
-            "datetime": date_range("2011-01-01", freq="S", periods=N),
+            "datetime": date_range("2011-01-01", freq="s", periods=N),
         }
         index = indexes[index]
         self.s = Series(np.random.rand(N), index=index)
@@ -465,7 +465,7 @@ class IndexSingleRow:
 class AssignTimeseriesIndex:
     def setup(self):
         N = 100000
-        idx = date_range("1/1/2000", periods=N, freq="H")
+        idx = date_range("1/1/2000", periods=N, freq="h")
         self.df = DataFrame(np.random.randn(N, 1), columns=["A"], index=idx)
 
     def time_frame_assign_timeseries_index(self):

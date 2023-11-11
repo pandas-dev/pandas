@@ -212,7 +212,7 @@ class ParallelDatetimeFields:
     def time_datetime_to_period(self):
         @test_parallel(num_threads=2)
         def run(dti):
-            dti.to_period("S")
+            dti.to_period("s")
 
         run(self.dti)
 

@@ -491,7 +491,7 @@ class BinaryOpsMultiIndex:
     param_names = ["func"]
 
     def setup(self, func):
-        array = date_range("20200101 00:00", "20200102 0:00", freq="S")
+        array = date_range("20200101 00:00", "20200102 0:00", freq="s")
         level_0_names = [str(i) for i in range(30)]
 
         index = pd.MultiIndex.from_product([level_0_names, array])
