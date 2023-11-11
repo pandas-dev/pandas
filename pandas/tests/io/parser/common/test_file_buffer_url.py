@@ -214,8 +214,14 @@ def test_eof_states(all_parsers, data, kwargs, expected, msg, request):
     # see gh-10728, gh-10548
     parser = all_parsers
 
+    if parser.engine == "pyarrow" and "comment" in kwargs:
+        msg = "The 'comment' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), **kwargs)
+        return
+
     if parser.engine == "pyarrow" and "\r" not in data:
-        mark = pytest.mark.xfail(reason="The 'comment' option is not supported")
+        mark = pytest.mark.xfail(reason="Mismatched exception type/message")
         request.applymarker(mark)
 
     if expected is None:
@@ -356,7 +362,6 @@ def test_read_csv_file_handle(all_parsers, io_class, encoding):
     assert not handle.closed
 
 
-@xfail_pyarrow  # ValueError: The 'memory_map' option is not supported
 def test_memory_map_compression(all_parsers, compression):
     """
     Support memory map for compressed files.
@@ -369,18 +374,31 @@ def test_memory_map_compression(all_parsers, compression):
     with tm.ensure_clean() as path:
         expected.to_csv(path, index=False, compression=compression)
 
-        tm.assert_frame_equal(
-            parser.read_csv(path, memory_map=True, compression=compression),
-            expected,
-        )
+        if parser.engine == "pyarrow":
+            msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(path, memory_map=True, compression=compression)
+            return
+
+        result = parser.read_csv(path, memory_map=True, compression=compression)
+
+    tm.assert_frame_equal(
+        result,
+        expected,
+    )
 
 
-@xfail_pyarrow  # ValueError: The 'chunksize' option is not supported
 def test_context_manager(all_parsers, datapath):
     # make sure that opened files are closed
     parser = all_parsers
 
     path = datapath("io", "data", "csv", "iris.csv")
+
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(path, chunksize=1)
+        return
 
     reader = parser.read_csv(path, chunksize=1)
     assert not reader.handles.handle.closed
@@ -392,12 +410,17 @@ def test_context_manager(all_parsers, datapath):
         assert reader.handles.handle.closed
 
 
-@xfail_pyarrow  # ValueError: The 'chunksize' option is not supported
 def test_context_manageri_user_provided(all_parsers, datapath):
     # make sure that user-provided handles are not closed
     parser = all_parsers
 
     with open(datapath("io", "data", "csv", "iris.csv"), encoding="utf-8") as path:
+        if parser.engine == "pyarrow":
+            msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+            with pytest.raises(ValueError, match=msg):
+                parser.read_csv(path, chunksize=1)
+            return
+
         reader = parser.read_csv(path, chunksize=1)
         assert not reader.handles.handle.closed
         try:
@@ -417,7 +440,6 @@ def test_file_descriptor_leak(all_parsers, using_copy_on_write):
             parser.read_csv(path)
 
 
-@xfail_pyarrow  # ValueError: The 'memory_map' option is not supported
 def test_memory_map(all_parsers, csv_dir_path):
     mmap_file = os.path.join(csv_dir_path, "test_mmap.csv")
     parser = all_parsers
@@ -425,6 +447,12 @@ def test_memory_map(all_parsers, csv_dir_path):
     expected = DataFrame(
         {"a": [1, 2, 3], "b": ["one", "two", "three"], "c": ["I", "II", "III"]}
     )
+
+    if parser.engine == "pyarrow":
+        msg = "The 'memory_map' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(mmap_file, memory_map=True)
+        return
 
     result = parser.read_csv(mmap_file, memory_map=True)
     tm.assert_frame_equal(result, expected)

@@ -13,6 +13,7 @@ from pandas.errors import (
 )
 from pandas.util._exceptions import find_stack_level
 
+from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.inference import is_integer
 
 import pandas as pd
@@ -203,7 +204,13 @@ class ArrowParserWrapper(ParserBase):
             # Ignore non-existent columns from dtype mapping
             # like other parsers do
             if isinstance(self.dtype, dict):
-                self.dtype = {k: v for k, v in self.dtype.items() if k in frame.columns}
+                self.dtype = {
+                    k: pandas_dtype(v)
+                    for k, v in self.dtype.items()
+                    if k in frame.columns
+                }
+            else:
+                self.dtype = pandas_dtype(self.dtype)
             try:
                 frame = frame.astype(self.dtype)
             except TypeError as e:

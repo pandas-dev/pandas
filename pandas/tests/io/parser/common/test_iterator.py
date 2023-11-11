@@ -15,10 +15,8 @@ import pandas._testing as tm
 pytestmark = pytest.mark.filterwarnings(
     "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
 )
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 
-@xfail_pyarrow  # ValueError: The 'iterator' option is not supported
 def test_iterator(all_parsers):
     # see gh-6607
     data = """index,A,B,C,D
@@ -33,6 +31,13 @@ bar2,12,13,14,15
     kwargs = {"index_col": 0}
 
     expected = parser.read_csv(StringIO(data), **kwargs)
+
+    if parser.engine == "pyarrow":
+        msg = "The 'iterator' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), iterator=True, **kwargs)
+        return
+
     with parser.read_csv(StringIO(data), iterator=True, **kwargs) as reader:
         first_chunk = reader.read(3)
         tm.assert_frame_equal(first_chunk, expected[:3])
@@ -41,7 +46,6 @@ bar2,12,13,14,15
     tm.assert_frame_equal(last_chunk, expected[3:])
 
 
-@xfail_pyarrow  # ValueError: The 'iterator' option is not supported
 def test_iterator2(all_parsers):
     parser = all_parsers
     data = """A,B,C
@@ -49,6 +53,12 @@ foo,1,2,3
 bar,4,5,6
 baz,7,8,9
 """
+
+    if parser.engine == "pyarrow":
+        msg = "The 'iterator' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), iterator=True)
+        return
 
     with parser.read_csv(StringIO(data), iterator=True) as reader:
         result = list(reader)
@@ -61,7 +71,6 @@ baz,7,8,9
     tm.assert_frame_equal(result[0], expected)
 
 
-@xfail_pyarrow  # ValueError: The 'chunksize' option is not supported
 def test_iterator_stop_on_chunksize(all_parsers):
     # gh-3967: stopping iteration when chunksize is specified
     parser = all_parsers
@@ -70,6 +79,11 @@ foo,1,2,3
 bar,4,5,6
 baz,7,8,9
 """
+    if parser.engine == "pyarrow":
+        msg = "The 'chunksize' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), chunksize=1)
+        return
 
     with parser.read_csv(StringIO(data), chunksize=1) as reader:
         result = list(reader)
@@ -83,7 +97,6 @@ baz,7,8,9
     tm.assert_frame_equal(concat(result), expected)
 
 
-@xfail_pyarrow  # AssertionError: Regex pattern did not match
 @pytest.mark.parametrize(
     "kwargs", [{"iterator": True, "chunksize": 1}, {"iterator": True}, {"chunksize": 1}]
 )
@@ -91,6 +104,12 @@ def test_iterator_skipfooter_errors(all_parsers, kwargs):
     msg = "'skipfooter' not supported for iteration"
     parser = all_parsers
     data = "a\n1\n2"
+
+    if parser.engine == "pyarrow":
+        msg = (
+            "The '(chunksize|iterator)' option is not supported with the "
+            "'pyarrow' engine"
+        )
 
     with pytest.raises(ValueError, match=msg):
         with parser.read_csv(StringIO(data), skipfooter=1, **kwargs) as _:

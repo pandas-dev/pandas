@@ -6,10 +6,7 @@ from io import StringIO
 
 import pytest
 
-xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
-
-@xfail_pyarrow  # ValueError: The 'verbose' option is not supported
 def test_verbose_read(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
@@ -22,6 +19,12 @@ one,1,2,3
 one,1,2,3
 two,1,2,3"""
 
+    if parser.engine == "pyarrow":
+        msg = "The 'verbose' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), verbose=True)
+        return
+
     # Engines are verbose in different ways.
     parser.read_csv(StringIO(data), verbose=True)
     captured = capsys.readouterr()
@@ -33,7 +36,6 @@ two,1,2,3"""
         assert captured.out == "Filled 3 NA values in column a\n"
 
 
-@xfail_pyarrow  # ValueError: The 'verbose' option is not supported
 def test_verbose_read2(all_parsers, capsys):
     parser = all_parsers
     data = """a,b,c,d
@@ -45,6 +47,12 @@ five,1,2,3
 ,1,2,3
 seven,1,2,3
 eight,1,2,3"""
+
+    if parser.engine == "pyarrow":
+        msg = "The 'verbose' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(StringIO(data), verbose=True, index_col=0)
+        return
 
     parser.read_csv(StringIO(data), verbose=True, index_col=0)
     captured = capsys.readouterr()
