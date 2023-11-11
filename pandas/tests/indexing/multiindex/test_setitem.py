@@ -390,6 +390,7 @@ class TestMultiIndexSetItem:
         expected = df.loc[2000, 1, 6][["A", "B", "C"]]
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_loc_getitem_setitem_slice_integers(self, frame_or_series):
         index = MultiIndex(
             levels=[[0, 1, 2], [0, 2]], codes=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]]
@@ -421,7 +422,7 @@ class TestMultiIndexSetItem:
         tm.assert_series_equal(reindexed["foo", "two"], s > s.median())
 
     def test_set_column_scalar_with_loc(
-        self, multiindex_dataframe_random_data, using_copy_on_write
+        self, multiindex_dataframe_random_data, using_copy_on_write, warn_copy_on_write
     ):
         frame = multiindex_dataframe_random_data
         subset = frame.index[[1, 4, 5]]
@@ -431,7 +432,8 @@ class TestMultiIndexSetItem:
 
         frame_original = frame.copy()
         col = frame["B"]
-        col[subset] = 97
+        with tm.assert_cow_warning(warn_copy_on_write):
+            col[subset] = 97
         if using_copy_on_write:
             # chained setitem doesn't work with CoW
             tm.assert_frame_equal(frame, frame_original)
