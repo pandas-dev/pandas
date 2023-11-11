@@ -199,3 +199,42 @@ class TestTimestampRendering:
 
         dt_datetime_us = datetime(2013, 1, 2, 12, 1, 3, 45, tzinfo=utc)
         assert str(dt_datetime_us) == str(Timestamp(dt_datetime_us))
+
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_strftime_locale(self, locale_str):
+        """
+        Test that `convert_strftime_format` and `fast_strftime`
+        work well together and rely on runtime locale
+        """
+
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
+
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Get locale-specific reference
+            am_local, pm_local = get_local_am_pm()
+
+            # Use the function
+            str_tmp, loc_s = convert_strftime_format("%p", target="datetime")
+            assert str_tmp == "%(ampm)s"
+
+            # Now what about the classes ?
+            # Timestamp
+            am_ts = Timestamp(2020, 1, 1, 1)
+            assert am_local == am_ts.strftime("%p")
+            assert am_local == am_ts.fast_strftime(str_tmp, loc_s)
+            pm_ts = Timestamp(2020, 1, 1, 13)
+            assert pm_local == pm_ts.strftime("%p")
+            assert pm_local == pm_ts.fast_strftime(str_tmp, loc_s)
+

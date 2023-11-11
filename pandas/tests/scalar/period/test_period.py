@@ -757,6 +757,43 @@ class TestPeriodMethods:
         assert res == "2000-01-01 12:34:12"
         assert isinstance(res, str)
 
+    @pytest.mark.parametrize(
+        "locale_str",
+        [
+            pytest.param(None, id=str(locale.getlocale())),
+            "it_IT.utf8",
+            "it_IT",  # Note: encoding will be 'ISO8859-1'
+            "zh_CN.utf8",
+            "zh_CN",  # Note: encoding will be 'gb2312'
+        ],
+    )
+    def test_strftime_locale(self, locale_str):
+        """
+        Test that `convert_strftime_format` and `fast_strftime`
+        work well together and rely on runtime locale
+        """
+
+        # Skip if locale cannot be set
+        if locale_str is not None and not tm.can_set_locale(locale_str, locale.LC_ALL):
+            pytest.skip(f"Skipping as locale '{locale_str}' cannot be set on host.")
+
+        # Change locale temporarily for this test.
+        with tm.set_locale(locale_str, locale.LC_ALL) if locale_str else nullcontext():
+            # Get locale-specific reference
+            am_local, pm_local = get_local_am_pm()
+
+            # Use the function
+            str_tmp, loc_s = convert_strftime_format("%p", target="period")
+            assert str_tmp == "%(ampm)s"
+
+            # Period
+            am_per = pd.Period("2018-03-11 01:00", freq="H")
+            assert am_local == am_per.strftime("%p")
+            assert am_local == am_per.fast_strftime(str_tmp, loc_s)
+            pm_per = pd.Period("2018-03-11 13:00", freq="H")
+            assert pm_local == pm_per.strftime("%p")
+            assert pm_local == pm_per.fast_strftime(str_tmp, loc_s)
+
 
 class TestPeriodProperties:
     """Test properties such as year, month, weekday, etc...."""
