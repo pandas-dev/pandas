@@ -231,7 +231,7 @@ def test_expanding_sem(frame_or_series):
 @pytest.mark.parametrize("method", ["skew", "kurt"])
 def test_expanding_skew_kurt_numerical_stability(method):
     # GH: 6929
-    s = Series(np.random.rand(10))
+    s = Series(np.random.default_rng(2).random(10))
     expected = getattr(s.expanding(3), method)()
     s = s + 5000
     result = getattr(s.expanding(3), method)()
@@ -246,12 +246,14 @@ def test_expanding_skew_kurt_numerical_stability(method):
 def test_rank(window, method, pct, ascending, test_data):
     length = 20
     if test_data == "default":
-        ser = Series(data=np.random.rand(length))
+        ser = Series(data=np.random.default_rng(2).random(length))
     elif test_data == "duplicates":
-        ser = Series(data=np.random.choice(3, length))
+        ser = Series(data=np.random.default_rng(2).choice(3, length))
     elif test_data == "nans":
         ser = Series(
-            data=np.random.choice([1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length)
+            data=np.random.default_rng(2).choice(
+                [1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length
+            )
         )
 
     expected = ser.expanding(window).apply(
@@ -264,7 +266,7 @@ def test_rank(window, method, pct, ascending, test_data):
 
 def test_expanding_corr(series):
     A = series.dropna()
-    B = (A + np.random.randn(len(A)))[:-5]
+    B = (A + np.random.default_rng(2).standard_normal(len(A)))[:-5]
 
     result = A.expanding().corr(B)
 
@@ -290,7 +292,7 @@ def test_expanding_quantile(series):
 
 def test_expanding_cov(series):
     A = series
-    B = (A + np.random.randn(len(A)))[:-5]
+    B = (A + np.random.default_rng(2).standard_normal(len(A)))[:-5]
 
     result = A.expanding().cov(B)
 
@@ -351,7 +353,7 @@ def test_expanding_func(func, static_comp, frame_or_series):
     ids=["sum", "mean", "max", "min"],
 )
 def test_expanding_min_periods(func, static_comp):
-    ser = Series(np.random.randn(50))
+    ser = Series(np.random.default_rng(2).standard_normal(50))
 
     msg = "The 'axis' keyword in Series.expanding is deprecated"
     with tm.assert_produces_warning(FutureWarning, match=msg):
@@ -365,7 +367,7 @@ def test_expanding_min_periods(func, static_comp):
     assert isna(result.iloc[13])
     assert notna(result.iloc[14])
 
-    ser2 = Series(np.random.randn(20))
+    ser2 = Series(np.random.default_rng(2).standard_normal(20))
     with tm.assert_produces_warning(FutureWarning, match=msg):
         result = getattr(ser2.expanding(min_periods=5, axis=0), func)()
     assert isna(result[3])
@@ -401,7 +403,7 @@ def test_expanding_apply(engine_and_raw, frame_or_series):
 
 def test_expanding_min_periods_apply(engine_and_raw):
     engine, raw = engine_and_raw
-    ser = Series(np.random.randn(50))
+    ser = Series(np.random.default_rng(2).standard_normal(50))
 
     result = ser.expanding(min_periods=30).apply(
         lambda x: x.mean(), raw=raw, engine=engine
@@ -416,7 +418,7 @@ def test_expanding_min_periods_apply(engine_and_raw):
     assert isna(result.iloc[13])
     assert notna(result.iloc[14])
 
-    ser2 = Series(np.random.randn(20))
+    ser2 = Series(np.random.default_rng(2).standard_normal(20))
     result = ser2.expanding(min_periods=5).apply(
         lambda x: x.mean(), raw=raw, engine=engine
     )
@@ -623,7 +625,7 @@ def test_expanding_apply_args_kwargs(engine_and_raw):
 
     engine, raw = engine_and_raw
 
-    df = DataFrame(np.random.rand(20, 3))
+    df = DataFrame(np.random.default_rng(2).random((20, 3)))
 
     expected = df.expanding().apply(np.mean, engine=engine, raw=raw) + 20.0
 

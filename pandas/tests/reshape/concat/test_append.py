@@ -91,10 +91,10 @@ class TestAppend:
         tm.assert_frame_equal(df5, expected)
 
     def test_append_records(self):
-        arr1 = np.zeros((2,), dtype=("i4,f4,a10"))
+        arr1 = np.zeros((2,), dtype=("i4,f4,S10"))
         arr1[:] = [(1, 2.0, "Hello"), (2, 3.0, "World")]
 
-        arr2 = np.zeros((3,), dtype=("i4,f4,a10"))
+        arr2 = np.zeros((3,), dtype=("i4,f4,S10"))
         arr2[:] = [(3, 4.0, "foo"), (5, 6.0, "bar"), (7.0, 8.0, "baz")]
 
         df1 = DataFrame(arr1)
@@ -123,9 +123,9 @@ class TestAppend:
     def test_append_different_columns(self, sort):
         df = DataFrame(
             {
-                "bools": np.random.randn(10) > 0,
-                "ints": np.random.randint(0, 10, 10),
-                "floats": np.random.randn(10),
+                "bools": np.random.default_rng(2).standard_normal(10) > 0,
+                "ints": np.random.default_rng(2).integers(0, 10, 10),
+                "floats": np.random.default_rng(2).standard_normal(10),
                 "strings": ["foo", "bar"] * 5,
             }
         )
@@ -162,7 +162,9 @@ class TestAppend:
         df2 = DataFrame(data=[[1, 4, 7], [2, 5, 8], [3, 6, 9]], columns=["A", "B", "C"])
         df2 = df2.set_index(["A"])
 
-        result = df1._append(df2)
+        msg = "The behavior of array concatenation with empty entries is deprecated"
+        with tm.assert_produces_warning(FutureWarning, match=msg):
+            result = df1._append(df2)
         assert result.index.name == "A"
 
     indexes_can_append = [

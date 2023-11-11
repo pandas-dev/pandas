@@ -13,7 +13,6 @@ from pandas import (
     compat,
 )
 import pandas._testing as tm
-from pandas.tests.io.test_compression import _compression_to_extension
 
 
 class TestToCSV:
@@ -182,7 +181,7 @@ $1$,$2$
         # see gh-11553
         #
         # Testing if NaN values are correctly represented in the index.
-        df = DataFrame({"a": [0, np.NaN], "b": [0, 1], "c": [2, 3]})
+        df = DataFrame({"a": [0, np.nan], "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "0.0,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -190,7 +189,7 @@ $1$,$2$
         assert df.set_index(["a", "b"]).to_csv(na_rep="_") == expected
 
         # now with an index containing only NaNs
-        df = DataFrame({"a": np.NaN, "b": [0, 1], "c": [2, 3]})
+        df = DataFrame({"a": np.nan, "b": [0, 1], "c": [2, 3]})
         expected_rows = ["a,b,c", "_,0,2", "_,1,3"]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
 
@@ -349,7 +348,7 @@ $1$,$2$
         df = DataFrame(
             {
                 "date": pd.to_datetime("1970-01-01"),
-                "datetime": pd.date_range("1970-01-01", periods=2, freq="H"),
+                "datetime": pd.date_range("1970-01-01", periods=2, freq="h"),
             }
         )
         expected_rows = [
@@ -606,13 +605,15 @@ z
 
     @pytest.mark.parametrize("to_infer", [True, False])
     @pytest.mark.parametrize("read_infer", [True, False])
-    def test_to_csv_compression(self, compression_only, read_infer, to_infer):
+    def test_to_csv_compression(
+        self, compression_only, read_infer, to_infer, compression_to_extension
+    ):
         # see gh-15008
         compression = compression_only
 
         # We'll complete file extension subsequently.
         filename = "test."
-        filename += _compression_to_extension[compression]
+        filename += compression_to_extension[compression]
 
         df = DataFrame({"A": [1]})
 
@@ -793,3 +794,15 @@ def test_to_csv_iterative_compression_buffer(compression):
             pd.read_csv(buffer, compression=compression, index_col=0), df
         )
         assert not buffer.closed
+
+
+def test_to_csv_pos_args_deprecation():
+    # GH-54229
+    df = DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_csv except for the "
+        r"argument 'path_or_buf' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buffer = io.BytesIO()
+        df.to_csv(buffer, ";")

@@ -18,7 +18,9 @@ import pandas._testing as tm
 class TestDataFrameInsert:
     def test_insert(self):
         df = DataFrame(
-            np.random.randn(5, 3), index=np.arange(5), columns=["c", "b", "a"]
+            np.random.default_rng(2).standard_normal((5, 3)),
+            index=np.arange(5),
+            columns=["c", "b", "a"],
         )
 
         df.insert(0, "foo", df["a"])
@@ -49,14 +51,12 @@ class TestDataFrameInsert:
         df.insert(0, "a", [1, 2])
         result = df.rename(columns={})
 
-        str(result)
         expected = DataFrame([[1, 1.1], [2, 2.2]], columns=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
         df.insert(0, "c", [1.3, 2.3])
         result = df.rename(columns={})
 
-        str(result)
         expected = DataFrame([[1.3, 1, 1.1], [2.3, 2, 2.2]], columns=["c", "a", "b"])
         tm.assert_frame_equal(result, expected)
 
@@ -72,7 +72,7 @@ class TestDataFrameInsert:
         tm.assert_frame_equal(df, exp)
 
     def test_insert_item_cache(self, using_array_manager, using_copy_on_write):
-        df = DataFrame(np.random.randn(4, 3))
+        df = DataFrame(np.random.default_rng(2).standard_normal((4, 3)))
         ser = df[0]
 
         if using_array_manager:
@@ -97,7 +97,9 @@ class TestDataFrameInsert:
     def test_insert_EA_no_warning(self):
         # PerformanceWarning about fragmented frame should not be raised when
         # using EAs (https://github.com/pandas-dev/pandas/issues/44098)
-        df = DataFrame(np.random.randint(0, 100, size=(3, 100)), dtype="Int64")
+        df = DataFrame(
+            np.random.default_rng(2).integers(0, 100, size=(3, 100)), dtype="Int64"
+        )
         with tm.assert_produces_warning(None):
             df["a"] = np.array([1, 2, 3])
 

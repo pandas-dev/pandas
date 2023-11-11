@@ -58,7 +58,7 @@ from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
     CategoricalDtype,
     ExtensionDtype,
-    PandasDtype,
+    NumpyEADtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDatetimeArray,
@@ -450,6 +450,9 @@ def unique_with_mask(values, mask: npt.NDArray[np.bool_] | None = None):
 unique1d = unique
 
 
+_MINIMUM_COMP_ARR_LEN = 1_000_000
+
+
 def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     """
     Compute the isin boolean array.
@@ -467,12 +470,12 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
     if not is_list_like(comps):
         raise TypeError(
             "only list-like objects are allowed to be passed "
-            f"to isin(), you passed a [{type(comps).__name__}]"
+            f"to isin(), you passed a `{type(comps).__name__}`"
         )
     if not is_list_like(values):
         raise TypeError(
             "only list-like objects are allowed to be passed "
-            f"to isin(), you passed a [{type(values).__name__}]"
+            f"to isin(), you passed a `{type(values).__name__}`"
         )
 
     if not isinstance(values, (ABCIndex, ABCSeries, ABCExtensionArray, np.ndarray)):
@@ -514,11 +517,11 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         return isin(np.asarray(comps_array), np.asarray(values))
 
     # GH16012
-    # Ensure np.in1d doesn't get object types or it *may* throw an exception
+    # Ensure np.isin doesn't get object types or it *may* throw an exception
     # Albeit hashmap has O(1) look-up (vs. O(logn) in sorted array),
-    # in1d is faster for small sizes
+    # isin is faster for small sizes
     if (
-        len(comps_array) > 1_000_000
+        len(comps_array) > _MINIMUM_COMP_ARR_LEN
         and len(values) <= 26
         and comps_array.dtype != object
     ):
@@ -527,10 +530,10 @@ def isin(comps: ListLike, values: ListLike) -> npt.NDArray[np.bool_]:
         if isna(values).any():
 
             def f(c, v):
-                return np.logical_or(np.in1d(c, v), np.isnan(c))
+                return np.logical_or(np.isin(c, v).ravel(), np.isnan(c))
 
         else:
-            f = np.in1d
+            f = lambda a, b: np.isin(a, b).ravel()
 
     else:
         common = np_find_common_type(values.dtype, comps_array.dtype)
@@ -838,6 +841,31 @@ def value_counts(
     -------
     Series
     """
+    warnings.warn(
+        # GH#53493
+        "pandas.value_counts is deprecated and will be removed in a "
+        "future version. Use pd.Series(obj).value_counts() instead.",
+        FutureWarning,
+        stacklevel=find_stack_level(),
+    )
+    return value_counts_internal(
+        values,
+        sort=sort,
+        ascending=ascending,
+        normalize=normalize,
+        bins=bins,
+        dropna=dropna,
+    )
+
+
+def value_counts_internal(
+    values,
+    sort: bool = True,
+    ascending: bool = False,
+    normalize: bool = False,
+    bins=None,
+    dropna: bool = True,
+) -> Series:
     from pandas import (
         Index,
         Series,
@@ -849,7 +877,9 @@ def value_counts(
     if bins is not None:
         from pandas.core.reshape.tile import cut
 
-        values = Series(values, copy=False)
+        if isinstance(values, Series):
+            values = values._values
+
         try:
             ii = cut(values, bins, include_lowest=True)
         except TypeError as err:
@@ -893,7 +923,7 @@ def value_counts(
 
         else:
             values = _ensure_arraylike(values, func_name="value_counts")
-            keys, counts = value_counts_arraylike(values, dropna)
+            keys, counts, _ = value_counts_arraylike(values, dropna)
             if keys.dtype == np.float16:
                 keys = keys.astype(np.float32)
 
@@ -918,7 +948,7 @@ def value_counts(
 # Called once from SparseArray, otherwise could be private
 def value_counts_arraylike(
     values: np.ndarray, dropna: bool, mask: npt.NDArray[np.bool_] | None = None
-) -> tuple[ArrayLike, npt.NDArray[np.int64]]:
+) -> tuple[ArrayLike, npt.NDArray[np.int64], int]:
     """
     Parameters
     ----------
@@ -934,7 +964,7 @@ def value_counts_arraylike(
     original = values
     values = _ensure_data(values)
 
-    keys, counts = htable.value_count(values, dropna, mask=mask)
+    keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -944,18 +974,20 @@ def value_counts_arraylike(
             keys, counts = keys[mask], counts[mask]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
-    return res_keys, counts
+    return res_keys, counts, na_counter
 
 
 def duplicated(
-    values: ArrayLike, keep: Literal["first", "last", False] = "first"
+    values: ArrayLike,
+    keep: Literal["first", "last", False] = "first",
+    mask: npt.NDArray[np.bool_] | None = None,
 ) -> npt.NDArray[np.bool_]:
     """
     Return boolean ndarray denoting duplicate values.
 
     Parameters
     ----------
-    values : nd.array, ExtensionArray or Series
+    values : np.ndarray or ExtensionArray
         Array over which to check for duplicate values.
     keep : {'first', 'last', False}, default 'first'
         - ``first`` : Mark duplicates as ``True`` except for the first
@@ -963,17 +995,15 @@ def duplicated(
         - ``last`` : Mark duplicates as ``True`` except for the last
           occurrence.
         - False : Mark all duplicates as ``True``.
+    mask : ndarray[bool], optional
+        array indicating which elements to exclude from checking
 
     Returns
     -------
     duplicated : ndarray[bool]
     """
-    if hasattr(values, "dtype") and isinstance(values.dtype, BaseMaskedDtype):
-        values = cast("BaseMaskedArray", values)
-        return htable.duplicated(values._data, keep=keep, mask=values._mask)
-
     values = _ensure_data(values)
-    return htable.duplicated(values, keep=keep)
+    return htable.duplicated(values, keep=keep, mask=mask)
 
 
 def mode(
@@ -1294,7 +1324,7 @@ def searchsorted(
     arr: ArrayLike,
     value: NumpyValueArrayLike | ExtensionArray,
     side: Literal["left", "right"] = "left",
-    sorter: NumpySorter = None,
+    sorter: NumpySorter | None = None,
 ) -> npt.NDArray[np.intp] | np.intp:
     """
     Find indices where elements should be inserted to maintain order.
@@ -1411,13 +1441,13 @@ def diff(arr, n: int, axis: AxisInt = 0):
     else:
         op = operator.sub
 
-    if isinstance(dtype, PandasDtype):
-        # PandasArray cannot necessarily hold shifted versions of itself.
+    if isinstance(dtype, NumpyEADtype):
+        # NumpyExtensionArray cannot necessarily hold shifted versions of itself.
         arr = arr.to_numpy()
         dtype = arr.dtype
 
-    if not isinstance(dtype, np.dtype):
-        # i.e ExtensionDtype
+    if not isinstance(arr, np.ndarray):
+        # i.e ExtensionArray
         if hasattr(arr, f"__{op.__name__}__"):
             if axis != 0:
                 raise ValueError(f"cannot diff {type(arr).__name__} on axis={axis}")
@@ -1606,7 +1636,7 @@ def safe_sort(
         else:
             mask = None
     else:
-        reverse_indexer = np.empty(len(sorter), dtype=np.int_)
+        reverse_indexer = np.empty(len(sorter), dtype=int)
         reverse_indexer.put(sorter, np.arange(len(sorter)))
         # Out of bound indices will be masked with `-1` next, so we
         # may deal with them here without performance loss using `mode='wrap'`
@@ -1678,8 +1708,8 @@ def union_with_duplicates(
     """
     from pandas import Series
 
-    l_count = value_counts(lvals, dropna=False)
-    r_count = value_counts(rvals, dropna=False)
+    l_count = value_counts_internal(lvals, dropna=False)
+    r_count = value_counts_internal(rvals, dropna=False)
     l_count, r_count = l_count.align(r_count, fill_value=0)
     final_count = np.maximum(l_count.values, r_count.values)
     final_count = Series(final_count, index=l_count.index, dtype="int", copy=False)

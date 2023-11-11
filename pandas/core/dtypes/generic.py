@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from pandas.core.arrays import (
         DatetimeArray,
         ExtensionArray,
-        PandasArray,
+        NumpyExtensionArray,
         PeriodArray,
         TimedeltaArray,
     )
@@ -141,7 +141,7 @@ ABCExtensionArray = cast(
         {"extension", "categorical", "periodarray", "datetimearray", "timedeltaarray"},
     ),
 )
-ABCPandasArray = cast(
-    "Type[PandasArray]",
-    create_pandas_abc_type("ABCPandasArray", "_typ", ("npy_extension",)),
+ABCNumpyExtensionArray = cast(
+    "Type[NumpyExtensionArray]",
+    create_pandas_abc_type("ABCNumpyExtensionArray", "_typ", ("npy_extension",)),
 )

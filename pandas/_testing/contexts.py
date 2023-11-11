@@ -8,7 +8,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Generator,
 )
 import uuid
 
@@ -20,6 +19,8 @@ from pandas import set_option
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from pandas._typing import (
         BaseBuffer,
         CompressionOptions,
@@ -127,6 +128,8 @@ def ensure_clean(
     encoding = kwargs.pop("encoding", None)
     if return_filelike:
         kwargs.setdefault("mode", "w+b")
+        if encoding is None and "b" not in kwargs["mode"]:
+            encoding = "utf-8"
         handle_or_str = open(path, encoding=encoding, **kwargs)
 
     try:
@@ -136,22 +139,6 @@ def ensure_clean(
             handle_or_str.close()
         if path.is_file():
             path.unlink()
-
-
-@contextmanager
-def ensure_safe_environment_variables() -> Generator[None, None, None]:
-    """
-    Get a context manager to safely set environment variables
-
-    All changes will be undone on close, hence environment variables set
-    within this contextmanager will neither persist nor change global state.
-    """
-    saved_environ = dict(os.environ)
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(saved_environ)
 
 
 @contextmanager
@@ -227,3 +214,29 @@ def raises_chained_assignment_error(extra_warnings=(), extra_match=()):
             (ChainedAssignmentError, *extra_warnings),
             match="|".join((match, *extra_match)),
         )
+
+
+def assert_cow_warning(warn=True, match=None, **kwargs):
+    """
+    Assert that a warning is raised in the CoW warning mode.
+
+    Parameters
+    ----------
+    warn : bool, default True
+        By default, check that a warning is raised. Can be turned off by passing False.
+    match : str
+        The warning message to match against, if different from the default.
+    kwargs
+        Passed through to assert_produces_warning
+    """
+    from pandas._testing import assert_produces_warning
+
+    if not warn:
+        from contextlib import nullcontext
+
+        return nullcontext()
+
+    if not match:
+        match = "Setting a value on a view"
+
+    return assert_produces_warning(FutureWarning, match=match, **kwargs)

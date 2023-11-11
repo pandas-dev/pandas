@@ -3,21 +3,25 @@ Printing tools.
 """
 from __future__ import annotations
 
+from collections.abc import (
+    Iterable,
+    Mapping,
+    Sequence,
+)
 import sys
 from typing import (
     Any,
     Callable,
-    Dict,
-    Iterable,
-    Mapping,
-    Sequence,
     TypeVar,
     Union,
 )
+from unicodedata import east_asian_width
 
 from pandas._config import get_option
 
 from pandas.core.dtypes.inference import is_sequence
+
+from pandas.io.formats.console import get_console_size
 
 EscapeChars = Union[Mapping[str, str], Iterable[str]]
 _KT = TypeVar("_KT")
@@ -41,9 +45,8 @@ def adjoin(space: int, *lists: list[str], **kwargs) -> str:
         function used to justify str. Needed for unicode handling.
     """
     strlen = kwargs.pop("strlen", len)
-    justfunc = kwargs.pop("justfunc", justify)
+    justfunc = kwargs.pop("justfunc", _adj_justify)
 
-    out_lines = []
     newLists = []
     lengths = [max(map(strlen, x)) + space for x in lists[:-1]]
     # not the last one
@@ -54,12 +57,10 @@ def adjoin(space: int, *lists: list[str], **kwargs) -> str:
         nl = ([" " * lengths[i]] * (maxLen - len(lst))) + nl
         newLists.append(nl)
     toJoin = zip(*newLists)
-    for lines in toJoin:
-        out_lines.append("".join(lines))
-    return "\n".join(out_lines)
+    return "\n".join("".join(lines) for lines in toJoin)
 
 
-def justify(texts: Iterable[str], max_len: int, mode: str = "right") -> list[str]:
+def _adj_justify(texts: Iterable[str], max_len: int, mode: str = "right") -> list[str]:
     """
     Perform ljust, center, rjust against string or list-like
     """
@@ -316,9 +317,6 @@ def format_object_summary(
     -------
     summary string
     """
-    from pandas.io.formats.console import get_console_size
-    from pandas.io.formats.format import get_adjustment
-
     display_width, _ = get_console_size()
     if display_width is None:
         display_width = get_option("display.width") or 80
@@ -498,8 +496,77 @@ def _justify(
     return head_tuples, tail_tuples
 
 
-class PrettyDict(Dict[_KT, _VT]):
+class PrettyDict(dict[_KT, _VT]):
     """Dict extension to support abbreviated __repr__"""
 
     def __repr__(self) -> str:
         return pprint_thing(self)
+
+
+class _TextAdjustment:
+    def __init__(self) -> None:
+        self.encoding = get_option("display.encoding")
+
+    def len(self, text: str) -> int:
+        return len(text)
+
+    def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
+        """
+        Perform ljust, center, rjust against string or list-like
+        """
+        if mode == "left":
+            return [x.ljust(max_len) for x in texts]
+        elif mode == "center":
+            return [x.center(max_len) for x in texts]
+        else:
+            return [x.rjust(max_len) for x in texts]
+
+    def adjoin(self, space: int, *lists, **kwargs) -> str:
+        return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
+
+
+class _EastAsianTextAdjustment(_TextAdjustment):
+    def __init__(self) -> None:
+        super().__init__()
+        if get_option("display.unicode.ambiguous_as_wide"):
+            self.ambiguous_width = 2
+        else:
+            self.ambiguous_width = 1
+
+        # Definition of East Asian Width
+        # https://unicode.org/reports/tr11/
+        # Ambiguous width can be changed by option
+        self._EAW_MAP = {"Na": 1, "N": 1, "W": 2, "F": 2, "H": 1}
+
+    def len(self, text: str) -> int:
+        """
+        Calculate display width considering unicode East Asian Width
+        """
+        if not isinstance(text, str):
+            return len(text)
+
+        return sum(
+            self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
+        )
+
+    def justify(
+        self, texts: Iterable[str], max_len: int, mode: str = "right"
+    ) -> list[str]:
+        # re-calculate padding space per str considering East Asian Width
+        def _get_pad(t):
+            return max_len - self.len(t) + len(t)
+
+        if mode == "left":
+            return [x.ljust(_get_pad(x)) for x in texts]
+        elif mode == "center":
+            return [x.center(_get_pad(x)) for x in texts]
+        else:
+            return [x.rjust(_get_pad(x)) for x in texts]
+
+
+def get_adjustment() -> _TextAdjustment:
+    use_east_asian_width = get_option("display.unicode.east_asian_width")
+    if use_east_asian_width:
+        return _EastAsianTextAdjustment()
+    else:
+        return _TextAdjustment()

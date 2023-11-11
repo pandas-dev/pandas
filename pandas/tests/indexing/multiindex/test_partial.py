@@ -65,7 +65,11 @@ class TestMultiIndexPartial:
                 [0, 1, 0, 1, 0, 1, 0, 1],
             ],
         )
-        df = DataFrame(np.random.randn(8, 4), index=index, columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal((8, 4)),
+            index=index,
+            columns=list("abcd"),
+        )
 
         result = df.xs(("foo", "one"))
         expected = df.loc["foo", "one"]
@@ -101,7 +105,7 @@ class TestMultiIndexPartial:
             codes=[[0, 0, 0], [0, 1, 1], [1, 0, 1]],
             levels=[["a", "b"], ["x", "y"], ["p", "q"]],
         )
-        df = DataFrame(np.random.rand(3, 2), index=idx)
+        df = DataFrame(np.random.default_rng(2).random((3, 2)), index=idx)
 
         result = df.loc[("a", "y"), :]
         expected = df.loc[("a", "y")]
@@ -118,7 +122,10 @@ class TestMultiIndexPartial:
     # exp.loc[2000, 4].values[:] select multiple columns -> .values is not a view
     @td.skip_array_manager_invalid_test
     def test_partial_set(
-        self, multiindex_year_month_day_dataframe_random_data, using_copy_on_write
+        self,
+        multiindex_year_month_day_dataframe_random_data,
+        using_copy_on_write,
+        warn_copy_on_write,
     ):
         # GH #397
         ymd = multiindex_year_month_day_dataframe_random_data
@@ -133,7 +140,9 @@ class TestMultiIndexPartial:
                 df["A"].loc[2000, 4] = 1
             df.loc[(2000, 4), "A"] = 1
         else:
-            df["A"].loc[2000, 4] = 1
+            # TODO(CoW-warn) should raise custom warning message about chaining?
+            with tm.assert_cow_warning(warn_copy_on_write):
+                df["A"].loc[2000, 4] = 1
         exp.iloc[65:85, 0] = 1
         tm.assert_frame_equal(df, exp)
 
@@ -147,7 +156,9 @@ class TestMultiIndexPartial:
                 df["A"].iloc[14] = 5
             df["A"].iloc[14] == exp["A"].iloc[14]
         else:
-            df["A"].iloc[14] = 5
+            # TODO(CoW-warn) should raise custom warning message about chaining?
+            with tm.assert_cow_warning(warn_copy_on_write):
+                df["A"].iloc[14] = 5
             assert df["A"].iloc[14] == 5
 
     @pytest.mark.parametrize("dtype", [int, float])
@@ -162,7 +173,7 @@ class TestMultiIndexPartial:
         mi = ser.index
         assert isinstance(mi, MultiIndex)
         if dtype is int:
-            assert mi.levels[0].dtype == np.int_
+            assert mi.levels[0].dtype == np.dtype(int)
         else:
             assert mi.levels[0].dtype == np.float64
 
@@ -250,7 +261,9 @@ def test_loc_getitem_partial_both_axis():
     iterables = [["a", "b"], [2, 1]]
     columns = MultiIndex.from_product(iterables, names=["col1", "col2"])
     rows = MultiIndex.from_product(iterables, names=["row1", "row2"])
-    df = DataFrame(np.random.randn(4, 4), index=rows, columns=columns)
+    df = DataFrame(
+        np.random.default_rng(2).standard_normal((4, 4)), index=rows, columns=columns
+    )
     expected = df.iloc[:2, 2:].droplevel("row1").droplevel("col1", axis=1)
     result = df.loc["a", "b"]
     tm.assert_frame_equal(result, expected)

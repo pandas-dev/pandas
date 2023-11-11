@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - 2.0.x
+      - 2.1.x
   pull_request:
     branches:
       - main
-      - 2.0.x
+      - 2.1.x
     types: [ labeled, opened, synchronize, reopened ]
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        extra: ["test", "performance", "computation", "fss", "aws", "gcp", "excel", "parquet", "feather", "hdf5", "spss", "postgresql", "mysql", "sql-other", "html", "xml", "plot", "output_formatting", "clipboard", "compression", "all"]
+        extra: ["test", "performance", "computation", "fss", "aws", "gcp", "excel", "parquet", "feather", "hdf5", "spss", "postgresql", "mysql", "sql-other", "html", "xml", "plot", "output-formatting", "clipboard", "compression", "consortium-standard", "all"]
       fail-fast: false
     name: Install Extras - ${{ matrix.extra }}
     concurrency:
@@ -34,7 +34,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -62,7 +62,7 @@ jobs:
       cancel-in-progress: true
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 

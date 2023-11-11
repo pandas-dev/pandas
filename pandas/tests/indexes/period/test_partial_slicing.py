@@ -12,24 +12,27 @@ import pandas._testing as tm
 
 
 class TestPeriodIndex:
-    def test_getitem_periodindex_duplicates_string_slice(self, using_copy_on_write):
+    def test_getitem_periodindex_duplicates_string_slice(
+        self, using_copy_on_write, warn_copy_on_write
+    ):
         # monotonic
-        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="A-JUN")
-        ts = Series(np.random.randn(len(idx)), index=idx)
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2009], freq="Y-JUN")
+        ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
         original = ts.copy()
 
         result = ts["2007"]
         expected = ts[1:3]
         tm.assert_series_equal(result, expected)
-        result[:] = 1
+        with tm.assert_cow_warning(warn_copy_on_write):
+            result[:] = 1
         if using_copy_on_write:
             tm.assert_series_equal(ts, original)
         else:
             assert (ts[1:3] == 1).all()
 
         # not monotonic
-        idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="A-JUN")
-        ts = Series(np.random.randn(len(idx)), index=idx)
+        idx = PeriodIndex([2000, 2007, 2007, 2009, 2007], freq="Y-JUN")
+        ts = Series(np.random.default_rng(2).standard_normal(len(idx)), index=idx)
 
         result = ts["2007"]
         expected = ts[idx == "2007"]
@@ -37,13 +40,13 @@ class TestPeriodIndex:
 
     def test_getitem_periodindex_quarter_string(self):
         pi = PeriodIndex(["2Q05", "3Q05", "4Q05", "1Q06", "2Q06"], freq="Q")
-        ser = Series(np.random.rand(len(pi)), index=pi).cumsum()
+        ser = Series(np.random.default_rng(2).random(len(pi)), index=pi).cumsum()
         # Todo: fix these accessors!
         assert ser["05Q4"] == ser.iloc[2]
 
     def test_pindex_slice_index(self):
         pi = period_range(start="1/1/10", end="12/31/12", freq="M")
-        s = Series(np.random.rand(len(pi)), index=pi)
+        s = Series(np.random.default_rng(2).random(len(pi)), index=pi)
         res = s["2010"]
         exp = s[0:12]
         tm.assert_series_equal(res, exp)
@@ -69,7 +72,7 @@ class TestPeriodIndex:
             with pytest.raises(TypeError, match=msg):
                 idx[v:]
 
-        s = Series(np.random.rand(len(idx)), index=idx)
+        s = Series(np.random.default_rng(2).random(len(idx)), index=idx)
 
         tm.assert_series_equal(s["2013/01/02":], s[1:])
         tm.assert_series_equal(s["2013/01/02":"2013/01/05"], s[1:5])
@@ -84,7 +87,7 @@ class TestPeriodIndex:
     @pytest.mark.parametrize("make_range", [date_range, period_range])
     def test_range_slice_seconds(self, make_range):
         # GH#6716
-        idx = make_range(start="2013/01/01 09:00:00", freq="S", periods=4000)
+        idx = make_range(start="2013/01/01 09:00:00", freq="s", periods=4000)
         msg = "slice indices must be integers or None or have an __index__ method"
 
         # slices against index should raise IndexError
@@ -99,7 +102,7 @@ class TestPeriodIndex:
             with pytest.raises(TypeError, match=msg):
                 idx[v:]
 
-        s = Series(np.random.rand(len(idx)), index=idx)
+        s = Series(np.random.default_rng(2).random(len(idx)), index=idx)
 
         tm.assert_series_equal(s["2013/01/01 09:05":"2013/01/01 09:10"], s[300:660])
         tm.assert_series_equal(s["2013/01/01 10:00":"2013/01/01 10:05"], s[3600:3960])

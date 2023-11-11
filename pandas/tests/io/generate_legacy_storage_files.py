@@ -124,7 +124,7 @@ def _create_sp_frame():
     return DataFrame(data, index=dates).apply(SparseArray)
 
 
-def create_data():
+def create_pickle_data():
     """create the pickle data"""
     data = {
         "A": [0.0, 1.0, 2.0, 3.0, np.nan],
@@ -142,7 +142,7 @@ def create_data():
         "period": period_range("2013-01-01", freq="M", periods=10),
         "float": Index(np.arange(10, dtype=np.float64)),
         "uint": Index(np.arange(10, dtype=np.uint64)),
-        "timedelta": timedelta_range("00:00:00", freq="30T", periods=10),
+        "timedelta": timedelta_range("00:00:00", freq="30min", periods=10),
     }
 
     index["range"] = RangeIndex(10)
@@ -280,12 +280,6 @@ def create_data():
         "timestamp": timestamp,
         "offsets": off,
     }
-
-
-def create_pickle_data():
-    data = create_data()
-
-    return data
 
 
 def platform_name():

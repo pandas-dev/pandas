@@ -10,6 +10,8 @@ $ python generate_legacy_storage_files.py <output_dir> pickle
 
 3. Move the created pickle to "data/legacy_pickle/<version>" directory.
 """
+from __future__ import annotations
+
 from array import array
 import bz2
 import datetime
@@ -22,8 +24,8 @@ from pathlib import Path
 import pickle
 import shutil
 import tarfile
+from typing import Any
 import uuid
-from warnings import catch_warnings
 import zipfile
 
 import numpy as np
@@ -44,21 +46,13 @@ from pandas import (
     period_range,
 )
 import pandas._testing as tm
+from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
 
 import pandas.io.common as icom
 from pandas.tseries.offsets import (
     Day,
     MonthEnd,
 )
-
-
-@pytest.fixture
-def current_pickle_data():
-    # our current version pickle data
-    from pandas.tests.io.generate_legacy_storage_files import create_pickle_data
-
-    with catch_warnings():
-        return create_pickle_data()
 
 
 # ---------------------
@@ -176,6 +170,15 @@ def python_unpickler(path):
         return pickle.load(fh)
 
 
+def flatten(data: dict) -> list[tuple[str, Any]]:
+    """Flatten create_pickle_data"""
+    return [
+        (typ, example)
+        for typ, examples in data.items()
+        for example in examples.values()
+    ]
+
+
 @pytest.mark.parametrize(
     "pickle_writer",
     [
@@ -193,29 +196,27 @@ def python_unpickler(path):
     ],
 )
 @pytest.mark.parametrize("writer", [pd.to_pickle, python_pickler])
-def test_round_trip_current(current_pickle_data, pickle_writer, writer):
-    data = current_pickle_data
-    for typ, dv in data.items():
-        for dt, expected in dv.items():
-            with tm.ensure_clean() as path:
-                # test writing with each pickler
-                pickle_writer(expected, path)
+@pytest.mark.parametrize("typ, expected", flatten(create_pickle_data()))
+def test_round_trip_current(typ, expected, pickle_writer, writer):
+    with tm.ensure_clean() as path:
+        # test writing with each pickler
+        pickle_writer(expected, path)
 
-                # test reading with each unpickler
-                result = pd.read_pickle(path)
-                compare_element(result, expected, typ)
+        # test reading with each unpickler
+        result = pd.read_pickle(path)
+        compare_element(result, expected, typ)
 
-                result = python_unpickler(path)
-                compare_element(result, expected, typ)
+        result = python_unpickler(path)
+        compare_element(result, expected, typ)
 
-                # and the same for file objects (GH 35679)
-                with open(path, mode="wb") as handle:
-                    writer(expected, path)
-                    handle.seek(0)  # shouldn't close file handle
-                with open(path, mode="rb") as handle:
-                    result = pd.read_pickle(handle)
-                    handle.seek(0)  # shouldn't close file handle
-                compare_element(result, expected, typ)
+        # and the same for file objects (GH 35679)
+        with open(path, mode="wb") as handle:
+            writer(expected, path)
+            handle.seek(0)  # shouldn't close file handle
+        with open(path, mode="rb") as handle:
+            result = pd.read_pickle(handle)
+            handle.seek(0)  # shouldn't close file handle
+        compare_element(result, expected, typ)
 
 
 def test_pickle_path_pathlib():
@@ -456,10 +457,10 @@ def test_pickle_generalurl_read(monkeypatch, mockurl):
         tm.assert_frame_equal(df, result)
 
 
-@td.skip_if_no("fsspec")
 def test_pickle_fsspec_roundtrip():
+    pytest.importorskip("fsspec")
     with tm.ensure_clean():
-        mockurl = "memory://afile"
+        mockurl = "memory://mockfile"
         df = tm.makeDataFrame()
         df.to_pickle(mockurl)
         result = pd.read_pickle(mockurl)
@@ -527,9 +528,9 @@ def test_pickle_dataframe_with_multilevel_index(
 def test_pickle_timeseries_periodindex():
     # GH#2891
     prng = period_range("1/1/2011", "1/1/2012", freq="M")
-    ts = Series(np.random.randn(len(prng)), prng)
+    ts = Series(np.random.default_rng(2).standard_normal(len(prng)), prng)
     new_ts = tm.round_trip_pickle(ts)
-    assert new_ts.index.freq == "M"
+    assert new_ts.index.freqstr == "M"
 
 
 @pytest.mark.parametrize(
@@ -588,3 +589,15 @@ def test_pickle_frame_v124_unpickle_130(datapath):
 
     expected = pd.DataFrame(index=[], columns=[])
     tm.assert_frame_equal(df, expected)
+
+
+def test_pickle_pos_args_deprecation():
+    # GH-54229
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    msg = (
+        r"Starting with pandas version 3.0 all arguments of to_pickle except for the "
+        r"argument 'path' will be keyword-only."
+    )
+    with tm.assert_produces_warning(FutureWarning, match=msg):
+        buffer = io.BytesIO()
+        df.to_pickle(buffer, "infer")

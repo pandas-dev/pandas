@@ -6,7 +6,6 @@ import re
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
     cast,
 )
@@ -20,6 +19,7 @@ from pandas._typing import (
     DtypeObj,
     F,
     Scalar,
+    npt,
 )
 from pandas.util._decorators import Appender
 from pandas.util._exceptions import find_stack_level
@@ -48,6 +48,11 @@ from pandas.core.base import NoNewAttributesMixin
 from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Iterator,
+    )
+
     from pandas import (
         DataFrame,
         Index,
@@ -140,7 +145,9 @@ def _map_and_wrap(name: str | None, docstring: str | None):
     @forbid_nonstring_types(["bytes"], name=name)
     def wrapper(self):
         result = getattr(self._data.array, f"_str_{name}")()
-        return self._wrap_result(result)
+        return self._wrap_result(
+            result, returns_string=name not in ("isnumeric", "isdecimal")
+        )
 
     wrapper.__doc__ = docstring
     return wrapper
@@ -241,6 +248,9 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_getitem(key)
         return self._wrap_result(result)
 
+    def __iter__(self) -> Iterator:
+        raise TypeError(f"'{type(self).__name__}' object is not iterable")
+
     def _wrap_result(
         self,
         result,
@@ -275,21 +285,52 @@ class StringMethods(NoNewAttributesMixin):
             if isinstance(result.dtype, ArrowDtype):
                 import pyarrow as pa
 
+                from pandas.compat import pa_version_under11p0
+
                 from pandas.core.arrays.arrow.array import ArrowExtensionArray
 
-                max_len = pa.compute.max(
-                    result._pa_array.combine_chunks().value_lengths()
-                ).as_py()
-                if result.isna().any():
+                value_lengths = pa.compute.list_value_length(result._pa_array)
+                max_len = pa.compute.max(value_lengths).as_py()
+                min_len = pa.compute.min(value_lengths).as_py()
+                if result._hasna:
                     # ArrowExtensionArray.fillna doesn't work for list scalars
-                    result._pa_array = result._pa_array.fill_null([None] * max_len)
+                    result = ArrowExtensionArray(
+                        result._pa_array.fill_null([None] * max_len)
+                    )
+                if min_len < max_len:
+                    # append nulls to each scalar list element up to max_len
+                    if not pa_version_under11p0:
+                        result = ArrowExtensionArray(
+                            pa.compute.list_slice(
+                                result._pa_array,
+                                start=0,
+                                stop=max_len,
+                                return_fixed_size_list=True,
+                            )
+                        )
+                    else:
+                        all_null = np.full(max_len, fill_value=None, dtype=object)
+                        values = result.to_numpy()
+                        new_values = []
+                        for row in values:
+                            if len(row) < max_len:
+                                nulls = all_null[: max_len - len(row)]
+                                row = np.append(row, nulls)
+                            new_values.append(row)
+                        pa_type = result._pa_array.type
+                        result = ArrowExtensionArray(pa.array(new_values, type=pa_type))
                 if name is not None:
                     labels = name
                 else:
                     labels = range(max_len)
+                result = (
+                    pa.compute.list_flatten(result._pa_array)
+                    .to_numpy()
+                    .reshape(len(result), max_len)
+                )
                 result = {
                     label: ArrowExtensionArray(pa.array(res))
-                    for label, res in zip(labels, (zip(*result.tolist())))
+                    for label, res in zip(labels, result.T)
                 }
             elif is_object_dtype(result):
 
@@ -331,7 +372,7 @@ class StringMethods(NoNewAttributesMixin):
 
             if expand:
                 result = list(result)
-                out = MultiIndex.from_tuples(result, names=name)
+                out: Index = MultiIndex.from_tuples(result, names=name)
                 if out.nlevels == 1:
                     # We had all tuples of length-one, which are
                     # better represented as a regular Index.
@@ -405,22 +446,26 @@ class StringMethods(NoNewAttributesMixin):
             others = DataFrame(others, index=idx)
             return [others[x] for x in others]
         elif is_list_like(others, allow_sets=False):
-            others = list(others)  # ensure iterators do not get read twice etc
-
-            # in case of list-like `others`, all elements must be
-            # either Series/Index/np.ndarray (1-dim)...
-            if all(
-                isinstance(x, (ABCSeries, ABCIndex))
-                or (isinstance(x, np.ndarray) and x.ndim == 1)
-                for x in others
-            ):
-                los: list[Series] = []
-                while others:  # iterate through list and append each element
-                    los = los + self._get_series_list(others.pop(0))
-                return los
-            # ... or just strings
-            elif all(not is_list_like(x) for x in others):
-                return [Series(others, index=idx)]
+            try:
+                others = list(others)  # ensure iterators do not get read twice etc
+            except TypeError:
+                # e.g. ser.str, raise below
+                pass
+            else:
+                # in case of list-like `others`, all elements must be
+                # either Series/Index/np.ndarray (1-dim)...
+                if all(
+                    isinstance(x, (ABCSeries, ABCIndex))
+                    or (isinstance(x, np.ndarray) and x.ndim == 1)
+                    for x in others
+                ):
+                    los: list[Series] = []
+                    while others:  # iterate through list and append each element
+                        los = los + self._get_series_list(others.pop(0))
+                    return los
+                # ... or just strings
+                elif all(not is_list_like(x) for x in others):
+                    return [Series(others, index=idx)]
         raise TypeError(
             "others must be Series, Index, DataFrame, np.ndarray "
             "or list-like (either containing only strings or "
@@ -1172,7 +1217,7 @@ class StringMethods(NoNewAttributesMixin):
         --------
         Returning a Series of booleans using only a literal pattern.
 
-        >>> s1 = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.NaN])
+        >>> s1 = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.nan])
         >>> s1.str.contains('og', regex=False)
         0    False
         1     True
@@ -1183,7 +1228,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returning an Index of booleans using only a literal pattern.
 
-        >>> ind = pd.Index(['Mouse', 'dog', 'house and parrot', '23.0', np.NaN])
+        >>> ind = pd.Index(['Mouse', 'dog', 'house and parrot', '23.0', np.nan])
         >>> ind.str.contains('23', regex=False)
         Index([False, False, False, True, nan], dtype='object')
 
@@ -3335,7 +3380,7 @@ class StringMethods(NoNewAttributesMixin):
     )
 
 
-def cat_safe(list_of_columns: list, sep: str):
+def cat_safe(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
     """
     Auxiliary function for :meth:`str.cat`.
 
@@ -3404,10 +3449,9 @@ def _result_dtype(arr):
     # when the list of values is empty.
     from pandas.core.arrays.string_ import StringDtype
 
-    if isinstance(arr.dtype, StringDtype):
+    if isinstance(arr.dtype, (ArrowDtype, StringDtype)):
         return arr.dtype
-    else:
-        return object
+    return object
 
 
 def _get_single_group_name(regex: re.Pattern) -> Hashable:
@@ -3457,7 +3501,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
             for match_i, match_tuple in enumerate(regex.findall(subject)):
                 if isinstance(match_tuple, str):
                     match_tuple = (match_tuple,)
-                na_tuple = [np.NaN if group == "" else group for group in match_tuple]
+                na_tuple = [np.nan if group == "" else group for group in match_tuple]
                 match_list.append(na_tuple)
                 result_key = tuple(subject_key + (match_i,))
                 index_list.append(result_key)

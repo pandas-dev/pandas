@@ -238,12 +238,13 @@ class StringIORewind:
 
 
 class ReadCSVDInferDatetimeFormat(StringIORewind):
-    params = ([True, False], ["custom", "iso8601", "ymd"])
-    param_names = ["infer_datetime_format", "format"]
+    params = [None, "custom", "iso8601", "ymd"]
+    param_names = ["format"]
 
-    def setup(self, infer_datetime_format, format):
+    def setup(self, format):
         rng = date_range("1/1/2000", periods=1000)
         formats = {
+            None: None,
             "custom": "%m/%d/%Y %H:%M:%S.%f",
             "iso8601": "%Y-%m-%d %H:%M:%S",
             "ymd": "%Y%m%d",
@@ -251,13 +252,12 @@ class ReadCSVDInferDatetimeFormat(StringIORewind):
         dt_format = formats[format]
         self.StringIO_input = StringIO("\n".join(rng.strftime(dt_format).tolist()))
 
-    def time_read_csv(self, infer_datetime_format, format):
+    def time_read_csv(self, format):
         read_csv(
             self.data(self.StringIO_input),
             header=None,
             names=["foo"],
             parse_dates=["foo"],
-            infer_datetime_format=infer_datetime_format,
         )
 
 
@@ -274,7 +274,6 @@ class ReadCSVConcatDatetime(StringIORewind):
             header=None,
             names=["foo"],
             parse_dates=["foo"],
-            infer_datetime_format=False,
         )
 
 
@@ -291,7 +290,6 @@ class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
             header=None,
             names=["foo", "bar"],
             parse_dates=["foo"],
-            infer_datetime_format=False,
         )
 
 
@@ -353,7 +351,7 @@ class ReadCSVThousands(BaseIO):
         if thousands is not None:
             fmt = f":{thousands}"
             fmt = "{" + fmt + "}"
-            df = df.applymap(lambda x: fmt.format(x))
+            df = df.map(lambda x: fmt.format(x))
         df.to_csv(self.fname, sep=sep)
 
     def time_thousands(self, sep, thousands, engine):

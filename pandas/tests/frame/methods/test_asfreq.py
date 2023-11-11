@@ -3,6 +3,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas._libs.tslibs.offsets import MonthEnd
+
 from pandas import (
     DataFrame,
     DatetimeIndex,
@@ -30,23 +32,23 @@ class TestAsFreq:
                     datetime(2009, 11, 30),
                     datetime(2009, 12, 31),
                 ],
-                freq="BM",
+                freq="BME",
             ),
         )
 
         daily_ts = ts.asfreq("B")
-        monthly_ts = daily_ts.asfreq("BM")
+        monthly_ts = daily_ts.asfreq("BME")
         tm.assert_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq("B", method="pad")
-        monthly_ts = daily_ts.asfreq("BM")
+        monthly_ts = daily_ts.asfreq("BME")
         tm.assert_equal(monthly_ts, ts)
 
         daily_ts = ts.asfreq(offsets.BDay())
         monthly_ts = daily_ts.asfreq(offsets.BMonthEnd())
         tm.assert_equal(monthly_ts, ts)
 
-        result = ts[:0].asfreq("M")
+        result = ts[:0].asfreq("ME")
         assert len(result) == 0
         assert result is not ts
 
@@ -61,24 +63,26 @@ class TestAsFreq:
     def test_asfreq_datetimeindex_empty(self, frame_or_series):
         # GH#14320
         index = DatetimeIndex(["2016-09-29 11:00"])
-        expected = frame_or_series(index=index, dtype=object).asfreq("H")
-        result = frame_or_series([3], index=index.copy()).asfreq("H")
+        expected = frame_or_series(index=index, dtype=object).asfreq("h")
+        result = frame_or_series([3], index=index.copy()).asfreq("h")
         tm.assert_index_equal(expected.index, result.index)
 
     @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
     def test_tz_aware_asfreq_smoke(self, tz, frame_or_series):
         dr = date_range("2011-12-01", "2012-07-20", freq="D", tz=tz)
 
-        obj = frame_or_series(np.random.randn(len(dr)), index=dr)
+        obj = frame_or_series(
+            np.random.default_rng(2).standard_normal(len(dr)), index=dr
+        )
 
         # it works!
-        obj.asfreq("T")
+        obj.asfreq("min")
 
     def test_asfreq_normalize(self, frame_or_series):
         rng = date_range("1/1/2000 09:30", periods=20)
         norm = date_range("1/1/2000", periods=20)
 
-        vals = np.random.randn(20, 3)
+        vals = np.random.default_rng(2).standard_normal((20, 3))
 
         obj = DataFrame(vals, index=rng)
         expected = DataFrame(vals, index=norm)
@@ -100,8 +104,10 @@ class TestAsFreq:
         assert index_name == obj.asfreq("10D").index.name
 
     def test_asfreq_ts(self, frame_or_series):
-        index = period_range(freq="A", start="1/1/2001", end="12/31/2010")
-        obj = DataFrame(np.random.randn(len(index), 3), index=index)
+        index = period_range(freq="Y", start="1/1/2001", end="12/31/2010")
+        obj = DataFrame(
+            np.random.default_rng(2).standard_normal((len(index), 3)), index=index
+        )
         obj = tm.get_obj(obj, frame_or_series)
 
         result = obj.asfreq("D", how="end")
@@ -134,12 +140,12 @@ class TestAsFreq:
     def test_asfreq_empty(self, datetime_frame):
         # test does not blow up on length-0 DataFrame
         zero_length = datetime_frame.reindex([])
-        result = zero_length.asfreq("BM")
+        result = zero_length.asfreq("BME")
         assert result is not zero_length
 
     def test_asfreq(self, datetime_frame):
         offset_monthly = datetime_frame.asfreq(offsets.BMonthEnd())
-        rule_monthly = datetime_frame.asfreq("BM")
+        rule_monthly = datetime_frame.asfreq("BME")
 
         tm.assert_frame_equal(offset_monthly, rule_monthly)
 
@@ -164,7 +170,7 @@ class TestAsFreq:
         # test for fill value during upsampling, related to issue 3715
 
         # setup
-        rng = date_range("1/1/2016", periods=10, freq="2S")
+        rng = date_range("1/1/2016", periods=10, freq="2s")
         # Explicit cast to 'float' to avoid implicit cast when setting None
         ts = Series(np.arange(len(rng)), index=rng, dtype="float")
         df = DataFrame({"one": ts})
@@ -172,24 +178,24 @@ class TestAsFreq:
         # insert pre-existing missing value
         df.loc["2016-01-01 00:00:08", "one"] = None
 
-        actual_df = df.asfreq(freq="1S", fill_value=9.0)
-        expected_df = df.asfreq(freq="1S").fillna(9.0)
+        actual_df = df.asfreq(freq="1s", fill_value=9.0)
+        expected_df = df.asfreq(freq="1s").fillna(9.0)
         expected_df.loc["2016-01-01 00:00:08", "one"] = None
         tm.assert_frame_equal(expected_df, actual_df)
 
-        expected_series = ts.asfreq(freq="1S").fillna(9.0)
-        actual_series = ts.asfreq(freq="1S", fill_value=9.0)
+        expected_series = ts.asfreq(freq="1s").fillna(9.0)
+        actual_series = ts.asfreq(freq="1s", fill_value=9.0)
         tm.assert_series_equal(expected_series, actual_series)
 
     def test_asfreq_with_date_object_index(self, frame_or_series):
         rng = date_range("1/1/2000", periods=20)
-        ts = frame_or_series(np.random.randn(20), index=rng)
+        ts = frame_or_series(np.random.default_rng(2).standard_normal(20), index=rng)
 
         ts2 = ts.copy()
         ts2.index = [x.date() for x in ts2.index]
 
-        result = ts2.asfreq("4H", method="ffill")
-        expected = ts.asfreq("4H", method="ffill")
+        result = ts2.asfreq("4h", method="ffill")
+        expected = ts.asfreq("4h", method="ffill")
         tm.assert_equal(result, expected)
 
     def test_asfreq_with_unsorted_index(self, frame_or_series):
@@ -211,3 +217,44 @@ class TestAsFreq:
         )
         expected = DatetimeIndex(["2000-01-01", "2000-01-02"], freq="D").as_unit(unit)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq, freq_half",
+        [
+            ("2ME", "ME"),
+            (MonthEnd(2), MonthEnd(1)),
+        ],
+    )
+    def test_asfreq_2ME(self, freq, freq_half):
+        index = date_range("1/1/2000", periods=6, freq=freq_half)
+        df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0, 4.0, 5.0], index=index)})
+        expected = df.asfreq(freq=freq)
+
+        index = date_range("1/1/2000", periods=3, freq=freq)
+        result = DataFrame({"s": Series([0.0, 2.0, 4.0], index=index)})
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "freq, freq_depr",
+        [
+            ("2ME", "2M"),
+            ("2QE", "2Q"),
+            ("2QE-SEP", "2Q-SEP"),
+            ("1YE", "1Y"),
+            ("2YE-MAR", "2Y-MAR"),
+            ("1YE", "1A"),
+            ("2YE-MAR", "2A-MAR"),
+        ],
+    )
+    def test_asfreq_frequency_M_Q_Y_A_deprecated(self, freq, freq_depr):
+        # GH#9586
+        depr_msg = (
+            f"'{freq_depr[1:]}' will be deprecated, please use '{freq[1:]}' instead."
+        )
+
+        index = date_range("1/1/2000", periods=4, freq=f"{freq[1:]}")
+        df = DataFrame({"s": Series([0.0, 1.0, 2.0, 3.0], index=index)})
+        expected = df.asfreq(freq=freq)
+        with tm.assert_produces_warning(FutureWarning, match=depr_msg):
+            result = df.asfreq(freq=freq_depr)
+        tm.assert_frame_equal(result, expected)

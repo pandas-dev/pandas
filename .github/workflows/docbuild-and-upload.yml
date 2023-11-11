@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - main
-      - 2.0.x
+      - 2.1.x
     tags:
       - '*'
   pull_request:
     branches:
       - main
-      - 2.0.x
+      - 2.1.x
 
 env:
   ENV_FILE: environment.yml
@@ -36,7 +36,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
@@ -67,7 +67,7 @@ jobs:
       run: cp doc/cheatsheet/Pandas_Cheat_Sheet* web/build/
 
     - name: Upload web
-      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' web/build/ web@${{ secrets.server_ip }}:/var/www/html
+      run: rsync -az --delete --exclude='pandas-docs' --exclude='docs' --exclude='benchmarks' web/build/ web@${{ secrets.server_ip }}:/var/www/html
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     - name: Upload dev docs

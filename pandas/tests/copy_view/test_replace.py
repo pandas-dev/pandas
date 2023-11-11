@@ -333,8 +333,7 @@ def test_replace_list_multiple_elements_inplace(using_copy_on_write):
     arr = get_array(df, "a")
     df.replace([1, 2], 4, inplace=True)
     if using_copy_on_write:
-        # TODO(CoW): This should share memory
-        assert not np.shares_memory(arr, get_array(df, "a"))
+        assert np.shares_memory(arr, get_array(df, "a"))
         assert df._mgr._has_no_reference(0)
     else:
         assert np.shares_memory(arr, get_array(df, "a"))
@@ -364,12 +363,70 @@ def test_replace_list_none_inplace_refs(using_copy_on_write):
         assert np.shares_memory(arr, get_array(df, "a"))
 
 
+def test_replace_columnwise_no_op_inplace(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    view = df[:]
+    df_orig = df.copy()
+    df.replace({"a": 10}, 100, inplace=True)
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(view, "a"), get_array(df, "a"))
+        df.iloc[0, 0] = 100
+        tm.assert_frame_equal(view, df_orig)
+
+
 def test_replace_columnwise_no_op(using_copy_on_write):
     df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
     df_orig = df.copy()
     df2 = df.replace({"a": 10}, 100)
     if using_copy_on_write:
-        # TODO(CoW): This should share memory
-        assert not np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
+        assert np.shares_memory(get_array(df2, "a"), get_array(df, "a"))
     df2.iloc[0, 0] = 100
     tm.assert_frame_equal(df, df_orig)
+
+
+def test_replace_chained_assignment(using_copy_on_write):
+    df = DataFrame({"a": [1, np.nan, 2], "b": 1})
+    df_orig = df.copy()
+    if using_copy_on_write:
+        with tm.raises_chained_assignment_error():
+            df["a"].replace(1, 100, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+        with tm.raises_chained_assignment_error():
+            df[["a"]].replace(1, 100, inplace=True)
+        tm.assert_frame_equal(df, df_orig)
+
+
+def test_replace_listlike(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    df_orig = df.copy()
+
+    result = df.replace([200, 201], [11, 11])
+    if using_copy_on_write:
+        assert np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+    else:
+        assert not np.shares_memory(get_array(result, "a"), get_array(df, "a"))
+
+    result.iloc[0, 0] = 100
+    tm.assert_frame_equal(df, df)
+
+    result = df.replace([200, 2], [10, 10])
+    assert not np.shares_memory(get_array(df, "a"), get_array(result, "a"))
+    tm.assert_frame_equal(df, df_orig)
+
+
+def test_replace_listlike_inplace(using_copy_on_write):
+    df = DataFrame({"a": [1, 2, 3], "b": [1, 2, 3]})
+    arr = get_array(df, "a")
+    df.replace([200, 2], [10, 11], inplace=True)
+    assert np.shares_memory(get_array(df, "a"), arr)
+
+    view = df[:]
+    df_orig = df.copy()
+    df.replace([200, 3], [10, 11], inplace=True)
+    if using_copy_on_write:
+        assert not np.shares_memory(get_array(df, "a"), arr)
+        tm.assert_frame_equal(view, df_orig)
+    else:
+        assert np.shares_memory(get_array(df, "a"), arr)
+        tm.assert_frame_equal(df, view)

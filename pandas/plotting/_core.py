@@ -4,9 +4,7 @@ import importlib
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Hashable,
     Literal,
-    Sequence,
 )
 
 from pandas._config import get_option
@@ -28,6 +26,10 @@ from pandas.core.dtypes.generic import (
 from pandas.core.base import PandasObject
 
 if TYPE_CHECKING:
+    from collections.abc import (
+        Hashable,
+        Sequence,
+    )
     import types
 
     from matplotlib.axes import Axes
@@ -35,11 +37,15 @@ if TYPE_CHECKING:
 
     from pandas._typing import IndexLabel
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+        Series,
+    )
+    from pandas.core.groupby.generic import DataFrameGroupBy
 
 
 def hist_series(
-    self,
+    self: Series,
     by=None,
     ax=None,
     grid: bool = True,
@@ -98,6 +104,26 @@ def hist_series(
     See Also
     --------
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
+
+    Examples
+    --------
+    For Series:
+
+    .. plot::
+        :context: close-figs
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+        >>> hist = ser.hist()
+
+    For Groupby:
+
+    .. plot::
+        :context: close-figs
+
+        >>> lst = ['a', 'a', 'a', 'b', 'b', 'b']
+        >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+        >>> hist = ser.groupby(level=0).hist()
     """
     plot_backend = _get_plot_backend(backend)
     return plot_backend.hist_series(
@@ -118,7 +144,7 @@ def hist_series(
 
 def hist_frame(
     data: DataFrame,
-    column: IndexLabel = None,
+    column: IndexLabel | None = None,
     by=None,
     grid: bool = True,
     xlabelsize: int | None = None,
@@ -490,7 +516,7 @@ def boxplot(
 @Substitution(data="", backend=_backend_doc)
 @Appender(_boxplot_doc)
 def boxplot_frame(
-    self,
+    self: DataFrame,
     column=None,
     by=None,
     ax=None,
@@ -520,7 +546,7 @@ def boxplot_frame(
 
 
 def boxplot_frame_groupby(
-    grouped,
+    grouped: DataFrameGroupBy,
     subplots: bool = True,
     column=None,
     fontsize: int | None = None,
@@ -775,6 +801,44 @@ class PlotAccessor(PandasObject):
       for bar plot layout by `position` keyword.
       From 0 (left/bottom-end) to 1 (right/top-end). Default is 0.5
       (center)
+
+    Examples
+    --------
+    For Series:
+
+    .. plot::
+        :context: close-figs
+
+        >>> ser = pd.Series([1, 2, 3, 3])
+        >>> plot = ser.plot(kind='hist', title="My plot")
+
+    For DataFrame:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame({'length': [1.5, 0.5, 1.2, 0.9, 3],
+        ...                   'width': [0.7, 0.2, 0.15, 0.2, 1.1]},
+        ...                   index=['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+        >>> plot = df.plot(title="DataFrame Plot")
+
+    For SeriesGroupBy:
+
+    .. plot::
+        :context: close-figs
+
+        >>> lst = [-1, -2, -3, 1, 2, 3]
+        >>> ser = pd.Series([1, 2, 2, 4, 6, 6], index=lst)
+        >>> plot = ser.groupby(lambda x: x > 0).plot(title="SeriesGroupBy Plot")
+
+    For DataFrameGroupBy:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame({"col1" : [1, 2, 3, 4],
+        ...                   "col2" : ["A", "B", "A", "B"]})
+        >>> plot = df.groupby("col2").plot(kind="bar", title="DataFrameGroupBy Plot")
     """
 
     _common_kinds = ("line", "bar", "barh", "kde", "density", "area", "hist", "box")
@@ -783,11 +847,11 @@ class PlotAccessor(PandasObject):
     _kind_aliases = {"density": "kde"}
     _all_kinds = _common_kinds + _series_kinds + _dataframe_kinds
 
-    def __init__(self, data) -> None:
+    def __init__(self, data: Series | DataFrame) -> None:
         self._parent = data
 
     @staticmethod
-    def _get_call_args(backend_name: str, data, args, kwargs):
+    def _get_call_args(backend_name: str, data: Series | DataFrame, args, kwargs):
         """
         This function makes calls to this accessor `__call__` method compatible
         with the previous `SeriesPlotMethods.__call__` and
@@ -901,7 +965,10 @@ class PlotAccessor(PandasObject):
             return plot_backend.plot(self._parent, x=x, y=y, kind=kind, **kwargs)
 
         if kind not in self._all_kinds:
-            raise ValueError(f"{kind} is not a valid plot kind")
+            raise ValueError(
+                f"{kind} is not a valid plot kind "
+                f"Valid plot kinds: {self._all_kinds}"
+            )
 
         # The original data structured can be transformed before passed to the
         # backend. For example, for DataFrame is common to set the index as the
@@ -1029,7 +1096,9 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="line")
     @Appender(_bar_or_line_doc)
-    def line(self, x: Hashable = None, y: Hashable = None, **kwargs) -> PlotAccessor:
+    def line(
+        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
+    ) -> PlotAccessor:
         """
         Plot Series or DataFrame as lines.
 
@@ -1117,7 +1186,7 @@ class PlotAccessor(PandasObject):
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
     def bar(  # pylint: disable=disallowed-name
-        self, x: Hashable = None, y: Hashable = None, **kwargs
+        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
     ) -> PlotAccessor:
         """
         Vertical bar plot.
@@ -1204,7 +1273,9 @@ class PlotAccessor(PandasObject):
     )
     @Substitution(kind="bar")
     @Appender(_bar_or_line_doc)
-    def barh(self, x: Hashable = None, y: Hashable = None, **kwargs) -> PlotAccessor:
+    def barh(
+        self, x: Hashable | None = None, y: Hashable | None = None, **kwargs
+    ) -> PlotAccessor:
         """
         Make a horizontal bar plot.
 
@@ -1216,7 +1287,7 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="barh", x=x, y=y, **kwargs)
 
-    def box(self, by: IndexLabel = None, **kwargs) -> PlotAccessor:
+    def box(self, by: IndexLabel | None = None, **kwargs) -> PlotAccessor:
         r"""
         Make a box plot of the DataFrame columns.
 
@@ -1283,7 +1354,9 @@ class PlotAccessor(PandasObject):
         """
         return self(kind="box", by=by, **kwargs)
 
-    def hist(self, by: IndexLabel = None, bins: int = 10, **kwargs) -> PlotAccessor:
+    def hist(
+        self, by: IndexLabel | None = None, bins: int = 10, **kwargs
+    ) -> PlotAccessor:
         """
         Draw one histogram of the DataFrame's columns.
 
@@ -1461,7 +1534,11 @@ class PlotAccessor(PandasObject):
     density = kde
 
     def area(
-        self, x: Hashable = None, y: Hashable = None, stacked: bool = True, **kwargs
+        self,
+        x: Hashable | None = None,
+        y: Hashable | None = None,
+        stacked: bool = True,
+        **kwargs,
     ) -> PlotAccessor:
         """
         Draw a stacked area plot.
@@ -1503,7 +1580,7 @@ class PlotAccessor(PandasObject):
             ...     'signups': [5, 5, 6, 12, 14, 13],
             ...     'visits': [20, 42, 28, 62, 81, 50],
             ... }, index=pd.date_range(start='2018/01/01', end='2018/07/01',
-            ...                        freq='M'))
+            ...                        freq='ME'))
             >>> ax = df.plot.area()
 
         Area plots are stacked by default. To produce an unstacked plot,
@@ -1594,8 +1671,8 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable,
         y: Hashable,
-        s: Hashable | Sequence[Hashable] = None,
-        c: Hashable | Sequence[Hashable] = None,
+        s: Hashable | Sequence[Hashable] | None = None,
+        c: Hashable | Sequence[Hashable] | None = None,
         **kwargs,
     ) -> PlotAccessor:
         """
@@ -1684,7 +1761,7 @@ class PlotAccessor(PandasObject):
         self,
         x: Hashable,
         y: Hashable,
-        C: Hashable = None,
+        C: Hashable | None = None,
         reduce_C_function: Callable | None = None,
         gridsize: int | tuple[int, int] | None = None,
         **kwargs,

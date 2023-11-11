@@ -13,7 +13,7 @@ from pandas import (
 import pandas._testing as tm
 from pandas.core.arrays import (
     BooleanArray,
-    PandasArray,
+    NumpyExtensionArray,
 )
 
 
@@ -95,8 +95,8 @@ def assert_invalid_comparison(left, right, box):
 
     def xbox2(x):
         # Eventually we'd like this to be tighter, but for now we'll
-        #  just exclude PandasArray[bool]
-        if isinstance(x, PandasArray):
+        #  just exclude NumpyExtensionArray[bool]
+        if isinstance(x, NumpyExtensionArray):
             return x._ndarray
         if isinstance(x, BooleanArray):
             # NB: we are assuming no pd.NAs for now

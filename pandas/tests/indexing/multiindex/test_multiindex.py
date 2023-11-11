@@ -22,7 +22,7 @@ class TestMultiIndexBasic:
             {
                 "jim": [0, 0, 1, 1],
                 "joe": ["x", "x", "z", "y"],
-                "jolie": np.random.rand(4),
+                "jolie": np.random.default_rng(2).random(4),
             }
         ).set_index(["jim", "joe"])
 
@@ -117,7 +117,7 @@ class TestMultiIndexBasic:
         idx = Index(range(2), name="A")
         dti = pd.date_range("2020-01-01", periods=7, freq="D", name="B")
         mi = MultiIndex.from_product([idx, dti])
-        df = DataFrame(np.random.randn(14, 2), index=mi)
+        df = DataFrame(np.random.default_rng(2).standard_normal((14, 2)), index=mi)
         result = df.loc[0].index
         tm.assert_index_equal(result, dti)
         assert result.freq == dti.freq

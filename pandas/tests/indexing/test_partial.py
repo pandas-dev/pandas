@@ -147,14 +147,10 @@ class TestEmptyFrameSetitemExpansion:
 
         df = DataFrame(columns=["A", "B"])
         df[0] = Series(1, index=range(4))
-        df.dtypes
-        str(df)
         tm.assert_frame_equal(df, expected)
 
         df = DataFrame(columns=["A", "B"])
         df.loc[:, 0] = Series(1, index=range(4))
-        df.dtypes
-        str(df)
         tm.assert_frame_equal(df, expected)
 
     def test_partial_set_empty_frame_row(self):
@@ -264,6 +260,7 @@ class TestPartialSetting:
         with pytest.raises(IndexError, match=msg):
             s.iat[3] = 5.0
 
+    @pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
     def test_partial_setting_frame(self, using_array_manager):
         df_orig = DataFrame(
             np.arange(6).reshape(3, 2), columns=["A", "B"], dtype="int64"
@@ -332,7 +329,9 @@ class TestPartialSetting:
         # GH 8473
         dates = date_range("1/1/2000", periods=8)
         df_orig = DataFrame(
-            np.random.randn(8, 4), index=dates, columns=["A", "B", "C", "D"]
+            np.random.default_rng(2).standard_normal((8, 4)),
+            index=dates,
+            columns=["A", "B", "C", "D"],
         )
 
         expected = pd.concat(
@@ -400,7 +399,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}'\)\] "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.dtype(int)}'\)\] "
             r"are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -481,7 +480,7 @@ class TestPartialSetting:
 
         # raises as nothing is in the index
         msg = (
-            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.int_().dtype}', "
+            rf"\"None of \[Index\(\[3, 3, 3\], dtype='{np.dtype(int)}', "
             r"name='idx'\)\] are in the \[index\]\""
         )
         with pytest.raises(KeyError, match=msg):
@@ -664,5 +663,14 @@ class TestStringSlicing:
         index = pd.to_datetime(["2012-01-01", "2012-01-02", "2012-01-03", None])
         df = DataFrame(range(len(index)), index=index)
         expected = DataFrame(range(len(index[:3])), index=index[:3])
-        result = df["2012-01-01":"2012-01-04"]
+        with pytest.raises(KeyError, match="non-existing keys is not allowed"):
+            # Upper bound is not in index (which is unordered)
+            # GH53983
+            # GH37819
+            df["2012-01-01":"2012-01-04"]
+        # Need this precision for right bound since the right slice
+        # bound is "rounded" up to the largest timepoint smaller than
+        # the next "resolution"-step of the provided point.
+        # e.g. 2012-01-03 is rounded up to 2012-01-04 - 1ns
+        result = df["2012-01-01":"2012-01-03 00:00:00.000000000"]
         tm.assert_frame_equal(result, expected)

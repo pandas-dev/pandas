@@ -154,7 +154,7 @@ def test_numpy_ufuncs_other(index, func):
 def test_numpy_ufuncs_reductions(index, func, request):
     # TODO: overlap with tests.series.test_ufunc.test_reductions
     if len(index) == 0:
-        return
+        pytest.skip("Test doesn't make sense for empty index.")
 
     if isinstance(index, CategoricalIndex) and index.dtype.ordered is False:
         with pytest.raises(TypeError, match="is not ordered for"):

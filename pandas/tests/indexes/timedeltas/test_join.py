@@ -28,11 +28,12 @@ class TestJoin:
         df = tm.makeCustomDataframe(
             10,
             10,
-            data_gen_f=lambda *args, **kwargs: np.random.randn(),
+            data_gen_f=lambda *args, **kwargs: np.random.default_rng(
+                2
+            ).standard_normal(),
             r_idx_type="i",
             c_idx_type="td",
         )
-        str(df)
 
         cols = df.columns.join(df.index, how="outer")
         joined = cols.join(df.columns)

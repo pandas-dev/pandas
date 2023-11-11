@@ -6,8 +6,6 @@ import inspect
 import numpy as np
 import pytest
 
-import pandas.util._test_decorators as td
-
 import pandas as pd
 from pandas import (
     DataFrame,
@@ -43,14 +41,17 @@ class TestDatetimeLikeStatReductions:
         assert obj.mean(skipna=False) is pd.NaT
 
     @pytest.mark.parametrize("box", [Series, pd.Index, PeriodArray])
-    @pytest.mark.parametrize("freq", ["S", "H", "D", "W", "B"])
+    @pytest.mark.parametrize("freq", ["s", "h", "D", "W", "B"])
     def test_period_mean(self, box, freq):
         # GH#24757
         dti = pd.date_range("2001-01-01", periods=11)
         # shuffle so that we are not just working with monotone-increasing
         dti = dti.take([4, 1, 3, 10, 9, 7, 8, 5, 0, 2, 6])
 
-        parr = dti._data.to_period(freq)
+        warn = FutureWarning if freq == "B" else None
+        msg = r"PeriodDtype\[B\] is deprecated"
+        with tm.assert_produces_warning(warn, match=msg):
+            parr = dti._data.to_period(freq)
         obj = box(parr)
         with pytest.raises(TypeError, match="ambiguous"):
             obj.mean()
@@ -98,7 +99,7 @@ class TestSeriesStatReductions:
             f = getattr(Series, name)
 
             # add some NaNs
-            string_series_[5:15] = np.NaN
+            string_series_[5:15] = np.nan
 
             # mean, idxmax, idxmin, min, and max are valid for dates
             if name not in ["max", "min", "mean", "median", "std"]:
@@ -224,13 +225,12 @@ class TestSeriesStatReductions:
         result = s.sem(ddof=1)
         assert pd.isna(result)
 
-    @td.skip_if_no_scipy
     def test_skew(self):
-        from scipy.stats import skew
+        sp_stats = pytest.importorskip("scipy.stats")
 
         string_series = tm.makeStringSeries().rename("series")
 
-        alt = lambda x: skew(x, bias=False)
+        alt = lambda x: sp_stats.skew(x, bias=False)
         self._check_stat_op("skew", alt, string_series)
 
         # test corner cases, skew() returns NaN unless there's at least 3
@@ -247,13 +247,12 @@ class TestSeriesStatReductions:
                 assert isinstance(s.skew(), np.float64)  # GH53482
                 assert (df.skew() == 0).all()
 
-    @td.skip_if_no_scipy
     def test_kurt(self):
-        from scipy.stats import kurtosis
+        sp_stats = pytest.importorskip("scipy.stats")
 
         string_series = tm.makeStringSeries().rename("series")
 
-        alt = lambda x: kurtosis(x, bias=False)
+        alt = lambda x: sp_stats.kurtosis(x, bias=False)
         self._check_stat_op("kurt", alt, string_series)
 
     def test_kurt_corner(self):

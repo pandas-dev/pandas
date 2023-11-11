@@ -106,7 +106,7 @@ def test_str_cat_categorical(index_or_series, dtype_caller, dtype_target, sep):
 
     # Series/Index with Series having different Index
     t = Series(t.values, index=t.values)
-    expected = Index(["aa", "aa", "aa", "bb", "bb"])
+    expected = Index(["aa", "aa", "bb", "bb", "aa"])
     expected = expected if box == Index else Series(expected, index=expected.str[:1])
 
     result = s.str.cat(t, sep=sep)

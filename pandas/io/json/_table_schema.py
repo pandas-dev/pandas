@@ -13,8 +13,9 @@ from typing import (
 import warnings
 
 from pandas._libs import lib
-from pandas._libs.json import loads
+from pandas._libs.json import ujson_loads
 from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs.dtypes import freq_to_period_freqstr
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.base import _registry as registry
@@ -33,6 +34,8 @@ from pandas.core.dtypes.dtypes import (
 
 from pandas import DataFrame
 import pandas.core.common as com
+
+from pandas.tseries.frequencies import to_offset
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -207,8 +210,12 @@ def convert_json_field_to_pandas_type(field) -> str | CategoricalDtype:
         if field.get("tz"):
             return f"datetime64[ns, {field['tz']}]"
         elif field.get("freq"):
+            # GH#9586 rename frequency M to ME for offsets
+            offset = to_offset(field["freq"])
+            freq_n, freq_name = offset.n, offset.name
+            freq = freq_to_period_freqstr(freq_n, freq_name)
             # GH#47747 using datetime over period to minimize the change surface
-            return f"period[{field['freq']}]"
+            return f"period[{freq}]"
         else:
             return "datetime64[ns]"
     elif typ == "any":
@@ -352,7 +359,7 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     build_table_schema : Inverse function.
     pandas.read_json
     """
-    table = loads(json, precise_float=precise_float)
+    table = ujson_loads(json, precise_float=precise_float)
     col_order = [field["name"] for field in table["schema"]["fields"]]
     df = DataFrame(table["data"], columns=col_order)[col_order]
 

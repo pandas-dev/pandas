@@ -1,5 +1,3 @@
-import warnings
-
 import numpy as np
 import pytest
 
@@ -66,8 +64,8 @@ class TestDataFrameCov:
     @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])
     def test_cov_ddof(self, test_ddof):
         # GH#34611
-        np_array1 = np.random.rand(10)
-        np_array2 = np.random.rand(10)
+        np_array1 = np.random.default_rng(2).random(10)
+        np_array2 = np.random.default_rng(2).random(10)
         df = DataFrame({0: np_array1, 1: np_array2})
         result = df.cov(ddof=test_ddof)
         expected_np = np.cov(np_array1, np_array2, ddof=test_ddof)
@@ -104,11 +102,11 @@ class TestDataFrameCorr:
     # DataFrame.corr(), as opposed to DataFrame.corrwith
 
     @pytest.mark.parametrize("method", ["pearson", "kendall", "spearman"])
-    @td.skip_if_no_scipy
     def test_corr_scipy_method(self, float_frame, method):
+        pytest.importorskip("scipy")
         float_frame.loc[float_frame.index[:5], "A"] = np.nan
         float_frame.loc[float_frame.index[5:10], "B"] = np.nan
-        float_frame.loc[float_frame.index[:10], "A"] = float_frame["A"][10:20]
+        float_frame.loc[float_frame.index[:10], "A"] = float_frame["A"][10:20].copy()
 
         correls = float_frame.corr(method=method)
         expected = float_frame["A"].corr(float_frame["C"], method=method)
@@ -123,10 +121,10 @@ class TestDataFrameCorr:
         expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].corr()
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
     def test_corr_nooverlap(self, meth):
         # nothing in common
+        pytest.importorskip("scipy")
         df = DataFrame(
             {
                 "A": [1, 1.5, 1, np.nan, np.nan, np.nan],
@@ -153,32 +151,33 @@ class TestDataFrameCorr:
         rs = df.corr(meth)
         assert isna(rs.values).all()
 
-    @td.skip_if_no_scipy
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
     @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
     def test_corr_int_and_boolean(self, meth):
         # when dtypes of pandas series are different
         # then ndarray will have dtype=object,
         # so it need to be properly handled
+        pytest.importorskip("scipy")
         df = DataFrame({"a": [True, False], "b": [1, 0]})
 
         expected = DataFrame(np.ones((2, 2)), index=["a", "b"], columns=["a", "b"])
-
-        with warnings.catch_warnings(record=True):
-            warnings.simplefilter("ignore", RuntimeWarning)
-            result = df.corr(meth)
+        result = df.corr(meth)
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("method", ["cov", "corr"])
     def test_corr_cov_independent_index_column(self, method):
         # GH#14617
-        df = DataFrame(np.random.randn(4 * 10).reshape(10, 4), columns=list("abcd"))
+        df = DataFrame(
+            np.random.default_rng(2).standard_normal(4 * 10).reshape(10, 4),
+            columns=list("abcd"),
+        )
         result = getattr(df, method)()
         assert result.index is not result.columns
         assert result.index.equals(result.columns)
 
     def test_corr_invalid_method(self):
         # GH#22298
-        df = DataFrame(np.random.normal(size=(10, 2)))
+        df = DataFrame(np.random.default_rng(2).normal(size=(10, 2)))
         msg = "method must be either 'pearson', 'spearman', 'kendall', or a callable, "
         with pytest.raises(ValueError, match=msg):
             df.corr(method="____")
@@ -190,7 +189,6 @@ class TestDataFrameCorr:
         df.cov()
         df.corr()
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         "nullable_column", [pd.array([1, 2, 3]), pd.array([1, 2, None])]
     )
@@ -201,12 +199,13 @@ class TestDataFrameCorr:
     @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
     def test_corr_nullable_integer(self, nullable_column, other_column, method):
         # https://github.com/pandas-dev/pandas/issues/33803
+        pytest.importorskip("scipy")
         data = DataFrame({"a": nullable_column, "b": other_column})
         result = data.corr(method=method)
         expected = DataFrame(np.ones((2, 2)), columns=["a", "b"], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
-    def test_corr_item_cache(self, using_copy_on_write):
+    def test_corr_item_cache(self, using_copy_on_write, warn_copy_on_write):
         # Check that corr does not lead to incorrect entries in item_cache
 
         df = DataFrame({"A": range(10)})
@@ -224,7 +223,8 @@ class TestDataFrameCorr:
             # Check that the corr didn't break link between ser and df
             ser.values[0] = 99
             assert df.loc[0, "A"] == 99
-            assert df["A"] is ser
+            if not warn_copy_on_write:
+                assert df["A"] is ser
             assert df.values[0, 0] == 99
 
     @pytest.mark.parametrize("length", [2, 20, 200, 2000])
@@ -246,9 +246,9 @@ class TestDataFrameCorr:
         expected = DataFrame({"A": [1.0, 1.0], "B": [1.0, 1.0]}, index=["A", "B"])
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("method", ["pearson", "spearman", "kendall"])
     def test_corr_min_periods_greater_than_length(self, method):
+        pytest.importorskip("scipy")
         df = DataFrame({"A": [1, 2], "B": [1, 2]})
         result = df.corr(method=method, min_periods=3)
         expected = DataFrame(
@@ -256,13 +256,13 @@ class TestDataFrameCorr:
         )
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_no_scipy
     @pytest.mark.parametrize("meth", ["pearson", "kendall", "spearman"])
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_corr_numeric_only(self, meth, numeric_only):
         # when dtypes of pandas series are different
         # then ndarray will have dtype=object,
         # so it need to be properly handled
+        pytest.importorskip("scipy")
         df = DataFrame({"a": [1, 0], "b": [1, 0], "c": ["x", "y"]})
         expected = DataFrame(np.ones((2, 2)), index=["a", "b"], columns=["a", "b"])
         if numeric_only:
@@ -286,7 +286,7 @@ class TestDataFrameCorrWith:
         datetime_frame = datetime_frame.astype(dtype)
 
         a = datetime_frame
-        noise = Series(np.random.randn(len(a)), index=a.index)
+        noise = Series(np.random.default_rng(2).standard_normal(len(a)), index=a.index)
 
         b = datetime_frame.add(noise, axis=0)
 
@@ -310,8 +310,16 @@ class TestDataFrameCorrWith:
         # non time-series data
         index = ["a", "b", "c", "d", "e"]
         columns = ["one", "two", "three", "four"]
-        df1 = DataFrame(np.random.randn(5, 4), index=index, columns=columns)
-        df2 = DataFrame(np.random.randn(4, 4), index=index[:4], columns=columns)
+        df1 = DataFrame(
+            np.random.default_rng(2).standard_normal((5, 4)),
+            index=index,
+            columns=columns,
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).standard_normal((4, 4)),
+            index=index[:4],
+            columns=columns,
+        )
         correls = df1.corrwith(df2, axis=1)
         for row in index[:4]:
             tm.assert_almost_equal(correls[row], df1.loc[row].corr(df2.loc[row]))
@@ -371,16 +379,24 @@ class TestDataFrameCorrWith:
                 df.corrwith(s, numeric_only=numeric_only)
 
     def test_corrwith_index_intersection(self):
-        df1 = DataFrame(np.random.random(size=(10, 2)), columns=["a", "b"])
-        df2 = DataFrame(np.random.random(size=(10, 3)), columns=["a", "b", "c"])
+        df1 = DataFrame(
+            np.random.default_rng(2).random(size=(10, 2)), columns=["a", "b"]
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).random(size=(10, 3)), columns=["a", "b", "c"]
+        )
 
         result = df1.corrwith(df2, drop=True).index.sort_values()
         expected = df1.columns.intersection(df2.columns).sort_values()
         tm.assert_index_equal(result, expected)
 
     def test_corrwith_index_union(self):
-        df1 = DataFrame(np.random.random(size=(10, 2)), columns=["a", "b"])
-        df2 = DataFrame(np.random.random(size=(10, 3)), columns=["a", "b", "c"])
+        df1 = DataFrame(
+            np.random.default_rng(2).random(size=(10, 2)), columns=["a", "b"]
+        )
+        df2 = DataFrame(
+            np.random.default_rng(2).random(size=(10, 3)), columns=["a", "b", "c"]
+        )
 
         result = df1.corrwith(df2, drop=False).index.sort_values()
         expected = df1.columns.union(df2.columns).sort_values()
@@ -403,25 +419,25 @@ class TestDataFrameCorrWith:
         expected = DataFrame({0: [1.0, -1.0], 1: [-1.0, 1.0]})
         tm.assert_frame_equal(result - 1, expected - 1, atol=1e-17)
 
-    @td.skip_if_no_scipy
     def test_corrwith_spearman(self):
         # GH#21925
-        df = DataFrame(np.random.random(size=(100, 3)))
+        pytest.importorskip("scipy")
+        df = DataFrame(np.random.default_rng(2).random(size=(100, 3)))
         result = df.corrwith(df**2, method="spearman")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_corrwith_kendall(self):
         # GH#21925
-        df = DataFrame(np.random.random(size=(100, 3)))
+        pytest.importorskip("scipy")
+        df = DataFrame(np.random.default_rng(2).random(size=(100, 3)))
         result = df.corrwith(df**2, method="kendall")
         expected = Series(np.ones(len(result)))
         tm.assert_series_equal(result, expected)
 
-    @td.skip_if_no_scipy
     def test_corrwith_spearman_with_tied_data(self):
         # GH#48826
+        pytest.importorskip("scipy")
         df1 = DataFrame(
             {
                 "A": [1, np.nan, 7, 8],
