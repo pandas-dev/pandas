@@ -64,7 +64,7 @@ class Dropna:
         N = 10**6
         data = {
             "int": np.random.randint(1, 10, N),
-            "datetime": date_range("2000-01-01", freq="S", periods=N),
+            "datetime": date_range("2000-01-01", freq="s", periods=N),
         }
         self.s = Series(data[dtype])
         if dtype == "datetime":
@@ -92,7 +92,7 @@ class Fillna:
     def setup(self, dtype):
         N = 10**6
         if dtype == "datetime64[ns]":
-            data = date_range("2000-01-01", freq="S", periods=N)
+            data = date_range("2000-01-01", freq="s", periods=N)
             na_value = NaT
         elif dtype in ("float64", "Float64"):
             data = np.random.randn(N)

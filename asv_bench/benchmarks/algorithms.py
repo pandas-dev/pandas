@@ -43,9 +43,9 @@ class Factorize:
         elif dtype == "boolean":
             data = pd.array(np.random.randint(0, 2, N), dtype=dtype)
         elif dtype == "datetime64[ns]":
-            data = pd.date_range("2011-01-01", freq="H", periods=N)
+            data = pd.date_range("2011-01-01", freq="h", periods=N)
         elif dtype == "datetime64[ns, tz]":
-            data = pd.date_range("2011-01-01", freq="H", periods=N, tz="Asia/Tokyo")
+            data = pd.date_range("2011-01-01", freq="h", periods=N, tz="Asia/Tokyo")
         elif dtype == "object_str":
             data = tm.makeStringIndex(N)
         elif dtype == "string[pyarrow]":
@@ -90,9 +90,9 @@ class Duplicated:
         elif dtype == "string":
             data = tm.makeStringIndex(N)
         elif dtype == "datetime64[ns]":
-            data = pd.date_range("2011-01-01", freq="H", periods=N)
+            data = pd.date_range("2011-01-01", freq="h", periods=N)
         elif dtype == "datetime64[ns, tz]":
-            data = pd.date_range("2011-01-01", freq="H", periods=N, tz="Asia/Tokyo")
+            data = pd.date_range("2011-01-01", freq="h", periods=N, tz="Asia/Tokyo")
         elif dtype in ["timestamp[ms][pyarrow]", "duration[s][pyarrow]"]:
             data = pd.Index(np.arange(N), dtype=dtype)
         else:

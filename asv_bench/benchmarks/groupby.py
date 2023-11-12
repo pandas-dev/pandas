@@ -238,7 +238,7 @@ class Nth:
 
 class DateAttributes:
     def setup(self):
-        rng = date_range("1/1/2000", "12/31/2005", freq="H")
+        rng = date_range("1/1/2000", "12/31/2005", freq="h")
         self.year, self.month, self.day = rng.year, rng.month, rng.day
         self.ts = Series(np.random.randn(len(rng)), index=rng)
 
