@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -209,3 +211,24 @@ class TestMergeOrdered:
         msg = r"\{'h'\} not found in left columns"
         with pytest.raises(KeyError, match=msg):
             merge_ordered(left, right, on="E", left_by=["G", "h"])
+
+    def test_ffill_5584(self):
+        # GH 5584
+        df1 = DataFrame({"key": ["a", "c", "e"], "lvalue": [1, 2, 3]})
+        df2 = DataFrame({"key": ["b", "c", "d", "f"], "rvalue": [4, 5, 6, 7]})
+
+        for valid_method in ["ffill", None]:
+            try:
+                merge_ordered(df1, df2, on="key", fill_method=valid_method)
+            except Exception:
+                pytest.fail(f"Unexpected error with valid fill_method: {valid_method}")
+
+        for invalid_method in ["linear", "carrot"]:
+            with pytest.raises(
+                ValueError,
+                match=re.escape(
+                    "fill_method must be one of ['ffill']. "
+                    f"Got '{invalid_method}' instead."
+                ),
+            ):
+                merge_ordered(df1, df2, on="key", fill_method=invalid_method)
