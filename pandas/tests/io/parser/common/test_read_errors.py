@@ -63,7 +63,6 @@ def test_bad_stream_exception(all_parsers, csv_dir_path):
             parser.read_csv(stream)
 
 
-@xfail_pyarrow  # ValueError: The 'comment' option is not supported
 def test_malformed(all_parsers):
     # see gh-6607
     parser = all_parsers
@@ -74,11 +73,14 @@ A,B,C
 2,3,4
 """
     msg = "Expected 3 fields in line 4, saw 5"
-    with pytest.raises(ParserError, match=msg):
+    err = ParserError
+    if parser.engine == "pyarrow":
+        msg = "The 'comment' option is not supported with the 'pyarrow' engine"
+        err = ValueError
+    with pytest.raises(err, match=msg):
         parser.read_csv(StringIO(data), header=1, comment="#")
 
 
-@xfail_pyarrow  # ValueError: The 'iterator' option is not supported
 @pytest.mark.parametrize("nrows", [5, 3, None])
 def test_malformed_chunks(all_parsers, nrows):
     data = """ignore
@@ -90,6 +92,20 @@ skip
 2,3,4
 """
     parser = all_parsers
+
+    if parser.engine == "pyarrow":
+        msg = "The 'iterator' option is not supported with the 'pyarrow' engine"
+        with pytest.raises(ValueError, match=msg):
+            parser.read_csv(
+                StringIO(data),
+                header=1,
+                comment="#",
+                iterator=True,
+                chunksize=1,
+                skiprows=[2],
+            )
+        return
+
     msg = "Expected 3 fields in line 6, saw 5"
     with parser.read_csv(
         StringIO(data), header=1, comment="#", iterator=True, chunksize=1, skiprows=[2]
@@ -239,19 +255,21 @@ def test_null_byte_char(request, all_parsers):
             parser.read_csv(StringIO(data), names=names)
 
 
-# ValueError: the 'pyarrow' engine does not support sep=None with delim_whitespace=False
-@xfail_pyarrow
 @pytest.mark.filterwarnings("always::ResourceWarning")
 def test_open_file(request, all_parsers):
     # GH 39024
     parser = all_parsers
+
+    msg = "Could not determine delimiter"
+    err = csv.Error
     if parser.engine == "c":
-        request.applymarker(
-            pytest.mark.xfail(
-                reason=f"{parser.engine} engine does not support sep=None "
-                f"with delim_whitespace=False"
-            )
+        msg = "the 'c' engine does not support sep=None with delim_whitespace=False"
+        err = ValueError
+    elif parser.engine == "pyarrow":
+        msg = (
+            "the 'pyarrow' engine does not support sep=None with delim_whitespace=False"
         )
+        err = ValueError
 
     with tm.ensure_clean() as path:
         file = Path(path)
@@ -259,7 +277,7 @@ def test_open_file(request, all_parsers):
 
         with tm.assert_produces_warning(None):
             # should not trigger a ResourceWarning
-            with pytest.raises(csv.Error, match="Could not determine delimiter"):
+            with pytest.raises(err, match=msg):
                 parser.read_csv(file, sep=None, encoding_errors="replace")
 
 

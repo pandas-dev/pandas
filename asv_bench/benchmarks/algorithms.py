@@ -50,9 +50,9 @@ class Factorize:
             "float": pd.Index(np.random.randn(N), dtype="float64"),
             "object_str": string_index,
             "object": pd.Index(np.arange(N), dtype="object"),
-            "datetime64[ns]": pd.date_range("2011-01-01", freq="H", periods=N),
+            "datetime64[ns]": pd.date_range("2011-01-01", freq="h", periods=N),
             "datetime64[ns, tz]": pd.date_range(
-                "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
+                "2011-01-01", freq="h", periods=N, tz="Asia/Tokyo"
             ),
             "Int64": pd.array(np.arange(N), dtype="Int64"),
             "boolean": pd.array(np.random.randint(0, 2, N), dtype="boolean"),
@@ -93,9 +93,9 @@ class Duplicated:
             "uint": pd.Index(np.arange(N), dtype="uint64"),
             "float": pd.Index(np.random.randn(N), dtype="float64"),
             "string": tm.makeStringIndex(N),
-            "datetime64[ns]": pd.date_range("2011-01-01", freq="H", periods=N),
+            "datetime64[ns]": pd.date_range("2011-01-01", freq="h", periods=N),
             "datetime64[ns, tz]": pd.date_range(
-                "2011-01-01", freq="H", periods=N, tz="Asia/Tokyo"
+                "2011-01-01", freq="h", periods=N, tz="Asia/Tokyo"
             ),
             "timestamp[ms][pyarrow]": pd.Index(
                 np.arange(N), dtype=pd.ArrowDtype(pa.timestamp("ms"))
