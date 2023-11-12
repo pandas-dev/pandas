@@ -85,7 +85,7 @@ class Duplicated:
         N = 10**5
         if dtype in ["int64", "uint64"]:
             data = pd.Index(np.arange(N), dtype=dtype)
-        elif dtype == "float":
+        elif dtype == "float64":
             data = pd.Index(np.random.randn(N), dtype="float64")
         elif dtype == "string":
             data = tm.makeStringIndex(N)
