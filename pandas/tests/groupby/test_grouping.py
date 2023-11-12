@@ -297,19 +297,19 @@ class TestGrouping:
         expected = ser.groupby(level="one").sum()
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('func', [False, True])
+    @pytest.mark.parametrize("func", [False, True])
     def test_grouper_returning_tuples(self, func):
         # GH 22257 , both with dict and with callable
-        df = pd.DataFrame({'X': ['A', 'B', 'A', 'B'], 'Y': [1, 4, 3, 2]})
-        mapping = dict(zip(range(4), [('C', 5), ('D', 6)] * 2))
+        df = DataFrame({"X": ["A", "B", "A", "B"], "Y": [1, 4, 3, 2]})
+        mapping = dict(zip(range(4), [("C", 5), ("D", 6)] * 2))
 
         if func:
             gb = df.groupby(by=lambda idx: mapping[idx], sort=False)
         else:
             gb = df.groupby(by=mapping, sort=False)
 
-        name, expected = list(gb)[0]
-        assert name == ('C', 5)
+        name, expected = next(iter(gb))
+        assert name == ("C", 5)
         result = gb.get_group(name)
 
         tm.assert_frame_equal(result, expected)
