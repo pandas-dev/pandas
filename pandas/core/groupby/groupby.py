@@ -101,7 +101,6 @@ from pandas.core.apply import warn_alias_replacement
 from pandas.core.arrays import (
     ArrowExtensionArray,
     BaseMaskedArray,
-    Categorical,
     ExtensionArray,
     FloatingArray,
     IntegerArray,
@@ -130,7 +129,6 @@ from pandas.core.groupby.indexing import (
     GroupByNthSelector,
 )
 from pandas.core.indexes.api import (
-    CategoricalIndex,
     Index,
     MultiIndex,
     RangeIndex,
@@ -2806,18 +2804,20 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         result_series = cast(Series, gb.size())
         result_series.name = name
 
-        # GH-46357 Include non-observed categories
-        # of non-grouping columns regardless of `observed`
-        if any(
-            isinstance(grouping.grouping_vector, (Categorical, CategoricalIndex))
-            and not grouping._observed
-            for grouping in groupings
-        ):
-            levels_list = gb.grouper.levels
-            multi_index, _ = MultiIndex.from_product(
-                levels_list, names=[ping.name for ping in groupings]
-            ).sortlevel()
-            result_series = result_series.reindex(multi_index, fill_value=0)
+        if sort:
+            # Sort the values and then resort by the main grouping
+            # TODO: HACK - sort_index gets confused if index names are integers
+            names = result_series.index.names
+            result_series.index.names = range(len(names))
+            index_level = list(range(len(self.grouper.groupings)))
+            result_series = result_series.sort_values(
+                ascending=ascending, kind="stable"
+            )
+            if self.sort:
+                result_series = result_series.sort_index(
+                    level=index_level, sort_remaining=False
+                )
+            result_series.index.names = names
 
         if normalize:
             # Normalize the results by dividing by the original group sizes.
@@ -2837,13 +2837,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             # Handle groups of non-observed categories
             result_series = result_series.fillna(0.0)
-
-        if sort:
-            # Sort the values and then resort by the main grouping
-            index_level = range(len(self.grouper.groupings))
-            result_series = result_series.sort_values(ascending=ascending).sort_index(
-                level=index_level, sort_remaining=False
-            )
 
         result: Series | DataFrame
         if self.as_index:

@@ -385,8 +385,8 @@ def test_against_frame_and_seriesgroupby(
     "sort, ascending, expected_rows, expected_count, expected_group_size",
     [
         (False, None, [0, 1, 2, 3, 4], [1, 1, 1, 2, 1], [1, 3, 1, 3, 1]),
-        (True, False, [4, 3, 1, 2, 0], [1, 2, 1, 1, 1], [1, 3, 3, 1, 1]),
-        (True, True, [4, 1, 3, 2, 0], [1, 1, 2, 1, 1], [1, 3, 3, 1, 1]),
+        (True, False, [3, 0, 1, 2, 4], [2, 1, 1, 1, 1], [3, 1, 3, 1, 1]),
+        (True, True, [0, 1, 2, 4, 3], [1, 1, 1, 1, 2], [1, 3, 1, 1, 3]),
     ],
 )
 def test_compound(
@@ -617,7 +617,7 @@ def test_categorical_single_grouper_with_only_observed_categories(
         )
 
     gp = education_df.astype("category").groupby(
-        "country", as_index=as_index, observed=observed
+        "country", as_index=as_index, observed=observed, sort=True
     )
     result = gp.value_counts(normalize=normalize)
 
@@ -811,19 +811,19 @@ def test_categorical_single_grouper_observed_false(
         ("FR", "female", "high"),
         ("FR", "male", "medium"),
         ("FR", "female", "low"),
-        ("FR", "male", "high"),
         ("FR", "female", "medium"),
+        ("FR", "male", "high"),
         ("US", "female", "high"),
         ("US", "male", "low"),
-        ("US", "male", "medium"),
-        ("US", "male", "high"),
-        ("US", "female", "medium"),
         ("US", "female", "low"),
-        ("ASIA", "male", "low"),
-        ("ASIA", "male", "high"),
-        ("ASIA", "female", "medium"),
-        ("ASIA", "female", "low"),
+        ("US", "female", "medium"),
+        ("US", "male", "high"),
+        ("US", "male", "medium"),
         ("ASIA", "female", "high"),
+        ("ASIA", "female", "low"),
+        ("ASIA", "female", "medium"),
+        ("ASIA", "male", "high"),
+        ("ASIA", "male", "low"),
         ("ASIA", "male", "medium"),
     ]
 

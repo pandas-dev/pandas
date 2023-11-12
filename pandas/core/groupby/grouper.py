@@ -690,6 +690,10 @@ class Grouping:
     def codes(self) -> npt.NDArray[np.signedinteger]:
         return self._codes_and_uniques[0]
 
+    @property
+    def uniques(self) -> ArrayLike:
+        return self._codes_and_uniques[1]
+
     @cache_readonly
     def _codes_and_uniques(self) -> tuple[npt.NDArray[np.signedinteger], ArrayLike]:
         uniques: ArrayLike

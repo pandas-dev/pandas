@@ -61,6 +61,9 @@ from pandas.core.indexes.api import (
 )
 from pandas.core.series import Series
 from pandas.core.sorting import (
+    compress_group_index,
+    decons_obs_group_ids,
+    get_group_index,
     get_group_index_sorter,
     get_indexer_dict,
 )
@@ -758,51 +761,42 @@ class BaseGrouper:
 
     @cache_readonly
     def result_index_and_ids(self) -> tuple[Index, np.ndarray]:
-        from pandas.core.sorting import (
-            compress_group_index,
-            decons_obs_group_ids,
-            get_group_index,
-        )
-
-        codes_and_uniques = [ping._codes_and_uniques for ping in self.groupings]
-
-        codes = [e[0] for e in codes_and_uniques]
-        levels = [Index._with_infer(e[1]) for e in codes_and_uniques]
-        for k, (ping, level) in enumerate(zip(self.groupings, levels)):
-            if ping._passed_categorical:
-                # TODO: Modify in Grouping.groups instead?
-                levels[k] = level.set_categories(ping._orig_cats)
         names = self.names
-
+        codes = [ping.codes for ping in self.groupings]
+        levels = [Index._with_infer(ping.uniques) for ping in self.groupings]
         obs = [
             ping._observed or not ping._passed_categorical for ping in self.groupings
         ]
+        # When passed a categorical grouping, keep all categories
+        for k, (ping, level) in enumerate(zip(self.groupings, levels)):
+            if ping._passed_categorical:
+                levels[k] = level.set_categories(ping._orig_cats)
 
         if len(self.groupings) == 1:
             result_index = levels[0]
             result_index.name = names[0]
-            ids = codes[0]
+            ids = codes[0].astype("intp", copy=False)
             return result_index, ids
-        elif any(obs):
-            ob_codes = [e for e, o in zip(codes, obs) if o]
-            ob_levels = [e for e, o in zip(levels, obs) if o]
-            ob_names = [e for e, o in zip(names, obs) if o]
+
+        if any(obs):
+            ob_codes = [code for code, ob in zip(codes, obs) if ob]
+            ob_levels = [level for level, ob in zip(levels, obs) if ob]
+            ob_names = [name for name, ob in zip(names, obs) if ob]
 
             shape = tuple(len(level) for level in ob_levels)
             group_index = get_group_index(ob_codes, shape, sort=True, xnull=True)
             ob_ids, obs_group_ids = compress_group_index(group_index, sort=self._sort)
             ob_ids = ensure_platform_int(ob_ids)
-            ids, obs_ids = ob_ids, obs_group_ids
             ob_index_codes = decons_obs_group_ids(
-                ids, obs_ids, shape, ob_codes, xnull=True
+                ob_ids, obs_group_ids, shape, ob_codes, xnull=True
             )
-
             ob_index = MultiIndex(
                 levels=ob_levels,
                 codes=ob_index_codes,
                 names=ob_names,
                 verify_integrity=False,
             )
+
         if not all(obs):
             unob_codes = [e for e, o in zip(codes, obs) if not o]
             unob_levels = [e for e, o in zip(levels, obs) if not o]
@@ -811,7 +805,6 @@ class BaseGrouper:
             shape = tuple(len(level) for level in unob_levels)
             unob_ids = get_group_index(unob_codes, shape, sort=True, xnull=True)
             unob_ids = ensure_platform_int(unob_ids)
-
             unob_index = MultiIndex.from_product(unob_levels, names=unob_names)
 
         if all(obs):
@@ -821,11 +814,9 @@ class BaseGrouper:
             result_index = unob_index
             ids = unob_ids
         else:
-            ob_indices = [k for k, e in enumerate(obs) if e]
+            # Combine unobserved and observed parts of result_index
             unob_indices = [k for k, e in enumerate(obs) if not e]
-            _, index, inverse = np.unique(
-                unob_indices + ob_indices, return_index=True, return_inverse=True
-            )
+            ob_indices = [k for k, e in enumerate(obs) if e]
             result_index_codes = np.concatenate(
                 [
                     np.tile(unob_index.codes, len(ob_index)),
@@ -833,20 +824,25 @@ class BaseGrouper:
                 ],
                 axis=0,
             )
+            _, index = np.unique(unob_indices + ob_indices, return_index=True)
             result_index = MultiIndex(
-                levels=[levels[k] for k in inverse],
+                levels=list(unob_index.levels) + list(ob_index.levels),
                 codes=result_index_codes,
-                names=[names[k] for k in inverse],
+                names=list(unob_index.names) + list(ob_index.names),
             ).reorder_levels(index)
-
             ids = len(unob_index) * ob_ids + unob_ids
-            sorter = result_index.argsort()
-            result_index = result_index.take(sorter)
-            _, inverse = np.unique(sorter, return_index=True)
-            ids = inverse.take(ids)
 
-        if len(levels) == 1:
-            result_index = result_index.get_level_values(0)
+            if self._sort:
+                sorter = result_index.argsort()
+                result_index = result_index.take(sorter)
+                _, inverse = np.unique(sorter, return_index=True)
+                ids = inverse.take(ids)
+            else:
+                ids, uniques = compress_group_index(ids, sort=False)
+                taker = np.concatenate(
+                    [uniques, np.delete(np.arange(len(result_index)), uniques)]
+                )
+                result_index = result_index.take(taker)
 
         return result_index, ids
 
