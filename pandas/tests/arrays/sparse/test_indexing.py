@@ -170,6 +170,13 @@ class TestTake:
         result = a.take([0, 1], allow_fill=True, fill_value=np.nan)
         tm.assert_sp_array_equal(a, result)
 
+    def test_take_different_fill_value(self):
+        # Take with a different fill value shouldn't overwrite the original
+        a = pd.array([0.0], dtype=SparseDtype("float64", fill_value=0.0))
+        result = a.take([0, -1], allow_fill=True, fill_value=np.nan)
+        expected = pd.array([0, np.nan], dtype=a.dtype)
+        tm.assert_sp_array_equal(expected, result)
+
     def test_take_fill_value(self):
         data = np.array([1, np.nan, 0, 3, 0])
         sparse = SparseArray(data, fill_value=0)
