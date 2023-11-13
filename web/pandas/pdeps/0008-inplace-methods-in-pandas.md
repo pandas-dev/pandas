@@ -12,25 +12,18 @@
 
 This PDEP proposes that:
 
-- The ``inplace`` parameter will be removed from any methods that never can be done inplace
-- The ``inplace`` parameter will also be removed from any methods that modify the shape of a pandas object's values or
-  don't modify the internal values of a pandas object at all.
-- In contrast, the ``inplace`` parameter will be kept for any methods that only modify the underlying data of a pandas
-  object.
-    - For example, the ``fillna`` method would retain its ``inplace`` keyword, while ``dropna`` (potentially shrinks the
-      length of a ``DataFrame``/``Series``) and ``rename`` (alters labels not values) would lose their ``inplace``
-      keywords
-    - For those methods, since Copy-on-Write behavior will lazily copy if the result is unchanged, users should reassign
-      to the same variable to imitate behavior of the ``inplace`` keyword.
-      e.g. ``df = df.dropna()`` for a DataFrame with no null values.
-- The ``copy`` parameter will also be removed, except in constructors and in functions/methods that convert array-likes
-  to pandas objects (e.g. the ``pandas.array`` function) and functions/methods that export pandas objects to other data
-  types (e.g. ``DataFrame/Series.to_numpy`` method).
-- Open Questions
-  (These questions are deferred to a later revision, and will not affect the acceptance process of this PDEP.)
-    - Should ``inplace=True`` return the original pandas object that was operated inplace on?
-    - What should happen when ``inplace=True`` but the original pandas object cannot be operated inplace on because it
-      shares its values with another pandas object?
+- The ``inplace`` parameter will be removed from any method which can never update the
+  underlying values of a pandas object inplace or which alters the shape of the object,
+  and where the `inplace=True` option is only syntactic sugar for reassigning the result
+  to the calling DataFrame/Series.
+- As a consequence, the `inplace` parameter is only kept for those methods that can
+  modify the underlying values of a pandas object inplace, such as `fillna` or `replace`.
+- With the introduction of Copy-on-Write ([PDEP-7](^1)), users don't need the `inplace`
+  keyword to avoid a copy of the data.
+- For those methods that will keep the `inplace=True` option:
+    - the method will do an attempt to do the operation inplace but still silently copy
+      when needed (for Copy-on-Write), i.e. there is no guarantee it is actually done inplace.
+    - the method will return the calling object (`self`), instead of the current `None`.
 
 ## Motivation and Scope
 
@@ -433,7 +426,7 @@ be the default with Copy-on-Write).
 
 ## References
 
-[^1]: [Copy on Write Specification](https://docs.google.com/document/d/1ZCQ9mx3LBMy-nhwRl33_jgcvWo9IWdEfxDNQ2thyTb0/edit#heading=h.iexejdstiz8u)
+[^1]: [Copy on Write Specification](https://pandas.pydata.org/pdeps/0007-copy-on-write.html)
 [^2]: <https://github.com/pandas-dev/pandas/issues/48141>
 [^3]: <https://github.com/pandas-dev/pandas/issues/16529>
 [^4]: <https://github.com/pandas-dev/pandas/issues/50535>
