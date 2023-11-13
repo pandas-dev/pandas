@@ -921,6 +921,9 @@ def assert_series_equal(
         else:
             assert_attr_equal("dtype", left, right, obj=f"Attributes of {obj}")
 
+    if is_integer_dtype(left.dtype) and is_integer_dtype(right.dtype):
+        check_exact = True
+
     if check_exact and is_numeric_dtype(left.dtype) and is_numeric_dtype(right.dtype):
         left_values = left._values
         right_values = right._values
