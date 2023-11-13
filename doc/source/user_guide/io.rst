@@ -5831,7 +5831,7 @@ table name and optionally a subset of columns to read.
 
 .. note::
 
-  ADBC drivers will map database types directly back to pandas types. For other drivers
+  ADBC drivers will map database types directly back to arrow types. For other drivers
   note that pandas infers column dtypes from query outputs, and not by looking
   up data types in the physical database schema. For example, assume ``userid``
   is an integer column in a table. Then, intuitively, ``select userid ...`` will
