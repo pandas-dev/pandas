@@ -27,7 +27,7 @@ class DatetimeIndex:
         N = 100000
         dtidxes = {
             "dst": date_range(
-                start="10/29/2000 1:00:00", end="10/29/2000 1:59:59", freq="S"
+                start="10/29/2000 1:00:00", end="10/29/2000 1:59:59", freq="s"
             ),
             "repeated": date_range(start="2000", periods=N / 10, freq="s").repeat(10),
             "tz_aware": date_range(start="2000", periods=N, freq="s", tz="US/Eastern"),
@@ -72,13 +72,13 @@ class TzLocalize:
 
     def setup(self, tz):
         dst_rng = date_range(
-            start="10/29/2000 1:00:00", end="10/29/2000 1:59:59", freq="S"
+            start="10/29/2000 1:00:00", end="10/29/2000 1:59:59", freq="s"
         )
-        self.index = date_range(start="10/29/2000", end="10/29/2000 00:59:59", freq="S")
+        self.index = date_range(start="10/29/2000", end="10/29/2000 00:59:59", freq="s")
         self.index = self.index.append(dst_rng)
         self.index = self.index.append(dst_rng)
         self.index = self.index.append(
-            date_range(start="10/29/2000 2:00:00", end="10/29/2000 3:00:00", freq="S")
+            date_range(start="10/29/2000 2:00:00", end="10/29/2000 3:00:00", freq="s")
         )
 
     def time_infer_dst(self, tz):
@@ -90,7 +90,7 @@ class ResetIndex:
     param_names = "tz"
 
     def setup(self, tz):
-        idx = date_range(start="1/1/2000", periods=1000, freq="H", tz=tz)
+        idx = date_range(start="1/1/2000", periods=1000, freq="h", tz=tz)
         self.df = DataFrame(np.random.randn(1000, 2), index=idx)
 
     def time_reset_datetimeindex(self, tz):
@@ -255,7 +255,7 @@ class SortIndex:
 class Lookup:
     def setup(self):
         N = 1500000
-        rng = date_range(start="1/1/2000", periods=N, freq="S")
+        rng = date_range(start="1/1/2000", periods=N, freq="s")
         self.ts = Series(1, index=rng)
         self.lookup_val = rng[N // 2]
 

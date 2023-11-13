@@ -101,8 +101,10 @@ Other enhancements
 - :func:`tseries.api.guess_datetime_format` is now part of the public API (:issue:`54727`)
 - :meth:`ExtensionArray._explode` interface method added to allow extension type implementations of the ``explode`` method (:issue:`54833`)
 - :meth:`ExtensionArray.duplicated` added to allow extension type implementations of the ``duplicated`` method (:issue:`55255`)
+- Allow passing ``read_only``, ``data_only`` and ``keep_links`` arguments to openpyxl using ``engine_kwargs`` of :func:`read_excel` (:issue:`55027`)
 - DataFrame.apply now allows the usage of numba (via ``engine="numba"``) to JIT compile the passed function, allowing for potential speedups (:issue:`54666`)
 - Implement masked algorithms for :meth:`Series.value_counts` (:issue:`54984`)
+- Improved error message when constructing :class:`Period` with invalid offsets such as "QS" (:issue:`55785`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_220.notable_bug_fixes:
@@ -231,29 +233,14 @@ Other API changes
 Deprecations
 ~~~~~~~~~~~~
 
-Deprecate aliases ``M`` and ``Q`` in favour of ``ME`` and ``QE`` for offsets
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Deprecate aliases ``M``, ``Q``, and ``Y`` in favour of ``ME``, ``QE``, and ``YE`` for offsets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The alias ``M`` is deprecated in favour of ``ME`` for offsets, please use ``ME`` for "month end" instead of ``M`` (:issue:`9586`)
+Deprecated the following frequency aliases (:issue:`9586`):
 
-For example:
-
-*Previous behavior*:
-
-.. code-block:: ipython
-
-    In [7]: pd.date_range('2020-01-01', periods=3, freq='M')
-    Out [7]:
-    DatetimeIndex(['2020-01-31', '2020-02-29', '2020-03-31'],
-                  dtype='datetime64[ns]', freq='M')
-
-*Future behavior*:
-
-.. ipython:: python
-
-    pd.date_range('2020-01-01', periods=3, freq='ME')
-
-The alias ``Q`` is deprecated in favour of ``QE`` for offsets, please use ``QE`` for "quarter end" instead of ``Q`` (:issue:`9586`)
+- ``M`` (month end) has been renamed ``ME`` for offsets
+- ``Q`` (quarter end) has been renamed ``QE`` for offsets
+- ``Y`` (year end) has been renamed ``YE`` for offsets
 
 For example:
 
@@ -324,8 +311,11 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.groupby` when aggregating pyarrow timestamp and duration dtypes (:issue:`55031`)
 - Performance improvement in :meth:`DataFrame.sort_index` and :meth:`Series.sort_index` when indexed by a :class:`MultiIndex` (:issue:`54835`)
 - Performance improvement in :meth:`Index.difference` (:issue:`55108`)
+- Performance improvement in :meth:`MultiIndex.get_indexer` when ``method`` is not ``None`` (:issue:`55839`)
 - Performance improvement in :meth:`Series.duplicated` for pyarrow dtypes (:issue:`55255`)
+- Performance improvement in :meth:`Series.str` methods (:issue:`55736`)
 - Performance improvement in :meth:`SeriesGroupBy.idxmax`, :meth:`SeriesGroupBy.idxmin`, :meth:`DataFrameGroupBy.idxmax`, :meth:`DataFrameGroupBy.idxmin` (:issue:`54234`)
+- Performance improvement when indexing into a non-unique index (:issue:`55816`)
 - Performance improvement when indexing with more than 4 keys (:issue:`54550`)
 - Performance improvement when localizing time to UTC (:issue:`55241`)
 
@@ -346,7 +336,9 @@ Datetimelike
 - Bug in :class:`DatetimeIndex` construction when passing both a ``tz`` and either ``dayfirst`` or ``yearfirst`` ignoring dayfirst/yearfirst (:issue:`55813`)
 - Bug in :class:`DatetimeIndex` when passing an object-dtype ndarray of float objects and a ``tz`` incorrectly localizing the result (:issue:`55780`)
 - Bug in :func:`concat` raising ``AttributeError`` when concatenating all-NA DataFrame with :class:`DatetimeTZDtype` dtype DataFrame. (:issue:`52093`)
+- Bug in :func:`testing.assert_extension_array_equal` that could use the wrong unit when comparing resolutions (:issue:`55730`)
 - Bug in :func:`to_datetime` and :class:`DatetimeIndex` when passing a list of mixed-string-and-numeric types incorrectly raising (:issue:`55780`)
+- Bug in :func:`to_datetime` and :class:`DatetimeIndex` when passing mixed-type objects with a mix of timezones or mix of timezone-awareness failing to raise ``ValueError`` (:issue:`55693`)
 - Bug in :meth:`DatetimeIndex.union` returning object dtype for tz-aware indexes with the same timezone but different units (:issue:`55238`)
 - Bug in :meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` always caching :meth:`Index.is_unique` as ``True`` when first value in index is ``NaT`` (:issue:`55755`)
 - Bug in :meth:`Index.view` to a datetime64 dtype with non-supported resolution incorrectly raising (:issue:`55710`)
@@ -423,7 +415,6 @@ I/O
 - Bug in :meth:`pandas.read_excel` with ``engine="odf"`` (``ods`` files) when string contains annotation (:issue:`55200`)
 - Bug in :meth:`pandas.read_excel` with an ODS file without cached formatted cell for float values (:issue:`55219`)
 - Bug where :meth:`DataFrame.to_json` would raise an ``OverflowError`` instead of a ``TypeError`` with unsupported NumPy types (:issue:`55403`)
--
 
 Period
 ^^^^^^
@@ -469,6 +460,7 @@ Styler
 
 Other
 ^^^^^
+- Bug in :func:`DataFrame.describe` when formatting percentiles in the resulting percentile 99.999% is rounded to 100% (:issue:`55765`)
 - Bug in :func:`cut` incorrectly allowing cutting of timezone-aware datetimes with timezone-naive bins (:issue:`54964`)
 - Bug in :func:`infer_freq` and :meth:`DatetimeIndex.inferred_freq` with weekly frequencies and non-nanosecond resolutions (:issue:`55609`)
 - Bug in :meth:`DataFrame.apply` where passing ``raw=True`` ignored ``args`` passed to the applied function (:issue:`55009`)

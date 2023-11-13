@@ -4,6 +4,7 @@ import re
 import numpy as np
 import pytest
 
+from pandas._libs import index as libindex
 from pandas.errors import (
     InvalidIndexError,
     PerformanceWarning,
@@ -843,11 +844,12 @@ class TestContains:
         assert "element_not_exit" not in idx
         assert "0 day 09:30:00" in idx
 
-    @pytest.mark.slow
-    def test_large_mi_contains(self):
+    def test_large_mi_contains(self, monkeypatch):
         # GH#10645
-        result = MultiIndex.from_arrays([range(10**6), range(10**6)])
-        assert (10**6, 0) not in result
+        with monkeypatch.context():
+            monkeypatch.setattr(libindex, "_SIZE_CUTOFF", 10)
+            result = MultiIndex.from_arrays([range(10), range(10)])
+            assert (10, 0) not in result
 
 
 def test_timestamp_multiindex_indexer():
