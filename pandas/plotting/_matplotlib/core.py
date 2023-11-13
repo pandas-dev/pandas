@@ -1578,12 +1578,12 @@ class LinePlot(MPLPlot):
         freq, data = maybe_resample(data, ax, kwds)
 
         # Set ax with freq info
-        decorate_axes(ax, freq, kwds)
+        decorate_axes(ax, freq)
         # digging deeper
         if hasattr(ax, "left_ax"):
-            decorate_axes(ax.left_ax, freq, kwds)
+            decorate_axes(ax.left_ax, freq)
         if hasattr(ax, "right_ax"):
-            decorate_axes(ax.right_ax, freq, kwds)
+            decorate_axes(ax.right_ax, freq)
         ax._plot_data.append((data, self._kind, kwds))
 
         lines = self._plot(ax, data.index, np.asarray(data.values), style=style, **kwds)
