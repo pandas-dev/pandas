@@ -409,16 +409,23 @@ It may be helpful to review those discussions (see links) [^2] [^3] [^4] to bett
 
 ## Timeline
 
-Copy-on-Write is a relatively new feature (added in version 1.5) and some methods are missing the "lazy copy"
-optimization (equivalent to `copy=False`).
+The `inplace` keyword is widely used, and thus we need to take considerable time to
+deprecate and remove this feature.
 
-Therefore, we propose deprecating the `copy` and `inplace` parameters in pandas 2.1, to
-allow for bugs with Copy-on-Write to be addressed and for more optimizations to be added.
+- For those methods where the `inplace` keyword will be removed, we add a
+  DeprecationWarning in the first release after acceptance (2.2 if possible, otherwise
+  3.0)
+- Together with enabling Copy-on-Write in the pandas 3.0 major release, we already
+  update those methods that will keep the `inplace` keyword with the new behaviour
+  (returning `self`, working inplace when possible)
+- Somewhere during the 3.x release cycle (e.g. in 3.1, depending on when the deprecation
+  was started), we change the DeprecationWarning to a more visible FutureWarning.
+- The deprecated keyword is removed in pandas 4.0.
 
-Hopefully, users will be able to switch to Copy-on-Write to keep the no-copy behavior and to silence the warnings.
-
-The full removal of the `copy` parameter and `inplace` (where necessary) is set for pandas 3.0, which will coincide
-with the enablement of Copy-on-Write for pandas by default.
+When introducing the warning in 2.2 (or 3.0), users will already have the ability to
+enable Copy-on-Write so they can rewrite their code in a way that avoids the deprecation
+warning (remove the usage of `inplace`) while keeping the no-copy behaviour (which will
+be the default with Copy-on-Write).
 
 ## PDEP History
 
