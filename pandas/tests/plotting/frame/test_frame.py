@@ -333,9 +333,13 @@ class TestDataFramePlots:
         # GH: 24867
         df = DataFrame({"a": np.arange(100)}, index=np.arange(100))
 
-        msg = "Boolean, None and 'sym' are valid options, 'sm' is given."
+        msg = f"keyword '{input_param}' should be bool, None, or 'sym', not 'sm'"
         with pytest.raises(ValueError, match=msg):
             df.plot(**{input_param: "sm"})
+
+        msg = f"PiePlot ignores the '{input_param}' keyword"
+        with tm.assert_produces_warning(UserWarning, match=msg):
+            df.plot.pie(subplots=True, **{input_param: True})
 
     def test_xcompat(self):
         df = tm.makeTimeDataFrame()
