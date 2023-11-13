@@ -1012,8 +1012,8 @@ def test_dataframe_to_sql_arrow_dtypes(conn, request):
     if "adbc" in conn:
         if conn == "sqlite_adbc_conn":
             df = df.drop(columns=["timedelta"])
-        exp_warning = FutureWarning  # warning thrown from pyarrow
-        msg = "is_sparse is deprecated"
+        exp_warning = None  # warning thrown from pyarrow
+        msg = ""
     else:
         exp_warning = UserWarning
         msg = "the 'timedelta'"
@@ -1214,8 +1214,8 @@ def test_default_type_conversion(conn, request):
     assert issubclass(df.FloatCol.dtype.type, np.floating)
     assert issubclass(df.IntCol.dtype.type, np.integer)
 
-    # MySQL/sqlite has no real BOOL type, but ADBC loses this
-    if "postgresql" in conn_name and "adbc" not in conn_name:
+    # MySQL/sqlite has no real BOOL type
+    if "postgresql" in conn_name:
         assert issubclass(df.BoolCol.dtype.type, np.bool_)
     else:
         assert issubclass(df.BoolCol.dtype.type, np.integer)
@@ -1825,7 +1825,7 @@ def test_api_custom_dateparsing_error(
         result["BoolCol"] = result["BoolCol"].astype(int)
         result["BoolColWithNull"] = result["BoolColWithNull"].astype(float)
 
-    if conn_name == "postgresql_adbc_conn":
+    if conn_name == "postgresql_adbc_types":
         expected = expected.astype(
             {
                 "IntDateCol": "int32",
@@ -1875,7 +1875,7 @@ def test_api_timedelta(conn, request):
         )
 
     if "adbc" in conn_name:
-        exp_warning = FutureWarning  # pyarrow warns is_sparse is deprecated
+        exp_warning = None
     else:
         exp_warning = UserWarning
 
@@ -2216,10 +2216,10 @@ def test_api_chunksize_read(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_categorical(conn, request):
-    if "adbc" in conn:
+    if conn == "postgresql_adbc_conn":
         request.node.add_marker(
             pytest.mark.xfail(
-                reason="categorical dtype not implemented for ADBC drivers",
+                reason="categorical dtype not implemented for ADBC postgres driver",
                 strict=True,
             )
         )
@@ -3115,13 +3115,6 @@ def test_transactions(conn, request):
 
 @pytest.mark.parametrize("conn", all_connectable)
 def test_transaction_rollback(conn, request):
-    if conn == "postgresql_adbc_conn":
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="broken for postgres ADBC driver - needs investigation",
-                strict=True,
-            )
-        )
     conn_name = conn
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn) as pandasSQL:
