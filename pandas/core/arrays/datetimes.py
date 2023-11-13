@@ -2360,8 +2360,8 @@ def _construct_from_dt64_naive(
 
 def objects_to_datetime64(
     data: np.ndarray,
-    dayfirst: bool,
-    yearfirst: bool,
+    dayfirst,
+    yearfirst,
     utc: bool = False,
     errors: DateTimeErrorChoices = "raise",
     allow_object: bool = False,
