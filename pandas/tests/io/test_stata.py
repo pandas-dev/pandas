@@ -897,14 +897,13 @@ class TestStata:
         expected[5][5] = expected[5][6] = datetime(1678, 1, 1)
 
         expected = DataFrame(expected, columns=columns, dtype=object)
-        # FIXME(GH#55564): can't astype directly to ms or s
-        expected["date_tc"] = expected["date_tc"].astype("Period[ms]")._values.view("M8[ms]")
-        expected["date_td"] = expected["date_td"].astype("Period[s]")._values.view("M8[s]")
-        expected["date_tm"] = expected["date_tm"].astype("Period[s]")._values.view("M8[s]")
-        expected["date_tw"] = expected["date_tw"].astype("Period[s]")._values.view("M8[s]")
-        expected["date_tq"] = expected["date_tq"].astype("Period[s]")._values.view("M8[s]")
-        expected["date_th"] = expected["date_th"].astype("Period[s]")._values.view("M8[s]")
-        expected["date_ty"] = expected["date_ty"].astype("Period[s]")._values.view("M8[s]")
+        expected["date_tc"] = expected["date_tc"].astype("M8[ms]")
+        expected["date_td"] = expected["date_td"].astype("M8[s]")
+        expected["date_tm"] = expected["date_tm"].astype("M8[s]")
+        expected["date_tw"] = expected["date_tw"].astype("M8[s]")
+        expected["date_tq"] = expected["date_tq"].astype("M8[s]")
+        expected["date_th"] = expected["date_th"].astype("M8[s]")
+        expected["date_ty"] = expected["date_ty"].astype("M8[s]")
 
         parsed_115 = read_stata(datapath("io", "data", "stata", "stata9_115.dta"))
         parsed_117 = read_stata(datapath("io", "data", "stata", "stata9_117.dta"))
@@ -931,9 +930,7 @@ class TestStata:
         expected["long_"] = expected["long_"].astype(np.int32)
         expected["float_"] = expected["float_"].astype(np.float32)
         expected["double_"] = expected["double_"].astype(np.float64)
-        # FIXME(GH#55564): can't astype directly to M8[ms] without OutOfBoundsDatetime
-        parr = expected["date_td"].astype("Period[D]")._values
-        expected["date_td"] = parr.view("M8[D]").astype("M8[s]")
+        expected["date_td"] = expected["date_td"].astype("M8[s]")
 
         no_conversion = read_stata(
             datapath("io", "data", "stata", "stata6_117.dta"), convert_dates=True
