@@ -762,7 +762,7 @@ class BaseGrouper:
     @cache_readonly
     def result_index_and_ids(self) -> tuple[Index, np.ndarray]:
         names = self.names
-        codes = [ensure_platform_int(ping.codes) for ping in self.groupings]
+        codes = [ping.codes for ping in self.groupings]
         levels = [Index._with_infer(ping.uniques) for ping in self.groupings]
         obs = [
             ping._observed or not ping._passed_categorical for ping in self.groupings
@@ -807,10 +807,10 @@ class BaseGrouper:
 
         if all(obs):
             result_index = ob_index
-            ids = ob_ids
+            ids = ensure_platform_int(ob_ids)
         elif not any(obs):
             result_index = unob_index
-            ids = unob_ids
+            ids = ensure_platform_int(unob_ids)
         else:
             # Combine unobserved and observed parts of result_index
             unob_indices = [k for k, e in enumerate(obs) if not e]
@@ -841,6 +841,7 @@ class BaseGrouper:
                     [uniques, np.delete(np.arange(len(result_index)), uniques)]
                 )
                 result_index = result_index.take(taker)
+            ids = ensure_platform_int(ids)
 
         return result_index, ids
 
