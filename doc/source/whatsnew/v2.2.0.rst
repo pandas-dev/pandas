@@ -155,7 +155,7 @@ listing of types available in different databases and pandas backends:
 |                 |list                   |ARRAY [#f1]_    |         |
 +-----------------+-----------------------+----------------+---------+
 |                 |struct*                |COMPOSITE TYPE  |         |
-|                 |                       |[#f1]_          |         |
+|                 |                       | [#f1]_         |         |
 +-----------------+-----------------------+----------------+---------+
 
 .. rubric:: Footnotes
