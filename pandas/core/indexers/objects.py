@@ -102,14 +102,14 @@ class FixedWindowIndexer(BaseIndexer):
         closed: str | None = None,
         step: int | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-        if center:
+        if center or self.window_size == 0:
             offset = (self.window_size - 1) // 2
         else:
             offset = 0
 
         end = np.arange(1 + offset, num_values + 1 + offset, step, dtype="int64")
         start = end - self.window_size
-        if closed in ["left", "both"] or self.window_size == 0:
+        if closed in ["left", "both"]:
             start -= 1
         if closed in ["left", "neither"]:
             end -= 1
