@@ -422,8 +422,11 @@ def _generate_marginal_results(
         row_margin = row_margin.stack(future_stack=True)
 
         # slight hack
-        new_order = [len(cols)] + list(range(len(cols)))
-        row_margin.index = row_margin.index.reorder_levels(new_order)
+        new_order_indices = [len(cols)] + list(range(len(cols)))
+
+        # GH#26568. Use names instead of indices in case of numeric names
+        new_order_names = [row_margin.index.names[i] for i in new_order_indices]
+        row_margin.index = row_margin.index.reorder_levels(new_order_names)
     else:
         row_margin = data._constructor_sliced(np.nan, index=result.columns)
 
