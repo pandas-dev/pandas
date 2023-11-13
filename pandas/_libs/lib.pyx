@@ -2520,6 +2520,7 @@ def maybe_convert_objects(ndarray[object] objects,
         ndarray[int64_t] ints
         ndarray[uint64_t] uints
         ndarray[uint8_t] bools
+        ndarray[uint8_t] mask
         Seen seen = Seen()
         object val
         _TSObject tsobj
