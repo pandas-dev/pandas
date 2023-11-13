@@ -1868,7 +1868,7 @@ class _OrderedMerge(_MergeOperation):
             right_join_indexer = right_indexer
         else:
             raise ValueError(
-                f"fill_method must be one of ['ffill']. "
+                "fill_method must be 'ffill' or None"
                 f"Got '{self.fill_method}' instead."
             )
 
