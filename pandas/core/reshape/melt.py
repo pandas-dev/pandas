@@ -22,17 +22,12 @@ from pandas.core.tools.numeric import to_numeric
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
-    from pandas._typing import (
-        AnyArrayLike,
-        Scalar,
-    )
+    from pandas._typing import AnyArrayLike
 
     from pandas import DataFrame
 
 
-def ensure_list_vars(
-    arg_vars: Scalar | AnyArrayLike | None, variable: str, columns
-) -> list:
+def ensure_list_vars(arg_vars, variable: str, columns) -> list:
     if arg_vars is not None:
         if not is_list_like(arg_vars):
             return [arg_vars]
@@ -49,11 +44,11 @@ def ensure_list_vars(
 @Appender(_shared_docs["melt"] % {"caller": "pd.melt(df, ", "other": "DataFrame.melt"})
 def melt(
     frame: DataFrame,
-    id_vars: Scalar | AnyArrayLike | None = None,
-    value_vars: Scalar | AnyArrayLike | None = None,
-    var_name: Scalar | None = None,
-    value_name: Scalar = "value",
-    col_level: Scalar | None = None,
+    id_vars=None,
+    value_vars=None,
+    var_name=None,
+    value_name: Hashable = "value",
+    col_level=None,
     ignore_index: bool = True,
 ) -> DataFrame:
     if value_name in frame.columns:
