@@ -212,7 +212,7 @@ class TestMergeOrdered:
         with pytest.raises(KeyError, match=msg):
             merge_ordered(left, right, on="E", left_by=["G", "h"])
 
-    def test_ffill_5584(self):
+    def test_ffill_validate_fill_method(self):
         # GH 5584
         df1 = DataFrame({"key": ["a", "c", "e"], "lvalue": [1, 2, 3]})
         df2 = DataFrame({"key": ["b", "c", "d", "f"], "rvalue": [4, 5, 6, 7]})
