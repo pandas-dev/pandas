@@ -423,3 +423,11 @@ def test_check_dtype_false_different_reso(dtype):
 
     with pytest.raises(AssertionError, match="Series are different"):
         tm.assert_series_equal(ser_s, ser_ms, check_dtype=False)
+
+
+def test_check_exact_true_for_int_dtype():
+    # GH 55882
+    left = Series([1577840521123000])
+    right = Series([1577840521123543])
+    with pytest.raises(AssertionError, match="Series are different"):
+        tm.assert_series_equal(left, right)
