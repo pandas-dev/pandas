@@ -516,6 +516,8 @@ class Setitem:
 
 
 class SetitemObjectDtype:
+    # GH#19299
+
     def setup(self):
         N = 1000
         cols = 500
