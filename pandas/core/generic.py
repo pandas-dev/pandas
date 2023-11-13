@@ -9199,11 +9199,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 Use frame.T.resample(...) instead.
         closed : {{'right', 'left'}}, default None
             Which side of bin interval is closed. The default is 'left'
-            for all frequency offsets except for 'ME', 'Y', 'Q', 'BME',
+            for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         label : {{'right', 'left'}}, default None
             Which bin edge label to label bucket with. The default is 'left'
-            for all frequency offsets except for 'ME', 'Y', 'Q', 'BME',
+            for all frequency offsets except for 'ME', 'YE', 'QE', 'BME',
             'BA', 'BQ', and 'W' which all have a default of 'right'.
         convention : {{'start', 'end', 's', 'e'}}, default 'start'
             For `PeriodIndex` only, controls whether to use the start or
@@ -12392,7 +12392,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """
         warn = True
         if not PYPY and warn_copy_on_write():
-            if sys.getrefcount(self) <= 5:
+            if sys.getrefcount(self) <= 4:
                 # we are probably in an inplace setitem context (e.g. df['a'] += 1)
                 warn = False
 

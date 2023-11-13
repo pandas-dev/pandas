@@ -45,7 +45,10 @@ if TYPE_CHECKING:
 
     from pandas._typing import PlottingOrientation
 
-    from pandas import DataFrame
+    from pandas import (
+        DataFrame,
+        Series,
+    )
 
 
 class HistPlot(LinePlot):
@@ -87,7 +90,7 @@ class HistPlot(LinePlot):
                 bins = self._calculate_bins(self.data, bins)
         return bins
 
-    def _calculate_bins(self, data: DataFrame, bins) -> np.ndarray:
+    def _calculate_bins(self, data: Series | DataFrame, bins) -> np.ndarray:
         """Calculate bins given data"""
         nd_values = data.infer_objects(copy=False)._get_numeric_data()
         values = np.ravel(nd_values)
@@ -101,7 +104,7 @@ class HistPlot(LinePlot):
     def _plot(  # type: ignore[override]
         cls,
         ax: Axes,
-        y,
+        y: np.ndarray,
         style=None,
         bottom: int | np.ndarray = 0,
         column_num: int = 0,
@@ -131,10 +134,14 @@ class HistPlot(LinePlot):
             else self.data
         )
 
-        for i, (label, y) in enumerate(self._iter_data(data=data)):
+        # error: Argument "data" to "_iter_data" of "MPLPlot" has incompatible
+        # type "object"; expected "DataFrame | dict[Hashable, Series | DataFrame]"
+        for i, (label, y) in enumerate(self._iter_data(data=data)):  # type: ignore[arg-type]
             ax = self._get_ax(i)
 
             kwds = self.kwds.copy()
+            if self.color is not None:
+                kwds["color"] = self.color
 
             label = pprint_thing(label)
             label = self._mark_right_label(label, index=i)
@@ -166,7 +173,7 @@ class HistPlot(LinePlot):
 
             self._append_legend_handles_labels(artists[0], label)
 
-    def _make_plot_keywords(self, kwds: dict[str, Any], y) -> None:
+    def _make_plot_keywords(self, kwds: dict[str, Any], y: np.ndarray) -> None:
         """merge BoxPlot/KdePlot properties to passed kwds"""
         # y is required for KdePlot
         kwds["bottom"] = self.bottom
@@ -225,7 +232,7 @@ class KdePlot(HistPlot):
         self.weights = weights
 
     @staticmethod
-    def _get_ind(y, ind):
+    def _get_ind(y: np.ndarray, ind):
         if ind is None:
             # np.nanmax() and np.nanmin() ignores the missing values
             sample_range = np.nanmax(y) - np.nanmin(y)
@@ -248,12 +255,12 @@ class KdePlot(HistPlot):
     def _plot(  #  type: ignore[override]
         cls,
         ax: Axes,
-        y,
+        y: np.ndarray,
         style=None,
         bw_method=None,
         ind=None,
         column_num=None,
-        stacking_id=None,
+        stacking_id: int | None = None,
         **kwds,
     ):
         from scipy.stats import gaussian_kde
@@ -265,11 +272,11 @@ class KdePlot(HistPlot):
         lines = MPLPlot._plot(ax, ind, y, style=style, **kwds)
         return lines
 
-    def _make_plot_keywords(self, kwds: dict[str, Any], y) -> None:
+    def _make_plot_keywords(self, kwds: dict[str, Any], y: np.ndarray) -> None:
         kwds["bw_method"] = self.bw_method
         kwds["ind"] = self._get_ind(y, ind=self.ind)
 
-    def _post_plot_logic(self, ax, data) -> None:
+    def _post_plot_logic(self, ax: Axes, data) -> None:
         ax.set_ylabel("Density")
 
 

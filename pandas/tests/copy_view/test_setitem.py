@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pandas import (
     DataFrame,
@@ -66,6 +67,8 @@ def test_set_column_with_index(using_copy_on_write):
     assert not np.shares_memory(get_array(df, "d"), arr)
 
 
+# TODO(CoW-warn) this should NOT warn
+@pytest.mark.filterwarnings("ignore:Setting a value on a view:FutureWarning")
 def test_set_columns_with_dataframe(using_copy_on_write):
     # Case: setting a DataFrame as new columns copies that data
     # (with delayed copy with CoW)
