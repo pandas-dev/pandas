@@ -2136,6 +2136,8 @@ class DataFrame(NDFrame, OpsMixin):
 
         .. deprecated:: 2.2.0
 
+           Please use ``pandas_gbq.to_gbq`` instead.
+
         This function requires the `pandas-gbq package
         <https://pandas-gbq.readthedocs.io>`__.
 

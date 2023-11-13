@@ -47,6 +47,8 @@ def read_gbq(
 
     .. deprecated:: 2.2.0
 
+       Please use ``pandas_gbq.read_gbq`` instead.
+
     This function requires the `pandas-gbq package
     <https://pandas-gbq.readthedocs.io>`__.
 
