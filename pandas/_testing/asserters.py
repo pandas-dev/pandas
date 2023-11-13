@@ -924,7 +924,8 @@ def assert_series_equal(
     if (
         is_integer_dtype(left.dtype)
         and is_integer_dtype(right.dtype)
-        and left.dtype == right.dtype
+        and isinstance(left._values, type(right._values))
+        and isinstance(right._values, type(left._values))
     ):
         check_exact = True
 
