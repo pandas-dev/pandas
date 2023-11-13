@@ -33,6 +33,18 @@ class FrameMixedDtypesOps:
                 "ts": pd.date_range(start="1/1/2000", periods=N, freq="h").tolist(),
             }
         )
+        if op in ("sum", "skew", "kurt", "prod", "sem", "var") or (
+            (op, axis)
+            in (
+                ("mean", 1),
+                ("mean", None),
+                ("median", 1),
+                ("median", None),
+                ("std", 1),
+            )
+        ):
+            del df["ts"]
+
         self.df_func = getattr(df, op)
 
     def time_op(self, op, axis):
