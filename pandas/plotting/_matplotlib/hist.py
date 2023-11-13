@@ -140,6 +140,8 @@ class HistPlot(LinePlot):
             ax = self._get_ax(i)
 
             kwds = self.kwds.copy()
+            if self.color is not None:
+                kwds["color"] = self.color
 
             label = pprint_thing(label)
             label = self._mark_right_label(label, index=i)

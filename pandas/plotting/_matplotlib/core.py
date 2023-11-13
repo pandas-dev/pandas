@@ -271,7 +271,10 @@ class MPLPlot(ABC):
 
         self.kwds = kwds
 
-        self._validate_color_args()
+        color = kwds.pop("color", lib.no_default)
+        self.color = self._validate_color_args(color, self.colormap)
+        assert "color" not in self.kwds
+
         self.data = self._ensure_frame(self.data)
 
     @final
@@ -396,34 +399,31 @@ class MPLPlot(ABC):
             out.append((idx_loc,))
         return out
 
-    def _validate_color_args(self):
-        if (
-            "color" in self.kwds
-            and self.nseries == 1
-            and self.kwds["color"] is not None
-            and not is_list_like(self.kwds["color"])
-        ):
+    def _validate_color_args(self, color, colormap):
+        if color is lib.no_default:
+            # It was not provided by the user
+            if "colors" in self.kwds and colormap is not None:
+                warnings.warn(
+                    "'color' and 'colormap' cannot be used simultaneously. "
+                    "Using 'color'",
+                    stacklevel=find_stack_level(),
+                )
+            return None
+        if self.nseries == 1 and color is not None and not is_list_like(color):
             # support series.plot(color='green')
-            self.kwds["color"] = [self.kwds["color"]]
+            color = [color]
 
-        if (
-            "color" in self.kwds
-            and isinstance(self.kwds["color"], tuple)
-            and self.nseries == 1
-            and len(self.kwds["color"]) in (3, 4)
-        ):
+        if isinstance(color, tuple) and self.nseries == 1 and len(color) in (3, 4):
             # support RGB and RGBA tuples in series plot
-            self.kwds["color"] = [self.kwds["color"]]
+            color = [color]
 
-        if (
-            "color" in self.kwds or "colors" in self.kwds
-        ) and self.colormap is not None:
+        if colormap is not None:
             warnings.warn(
                 "'color' and 'colormap' cannot be used simultaneously. Using 'color'",
                 stacklevel=find_stack_level(),
             )
 
-        if "color" in self.kwds and self.style is not None:
+        if self.style is not None:
             if is_list_like(self.style):
                 styles = self.style
             else:
@@ -436,6 +436,7 @@ class MPLPlot(ABC):
                         "'color' keyword argument. Please use one or the "
                         "other or pass 'style' without a color symbol"
                     )
+        return color
 
     @final
     @staticmethod
@@ -1058,11 +1059,14 @@ class MPLPlot(ABC):
     ):
         if num_colors is None:
             num_colors = self.nseries
-
+        if color_kwds == "color":
+            color = self.color
+        else:
+            color = self.kwds.get(color_kwds)
         return get_standard_colors(
             num_colors=num_colors,
             colormap=self.colormap,
-            color=self.kwds.get(color_kwds),
+            color=color,
         )
 
     # TODO: tighter typing for first return?
@@ -1302,7 +1306,7 @@ class ScatterPlot(PlanePlot):
             self.data[c].dtype, CategoricalDtype
         )
 
-        color = self.kwds.pop("color", None)
+        color = self.color
         c_values = self._get_c_values(color, color_by_categorical, c_is_column)
         norm, cmap = self._get_norm_and_cmap(c_values, color_by_categorical)
         cb = self._get_colorbar(c_values, c_is_column)
@@ -1487,6 +1491,8 @@ class LinePlot(MPLPlot):
         for i, (label, y) in enumerate(it):
             ax = self._get_ax(i)
             kwds = self.kwds.copy()
+            if self.color is not None:
+                kwds["color"] = self.color
             style, kwds = self._apply_style_colors(
                 colors,
                 kwds,
@@ -1998,8 +2004,9 @@ class PiePlot(MPLPlot):
         self.logx = False
         self.loglog = False
 
-    def _validate_color_args(self) -> None:
-        pass
+    def _validate_color_args(self, color, colormap) -> None:
+        # TODO: warn if color is passed and ignored?
+        return None
 
     def _make_plot(self, fig: Figure) -> None:
         colors = self._get_colors(num_colors=len(self.data), color_kwds="colors")
