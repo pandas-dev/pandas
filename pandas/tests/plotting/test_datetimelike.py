@@ -102,7 +102,7 @@ class TestTSPlot:
         _check_plot_works(a.plot, yerr=a)
 
     def test_nonnumeric_exclude(self):
-        idx = date_range("1/1/1987", freq="Y", periods=3)
+        idx = date_range("1/1/1987", freq="YE", periods=3)
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]}, idx)
 
         fig, ax = mpl.pyplot.subplots()
@@ -111,7 +111,7 @@ class TestTSPlot:
         mpl.pyplot.close(fig)
 
     def test_nonnumeric_exclude_error(self):
-        idx = date_range("1/1/1987", freq="Y", periods=3)
+        idx = date_range("1/1/1987", freq="YE", periods=3)
         df = DataFrame({"A": ["x", "y", "z"], "B": [1, 2, 3]}, idx)
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
@@ -125,7 +125,7 @@ class TestTSPlot:
         _check_plot_works(ser.plot, ax=ax)
 
     @pytest.mark.parametrize(
-        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "Y", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_tsplot_datetime(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
@@ -176,7 +176,7 @@ class TestTSPlot:
             first_y = first_line.get_ydata()[0]
             assert expected_string == ax.format_coord(first_x, first_y)
 
-        annual = Series(1, index=date_range("2014-01-01", periods=3, freq="Y-DEC"))
+        annual = Series(1, index=date_range("2014-01-01", periods=3, freq="YE-DEC"))
         _, ax = mpl.pyplot.subplots()
         annual.plot(ax=ax)
         check_format_of_first_point(ax, "t = 2014  y = 1.000000")
@@ -204,14 +204,14 @@ class TestTSPlot:
         _check_plot_works(s.plot, s.index.freq.rule_code)
 
     @pytest.mark.parametrize(
-        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "Y", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_line_plot_datetime_series(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
         ser = Series(np.random.default_rng(2).standard_normal(len(idx)), idx)
         _check_plot_works(ser.plot, ser.index.freq.rule_code)
 
-    @pytest.mark.parametrize("freq", ["s", "min", "h", "D", "W", "ME", "QE", "Y"])
+    @pytest.mark.parametrize("freq", ["s", "min", "h", "D", "W", "ME", "QE", "YE"])
     def test_line_plot_period_frame(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
         df = DataFrame(
@@ -240,7 +240,7 @@ class TestTSPlot:
 
     @pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
     @pytest.mark.parametrize(
-        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "Y", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_line_plot_datetime_frame(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
@@ -254,7 +254,7 @@ class TestTSPlot:
         _check_plot_works(df.plot, freq)
 
     @pytest.mark.parametrize(
-        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "Y", "1B30Min"]
+        "freq", ["s", "min", "h", "D", "W", "ME", "QE-DEC", "YE", "1B30Min"]
     )
     def test_line_plot_inferred_freq(self, freq):
         idx = date_range("12/31/1999", freq=freq, periods=100)
@@ -440,7 +440,7 @@ class TestTSPlot:
         assert conv.get_finder(to_offset("D")) == conv._daily_finder
         assert conv.get_finder(to_offset("ME")) == conv._monthly_finder
         assert conv.get_finder(to_offset("QE")) == conv._quarterly_finder
-        assert conv.get_finder(to_offset("Y")) == conv._annual_finder
+        assert conv.get_finder(to_offset("YE")) == conv._annual_finder
         assert conv.get_finder(to_offset("W")) == conv._daily_finder
 
     def test_finder_daily(self):
@@ -1644,9 +1644,6 @@ def _check_plot_works(f, freq=None, series=None, *args, **kwargs):
         kwargs["ax"] = ax
         ret = f(*args, **kwargs)
         assert ret is not None  # TODO: do something more intelligent
-
-        with tm.ensure_clean(return_filelike=True) as path:
-            plt.savefig(path)
 
         # GH18439, GH#24088, statsmodels#4772
         with tm.ensure_clean(return_filelike=True) as path:

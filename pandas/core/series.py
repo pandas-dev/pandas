@@ -407,7 +407,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
             if using_copy_on_write():
                 data = data.copy(deep=False)
@@ -446,7 +446,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
 
             if copy:
@@ -465,7 +465,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
 
         name = ibase.maybe_extract_name(name, data, type(self))
@@ -539,7 +539,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
                     "is deprecated and will raise in a future version. "
                     "Use public APIs instead.",
                     DeprecationWarning,
-                    stacklevel=find_stack_level(),
+                    stacklevel=2,
                 )
                 allow_mgr = True
 
@@ -637,7 +637,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     def _constructor_from_mgr(self, mgr, axes):
         if self._constructor is Series:
             # we are pandas.Series (or a subclass that doesn't override _constructor)
-            ser = self._from_mgr(mgr, axes=axes)
+            ser = Series._from_mgr(mgr, axes=axes)
             ser._name = None  # caller is responsible for setting real name
             return ser
         else:
@@ -5785,7 +5785,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2023-01-31    1
         2024-01-31    2
         2025-01-31    3
-        Freq: Y-JAN, dtype: int64
+        Freq: YE-JAN, dtype: int64
         """
         if not isinstance(self.index, PeriodIndex):
             raise TypeError(f"unsupported Type {type(self.index).__name__}")

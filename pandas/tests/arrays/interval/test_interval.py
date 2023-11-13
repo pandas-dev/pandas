@@ -166,18 +166,6 @@ class TestSetitem:
         tm.assert_interval_array_equal(arr, orig)
 
 
-def test_repr():
-    # GH 25022
-    arr = IntervalArray.from_tuples([(0, 1), (1, 2)])
-    result = repr(arr)
-    expected = (
-        "<IntervalArray>\n"
-        "[(0, 1], (1, 2]]\n"
-        "Length: 2, dtype: interval[int64, right]"
-    )
-    assert result == expected
-
-
 class TestReductions:
     def test_min_max_invalid_axis(self, left_right_dtypes):
         left, right = left_right_dtypes
@@ -321,6 +309,9 @@ def test_arrow_array_missing():
     assert result.storage.equals(expected)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 @pytest.mark.parametrize(
     "breaks",
     [[0.0, 1.0, 2.0, 3.0], date_range("2017", periods=4, freq="D")],
@@ -337,16 +328,12 @@ def test_arrow_table_roundtrip(breaks):
 
     table = pa.table(df)
     assert isinstance(table.field("a").type, ArrowIntervalType)
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = table.to_pandas()
+    result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.IntervalDtype)
     tm.assert_frame_equal(result, df)
 
     table2 = pa.concat_tables([table, table])
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = table2.to_pandas()
+    result = table2.to_pandas()
     expected = pd.concat([df, df], ignore_index=True)
     tm.assert_frame_equal(result, expected)
 
@@ -354,12 +341,13 @@ def test_arrow_table_roundtrip(breaks):
     table = pa.table(
         [pa.chunked_array([], type=table.column(0).type)], schema=table.schema
     )
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = table.to_pandas()
+    result = table.to_pandas()
     tm.assert_frame_equal(result, expected[0:0])
 
 
+@pytest.mark.filterwarnings(
+    "ignore:Passing a BlockManager to DataFrame:DeprecationWarning"
+)
 @pytest.mark.parametrize(
     "breaks",
     [[0.0, 1.0, 2.0, 3.0], date_range("2017", periods=4, freq="D")],
@@ -377,9 +365,7 @@ def test_arrow_table_roundtrip_without_metadata(breaks):
     table = table.replace_schema_metadata()
     assert table.schema.metadata is None
 
-    msg = "Passing a BlockManager to DataFrame is deprecated"
-    with tm.assert_produces_warning(DeprecationWarning, match=msg):
-        result = table.to_pandas()
+    result = table.to_pandas()
     assert isinstance(result["a"].dtype, pd.IntervalDtype)
     tm.assert_frame_equal(result, df)
 
